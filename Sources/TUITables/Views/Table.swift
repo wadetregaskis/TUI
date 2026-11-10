@@ -538,6 +538,9 @@ extension Table {
     /// which is what keeps a *literal* binding to the key overload above — see
     /// ``LocalizedStringKey``.
     ///
+    /// Text too long for the table's width wraps onto the rows below, as many as
+    /// the table has, the last ending in an ellipsis if even those are too few.
+    ///
     /// - Parameter placeholder: The text to show when the table is empty.
     /// - Returns: A table with the specified empty placeholder.
     @_disfavoredOverload
@@ -1090,7 +1093,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         let contentSize: (width: Int, height: Int)
         if data.isEmpty {
-            contentSize = (gutter + emptyPlaceholder.strippedLength, 1)
+            // As `emptyContent` draws it: wrapped where it is too long.
+            let lines = placeholderLines(innerWidth: innerWidth, rowArea: rowArea, gutter: gutter)
+            contentSize = (gutter + lines.map(\.strippedLength).max()!, lines.count)
         } else if wantsScrollbar {
             // The scrollbar path fills the whole content area: every line is
             // the row content padded to `contentInnerWidth` plus the bar cell.
@@ -2242,6 +2247,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return header
     }
 
+    /// The placeholder's lines, past a `gutter` in a content area `innerWidth`
+    /// cells wide and `rowArea` rows tall: one, where it fits; else wrapped onto
+    /// as many rows as it needs, as a `Text` would, the last ending in an
+    /// ellipsis if even those are too few. A placeholder can say why a table is
+    /// empty (a file panel's "The folder … can't be opened." and the file
+    /// system's reason), and cut to one row it lost the why.
+    private func placeholderLines(innerWidth: Int, rowArea: Int, gutter: Int) -> [String] {
+        let lineWidth = innerWidth - gutter
+        guard emptyPlaceholder.strippedLength > lineWidth, lineWidth > 0 else { return [emptyPlaceholder] }
+        return TextWrapping.fit(emptyPlaceholder, width: lineWidth, maxLines: max(1, rowArea))
+    }
+
     /// What a table with no rows draws where the rows would be: its
     /// placeholder — or, for a table of sections with no rows, their headers,
     /// since a collapsed section keeps its header, and the header is the only
@@ -2259,12 +2276,20 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // The placeholder stands where a row's first cell would, past the
             // selection gutter, in the secondary ink, as a list's does (owner
             // #18, 2026-10-23); its claim carries a faded palette's alpha.
-            var row = ClaimingRow()
-            row.skip(cells: selectionGutter(context.environment))
-            row.append(
-                emptyPlaceholder, cells: emptyPlaceholder.strippedLength,
-                ink: context.environment.palette.foregroundSecondary)
-            return ([row.text], _TableRowPayload(), row.claims)
+            let gutter = selectionGutter(context.environment)
+            var texts: [String] = []
+            var claims: [OpacityRegion] = []
+            for (index, line) in placeholderLines(innerWidth: innerWidth, rowArea: rowArea, gutter: gutter).enumerated() {
+                var row = ClaimingRow()
+                row.skip(cells: gutter)
+                row.append(line, cells: line.strippedLength, ink: context.environment.palette.foregroundSecondary)
+                texts.append(row.text)
+                for var claim in row.claims {
+                    claim.offsetY += index
+                    claims.append(claim)
+                }
+            }
+            return (texts, _TableRowPayload(), claims)
         }
         let contentWidth = tableContentWidth(
             columnWidths, within: innerWidth, gutter: selectionGutter(context.environment))

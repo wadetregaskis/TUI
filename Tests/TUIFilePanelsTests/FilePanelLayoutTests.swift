@@ -74,4 +74,46 @@ struct FilePanelLayoutTests {
             #expect(rows(between: shown).count == expected, "\(size): \(shown)")
         }
     }
+
+    /// An open panel over `start`, its home `fixture`'s root.
+    private func openPanel(_ fixture: FilePanelFixture, caller: FilePanelCaller, start: URL) -> some View {
+        FilePanelPresenter(
+            content: Text("Page"), isPresented: caller.binding,
+            request: {
+                FilePanelRequest(
+                    purpose: .open(allowsMultipleSelection: false), rule: FileChoiceRule(), title: "Open",
+                    confirmationLabel: "Open", startDirectory: start, homeDirectory: fixture.root)
+            },
+            onChoose: { caller.chose($0) }, onCancel: { caller.cancelled() })
+    }
+
+    /// `text` with its spaces and the rules a box draws taken out: what reads
+    /// the same however it is wrapped.
+    private func letters(_ text: some StringProtocol) -> String {
+        String(
+            String.UnicodeScalarView(
+                text.unicodeScalars.filter { !$0.properties.isWhitespace && !("\u{2500}"..."\u{257F}").contains($0) }))
+    }
+
+    /// Skipped where permissions don't bind, as for root, which some CI containers are.
+    @Test("A folder that can't be opened says why in full, wrapped where one row is too narrow for it")
+    func unreadableReasonWraps() async throws {
+        let fixture = try FilePanelFixture()
+        let locked = fixture.url("locked")
+        try FileManager.default.createDirectory(at: locked, withIntermediateDirectories: false)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: locked.path)
+        defer {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: locked.path)
+            fixture.remove()
+        }
+        guard !FileManager.default.isReadableFile(atPath: locked.path) else { return }
+        let browser = FileBrowser(directory: locked, rule: FileChoiceRule())
+        await browser.refresh()
+        let message = browser.emptyText
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver(width: 60, height: 30) { openPanel(fixture, caller: caller, start: locked) }
+        let shown = await driver.waitFor("\u{201C}locked\u{201D}")
+        #expect(message.count > 60, "too long for one row: \(message)")
+        #expect(letters(shown).contains(letters(message)), "\(message)\n\(shown)")
+    }
 }

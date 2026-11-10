@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An empty `List`'s or `Table`'s placeholder wraps where it is too long for one row.** It was cut off at the edge, so
+a file panel's "The folder … can't be opened." lost the reason after it. It now wraps onto the rows below, as many as
+the list has, the last ending in an ellipsis if even those are too few.
+
 
 **`.zIndex` orders the children of a `VStack`, an `HStack`, a `Grid` and a `Layout`, not only a `ZStack`'s.** A
 view raised with `.zIndex(1)` was drawn under a later sibling an `.offset` or a negative padding moved onto it, and the

@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUICore
@@ -66,5 +67,49 @@ struct EmptyPlaceholderTests {
         let row = try #require(firstCell(of: "alpha", in: lines(table([Row(id: "a", name: "alpha")]))))
         #expect(empty.column == row.column)
         #expect(empty.ink == secondaryInk)
+    }
+
+    /// A placeholder that says why: more than a row of 30 columns holds.
+    private let why = "The folder can't be opened because you don't have permission to see its contents."
+
+    /// The rows of `lines` that draw part of ``why``, as plain text, trimmed.
+    private func whyRows(_ lines: [String]) -> [String] {
+        lines.map { String(paintedCells($0).map(\.glyph)) }
+            .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: " │")) }
+            .filter { !$0.isEmpty && !$0.contains("─") && !$0.hasPrefix("Name") }
+    }
+
+    @Test("A list's placeholder too long for its width wraps onto the rows below, all of it in the secondary ink")
+    func listPlaceholderWraps() throws {
+        let drawn = lines(List { EmptyView() }.listEmptyPlaceholder(why))
+        let rows = whyRows(drawn)
+        #expect(rows.count > 1, "\(drawn)")
+        #expect(rows.joined(separator: " ") == why, "\(rows)")
+        let last = try #require(firstCell(of: "contents.", in: drawn))
+        #expect(last.ink == secondaryInk)
+        #expect(last.column == firstCell(of: "The", in: drawn)?.column)
+    }
+
+    @Test("A table's placeholder too long for its width wraps onto the rows below")
+    func tablePlaceholderWraps() throws {
+        let table = Table([Row](), selection: .constant(String?.none)) {
+            TableColumn("Name", value: \Row.name)
+        }
+        .tableEmptyPlaceholder(why)
+        let drawn = lines(table)
+        let rows = whyRows(drawn)
+        #expect(rows.count > 1, "\(drawn)")
+        #expect(rows.joined(separator: " ") == why, "\(rows)")
+        #expect(try #require(firstCell(of: "contents.", in: drawn)).ink == secondaryInk)
+    }
+
+    @Test("A placeholder too long for the list's rows keeps those it has, the last ending in an ellipsis")
+    func placeholderFoldsIntoTheRowsThereAre() {
+        let drawn = renderToBuffer(
+            List { EmptyView() }.listEmptyPlaceholder(why), context: makeRenderContext(width: 30, height: 4)
+        ).lines
+        let rows = whyRows(drawn)
+        #expect(rows.count == 2, "\(drawn)")
+        #expect(rows.last?.hasSuffix("…") == true, "\(rows)")
     }
 }

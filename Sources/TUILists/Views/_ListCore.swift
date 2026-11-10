@@ -1016,7 +1016,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         var content: _ListContentView
         let renderState: PopulatedRenderState?
         if source.isEmpty {
-            content = emptyStateContent(context: context)
+            content = emptyStateContent(height: targetContentHeight, context: context)
             // Empty is not inert. The list still occupies its frame, so it is
             // still somewhere a drag can be dropped — and everything that makes
             // that true (the container's hit region, the drop destination, the
@@ -1214,16 +1214,21 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
     // MARK: - Empty-state placeholder
 
-    /// Builds the single-line empty-state content for a list
-    /// with no rows. The placeholder is padded out to the
-    /// available width so an empty list keeps its full size
-    /// instead of collapsing to the title's width.
+    /// Builds the empty-state content for a list with no rows. The
+    /// placeholder is padded out to the available width so an empty list
+    /// keeps its full size instead of collapsing to the title's width.
     ///
     /// It stands where a row's text would, past the gutter the rows keep for
     /// their selection mark, in the secondary ink: it says why the list is
     /// empty and is not a row, where flush against the border in the rows'
     /// ink it read as an accident (owner #18, 2026-10-23).
-    private func emptyStateContent(context: RenderContext) -> _ListContentView {
+    ///
+    /// Too long for the list's width, it wraps onto as many of the list's
+    /// `height` rows as it needs, as a `Text` would, the last ending in an
+    /// ellipsis if even those are too few: a placeholder can say why a list is
+    /// empty (a file panel's "The folder … can't be opened." and the file
+    /// system's reason), and cut to one row it lost the why.
+    private func emptyStateContent(height: Int, context: RenderContext) -> _ListContentView {
         // Spelled as a `Text` is (``RenderContext/spelled(_:)``): it is drawn
         // here, not by one.
         let emptyPlaceholder = context.spelled(self.emptyPlaceholder)
@@ -1231,12 +1236,18 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // +2 for the "─ … ─" border decorations around the title.
         let titleWidth = title.map { context.spelled($0).strippedLength + 2 } ?? 0
         let intrinsicWidth = max(listRowGutter + placeholderWidth, titleWidth)
+        // Subtract the two border columns only when the style draws a border,
+        // and the style's row padding; a borderless (`.plain`) list fills the
+        // full available width.
+        let innerWidth = context.availableWidth - context.environment.listStyle.horizontalChrome
+        let lineWidth = innerWidth - listRowGutter
+        var lines = [emptyPlaceholder]
         let targetWidth: Int
-        if context.hasExplicitWidth {
-            // Subtract the two border columns only when the style draws a border,
-            // and the style's row padding; a borderless (`.plain`) list fills the
-            // full available width.
-            targetWidth = max(intrinsicWidth, context.availableWidth - context.environment.listStyle.horizontalChrome)
+        if placeholderWidth > lineWidth, lineWidth > 0 {
+            lines = TextWrapping.fit(emptyPlaceholder, width: lineWidth, maxLines: max(1, height))
+            targetWidth = max(titleWidth, innerWidth)
+        } else if context.hasExplicitWidth {
+            targetWidth = max(intrinsicWidth, innerWidth)
         } else {
             targetWidth = intrinsicWidth
         }
@@ -1244,11 +1255,20 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // that pairs them: a faded palette's secondary ink carries one.
         // The gutter is a cell each side of a row's text (`rowContentLeft`'s
         // `+ 1`, and the pad after a badge).
-        var row = ClaimingRow()
-        row.skip(cells: listRowGutter / 2)
-        row.append(emptyPlaceholder, cells: placeholderWidth, ink: context.environment.palette.foregroundSecondary)
-        row.skip(cells: targetWidth - row.cells)
-        return _ListContentView(lines: [row.text], claims: row.claims)
+        var texts: [String] = []
+        var claims: [OpacityRegion] = []
+        for (index, line) in lines.enumerated() {
+            var row = ClaimingRow()
+            row.skip(cells: listRowGutter / 2)
+            row.append(line, cells: line.strippedLength, ink: context.environment.palette.foregroundSecondary)
+            row.skip(cells: targetWidth - row.cells)
+            texts.append(row.text)
+            for var claim in row.claims {
+                claim.offsetY += index
+                claims.append(claim)
+            }
+        }
+        return _ListContentView(lines: texts, claims: claims)
     }
 
     // MARK: - Populated content

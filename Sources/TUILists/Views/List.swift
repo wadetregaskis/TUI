@@ -938,6 +938,9 @@ extension List {
     /// which is what keeps a *literal* binding to the key overload above — see
     /// ``LocalizedStringKey``.
     ///
+    /// Text too long for the list's width wraps onto the rows below, as many as
+    /// the list has, the last ending in an ellipsis if even those are too few.
+    ///
     /// - Parameter placeholder: The text to show when the list is empty.
     /// - Returns: A list with the specified empty placeholder.
     @_disfavoredOverload
