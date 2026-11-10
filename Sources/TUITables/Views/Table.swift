@@ -795,8 +795,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if table.needsResolution { table.resolveRows(context) }
         table.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
         // Headers spelled in ASCII once here, where `TUI_PLAIN_TEXT=transliterate`
-        // asks, so the width they're measured at is the width they're drawn at.
-        if context.textSpelling.isASCII {
+        // asks, so the width they're measured at is the width they're drawn at;
+        // and their escape sequences removed, as a `Text`'s are.
+        if context.textSpelling.isASCII || table.columns.contains(where: { $0.title.mayHoldTerminalControls }) {
             for index in table.columns.indices {
                 table.columns[index].title = context.spelled(table.columns[index].title)
             }
@@ -2185,7 +2186,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             context.renderCache?.rowWork.cellValues += 1
             let text = make(item, context)
             if let lines = Self.plainLines(
-                of: text, in: column, width: width, spelling: context.textSpelling)
+                of: text, in: column, width: width, spelling: context.textSpelling, keepingEscapes: context.environment.textKeepsEscapeSequences)
             {
                 return lines
             }
@@ -5095,9 +5096,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // The one-line case without the array: this is the single-line
             // table's every cell.
             if column.lineLimit == 1, text.drawsAsPlainString {
-                return TextTransliteration.spelled(text.content, as: spelling)
+                return TextTransliteration.spelled(
+                    text.content, as: spelling, keepingEscapes: context.environment.textKeepsEscapeSequences)
             }
-            if let lines = Self.plainLines(of: text, in: column, width: width, spelling: spelling) {
+            if let lines = Self.plainLines(
+                of: text, in: column, width: width, spelling: spelling,
+                keepingEscapes: context.environment.textKeepsEscapeSequences)
+            {
                 return lines.joined(separator: "\n")
             }
             return renderedCell(text, column, for: item, width: width, context: context)
@@ -5132,9 +5137,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// Its string spelled as `spelling` says first, as the `Text` would spell
     /// it (``RenderContext/textSpelling``).
     private static func plainLines(
-        of text: Text, in column: _TableColumnSpec<Value>, width: Int, spelling: TextSpelling
+        of text: Text, in column: _TableColumnSpec<Value>, width: Int, spelling: TextSpelling,
+        keepingEscapes: @autoclosure () -> Bool
     ) -> [String]? {
-        let content = TextTransliteration.spelled(text.content, as: spelling)
+        let content = TextTransliteration.spelled(text.content, as: spelling, keepingEscapes: keepingEscapes())
         if column.lineLimit == 1 {
             return text.drawsAsPlainString ? [content] : nil
         }

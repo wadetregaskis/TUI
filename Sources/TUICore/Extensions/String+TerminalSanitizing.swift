@@ -7,15 +7,17 @@
 // MARK: - Escape-sequence sanitising for untrusted content
 
 extension String {
-    /// Returns a copy with **every** ANSI escape sequence removed, suitable for
-    /// rendering content this program did not author.
+    /// Returns a copy with **every** ANSI escape sequence and bare control
+    /// character removed, suitable for rendering content this program did not
+    /// author.
     ///
-    /// Use this on anything a user (or a file, or the network) supplied before
-    /// passing it to ``Text`` or any other view, so the content cannot drive the
-    /// terminal:
+    /// Every view already does this to the words it draws (``Text``, a label, a
+    /// title, a table cell), unless `.textKeepsEscapeSequences()` is in force
+    /// above it: the owner's ruling of 2026-11-10. Use it yourself for text that
+    /// reaches the terminal some other way, or to store or log what was shown:
     ///
     /// ```swift
-    /// Text(userInput.sanitizedForTerminal)
+    /// log.append(fileName.sanitizedForTerminal)
     /// ```
     ///
     /// ## What it removes
@@ -32,6 +34,9 @@ extension String {
     /// | Two-byte escapes — `ESC c` (full reset), `ESC 7` / `ESC 8` | `ESC` + one byte | — | — |
     ///
     /// Every other C1 control is dropped too: they are never legitimate text.
+    /// So is every C0 control but the three below, and `DEL`: a `BEL` rings, a
+    /// backspace moves the cursor back over what was drawn, and none of them is
+    /// a character anyone reads.
     ///
     /// An unterminated sequence is consumed to the end of the string. Content
     /// after a truncated introducer is *inside* the sequence as far as the
@@ -40,11 +45,12 @@ extension String {
     ///
     /// ## What it deliberately leaves alone
     ///
-    /// **C0 controls, including `\n`.** A newline is legitimate content — the
-    /// text views break lines on it — so removing it here would corrupt ordinary
-    /// input. Every C0 control that would move the cursor off its row is
-    /// neutralised instead at the write boundary, by
-    /// ``String/sanitizedForTerminalRow()``, which no view can bypass.
+    /// **Tab, line feed and carriage return.** A line break (`\n`, `\r\n`,
+    /// `\r`) is legitimate content — the text views break lines on it — and a
+    /// tab is drawn as a space, so removing either here would corrupt ordinary
+    /// input. Each is neutralised instead at the write boundary, by
+    /// ``String/sanitizedForTerminalRow()``, which no view can bypass, where the
+    /// views leave one in a row.
     ///
     /// ## Why this is not ``String/stripped``
     ///
@@ -67,18 +73,7 @@ extension String {
     /// - Returns: The string with all escape sequences removed; `self`
     ///   unchanged, without allocating, when there are none — the common case.
     public var sanitizedForTerminal: String {
-        // Fast reject. An escape can only start at ESC (0x1B) or at a C1
-        // control (U+0080…U+009F), and every C1 scalar encodes to UTF-8 as
-        // 0xC2 followed by its low byte — so one contiguous byte scan for 0x1B
-        // or 0xC2 clears a clean string without walking scalars at all.
-        let mayHaveEscape =
-            utf8.withContiguousStorageIfAvailable { buffer -> Bool in
-                // `contains(where:)`, not a `for unsafe … where` loop: that loop in this closure crashes the
-                // type checker of Swift 6.2 and 6.3 (report "for unsafe in a withContiguousStorageIfAvailable
-                // closure crashes the type checker", 2026-11-02).
-                unsafe buffer.contains { byte in byte == 0x1B || byte == 0xC2 }
-            } ?? unicodeScalars.contains { $0.value == 0x1B || (0x80...0x9F).contains($0.value) }
-        guard mayHaveEscape else { return self }
+        guard mayHoldTerminalControls else { return self }
 
         // The scanner mirrors the shape of `forEachVisibleANSIRun` — a single
         // forward pass over the scalar view, appending visible content as
@@ -106,6 +101,11 @@ extension String {
                         hasRun = false
                     }
                     state = .sawESC
+                } else if Self.isDroppedC0(value) {
+                    if hasRun {
+                        result += self[runStart..<index]
+                        hasRun = false
+                    }
                 } else if let opened = Self.escapeState(openedByC1: value) {
                     if hasRun {
                         result += self[runStart..<index]
@@ -148,6 +148,10 @@ extension String {
                     state = .normal
                 } else if value == 0x1B {  // ESC interrupts a malformed CSI
                     state = .sawESC
+                } else if Self.isDroppedC0(value) || (0x80...0x9F).contains(value) {
+                    // A control ends the malformed CSI and is dropped itself,
+                    // as it would be anywhere else.
+                    state = Self.escapeState(openedByC1: value) ?? .normal
                 } else {
                     // Not a CSI byte where a terminator was expected: the
                     // sequence is malformed, and this scalar is visible again.
@@ -175,6 +179,82 @@ extension String {
             result += self[runStart..<index]
         }
         return result
+    }
+
+    /// Whether this may hold anything ``sanitizedForTerminal`` removes: an
+    /// `ESC`, a C1 control, `DEL`, or a C0 control other than tab, line feed
+    /// and carriage return.
+    ///
+    /// A *reject*, not a decision: every C1 scalar encodes to UTF-8 as `0xC2`
+    /// followed by its low byte, and `0xC2` also leads U+00A0…U+00BF (a
+    /// no-break space, `©`), so one contiguous byte scan clears a clean
+    /// string without walking scalars at all. What every view's words go
+    /// through on every measure and render, so a view can skip the walk, and
+    /// any copy, for the string that virtually every string is.
+    ///
+    /// Eight bytes at a time (SWAR: "has a byte below 0x20", "has a byte equal
+    /// to 0x7F / 0xC2"), and byte by byte only in a word that flags, so a word
+    /// of plain text costs a few arithmetic operations rather than eight
+    /// closure calls, which an unoptimised build makes: every `Text`'s words
+    /// pass here at its measure and again at its render.
+    package var mayHoldTerminalControls: Bool {
+        utf8.withContiguousStorageIfAvailable { buffer -> Bool in
+            let bytes = UnsafeRawBufferPointer(buffer)
+            let count = bytes.count
+            var offset = 0
+            while offset + 8 <= count {
+                let word = unsafe bytes.loadUnaligned(fromByteOffset: offset, as: UInt64.self)
+                // A flagged word (a tab or a line break flags one, harmlessly)
+                // is walked byte by byte. `while`, not a `for unsafe … where`
+                // loop: that loop in this closure crashes the type checker of
+                // Swift 6.2 and 6.3 (report "for unsafe in a
+                // withContiguousStorageIfAvailable closure crashes the type
+                // checker", 2026-11-02).
+                if Self.wordMayHoldControl(word) {
+                    var index = offset
+                    while index < offset + 8 {
+                        if Self.isDroppedByte(unsafe bytes[index]) { return true }
+                        index += 1
+                    }
+                }
+                offset += 8
+            }
+            while offset < count {
+                if Self.isDroppedByte(unsafe bytes[offset]) { return true }
+                offset += 1
+            }
+            return false
+        }
+            ?? unicodeScalars.contains { $0.value == 0x1B || Self.isDroppedC0($0.value) || (0x80...0x9F).contains($0.value) }
+    }
+
+    /// Whether `word` has a byte below `0x20`, or equal to `0x7F` or `0xC2`:
+    /// the classic "has a zero byte" test, `(v - 0x01…) & ~v & 0x80…`, which is
+    /// exact about whether one exists (not which), applied to `word` for "below
+    /// 0x20" and to `word` XOR each byte broadcast for the two equalities.
+    private static func wordMayHoldControl(_ word: UInt64) -> Bool {
+        let ones: UInt64 = 0x0101_0101_0101_0101
+        let highs: UInt64 = 0x8080_8080_8080_8080
+        let below: UInt64 = (word &- ones &* 0x20) & ~word & highs
+        let del: UInt64 = word ^ (ones &* 0x7F)
+        let c1: UInt64 = word ^ (ones &* 0xC2)
+        let hasDEL: UInt64 = (del &- ones) & ~del & highs
+        let hasC1Lead: UInt64 = (c1 &- ones) & ~c1 & highs
+        return below | hasDEL | hasC1Lead != 0
+    }
+
+    /// Whether `byte` is one ``mayHoldTerminalControls`` stops at: a C0 control
+    /// other than tab, line feed and carriage return (`ESC` among them), `DEL`,
+    /// or `0xC2`, the lead byte of every C1 control.
+    private static func isDroppedByte(_ byte: UInt8) -> Bool {
+        (byte < 0x20 && byte != 0x09 && byte != 0x0A && byte != 0x0D) || byte == 0x7F || byte == 0xC2
+    }
+
+    /// Whether `value` is a C0 control the sanitiser drops — every one but tab,
+    /// line feed and carriage return, `ESC` among them (which opens a sequence
+    /// rather than standing alone) — or `DEL`.
+    fileprivate static func isDroppedC0(_ value: UInt32) -> Bool {
+        (value < 0x20 && value != 0x09 && value != 0x0A && value != 0x0D && value != 0x1B) || value == 0x7F
     }
 
     /// The scanner state an 8-bit C1 introducer opens, or `nil` when `value` is

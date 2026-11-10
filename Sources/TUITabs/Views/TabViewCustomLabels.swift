@@ -41,12 +41,17 @@ extension _TabViewCore {
     /// `nil` where nothing changes, as the copy finds: the spelling's output
     /// spells as itself.
     func spellingTitles(_ context: RenderContext) -> Self? {
-        guard context.textSpelling.isASCII else { return nil }
+        // As written, only tabs whose words hold something to remove
+        // (`TextTransliteration.spelled(_:as:keepingEscapes:)`) change.
+        guard
+            context.textSpelling.isASCII
+                || tabs.contains(where: { $0.title.mayHoldTerminalControls || $0.badge?.mayHoldTerminalControls == true })
+        else { return nil }
         var changed = false
         let spelled = tabs.map { tab -> _RawTab in
             var spelledTab = tab
             spelledTab.title = context.spelled(tab.title)
-            spelledTab.badge = tab.badge?.spelled(as: context.textSpelling)
+            spelledTab.badge = tab.badge?.spelled(as: context.textSpelling, keepingEscapes: context.environment.textKeepsEscapeSequences)
             if spelledTab.title != tab.title || spelledTab.badgeSuffix != tab.badgeSuffix { changed = true }
             return spelledTab
         }

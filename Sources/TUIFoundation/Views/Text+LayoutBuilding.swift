@@ -117,12 +117,14 @@ import TUICore
         let shown = shownWords(in: context.environment)
         guard let runs = shown.runs else {
             return Self.displayString(
-                shown.content, textCase: textCase, redaction: redaction, spelling: spelling
+                shown.content, textCase: textCase, redaction: redaction, spelling: spelling,
+                keepingEscapes: context.environment.textKeepsEscapeSequences
             ).map { ($0, nil) }
         }
         return runs.flatMap { run in
             Self.displayString(
-                run.text, textCase: textCase, redaction: redaction, spelling: spelling
+                run.text, textCase: textCase, redaction: redaction, spelling: spelling,
+                keepingEscapes: context.environment.textKeepsEscapeSequences
             ).map { ($0, run.attributes) }
         }
     }

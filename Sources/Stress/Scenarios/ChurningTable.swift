@@ -186,6 +186,9 @@ private struct ChurningTableView: View {
                 TableColumn("Load", value: \ChurningRow.bar)
                     .width(8)
             }
+            // The status column's SGR is the scenario's own, kept as it was
+            // before views stripped escape sequences by default (TEXT-ESC).
+            .textKeepsEscapeSequences()
         }
     }
 }
@@ -212,6 +215,8 @@ private struct TailingTableView: View {
                 TableColumn("Level", value: \ChurningRow.status)
                 TableColumn("Message", value: \ChurningRow.summary)
             }
+            // The level column's SGR is the scenario's own (TEXT-ESC).
+            .textKeepsEscapeSequences()
         }
     }
 }

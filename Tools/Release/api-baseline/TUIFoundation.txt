@@ -4095,6 +4095,7 @@ View.task(priority:_:) | nonisolated func task(priority: TaskPriority = .userIni
 View.terminalHyperlinks(_:) | nonisolated func terminalHyperlinks(_ enabled: Bool = true) -> some View
 View.terminalProgress(_:) | nonisolated func terminalProgress(_ progress: TerminalProgress?) -> some View
 View.textCase(_:) | nonisolated func textCase(_ textCase: TextCase?) -> some View
+View.textKeepsEscapeSequences(_:) | nonisolated func textKeepsEscapeSequences(_ keeps: Bool = true) -> some View
 View.textRenderer(_:) | nonisolated func textRenderer<T>(_ renderer: T) -> some View where T : TextRenderer
 View.textScale(_:isEnabled:) | nonisolated func textScale(_ scale: Text.Scale, isEnabled: Bool = true) -> some View
 View.textSelection(_:) | nonisolated func textSelection<S>(_ selectability: S) -> some View where S : TextSelectability

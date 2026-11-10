@@ -795,7 +795,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 if content.carriesBadge, let badge = content.badge, !badge.isHidden,
                     case .content = source.type(at: index)
                 {
-                    badge.spelled(as: spelling).displayText.strippedLength + 1
+                    badge.spelled(as: spelling, keepingEscapes: false).displayText.strippedLength + 1
                         + ((content.badgeProminence ?? environment.badgeProminence) == .decreased ? 0 : capsuleCells)
                 } else {
                     0
@@ -5013,7 +5013,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let capsule = ListBadgeCapsule(prominence: prominence, environment: context.environment)
         return (
             DrawnBadge(
-                value: value.spelled(as: context.textSpelling), capsule: capsule,
+                value: value.spelled(as: context.textSpelling, keepingEscapes: context.environment.textKeepsEscapeSequences), capsule: capsule,
                 isIncreased: prominence == .increased),
             capsule.textInk(prominence.badgeInk(in: palette))
         )

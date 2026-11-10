@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Views draw their words without the escape sequences written into them.** `Text("x\u{1B}[31my")` drew in red, and
+text from outside the app (a file name, a log line, network data) could change colours, set the window title or write
+the clipboard. Every view now removes escape sequences and control characters other than tabs and line breaks from the
+words it draws: a `Text`, labels and titles, table and list cells, tab titles and badges. An app that writes its own
+colour codes into strings keeps them with `.textKeepsEscapeSequences()` on the views that show them.
 **`TUI_NOTIFICATIONS=0` turns notifications off altogether.** It used to stop only those sent through the terminal,
 and at your own computer the app still posted them itself (with `osascript` or `notify-send`) unless
 `TUI_SYSTEM_NOTIFICATIONS=0` was set too. Now `0` means none at all; `TUI_SYSTEM_NOTIFICATIONS` still chooses the route

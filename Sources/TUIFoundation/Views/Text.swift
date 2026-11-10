@@ -958,7 +958,7 @@ package struct TextStyle: Sendable, Equatable {
         let contentString = Self.displayString(
             shownWords(in: context.environment).content, textCase: textCase,
             redaction: context.environment.effectiveRedactionReasons,
-            spelling: context.textSpelling)
+            context: context)
         let wrapped = TextWrapping.wrapMeasured(
             contentString,
             width: maxWidth)
@@ -1043,7 +1043,7 @@ package struct TextStyle: Sendable, Equatable {
             Self.displayString(
                 shownWords(in: context.environment).content, textCase: textCase,
                 redaction: context.environment.effectiveRedactionReasons,
-                spelling: context.textSpelling),
+                context: context),
             width: width)
         // A word broken between its characters shows every one of them, but
         // not whole: a spelling that needs that is one that did not fit.
@@ -1144,12 +1144,12 @@ package struct TextStyle: Sendable, Equatable {
         let maxHeight = min(linesThatFit, lineLimit ?? linesThatFit)
         // Read once for the content and every run of a concatenation, which
         // each used to read it again — see `displayString`.
-        let (redaction, spelling) = (context.environment.effectiveRedactionReasons, context.textSpelling)
+        let redaction = context.environment.effectiveRedactionReasons
         // The words as shown: a link's destination written out where
         // `.linkDisplay` asks for it, as the measure counted it.
         let shown = shownWords(in: context.environment)
         let wrapped = TextWrapping.fitMeasured(
-            Self.displayString(shown.content, textCase: effectiveCase, redaction: redaction, spelling: spelling),
+            Self.displayString(shown.content, textCase: effectiveCase, redaction: redaction, context: context),
             width: maxWidth, maxLines: maxHeight, mode: mode, atWordBoundary: atWordBoundary)
 
         let knownWidth = wrapped.widths.max() ?? 0
@@ -1193,7 +1193,7 @@ package struct TextStyle: Sendable, Equatable {
         var perLineClaims: [[OpacityRegion]] = []
         if let runs = shown.runs {
             let runTexts = runs.map {
-                Self.displayString($0.text, textCase: effectiveCase, redaction: redaction, spelling: spelling)
+                Self.displayString($0.text, textCase: effectiveCase, redaction: redaction, context: context)
             }
             linkSpans?.note(plainLines, runTexts: runTexts, runs: runs)
             let concatenated = concatenatedLines(
@@ -1534,34 +1534,11 @@ package struct TextStyle: Sendable, Equatable {
     }
 
     /// Applies a `TextCase` transform, or returns the string unchanged for `nil`.
-    private static func applyingCase(_ textCase: TextCase?, to string: String) -> String {
+    static func applyingCase(_ textCase: TextCase?, to string: String) -> String {
         switch textCase {
         case .uppercase: return string.uppercased()
         case .lowercase: return string.lowercased()
         case nil: return string
         }
-    }
-
-    /// The string this text will actually DRAW: spelled as the context says
-    /// (``RenderContext/textSpelling``: in ASCII, where asked), cased, then
-    /// redacted. Transliterated first, so `.uppercase` has letters to
-    /// raise: `你好` is `NI HAO`, not `ni hao`.
-    ///
-    /// Every site that needs the drawn string goes through here — the measure,
-    /// the render, and the per-run walk of a concatenation — so a redaction can
-    /// never change the width the measure reserved. Measuring the written
-    /// string while drawing a transformed one is the measure/render parity bug
-    /// class; `.textCase` was already routed this way for exactly that reason
-    /// (ß → SS changes the width), and redaction joins it.
-    ///
-    /// The redaction is the caller's read of
-    /// `EnvironmentValues.effectiveRedactionReasons` rather than a read made
-    /// here: the render draws its content AND every run of a concatenation,
-    /// and a read per string was an environment lookup each time (two under
-    /// `.privacy`) for the same answer.
-    static func displayString(
-        _ string: String, textCase: TextCase?, redaction: RedactionReasons, spelling: TextSpelling
-    ) -> String {
-        redaction.redacting(applyingCase(textCase, to: TextTransliteration.spelled(string, as: spelling)))
     }
 }

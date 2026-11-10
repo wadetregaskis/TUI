@@ -389,6 +389,9 @@ struct CodeEditorApp: View {
                     }
                 }
             }
+            // The source lines' SGR is the scenario's own, kept as it was
+            // before views stripped escape sequences by default (TEXT-ESC).
+            .textKeepsEscapeSequences()
         }
     }
 

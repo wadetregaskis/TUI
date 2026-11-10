@@ -27,9 +27,13 @@ extension RenderContext {
     /// its words are spelled as a `Text`'s are. Call it once, where the string
     /// is first read in a measure or a render, and use what it answers for both:
     /// a string measured as written and drawn spelled is cut or overflows.
-    /// As written, it costs a byte compare.
+    ///
+    /// Its escape sequences and bare control characters are removed first,
+    /// unless ``View/textKeepsEscapeSequences(_:)`` is in force here: see
+    /// ``TextTransliteration/spelled(_:as:keepingEscapes:)``. As written, a
+    /// string with none costs a byte scan.
     package func spelled(_ string: String) -> String {
-        TextTransliteration.spelled(string, as: textSpelling)
+        TextTransliteration.spelled(string, as: textSpelling, keepingEscapes: environment.textKeepsEscapeSequences)
     }
 }
 
@@ -52,14 +56,71 @@ extension EnvironmentValues {
     }
 }
 
+// MARK: - What a Text draws
+
+@MainActor extension Text {
+    /// The string this text will actually DRAW: its escape sequences and bare
+    /// control characters removed unless `keepingEscapes` says otherwise
+    /// (``View/textKeepsEscapeSequences(_:)``), spelled as the context says
+    /// (``RenderContext/textSpelling``: in ASCII, where asked), cased, then
+    /// redacted. Transliterated first, so `.uppercase` has letters to
+    /// raise: `你好` is `NI HAO`, not `ni hao`.
+    ///
+    /// Every site that needs the drawn string goes through here — the measure,
+    /// the render, and the per-run walk of a concatenation — so a redaction can
+    /// never change the width the measure reserved. Measuring the written
+    /// string while drawing a transformed one is the measure/render parity bug
+    /// class; `.textCase` was already routed this way for exactly that reason
+    /// (ß → SS changes the width), and redaction joins it.
+    ///
+    /// The redaction is the caller's read of
+    /// `EnvironmentValues.effectiveRedactionReasons` rather than a read made
+    /// here: the render draws its content AND every run of a concatenation,
+    /// and a read per string was an environment lookup each time (two under
+    /// `.privacy`) for the same answer.
+    ///
+    /// `keepingEscapes` is asked only of a string that holds something to
+    /// remove, so the environment read it stands for is skipped for virtually
+    /// every string.
+    static func displayString(
+        _ string: String, textCase: TextCase?, redaction: RedactionReasons, spelling: TextSpelling,
+        keepingEscapes: @autoclosure () -> Bool
+    ) -> String {
+        redaction.redacting(
+            applyingCase(
+                textCase, to: TextTransliteration.spelled(string, as: spelling, keepingEscapes: keepingEscapes())))
+    }
+
+    /// ``displayString(_:textCase:redaction:spelling:keepingEscapes:)`` with
+    /// the spelling and the escape sequences as `context` says: what a `Text`
+    /// draws in a context, its redaction read by the caller once for all its
+    /// runs.
+    static func displayString(
+        _ string: String, textCase: TextCase?, redaction: RedactionReasons, context: RenderContext
+    ) -> String {
+        displayString(
+            string, textCase: textCase, redaction: redaction, spelling: context.textSpelling,
+            keepingEscapes: context.environment.textKeepsEscapeSequences)
+    }
+}
+
 extension BadgeValue {
     /// This badge with its words spelled as `spelling` says: a string badge in
     /// ASCII where asked, a number as it is. For the badges drawn without a
     /// ``Text`` — a tab's, a list row's — spelled where the badge is read, so
-    /// its width and its drawing agree.
-    package func spelled(as spelling: TextSpelling) -> BadgeValue {
-        guard spelling.isASCII, case .string(let words?) = self else { return self }
-        return .string(TextTransliteration.spelled(words, as: spelling))
+    /// its width and its drawing agree. Its escape sequences go as a `Text`'s
+    /// do (``TextTransliteration/spelled(_:as:keepingEscapes:)``).
+    package func spelled(as spelling: TextSpelling, keepingEscapes: @autoclosure () -> Bool) -> BadgeValue {
+        guard case .string(let words?) = self, spelling.isASCII || words.mayHoldTerminalControls else { return self }
+        return .string(TextTransliteration.spelled(words, as: spelling, keepingEscapes: keepingEscapes()))
+    }
+
+    /// Whether this is a string badge holding something
+    /// ``spelled(as:keepingEscapes:)`` would remove
+    /// (`String.mayHoldTerminalControls`).
+    package var mayHoldTerminalControls: Bool {
+        guard case .string(let words?) = self else { return false }
+        return words.mayHoldTerminalControls
     }
 }
 
@@ -87,9 +148,29 @@ extension BadgeValue {
 /// folding at output to deal with in the cells it takes.
 package enum TextTransliteration {
     /// `string` spelled as `spelling` says: as written, its key symbols in
-    /// ASCII, or all of it in ASCII.
+    /// ASCII, or all of it in ASCII; and first, unless `keepingEscapes`, its
+    /// escape sequences and bare control characters removed
+    /// (`String.sanitizedForTerminal`).
+    ///
+    /// The one place a view's words lose them (the owner's ruling TEXT-ESC,
+    /// 2026-11-10): every view that draws a string goes through here — a
+    /// ``Text`` by `displayString`, the rest by ``RenderContext/spelled(_:)``
+    /// — so a string from outside the app cannot write the clipboard (OSC 52),
+    /// set the window's title or change colours, whichever view shows it.
+    /// Text being edited is not spelled, and shows each control character as
+    /// `U+FFFD` instead (`TextFieldHandler.displayCharacter`).
+    ///
+    /// `keepingEscapes` is ``View/textKeepsEscapeSequences(_:)``'s answer, by
+    /// default `false`: a caller with no environment to ask removes them, which
+    /// is never the unsafe answer. It is asked only where the string holds
+    /// something to remove (`String.mayHoldTerminalControls`, a byte scan), so
+    /// the environment read it stands for is made for almost no string.
+    /// Removed before the spelling, so the transforms never see a sequence.
     @inline(__always)
-    package static func spelled(_ string: String, as spelling: TextSpelling) -> String {
+    package static func spelled(
+        _ string: String, as spelling: TextSpelling, keepingEscapes: @autoclosure () -> Bool = false
+    ) -> String {
+        let string = string.mayHoldTerminalControls && !keepingEscapes() ? string.sanitizedForTerminal : string
         switch spelling {
         case .asWritten: return string
         case .asciiKeys: return KeyNotation.asciiSpelling(string)

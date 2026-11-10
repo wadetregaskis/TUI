@@ -1071,7 +1071,7 @@ extension _ContainerViewCore {
     /// The copy answers `nil` in turn: the transform's output is ASCII, or
     /// what it had nothing to say about, which it leaves as it is again.
     fileprivate func spelled(in context: RenderContext) -> Self? {
-        guard context.textSpelling.isASCII, let title else { return nil }
+        guard let title, context.textSpelling.isASCII || title.mayHoldTerminalControls else { return nil }
         let spelledTitle = context.spelled(title)
         guard spelledTitle != title else { return nil }
         var spelled = self

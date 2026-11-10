@@ -94,6 +94,9 @@ private struct TruncatingTableView: View {
                 TableColumn("Styled") { (row: TruncatingItem) in Text(verbatim: row.styled) }
                 TableColumn("Tail") { (row: TruncatingItem) in Text(verbatim: row.path) }
             }
+            // The styled column's SGR is the scenario's own, kept as it was
+            // before views stripped escape sequences by default (TEXT-ESC).
+            .textKeepsEscapeSequences()
         }
     }
 }

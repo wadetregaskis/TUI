@@ -232,7 +232,8 @@ struct TerminalHostState: Equatable {
     /// break or a tab is a space, and every other control character — C0,
     /// DEL, C1 — is dropped. A `BEL` or an `ESC` would end the OSC early, and
     /// what followed would be printed or obeyed; `sanitizedForTerminal` keeps
-    /// C0, for text drawn on the screen, so text sent in an OSC has its own.
+    /// tabs and line breaks, for text drawn on the screen, so text sent in an
+    /// OSC has its own.
     static func sanitizedText(_ text: String) -> String {
         var sanitized = ""
         sanitized.reserveCapacity(text.utf8.count)

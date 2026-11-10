@@ -171,6 +171,28 @@ RootView().buttonTextStyle(.automatic) { $0.foreground = .blue }      // default
 A load-bearing colour (e.g. a `.destructive` button's error red) stays asserted by
 the control's style and is not overridden by a broad cascade entry.
 
+## Escape Sequences in a String
+
+A view draws its words without the terminal escape sequences and control
+characters written into them: a `Text`, a label, a button's or a window's title,
+a tab's, a table's or a list's cells. Text from outside the app, such as a file
+name, a log line or what a server sent, could otherwise change the colours, set
+the window's title or write the clipboard. Tabs and line breaks are kept, and a
+text field shows each control character in what is being edited as `�`.
+
+An app that writes its own colour codes into a string, the output of a syntax
+highlighter say, keeps them with ``View/textKeepsEscapeSequences(_:)`` on the
+views that show it:
+
+```swift
+Text(highlighted)  // "\u{1B}[35mlet\u{1B}[0m x = 1"
+    .textKeepsEscapeSequences()
+```
+
+Every sequence then goes to the terminal as written, whatever it does, so keep it
+to text the app wrote itself. The styling modifiers above are the better way to
+colour text: they work in every terminal and at every colour depth.
+
 ## See Also
 
 - <doc:AppearanceAndColors>

@@ -177,6 +177,9 @@ struct APIFrame<Row, Content: View>: View {
             Text(Lf("stress.scenario.table-api.heading", variant, count)).bold()
             Divider()
             content(rows(tick))
+                // The status column's SGR is the scenario's own, kept as it was
+                // before views stripped escape sequences by default (TEXT-ESC).
+                .textKeepsEscapeSequences()
         }
     }
 }

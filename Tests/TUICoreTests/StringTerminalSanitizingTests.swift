@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUICore
@@ -104,16 +105,44 @@ struct StringTerminalSanitizingTests {
 
     // MARK: - What it must not touch
 
-    /// A newline is legitimate content — the text views break lines on it. C0
-    /// controls that would move the cursor off its row are neutralised at the
-    /// write boundary instead, by `sanitizedForTerminalRow()`.
-    @Test("Newlines and other C0 controls are left for the row sanitiser")
-    func c0ControlsAreLeftAlone() {
+    /// A line break is legitimate content — the text views break lines on it —
+    /// and a tab is drawn as a space. They are neutralised at the write boundary
+    /// instead, by `sanitizedForTerminalRow()`, where a view leaves one in a row.
+    @Test("Tabs and line breaks are left for the row sanitiser")
+    func tabsAndLineBreaksAreLeftAlone() {
         #expect("one\ntwo".sanitizedForTerminal == "one\ntwo")
+        #expect("one\r\ntwo".sanitizedForTerminal == "one\r\ntwo")
         #expect("a\tb".sanitizedForTerminal == "a\tb")
         #expect("safe\rEVIL".sanitizedForTerminal == "safe\rEVIL")
         // …and the row sanitiser is what makes those harmless on screen.
         #expect("safe\rEVIL".sanitizedForTerminalRow() == "safe EVIL")
+    }
+
+    /// Every other C0 control, and DEL, is dropped (the owner's ruling TEXT-ESC,
+    /// 2026-11-10): a BEL rings, a backspace moves the cursor back over what was
+    /// drawn, and none is a character anyone reads.
+    @Test("Every other C0 control, and DEL, is dropped")
+    func otherC0ControlsAreDropped() {
+        #expect("a\u{07}b\u{08}c\u{00}d\u{0B}e\u{0C}f\u{7F}g".sanitizedForTerminal == "abcdefg")
+        #expect("plain".mayHoldTerminalControls == false)
+        #expect("a\tb\nc\rd".mayHoldTerminalControls == false)
+        #expect("a\u{07}b".mayHoldTerminalControls)
+        // The word-at-a-time scan agrees with a byte-at-a-time one for every
+        // ASCII byte and the C1 lead byte, at every place in a word and in the tail.
+        for value in [UInt8](0...0x7F) + [0xC2] {
+            let flagged = (value < 0x20 && value != 0x09 && value != 0x0A && value != 0x0D) || value == 0x7F || value == 0xC2
+            // 0xC2 leads a two-byte scalar, so it has a continuation after it and
+            // cannot be the last byte.
+            for place in 0..<(value == 0xC2 ? 18 : 19) {
+                var bytes = [UInt8](repeating: 0x61, count: 19)
+                bytes[place] = value
+                if value == 0xC2 { bytes[place + 1] = 0x9B }
+                let string = String(bytes: bytes, encoding: .utf8)
+                #expect(string?.mayHoldTerminalControls == flagged, "byte \(value) at \(place)")
+            }
+        }
+        // A control inside a CSI ends it, and is dropped as well.
+        #expect("\u{1B}[3\u{07}1mx".sanitizedForTerminal == "1mx")
     }
 
     @Test("Ordinary text is returned unchanged")
