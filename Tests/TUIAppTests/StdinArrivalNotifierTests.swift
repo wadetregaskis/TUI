@@ -96,18 +96,15 @@ struct StdinArrivalNotifierTests {
     @Test("stop() promptly resumes a waiter that would otherwise wait a long time")
     func stopResumesPendingWaiter() async {
         let notifier = StdinArrivalNotifier()
-        let started = Started()
 
         let waiter = Task { @MainActor in
-            started.value = true
             // A 60-second timeout: if stop() fails to resume us, the test
             // hangs far past any reasonable runtime, surfacing the bug
             // rather than passing spuriously.
             await notifier.waitForArrival(timeoutNanoseconds: 60_000_000_000)
         }
 
-        // Wait for the waiter to register its continuation first.
-        await started.waitUntilWaiting()
+        await settle(until: { notifier.hasWaiter })  // registered, not merely started
         notifier.stop()
 
         await waiter.value  // returns only because stop() resumed the waiter
@@ -239,12 +236,10 @@ struct StdinArrivalNotifierTests {
     @Test("wake() promptly resumes a suspended waiter")
     func wakeResumesPendingWaiter() async {
         let notifier = StdinArrivalNotifier()
-        let started = Started()
         let waiter = Task { @MainActor in
-            started.value = true
             await notifier.waitForArrival(timeoutNanoseconds: 60_000_000_000)
         }
-        await started.waitUntilWaiting()
+        await settle(until: { notifier.hasWaiter })  // registered, not merely started
         notifier.wake()
         await waiter.value  // returns only because wake() resumed it
     }
@@ -253,12 +248,10 @@ struct StdinArrivalNotifierTests {
     @Test("wake() that resumes a waiter leaves no spurious pending wake")
     func wakeResumeLeavesNoPendingWake() async {
         let notifier = StdinArrivalNotifier()
-        let started = Started()
         let waiter = Task { @MainActor in
-            started.value = true
             await notifier.waitForArrival(timeoutNanoseconds: 60_000_000_000)
         }
-        await started.waitUntilWaiting()
+        await settle(until: { notifier.hasWaiter })  // registered, not merely started
         notifier.wake()  // resumes the waiter; the wake is consumed
         await waiter.value
 
@@ -398,14 +391,4 @@ struct StdinArrivalNotifierTests {
         // load while still failing decisively on a regression.
         #expect(counter.completed < 100)
     }
-}
-
-/// Whether a waiter task has begun — which, on the main actor, means it has
-/// also registered its continuation: `waitForArrival` is same-actor, so the
-/// task runs on to its suspension before the test gets the actor back.
-@MainActor
-private final class Started {
-    var value = false
-
-    func waitUntilWaiting() async { await settle(until: { self.value }) }
 }

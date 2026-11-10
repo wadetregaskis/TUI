@@ -107,6 +107,11 @@ final class StdinArrivalNotifier {
     /// anyone could show).
     var hasPendingWake: Bool { pendingWake }
 
+    /// Whether a ``waitForArrival(timeoutNanoseconds:)`` is suspended, its
+    /// continuation registered: what a test waits for before it wakes one, since
+    /// a waiter that has merely started may not have registered yet.
+    var hasWaiter: Bool { pendingContinuation != nil }
+
     /// A wake delivered while no waiter was suspended. The next
     /// ``waitForArrival(timeoutNanoseconds:)`` returns immediately and clears
     /// it, so a render-request that lands between the loop's check and its
@@ -378,6 +383,12 @@ final class StdinArrivalNotifier {
         pendingWake = true
     }
 
+    /// Whether a wake is pending: the POSIX arm's, for the tests both share.
+    var hasPendingWake: Bool { pendingWake }
+
+    /// Whether a wait is under way: the POSIX arm's, for the tests both share.
+    private(set) var hasWaiter = false
+
     /// Waits until stdin has bytes or the timeout elapses, whichever is first.
     ///
     /// - Parameter timeoutNanoseconds: The longest to wait, or `nil` to wait
@@ -390,6 +401,8 @@ final class StdinArrivalNotifier {
             return
         }
         let deadline = timeoutNanoseconds.map { MonotonicClock.nowNanoseconds &+ $0 }
+        hasWaiter = true
+        defer { hasWaiter = false }
         while true {
             var slice = Self.sliceMilliseconds
             if let deadline {
