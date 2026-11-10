@@ -175,8 +175,10 @@ can run that Xcode, and uploads the report as an artifact; it fails nothing.
 
 TUI builds for `wasm32-unknown-wasip1`, and the Example app runs in a browser
 — `Tools/Web/build.sh` compiles it, `Tools/Web/serve.py` serves it. The CI job
-builds every module and the Example for wasm and is **binding**: what compiles
-for WebAssembly today has to keep compiling.
+builds the whole package for wasm, every product and test target included, and
+is **binding**: what compiles for WebAssembly today has to keep compiling. The
+tests do not run there yet; what that needs is in the port's "Toward full
+support (1.0)".
 
 Three things about the toolchain are worth knowing before you try it locally,
 because each fails in a way that does not name its cause:
