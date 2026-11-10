@@ -241,9 +241,9 @@ extension PlatformImageLoader {
             // the closure below cannot throw. See ``stbLength(forByteCount:)``.
             let length = try Self.stbLength(forByteCount: data.count)
 
-            let rawPixels: UnsafeMutablePointer<UInt8>? = data.withUnsafeBytes { buffer in
+            let rawPixels: UnsafeMutablePointer<UInt8>? = unsafe data.withUnsafeBytes { buffer in
                 guard let baseAddress = buffer.baseAddress else { return nil }
-                return stbi_load_from_memory(
+                return unsafe stbi_load_from_memory(
                     baseAddress.assumingMemoryBound(to: UInt8.self),
                     length,
                     &width,
@@ -253,18 +253,18 @@ extension PlatformImageLoader {
                 )
             }
 
-            guard let pixels = rawPixels else {
-                let reason = String(cString: stbi_failure_reason())
+            guard let pixels = unsafe rawPixels else {
+                let reason = unsafe String(cString: stbi_failure_reason())
                 throw ImageLoadError.decodingFailed("stb_image: \(reason)")
             }
-            defer { stbi_image_free(pixels) }
+            defer { unsafe stbi_image_free(pixels) }
 
             let pixelCount = Int(width) * Int(height)
             if let limit = maxPixelCount, pixelCount > limit {
                 throw ImageLoadError.imageTooLarge(pixelCount: pixelCount, limit: limit)
             }
 
-            let image = RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
+            let image = unsafe RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
             return (image.boxReduced(by: reduction), Int(width), Int(height))
         }
     }

@@ -136,7 +136,7 @@ package enum BindingReads {
     package static func begin() {
         unsafe noted = []
         #if canImport(Glibc) || canImport(Musl)
-            pthread_setspecific(walkingThreadKey, UnsafeRawPointer(bitPattern: 1))
+            unsafe pthread_setspecific(walkingThreadKey, UnsafeRawPointer(bitPattern: 1))
         #endif
     }
 
@@ -166,7 +166,7 @@ package enum BindingReads {
         #if canImport(WASILibc)
             true
         #elseif canImport(Glibc) || canImport(Musl)
-            pthread_getspecific(walkingThreadKey) != nil
+            unsafe pthread_getspecific(walkingThreadKey) != nil
         #else
             Thread.isMainThread
         #endif
@@ -176,7 +176,7 @@ package enum BindingReads {
         /// The thread-local mark ``isWalkingThread`` reads.
         private static let walkingThreadKey: pthread_key_t = {
             var key = pthread_key_t()
-            pthread_key_create(&key, nil)
+            unsafe pthread_key_create(&key, nil)
             return key
         }()
     #endif

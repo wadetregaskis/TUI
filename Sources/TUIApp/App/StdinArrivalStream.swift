@@ -215,7 +215,7 @@ final class StdinArrivalNotifier {
         guard unsafe poll(&probe, 1, 0) == 1 else { return false }
         var available: Int32 = 0
         #if canImport(Glibc) || canImport(Musl)
-            let result = ioctl(descriptor, UInt(FIONREAD), &available)
+            let result = unsafe ioctl(descriptor, UInt(FIONREAD), &available)
         #else
             // Darwin's `FIONREAD` is `_IOR('f', 127, int)`, a function-like
             // macro Swift does not import; this is its value.

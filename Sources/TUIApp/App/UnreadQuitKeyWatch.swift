@@ -119,9 +119,9 @@ private func readDescriptor(_ descriptor: Int32, _ buffer: UnsafeMutableRawPoint
     #if canImport(Darwin)
         unsafe Darwin.read(descriptor, buffer, count)
     #elseif canImport(Glibc)
-        Glibc.read(descriptor, buffer, count)
+        unsafe Glibc.read(descriptor, buffer, count)
     #else
-        Musl.read(descriptor, buffer, count)
+        unsafe Musl.read(descriptor, buffer, count)
     #endif
 }
 

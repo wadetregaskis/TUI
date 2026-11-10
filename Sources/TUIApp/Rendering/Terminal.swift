@@ -643,7 +643,7 @@ extension Terminal {
             var windowSize = winsize()
 
             #if canImport(Glibc) || canImport(Musl)
-                let result = ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &windowSize)
+                let result = unsafe ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &windowSize)
             #else
                 let result = unsafe ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
             #endif
@@ -698,7 +698,7 @@ extension Terminal {
         #else
         var windowSize = winsize()
         #if canImport(Glibc) || canImport(Musl)
-            let result = ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &windowSize)
+            let result = unsafe ioctl(STDOUT_FILENO, UInt(TIOCGWINSZ), &windowSize)
         #else
             let result = unsafe ioctl(STDOUT_FILENO, TIOCGWINSZ, &windowSize)
         #endif

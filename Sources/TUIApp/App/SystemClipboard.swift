@@ -275,9 +275,9 @@ enum SystemClipboard {
                 #if canImport(Darwin)
                     unsafe Darwin.write(fd, buffer.baseAddress! + offset, data.count - offset)
                 #elseif canImport(Glibc)
-                    Glibc.write(fd, buffer.baseAddress! + offset, data.count - offset)
+                    unsafe Glibc.write(fd, buffer.baseAddress! + offset, data.count - offset)
                 #else
-                    Musl.write(fd, buffer.baseAddress! + offset, data.count - offset)
+                    unsafe Musl.write(fd, buffer.baseAddress! + offset, data.count - offset)
                 #endif
             }
             if written > 0 {
@@ -307,9 +307,9 @@ enum SystemClipboard {
                 #if canImport(Darwin)
                     unsafe Darwin.read(fd, raw.baseAddress, raw.count)
                 #elseif canImport(Glibc)
-                    Glibc.read(fd, raw.baseAddress, raw.count)
+                    unsafe Glibc.read(fd, raw.baseAddress, raw.count)
                 #else
-                    Musl.read(fd, raw.baseAddress, raw.count)  // see `write` above
+                    unsafe Musl.read(fd, raw.baseAddress, raw.count)  // see `write` above
                 #endif
             }
             if count > 0 {

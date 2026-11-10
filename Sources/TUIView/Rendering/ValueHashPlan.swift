@@ -273,7 +273,7 @@ package struct ValueHashPlan {
         if type == Float80.self {
             // x87's 80-bit float: a store writes ten bytes of the sixteen it
             // occupies, and the six after them are never written.
-            items.append(.bytes(offset: base, count: 10, leaf: .builtin))
+            unsafe items.append(.bytes(offset: base, count: 10, leaf: .builtin))
             return
         }
         #endif

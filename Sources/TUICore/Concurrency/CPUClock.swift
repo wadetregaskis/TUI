@@ -54,7 +54,7 @@ package func threadCPUNanoseconds() -> UInt64? {
     return clock_gettime_nsec_np(CLOCK_THREAD_CPUTIME_ID)
     #elseif canImport(Glibc) || canImport(Musl)
     var time = timespec()
-    guard clock_gettime(CLOCK_THREAD_CPUTIME_ID, &time) == 0 else { return nil }
+    guard unsafe clock_gettime(CLOCK_THREAD_CPUTIME_ID, &time) == 0 else { return nil }
     return UInt64(time.tv_sec) &* 1_000_000_000 &+ UInt64(time.tv_nsec)
     #else
     return nil

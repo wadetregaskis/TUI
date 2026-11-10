@@ -91,15 +91,15 @@ enum ProcessMemory {
         // `statm`'s second field is resident pages. `/proc/self/stat`'s rss
         // field is the same number; statm is read because it is short enough
         // that one small read is always the whole file.
-        guard let handle = fopen("/proc/self/statm", "r") else { return nil }
-        defer { fclose(handle) }
+        guard let handle = unsafe fopen("/proc/self/statm", "r") else { return nil }
+        defer { unsafe fclose(handle) }
         // `fgets` and a split rather than `fscanf`: `fscanf` is variadic, and
         // Swift will not pass `&resident` to a `CVarArg...` parameter — on
         // Linux that is a hard error ("'&' used with non-inout argument of
         // type 'Any'"), which a Darwin build never sees because this whole
         // branch is `#elseif`'d out there.
         var line = [CChar](repeating: 0, count: 128)
-        guard fgets(&line, Int32(line.count), handle) != nil else { return nil }
+        guard unsafe fgets(&line, Int32(line.count), handle) != nil else { return nil }
         // Up to `fgets`'s terminating NUL, validated as UTF-8 — not
         // `String(cString: line)`, whose `[CChar]` overload is deprecated.
         // `truncatingIfNeeded` so the byte conversion compiles whether

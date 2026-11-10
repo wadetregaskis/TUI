@@ -263,7 +263,7 @@
         /// hidden temporary, and a delete that failed partway through a package
         /// went unnoticed until the move then failed too.
         private static func replace(_ url: URL, with replacement: URL) throws {
-            if rename(replacement.path, url.path) == 0 { return }
+            if unsafe rename(replacement.path, url.path) == 0 { return }
             // lstat's view: a dangling link is still something to move aside.
             guard (try? FileManager.default.attributesOfItem(atPath: url.path)) != nil else {
                 try FileManager.default.moveItem(at: replacement, to: url)

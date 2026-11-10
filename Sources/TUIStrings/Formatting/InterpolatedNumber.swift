@@ -109,9 +109,9 @@ package enum InterpolatedNumber: Hashable, Sendable {
                 // on Linux, CI, 2026-10-29). Without a locale it is right, and
                 // that Foundation groups no conversion's digits either way.
                 if argument.exceedsSignedRange {
-                    String(unsafeFormat: specifier, argument.cVarArg)
+                    unsafe String(unsafeFormat: specifier, argument.cVarArg)
                 } else {
-                    String(unsafeFormat: specifier, locale: locale, argument.cVarArg)
+                    unsafe String(unsafeFormat: specifier, locale: locale, argument.cVarArg)
                 }
             #endif
         }

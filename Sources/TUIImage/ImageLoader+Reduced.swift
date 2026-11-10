@@ -92,13 +92,13 @@ extension PlatformImageLoader {
             var width: Int32 = 0
             var height: Int32 = 0
             var channels: Int32 = 0
-            let read: Int32 = data.withUnsafeBytes { buffer in
+            let read: Int32 = unsafe data.withUnsafeBytes { buffer in
                 guard let base = buffer.baseAddress else { return 0 }
-                return stbi_info_from_memory(
+                return unsafe stbi_info_from_memory(
                     base.assumingMemoryBound(to: UInt8.self), length, &width, &height, &channels)
             }
             guard read != 0, width > 0, height > 0 else {
-                throw ImageLoadError.decodingFailed("stb_image: \(String(cString: stbi_failure_reason()))")
+                throw ImageLoadError.decodingFailed("stb_image: \(unsafe String(cString: stbi_failure_reason()))")
             }
             let (pixelCount, overflowed) = Int(width).multipliedReportingOverflow(by: Int(height))
             if let limit = maxPixelCount, overflowed || pixelCount > limit {
