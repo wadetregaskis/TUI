@@ -117,8 +117,9 @@ in the same place.
 This applies only when the focused control lost the ability to hold focus.
 Tab, the arrow keys, a click, and writing a `@FocusState` move the focus where
 they say. Dismissing a modal returns the focus to the control that held it
-before the modal opened, and a menu opened with the pointer may rest with
-nothing focused.
+before the modal opened, or, where that control has gone — a menu's item
+removed the view the menu hung from — to its neighbour, by the rules above. A
+menu opened with the pointer may rest with nothing focused.
 
 ### Naming where the focus goes
 

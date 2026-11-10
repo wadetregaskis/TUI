@@ -104,6 +104,16 @@ extension FocusManager {
             ?? ring[..<position].last(where: \.canBeFocused)
     }
 
+    /// Records that section `id` is being activated over `leaving`: the section
+    /// `deactivateSection(id:)` reverts to, and `leaving`'s ring as last frame
+    /// drew it (``ringBeforeActivation``), for a control that leaves it while
+    /// `id` holds the keyboard.
+    func recordActivation(of id: String, over leaving: String) {
+        sectionRevertTarget[id] = leaving
+        ringBeforeActivation[leaving] = previousSections.first { $0.id == leaving }?.focusables.map(\.focusID)
+        sweepSectionTablesIfGrown()
+    }
+
     /// Where a control that has left `ring` would stand in it: just after the nearest
     /// control that stood BEFORE it in last frame's ring and is still here, or at the
     /// top when none is.
@@ -112,9 +122,16 @@ extension FocusManager {
     /// swapped for another (which has a focus id of its own) lands on its replacement:
     /// the replacement sits between the same two neighbours. `nil` when last frame's
     /// ring for the active section did not hold the control either.
+    ///
+    /// Where last frame's ring lacks it, the ring the section had when another was
+    /// activated over it (``ringBeforeActivation``): a control a menu's item removed,
+    /// or the content of a `.contextMenu`, which registers nothing while its menu is
+    /// open, left the section's ring then, not last frame.
     private func departedPosition(of droppedID: String, in ring: [Focusable]) -> Int? {
-        guard let lastRing = previousSections.first(where: { $0.id == activeSectionIdentifier })?.focusables,
-            let lastAnchor = lastRing.firstIndex(where: { $0.focusID == droppedID })
+        let lastRing = previousSections.first(where: { $0.id == activeSectionIdentifier })?.focusables.map(\.focusID)
+        let ringBefore = activeSectionIdentifier.flatMap { ringBeforeActivation[$0] }
+        guard let lastRing = [lastRing, ringBefore].lazy.compactMap({ $0 }).first(where: { $0.contains(droppedID) }),
+            let lastAnchor = lastRing.firstIndex(of: droppedID)
         else { return nil }
         // One pass over this ring rather than a search per survivor: a windowed list
         // can register a long ring, and this runs on every focus loss in one.
@@ -122,7 +139,7 @@ extension FocusManager {
         for (index, element) in ring.enumerated() where positions[element.focusID] == nil {
             positions[element.focusID] = index
         }
-        let survivor = lastRing[..<lastAnchor].reversed().lazy.compactMap { positions[$0.focusID] }.first
+        let survivor = lastRing[..<lastAnchor].reversed().lazy.compactMap { positions[$0] }.first
         return survivor.map { $0 + 1 } ?? 0
     }
 }

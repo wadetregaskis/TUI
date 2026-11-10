@@ -286,6 +286,16 @@ public final class FocusManager {
     /// own (`FocusManagerSectionSweep.swift`).
     var sectionRevertTarget: [String: String] = [:]
 
+    /// For each section another was activated over, its ring's focus ids as
+    /// last frame drew it before that: where a control that left the tree
+    /// while the other held the keyboard stood (`departedPosition(of:in:)`).
+    ///
+    /// A menu's item can remove the very view its menu hangs from, and a
+    /// `.contextMenu`'s content stops registering while its menu is open, so
+    /// last frame's ring may not hold it. Kept beside ``sectionFocusMemory``,
+    /// and swept with it (`FocusManagerSectionSweep.swift`).
+    var ringBeforeActivation: [String: [String]] = [:]
+
     /// The size ``sectionFocusMemory`` and ``sectionRevertTarget`` together
     /// may reach before a write sweeps out the sections that have gone
     /// (``sweepSectionTablesIfGrown()``).
@@ -1265,8 +1275,7 @@ extension FocusManager {
         // where the focus was before it was presented, and a section of its
         // own content, gone once it is dismissed, would strand the focus.
         if let leaving = activeSectionID, !isDrawn(leaving, inside: id) {
-            sectionRevertTarget[id] = leaving
-            sweepSectionTablesIfGrown()
+            recordActivation(of: id, over: leaving)
         }
 
         // Notify current focused element
@@ -1477,8 +1486,14 @@ extension FocusManager {
             notifyFocusLost()
             // The first section that takes the keyboard, if there is one.
             activeSectionID = (sections.first { !passiveSectionIDs.contains($0.id) } ?? sections.first)?.id
-            focusedID = nil
-            restoreFocusForActiveSection()
+            // Its remembered focus, handed back as `deactivateSection(id:)`
+            // hands it: unannounced, for the validation below to keep, or, where
+            // that control has gone — a menu's item removed the view its menu
+            // hung from — to walk to its neighbour, as for any control that
+            // leaves the tree. Restored on the spot, a gone control's focus fell
+            // to the section's first control instead.
+            focusedID = activeSectionID.flatMap { sectionFocusMemory[$0] }
+            pendingRestoreNotificationID = focusedID
         }
 
         // Drop focus that is gone or no longer focusable. "Present but not

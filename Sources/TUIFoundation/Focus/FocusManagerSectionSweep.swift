@@ -49,6 +49,9 @@ extension FocusManager {
         for section in Array(sectionRevertTarget.keys) where !kept.contains(section) {
             sectionRevertTarget[section] = nil
         }
+        for section in Array(ringBeforeActivation.keys) where !kept.contains(section) {
+            ringBeforeActivation[section] = nil
+        }
         sectionSweepThreshold = max(
             Self.minimumSectionSweepThreshold, (sectionFocusMemory.count + sectionRevertTarget.count) * 2)
     }

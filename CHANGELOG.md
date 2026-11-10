@@ -26,6 +26,11 @@ sort, left the focus where it was, on whichever row took that place, so Space, R
 never moved to: always at the top of a list, and anywhere for a change between the top row on screen and the focused
 row. The focus now follows its row. When the focused row itself goes, the row after it takes the focus, as before.
 
+**A menu's item that removes the view its menu hangs from leaves the focus beside it.** Choosing Delete from a row's
+`.contextMenu`, or an item of a pop-up `Menu` that hides the `Menu` itself, sent the focus to the first control on the
+screen. It now goes to the next control, or the one before where there's none after, as when a focused control removes
+itself.
+
 **A shortcut works in the menu bar's F10 mode, and ⌃Q quits there.** With the titles lit by F10 and every menu closed,
 any key left the mode and was spent on leaving it, so a command's shortcut, a page's, and the quit key did nothing.
 A Control chord now leaves the mode and then goes on, as it goes past an open menu. A bare key is still spent on
