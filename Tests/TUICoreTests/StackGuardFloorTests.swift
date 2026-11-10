@@ -9,6 +9,9 @@ import Testing
 
 @testable import TUICore
 
+// The excerpts are a 64-bit process's addresses, which a 32-bit `UInt`
+// (wasm32's) cannot hold.
+#if _pointerBitWidth(_64)
 /// Covers the Linux stack-extent parse, which never runs on the machine these
 /// tests are usually run on. `StackGuard.linuxStackExtent(maps:limits:stackPointer:)`
 /// takes the procfs *contents* rather than reading them precisely so that this
@@ -211,6 +214,7 @@ struct StackGuardLinuxFloorTests {
         #expect(extent.low >= 0x7f2c_1c80_0000)
     }
 }
+#endif
 
 /// Covers the per-thread cache in ``StackGuard`` — the half of the fix that
 /// the pure parse tests above cannot reach. Serialised, and each test restores

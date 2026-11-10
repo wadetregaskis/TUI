@@ -34,7 +34,11 @@ enum Hostile {
 
     /// Every integer an API must survive: a negative, zero, and numbers far
     /// beyond a screen, out to the type's own ends.
-    static let ints: [Int] = [-1, 0, -1_000_000_000_000_000_000, 1_000_000_000_000_000_000, .max, .min]
+    #if _pointerBitWidth(_64)
+        static let ints: [Int] = [-1, 0, -1_000_000_000_000_000_000, 1_000_000_000_000_000_000, .max, .min]
+    #else
+        static let ints: [Int] = [-1, 0, -1_000_000_000, 1_000_000_000, .max, .min]
+    #endif
 
     /// The sizes each view is drawn at: an ordinary one, and the two smallest,
     /// where every subtraction of chrome goes negative.

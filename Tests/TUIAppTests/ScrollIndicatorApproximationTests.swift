@@ -74,7 +74,9 @@ struct ScrollIndicatorApproximationTests {
         #expect(approximateCountLabel(999_500) == "~1M", "rounding to a unit's ceiling promotes")
         #expect(approximateCountLabel(200_000_903) == "~200M", "the reported 100M-row case")
         #expect(approximateCountLabel(1_500_000_000) == "~1.5B")
-        #expect(approximateCountLabel(2_000_000_000_000) == "~2T")
+        #if _pointerBitWidth(_64)  // past a 32-bit Int (wasm32's)
+            #expect(approximateCountLabel(2_000_000_000_000) == "~2T")
+        #endif
     }
 
     @Test("Indicator labels name their unit, singular and plural, and degrade to fit")

@@ -122,7 +122,10 @@ enum TableCellCost: Sendable, CaseIterable {
 
     /// The cell's text for a row, deterministic in `(id, generation)`.
     func text(id: Int, generation: Int) -> String {
-        let hash = TableMatrixShape.mix(UInt64(bitPattern: Int64(id &* 2_654_435_761 &+ generation)))
+        // In UInt64, so the multiplier fits where Int is 32 bits (wasm32); the
+        // same bits as the Int arithmetic it replaces where Int is 64.
+        let mixed: UInt64 = UInt64(bitPattern: Int64(id)) &* 2_654_435_761 &+ UInt64(bitPattern: Int64(generation))
+        let hash = TableMatrixShape.mix(mixed)
         switch self {
         case .cheap:
             return "\(id).\(generation)"

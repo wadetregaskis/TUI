@@ -247,7 +247,9 @@ struct TextRendererTests {
 
     @Test("A glyph moved far past the text's frame is not drawn, and a huge move does not trap")
     func farGlyphsDropped() {
-        for distance: CGFloat in [1e7, 1e300, .infinity, .nan] {
+        // The largest finite, not a literal such as 1e300: `CGFloat` is a `Float`
+        // where words are 32 bits (wasm32), and 1e300 is infinite there.
+        for distance: CGFloat in [1e7, .greatestFiniteMagnitude, .infinity, .nan] {
             let buffer = rendered(
                 Text(verbatim: "ab").textRenderer(PerGlyph { index, glyph, ctx in
                     if index == 1 { ctx.translateBy(x: distance, y: distance) }
