@@ -217,11 +217,25 @@ jobs:
       id-token: write
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.retry.outputs.page_url || steps.deployment.outputs.page_url }}
     steps:
+      # GitHub's side of a deploy ("syncing_files") takes from half a minute to
+      # over ten for the same site: ~118,000 files, nearly all DocC's. Over the
+      # 12 runs to 2026-11-09 it took 31 s to 640 s, and two (runs 17 and 20)
+      # hit the action's limit, which is 10 minutes whatever `timeout` asks:
+      # this step asked for 20, and the action said so in a warning and used
+      # 10. On a timeout the action cancels its deployment, so the site stays
+      # as it was; a second deployment of the same artifact gets 10 more.
       - name: Deploy to GitHub Pages
         id: deployment
+        continue-on-error: true
         uses: actions/deploy-pages@v5
         with:
-          # The site holds ~126,000 files (nearly all DocC reference); syncing can exceed the default 10-minute timeout.
-          timeout: 1200000
+          timeout: 600000
+
+      - name: Deploy to GitHub Pages, again
+        id: retry
+        if: steps.deployment.outcome == 'failure'
+        uses: actions/deploy-pages@v5
+        with:
+          timeout: 600000
