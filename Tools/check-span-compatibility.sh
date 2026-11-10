@@ -187,13 +187,16 @@ done
 # Every library target that some library product ships, directly or through
 # another target: `product_memberships` is transitive. Not the macro plugin (a
 # host tool, run by the compiler and never linked into an app), nor targets
-# only executables or tests use.
+# only executables or tests use. Nor C targets: only Swift code can name a
+# Span-family type, and a C target built for one platform only has no objects
+# elsewhere (CWASIStack, WebAssembly's, is not built on macOS).
 modules=$(${SWIFT:-swift} package describe --type json | python3 -c '
 import json, sys
 package = json.load(sys.stdin)
 libraries = {p["name"] for p in package["products"] if "library" in p["type"]}
 for target in package["targets"]:
-    if target["type"] == "library" and libraries & set(target.get("product_memberships") or []):
+    if (target["type"] == "library" and target.get("module_type") == "SwiftTarget"
+            and libraries & set(target.get("product_memberships") or [])):
         print(target["name"])
 ') || { echo "check-span-compatibility: could not list the package's library modules" >&2; exit 2; }
 if [[ -z "$modules" ]]; then
