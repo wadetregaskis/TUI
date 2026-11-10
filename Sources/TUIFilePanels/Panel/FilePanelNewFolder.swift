@@ -135,7 +135,7 @@ struct FilePanelNewFolderPrompt<Content: View>: View {
     /// hold, as the Finder numbers a new folder.
     static func availableName(_ base: String, in folder: URL) -> String {
         let manager = FileManager.default
-        func taken(_ name: String) -> Bool { manager.fileExists(atPath: folder.appendingPathComponent(name).path) }
+        func taken(_ name: String) -> Bool { manager.itemExists(atPath: folder.appendingPathComponent(name).path) }
         guard taken(base) else { return base }
         var number = 2
         while taken("\(base) \(number)") { number += 1 }
@@ -150,7 +150,7 @@ struct FilePanelNewFolderPrompt<Content: View>: View {
         let made = folder.appendingPathComponent(name, isDirectory: true)
         // Asked first, so that a name taken says so wherever this runs, whatever
         // error its Foundation would answer with: a file of that name counts too.
-        guard !FileManager.default.fileExists(atPath: made.path) else { throw CocoaError(.fileWriteFileExists) }
+        guard !FileManager.default.itemExists(atPath: made.path) else { throw CocoaError(.fileWriteFileExists) }
         try FileManager.default.createDirectory(at: made, withIntermediateDirectories: false)
         return made
     }

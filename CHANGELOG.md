@@ -34,6 +34,10 @@ line however little room there was, so a sibling with a higher `layoutPriority` 
 rows, a text now takes them, down to one (or the lines `lineLimit(2...)` or `reservesSpace:` keep), its last line
 truncated, and `.fixedSize(horizontal: false, vertical: true)` still keeps them all.
 
+**A save panel asks before saving under the name of a link that leads nowhere.** Such a name looked free, so the
+panel chose it without asking to replace it, and New Folder and saving several files offered it too; it is now taken,
+as a file's name is.
+
 **A file panel says why a folder it cannot read shows nothing, in the column view too.** A folder that could not be
 read (no permission, or gone since it was listed) had a column saying "This folder is empty.", and once a column or
 the list's outline had looked into it, opening it said the same, rather than that it can't be opened, and why.

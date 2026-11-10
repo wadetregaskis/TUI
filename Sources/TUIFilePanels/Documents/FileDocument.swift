@@ -183,7 +183,7 @@ package enum FileDocumentWrite {
         var written: [URL] = []
         for (index, document) in documents.enumerated() {
             let url = folder.appendingPathComponent(names[index])
-            if FileManager.default.fileExists(atPath: url.path) {
+            if FileManager.default.itemExists(atPath: url.path) {
                 return .failure(CocoaError(.fileWriteFileExists, userInfo: [NSFilePathErrorKey: url.path]))
             }
             let type = SaveName.type(for: names[index], among: types) ?? .data

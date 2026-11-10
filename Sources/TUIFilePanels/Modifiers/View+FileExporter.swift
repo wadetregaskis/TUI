@@ -102,7 +102,7 @@ enum ExportNames {
                 ?? SaveName.resolve(untitled, contentTypes: types) ?? untitled
             let free = firstFree(name) { candidate in
                 !taken.contains(candidate.lowercased())
-                    && !FileManager.default.fileExists(atPath: folder.appendingPathComponent(candidate).path)
+                    && !FileManager.default.itemExists(atPath: folder.appendingPathComponent(candidate).path)
             }
             taken.insert(free.lowercased())
             return free
@@ -340,7 +340,7 @@ enum FileExportWrite {
             var written: [URL] = []
             for (export, name) in zip(exports, names) {
                 let url = folder.appendingPathComponent(name)
-                if FileManager.default.fileExists(atPath: url.path) {
+                if FileManager.default.itemExists(atPath: url.path) {
                     return .failure(CocoaError(.fileWriteFileExists, userInfo: [NSFilePathErrorKey: url.path]))
                 }
                 switch await export.write(to: url) {

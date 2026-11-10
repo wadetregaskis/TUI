@@ -521,7 +521,7 @@ struct FilePanel: View {
     /// to replace the file already there, if there is one.
     private func save() {
         guard let destination = saveDestination else { return }
-        if FileManager.default.fileExists(atPath: destination.path) {
+        if FileManager.default.itemExists(atPath: destination.path) {
             replacing = destination
             return
         }

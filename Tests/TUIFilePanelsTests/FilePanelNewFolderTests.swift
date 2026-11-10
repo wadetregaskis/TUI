@@ -231,4 +231,19 @@ struct FilePanelNewFolderTests {
         #expect(FilePanelNewFolderPrompt<EmptyView>.availableName(base, in: fixture.root) == base + " 3")
         #expect(throws: (any Error).self) { try FilePanelNewFolderPrompt<EmptyView>.makeFolder(named: "a/b", in: fixture.root) }
     }
+
+    /// `fileExists(atPath:)` follows a link, so a link that leads nowhere left
+    /// its name looking free: offered, and refused only once Create was pressed.
+    @Test("A link that leads nowhere takes its name, as anything else would")
+    func danglingLinkTakesItsName() throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let base = "untitled folder"
+        try FileManager.default.createSymbolicLink(
+            atPath: fixture.url(base).path, withDestinationPath: fixture.url("nowhere").path)
+        #expect(FilePanelNewFolderPrompt<EmptyView>.availableName(base, in: fixture.root) == base + " 2")
+        #expect(throws: CocoaError(.fileWriteFileExists)) {
+            try FilePanelNewFolderPrompt<EmptyView>.makeFolder(named: base, in: fixture.root)
+        }
+    }
 }

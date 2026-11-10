@@ -63,6 +63,48 @@ struct SaveNameTests {
                 "Untitled",
             ])
     }
+
+    @Test("A link that leads nowhere takes its name from several files saved, as a file does")
+    func exportNamesPassDanglingLinks() throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        try FileManager.default.createSymbolicLink(
+            atPath: fixture.url("report.txt").path, withDestinationPath: fixture.url("nowhere").path)
+        #expect(ExportNames.names(["report"], contentTypes: [[.plainText]], in: fixture.root) == ["report 2.txt"])
+    }
+}
+
+/// A save panel, driven through the whole input chain.
+@MainActor
+@Suite("Save panel", .serialized)
+struct SavePanelTests {
+    /// `fileExists(atPath:)` follows a link, so a save over a link that leads
+    /// nowhere chose it without asking, and the app then replaced the link,
+    /// or wrote through it, where it meant to make a file of its own.
+    @Test("Saving under the name of a link that leads nowhere asks first, as over a file")
+    func danglingLinkAsks() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        try FileManager.default.createSymbolicLink(
+            atPath: fixture.url("dangling.txt").path, withDestinationPath: fixture.url("nowhere").path)
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver {
+            FilePanelPresenter(
+                content: Text("Page"), isPresented: caller.binding,
+                request: {
+                    FilePanelRequest(
+                        purpose: .save(contentTypes: [.plainText]), rule: FileChoiceRule(), title: "Save",
+                        confirmationLabel: "Save", defaultFilename: "dangling.txt", startDirectory: fixture.root,
+                        homeDirectory: fixture.root)
+                },
+                onChoose: { caller.chose($0) }, onCancel: { caller.cancelled() })
+        }
+        await driver.waitFor("notes.md")
+        driver.press(.enter)
+        let asking = driver.screen()
+        #expect(asking.contains("“dangling.txt” already exists"), "\(asking)")
+        #expect(caller.heard.isEmpty)
+    }
 }
 
 #if canImport(CoreTransferable)
