@@ -13,6 +13,20 @@
 import TUICore
 
 extension MouseEventDispatcher {
+    /// What a reshape did under the pointer that the next frame has to draw
+    /// (``setRegions(_:)``).
+    package struct ReshapeOutcome: OptionSet, Sendable {
+        package let rawValue: UInt8
+        package init(rawValue: UInt8) { self.rawValue = rawValue }
+
+        /// A hover transition a handler said meant something
+        /// (``reconcileHoverAfterReshape()``).
+        package static let movedHover = Self(rawValue: 1 << 0)
+        /// A held drag delivered again to the region now under the pointer
+        /// (`redeliverHeldDrag()`).
+        package static let redeliveredHeldDrag = Self(rawValue: 1 << 1)
+    }
+
     /// One lane of the hover state machine: the region the pointer was last
     /// resolved against, and the closure still owed its exit across a reshape.
     ///
@@ -161,19 +175,31 @@ extension MouseEventDispatcher {
     /// — motion went unreported since — the lanes are re-resolved against the
     /// last move, as they always were, for the exits they owe, and enter
     /// nothing: the pointer may be anywhere.
-    func reconcileHoverAfterReshape() {
+    ///
+    /// - Returns: Whether a handler said a transition delivered here meant
+    ///   something, as a handler answers a move: the frame that draws it is
+    ///   owed. The frame that reshaped the tree was drawn before its regions
+    ///   came here, so a hover kept outside the view's state — a scrollbar's
+    ///   lit arrow, which the bar's handler records on its scroller — was
+    ///   drawn only at the pointer's next move. (A `@State` written here asks
+    ///   for its frame itself.)
+    @discardableResult
+    func reconcileHoverAfterReshape() -> Bool {
         guard let position = restingPosition ?? lastMotionPosition else {
             hover.pendingExit = nil
             for index in observedHovers.indices { observedHovers[index].pendingExit = nil }
-            return
+            return false
         }
         let entering = restingPosition != nil
         let resolved = resolveHover(at: position.x, y: position.y)
-        hover = reconciled(hover, to: resolved.target, at: position, entering: entering)
+        var claimed = false
+        hover = reconciled(hover, to: resolved.target, at: position, entering: entering, claimed: &claimed)
         var renamed: [HitTestRegion.HandlerID: HitTestRegion.HandlerID] = [:]
         observedHovers = reconciledObservers(
-            observedHovers, to: resolved.observers, at: position, entering: entering, renamed: &renamed)
+            observedHovers, to: resolved.observers, at: position, entering: entering, renamed: &renamed,
+            claimed: &claimed)
         syncHoveredHelp(renamed: renamed)
+        return claimed
     }
 
     /// The observer lanes of ``reconcileHoverAfterReshape()``: `slots`
@@ -187,11 +213,13 @@ extension MouseEventDispatcher {
     /// position while motion is reported, as a control a reshape slides under
     /// a cursor resting on nothing is (``reconciled(_:to:at:entering:)``).
     ///
-    /// - Parameter renamed: Gains each carried observer whose region is filed
-    ///   under another id now, by its old id.
+    /// - Parameters:
+    ///   - renamed: Gains each carried observer whose region is filed under
+    ///     another id now, by its old id.
+    ///   - claimed: Set when a handler said a transition meant something.
     private func reconciledObservers(
         _ slots: [HoverSlot], to current: [HitTestRegion], at position: (x: Int, y: Int), entering: Bool,
-        renamed: inout [HitTestRegion.HandlerID: HitTestRegion.HandlerID]
+        renamed: inout [HitTestRegion.HandlerID: HitTestRegion.HandlerID], claimed: inout Bool
     ) -> [HoverSlot] {
         var carried = Set<Int>()
         for slot in slots.reversed() {
@@ -203,7 +231,7 @@ extension MouseEventDispatcher {
                 if let old = slot.handlerID, old != current[index].handlerID { renamed[old] = current[index].handlerID }
                 continue
             }
-            deliverExit(of: slot, at: position)
+            if deliverExit(of: slot, at: position) { claimed = true }
             if let left = previous?.handlerID { leftByReshape.insert(left) }
         }
         var next: [HoverSlot] = []
@@ -211,7 +239,7 @@ extension MouseEventDispatcher {
             if carried.contains(index) {
                 next.append(HoverSlot(handlerID: region.handlerID, region: region, pendingExit: nil))
             } else if entering, frameFinalSupport.motion, !leftByReshape.contains(region.handlerID) {
-                next.append(entered(region, at: position))
+                next.append(entered(region, at: position, claimed: &claimed))
             }
         }
         return next
@@ -247,21 +275,22 @@ extension MouseEventDispatcher {
     /// only at a known position too (`entering`); it is exited as before,
     /// and what it left is remembered.
     private func reconciled(
-        _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int), entering: Bool
+        _ slot: HoverSlot, to current: HitTestRegion?, at position: (x: Int, y: Int), entering: Bool,
+        claimed: inout Bool
     ) -> HoverSlot {
         guard slot.region != nil || slot.pendingExit != nil else {
             guard let current, entering, frameFinalSupport.motion, !leftByReshape.contains(current.handlerID)
             else { return slot }
-            return entered(current, at: position)
+            return entered(current, at: position, claimed: &claimed)
         }
         let previous = slot.pendingExit?.region ?? slot.region
         if let current, isSameControl(previous, current) {
             return HoverSlot(handlerID: current.handlerID, region: current, pendingExit: nil)
         }
-        deliverExit(of: slot, at: position)
+        if deliverExit(of: slot, at: position) { claimed = true }
         if let left = previous?.handlerID { leftByReshape.insert(left) }
         guard let current, entering, !leftByReshape.contains(current.handlerID) else { return HoverSlot() }
-        return entered(current, at: position)
+        return entered(current, at: position, claimed: &claimed)
     }
 
     /// Tells the region a reshape took `slot` off that the resting cursor at
@@ -269,13 +298,15 @@ extension MouseEventDispatcher {
     /// handler-table rebuild, or, regions replaced within one frame (no
     /// `beginRenderPass` between), through the handler still registered —
     /// the documented same-frame window.
-    private func deliverExit(of slot: HoverSlot, at position: (x: Int, y: Int)) {
+    ///
+    /// - Returns: Whether the handler said the exit meant something.
+    private func deliverExit(of slot: HoverSlot, at position: (x: Int, y: Int)) -> Bool {
         if let pending = slot.pendingExit {
             let exit = MouseEvent(
                 button: .none, phase: .exited,
                 x: position.x - pending.region.localOriginX,
                 y: position.y - pending.region.localOriginY)
-            _ = pending.handler(exit)
+            return pending.handler(exit)
         } else if let oldID = slot.handlerID, let oldHandler = handlers[oldID],
             let oldRegion = slot.region
         {
@@ -283,19 +314,23 @@ extension MouseEventDispatcher {
                 button: .none, phase: .exited,
                 x: position.x - oldRegion.localOriginX,
                 y: position.y - oldRegion.localOriginY)
-            _ = oldHandler(exit)
+            return oldHandler(exit)
         }
+        return false
     }
 
     /// A lane on `region`, its handler told the resting cursor at `position`
-    /// has entered it.
-    private func entered(_ region: HitTestRegion, at position: (x: Int, y: Int)) -> HoverSlot {
+    /// has entered it. Sets `claimed` when the handler says that meant
+    /// something.
+    private func entered(
+        _ region: HitTestRegion, at position: (x: Int, y: Int), claimed: inout Bool
+    ) -> HoverSlot {
         if let handler = handlers[region.handlerID] {
             let enter = MouseEvent(
                 button: .none, phase: .entered,
                 x: position.x - region.localOriginX,
                 y: position.y - region.localOriginY)
-            _ = handler(enter)
+            if handler(enter) { claimed = true }
         }
         return HoverSlot(handlerID: region.handlerID, region: region, pendingExit: nil)
     }

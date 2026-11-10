@@ -633,14 +633,18 @@ extension MouseEventDispatcher {
     /// matching handler wins — same intuition as a tap dispatched in a
     /// SwiftUI / AppKit view tree.
     ///
-    /// - Returns: Whether a held drag was delivered again
-    ///   (``redeliverHeldDrag()``), whose effect the next frame has to draw.
+    /// - Returns: What the reshape did under the pointer that the next frame
+    ///   has to draw: a held drag delivered again (``redeliverHeldDrag()``),
+    ///   or a hover transition a handler said meant something
+    ///   (``reconcileHoverAfterReshape()``).
     @discardableResult
-    package func setRegions(_ regions: [HitTestRegion]) -> Bool {
+    package func setRegions(_ regions: [HitTestRegion]) -> ReshapeOutcome {
         self.regions = regions
         pointerShapeIsStale = true
-        reconcileHoverAfterReshape()
-        return redeliverHeldDrag()
+        var outcome: ReshapeOutcome = []
+        if reconcileHoverAfterReshape() { outcome.insert(.movedHover) }
+        if redeliverHeldDrag() { outcome.insert(.redeliveredHeldDrag) }
+        return outcome
     }
 
     /// Hands a held gesture's drag again to a region the reshape put under

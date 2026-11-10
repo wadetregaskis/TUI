@@ -25,6 +25,11 @@ now ends with what the person's terminal, tmux or ssh sets, such as `TERM_PROGRA
 `TUIEnvironmentVariable.Topic`'s cases are the new groups, so code that switched over the old ones (`colour`,
 `accessibility`, `behaviour`) needs the new names; regenerate a committed man page to pick up the text.
 
+**The scroll bar's arrow under the pointer lights as the bar arrives.** A bar drawn over the content appears on the
+frame after the pointer comes over the view, and an arrow it put under a pointer that had not moved stayed unlit until
+the pointer moved again. A frame that slides a control under a resting pointer, or off it, is now followed by the frame
+that draws what that changed.
+
 **A scroll view with `.scrollIndicatorPlacement(_:)` or `.scrollIndicators(_:)` written on it keeps its rows whole
 in a `TabView`.** Under a header in a column, a row short of fitting, its bar took a column out of its rows ("row 10"
 wrapped onto two lines), where the same placement set higher up did not: a modifier that only sets an environment

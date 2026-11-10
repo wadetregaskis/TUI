@@ -81,10 +81,18 @@ extension RenderLoop {
         // covers stays with (`TooltipState.heldPresentations`).
         tooltips.beginReshape(
             movedByTooltip: tooltipMovedThePage, presentations: windowChrome.presentationsOverPage)
-        if dispatcher.setRegions(regions) {
+        let reshaped = dispatcher.setRegions(regions)
+        if reshaped.contains(.redeliveredHeldDrag) {
             // A held menu's highlight moved to the option the reshape put
             // under the pointer: the next frame draws it.
             scheduler?.requestWake("held-drag-reshape", at: nowNanos &+ 1)
+        }
+        if reshaped.contains(.movedHover) {
+            // A control the reshape slid under the resting pointer, or off it,
+            // changed what it draws in state of its own (a scrollbar's arrow,
+            // lit where a bar drawn over the content arrived under the
+            // pointer), and asks for its frame as a `@State` written here does.
+            tuiContext.appState.setNeedsRender()
         }
         tooltips.endReshape(
             tooltipRows: windowChrome.tooltipRows, pointerRow: dispatcher.restingPointer?.y,
