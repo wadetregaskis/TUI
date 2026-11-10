@@ -153,11 +153,22 @@ def tui_search_paths(build=True):
         if built.returncode:
             sys.exit(f"swift build failed:\n{built.stderr}")
     bin_dir = run(["swift", "build", "--show-bin-path"], cwd=REPO).stdout.strip()
-    modules = os.path.join(bin_dir, "Modules")
-    if not os.path.isdir(modules):
-        modules = os.path.join(REPO, ".build", "arm64-apple-macosx", "debug", "Modules")
-    if not os.path.isdir(modules):
-        sys.exit(f"built modules not found at {modules}")
+    # Where the built `.swiftmodule`s are depends on the build system. SwiftPM's
+    # native one (6.2 and 6.3's default) puts them in `<bin>/Modules`; Swift Build
+    # (the default from SwiftPM 6.4, so Xcode 27's) puts them straight in
+    # `<bin>`, which is `.build/out/Products/Debug`. The parity job on Xcode 27
+    # failed on the first (2026-11-09, run 1: "built modules not found").
+    candidates = [
+        os.path.join(bin_dir, "Modules"),
+        bin_dir,
+        os.path.join(REPO, ".build", "arm64-apple-macosx", "debug", "Modules"),
+    ]
+    modules = next(
+        (path for path in candidates
+         if os.path.isdir(path) and any(entry.endswith(".swiftmodule") for entry in os.listdir(path))),
+        None)
+    if modules is None:
+        sys.exit("built modules not found in any of: " + ", ".join(candidates))
 
     include_paths = [
         os.path.join(REPO, "Sources", entry, "include")
