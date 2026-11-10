@@ -81,7 +81,12 @@ public struct NavigationStack<Root: View> {
         /// A ``NavigationPath`` binding.
         case path(Binding<NavigationPath>)
         /// A typed collection binding, erased to `AnyHashable` and back.
-        case typed(read: () -> [AnyHashable], write: ([AnyHashable]) -> Void)
+        /// `keeps` says which pushed values the binding can hold; the rest
+        /// (the screens a view-destination link or a
+        /// `navigationDestination(isPresented:)` pushes) are kept beside it,
+        /// in ``ownedPath``.
+        case typed(
+            read: () -> [AnyHashable], write: ([AnyHashable]) -> Void, keeps: (AnyHashable) -> Bool)
     }
 
     let root: Root
@@ -92,8 +97,10 @@ public struct NavigationStack<Root: View> {
     /// must still find this stack's path when it fires later.
     @State private var coordinator = NavigationCoordinator()
 
-    /// The path, when the stack owns it (``PathStorage/owned``). Unused
-    /// otherwise; it costs one empty array.
+    /// The path, when the stack owns it (``PathStorage/owned``); with a typed
+    /// binding (``PathStorage/typed``), the whole path as last written, the
+    /// screens the binding cannot hold included. Unused with a
+    /// ``NavigationPath``; it costs one empty array.
     @State private var ownedPath: [AnyHashable] = []
 
     /// Creates a navigation stack that manages its own path.
@@ -126,12 +133,13 @@ public struct NavigationStack<Root: View> {
         self.root = root()
         self.storage = .typed(
             read: { path.wrappedValue.map { AnyHashable($0) } },
-            // A typed path can hold only its own element type; anything else
-            // on the way back in is dropped, which is the binding's contract
-            // rather than a policy of ours. See ``NavigationLink``.
+            // A typed path can hold only its own element type, so only those
+            // go back into it; the screens that are not values of it stay in
+            // the stack (`accessors()`), as SwiftUI keeps them off the path.
             write: { erased in
                 path.wrappedValue = Data(erased.compactMap { $0.base as? Data.Element })
-            })
+            },
+            keeps: { $0.base is Data.Element })
     }
 
     /// The content and behavior of this view.
@@ -155,9 +163,50 @@ public struct NavigationStack<Root: View> {
                 { path.wrappedValue.elements },
                 { path.wrappedValue = NavigationPath(erased: $0) }
             )
-        case .typed(let read, let write):
-            return (read, write)
+        case .typed(let read, let write, let keeps):
+            // The binding holds the values; a view-destination link's screen
+            // and a `navigationDestination(isPresented:)`'s are not values of
+            // its type, and writing them to it dropped them, so such a screen
+            // never appeared and its flag was set straight back to false.
+            // They live in `ownedPath` beside the values they were pushed over.
+            let shadow = $ownedPath
+            return (
+                { Self.merging(shadow.wrappedValue, over: read(), keeps: keeps) },
+                { erased in
+                    shadow.wrappedValue = erased
+                    write(erased)
+                }
+            )
         }
+    }
+
+    /// The path a typed binding's stack shows: `shadow`, the whole path as last
+    /// written, so long as the values in it are still the binding's own; then
+    /// whatever the binding holds beyond them.
+    ///
+    /// A screen the binding cannot hold (`keeps` false) stays where it was
+    /// pushed for as long as the values beneath it do. Where the app changed
+    /// the binding itself, the path is the shadow up to the first value that
+    /// no longer matches, and the binding's values from there: popping a value
+    /// in the app's own code pops what was pushed over it too, and a value
+    /// appended goes on top.
+    static func merging(
+        _ shadow: [AnyHashable], over typed: [AnyHashable], keeps: (AnyHashable) -> Bool
+    ) -> [AnyHashable] {
+        guard !shadow.isEmpty else { return typed }
+        var merged: [AnyHashable] = []
+        var matched = 0
+        for element in shadow {
+            if !keeps(element) {
+                merged.append(element)
+                continue
+            }
+            guard matched < typed.count, typed[matched] == element else { break }
+            merged.append(element)
+            matched += 1
+        }
+        merged.append(contentsOf: typed[matched...])
+        return merged
     }
 }
 extension NavigationStack: View {}

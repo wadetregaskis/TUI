@@ -94,6 +94,12 @@ sends what a keyboard, an input method or the emoji picker types a Unicode scala
 as 👨👩👧, ❤️ lost its emoji form, a Thai tone mark or a Persian zero-width non-joiner went missing, and an accent
 typed decomposed vanished. They now type anything but a control character, as a paste always has.
 
+**A `NavigationStack` bound to a typed path shows the screens that are not values of its type.** A
+`navigationDestination(isPresented:)` or `(item:)` screen, or a `NavigationLink` with a view for its destination, was
+written into the binding and dropped there: the screen never came up, and the flag that asked for it went straight
+back to `false`. The stack now keeps such a screen itself, over the values it was pushed on, as SwiftUI does; taking
+one of those values off the binding takes it off too.
+
 **A WebAssembly program no longer stops where TUI's resource bundle isn't at its build machine's path.** It looks
 for `TUI_TUIStrings.resources` beside the program, as every other platform does, and reads TUI's own words in English
 where it isn't there. `Tools/Web/build.sh` serves it beside the program. An app's own resources are still its own
