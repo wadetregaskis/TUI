@@ -140,6 +140,13 @@ package final class HeadlessApp {
             shortcutOverlay: shortcutOverlay, settingsPanel: renderer.scenes.settingsPanel,
             // A script has no process to quit or suspend: a quit is counted.
             onQuit: { quits.count += 1 }, onSuspend: {}, screenSelection: tuiContext.screenSelection,
+            // The user's quit key, ⌃\ as a terminal's driver has it by
+            // default, reaches the chain as a running app's does once its
+            // first frame is up (`Terminal.maskQuitKey(for:)`): it asks first,
+            // and where nothing is left to ask it quits, by the signal a
+            // running app sends itself, counted here. Without one, ⌃\ did
+            // nothing at all.
+            quitKey: { 0x1C }, onQuitKey: { quits.count += 1 },
             quitPrompt: quitPrompt)
         // The last window closing asks the app to quit: counted, as the quit
         // key's quit is, rather than asked of the process's `AppState`.

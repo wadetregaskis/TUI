@@ -151,7 +151,8 @@ For what these cannot say, such as a button held down while the clock moves (a l
 
 ``TestApp/resize(width:height:)`` changes the terminal's size, as dragging its window would, and draws what that causes.
 ``TestApp/hasRequestedQuit`` says whether the app asked to quit, by its quit key, its Quit menu item or its last window
-closing. A test has no process to end, so the app carries on drawing:
+closing. ⌃\\, the user's quit key, asks first, as in a running app, and a second ⌃\\ quits. A test has no process to
+end, so the app carries on drawing:
 
 ```swift
 app.resize(width: 60, height: 20)

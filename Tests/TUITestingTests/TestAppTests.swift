@@ -184,6 +184,24 @@ struct TestAppKeyTests {
         #expect(!app.hasRequestedQuit)
         _ = app.screen
     }
+
+    /// ⌃\ is the user's quit key, which a running app takes from the terminal
+    /// driver once its first frame is up: it asks first, and a second press
+    /// quits. A `TestApp` had no quit key at all, so ⌃\ did nothing.
+    @Test("⌃\\ asks, as in a running app, and a second ⌃\\ quits")
+    func quitKeyAsks() {
+        struct Page: App {
+            var body: some Scene {
+                WindowGroup { Text("Page") }
+            }
+        }
+        let app = TestApp(Page(), width: 60, height: 12)
+        app.press(.character("\\"), modifiers: .control)
+        #expect(app.screen.contains("Cancel"), "\(app.screen)")
+        #expect(!app.hasRequestedQuit)
+        app.press(.character("\\"), modifiers: .control)
+        #expect(app.hasRequestedQuit)
+    }
 }
 
 @MainActor
