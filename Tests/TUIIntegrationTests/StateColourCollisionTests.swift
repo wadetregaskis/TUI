@@ -125,7 +125,7 @@ struct StateColourCollisionTests {
 
     /// Controls whose disabled look is the enabled one at every depth, whatever the
     /// palette: not a colour that rounds, so not this suite's to measure.
-    static let disabledAtEveryDepth: Set<CollisionProbe> = [.tabView, .colorPicker]
+    static let disabledAtEveryDepth: Set<CollisionProbe> = [.colorPicker]
 
     /// What the sweep found at 16 colours before the ruling: the focus drawn as rest.
     nonisolated static let focusFound: [(String, CollisionProbe)] =

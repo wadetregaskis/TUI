@@ -42,8 +42,9 @@ colour; a highlight whose fill draws as its ground is reversed (`Palette.highlig
 the colour of its field reverses its cell instead. `StateColourCollisionTests` sweeps every control through every
 shipped palette at every depth (`TUI_COLLISION_SWEEP=1`): before, at 16 colours, 16 focused controls drew as at rest
 and 51 disabled ones as enabled; after, none. At 256 colours
-and without colour nothing collided; a disabled `TabView` and `ColorPicker` look enabled at every depth, which is not a
-rounding.
+and without colour nothing collided. A disabled `TabView` looked enabled at every colour depth, which is not a rounding
+(see the table); a disabled `ColorPicker` still does, at every depth: its label stays in the secondary tier and its
+channels' arrows rest in the grey a disabled slider's do.
 
 ## The table
 
@@ -69,7 +70,7 @@ rounding.
 | Gauge, circular | arc | lit arc, number in the centre | lightness, and the number |
 | Notification | severity | `i ✓ ! ✗` | glyph |
 | Segmented Picker | selected / cursor / disabled | bold / fill / grey | attribute / lightness / lightness; under DWC, disabled faint |
-| TabView | active tab / focus / disabled | bold / breath / grey | attribute / motion / lightness; under DWC, reversed and faint |
+| TabView | active tab / focus / disabled | bold / breath / faint | attribute / motion / attribute, at every depth (2026-11-10: before that, nothing at a colour depth; the strip greys only a tab disabled on its own); under DWC, reversed |
 | Menu, Picker menu | highlighted row | filled bar | lightness |
 | Menu, Picker menu | checked / disabled item | `✓` / grey | glyph / lightness |
 | List | selected / cursor row | `●` / filled bar | glyph / lightness |

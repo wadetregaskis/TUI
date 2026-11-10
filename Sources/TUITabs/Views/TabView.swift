@@ -651,7 +651,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 context: context)
         attachRevealRegion(
             to: &buffer, persistedFocusID: persistedFocusID, context: context)
-        return buffer.fadedWithoutColor(if: isDisabled, context: context)
+        // Faint at every depth, as a disabled `List` or `Table` is: the strip greys
+        // only a tab disabled on its own, so at a colour depth a disabled tab view
+        // drew exactly as an enabled one without the focus.
+        return buffer.drawnDisabled(if: isDisabled)
     }
 
     /// A whole-TabView region carrying the persisted focusID, so an

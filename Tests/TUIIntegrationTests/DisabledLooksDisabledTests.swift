@@ -23,7 +23,7 @@ private struct Row: Identifiable {
 
 /// A control kind, drawn enabled or disabled.
 enum DisabledProbe: String, CaseIterable, CustomStringConvertible {
-    case list, table, button, toggle, textField
+    case list, table, tabView, button, toggle, textField
 
     var description: String { rawValue }
 
@@ -39,6 +39,12 @@ enum DisabledProbe: String, CaseIterable, CustomStringConvertible {
         case .table:
             Table([Row(id: 1, name: "One"), Row(id: 2, name: "Two")]) { TableColumn("Name", value: \Row.name) }
                 .frame(height: 5)
+        case .tabView:
+            TabView(selection: .constant(0)) {
+                Tab("One", value: 0) { Text("One") }
+                Tab("Two", value: 1) { Text("Two") }
+            }
+            .frame(height: 4)
         case .button: Button("Go") {}
         case .toggle: Toggle("Go", isOn: .constant(true))
         case .textField: TextField("Name", text: .constant("Go"))
@@ -62,8 +68,8 @@ struct DisabledLooksDisabledTests {
         return Array(app.screen.styledLines.dropFirst())
     }
 
-    @Test("A disabled List or Table is told from an enabled one at every colour depth", arguments: [
-        DisabledProbe.list, .table,
+    @Test("A disabled List, Table or TabView is told from an enabled one at every colour depth", arguments: [
+        DisabledProbe.list, .table, .tabView,
     ])
     func containers(_ probe: DisabledProbe) {
         for depth in [ColorDepth.basic16, .palette256, .truecolor] {

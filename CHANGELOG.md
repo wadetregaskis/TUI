@@ -130,6 +130,9 @@ can't be mixed until then, and on a host that never reports them, such as GNU sc
 foreground, so a disabled button or text field looked enabled. It is drawn faint there, as on a terminal with no
 colour.
 
+**A disabled `TabView` looks disabled.** At any colour depth it drew exactly as an enabled one without the focus: its
+strip greys only a tab disabled on its own. It is drawn faint at every depth now, as a disabled `List` or `Table` is.
+
 **A disabled `List` or `Table` looks disabled.** At any colour depth it drew exactly as an enabled one without the
 focus; only a terminal with no colour, or Differentiate Without Color, showed it faint. It is drawn faint at every
 depth now.
