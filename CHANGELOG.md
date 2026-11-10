@@ -94,6 +94,10 @@ sends what a keyboard, an input method or the emoji picker types a Unicode scala
 as 👨👩👧, ❤️ lost its emoji form, a Thai tone mark or a Persian zero-width non-joiner went missing, and an accent
 typed decomposed vanished. They now type anything but a control character, as a paste always has.
 
+**A tab keeps its state while another tab is shown.** Switching to another tab and back started the first tab's
+content over: a counter's `@State` was back at zero, and a `NavigationStack` in it had lost the screen it had pushed.
+A hidden tab's state is now kept, as SwiftUI's tab view keeps it and as `TabView`'s documentation said.
+
 **The keyboard reaches a split view, a navigation stack or a `.focusSection` inside a sheet, an alert or a
 popover.** Each makes focus sections of its own, and inside a presentation those were treated as the page's: Tab
 never reached a `NavigationSplitView`'s columns or a `.focusSection`'s controls in a sheet, a screen pushed in a sheet

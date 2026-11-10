@@ -283,6 +283,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// selected value, height reduced by the strip, and the tab — `available`
     /// across, that height down — as its `containerRelativeFrame` container.
     private func contentContext(_ context: RenderContext, stripHeight: Int, available: Int) -> RenderContext {
+        retainHiddenTabs(besides: selectedIndex, context: context)
         var child = context.withBranchIdentity("tab-\(tabs[selectedIndex].value)")
         child.availableHeight = max(0, context.availableHeight - stripHeight)
         child = child.publishingContainerSize(CellSize(width: max(0, available), height: child.availableHeight))
