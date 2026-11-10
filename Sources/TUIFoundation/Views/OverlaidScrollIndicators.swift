@@ -34,6 +34,14 @@ extension FrameBuffer {
     /// nothing: the focus can leave with the pointer elsewhere, and the frame
     /// it leaves on must know.
     ///
+    /// Nor while the view has no indicator to show — its content fits, and
+    /// its visibility shows none for content that fits. The pointer is heard
+    /// only through motion reports, which a terminal sends for every move once
+    /// asked; a page of lists and tables that all fit asks for none. The view
+    /// forgets where the pointer was, which it would not hear leave: the frame
+    /// its content comes to overflow on starts watching, and the pointer's next
+    /// move over it brings the indicators.
+    ///
     /// Call it after every region the view and its content have filed, so the
     /// observer stands in front of them: the dispatcher looks for observers
     /// only in front of the first control under the pointer, and one behind a
@@ -41,14 +49,21 @@ extension FrameBuffer {
     ///
     /// - Parameters:
     ///   - tracker: The view's handler, which remembers where the pointer is.
+    ///   - showsIndicators: Whether the view has an indicator to draw over its
+    ///     content for the pointer, focus aside: its content overflows on an
+    ///     axis whose visibility shows one, or a visibility shows one anyway.
     ///   - context: The context the view is rendered in.
     @MainActor
     package mutating func observePointerForOverlaidIndicators(
-        of tracker: some ScrollIndicatorPointerTracking, context: RenderContext
+        of tracker: some ScrollIndicatorPointerTracking, showsIndicators: Bool, context: RenderContext
     ) {
         guard context.environment.scrollIndicatorsFollowPointer, !context.isMeasuring,
             let dispatcher = context.environment.mouseEventDispatcher
         else { return }
+        guard showsIndicators else {
+            tracker.isPointerOver = false
+            return
+        }
         // Motion reports, which a terminal sends only when asked: hover is made of them.
         dispatcher.requestFeature(.motion, in: context)
         let drawing = HandlerDrawing(context)

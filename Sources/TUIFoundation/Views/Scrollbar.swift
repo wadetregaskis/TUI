@@ -226,6 +226,20 @@ extension EnvironmentValues {
         }
     }
 
+    /// Whether a view placed ``ScrollIndicatorPlacement/overContent`` has an
+    /// indicator to draw over its content for the pointer, wherever the
+    /// pointer and the focus are: whether it watches the pointer at all
+    /// (`observePointerForOverlaidIndicators(of:showsIndicators:context:)`).
+    ///
+    /// - Parameters:
+    ///   - verticalOverflow: Whether the content overflows vertically.
+    ///   - horizontalOverflow: Whether it overflows horizontally, for a view
+    ///     that scrolls that way; `nil` for one that does not.
+    package func showsScrollIndicatorsForPointer(verticalOverflow: Bool, horizontalOverflow: Bool? = nil) -> Bool {
+        verticalScrollIndicatorVisibility.showsIndicator(overflowing: verticalOverflow)
+            || horizontalOverflow.map { horizontalScrollIndicatorVisibility.showsIndicator(overflowing: $0) } == true
+    }
+
     /// Whether a vertical "N more" line is drawn even with nothing hidden that
     /// way — so the two lines are always there and the content area never
     /// changes size as the view scrolls.

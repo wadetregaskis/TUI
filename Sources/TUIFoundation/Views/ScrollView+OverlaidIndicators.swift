@@ -27,11 +27,16 @@ extension _ScrollViewCore {
     }
 
     /// Draws the indicators over `visibleBuffer`, the viewport's content, if
-    /// the pointer is over the view and the content overflows that way.
+    /// the pointer is over the view and the content overflows that way — and
+    /// then watches the pointer, in front of every region the drawing filed.
     func applyOverlaidScrollChrome(
         to visibleBuffer: inout FrameBuffer, handler: ScrollViewHandler, contentWidth: Int,
         wantsHorizontal: Bool, isFocused: Bool, focusID: String, context: RenderContext
     ) {
+        defer {
+            observePointerForIndicators(
+                on: &visibleBuffer, handler: handler, wantsHorizontal: wantsHorizontal, context: context)
+        }
         let environment = context.environment
         let hovered = handler.isPointerOver
         let vertical = environment.overlaidVerticalScrollIndicators(
@@ -69,5 +74,20 @@ extension _ScrollViewCore {
             attachHorizontalScrollbarMouseHandler(
                 to: &visibleBuffer, contentWidth: width, handler: handler, focusID: focusID, context: context)
         }
+    }
+
+    /// Watches the pointer for indicators drawn over the content — only while
+    /// this view has one to show: its content overflows a way its visibility
+    /// shows one for (`observePointerForOverlaidIndicators(of:showsIndicators:context:)`).
+    func observePointerForIndicators(
+        on buffer: inout FrameBuffer, handler: ScrollViewHandler, wantsHorizontal: Bool, context: RenderContext
+    ) {
+        let horizontal = handler.horizontal
+        buffer.observePointerForOverlaidIndicators(
+            of: handler,
+            showsIndicators: context.environment.showsScrollIndicatorsForPointer(
+                verticalOverflow: handler.contentHeight > handler.viewportHeight,
+                horizontalOverflow: wantsHorizontal ? horizontal.extent > horizontal.viewportHeight : nil),
+            context: context)
     }
 }

@@ -505,7 +505,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         }
         registerMouse(
             context: context, buffer: &buffer, handler: handler,
-            contentWidth: contentWidth, height: height,
+            contentWidth: contentWidth, height: height, overflows: window.hasVerticalOverflow,
             focusID: persistedFocusID, isDisabled: isDisabled)
         return buffer.fadedWithoutColor(if: isDisabled, context: context)
     }
@@ -712,7 +712,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     @MainActor
     private func registerMouse(
         context: RenderContext, buffer: inout FrameBuffer, handler: TextEditorHandler,
-        contentWidth: Int, height: Int, focusID: String, isDisabled: Bool
+        contentWidth: Int, height: Int, overflows: Bool, focusID: String, isDisabled: Bool
     ) {
         guard !isDisabled, !context.isMeasuring,
             let mouseDispatcher = context.environment.mouseEventDispatcher
@@ -800,7 +800,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 handlerID: handlerID, focusID: focusID))
         // The pointer's coming and going, for a bar drawn over the text: in
         // front of the editor's own region, which would otherwise hide it.
-        buffer.observePointerForOverlaidIndicators(of: handler, context: context)
+        // The bar is the editor's own, shown whenever the text overflows.
+        buffer.observePointerForOverlaidIndicators(of: handler, showsIndicators: overflows, context: context)
     }
 }
 

@@ -1053,7 +1053,6 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             applyOverlaidScrollChrome(
                 to: &visibleBuffer, handler: handler, contentWidth: contentWidth, wantsHorizontal: wantsHorizontal,
                 isFocused: isFocused, focusID: persistedFocusID, context: context)
-            visibleBuffer.observePointerForOverlaidIndicators(of: handler, context: context)
             return
         }
         // Indicators REPLACE viewport lines, so a 1-2 line viewport scrolled
@@ -1123,7 +1122,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         }
         // Placed over the content but holding the focus, so beside it: the
         // pointer is still watched, for the frame the focus leaves on.
-        visibleBuffer.observePointerForOverlaidIndicators(of: handler, context: context)
+        observePointerForIndicators(
+            on: &visibleBuffer, handler: handler, wantsHorizontal: wantsHorizontal, context: context)
     }
 
     /// Registers the viewport-wide mouse handler + its hit region. The handler:

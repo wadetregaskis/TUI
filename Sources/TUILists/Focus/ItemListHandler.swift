@@ -270,6 +270,12 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// beside the rows).
     package var isPointerOver = false
 
+    /// Whether the list has an indicator to draw over its rows for the pointer
+    /// this frame, wherever the pointer and the focus are: its rows overflow,
+    /// or its visibility shows one anyway. A list with none does not watch the
+    /// pointer (`observePointerForOverlaidIndicators(of:showsIndicators:context:)`).
+    package var showsIndicatorsForPointer = false
+
     /// Whether the list would have drawn a scrollbar beside its rows this
     /// frame, whatever its placement: ``showsScrollbar`` as it stands under
     /// `.besideContent`. A list placed `.overContent` lays its rows out by it
@@ -1988,6 +1994,19 @@ extension ItemListHandler {
     }
 }
 
+extension FrameBuffer {
+    /// ``observePointerForOverlaidIndicators(of:showsIndicators:context:)`` for
+    /// a `List` or a `Table`, which watches the pointer only while it has an
+    /// indicator to show (``ItemListHandler/showsIndicatorsForPointer``).
+    @MainActor
+    package mutating func observePointerForOverlaidIndicators(
+        of handler: ItemListHandler<some Hashable>, context: RenderContext
+    ) {
+        observePointerForOverlaidIndicators(
+            of: handler, showsIndicators: handler.showsIndicatorsForPointer, context: context)
+    }
+}
+
 // Its indicators drawn over the rows follow the pointer — see the protocol.
 extension ItemListHandler: ScrollIndicatorPointerTracking {
     /// Decides whether this frame draws the indicators over the rows —
@@ -2004,6 +2023,7 @@ extension ItemListHandler: ScrollIndicatorPointerTracking {
     ///   - environment: The control's environment.
     package func resolveOverlaidIndicators(overflowing: Bool, contentHeight: Int, environment: EnvironmentValues) {
         let overlaid = environment.overlaidVerticalScrollIndicators(overflowing: overflowing, hovered: isPointerOver)
+        showsIndicatorsForPointer = environment.showsScrollIndicatorsForPointer(verticalOverflow: overflowing)
         overlaysScrollbar = overlaid.bar
         overlaysTextIndicators = overlaid.text && contentHeight >= ResolvedScrollIndicators.minimumTextHeight
     }
