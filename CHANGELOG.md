@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `keyframeAnimator` that has played out on its trigger lets a `TestApp` rest.** It stopped asking for frames from a
+task a test's clock never ran, so `advance(by:)` went on drawing sixty frames a second of the end value, about six
+hundred more for every ten seconds a test moved on. It now stops in the frame that draws the end, in a running app as
+in a test.
+
 **A `Text` of several lines gives up lines in a column too short for everything, as SwiftUI's does.** It kept every
 line however little room there was, so a sibling with a higher `layoutPriority` got nothing beside it. Offered fewer
 rows, a text now takes them, down to one (or the lines `lineLimit(2...)` or `reservesSpace:` keep), its last line

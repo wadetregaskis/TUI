@@ -91,7 +91,17 @@ where Value == KeyframePath.Value {
     /// The content and behavior of this view.
     @MainActor @ViewBuilder public var body: some View {
         TimelineView(.animation(paused: !isPlaying)) { context in
-            content(value(at: context.date))
+            let shown = value(at: context.date)
+            content(shown)
+                // Played out: rest at the end, and stop the clock once the
+                // frame that drew the end is done, as an `onChange` action
+                // runs — inside the frame, on whatever clock draws it. Unless
+                // a new play began meanwhile: a trigger that changed on this
+                // frame restarted it (`hasFinished` false again), and stopping
+                // the clock would leave it resting on the old end.
+                .onChange(of: playback.hasFinished) {
+                    if playback.hasFinished { isPlaying = false }
+                }
         }
         .onAppear {
             playback.isShown = true
@@ -138,19 +148,11 @@ where Value == KeyframePath.Value {
             value = timeline.value(time: duration > 0 ? elapsed.truncatingRemainder(dividingBy: duration) : 0)
         } else if elapsed >= duration {
             value = timeline.value(time: duration)
-            // Played out: rest at the end, and let the clock stop — after the
-            // frame, since this is drawing it.
-            if !playback.hasFinished {
-                playback.hasFinished = true
-                let isPlaying = $isPlaying
-                // Unless a new play began meanwhile: a trigger that changed on
-                // this frame restarted it (`hasFinished` false again), and
-                // stopping the clock would leave it resting on the old end.
-                Task { @MainActor [playback] in
-                    guard playback.hasFinished else { return }
-                    isPlaying.wrappedValue = false
-                }
-            }
+            // Played out: rest at the end. The clock stops once this frame is
+            // done (the `onChange` in `body`), not here, as this is drawing it.
+            // It was stopped by a `Task`, which a test's clock never ran, so a
+            // `TestApp` drew sixty frames a second of the end value for ever.
+            playback.hasFinished = true
         } else {
             value = timeline.value(time: elapsed)
         }

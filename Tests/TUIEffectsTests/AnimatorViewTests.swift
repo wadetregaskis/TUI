@@ -247,6 +247,28 @@ struct AnimatorViewTests {
         #expect(model.keyframesFrom == [0, 0], "from the initial value, not the end: \(model.keyframesFrom)")
     }
 
+    @Test("Keyframes played out on a trigger stop the frame clock on a test's clock, with no task left to run")
+    func finishedKeyframesStopTheClock() {
+        let model = AnimatorTestModel()
+        let app = TestApp(width: 20, height: 3) {
+            KeyframeAnimator(initialValue: 0.0, trigger: model.trigger) { value in
+                Text("V\(Int(value.rounded()))")
+            } keyframes: { _ in
+                LinearKeyframe(10.0, duration: 0.3)
+            }
+        }
+        app.advance(by: .milliseconds(100))
+        model.trigger += 1
+        app.advance(by: .seconds(1))
+        app.advance(by: .seconds(1))
+        #expect(app.screen.contains("V10"), "\(app.screen.lines)")
+        let drawn = app.headless.framesDrawn
+        app.advance(by: .seconds(10))
+        // Before: the clock was stopped by a `Task` the test's clock never
+        // ran, and ten seconds drew some six hundred frames of the rest value.
+        #expect(app.headless.framesDrawn - drawn <= 1, "\(app.headless.framesDrawn - drawn) frames at rest")
+    }
+
     @Test("A trigger while keyframes play starts them again from the value reached")
     func keyframesInterrupted() {
         let app = InterruptedKeyframeApp.model
