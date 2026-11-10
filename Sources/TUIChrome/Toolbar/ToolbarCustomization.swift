@@ -76,6 +76,24 @@ struct _ToolbarCustomizationRecord: Codable, Equatable {
     /// Each item the person put in the bar (`true`) or took out (`false`).
     var shown: [String: Bool] = [:]
 
+    /// Decodes a record that may lack `shown`, as a later writer may leave out
+    /// a field it has nothing in: decoded as required, as synthesized
+    /// `Codable` decodes a non-optional field, its absence failed the whole
+    /// record, and the person's order went with it. Encoding stays
+    /// synthesized, so a record written today still reads in an earlier build.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        order = try container.decodeIfPresent([String].self, forKey: .order)
+        shown = try container.decodeIfPresent([String: Bool].self, forKey: .shown) ?? [:]
+    }
+
+    /// A record of the person's `order` and the items they put in the bar
+    /// or took out: none of either, unless given.
+    init(order: [String]? = nil, shown: [String: Bool] = [:]) {
+        self.order = order
+        self.shown = shown
+    }
+
     /// The key the record for the toolbar `id` is kept under.
     static func key(_ id: String) -> String {
         "TUI Toolbar Configuration \(id)"

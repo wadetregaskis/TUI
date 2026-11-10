@@ -64,6 +64,9 @@ stack has no guard page: a tree deeper than it wrote over the program's data. It
 wasm-ld's default 64 KB stack it trips a few levels down, so link with a bigger one (`-z stack-size=16777216`, as
 `Tools/Web/build.sh` does).
 
+**A customized toolbar's saved record reads without its list of shown items.** A writer that leaves out an empty
+`shown` field no longer makes the whole record fail to decode, which used to lose the person's order of the items too.
+
 **A settings file that a later TUI wrote is read, and is no longer wiped by the next save.** `settings.json` and
 Linux's `UserDefaults.json` hold each key's value as base64 JSON. If any value in the file was something else, such as
 one a later release might keep another way, the whole file read as empty, so every setting showed its default. The
