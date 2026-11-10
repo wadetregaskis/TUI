@@ -355,108 +355,118 @@ struct DynamicPropertyDiscoveryTests {
         #expect(later == fromTheStart)
     }
 
-    /// Three walks descended into a class instance's stored values with no
-    /// record of where they had been: the environment walk, the binding
-    /// walk, and the write-back's walk of what it could not write in place.
-    /// Each, run alone on this pair, went from the child back to its parent
-    /// through the `weak` reference and round again until the stack ran out
-    /// (SIGSEGV). SwiftUI never looks inside a class property, and drew the
-    /// same pair (dv.out, `cycle`). An exit test, so a crash fails this test
-    /// and not the run.
-    @Test("Class properties that reach each other do not send the property walk round forever")
-    func classPropertyCycle() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let root = Coordinator()
-                let child = Coordinator()
-                root.child = child
-                child.parent = root
-                let context = makeRenderContext(width: 20, height: 1)
-                _ = renderToBuffer(CoordinatorView(coordinator: root), context: context)
-                withExtendedLifetime((root, child)) {}
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// Three walks descended into a class instance's stored values with no
+        /// record of where they had been: the environment walk, the binding
+        /// walk, and the write-back's walk of what it could not write in place.
+        /// Each, run alone on this pair, went from the child back to its parent
+        /// through the `weak` reference and round again until the stack ran out
+        /// (SIGSEGV). SwiftUI never looks inside a class property, and drew the
+        /// same pair (dv.out, `cycle`). An exit test, so a crash fails this test
+        /// and not the run.
+        @Test("Class properties that reach each other do not send the property walk round forever")
+        func classPropertyCycle() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let root = Coordinator()
+                    let child = Coordinator()
+                    root.child = child
+                    child.parent = root
+                    let context = makeRenderContext(width: 20, height: 1)
+                    _ = renderToBuffer(CoordinatorView(coordinator: root), context: context)
+                    withExtendedLifetime((root, child)) {}
+                }
             }
         }
-    }
+    #endif
 
-    /// The same through strong references only, which nothing breaks: each
-    /// object's own `update()` still runs once per body of the view that
-    /// holds it.
-    @Test("Class properties that reach each other strongly are each updated once per body")
-    func strongClassPropertyCycle() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let first = StrongCoordinator()
-                let second = StrongCoordinator()
-                first.other = second
-                second.other = first
-                let context = makeRenderContext(width: 20, height: 1)
-                let drawn = renderToBuffer(StrongCoordinatorView(coordinator: first), context: context)
-                #expect(drawn.lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "updates 1")
-                first.other = nil
-                second.other = nil
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The same through strong references only, which nothing breaks: each
+        /// object's own `update()` still runs once per body of the view that
+        /// holds it.
+        @Test("Class properties that reach each other strongly are each updated once per body")
+        func strongClassPropertyCycle() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let first = StrongCoordinator()
+                    let second = StrongCoordinator()
+                    first.other = second
+                    second.other = first
+                    let context = makeRenderContext(width: 20, height: 1)
+                    let drawn = renderToBuffer(StrongCoordinatorView(coordinator: first), context: context)
+                    #expect(drawn.lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "updates 1")
+                    first.other = nil
+                    second.other = nil
+                }
             }
         }
-    }
+    #endif
 
-    /// `Mirror` loaded every stored value of the view, `unowned` ones too,
-    /// and loading one whose object has gone traps: "Fatal error: Attempted
-    /// to read an unowned reference but object … was already deallocated"
-    /// (SIGABRT). The walk loads a field held `unowned` only when its
-    /// declared type is a property. Swift lets a program hold such a
-    /// reference as long as it never reads it, and SwiftUI, which reads only
-    /// fields whose type is a property, drew the view again after its object
-    /// died (dv.out, `unowned`). An exit test, so a trap fails this test and
-    /// not the run.
-    @Test("A view holding an unowned object that has died, which body never reads, still draws")
-    func unownedDeadFieldNeverRead() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                var owner: Owner? = Owner()
-                let view = UnownedOwnerView(owner: owner!)
-                owner = nil
-                let context = makeRenderContext(width: 20, height: 1)
-                _ = renderToBuffer(view, context: context)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// `Mirror` loaded every stored value of the view, `unowned` ones too,
+        /// and loading one whose object has gone traps: "Fatal error: Attempted
+        /// to read an unowned reference but object … was already deallocated"
+        /// (SIGABRT). The walk loads a field held `unowned` only when its
+        /// declared type is a property. Swift lets a program hold such a
+        /// reference as long as it never reads it, and SwiftUI, which reads only
+        /// fields whose type is a property, drew the view again after its object
+        /// died (dv.out, `unowned`). An exit test, so a trap fails this test and
+        /// not the run.
+        @Test("A view holding an unowned object that has died, which body never reads, still draws")
+        func unownedDeadFieldNeverRead() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    var owner: Owner? = Owner()
+                    let view = UnownedOwnerView(owner: owner!)
+                    owner = nil
+                    let context = makeRenderContext(width: 20, height: 1)
+                    _ = renderToBuffer(view, context: context)
+                }
             }
         }
-    }
+    #endif
 
-    /// Not only a view with a property: the environment walk reflected every
-    /// view type on its first body, before it could keep the type as holding
-    /// nothing, so a view with no property wrapper trapped the same way when
-    /// its type was first drawn after its object died.
-    @Test("A view with no property wrapper, holding an unowned object that has died, still draws on its type's first body")
-    func unownedDeadFieldFirstBody() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                var owner: Owner? = Owner()
-                let view = PlainUnownedView(owner: owner!)
-                owner = nil
-                let context = makeRenderContext(width: 20, height: 1)
-                _ = renderToBuffer(view, context: context)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// Not only a view with a property: the environment walk reflected every
+        /// view type on its first body, before it could keep the type as holding
+        /// nothing, so a view with no property wrapper trapped the same way when
+        /// its type was first drawn after its object died.
+        @Test("A view with no property wrapper, holding an unowned object that has died, still draws on its type's first body")
+        func unownedDeadFieldFirstBody() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    var owner: Owner? = Owner()
+                    let view = PlainUnownedView(owner: owner!)
+                    owner = nil
+                    let context = makeRenderContext(width: 20, height: 1)
+                    _ = renderToBuffer(view, context: context)
+                }
             }
         }
-    }
+    #endif
 
-    /// A dead `unowned` plain field before a live `unowned` app property:
-    /// the property is loaded by itself, at its own index, and nothing else
-    /// is read (session notes DYNV2/notes.md §2: a scan of `Mirror`'s
-    /// children by name trapped on the dead one first, exit 134 in the
-    /// probe).
-    @Test("A dead unowned field before a live unowned app property: the view draws and the property is updated")
-    func deadUnownedBeforeLiveProperty() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let counter = CountingObject()
-                var owner: Owner? = Owner()
-                let view = DeadBeforeLiveView(owner: owner!, counter: counter)
-                owner = nil
-                let context = makeRenderContext(width: 20, height: 1)
-                let drawn = renderToBuffer(view, context: context)
-                #expect(drawn.lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "count 1")
-                withExtendedLifetime(counter) {}
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// A dead `unowned` plain field before a live `unowned` app property:
+        /// the property is loaded by itself, at its own index, and nothing else
+        /// is read (session notes DYNV2/notes.md §2: a scan of `Mirror`'s
+        /// children by name trapped on the dead one first, exit 134 in the
+        /// probe).
+        @Test("A dead unowned field before a live unowned app property: the view draws and the property is updated")
+        func deadUnownedBeforeLiveProperty() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let counter = CountingObject()
+                    var owner: Owner? = Owner()
+                    let view = DeadBeforeLiveView(owner: owner!, counter: counter)
+                    owner = nil
+                    let context = makeRenderContext(width: 20, height: 1)
+                    let drawn = renderToBuffer(view, context: context)
+                    #expect(drawn.lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "count 1")
+                    withExtendedLifetime(counter) {}
+                }
             }
         }
-    }
+    #endif
 
     /// An `unowned` app property that a custom `Mirror` leaves out is still
     /// updated: the field metadata lists it whatever the mirror shows.

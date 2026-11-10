@@ -234,27 +234,29 @@ struct ClipboardTerminalSupportTests {
                 == row.expected)
     }
 
-    /// An exit test, because it is about the live answer, which reads the
-    /// process's environment and the process-wide simulated program. Apple
-    /// Terminal is named before any detector runs, so the answer cannot be the
-    /// terminal running the suite.
-    @Test("Simulating a program does not send copies to a terminal that is not there")
-    func simulationDoesNotChangeTheAnswer() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                for name in ["TUI_OSC52", "TMUX", "KITTY_WINDOW_ID", "LC_TERMINAL"] {
-                    ProcessWideState.setEnvironment(name, to: nil)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// An exit test, because it is about the live answer, which reads the
+        /// process's environment and the process-wide simulated program. Apple
+        /// Terminal is named before any detector runs, so the answer cannot be the
+        /// terminal running the suite.
+        @Test("Simulating a program does not send copies to a terminal that is not there")
+        func simulationDoesNotChangeTheAnswer() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    for name in ["TUI_OSC52", "TMUX", "KITTY_WINDOW_ID", "LC_TERMINAL"] {
+                        ProcessWideState.setEnvironment(name, to: nil)
+                    }
+                    ProcessWideState.setEnvironment("TUI_TERM_PROGRAM", to: "Apple_Terminal")
+                    ProcessWideState.setEnvironment("TERM", to: "xterm-256color")
+                    #expect(TerminalClient.clipboardWrites == .unsupported)
+                    ProcessWideState.simulated = .ghostty
+                    #expect(
+                        TerminalClient.clipboardWrites == .unsupported,
+                        "drawn as Ghostty, the copy still goes to the Apple Terminal in front of the user")
                 }
-                ProcessWideState.setEnvironment("TUI_TERM_PROGRAM", to: "Apple_Terminal")
-                ProcessWideState.setEnvironment("TERM", to: "xterm-256color")
-                #expect(TerminalClient.clipboardWrites == .unsupported)
-                ProcessWideState.simulated = .ghostty
-                #expect(
-                    TerminalClient.clipboardWrites == .unsupported,
-                    "drawn as Ghostty, the copy still goes to the Apple Terminal in front of the user")
             }
         }
-    }
+    #endif
 
     @Test("Only Ghostty, of the programs TUI knows, writes by default")
     func honouredPrograms() {

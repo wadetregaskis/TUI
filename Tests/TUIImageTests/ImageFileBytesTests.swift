@@ -50,7 +50,7 @@ struct ImageFileBytesTests {
         }
     }
 
-    #if !os(Windows)
+    #if !os(Windows) && !canImport(WASILibc)  // neither has mkfifo
         /// A named pipe reports 0 bytes, so it passed as a small file and was
         /// opened to decode on the frame that drew it, which waits for a
         /// writer: the app froze, signals and all (2026-10-29 review). Before

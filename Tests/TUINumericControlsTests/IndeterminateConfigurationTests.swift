@@ -142,15 +142,17 @@ struct IndeterminateConfigurationTests {
     }
 
     #if DEBUG
-        /// The default report is a soft trap, so a debug build stops. It runs in a
-        /// child process, because a stop in this one would end the test run.
-        @Test("A zero period stops a debug build")
-        func zeroPeriodStopsADebugBuild() async {
-            await #expect(processExitsWith: .failure) {
-                _ = IndeterminateRenderer.period(
-                    of: .custom(IndeterminateConfiguration(motion: .sweep, period: 0)))
+        #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+            /// The default report is a soft trap, so a debug build stops. It runs in a
+            /// child process, because a stop in this one would end the test run.
+            @Test("A zero period stops a debug build")
+            func zeroPeriodStopsADebugBuild() async {
+                await #expect(processExitsWith: .failure) {
+                    _ = IndeterminateRenderer.period(
+                        of: .custom(IndeterminateConfiguration(motion: .sweep, period: 0)))
+                }
             }
-        }
+        #endif
     #endif
 
     @Test("A zero or negative extent still lights one cell")

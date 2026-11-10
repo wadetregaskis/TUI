@@ -36,43 +36,45 @@ import Testing
 /// one call — makes a descriptor at EOF that is nothing else's business.
 @Suite("StdinArrivalNotifier")
 struct StdinArrivalNotifierTests {
-    /// Closes a pipe's write end, and returns once its read end reports the
-    /// hang-up: `false` if it never does.
-    ///
-    /// Closing the write end is not end of file. A pipe hangs up when the LAST
-    /// descriptor for its write end closes, and this process does not hold
-    /// every one: other suites spawn children while these tests run —
-    /// `SystemClipboardTests` runs `/bin/sh`, exit tests run this binary — and
-    /// a spawn copies the parent's whole descriptor table into the child,
-    /// dropping what the child may not keep only at its `exec`. A write end
-    /// closed inside that window stays open in the child until then, and a
-    /// zero-timeout poll of the read end meanwhile sees an open, empty pipe.
-    /// That, and not the code under test, is what failed
-    /// `zeroReadyBytesBeforeEOFKeepsTheSource` and
-    /// `endOfInputIsAskedOfTheDescriptor` in parallel runs and never alone: the
-    /// descriptor was still the test's own pipe, empty, with no hang-up yet.
-    /// (Measured on macOS 15, with `Process` spawning on another thread: a
-    /// write end was still open just after its close in 285 of 4,578 spawns —
-    /// and in 907 of 4,627 with `FD_CLOEXEC` set on it, which XNU copies too —
-    /// for up to 180 ms.)
-    ///
-    /// The child's copy goes at its `exec`, so the wait is short and always
-    /// ends; the bound only makes a regression fail instead of hang. What the
-    /// tests assert is unchanged — whether a descriptor whose writer has gone
-    /// is recognised — and this only makes "the writer has gone" true before
-    /// they ask.
-    private static func closeWriteEnd(_ writeEnd: Int32, awaitingHangUpOn readEnd: Int32) -> Bool {
-        close(writeEnd)
-        let deadline = ContinuousClock.now.advanced(by: .seconds(30))
-        var probe = pollfd(fd: readEnd, events: Int16(POLLIN), revents: 0)
-        while ContinuousClock.now < deadline {
-            probe.revents = 0
-            let ready = unsafe poll(&probe, 1, 100)
-            if ready == 1 { return probe.revents & Int16(POLLHUP) != 0 }
-            if ready < 0, errno != EINTR { return false }
+    #if !canImport(WASILibc)  // for the pipe tests, which wasip1 cannot run
+        /// Closes a pipe's write end, and returns once its read end reports the
+        /// hang-up: `false` if it never does.
+        ///
+        /// Closing the write end is not end of file. A pipe hangs up when the LAST
+        /// descriptor for its write end closes, and this process does not hold
+        /// every one: other suites spawn children while these tests run —
+        /// `SystemClipboardTests` runs `/bin/sh`, exit tests run this binary — and
+        /// a spawn copies the parent's whole descriptor table into the child,
+        /// dropping what the child may not keep only at its `exec`. A write end
+        /// closed inside that window stays open in the child until then, and a
+        /// zero-timeout poll of the read end meanwhile sees an open, empty pipe.
+        /// That, and not the code under test, is what failed
+        /// `zeroReadyBytesBeforeEOFKeepsTheSource` and
+        /// `endOfInputIsAskedOfTheDescriptor` in parallel runs and never alone: the
+        /// descriptor was still the test's own pipe, empty, with no hang-up yet.
+        /// (Measured on macOS 15, with `Process` spawning on another thread: a
+        /// write end was still open just after its close in 285 of 4,578 spawns —
+        /// and in 907 of 4,627 with `FD_CLOEXEC` set on it, which XNU copies too —
+        /// for up to 180 ms.)
+        ///
+        /// The child's copy goes at its `exec`, so the wait is short and always
+        /// ends; the bound only makes a regression fail instead of hang. What the
+        /// tests assert is unchanged — whether a descriptor whose writer has gone
+        /// is recognised — and this only makes "the writer has gone" true before
+        /// they ask.
+        private static func closeWriteEnd(_ writeEnd: Int32, awaitingHangUpOn readEnd: Int32) -> Bool {
+            close(writeEnd)
+            let deadline = ContinuousClock.now.advanced(by: .seconds(30))
+            var probe = pollfd(fd: readEnd, events: Int16(POLLIN), revents: 0)
+            while ContinuousClock.now < deadline {
+                probe.revents = 0
+                let ready = unsafe poll(&probe, 1, 100)
+                if ready == 1 { return probe.revents & Int16(POLLHUP) != 0 }
+                if ready < 0, errno != EINTR { return false }
+            }
+            return false
         }
-        return false
-    }
+    #endif
 
     @MainActor
     @Test("waitForArrival returns once the timeout elapses")
@@ -111,91 +113,97 @@ struct StdinArrivalNotifierTests {
         await waiter.value  // returns only because stop() resumed the waiter
     }
 
-    /// A read source is level-triggered, so a descriptor at EOF is permanently
-    /// "readable": the handler re-arms as it returns and fires again forever.
-    /// Every firing used to wake the loop, so the demand-driven wait stopped
-    /// waiting and the process burned a whole core rendering nothing — for any
-    /// app run with stdin closed or pointed at `/dev/null`, which is how a CI
-    /// step or a process supervisor launches one.
-    ///
-    /// The oracle is the wait itself. Spinning, `wake()` fires continuously and
-    /// `waitForArrival` returns immediately every time; quiescent, it lasts its
-    /// timeout. A pipe with its write end closed is the EOF descriptor, and a
-    /// `pipe(2)` is the only way to get one — hence `start(descriptor:)`.
-    @MainActor
-    @Test("A descriptor at EOF does not spin the run loop")
-    func eofDoesNotSpin() async throws {
-        var fds: [Int32] = [-1, -1]
-        try unsafe #require(pipe(&fds) == 0)
-        defer { close(fds[0]) }
-        // Write end gone: the read end is at EOF from here on.
-        try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
+    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+        /// A read source is level-triggered, so a descriptor at EOF is permanently
+        /// "readable": the handler re-arms as it returns and fires again forever.
+        /// Every firing used to wake the loop, so the demand-driven wait stopped
+        /// waiting and the process burned a whole core rendering nothing — for any
+        /// app run with stdin closed or pointed at `/dev/null`, which is how a CI
+        /// step or a process supervisor launches one.
+        ///
+        /// The oracle is the wait itself. Spinning, `wake()` fires continuously and
+        /// `waitForArrival` returns immediately every time; quiescent, it lasts its
+        /// timeout. A pipe with its write end closed is the EOF descriptor, and a
+        /// `pipe(2)` is the only way to get one — hence `start(descriptor:)`.
+        @MainActor
+        @Test("A descriptor at EOF does not spin the run loop")
+        func eofDoesNotSpin() async throws {
+            var fds: [Int32] = [-1, -1]
+            try unsafe #require(pipe(&fds) == 0)
+            defer { close(fds[0]) }
+            // Write end gone: the read end is at EOF from here on.
+            try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
 
-        let notifier = StdinArrivalNotifier()
-        notifier.start(descriptor: fds[0])
-        defer { notifier.stop() }
+            let notifier = StdinArrivalNotifier()
+            notifier.start(descriptor: fds[0])
+            defer { notifier.stop() }
 
-        // Let the source fire and take itself down before measuring.
-        await settle(until: { !notifier.isWatching })
+            // Let the source fire and take itself down before measuring.
+            await settle(until: { !notifier.isWatching })
 
-        let clock = ContinuousClock()
-        let start = clock.now
-        await notifier.waitForArrival(timeoutNanoseconds: 60_000_000)  // 60 ms
-        #expect(
-            clock.now - start >= .milliseconds(30),
-            "an EOF descriptor kept waking the loop, so the wait never waited")
-    }
+            let clock = ContinuousClock()
+            let start = clock.now
+            await notifier.waitForArrival(timeoutNanoseconds: 60_000_000)  // 60 ms
+            #expect(
+                clock.now - start >= .milliseconds(30),
+                "an EOF descriptor kept waking the loop, so the wait never waited")
+        }
+    #endif
 
-    /// A count of 0 from the source is not end of file when the bytes were
-    /// read before the count was taken: on Linux, libdispatch counts on its own
-    /// thread after `epoll` wakes it, while the run loop reads the descriptor.
-    /// That race cancelled the source, and the app heard no more keys unless
-    /// something animated — so every Linux CI lane's PTY walk went deaf on a
-    /// static page. No test can make libdispatch lose that race on cue, so
-    /// this hands the handler the 0 itself, on a descriptor that is open and
-    /// empty.
-    ///
-    /// Whether the source is still there, not how soon a key wakes the loop:
-    /// under the full suite the main actor can be held for tens of seconds, so
-    /// a time budget would test the machine.
-    @MainActor
-    @Test("A source told 0 bytes are ready, on a descriptor not at EOF, keeps watching it")
-    func zeroReadyBytesBeforeEOFKeepsTheSource() throws {
-        var fds: [Int32] = [-1, -1]
-        try unsafe #require(pipe(&fds) == 0)
-        defer { close(fds[0]) }  // the write end is closed below
+    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+        /// A count of 0 from the source is not end of file when the bytes were
+        /// read before the count was taken: on Linux, libdispatch counts on its own
+        /// thread after `epoll` wakes it, while the run loop reads the descriptor.
+        /// That race cancelled the source, and the app heard no more keys unless
+        /// something animated — so every Linux CI lane's PTY walk went deaf on a
+        /// static page. No test can make libdispatch lose that race on cue, so
+        /// this hands the handler the 0 itself, on a descriptor that is open and
+        /// empty.
+        ///
+        /// Whether the source is still there, not how soon a key wakes the loop:
+        /// under the full suite the main actor can be held for tens of seconds, so
+        /// a time budget would test the machine.
+        @MainActor
+        @Test("A source told 0 bytes are ready, on a descriptor not at EOF, keeps watching it")
+        func zeroReadyBytesBeforeEOFKeepsTheSource() throws {
+            var fds: [Int32] = [-1, -1]
+            try unsafe #require(pipe(&fds) == 0)
+            defer { close(fds[0]) }  // the write end is closed below
 
-        let notifier = StdinArrivalNotifier()
-        notifier.start(descriptor: fds[0])
-        defer { notifier.stop() }
+            let notifier = StdinArrivalNotifier()
+            notifier.start(descriptor: fds[0])
+            defer { notifier.stop() }
 
-        notifier.handleReadable(reportedBytes: 0)
-        #expect(notifier.isWatching, "the source was cancelled, so no key would wake the loop again")
+            notifier.handleReadable(reportedBytes: 0)
+            #expect(notifier.isWatching, "the source was cancelled, so no key would wake the loop again")
 
-        try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
-        notifier.handleReadable(reportedBytes: 0)
-        #expect(!notifier.isWatching, "at end of file the source must go, or it fires forever")
-    }
+            try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
+            notifier.handleReadable(reportedBytes: 0)
+            #expect(!notifier.isWatching, "at end of file the source must go, or it fires forever")
+        }
+    #endif
 
-    @Test("End of input is a descriptor that is readable with nothing to read")
-    func endOfInputIsAskedOfTheDescriptor() throws {
-        var fds: [Int32] = [-1, -1]
-        try unsafe #require(pipe(&fds) == 0)
-        defer { close(fds[0]) }
+    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+        @Test("End of input is a descriptor that is readable with nothing to read")
+        func endOfInputIsAskedOfTheDescriptor() throws {
+            var fds: [Int32] = [-1, -1]
+            try unsafe #require(pipe(&fds) == 0)
+            defer { close(fds[0]) }
 
-        #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "open and empty: the bytes were taken, more may come")
-        var byte: UInt8 = 0x61
-        unsafe #expect(write(fds[1], &byte, 1) == 1)
-        #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "a byte waiting")
-        unsafe #expect(read(fds[0], &byte, 1) == 1)
-        try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
-        #expect(StdinArrivalNotifier.isAtEndOfInput(fds[0]), "the writer is gone and nothing is left")
+            #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "open and empty: the bytes were taken, more may come")
+            var byte: UInt8 = 0x61
+            unsafe #expect(write(fds[1], &byte, 1) == 1)
+            #expect(!StdinArrivalNotifier.isAtEndOfInput(fds[0]), "a byte waiting")
+            unsafe #expect(read(fds[0], &byte, 1) == 1)
+            try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
+            #expect(StdinArrivalNotifier.isAtEndOfInput(fds[0]), "the writer is gone and nothing is left")
 
-        let null = unsafe open("/dev/null", O_RDONLY)
-        try #require(null >= 0)
-        defer { close(null) }
-        #expect(StdinArrivalNotifier.isAtEndOfInput(null), "stdin redirected from /dev/null")
-    }
+            let null = unsafe open("/dev/null", O_RDONLY)
+            try #require(null >= 0)
+            defer { close(null) }
+            #expect(StdinArrivalNotifier.isAtEndOfInput(null), "stdin redirected from /dev/null")
+        }
+    #endif
 
     @MainActor
     @Test("stop() is safe to call with no waiter and is idempotent")

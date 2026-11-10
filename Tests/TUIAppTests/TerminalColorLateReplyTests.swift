@@ -300,12 +300,14 @@ struct TerminalColorLatePublicationTests {
     /// Apple Terminal "Basic"'s bright red (230, 0, 0) than its red (153, 0, 0).
     private static let pixel = RGBA(r: 220, g: 0, b: 0)
 
-    @Test("Publishing a late report drops a memoised buffer and the sixteen matched before it")
-    func latePublicationReachesWhatWasKept() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run { Self.publishALateReport() }
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("Publishing a late report drops a memoised buffer and the sixteen matched before it")
+        func latePublicationReachesWhatWasKept() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run { Self.publishALateReport() }
+            }
         }
-    }
+    #endif
 
     /// The whole test, run in the exit test's child.
     private static func publishALateReport() {

@@ -55,59 +55,63 @@ struct TerminalHyperlinkSupportTests {
         #expect(TerminalClient.widthTraits(of: .unidentified) == TerminalWidthTraits())
     }
 
-    /// An exit test, because `simulated` reaching the live answer is the
-    /// subject. `TUI_HYPERLINKS` is cleared first, in the child, so a
-    /// developer who exported it cannot answer in the table's place.
-    ///
-    /// The ladder's own tests below pose it on arguments, so they cannot see
-    /// what the live answer passes it. The last three checks here can: the
-    /// process's environment and the real override outranking the simulated
-    /// table, and the override published to the path that reads it.
-    @Test("Simulating a program answers as that program")
-    func simulationChangesTheAnswer() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
-                ProcessWideState.simulated = .ghostty
-                #expect(TerminalClient.hyperlinksSupported)
-                ProcessWideState.simulated = .appleTerminal
-                #expect(!TerminalClient.hyperlinksSupported)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// An exit test, because `simulated` reaching the live answer is the
+        /// subject. `TUI_HYPERLINKS` is cleared first, in the child, so a
+        /// developer who exported it cannot answer in the table's place.
+        ///
+        /// The ladder's own tests below pose it on arguments, so they cannot see
+        /// what the live answer passes it. The last three checks here can: the
+        /// process's environment and the real override outranking the simulated
+        /// table, and the override published to the path that reads it.
+        @Test("Simulating a program answers as that program")
+        func simulationChangesTheAnswer() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
+                    ProcessWideState.simulated = .ghostty
+                    #expect(TerminalClient.hyperlinksSupported)
+                    ProcessWideState.simulated = .appleTerminal
+                    #expect(!TerminalClient.hyperlinksSupported)
 
-                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: "1")
-                #expect(TerminalClient.hyperlinksSupported, "the process's TUI_HYPERLINKS=1 reaches the ladder")
-                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
-                ProcessWideState.hyperlinkSupport = true
-                #expect(TerminalClient.hyperlinksSupported, "the real override reaches the ladder")
-                #expect(TerminalHyperlink.isSupported, "and is published to the path that reads it")
-            }
-        }
-    }
-
-    /// An app sets the override in its `init`, which `App.main()` runs before
-    /// `AppRunner` asks the terminal who it is. The name the terminal answers
-    /// is seeded into the environment, where `TerminalHost`'s detectors find
-    /// it, and those are `static let`s that keep their first answer. So
-    /// setting the override must not read the host: the override answers the
-    /// ladder by itself, and reading the program anyway would freeze every
-    /// detector before the seed. An Apple Terminal reached over ssh, the case
-    /// identification exists for, would then keep none of its compensation,
-    /// and be sent the graphics probe it prints.
-    ///
-    /// An exit test, because the detectors freeze for the whole process. The
-    /// variables that name a host are cleared first, as ssh leaves them.
-    @Test("Setting the override before the host is identified leaves the detectors unread")
-    func overrideLeavesTheHostUnread() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                for name in ["TUI_TERM_PROGRAM", "TERM_PROGRAM", "LC_TERMINAL", "TERM", "TMUX"] {
-                    ProcessWideState.setEnvironment(name, to: nil)
+                    ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: "1")
+                    #expect(TerminalClient.hyperlinksSupported, "the process's TUI_HYPERLINKS=1 reaches the ladder")
+                    ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
+                    ProcessWideState.hyperlinkSupport = true
+                    #expect(TerminalClient.hyperlinksSupported, "the real override reaches the ladder")
+                    #expect(TerminalHyperlink.isSupported, "and is published to the path that reads it")
                 }
-                ProcessWideState.hyperlinkSupport = false  // the app's init
-                ProcessWideState.seedDiscoveredHost("Apple_Terminal")  // what identification does
-                #expect(TerminalHost.isAppleTerminal, "the detector read the seed, not the empty environment")
             }
         }
-    }
+    #endif
+
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// An app sets the override in its `init`, which `App.main()` runs before
+        /// `AppRunner` asks the terminal who it is. The name the terminal answers
+        /// is seeded into the environment, where `TerminalHost`'s detectors find
+        /// it, and those are `static let`s that keep their first answer. So
+        /// setting the override must not read the host: the override answers the
+        /// ladder by itself, and reading the program anyway would freeze every
+        /// detector before the seed. An Apple Terminal reached over ssh, the case
+        /// identification exists for, would then keep none of its compensation,
+        /// and be sent the graphics probe it prints.
+        ///
+        /// An exit test, because the detectors freeze for the whole process. The
+        /// variables that name a host are cleared first, as ssh leaves them.
+        @Test("Setting the override before the host is identified leaves the detectors unread")
+        func overrideLeavesTheHostUnread() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    for name in ["TUI_TERM_PROGRAM", "TERM_PROGRAM", "LC_TERMINAL", "TERM", "TMUX"] {
+                        ProcessWideState.setEnvironment(name, to: nil)
+                    }
+                    ProcessWideState.hyperlinkSupport = false  // the app's init
+                    ProcessWideState.seedDiscoveredHost("Apple_Terminal")  // what identification does
+                    #expect(TerminalHost.isAppleTerminal, "the detector read the seed, not the empty environment")
+                }
+            }
+        }
+    #endif
 
     /// The override is what a user reaches for on a terminal TUI has never
     /// measured — most of which do support OSC 8 — and what an app reaches for

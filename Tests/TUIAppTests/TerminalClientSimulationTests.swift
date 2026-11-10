@@ -40,94 +40,102 @@ struct TerminalClientSimulationTests {
         FrameDiffWriter(program: .unidentified)
     }
 
-    @Test("A simulated program applies its workarounds to a writer that detected nothing")
-    func simulatedProgramApplies() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let writer = Self.unidentified
-                #expect(!Self.row("🖥️X", on: writer).contains("\u{1B}[1C"))
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A simulated program applies its workarounds to a writer that detected nothing")
+        func simulatedProgramApplies() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let writer = Self.unidentified
+                    #expect(!Self.row("🖥️X", on: writer).contains("\u{1B}[1C"))
 
-                ProcessWideState.simulated = .appleTerminal
-                #expect(Self.row("🖥️X", on: writer).contains("\u{1B}[1C"))
+                    ProcessWideState.simulated = .appleTerminal
+                    #expect(Self.row("🖥️X", on: writer).contains("\u{1B}[1C"))
 
-                ProcessWideState.simulated = nil
-                #expect(!Self.row("🖥️X", on: writer).contains("\u{1B}[1C"))
+                    ProcessWideState.simulated = nil
+                    #expect(!Self.row("🖥️X", on: writer).contains("\u{1B}[1C"))
+                }
             }
         }
-    }
+    #endif
 
-    @Test("Changing the model repaints, rather than leaving rows built under the old one")
-    func changingTheModelInvalidates() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let writer = FrameDiffWriter(program: .unidentified)
-                // Build once so the reuse cache is populated, then change the
-                // model. A row whose BYTES did not change would otherwise be
-                // served from cache still carrying the previous model's
-                // compensation — the half-repainted screen a simulation would be
-                // useless for.
-                let before = writer.buildReusingOutputLines(
-                    buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 10, terminalHeight: 1,
-                    bgCode: "", reset: "")[0]
-                #expect(!before.contains("\u{1B}[1C"))
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("Changing the model repaints, rather than leaving rows built under the old one")
+        func changingTheModelInvalidates() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let writer = FrameDiffWriter(program: .unidentified)
+                    // Build once so the reuse cache is populated, then change the
+                    // model. A row whose BYTES did not change would otherwise be
+                    // served from cache still carrying the previous model's
+                    // compensation — the half-repainted screen a simulation would be
+                    // useless for.
+                    let before = writer.buildReusingOutputLines(
+                        buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 10, terminalHeight: 1,
+                        bgCode: "", reset: "")[0]
+                    #expect(!before.contains("\u{1B}[1C"))
 
-                ProcessWideState.simulated = .appleTerminal
-                let after = writer.buildReusingOutputLines(
-                    buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 10, terminalHeight: 1,
-                    bgCode: "", reset: "")[0]
-                #expect(after.contains("\u{1B}[1C"), "the cached row survived a change of terminal model")
+                    ProcessWideState.simulated = .appleTerminal
+                    let after = writer.buildReusingOutputLines(
+                        buffer: FrameBuffer(text: "🖥️X"), terminalWidth: 10, terminalHeight: 1,
+                        bgCode: "", reset: "")[0]
+                    #expect(after.contains("\u{1B}[1C"), "the cached row survived a change of terminal model")
+                }
             }
         }
-    }
+    #endif
 
     /// Whether `line` still carries a Fitzpatrick modifier.
     private static func keepsTheTone(_ line: String) -> Bool {
         line.unicodeScalars.contains { (0x1F3FB...0x1F3FF).contains($0.value) }
     }
 
-    /// tmux, not Apple Terminal, as the program: Apple Terminal has separated
-    /// tones (base, ZWNJ, modifier) rather than stripped them since
-    /// 2026-08-28, so under it the modifier survived whichever model won and
-    /// this test could not fail. tmux still strips 🤙's tone, which the first
-    /// expectation checks, so that it cannot go vacuous the same way again.
-    @Test("Hand-built quirks outrank a simulated program")
-    func quirksOutrankProgram() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let writer = Self.unidentified
-                ProcessWideState.simulated = .tmux
-                #expect(
-                    !Self.keepsTheTone(Self.row("🤙🏽X", on: writer)),
-                    "the fixture: the simulated program strips this tone")
-                // A hand-built set that keeps tones must win, or the
-                // exploration is arguing with a model it is trying to replace.
-                ProcessWideState.simulatedQuirks = TerminalQuirks(skinTones: .keep)
-                #expect(Self.keepsTheTone(Self.row("🤙🏽X", on: writer)))
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// tmux, not Apple Terminal, as the program: Apple Terminal has separated
+        /// tones (base, ZWNJ, modifier) rather than stripped them since
+        /// 2026-08-28, so under it the modifier survived whichever model won and
+        /// this test could not fail. tmux still strips 🤙's tone, which the first
+        /// expectation checks, so that it cannot go vacuous the same way again.
+        @Test("Hand-built quirks outrank a simulated program")
+        func quirksOutrankProgram() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let writer = Self.unidentified
+                    ProcessWideState.simulated = .tmux
+                    #expect(
+                        !Self.keepsTheTone(Self.row("🤙🏽X", on: writer)),
+                        "the fixture: the simulated program strips this tone")
+                    // A hand-built set that keeps tones must win, or the
+                    // exploration is arguing with a model it is trying to replace.
+                    ProcessWideState.simulatedQuirks = TerminalQuirks(skinTones: .keep)
+                    #expect(Self.keepsTheTone(Self.row("🤙🏽X", on: writer)))
+                }
             }
         }
-    }
+    #endif
 
-    /// The call site of the quirks' peak guard: a row is clipped by the model
-    /// in force, and hand-built quirks outrank the detected host for the clip
-    /// as they do for the compensation. K3 in
-    /// `Documentation/Terminals/Ghostty VT reference adoption study.md`.
-    @Test("Hand-built quirks guard an over-advancer's peak at the right edge")
-    func quirksGuardThePeak() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let writer = Self.unidentified
-                #expect(Self.keepsTheTone(Self.row("abcdefgh👍🏽", on: writer)), "the fixture: it fits its claim")
-                ProcessWideState.simulatedQuirks = TerminalQuirks(skinTones: .pullBack)
-                #expect(
-                    !Self.keepsTheTone(Self.row("abcdefgh👍🏽", on: writer)),
-                    "claimed to column 10 of 10, it advances to 12 on the way")
-                #expect(
-                    !Self.keepsTheTone(Self.row("abcdef👍🏽", on: writer)),
-                    "its peak ends on column 10 of 10, leaving the cursor no column past it to pull back from")
-                #expect(Self.keepsTheTone(Self.row("abcde👍🏽", on: writer)), "with room past its peak it stays")
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The call site of the quirks' peak guard: a row is clipped by the model
+        /// in force, and hand-built quirks outrank the detected host for the clip
+        /// as they do for the compensation. K3 in
+        /// `Documentation/Terminals/Ghostty VT reference adoption study.md`.
+        @Test("Hand-built quirks guard an over-advancer's peak at the right edge")
+        func quirksGuardThePeak() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let writer = Self.unidentified
+                    #expect(Self.keepsTheTone(Self.row("abcdefgh👍🏽", on: writer)), "the fixture: it fits its claim")
+                    ProcessWideState.simulatedQuirks = TerminalQuirks(skinTones: .pullBack)
+                    #expect(
+                        !Self.keepsTheTone(Self.row("abcdefgh👍🏽", on: writer)),
+                        "claimed to column 10 of 10, it advances to 12 on the way")
+                    #expect(
+                        !Self.keepsTheTone(Self.row("abcdef👍🏽", on: writer)),
+                        "its peak ends on column 10 of 10, leaving the cursor no column past it to pull back from")
+                    #expect(Self.keepsTheTone(Self.row("abcde👍🏽", on: writer)), "with room past its peak it stays")
+                }
             }
         }
-    }
+    #endif
 
     @Test("A detected host is unaffected when nothing is simulated")
     func detectionStillWins() {

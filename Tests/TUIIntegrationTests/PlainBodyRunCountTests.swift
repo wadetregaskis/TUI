@@ -9,6 +9,10 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// Each run is classified by the call stack, which wasip1 cannot read
+// (`Thread.callStackSymbols`).
+#if !canImport(WASILibc)
+
 import Foundation
 import Observation
 import Testing
@@ -632,3 +636,5 @@ struct PlainBodyRunCountTests {
         price("parent-builds", tag: "a") { ParentBuilds() }
     }
 }
+
+#endif

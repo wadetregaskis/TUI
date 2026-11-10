@@ -333,45 +333,49 @@ struct DynamicPropertyObjectHolderTests {
         #expect(frame(view(false, 2), tui, height: 2).first == "b 7")
     }
 
-    /// A view measured before the object's first holder had walked it in the
-    /// pass read the object's contents as the first holder left them: a
-    /// property set on the object since had an `@Environment(Model.self)`
-    /// never handed an environment, and reading it trapped (review5 of
-    /// DYNVFIX). Here the holder's identity changes as the property is set,
-    /// so the stack measures it at its new identity while the first holder
-    /// is the old one. Every holder walks the object before its body, and
-    /// hands an `@Environment` with none its own. In an exit test, so that
-    /// the trap fails this test alone.
-    @Test("A view measured at a new identity reads an @Environment object in a property set on its object since")
-    func holderMeasuredAtANewIdentityReadsTheModel() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let tests = DynamicPropertyObjectHolderTests()
-                let tui = TUIContext()
-                let screen = Passed(object: Screen())
-                #expect(tests.frame(ReloadedScreen(screen: screen), tui, height: 2) == ["-", "load"])
-                screen.object.child = ScreenChild()
-                screen.object.generation += 1
-                #expect(tests.frame(ReloadedScreen(screen: screen), tui, height: 2) == ["model", "load"])
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// A view measured before the object's first holder had walked it in the
+        /// pass read the object's contents as the first holder left them: a
+        /// property set on the object since had an `@Environment(Model.self)`
+        /// never handed an environment, and reading it trapped (review5 of
+        /// DYNVFIX). Here the holder's identity changes as the property is set,
+        /// so the stack measures it at its new identity while the first holder
+        /// is the old one. Every holder walks the object before its body, and
+        /// hands an `@Environment` with none its own. In an exit test, so that
+        /// the trap fails this test alone.
+        @Test("A view measured at a new identity reads an @Environment object in a property set on its object since")
+        func holderMeasuredAtANewIdentityReadsTheModel() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let tests = DynamicPropertyObjectHolderTests()
+                    let tui = TUIContext()
+                    let screen = Passed(object: Screen())
+                    #expect(tests.frame(ReloadedScreen(screen: screen), tui, height: 2) == ["-", "load"])
+                    screen.object.child = ScreenChild()
+                    screen.object.generation += 1
+                    #expect(tests.frame(ReloadedScreen(screen: screen), tui, height: 2) == ["model", "load"])
+                }
             }
         }
-    }
+    #endif
 
-    /// The same for a second view showing the object, appearing above its
-    /// first holder as the property is set: the stack measures it first.
-    @Test("A view appearing above an object's first holder reads an @Environment object in a property set on it since")
-    func holderAppearingAboveTheFirstHolderReadsTheModel() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let tests = DynamicPropertyObjectHolderTests()
-                let tui = TUIContext()
-                let screen = Passed(object: Screen())
-                #expect(tests.frame(ModelScreenPair(showsB: false, screen: screen), tui, height: 2) == ["-"])
-                screen.object.child = ScreenChild()
-                #expect(tests.frame(ModelScreenPair(showsB: true, screen: screen), tui, height: 2) == ["model", "model"])
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The same for a second view showing the object, appearing above its
+        /// first holder as the property is set: the stack measures it first.
+        @Test("A view appearing above an object's first holder reads an @Environment object in a property set on it since")
+        func holderAppearingAboveTheFirstHolderReadsTheModel() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let tests = DynamicPropertyObjectHolderTests()
+                    let tui = TUIContext()
+                    let screen = Passed(object: Screen())
+                    #expect(tests.frame(ModelScreenPair(showsB: false, screen: screen), tui, height: 2) == ["-"])
+                    screen.object.child = ScreenChild()
+                    #expect(tests.frame(ModelScreenPair(showsB: true, screen: screen), tui, height: 2) == ["model", "model"])
+                }
             }
         }
-    }
+    #endif
 
     /// Without the trap: such a measure read the default for a key-path
     /// `@Environment`, so the view was measured under one environment and

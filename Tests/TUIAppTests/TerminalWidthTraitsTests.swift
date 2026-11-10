@@ -625,22 +625,24 @@ struct TerminalWidthTraitsProcessTests {
     private static let keptJoiners = TerminalWidthTraits(
         zwjSequences: .decomposedKeepingJoiners, skinTone: .detached)
 
-    /// An exit test, because assigning the process traits is the subject.
-    @Test("Changing the process traits bumps the generation; a no-op change does not")
-    func generationTracksRealChanges() async {
-        await #expect(processExitsWith: .success) {
-            let before = TerminalWidthTraits.generation
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// An exit test, because assigning the process traits is the subject.
+        @Test("Changing the process traits bumps the generation; a no-op change does not")
+        func generationTracksRealChanges() async {
+            await #expect(processExitsWith: .success) {
+                let before = TerminalWidthTraits.generation
 
-            ProcessWideState.widthTraits = Self.keptJoiners
-            let afterChange = TerminalWidthTraits.generation
-            #expect(afterChange > before, "a real change must bump the generation")
+                ProcessWideState.widthTraits = Self.keptJoiners
+                let afterChange = TerminalWidthTraits.generation
+                #expect(afterChange > before, "a real change must bump the generation")
 
-            ProcessWideState.widthTraits = Self.keptJoiners
-            #expect(
-                TerminalWidthTraits.generation == afterChange,
-                "assigning the same value must not invalidate every cache in the process")
+                ProcessWideState.widthTraits = Self.keptJoiners
+                #expect(
+                    TerminalWidthTraits.generation == afterChange,
+                    "assigning the same value must not invalidate every cache in the process")
+            }
         }
-    }
+    #endif
 
     @Test("A scoped pin does NOT bump the generation")
     func pinDoesNotBumpGeneration() {
@@ -653,22 +655,24 @@ struct TerminalWidthTraitsProcessTests {
         #expect(TerminalWidthTraits.generation == before)
     }
 
-    /// An exit test, because republishing the process traits is the subject.
-    @Test("Simulating another client republishes its traits")
-    func simulatingRepublishesTraits() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.simulated = .warp
-                #expect(TerminalWidthTraits.current.zwjSequences == .decomposedDroppingJoiners,
-                        "the picker must move the claim, not just the compensation")
-                // The overhang set rides along, which is the point of it being a
-                // trait: simulating a host has to move every claim that host
-                // carries, not just the cluster ones.
-                #expect(TerminalWidthTraits.current.chromeOverhang == .keyboardSymbols)
-                ProcessWideState.simulated = .ghostty
-                #expect(TerminalWidthTraits.current == TerminalClient.widthTraits(of: .ghostty))
-                #expect(TerminalWidthTraits.current.chromeOverhang == .returnArrow)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// An exit test, because republishing the process traits is the subject.
+        @Test("Simulating another client republishes its traits")
+        func simulatingRepublishesTraits() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.simulated = .warp
+                    #expect(TerminalWidthTraits.current.zwjSequences == .decomposedDroppingJoiners,
+                            "the picker must move the claim, not just the compensation")
+                    // The overhang set rides along, which is the point of it being a
+                    // trait: simulating a host has to move every claim that host
+                    // carries, not just the cluster ones.
+                    #expect(TerminalWidthTraits.current.chromeOverhang == .keyboardSymbols)
+                    ProcessWideState.simulated = .ghostty
+                    #expect(TerminalWidthTraits.current == TerminalClient.widthTraits(of: .ghostty))
+                    #expect(TerminalWidthTraits.current.chromeOverhang == .returnArrow)
+                }
             }
         }
-    }
+    #endif
 }

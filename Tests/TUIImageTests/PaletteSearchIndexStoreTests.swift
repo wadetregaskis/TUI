@@ -20,42 +20,44 @@ import Testing
 @Suite("Palette search index store")
 struct PaletteSearchIndexStoreTests {
 
-    @Test("A built index is served while another palette's is being built")
-    func servedDuringAnotherBuild() async {
-        // Colours no other test uses, so the store's other users neither find
-        // these keys nor are found by them.
-        let ready = ASCIIPalette((0..<20).map { Color.rgb(UInt8($0 * 3), 17, 211) })
-        let slow = ASCIIPalette((0..<20).map { Color.rgb(UInt8($0 * 3), 19, 213) })
-        let readyEntries = ready.entries
-        let slowEntries = slow.entries
+    #if canImport(Dispatch)  // A second thread, which wasip1 does not have.
+        @Test("A built index is served while another palette's is being built")
+        func servedDuringAnotherBuild() async {
+            // Colours no other test uses, so the store's other users neither find
+            // these keys nor are found by them.
+            let ready = ASCIIPalette((0..<20).map { Color.rgb(UInt8($0 * 3), 17, 211) })
+            let slow = ASCIIPalette((0..<20).map { Color.rgb(UInt8($0 * 3), 19, 213) })
+            let readyEntries = ready.entries
+            let slowEntries = slow.entries
 
-        // Waits on threads of its own, not on the pool: see
-        // `PaletteSearchIndexTests`' "Why the walks run on threads of their own".
-        let served = await withCheckedContinuation { continuation in
-            Thread {
-                _ = ASCIIPalette.SearchIndexCache.index(for: readyEntries)
-                let started = DispatchSemaphore(value: 0)
-                let release = DispatchSemaphore(value: 0)
-                let done = DispatchSemaphore(value: 0)
-                Thread {
-                    _ = ASCIIPalette.SearchIndexCache.index(for: slowEntries) { entries in
-                        started.signal()
-                        release.wait()
-                        return ASCIIPalette.SearchIndex(entries: entries)
-                    }
-                }.start()
-                started.wait()
+            // Waits on threads of its own, not on the pool: see
+            // `PaletteSearchIndexTests`' "Why the walks run on threads of their own".
+            let served = await withCheckedContinuation { continuation in
                 Thread {
                     _ = ASCIIPalette.SearchIndexCache.index(for: readyEntries)
-                    done.signal()
+                    let started = DispatchSemaphore(value: 0)
+                    let release = DispatchSemaphore(value: 0)
+                    let done = DispatchSemaphore(value: 0)
+                    Thread {
+                        _ = ASCIIPalette.SearchIndexCache.index(for: slowEntries) { entries in
+                            started.signal()
+                            release.wait()
+                            return ASCIIPalette.SearchIndex(entries: entries)
+                        }
+                    }.start()
+                    started.wait()
+                    Thread {
+                        _ = ASCIIPalette.SearchIndexCache.index(for: readyEntries)
+                        done.signal()
+                    }.start()
+                    // A hang-breaker, not a budget: a lookup that does not wait on
+                    // the build answers in microseconds.
+                    let inTime = done.wait(timeout: .now() + 30) == .success
+                    release.signal()
+                    continuation.resume(returning: inTime)
                 }.start()
-                // A hang-breaker, not a budget: a lookup that does not wait on
-                // the build answers in microseconds.
-                let inTime = done.wait(timeout: .now() + 30) == .success
-                release.signal()
-                continuation.resume(returning: inTime)
-            }.start()
+            }
+            #expect(served, "a lookup of a built index waited on another palette's build")
         }
-        #expect(served, "a lookup of a built index waited on another palette's build")
-    }
+    #endif
 }

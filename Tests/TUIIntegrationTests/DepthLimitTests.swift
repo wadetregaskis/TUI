@@ -298,32 +298,34 @@ struct DepthLimitTests {
         #expect(reportCount() >= 1)
     }
 
-    /// Where a running app's report goes, whose terminal is its screen. In a
-    /// process of its own, whose `TUI_DIAGNOSTICS_FILE` is read for the first time
-    /// here and which has made no report yet, so the count is exact. The file's
-    /// contents come back on stderr, the one thing an exit test can hand over.
-    @Test("One report to TUI_DIAGNOSTICS_FILE, saying why and what to do")
-    func reportReachesTheDiagnosticsFile() async {
-        let result = await #expect(processExitsWith: .success, observing: [\.standardErrorContent]) {
-            let contents = await MainActor.run {
-                let url = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("depth-limit-\(UUID().uuidString).log")
-                ProcessWideState.setEnvironment("TUI_DIAGNOSTICS_FILE", to: url.path)
-                let app = TestApp(width: 80, height: 24) { BareNest(level: 0, depth: farPastTheLimit) }
-                _ = app.screen
-                app.resize(width: 60, height: 20)
-                _ = app.screen
-                _ = screen(of: ErasedNest(level: 0, depth: farPastTheLimit))
-                defer { try? FileManager.default.removeItem(at: url) }
-                return (try? Data(contentsOf: url)) ?? Data()
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// Where a running app's report goes, whose terminal is its screen. In a
+        /// process of its own, whose `TUI_DIAGNOSTICS_FILE` is read for the first time
+        /// here and which has made no report yet, so the count is exact. The file's
+        /// contents come back on stderr, the one thing an exit test can hand over.
+        @Test("One report to TUI_DIAGNOSTICS_FILE, saying why and what to do")
+        func reportReachesTheDiagnosticsFile() async {
+            let result = await #expect(processExitsWith: .success, observing: [\.standardErrorContent]) {
+                let contents = await MainActor.run {
+                    let url = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("depth-limit-\(UUID().uuidString).log")
+                    ProcessWideState.setEnvironment("TUI_DIAGNOSTICS_FILE", to: url.path)
+                    let app = TestApp(width: 80, height: 24) { BareNest(level: 0, depth: farPastTheLimit) }
+                    _ = app.screen
+                    app.resize(width: 60, height: 20)
+                    _ = app.screen
+                    _ = screen(of: ErasedNest(level: 0, depth: farPastTheLimit))
+                    defer { try? FileManager.default.removeItem(at: url) }
+                    return (try? Data(contentsOf: url)) ?? Data()
+                }
+                FileHandle.standardError.write(contents)
             }
-            FileHandle.standardError.write(contents)
+            let text = String(bytes: result?.standardErrorContent ?? [], encoding: .utf8) ?? ""
+            #expect(text.components(separatedBy: "Views are nested too deeply to draw").count == 2, "\(text)")
+            #expect(text.contains("the stack ran short"), "why")
+            #expect(text.contains("needs a case where it stops"), "what to do")
         }
-        let text = String(bytes: result?.standardErrorContent ?? [], encoding: .utf8) ?? ""
-        #expect(text.components(separatedBy: "Views are nested too deeply to draw").count == 2, "\(text)")
-        #expect(text.contains("the stack ran short"), "why")
-        #expect(text.contains("needs a case where it stops"), "what to do")
-    }
+    #endif
 
     // MARK: - When it is shallower again
 

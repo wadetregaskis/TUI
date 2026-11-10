@@ -4,6 +4,10 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// The system clipboard is a helper process, which wasip1 cannot start: its
+// `SystemClipboard` is a stub.
+#if !canImport(WASILibc)
+
 import Foundation
 import Testing
 
@@ -131,3 +135,5 @@ struct SystemClipboardTests {
         #expect(result == nil)
     }
 }
+
+#endif

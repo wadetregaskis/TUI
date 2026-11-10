@@ -80,31 +80,33 @@ private func makeContextWithDiagnostic() -> (RenderContext, BodyMutationDiagnost
 @Suite("Body-mutation diagnostic")
 struct BodyMutationDiagnosticTests {
 
-    /// The report is read by people, from a log, so its words are part of what
-    /// it does. The exit test runs in a child process so its stderr can be read
-    /// back whole, which is where the report goes when no file is named.
-    @Test("A report reaches stderr in exactly these words")
-    func reportTextOnStandardError() async {
-        let result = await #expect(processExitsWith: .success, observing: [\.standardErrorContent]) {
-            await MainActor.run {
-                // An inherited TUI_DIAGNOSTICS_FILE would send the report to
-                // that file instead, and this test would read nothing.
-                ProcessWideState.setEnvironment("TUI_DIAGNOSTICS_FILE", to: nil)
-                let (context, diagnostic) = makeContextWithDiagnostic()
-                diagnostic.beginTraversal()
-                _ = renderToBuffer(MutatingProbe(), context: context)
-                diagnostic.endTraversal()
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The report is read by people, from a log, so its words are part of what
+        /// it does. The exit test runs in a child process so its stderr can be read
+        /// back whole, which is where the report goes when no file is named.
+        @Test("A report reaches stderr in exactly these words")
+        func reportTextOnStandardError() async {
+            let result = await #expect(processExitsWith: .success, observing: [\.standardErrorContent]) {
+                await MainActor.run {
+                    // An inherited TUI_DIAGNOSTICS_FILE would send the report to
+                    // that file instead, and this test would read nothing.
+                    ProcessWideState.setEnvironment("TUI_DIAGNOSTICS_FILE", to: nil)
+                    let (context, diagnostic) = makeContextWithDiagnostic()
+                    diagnostic.beginTraversal()
+                    _ = renderToBuffer(MutatingProbe(), context: context)
+                    diagnostic.endTraversal()
+                }
             }
-        }
-        let text = String(bytes: result?.standardErrorContent ?? [], encoding: .utf8)
-        #expect(
-            text == """
-                [TUI] state written during a tree walk, frame 0: <root>
-                  A write during the walk asks for another frame. If this repeats \
-                every frame the run loop can never idle.
+            let text = String(bytes: result?.standardErrorContent ?? [], encoding: .utf8)
+            #expect(
+                text == """
+                    [TUI] state written during a tree walk, frame 0: <root>
+                      A write during the walk asks for another frame. If this repeats \
+                    every frame the run loop can never idle.
 
-                """)
-    }
+                    """)
+        }
+    #endif
 
     @Test("A write during the walk is reported, with the subtree that did it")
     func writeDuringWalkIsReported() {
@@ -188,33 +190,35 @@ struct BodyMutationDiagnosticTests {
         #expect(diagnostic.reports.isEmpty, "saw \(diagnostic.reports)")
     }
 
-    /// A write from another thread is somebody's `.task` finishing, not a body
-    /// mutation — even if it lands while the main thread happens to be walking.
-    @Test("A write from another thread is not reported")
-    func writeFromAnotherThreadIsSilent() async {
-        let (context, diagnostic) = makeContextWithDiagnostic()
+    #if canImport(Dispatch)  // A second thread, which wasip1 does not have.
+        /// A write from another thread is somebody's `.task` finishing, not a body
+        /// mutation — even if it lands while the main thread happens to be walking.
+        @Test("A write from another thread is not reported")
+        func writeFromAnotherThreadIsSilent() async {
+            let (context, diagnostic) = makeContextWithDiagnostic()
 
-        diagnostic.beginTraversal()
-        _ = renderToBuffer(WellBehavedProbe(), context: context)
+            diagnostic.beginTraversal()
+            _ = renderToBuffer(WellBehavedProbe(), context: context)
 
-        // What a write reaches the cache by, from a thread that is not walking:
-        // an `@Observable` property's, say.
-        let link = context.renderCache!.link
-        let identity = context.identity
+            // What a write reaches the cache by, from a thread that is not walking:
+            // an `@Observable` property's, say.
+            let link = context.renderCache!.link
+            let identity = context.identity
 
-        // `Thread.detachNewThread` rather than a `Task`: a task can be scheduled
-        // onto the very thread doing the walking, which would make this test
-        // assert the opposite of what it means to.
-        await withCheckedContinuation { continuation in
-            Thread.detachNewThread {
-                link.invalidateRender(for: identity)
-                continuation.resume()
+            // `Thread.detachNewThread` rather than a `Task`: a task can be scheduled
+            // onto the very thread doing the walking, which would make this test
+            // assert the opposite of what it means to.
+            await withCheckedContinuation { continuation in
+                Thread.detachNewThread {
+                    link.invalidateRender(for: identity)
+                    continuation.resume()
+                }
             }
-        }
-        diagnostic.endTraversal()
+            diagnostic.endTraversal()
 
-        #expect(diagnostic.reports.isEmpty, "saw \(diagnostic.reports)")
-    }
+            #expect(diagnostic.reports.isEmpty, "saw \(diagnostic.reports)")
+        }
+    #endif
 
     @Test("Nobody pays for it unless they asked")
     func disabledByDefault() {

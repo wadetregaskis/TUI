@@ -92,12 +92,25 @@ private struct ReadsFocus: View {
     }
 }
 
+/// `duration` of wall time, on this thread. `Thread.sleep` where there are
+/// threads; wasip1 has none (nor `Thread`), so there it is a spin on the clock.
+private func waitRealTime(_ duration: Duration) {
+    #if canImport(Dispatch)
+        let (seconds, attoseconds) = duration.components
+        let interval: TimeInterval = Double(seconds) + Double(attoseconds) / 1e18
+        Thread.sleep(forTimeInterval: interval)
+    #else
+        let end = ContinuousClock.now + duration
+        while ContinuousClock.now < end {}
+    #endif
+}
+
 private struct Slow: View {
     var body: some View {
         Runs.note("slow")
         // Real time, on purpose: what makes a body worth keeping is the wall
         // time its runs are measured taking (`BodyKeep.slowBody`).
-        Thread.sleep(forTimeInterval: 0.002)
+        waitRealTime(.microseconds(2_000))
         return Text(verbatim: "slow")
     }
 }
@@ -110,7 +123,7 @@ private struct SlowRow: View {
     var body: some View {
         Runs.note("row")
         // Real time, as `Slow`'s: over the line `BodyKeep` measures.
-        Thread.sleep(forTimeInterval: 0.0002)
+        waitRealTime(.microseconds(200))
         return Text(verbatim: "\(index) \(tick + taps)")
     }
 }

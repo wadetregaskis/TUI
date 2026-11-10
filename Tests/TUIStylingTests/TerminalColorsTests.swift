@@ -112,59 +112,63 @@ struct TerminalColorsProcessTests {
         #expect(TerminalColors.current == .unknown)
     }
 
-    /// The other reader is a plain thread, which belongs to no task, so it sees
-    /// the process value. The pinned closure waits for it, so it reads while the
-    /// pin is still in force. A detached task would not do: its body can run
-    /// after the closure has returned, when a pin that wrote the process value
-    /// and put it back would look task-local too.
-    @Test("A pin is in force on its own task, only inside its scope")
-    func pinIsTaskLocal() {
-        let before = TerminalColors.generation
-        let (inside, elsewhere) = TerminalColors.withCurrent(Self.reported) {
-            (TerminalColors.current, Self.readOnAPlainThread())
-        }
-        #expect(inside == Self.reported)
-        #expect(elsewhere == .unknown, "the pin reached a thread outside its task")
-        #expect(TerminalColors.current == .unknown, "the pin outlived its scope")
-        #expect(TerminalColors.generation == before, "a pin must not bump the generation")
-    }
-
-    /// `TerminalColors.current`, read on a new thread while this one waits.
-    private static func readOnAPlainThread() -> TerminalColors? {
-        // @unchecked Sendable, and not a race: the thread writes `value` once
-        // before signalling, and this thread reads it only after the wait.
-        final class Seen: @unchecked Sendable { var value: TerminalColors? }
-        let seen = Seen()
-        let done = DispatchSemaphore(value: 0)
-        Thread.detachNewThread {
-            seen.value = TerminalColors.current
-            done.signal()
-        }
-        done.wait()
-        return seen.value
-    }
-
-    /// An exit test, because assigning the process colours is the subject: the
-    /// body runs in a child process, where no other test's frame can see them
-    /// move.
-    @Test("Changing the process colours bumps the generation; assigning the same value does not")
-    func generationTracksRealChanges() async {
-        await #expect(processExitsWith: .success) {
+    #if canImport(Dispatch)  // A second thread, which wasip1 does not have.
+        /// The other reader is a plain thread, which belongs to no task, so it sees
+        /// the process value. The pinned closure waits for it, so it reads while the
+        /// pin is still in force. A detached task would not do: its body can run
+        /// after the closure has returned, when a pin that wrote the process value
+        /// and put it back would look task-local too.
+        @Test("A pin is in force on its own task, only inside its scope")
+        func pinIsTaskLocal() {
             let before = TerminalColors.generation
-
-            ProcessWideState.colours = Self.reported
-            let afterChange = TerminalColors.generation
-            #expect(afterChange == before + 1, "a real change must bump the generation once")
-            #expect(TerminalColors.current == Self.reported)
-
-            ProcessWideState.colours = Self.reported
-            #expect(
-                TerminalColors.generation == afterChange, "the same value must not invalidate every cache")
-
-            ProcessWideState.colours = .unknown
-            #expect(TerminalColors.generation == afterChange + 1, "going back to unknown is a change too")
+            let (inside, elsewhere) = TerminalColors.withCurrent(Self.reported) {
+                (TerminalColors.current, Self.readOnAPlainThread())
+            }
+            #expect(inside == Self.reported)
+            #expect(elsewhere == .unknown, "the pin reached a thread outside its task")
+            #expect(TerminalColors.current == .unknown, "the pin outlived its scope")
+            #expect(TerminalColors.generation == before, "a pin must not bump the generation")
         }
-    }
+
+        /// `TerminalColors.current`, read on a new thread while this one waits.
+        private static func readOnAPlainThread() -> TerminalColors? {
+            // @unchecked Sendable, and not a race: the thread writes `value` once
+            // before signalling, and this thread reads it only after the wait.
+            final class Seen: @unchecked Sendable { var value: TerminalColors? }
+            let seen = Seen()
+            let done = DispatchSemaphore(value: 0)
+            Thread.detachNewThread {
+                seen.value = TerminalColors.current
+                done.signal()
+            }
+            done.wait()
+            return seen.value
+        }
+    #endif
+
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// An exit test, because assigning the process colours is the subject: the
+        /// body runs in a child process, where no other test's frame can see them
+        /// move.
+        @Test("Changing the process colours bumps the generation; assigning the same value does not")
+        func generationTracksRealChanges() async {
+            await #expect(processExitsWith: .success) {
+                let before = TerminalColors.generation
+
+                ProcessWideState.colours = Self.reported
+                let afterChange = TerminalColors.generation
+                #expect(afterChange == before + 1, "a real change must bump the generation once")
+                #expect(TerminalColors.current == Self.reported)
+
+                ProcessWideState.colours = Self.reported
+                #expect(
+                    TerminalColors.generation == afterChange, "the same value must not invalidate every cache")
+
+                ProcessWideState.colours = .unknown
+                #expect(TerminalColors.generation == afterChange + 1, "going back to unknown is a change too")
+            }
+        }
+    #endif
 
     /// The door's own check. Here, in the shared process, the assignment is
     /// refused and recorded, and neither the colours nor the generation move.

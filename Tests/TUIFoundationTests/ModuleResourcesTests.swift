@@ -70,12 +70,14 @@ struct ModuleResourcesTests {
         #expect(second.bundleURL?.lastPathComponent == "TUI_TUIStrings.bundle")
     }
 
-    @Test("The search starts beside the program")
-    func searchStartsBesideTheProgram() {
-        let directories = ModuleResources.searchDirectories()
-        #expect(directories.first == Bundle.main.bundleURL)
-        #expect(directories.count >= 3)
-    }
+    #if !canImport(WASILibc)  // WebAssembly asks Bundle.module instead, and searches nowhere.
+        @Test("The search starts beside the program")
+        func searchStartsBesideTheProgram() {
+            let directories = ModuleResources.searchDirectories()
+            #expect(directories.first == Bundle.main.bundleURL)
+            #expect(directories.count >= 3)
+        }
+    #endif
 
     @Test("This build's own bundle is found where the build put it")
     func thisBuildsBundleIsFound() throws {

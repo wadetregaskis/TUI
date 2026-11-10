@@ -17,7 +17,7 @@ struct SystemClipboardHelperTests {
             #expect(helpers.map(\.copyTool) == ["/usr/bin/pbcopy"])
             #expect(helpers.map(\.pasteTool) == ["/usr/bin/pbpaste"])
         }
-    #else
+    #elseif !canImport(WASILibc)  // wasip1 starts no helper, so it looks for none
         @Test("Wayland first, then X11, and only with a display to talk to")
         func linux() {
             let all: (String) -> Bool = { _ in true }

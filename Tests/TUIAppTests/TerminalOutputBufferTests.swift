@@ -4,6 +4,9 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+// Every test reads stdout back through pipe(2), which wasip1 does not have.
+#if !canImport(WASILibc)
+
 import Foundation
 import Testing
 
@@ -150,3 +153,5 @@ struct TerminalOutputBufferTests {
         #expect(output.contains("Bold"))
     }
 }
+
+#endif

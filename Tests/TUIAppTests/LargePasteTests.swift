@@ -260,43 +260,47 @@ struct LargePasteTests {
     }
     #endif
 
-    /// What decoding a paste that is not UTF-8 costs: every byte above 0x7F,
-    /// so 16 MiB read becomes 32 MiB of text, and the process may grow by that
-    /// and not much more. It grows by 32 MiB; the second spelling of the
-    /// decode (``Terminal/latin1Text(_:)`` says what it was) grew it by 144 MiB
-    /// (both measured 2026-10-11, macOS, Swift 6.2.4, debug).
-    ///
-    /// An exit test, so the peak resident size is this decode's: the body
-    /// runs in a child process of its own, where no other test allocates.
-    @Test("Decoding a paste that is not UTF-8 grows the process by the text, not a copy per byte")
-    func latin1DecodePeak() async {
-        await #expect(processExitsWith: .success) {
-            let content = [UInt8](repeating: 0xE9, count: 16 << 20)
-            let before = Self.peakResidentBytes()
-            let text = content.withUnsafeBufferPointer { unsafe Terminal.latin1Text($0) }
-            let grown = Self.peakResidentBytes() - before
-            #expect(text.utf8.count == 2 * content.count)
-            #expect(text.unicodeScalars.allSatisfy { $0 == "\u{E9}" })
-            #expect(grown < 3 * content.count, "the decode grew the process by \(grown >> 20) MiB")
+    // An exit test, and the resident-size reading only it uses: wasip1 starts
+    // no process for one, and has no getrusage.
+    #if !os(WASI)
+        /// What decoding a paste that is not UTF-8 costs: every byte above 0x7F,
+        /// so 16 MiB read becomes 32 MiB of text, and the process may grow by that
+        /// and not much more. It grows by 32 MiB; the second spelling of the
+        /// decode (``Terminal/latin1Text(_:)`` says what it was) grew it by 144 MiB
+        /// (both measured 2026-10-11, macOS, Swift 6.2.4, debug).
+        ///
+        /// An exit test, so the peak resident size is this decode's: the body
+        /// runs in a child process of its own, where no other test allocates.
+        @Test("Decoding a paste that is not UTF-8 grows the process by the text, not a copy per byte")
+        func latin1DecodePeak() async {
+            await #expect(processExitsWith: .success) {
+                let content = [UInt8](repeating: 0xE9, count: 16 << 20)
+                let before = Self.peakResidentBytes()
+                let text = content.withUnsafeBufferPointer { unsafe Terminal.latin1Text($0) }
+                let grown = Self.peakResidentBytes() - before
+                #expect(text.utf8.count == 2 * content.count)
+                #expect(text.unicodeScalars.allSatisfy { $0 == "\u{E9}" })
+                #expect(grown < 3 * content.count, "the decode grew the process by \(grown >> 20) MiB")
+            }
         }
-    }
 
-    /// The largest resident size this process has held, in bytes. Stress has
-    /// the same as `ProcessMemory.peakResidentBytes()`, which a test cannot
-    /// import; the unit of `ru_maxrss` is bytes on Darwin and KiB elsewhere,
-    /// and Glibc types the `who` argument apart from its constant.
-    nonisolated private static func peakResidentBytes() -> Int {
-        #if canImport(Glibc)
-        let who = __rusage_who_t(RUSAGE_SELF.rawValue)
-        #else
-        let who = RUSAGE_SELF
-        #endif
-        var usage = rusage()
-        _ = unsafe getrusage(who, &usage)
-        #if canImport(Darwin)
-        return usage.ru_maxrss
-        #else
-        return usage.ru_maxrss * 1024
-        #endif
-    }
+        /// The largest resident size this process has held, in bytes. Stress has
+        /// the same as `ProcessMemory.peakResidentBytes()`, which a test cannot
+        /// import; the unit of `ru_maxrss` is bytes on Darwin and KiB elsewhere,
+        /// and Glibc types the `who` argument apart from its constant.
+        nonisolated private static func peakResidentBytes() -> Int {
+            #if canImport(Glibc)
+            let who = __rusage_who_t(RUSAGE_SELF.rawValue)
+            #else
+            let who = RUSAGE_SELF
+            #endif
+            var usage = rusage()
+            _ = unsafe getrusage(who, &usage)
+            #if canImport(Darwin)
+            return usage.ru_maxrss
+            #else
+            return usage.ru_maxrss * 1024
+            #endif
+        }
+    #endif
 }

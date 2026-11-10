@@ -8,6 +8,10 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// What wasip1's streams are is the host's to say, so `NoTerminal` asks nothing
+// there (no `current`), and the tests' terminals and pipes do not exist.
+#if !canImport(WASILibc)
+
 import Foundation
 import Testing
 
@@ -172,3 +176,5 @@ struct NoTerminalTests {
         bytes.withUnsafeMutableBytes { unsafe read(descriptor, $0.baseAddress, $0.count) }
     }
 }
+
+#endif

@@ -349,20 +349,22 @@ struct DynamicPropertyProbeTests {
         #expect(renderToBuffer(plain, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "plain")
     }
 
-    /// The same for an `@Environment(Model.self)`, which, never resolved,
-    /// traps when read. An exit test, so the trap fails this test and not
-    /// the run.
-    @Test("A property subclass behind a plain class field reading an observable model from the environment draws")
-    func subclassBehindPlainFieldReadsModel() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let context = makeRenderContext(width: 20, height: 1)
-                let row = DelegateRow(delegate: ModelDelegate()).environment(ProbeModel())
-                let drawn = renderToBuffer(row, context: context)
-                #expect(drawn.lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The same for an `@Environment(Model.self)`, which, never resolved,
+        /// traps when read. An exit test, so the trap fails this test and not
+        /// the run.
+        @Test("A property subclass behind a plain class field reading an observable model from the environment draws")
+        func subclassBehindPlainFieldReadsModel() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let context = makeRenderContext(width: 20, height: 1)
+                    let row = DelegateRow(delegate: ModelDelegate()).environment(ProbeModel())
+                    let drawn = renderToBuffer(row, context: context)
+                    #expect(drawn.lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
+                }
             }
         }
-    }
+    #endif
 
     private func line<V: View>(_ view: V, context: RenderContext) -> String? {
         renderToBuffer(view, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces)
@@ -392,21 +394,23 @@ struct DynamicPropertyProbeTests {
         withExtendedLifetime(delegate) {}
     }
 
-    /// The review's case (2026-10-12): an `@Environment(Model.self)` in a
-    /// property subclass held `weak` traps when read unresolved. An exit
-    /// test, so the trap fails this test and not the run.
-    @Test("A property subclass held weak behind a plain class field reading an observable model draws")
-    func subclassHeldWeakReadsModel() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let context = makeRenderContext(width: 20, height: 1)
-                let delegate = ModelDelegate()
-                let row = WeakDelegateRow(delegate: delegate).environment(ProbeModel())
-                #expect(renderToBuffer(row, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
-                withExtendedLifetime(delegate) {}
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The review's case (2026-10-12): an `@Environment(Model.self)` in a
+        /// property subclass held `weak` traps when read unresolved. An exit
+        /// test, so the trap fails this test and not the run.
+        @Test("A property subclass held weak behind a plain class field reading an observable model draws")
+        func subclassHeldWeakReadsModel() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let context = makeRenderContext(width: 20, height: 1)
+                    let delegate = ModelDelegate()
+                    let row = WeakDelegateRow(delegate: delegate).environment(ProbeModel())
+                    #expect(renderToBuffer(row, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
+                    withExtendedLifetime(delegate) {}
+                }
             }
         }
-    }
+    #endif
 
     /// A class-bound existential held `weak` is loaded the same way: its
     /// object's class says whether it is a property.
@@ -433,37 +437,41 @@ struct DynamicPropertyProbeTests {
         withExtendedLifetime(delegate) {}
     }
 
-    /// The review's case: an `@Environment(Model.self)` in it traps when
-    /// read unresolved. An exit test.
-    @Test("A property held unowned in a class-bound existential field reading an observable model draws")
-    func propertyHeldUnownedInExistentialReadsModel() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let context = makeRenderContext(width: 20, height: 1)
-                let delegate = ModelDelegate()
-                let row = UnownedTitledRow(titled: delegate).environment(ProbeModel())
-                #expect(renderToBuffer(row, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
-                withExtendedLifetime(delegate) {}
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The review's case: an `@Environment(Model.self)` in it traps when
+        /// read unresolved. An exit test.
+        @Test("A property held unowned in a class-bound existential field reading an observable model draws")
+        func propertyHeldUnownedInExistentialReadsModel() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let context = makeRenderContext(width: 20, height: 1)
+                    let delegate = ModelDelegate()
+                    let row = UnownedTitledRow(titled: delegate).environment(ProbeModel())
+                    #expect(renderToBuffer(row, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "model")
+                    withExtendedLifetime(delegate) {}
+                }
             }
         }
-    }
+    #endif
 
-    /// A dead object held `unowned` in a class-bound existential, of a class
-    /// that is not a property, is never loaded: its class is read where the
-    /// reference lies. An exit test.
-    @Test("A view holding a dead plain object unowned in a class-bound existential, which body never reads, still draws")
-    func deadPlainObjectHeldUnownedInExistentialIsNeverLoaded() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let context = makeRenderContext(width: 20, height: 1)
-                var delegate: RowDelegate? = RowDelegate()
-                let view = UnreadTitledRow(titled: delegate!)
-                delegate = nil
-                _ = renderToBuffer(view, context: context)
-                _ = renderToBuffer(view, context: context)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// A dead object held `unowned` in a class-bound existential, of a class
+        /// that is not a property, is never loaded: its class is read where the
+        /// reference lies. An exit test.
+        @Test("A view holding a dead plain object unowned in a class-bound existential, which body never reads, still draws")
+        func deadPlainObjectHeldUnownedInExistentialIsNeverLoaded() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let context = makeRenderContext(width: 20, height: 1)
+                    var delegate: RowDelegate? = RowDelegate()
+                    let view = UnreadTitledRow(titled: delegate!)
+                    delegate = nil
+                    _ = renderToBuffer(view, context: context)
+                    _ = renderToBuffer(view, context: context)
+                }
             }
         }
-    }
+    #endif
 
     /// A class property's own `weak` field is reached the same way.
     @Test("A property subclass held weak by a class property reads the holding view's environment")
@@ -485,27 +493,29 @@ struct DynamicPropertyProbeTests {
         withExtendedLifetime(delegate) {}
     }
 
-    /// A dead object held `unowned` in a field declared as a class that is
-    /// not final: its class is read where it lies, which the unowned count
-    /// keeps, and an object of a class that is not a property is never
-    /// loaded, so it does not trap (DYNV bug 9). An exit test.
-    @Test("A view holding a dead plain object unowned, which body never reads, still draws")
-    func deadPlainObjectHeldUnownedIsNeverLoaded() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let context = makeRenderContext(width: 20, height: 1)
-                var delegate: RowDelegate? = RowDelegate()
-                let view = UnreadDelegateRow(delegate: delegate!)
-                delegate = nil
-                _ = renderToBuffer(view, context: context)
-                _ = renderToBuffer(view, context: context)
-                var weakDelegate: RowDelegate? = AccentDelegate()
-                let weakView = WeakDelegateRow(delegate: weakDelegate)
-                weakDelegate = nil
-                #expect(renderToBuffer(weakView, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "gone")
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// A dead object held `unowned` in a field declared as a class that is
+        /// not final: its class is read where it lies, which the unowned count
+        /// keeps, and an object of a class that is not a property is never
+        /// loaded, so it does not trap (DYNV bug 9). An exit test.
+        @Test("A view holding a dead plain object unowned, which body never reads, still draws")
+        func deadPlainObjectHeldUnownedIsNeverLoaded() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let context = makeRenderContext(width: 20, height: 1)
+                    var delegate: RowDelegate? = RowDelegate()
+                    let view = UnreadDelegateRow(delegate: delegate!)
+                    delegate = nil
+                    _ = renderToBuffer(view, context: context)
+                    _ = renderToBuffer(view, context: context)
+                    var weakDelegate: RowDelegate? = AccentDelegate()
+                    let weakView = WeakDelegateRow(delegate: weakDelegate)
+                    weakDelegate = nil
+                    #expect(renderToBuffer(weakView, context: context).lines.first?.stripped.trimmingCharacters(in: .whitespaces) == "gone")
+                }
             }
         }
-    }
+    #endif
 
     /// A view holding a plain object `unowned` is probed where it lies, as
     /// one holding it strongly is: evaluated with no copy of the view.

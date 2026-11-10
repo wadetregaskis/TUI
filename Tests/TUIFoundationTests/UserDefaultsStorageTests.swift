@@ -145,21 +145,23 @@ struct UserDefaultsStorageTests {
         }
     }
 
-    /// In an exit test: `lastFailure` is the process's latest report, and in
-    /// the shared process another suite's report can land between this write
-    /// and the read (`StorageFailureTests` makes several).
-    @Test("A value that cannot be encoded is reported with its key")
-    func encodeFailureIsReported() async {
-        await #expect(processExitsWith: .success) {
-            Self.withStorage { storage, key in
-                // The other half of the asymmetry: a write that cannot happen
-                // is data the user expected to keep, so it is worth surfacing.
-                storage.setValue(UnencodableSetting(), forKey: key)
-                #expect(StorageDiagnostics.lastFailure?.key == key)
-                #expect(StorageDiagnostics.lastFailure?.operation == .encode)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// In an exit test: `lastFailure` is the process's latest report, and in
+        /// the shared process another suite's report can land between this write
+        /// and the read (`StorageFailureTests` makes several).
+        @Test("A value that cannot be encoded is reported with its key")
+        func encodeFailureIsReported() async {
+            await #expect(processExitsWith: .success) {
+                Self.withStorage { storage, key in
+                    // The other half of the asymmetry: a write that cannot happen
+                    // is data the user expected to keep, so it is worth surfacing.
+                    storage.setValue(UnencodableSetting(), forKey: key)
+                    #expect(StorageDiagnostics.lastFailure?.key == key)
+                    #expect(StorageDiagnostics.lastFailure?.operation == .encode)
+                }
             }
         }
-    }
+    #endif
 
     @Test("Removing a key clears it, and removing one that was never set is not an error")
     func removal() {

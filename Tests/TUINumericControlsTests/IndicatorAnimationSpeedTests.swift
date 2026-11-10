@@ -178,21 +178,25 @@ struct IndicatorAnimationSpeedValueTests {
     }
 
     #if DEBUG
-        /// The default report is a soft trap, so a debug build stops. In a child
-        /// process, because a stop in this one would end the test run.
-        @Test("A zero rate stops a debug build")
-        func zeroRateStopsADebugBuild() async {
-            await #expect(processExitsWith: .failure) {
-                _ = IndicatorAnimationSpeed(0)
+        #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+            /// The default report is a soft trap, so a debug build stops. In a child
+            /// process, because a stop in this one would end the test run.
+            @Test("A zero rate stops a debug build")
+            func zeroRateStopsADebugBuild() async {
+                await #expect(processExitsWith: .failure) {
+                    _ = IndicatorAnimationSpeed(0)
+                }
             }
-        }
+        #endif
 
-        @Test("A tolerance as large as the rate stops a debug build")
-        func wholeRateToleranceStopsADebugBuild() async {
-            await #expect(processExitsWith: .failure) {
-                _ = IndicatorAnimationSpeed(1, tolerance: 1)
+        #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+            @Test("A tolerance as large as the rate stops a debug build")
+            func wholeRateToleranceStopsADebugBuild() async {
+                await #expect(processExitsWith: .failure) {
+                    _ = IndicatorAnimationSpeed(1, tolerance: 1)
+                }
             }
-        }
+        #endif
     #endif
 }
 

@@ -12,6 +12,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+// wasip1 has no signals to interrupt a wait, and no second thread to send one.
+#if !canImport(WASILibc)
+
 import Dispatch
 import Foundation
 import Testing
@@ -192,3 +195,5 @@ struct TerminalPollInterruptTests {
         }
     }
 }
+
+#endif

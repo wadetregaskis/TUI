@@ -4,6 +4,10 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+// wasip1 has no signals: its `SignalManager` is a stub that answers "nothing
+// happened" to every question.
+#if !canImport(WASILibc)
+
 import Testing
 
 @testable import TUIApp
@@ -120,3 +124,5 @@ struct SignalManagerTests {
         }
     #endif
 }
+
+#endif

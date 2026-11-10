@@ -135,14 +135,16 @@ struct SessionLocalityTests {
         #expect(!local(nil))
     }
 
-    @Test("This process's own chain reads to the root")
-    func ownChainReads() throws {
-        let chain = try #require(ProcessAncestry.commandNames(from: getpid()))
-        #expect(chain.count >= 2)
-        #if canImport(Darwin)
-            #expect(chain.last == "launchd")
-        #endif
-    }
+    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+        @Test("This process's own chain reads to the root")
+        func ownChainReads() throws {
+            let chain = try #require(ProcessAncestry.commandNames(from: getpid()))
+            #expect(chain.count >= 2)
+            #if canImport(Darwin)
+                #expect(chain.last == "launchd")
+            #endif
+        }
+    #endif
 }
 
 /// The judgement a file panel's remote-machine notice is shown on: local where

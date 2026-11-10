@@ -95,64 +95,68 @@ extension TerminalOutputTests {
 
 extension TerminalOutputTests {
 
-    /// The real syscalls: a non-blocking pipe far smaller than what is
-    /// written, drained by a reader on another thread, stands in for a
-    /// terminal a crashed program left non-blocking.
-    ///
-    /// The reader is a thread of its own, not a task: the writer blocks the
-    /// thread it runs on while it waits for room, and a detached task's reader
-    /// waited for a pool thread that a busy parallel suite had none of, so the
-    /// write ran out its deadline (gate g57, 2026-10-19; lane LISTS saw the
-    /// same, 83 s against 30).
-    @Test("A non-blocking descriptor too small for a write takes all of it as it drains")
-    func nonBlockingDescriptorTakesEverything() {
-        var ends: [Int32] = [0, 0]
-        guard unsafe pipe(&ends) == 0 else {
-            Issue.record("no pipe")
-            return
-        }
-        let (readEnd, writeEnd) = (ends[0], ends[1])
-        defer { close(readEnd) }
-        _ = fcntl(writeEnd, F_SETFL, fcntl(writeEnd, F_GETFL) | O_NONBLOCK)
-        let payload = [UInt8](repeating: 0x78, count: 1 << 20)
-        let drained = DrainedCount()
-        let reader = Thread {
-            var total = 0
-            var chunk = [UInt8](repeating: 0, count: 1 << 16)
-            while true {
-                let count = chunk.withUnsafeMutableBytes { unsafe read(readEnd, $0.baseAddress, $0.count) }
-                guard count > 0 else { break }
-                total += count
+    #if !canImport(WASILibc)  // wasip1 has no pipe(2) and no second thread.
+        /// The real syscalls: a non-blocking pipe far smaller than what is
+        /// written, drained by a reader on another thread, stands in for a
+        /// terminal a crashed program left non-blocking.
+        ///
+        /// The reader is a thread of its own, not a task: the writer blocks the
+        /// thread it runs on while it waits for room, and a detached task's reader
+        /// waited for a pool thread that a busy parallel suite had none of, so the
+        /// write ran out its deadline (gate g57, 2026-10-19; lane LISTS saw the
+        /// same, 83 s against 30).
+        @Test("A non-blocking descriptor too small for a write takes all of it as it drains")
+        func nonBlockingDescriptorTakesEverything() {
+            var ends: [Int32] = [0, 0]
+            guard unsafe pipe(&ends) == 0 else {
+                Issue.record("no pipe")
+                return
             }
-            drained.finish(total)
+            let (readEnd, writeEnd) = (ends[0], ends[1])
+            defer { close(readEnd) }
+            _ = fcntl(writeEnd, F_SETFL, fcntl(writeEnd, F_GETFL) | O_NONBLOCK)
+            let payload = [UInt8](repeating: 0x78, count: 1 << 20)
+            let drained = DrainedCount()
+            let reader = Thread {
+                var total = 0
+                var chunk = [UInt8](repeating: 0, count: 1 << 16)
+                while true {
+                    let count = chunk.withUnsafeMutableBytes { unsafe read(readEnd, $0.baseAddress, $0.count) }
+                    guard count > 0 else { break }
+                    total += count
+                }
+                drained.finish(total)
+            }
+            reader.start()
+            // A deadline only so a regression fails rather than hangs.
+            let deadline = Date().addingTimeInterval(30)
+            let complete = payload.withUnsafeBufferPointer { buffer in
+                unsafe Terminal.writeAll(
+                    buffer.baseAddress!, buffer.count, through: { unsafe Foundation.write(writeEnd, $0, $1) },
+                    waitingForRoom: { Terminal.waitForRoom(on: writeEnd, until: deadline) })
+            }
+            close(writeEnd)
+            #expect(complete)
+            #expect(drained.wait() == payload.count)
         }
-        reader.start()
-        // A deadline only so a regression fails rather than hangs.
-        let deadline = Date().addingTimeInterval(30)
-        let complete = payload.withUnsafeBufferPointer { buffer in
-            unsafe Terminal.writeAll(
-                buffer.baseAddress!, buffer.count, through: { unsafe Foundation.write(writeEnd, $0, $1) },
-                waitingForRoom: { Terminal.waitForRoom(on: writeEnd, until: deadline) })
-        }
-        close(writeEnd)
-        #expect(complete)
-        #expect(drained.wait() == payload.count)
-    }
+    #endif
 
-    @Test("Waiting for room on a full descriptor nobody drains gives up at its deadline")
-    func waitForRoomGivesUp() {
-        var ends: [Int32] = [0, 0]
-        guard unsafe pipe(&ends) == 0 else {
-            Issue.record("no pipe")
-            return
+    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+        @Test("Waiting for room on a full descriptor nobody drains gives up at its deadline")
+        func waitForRoomGivesUp() {
+            var ends: [Int32] = [0, 0]
+            guard unsafe pipe(&ends) == 0 else {
+                Issue.record("no pipe")
+                return
+            }
+            defer { close(ends[0]); close(ends[1]) }
+            _ = fcntl(ends[1], F_SETFL, fcntl(ends[1], F_GETFL) | O_NONBLOCK)
+            #expect(Terminal.waitForRoom(on: ends[1], until: Date().addingTimeInterval(1)), "an empty pipe has room")
+            var byte: UInt8 = 0x78
+            while unsafe Foundation.write(ends[1], &byte, 1) == 1 {}
+            #expect(!Terminal.waitForRoom(on: ends[1], until: Date().addingTimeInterval(0.05)))
         }
-        defer { close(ends[0]); close(ends[1]) }
-        _ = fcntl(ends[1], F_SETFL, fcntl(ends[1], F_GETFL) | O_NONBLOCK)
-        #expect(Terminal.waitForRoom(on: ends[1], until: Date().addingTimeInterval(1)), "an empty pipe has room")
-        var byte: UInt8 = 0x78
-        while unsafe Foundation.write(ends[1], &byte, 1) == 1 {}
-        #expect(!Terminal.waitForRoom(on: ends[1], until: Date().addingTimeInterval(0.05)))
-    }
+    #endif
 }
 
 // MARK: - Raw mode
@@ -370,6 +374,7 @@ extension TerminalOutputTests {
     }
 }
 
+#if !canImport(WASILibc)  // the pipe test's reader, which wasip1 has no thread for
 /// What a reader thread drained, handed to the test when it finishes.
 private final class DrainedCount: @unchecked Sendable {
     private let done = DispatchSemaphore(value: 0)
@@ -388,3 +393,4 @@ private final class DrainedCount: @unchecked Sendable {
         return total
     }
 }
+#endif

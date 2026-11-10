@@ -38,101 +38,111 @@ private struct Row: Identifiable, Sendable {
 @Suite("Terminal shorter than its chrome")
 struct ShortTerminalCrashTests {
 
-    @Test("A WindowGroup handed a negative height must not trap")
-    func windowGroupSurvivesNegativeHeight() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                // `terminalHeight - statusBarHeight - appHeaderHeight` goes
-                // negative the moment the terminal is shorter than the chrome.
-                for height in [-5, -1, 0, 1] {
-                    let scene = WindowGroup {
-                        VStack {
-                            Text("hello")
-                            Text("world")
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A WindowGroup handed a negative height must not trap")
+        func windowGroupSurvivesNegativeHeight() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    // `terminalHeight - statusBarHeight - appHeaderHeight` goes
+                    // negative the moment the terminal is shorter than the chrome.
+                    for height in [-5, -1, 0, 1] {
+                        let scene = WindowGroup {
+                            VStack {
+                                Text("hello")
+                                Text("world")
+                            }
                         }
+                        var context = makeRenderContext(width: 20, height: max(1, height))
+                        context.availableHeight = height
+                        context.hasExplicitWidth = true
+                        context.hasExplicitHeight = true
+                        // Trapped here pre-fix: 0..<negative in centerBuffer.
+                        _ = scene.renderScene(context: context)
                     }
-                    var context = makeRenderContext(width: 20, height: max(1, height))
-                    context.availableHeight = height
-                    context.hasExplicitWidth = true
-                    context.hasExplicitHeight = true
-                    // Trapped here pre-fix: 0..<negative in centerBuffer.
-                    _ = scene.renderScene(context: context)
                 }
             }
         }
-    }
+    #endif
 
-    @Test("A negative width must not trap either")
-    func windowGroupSurvivesNegativeWidth() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                for width in [-5, -1, 0, 1] {
-                    let scene = WindowGroup { Text("hello") }
-                    var context = makeRenderContext(width: max(1, width), height: 5)
-                    context.availableWidth = width
-                    context.hasExplicitWidth = true
-                    context.hasExplicitHeight = true
-                    _ = scene.renderScene(context: context)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A negative width must not trap either")
+        func windowGroupSurvivesNegativeWidth() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    for width in [-5, -1, 0, 1] {
+                        let scene = WindowGroup { Text("hello") }
+                        var context = makeRenderContext(width: max(1, width), height: 5)
+                        context.availableWidth = width
+                        context.hasExplicitWidth = true
+                        context.hasExplicitHeight = true
+                        _ = scene.renderScene(context: context)
+                    }
                 }
             }
         }
-    }
+    #endif
 
-    @Test("A Table in a terminal shorter than its chrome must not trap")
-    func tableInAShortTerminal() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                let rows = (0..<50).map { Row(id: $0) }
-                for height in [-3, -1, 0, 1, 2, 3] {
-                    let scene = WindowGroup {
-                        Table(rows, selection: .constant(Int?.none)) {
-                            TableColumn("Name", value: \Row.name)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A Table in a terminal shorter than its chrome must not trap")
+        func tableInAShortTerminal() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    let rows = (0..<50).map { Row(id: $0) }
+                    for height in [-3, -1, 0, 1, 2, 3] {
+                        let scene = WindowGroup {
+                            Table(rows, selection: .constant(Int?.none)) {
+                                TableColumn("Name", value: \Row.name)
+                            }
                         }
+                        var context = makeRenderContext(width: 40, height: max(1, height))
+                        context.availableHeight = height
+                        context.hasExplicitWidth = true
+                        context.hasExplicitHeight = true
+                        _ = scene.renderScene(context: context)
                     }
-                    var context = makeRenderContext(width: 40, height: max(1, height))
-                    context.availableHeight = height
-                    context.hasExplicitWidth = true
-                    context.hasExplicitHeight = true
-                    _ = scene.renderScene(context: context)
                 }
             }
         }
-    }
+    #endif
 
-    @Test("A Table column ratio of NaN or infinity must not trap")
-    func tableRatioColumnSurvivesNonFiniteRatio() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                // `.ratio` takes an unvalidated Double from public API, and a
-                // computed ratio (a / b with b == 0) is NaN or ±infinity.
-                // `Int(Double)` traps on both.
-                let rows = (0..<5).map { Row(id: $0) }
-                for ratio in [Double.nan, .infinity, -.infinity, 1e30, -1] {
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A Table column ratio of NaN or infinity must not trap")
+        func tableRatioColumnSurvivesNonFiniteRatio() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    // `.ratio` takes an unvalidated Double from public API, and a
+                    // computed ratio (a / b with b == 0) is NaN or ±infinity.
+                    // `Int(Double)` traps on both.
+                    let rows = (0..<5).map { Row(id: $0) }
+                    for ratio in [Double.nan, .infinity, -.infinity, 1e30, -1] {
+                        let view = Table(rows, selection: .constant(Int?.none)) {
+                            TableColumn("Name", value: \Row.name).width(.ratio(ratio))
+                        }
+                        let context = makeRenderContext(width: 40, height: 10)
+                        _ = renderToBuffer(view, context: context)
+                    }
+                }
+            }
+        }
+    #endif
+
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A negative columnSpacing must not trap")
+        func tableSurvivesNegativeColumnSpacing() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    // `columnSpacing:` is a public init parameter with no validation;
+                    // it reached `String(repeating:count:)`, which traps when negative.
+                    let rows = (0..<5).map { Row(id: $0) }
                     let view = Table(rows, selection: .constant(Int?.none)) {
-                        TableColumn("Name", value: \Row.name).width(.ratio(ratio))
+                        TableColumn("Name", value: \Row.name)
+                        TableColumn("Also", value: \Row.name)
                     }
+                    .tableColumnSpacing(-2)
                     let context = makeRenderContext(width: 40, height: 10)
                     _ = renderToBuffer(view, context: context)
                 }
             }
         }
-    }
-
-    @Test("A negative columnSpacing must not trap")
-    func tableSurvivesNegativeColumnSpacing() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                // `columnSpacing:` is a public init parameter with no validation;
-                // it reached `String(repeating:count:)`, which traps when negative.
-                let rows = (0..<5).map { Row(id: $0) }
-                let view = Table(rows, selection: .constant(Int?.none)) {
-                    TableColumn("Name", value: \Row.name)
-                    TableColumn("Also", value: \Row.name)
-                }
-                .tableColumnSpacing(-2)
-                let context = makeRenderContext(width: 40, height: 10)
-                _ = renderToBuffer(view, context: context)
-            }
-        }
-    }
+    #endif
 }

@@ -71,34 +71,36 @@ struct TerminalURLOpeningTests {
         #expect(!Self.answer(override: nil, environment: nil))
     }
 
-    /// The published flag is what the activation path actually reads — it is
-    /// `nonisolated`, because that path has no actor — so setting the override
-    /// and not publishing it would change nothing where it counts.
-    ///
-    /// An exit test, because the publication is the subject. `TUI_OPEN_URLS`
-    /// is cleared first, in the child, so a developer who exported `0` cannot
-    /// veto the override being published.
-    ///
-    /// The ladder's own tests above pose it on arguments, so they cannot see
-    /// what the live answer passes it. The last part here can: the process's
-    /// own `TUI_OPEN_URLS=0` vetoing the real override, live and published.
-    @Test("Setting the override publishes it to the path that reads it")
-    func overridePublishes() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
-                ProcessWideState.urlOpeningSupport = true
-                #expect(TerminalURLOpening.isEnabled)
-                ProcessWideState.urlOpeningSupport = false
-                #expect(!TerminalURLOpening.isEnabled)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The published flag is what the activation path actually reads — it is
+        /// `nonisolated`, because that path has no actor — so setting the override
+        /// and not publishing it would change nothing where it counts.
+        ///
+        /// An exit test, because the publication is the subject. `TUI_OPEN_URLS`
+        /// is cleared first, in the child, so a developer who exported `0` cannot
+        /// veto the override being published.
+        ///
+        /// The ladder's own tests above pose it on arguments, so they cannot see
+        /// what the live answer passes it. The last part here can: the process's
+        /// own `TUI_OPEN_URLS=0` vetoing the real override, live and published.
+        @Test("Setting the override publishes it to the path that reads it")
+        func overridePublishes() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
+                    ProcessWideState.urlOpeningSupport = true
+                    #expect(TerminalURLOpening.isEnabled)
+                    ProcessWideState.urlOpeningSupport = false
+                    #expect(!TerminalURLOpening.isEnabled)
 
-                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: "0")
-                ProcessWideState.urlOpeningSupport = true
-                #expect(!TerminalClient.urlOpeningEnabled, "the process's TUI_OPEN_URLS=0 reaches the ladder")
-                #expect(!TerminalURLOpening.isEnabled, "and what is published is its veto")
+                    ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: "0")
+                    ProcessWideState.urlOpeningSupport = true
+                    #expect(!TerminalClient.urlOpeningEnabled, "the process's TUI_OPEN_URLS=0 reaches the ladder")
+                    #expect(!TerminalURLOpening.isEnabled, "and what is published is its veto")
+                }
             }
         }
-    }
+    #endif
 
     /// A handler that does the work itself is NOT gated. What is gated is only
     /// the framework launching a process on the user's behalf; an app that
@@ -190,76 +192,82 @@ struct URLOpenerBackendTests {
         #expect(environment.urlOpener as? InMemoryURLOpener === tui.urlOpener as? InMemoryURLOpener)
     }
 
-    /// With the gate open — an exit test, because the gate is the process's —
-    /// a deferral reaches the context's opener and nothing else: an action
-    /// read where no context reached launches nothing at all.
-    @Test("With opening on, a deferral reaches the environment's opener, and no opener launches nothing")
-    func gateOpenReachesTheOpener() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
-                ProcessWideState.urlOpeningSupport = true
-                #expect(TerminalURLOpening.isEnabled)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// With the gate open — an exit test, because the gate is the process's —
+        /// a deferral reaches the context's opener and nothing else: an action
+        /// read where no context reached launches nothing at all.
+        @Test("With opening on, a deferral reaches the environment's opener, and no opener launches nothing")
+        func gateOpenReachesTheOpener() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
+                    ProcessWideState.urlOpeningSupport = true
+                    #expect(TerminalURLOpening.isEnabled)
 
-                let url = URL(string: "https://example.invalid/tuikit-test")!
-                let opener = InMemoryURLOpener()
-                var environment = EnvironmentValues()
-                environment.urlOpener = opener
-                var answers: [Bool] = []
-                environment.openURL(url) { answers.append($0) }
-                #expect(opener.opened == [url])
+                    let url = URL(string: "https://example.invalid/tuikit-test")!
+                    let opener = InMemoryURLOpener()
+                    var environment = EnvironmentValues()
+                    environment.urlOpener = opener
+                    var answers: [Bool] = []
+                    environment.openURL(url) { answers.append($0) }
+                    #expect(opener.opened == [url])
 
-                EnvironmentValues().openURL(url) { answers.append($0) }
-                #expect(answers == [true, false])
-                #expect(opener.opened == [url], "the bare environment's action reached no opener")
+                    EnvironmentValues().openURL(url) { answers.append($0) }
+                    #expect(answers == [true, false])
+                    #expect(opener.opened == [url], "the bare environment's action reached no opener")
+                }
             }
         }
-    }
+    #endif
 
-    /// SwiftUI's `systemAction` "asks the system to open the original URL",
-    /// wherever the action came from. One the app made itself and calls
-    /// directly carries no context's opener, so it defers to the running
-    /// app's; with none published — no app running — it launches nothing. An
-    /// action read from an environment still uses its own context's first.
-    @Test("With opening on, an action the app made itself reaches the running app's opener")
-    func handMadeActionReachesTheRunLoopOpener() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
-                ProcessWideState.urlOpeningSupport = true
-                #expect(TerminalURLOpening.isEnabled)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// SwiftUI's `systemAction` "asks the system to open the original URL",
+        /// wherever the action came from. One the app made itself and calls
+        /// directly carries no context's opener, so it defers to the running
+        /// app's; with none published — no app running — it launches nothing. An
+        /// action read from an environment still uses its own context's first.
+        @Test("With opening on, an action the app made itself reaches the running app's opener")
+        func handMadeActionReachesTheRunLoopOpener() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("TUI_OPEN_URLS", to: nil)
+                    ProcessWideState.urlOpeningSupport = true
+                    #expect(TerminalURLOpening.isEnabled)
 
-                let url = URL(string: "https://example.invalid/tuikit-test")!
-                let action = OpenURLAction { _ in .systemAction }
-                var answers: [Bool] = []
-                action(url) { answers.append($0) }
+                    let url = URL(string: "https://example.invalid/tuikit-test")!
+                    let action = OpenURLAction { _ in .systemAction }
+                    var answers: [Bool] = []
+                    action(url) { answers.append($0) }
 
-                let running = InMemoryURLOpener()
-                ProcessWideState.runLoopOpener = running
-                action(url) { answers.append($0) }
-                #expect(answers == [false, true], "no app running, then the running app's opener")
-                #expect(running.opened == [url])
+                    let running = InMemoryURLOpener()
+                    ProcessWideState.runLoopOpener = running
+                    action(url) { answers.append($0) }
+                    #expect(answers == [false, true], "no app running, then the running app's opener")
+                    #expect(running.opened == [url])
 
-                let own = InMemoryURLOpener()
-                var environment = EnvironmentValues()
-                environment.urlOpener = own
-                environment.openURL(url)
-                #expect(own.opened == [url], "a context's opener comes first")
-                #expect(running.opened == [url])
+                    let own = InMemoryURLOpener()
+                    var environment = EnvironmentValues()
+                    environment.urlOpener = own
+                    environment.openURL(url)
+                    #expect(own.opened == [url], "a context's opener comes first")
+                    #expect(running.opened == [url])
+                }
             }
         }
-    }
+    #endif
 
-    /// What the run loop publishes is its own context's opener: this
-    /// machine's. The gate stays closed, so nothing is launched.
-    @Test("The app's runner publishes its context's opener")
-    func runnerPublishesItsOpener() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                #expect(TerminalURLOpening.runLoopOpener == nil, "nothing running, nothing published")
-                ProcessWideState.publishURLOpener(of: AppRunner(app: FocusStillApp(), appState: AppState()))
-                #expect(TerminalURLOpening.runLoopOpener is SystemURLOpener)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// What the run loop publishes is its own context's opener: this
+        /// machine's. The gate stays closed, so nothing is launched.
+        @Test("The app's runner publishes its context's opener")
+        func runnerPublishesItsOpener() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    #expect(TerminalURLOpening.runLoopOpener == nil, "nothing running, nothing published")
+                    ProcessWideState.publishURLOpener(of: AppRunner(app: FocusStillApp(), appState: AppState()))
+                    #expect(TerminalURLOpening.runLoopOpener is SystemURLOpener)
+                }
             }
         }
-    }
+    #endif
 }

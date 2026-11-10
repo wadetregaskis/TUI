@@ -181,40 +181,42 @@ struct FilePanelColumnViewTests {
         #expect(shown.contains("notes.md") && shown.contains("inner.txt"), "\(shown)")
     }
 
-    /// On Linux a file's type is its extension's, so a named pipe called
-    /// `x.log` is "text"; opened for its excerpt, it waited for a writer for
-    /// good, holding a thread of the cooperative pool.
-    @Test("A named pipe of a text file's type is not read for an excerpt")
-    func pipeIsNotRead() async throws {
-        let fixture = try FilePanelFixture()
-        defer { fixture.remove() }
-        let pipe = fixture.url("pipe.log")
-        try unsafe #require(mkfifo(pipe.path, 0o600) == 0)
-        let entry = FileEntry(
-            url: pipe, name: "pipe.log", isFolder: false, isHidden: false, isSymbolicLink: false,
-            contentType: .plainText, size: nil, modified: nil, sizeText: "", modifiedText: "", kind: "",
-            isChoosable: true)
-        // A writer comes along, should a reader be waiting, and writes a
-        // line: a test that opens the pipe fails rather than hangs. Its open
-        // blocks until there is a reader — on a thread of its own, not the
-        // pool's — which is waiting for exactly that, where it polled every
-        // 100 ms.
-        let writerDone = Lock(initialState: false)
-        Thread.detachNewThread {
-            let descriptor = unsafe open(pipe.path, O_WRONLY)
-            if descriptor >= 0 {
-                _ = "piped\n".withCString { unsafe write(descriptor, $0, 6) }
-                close(descriptor)
+    #if !canImport(WASILibc)  // No mkfifo, and no second thread to be its writer.
+        /// On Linux a file's type is its extension's, so a named pipe called
+        /// `x.log` is "text"; opened for its excerpt, it waited for a writer for
+        /// good, holding a thread of the cooperative pool.
+        @Test("A named pipe of a text file's type is not read for an excerpt")
+        func pipeIsNotRead() async throws {
+            let fixture = try FilePanelFixture()
+            defer { fixture.remove() }
+            let pipe = fixture.url("pipe.log")
+            try unsafe #require(mkfifo(pipe.path, 0o600) == 0)
+            let entry = FileEntry(
+                url: pipe, name: "pipe.log", isFolder: false, isHidden: false, isSymbolicLink: false,
+                contentType: .plainText, size: nil, modified: nil, sizeText: "", modifiedText: "", kind: "",
+                isChoosable: true)
+            // A writer comes along, should a reader be waiting, and writes a
+            // line: a test that opens the pipe fails rather than hangs. Its open
+            // blocks until there is a reader — on a thread of its own, not the
+            // pool's — which is waiting for exactly that, where it polled every
+            // 100 ms.
+            let writerDone = Lock(initialState: false)
+            Thread.detachNewThread {
+                let descriptor = unsafe open(pipe.path, O_WRONLY)
+                if descriptor >= 0 {
+                    _ = "piped\n".withCString { unsafe write(descriptor, $0, 6) }
+                    close(descriptor)
+                }
+                writerDone.withLock { $0 = true }
             }
-            writerDone.withLock { $0 = true }
+            #expect(await FilePanelPreview.excerpt(of: entry) == nil)
+            // No reader came, so the writer still waits: be its reader, and hold
+            // the read end until it has written, so its write has somewhere to go.
+            let reader = unsafe open(pipe.path, O_RDONLY | O_NONBLOCK)
+            await settle { writerDone.withLock { $0 } }
+            if reader >= 0 { close(reader) }
         }
-        #expect(await FilePanelPreview.excerpt(of: entry) == nil)
-        // No reader came, so the writer still waits: be its reader, and hold
-        // the read end until it has written, so its write has somewhere to go.
-        let reader = unsafe open(pipe.path, O_RDONLY | O_NONBLOCK)
-        await settle { writerDone.withLock { $0 } }
-        if reader >= 0 { close(reader) }
-    }
+    #endif
 
     @Test("UTF-8 text files without a declared text UTType are previewed, while binary files are not")
     func untypedTextFilesAndBinaryFiles() async throws {

@@ -66,7 +66,11 @@ enum ProcessWideState {
     /// Whether this process is an exit test's child — the only place a
     /// process-wide write cannot reach another test. Records an issue when not.
     static func mayWrite(_ what: String) -> Bool {
-        if ExitTest.current != nil { return true }
+        // WASI starts no processes, so it has no exit tests and no
+        // `ExitTest.current`: every write there comes from the shared process.
+        #if !os(WASI)
+            if ExitTest.current != nil { return true }
+        #endif
         Issue.record(
             """
             \(what) is read by every test in this process, on every thread, while \

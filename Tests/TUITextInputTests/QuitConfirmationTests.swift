@@ -388,6 +388,9 @@ struct QuitConfirmationTests {
     }
 }
 
+// The key and its watch are the watch thread's, which wasip1 has no thread for.
+#if !canImport(WASILibc)
+
 // MARK: - The key among unread input
 
 @Suite("The quit key among unread input")
@@ -445,7 +448,6 @@ struct UnreadQuitKeyTests {
 
 // MARK: - The watch
 
-#if !canImport(WASILibc)
 @MainActor
 @Suite("The quit key's watch")
 struct UnreadQuitKeyWatchTests {

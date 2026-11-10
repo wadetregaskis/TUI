@@ -27,14 +27,16 @@ private final class LogProbe: Sendable {
 struct SoftTrapTests {
 
     #if DEBUG
-        /// The half of the contract a developer sees. It runs in a child process,
-        /// because a stop in this one would end the whole test run.
-        @Test("A debug build stops at a soft trap")
-        func debugBuildStops() async {
-            await #expect(processExitsWith: .failure) {
-                SoftTrap.report("a deliberate soft trap")
+        #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+            /// The half of the contract a developer sees. It runs in a child process,
+            /// because a stop in this one would end the whole test run.
+            @Test("A debug build stops at a soft trap")
+            func debugBuildStops() async {
+                await #expect(processExitsWith: .failure) {
+                    SoftTrap.report("a deliberate soft trap")
+                }
             }
-        }
+        #endif
     #endif
 
     @Test("Each distinct message is recorded and written once, however often it is reported")

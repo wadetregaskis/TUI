@@ -79,12 +79,14 @@ struct TextWrappingWidthClaimTests {
         return AcrossASwitch(underOldHost: underOldHost, served: served, cold: measure())
     }
 
-    @Test("A wrap memoized under one host's claim is not served under another's")
-    func wrapFollowsTheClaim() async {
-        await #expect(processExitsWith: .success) {
-            try await MainActor.run { try Self.wrapAcrossAHostSwitch() }
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A wrap memoized under one host's claim is not served under another's")
+        func wrapFollowsTheClaim() async {
+            await #expect(processExitsWith: .success) {
+                try await MainActor.run { try Self.wrapAcrossAHostSwitch() }
+            }
         }
-    }
+    #endif
 
     /// `wrapFollowsTheClaim`'s body, run in the exit test's child.
     private static func wrapAcrossAHostSwitch() throws {
@@ -101,12 +103,14 @@ struct TextWrappingWidthClaimTests {
         #expect(measured.served.widths == measured.cold.widths)
     }
 
-    @Test("A line-limited fit memoized under one host's claim is not served under another's")
-    func fitFollowsTheClaim() async {
-        await #expect(processExitsWith: .success) {
-            try await MainActor.run { try Self.fitAcrossAHostSwitch() }
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A line-limited fit memoized under one host's claim is not served under another's")
+        func fitFollowsTheClaim() async {
+            await #expect(processExitsWith: .success) {
+                try await MainActor.run { try Self.fitAcrossAHostSwitch() }
+            }
         }
-    }
+    #endif
 
     /// `fitFollowsTheClaim`'s body, run in the exit test's child.
     private static func fitAcrossAHostSwitch() throws {

@@ -19,33 +19,37 @@ import Musl
 
 @Suite("Process ancestry")
 struct ProcessAncestryTests {
-    @Test("A process's parent is the one the kernel reports to the process itself")
-    func ownParent() {
-        #expect(ProcessAncestry.parent(of: getpid()) == getppid())
-    }
+    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+        @Test("A process's parent is the one the kernel reports to the process itself")
+        func ownParent() {
+            #expect(ProcessAncestry.parent(of: getpid()) == getppid())
+        }
+    #endif
 
-    /// The terminal read from the kernel's record is there exactly where
-    /// this process has a controlling terminal — where it can open
-    /// `/dev/tty`, which a suite run from a script or CI cannot — and names a
-    /// terminal device. (`/dev/tty`'s own device number is not the
-    /// terminal's: it is the indirection, on Darwin and Linux alike.)
-    @Test("A process's controlling terminal is read where it has one, and is a terminal")
-    func ownTerminal() throws {
-        let link = try #require(ProcessAncestry.link(of: getpid()))
-        let descriptor = unsafe open("/dev/tty", O_RDONLY | O_NOCTTY)
-        if descriptor >= 0 { close(descriptor) }
-        #expect((link.terminal != nil) == (descriptor >= 0))
-        guard let terminal = link.terminal else { return }
-        #if canImport(Darwin)
-            let name = unsafe devname(terminal, S_IFCHR).map { unsafe String(cString: $0) } ?? ""
-            #expect(name.hasPrefix("tty") || name == "console")
-        #else
-            // `tty_nr`'s major: the virtual consoles and serial lines (4),
-            // the console (5), the ptys (136–143).
-            let major = (terminal >> 8) & 0xFFF
-            #expect(major == 4 || major == 5 || (136...143).contains(major))
-        #endif
-    }
+    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+        /// The terminal read from the kernel's record is there exactly where
+        /// this process has a controlling terminal — where it can open
+        /// `/dev/tty`, which a suite run from a script or CI cannot — and names a
+        /// terminal device. (`/dev/tty`'s own device number is not the
+        /// terminal's: it is the indirection, on Darwin and Linux alike.)
+        @Test("A process's controlling terminal is read where it has one, and is a terminal")
+        func ownTerminal() throws {
+            let link = try #require(ProcessAncestry.link(of: getpid()))
+            let descriptor = unsafe open("/dev/tty", O_RDONLY | O_NOCTTY)
+            if descriptor >= 0 { close(descriptor) }
+            #expect((link.terminal != nil) == (descriptor >= 0))
+            guard let terminal = link.terminal else { return }
+            #if canImport(Darwin)
+                let name = unsafe devname(terminal, S_IFCHR).map { unsafe String(cString: $0) } ?? ""
+                #expect(name.hasPrefix("tty") || name == "console")
+            #else
+                // `tty_nr`'s major: the virtual consoles and serial lines (4),
+                // the console (5), the ptys (136–143).
+                let major = (terminal >> 8) & 0xFFF
+                #expect(major == 4 || major == 5 || (136...143).contains(major))
+            #endif
+        }
+    #endif
 
     /// What holds a process's terminal is the first process above it on
     /// another terminal, or on none, not one further up.
@@ -63,17 +67,19 @@ struct ProcessAncestryTests {
         #expect(ProcessAncestry.terminalHolder(of: []) == nil)
     }
 
-    @Test("Following parents from this process reaches the root of the tree")
-    func reachesTheRoot() {
-        var current = getpid()
-        var steps = 0
-        while let parent = ProcessAncestry.parent(of: current), steps < 64 {
-            current = parent
-            steps += 1
+    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+        @Test("Following parents from this process reaches the root of the tree")
+        func reachesTheRoot() {
+            var current = getpid()
+            var steps = 0
+            while let parent = ProcessAncestry.parent(of: current), steps < 64 {
+                current = parent
+                steps += 1
+            }
+            // Process 1, or under `docker exec`, as CI's Linux lanes run, a process
+            // whose parent is outside the container and reads as 0.
+            #expect(steps < 64)
+            #expect(ProcessAncestry.parent(of: current) == nil, "stopped at \(current)")
         }
-        // Process 1, or under `docker exec`, as CI's Linux lanes run, a process
-        // whose parent is outside the container and reads as 0.
-        #expect(steps < 64)
-        #expect(ProcessAncestry.parent(of: current) == nil, "stopped at \(current)")
-    }
+    #endif
 }

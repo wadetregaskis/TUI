@@ -46,34 +46,38 @@ struct TerminalSizeFallbackTests {
         #expect(terminal.terminalDimension(fromEnvironment: "LINES", in: ["COLUMNS": "40"]) == nil)
     }
 
-    /// The tests above pose the parse on a dictionary, so they would all still
-    /// pass if the fallback stopped reading the real environment. This one sets
-    /// the variable for real — in a process of its own, since the environment
-    /// is the whole process's — and asks with the default.
-    @Test("With no dictionary given, the process environment is what is read")
-    func defaultReadsTheProcessEnvironment() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("LINES", to: "37")
-                #expect(Terminal().terminalDimension(fromEnvironment: "LINES") == 37)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The tests above pose the parse on a dictionary, so they would all still
+        /// pass if the fallback stopped reading the real environment. This one sets
+        /// the variable for real — in a process of its own, since the environment
+        /// is the whole process's — and asks with the default.
+        @Test("With no dictionary given, the process environment is what is read")
+        func defaultReadsTheProcessEnvironment() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("LINES", to: "37")
+                    #expect(Terminal().terminalDimension(fromEnvironment: "LINES") == 37)
+                }
             }
         }
-    }
+    #endif
 
-    /// The whole of it through the real `getSize()`, whatever this process's stdout
-    /// is: a terminal under `swift test`, or nothing under the parallel runner.
-    @Test("COLUMNS and LINES are what getSize() says, until a report comes in")
-    func getSizeReadsThemFirst() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("COLUMNS", to: "123")
-                ProcessWideState.setEnvironment("LINES", to: "45")
-                let terminal = Terminal()
-                #expect(terminal.getSize() == (123, 45))
-                terminal.reportedWindowSize = (164, 50)
-                #expect(terminal.getSize() == (164, 50))
-                #expect(terminal.windowGrid() == (164, 50))
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The whole of it through the real `getSize()`, whatever this process's stdout
+        /// is: a terminal under `swift test`, or nothing under the parallel runner.
+        @Test("COLUMNS and LINES are what getSize() says, until a report comes in")
+        func getSizeReadsThemFirst() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("COLUMNS", to: "123")
+                    ProcessWideState.setEnvironment("LINES", to: "45")
+                    let terminal = Terminal()
+                    #expect(terminal.getSize() == (123, 45))
+                    terminal.reportedWindowSize = (164, 50)
+                    #expect(terminal.getSize() == (164, 50))
+                    #expect(terminal.windowGrid() == (164, 50))
+                }
             }
         }
-    }
+    #endif
 }

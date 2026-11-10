@@ -221,22 +221,24 @@ struct TerminalIdentityQueryTests {
         #expect(line.contains("\u{1B}[1C"))
     }
 
-    /// `seedDiscoveredHost` puts the discovered name in the process
-    /// environment so the existing `TerminalHost` detectors find it. That rests
-    /// on ProcessInfo not serving a cached snapshot. A scratch key, not the
-    /// real one, because the detectors are `static let` and whichever reads the
-    /// real one first freezes it — and in an exit test, because even a scratch
-    /// `setenv` writes the one environment every thread reads, and may move the
-    /// array a concurrent reader is walking. See `ProcessWideState`.
-    @Test("setenv is visible through ProcessInfo, which the seed depends on")
-    func seedingMechanismWorks() async {
-        await #expect(processExitsWith: .success) {
-            let key = "TUI_SEED_MECHANISM_PROBE"
-            #expect(ProcessInfo.processInfo.environment[key] == nil, "the fixture: a key nothing sets")
-            ProcessWideState.setEnvironment(key, to: "Apple_Terminal")
-            #expect(ProcessInfo.processInfo.environment[key] == "Apple_Terminal")
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// `seedDiscoveredHost` puts the discovered name in the process
+        /// environment so the existing `TerminalHost` detectors find it. That rests
+        /// on ProcessInfo not serving a cached snapshot. A scratch key, not the
+        /// real one, because the detectors are `static let` and whichever reads the
+        /// real one first freezes it — and in an exit test, because even a scratch
+        /// `setenv` writes the one environment every thread reads, and may move the
+        /// array a concurrent reader is walking. See `ProcessWideState`.
+        @Test("setenv is visible through ProcessInfo, which the seed depends on")
+        func seedingMechanismWorks() async {
+            await #expect(processExitsWith: .success) {
+                let key = "TUI_SEED_MECHANISM_PROBE"
+                #expect(ProcessInfo.processInfo.environment[key] == nil, "the fixture: a key nothing sets")
+                ProcessWideState.setEnvironment(key, to: "Apple_Terminal")
+                #expect(ProcessInfo.processInfo.environment[key] == "Apple_Terminal")
+            }
         }
-    }
+    #endif
 
     /// `wasAsked` used to be the fence flag, so a host that was asked and never
     /// answered read as "not asked" — and the explorer then hid the replies it

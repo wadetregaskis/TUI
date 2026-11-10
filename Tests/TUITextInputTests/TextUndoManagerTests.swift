@@ -158,28 +158,30 @@ struct TextUndoManagerTests {
         return holder
     }
 
-    @Test("A control freed on another thread leaves the manager alone, and the next frame takes its steps out")
-    func freedOffTheMainActor() {
-        let manager = makeManager()
-        let box = TextBox()
-        let harness = InputChainHarness(undoManager: manager)
-        let holder = typedHandler("ab", box: box, manager: manager, harness: harness)
-        #expect(box.value == "ab" && manager.canUndo)
-        // A deinitialiser promises no isolation: this one runs on a thread that
-        // is not the main actor's, as one could on Linux, where the main actor
-        // is not the main thread.
-        let freed = DispatchSemaphore(value: 0)
-        Thread {
-            holder.handler = nil
-            freed.signal()
-        }.start()
-        freed.wait()
-        #expect(manager.canUndo, "the manager is the main actor's; the control did not touch it")
-        harness.frame(Text("page"))
-        // Deferred to a task instead, as 872696f4c did off the main thread,
-        // the steps were still here: the frame ran first.
-        #expect(!manager.canUndo, "taken out as the frame began, before its status bar")
-    }
+    #if canImport(Dispatch)  // A second thread, which wasip1 does not have.
+        @Test("A control freed on another thread leaves the manager alone, and the next frame takes its steps out")
+        func freedOffTheMainActor() {
+            let manager = makeManager()
+            let box = TextBox()
+            let harness = InputChainHarness(undoManager: manager)
+            let holder = typedHandler("ab", box: box, manager: manager, harness: harness)
+            #expect(box.value == "ab" && manager.canUndo)
+            // A deinitialiser promises no isolation: this one runs on a thread that
+            // is not the main actor's, as one could on Linux, where the main actor
+            // is not the main thread.
+            let freed = DispatchSemaphore(value: 0)
+            Thread {
+                holder.handler = nil
+                freed.signal()
+            }.start()
+            freed.wait()
+            #expect(manager.canUndo, "the manager is the main actor's; the control did not touch it")
+            harness.frame(Text("page"))
+            // Deferred to a task instead, as 872696f4c did off the main thread,
+            // the steps were still here: the frame ran first.
+            #expect(!manager.canUndo, "taken out as the frame began, before its status bar")
+        }
+    #endif
 
     @Test("A step the control's own history let go of past its limit leaves the app's history with it")
     func droppedPastTheLimit() {

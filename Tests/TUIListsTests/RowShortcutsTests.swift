@@ -255,16 +255,18 @@ struct RowShortcutsTests {
     }
 
     #if DEBUG
-        /// The default report is a soft trap, so a debug build stops. In a child
-        /// process, because a stop in this one would end the test run.
-        @Test("Two overrides on one chord stop a debug build")
-        func clashStopsADebugBuild() async {
-            await #expect(processExitsWith: .failure) {
-                let ctrlE = KeyboardShortcut("e", modifiers: .control)
-                _ = RowShortcuts([.selectAll: [ctrlE], .extendSelection: [ctrlE]])
-                    .lookup(commandKey: .control)
+        #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+            /// The default report is a soft trap, so a debug build stops. In a child
+            /// process, because a stop in this one would end the test run.
+            @Test("Two overrides on one chord stop a debug build")
+            func clashStopsADebugBuild() async {
+                await #expect(processExitsWith: .failure) {
+                    let ctrlE = KeyboardShortcut("e", modifiers: .control)
+                    _ = RowShortcuts([.selectAll: [ctrlE], .extendSelection: [ctrlE]])
+                        .lookup(commandKey: .control)
+                }
             }
-        }
+        #endif
     #endif
 
     // MARK: - The table is memoised, and the memo notices

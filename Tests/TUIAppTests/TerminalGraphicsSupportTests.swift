@@ -72,64 +72,70 @@ struct TerminalGraphicsSupportTests {
         }
     }
 
-    /// The documented divergence from ``TerminalClient/hyperlinksSupported``,
-    /// which DOES read through `effective`. Simulating a host is a statement
-    /// about which compensations to emit, not a claim that the terminal in
-    /// front of the user has stopped being able to draw.
-    ///
-    /// An exit test, because it is about the live answers, which read the
-    /// process's own knobs and environment.
-    @Test("Simulating a program does not change whether pictures are drawn")
-    func simulationDoesNotChangeTheAnswer() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
-                ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
-                ProcessWideState.simulated = .ghostty
-                // Ghostty draws pictures and honours links, so if the graphics
-                // answer read through `simulated` this would be true.
-                #expect(TerminalClient.hyperlinksSupported, "the twin does read through it")
-                #expect(!TerminalClient.graphicsSupported, "this one must not")
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The documented divergence from ``TerminalClient/hyperlinksSupported``,
+        /// which DOES read through `effective`. Simulating a host is a statement
+        /// about which compensations to emit, not a claim that the terminal in
+        /// front of the user has stopped being able to draw.
+        ///
+        /// An exit test, because it is about the live answers, which read the
+        /// process's own knobs and environment.
+        @Test("Simulating a program does not change whether pictures are drawn")
+        func simulationDoesNotChangeTheAnswer() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
+                    ProcessWideState.setEnvironment("TUI_HYPERLINKS", to: nil)
+                    ProcessWideState.simulated = .ghostty
+                    // Ghostty draws pictures and honours links, so if the graphics
+                    // answer read through `simulated` this would be true.
+                    #expect(TerminalClient.hyperlinksSupported, "the twin does read through it")
+                    #expect(!TerminalClient.graphicsSupported, "this one must not")
+                }
             }
         }
-    }
+    #endif
 
-    /// The published flag is what the render path actually reads — it is
-    /// `nonisolated`, because that path cannot ask a terminal anything — so an
-    /// override that is not published changes nothing where it counts.
-    @Test("Setting the override publishes it to the path that reads it")
-    func overrideIsPublished() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
-                ProcessWideState.graphicsSupport = true
-                #expect(KittyGraphics.isSupported)
-                // And back: clearing the override republishes the ladder's
-                // answer, which is what keeps the flag from sticking on.
-                ProcessWideState.graphicsSupport = nil
-                #expect(!KittyGraphics.isSupported)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// The published flag is what the render path actually reads — it is
+        /// `nonisolated`, because that path cannot ask a terminal anything — so an
+        /// override that is not published changes nothing where it counts.
+        @Test("Setting the override publishes it to the path that reads it")
+        func overrideIsPublished() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
+                    ProcessWideState.graphicsSupport = true
+                    #expect(KittyGraphics.isSupported)
+                    // And back: clearing the override republishes the ladder's
+                    // answer, which is what keeps the flag from sticking on.
+                    ProcessWideState.graphicsSupport = nil
+                    #expect(!KittyGraphics.isSupported)
 
-                ProcessWideState.graphicsSupport = false
-                #expect(!KittyGraphics.isSupported)
+                    ProcessWideState.graphicsSupport = false
+                    #expect(!KittyGraphics.isSupported)
+                }
             }
         }
-    }
+    #endif
 
-    @Test("applyGraphicsSupport publishes the current answer on demand")
-    func applyPublishesOnDemand() async {
-        await #expect(processExitsWith: .success) {
-            await MainActor.run {
-                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: "1")
-                // Written behind the accessor's back, as the startup path's
-                // publish would find it.
-                ProcessWideState.picturesSupported = false
-                ProcessWideState.applyGraphicsSupport()
-                #expect(KittyGraphics.isSupported)
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("applyGraphicsSupport publishes the current answer on demand")
+        func applyPublishesOnDemand() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run {
+                    ProcessWideState.setEnvironment("TUI_GRAPHICS", to: "1")
+                    // Written behind the accessor's back, as the startup path's
+                    // publish would find it.
+                    ProcessWideState.picturesSupported = false
+                    ProcessWideState.applyGraphicsSupport()
+                    #expect(KittyGraphics.isSupported)
 
-                ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
-                ProcessWideState.applyGraphicsSupport()
-                #expect(!KittyGraphics.isSupported, "and back to the default once nothing forces it")
+                    ProcessWideState.setEnvironment("TUI_GRAPHICS", to: nil)
+                    ProcessWideState.applyGraphicsSupport()
+                    #expect(!KittyGraphics.isSupported, "and back to the default once nothing forces it")
+                }
             }
         }
-    }
+    #endif
 }

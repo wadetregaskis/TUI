@@ -174,10 +174,16 @@ struct PaletteSearchIndexTests {
     /// `work`, done on a thread of its own while the caller's task waits
     /// without holding a thread of the cooperative pool — see the suite's
     /// "Why the walks run on threads of their own".
+    /// Where there is no second thread (wasip1), there is no pool to keep it
+    /// off either: the work runs where it is.
     private static func offThePool<T: Sendable>(_ work: @escaping @Sendable () -> T) async -> T {
-        await withCheckedContinuation { continuation in
-            Thread { continuation.resume(returning: work()) }.start()
-        }
+        #if canImport(Dispatch)
+            await withCheckedContinuation { continuation in
+                Thread { continuation.resume(returning: work()) }.start()
+            }
+        #else
+            work()
+        #endif
     }
 
     // MARK: - Every cell corner

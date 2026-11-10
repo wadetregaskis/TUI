@@ -4,7 +4,9 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-import Dispatch
+#if canImport(Dispatch)
+    import Dispatch
+#endif
 import Foundation
 import Testing
 
@@ -118,15 +120,21 @@ struct StorageFailureTests {
         // re-entered a non-recursive `NSLock` and never came back. On the test
         // thread that hangs the whole suite instead of failing this one test,
         // and a wedged cooperative-pool thread is one the suite never gets back.
-        let done = DispatchSemaphore(value: 0)
-        Thread.detachNewThread {
-            storage.setValue(Unencodable(), forKey: key)
-            done.signal()
-        }
+        #if canImport(Dispatch)
+            let done = DispatchSemaphore(value: 0)
+            Thread.detachNewThread {
+                storage.setValue(Unencodable(), forKey: key)
+                done.signal()
+            }
 
-        #expect(
-            done.wait(timeout: .now() + 2) == .success,
-            "setValue reported the encode failure while still holding its lock")
+            #expect(
+                done.wait(timeout: .now() + 2) == .success,
+                "setValue reported the encode failure while still holding its lock")
+        #else
+            // wasip1 has no second thread: a plain call, so a lock held across
+            // the report stops the run here rather than failing this test.
+            storage.setValue(Unencodable(), forKey: key)
+        #endif
     }
 
     @Test("A write to an unwritable path is reported, not dropped")
@@ -173,34 +181,36 @@ struct StorageFailureTests {
         #expect(failures.first?.key == "doomed")
     }
 
-    /// In an exit test: "the latest failure is this one" is a claim about the
-    /// whole process, which a parallel suite's report falsifies if it lands
-    /// between the write and the read — and `reset()` clears the latest failure
-    /// and the count for every suite, not just this one.
-    @Test("A failure is recorded even with no handler installed")
-    func failureRecordedWithoutHandler() async {
-        await #expect(processExitsWith: .success) {
-            #expect(StorageDiagnostics.onFailure == nil, "the fixture: a child installs no handler")
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// In an exit test: "the latest failure is this one" is a claim about the
+        /// whole process, which a parallel suite's report falsifies if it lands
+        /// between the write and the read — and `reset()` clears the latest failure
+        /// and the count for every suite, not just this one.
+        @Test("A failure is recorded even with no handler installed")
+        func failureRecordedWithoutHandler() async {
+            await #expect(processExitsWith: .success) {
+                #expect(StorageDiagnostics.onFailure == nil, "the fixture: a child installs no handler")
 
-            let root = URL(fileURLWithPath: NSTemporaryDirectory())
-                .appendingPathComponent("tuikit-storage-\(UUID().uuidString)")
-            try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-            defer { try? FileManager.default.removeItem(at: root) }
+                let root = URL(fileURLWithPath: NSTemporaryDirectory())
+                    .appendingPathComponent("tuikit-storage-\(UUID().uuidString)")
+                try? FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+                defer { try? FileManager.default.removeItem(at: root) }
 
-            let key = "doomed-\(UUID().uuidString)"
-            let storage = JSONFileStorage(fileURL: root.appendingPathComponent("settings.json"))
-            storage.setValue(Unencodable(), forKey: key)
+                let key = "doomed-\(UUID().uuidString)"
+                let storage = JSONFileStorage(fileURL: root.appendingPathComponent("settings.json"))
+                storage.setValue(Unencodable(), forKey: key)
 
-            // The whole point of retaining it: silence at the handler is not
-            // the same as losing the failure.
-            #expect(StorageDiagnostics.lastFailure?.key == key)
-            #expect(StorageDiagnostics.lastFailure?.operation == .encode)
+                // The whole point of retaining it: silence at the handler is not
+                // the same as losing the failure.
+                #expect(StorageDiagnostics.lastFailure?.key == key)
+                #expect(StorageDiagnostics.lastFailure?.operation == .encode)
 
-            // And `reset()` clears it.
-            ProcessWideState.resetStorageDiagnostics()
-            #expect(StorageDiagnostics.lastFailure == nil)
+                // And `reset()` clears it.
+                ProcessWideState.resetStorageDiagnostics()
+                #expect(StorageDiagnostics.lastFailure == nil)
+            }
         }
-    }
+    #endif
 
     // MARK: - The reported string
 
@@ -250,27 +260,29 @@ struct StorageFailureTests {
 
     // MARK: - The counter
 
-    /// In an exit test. The counter and the latest failure are process-wide,
-    /// and other suites report into them while this one runs; in the shared
-    /// process "the latest wins" failed whenever one landed between the report
-    /// and the read, and `reset()` cleared the record under whichever suite was
-    /// about to read it. In the child nothing else reports, so the counts are
-    /// asserted exactly rather than as a one-sided bound.
-    @Test("failureCount rises with every report and reset() clears it")
-    func failureCountTracksReports() async {
-        await #expect(processExitsWith: .success) {
-            let before = StorageDiagnostics.failureCount
-            ProcessWideState.reportStorageFailure(StorageFailure(operation: .save, key: "counted-1"))
-            ProcessWideState.reportStorageFailure(StorageFailure(operation: .load, path: "/counted-2"))
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// In an exit test. The counter and the latest failure are process-wide,
+        /// and other suites report into them while this one runs; in the shared
+        /// process "the latest wins" failed whenever one landed between the report
+        /// and the read, and `reset()` cleared the record under whichever suite was
+        /// about to read it. In the child nothing else reports, so the counts are
+        /// asserted exactly rather than as a one-sided bound.
+        @Test("failureCount rises with every report and reset() clears it")
+        func failureCountTracksReports() async {
+            await #expect(processExitsWith: .success) {
+                let before = StorageDiagnostics.failureCount
+                ProcessWideState.reportStorageFailure(StorageFailure(operation: .save, key: "counted-1"))
+                ProcessWideState.reportStorageFailure(StorageFailure(operation: .load, path: "/counted-2"))
 
-            #expect(StorageDiagnostics.failureCount == before + 2)
-            #expect(StorageDiagnostics.lastFailure?.path == "/counted-2", "the latest wins")
+                #expect(StorageDiagnostics.failureCount == before + 2)
+                #expect(StorageDiagnostics.lastFailure?.path == "/counted-2", "the latest wins")
 
-            ProcessWideState.resetStorageDiagnostics()
-            #expect(StorageDiagnostics.failureCount == 0, "reset() left the count where it was")
-            #expect(StorageDiagnostics.lastFailure == nil)
+                ProcessWideState.resetStorageDiagnostics()
+                #expect(StorageDiagnostics.failureCount == 0, "reset() left the count where it was")
+                #expect(StorageDiagnostics.lastFailure == nil)
+            }
         }
-    }
+    #endif
 
     @Test("Reading back an undecodable value stays silent")
     func decodeOnReadIsNotReported() {

@@ -499,17 +499,19 @@ struct DynamicPropertyTests {
     /// beside it. An exit test: loaded, the misread `String` is copied, which
     /// retains `poison` and crashes the process.
     #if _pointerBitWidth(_64)
-        @Test("The write-back never loads a field that cannot hold a property, so a metatype's thin layout is never misread")
-        func writeBackLoadsOnlyContainers() async {
-            await #expect(processExitsWith: .success) {
-                await MainActor.run {
-                    let log = UpdateLog()
-                    var view = MetatypeFieldsView(log: log)
-                    prepareForBody(&view, identity: ViewIdentity(path: "Root/Metatypes"), storage: StateStorage())
-                    #expect(log.updates == 1, "the app property beside the metatypes was updated")
+        #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+            @Test("The write-back never loads a field that cannot hold a property, so a metatype's thin layout is never misread")
+            func writeBackLoadsOnlyContainers() async {
+                await #expect(processExitsWith: .success) {
+                    await MainActor.run {
+                        let log = UpdateLog()
+                        var view = MetatypeFieldsView(log: log)
+                        prepareForBody(&view, identity: ViewIdentity(path: "Root/Metatypes"), storage: StateStorage())
+                        #expect(log.updates == 1, "the app property beside the metatypes was updated")
+                    }
                 }
             }
-        }
+        #endif
     #endif
 
     /// The review of the write-back: TUI's own `@GestureState` holds a
