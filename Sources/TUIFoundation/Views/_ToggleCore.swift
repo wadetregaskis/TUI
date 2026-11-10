@@ -575,16 +575,17 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
 
     /// Composes a built-in toggle's buffer from its indicator and label.
     ///
-    /// A single-view label is flattened onto the indicator line, as before. A
-    /// label closure holding two or more views is the SwiftUI "title +
-    /// explanatory text" form: the first view becomes the clickable title on the
-    /// indicator line, and the rest become an explanatory subtitle on the line(s)
+    /// A single-view label sits beside the indicator, wrapped to the width left
+    /// there. A label closure holding two or more views is the SwiftUI "title +
+    /// explanatory text" form: the first view becomes the clickable title beside
+    /// the indicator, and the rest become an explanatory subtitle on the line(s)
     /// below — indented to the title column and drawn in the secondary colour, the
     /// macOS checkbox-with-help-text convention. The subtitle is not a click
     /// target.
     ///
     /// - Returns: the composed buffer, plus the width and row count of the
-    ///   clickable title (the indicator line) for the hit-test region.
+    ///   clickable title (the indicator's row, and the rows its title wraps
+    ///   onto) for the hit-test region.
     private func composeLabelBuffer(
         indicator: String, labelContext: RenderContext, isDisabled: Bool, palette: any Palette
     ) -> (buffer: FrameBuffer, titleWidth: Int, titleRows: Int) {
@@ -598,20 +599,29 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             return (buffer, buffer.width, buffer.height)
         }
         let parts = resolveChildViews(from: label, context: labelContext)
+        let indent = Self.labelIndent(forIndicator: indicator)
+        let indentString = String.spaces(indent)
+        // The label wraps in the width left beside the indicator, as a `Text`
+        // does and as SwiftUI's checkbox label does: its first line on the
+        // indicator's row, the rest under it at the label's column. Flattened
+        // onto one row, as it once was, a label wider than the toggle's space
+        // ran past it and was cut off where the toggle ended, its last words
+        // gone with no ellipsis to say so.
+        let labelWidth = max(1, labelContext.availableWidth - indent)
+        func besideIndicator(_ labelLines: [String]) -> [String] {
+            labelLines.enumerated().map { $0.offset == 0 ? indicator + " " + $0.element : indentString + $0.element }
+        }
 
-        // Single-view label: flatten the whole label next to the indicator.
+        // Single-view label: the whole label beside the indicator.
         guard parts.count >= 2 else {
-            let labelText = TUIView.renderToBuffer(label, context: labelContext)
-                .lines.joined(separator: " ")
-            let buffer = FrameBuffer(lines: [indicator + " " + labelText])
+            let labelLines = TUIView.renderToBuffer(label, context: labelContext.withAvailableWidth(labelWidth)).lines
+            let buffer = FrameBuffer(lines: besideIndicator(labelLines.isEmpty ? [""] : labelLines))
             return (buffer, buffer.width, buffer.height)
         }
 
-        // Title = the first label view, flattened onto the indicator line.
-        let titleText = renderLabelPart(parts[0], maxWidth: nil, context: labelContext)
-            .lines.joined(separator: " ")
-        let titleLine = indicator + " " + titleText
-        let titleWidth = FrameBuffer(lines: [titleLine]).width
+        // Title = the first label view, beside the indicator.
+        let titleLines = besideIndicator(renderLabelPart(parts[0], maxWidth: labelWidth, context: labelContext).lines)
+        let titleWidth = FrameBuffer(lines: titleLines).width
 
         // Subtitle = the remaining label views: secondary, and indented to the
         // title column (past "<indicator> ") so it left-aligns to the label, not
@@ -623,30 +633,26 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                 \.foregroundStyle,
                 to: subtitleContext.environment.foregroundStyle.keepingShadows(on: .color(palette.foregroundSecondary)), paint: true)
         }
-        let indent = Self.labelIndent(forIndicator: indicator)
-        let indentString = String.spaces(indent)
         // Wrap the subtitle to the width left after the indent. The enclosing
         // stack hands the toggle the same `availableWidth` in both the measure
         // pass (it proposes `.unspecified`, which falls back to `availableWidth`)
         // and the render pass (it renders children at `availableWidth`), so
         // wrapping to this width is layout-consistent — exactly as a wrapping
         // `Text` is.
-        let subtitleWidth = max(1, labelContext.availableWidth - indent)
-
-        var lines = [titleLine]
+        var lines = titleLines
         for index in 1..<parts.count {
-            for line in renderLabelPart(parts[index], maxWidth: subtitleWidth, context: subtitleContext).lines {
+            for line in renderLabelPart(parts[index], maxWidth: labelWidth, context: subtitleContext).lines {
                 lines.append(indentString + line)
             }
         }
-        return (FrameBuffer(lines: lines), titleWidth, 1)
+        return (FrameBuffer(lines: lines), titleWidth, titleLines.count)
     }
 
-    /// Renders a single label part, wrapped to `maxWidth` when given (the
-    /// subtitle), or at its natural size when `maxWidth` is nil (the title).
-    private func renderLabelPart(_ part: ChildView, maxWidth: Int?, context: RenderContext) -> FrameBuffer {
+    /// Renders a single label part at its natural size, wrapped to `maxWidth`
+    /// where it is wider.
+    private func renderLabelPart(_ part: ChildView, maxWidth: Int, context: RenderContext) -> FrameBuffer {
         let size = part.measure(proposal: ProposedSize(width: maxWidth, height: nil), context: context)
-        return part.render(width: maxWidth ?? size.width, height: size.height, context: context)
+        return part.render(width: min(size.width, maxWidth), height: size.height, context: context)
     }
 
     /// This toggle as a row of an open pop-up menu: a ``Button`` whose label is

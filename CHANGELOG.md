@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A toggle's label wraps when it is wider than its space.** It was drawn on one line beside the box and cut off where
+the toggle ended, its last words gone with no ellipsis: the Example's File Panels page lost "machine" from its ssh
+toggle at 80 columns. It now wraps as a `Text` does, its first line beside the box and the rest under it, as SwiftUI's
+checkbox label does.
+
 **Tab comes back round a page in a window with bars.** A window's bars are focus sections of their own, so Tab past a
 page's last control asked them for the focus, and where they had nothing to focus it stayed on that control: no number
 of Tabs went back to the page's first, nor Shift-Tabs from its first to its last. The Example's Empty State page, with

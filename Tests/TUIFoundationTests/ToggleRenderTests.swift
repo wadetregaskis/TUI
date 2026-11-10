@@ -338,14 +338,19 @@ struct ToggleRenderTests {
 
     // MARK: - Width / truncation
 
-    @Test("A long label is hard-clipped to the available width on one line")
-    func longLabelClipsToWidth() {
-        // Toggle joins its (possibly wrapped) label into one line and clips to
-        // the buffer width — it never spills onto extra lines.
+    @Test("A long label wraps to the available width, under the label's column")
+    func longLabelWrapsToWidth() {
+        // As a `Text` wraps, and SwiftUI's checkbox label: joined onto one line
+        // and clipped, as it once was, the label lost its last words unseen.
         let out = lines(Toggle("A very long setting label here", isOn: .constant(true)), w: 12)
-        #expect(out.count == 1, "must stay on a single line, got: \(out)")
-        #expect(out[0].strippedLength <= 12, "must not exceed the available width, got: |\(out[0])|")
+        #expect(out.count > 1, "wraps, got: \(out)")
+        #expect(out.allSatisfy { $0.strippedLength <= 12 }, "within the available width, got: \(out)")
         #expect(out[0].hasPrefix("\(on) "), "indicator stays at the front, got: |\(out[0])|")
+        let indent = String(repeating: " ", count: "\(on) ".count)
+        #expect(out.dropFirst().allSatisfy { $0.hasPrefix(indent) }, "under the label's column, got: \(out)")
+        let words = out.map { String($0.dropFirst(indent.count)) }.joined(separator: " ")
+            .split(separator: " ").joined(separator: " ")
+        #expect(words == "A very long setting label here", "every word, in order, got: \(out)")
     }
 
     @Test("A wide toggle shows the full label with no padding artefacts")
