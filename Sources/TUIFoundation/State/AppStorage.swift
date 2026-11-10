@@ -207,11 +207,15 @@ extension JSONFileStorage {
 
         do {
             let data = try Data(contentsOf: fileURL)
-            if let decoded = try JSONSerialization.jsonObject(with: data) as? [String: String] {
+            if let decoded = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
                 state.withLock { state in
-                    // Convert base64 strings back to Data
-                    for (key, base64String) in decoded {
-                        if let valueData = Data(base64Encoded: base64String) {
+                    // Each key's value is its JSON in base64. Any other value
+                    // is one a later TUI kept some other way: skipped, not
+                    // the file — cast to `[String: String]` whole, one such
+                    // value read as an empty file, every setting at its
+                    // default. ``flushToDisk()`` keeps it as it was.
+                    for (key, value) in decoded {
+                        if let base64String = value as? String, let valueData = Data(base64Encoded: base64String) {
                             state.entries[key] = StoredEntry(data: valueData)
                         }
                     }
@@ -264,10 +268,14 @@ extension JSONFileStorage {
         // since this one loaded — and overlay only this instance's own
         // changes. See `dirtyKeys`. A fresh read each flush rather than a
         // kept file handle: flushes are rare (bursts coalesce), and the read
-        // is what makes a sibling's keys survive.
-        var serializable: [String: String] = [:]
+        // is what makes a sibling's keys survive. Every value on disk is kept,
+        // whatever it is: one this build cannot read is a later TUI's, and an
+        // app built with it reads it again (the API stability policy's
+        // persisted state). Read as `[String: String]`, one such value failed
+        // the cast and this write erased every key it had not made itself.
+        var serializable: [String: Any] = [:]
         if let data = try? Data(contentsOf: fileURL),
-            let onDisk = try? JSONSerialization.jsonObject(with: data) as? [String: String]
+            let onDisk = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
         {
             serializable = onDisk
         }

@@ -1,0 +1,22 @@
+{
+  "TUI Some Later Setting": "eyJsZXZlbCI6M30=",
+  "TUI Toolbar Configuration compact": "eyJvcmRlciI6WyJwcmludCJdfQ==",
+  "TUI Toolbar Configuration editor": "eyJvcmRlciI6WyJib2xkIiwic2hhcmUiLCJpdGFsaWMiLCJwcmludCJdLCJzaG93biI6eyJpdGFsaWMiOmZhbHNlLCJzaGFyZSI6dHJ1ZX0sInBpbm5lZCI6WyJwcmludCJdfQ==",
+  "TUIFilePanels.docs.directory": "Ii90bXAi",
+  "TUIFilePanels.docs.showsHiddenFiles": "ZmFsc2U=",
+  "TUIFilePanels.open.height": "MzAuNQ==",
+  "TUIFilePanels.open.width": "LTc=",
+  "TUIFilePanels.preview": "ImZsb2F0aW5nIg==",
+  "TUIFilePanels.showsHiddenFiles": "dHJ1ZQ==",
+  "TUIFilePanels.viewMode": "ImdhbGxlcnki",
+  "later.nested": {
+    "a": 1
+  },
+  "later.notBase64": "%%%",
+  "later.number": 3,
+  "scene.page": "IkJ1dHRvbnMi",
+  "scene@dbf4e7add29e7a7f.page": "Ikxpc3RzIg==",
+  "scene@sessions": "eyJmaXh0dXJlLXNlc3Npb24iOnsibGFzdFdyaXR0ZW4iOjE3NjI3OTA0MDAsImtleXMiOlsic2NlbmVAZGJmNGU3YWRkMjllN2E3Zi5wYWdlIl0sIndpbmRvdyI6Im1haW4ifSwibGF0ZXItc2Vzc2lvbiI6eyJsYXN0V3JpdHRlbiI6MTc2Mjc5NDAwMCwia2V5cyI6W10sIndpbmRvdyI6Imluc3BlY3RvciJ9fQ==",
+  "tuikit.colorPicker.palette256.showNumbers": "dHJ1ZQ==",
+  "tuikit.gradientEditor.recents": "IkZGMDAwMEAwLjAwMCwwMDAwRkZAMS4wMDAi"
+}

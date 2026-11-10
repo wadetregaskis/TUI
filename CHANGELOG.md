@@ -64,6 +64,12 @@ stack has no guard page: a tree deeper than it wrote over the program's data. It
 wasm-ld's default 64 KB stack it trips a few levels down, so link with a bigger one (`-z stack-size=16777216`, as
 `Tools/Web/build.sh` does).
 
+**A settings file that a later TUI wrote is read, and is no longer wiped by the next save.** `settings.json` and
+Linux's `UserDefaults.json` hold each key's value as base64 JSON. If any value in the file was something else, such as
+one a later release might keep another way, the whole file read as empty, so every setting showed its default. The
+next save then rewrote the file with only the keys this app had changed. Now each key that reads is read, and a save
+leaves every other key as it was.
+
 **On macOS, settings an earlier TUI saved in `UserDefaults` are read again.** Until 2026-10-14 TUI kept every
 `@AppStorage` value there as its JSON encoding: by default from 2026-06-29, and in 0.6.0 and earlier for an app that
 named `UserDefaultsStorage`. Since then a `Bool`, a number, a string or a raw value has been kept as itself, as SwiftUI

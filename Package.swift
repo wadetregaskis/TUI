@@ -784,13 +784,14 @@ let package = Package(
         // `canImport(Testing)`: a static Linux SDK ships no Testing module, and a debug build of the whole
         // package for it would fail here. Golden snapshots are read and written by path (#filePath-relative,
         // see TestHelpers/SnapshotTesting.swift), not via the resource bundle, so they are excluded from
-        // the build rather than declared as resources; so are the asset-catalogue fixtures.
+        // the build rather than declared as resources; so are the asset-catalogue fixtures and the
+        // persisted-settings files (TestHelpers/PersistedSettingsFixtures.swift).
         .target(
             name: "TUITestSupport",
             dependencies: [
                 "TUICore", "TUIFoundation", "TUIStrings", "TUIStyling", "TUIView",
             ],
-            path: "Tests/TUITestSupport", exclude: ["__Snapshots__"],
+            path: "Tests/TUITestSupport", exclude: ["__Snapshots__", "__Fixtures__"],
             swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
         ),
         .target(
