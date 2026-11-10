@@ -631,7 +631,7 @@ extension TextFieldHandler {
             // typing triggers the `.keyboardShortcut(.defaultAction)` button
             // (the macOS text-system behaviour). A value field commits what was
             // typed either way, so the button reads the value.
-            onReturnCommit?()
+            committing(onReturnCommit ?? {})
             guard let onSubmit else { return false }
             onSubmit()
             return true
@@ -1218,6 +1218,19 @@ extension TextFieldHandler {
         resetSuggestionNavigation()
         // Editing has ended: the commit point for values that apply live —
         // a combo box records its recents here, not just on Enter.
-        onEditingChanged?(false)
+        if let onEditingChanged { committing { onEditingChanged(false) } }
+    }
+
+    /// Runs `commit`, and puts the caret at the end of the text where it
+    /// rewrote it: a value field's commit of "1234" shows "1,234", and a
+    /// caret left at the fourth character put the next digit between the 3
+    /// and the 4. A commit that leaves the text as it was leaves the caret.
+    func committing(_ commit: () -> Void) {
+        let before = text.wrappedValue
+        commit()
+        let after = text.wrappedValue
+        guard after != before else { return }
+        cursorPosition = after.count
+        clearSelection()
     }
 }

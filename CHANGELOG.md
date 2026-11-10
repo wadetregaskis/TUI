@@ -79,6 +79,10 @@ named `UserDefaultsStorage`. Since then a `Bool`, a number, a string or a raw va
 keeps it, and such a value saved earlier read as absent, so it showed its default. It is now read from its JSON. It
 stays as it is until the next write, which keeps the value as itself.
 
+**Typing in a `TextField(value:format:)` after Return goes on after the value.** Return, or leaving the field, writes
+what was typed back formatted, "1234" as "1,234", and the caret stayed where it had been in the shorter text, so the
+next digit went into the middle of the number. The caret now goes to the end of the text a commit rewrites.
+
 **Return in a `TextField(value:format:)` with no `onSubmit` reaches the default button.** Its own commit of what
 was typed counted as a submit action, so the field always kept Return, and in a dialog the button marked
 `.keyboardShortcut(.defaultAction)` never heard it. Return now writes the value back and goes on to the button, as it
