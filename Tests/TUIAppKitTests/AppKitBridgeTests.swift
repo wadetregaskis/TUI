@@ -147,6 +147,10 @@ private enum ImportScan {
     /// re-exports one of them — fails the guard.
     static let allowed: Set<String> = [
         "TUI", "TUICore", "TUIStyling", "TUIView", "TUIImage", "CSTBImage",
+        // WebAssembly's stack bounds (9baa54d77): a C target of three
+        // functions over the linker's symbols, built and imported only on
+        // wasip1 (`#if canImport(CWASIStack)`), with no headers but its own.
+        "CWASIStack",
         "Foundation", "FoundationEssentials", "FoundationNetworking", "Observation", "Dispatch",
         "Synchronization",
         "Darwin", "Glibc", "Musl", "WASILibc", "ucrt", "WinSDK", "os",
