@@ -56,10 +56,14 @@ import Foundation
 /// copied out of its build directory reads the bundle beside it or none — on
 /// the machine that built it as on any other (decisions BNDL).
 ///
-/// On WebAssembly it is still `Bundle.module`. There SwiftPM compiles both of
-/// its places in as absolute paths, and the page serves the bundle at the
-/// build directory's (`Tools/Web/build.sh`): there is nothing to look for at
-/// run time, and a page that serves no bundle still stops the program.
+/// On WebAssembly there is no main bundle of Foundation's to speak of, so it
+/// looks in the program's own directory, from `argv[0]` (a bare name is in the
+/// current directory, the root), and then in `Bundle.main`'s, and reads its
+/// words in English where neither holds the bundle — as everywhere else, never
+/// stopping the program (the owner, 2026-11-09, B-BNDL-4). It was
+/// `Bundle.module` until then, which a page serving no bundle at the build
+/// directory's absolute path stopped. `Tools/Web/build.sh` serves this bundle
+/// beside the program.
 package struct ModuleResources: Sendable {
     /// The bundle's directory, or `nil` for none.
     package let bundleURL: URL?
@@ -70,7 +74,7 @@ package struct ModuleResources: Sendable {
     /// This program's bundle, looked for once, the first time it is asked for.
     package static let current: Self = {
         #if canImport(WASILibc)
-        Self(bundleURL: Bundle.module.bundleURL)
+        Self(searching: programDirectories(arguments: CommandLine.arguments, main: .main))
         #else
         Self(searching: searchDirectories())
         #endif
@@ -106,6 +110,15 @@ package struct ModuleResources: Sendable {
             }
         }
         return nil
+    }
+
+    /// Where WebAssembly looks (see "What it is not"): the directory of the
+    /// program `arguments` names first (a bare name being in the current
+    /// directory), then `main`'s directory and resources. Compiled everywhere,
+    /// so that it is tested where the tests run.
+    static func programDirectories(arguments: [String], main: Bundle) -> [URL?] {
+        let program = arguments.first.map { URL(fileURLWithPath: $0).deletingLastPathComponent() }
+        return [program, main.bundleURL, main.resourceURL]
     }
 
     #if !canImport(WASILibc)

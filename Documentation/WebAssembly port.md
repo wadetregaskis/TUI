@@ -204,9 +204,14 @@ build directory, because SwiftPM compiles the bundle's location into the binary
 and there is no way to ask it to look elsewhere — the manifest is regenerated on
 every build, so it stays true, but a site built on one machine will not find its
 resources on another. Anyone shipping this properly should embed the resources
-instead. (Elsewhere TUI looks for its own bundle itself, beside the program,
-and runs in English without it; on WebAssembly it still asks `Bundle.module`,
-because both places that looks are compiled in — decisions BNDL, B-BNDL-4.)
+instead. TUI's own bundle is the exception (B-BNDL-4, the owner's ruling of
+2026-11-09): TUI looks for it beside the program, as on every other platform,
+and runs with its words in English where it is not there, never stopping. So
+the manifest serves it at `/` too, beside the program (`argv[0]` is a bare
+name). Checked in the browser that night: Deutsch reads "↩ auswählen" and
+"⌃Q beenden"; with the copy beside the program left out of the manifest the
+page still runs, in English ("↩ choose", "⌃Q quit"). An app's own resources are
+still found only by its own `Bundle.module`, at the build directory's path.
 
 ## Toward full support (1.0)
 
@@ -345,12 +350,11 @@ enum payloads and the value-hash plans (gap 5).
    a write), and a view whose value hash needs an enum's payload is not hashed (`.bypass`), which costs memo hits,
    not correctness (`ToolbarValueHashTests`, `SubviewsTests`, the gesture plan tests). The first is a correctness
    gap an app can meet; it needs the value witnesses called in a way wasm's calling convention allows.
-6. **The resource bundle (M).** A WebAssembly program finds its bundle at the absolute path of the build directory
-   it was built in, and stops without it (B-BNDL-4): right for the browser page, which serves it there, wrong for
-   any other host and for a binary moved off its build machine. The tests that read German from the bundle found
-   English under the runner (`BuiltInEnglishTests`, `PanelLocalizationTests`, `SceneRootLanguageChromeTests`),
-   which wants explaining before it is called the runner's. Embedding the resources, or falling back to the
-   compiled-in English as every other platform does (B-BNDL-1, B-BNDL-3), is the owner's call.
+6. **The resource bundle (S, done for TUI's own).** The owner ruled on 2026-11-09 (B-BNDL-4): look beside the
+   program, then fall back to the built-in English. Done: TUI no longer stops where its bundle is missing. What is
+   left: the tests that read German from the bundle found English under the runner (`BuiltInEnglishTests`,
+   `PanelLocalizationTests`, `SceneRootLanguageChromeTests`), which the runner's `--dir /` and the bundle's place
+   should now explain, and should be re-run; and an app's own resources, which only its own `Bundle.module` finds.
 7. **Symbolic links in the file panels (S–M).** A link to a folder lists as a file (`DirectoryListingTests`):
    Foundation on WASI did not follow it for `isDirectory`. Whether that is the runner's `/tmp` or WASI's is the
    first question.

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A WebAssembly program no longer stops where TUI's resource bundle isn't at its build machine's path.** It looks
+for `TUI_TUIStrings.resources` beside the program, as every other platform does, and reads TUI's own words in English
+where it isn't there. `Tools/Web/build.sh` serves it beside the program. An app's own resources are still its own
+`Bundle.module`'s to find.
+
 **Scroll bars appear over the content while the pointer is over it, instead of in a column of their own.**
 `.overContent` is now the default `scrollIndicatorPlacement`: a `ScrollView`, `List`, `Table` or `TextEditor` whose
 content overflows draws its bar (or its "N more" lines) over the content's edge while the pointer is over it, and

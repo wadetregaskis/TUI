@@ -70,7 +70,7 @@ struct ModuleResourcesTests {
         #expect(second.bundleURL?.lastPathComponent == "TUI_TUIStrings.bundle")
     }
 
-    #if !canImport(WASILibc)  // WebAssembly asks Bundle.module instead, and searches nowhere.
+    #if !canImport(WASILibc)  // WebAssembly searches programDirectories instead (below).
         @Test("The search starts beside the program")
         func searchStartsBesideTheProgram() {
             let directories = ModuleResources.searchDirectories()
@@ -78,6 +78,19 @@ struct ModuleResourcesTests {
             #expect(directories.count >= 3)
         }
     #endif
+
+    /// WebAssembly's places (B-BNDL-4, 2026-11-09): the program's directory, a
+    /// bare name being in the current directory, and then the main bundle's.
+    @Test("WebAssembly's search starts in the program's directory, a bare name's being the current one")
+    func webAssemblySearchStartsAtTheProgram() {
+        let absolute = ModuleResources.programDirectories(arguments: ["/srv/app/Example", "x"], main: .main)
+        #expect(absolute.first == URL(fileURLWithPath: "/srv/app/Example").deletingLastPathComponent())
+        #expect(absolute.count == 3)
+        let bare = ModuleResources.programDirectories(arguments: ["Example"], main: .main)
+        #expect(bare.first??.standardizedFileURL.path
+            == URL(fileURLWithPath: FileManager.default.currentDirectoryPath).standardizedFileURL.path)
+        #expect(ModuleResources.programDirectories(arguments: [], main: .main).first == .some(nil))
+    }
 
     @Test("This build's own bundle is found where the build put it")
     func thisBuildsBundleIsFound() throws {
@@ -89,10 +102,10 @@ struct ModuleResourcesTests {
     /// The guard against a revert: `Bundle.module` stops the program wherever
     /// SwiftPM's compiled-in path is gone — a relocated install, a program
     /// started through a symbolic link, every user's machine under Swift Build —
-    /// so no library module may read it again. The one use left is
-    /// `ModuleResources`' WebAssembly arm, where it is all there is. An app
-    /// (Example) reading its own bundle is the app's choice, not a library's.
-    @Test("No library module reads Bundle.module except ModuleResources on WebAssembly")
+    /// so no library module may read it again — on WebAssembly neither, since
+    /// 2026-11-09 (B-BNDL-4). An app (Example) reading its own bundle is the
+    /// app's choice, not a library's.
+    @Test("No library module reads Bundle.module")
     func noLibraryReadsBundleModule() throws {
         let sources = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()  // TUIFoundationTests/
@@ -111,8 +124,6 @@ struct ModuleResourcesTests {
                 readers.append("\(module)/\(url.lastPathComponent): \(line.trimmingCharacters(in: .whitespaces))")
             }
         }
-        #expect(
-            readers == ["TUIStrings/ModuleResources.swift: Self(bundleURL: Bundle.module.bundleURL)"],
-            "\(readers)")
+        #expect(readers.isEmpty, "\(readers)")
     }
 }

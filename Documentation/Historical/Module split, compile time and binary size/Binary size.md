@@ -1941,6 +1941,14 @@ before.
 as well, and WASI searches as everywhere else. The price is a change to the web
 build and a check in a browser, which this lane could not make.
 
+**Decided (the owner, 2026-11-09): "look beside the program, then fall back."**
+Shipped the same night: on WebAssembly `ModuleResources` searches the
+program's directory (from `argv[0]`) and `Bundle.main`'s, and reads its words in
+English where neither holds the bundle; `Tools/Web/build.sh` serves the bundle
+at `/` as well. No library module reads `Bundle.module` any more, on any
+platform. Checked in a browser: German found, and English, still running,
+without the copy beside the program.
+
 ## Completing the SwiftUI API: lane SIZEDOCS's decisions for review
 
 *A companion to [the main decisions record](<../SwiftUI parity process/Completing the SwiftUI API.md>),

@@ -131,9 +131,11 @@ else
 fi
 
 # The resource bundles, and the manifest that says where the guest expects to
-# find each file. SwiftPM compiles the bundle's location into the binary as an
-# absolute host path, so the page serves the files under exactly that path —
-# there is no way to ask the module to look somewhere else.
+# find each file. SwiftPM compiles a bundle's location into the binary as an
+# absolute host path, which an app's own `Bundle.module` reads, so the page
+# serves every bundle under exactly that path. TUI's own strings bundle is read
+# from beside the program instead (`ModuleResources`, B-BNDL-4, 2026-11-09):
+# argv[0] is a bare name, so beside it is the root, and it is served there too.
 echo "── collecting resource bundles"
 python3 - "$BIN" "$SITE" "$PRODUCT" <<'PYTHON'
 import json, os, shutil, sys
@@ -154,8 +156,13 @@ for bundle in sorted(os.listdir(build_dir)):
             target = os.path.join(resources, served)
             os.makedirs(os.path.dirname(target), exist_ok=True)
             shutil.copy2(host, target)
-            files.append({"path": guest, "url": "./resources/" + served.replace(os.sep, "/")})
+            url = "./resources/" + served.replace(os.sep, "/")
+            files.append({"path": guest, "url": url})
             directories.add(os.path.dirname(guest))
+            if bundle == "TUI_TUIStrings.resources":
+                beside = "/" + os.path.join(bundle, os.path.relpath(host, source))
+                files.append({"path": beside, "url": url})
+                directories.add(os.path.dirname(beside))
 
 manifest = {
     "wasm": f"./{product}.wasm",
