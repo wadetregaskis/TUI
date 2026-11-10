@@ -91,6 +91,7 @@ TabContent.popover(isPresented:attachmentAnchor:arrowEdge:content:) | @MainActor
 TabContent.popover(item:attachmentAnchor:arrowEdge:content:) | @MainActor func popover<Item, Content>(item: Binding<Item?>, attachmentAnchor: PopoverAttachmentAnchor = .rect(.bounds), arrowEdge: Edge? = nil, @ViewBuilder content: @escaping (Item) -> Content) -> some TabContent<Self.TabValue> where Item : Identifiable, Content : View
 TabContent.sectionActions(content:) | @MainActor func sectionActions<Content>(@ViewBuilder content: () -> Content) -> some TabContent<Self.TabValue> where Content : View
 TabContent.springLoadingBehavior(_:) | @MainActor func springLoadingBehavior(_ behavior: SpringLoadingBehavior) -> some TabContent<Self.TabValue>
+TabContent.swipeActions(edge:allowsFullSwipe:content:) | @MainActor func swipeActions<T>(edge: HorizontalEdge = .trailing, allowsFullSwipe: Bool = true, @ViewBuilder content: () -> T) -> some TabContent<Self.TabValue> where T : View
 TabContent.tabPlacement(_:) | @MainActor func tabPlacement(_ placement: TabPlacement) -> some TabContent<Self.TabValue>
 TabContentBuilder | @MainActor @resultBuilder struct TabContentBuilder<TabValue> where TabValue : Hashable
 TabContentBuilder.Content | nonisolated struct Content<C> where C : TabContent

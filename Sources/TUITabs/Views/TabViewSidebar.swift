@@ -136,10 +136,11 @@ private struct _TabSidebarList: View {
         let popoversShown = interactions.popovers.map(\.isPresented.wrappedValue)
         // What the look cannot compare: a view of the app's own the row
         // draws — its label, a popover it shows — or a closure of the app's
-        // it calls, a drag's payload or a drop's action.
+        // it calls, a drag's payload or a drop's action — or its swipe
+        // actions, buttons of the app's that the row draws while revealed.
         let uncomparable =
             tab.customLabel != nil || popoversShown.contains(true) || interactions.dragPayload != nil
-            || !interactions.drops.isEmpty
+            || !interactions.drops.isEmpty || !tab.swipeActions.isEmpty
         return _TabRowLook(
             value: tab.value, title: tab.title, icon: tab.icon.map { _TabRowIcon(content: $0.content) },
             badge: tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText,
@@ -196,7 +197,8 @@ private struct _TabSidebarList: View {
     /// strip's chip does.
     ///
     /// Its context menu, popovers, drag and drops hang from the row — the
-    /// label, as the list draws it (`_TabInteractionsHost`).
+    /// label, as the list draws it (`_TabInteractionsHost`); its swipe
+    /// actions are the list row's own (`tabSwipeActions(_:)`).
     private func row(_ index: Int) -> some View {
         let tab = tabs[index]
         let badge: String? = tab.badgeSuffix.isEmpty ? nil : tab.badge?.displayText
@@ -206,6 +208,7 @@ private struct _TabSidebarList: View {
             activate: { selection.wrappedValue = tab.value }
         )
         .selectionDisabled(tab.isDisabled)
+        .tabSwipeActions(tab.swipeActions)
         .badge(badge)
     }
 
@@ -264,7 +267,7 @@ private struct _TabRowLook: Hashable {
     let popoversShown: [Bool]
     /// A part of the row the look cannot compare — a label view of the app's
     /// own, a popover's content while it shows, a drag's payload, a drop's
-    /// action — or `nil` for none: the row is drawn afresh every frame
+    /// action, swipe actions — or `nil` for none: the row is drawn afresh every frame
     /// (``_DrawnAfresh``).
     let drawnAfresh: _DrawnAfresh?
 }

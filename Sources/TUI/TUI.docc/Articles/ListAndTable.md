@@ -505,7 +505,9 @@ A row can carry actions besides its selection:
   ⇧→ reveals the leading edge's and ⇧← the trailing edge's on the cursor row
   (⌃L and ⌃T where the terminal doesn't report Shift on the arrows); the same
   chord again is the full swipe. Revealed, ← → and Tab move between the
-  buttons, Return presses one and Escape slides them away.
+  buttons, Return presses one and Escape slides them away. A `Tab` takes them
+  too, with `TabContent`'s `swipeActions(edge:allowsFullSwipe:content:)`:
+  its row in a `.sidebarAdaptable` sidebar reveals them the same way.
 - **Delete.** `onDelete(perform:)` on the `ForEach` makes Delete and Backspace
   remove the focused row; ``View/deleteDisabled(_:)`` exempts a row, as
   ``View/moveDisabled(_:)`` does from reordering.

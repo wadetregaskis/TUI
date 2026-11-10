@@ -39,6 +39,10 @@ in a `TabView`.** Under a header in a column, a row short of fitting, its bar to
 wrapped onto two lines), where the same placement set higher up did not: a modifier that only sets an environment
 value hid from the column that the scroll view takes all the room it is offered.
 
+**A `Tab` takes swipe actions.** `swipeActions(edge:allowsFullSwipe:content:)` on a tab, as SwiftUI spells it, gives
+its row in a `.sidebarAdaptable` sidebar the buttons a list row's swipe actions give it, revealed from the keyboard
+(⇧→ and ⇧←) or a trackpad's sideways swipe in the same way. A tab bar has no rows to swipe and shows none.
+
 **A WebAssembly program no longer stops where TUI's resource bundle isn't at its build machine's path.** It looks
 for `TUI_TUIStrings.resources` beside the program, as every other platform does, and reads TUI's own words in English
 where it isn't there. `Tools/Web/build.sh` serves it beside the program. An app's own resources are still its own

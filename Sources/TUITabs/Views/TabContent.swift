@@ -127,6 +127,10 @@ struct _RawTab {
     /// drag and drops (`TabContentInteractions.swift`).
     var interactions = _TabInteractionTraits()
 
+    /// The swipe actions the tab's sidebar row reveals
+    /// (`TabContentSwipeActions.swift`).
+    var swipeActions = _TabSwipeActions()
+
     /// Whether a drag paused over the tab selects it: the tab's own behavior
     /// if it has one, else `inherited`, the tab view's environment's — a tab
     /// spring-loads by default, as SwiftUI's tab views do — and never a
