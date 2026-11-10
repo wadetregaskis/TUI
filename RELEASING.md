@@ -48,7 +48,9 @@ declaration, one per line and one file per module, as
 from the symbol graphs. `api_baseline.py --check` lists what was added and
 removed since the record was written; rerunning it without `--check` rewrites
 the record. A removed or changed line is a candidate breaking change by the
-table above. It is not run by CI.
+table above. CI runs `--check` on the macOS lane whose toolchain matches the
+record's stamp, so an API change that leaves the record behind fails there:
+every API change rewrites the record in the commit that makes it.
 
 ## Cutting one
 

@@ -43,9 +43,12 @@ dump-package`): the products, and the targets that are not products but whose
 public API reaches clients through `@_exported` re-exports. A C target has no
 symbol graph and is skipped.
 
-`--check` is not wired into CI; that is the owner's call. The extraction is
-`Tools/APIParity/api_parity.py`'s (same flags, same search paths), so the two
-tools always agree on what TUI's public API is.
+CI runs `--check --skip-build` on the "macOS 15 · Xcode 26" lane, the one
+whose toolchain matches the stamp, after its build (see that step in
+`.github/workflows/ci.yml`). So every API change re-records the baseline in
+the commit that makes it. The extraction is `Tools/APIParity/api_parity.py`'s
+(same flags, same search paths), so the two tools always agree on what TUI's
+public API is.
 
 Requires macOS with Xcode.
 """

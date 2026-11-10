@@ -317,6 +317,8 @@ jobs:
             solver_scopes: 2000
             # The module map runs here only: see that step.
             module_map: true
+            # The public API record runs here only: see that step.
+            api_baseline: true
             # The release build, for the dedup check after it: 6.2.4 folds a
             # pair 6.4.0 does not (see that step). The Span check reads it too.
             release_build: true
@@ -500,6 +502,24 @@ jobs:
       - name: Module map
         if: matrix.module_map
         run: python3 Tools/ModuleMap/modulemap.py check --github
+
+      # The public API record (Tools/Release/api-baseline/, RELEASING.md):
+      # fails on any public or open declaration added or removed without the
+      # record being rewritten in the same commit: every API change
+      # re-records it (`api_baseline.py`, no flags) in the commit that makes
+      # it. After 1.0, a removed line is a candidate breaking change.
+      #
+      # On this lane only, because a symbol graph is only reproducible on the
+      # toolchain that made it, and the record's stamp is Xcode 26.3's Swift
+      # 6.2.4, the Xcode `macos-15` carries (see the matrix note at the top).
+      # If GitHub moves that image to another Swift, the tool prints a note
+      # that the stamp differs before it lists anything: re-record on the new
+      # toolchain and commit the delta, as for the parity baseline.
+      # `--skip-build` reads the modules the Build step wrote, so this is
+      # symbol extraction only: ~25 s locally.
+      - name: Public API matches the recorded baseline
+        if: matrix.api_baseline
+        run: python3 Tools/Release/api_baseline.py --check --skip-build
 
       # Why the suite runs through Tools/ParallelTest/parallel_test.py, in
       # several processes, rather than `$SWIFT test` in one:

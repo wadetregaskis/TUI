@@ -127,9 +127,9 @@ The changelog records each deprecation under its release, saying what replaces i
 
 `Tools/Release/api_baseline.py --check` lists every public declaration added and removed since the baseline was
 written. Before a release, a removed or changed line means a major release, a deprecation done wrong, or an
-underscored or experimental name (which the policy allows); an added one means at least a minor. The baseline is
-rewritten in the release commit. It also runs in CI (decision 10), so that each change to the public API is
-acknowledged, by rewriting the baseline, in the commit that makes it.
+underscored or experimental name (which the policy allows); an added one means at least a minor. CI runs the check
+(decision 10), so the baseline is rewritten in the commit that changes the public API, and a release's diff of it
+is the sum of those commits.
 
 ## The decisions
 
@@ -147,5 +147,5 @@ Answered by the owner on 2026-11-09, in chat; the record is in
 | 7 | Deprecation | A: deprecate in a minor, remove in the next major. SwiftUI's deprecations followed case by case |
 | 8 | Read compatibility of persisted settings | Both ways within a major; kept across majors where it can be |
 | 9 | Supported platforms at 1.0 | macOS, Linux, WebAssembly and Windows, all fully supported |
-| 10 | `api_baseline.py --check` in CI | Yes |
+| 10 | `api_baseline.py --check` in CI | Yes, from 2026-11-09, on the macOS lane whose toolchain matches the baseline's stamp |
 | 11 | The defaults 1.0 freezes that are still open: SCROLL-REGIONS, SCROLLBAR-PLACEMENT, and the terminal probes in [Open owner decisions](<Open owner decisions.md>) | **Open** |
