@@ -299,7 +299,7 @@ struct JSONFileStorageTests {
         let url = FileManager.default.temporaryDirectory
             .appendingPathComponent("tuikit-appstorage-\(UUID().uuidString).json")
         defer { try? FileManager.default.removeItem(at: url) }
-        try? "this is not valid json".write(to: url, atomically: true, encoding: .utf8)
+        try? "this is not valid json".write(to: url, atomically: false, encoding: .utf8)
 
         let storage = JSONFileStorage(fileURL: url)
         defer { storage.synchronize() }  // the write below queues a save: land it before the removal

@@ -55,7 +55,7 @@ private final class TemporaryBundle {
         let full = (path as NSString).appendingPathComponent(relative)
         try FileManager.default.createDirectory(
             atPath: (full as NSString).deletingLastPathComponent, withIntermediateDirectories: true)
-        try text.write(toFile: full, atomically: true, encoding: .utf8)
+        try text.write(toFile: full, atomically: false, encoding: .utf8)
     }
 }
 

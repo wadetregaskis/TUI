@@ -35,7 +35,7 @@ final class TableBundle {
                     .joined(separator: "\n")
                 try text.write(
                     toFile: (folder as NSString).appendingPathComponent("\(table).strings"),
-                    atomically: true, encoding: .utf8)
+                    atomically: false, encoding: .utf8)
             }
         }
         bundle = try #require(Bundle(path: path))

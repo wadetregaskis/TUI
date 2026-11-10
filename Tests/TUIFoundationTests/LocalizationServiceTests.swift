@@ -260,7 +260,7 @@ final class LocalizationServiceTests {
             attributes: nil
         )
         let path = (tempDir as NSString).appendingPathComponent("language")
-        try "fr".write(toFile: path, atomically: true, encoding: .utf8)
+        try "fr".write(toFile: path, atomically: false, encoding: .utf8)
 
         let service = LocalizationService(configDirectoryPath: tempDir)
         #expect(service.currentLanguage == .french)
@@ -286,7 +286,7 @@ final class LocalizationServiceTests {
             attributes: nil
         )
         let path = (tempDir as NSString).appendingPathComponent("language")
-        try "invalid_lang_code".write(toFile: path, atomically: true, encoding: .utf8)
+        try "invalid_lang_code".write(toFile: path, atomically: false, encoding: .utf8)
 
         let service = LocalizationService(configDirectoryPath: tempDir)
         #expect(service.currentLanguage == .english)
