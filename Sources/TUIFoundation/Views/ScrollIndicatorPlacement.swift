@@ -145,6 +145,39 @@ extension RenderContext {
     }
 }
 
+extension RenderContext {
+    /// Asks for this frame to be walked again when the focus the view holds
+    /// is not the one its indicators were placed for: it changed during the
+    /// view's own render, after ``placingScrollIndicators(explicitFocusID:focusIDIndex:canHoldFocus:)``
+    /// read it.
+    ///
+    /// That is the first focus stop on a page, which takes the focus as it
+    /// registers, on its first frame (`FocusManager.register(_:inSection:)`),
+    /// and a pending focus resolving as its target registers. Before the
+    /// render the view has no focus id to ask about, and the stops before it
+    /// in the walk may still take the focus first, so nothing can tell
+    /// earlier. The frame would be written with the content at the whole
+    /// width and no bar, and the next laid out beside the bar: a jump.
+    /// Instead the view's drawing is invalidated as an effect of the walk
+    /// (`EffectStage`), which `FrameSettling` walks again for before the
+    /// frame is written, and this time the placement reads the focus held.
+    /// Once a frame at most, on the frame the focus arrives in a render; a
+    /// render outside a frame's walk (no drawing open) invalidates at once,
+    /// and the next frame is laid out for the focus.
+    ///
+    /// - Parameter focusID: The id the view answers to in the focus ring.
+    @MainActor
+    package func settleScrollIndicatorPlacement(focusID: String) {
+        guard !isMeasuring, environment.scrollIndicatorPlacement == .overContent,
+            let focusManager = environment.focusManager,
+            focusManager.isFocused(id: focusID) != environment.scrollIndicatorsBesideForFocus,
+            let stage = stateStorage?.effectStage, let cache = renderCache
+        else { return }
+        let identity = self.identity
+        stage.perform(as: .change) { cache.invalidateRender(for: identity) }
+    }
+}
+
 extension View {
     /// Sets where the scrolling views in this view draw their indicators.
     ///

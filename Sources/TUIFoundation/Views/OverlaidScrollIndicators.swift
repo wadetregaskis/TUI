@@ -20,6 +20,9 @@ import TUIView
 package protocol ScrollIndicatorPointerTracking: AnyObject {
     /// Whether the pointer is over the view.
     var isPointerOver: Bool { get set }
+
+    /// The id the view answers to in the focus ring.
+    var focusID: String { get }
 }
 
 extension FrameBuffer {
@@ -41,6 +44,10 @@ extension FrameBuffer {
     /// forgets where the pointer was, which it would not hear leave: the frame
     /// its content comes to overflow on starts watching, and the pointer's next
     /// move over it brings the indicators.
+    ///
+    /// Asks for the frame to be walked again when the focus this view holds
+    /// changed during its own render, as the first focus stop on a page takes
+    /// it (``RenderContext/settleScrollIndicatorPlacement(focusID:)``).
     ///
     /// Call it after every region the view and its content have filed, so the
     /// observer stands in front of them: the dispatcher looks for observers
@@ -64,6 +71,7 @@ extension FrameBuffer {
             tracker.isPointerOver = false
             return
         }
+        context.settleScrollIndicatorPlacement(focusID: tracker.focusID)
         // Motion reports, which a terminal sends only when asked: hover is made of them.
         dispatcher.requestFeature(.motion, in: context)
         let drawing = HandlerDrawing(context)
