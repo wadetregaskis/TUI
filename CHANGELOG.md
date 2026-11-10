@@ -25,6 +25,10 @@ user still sees there is more. To keep the old layout, a column always reserved 
 `.scrollIndicatorPlacement(.besideContent)` at the top of the app. `scrollIndicatorsFlash` lights only indicators that
 are drawn, so under the new default a flash shows nothing until the pointer or the focus brings them.
 
+**A `MeshGradient` written with control points draws on WebAssembly.** One made with `bezierPoints:` stopped the
+program on the first frame that drew it, as did any mesh 32 or more vertices across: the slots its animation
+keeps were numbered for a 64-bit `Int`. Other platforms are unchanged.
+
 **Repeating animations repeat on WebAssembly.** `repeatCount(_:autoreverses:)` and `repeatForever(autoreverses:)`
 stopped at the end of their first pass there, and a spring ended a hair short of its target, because a cap meant
 for a 64-bit `Int` came out as zero in a 32-bit one. Other platforms are unchanged.

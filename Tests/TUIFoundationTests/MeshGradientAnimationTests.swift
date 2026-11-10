@@ -129,4 +129,29 @@ struct MeshGradientAnimationTests {
         let half = screen.draw(wide, atMillis: 500)
         #expect(brightest(half[0]) == 0, "\(fills(half[0]))")
     }
+
+    /// The `bezierPoints:` form's slots are the other half of the mesh slot
+    /// space, which a 32-bit `Int` (wasm32) once could not hold: drawing one
+    /// trapped on the first frame.
+    @Test("A mesh written with control points fades as one of points does")
+    func bezierFormFades() {
+        func flat(_ colour: Color) -> some View {
+            let corners: [SIMD2<Float>] = [[0, 0], [1, 0], [0, 1], [1, 1]]
+            return MeshGradient(
+                width: 2, height: 2,
+                bezierPoints: corners.map {
+                    .init(
+                        position: $0, leadingControlPoint: $0, topControlPoint: $0, trailingControlPoint: $0,
+                        bottomControlPoint: $0)
+                },
+                colors: [colour, colour, colour, colour], smoothsColors: false
+            )
+            .frame(width: 20, height: 1)
+        }
+        let screen = Screen(.linear(duration: 1))
+        _ = screen.draw(flat(.rgb(0, 0, 0)), atMillis: 0)
+        _ = screen.draw(flat(.rgb(200, 0, 0)), atMillis: 0)
+        let half = screen.draw(flat(.rgb(200, 0, 0)), atMillis: 500)
+        #expect(Set(fills(half[0])) == ["100;0;0"], "\(Set(fills(half[0])))")
+    }
 }

@@ -239,10 +239,20 @@ enum PaintAnimation {
         /// wider or taller shares slots, and a mesh past 95,000 vertices runs
         /// into the next shape's; both are far from anything drawn in a
         /// terminal, and the worst they do is start a move from the wrong place.
+        ///
+        /// Where `Int` is 32 bits (wasm32) the 8,192 shapes get 2^17 slots each
+        /// (11,900 vertices) below -2^17, all above -2^31. The 64-bit spacing
+        /// does not fit there: `1 << 40` is 0, a shift past the width being no
+        /// error, and a shape past 2,047 (every `bezierPoints:` mesh) times
+        /// 2^20 overflows, which trapped on the first frame that drew one.
         static func mesh(_ paint: MeshPaint) -> Int {
             let form = if case .bezierPoints = paint.locations { 1 } else { 0 }
             let shape = (form * 64 + (paint.width & 63)) * 64 + (paint.height & 63)
-            return -(1 << 40) - shape * (1 << 20)
+            #if _pointerBitWidth(_64)
+                return -(1 << 40) - shape * (1 << 20)
+            #else
+                return -(1 << 17) - shape * (1 << 17)
+            #endif
         }
     }
 }
