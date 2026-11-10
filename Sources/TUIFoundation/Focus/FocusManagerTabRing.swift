@@ -15,7 +15,10 @@ extension FocusManager {
     /// first. Only when the current element is the last in its section does
     /// Tab switch to the next section.
     /// When only one section exists — or the active one is modal, which is the
-    /// same thing from inside — this cycles within it (wrapping).
+    /// same thing from inside — this cycles within it (wrapping), and so it does
+    /// where no other section has anything to focus: a window's bars are
+    /// sections of their own, and a page whose only controls were its own held
+    /// Tab on its last control, which no number of Tabs left.
     ///
     /// A modal's ring is its own section and the sections drawn inside it — a
     /// `.focusSection`, a split view's columns, a pushed navigation screen — and
@@ -24,7 +27,9 @@ extension FocusManager {
         let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
         if ring.count > 1 {
             let moved = moveFocusInSection(direction: .forward, wrap: false)
-            if !moved { cycleSection(direction: .forward, in: ring) }
+            if !moved, !cycleSection(direction: .forward, in: ring) {
+                moveFocusInSection(direction: .forward, wrap: true)
+            }
         } else {
             moveFocusInSection(direction: .forward, wrap: true)
         }
@@ -36,12 +41,15 @@ extension FocusManager {
     /// section first. Only when the current element is the first in its section
     /// does Shift+Tab switch to the previous section.
     /// When only one section exists — or the active one is modal — this cycles
-    /// within it (wrapping).
+    /// within it (wrapping), and so it does where no other section has anything
+    /// to focus.
     public func focusPrevious() {
         let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
         if ring.count > 1 {
             let moved = moveFocusInSection(direction: .backward, wrap: false)
-            if !moved { cycleSection(direction: .backward, in: ring) }
+            if !moved, !cycleSection(direction: .backward, in: ring) {
+                moveFocusInSection(direction: .backward, wrap: true)
+            }
         } else {
             moveFocusInSection(direction: .backward, wrap: true)
         }

@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Tab comes back round a page in a window with bars.** A window's bars are focus sections of their own, so Tab past a
+page's last control asked them for the focus, and where they had nothing to focus it stayed on that control: no number
+of Tabs went back to the page's first, nor Shift-Tabs from its first to its last. The Example's Empty State page, with
+one button in a page that scrolls, kept the focus on the page after one Tab. Tab now goes round the page's own controls
+when no other section can take the focus.
+
 **A menu that scrolls keeps its widest row on one line.** The scrollbar's column came out of the rows, which the menu
 had sized to its widest label exactly, so that label wrapped onto a second line in every inline menu taller than its
 space: the Example's main menu in Japanese showed "オーバーレイとモーダ" over "ル". The

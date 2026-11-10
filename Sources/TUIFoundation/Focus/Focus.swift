@@ -1633,9 +1633,13 @@ package enum FocusDirection {
 
 extension FocusManager {
     /// Cycles the active section in the given direction.
-    func cycleSection(direction: FocusDirection, in ring: [FocusSection]? = nil) {
+    ///
+    /// - Returns: Whether another section took the focus: `false` where none
+    ///   in the ring has anything focusable.
+    @discardableResult
+    func cycleSection(direction: FocusDirection, in ring: [FocusSection]? = nil) -> Bool {
         let sections = ring ?? self.sections
-        guard sections.count > 1 else { return }
+        guard sections.count > 1 else { return false }
 
         let startIndex: Int
         if let activeID = activeSectionID,
@@ -1665,10 +1669,11 @@ extension FocusManager {
             }
             if sections[index].focusables.contains(where: { $0.canBeFocused }) {
                 activateSection(id: sections[index].id, focusBoundary: direction)
-                return
+                return true
             }
         }
         // No other section has anything focusable; stay where we are.
+        return false
     }
 
     /// Moves focus within the active section.
