@@ -68,8 +68,11 @@ package final class BodyKeep {
 
     private static let keepsEveryBodyByDefault = ProcessInfo.processInfo.environment["TUI_KEEP_BODIES"] == "all"
 
-    /// How long a body has to be seen to take for its type to be kept.
-    private static let slowBody = Duration.microseconds(20)
+    /// How long a body has to be seen to take for its type to be kept. A test of
+    /// the learning sets a line far above what a quick body takes on a loaded
+    /// machine, or under an interpreter (WasmKit), and a slow body over it, as
+    /// the plain memo's ``PlainMemo/heavySubtree`` is set.
+    package var slowBody = Duration.microseconds(20)
 
     /// The types seen to take it: only ever added to, so at most one per type.
     private var slowTypes: Set<ObjectIdentifier> = []
@@ -179,7 +182,7 @@ package final class BodyKeep {
     /// Notes how long an evaluation of a `V` took, since ``startTiming()``.
     @inline(__always)
     func noteEvaluation<V: View>(of _: V.Type, since start: ContinuousClock.Instant?) {
-        guard let start, ContinuousClock.now - start >= Self.slowBody else { return }
+        guard let start, ContinuousClock.now - start >= slowBody else { return }
         slowTypes.insert(ObjectIdentifier(V.self))
     }
 

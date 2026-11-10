@@ -24,6 +24,15 @@ private enum Runs {
     static var counts: [String: Int] = [:]
     static var write: (() -> Void)?
     static var nanos: Int64 = 0
+    /// How many more of `SlowRow`'s evaluations wait out ``slow``.
+    static var slowRowsLeft = 0
+    /// The keep's line in these tests (`BodyKeep.slowBody`): far over what a quick
+    /// body takes on a loaded machine, or under an interpreter (WasmKit), where at
+    /// the app's 20 µs a quick one was taken for slow.
+    static let line = Duration.milliseconds(50)
+    /// What a slow body takes: over ``line``. A wait is never shorter than asked,
+    /// however loaded the machine, so it is over the line on every run.
+    static let slow = Duration.milliseconds(60)
     static func note(_ tag: String) { counts[tag, default: 0] += 1 }
     static func take(_ tag: String) -> Int {
         defer { counts[tag] = 0 }
@@ -110,7 +119,7 @@ private struct Slow: View {
         Runs.note("slow")
         // Real time, on purpose: what makes a body worth keeping is the wall
         // time its runs are measured taking (`BodyKeep.slowBody`).
-        waitRealTime(.microseconds(2_000))
+        waitRealTime(Runs.slow)
         return Text(verbatim: "slow")
     }
 }
@@ -122,8 +131,13 @@ private struct SlowRow: View {
     @State private var taps = 0
     var body: some View {
         Runs.note("row")
-        // Real time, as `Slow`'s: over the line `BodyKeep` measures.
-        waitRealTime(.microseconds(200))
+        // Real time, as `Slow`'s: over the line `BodyKeep` measures. Only the
+        // first frame's, which the keep times whole: a type seen slow stays so,
+        // and what is tested after is what is taken, not how long it took.
+        if Runs.slowRowsLeft > 0 {
+            Runs.slowRowsLeft -= 1
+            waitRealTime(Runs.slow)
+        }
         return Text(verbatim: "\(index) \(tick + taps)")
     }
 }
@@ -165,6 +179,7 @@ struct BodyKeepTests {
         // What the keep learns from the clock is what some of these test, so the
         // clock is read, as in an app; `HeadlessApp` turns it off for the rest.
         app.renderCache.learnsFromTiming = true
+        app.renderCache.bodyKeep.slowBody = Runs.line
         return app
     }
 
@@ -298,6 +313,8 @@ struct BodyKeepTests {
     func untakenStopsBeingKept() {
         let app = app(SlowRows())
         app.renderCache.bodyKeep.keepsEveryBody = false
+        // The first frame's measures and draws of its four rows.
+        Runs.slowRowsLeft = 8
         for _ in 0..<12 {
             Runs.write?()
             frames(app)
