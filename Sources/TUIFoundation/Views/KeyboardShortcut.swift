@@ -345,19 +345,55 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// send the chord apart (Ghostty's Ctrl-Shift-\\), it arrives as itself
     /// and fires.
     /// Since that holds only some of the time, these answer `false`.
+    ///
+    /// Nor is any other Control chord a legacy encoding has no byte of its
+    /// own for. Its Control chords are the C0 bytes, one for each letter and
+    /// for `\`, minus (0x1F, `^_`) and a few more TUI does not read, and a C0
+    /// byte has no case: Ctrl-Shift-S arrives as Ctrl-S, and fires a ⌃S
+    /// binding instead. A digit or other punctuation held with Control
+    /// arrives as the plain character (xterm's Ctrl-1), as another key
+    /// (its Ctrl-3 is Escape, its Ctrl-/ is Ctrl-minus's 0x1F) or as nothing
+    /// (Ctrl-comma; xterm's tables and the survey's "The settings panel's
+    /// keys", not measured key by key). Return, Tab, Escape, Backspace and
+    /// space are C0 bytes themselves, which drop Control and Shift, but for
+    /// Shift-Tab's own sequence. And Shift held on a character that is not a
+    /// letter is lost: Shift-1 types `!`, which is the key a terminal sends.
+    /// Under the kitty keyboard protocol most of these arrive as themselves
+    /// (``TerminalCapabilities/Feature/disambiguatedKeys``), but not on every
+    /// terminal, so they answer `false`. The keys a terminal sends as an
+    /// escape sequence — the arrows, the paging keys, the function keys —
+    /// answer `true` with any of the modifiers a terminal reports.
     public var isDeliverableInTerminal: Bool {
         guard case .key(let key, let modifiers) = trigger else { return true }
         guard modifiers.isDisjoint(with: Self.unreportedModifiers) else { return false }
+        let (folded, upperCase) = key.foldingCase
+        let character = folded.character
+        let shifted = modifiers.contains(.shift) || upperCase
+        if Self.controlByteKeys.contains(character) {
+            if modifiers.contains(.control) { return false }
+            return !shifted || character == KeyEquivalent.tab.character
+        }
+        // An escape-sequence key: the private-use scalars AppKit names them by.
+        if let scalar = character.unicodeScalars.first, (0xF700...0xF8FF).contains(scalar.value) { return true }
+        if shifted, !character.isLetter { return false }
         guard modifiers.contains(.control) else { return true }
-        // ⌃\ arrives; ⌃⇧\ is one of the chords that share its byte.
-        if key.character == "\\" { return !modifiers.contains(.shift) }
-        return !Self.controlCollisions.contains(key.character)
+        return !shifted && Self.controlChordKeys.contains(character)
     }
 
-    /// The keys whose Control chord a legacy encoding sends as another key's
-    /// byte: H, I, M and `[` (Backspace, Tab, Return and Escape), and `|` and
-    /// `4`, which some terminals send as ⌃\\'s 0x1C.
-    private static let controlCollisions: Set<Character> = ["h", "i", "m", "[", "|", "4"]
+    /// The keys a legacy encoding sends as a C0 byte of their own — Return,
+    /// Tab, Escape, Backspace (DEL, or BS) and space — which no modifier but
+    /// Option survives, and Shift only on Tab, whose Shift-Tab is a sequence.
+    private static let controlByteKeys: Set<Character> = [
+        KeyEquivalent.return.character, KeyEquivalent.tab.character, KeyEquivalent.escape.character,
+        KeyEquivalent.delete.character, KeyEquivalent.space.character,
+    ]
+
+    /// The keys whose Control chord a legacy encoding sends as a byte TUI
+    /// reads as that chord: the letters but H, I and M (Backspace, Tab and
+    /// Return; Ctrl-J's LF is read as Ctrl-J, owner ruling B63-CTRLJ), `\`
+    /// (0x1C) and minus (0x1F). Not `[`, which is Escape, nor `4` and `|`,
+    /// which some terminals send as ⌃\\'s 0x1C.
+    private static let controlChordKeys = Set("abcdefgjklnopqrstuvwxyz\\-")
 
     /// The modifiers a shortcut that needs one cannot fire on everywhere: ⌘,
     /// which only the kitty keyboard protocol reports with a key, and only

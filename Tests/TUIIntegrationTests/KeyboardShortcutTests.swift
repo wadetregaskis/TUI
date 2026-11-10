@@ -539,7 +539,7 @@ struct CommandKeySubstitutionTests {
         // The digit alone, or under Option, has no C0 byte to share.
         #expect(KeyboardShortcut("4").resolved(commandKey: .option)?.isDeliverableInTerminal == true)
         #expect(KeyboardShortcut("4", modifiers: []).isDeliverableInTerminal == true)
-        for key: KeyEquivalent in ["s", "o", "n", "1", "c", "z"] {
+        for key: KeyEquivalent in ["s", "o", "n", "c", "z", "-"] {
             let resolved = KeyboardShortcut(key).resolved(commandKey: .control)
             #expect(resolved?.isDeliverableInTerminal == true)
         }

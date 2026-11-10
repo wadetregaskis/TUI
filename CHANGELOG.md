@@ -26,6 +26,13 @@ sort, left the focus where it was, on whichever row took that place, so Space, R
 never moved to: always at the top of a list, and anywhere for a change between the top row on screen and the focused
 row. The focus now follows its row. When the focused row itself goes, the row after it takes the focus, as before.
 
+**`KeyboardShortcut.isDeliverableInTerminal` answers `false` for the chords a terminal sends as another key.** It said
+`true` for Control with Shift (⌘⇧S under `.commandKey(.control)`, which arrives as ⌃S and fires ⌃S's binding), with a
+digit or most punctuation (⌘1, which a legacy encoding sends as a plain 1, and ⌃, which it cannot send at all), for
+Control or Shift on Return, Tab, Escape, Backspace and space, and for Shift on a character that isn't a letter. Each of
+those now answers `false`, as Ctrl-H and Ctrl-4 already did. Shift-Tab, Option chords and the arrow, paging and
+function keys still answer `true`.
+
 **The environment variables an app's man page lists are written for the person running it.** Each says, in plain
 words, what it does to the screen, the keys or the mouse, its values, its default, and an example where one helps, and
 they're grouped as that person looks for them: colour and appearance, motion, keyboard and mouse, text and language,
