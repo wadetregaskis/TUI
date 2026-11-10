@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A value an app appends to a bound path replaces the screen a view destination put on top, as in SwiftUI.** With
+a `navigationDestination(isPresented:)` screen up, or a view-destination `NavigationLink`'s, a value the app appended
+to the path went on top and Back returned to the screen. It now takes the screen's place, and the screen's flag is
+set back to `false`. A value the screen pushes with `NavigationLink(value:)` still goes over it.
 **A `NavigationPath` holds only the app's values.** A screen pushed by `navigationDestination(isPresented:)` or
 `(item:)`, or by a `NavigationLink` with a view for its destination, went into a bound `NavigationPath`: its `count`
 included the screen, and its `codable` became `nil`, so the path could not be saved while the screen was up. The

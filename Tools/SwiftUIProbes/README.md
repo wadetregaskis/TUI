@@ -1300,4 +1300,4 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-10.
 - **Was:** written here.
 - **Cited by:** `Sources/TUINavigation/Views/NavigationStack.swift`,
-  `Tests/TUINavigationTests/NavigationPathScreensTests.swift`.
+  `Tests/TUINavigationTests/NavigationPathScreensTests.swift`, `Tests/TUINavigationTests/TypedPathScreensTests.swift`.

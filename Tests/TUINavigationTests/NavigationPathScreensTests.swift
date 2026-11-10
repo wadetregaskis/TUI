@@ -33,12 +33,17 @@ private struct PathStack: View {
                 Button("Push 7") { path.append(7) }
             }
             .navigationDestination(isPresented: $shown) {
-                Text(verbatim: "PRESENTED count=\(path.count) codable=\(path.codable != nil)")
+                VStack {
+                    Text(verbatim: "PRESENTED count=\(path.count) codable=\(path.codable != nil)")
+                    NavigationLink("Deeper", value: 5)
+                    Button("Append 9") { path.append(9) }
+                }
             }
             .navigationDestination(for: Int.self) { value in
                 VStack {
-                    Text(verbatim: "VALUE \(value) inner=\(inner)")
+                    Text(verbatim: "VALUE \(value) inner=\(inner) shown=\(shown)")
                     Button("Inner") { inner = true }
+                    Button("Hide") { shown = false }
                 }
                 .navigationDestination(isPresented: $inner) {
                     VStack {
@@ -85,5 +90,29 @@ struct NavigationPathScreensTests {
         try app.click("Push 7")
         #expect(app.screen.contains("VALUE 7 inner=false"), "\(app.screen)")
         #expect(!app.screen.contains("INNER"), "\(app.screen)")
+    }
+
+    @Test("A value the stack pushes over the screen goes into the path, and leaves with the screen")
+    func valuePushedOverTheScreenLeavesWithIt() throws {
+        let app = TestApp(width: 60, height: 12) { PathStack() }
+        try app.click("Show")
+        try app.click("Deeper")
+        #expect(app.screen.contains("VALUE 5 inner=false shown=true"), "\(app.screen)")
+        // Clearing the flag takes the screen off, and what was pushed over it:
+        // left, it would strand the user on a screen reached through one gone.
+        try app.click("Hide")
+        #expect(app.screen.contains("count=0 codable=true shown=false"), "\(app.screen)")
+    }
+
+    /// SwiftUI's, measured (`Tools/SwiftUIProbes/Navigation path and view
+    /// destinations/navpath.out`, cases D to H).
+    @Test("A value the app appends replaces the screen on top, and clears its flag")
+    func appendedValueReplacesTheScreen() throws {
+        let app = TestApp(width: 60, height: 12) { PathStack() }
+        try app.click("Show")
+        try app.click("Append 9")
+        #expect(app.screen.contains("VALUE 9 inner=false shown=false"), "\(app.screen)")
+        app.press(.escape)
+        #expect(app.screen.contains("count=0 codable=true shown=false"), "\(app.screen)")
     }
 }

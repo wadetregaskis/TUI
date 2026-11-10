@@ -97,7 +97,10 @@ by a view-destination `NavigationLink`, or by
 `navigationDestination(isPresented:)` or `(item:)` — is not in it, as in
 SwiftUI: a `NavigationPath`'s `count` leaves it out and its `codable` stays
 available. The stack keeps such a screen over the values it was pushed on, and
-drops it when your code takes one of those values off the path.
+drops it when your code takes one of those values off the path. A value your
+code appends while it is on top takes its place, as in SwiftUI, and a
+`navigationDestination(isPresented:)` flag is set back to `false`; a value its
+screen pushes with `NavigationLink(value:)` goes over it.
 
 ## What the terminal changes
 

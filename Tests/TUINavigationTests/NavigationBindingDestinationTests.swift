@@ -216,25 +216,6 @@ struct NavigationBindingDestinationTests {
         #expect(!after.contains { $0.contains("pushed screen") }, "and it stayed off: \(after)")
     }
 
-    @Test("A screen pushed above the destination goes when the flag clears")
-    func clearingTakesTheScreensAboveItToo() {
-        let fixture = Fixture()
-        fixture.showing = true
-        fixture.frame(fixture.booleanStack)
-        #expect(fixture.path.isEmpty)
-
-        // A value goes on above the screen.
-        fixture.path.append(Item(name: "deeper"))
-        fixture.frame(fixture.booleanStack)
-        #expect(fixture.path.count == 1)
-
-        fixture.showing = false
-        fixture.frame(fixture.booleanStack)
-        #expect(
-            fixture.path.isEmpty,
-            "popping to the token alone would strand the user on a screen reached through it")
-    }
-
     /// A destination written on a PUSHED screen. A pop straight to the root
     /// takes that screen off too, so its modifier stops rendering and cannot
     /// notice that its own screen went: SwiftUI still sets the flag back to

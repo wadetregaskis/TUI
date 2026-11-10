@@ -29,7 +29,12 @@ private struct TypedStack: View {
                 NavigationLink("Detail") { DetailScreen(path: $path) }
                 Button("Push 7") { path.append(7) }
             }
-            .navigationDestination(isPresented: $shown) { Text(verbatim: "PRESENTED") }
+            .navigationDestination(isPresented: $shown) {
+                VStack {
+                    Text(verbatim: "PRESENTED")
+                    Button("Append 9") { path.append(9) }
+                }
+            }
             .navigationDestination(for: Int.self) { value in
                 VStack {
                     Text(verbatim: "VALUE \(value)")
@@ -70,11 +75,27 @@ struct TypedPathScreensTests {
         let app = TestApp(width: 50, height: 12) { TypedStack() }
         try app.click("Detail")
         #expect(app.screen.contains("DETAIL path=[]"), "\(app.screen)")
-        // A value pushed from it goes on top, and into the binding.
+        app.press(.escape)
+        #expect(app.screen.contains("path=[] shown=false"), "\(app.screen)")
+    }
+
+    /// SwiftUI's, measured (`Tools/SwiftUIProbes/Navigation path and view
+    /// destinations/navpath.out`, cases D to H): a value the app appends takes
+    /// the place of the screens kept over the values it already held, and a
+    /// flag-driven one among them has its flag set back to false.
+    @Test("A value the app appends replaces the screens kept on top")
+    func appendedValueReplacesTheKeptScreens() throws {
+        let app = TestApp(width: 50, height: 12) { TypedStack() }
+        try app.click("Detail")
         try app.click("Deeper")
         #expect(app.screen.contains("VALUE 3"), "\(app.screen)")
         app.press(.escape)
-        #expect(app.screen.contains("DETAIL path=[]"), "\(app.screen)")
+        #expect(app.screen.contains("path=[] shown=false"), "the view destination was kept under it: \(app.screen)")
+
+        try app.click("Show")
+        #expect(app.screen.contains("PRESENTED"), "\(app.screen)")
+        try app.click("Append 9")
+        #expect(app.screen.contains("VALUE 9"), "\(app.screen)")
         app.press(.escape)
         #expect(app.screen.contains("path=[] shown=false"), "\(app.screen)")
     }
@@ -94,13 +115,16 @@ struct TypedPathScreensTests {
         #expect(!app.screen.contains("DETAIL"), "\(app.screen)")
     }
 
-    @Test("The merge keeps a screen while the values beneath it are unchanged, and drops it with them")
+    @Test("The merge keeps a screen while the values beneath it are unchanged and none follow, and drops it with them")
     func merging() {
         let token = AnyHashable("screen")
         let keeps: (AnyHashable) -> Bool = { $0.base is Int }
         let shadow: [AnyHashable] = [1, token]
         #expect(NavigationStack<EmptyView>.merging(shadow, over: [1], keeps: keeps) == [1, token])
-        #expect(NavigationStack<EmptyView>.merging(shadow, over: [1, 2], keeps: keeps) == [1, token, 2])
+        // An appended value replaces the screen kept over the last value.
+        #expect(NavigationStack<EmptyView>.merging(shadow, over: [1, 2], keeps: keeps) == [1, 2])
+        // A screen kept under a value that is still there stays.
+        #expect(NavigationStack<EmptyView>.merging([1, token, 2], over: [1, 2, 3], keeps: keeps) == [1, token, 2, 3])
         #expect(NavigationStack<EmptyView>.merging(shadow, over: [], keeps: keeps).isEmpty)
         #expect(NavigationStack<EmptyView>.merging(shadow, over: [5], keeps: keeps) == [5])
         #expect(NavigationStack<EmptyView>.merging([], over: [4], keeps: keeps) == [4])

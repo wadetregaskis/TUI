@@ -203,14 +203,21 @@ public struct NavigationStack<Root: View> {
     /// pushed for as long as the values beneath it do. Where the app changed
     /// the binding itself, the path is the shadow up to the first value that
     /// no longer matches, and the binding's values from there: popping a value
-    /// in the app's own code pops what was pushed over it too, and a value
-    /// appended goes on top.
+    /// in the app's own code pops what was pushed over it too. A value the app
+    /// appends takes the place of the screens kept over the last value still
+    /// there, as SwiftUI's does (measured,
+    /// `Tools/SwiftUIProbes/Navigation path and view destinations/navpath.out`,
+    /// cases D to H); the stack's own pushes are in `shadow` already, so they
+    /// go on top.
     static func merging(
         _ shadow: [AnyHashable], over typed: [AnyHashable], keeps: (AnyHashable) -> Bool
     ) -> [AnyHashable] {
         guard !shadow.isEmpty else { return typed }
         var merged: [AnyHashable] = []
         var matched = 0
+        // How much of `merged` ends with the last value that matched; what
+        // follows it is kept screens, which stay only if nothing is appended.
+        var throughLastValue = 0
         for element in shadow {
             if !keeps(element) {
                 merged.append(element)
@@ -219,7 +226,9 @@ public struct NavigationStack<Root: View> {
             guard matched < typed.count, typed[matched] == element else { break }
             merged.append(element)
             matched += 1
+            throughLastValue = merged.count
         }
+        if matched < typed.count { merged.removeSubrange(throughLastValue...) }
         merged.append(contentsOf: typed[matched...])
         return merged
     }
