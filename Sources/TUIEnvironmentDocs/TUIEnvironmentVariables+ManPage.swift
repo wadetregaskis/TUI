@@ -31,7 +31,8 @@ extension TUIEnvironmentVariables {
     ///
     /// - Parameters:
     ///   - format: Which macros to write it in. By default, `man(7)`.
-    ///   - audience: Whose variables. By default, those for the person running the app.
+    ///   - audience: Whose variables. By default, those for the person running the app,
+    ///     followed by those their terminal sets (``TUIEnvironmentVariable/Audience/detected``).
     ///   - includesHeading: Whether it starts with `ENVIRONMENT`'s own heading.
     ///     Pass `false` to put your program's own variables under that heading first.
     /// - Returns: The text, ending in a newline, in nothing but ASCII.
@@ -43,7 +44,7 @@ extension TUIEnvironmentVariables {
         var lines: [String] = []
         if includesHeading { lines.append(writer.sectionHeading("ENVIRONMENT")) }
         lines += writer.paragraph(introduction(for: audience))
-        for group in grouped(variables(for: audience)) {
+        for group in sectionGroups(for: audience) {
             lines.append(writer.subsectionHeading(group.topic.title))
             lines += writer.definitions(group.variables)
         }

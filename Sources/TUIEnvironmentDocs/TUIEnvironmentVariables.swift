@@ -59,14 +59,27 @@ public enum TUIEnvironmentVariables {
         }
     }
 
+    /// The topics a generated section has for `audience`, each with its variables:
+    /// the audience's own, and, for the person running the app, what their terminal
+    /// sets after them, so that they know what it's telling the program.
+    static func sectionGroups(
+        for audience: TUIEnvironmentVariable.Audience
+    ) -> [(topic: TUIEnvironmentVariable.Topic, variables: [TUIEnvironmentVariable])] {
+        let own = grouped(variables(for: audience))
+        return audience == .endUser ? own + grouped(variables(for: .detected)) : own
+    }
+
     /// The opening every generated section has for `audience`, in Markdown.
     static func introduction(for audience: TUIEnvironmentVariable.Audience) -> String {
         switch audience {
         case .endUser:
             """
-            This program is built with TUI, which reads these variables. An empty variable counts as unset, \
-            and a value that isn't listed is ignored. A setting the program makes itself, such as from a \
-            command-line flag, usually comes first.
+            This program is built with TUI, which reads these variables. Set one for a single run by \
+            writing it before the command, as in `NO_COLOR=1 myapp`, or for every run by exporting it from \
+            your shell's profile. An empty value counts as unset, and a value that isn't listed is ignored. \
+            A setting the program makes itself, such as from a command-line flag, usually wins, but it \
+            can't undo what you ask for so that you can use it, such as less motion. Those marked as an \
+            experiment may change. The ones your terminal, tmux or ssh sets for you come last.
             """
         case .developer:
             """
@@ -75,8 +88,9 @@ public enum TUIEnvironmentVariables {
             """
         case .detected:
             """
-            TUI reads these to work out where the program is running. A terminal, a multiplexer or ssh sets \
-            them, so there's rarely a reason to set one yourself.
+            TUI reads these to work out where the program is running and what the terminal can do. Your \
+            terminal, tmux, GNU screen or ssh sets them, so there's rarely a reason to set one yourself: to say \
+            which terminal this is, use `TUI_TERM_PROGRAM`.
             """
         }
     }

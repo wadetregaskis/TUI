@@ -104,17 +104,32 @@ struct EnvironmentVariableCoverageTests {
         let stale = Self.table.subtracting(read)
         #expect(stale.isEmpty, "\(stale.sorted()) are in the table, and nothing in the sources reads them.")
         // The internal names are checked against their own places.
-        let staleInternal = InternalVariables.framework.union(InternalVariables.exampleAndStress).subtracting(read)
+        let staleInternal = Set(InternalVariables.framework.keys).union(InternalVariables.exampleAndStress.keys)
+            .subtracting(read)
         #expect(staleInternal.isEmpty, "\(staleInternal.sorted()) are listed, and nothing in the sources reads them.")
     }
 
+    /// Each name is in exactly one place: one row of the table, which has one audience,
+    /// or one of the internal lists.
     @Test("No name is both public and internal, and tests-only names stay out of the end users' list")
     func audiencesAreKeptApart() {
+        let framework = Set(InternalVariables.framework.keys)
+        let exampleAndStress = Set(InternalVariables.exampleAndStress.keys)
+        let testsAndTools = Set(InternalVariables.testsAndTools.keys)
         #expect(Self.table.isDisjoint(with: InternalVariables.all))
         #expect(Self.table.isDisjoint(with: InternalVariables.compileConditions))
-        #expect(InternalVariables.framework.isDisjoint(with: InternalVariables.exampleAndStress))
-        #expect(InternalVariables.framework.isDisjoint(with: InternalVariables.testsAndTools))
-        #expect(InternalVariables.exampleAndStress.isDisjoint(with: InternalVariables.testsAndTools))
+        #expect(framework.isDisjoint(with: exampleAndStress))
+        #expect(framework.isDisjoint(with: testsAndTools))
+        #expect(exampleAndStress.isDisjoint(with: testsAndTools))
+    }
+
+    @Test("Each internal variable says why it isn't documented for the people who use TUI")
+    func internalVariablesHaveReasons() {
+        let reasons = InternalVariables.framework.merging(InternalVariables.exampleAndStress) { first, _ in first }
+            .merging(InternalVariables.testsAndTools) { first, _ in first }
+        for (name, reason) in reasons {
+            #expect(reason.hasSuffix(".") && reason.count > 10, "\(name) needs a sentence saying why it's internal")
+        }
     }
 
     @Test("The inward-facing page names exactly the internal list")

@@ -15,6 +15,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**The environment variables an app's man page lists are written for the person running it.** Each says, in plain
+words, what it does to the screen, the keys or the mouse, its values, its default, and an example where one helps, and
+they're grouped as that person looks for them: colour and appearance, motion, keyboard and mouse, text and language,
+screen size and printed output, links and notifications, terminal quirks, saved settings and troubleshooting. The
+end-user section from `swift run tui-environment-docs`, `TUIEnvironmentVariables.manPageSection` and `markdownSection`
+now ends with what the person's terminal, tmux or ssh sets, such as `TERM_PROGRAM`, `TMUX` and `SSH_CONNECTION`.
+`TUI_SCROLL_OUTPUT=0`, the way out for a terminal that gets scroll regions wrong, is documented for them too.
+`TUIEnvironmentVariable.Topic`'s cases are the new groups, so code that switched over the old ones (`colour`,
+`accessibility`, `behaviour`) needs the new names; regenerate a committed man page to pick up the text.
+
 **A WebAssembly program no longer stops where TUI's resource bundle isn't at its build machine's path.** It looks
 for `TUI_TUIStrings.resources` beside the program, as every other platform does, and reads TUI's own words in English
 where it isn't there. `Tools/Web/build.sh` serves it beside the program. An app's own resources are still its own

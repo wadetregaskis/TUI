@@ -12,13 +12,16 @@ extension TUIEnvironmentVariables {
     /// table of each topic under a heading.
     ///
     /// - Parameters:
-    ///   - audience: Whose variables. By default, those for the person running the app.
+    ///   - audience: Whose variables. By default, those for the person running the app,
+    ///     followed by those their terminal sets (``TUIEnvironmentVariable/Audience/detected``).
     ///   - headingLevel: The level of each topic's heading: 3 for `###`.
     /// - Returns: The text, ending in a newline.
     public static func markdownSection(
         audience: TUIEnvironmentVariable.Audience = .endUser, headingLevel: Int = 3
     ) -> String {
-        introduction(for: audience) + "\n\n" + markdownTables(audience: audience, headingLevel: headingLevel)
+        let tables = markdownTables(audience: audience, headingLevel: headingLevel)
+        let detected = audience == .endUser ? "\n" + markdownTables(audience: .detected, headingLevel: headingLevel) : ""
+        return introduction(for: audience) + "\n\n" + tables + detected
     }
 
     /// `markdownSection(audience:headingLevel:)` without its introduction: what TUI's

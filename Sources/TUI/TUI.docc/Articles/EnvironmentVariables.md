@@ -86,94 +86,111 @@ Don't write a variable to state a setting. Many are read once, and `setenv` isn'
 
 ## For People Running an App
 
+These change what you see and how the keys and the mouse behave. Set one for a single run by writing it before the command, or for every run by exporting it from your shell's profile:
+
+```
+TUI_REDUCE_MOTION=1 myapp
+export NO_COLOR=1
+```
+
+An empty value counts as unset, and a value a table doesn't list is ignored. Those marked as an experiment may change or go. The standard variables other programs read, such as `NO_COLOR`, `TERM`, `LANG` and `COLUMNS`, mean here what they mean everywhere else. What your terminal, tmux or ssh sets for you is under <doc:EnvironmentVariables#What-TUI-Works-Out-for-Itself>.
+
+These tables are generated from the same text an app's man page gets, so the page and the man page say the same.
+
 <!-- tui-environment-docs: end-user -->
-### Colour
+### Colour and appearance
 
 | Variable | Values | Effect |
 |---|---|---|
-| `NO_COLOR` | Any value, even `0` | No colour. Bold, underline, italics and the other text attributes stay. A picture the terminal draws in real pixels keeps its colours. |
-| `FORCE_COLOR` | A number, or a word such as `true` | `0` or `false`: no colour. `1`: at least 16 colours. `2`: at least 256. `3` or more: millions. Any other value, such as `true`: what the terminal has, but at least 16. `NO_COLOR` beats it. |
-| `CLICOLOR_FORCE` | Any value but `0` or `false` | What the terminal has, but at least 16 colours. `NO_COLOR` and `FORCE_COLOR` beat it. |
-| `CLICOLOR` | `0` or `false` | No colour. Any other value changes nothing. `NO_COLOR`, `FORCE_COLOR` and `CLICOLOR_FORCE` beat it. |
-| `COLORTERM` | `truecolor` or `24bit` | The terminal can show millions of colours. Terminals set this themselves, and ssh doesn't pass it on, so set it on the remote machine if colours look coarse there. |
-| `TERM` | A terminal type, such as `xterm-256color` | The kind of terminal, which says how many colours it has. Terminals set this themselves. With `dumb` there's no colour, and a full-screen program takes it that there's no terminal to draw on. |
+| `NO_COLOR` | Any value, even `0` | Turns colour off, as the no-color.org convention asks. Bold, underline and italics stay, and so do pictures drawn in real pixels. For example: `NO_COLOR=1 myapp`. |
+| `FORCE_COLOR` | A number, or a word such as `true` | Asks for colour, whatever the terminal seems able to show, as the force-color.org convention asks. `1` asks for at least 16 colours, `2` for at least 256, and `3` for millions. `0` or `false` turns colour off instead. Any other value, such as `true`, asks for what the terminal shows, but at least 16 colours. `NO_COLOR` wins over it. |
+| `CLICOLOR_FORCE` | Any value but `0` or `false` | Asks for colour, whatever the terminal seems able to show: what it shows, but at least 16 colours. `NO_COLOR` and `FORCE_COLOR` win over it. |
+| `CLICOLOR` | `0` or `false` | Turns colour off. Any other value changes nothing, since the program uses colour anyway. `NO_COLOR`, `FORCE_COLOR` and `CLICOLOR_FORCE` win over it. |
+| `COLORTERM` | `truecolor` or `24bit` | Says that the terminal shows millions of colours. Your terminal sets this itself, but ssh doesn't pass it on, so if colours look coarse on another machine, set it there: `COLORTERM=truecolor myapp`. |
+| `TERM` | A terminal type, such as `xterm-256color` | The kind of terminal, which says how many colours it shows. Your terminal sets this itself. With `dumb` there's no colour, and a full-screen program takes it that there's no screen to draw on. |
+| `TUI_INCREASE_CONTRAST` | `1` or `0` | `1` asks for more contrast, where the program has it. `0` asks for standard contrast, even with Increase Contrast on in your computer's settings. Unset, your computer's own setting decides, when you're at the machine the program runs on. A program with a menu bar has this in its View menu too, which wins until the program quits. |
+| `TUI_DIFFERENTIATE_WITHOUT_COLOR` | `1` or `0` | `1` asks for signs that don't rest on colour alone: the control your keys act on is shown in reverse video, one you can't use is faint, and a table's selected rows have a dot. `0` turns these off, even with Differentiate Without Color on in your computer's settings. Unset, your computer's own setting decides, when you're at the machine the program runs on. A program with a menu bar has this in its View menu too, which wins until the program quits. |
+| `TUI_REDUCE_TRANSPARENCY` | `1` or `0` | `1` draws see-through panels and glass solid. `0` keeps them see-through, even with Reduce Transparency on in your computer's settings. Unset, your computer's own setting decides, when you're at the machine the program runs on. A program with a menu bar has this in its View menu too, which wins until the program quits. |
 
-### Accessibility
-
-| Variable | Values | Effect |
-|---|---|---|
-| `TUI_REDUCE_MOTION` | `1`, `0` | `1`: less motion: things jump to where they're going rather than glide. `0`: full motion, even with Reduce Motion on in your system's settings. With neither, Reduce Motion in your system's settings decides, if you're at the machine the program runs on. In a program with a menu bar, the View menu's Reduce Motion overrides this, and the program's own setting, until it quits. |
-| `TUI_BREATHING` | `0` | Holds still what shows where the keyboard is: the control that has it is picked out by colour and bold alone, rather than breathing or blinking. The text cursor still blinks. Reduce Motion doesn't do this. In a program with a menu bar, the View menu's Breathing Focus overrides this, and the program's own setting, until it quits. |
-| `TUI_CURSOR_FOLLOWS_FOCUS` | `1`, `show` or `hidden` | An experiment, for trying out: the terminal's own cursor goes to the control that has the keyboard after each change, for a screen reader, a braille display or a magnifier that follows the cursor. `1` or `show` shows it there. `hidden` puts it there and keeps it hidden. Without it the cursor stays hidden, on a text field's insertion point when one has the keyboard. |
-| `TUI_REDUCE_TRANSPARENCY` | `1`, `0` | `1`: less transparency: materials and glass are drawn opaque. `0`: full transparency, even with Reduce Transparency on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. In a program with a menu bar, the View menu's Reduce Transparency overrides this, and the program's own setting, until it quits. |
-| `TUI_DIFFERENTIATE_WITHOUT_COLOR` | `1`, `0` | `1`: asks the program for cues that don't rest on colour alone, where it has them. TUI's own controls show the keyboard focus in reverse video and a disabled control faint, over their colours, and mark a table's selected rows with a dot. `0`: doesn't, even with the setting of that name on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. In a program with a menu bar, the View menu's Differentiate Without Color overrides this, and the program's own setting, until it quits. |
-| `TUI_INCREASE_CONTRAST` | `1`, `0` | `1`: asks the program for more contrast, where it has it. `0`: standard contrast, even with Increase Contrast on in your system's settings, which otherwise does the same as `1` if you're at the machine the program runs on. In a program with a menu bar, the View menu's Increase Contrast overrides this, and the program's own setting, until it quits. |
-| `TUI_KEY_SYMBOLS` | `0` | Writes keys by name, such as `Ctrl-Shift-Z`, rather than in symbols, for a font that has no glyphs for the symbols. In a program with a menu bar, the View menu's Spell Out Keys overrides this, and the program's own setting, until it quits. |
-
-### Language and region
+### Motion
 
 | Variable | Values | Effect |
 |---|---|---|
-| `LANGUAGE` | A list of languages, such as `pt:es` | The languages to use, most preferred first. It comes before the variables below. A language you chose inside the program comes before it. |
-| `LC_ALL` | A locale, such as `de_DE.UTF-8` | The language, unless `LANGUAGE` says otherwise, and the region that dates and numbers are written for. |
-| `LC_CTYPE` | A locale, such as `de_DE.ISO8859-1` | Its character set, unless `LC_ALL` says otherwise. One other than UTF-8 says that the terminal can't show anything else, so the app sends it ASCII alone. `LANG` says the same where neither does. |
+| `TUI_REDUCE_MOTION` | `1` or `0` | `1` turns animations off: things jump to where they're going instead of gliding there, and the program can't undo it. `0` keeps animations, even with Reduce Motion on in your computer's settings. Unset, your computer's own setting decides, when you're at the machine the program runs on. A program with a menu bar has this in its View menu too, which wins until the program quits. For example: `TUI_REDUCE_MOTION=1 myapp`. |
+| `TUI_BREATHING` | `0` | Stops the highlight on the control your keys act on from slowly pulsing or blinking: it's shown by colour and bold alone. The text cursor still blinks. `TUI_REDUCE_MOTION` doesn't do this by itself. A program with a menu bar has this in its View menu too, which wins until the program quits. |
+
+### Keyboard and mouse
+
+| Variable | Values | Effect |
+|---|---|---|
+| `TUI_KEY_SYMBOLS` | `0` | Writes keyboard shortcuts out in words, such as `Ctrl-Shift-Z`, instead of in symbols, for a font that has no symbols for the keys. A program with a menu bar has this in its View menu too, which wins until the program quits. |
+| `TUI_ARROW_FOCUS` | `geometric` | An experiment. When the control your keys act on doesn't use an arrow key itself, the arrow moves to the nearest control in that direction, scrolling to it if it's out of sight, so Down goes to the button below. At the edge it stays put instead of wrapping around. Tab and Shift-Tab are unchanged. Unset, the arrows go in the same order as Tab. |
+| `TUI_FOCUS_FOLLOWS_POINTER` | `1` or `0` | `1`: moving the mouse onto a control makes it the one your keys act on, as a click would, without pressing it. A text field you've typed in keeps your keys until you click or press Tab. `0`: only a click or the keyboard does that. Unset, the program decides, and it's off unless the program turns it on. A program with a menu bar has this in its View menu too, which wins until the program quits. |
+| `TUI_CURSOR_FOLLOWS_FOCUS` | `1`, `show` or `hidden` | An experiment, for a screen reader, a braille display or a magnifier that follows the terminal's cursor: the cursor moves to the control your keys act on after each change. `1` or `show` shows it there, and `hidden` moves it there but keeps it hidden. Unset, the cursor is hidden except in a text field you're typing in. |
+| `TUI_SPRING_LOADING_DELAY` | Seconds, such as `0.3` or `1` | How long you hold a dragged item over a control, such as a tab or a folder, before it opens. Unset, your Mac's own setting, when you're at the machine the program runs on, and otherwise half a second. |
+| `TUI_SHIFT_CLICKS` | `0` | Leaves Shift-click to the terminal, which usually selects text with it, instead of passing it to the program. |
+| `TUI_POINTER_SHAPES` | `0`, `1` or `apps` | Whether the mouse pointer changes shape over the program, such as to an I-beam over a text field. `0`: never. `1`: yes, even where the program can't tell that the terminal can. `apps`: only for the shapes the program asks for itself, not those of its ordinary controls. Unset, yes where the terminal is known to do it. |
+
+### Text and language
+
+| Variable | Values | Effect |
+|---|---|---|
+| `LANGUAGE` | A list of languages, such as `pt:es` | The languages for the program's words, most wanted first. It wins over the variables below. A language you pick inside the program wins over it. For example: `LANGUAGE=de myapp`. |
+| `LC_ALL` | A locale, such as `de_DE.UTF-8` | The language, unless `LANGUAGE` says otherwise, the region dates and numbers are written for, and the character set. It wins over the variables below. |
 | `LC_MESSAGES` | A locale, such as `de_DE.UTF-8` | The language, unless `LANGUAGE` or `LC_ALL` says otherwise. |
-| `LC_TIME` | A locale, such as `de_DE.UTF-8` | The region that dates and numbers are written for, unless `LC_ALL` says otherwise. |
-| `LC_NUMERIC` | A locale, such as `de_DE.UTF-8` | The region that dates and numbers are written for, unless `LC_ALL` or `LC_TIME` says otherwise. |
-| `LANG` | A locale, such as `de_DE.UTF-8` | The language and region, where none of the above says. |
+| `LC_TIME` | A locale, such as `de_DE.UTF-8` | The region dates and numbers are written for, unless `LC_ALL` says otherwise. |
+| `LC_NUMERIC` | A locale, such as `de_DE.UTF-8` | The region dates and numbers are written for, unless `LC_ALL` or `LC_TIME` says otherwise. |
+| `LC_CTYPE` | A locale, such as `de_DE.ISO8859-1` | The terminal's character set, unless `LC_ALL` says otherwise. Anything but UTF-8 says the terminal shows nothing beyond plain ASCII, so the program sends ASCII alone. |
+| `LANG` | A locale, such as `fr_FR.UTF-8` | The language, the region and the character set, wherever none of the above says. For example: `LANG=fr_FR.UTF-8 myapp`. |
 
-### The terminal
-
-| Variable | Values | Effect |
-|---|---|---|
-| `TUI_TERM_PROGRAM` | `Apple_Terminal`, `iTerm.app`, `ghostty`, `WarpTerminal`, `tmux` or `gnome-terminal` | Says which terminal this is, when the program can't work it out and emoji or borders look out of line. Under tmux, tmux decides. |
-| `TUI_GRAPHICS` | `0`, `1`, `classic` or `sixel` | Pictures in text characters, or in real pixels, without asking the terminal. `classic` draws them without Unicode placeholders, for a terminal that has none. `sixel` draws them by Sixel, on any terminal. |
-| `TUI_GRAPHICS_COMPRESSION` | `0` or `1` | Whether pictures sent to the terminal are compressed, without asking the terminal. |
-| `TUI_GRAPHICS_PLAYBACK` | `0` or `1` | Whether an animated picture is handed to the terminal to play, after one pass sent as usual. Off unless this is `1`, as nobody has yet seen it draw. Then a tick costs no bytes and no wake. Only for a terminal that plays Kitty animation: on any other the picture holds its first frame. |
-| `TUI_HAIRLINES` | `0` or `1` | Whether the thin lines between a list's rows are drawn as pictures, off or on, whatever the terminal. |
-| `TUI_PICTURES_UNDER_TEXT` | `0` or `1` | Whether text over a frosted picture stands on the picture itself, off or on, whatever the terminal. |
-| `TUI_KEYBOARD_PROTOCOL` | `0` | Doesn't ask for the Kitty keyboard protocol: the way out if a terminal says it has it, and then keys go wrong. |
-| `TUI_SHIFT_CLICKS` | `0` | Leaves Shift-clicks to the terminal, which usually selects text with them, rather than asking for them to reach the program. |
-| `TUI_SYNCHRONIZED_OUTPUT` | `0` or `1` | `0`: doesn't ask the terminal to hold each frame until it's complete, the way out if a terminal gets that wrong. `1`: asks under tmux too, which otherwise isn't asked because it repaints the whole pane after each hold. |
-| `TUI_HYPERLINKS` | `0` or `1` | Whether links are sent as links the terminal can follow (OSC 8), off or on, whatever the terminal. |
-| `TUI_OSC52` | `0` or `1` | Whether a copy goes through the terminal to your clipboard (OSC 52), off or on, whatever the terminal. |
-| `TUI_OSC5522` | `0` or `1` | Whether a copy or a paste carries more than text through the terminal (OSC 5522), off or on, whatever the terminal says. |
-| `TUI_PIXEL_MOUSE` | `0` | Never asks the terminal to report the mouse in pixels (`?1016`), so that every report is a whole cell, the way it is on a terminal without the mode. Worth trying if clicks land in the wrong place while an app shows a drag or a continuous hover. |
-| `TUI_NOTIFICATIONS` | `0` or `1` | Whether notifications go to the terminal, off or on, whatever the terminal. With `0`, each one is only a bell. |
-| `TUI_PROGRESS` | `0` or `1` | Whether the terminal is told about progress, to show in its own window or tab, off or on, whatever the terminal. |
-| `TUI_POINTER_SHAPES` | `0`, `1` or `apps` | Whether the pointer changes shape over the program, off or on, whatever the terminal. `apps` is on, but only for the shapes the program itself asks for, not those of its controls, such as the I-beam over a text field. |
-
-### Behaviour
+### Screen size and printed output
 
 | Variable | Values | Effect |
 |---|---|---|
-| `TUI_ARROW_FOCUS` | `geometric` | An experiment, for trying out: an arrow key that the control with the keyboard doesn't use itself moves the keyboard to the nearest control in that direction, on screen or scrolled out of sight, so Down goes to the button below rather than the next one in Tab order, scrolling to show it. Where there is none the keyboard stays, at the end of a row or the foot of a column, rather than wrapping on in Tab order. Tab and Shift-Tab are unchanged. Any other value, or none, keeps arrows in Tab order. |
-| `TUI_FOCUS_FOLLOWS_POINTER` | `1` or `0` | `1`: the control under the mouse pointer takes the keyboard when the pointer moves onto it, as a click would, without pressing it. A text field you've typed in keeps it until you click or press Tab. The terminal then reports every move of the mouse. `0`: only a click or the keyboard moves it. Off unless the program says otherwise. In a program with a menu bar, the View menu's Focus Follows Pointer overrides this, and the program's own setting, until it quits. |
-| `TUI_OPEN_URLS` | `0` or `1` | Whether the program may start your browser for a link. It's off by default, because the program can't tell that it's on the machine in front of you. `1` turns it on, unless the program says no. `0` keeps it off, whatever the program says. |
-| `TUI_SPRING_LOADING_DELAY` | Seconds, such as `0.3` or `1` | How long a drag has to rest on a control before the control opens. It overrides the setting on your machine. |
-| `TUI_IMAGE_CACHE_SIZE` | A size, such as `256M` or `1 GiB`, in bytes or with a `K`, `M` or `G`. `0` shares nothing: each view keeps the picture it shows | How much memory the program may use to keep pictures it has decoded. 64 MiB by default. |
-| `TUI_RUN_BODY_ON_EVERY_FRAME` | `1` | Works out the views in the program afresh each time the screen is drawn, rather than keeping those whose inputs didn't change, except the rows of a list and any view its authors asked to keep. Try this if part of the screen stays out of date until you go away and come back: the program may be reading something that TUI can't see change. It costs more processor time, and if it helps, it's worth telling the program's authors. |
+| `COLUMNS` | A whole number above 0 | How many columns wide to draw, instead of the window's width. Unset, the window's width, or 80 where there's no window, such as when the output goes down a pipe. While it's set the program doesn't follow the window as you resize it, so if a program draws at the wrong size, look for a leftover export with `echo $COLUMNS` and clear it with `unset COLUMNS`. |
+| `LINES` | A whole number above 0 | How many lines tall to draw, instead of the window's height. Unset, the window's height, or 24 where there's no window. While it's set the program doesn't follow the window as you resize it, so if a program draws at the wrong size, look for a leftover export with `echo $LINES` and clear it with `unset LINES`. |
+| `TUI_FORCE_ESCAPES` | `0`, or any other value | For a program that prints once and exits, rather than taking over the screen. `0` prints plain text. Anything else prints styled text, even into a file or down a pipe, as in `TUI_FORCE_ESCAPES=1 mytool > out.txt`. `NO_COLOR` still takes the colours out. |
 
-### Files
+### Links, notifications and the clipboard
 
 | Variable | Values | Effect |
 |---|---|---|
-| `TUI_CONFIG_DIR` | A directory | Keeps the program's settings in files under this directory, in a folder named after the program, on every platform. A way to keep a test run away from your real settings. |
-| `XDG_CONFIG_HOME` | A directory | Not on macOS: where the program's settings go, in a folder named after it. `~/.config` by default. `TUI_CONFIG_DIR` beats it. |
+| `TUI_OPEN_URLS` | `0` or `1` | Whether the program may open a link in your web browser. Off by default, because the program can't tell whether it's running on the computer in front of you or on one you've reached over ssh. `1` allows it, unless the program says no. `0` never allows it, whatever the program says. |
+| `TUI_HYPERLINKS` | `0` or `1` | Whether links are sent so that the terminal can open them when you click (OSC 8). `0`: never, and the link's text still shows. `1`: always. Unset, where the terminal is known to handle them. |
+| `TUI_OSC52` | `0` or `1` | Whether copying puts text on your clipboard through the terminal (OSC 52), which works over ssh too. `0`: never. `1`: always. Unset, where the terminal is known to allow it. |
+| `TUI_OSC5522` | `0` or `1` | Whether copy and paste through the terminal can carry more than plain text (OSC 5522). `0`: never. `1`: always. Unset, where the terminal says it can. |
+| `TUI_NOTIFICATIONS` | `0` or `1` | Whether the program's notifications go through the terminal, which shows them as your desktop's own. `0`: never, so the program rings the bell or uses `TUI_SYSTEM_NOTIFICATIONS` instead. `1`: always. Unset, where the terminal is known to show them. |
+| `TUI_SYSTEM_NOTIFICATIONS` | `0` or `1` | Whether a notification the terminal can't show is posted by this computer itself, with `osascript` on macOS or `notify-send` on Linux. `0`: never. `1`: wherever the program can't tell where you are, such as inside zellij or GNU screen at your own desk. Unset, only where the program can tell you're at this computer, and never over ssh. A notification never comes twice: a terminal that shows them always gets them instead. |
+| `TUI_PROGRESS` | `0` or `1` | Whether the terminal is told how far a long task has got, to show in its tab or its window. `0`: never. `1`: always. Unset, where the terminal is known to show it. |
 
-### One-off output
-
-| Variable | Values | Effect |
-|---|---|---|
-| `TUI_FORCE_ESCAPES` | `0`, or any other value | What a program writes when it prints a view once, rather than taking over the screen. `0`: plain text. Anything else: styled text, even down a pipe. `NO_COLOR` still takes out the colour. |
-| `COLUMNS` | A whole number above 0 | How wide to draw, whatever the terminal says. Without it, the terminal's width, or 80 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the width: if a program draws at the wrong size, look for this first (`echo $COLUMNS`) and `unset COLUMNS`. |
-| `LINES` | A whole number above 0 | How tall to draw, whatever the terminal says. Without it, the terminal's height, or 24 where it can't say, such as when the output goes down a pipe. While it's set the program doesn't follow the window, so an export left over from a window since resized pins the height: if a program draws at the wrong size, look for this first (`echo $LINES`) and `unset LINES`. |
-
-### Where the person is
+### Terminal quirks
 
 | Variable | Values | Effect |
 |---|---|---|
-| `TUI_SYSTEM_NOTIFICATIONS` | `0` or `1` | Whether a notification the terminal can't post is posted by this machine itself, with `osascript` on macOS or `notify-send` on Linux. Without it, that happens only where TUI can tell you're at this machine, and never over ssh. `0` turns it off; `1` turns it on wherever TUI can't tell, such as inside zellij or GNU screen at your own desk. A terminal that posts notifications always gets them instead, so none comes twice. |
+| `TUI_TERM_PROGRAM` | `Apple_Terminal`, `iTerm.app`, `ghostty`, `WarpTerminal`, `tmux` or `gnome-terminal` | Says which terminal this is, when the program can't work it out and emoji or borders look out of line, as in `TUI_TERM_PROGRAM=ghostty myapp`. Under tmux, tmux's own answer counts. The program sets it itself when it had to ask the terminal, so a program it starts knows too. |
+| `TUI_GRAPHICS` | `0`, `1`, `classic` or `sixel` | How pictures are drawn, without asking the terminal what it can do. `0`: in text characters, which works everywhere. `1`: in real pixels, by the Kitty graphics protocol. `classic`: the same, for a terminal with the protocol's older form alone. `sixel`: in real pixels, by Sixel. Unset, the program asks the terminal. For example: `TUI_GRAPHICS=0 myapp`. |
+| `TUI_GRAPHICS_COMPRESSION` | `0` or `1` | Whether pictures are compressed on their way to the terminal. Unset, the program asks the terminal. Try `0` if pictures don't appear. |
+| `TUI_GRAPHICS_PLAYBACK` | `0` or `1` | An experiment. `1` hands an animated picture to the terminal to play by itself after it's been sent once, which saves sending each frame. It works only on a terminal that plays Kitty animations: on any other, the picture stops at its first frame. Off unless it's `1`. |
+| `TUI_HAIRLINES` | `0` or `1` | Whether the thin lines between a list's rows are drawn as pictures, finer than any character. `0`: never. `1`: always. Unset, only on Ghostty, where they've been checked. |
+| `TUI_PICTURES_UNDER_TEXT` | `0` or `1` | Whether text over a frosted picture is drawn on top of the picture itself. `0`: never. `1`: always. Unset, only on Ghostty, where it's been checked. |
+| `TUI_KEYBOARD_PROTOCOL` | `0` | Doesn't turn on the terminal's fuller report of the keys (the Kitty keyboard protocol). Try it if keys or shortcuts do the wrong thing. |
+| `TUI_PIXEL_MOUSE` | `0` | Doesn't ask the terminal where the mouse is to the pixel, only to the character. Try it if clicks land in the wrong place while you drag or hover. |
+| `TUI_SYNCHRONIZED_OUTPUT` | `0` or `1` | `0`: doesn't ask the terminal to show each change to the screen all at once. Try it if the screen flickers, freezes or tears. `1`: asks under tmux too, which otherwise isn't asked, because tmux then redraws its whole pane each time. |
+| `TUI_SCROLL_OUTPUT` | `0` or `off` | Doesn't ask the terminal to scroll part of the screen when a list or a page scrolls, and redraws each changed line instead, which sends more. Try it if lines land in the wrong place after scrolling. |
+
+### Saved settings
+
+| Variable | Values | Effect |
+|---|---|---|
+| `TUI_CONFIG_DIR` | A folder | Keeps the program's saved settings in a folder named after it inside this one, on every system, instead of the usual place. A way to try something without touching your real settings: `TUI_CONFIG_DIR=/tmp/try myapp`. |
+| `XDG_CONFIG_HOME` | A folder | Not on macOS: where the program's saved settings go, in a folder named after it. Unset, `.config` in your home folder. `TUI_CONFIG_DIR` wins over it. |
+
+### Troubleshooting
+
+| Variable | Values | Effect |
+|---|---|---|
+| `TUI_RUN_BODY_ON_EVERY_FRAME` | `1` | Try this if part of the screen stays out of date until you move away and back. The program then works out most of the screen afresh each time it draws, instead of reusing what looks unchanged. It costs more processor time, and if it helps, please tell the program's authors. |
+| `TUI_IMAGE_CACHE_SIZE` | A size, such as `256M` or `1G`, in bytes or with a `K`, `M` or `G` | How much memory the program may use to keep pictures ready to show again. Unset, 64 MiB. Lower it if the program uses too much memory, and raise it if pictures are slow to come back. `0` keeps nothing beyond the pictures on the screen. |
 <!-- /tui-environment-docs -->
 
 ### How the colour variables agree
@@ -201,8 +218,8 @@ These help you test and debug your app. They're no use to the person running it,
 
 | Variable | Values | Effect |
 |---|---|---|
-| `TUI_VERIFY_RENDER_MEMO` | Any value, even `0`, or a path with a `/` in it to log to | Renders again every picture the render cache serves, draws the fresh one, and reports any that differ. For finding a view that doesn't update. |
-| `TUI_VERIFY_MEASURE_MEMO` | Any value, even `0`, or a path with a `/` in it to log to | Measures again every size the render cache serves, uses the fresh one, and reports any that differ. |
+| `TUI_VERIFY_RENDER_MEMO` | Any value, even `0` or an empty one, or a path with a `/` in it to log to | Renders again every picture the render cache serves, draws the fresh one, and reports any that differ. For finding a view that doesn't update. |
+| `TUI_VERIFY_MEASURE_MEMO` | Any value, even `0` or an empty one, or a path with a `/` in it to log to | Measures again every size the render cache serves, uses the fresh one, and reports any that differ. |
 | `TUI_DEBUG_RENDER` | `1` | Writes the render cache's statistics to stderr each frame. Redirect stderr, or it lands on the screen. |
 | `TUI_FRAME_TRACE` | A file | Writes one tab-separated line per frame to that file: its number, when it began and how long it took in milliseconds, the bytes it sent, its render cache hits and misses, and what caused it. |
 | `TUI_DIAGNOSE_BODY_MUTATION` | `1` | Reports a view whose `body` changes state as it draws, naming where it is in the tree. |
@@ -231,20 +248,35 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `CLICOLOR` | Wins | Assign `ColorDepth.current`. | Once |
 | `COLORTERM` | Wins | Assign `ColorDepth.current`. | Once |
 | `TERM` | Wins | Assign `ColorDepth.current` for its colours. Whether there's a terminal to draw on stays as `TERM` says. | Once |
+| `TUI_INCREASE_CONTRAST` | Can't undo it | `colorSchemeContrast` is read-only, as in SwiftUI. `_colorSchemeContrast` writes it for a preview or a test. | Once |
+| `TUI_DIFFERENTIATE_WITHOUT_COLOR` | Can't undo it | `accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test. | Once |
+| `TUI_REDUCE_TRANSPARENCY` | Can't undo it | `accessibilityReduceTransparency` is read-only, as in SwiftUI. `_accessibilityReduceTransparency` writes it for a preview or a test. | Once |
 | `TUI_REDUCE_MOTION` | Can't undo it | `Scene.reduceMotion(_:)` can ask for less motion too, even under `0`, but `false` doesn't undo `1`. | Once |
 | `TUI_BREATHING` | Can't undo it | `Scene.focusBreathing(false)` holds it still too, but `true` doesn't undo `0`. `.selectionIndicatorStyle(.none)` holds part of a screen still. `focusBreathes` is read-only. | Once |
-| `TUI_CURSOR_FOLLOWS_FOCUS` | No setting | The variable is the only way. | Once |
-| `TUI_REDUCE_TRANSPARENCY` | Can't undo it | `accessibilityReduceTransparency` is read-only, as in SwiftUI. `_accessibilityReduceTransparency` writes it for a preview or a test. | Once |
-| `TUI_DIFFERENTIATE_WITHOUT_COLOR` | Can't undo it | `accessibilityDifferentiateWithoutColor` is read-only, as in SwiftUI. `_accessibilityDifferentiateWithoutColor` writes it for a preview or a test. | Once |
-| `TUI_INCREASE_CONTRAST` | Can't undo it | `colorSchemeContrast` is read-only, as in SwiftUI. `_colorSchemeContrast` writes it for a preview or a test. | Once |
 | `TUI_KEY_SYMBOLS` | Can't undo it | `Scene.keyNotation(.spelledOut)` asks for the names too, but `.symbols` doesn't undo this. `keyNotation` is read-only. | Once |
+| `TUI_ARROW_FOCUS` | No setting | The variable is the only way. | Once |
+| `TUI_FOCUS_FOLLOWS_POINTER` | Wins | `Scene.focusFollowsPointer(_:)`. | Once |
+| `TUI_CURSOR_FOLLOWS_FOCUS` | No setting | The variable is the only way. | Once |
+| `TUI_SPRING_LOADING_DELAY` | Wins | `.springLoadingDelay(_:)`, or `.environment(\.springLoadingDelay, _)`, for part of an app. | Once |
+| `TUI_SHIFT_CLICKS` | No setting | The variable is the only way. | Each use |
+| `TUI_POINTER_SHAPES` | Wins | `TerminalClient.pointerShapeSupport`, before the first frame. `.pointerStyle(_:)` in a view doesn't count as choosing: under `0` the pointer stays as it is. Nothing in code undoes `apps`. | Each use |
 | `LANGUAGE` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` at the scene's root for the whole app, or on a view for part of it. | Once |
 | `LC_ALL` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
-| `LC_CTYPE` | No setting | The variable is the only way. | Once |
 | `LC_MESSAGES` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
 | `LC_TIME` | Wins | `.environment(\.locale, _)`. | Once |
 | `LC_NUMERIC` | Wins | `.environment(\.locale, _)`. | Once |
+| `LC_CTYPE` | No setting | The variable is the only way. | Once |
 | `LANG` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
+| `COLUMNS` | No setting | The variable is the only way. | Each use |
+| `LINES` | No setting | The variable is the only way. | Each use |
+| `TUI_FORCE_ESCAPES` | Wins | `renderOnce(output:content:)`, with `.plainText` or `.escapeSequences`. Only `.automatic`, the default, reads this. | Each use |
+| `TUI_OPEN_URLS` | Can't undo it | `TerminalClient.urlOpeningSupport` wins over `1` and over no setting, but not over `0`: the person is saying "not on this machine", which the program can't know better than they do. An `OpenURLAction` that opens URLs its own way isn't affected. | Each use |
+| `TUI_HYPERLINKS` | Wins | `TerminalClient.hyperlinkSupport`. A `Link` in a view doesn't count as choosing: under `0` it's still there, without the terminal's link. | Each use |
+| `TUI_OSC52` | Wins | `TerminalClient.clipboardWriteSupport`. | Each use |
+| `TUI_OSC5522` | Wins | `TerminalClient.mimeClipboardSupport`. | Each use |
+| `TUI_NOTIFICATIONS` | No setting | The variable is the only way. | Each use |
+| `TUI_SYSTEM_NOTIFICATIONS` | No setting | The variable is the only way. | Once |
+| `TUI_PROGRESS` | No setting | The variable is the only way. | Each use |
 | `TUI_TERM_PROGRAM` | Wins | `TerminalClient.simulated`, which draws for another terminal: for diagnosis, not for shipping. | Once |
 | `TUI_GRAPHICS` | Wins | `TerminalClient.graphicsSupport`. `.terminalGraphics(false)` for part of an app; `.terminalGraphics(true)` doesn't turn on what this turned off. | Each use |
 | `TUI_GRAPHICS_COMPRESSION` | Wins | `TerminalClient.graphicsCompressionSupport`. | Each use |
@@ -252,27 +284,13 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `TUI_HAIRLINES` | Wins | `TerminalClient.hairlineSupport`. | Each use |
 | `TUI_PICTURES_UNDER_TEXT` | Wins | `TerminalClient.pictureUnderTextSupport`. | Each use |
 | `TUI_KEYBOARD_PROTOCOL` | No setting | The variable is the only way. | Each use |
-| `TUI_SHIFT_CLICKS` | No setting | The variable is the only way. | Each use |
-| `TUI_SYNCHRONIZED_OUTPUT` | No setting | The variable is the only way. | Each use |
-| `TUI_HYPERLINKS` | Wins | `TerminalClient.hyperlinkSupport`. A `Link` in a view doesn't count as choosing: under `0` it's still there, without the terminal's link. | Each use |
-| `TUI_OSC52` | Wins | `TerminalClient.clipboardWriteSupport`. | Each use |
-| `TUI_OSC5522` | Wins | `TerminalClient.mimeClipboardSupport`. | Each use |
 | `TUI_PIXEL_MOUSE` | No setting | The variable is the only way. | Once |
-| `TUI_NOTIFICATIONS` | No setting | The variable is the only way. | Each use |
-| `TUI_SYSTEM_NOTIFICATIONS` | No setting | The variable is the only way. | Once |
-| `TUI_PROGRESS` | No setting | The variable is the only way. | Each use |
-| `TUI_POINTER_SHAPES` | Wins | `TerminalClient.pointerShapeSupport`, before the first frame. `.pointerStyle(_:)` in a view doesn't count as choosing: under `0` the pointer stays as it is. Nothing in code undoes `apps`. | Each use |
-| `TUI_ARROW_FOCUS` | No setting | The variable is the only way. | Once |
-| `TUI_FOCUS_FOLLOWS_POINTER` | Wins | `Scene.focusFollowsPointer(_:)`. | Once |
-| `TUI_OPEN_URLS` | Can't undo it | `TerminalClient.urlOpeningSupport` wins over `1` and over no setting, but not over `0`: the person is saying "not on this machine", which the program can't know better than they do. An `OpenURLAction` that opens URLs its own way isn't affected. | Each use |
-| `TUI_SPRING_LOADING_DELAY` | Wins | `.springLoadingDelay(_:)`, or `.environment(\.springLoadingDelay, _)`, for part of an app. | Once |
-| `TUI_IMAGE_CACHE_SIZE` | Wins | `.urlImageCache(_:)` with a `URLImageCache(byteLimit:)` of the app's own. | Once |
-| `TUI_RUN_BODY_ON_EVERY_FRAME` | No setting | The variable is the only way. | Once |
+| `TUI_SYNCHRONIZED_OUTPUT` | No setting | The variable is the only way. | Each use |
+| `TUI_SCROLL_OUTPUT` | No setting | The variable is the only way. | Once |
 | `TUI_CONFIG_DIR` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. `LocalizationService` still keeps the language it saved here. | Each use |
 | `XDG_CONFIG_HOME` | Wins | `StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. | Each use |
-| `TUI_FORCE_ESCAPES` | Wins | `renderOnce(output:content:)`, with `.plainText` or `.escapeSequences`. Only `.automatic`, the default, reads this. | Each use |
-| `COLUMNS` | No setting | The variable is the only way. | Each use |
-| `LINES` | No setting | The variable is the only way. | Each use |
+| `TUI_RUN_BODY_ON_EVERY_FRAME` | No setting | The variable is the only way. | Once |
+| `TUI_IMAGE_CACHE_SIZE` | Wins | `.urlImageCache(_:)` with a `URLImageCache(byteLimit:)` of the app's own. | Once |
 | `TUI_RECORD_SNAPSHOTS` | No setting | The variable is the only way. | Each use |
 | `TUI_VERIFY_RENDER_MEMO` | Wins | Assign `RenderCache.verifiesRenderMemo`. | Once |
 | `TUI_VERIFY_MEASURE_MEMO` | Wins | Assign `RenderCache.verifiesMeasureMemo`. | Once |
@@ -289,52 +307,52 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 A terminal, a multiplexer or ssh sets these, and TUI reads them to work out where it's running. You'd rarely set one yourself: to say which terminal this is, use `TUI_TERM_PROGRAM`, which beats them. TUI sets that one itself when it had to ask the terminal, and a program your app starts inherits it. ``TerminalClient/current`` says what TUI concluded, and how.
 
 <!-- tui-environment-docs: detected -->
-### Which terminal this is
+### Set by your terminal
 
 | Variable | What it says |
 |---|---|
-| `TERM_PROGRAM` | The terminal's name, set by many terminals. ssh doesn't pass it on. `TUI_TERM_PROGRAM` beats it. |
-| `TERM_PROGRAM_VERSION` | The terminal's version, which says whether it can set the pointer's shape. |
-| `LC_TERMINAL` | The terminal's name, as iTerm2 sets it. It's what ssh does pass on, by default, being named like a locale variable. |
+| `TERM_PROGRAM` | Your terminal's name, which many terminals set. ssh doesn't pass it on. `TUI_TERM_PROGRAM` wins over it. |
+| `TERM_PROGRAM_VERSION` | Your terminal's version, which says whether it can change the mouse pointer's shape. |
+| `LC_TERMINAL` | Your terminal's name, as iTerm2 sets it. ssh does pass this one on, since its name looks like a language setting's. |
 | `LC_TERMINAL_VERSION` | The version that goes with `LC_TERMINAL`. |
-| `GNOME_TERMINAL_SCREEN` | This is GNOME Terminal, and which tab: the terminal session `@SceneStorage` keeps values for. |
+| `GNOME_TERMINAL_SCREEN` | This is GNOME Terminal, and which tab, so the program can remember its state for each tab. |
 | `GNOME_TERMINAL_SERVICE` | This is GNOME Terminal. |
 | `VTE_VERSION` | This terminal is built on VTE, as GNOME Terminal is. |
-| `WT_SESSION` | This is Windows Terminal, which draws Sixel on a fixed cell of 10 x 20 pixels. Also the terminal session `@SceneStorage` keeps values for. |
-| `KITTY_WINDOW_ID` | This is kitty, which takes clipboard writes and pointer shapes. With `KITTY_PID`, the terminal session `@SceneStorage` keeps values for. |
-| `KITTY_PID` | Which kitty, which scopes `KITTY_WINDOW_ID`: its window numbers start again with each kitty. |
-| `TERM_SESSION_ID` | Apple Terminal's window, or iTerm2's session, where `TERM_PROGRAM` names it: the terminal session `@SceneStorage` keeps values for. |
-| `ITERM_SESSION_ID` | iTerm2's session, where `TERM_PROGRAM` names iTerm2: the terminal session `@SceneStorage` keeps values for. |
-| `WEZTERM_PANE` | WezTerm's pane, where `TERM_PROGRAM` names WezTerm. With its pair, the terminal session `@SceneStorage` keeps values for. |
-| `WEZTERM_UNIX_SOCKET` | Which WezTerm, which scopes `WEZTERM_PANE`. |
-| `WARP_TERMINAL_SESSION_UUID` | Warp's session, where `TERM_PROGRAM` names Warp: the terminal session `@SceneStorage` keeps values for. |
-| `KONSOLE_DBUS_SESSION` | Konsole's session. With its pair, the terminal session `@SceneStorage` keeps values for. |
-| `KONSOLE_DBUS_SERVICE` | Which Konsole, which scopes `KONSOLE_DBUS_SESSION`. |
-| `ALACRITTY_WINDOW_ID` | Alacritty's window. With its pair, the terminal session `@SceneStorage` keeps values for. |
-| `ALACRITTY_SOCKET` | Which Alacritty, which scopes `ALACRITTY_WINDOW_ID`. |
-| `XTERM_VERSION` | This is xterm, and which version, which says whether it can set the pointer's shape. |
-| `COLORFGBG` | The terminal's foreground and background, which say whether it's dark, when the terminal doesn't answer and there's no multiplexer. |
-| `TMUX` | The program is in a tmux pane. |
-| `TMUX_PANE` | Which tmux pane, to ask tmux about it. With `TMUX`, the terminal session `@SceneStorage` keeps values for. |
-| `STY` | The program is in a GNU screen session. |
-| `WINDOW` | Which GNU screen window, where `STY` is set. With it, the terminal session `@SceneStorage` keeps values for. |
-| `ZELLIJ` | The program is in a zellij session. |
-| `ZELLIJ_SESSION_NAME` | The program is in a zellij session. |
-| `ABDUCO_SESSION` | The program is in an abduco session. |
-| `SHPOOL_SESSION_NAME` | The program is in a shpool session. |
+| `WT_SESSION` | This is Windows Terminal, which draws Sixel pictures on a cell of 10 by 20 pixels, and which tab, so the program can remember its state for each tab. |
+| `KITTY_WINDOW_ID` | This is kitty, which accepts clipboard writes and pointer shapes, and which window, so the program can remember its state for each window. |
+| `KITTY_PID` | Which kitty this is, since each one numbers its windows from 1 again. |
+| `TERM_SESSION_ID` | Which Terminal window or iTerm2 session this is, where `TERM_PROGRAM` names one of them, so the program can remember its state for each. |
+| `ITERM_SESSION_ID` | Which iTerm2 session this is, where `TERM_PROGRAM` names iTerm2, so the program can remember its state for each. |
+| `WEZTERM_PANE` | Which WezTerm pane this is, where `TERM_PROGRAM` names WezTerm, so the program can remember its state for each. |
+| `WEZTERM_UNIX_SOCKET` | Which WezTerm this is, which goes with `WEZTERM_PANE`. |
+| `WARP_TERMINAL_SESSION_UUID` | Which Warp session this is, where `TERM_PROGRAM` names Warp, so the program can remember its state for each. |
+| `KONSOLE_DBUS_SESSION` | Which Konsole session this is, so the program can remember its state for each. |
+| `KONSOLE_DBUS_SERVICE` | Which Konsole this is, which goes with `KONSOLE_DBUS_SESSION`. |
+| `ALACRITTY_WINDOW_ID` | Which Alacritty window this is, so the program can remember its state for each. |
+| `ALACRITTY_SOCKET` | Which Alacritty this is, which goes with `ALACRITTY_WINDOW_ID`. |
+| `XTERM_VERSION` | This is xterm, and its version, which says whether it can change the pointer's shape. |
+| `COLORFGBG` | The terminal's text and background colours, which say whether it's dark, when the terminal doesn't answer the program's question and there's no tmux or GNU screen in between. |
+| `TMUX` | The program is running inside tmux, which changes what it asks of the terminal. |
+| `TMUX_PANE` | Which tmux pane, so the program can ask tmux about it and remember its state for each pane. |
+| `STY` | The program is running inside GNU screen, so it can't be sure you're at this computer. |
+| `WINDOW` | Which GNU screen window, where `STY` is set, so the program can remember its state for each. |
+| `ZELLIJ` | The program is running inside zellij, so it can't be sure you're at this computer. |
+| `ZELLIJ_SESSION_NAME` | The program is running inside zellij, so it can't be sure you're at this computer. |
+| `ABDUCO_SESSION` | The program is running inside abduco, so it can't be sure you're at this computer. |
+| `SHPOOL_SESSION_NAME` | The program is running inside shpool, so it can't be sure you're at this computer. |
 
-### Where the person is
+### Set by ssh and your desktop
 
 | Variable | What it says |
 |---|---|
-| `SSH_CONNECTION` | The program is running over ssh, so the person isn't at this machine. |
-| `SSH_CLIENT` | The program is running over ssh, so the person isn't at this machine. |
-| `SSH_TTY` | The program is running over ssh, so the person isn't at this machine. |
-| `DISPLAY` | On Linux, an X11 clipboard helper may be usable, and so may `notify-send` for a notification the terminal can't post. |
-| `WAYLAND_DISPLAY` | On Linux, a Wayland clipboard helper may be usable, and so may `notify-send` for a notification the terminal can't post. |
-| `DBUS_SESSION_BUS_ADDRESS` | On Linux, there is a desktop session's bus, which `notify-send` needs to post a notification. |
-| `XDG_RUNTIME_DIR` | On Linux, where a desktop session's bus may be, when `DBUS_SESSION_BUS_ADDRESS` doesn't say. |
-| `PATH` | Where to look for `notify-send`, to post a notification the terminal can't. |
+| `SSH_CONNECTION` | The program is running over ssh, so you aren't at this computer: it doesn't follow this computer's own settings, such as Reduce Motion, and doesn't copy or post notifications through it. |
+| `SSH_CLIENT` | The program is running over ssh, as `SSH_CONNECTION` says. |
+| `SSH_TTY` | The program is running over ssh, as `SSH_CONNECTION` says. |
+| `DISPLAY` | On Linux, there's an X11 desktop, so the program can copy with `xclip` or `xsel`, and post a notification the terminal can't show with `notify-send`. |
+| `WAYLAND_DISPLAY` | On Linux, there's a Wayland desktop, so the program can copy with `wl-copy`, and post a notification the terminal can't show with `notify-send`. |
+| `DBUS_SESSION_BUS_ADDRESS` | On Linux, there's a desktop session for `notify-send` to post notifications to. |
+| `XDG_RUNTIME_DIR` | On Linux, where to look for that desktop session, when `DBUS_SESSION_BUS_ADDRESS` doesn't say. |
+| `PATH` | Where to look for `notify-send`. |
 <!-- /tui-environment-docs -->
 
 ## See Also

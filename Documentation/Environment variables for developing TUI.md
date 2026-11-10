@@ -5,6 +5,28 @@ them, so they aren't on the website. What's for them is in
 [Environment Variables](../Sources/TUI/TUI.docc/Articles/EnvironmentVariables.md), generated from the table in
 `Sources/TUIEnvironmentDocs`.
 
+## Where each list lives
+
+Every variable read in `Sources` is in exactly one of three places, and a test fails when one is in none or in two:
+
+| Audience | Where it's listed | What reads it |
+|---|---|---|
+| The person running an app, and what their terminal sets for them | `TUIEnvironmentVariables+EndUser.swift`, and the `detected` rows of `TUIEnvironmentVariables+Developer.swift` | An app's man page or README, from `swift run tui-environment-docs`, and the article |
+| Someone building an app | The `developer` rows of `TUIEnvironmentVariables+Developer.swift` | The article |
+| Someone working on TUI, a test or a tool | `Tests/TUIEnvironmentDocsTests/InternalVariables.swift`, with why each is kept from users, and this page | This page |
+
+What's generated and what's written by hand:
+
+- The article's tables, between its `<!-- tui-environment-docs: … -->` markers, are generated from the Swift table by
+  `swift run tui-environment-docs --update-article`, and `EnvironmentVariableTableTests` fails when they differ.
+- An app's man page section and Markdown come from the same table, when the app runs the tool.
+- The article's prose around those tables, the man page example in `ShippingAnApp.md`, and this page are written by
+  hand. `EnvironmentVariableCoverageTests` holds this page to `InternalVariables.swift`, name for name.
+
+The text for the person running an app is plain: what the variable does for them at the keyboard, its values, its
+default, and an example where one helps, with no words about TUI's insides (a test lists the ones it catches). A row's
+`code`, read only by developers, can be technical.
+
 ## Adding a variable
 
 `Tests/TUIEnvironmentDocsTests` fails if a variable is read in `Sources`, or named in `Tests`, `Tools`, `Benchmarks`,
@@ -14,8 +36,8 @@ them, so they aren't on the website. What's for them is in
    - Someone running an app, or building one: add a row to the table in `Sources/TUIEnvironmentDocs`, then run
      `swift run tui-environment-docs --update-article` to rewrite the article's generated tables. Say what code can do
      about it, under the rule at the top of the article.
-   - Someone debugging TUI, or only a test or a tool: add it to `Tests/TUIEnvironmentDocsTests/InternalVariables.swift`
-     and to a table here.
+   - Someone debugging TUI, or only a test or a tool: add it to `Tests/TUIEnvironmentDocsTests/InternalVariables.swift`,
+     with a sentence on why it's kept from users, and to a table here.
 2. Follow the conventions: `1` and `0` for on and off, an empty value as unset (`ColorRequest.stated`), and anything
    else ignored rather than guessed at.
 3. Read it through a function that takes the environment as a parameter, as `ColorDepth.detect(environment:)` does, so
@@ -58,8 +80,14 @@ Read by the library modules, for debugging them.
 | `TUI_OPTION_C` | `0` | Turns off the render cache's re-checking of a row's value when its data moves (Option C), to compare with and without. |
 | `TUI_PLAIN_TEXT` | `1`, `transliterate` or `0` | Sends the terminal ASCII alone, or doesn't, whatever the locale says. By default it's sent ASCII alone if `LC_ALL`, `LC_CTYPE` or `LANG`, whichever comes first, names a character set other than UTF-8; `C` and `POSIX` name none. Where it's sent ASCII alone, the key symbols are spelled before layout (`⌥F` as `Alt-F`, `⌃Q` as `^Q`), as one cell has no room for a modifier's name. `transliterate` is `1` and an experiment beside it: every `Text`, and every string the framework draws itself (titles, badges, tooltips, status bar items, prompts, crumbs), is spelled in ASCII before it's laid out, so `你好` is `ni hao`, six cells, where `1` cuts it to `niha` in the four it was laid out in; Japanese is read as Japanese, Cyrillic and Greek by their BGN and UNGEGN romanizations, emoji as `:)` or `:rocket:`. The app, `TestApp` and `renderOnce` all read it ([the design note](<Historical/Text, editing and the clipboard/ASCII transliteration before layout.md>)). Off unless named. For testing: nothing should encourage it otherwise. Read once. |
 | `TUI_SCROLL_CENSUS` | A path | Writes one line per frame to that file, saying what each scroll level would have done. |
-| `TUI_SCROLL_OUTPUT` | `exact` (default), `off`, `residue`, `margins` | How far the writer may move rows with a scroll region rather than rewrite them; a host may cap it. On at `exact` by default since the owner's decision `SCROLL-REGIONS` (2026-11-09); `off` (or `0`) writes every row in place, as before, should a terminal get regions wrong. `residue` and `margins` are developer levels, not promised. An unknown value is the default. Read once. |
 | `TUI_STILL` | `1` | Nothing on screen changes except as the direct result of user interaction: no breathing, no blinking caret, no spinner motion, no animation ticks, and a change snaps to its end. A `TimelineView` stays at the launch date. An app's own timers aren't stopped, and neither is what the terminal does itself, such as blinking its own cursor. Read once. |
+
+`TUI_SCROLL_OUTPUT` is in the public table for its `0` (or `off`), the way out for someone whose terminal gets scroll
+regions wrong, which writes every changed row in place. It also takes levels that are for developers alone, not
+promised, and so not in the table: `exact`, the default since the owner's decision `SCROLL-REGIONS` (2026-11-09), moves
+rows with a scroll region where the rows' contents agree on the shift; `residue` also finds the shift in the part of
+each row that moved, so a side pane doesn't hide it; `margins` also moves a band narrower than the screen, with DECSLRM
+margins, on a host measured to honour them. A host may cap the level, and an unknown value is the default. Read once.
 
 ## The Example and Stress targets
 

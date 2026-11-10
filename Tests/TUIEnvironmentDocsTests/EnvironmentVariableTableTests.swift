@@ -43,12 +43,34 @@ struct EnvironmentVariableTableTests {
         }
     }
 
-    @Test("What an end user reads mentions no code")
+    /// The person running an app reads what's in its man page: their own variables and
+    /// what their terminal sets. Words about TUI's insides mean nothing to them.
+    @Test("What an end user reads mentions no code and no framework jargon")
     func endUserTextIsForEndUsers() {
-        for variable in TUIEnvironmentVariables.variables(for: .endUser) {
-            #expect(!variable.effect.contains("TerminalClient"), "\(variable.name)")
-            #expect(!variable.effect.contains("TUI_TERM_PROGRAM ") || variable.name == "TUI_TERM_PROGRAM", "\(variable.name)")
+        let jargon = [
+            "terminalclient", "render cache", "render memo", "memoiz", "`body`", "@scenestorage", "environment key",
+            "environment value", "modifier", "renderable", "stderr", "view tree", "in the tree",
+        ]
+        let readers = TUIEnvironmentVariables.variables(for: .endUser) + TUIEnvironmentVariables.variables(for: .detected)
+        for variable in readers {
+            let text = (variable.values + " " + variable.effect).lowercased()
+            for word in jargon {
+                #expect(!text.contains(word), "\(variable.name) says \"\(word)\"")
+            }
         }
+        let introduction = TUIEnvironmentVariables.introduction(for: .endUser).lowercased()
+        #expect(jargon.allSatisfy { !introduction.contains($0) })
+    }
+
+    @Test("Each topic belongs to one audience, so a man page's groups don't mix them")
+    func topicsBelongToOneAudience() {
+        var owner: [TUIEnvironmentVariable.Topic: TUIEnvironmentVariable.Audience] = [:]
+        for variable in TUIEnvironmentVariables.all {
+            let first = owner[variable.topic, default: variable.audience]
+            #expect(first == variable.audience, "\(variable.name) is \(variable.audience) under \(variable.topic)")
+            owner[variable.topic] = first
+        }
+        #expect(Set(owner.keys) == Set(TUIEnvironmentVariable.Topic.allCases), "A topic has no variables")
     }
 
     @Test("Each audience has what the page says it has")
@@ -87,18 +109,23 @@ struct EnvironmentVariableTableTests {
     // MARK: - Man pages
 
     @Test("A man page section has its heading, its subsections and every variable", arguments: ManPageFormat.allCases)
-    func manPageHasEverything(format: ManPageFormat) {
+    func manPageHasEverything(format: ManPageFormat) throws {
         let section = TUIEnvironmentVariables.manPageSection(format: format)
         let lines = section.split(separator: "\n", omittingEmptySubsequences: false)
         #expect(lines.first == (format == .man ? ".SH ENVIRONMENT" : ".Sh ENVIRONMENT"))
         #expect(section.hasSuffix("\n"))
         let isASCII = section.allSatisfy(\.isASCII)
         #expect(isASCII)
-        #expect(section.contains(format == .man ? ".SS Colour" : ".Ss Colour"))
-        for variable in TUIEnvironmentVariables.variables(for: .endUser) {
+        #expect(section.contains(format == .man ? ".SS Colour and appearance" : ".Ss Colour and appearance"))
+        // The person's own variables, then what their terminal sets, after the last of theirs.
+        for variable in TUIEnvironmentVariables.variables(for: .endUser) + TUIEnvironmentVariables.variables(for: .detected) {
             let entry = format == .man ? ".B \(variable.name)" : ".It Ev \(variable.name)"
             #expect(lines.contains(Substring(entry)), "\(variable.name)")
         }
+        let subsection = format == .man ? ".SS" : ".Ss"
+        let lastOwn = try #require(section.range(of: "\(subsection) Troubleshooting"))
+        let terminalSets = try #require(section.range(of: "\(subsection) Set by your terminal"))
+        #expect(lastOwn.lowerBound < terminalSets.lowerBound)
         for variable in TUIEnvironmentVariables.variables(for: .developer) {
             #expect(!section.contains(variable.name), "\(variable.name) is a developer's")
         }
@@ -130,12 +157,14 @@ struct EnvironmentVariableTableTests {
 
     // MARK: - Markdown, and TUI's own page
 
-    @Test("A Markdown section is a table per topic")
+    @Test("A Markdown section is a table per topic, the person's own and then what their terminal sets")
     func markdownSection() {
         let section = TUIEnvironmentVariables.markdownSection()
         #expect(section.hasPrefix("This program"))
-        #expect(section.contains("### Colour\n\n| Variable | Values | Effect |\n|---|---|---|\n| `NO_COLOR` |"))
-        #expect(TUIEnvironmentVariables.markdownSection(headingLevel: 2).contains("\n## Colour\n"))
+        #expect(section.contains("### Colour and appearance\n\n| Variable | Values | Effect |\n|---|---|---|\n| `NO_COLOR` |"))
+        #expect(section.contains("|\n\n### Set by your terminal\n\n| Variable | What it says |\n|---|---|\n| `TERM_PROGRAM` |"))
+        #expect(TUIEnvironmentVariables.markdownSection(headingLevel: 2).contains("\n## Colour and appearance\n"))
+        #expect(!TUIEnvironmentVariables.markdownSection(audience: .developer).contains("TERM_PROGRAM"))
     }
 
     /// The text between `<!-- tui-environment-docs: name -->` and the matching end in the page.

@@ -120,26 +120,32 @@ Then join the two when you build:
 cat man/myapp.1.in man/environment.man > man/myapp.1
 ```
 
-`man ./man/myapp.1` then ends with this, followed by the other topics:
+`man ./man/myapp.1` then ends with this, followed by the other topics, from motion to troubleshooting, and last what the person's terminal, tmux or ssh sets for them:
 
 ```
 ENVIRONMENT
-       This program is built with TUI, which reads these variables.  An empty
-       variable counts as unset, and a value that isn't listed is ignored.  A
-       setting the program makes itself, such as from a command-line flag,
-       usually comes first.
+       This program is built with TUI, which reads these variables.  Set one for
+       a single run by writing it before the command, as in NO_COLOR=1 myapp, or
+       for every run by exporting it from your shell's profile.  An empty value
+       counts as unset, and a value that isn't listed is ignored.  A setting the
+       program makes itself, such as from a command-line flag, usually wins, but
+       it can't undo what you ask for so that you can use it, such as less
+       motion.  Those marked as an experiment may change.  The ones your
+       terminal, tmux or ssh sets for you come last.
 
-   Colour
+   Colour and appearance
        NO_COLOR
-              Values: Any value, even 0.  No colour.  Bold, underline, italics
-              and the other text attributes stay.  A picture the terminal
-              draws in real pixels keeps its colours.
+              Values: Any value, even 0.  Turns colour off, as the no-color.org
+              convention asks.  Bold, underline and italics stay, and so do
+              pictures drawn in real pixels.  For example: NO_COLOR=1 myapp.
 
        FORCE_COLOR
-              Values: A number, or a word such as true.  0 or false: no
-              colour.  1: 16 colours.  2: 256.  3 or more: millions.  Any
-              other value, such as true: what the terminal has, but at least
-              16.  NO_COLOR beats it.
+              Values: A number, or a word such as true.  Asks for colour,
+              whatever the terminal seems able to show, as the force-color.org
+              convention asks.  1 asks for at least 16 colours, 2 for at least
+              256, and 3 for millions.  0 or false turns colour off instead.
+              Any other value, such as true, asks for what the terminal shows,
+              but at least 16 colours.  NO_COLOR wins over it.
 ```
 
 To list your program's own variables first, write the heading yourself and pass `--no-heading`, which leaves it out:
@@ -151,7 +157,7 @@ To list your program's own variables first, write the heading yourself and pass 
 Where myapp keeps its projects.
 ```
 
-`--audience` chooses whose variables: `end-user`, the default, for the people running the app; `developer`, for someone building the app rather than running it; or `detected`, the ones a terminal, a multiplexer or ssh sets, which TUI reads to work out where it's running. A script can also check that a committed copy is up to date, by writing it again and running `git diff --exit-code man/`.
+`--audience` chooses whose variables: `end-user`, the default, for the people running the app, followed by what their terminal sets; `developer`, for someone building the app rather than running it; or `detected`, the ones a terminal, a multiplexer or ssh sets, which TUI reads to work out where it's running. A script can also check that a committed copy is up to date, by writing it again and running `git diff --exit-code man/`.
 
 ### From Your Own Code
 

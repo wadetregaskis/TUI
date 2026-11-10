@@ -22,32 +22,44 @@ public struct TUIEnvironmentVariable: Sendable, Hashable, Identifiable {
         case developer
 
         /// Nobody, as a rule: a terminal, a multiplexer or ssh sets these, and TUI
-        /// reads them to work out where it's running.
+        /// reads them to work out where it's running. An app's man page lists them
+        /// after the ``endUser`` variables, so the person running it knows what
+        /// their terminal is telling it.
         case detected
     }
 
-    /// What a variable is about, which is how the documentation groups them.
+    /// What a variable is about, which is how the documentation groups them. The
+    /// documentation lists the topics in the order they're declared here.
     public enum Topic: String, Sendable, Hashable, CaseIterable {
-        /// How much colour is drawn.
-        case colour
+        /// Colour, contrast and transparency.
+        case appearance
 
-        /// What someone asks for so that they can use a program comfortably.
-        case accessibility
+        /// Animations, and anything else on the screen that moves by itself.
+        case motion
 
-        /// The language, and the region dates and numbers are written for.
+        /// What the keys and the mouse do, and how they're shown.
+        case keyboardAndMouse
+
+        /// The language, the character set, and the region dates and numbers are
+        /// written for.
         case language
 
-        /// What the terminal is asked to do, and what it's assumed to be able to.
-        case terminal
+        /// How big the screen is, and what a program writes when it prints once and
+        /// exits.
+        case output
 
-        /// How the program behaves, whatever the terminal.
-        case behaviour
+        /// Opening links, posting notifications, and copying to the clipboard.
+        case linksAndNotifications
+
+        /// What the terminal is asked to do, and what it's assumed to be able to: the
+        /// way out when a terminal gets something wrong.
+        case terminal
 
         /// Where the program keeps what it saves.
         case files
 
-        /// What a program writes when it prints once and exits.
-        case output
+        /// What to try when the program misbehaves.
+        case troubleshooting
 
         /// Checking a program's screen in its tests.
         case testing
@@ -67,18 +79,20 @@ public struct TUIEnvironmentVariable: Sendable, Hashable, Identifiable {
         /// The heading this topic has in the documentation.
         public var title: String {
             switch self {
-            case .colour: "Colour"
-            case .accessibility: "Accessibility"
-            case .language: "Language and region"
-            case .terminal: "The terminal"
-            case .behaviour: "Behaviour"
-            case .files: "Files"
-            case .output: "One-off output"
+            case .appearance: "Colour and appearance"
+            case .motion: "Motion"
+            case .keyboardAndMouse: "Keyboard and mouse"
+            case .language: "Text and language"
+            case .output: "Screen size and printed output"
+            case .linksAndNotifications: "Links, notifications and the clipboard"
+            case .terminal: "Terminal quirks"
+            case .files: "Saved settings"
+            case .troubleshooting: "Troubleshooting"
             case .testing: "Testing"
             case .diagnostics: "Diagnostics"
             case .limits: "Limits"
-            case .identity: "Which terminal this is"
-            case .session: "Where the person is"
+            case .identity: "Set by your terminal"
+            case .session: "Set by ssh and your desktop"
             }
         }
     }
