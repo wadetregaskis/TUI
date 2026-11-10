@@ -17,7 +17,7 @@ import TUIFoundation
 /// — every letter of it taken, or none ASCII, as in a Japanese or Chinese
 /// title — has none: F10 and the arrows reach it, as they reach every menu.
 /// The app's menu has none: its title is the app's name, whose first letter
-/// would take Edit's or File's, and F10 opens it, as the first menu.
+/// would take Edit's or File's, and F10 lights it, as the first title.
 ///
 /// **A focused text field.** It keeps the Option-letters it edits with
 /// (Option-B and Option-F, back and forward a word; ``TextInputFocusHandler/editsWith(_:)``),
