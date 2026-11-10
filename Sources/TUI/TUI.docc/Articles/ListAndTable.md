@@ -134,7 +134,7 @@ Both List and Table support the same keyboard shortcuts:
 The focused row stays focused when the rows change: a row inserted or removed
 above it, or a sort, moves the cursor with its row, so the next key acts on the
 row you were on. When the focused row itself goes, the row after it takes the
-focus.
+focus, or the new last row when there is none after it.
 
 Type select takes every printable character but Space while the list or table
 has the focus, whether or not a row matches, so a bare-key status-bar item or

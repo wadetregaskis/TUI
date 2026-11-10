@@ -51,6 +51,18 @@ extension ItemListHandler {
         return (found, remembered)
     }
 
+    /// Brings a cursor left past the last row back onto the rows: the rows
+    /// under it went (the data shrank from outside, not by a delete of the
+    /// list's own, which places the cursor itself), and with no row there,
+    /// Space, Return and Delete did nothing and no row showed the focus. It
+    /// lands on the last row the cursor can stand on, where a delete of the
+    /// last row puts it. Render pass only, after
+    /// ``followCursorRow(from:ownMovePending:)``.
+    func keepCursorOnTheRows() {
+        guard itemCount > 0, focusedIndex >= itemCount else { return }
+        focusedIndex = min(itemCount - 1, lastLandingRow(orElse: itemCount - 1))
+    }
+
     /// Remembers the cursor's row for the next frame's
     /// ``followCursorRow(from:ownMovePending:)``, after everything this frame
     /// does to the cursor. Reads no id when the cursor is still where

@@ -15,6 +15,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A list or table whose last rows go from under its focused row moves the focus to the new last row.** It was left
+past the end, where no row showed it and Space, Return and Delete did nothing until an arrow key brought it back.
+
 **Return selects a leaf of a hierarchical `List`.** It opens and closes a branch, and on a leaf did nothing; it now
 selects the leaf, as Space does and as Return does in a flat list. A `primaryAction` the app gives still takes Return.
 

@@ -212,6 +212,7 @@ extension ItemListHandler {
         // The cursor's own row, which the hold's shift misses when the change
         // was between the top row and the cursor, or a sort.
         let checkedCursor = followCursorRow(from: cursorBefore, ownMovePending: ownMovePending)
+        keepCursorOnTheRows()
         clampScrollOffset()
         clampTopClip()
         // After the clamps, which is what puts the offset AT the whole-row
