@@ -61,14 +61,11 @@ package final class AnimationStore {
     /// values in it are of whatever type each call site animates.
     private struct Record {
         /// Where the picture was when this animation began — and, once the
-        /// animation has retired (`animation == nil`), where it SETTLED.
-        ///
-        /// The settled value is not always the target: an even-count
-        /// autoreversing animation ends back where it started, so retiring to
-        /// the target would snap the picture on the next unrelated render.
-        /// Every nil-animation store keeps this invariant — first sight and
-        /// unanimated snaps settle AT the target, retirement settles at
-        /// whatever the final frame presented.
+        /// animation has retired (`animation == nil`), where it SETTLED, which
+        /// is the target: first sight and unanimated snaps settle at it, and
+        /// retirement at what the final frame presented, which an animation
+        /// that is over presents (an even count of autoreversing passes
+        /// included, as SwiftUI's).
         var from: Any
 
         /// What the tree last said the value is.
@@ -107,16 +104,10 @@ package final class AnimationStore {
         /// nothing overlaps. See ``Segment``.
         var earlier: [Segment]?
 
-        /// Whether this record settled somewhere other than its target: a
-        /// retired even-count autoreverse, which presents `from` (see
-        /// ``from``). Said by whoever builds the record, which alone knows the
-        /// two values' type.
-        var isDisplaced = false
-
         /// Whether this record can present anything but its target: something
-        /// is running (finished or not, until it retires), or it settled away
-        /// from it. Counted in ``unsettledCount``.
-        var isUnsettled: Bool { animation != nil || isDisplaced }
+        /// is running (finished or not, until it retires). Counted in
+        /// ``unsettledCount``.
+        var isUnsettled: Bool { animation != nil }
     }
 
     /// An earlier change's animation, still running beside a later one —
@@ -329,22 +320,13 @@ extension AnimationStore {
 
         guard recorded != target else {
             // Unchanged. Retire a finished animation so the next frame does not
-            // have to ask again, and so the loop stops rendering for it.
-            //
-            // Retire to what the final frame PRESENTED, not to the target: an
-            // even-count autoreversing animation finishes at fraction 0 — back
-            // at `from` — and retiring to the target made the very next
-            // unrelated render (a key press, minutes later) snap the picture
-            // from the start value to the target. The target is still recorded
-            // as `target`, so an unchanged re-declaration stays settled and a
-            // NEW value animates from where the picture actually is.
+            // have to ask again, and so the loop stops rendering for it, at
+            // what this frame presents: with every animation over, the target.
             if let running = record.animation, running.isFinished(at: elapsed(record, nowNanos)),
                 Self.earlierFinished(record, at: nowNanos)
             {
                 store(
-                    Record(
-                        from: presented, target: recorded, animation: nil, startNanos: nowNanos,
-                        isDisplaced: presented != recorded),
+                    Record(from: presented, target: recorded, animation: nil, startNanos: nowNanos),
                     for: key, isMeasuring: isMeasuring)
             }
             return presented
@@ -400,9 +382,7 @@ extension AnimationStore {
                 Self.earlierFinished(record, at: nowNanos)
             {
                 store(
-                    Record(
-                        from: phase, target: target, animation: nil, startNanos: nowNanos,
-                        isDisplaced: phase != target),
+                    Record(from: phase, target: target, animation: nil, startNanos: nowNanos),
                     for: key, isMeasuring: isMeasuring)
             } else if record.lastPass != pass, !isMeasuring {
                 records[key]?.lastPass = pass
@@ -598,9 +578,9 @@ extension AnimationStore {
     /// there. Measured on the menu render benchmark (500 renders, debug), the
     /// frame the modifiers became animatable cost +25%: 0.356 → 0.451 s.
     ///
-    /// A settled record presents `from`, not `target` (a retired even-count
-    /// autoreverse leaves the two apart — see `Record.from`), so BOTH must
-    /// equal `target` for there to be nothing to draw differently.
+    /// A settled record presents `from`, which every way of settling one sets
+    /// to its target (see `Record.from`); both are compared with `target`, so
+    /// a record that broke that would be drawn by `value(for:…)`, not missed.
     ///
     /// Stamps the pass in place when rendering, so the record stays alive
     /// without being copied out and written back.
@@ -644,13 +624,20 @@ extension AnimationStore {
     private func presented<D: VectorArithmetic>(
         _ record: Record, from: D, target: D, nowNanos: Int64
     ) -> D {
-        // A record with no animation is settled, and `from` is where it
-        // settled (see `Record.from`). For every nil-animation record but a
-        // retired even-count autoreverse the two are equal, so this changes
-        // nothing there.
+        // A record with no animation is settled, at `from`, which is its
+        // target (see `Record.from`).
         guard let animation = record.animation else { return from }
-        var value = from.interpolated(
-            towards: target, amount: animation.fraction(at: elapsed(record, nowNanos)))
+        // An animation that is over has arrived, whatever its curve last said:
+        // an even count of autoreversing passes ends where it began, and the
+        // value then snaps to the target, as SwiftUI's does (measured, `Tools/
+        // SwiftUIProbes/Animation curves, springs and keyframes/p11.out`: back
+        // to 0.10, then 1.00 for good). Left at the curve's 0, the view stayed
+        // at the value before the change, and a view inserted under one was
+        // never seen.
+        let elapsedTime: TimeInterval = elapsed(record, nowNanos)
+        var value =
+            animation.isFinished(at: elapsedTime)
+            ? target : from.interpolated(towards: target, amount: animation.fraction(at: elapsedTime))
         if let earlier = record.earlier {
             for segment in earlier {
                 guard let delta = segment.delta as? D else { continue }

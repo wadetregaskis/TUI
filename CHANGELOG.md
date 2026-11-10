@@ -66,6 +66,11 @@ edge, and Alt and a letter opened their menus, but the titles couldn't be seen a
 now scrolls to keep the highlighted or open title in view, with « and » where titles are hidden; a click on either
 opens the hidden menu beside it. A title wider than the whole row is drawn from its start, as much as fits.
 
+**An animation repeated an even number of times with `autoreverses` ends at the value the change set.** After
+`.repeatCount(2, autoreverses: true)` played out and back, the view stayed where the last pass left it, at the value
+before the change, for good, and a view inserted under one was never seen at all. It now snaps to the new value once the
+passes have played, as SwiftUI's does.
+
 **`.zIndex` orders the children of a `VStack`, an `HStack`, a `Grid` and a `Layout`, not only a `ZStack`'s.** A
 view raised with `.zIndex(1)` was drawn under a later sibling an `.offset` or a negative padding moved onto it, and the
 click there went to the sibling. It now stays on top and takes the clicks where it is drawn, as in SwiftUI. The lazy

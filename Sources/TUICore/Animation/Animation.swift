@@ -442,8 +442,10 @@ extension Animation {
     /// This animation, played `repeatCount` times.
     ///
     /// The count is *passes*, not round trips: with `autoreverses`, every second
-    /// pass runs backwards, so an even count ends where it started and an odd
-    /// one ends at the target.
+    /// pass runs backwards, so an even count comes back to where it started and
+    /// an odd one ends at the target. Either way, once the passes have played
+    /// the view shows the value the change set, as SwiftUI's does: after an
+    /// even count it snaps there from where the last pass left it.
     public func repeatCount(_ repeatCount: Int, autoreverses: Bool = true) -> Animation {
         let passes = Int32(clamping: max(1, repeatCount))
         // One pass is the animation as it was, its delay still leading.
