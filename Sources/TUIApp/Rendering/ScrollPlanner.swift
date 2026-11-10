@@ -2,8 +2,8 @@
 //  ScrollPlanner.swift
 //
 //  Deciding whether a frame is cheaper as a moved band of rows and a repair than
-//  as the rows it changed. A PROTOTYPE, off by default: see
-//  `Documentation/Performance/Scroll regions for output.md`.
+//  as the rows it changed. On by default at `exact` since 2026-11-09, the
+//  owner's ruling: see `Documentation/Performance/Scroll regions for output.md`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -14,8 +14,10 @@ import TUIFoundation
 // MARK: - The switch
 
 /// How far the writer may go in moving rows rather than rewriting them.
-/// `TUI_SCROLL_OUTPUT`: `off` (the default), `exact`, `residue` or `margins`.
-/// Each level includes the one before it.
+/// `TUI_SCROLL_OUTPUT`: `exact` (the default), `off`, `residue` or `margins`.
+/// Each level includes the one before it. `off` is the way out, should a
+/// terminal get regions wrong; `residue` and `margins` are developer levels,
+/// not promised.
 enum ScrollOutput: Int, Comparable, Sendable {
     /// Rows are written where they are, as they always have been.
     case off
@@ -36,13 +38,14 @@ enum ScrollOutput: Int, Comparable, Sendable {
     /// What the environment asks for.
     static let configured = parse(ProcessInfo.processInfo.environment["TUI_SCROLL_OUTPUT"])
 
-    /// A `TUI_SCROLL_OUTPUT` value; anything unknown is `off`.
+    /// A `TUI_SCROLL_OUTPUT` value; unset or anything unknown is the default,
+    /// `exact`.
     static func parse(_ value: String?) -> Self {
         switch value {
-        case "exact", "1": .exact
+        case "off", "0": .off
         case "residue": .residue
         case "margins": .margins
-        default: .off
+        default: .exact
         }
     }
 

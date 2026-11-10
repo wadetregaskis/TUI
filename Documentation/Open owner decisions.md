@@ -37,7 +37,6 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| SCROLL-REGIONS | Moving rows with a scroll region rather than rewriting them: 28.6% fewer bytes over the sessions, no noticeable cost, on every terminal measured ([the study](<Performance/Scroll regions for output.md>)). On by default at the `exact` level, after you have watched one scroll on Apple Terminal? Keep or drop `residue` and `margins`, which add 1.4 points? | On, `exact`; drop the other two for now | Stays off, on its branch |
 | PARTIAL-TUI | A grid at the foot of the terminal, scrollback above ([the design](<Partial TUI.md>)): about 13 commits. It suits tools rather than page apps, and helps accessibility only a little. Build it after 1.0, or sooner? | After 1.0; the real cursor and "still" first if accessibility is the reason | After 1.0 |
 | HR-1 to HR-6 | Compiled hot reload, for when it's picked up: [section 10 of the design](<Compiled hot reload.md#10-what-the-owner-decides-when-this-is-picked-up>). | The design's defaults for HR-1 to HR-5 | Waits; nothing is built |
 

@@ -129,3 +129,9 @@ deprecation) as points 6 and 7. The owner's words are quoted where they add to t
 |---|---|---|---|
 | B-F2-4 | "It's fine for now": a hung app under the kitty keyboard protocol quits at the first ⌃\, about two seconds later, or at once when unread input already tripped the watchdog. | Measured on Ghostty 1.4.0 with a relay logging both directions; the record had described `.whenWarned`'s second press. | [Terminal compatibility survey](<../../Terminals/Terminal compatibility survey.md>) |
 | Animation probe | Ghostty 1.4.0 plays every panel as it should, watched by the owner. | Ghostty's pixels had not been seen on 2026-11-02. Whether `TUI_GRAPHICS_PLAYBACK` goes on stays with EXPERIMENTS. | The survey |
+
+### The defaults, the same night
+
+| Id | Decision | Why, as recorded | Where it went |
+|---|---|---|---|
+| SCROLL-REGIONS | Moving rows with a scroll region goes on by default at `exact`; `TUI_SCROLL_OUTPUT=off` is the way out, `residue` and `margins` stay as unpromised developer levels, and there is no public setting. | After watching the Example scroll at `exact` in Apple Terminal, iTerm2, Warp and Ghostty: "I didn't see any issues with the scroll tests … I think we can enable that scrolling optimisation by default." | The CHANGELOG's *Scrolling sends far fewer bytes*; [the study](<../../Performance/Scroll regions for output.md>) |

@@ -949,8 +949,8 @@ extension Terminal {
     ///   whole screen. With origin mode off an absolute cursor move ignores a
     ///   region; what one left by a crashed program confines is scrolling — a
     ///   line feed at its bottom margin scrolls only the region — which no
-    ///   frame does unless `TUI_SCROLL_OUTPUT` says so (``ScrollOutput``), with
-    ///   a region of its own.
+    ///   frame does but with a region of its own, set and let go in the same
+    ///   breath (``ScrollOutput``, on unless `TUI_SCROLL_OUTPUT=off`).
     /// - `CSI ? 69 l`: left-right margin mode (DECLRMM) off. While it is on,
     ///   left and right margins a program set (DECSLRM; tmux sets them where
     ///   the terminal has them) stop or wrap every row at the right margin,

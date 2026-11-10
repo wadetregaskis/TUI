@@ -196,7 +196,9 @@ extension TerminalOutputTests {
         terminal.enableRawMode()
         #expect(Terminal.penReset == "\u{1B}]8;;\u{1B}\\" + "\u{1B}[0m")
         #expect(terminal.signalDebt.hasPrefix(terminal.outputModesOff))
-        #expect(terminal.outputModesOff.hasSuffix(Terminal.penReset))
+        // Then the scroll region's reset (`ScrollOutput`, on by default),
+        // which saves the cursor around itself and sets no styling.
+        #expect(terminal.outputModesOff.hasSuffix(Terminal.penReset + Terminal.scrollRegionReset))
     }
 
     /// SIGQUIT is the user's quit key's signal, and it leaves the terminal as
@@ -237,7 +239,9 @@ extension TerminalOutputTests {
         #expect(terminal.signalDebt.contains("\u{1B}[?7h"))
         output.clear()
         terminal.disableRawMode()
-        #expect(output.writes.first == "\u{1B}[?2026l\u{1B}[?7h" + Terminal.penReset, "before anything else")
+        #expect(
+            output.writes.first == "\u{1B}[?2026l\u{1B}[?7h" + Terminal.penReset + Terminal.scrollRegionReset,
+            "before anything else")
 
         // A resume turns it off again, as a startup does.
         output.clear()
@@ -245,7 +249,9 @@ extension TerminalOutputTests {
         #expect(output.bytes.contains("\u{1B}[?7l"))
 
         let (quiet, _) = ScriptedTerminalOutput.terminal(environment: ["TUI_SYNCHRONIZED_OUTPUT": "0"])
-        #expect(quiet.outputModesOff == "\u{1B}[?7h" + Terminal.penReset, "owed whether or not frames are held")
+        #expect(
+            quiet.outputModesOff == "\u{1B}[?7h" + Terminal.penReset + Terminal.scrollRegionReset,
+            "owed whether or not frames are held")
     }
 
     /// K3's precondition: Apple Terminal's card decides, so until it is run

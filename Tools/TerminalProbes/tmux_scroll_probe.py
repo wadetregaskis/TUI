@@ -241,8 +241,9 @@ def main():
     apps = []
     if args.app:
         with tempfile.TemporaryDirectory() as work:
-            for extra in ({}, {"TUI_SYNCHRONIZED_OUTPUT": "0"},
-                          {"TUI_SYNCHRONIZED_OUTPUT": "0", "TUI_SCROLL_OUTPUT": "exact"}):
+            # As shipped (no hold under tmux, scrolling at `exact` since 2026-11-09),
+            # scrolling off, and the hold asked for anyway: what it costs at the client.
+            for extra in ({}, {"TUI_SCROLL_OUTPUT": "off"}, {"TUI_SYNCHRONIZED_OUTPUT": "1"}):
                 result = run_app(args.tmux, args.app, extra, args.cols, args.rows, args.page, work)
                 apps.append(result)
                 print(f"app {extra or 'as shipped'}: idle {result['idle_bytes_per_second']:.0f} B/s, "

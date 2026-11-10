@@ -7604,7 +7604,7 @@ anything else, `Terminal.inheritedDefaults`:
 
 | Sequence | Puts back | What it cost when left changed |
 |---|---|---|
-| `CSI r` | the scrolling region (DECSTBM) to the whole screen | scrolling confined to the old region. With origin mode off no absolute cursor move minds a region, and no frame scrolls today unless `TUI_SCROLL_OUTPUT` says so: a prototype of hardware scrolling (O2 in the adoption plan; `Documentation/Performance/Scroll regions for output.md`) sets a region of its own and lets it go in the same write |
+| `CSI r` | the scrolling region (DECSTBM) to the whole screen | scrolling confined to the old region. With origin mode off no absolute cursor move minds a region, and the only frames that scroll are hardware scrolling's (O2 in the adoption plan; `Documentation/Performance/Scroll regions for output.md`; on by default since 2026-11-09, off with `TUI_SCROLL_OUTPUT=off`), which set a region of their own and let it go in the same write |
 | `CSI ? 69 l` | left-right margin mode (DECLRMM) off, and with it any left and right margins (DECSLRM) | every row stopped (autowrap off) or wrapped (on) at the old right margin, and `CSI s` read as DECSLRM rather than a cursor save. tmux sets such margins where the terminal has them |
 | `CSI ? 6 l` | origin mode (DECOM) off | every row and column number taken relative to the region and margins and clamped into them: what offsets or clamps a frame |
 | `CSI ? 1 l` | normal cursor keys (DECCKM) | arrows, Home and End sent as `ESC O A`… |
@@ -7643,7 +7643,9 @@ region of its own and must not inherit one.
 
 ## Moving a band of rows: DECSTBM, DECSLRM, DECCRA — measured 2026-11-01
 
-Off by default, behind `TUI_SCROLL_OUTPUT`: `FrameDiffWriter` can move a band rather than rewrite it. The study is
+On by default at `exact` since 2026-11-09 (the owner's ruling SCROLL-REGIONS, after watching the Example scroll on Apple
+Terminal, iTerm2, Warp and Ghostty); `TUI_SCROLL_OUTPUT=off` turns it off: `FrameDiffWriter` moves a band rather than
+rewrite it, where that is cheaper, capped per host by `ScrollOutput.level`. The study is
 `Documentation/Performance/Scroll regions for output.md`. This section is what the hosts did, read off their pixels by
 `Tools/TerminalProbes/scroll_region_probe.py`: a grid of colours painted, one operation, the whole screen captured, each
 cell's colour compared with each hypothesis. Records: `data/*-scroll.json`. Operations are sent in held updates only where

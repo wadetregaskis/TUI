@@ -148,11 +148,20 @@ struct ScrollOutputTests {
         }
     }
 
-    @Test("Off, the default, sets no region and scrolls nothing")
-    func offIsOff() {
-        #expect(ScrollOutput.parse(nil) == .off)
-        #expect(ScrollOutput.parse("nonsense") == .off)
+    @Test("Exact is the default, and off is the way out")
+    func parsesTheSwitch() {
+        #expect(ScrollOutput.parse(nil) == .exact)
+        #expect(ScrollOutput.parse("nonsense") == .exact)
         #expect(ScrollOutput.parse("exact") == .exact)
+        #expect(ScrollOutput.parse("1") == .exact)
+        #expect(ScrollOutput.parse("off") == .off)
+        #expect(ScrollOutput.parse("0") == .off)
+        #expect(ScrollOutput.parse("residue") == .residue)
+        #expect(ScrollOutput.parse("margins") == .margins)
+    }
+
+    @Test("Off sets no region and scrolls nothing")
+    func offIsOff() {
         let pages = notches(Page(document: document), [0, 3, 6, 9])
         let drawn = expectSameScreens(pages, level: .off)
         #expect(drawn.scrolled.screen.scrolls == 0)

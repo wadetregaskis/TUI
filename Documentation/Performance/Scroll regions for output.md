@@ -2,7 +2,18 @@
 
 Telling the terminal to move a band of rows, rather than rewriting the rows that moved.
 
-**Status: study, and a working prototype off by default (`TUI_SCROLL_OUTPUT`), on a branch. Not landed.**
+**Status: on by default at `exact` since 2026-11-09, the owner's ruling (SCROLL-REGIONS), after he watched the Example
+scroll at `exact` in Apple Terminal, iTerm2, Warp and Ghostty and saw no issues. `TUI_SCROLL_OUTPUT=off` is the way out;
+`residue` and `margins` stay as developer levels, unpromised. The rest of this page is the study as written, when it was
+off by default.**
+
+Measured again on that day's main, before switching it on (`scroll_output.py sessions`, Ghostty's host, 120×40, the 12
+default sessions, 4,800 frames): `exact` sends **30.2% fewer bytes** than `off` (4,084,163 → 2,852,137), `residue` 30.4%,
+`margins` 31.5%, and every level's screen matches `off`'s at every step. The same sessions with `TUI_SCROLL_OUTPUT` unset
+send 31.0% fewer than with `=off`, by their own byte counts. Under tmux 3.7c (`tmux_scroll_probe.py --app Example`, the
+Lists page), section 3's finding stays closed: as shipped, TUI does not hold, and idles at 848 bytes a second (2,154 with
+scrolling off: idle output is the focus breathing, so that gap is the run's timing, not scrolling **[I]**) against 154,833 with the hold asked for (`TUI_SYNCHRONIZED_OUTPUT=1`); a
+Down key costs 52 bytes, 43 with scrolling off and 11,333 held. One run each.
 
 Measured means run here on 2026-11-01, on macOS 15, with the tools named. Inferred means reasoned from a measurement or
 from reading the source, and is marked **[I]**. No timing A/B is reported: the machine was shared throughout, under
@@ -464,7 +475,7 @@ the environment switch, which stays as the way out as `TUI_SYNCHRONIZED_OUTPUT` 
 
 ## The prototype
 
-`TUI_SCROLL_OUTPUT` = `off` (default), `exact`, `residue` or `margins`, read once. A level is the most a host may get:
+`TUI_SCROLL_OUTPUT` = `exact` (the default since 2026-11-09), `off`, `residue` or `margins`, read once. A level is the most a host may get:
 `ScrollOutput.level(_:on:holds:)`.
 
 - `Sources/TUIApp/Rendering/ScrollPlanner.swift`: the switch, the plan, the planner, the census.

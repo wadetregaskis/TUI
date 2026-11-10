@@ -97,33 +97,24 @@ struct StatusBarFrameDiffTests {
     }
 
     /// The screen every write since the terminal was last reset leaves, row by
-    /// row (1-based, as the cursor moves count them), escapes stripped: each
-    /// cursor move places the text after it, and `ESC[2K` erases the row.
+    /// row (1-based, as the cursor moves count them), as a terminal would show
+    /// it: `VTScreenModel`, which knows the scroll regions a frame can move a
+    /// band of rows with (`ScrollOutput`, on by default), as well as moves and
+    /// erases. A model of moves and erases alone would show a moved row where
+    /// it was.
     ///
     /// The stronger oracle, for a frame that changes some rows of the bar and
     /// leaves others alone: a row an earlier frame drew and this one did not
     /// rewrite still shows, as it does on a terminal.
     private func screen(_ terminal: MockTerminal, width: Int = 80, height: Int = 24) -> [Int: String] {
-        var grid = Array(repeating: Array(repeating: Character(" "), count: width), count: height + 1)
-        var row = 1
-        var column = 1
-        for chunk in terminal.writtenOutput {
-            if let moved = cursorRow(chunk) {
-                row = moved
-                let fields = chunk.dropFirst(2).dropLast().split(separator: ";")
-                column = Int(fields[1]) ?? 1
-                continue
-            }
-            if chunk.contains("\u{1B}[2K"), row <= height {
-                grid[row] = Array(repeating: " ", count: width)
-            }
-            for character in chunk.stripped where row <= height && column <= width {
-                grid[row][column - 1] = character
-                column += 1
-            }
-        }
+        var model = VTScreenModel(width: width, height: height)
+        model.feed(terminal.allOutput)
         var rows: [Int: String] = [:]
-        for index in 1...height { rows[index] = String(grid[index]) }
+        for index in 1...height {
+            var text = ""
+            text.unicodeScalars.append(contentsOf: model.cells[index - 1].map(\.scalar))
+            rows[index] = text
+        }
         return rows
     }
 

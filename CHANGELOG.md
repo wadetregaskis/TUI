@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Scrolling sends far fewer bytes.** Where most of the rows on screen moved, as when a list or scroll view scrolls,
+TUI now has the terminal move them with a scroll region and writes only what the move exposed and what it got wrong,
+rather than rewriting every row. Over the `Stress` sessions that is about 30% fewer bytes, and a wheel notch over
+rows of dissimilar text sends about a tenth of what it did. What is on screen is the same. `TUI_SCROLL_OUTPUT=off`
+restores the old output, should a terminal get scroll regions wrong.
+
 **`TestApp` counts the same on every machine.** A running app times its views and keeps more of those it finds slow;
 `TestApp` did too, so a test counting how often a body ran or a view was drawn could pass on a fast machine and fail
 on a slow or busy one. It now times nothing. Apps are unchanged.
