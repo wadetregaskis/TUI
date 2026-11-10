@@ -150,15 +150,9 @@ struct DialogRenderTests {
 
     // MARK: Border styles
 
-    // Written WITHOUT a type annotation on purpose. These factories used to
-    // declare their own `<C: View>` and return `Dialog<C, EmptyView>`, which
-    // left the receiver's `Content` undetermined — so the natural spelling
-    // did not compile and these tests had to say `Dialog<Text, EmptyView>.`.
-    // Now `Content` IS the closure's type, and compiling is the assertion.
-
-    @Test("doubleLine convenience produces a double-line bordered dialog")
-    func dialogDoubleLineConvenience() {
-        let dialog = Dialog.doubleLine(title: "DL") { Text("x") }
+    @Test("A doubleLine border style draws a double-line box")
+    func dialogDoubleLineBorder() {
+        let dialog = Dialog(title: "DL", borderStyle: .doubleLine) { Text("x") }
         let lines = strippedLines(dialog)
 
         #expect(lines.count == 5)
@@ -167,9 +161,9 @@ struct DialogRenderTests {
         #expect(lines[4] == "╚══════╝")
     }
 
-    @Test("heavy convenience produces a heavy bordered dialog")
-    func dialogHeavyConvenience() {
-        let dialog = Dialog.heavy(title: "H") { Text("x") }
+    @Test("A heavy border style draws a heavy box")
+    func dialogHeavyBorder() {
+        let dialog = Dialog(title: "H", borderStyle: .heavy) { Text("x") }
         let lines = strippedLines(dialog)
         #expect(lines.first!.hasPrefix("┏"))
         #expect(lines.first!.hasSuffix("┓"))

@@ -39,6 +39,9 @@ in a `TabView`.** Under a header in a column, a row short of fitting, its bar to
 wrapped onto two lines), where the same placement set higher up did not: a modifier that only sets an environment
 value hid from the column that the scroll view takes all the room it is offered.
 
+**`Dialog.doubleLine(title:…)` and `Dialog.heavy(title:…)` are gone.** They were `Dialog(title:borderStyle:)` with
+two of its seven border styles filled in; write `Dialog(title: "…", borderStyle: .doubleLine) { … }` instead.
+
 **A custom `Layout` places a subview at a `CellPoint`, as SwiftUI's places one at a `CGPoint`.**
 `LayoutSubview.place(at:anchor:proposal:)` no longer takes an `(x:y:)` tuple beside the `CellPoint`; write
 `subview.place(at: CellPoint(x: x, y: y), proposal: …)`, or pass a `CellRect`'s `origin` as it is.

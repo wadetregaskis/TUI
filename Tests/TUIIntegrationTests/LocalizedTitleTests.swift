@@ -492,14 +492,6 @@ struct LocalizedTitleTests {
             Dialog(title: "test.title.control") { Text("body") } footer: { Text("f") },
             Dialog(title: Self.computedKey) { Text("body") } footer: { Text("f") },
             "Dialog(footer:)")
-        expectLocalized(
-            Dialog.doubleLine(title: "test.title.control") { Text("body") },
-            Dialog.doubleLine(title: Self.computedKey) { Text("body") },
-            "Dialog.doubleLine")
-        expectLocalized(
-            Dialog.heavy(title: "test.title.control") { Text("body") },
-            Dialog.heavy(title: Self.computedKey) { Text("body") },
-            "Dialog.heavy")
     }
 
     @Test("Alert title and message")
