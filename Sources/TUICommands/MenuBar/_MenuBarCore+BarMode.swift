@@ -28,7 +28,9 @@ extension _MenuBarCore {
     /// - A title's letter opens its menu, with or without Option.
     /// - F10 and Escape leave, and so does any other key, which is spent on
     ///   leaving rather than reaching the page: a letter no title has is no
-    ///   more meant for a text field than for the bar.
+    ///   more meant for a text field than for the bar. A Control chord is the
+    ///   exception: ``walkTitles(_:over:state:titleIDs:sectionID:context:)``
+    ///   presses it again once the mode is gone.
     ///
     /// This is how the text interfaces before the Mac's reached their menus —
     /// CUA's F10, Turbo Vision's, Midnight Commander's F9 — and the one route
@@ -80,12 +82,21 @@ extension _MenuBarCore {
             OverlayLayer(offsetX: 0, offsetY: 0, content: cover, level: .popover, anchorHeight: 0, holdsInput: true)
                 .presenting(context.identity))
         let mnemonics = titles.mnemonics
+        let keysAfterFrame = context.environment.keysAfterFrame
         context.environment.keyEventDispatcher?.addHandler(sectionID: sectionID) { [weak state] event in
             guard let state, let highlighted = state.highlightedTitle, event.phase != .release else { return false }
             switch Self.barModeAction(for: event, highlighted: highlighted, mnemonics: mnemonics) {
             case .highlight(let index): state.highlight(index)
             case .open(let index): state.open(index, withSelection: true)
-            case .leave: state.close()
+            case .leave:
+                state.close()
+                // A Control chord is a key equivalent, which goes past an open
+                // menu to what binds it: so it goes on here too, once the
+                // frame that leaves the mode has handed the page its focus
+                // back, through the whole chain — a command's shortcut fires,
+                // ⌃Q quits. Pressed now, it would meet the mode's section still
+                // holding the keyboard, behind which no command fires (W8).
+                if event.ctrl { keysAfterFrame?.press(event) }
             }
             return true
         }

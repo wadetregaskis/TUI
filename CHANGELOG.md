@@ -26,6 +26,11 @@ sort, left the focus where it was, on whichever row took that place, so Space, R
 never moved to: always at the top of a list, and anywhere for a change between the top row on screen and the focused
 row. The focus now follows its row. When the focused row itself goes, the row after it takes the focus, as before.
 
+**A shortcut works in the menu bar's F10 mode, and ⌃Q quits there.** With the titles lit by F10 and every menu closed,
+any key left the mode and was spent on leaving it, so a command's shortcut, a page's, and the quit key did nothing.
+A Control chord now leaves the mode and then goes on, as it goes past an open menu. A bare key is still spent on
+leaving.
+
 **`KeyboardShortcut.isDeliverableInTerminal` answers `false` for the chords a terminal sends as another key.** It said
 `true` for Control with Shift (⌘⇧S under `.commandKey(.control)`, which arrives as ⌃S and fires ⌃S's binding), with a
 digit or most punctuation (⌘1, which a legacy encoding sends as a plain 1, and ⌃, which it cannot send at all), for
