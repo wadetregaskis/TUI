@@ -115,6 +115,37 @@ extension RenderContext {
             layers.map { ($0.buffer, $0.x, $0.y) }, width: width, height: height, splitsOverhang: true,
             wakeToken: "stack-base-run-\(identity.path)", context: self)
     }
+
+    /// A settled stack's children drawn in ascending z-index, as they are
+    /// while they glide, or `nil` where every one of them has the default z-index
+    /// and the stack draws them in declaration order as it always does.
+    ///
+    /// SwiftUI's `.zIndex` orders the children of any container, not only a
+    /// `ZStack`'s, and a row's or a column's children overlap wherever an
+    /// `.offset` or a negative padding puts one over another. The stack drew
+    /// them in declaration order once settled, so a raised view went back
+    /// under its later sibling the frame its animation ended.
+    ///
+    /// - Parameters:
+    ///   - children: The children laid out.
+    ///   - buffers: What each drew, `nil` for a spacer.
+    ///   - targets: Where the layout put each of them.
+    ///   - width: The stack's in-flow width.
+    ///   - height: The stack's in-flow height.
+    @MainActor
+    package func zOrderedStackBuffer(
+        _ children: [ChildView], buffers: [FrameBuffer?], at targets: [ChildPlacement], width: Int, height: Int
+    ) -> FrameBuffer? {
+        guard children.contains(where: { $0.zIndex != 0 }) else { return nil }
+        // Ascending z-index, declaration order within one: a stable sort.
+        let order = children.indices.sorted { (children[$0].zIndex, $0) < (children[$1].zIndex, $1) }
+        let layers = order.compactMap { index in
+            buffers[index].map { (buffer: $0, x: targets[index].x, y: targets[index].y) }
+        }
+        return FrameBuffer.layered(
+            layers, width: width, height: height, splitsOverhang: true,
+            wakeToken: "stack-base-run-\(identity.path)", context: self)
+    }
 }
 
 // MARK: - Where a column and a row put their children

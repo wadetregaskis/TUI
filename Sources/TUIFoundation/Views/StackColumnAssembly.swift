@@ -30,6 +30,13 @@
         {
             return gliding.clamped(toWidth: context.availableWidth, height: context.availableHeight)
         }
+        // A child with a z-index of its own is drawn in its place in that
+        // order, over the siblings below it wherever they overlap.
+        if let ordered = context.zOrderedStackBuffer(
+            children, buffers: buffers, at: column.targets, width: column.width, height: column.height)
+        {
+            return ordered.clamped(toWidth: context.availableWidth, height: context.availableHeight)
+        }
 
         // Empty children (e.g. `if false { ChildView() }`, which
         // ViewBuilder lowers to `Optional<ChildView>.none`, and

@@ -625,9 +625,13 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // row is drawn as each of them is (`StackGlide`).
         let row = rowPlacements(
             buffers: buffers, widths: finalWidths, gaps: gaps, rowHeight: rowHeight, guideRun: guideRun)
+        // A child with a z-index of its own is drawn in its place in that
+        // order, over the siblings below it wherever they overlap.
         if let gliding = context.glidingStackBuffer(
             children, buffers: buffers, at: row.targets, departing: split.departing,
             width: row.width, height: row.height)
+            ?? context.zOrderedStackBuffer(
+                children, buffers: buffers, at: row.targets, width: row.width, height: row.height)
         {
             reportTargetLayout(buffers: buffers, spacerWidths: finalWidths, gaps: gaps, context: context)
             resolveColumnSeek(

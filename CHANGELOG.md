@@ -66,6 +66,11 @@ edge, and Alt and a letter opened their menus, but the titles couldn't be seen a
 now scrolls to keep the highlighted or open title in view, with « and » where titles are hidden; a click on either
 opens the hidden menu beside it. A title wider than the whole row is drawn from its start, as much as fits.
 
+**`.zIndex` orders the children of a `VStack`, an `HStack`, a `Grid` and a `Layout`, not only a `ZStack`'s.** A
+view raised with `.zIndex(1)` was drawn under a later sibling an `.offset` or a negative padding moved onto it, and the
+click there went to the sibling. It now stays on top and takes the clicks where it is drawn, as in SwiftUI. The lazy
+stacks still draw their rows in order.
+
 **The environment variables an app's man page lists are written for the person running it.** Each says, in plain
 words, what it does to the screen, the keys or the mouse, its values, its default, and an example where one helps, and
 they're grouped as that person looks for them: colour and appearance, motion, keyboard and mouse, text and language,

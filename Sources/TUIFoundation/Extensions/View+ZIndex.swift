@@ -49,10 +49,9 @@ extension View {
     /// Controls the display order of this view relative to overlapping
     /// siblings.
     ///
-    /// Within a ``ZStack`` (or any overlapping container) children are drawn
-    /// in ascending order of their z-index, so a higher value brings a view
-    /// to the front. Children left at the default `0` keep their natural
-    /// tree order.
+    /// A container draws its children in ascending order of their z-index,
+    /// so a higher value brings a view to the front. Children left at the
+    /// default `0` keep their natural tree order.
     ///
     /// ```swift
     /// ZStack {
@@ -61,7 +60,13 @@ extension View {
     /// }
     /// ```
     ///
-    /// Outside an overlapping container the modifier has no visible effect.
+    /// That holds in a ``VStack``, an ``HStack``, a `Grid` and a ``Layout``
+    /// too, whose children overlap wherever an ``View/offset(x:y:)``, a
+    /// negative padding or the layout's own placement puts one over another: a
+    /// raised view stays over a later sibling moved onto it, and takes the
+    /// clicks where it is drawn. A ``LazyVStack`` and a ``LazyHStack`` draw
+    /// their rows in order, whatever their z-index. Where nothing overlaps,
+    /// the modifier has no visible effect.
     ///
     /// It need NOT be the outermost modifier, which it did until 2026-09-20:
     /// `.zIndex(1).padding(0)` lost its place in the draw order, because the

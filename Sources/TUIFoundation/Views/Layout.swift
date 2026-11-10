@@ -485,8 +485,14 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
         {
             return gliding
         }
+        // In ascending z-index, placement order within one, as SwiftUI draws a
+        // layout's subviews; the placement order alone where none has one.
+        var drawingOrder = Array(entries.indices)
+        if children.contains(where: { $0.zIndex != 0 }) {
+            drawingOrder.sort { (children[$0].zIndex, $0) < (children[$1].zIndex, $1) }
+        }
         var showingThrough: [AnimatedCellRun] = []
-        for (entry, rendered) in zip(entries, pictures) {
+        for (entry, rendered) in drawingOrder.map({ (entries[$0], pictures[$0]) }) {
             // In place: `composited` rebuilds every line of the canvas per
             // call, so folding n children through it is n × canvas even though
             // each child covers a couple of rows.

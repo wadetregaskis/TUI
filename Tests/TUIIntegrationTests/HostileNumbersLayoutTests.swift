@@ -81,6 +81,8 @@ struct HostileNumbersLayoutTests {
     func priorities(value: Double) {
         drawHostile(HStack { Text("a").layoutPriority(value); Text("b") })
         drawHostile(ZStack { Text("a").zIndex(value); Text("b") })
+        drawHostile(HStack { Text("a").zIndex(value); Text("b").offset(x: -1) })
+        drawHostile(VStack { Text("a").zIndex(value); Text("b").offset(y: -1) })
         drawHostile(Color.red.aspectRatio(value, contentMode: .fit))
         drawHostile(Color.red.aspectRatio(value, contentMode: .fill))
     }

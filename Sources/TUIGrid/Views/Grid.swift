@@ -416,9 +416,12 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
             result.appendVertically(canvas, spacing: rowIndex > 0 ? verticalSpacing : 0)
         }
         // While a cell is on its way to where the lattice now puts it under an
-        // animation, each is drawn where it is, over the grid's whole canvas.
+        // animation, each is drawn where it is, over the grid's whole canvas;
+        // and a cell with a z-index of its own is drawn in that order, over
+        // the cells below it wherever they overlap.
         if let gliding = context.glidingStackBuffer(
             cells, buffers: pictures, at: targets, departing: [], width: width, height: result.height)
+            ?? context.zOrderedStackBuffer(cells, buffers: pictures, at: targets, width: width, height: result.height)
         {
             return gliding.clamped(toWidth: context.availableWidth, height: context.availableHeight)
         }
