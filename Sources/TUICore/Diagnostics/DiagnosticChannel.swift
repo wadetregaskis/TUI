@@ -48,7 +48,7 @@ package enum DiagnosticChannel {
             handle.write(Data(text.utf8))
             try? handle.close()
         } else {
-            try? text.write(toFile: destination, atomically: true, encoding: .utf8)
+            try? Data(text.utf8).writeAtomicallyWherePossible(to: URL(fileURLWithPath: destination))
         }
     }
 }

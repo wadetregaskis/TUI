@@ -337,8 +337,9 @@ Fixed here, each with the test that failed on WebAssembly:
   "unreachable"), not traced: recursion no guard covers, such as releasing a chain one node inside the next, is the
   likely place, and it runs out natively too, only deeper. An app on wasm wants the bigger stack.
 
-Found and not fixed, in the gaps below: atomic writes (gap 4), dynamic properties inside enum payloads and the
-value-hash plans (gap 5).
+- **A document saved, a language chosen or a diagnostic file started wrote nothing** (gap 4, fixed 2026-11-10).
+
+Found and not fixed, in the gaps below: dynamic properties inside enum payloads and the value-hash plans (gap 5).
 
 ### The gaps, in order
 
@@ -366,12 +367,17 @@ value-hash plans (gap 5).
    stack wrote over the data below it. It reads the linker's bounds now; see "What the run found in the framework"
    above. Left: recursion no guard covers (a deep chain's release) still runs out of a small stack, on wasm into
    memory rather than a crash, so an app's stack size matters more there; `RunningInABrowser.md` says so.
-4. **Atomic writes fail on WASI (S–M).** WASI's Foundation refuses `atomically: true` and `.atomic` (NSCocoaError
-   3328). `@AppStorage` already writes plainly there; `fileExporter`, `LocalizationService`'s language file and
-   `DiagnosticChannel` still ask Foundation for one, and `FileDocument` saves make their own (a temporary file, then
-   a replace, in the portable `FileWrapper`). On WebAssembly the exporter's saves wrote nothing
-   (`FileDocumentExporterTests`); which of the two steps failed is the first thing to find. One helper, atomic where
-   the platform can and plain where it cannot, used at each site.
+4. **Done 2026-11-10: saves write on WASI, in place.** WASI's Foundation has no atomic write: `.atomic` is
+   unavailable to compile, `atomically: true` fails at run time (NSCocoaError 3328), and a temporary file of one's
+   own cannot replace the old one either, since `rename` over an existing file answers "Not supported" under
+   WasmKit (a probe, the same day); so `FileDocument` saves, whose portable `FileWrapper` writes a temporary and
+   then renames it, wrote nothing. One helper, `Data.writeAtomicallyWherePossible(to:)` in TUICore, is atomic
+   elsewhere and plain on WASI, and every site uses it: `@AppStorage`, `fileExporter`, `LocalizationService`'s
+   language file and `DiagnosticChannel`; `FileWrapper` writes in place there. `FileDocumentExporterTests`,
+   `ReferenceFileDocumentExporterTests`, `DiagnosticChannelTests` and the language-file tests failed under
+   WasmKit and pass. Left: a crash mid-write can leave a half-written file on WASI, which only the host can
+   prevent; whether a browser host's `rename` would allow the atomic path is not measured; and `TUITesting`'s
+   snapshot recording still asks for `atomically: true`.
 5. **Enum payloads (M).** `EnumWitnesses` is `nil` on wasm32 (and Windows), so a dynamic property inside an enum's
    payload is not found (`DynamicPropertyDiscoveryTests`: a `@State` in `.on(…)` still reads its first value after
    a write), and a view whose value hash needs an enum's payload is not hashed (`.bypass`), which costs memo hits,

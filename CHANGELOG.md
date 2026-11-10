@@ -50,6 +50,11 @@ two of its seven border styles filled in; write `Dialog(title: "…", borderStyl
 its row in a `.sidebarAdaptable` sidebar the buttons a list row's swipe actions give it, revealed from the keyboard
 (⇧→ and ⇧←) or a trackpad's sideways swipe in the same way. A tab bar has no rows to swipe and shows none.
 
+**On WebAssembly, a document saves, and a chosen language and a diagnostics file are written.** WASI has no atomic
+write, and a `FileDocument` or `ReferenceFileDocument` save, the language `LocalizationService` keeps and the first
+report to `TUI_DIAGNOSTICS_FILE` each asked for one, and wrote nothing. They write in place there now, as
+`@AppStorage` and `fileExporter` already did; other platforms still write atomically.
+
 **On WebAssembly, a view tree too deep for the stack is cut short instead of corrupting memory.** The stack guard,
 which stops the descent with a notice where the stack runs low, had no bounds to measure there and was off, and wasm's
 stack has no guard page: a tree deeper than it wrote over the program's data. It reads the linker's bounds now. On

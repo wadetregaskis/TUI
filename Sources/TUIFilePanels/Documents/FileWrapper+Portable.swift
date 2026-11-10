@@ -232,7 +232,7 @@
         ///     lets Foundation's copy rather than write. Not used here: every
         ///     wrapper holds its contents or knows where they are.
         open func write(to url: URL, options: WritingOptions = [], originalContentsURL: URL?) throws {
-            if options.contains(.atomic) {
+            if options.contains(.atomic), Self.replacesAtomically {
                 let temporary = url.deletingLastPathComponent()
                     .appendingPathComponent(".\(url.lastPathComponent).\(UUID().uuidString)")
                 do {
@@ -249,6 +249,19 @@
         }
 
         // MARK: Private
+
+        /// Whether `.atomic` writes through a temporary and a replace, or in
+        /// place. In place on WASI: `rename` over what is there answers "Not
+        /// supported" under WasmKit, so the temporary could never take the old
+        /// node's place, and a save wrote nothing (measured 2026-11-10;
+        /// `Data.writeAtomicallyWherePossible(to:)` says more).
+        private static var replacesAtomically: Bool {
+            #if canImport(WASILibc)
+                false
+            #else
+                true
+            #endif
+        }
 
         /// Moves `replacement` to `url`, replacing whatever is there, so that
         /// `url` names the old node or the new one whole at every moment, and a

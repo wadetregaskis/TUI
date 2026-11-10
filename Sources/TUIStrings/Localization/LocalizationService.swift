@@ -705,11 +705,7 @@ public final class LocalizationService: Sendable {
 
         // Write language code
         do {
-            try language.rawValue.write(
-                toFile: path,
-                atomically: true,
-                encoding: .utf8
-            )
+            try Data(language.rawValue.utf8).writeAtomicallyWherePossible(to: URL(fileURLWithPath: path))
         } catch {
             // Same contract as `@AppStorage`: a language the user chose that
             // does not reach the disk is a setting silently lost at the next

@@ -8,6 +8,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 
 #if canImport(UniformTypeIdentifiers)
@@ -130,14 +131,8 @@ enum FileExportWrite {
     @concurrent
     static func write(_ data: Data, to url: URL) async -> Result<URL, any Error> {
         do {
-            // Atomically where the platform can, as `AppStorage` writes: WASI's
-            // Foundation refuses the option, having no temporary directory to
-            // write through, so there the write is direct.
-            #if canImport(WASILibc)
-                try data.write(to: url)
-            #else
-                try data.write(to: url, options: .atomic)
-            #endif
+            // Atomically where the platform can, which WASI cannot.
+            try data.writeAtomicallyWherePossible(to: url)
             return .success(url)
         } catch {
             return .failure(error)

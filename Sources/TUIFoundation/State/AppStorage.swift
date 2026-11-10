@@ -6,6 +6,7 @@
 
 import Foundation
 import Synchronization
+import TUICore
 
 // MARK: - JSON File Storage
 
@@ -277,16 +278,8 @@ extension JSONFileStorage {
         do {
             let data = try JSONSerialization.data(withJSONObject: serializable, options: .prettyPrinted)
             // Atomically where the platform can: a half-written settings file
-            // is worse than a stale one. WASI's Foundation refuses the option
-            // outright — atomic writing goes through a temporary file and a
-            // rename, and wasip1 has no temporary directory to make one in — so
-            // there the write is direct, and a host that cares about the
-            // difference has to provide durability of its own.
-            #if canImport(WASILibc)
-                try data.write(to: fileURL)
-            #else
-                try data.write(to: fileURL, options: .atomic)
-            #endif
+            // is worse than a stale one. Not on WASI, which has no atomic write.
+            try data.writeAtomicallyWherePossible(to: fileURL)
         } catch {
             // Still this instance's to write: the next flush tries them again.
             state.withLock { state in
