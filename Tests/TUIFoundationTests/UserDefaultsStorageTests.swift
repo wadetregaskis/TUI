@@ -55,7 +55,7 @@ struct UserDefaultsStorageTests {
 
     /// ``withStorage(_:)``'s suite and key, for a test that opens the suite
     /// more than once.
-    private static func withSuite(_ body: (String, String) -> Void) {
+    private static func withSuite(_ body: (String, String) throws -> Void) rethrows {
         #if canImport(Darwin)
         // On Apple platforms a suite named by an absolute path keeps its file
         // at that path (`<path>.plist`), not in ~/Library/Preferences — so the
@@ -86,7 +86,7 @@ struct UserDefaultsStorageTests {
             try? FileManager.default.removeItem(at: directory)
             #endif
         }
-        body(suite, key)
+        try body(suite, key)
     }
 
     #if canImport(Darwin)
@@ -271,6 +271,51 @@ struct UserDefaultsStorageTests {
             storage.setValue(value, forKey: key)
             let stored = Self.defaults(suite).data(forKey: key).flatMap { try? JSONDecoder().decode(Settings.self, from: $0) }
             #expect(stored == value)
+        }
+    }
+    /// Until 2026-10-14 (0.6.0 and every release before it) TUI kept every
+    /// value in `UserDefaults` as its JSON encoding; since then a property-list
+    /// value is kept as itself, as SwiftUI keeps it. Read only as itself, every
+    /// such setting an app had saved read as absent, its default: the newer
+    /// reader of the API stability policy's persisted state, broken.
+    @Test("A value an earlier TUI kept as its JSON encoding reads, where it is now kept as itself")
+    func earlierJSONEncodedValuesRead() throws {
+        try Self.withSuite { suite, key in
+            let defaults = Self.defaults(suite)
+            let encoder = JSONEncoder()
+            let keys = (flag: key, width: key + ".width", ratio: key + ".ratio", page: key + ".page", fruit: key + ".fruit")
+            defer { for other in [keys.width, keys.ratio, keys.page, keys.fruit] { defaults.removeObject(forKey: other) } }
+            defaults.set(try encoder.encode(true), forKey: keys.flag)
+            defaults.set(try encoder.encode(96), forKey: keys.width)
+            defaults.set(try encoder.encode(0.5), forKey: keys.ratio)
+            defaults.set(try encoder.encode("Buttons"), forKey: keys.page)
+            defaults.set(try encoder.encode("pear"), forKey: keys.fruit)
+            let storage = UserDefaultsStorage(suiteName: suite)
+            #expect(storage.value(forKey: keys.flag) == Optional(true))
+            #expect(storage.value(forKey: keys.width) == Optional(96))
+            #expect(storage.value(forKey: keys.ratio) == Optional(0.5))
+            #expect(storage.value(forKey: keys.page) == Optional("Buttons"))
+            #expect(storage.value(forKey: keys.fruit) == Optional(Fruit.pear))
+            #expect(AppStorage(wrappedValue: Fruit.apple, keys.fruit, store: storage).wrappedValue == .pear)
+            #expect(AppStorage(wrappedValue: false, keys.flag, store: storage).wrappedValue)
+            #expect(storage.value(forKey: keys.flag) == Int?.none, "JSON of another type is still absent")
+            // Written again, it is kept as itself, as any value is now.
+            storage.setValue(false, forKey: keys.flag)
+            #expect(defaults.object(forKey: keys.flag) as? Bool == false)
+        }
+    }
+
+    @Test("A case a later build added, or a value it retyped, reads as the default")
+    func laterValuesReadAsDefault() {
+        Self.withSuite { suite, key in
+            let defaults = Self.defaults(suite)
+            let storage = UserDefaultsStorage(suiteName: suite)
+            defaults.set("banana", forKey: key)
+            #expect(AppStorage(wrappedValue: Fruit.apple, key, store: storage).wrappedValue == .apple)
+            defaults.set(30.5, forKey: key)
+            #expect(AppStorage(wrappedValue: 30, key, store: storage).wrappedValue == 30)
+            defaults.set(["level": 3], forKey: key)
+            #expect(!AppStorage(wrappedValue: false, key, store: storage).wrappedValue)
         }
     }
     #endif

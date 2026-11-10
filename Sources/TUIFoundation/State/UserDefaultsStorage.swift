@@ -246,13 +246,22 @@ import TUICore
 
         /// The value stored for `key` as `T` — `.some(nil)` where it is
         /// absent or of another type — or `nil` where `T` is not kept as
-        /// itself.
+        /// itself, or where what is stored is bytes that may be its JSON.
         static func read<T>(_: T.Type, from defaults: UserDefaults, forKey key: String) -> T?? {
             guard isPropertyList(T.self) else { return nil }
             // Absent is `nil`, for an optional `T` too: cast, a missing
             // value would become an optional's `nil` and stand in for the
             // caller's default.
-            guard let found = value(T.self, from: defaults, forKey: key) else { return .some(nil) }
+            guard let found = value(T.self, from: defaults, forKey: key) else {
+                // Bytes where a `Bool`, a number, a string or a raw value
+                // belongs are what TUI wrote until 2026-10-14 (0.6.0 and
+                // every release before it): every value as its JSON. The caller decodes them as
+                // that, and keeps the decoding, as for any other Codable
+                // value; they stay as they are, so an earlier build still
+                // reads them, until a write keeps the value as itself.
+                if defaults.object(forKey: key) is Data { return nil }
+                return .some(nil)
+            }
             return .some(found as? T)
         }
 

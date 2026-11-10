@@ -64,6 +64,12 @@ stack has no guard page: a tree deeper than it wrote over the program's data. It
 wasm-ld's default 64 KB stack it trips a few levels down, so link with a bigger one (`-z stack-size=16777216`, as
 `Tools/Web/build.sh` does).
 
+**On macOS, settings an earlier TUI saved in `UserDefaults` are read again.** Until 2026-10-14 TUI kept every
+`@AppStorage` value there as its JSON encoding: by default from 2026-06-29, and in 0.6.0 and earlier for an app that
+named `UserDefaultsStorage`. Since then a `Bool`, a number, a string or a raw value has been kept as itself, as SwiftUI
+keeps it, and such a value saved earlier read as absent, so it showed its default. It is now read from its JSON. It
+stays as it is until the next write, which keeps the value as itself.
+
 **A WebAssembly program no longer stops where TUI's resource bundle isn't at its build machine's path.** It looks
 for `TUI_TUIStrings.resources` beside the program, as every other platform does, and reads TUI's own words in English
 where it isn't there. `Tools/Web/build.sh` serves it beside the program. An app's own resources are still its own
