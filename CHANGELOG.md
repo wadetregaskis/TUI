@@ -79,6 +79,12 @@ named `UserDefaultsStorage`. Since then a `Bool`, a number, a string or a raw va
 keeps it, and such a value saved earlier read as absent, so it showed its default. It is now read from its JSON. It
 stays as it is until the next write, which keeps the value as itself.
 
+**Text fields and editors keep the accents, joiners and variation selectors typed after a character.** A terminal
+sends what a keyboard, an input method or the emoji picker types a Unicode scalar at a time, and `TextField`,
+`SecureField` and `TextEditor` dropped every scalar that was a mark or a format character on its own: 👨‍👩‍👧 went in
+as 👨👩👧, ❤️ lost its emoji form, a Thai tone mark or a Persian zero-width non-joiner went missing, and an accent
+typed decomposed vanished. They now type anything but a control character, as a paste always has.
+
 **A WebAssembly program no longer stops where TUI's resource bundle isn't at its build machine's path.** It looks
 for `TUI_TUIStrings.resources` beside the program, as every other platform does, and reads TUI's own words in English
 where it isn't there. `Tools/Web/build.sh` serves it beside the program. An app's own resources are still its own

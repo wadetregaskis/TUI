@@ -490,7 +490,7 @@ final class TextEditorHandler: PersistedFocusable {
         switch key {
         case .backspace, .delete:
             remove()
-        case .character(let character) where isInsertable(character):
+        case .character(let character) where character.isTypedText:
             remove()
             insert(String(character))
         case .space:
@@ -518,7 +518,7 @@ final class TextEditorHandler: PersistedFocusable {
         case .character(let character):
             // A ctrl chord never reaches here (dispatched above); an unbound alt
             // chord must not type its letter.
-            guard !event.alt, isInsertable(character) else { return false }
+            guard !event.alt, character.isTypedText else { return false }
             insert(String(character))
         case .space:
             insert(" ")
@@ -554,12 +554,6 @@ final class TextEditorHandler: PersistedFocusable {
         return true
     }
     // swiftlint:enable cyclomatic_complexity
-
-    /// Whether a character is one the editor inserts literally.
-    private func isInsertable(_ character: Character) -> Bool {
-        character.isLetter || character.isNumber || character.isPunctuation
-            || character.isSymbol || character.isWhitespace
-    }
 
     /// The command an Emacs chord names in the editor, from
     /// ``TextEditingCommand``, the table every text control shares: a

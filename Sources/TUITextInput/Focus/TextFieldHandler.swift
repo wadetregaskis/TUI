@@ -676,14 +676,11 @@ extension TextFieldHandler {
         if event.ctrl || event.alt {
             return false
         }
-        // Ignore control characters except printable ones.
-        if char.isLetter || char.isNumber || char.isPunctuation
-            || char.isSymbol || char.isWhitespace
-        {
-            insertCharacter(char)
-            return true
-        }
-        return false
+        // Anything but a control character (``Character/isTypedText``): a
+        // mark or a joiner typed after its base included.
+        guard char.isTypedText else { return false }
+        insertCharacter(char)
+        return true
     }
 
     /// Handles `.left` / `.right` with the four modifier combinations
