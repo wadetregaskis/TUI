@@ -42,7 +42,9 @@
 ///   ink up the ladder of names instead of tinting a fill;
 /// - a highlight that would have been a tint — a cursor row, a text selection, a menu's
 ///   highlight bar — is drawn in reverse video over the palette's own pair;
-/// - a focus breath holds still at its bright end.
+/// - a focus breath holds still at its bright end;
+/// - a disabled control, whose grey can't be mixed either, is drawn faint, as on a
+///   terminal with no colour.
 ///
 /// Once the terminal answers, every one of those measures and the palette behaves like
 /// any other: the tiers dim toward the reported page, faces are tints again and the

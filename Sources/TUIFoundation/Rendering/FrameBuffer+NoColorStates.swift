@@ -23,11 +23,12 @@ import TUIStyling
 /// then these are drawn over the colours too (``RenderContext/statesWithoutColor``).
 extension FrameBuffer {
     /// This buffer drawn faint, if `isDisabled`, where a control says its state without
-    /// colour (``RenderContext/statesWithoutColor``): italic too where faint doesn't
-    /// show (``ANSIRenderer/applyPersistentDisabled(_:)``).
+    /// colour (``RenderContext/statesWithoutColor``), or where its grey can't be mixed
+    /// (``RenderContext/disabledWithoutColor``): italic too where faint doesn't show
+    /// (``ANSIRenderer/applyPersistentDisabled(_:)``).
     @MainActor
     package func fadedWithoutColor(if isDisabled: Bool, context: RenderContext) -> FrameBuffer {
-        guard isDisabled, context.statesWithoutColor else { return self }
+        guard isDisabled, context.disabledWithoutColor else { return self }
         return drawnDisabled()
     }
 
@@ -151,7 +152,10 @@ extension _ButtonStyleBody {
     /// A link's label rests at its breath's bright end, so it reverses too where the
     /// focus holds still (``RenderContext/focusHoldsStill``), at any depth.
     func statingStateWithoutColor(_ buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
-        guard context.statesWithoutColor || (configuration.isFocused && context.focusHoldsStill) else { return buffer }
+        guard
+            context.statesWithoutColor || (configuration.isFocused && context.focusHoldsStill)
+                || (!configuration.isEnabled && context.disabledWithoutColor)
+        else { return buffer }
         let edges = appearance.edges
         let hasCaps = !appearance.isPlain && edges.caps != nil && !edges.capsAreFace && !edges.isOutline
         return
@@ -178,6 +182,19 @@ extension RenderContext {
     /// control's no-colour cues ask, so that they all turn on together.
     package var statesWithoutColor: Bool {
         ColorDepth.current == .noColor || environment.accessibilityDifferentiateWithoutColor
+    }
+
+    /// Whether a disabled control says so in faint rather than by its grey: wherever
+    /// states are said without colour (``statesWithoutColor``), and where the grey can't
+    /// be mixed because the palette's foreground or page has no RGB, as the `Terminal`
+    /// palette's have until the terminal reports them, and on a host that never does
+    /// (GNU screen). There the grey comes out as the plain foreground
+    /// (`Color.opacity(_:over:)` keeps the heavier side), so a disabled control looked
+    /// enabled.
+    package var disabledWithoutColor: Bool {
+        if statesWithoutColor { return true }
+        let palette = environment.palette
+        return palette.foreground.rgbComponents == nil || palette.background.rgbComponents == nil
     }
 
     /// Whether a focused control's breath holds still here, at its bright end: the

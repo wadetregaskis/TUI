@@ -46,6 +46,11 @@ as a file's name is.
 read (no permission, or gone since it was listed) had a column saying "This folder is empty.", and once a column or
 the list's outline had looked into it, opening it said the same, rather than that it can't be opened, and why.
 
+**A disabled control looks disabled under the `Terminal` palette before the terminal reports its colours.** Its grey
+can't be mixed until then, and on a host that never reports them, such as GNU screen, it came out as the plain
+foreground, so a disabled button or text field looked enabled. It is drawn faint there, as on a terminal with no
+colour.
+
 **A disabled `List` or `Table` looks disabled.** At any colour depth it drew exactly as an enabled one without the
 focus; only a terminal with no colour, or Differentiate Without Color, showed it faint. It is drawn faint at every
 depth now.
