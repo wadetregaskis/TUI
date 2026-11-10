@@ -13,6 +13,11 @@ import TUI
     import Musl
 #endif
 
+// The probe is driven through a PTY and starts a child process, neither of
+// which wasip1 has; it builds there only because `swift build --build-tests`
+// builds every product.
+#if !canImport(WASILibc)
+
 // MARK: - Why this exists
 //
 // `idle_cpu.py` answers "does a static screen cost anything?", but only if the
@@ -340,3 +345,9 @@ if let path = ProcessInfo.processInfo.environment["IDLE_PROBE_CHILD_PIDFILE"] {
 }
 
 await IdleProbeApp.main()
+
+#else
+
+FileHandle.standardError.write(Data("IdleProbe needs a PTY and child processes, which WebAssembly has neither of.\n".utf8))
+
+#endif

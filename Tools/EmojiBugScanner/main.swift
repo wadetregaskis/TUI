@@ -21,12 +21,25 @@
     import Musl
 #elseif canImport(Darwin)
     import Darwin
+#elseif canImport(WASILibc)
+    import WASILibc
 #endif
 import Foundation
 import TUICore
 
 // MARK: - Raw mode
 
+#if os(WASI)
+/// WASI has no `termios`: a guest's stdin is whatever its host makes it, and
+/// the browser page's is already unbuffered and unechoed, which is what
+/// TUI's own `Terminal` assumes there too. So raw mode is nothing to do.
+/// This keeps the package building whole for `wasm32-unknown-wasip1`; the
+/// scanner is still meant for Terminal.app.
+struct RawMode {
+    static func enable() -> RawMode { RawMode() }
+    func restore() {}
+}
+#else
 struct RawMode {
     var original: termios
 
@@ -56,6 +69,7 @@ struct RawMode {
         unsafe tcsetattr(STDIN_FILENO, TCSAFLUSH, &orig)
     }
 }
+#endif
 
 // MARK: - Low-level I/O
 
