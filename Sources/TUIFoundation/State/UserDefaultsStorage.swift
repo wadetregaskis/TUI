@@ -280,10 +280,10 @@ import TUICore
         }
     }
 
-// MARK: - UserDefaults Storage (Linux)
+// MARK: - UserDefaults Storage (Linux, WebAssembly)
 
-#elseif os(Linux)
-    /// A storage backend that emulates UserDefaults on Linux.
+#elseif os(Linux) || os(WASI)
+    /// A storage backend that emulates UserDefaults on Linux and WebAssembly.
     ///
     /// Uses a JSON file at `UserDefaults.json` (or `UserDefaults-<suite>.json`)
     /// in `appConfigDirectory()` — `$XDG_CONFIG_HOME/<appName>`, else
@@ -309,7 +309,7 @@ import TUICore
 
         /// Creates a UserDefaults-compatible storage with a custom suite.
         ///
-        /// On Linux, each suite gets its own JSON file.
+        /// Each suite gets its own JSON file.
         public init(suiteName: String?) {
             self.suiteName = suiteName
             self.storage = Self.createStorage(suiteName: suiteName)

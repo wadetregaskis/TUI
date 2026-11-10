@@ -25,6 +25,10 @@ user still sees there is more. To keep the old layout, a column always reserved 
 `.scrollIndicatorPlacement(.besideContent)` at the top of the app. `scrollIndicatorsFlash` lights only indicators that
 are drawn, so under the new default a flash shows nothing until the pointer or the focus brings them.
 
+**`UserDefaultsStorage` exists on WebAssembly.** It was declared for Apple platforms and Linux only, so an app that
+named it did not compile for `wasm32-unknown-wasip1`. There it is Linux's: a JSON file per suite in the app's
+configuration directory.
+
 **Scrolling sends far fewer bytes.** Where most of the rows on screen moved, as when a list or scroll view scrolls,
 TUI now has the terminal move them with a scroll region and writes only what the move exposed and what it got wrong,
 rather than rewriting every row. Over the `Stress` sessions that is about 30% fewer bytes, and a wheel notch over
