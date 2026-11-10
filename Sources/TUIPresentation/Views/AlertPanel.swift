@@ -16,7 +16,7 @@ import TUIFoundation
 /// and its siblings, which build one of these.
 ///
 /// `AlertPanel` draws the panel. **Presenting it is a separate job**, and the way to
-/// do it is ``View/alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:)-(LocalizedStringKey,_,_,_,_,_,_)`` or
+/// do it is ``View/alert(_:isPresented:actions:message:)-(LocalizedStringKey,_,_,_)`` or
 /// ``View/modal(isPresented:onDismiss:content:)``.
 ///
 /// ## Structure
@@ -24,6 +24,9 @@ import TUIFoundation
 /// - **Header**: Title (rendered in the top border)
 /// - **Body**: Message
 /// - **Footer**: Action buttons (separated by optional separator line)
+///
+/// A border part left `nil` here comes from ``View/dialogBorder(_:style:titleColor:)``
+/// around the panel, as it does for the alerts the presentation modifiers draw.
 ///
 /// ## Examples
 ///
@@ -315,13 +318,19 @@ struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
         return title.isEmpty ? mark : mark + " " + title
     }
 
-    /// The configuration as the environment's dialog severity leaves it: a
-    /// critical dialog takes the palette's warning colour for its border and
-    /// title, where the alert was not given colours of its own — beside the
-    /// caution sign its title starts with (``resolvedTitle(_:)``).
+    /// The configuration as the environment leaves it: each part of the
+    /// border this panel was not given comes from ``View/dialogBorder(_:style:titleColor:)``,
+    /// and then a critical dialog takes the palette's warning colour for its
+    /// border and title where neither gave colours — beside the caution sign
+    /// its title starts with (``resolvedTitle(_:)``).
     private func resolvedConfig(_ context: RenderContext) -> ContainerConfig {
-        guard context.environment.dialogIsCritical else { return config }
-        var critical = config
+        let border = context.environment.dialogBorder
+        var resolved = config
+        resolved.borderStyle = resolved.borderStyle ?? border.style
+        resolved.borderColor = resolved.borderColor ?? border.color
+        resolved.titleColor = resolved.titleColor ?? border.titleColor
+        guard context.environment.dialogIsCritical else { return resolved }
+        var critical = resolved
         critical.borderColor = critical.borderColor ?? .palette.warning
         critical.titleColor = critical.titleColor ?? .palette.warning
         return critical

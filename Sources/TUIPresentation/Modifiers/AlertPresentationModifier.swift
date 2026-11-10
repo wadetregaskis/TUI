@@ -47,15 +47,6 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
     /// The alert action buttons.
     let actions: Actions
 
-    /// Alert border style (optional).
-    let borderStyle: BorderStyle?
-
-    /// Alert border color (optional).
-    let borderColor: Color?
-
-    /// Alert title color (optional).
-    let titleColor: Color?
-
     /// Stack the action buttons vertically (a confirmation-dialog action sheet)
     /// rather than the default horizontal alert row.
     var verticalButtons: Bool = false
@@ -138,9 +129,6 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
         let alert = AlertPanel(
             title: title,
             message: messageString,
-            borderStyle: borderStyle,
-            borderColor: borderColor,
-            titleColor: titleColor,
             verticalButtons: verticalButtons,
             actions: { shownActions }
         )
@@ -417,7 +405,6 @@ struct _ImplicitDialogActions<A: View>: View, ButtonProvider {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
         AlertPresentationModifier<V, Actions, Message>(
             content: row, isPresented: isPresented, title: title, message: message, actions: actions,
-            borderStyle: borderStyle, borderColor: borderColor, titleColor: titleColor,
             verticalButtons: verticalButtons, presentsError: presentsError, titleSource: titleSource)
     }
 }

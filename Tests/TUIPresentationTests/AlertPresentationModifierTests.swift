@@ -142,7 +142,7 @@ struct AlertPresentationModifierTests {
         #expect(content.contains("OK"))
     }
 
-    @Test("Alert respects custom colors")
+    @Test("Alert respects colors set by dialogBorder")
     func customColors() {
         let isPresented = Binding.constant(true)
         let view = Text("Base")
@@ -150,10 +150,9 @@ struct AlertPresentationModifierTests {
                 "Custom",
                 isPresented: isPresented,
                 actions: { EmptyView() },
-                message: { Text("Message") },
-                borderColor: .red,
-                titleColor: .yellow
+                message: { Text("Message") }
             )
+            .dialogBorder(.red, titleColor: .yellow)
 
         let buffer = render(view)
         let content = buffer.lines.joined(separator: "\n")

@@ -79,7 +79,7 @@ Table(files, selection: $id) { TableColumn("column.size", value: \.size) }
 ```
 
 …and on the modifiers that carry text: ``TUI/View/navigationTitle(_:)-(LocalizedStringKey)``,
-``TUI/View/alert(_:isPresented:actions:borderStyle:borderColor:titleColor:)-(LocalizedStringKey,_,_,_,_,_)``,
+``TUI/View/alert(_:isPresented:actions:)-(LocalizedStringKey,_,_)``,
 ``TUI/View/confirmationDialog(_:isPresented:titleVisibility:actions:)-(LocalizedStringKey,_,_,_)``,
 `searchable(prompt:)`, `badge(_:)` and `listEmptyPlaceholder(_:)`.
 

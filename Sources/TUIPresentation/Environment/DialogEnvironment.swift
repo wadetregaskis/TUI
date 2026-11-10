@@ -2,7 +2,8 @@
 //  DialogEnvironment.swift
 //
 //  How the alerts and confirmation dialogs presented inside a view look:
-//  `dialogSeverity(_:)` and `dialogIcon(_:)`. Written outside the presenting
+//  `dialogSeverity(_:)` and `dialogIcon(_:)`, SwiftUI's, and
+//  `dialogBorder(_:style:titleColor:)`, TUI's. Written outside the presenting
 //  modifier, as SwiftUI's are, and read by the alert as it draws.
 //
 //  Created by Wade Tregaskis
@@ -62,6 +63,27 @@ private struct DialogIconKey: EnvironmentKey {
     static let defaultValue: Image? = nil
 }
 
+private struct DialogBorderKey: EnvironmentKey {
+    static let defaultValue = DialogBorder()
+}
+
+/// The border ``View/dialogBorder(_:style:titleColor:)`` gives the dialogs
+/// presented in a view: each part `nil` where the dialog keeps its default.
+package struct DialogBorder: Equatable, Sendable {
+    /// The border's colour.
+    package var color: Color?
+    /// The box-drawing characters.
+    package var style: BorderStyle?
+    /// The colour of the title drawn in the top border.
+    package var titleColor: Color?
+
+    package init(color: Color? = nil, style: BorderStyle? = nil, titleColor: Color? = nil) {
+        self.color = color
+        self.style = style
+        self.titleColor = titleColor
+    }
+}
+
 private struct DialogPresentsErrorKey: EnvironmentKey {
     static let defaultValue = false
 }
@@ -79,6 +101,13 @@ extension EnvironmentValues {
     package var dialogIcon: Image? {
         get { self[DialogIconKey.self] }
         set { self[DialogIconKey.self] = newValue }
+    }
+
+    /// The border the dialogs presented in this environment are drawn with —
+    /// set by ``View/dialogBorder(_:style:titleColor:)``.
+    package var dialogBorder: DialogBorder {
+        get { self[DialogBorderKey.self] }
+        set { self[DialogBorderKey.self] = newValue }
     }
 
     /// Whether the alert being drawn describes an error — set on the alert's
@@ -123,6 +152,44 @@ extension View {
     ///   alerts, or `nil`.
     nonisolated public func dialogIcon(_ icon: Image?) -> some View {
         environment(\.dialogIcon, icon)
+    }
+
+    /// Sets the border of the alerts and confirmation dialogs presented in
+    /// this view: its colour, its box-drawing characters, and the colour of
+    /// the title drawn in it.
+    ///
+    /// TUI-specific: SwiftUI's dialogs are drawn by the system and take no
+    /// styling. Apply it outside the presenting modifier, as
+    /// ``dialogSeverity(_:)``; it reaches every `alert` and
+    /// `confirmationDialog` presented within the view, whatever their form,
+    /// and every ``AlertPanel`` drawn there:
+    ///
+    /// ```swift
+    /// ContentView()
+    ///     .alert("Delete this item?", isPresented: $confirming) {
+    ///         Button("Delete", role: .destructive) { deleteItem() }
+    ///     }
+    ///     .dialogBorder(.palette.accent, style: .doubleLine)
+    /// ```
+    ///
+    /// Each part left `nil` keeps the dialog's default: the appearance's
+    /// border characters, the palette's border colour and its accent for the
+    /// title — or, for a critical dialog (``dialogSeverity(_:)``), the
+    /// palette's warning colour for both. An ``AlertPanel``'s own
+    /// `borderStyle`, `borderColor` and `titleColor` win over this. A
+    /// `dialogBorder` nearer the dialog replaces one further out whole, so
+    /// `dialogBorder()` puts the defaults back.
+    ///
+    /// - Parameters:
+    ///   - color: The border's colour, or `nil` for the default.
+    ///   - style: The box-drawing characters, or `nil` for the appearance's.
+    ///   - titleColor: The colour of the title in the top border, or `nil`
+    ///     for the default.
+    /// - Returns: A view whose presented dialogs are drawn with that border.
+    nonisolated public func dialogBorder(
+        _ color: Color? = nil, style: BorderStyle? = nil, titleColor: Color? = nil
+    ) -> some View {
+        environment(\.dialogBorder, DialogBorder(color: color, style: style, titleColor: titleColor))
     }
 }
 

@@ -11,7 +11,7 @@
 import TUIFoundation
 
 // The title's string, and not its styling: a dialog draws its title in its
-// own style (`alert`'s `titleColor:`), as the string forms do. A `Text`
+// own style (`dialogBorder`'s `titleColor:`), as the string forms do. A `Text`
 // made from a key was looked up when it was made, so its string is the
 // translation.
 

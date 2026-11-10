@@ -55,7 +55,7 @@ Move between screens with stacks, split views and tabs, and present sheets, dial
 ### Sheets and Dialogs
 
 - ``View/sheet(isPresented:onDismiss:content:)``
-- ``View/alert(_:isPresented:actions:message:borderStyle:borderColor:titleColor:)-(LocalizedStringKey,_,_,_,_,_,_)``
+- ``View/alert(_:isPresented:actions:message:)-(LocalizedStringKey,_,_,_)``
 - ``View/confirmationDialog(_:isPresented:titleVisibility:actions:)-(LocalizedStringKey,_,_,_)``
 - ``PresentationDetent``
 - ``PopoverAttachmentAnchor``
@@ -64,6 +64,7 @@ Move between screens with stacks, split views and tabs, and present sheets, dial
 - ``AlertPanel``
 - ``AlertScene``
 - ``DialogSeverity``
+- ``View/dialogBorder(_:style:titleColor:)``
 
 ### Notifications
 

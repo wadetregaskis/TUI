@@ -27,9 +27,21 @@ struct ContentView: View {
 }
 ```
 
-An overload without the `message:` closure presents an actions-only alert. Both
-accept optional `borderStyle`, `borderColor`, and `titleColor` arguments for
-terminal-specific styling.
+An overload without the `message:` closure presents an actions-only alert.
+
+``View/dialogBorder(_:style:titleColor:)``, applied outside the `alert` or
+`confirmationDialog`, sets the border of every dialog presented within the
+view, whatever its form: its colour, its box-drawing characters, and the
+colour of the title drawn in it. SwiftUI's dialogs take no styling, so this
+one is TUI's own; a part left `nil` keeps the default.
+
+```swift
+ContentView()
+    .alert("Delete this item?", isPresented: $confirming) {
+        Button("Delete", role: .destructive) { deleteItem() }
+    }
+    .dialogBorder(.palette.accent, style: .doubleLine)
+```
 
 Choosing **any** action dismisses the alert, as in SwiftUI — the action closure
 does not flip `isPresented` itself. <kbd>Esc</kbd> *is* the `.cancel`-role

@@ -157,8 +157,7 @@ extension View {
             // Not `Text(…)?`: an empty message and no message are different
             // pictures — the alert would keep a blank line for one.
             message: ViewBuilder.buildIf(error?.recoverySuggestion.map { Text($0) }),
-            actions: actions(), borderStyle: nil, borderColor: nil, titleColor: nil,
-            presentsError: true)
+            actions: actions(), presentsError: true)
     }
 
     /// Presents an alert describing `error`, with a message of your own.
@@ -184,7 +183,7 @@ extension View {
             title: error?.alertTitle ?? "",
             message: ViewBuilder.buildIf(error.map(message)),
             actions: ViewBuilder.buildIf(error.map(actions)),
-            borderStyle: nil, borderColor: nil, titleColor: nil, presentsError: true)
+            presentsError: true)
     }
 }
 

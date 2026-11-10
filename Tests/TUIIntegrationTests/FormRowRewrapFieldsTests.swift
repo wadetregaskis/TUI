@@ -82,7 +82,7 @@ struct FormRowRewrapFieldsTests {
     func alertTitleSource() {
         let alert = Text("x").titledAlert(
             "Delete?", isPresented: .constant(false), actions: EmptyView(), message: Text("m"),
-            colours: (.rounded, .red, .blue), verticalButtons: true)
+            verticalButtons: true)
         #expect(alert.titleSource != nil)
         var erroring = alert
         erroring.presentsError = true

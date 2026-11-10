@@ -23,7 +23,7 @@
 /// ```
 package struct ContainerConfig: Sendable, Equatable {
     /// The border style (nil uses appearance default).
-    var borderStyle: BorderStyle?
+    package var borderStyle: BorderStyle?
 
     /// The border color (nil uses theme default).
     package var borderColor: Color?

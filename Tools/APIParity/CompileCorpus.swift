@@ -11,9 +11,9 @@
 //  directions it misses are opposite and both real:
 //
 //  * A symbol the tool reports as MISSING that in fact compiles, because
-//    TUI's declaration adds optional parameters after SwiftUI's —
-//    `alert(_:isPresented:actions:)` is spelled `…:borderStyle:borderColor:
-//    titleColor:` here. `source_compatible` now models that, and this file is
+//    TUI's declaration adds optional parameters to SwiftUI's —
+//    `border(_:width:)` is spelled `border(_:style:width:)` here.
+//    `source_compatible` now models that, and this file is
 //    what proves the model right rather than merely plausible.
 //  * A symbol the tool reports as PRESENT that does not compile, because only
 //    the labels match: a `@ViewBuilder` that is not one, a trailing closure in
@@ -39,20 +39,9 @@ import TUI
 /// point: the tool would go on calling it compatible.
 @MainActor
 private struct AddedOptionalArguments: View {
-    @State private var isPresented = false
-
     var body: some View {
         VStack {
             Text("body")
-                // TUI adds borderStyle:/borderColor:/titleColor:.
-                .alert("alert.title", isPresented: $isPresented) {
-                    Button("button.ok") {}
-                } message: {
-                    Text("alert.message")
-                }
-                .alert("alert.title", isPresented: $isPresented) {
-                    Button("button.ok") {}
-                }
                 // TUI adds style: BETWEEN the colour and the width, which
                 // is the case a prefix rule would miss: Swift lets a call skip
                 // a defaulted parameter from anywhere, not just the tail.

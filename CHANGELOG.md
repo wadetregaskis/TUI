@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`.dialogBorder(_:style:titleColor:)` styles every alert and confirmation dialog; `alert` no longer takes
+`borderStyle:borderColor:titleColor:`.** Four of the fourteen `alert` forms took those three parameters after their
+closures, and the other ten, the `confirmationDialog`s among them, could not be styled at all. Apply
+`.dialogBorder(.palette.accent, style: .doubleLine, titleColor: …)` outside the `alert` or `confirmationDialog`
+instead, as `dialogSeverity(_:)` is: it reaches every form presented within the view, and every `AlertPanel` drawn
+there. `AlertPanel`, `Dialog`, `Card` and `Panel` keep their own parameters, which win.
+
 **`FlowLayout` wraps its subviews onto lines, as text wraps words.** A row of chips, tags or key hints that needs more
 width than the terminal has starts a new line where the next one would not fit: `FlowLayout(spacing: 1) { … }`, each
 line as tall as its tallest member, used directly or through `AnyLayout`. SwiftUI has no such layout; this one is

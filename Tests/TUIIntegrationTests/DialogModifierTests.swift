@@ -73,17 +73,14 @@ struct DialogModifierTests {
         #expect(errorAlert(.automatic) != errorAlert(.standard))
     }
 
-    @Test("An alert given colours of its own keeps them under a critical severity")
+    @Test("An alert given colours by dialogBorder keeps them under a critical severity")
     func explicitColoursWin() {
         let coloured = { (severity: DialogSeverity, title: String) in
             self.screen(
                 Text("base")
-                    .alert(
-                        title, isPresented: .constant(true),
-                        actions: { Button("Erase") {} },
-                        borderColor: .blue, titleColor: .green
-                    )
-                    .dialogSeverity(severity))
+                    .alert(title, isPresented: .constant(true)) { Button("Erase") {} }
+                    .dialogSeverity(severity)
+                    .dialogBorder(.blue, titleColor: .green))
         }
         #expect(coloured(.critical, "Erase?") == coloured(.standard, "\u{26A0}\u{FE0F} Erase?"))
     }

@@ -38,28 +38,25 @@ extension View {
     /// ``LocalizedStringKey``. A `String` you computed binds to the overload
     /// below and is shown as written.
     ///
+    /// ``View/dialogBorder(_:style:titleColor:)`` outside the modifier styles
+    /// the alert's border, as it does every form of `alert` and
+    /// `confirmationDialog`.
+    ///
     /// - Parameters:
     ///   - titleKey: The key for the alert title.
     ///   - isPresented: A binding to a Boolean value that determines whether
     ///     to present the alert.
     ///   - actions: A ViewBuilder returning the alert action buttons.
     ///   - message: A ViewBuilder returning the alert message content.
-    ///   - borderStyle: Custom border style for the alert (TUI extension, default: nil).
-    ///   - borderColor: Custom border color (TUI extension, default: nil).
-    ///   - titleColor: Custom title text color (TUI extension, default: nil).
     /// - Returns: A view that presents an alert conditionally.
     nonisolated public func alert<Actions: View, Message: View>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
         @ViewBuilder actions: @escaping () -> Actions,
-        @ViewBuilder message: @escaping () -> Message,
-        borderStyle: BorderStyle? = nil,
-        borderColor: Color? = nil,
-        titleColor: Color? = nil
+        @ViewBuilder message: @escaping () -> Message
     ) -> some View {
         titledAlert(
-            titleKey, isPresented: isPresented, actions: actions(), message: message(),
-            colours: (borderStyle, borderColor, titleColor))
+            titleKey, isPresented: isPresented, actions: actions(), message: message())
     }
 
     /// Presents an alert whose title is displayed as written.
@@ -74,29 +71,20 @@ extension View {
     ///     to present the alert.
     ///   - actions: A ViewBuilder returning the alert action buttons.
     ///   - message: A ViewBuilder returning the alert message content.
-    ///   - borderStyle: Custom border style for the alert (TUI extension, default: nil).
-    ///   - borderColor: Custom border color (TUI extension, default: nil).
-    ///   - titleColor: Custom title text color (TUI extension, default: nil).
     /// - Returns: A view that presents an alert conditionally.
     @_disfavoredOverload
     nonisolated public func alert<S: StringProtocol, Actions: View, Message: View>(
         _ title: S,
         isPresented: Binding<Bool>,
         @ViewBuilder actions: @escaping () -> Actions,
-        @ViewBuilder message: @escaping () -> Message,
-        borderStyle: BorderStyle? = nil,
-        borderColor: Color? = nil,
-        titleColor: Color? = nil
+        @ViewBuilder message: @escaping () -> Message
     ) -> some View {
         AlertPresentationModifier<Self, Actions, Message>(
             content: self,
             isPresented: isPresented,
             title: String(title),
             message: message(),
-            actions: actions(),
-            borderStyle: borderStyle,
-            borderColor: borderColor,
-            titleColor: titleColor
+            actions: actions()
         )
     }
 
@@ -110,21 +98,14 @@ extension View {
     ///   - isPresented: A binding to a Boolean value that determines whether
     ///     to present the alert.
     ///   - actions: A ViewBuilder returning the alert action buttons.
-    ///   - borderStyle: Optional border style.
-    ///   - borderColor: Optional border color.
-    ///   - titleColor: Optional title color.
     /// - Returns: A view that presents an alert conditionally.
     nonisolated public func alert<Actions: View>(
         _ titleKey: LocalizedStringKey,
         isPresented: Binding<Bool>,
-        @ViewBuilder actions: @escaping () -> Actions,
-        borderStyle: BorderStyle? = nil,
-        borderColor: Color? = nil,
-        titleColor: Color? = nil
+        @ViewBuilder actions: @escaping () -> Actions
     ) -> some View {
         titledAlert(
-            titleKey, isPresented: isPresented, actions: actions(), message: EmptyView?.none,
-            colours: (borderStyle, borderColor, titleColor))
+            titleKey, isPresented: isPresented, actions: actions(), message: EmptyView?.none)
     }
 
     /// Presents an alert with actions only, whose title is shown as written.
@@ -138,28 +119,19 @@ extension View {
     ///   - isPresented: A binding to a Boolean value that determines whether
     ///     to present the alert.
     ///   - actions: A ViewBuilder returning the alert action buttons.
-    ///   - borderStyle: Optional border style.
-    ///   - borderColor: Optional border color.
-    ///   - titleColor: Optional title color.
     /// - Returns: A view that presents an alert conditionally.
     @_disfavoredOverload
     nonisolated public func alert<S: StringProtocol, Actions: View>(
         _ title: S,
         isPresented: Binding<Bool>,
-        @ViewBuilder actions: @escaping () -> Actions,
-        borderStyle: BorderStyle? = nil,
-        borderColor: Color? = nil,
-        titleColor: Color? = nil
+        @ViewBuilder actions: @escaping () -> Actions
     ) -> some View {
         AlertPresentationModifier<Self, Actions, EmptyView>(
             content: self,
             isPresented: isPresented,
             title: String(title),
             message: nil,
-            actions: actions(),
-            borderStyle: borderStyle,
-            borderColor: borderColor,
-            titleColor: titleColor
+            actions: actions()
         )
     }
 }
@@ -216,9 +188,6 @@ extension View {
             title: titleVisibility == .hidden ? "" : String(title),
             message: message(),
             actions: actions(),
-            borderStyle: nil,
-            borderColor: nil,
-            titleColor: nil,
             verticalButtons: true
         )
     }
@@ -253,9 +222,6 @@ extension View {
             title: titleVisibility == .hidden ? "" : String(title),
             message: nil,
             actions: actions(),
-            borderStyle: nil,
-            borderColor: nil,
-            titleColor: nil,
             verticalButtons: true
         )
     }
@@ -560,12 +526,11 @@ extension View {
     /// the modifier with no source.
     nonisolated func titledAlert<Actions: View, Message: View>(
         _ titleKey: LocalizedStringKey?, isPresented: Binding<Bool>, actions: Actions, message: Message?,
-        colours: (BorderStyle?, Color?, Color?) = (nil, nil, nil), verticalButtons: Bool = false
+        verticalButtons: Bool = false
     ) -> AlertPresentationModifier<Self, Actions, Message> {
         var modifier = AlertPresentationModifier(
             content: self, isPresented: isPresented, title: titleKey?.localized ?? "", message: message,
-            actions: actions, borderStyle: colours.0, borderColor: colours.1, titleColor: colours.2,
-            verticalButtons: verticalButtons)
+            actions: actions, verticalButtons: verticalButtons)
         modifier.titleSource = titleKey?.textSource
         return modifier
     }
