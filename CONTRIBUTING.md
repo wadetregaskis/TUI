@@ -200,7 +200,9 @@ and the two latent bugs it turned up in platform-independent code — is in
 
 ### Windows
 
-Windows is **not supported yet** — the package does not build there in full.
+Windows is **not supported yet** — the package does not build there in full. It is to be fully
+supported at 1.0 (owner, 2026-11-09); [`Documentation/Windows port.md`](<Documentation/Windows port.md>) is
+the plan and the record of the port.
 The CI job is a **ratchet**: every step says for itself whether it is allowed
 to fail, so the job as a whole promises exactly *"everything that builds on
 Windows today still builds"*. That set can only grow — when a step goes green,

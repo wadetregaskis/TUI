@@ -21,6 +21,7 @@ how something came to be, and the decisions behind it, is in [Historical](<Histo
 | [Environment variables for developing TUI](<Environment variables for developing TUI.md>) | The variables read only by TUI's own tests, tools and demos; those for an app's users are in the DocC article. |
 | [Compiled hot reload](<Compiled hot reload.md>) | The design for updating a running app from a saved source file, its state intact; wanted after the first release. |
 | [Partial TUI](<Partial TUI.md>) | The design for an app drawn in a few rows at the foot of the terminal, scrollback above; after the first release. |
+| [Windows port](<Windows port.md>) | What it takes for Windows to be fully supported at 1.0, as the owner ruled: where it stands, the work in order, and how to do it on a Windows VM. The record of the port as it goes. |
 | [WebAssembly port](<WebAssembly port.md>) | What building for `wasm32-unknown-wasip1` and running the Example in a browser took, what works, and why. |
 
 ### Folders
