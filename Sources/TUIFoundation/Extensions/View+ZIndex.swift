@@ -61,7 +61,7 @@ extension View {
     /// ```
     ///
     /// That holds in a ``VStack``, an ``HStack``, a `Grid` and a ``Layout``
-    /// too, whose children overlap wherever an ``View/offset(x:y:)``, a
+    /// too, whose children overlap wherever an ``View/offset(x:y:)-(Int,Int)``, a
     /// negative padding or the layout's own placement puts one over another: a
     /// raised view stays over a later sibling moved onto it, and takes the
     /// clicks where it is drawn. A ``LazyVStack`` and a ``LazyHStack`` order
