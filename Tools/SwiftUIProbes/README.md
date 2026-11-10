@@ -1282,3 +1282,22 @@ messages cite that path), and what cites it.
 - **Cited by:** `Sources/TUIFoundation/Views/KeyboardShortcutRegistry.swift` (`Scope`);
   `Documentation/Historical/Presentation and windows/Sheets - sizes, detents, live sheets and the page behind.md`
   (A-MODALS-1).
+
+### Navigation path and view destinations
+
+- **Asks:** whether a screen pushed with a view destination goes into a `NavigationStack`'s path binding, for a
+  `NavigationPath` binding and a typed `[Int]` one: after `navigationDestination(isPresented:)` and `(item:)` push,
+  written on the root and on a pushed value's screen, and after a view-destination `NavigationLink` in a `List` row
+  is followed (Down); then what is on screen, and what the flags say, after the app pops, appends to or clears the
+  path (`navpath.swift`, `navpath.out`). A `@main` program, built alone with `-parse-as-library`; what is on screen
+  is read from `onAppear` and `onDisappear`.
+- **Answers:** the two bindings behave alike. Such a screen is never in the binding: a `NavigationPath`'s `count`
+  stays the app's values' and its `codable` stays non-`nil`. It sits over the screen its modifier is written on, so
+  one written on the root, presented while a value is pushed, empties the path (case B). Taking off, or clearing,
+  the value it was pushed over takes it off too and sets its flag back to `false` (C, G). A value the app appends
+  while it is on top replaces it: the screen goes, its flag is set back to `false`, and the value is drawn in its
+  place (D, E, F, H).
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-10.
+- **Was:** written here.
+- **Cited by:** `Sources/TUINavigation/Views/NavigationStack.swift`,
+  `Tests/TUINavigationTests/NavigationPathScreensTests.swift`.

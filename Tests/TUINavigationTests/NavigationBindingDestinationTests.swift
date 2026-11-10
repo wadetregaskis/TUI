@@ -11,6 +11,10 @@
 //  press pushes the screen straight back on, which is the case below that would
 //  otherwise never terminate.
 //
+//  The stack is bound to a `NavigationPath`, which such a screen never enters
+//  (as in SwiftUI): the path stays empty while the screen is up, and Back is
+//  Escape, as the user presses it.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -41,6 +45,9 @@ struct NavigationBindingDestinationTests {
 
         @discardableResult
         func frame(_ build: () -> some View) -> [String] {
+            // The run loop's per-frame reset, so `back()` reaches only this
+            // frame's handlers.
+            tui.keyEventDispatcher.clearHandlers()
             var env = EnvironmentValues()
             env.focusManager = FocusManager()
             env.applyRuntimeServices(from: tui)
@@ -50,6 +57,11 @@ struct NavigationBindingDestinationTests {
             let lines = renderToBuffer(build(), context: context).lines.map(\.stripped)
             tui.stateStorage.endRenderPass()
             return lines
+        }
+
+        /// What Back does: Escape, offered to the last frame's handlers.
+        func back() {
+            #expect(tui.keyEventDispatcher.dispatch(KeyEvent(key: .escape)), "nothing took Escape")
         }
 
         func booleanStack() -> some View {
@@ -128,9 +140,9 @@ struct NavigationBindingDestinationTests {
         // The frame that notices the flag pushes; the frame after it draws the
         // screen — the path is read before the modifier runs.
         fixture.frame(fixture.booleanStack)
-        #expect(fixture.path.count == 1)
         lines = fixture.frame(fixture.booleanStack)
         #expect(lines.contains { $0.contains("pushed screen") }, "\(lines)")
+        #expect(fixture.path.isEmpty, "the screen is not one of the app's values")
 
         fixture.showing = false
         fixture.frame(fixture.booleanStack)
@@ -148,15 +160,16 @@ struct NavigationBindingDestinationTests {
         let fixture = Fixture()
         fixture.showing = true
         fixture.frame(fixture.booleanStack)
-        #expect(fixture.path.count == 1)
+        let up = fixture.frame(fixture.booleanStack)
+        #expect(up.contains { $0.contains("pushed screen") }, "\(up)")
 
-        // What Back does.
-        fixture.path = NavigationPath()
+        fixture.back()
 
         fixture.frame(fixture.booleanStack)
         #expect(!fixture.showing, "the pop was reported back to the app")
         for _ in 0..<3 { fixture.frame(fixture.booleanStack) }
-        #expect(fixture.path.isEmpty, "and it stayed off")
+        let after = fixture.frame(fixture.booleanStack)
+        #expect(!after.contains { $0.contains("pushed screen") }, "and it stayed off: \(after)")
     }
 
     /// The did-push memory has to stay inside navigation's own reserved slot
@@ -192,14 +205,15 @@ struct NavigationBindingDestinationTests {
 
         fixture.showing = true
         fixture.frame(stack)
-        #expect(fixture.path.count == 1)
+        let up = fixture.frame(stack)
+        #expect(up.contains { $0.contains("pushed screen") }, "\(up)")
 
-        // What Back does.
-        fixture.path = NavigationPath()
+        fixture.back()
         fixture.frame(stack)
         #expect(!fixture.showing, "the pop was reported back to the app")
         for _ in 0..<3 { fixture.frame(stack) }
-        #expect(fixture.path.isEmpty, "and it stayed off")
+        let after = fixture.frame(stack)
+        #expect(!after.contains { $0.contains("pushed screen") }, "and it stayed off: \(after)")
     }
 
     @Test("A screen pushed above the destination goes when the flag clears")
@@ -207,12 +221,12 @@ struct NavigationBindingDestinationTests {
         let fixture = Fixture()
         fixture.showing = true
         fixture.frame(fixture.booleanStack)
-        #expect(fixture.path.count == 1)
+        #expect(fixture.path.isEmpty)
 
-        // The pushed screen pushes something of its own.
+        // A value goes on above the screen.
         fixture.path.append(Item(name: "deeper"))
         fixture.frame(fixture.booleanStack)
-        #expect(fixture.path.count == 2)
+        #expect(fixture.path.count == 1)
 
         fixture.showing = false
         fixture.frame(fixture.booleanStack)
@@ -247,7 +261,7 @@ struct NavigationBindingDestinationTests {
         fixture.frame(stack)
         fixture.showing = true
         fixture.frame(stack)
-        #expect(fixture.path.count == 2)
+        #expect(fixture.path.count == 1, "the screen is not one of the app's values")
         var lines = fixture.frame(stack)
         #expect(lines.contains { $0.contains("detail") }, "\(lines)")
 
@@ -284,13 +298,15 @@ struct NavigationBindingDestinationTests {
         fixture.frame(stack)
         fixture.showing = true
         fixture.frame(stack)
-        #expect(fixture.path.count == 2)
+        #expect(fixture.path.count == 1, "the screen is not one of the app's values")
 
-        // What Back does.
+        // The app takes the screen's value off.
         fixture.path.removeLast()
         for _ in 0..<3 { fixture.frame(stack) }
         #expect(!fixture.showing, "the pop was not reported to the app")
-        #expect(fixture.path.count == 1, "the destination pushed itself again")
+        #expect(fixture.path.isEmpty)
+        let lines = fixture.frame(stack)
+        #expect(lines.contains { $0.contains("root") }, "the destination pushed itself again: \(lines)")
     }
 
     @Test("item: pushes a screen built from the value, and nil pops it")
@@ -302,9 +318,9 @@ struct NavigationBindingDestinationTests {
 
         fixture.item = Item(name: "Ada")
         fixture.frame(fixture.itemStack)
-        #expect(fixture.path.count == 1)
         let lines = fixture.frame(fixture.itemStack)
         #expect(lines.contains { $0.contains("about Ada") }, "\(lines)")
+        #expect(fixture.path.isEmpty, "the screen is not one of the app's values")
 
         fixture.item = nil
         fixture.frame(fixture.itemStack)
@@ -316,13 +332,15 @@ struct NavigationBindingDestinationTests {
         let fixture = Fixture()
         fixture.item = Item(name: "Ada")
         fixture.frame(fixture.itemStack)
-        #expect(fixture.path.count == 1)
+        let up = fixture.frame(fixture.itemStack)
+        #expect(up.contains { $0.contains("about Ada") }, "\(up)")
 
-        fixture.path = NavigationPath()
+        fixture.back()
         fixture.frame(fixture.itemStack)
-        #expect(fixture.item == nil, "the pop emptied the item, not just the path")
+        #expect(fixture.item == nil, "the pop emptied the item")
         for _ in 0..<3 { fixture.frame(fixture.itemStack) }
-        #expect(fixture.path.isEmpty)
+        let after = fixture.frame(fixture.itemStack)
+        #expect(!after.contains { $0.contains("about Ada") }, "\(after)")
     }
 
     @Test("The screen is rebuilt each frame, so it sees current state")

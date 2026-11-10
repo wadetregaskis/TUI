@@ -34,6 +34,11 @@ import TUIFoundation
 /// path.removeLast(path.count)
 /// ```
 ///
+/// It holds the values pushed, never the screens a view destination pushes (a
+/// view-destination ``NavigationLink``, `navigationDestination(isPresented:)`
+/// or `(item:)`): those the stack keeps beside it, as SwiftUI's does, so
+/// ``count`` is your values' and ``codable`` is not lost to them.
+///
 /// A path whose every value is `Codable` can be saved and restored through
 /// ``codable`` and ``init(_:)-(NavigationPath.CodableRepresentation)`` — see
 /// ``CodableRepresentation``.

@@ -62,10 +62,10 @@ import TUIView
 /// selecting it, as SwiftUI's does. A row the list cannot select, whose link's
 /// value and element's `id` are both of other types, keeps the button.
 ///
-/// > Note: A view destination is not a value of a *typed* path binding's
-///   element type (`NavigationStack(path: $recipes)`), so its screen is not in
-///   that binding: the stack keeps it over the values it was pushed on, as
-///   SwiftUI's does.
+/// > Note: A view destination is not one of the app's values, so its screen
+///   is not in a bound path, a typed one (`NavigationStack(path: $recipes)`)
+///   or a ``NavigationPath``: the stack keeps it over the values it was pushed
+///   on, as SwiftUI's does.
 nonisolated public struct NavigationLink<Label: View, Destination: View>: View {
 
     /// What this link pushes.

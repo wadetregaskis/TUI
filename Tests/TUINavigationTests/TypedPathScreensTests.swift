@@ -87,6 +87,11 @@ struct TypedPathScreensTests {
         #expect(app.screen.contains("DETAIL path=[7]"), "\(app.screen)")
         try app.click("Clear")
         #expect(app.screen.contains("path=[] shown=false"), "\(app.screen)")
+        // Pushed again, the value comes back alone: the screen that was over
+        // it does not come back with it.
+        try app.click("Push 7")
+        #expect(app.screen.contains("VALUE 7"), "\(app.screen)")
+        #expect(!app.screen.contains("DETAIL"), "\(app.screen)")
     }
 
     @Test("The merge keeps a screen while the values beneath it are unchanged, and drops it with them")

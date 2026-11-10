@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `NavigationPath` holds only the app's values.** A screen pushed by `navigationDestination(isPresented:)` or
+`(item:)`, or by a `NavigationLink` with a view for its destination, went into a bound `NavigationPath`: its `count`
+included the screen, and its `codable` became `nil`, so the path could not be saved while the screen was up. The
+stack now keeps such a screen beside the path, as it already did for a typed path and as SwiftUI does; taking the
+value it was pushed over off the path takes it off too, and pushing that value again no longer brings the screen
+back with it, on either kind of path.
 **`.dialogBorder(_:style:titleColor:)` styles every alert and confirmation dialog; `alert` no longer takes
 `borderStyle:borderColor:titleColor:`.** Four of the fourteen `alert` forms took those three parameters after their
 closures, and the other ten, the `confirmationDialog`s among them, could not be styled at all. Apply

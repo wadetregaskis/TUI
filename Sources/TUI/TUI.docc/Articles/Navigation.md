@@ -92,11 +92,12 @@ path.removeLast(path.count)
 types. When every screen is driven by the same type, bind a plain array
 instead — `NavigationStack(path: $recipes)` — and the path is just your data.
 
-A typed path binding holds only values of its own element type. A screen
-pushed some other way — by a view-destination `NavigationLink`, or by
+Either kind of path holds only your values. A screen pushed some other way —
+by a view-destination `NavigationLink`, or by
 `navigationDestination(isPresented:)` or `(item:)` — is not in it, as in
-SwiftUI: the stack keeps it over the values it was pushed on, and drops it when
-your code takes one of those values off the path.
+SwiftUI: a `NavigationPath`'s `count` leaves it out and its `codable` stays
+available. The stack keeps such a screen over the values it was pushed on, and
+drops it when your code takes one of those values off the path.
 
 ## What the terminal changes
 

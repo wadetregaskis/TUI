@@ -78,14 +78,13 @@ public struct NavigationStack<Root: View> {
     enum PathStorage {
         /// The stack's own `@State` — `NavigationStack { … }`.
         case owned
-        /// A ``NavigationPath`` binding.
-        case path(Binding<NavigationPath>)
-        /// A typed collection binding, erased to `AnyHashable` and back.
-        /// `keeps` says which pushed values the binding can hold; the rest
-        /// (the screens a view-destination link or a
-        /// `navigationDestination(isPresented:)` pushes) are kept beside it,
-        /// in ``ownedPath``.
-        case typed(
+        /// A path binding — a ``NavigationPath`` or a typed collection —
+        /// erased to `AnyHashable` and back. `keeps` says which pushed values
+        /// go into the binding; the rest (the screens a view-destination link
+        /// or a `navigationDestination(isPresented:)` pushes) are kept beside
+        /// it, in ``ownedPath``, as SwiftUI keeps them out of either kind of
+        /// path.
+        case bound(
             read: () -> [AnyHashable], write: ([AnyHashable]) -> Void, keeps: (AnyHashable) -> Bool)
     }
 
@@ -97,10 +96,9 @@ public struct NavigationStack<Root: View> {
     /// must still find this stack's path when it fires later.
     @State private var coordinator = NavigationCoordinator()
 
-    /// The path, when the stack owns it (``PathStorage/owned``); with a typed
-    /// binding (``PathStorage/typed``), the whole path as last written, the
-    /// screens the binding cannot hold included. Unused with a
-    /// ``NavigationPath``; it costs one empty array.
+    /// The path, when the stack owns it (``PathStorage/owned``); with a
+    /// binding (``PathStorage/bound``), the whole path as last written, the
+    /// screens kept out of the binding included.
     @State private var ownedPath: [AnyHashable] = []
 
     /// Creates a navigation stack that manages its own path.
@@ -117,7 +115,17 @@ public struct NavigationStack<Root: View> {
     ///   - root: The view at the bottom of the stack.
     public init(path: Binding<NavigationPath>, @ViewBuilder root: () -> Root) {
         self.root = root()
-        self.storage = .path(path)
+        // A view destination's screen is pushed as a `NavigationViewToken`,
+        // which is no value of the app's: in the path it counted in `count`
+        // and made `codable` nil. SwiftUI keeps such a screen out of a
+        // `NavigationPath` as out of a typed path (measured,
+        // `Tools/SwiftUIProbes/Navigation path and view destinations/navpath.out`),
+        // so the stack keeps it beside the binding.
+        let keeps: (AnyHashable) -> Bool = { !($0.base is NavigationViewToken) }
+        self.storage = .bound(
+            read: { path.wrappedValue.elements },
+            write: { path.wrappedValue = NavigationPath(erased: $0.filter(keeps)) },
+            keeps: keeps)
     }
 
     /// Creates a navigation stack backed by a collection of hashable values.
@@ -131,7 +139,7 @@ public struct NavigationStack<Root: View> {
         Data.Element: Hashable
     {
         self.root = root()
-        self.storage = .typed(
+        self.storage = .bound(
             read: { path.wrappedValue.map { AnyHashable($0) } },
             // A typed path can hold only its own element type, so only those
             // go back into it; the screens that are not values of it stay in
@@ -158,20 +166,27 @@ public struct NavigationStack<Root: View> {
         case .owned:
             let binding = $ownedPath
             return ({ binding.wrappedValue }, { binding.wrappedValue = $0 })
-        case .path(let path):
-            return (
-                { path.wrappedValue.elements },
-                { path.wrappedValue = NavigationPath(erased: $0) }
-            )
-        case .typed(let read, let write, let keeps):
+        case .bound(let read, let write, let keeps):
             // The binding holds the values; a view-destination link's screen
-            // and a `navigationDestination(isPresented:)`'s are not values of
-            // its type, and writing them to it dropped them, so such a screen
-            // never appeared and its flag was set straight back to false.
+            // and a `navigationDestination(isPresented:)`'s are not the app's
+            // values. Written to a typed binding they were dropped, so such a
+            // screen never appeared and its flag was set straight back to
+            // false; written to a `NavigationPath` they counted as values.
             // They live in `ownedPath` beside the values they were pushed over.
             let shadow = $ownedPath
             return (
-                { Self.merging(shadow.wrappedValue, over: read(), keeps: keeps) },
+                {
+                    let merged = Self.merging(shadow.wrappedValue, over: read(), keeps: keeps)
+                    // The kept path follows what the app did to the binding,
+                    // once, when it is read. Left as last written, a screen
+                    // taken off with the value under it came back when the app
+                    // pushed that value again: a pop to the root and a return
+                    // to the screen showed the screen's destination once more.
+                    // Nothing kept, nothing to remember: the binding says it all.
+                    let kept = merged.contains { !keeps($0) } ? merged : []
+                    if kept != shadow.wrappedValue { shadow.wrappedValue = kept }
+                    return merged
+                },
                 { erased in
                     shadow.wrappedValue = erased
                     write(erased)
@@ -180,7 +195,7 @@ public struct NavigationStack<Root: View> {
         }
     }
 
-    /// The path a typed binding's stack shows: `shadow`, the whole path as last
+    /// The path a bound stack shows: `shadow`, the whole path as last
     /// written, so long as the values in it are still the binding's own; then
     /// whatever the binding holds beyond them.
     ///
