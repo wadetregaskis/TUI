@@ -23,16 +23,26 @@ extension _MenuBarCore {
     /// highlights nothing. While a menu is open its dismiss backdrop covers
     /// the window and takes the press first.
     ///
-    /// - Returns: Each title's handler, in bar order, for the open menu's
-    ///   backdrop to find the titles by (``titleTracking(_:state:context:)``).
+    /// A title the row has scrolled out of view has no region; a « or »
+    /// where titles are hidden (``TitleScroll``) has one, and a press on it
+    /// opens the hidden title beside it as a press on that title would.
+    ///
+    /// - Returns: Each title's handler, in bar order, then each « or »'s,
+    ///   for the open menu's backdrop to find them by
+    ///   (``titleTracking(_:titles:state:context:)``,
+    ///   ``TitleRow/target(ofHandlerAt:)``).
     @discardableResult
     func attachTitleRegions(
         to buffer: inout FrameBuffer, _ titles: TitleRow, state: MenuBarState, context: RenderContext
     ) -> [HitTestRegion.HandlerID] {
         guard let dispatcher = context.environment.mouseEventDispatcher else { return [] }
         var ids: [HitTestRegion.HandlerID] = []
-        for (index, column) in titles.columns.enumerated() {
-            let titleContext = context.withChildIdentity(type: TitleRow.self, index: index + 1)
+        let places =
+            zip(titles.columns, titles.widths).enumerated().map { (index: $0, column: $1.0, width: $1.1) }
+            + titles.indicators.map { (index: $0.target, column: $0.column, width: 1) }
+        for (position, place) in places.enumerated() {
+            let index = place.index
+            let titleContext = context.withChildIdentity(type: TitleRow.self, index: position + 1)
             let id = dispatcher.register(in: titleContext) { [weak state, weak dispatcher] event in
                 guard event.button == .left, let state, let dispatcher else { return false }
                 guard event.phase == .pressed else { return event.phase == .released }
@@ -45,8 +55,10 @@ extension _MenuBarCore {
                 }
                 return true
             }
-            buffer.hitTestRegions.append(
-                HitTestRegion(offsetX: column, offsetY: 0, width: titles.widths[index], height: 1, handlerID: id))
+            if place.width > 0 {
+                buffer.hitTestRegions.append(
+                    HitTestRegion(offsetX: place.column, offsetY: 0, width: place.width, height: 1, handlerID: id))
+            }
             ids.append(id)
         }
         return ids
@@ -65,22 +77,25 @@ extension _MenuBarCore {
     ///
     /// The titles are found by their handlers, `ids`, at the pointer's cell:
     /// the backdrop hears screen coordinates, and the dispatcher knows where
-    /// the bar was composited.
+    /// the bar was composited. A « or » takes a press alone: the pointer
+    /// passing over one opens nothing, or each menu it opened would scroll
+    /// another title under it.
     func titleTracking(
-        _ ids: [HitTestRegion.HandlerID], state: MenuBarState, context: RenderContext
+        _ ids: [HitTestRegion.HandlerID], titles: TitleRow, state: MenuBarState, context: RenderContext
     ) -> MenuBackdropPassThrough? {
         guard !ids.isEmpty, let dispatcher = context.environment.mouseEventDispatcher else { return nil }
         return MenuBackdropPassThrough { [weak state, weak dispatcher] event in
             guard let state, let dispatcher, let open = state.openMenu else { return false }
             let under = dispatcher.handlerIDs(at: event.x, y: event.y)
-            guard let index = ids.firstIndex(where: under.contains) else { return false }
+            guard let position = ids.firstIndex(where: under.contains) else { return false }
+            let (index, isIndicator) = titles.target(ofHandlerAt: position)
             switch event.phase {
             case .moved, .entered:
-                guard index != open else { return false }
+                guard index != open, !isIndicator else { return false }
                 state.open(index, withSelection: false)
                 return true
             case .dragged where event.button == .left:
-                if index != open { state.open(index, withSelection: false) }
+                if index != open, !isIndicator { state.open(index, withSelection: false) }
                 return true
             case .pressed where event.button == .left:
                 if index == open {

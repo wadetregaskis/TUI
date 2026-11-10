@@ -76,7 +76,7 @@ extension _MenuBarCore {
         // is cut to that row when it is composited.
         var cover = FrameBuffer(lines: buffer.lines)
         DropdownMenu.attachDismissBackdrop(
-            to: &cover, context: context, passThrough: barModeTracking(titleIDs, state: state, context: context),
+            to: &cover, context: context, passThrough: barModeTracking(titleIDs, titles: titles, state: state, context: context),
             onDismiss: leave)
         buffer.overlays.append(
             OverlayLayer(offsetX: 0, offsetY: 0, content: cover, level: .popover, anchorHeight: 0, holdsInput: true)
@@ -105,19 +105,20 @@ extension _MenuBarCore {
     /// The titles under the bar mode's backdrop, found by their handlers,
     /// `ids`, at the pointer's cell: a press on one opens its menu as a press
     /// on a closed title does (``attachTitleRegions(to:_:state:context:)``),
-    /// and the pointer moved onto one highlights it. Anywhere else the
-    /// backdrop has the event.
+    /// and the pointer moved onto one highlights it — not onto a « or »,
+    /// which takes a press alone. Anywhere else the backdrop has the event.
     private func barModeTracking(
-        _ ids: [HitTestRegion.HandlerID], state: MenuBarState, context: RenderContext
+        _ ids: [HitTestRegion.HandlerID], titles: TitleRow, state: MenuBarState, context: RenderContext
     ) -> MenuBackdropPassThrough? {
         guard !ids.isEmpty, let dispatcher = context.environment.mouseEventDispatcher else { return nil }
         return MenuBackdropPassThrough { [weak state, weak dispatcher] event in
             guard let state, let dispatcher, let highlighted = state.highlightedTitle else { return false }
             let under = dispatcher.handlerIDs(at: event.x, y: event.y)
-            guard let index = ids.firstIndex(where: under.contains) else { return false }
+            guard let position = ids.firstIndex(where: under.contains) else { return false }
+            let (index, isIndicator) = titles.target(ofHandlerAt: position)
             switch event.phase {
             case .moved, .entered:
-                guard index != highlighted else { return false }
+                guard index != highlighted, !isIndicator else { return false }
                 state.highlight(index)
                 return true
             case .pressed where event.button == .left:

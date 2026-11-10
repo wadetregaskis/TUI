@@ -643,6 +643,12 @@ framework defaults: your own ⌥ shortcut on the letter wins, and a focused text
 field keeps the ⌥ chords it edits with. While a modal holds the input, the bar
 is inert and no command's key fires.
 
+Where the titles are wider than the terminal, the row scrolls to keep the open
+menu's title, or the one F10's arrows are on, in view. A « at the left edge or
+a » at the right says titles are hidden there, and a click on it opens the
+hidden menu beside it; every key above reaches a hidden title as it reaches
+any other.
+
 ## Available Keys
 
 The ``Key`` enum defines all keys that TUI can recognize from terminal input:

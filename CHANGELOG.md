@@ -50,6 +50,11 @@ Control or Shift on Return, Tab, Escape, Backspace and space, and for Shift on a
 those now answers `false`, as Ctrl-H and Ctrl-4 already did. Shift-Tab, Option chords and the arrow, paging and
 function keys still answer `true`.
 
+**A menu bar wider than the terminal scrolls to the title you're on.** F10 and ← → walked to titles past the right
+edge, and Alt and a letter opened their menus, but the titles couldn't be seen and the menu hung from nowhere. The row
+now scrolls to keep the highlighted or open title in view, with « and » where titles are hidden; a click on either
+opens the hidden menu beside it. A title wider than the whole row is drawn from its start, as much as fits.
+
 **The environment variables an app's man page lists are written for the person running it.** Each says, in plain
 words, what it does to the screen, the keys or the mouse, its values, its default, and an example where one helps, and
 they're grouped as that person looks for them: colour and appearance, motion, keyboard and mouse, text and language,

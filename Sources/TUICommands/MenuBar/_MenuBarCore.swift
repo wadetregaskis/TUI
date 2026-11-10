@@ -29,11 +29,16 @@ import TUIFoundation
 /// Right step to the menu beside it, F10 and Escape close it, and Alt and a
 /// letter open that menu instead; and the pointer moved or dragged onto
 /// another title opens its menu, as on a Mac
-/// (``titleTracking(_:state:context:)``). The open menu is a pop-up `Menu`'s:
+/// (``titleTracking(_:titles:state:context:)``). The open menu is a pop-up `Menu`'s:
 /// the same rows, keys and highlight, hanging from its title over the whole
 /// window. A keyboard-opened menu highlights its first item, a pointer-opened
 /// one nothing. The titles are not in the Tab ring: the bar is reached by its
 /// keys and the pointer.
+///
+/// **Titles wider than the row.** The row scrolls to keep the open menu's
+/// title, or the bar mode's highlight, in view, with « and » where titles are
+/// hidden, a press on either opening the hidden title beside it
+/// (``TitleScroll``). Every key that walks the titles reaches a hidden one.
 ///
 /// **Shortcuts with every menu closed.** A command's keyboard shortcut works
 /// whether its menu is open or not, as SwiftUI's do. A closed menu draws
@@ -92,7 +97,7 @@ struct _MenuBarCore: View, Renderable {
         if let open = state.openMenu {
             present(
                 menus[open], at: open, over: &buffer, state: state,
-                titles: titles, tracking: titleTracking(titleIDs, state: state, context: context),
+                titles: titles, tracking: titleTracking(titleIDs, titles: titles, state: state, context: context),
                 sectionID: sectionID, context: context)
         } else if state.highlightedTitle != nil {
             walkTitles(titles, over: &buffer, state: state, titleIDs: titleIDs, sectionID: sectionID, context: context)
@@ -188,6 +193,9 @@ struct _MenuBarCore: View, Renderable {
 
     /// How tall a canvas the closed menus' items are rendered on.
     private static let registrationCanvasHeight = 4096
+
+    /// How wide a canvas each title is drawn on (``line(_:at:)``).
+    private static let titleCanvasWidth = 1024
 }
 
 // MARK: - The Titles
@@ -210,6 +218,18 @@ extension _MenuBarCore {
 
         /// Each title's words.
         let names: [String]
+
+        /// The « and » drawn where the titles are wider than the row, each
+        /// standing for a hidden title (``TitleScroll``).
+        var indicators: [Indicator] = []
+
+        /// A « or a », in its column, and the hidden title a press on it
+        /// opens: the last before the row's first, or the first after its
+        /// last.
+        struct Indicator: Equatable {
+            let column: Int
+            let target: Int
+        }
     }
 
     /// Where each title is drawn: one identity per title, keyed by its place
@@ -234,7 +254,9 @@ extension _MenuBarCore {
     /// The row of titles: each menu's with a cell on each side, one after
     /// another from the left edge, the app's menu in bold, as a menu bar's
     /// first title is, and the open menu's — or, `walking` the bar with every
-    /// menu closed, the highlighted title's — in reverse. In the bar mode, and
+    /// menu closed, the highlighted title's — in reverse. Where they are
+    /// wider than the row, it scrolls to keep that title in view, with « and
+    /// » where titles are hidden (``TitleScroll``). In the bar mode, and
     /// while Option is held where the terminal reports it
     /// (``showsMnemonics(_:)``), each title's letter is underlined.
     func titleRow(_ menus: [ResolvedCommandMenu], open: Int?, walking: Bool, context: RenderContext) -> TitleRow {
@@ -266,15 +288,7 @@ extension _MenuBarCore {
                     at: context.withChildIdentity(type: MnemonicTitleLabel.self, index: index))
             }
         }
-        var line = ""
-        var columns: [Int] = []
-        var widths: [Int] = []
-        for title in drawn {
-            columns.append(line.strippedLength)
-            widths.append(title.strippedLength)
-            line += title
-        }
-        return TitleRow(line: line, columns: columns, widths: widths, mnemonics: mnemonics, names: names)
+        return laidOut(drawn, lit: open, width: context.availableWidth, mnemonics: mnemonics, names: names)
     }
 
     /// `name` with a cell on each side, in reverse if its menu is `open`.
@@ -316,10 +330,13 @@ extension _MenuBarCore {
     }
 
     /// `view` drawn on one line at its natural width, in `context` — an
-    /// identity of the title's own (``TitleLabel``).
+    /// identity of the title's own (``TitleLabel``): on a canvas wider than
+    /// any title rather than the bar's width, or a title wider than the
+    /// terminal would come back cut to an ellipsis instead of whole, for the
+    /// row to scroll to (``TitleScroll``).
     private func line(_ view: some View, at context: RenderContext) -> String {
         var lineContext = context
-        lineContext.availableWidth = max(context.availableWidth, 1)
+        lineContext.availableWidth = max(context.availableWidth, Self.titleCanvasWidth)
         lineContext.hasExplicitWidth = false
         return TUIView.renderToBuffer(view, context: lineContext).lines.first ?? ""
     }
