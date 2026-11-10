@@ -132,3 +132,85 @@ The "noticed" items above, taken up the same day by a second lane.
   +1.0% (CI +0.0 to +3.4%), `inbox-pushed10` +1.5% (+0.1 to +1.9%), RSS
   +0.3 to +0.6 MB. Well under the 10% that would call for a cheaper
   keep-alive, so none is proposed.
+
+## Second pass, 2026-11-10
+
+Measured on main at `a91f0125b`, the same machine, shared with other lanes
+(load 3–33 during the runs; `ab_bench.py`'s CPU time and paired ratios are
+what make that usable). Nothing changed in the code: every check below came
+back indistinguishable or faster, and the one profile lead was already priced.
+
+**The `.overContent` default (`3bdd2a8d3` … `a14f57331`).** The first of those
+four commits, measured alone against its parent the night before, put
+`tables-scroll` at +6.7% (CI +5.9 to +9.1%). Measured again on main, against
+the same tree with `.besideContent` as the default (a one-line build for the
+A/B only), 12 reps:
+
+| scenario | `.besideContent` µs | `.overContent` µs | change | 95% CI |
+|---|---|---|---|---|
+| tables-scroll | 15.4 | 15.2 | −1.9% | −2.3 … −0.7% |
+| table | 8.0 | 8.1 | +1.2% | −0.6 … +2.5% (indistinguishable) |
+| megalist | 9.8 | 9.8 | 0.0% | −1.5 … +0.5% (indistinguishable) |
+| grids | 45.3 | 42.2 | −6.4% | −9.9 … −5.1% |
+| scrollfollow | 435.8 | 387.7 | −11.5% | −13.7 … −10.5% |
+
+The cost is gone. The likeliest reason is `e6169155e`, which came after the
+measured commit: a scrolling view now watches the pointer only while it has
+an indicator to show, and the eight tables in `tables-scroll` all fit, so
+they no longer each register a hover observer and ask for motion reports
+every frame. Only the enclosing scroll view does. Not profiled further,
+because there is nothing left to remove.
+
+**Regressions since the first pass.** The heaviest scenarios and sessions of
+the baseline above, `a98a4b8db` (where that pass started) against
+`a91f0125b`, 10 reps:
+
+| scenario | 11-08 µs | 11-10 µs | change | 95% CI |
+|---|---|---|---|---|
+| gradients | 24,101 | 19,707 | −17.9% | −19.0 … −15.3% |
+| app-shapes | 9,794 | 9,600 | −2.5% | −5.5 … −1.8% |
+| churn | 8,621 | 8,146 | −5.2% | −6.1 … −4.5% |
+| alpharamp | 8,104 | 7,880 | −2.7% | −4.1 … −1.8% |
+| texteffects | 7,238 | 6,708 | −7.3% | −9.1 … −3.9% |
+| geometry | 4,090 | 3,640 | −11.0% | −11.9 … −9.6% |
+| session/notes | 6,135 | 5,685 | −6.8% | −14.0 … +0.8% (indistinguishable) |
+| session/settings | 7,384 | 7,117 | −3.7% | −12.3 … −2.5% |
+| session/menus | 4,909 | 4,318 | −12.1% | −12.3 … −11.3% |
+| session/log | 2,857 | 2,857 | +0.2% | −0.7 … +3.3% (indistinguishable) |
+| session/chat | 1,437 | 1,434 | −0.6% | −1.4 … +3.4% (indistinguishable) |
+
+(`picker` and `session/inbox-commands` did not exist at `a98a4b8db`.) No
+regressions in time. `session/log`'s resident peak did grow, 36.5 → 44.0 MB
+in the A/B and 32.3 → 63.5 MB over 6,400 frames, but it is not held memory:
+its caches' entry counts are identical in both builds every 400 steps
+(`--cache-sizes`), and `heap` on a 40-second run gives a physical footprint
+of 29.0 MB now against 33.2 MB then, peaks 36.8 and 35.1 MB. What grows is
+pages the allocator has freed but not yet given back. Left as it is.
+
+**Scroll regions on frames that do not move.** `emit_bench.py`, one binary
+with `TUI_SCROLL_OUTPUT=off` against `exact` (the default), ghostty, 8 s
+windows, 9 reps: dashboard +2.4% (−8.7 … +4.8%), framedcolumns 0.0%,
+kitchensink 0.0% (−3.7 … +16.5%), megalist −2.5% (−4.9 … 0.0%), table 0.0%
+(−2.5 … +2.6%). All indistinguishable, and what `Scroll regions for
+output.md` said they would be. The tool reads CPU time in centiseconds, so
+it cannot resolve anything under a few percent here.
+
+**Profiles, and what was dropped.** `Stress --bench` traced with Time
+Profiler (attached by PID) on `gradients` and `session/notes`, read with
+`analyze_timeprofile.py --blame`:
+
+- Nothing dominates. On `gradients` the largest of our frames are dictionary
+  lookups (5.0% blamed on `__RawDictionaryStorage.find`, spread over the
+  animation store, `Color.cachedRamp`, the environment and others),
+  `SGRWriter.add` 4.5%, `GradientHalfRows.halfRun` 2.8%.
+- `IdentityNode.structurallyEqual`, 2.1% of `gradients` and 4.6% of
+  `session/notes`: a lookup whose key is equal to the stored one but built
+  this frame walks both chains to the root. A cheaper step (walking without
+  reference counting) measured worse on 2026-10-17 (`Optimisations that did
+  not pay.md`), which named the lever as fewer walks: identities that share
+  nodes across passes. That is a change to how every identity is built, not
+  a cheap fix, so it is left for a lane of its own.
+- `LocalizedTextSource`'s interner, 1.0% of `gradients`: each
+  `Text(LocalizedStringKey)` built in a body hashes its whole key into the
+  interner, every frame. Cheaper only by caching on the key's value, a
+  design change for a 1% share; left.
