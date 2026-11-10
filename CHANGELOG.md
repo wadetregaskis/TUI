@@ -50,6 +50,12 @@ two of its seven border styles filled in; write `Dialog(title: "…", borderStyl
 its row in a `.sidebarAdaptable` sidebar the buttons a list row's swipe actions give it, revealed from the keyboard
 (⇧→ and ⇧←) or a trackpad's sideways swipe in the same way. A tab bar has no rows to swipe and shows none.
 
+**On WebAssembly, a view tree too deep for the stack is cut short instead of corrupting memory.** The stack guard,
+which stops the descent with a notice where the stack runs low, had no bounds to measure there and was off, and wasm's
+stack has no guard page: a tree deeper than it wrote over the program's data. It reads the linker's bounds now. On
+wasm-ld's default 64 KB stack it trips a few levels down, so link with a bigger one (`-z stack-size=16777216`, as
+`Tools/Web/build.sh` does).
+
 **A WebAssembly program no longer stops where TUI's resource bundle isn't at its build machine's path.** It looks
 for `TUI_TUIStrings.resources` beside the program, as every other platform does, and reads TUI's own words in English
 where it isn't there. `Tools/Web/build.sh` serves it beside the program. An app's own resources are still its own

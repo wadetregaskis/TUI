@@ -1,0 +1,9 @@
+{
+  "schemaVersion" : "1.0",
+  "linker" : {
+    "extraCLIOptions" : [
+      "-z",
+      "stack-size=16777216"
+    ]
+  }
+}

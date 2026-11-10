@@ -156,8 +156,11 @@ stack trace. A trap now resets the terminal and says so in one line, with the
 stack in the browser's console.
 
 **The stack has to be raised at link time.** A view tree renders by recursion,
-and wasm's default linear-memory stack runs out inside the Example's deeper
-pages. `Tools/Web/build.sh` links with `-z stack-size=16777216`.
+and wasm's default linear-memory stack (64 KiB) runs out inside the Example's deeper
+pages. `Tools/Web/build.sh` links with `-z stack-size=16777216`. Since
+2026-11-10 the stack guard knows wasm's bounds, so a tree too deep for the stack
+is cut short with a notice, as natively, rather than written over the program's
+data; on the default 64 KiB that happens a few levels down.
 
 ## What works, and what does not
 
@@ -224,7 +227,10 @@ installed; the tests ran under WasmKit, the runtime that ships in the toolchain.
 ### Where it stands
 
 **The whole package builds, tests included** (`swift build --build-tests --swift-sdk swift-6.3.3-RELEASE_wasm
---static-swift-stdlib`), and CI's `wasm` job now builds it so, binding. Before, it stopped in two tools
+--static-swift-stdlib --toolset Tools/Web/wasm-stack-toolset.json`), and CI's `wasm` job now builds it so, binding.
+The toolset links the test bundle with the browser demo's 16 MiB stack; it is a toolset rather than `-Xlinker`
+because `-Xlinker` reaches the macro plugin's host link too, where `-z stack-size` is not an option. Without it the
+stack is wasm-ld's default 64 KiB, and the stack guard (gap 3) cuts the deep-tree tests' trees a few levels down. Before, it stopped in two tools
 (`EmojiBugScanner`'s `termios`, `IdleProbe`'s `posix_spawn`), the `Stress` harness (`Dispatch`, for a clock), 9 of
 the 35 test targets, and then the link: `ExampleTests` depends on an executable, which SwiftPM can test only on
 macOS and Linux, and on wasm its `main` collided with the test runner's. What the test targets needed:
@@ -315,8 +321,22 @@ Fixed here, each with the test that failed on WebAssembly:
   `-(1 << 40) - shape * (1 << 20)`: the shift is 0, and a shape past 2,047 (every control-point mesh) times 2^20
   overflows. The slots are laid out for 32 bits there now; `MeshGradientAnimationTests` has the case.
 
-Found and not fixed, in the gaps below: the stack guard (gap 3), atomic writes (gap 4), dynamic properties inside
-enum payloads and the value-hash plans (gap 5).
+- **A view tree too deep for the stack wrote over memory** (gap 3, fixed 2026-11-10). `StackGuard` had no
+  WebAssembly arm, so it was off, and wasm's stack is linear memory with the program's data below it and no guard
+  page. It reads the linker's `__stack_low` and `__stack_high` now, through a C shim (`CWASIStack`, built for wasm
+  only), with a quarter of the stack as its reserve where that is less than the native 256 KiB, so wasm-ld's
+  default 64 KiB stack is cut short rather than refused outright. Measured under WasmKit: before, three deep-tree
+  tests trapped (`StackGuardTests`' deep nest "out of bounds memory access", `FormWrappedSectionTests`' nested walk
+  "unreachable" in ICU, `DepthLimitTests` "failed to allocate 55708533 bytes"); after, with the 16 MiB stack, the
+  three suites pass (DepthLimitTests at the interpreter's pace). `StackGuardBoundsTests` failed on wasm first (no
+  bounds found) and passes now. On the default 64 KiB stack the guard works, and trips early: a 4-level tree is cut
+  and a form's walk reads 22 levels. Two tests still trapped there (the 10,000-node erased chain in
+  `FormWrappedSectionTests`, "out of bounds memory access"; `DepthLimitTests`' "What was past the limit comes back",
+  "unreachable"), not traced: recursion no guard covers, such as releasing a chain one node inside the next, is the
+  likely place, and it runs out natively too, only deeper. An app on wasm wants the bigger stack.
+
+Found and not fixed, in the gaps below: atomic writes (gap 4), dynamic properties inside enum payloads and the
+value-hash plans (gap 5).
 
 ### The gaps, in order
 
@@ -332,13 +352,10 @@ enum payloads and the value-hash plans (gap 5).
    `createDirectory(withIntermediateDirectories:)` recursed into a stack check under `--dir /`, and `copyItem` and
    symbolic links failed under the host's `/tmp` (itself a link on macOS); with the build directory given to the
    guest instead those may go.
-3. **The stack guard does nothing on WebAssembly (M).** `StackGuard.currentThreadExtent` has arms for Darwin and
-   Linux and returns `nil` elsewhere, which turns the guard off. Natively a stack overflow is a crash; on wasm the
-   stack is a region of linear memory with no guard page, so a view tree deeper than it writes over the data below
-   it: the deep-tree tests in TUIFormsTests, TUIFoundationTests and TUIIntegrationTests ended in "indirect call to
-   null element", "out of bounds memory access" and a trap in the metadata cache. The bounds are the linker's
-   (`__stack_low` and `__stack_high`), read through a small C shim. The most serious finding: memory corruption,
-   not a refusal.
+3. **Done 2026-11-10: the stack guard works on WebAssembly.** It had no arm there, so a view tree deeper than the
+   stack wrote over the data below it. It reads the linker's bounds now; see "What the run found in the framework"
+   above. Left: recursion no guard covers (a deep chain's release) still runs out of a small stack, on wasm into
+   memory rather than a crash, so an app's stack size matters more there; `RunningInABrowser.md` says so.
 4. **Atomic writes fail on WASI (S–M).** WASI's Foundation refuses `atomically: true` and `.atomic` (NSCocoaError
    3328). `@AppStorage` already writes plainly there; `fileExporter`, `LocalizationService`'s language file and
    `DiagnosticChannel` still ask Foundation for one, and `FileDocument` saves make their own (a temporary file, then

@@ -1503,13 +1503,17 @@ jobs:
             --product Example -Xlinker -z -Xlinker stack-size=16777216
 
       # Everything else: every product and every test target, linked into the
-      # test bundle — the whole package, as the other lanes build it. Without
-      # the stack-size flag, which `-Xlinker` would hand to the host's linker
-      # too (for the macro plugin), where it is not an option. The tests do
-      # not run here yet: see "Toward full support (1.0)" in
-      # Documentation/WebAssembly port.md.
+      # test bundle — the whole package, as the other lanes build it. The
+      # stack size comes from a toolset, which reaches only the target's link:
+      # `-Xlinker` would hand it to the host's linker too (for the macro
+      # plugin), where it is not an option. The deep-tree tests need it: on
+      # wasm-ld's default 64 KiB the stack guard stops a tree a few levels
+      # down. The tests do not run here yet: see "Toward full support (1.0)"
+      # in Documentation/WebAssembly port.md.
       - name: Build the whole package, tests included, for WebAssembly
-        run: swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --build-tests
+        run: |
+          swift build --swift-sdk swift-6.3.3-RELEASE_wasm --static-swift-stdlib --build-tests \
+            --toolset Tools/Web/wasm-stack-toolset.json
 
   # ── DocC Documentation ─────────────────────────────────────────────────────
   # Building the docs is NOT optional-extra: it is the only check that the

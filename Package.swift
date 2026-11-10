@@ -229,7 +229,9 @@ let package = Package(
 
         // ── Low-level (no deps) ─────────────────────────────────────────────────────────────────────────
         .target(name: "CSTBImage", publicHeadersPath: "include"),
-        .target(name: "TUICore"),
+        // WebAssembly's stack bounds, which are linker symbols only C can read (`StackGuard`). Built for wasm only.
+        .target(name: "CWASIStack"),
+        .target(name: "TUICore", dependencies: [.target(name: "CWASIStack", condition: .when(platforms: [.wasi]))]),
         .target(name: "TUIStyling"),
 
         // The width corpus (`TerminalWidthCorpus`): the grapheme clusters the

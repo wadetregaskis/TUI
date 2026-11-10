@@ -12,6 +12,10 @@
     import Musl
 #endif
 
+#if os(WASI)
+    import CWASIStack  // the linker's stack bounds, which only C can read
+#endif
+
 import Foundation  // FileHandle, to read the procfs files the Linux bounds come from
 
 /// A run-time guard against overflowing the call stack during deep view
@@ -93,6 +97,19 @@ import Foundation  // FileHandle, to read the procfs files the Linux bounds come
 ///   in the task allocator — the heap — not the machine stack. The answer
 ///   would then describe the wrong region entirely. Every caller in this
 ///   package (`measureChild`, `renderToBuffer`) is synchronous.
+///
+/// ## WebAssembly
+///
+/// wasm32 has one thread and one stack, a region of linear memory the linker
+/// lays out: it grows down from `__stack_high` to `__stack_low`, the program's
+/// data lies below it, and nothing stops a frame from going past the end. A
+/// stack that runs out there is not a crash but memory corruption: with the
+/// guard off, the deep-tree tests ended in "indirect call to null element",
+/// "out of bounds memory access" and a trap in the metadata cache (WasmKit,
+/// 2026-11-09). The linker's own symbols give the bounds exactly, through a
+/// small C shim (`CWASIStack`); wasm-ld's default stack is one 64 KiB page,
+/// which is why the reserve there is a share of the stack
+/// (``wasmStackExtent(low:high:)``).
 package enum StackGuard {
     /// Stack to keep in reserve below the guard point (bytes). Must comfortably
     /// exceed the deepest non-recursive work that still has to complete once the
@@ -349,7 +366,7 @@ package enum StackGuard {
     /// The stack bounds of the thread `stackPointer` was taken on, or `nil`
     /// when the platform cannot report them (which disables the guard).
     @MainActor
-    private static func currentThreadExtent(stackPointer: UInt) -> StackExtent? {
+    static func currentThreadExtent(stackPointer: UInt) -> StackExtent? {
         #if canImport(Darwin)
             // Both calls take a pthread, so they answer for whatever thread is
             // asking — no main-thread assumption needed on this platform.
@@ -376,9 +393,29 @@ package enum StackGuard {
                 let limits = readProcFile("/proc/self/limits")
             else { return nil }
             return linuxStackExtent(maps: maps, limits: limits, stackPointer: stackPointer)
+        #elseif os(WASI)
+            // One stack for the whole program, whatever is asking.
+            return wasmStackExtent(low: UInt(tui_wasm_stack_low()), high: UInt(tui_wasm_stack_high()))
         #else
             return nil  // unknown platform → guard disabled
         #endif
+    }
+
+    /// WebAssembly's stack, from the linker's bounds, its reserve a quarter of
+    /// the stack where that is less than ``reserveBytes``.
+    ///
+    /// wasm-ld's default stack is 64 KiB, a quarter of the native reserve, and
+    /// an app links with a bigger one only if it asks (`-z stack-size=…`, as
+    /// the browser demo does). The native reserve would put that stack's floor
+    /// above its top: every descent refused, a blank page. A quarter is room
+    /// enough, because a wasm frame keeps its locals in the engine's registers
+    /// and puts on this stack only what has its address taken.
+    ///
+    /// Not tied to the platform, so the arithmetic is tested everywhere.
+    static func wasmStackExtent(low: UInt, high: UInt) -> StackExtent? {
+        guard high > low else { return nil }
+        let reserve: UInt = min(reserveBytes, (high - low) / 4)
+        return StackExtent(low: low, floor: low + reserve, high: high)
     }
 
     /// Builds an extent from raw bounds, reserving ``reserveBytes`` above the

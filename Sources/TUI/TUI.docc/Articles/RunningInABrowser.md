@@ -80,9 +80,14 @@ Two things about the platform reach your code:
 
 - **`Int` is 32 bits.** An arithmetic overflow that can't happen on a 64-bit machine traps here. Seconds since 2001
   times a frame rate, for example, doesn't fit. Use `Int64` or `Double` where a value can grow that large.
-- **The stack is set at link time.** WebAssembly's default stack is 64 KB, which a deep view tree runs out of, since
-  views render by recursion. `build.sh` links with a 16 MB stack, which is what a native program's main thread has. If
-  you build the module yourself, pass `-Xlinker -z -Xlinker stack-size=16777216`.
+- **The stack is set at link time.** WebAssembly's default stack is 64 KB, and views render by recursion: on it, a
+  view tree only a few levels deep is cut short with a notice, as a tree too deep for any stack is. `build.sh` links
+  with a 16 MB stack, which is what a native program's main thread has. If you build the module yourself, pass
+  `-Xlinker -z -Xlinker stack-size=16777216`; when the build also links a macro for the host, whose linker takes no
+  such option, put `-z` and `stack-size=16777216` in a toolset's `linker` options instead (`--toolset`), as TUI's own
+  `Tools/Web/wasm-stack-toolset.json` does. A small stack matters more here than natively: there is no
+  guard page below it, so recursion TUI doesn't guard, such as releasing a very long chain of views, writes over the
+  program's memory instead of crashing.
 
 ## Publishing on GitHub Pages
 
