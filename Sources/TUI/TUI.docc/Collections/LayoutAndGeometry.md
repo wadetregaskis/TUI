@@ -55,6 +55,7 @@ Arrange views with stacks, grids and containers, and read where they ended up.
 - ``Layout``
 - ``LayoutValueKey``
 - ``AnyLayout``
+- ``FlowLayout``
 - ``HStackLayout``
 - ``LayoutProperties``
 - ``LayoutSubview``

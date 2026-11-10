@@ -512,7 +512,7 @@ struct LayoutPage: View {
             }
 
             DemoSection("page.layout.section.customLayout") {
-                // `Flow` is a real custom Layout — no stack arranges things this
+                // `FlowLayout` wraps — no stack arranges things this
                 // way. `AnyLayout` erases the two so the switch keeps ONE
                 // identity, and the chips are not rebuilt when it flips.
                 VStack(alignment: .leading, spacing: 1) {
@@ -520,7 +520,7 @@ struct LayoutPage: View {
                         .foregroundStyle(.palette.foregroundSecondary)
                     Toggle("page.layout.flowToggle", isOn: $flowChipsLayout)
 
-                    let layout = flowChipsLayout ? AnyLayout(Flow()) : AnyLayout(VStackLayout())
+                    let layout = flowChipsLayout ? AnyLayout(FlowLayout()) : AnyLayout(VStackLayout())
                     layout {
                         ForEach(flowChips, id: \.self) { chip in
                             Text(" \(chip) ").inverted()

@@ -35,7 +35,7 @@ enum CustomLayoutScenario {
 }
 
 /// Wraps its subviews onto as many lines as they need — the shape of the
-/// Example's `Flow` (Components/Flow.swift), minus its per-line height: every
+/// framework's `FlowLayout`, minus its per-line height and alignment: every
 /// subview here is one row. Deliberately written the obvious way so the
 /// scenario measures the protocol rather than a clever conformance.
 private struct Flow: Layout {

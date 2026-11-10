@@ -116,6 +116,40 @@ layout {
 }
 ```
 
+## Lines That Wrap: FlowLayout
+
+A row of chips, tags or key hints often needs more width than a terminal has.
+``FlowLayout`` places its subviews in a row and starts a new line whenever the
+next one would not fit, as text wraps words. SwiftUI has no such layout; this
+one is TUI's own.
+
+```swift
+FlowLayout(spacing: 1) {
+    ForEach(tags, id: \.self) { tag in
+        Text(" \(tag) ").inverted()
+    }
+}
+```
+
+Each subview keeps its ideal size, and each line is as tall as its tallest
+member. `spacing` is columns between neighbours and `lineSpacing` rows between
+lines; `nil` for either means what views prefer, as in an ``HStackLayout`` and a
+``VStackLayout``: one column and no rows. `alignment` places each line across
+the width (its horizontal half) and each shorter member within its line (its
+vertical half), and defaults to `.topLeading`.
+
+A subview wider than the whole width starts a line and is offered that width;
+one that cannot narrow overhangs the trailing edge. A long ``Text`` arrives
+already wrapped to the width there is, and makes its line taller. Offered no width, the layout's
+ideal is every subview on one line; offered a width, it reports its widest line
+and never more than the width. Like the stacks, it is a ``Layout`` value, so it
+switches with another through ``AnyLayout`` without the subviews losing their
+state:
+
+```swift
+let layout = isWrapping ? AnyLayout(FlowLayout()) : AnyLayout(VStackLayout())
+```
+
 ## Reading the Space You Were Given
 
 ``GeometryReader`` hands its content the size the container was actually
@@ -389,6 +423,7 @@ fixed.
 - ``Layout``
 - ``LayoutSubview``
 - ``AnyLayout``
+- ``FlowLayout``
 - ``Grid``
 - ``GridRow``
 - ``VStack``

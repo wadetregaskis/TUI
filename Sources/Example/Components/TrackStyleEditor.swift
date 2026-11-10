@@ -281,12 +281,12 @@ struct TrackStyleEditor: View {
     /// One toggle, not a flat-colour toggle and a gradient toggle: a one-stop
     /// gradient already IS a flat colour, everywhere from `GradientStopsCodec`
     /// to `TrackRenderer.gradientColor`, so the editor expresses "flat" by
-    /// holding one stop. Held in a ``Flow``, so a narrow terminal moves whole
+    /// holding one stop. Held in a ``FlowLayout``, so a narrow terminal moves whole
     /// controls onto the next line instead of clipping the last one.
     private func colourControls(
         coloured: Binding<Bool>, spansTrack: Binding<Bool>, edit: @escaping () -> Void
     ) -> some View {
-        Flow(spacing: 2) {
+        FlowLayout(spacing: 2) {
             Toggle("component.trackEditor.coloured", isOn: coloured)
             Button("component.trackEditor.edit", action: edit)
                 .disabled(!coloured.wrappedValue)

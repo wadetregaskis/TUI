@@ -1054,6 +1054,16 @@ FlexibleFrameView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits
 FlexibleFrameView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 Float._arg | var _arg: Float { get }
 Float._specifier | var _specifier: String { get }
+FlowLayout | nonisolated struct FlowLayout
+FlowLayout.AnimatableData | typealias AnimatableData = EmptyAnimatableData
+FlowLayout.Cache | typealias Cache = Void
+FlowLayout._definesExplicitAlignment | @MainActor static var _definesExplicitAlignment: Bool { get }
+FlowLayout.alignment | var alignment: Alignment
+FlowLayout.init(alignment:spacing:lineSpacing:) | init(alignment: Alignment = .topLeading, spacing: Int? = nil, lineSpacing: Int? = nil)
+FlowLayout.lineSpacing | var lineSpacing: Int?
+FlowLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: FlowLayout.Subviews, cache: inout ())
+FlowLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: FlowLayout.Subviews, cache: inout ()) -> ViewSize
+FlowLayout.spacing | var spacing: Int?
 FocusInteractions | struct FocusInteractions
 FocusInteractions.activate | static let activate: FocusInteractions
 FocusInteractions.automatic | static let automatic: FocusInteractions

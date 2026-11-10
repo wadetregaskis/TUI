@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`FlowLayout` wraps its subviews onto lines, as text wraps words.** A row of chips, tags or key hints that needs more
+width than the terminal has starts a new line where the next one would not fit: `FlowLayout(spacing: 1) { … }`, each
+line as tall as its tallest member, used directly or through `AnyLayout`. SwiftUI has no such layout; this one is
+TUI's own.
 **A toggle's label wraps when it is wider than its space.** It was drawn on one line beside the box and cut off where
 the toggle ended, its last words gone with no ellipsis: the Example's File Panels page lost "machine" from its ssh
 toggle at 80 columns. It now wraps as a `Text` does, its first line beside the box and the rest under it, as SwiftUI's

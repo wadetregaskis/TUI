@@ -45,7 +45,7 @@ struct PointerStylesDemo: View {
                 case .undetermined:
                     EmptyView()
                 }
-                Flow(spacing: 1) {
+                FlowLayout(spacing: 1) {
                     ForEach(styles.indices, id: \.self) { index in
                         box(styles[index])
                     }
