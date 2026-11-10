@@ -149,7 +149,7 @@ enum DirectoryListing {
             // a link to a folder listed as a file (WasmKit, 2026-11-10).
             var leadsToDirectory: ObjCBool = false
             isDirectory =
-                FileManager.default.fileExists(atPath: url.path, isDirectory: &leadsToDirectory)
+                unsafe FileManager.default.fileExists(atPath: url.path, isDirectory: &leadsToDirectory)
                 && leadsToDirectory.boolValue
         }
         let isFolder = isDirectory && (!isPackage || rule.enumeratesPackages)
