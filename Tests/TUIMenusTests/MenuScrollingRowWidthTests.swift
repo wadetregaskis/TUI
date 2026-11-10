@@ -12,10 +12,13 @@ import TUICore
 import TUIMenus
 @testable import TUITestSupport
 
-/// A menu that scrolls draws its rows into one cell less than a menu that hugs:
-/// the `ScrollView` the scrolled arm inserts reserves a trailing column for its
-/// bar. The row width handed down has to say so, and it did not — every row was
-/// told a cell it did not have, so the border clipped the last of them.
+/// A menu that scrolls makes room for its bar: the `ScrollView` the scrolled arm
+/// inserts reserves a trailing column for it. The menu grows by that column where
+/// the space beside it allows, so its rows keep the width they hugged — a row one
+/// cell short wrapped the widest label onto a second line. Squeezed to the space
+/// it was offered, it has no column to grow into, and its rows give the bar one.
+/// The row width handed down has to say which, and once it did not — every row
+/// was told a cell it did not have, so the border clipped the last of them.
 ///
 /// The visible casualty is the key equivalent, which is the only thing that lives
 /// at a menu row's trailing edge. It vanished the moment a menu grew past its cap
@@ -26,7 +29,7 @@ import TUIMenus
 ///
 /// Pinned against the same menu at two heights, because neither picture says
 /// anything alone: the hugging arm is right and the scrolled one was a cell out,
-/// and only the pair says which.
+/// and only the pair says which. And at two widths: room for the bar, and none.
 @MainActor
 @Suite("A scrolling menu's rows give up the scrollbar's column, and nothing else")
 struct MenuScrollingRowWidthTests {
@@ -44,10 +47,12 @@ struct MenuScrollingRowWidthTests {
         Button("Delete", role: .destructive) {}.keyboardShortcut("x", modifiers: [])
     }
 
-    /// The menu is 21 cells wide at this width, whichever arm it takes, so the
-    /// column indices below are directly comparable between the two.
-    private func lines(height: Int, configure: (inout EnvironmentValues) -> Void = { _ in })
-        -> [String]
+    /// The menu hugs at 21 cells, and grows to 22 to scroll where it is offered
+    /// more, so the column indices below are directly comparable between the
+    /// two arms.
+    private func lines(
+        height: Int, width: Int = 30, configure: (inout EnvironmentValues) -> Void = { _ in }
+    ) -> [String]
     {
         let tui = TUIContext()
         var environment = EnvironmentValues()
@@ -55,7 +60,7 @@ struct MenuScrollingRowWidthTests {
         environment.applyRuntimeServices(from: tui)
         configure(&environment)
         let context = RenderContext(
-            availableWidth: 30, availableHeight: height, environment: environment,
+            availableWidth: width, availableHeight: height, environment: environment,
             tuiContext: tui)
         tui.stateStorage.beginRenderPass()
         tui.renderCache.beginRenderPass()
@@ -107,10 +112,28 @@ struct MenuScrollingRowWidthTests {
     /// The regression, stated as geometry. The scrolled arm draws fewer rows —
     /// that is what scrolling is — so this asks about the ones it does draw, and
     /// it used to find no hint on any of them.
-    @Test("Scrolling: the hint moves in by exactly the scrollbar's column")
-    func hintGivesUpExactlyTheBarColumn() throws {
+    @Test("Scrolling with room beside it: the menu grows by the bar's column, and the hint stays put")
+    func menuGrowsByTheBarColumn() throws {
         let hugging = lines(height: 20)
         let scrolling = lines(height: 8)
+        let huggingColumn = try #require(
+            hintColumn("R", on: "Rename", in: hugging), "hugging: \(hugging)")
+        #expect(
+            hintColumn("R", on: "Rename", in: scrolling) == huggingColumn,
+            "the row keeps the width it hugged: \(scrolling)")
+        let barColumn = huggingColumn + 2
+        #expect(
+            scrolling.contains { Array($0)[barColumn] == "▲" || Array($0)[barColumn] == "▼" },
+            "the bar in the new column, after the trailing padding: \(scrolling)")
+        #expect(
+            scrolling.allSatisfy { $0.isEmpty || $0.count == hugging[0].count + 1 },
+            "one column wider, and no more: \(scrolling)")
+    }
+
+    @Test("Scrolling squeezed to its hug: the hint moves in by exactly the scrollbar's column")
+    func hintGivesUpExactlyTheBarColumn() throws {
+        let hugging = lines(height: 20, width: 21)
+        let scrolling = lines(height: 8, width: 21)
 
         let huggingColumn = try #require(
             hintColumn("R", on: "Rename", in: hugging), "hugging: \(hugging)")

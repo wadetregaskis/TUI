@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A menu that scrolls keeps its widest row on one line.** The scrollbar's column came out of the rows, which the menu
+had sized to its widest label exactly, so that label wrapped onto a second line in every inline menu taller than its
+space: the Example's main menu in Japanese showed "オーバーレイとモーダ" over "ル". The
+menu now grows by the bar's column where there is room beside it, and takes it from the rows only where there is none.
+
 **F2 opens the settings panel in the Example, as its Settings… item says.** The Example cycled its palette on F2, an
 app binding that comes before TUI's settings key, so the panel never opened on its key on any page. The palette now
 cycles on ⇧F2.

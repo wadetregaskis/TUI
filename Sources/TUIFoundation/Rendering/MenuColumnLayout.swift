@@ -286,8 +286,19 @@ private func planMenuColumn(
         .placingScrollIndicatorsForNoFocusStop()
         .environment.verticalScrollIndicators(overflowing: true).bar
     guard scrollbarColumn else { return scrolls }
+    // The bar's column comes out of the space beside the menu where there is
+    // any, and out of the rows only where there is none: the hug measured each
+    // row at its own width, so the widest row has not a cell to spare, and a
+    // row one cell short wraps its label onto a second line — the widest row
+    // of every menu that scrolled did ("Overlays & / Modals"). A menu squeezed
+    // to the space it was offered has no column to grow into, and its rows
+    // give the bar one as they always did.
+    if menuWidth < context.availableWidth {
+        scrolls.width = menuWidth + 1
+        scrolls.sized = scrolls.sized.withAvailableWidth(scrolls.width)
+    }
     scrolls.sized.environment.menuRowWidth = menuRowWidth(
-        menuWidth: menuWidth, scrollbarColumn: true)
+        menuWidth: scrolls.width, scrollbarColumn: true)
     // …and, having changed what a row measures to, say so, or the `ScrollView`'s
     // own extent walk can be answered from the probe just above, which asked the
     // same rows at the wider chrome. See ``RenderContext/measureGeneration``.
