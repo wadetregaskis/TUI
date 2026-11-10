@@ -131,6 +131,11 @@ Both List and Table support the same keyboard shortcuts:
 | Delete / Backspace | Delete the focused row, where its `ForEach` has `onDelete` |
 | ⇧→ / ⇧← (⌃L / ⌃T) | Reveal the cursor row's leading / trailing swipe actions (see "Row Actions" below) |
 
+The focused row stays focused when the rows change: a row inserted or removed
+above it, or a sort, moves the cursor with its row, so the next key acts on the
+row you were on. When the focused row itself goes, the row after it takes the
+focus.
+
 Type select takes every printable character but Space while the list or table
 has the focus, whether or not a row matches, so a bare-key status-bar item or
 shortcut doesn't hear one there; the row shortcuts are all Control chords.

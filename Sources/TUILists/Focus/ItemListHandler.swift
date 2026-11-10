@@ -1610,6 +1610,14 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// CURRENT tail is one of the new rows, which the user has never seen).
     var bottomFollowTail = -1
 
+    /// The id of the row the focus cursor stood on when the last frame was
+    /// drawn, and its index then — what ``followCursorRow(from:ownMovePending:)``
+    /// finds the cursor's row by when the rows change under it. `nil` when the
+    /// cursor stood on a row with no id, or while a move of the list's own is
+    /// awaited (``movedRowsPendingFrames``).
+    var cursorRowID: SelectionValue?
+    var cursorRowOrdinal = 0
+
     /// Whether this list holds the focus, as of the last render.
     ///
     /// Set by the owning view alongside the rest of the per-frame wiring. The

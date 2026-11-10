@@ -742,7 +742,7 @@ designation naming no row in the data is none, and the top row is held.
 | `LazyVStack` in a `ScrollView`, equal rows | Yes | The offset moves by however far the row remembered at the top moved: arithmetic |
 | … rows of different heights, up to 256 | Yes | The same, from the walked slots, which also see a row above it grow |
 | … more than 256 | Yes | The remembered row becomes the anchor, wherever the change put it; the offset follows by the running pitch |
-| `List`, `Table` (both row composers) | Yes | `ItemListHandler.holdTopRow`: the row offset moves by the rows inserted or removed above, and the focus cursor with it |
+| `List`, `Table` (both row composers) | Yes | `ItemListHandler.holdTopRow`: the row offset moves by the rows inserted or removed above; the focus cursor stays on its row (`followCursorRow`) |
 | An eager `VStack` | No | Drawn whole and clipped, with no window to hold — as SwiftUI's eager stack does not hold (decisions C-SCROLLANCHOR-1) |
 
 `.scrollWindowHold(.offset)` (TUI-specific, with `\.scrollWindowHold`) keeps the
@@ -822,7 +822,12 @@ after it has the last word; a row found without the row after it beside it is
 a reorder there too. Their focus cursor is a row index, so it moves too
 when it is on the top row or below it: left where it was it would point at
 another row, and the next key's reveal would scroll back to it, undoing the
-hold.
+hold. Then it is checked against its own row's id, remembered from the last
+frame (`ItemListHandler.followCursorRow`), and put back on that row wherever
+the change took it — a change between the top row and the cursor, a sort, or
+any change at all while the list is at its top, where nothing is held. A
+cursor row that left the data leaves the cursor where it was, on the row
+that took its place.
 
 Nothing is remembered at the top, so a scrollable at rest there pays nothing.
 Elsewhere a frame whose content did not change pays one key (or id) read.

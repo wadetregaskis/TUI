@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A list's or table's focused row stays focused when the rows change.** A row inserted or removed above it, or a
+sort, left the focus where it was, on whichever row took that place, so Space, Return or Delete acted on a row you
+never moved to: always at the top of a list, and anywhere for a change between the top row on screen and the focused
+row. The focus now follows its row. When the focused row itself goes, the row after it takes the focus, as before.
+
 **The environment variables an app's man page lists are written for the person running it.** Each says, in plain
 words, what it does to the screen, the keys or the mouse, its values, its default, and an example where one helps, and
 they're grouped as that person looks for them: colour and appearance, motion, keyboard and mouse, text and language,

@@ -301,6 +301,18 @@ frames' time) after the first frame that follows the move; the clock is read
 only while a move is awaited. An `onMove` that takes longer than that to apply
 is held, as one slower than three frames was.
 
+**2026-11-10 (the lists bug hunt): the fuller version shipped.** At its top,
+where nothing is held, a row inserted above the cursor left it on the row
+above its own, so Space, Return and Delete acted on a row the user never moved
+to; a sort did the same anywhere. The cursor's row id is remembered each frame
+and the cursor put back on that row after the hold
+(`ItemListHandler.followCursorRow`). It costs one id read a frame, of the
+cursor's row, and a search outward from the cursor on a frame whose rows moved
+under it. A cursor the user or the list
+moved since the last frame, and one waiting for a move of the list's own to
+reach the data, are left alone; a cursor row that went is left to the row
+that took its place, as before.
+
 ### B-SCROLLANCHOR-5. A reorder is told from rows inserted or removed above by the row after the top row
 
 *`ScrollWindowHold.topRow`*

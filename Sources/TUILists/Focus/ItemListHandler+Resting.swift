@@ -203,10 +203,15 @@ extension ItemListHandler {
         firstRowHeight: @autoclosure () -> Int
     ) {
         guard !measuring else { return }
+        let cursorBefore = focusedIndex
+        let ownMovePending = movedRowsPendingFrames > 0
         // Before the clamps, which then hold it to the rows there are: the
         // hold moves the offset by however far the rows above moved the top
         // row, and every rule below has the last word over it.
         holdTopRow()
+        // The cursor's own row, which the hold's shift misses when the change
+        // was between the top row and the cursor, or a sort.
+        let checkedCursor = followCursorRow(from: cursorBefore, ownMovePending: ownMovePending)
         clampScrollOffset()
         clampTopClip()
         // After the clamps, which is what puts the offset AT the whole-row
@@ -217,6 +222,7 @@ extension ItemListHandler {
             firstRowHeight: firstRowHeight())
         applyAnchorHold()
         rememberTopRow()
+        rememberCursorRow(checked: checkedCursor)
     }
 
     /// Re-resolves this frame's overscroll allowance (§1.5) — how far past its

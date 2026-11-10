@@ -171,10 +171,9 @@ extension ScrollWindowHoldTests {
 
     /// The cursor moves with the hold, so a hold two rows off moved it two
     /// rows, onto another row, where the next chord acted. The rename must
-    /// not move it at all. (The arrival before it, below the top row, leaves
-    /// the cursor's index where it was, and so a row above the row it was on:
-    /// a change between the top row and the cursor is not followed,
-    /// B-SCROLLANCHOR-4.)
+    /// not move it at all. (The arrival before it, between the top row and the
+    /// cursor, moves the cursor on with its row, found by its id: the fuller
+    /// version of B-SCROLLANCHOR-4, 2026-11-10.)
     @Test("A List's cursor does not move when the top row is renamed a frame after a row arrived beside it")
     func listCursorThroughARenameBesideAnArrival() {
         let handler = ItemListHandler<Int>(
@@ -194,13 +193,13 @@ extension ScrollWindowHoldTests {
         handler.itemCount = ids.count
         settle()
         #expect(handler.scrollOffset == 10, "precondition: an arrival below the top row moves nothing")
-        #expect(handler.focusedIndex == 13, "precondition: the arrival moved no index")
+        #expect(handler.focusedIndex == 14, "precondition: the cursor stays on its row, 13")
         ids[10] = 3_010
         handler.itemIDs = ids
         settle()
         #expect(handler.scrollOffset == 10)
-        #expect(handler.focusedIndex == 13)
-        #expect(handler.id(at: handler.focusedIndex) == 12)
+        #expect(handler.focusedIndex == 14)
+        #expect(handler.id(at: handler.focusedIndex) == 13)
     }
 
     /// An `onMove` that applies the move later — `Task { await store.move(…) }`

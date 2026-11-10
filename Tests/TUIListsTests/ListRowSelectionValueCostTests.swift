@@ -164,9 +164,12 @@ struct ListRowSelectionValueCostTests {
         let tagBuilds = tagged.builds - untagged.builds
         #expect(tagged.drawn > 0 && tagged.drawn == untagged.drawn, "both lists drew their rows")
         // A windowed loop reads the tag of each row it draws and of each row
-        // the handler asks about — the O(visible) price of a tagged row.
+        // the handler asks about — the O(visible) price of a tagged row. The
+        // constant is the handler's own reads, one of them since 2026-11-10 the
+        // cursor's row, which it remembers each frame to keep the cursor on it
+        // as the rows change (`ItemListHandler.followCursorRow`).
         #expect(
-            tagBuilds <= 2 * tagged.drawn + 2,
+            tagBuilds <= 2 * tagged.drawn + 3,
             "\(tagBuilds) tag builds for \(tagged.drawn) drawn rows of \(Self.rowCount)")
     }
 
