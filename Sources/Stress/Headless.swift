@@ -4,7 +4,6 @@
 //  Created by LAYERED.work
 //  License: MIT
 
-import Dispatch
 import Foundation
 import TUI
 import TUICore
@@ -516,7 +515,7 @@ enum Headless {
             }
             let countsBefore = MemoCounts(warm.renderCache)
             let cpuStart = threadCPUNanoseconds()
-            let frameStart = DispatchTime.now()
+            let frameStart = MonotonicClock.nowNanoseconds
             // The live loop's per-pass lifecycle, timed as part of the frame
             // because it IS part of the frame: `RenderLoop` opens every pass
             // with these and closes it by pruning whatever the pass did not
@@ -535,7 +534,7 @@ enum Headless {
             let buffer = renderFrame(view, context: warm, channels: channels, cols: cols, rows: rows)
             warm.stateStorage?.endRenderPass()
             warm.renderCache?.removeInactive()
-            ns &+= DispatchTime.now().uptimeNanoseconds - frameStart.uptimeNanoseconds
+            ns &+= MonotonicClock.nowNanoseconds - frameStart
             if let cpuStart, let cpuEnd = threadCPUNanoseconds() {
                 cpuNs &+= cpuEnd &- cpuStart
                 cpuMeasured = true

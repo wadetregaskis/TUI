@@ -11,7 +11,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Dispatch
 import TUI
 import TUICore
 
@@ -202,9 +201,9 @@ enum SessionRunner {
             }
             let bytesBefore = warm.bytesWritten()
             let cpuStart = threadCPUNanoseconds()
-            let wallStart = DispatchTime.now().uptimeNanoseconds
+            let wallStart = MonotonicClock.nowNanoseconds
             play(step, on: warm, at: index)
-            let wall = DispatchTime.now().uptimeNanoseconds &- wallStart
+            let wall = MonotonicClock.nowNanoseconds &- wallStart
             let cpu = threadCPUNanoseconds().flatMap { end in cpuStart.map { end &- $0 } } ?? wall
             let bytes = warm.bytesWritten() &- bytesBefore
             if options.trace { trace(step, index, cpu: cpu, bytes: bytes) }

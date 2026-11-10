@@ -23,9 +23,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Dispatch
 import Observation
 import TUI
+import TUICore
 
 // MARK: - The model
 
@@ -121,9 +121,9 @@ final class AccumulateSession: StressSession {
     /// the registrations every reader armed since the page opened run inside
     /// it, on this thread.
     func finish() -> String? {
-        let start = DispatchTime.now().uptimeNanoseconds
+        let start = MonotonicClock.nowNanoseconds
         model.never += 1
-        let nanos = DispatchTime.now().uptimeNanoseconds &- start
+        let nanos = MonotonicClock.nowNanoseconds &- start
         return "the first write of the never-written property took \((Double(nanos) / 1e6).formatted(.fixed(3))) ms"
     }
 

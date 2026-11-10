@@ -32,7 +32,6 @@
 //    --session <id> [--steps N] [--verify] [--resize-every N] [--cols C] [--rows R] [--show] [--show-steps A-B] [--trace] [--census] [--cache-sizes N]
 //    --bench --scenario session/<id> ...         a session as a benchmark
 
-import Dispatch
 import Foundation
 import TUI
 
