@@ -23,6 +23,8 @@ ContentView()
 
 People can also cycle through the palettes at runtime by pressing `t`, once the app has turned that on with `statusBarSystemItems(theme: true)`.
 
+On a terminal with 256 or 16 colours, every colour is drawn as the nearest one the terminal has, and at 16 two of a palette's colours can become the same one: Silver Aerogel's accent becomes its page, and some palettes' grey becomes their text. Where the colour a control says a state in becomes the colour it rests in, the control says the state as it does on a terminal with no colour: a focused control shows its label in reverse video, and a disabled one is drawn faint. This needs nothing from your palette, built-in or your own.
+
 ## Palette Protocol
 
 TUI uses a single palette protocol:

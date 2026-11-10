@@ -493,7 +493,7 @@ struct _ButtonStyleBody: View, Renderable {
 
     /// What a `@ViewBuilder` label is drawn in: the palette and the surface
     /// under the button, and the two colours the style resolves for it.
-    private struct ViewLabelInk {
+    struct ViewLabelInk {
         let palette: any Palette
         /// What the ink lands on, which is not the page wherever a container
         /// painted one.
@@ -509,7 +509,7 @@ struct _ButtonStyleBody: View, Renderable {
 
     /// The colours a `@ViewBuilder` label is drawn in under `context`, by the
     /// string path's rules.
-    private func viewLabelInk(context: RenderContext) -> ViewLabelInk {
+    func viewLabelInk(context: RenderContext) -> ViewLabelInk {
         let palette = context.environment.palette
         // …as in the string path: what the ink lands on, not the page.
         let surface = context.environment.enclosingSurface

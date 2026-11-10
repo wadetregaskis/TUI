@@ -94,6 +94,15 @@ struct ActiveChipCycle {
     /// style animates, and the two ends differ. A hover must not fight that.
     var isBreathing: Bool { cycle.isFocused && cycle.isAnimating(dim: breath.dim, bright: breath.bright) }
 
+    /// Whether the active chip's label, breathing from its resting colour to the loud
+    /// one, draws only its resting colour at the terminal's colour depth
+    /// (`RenderContext.breathDrawsAsResting(dim:bright:resting:)`): the strip's focus
+    /// says nothing there, and is said as without colour (THEME-16, 2026-11-10). At 16
+    /// colours Amber's, Blue's, Pro's and Silver Aerogel's focused strip drew as at rest.
+    func drawsAsResting(context: RenderContext) -> Bool {
+        context.breathDrawsAsResting(dim: breath.dim, bright: breath.bright, resting: labelDim)
+    }
+
     /// The active label's colour right now — breathing while the strip holds
     /// the focus, resting otherwise.
     ///

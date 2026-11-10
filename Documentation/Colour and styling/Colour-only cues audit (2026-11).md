@@ -30,6 +30,21 @@ reverse video, disabled faint, a `Table` row's selection with its `●`, a radio
 option. One rule in one place (`RenderContext.statesWithoutColor`), which every no-colour cue already asked as a depth
 test, so every control turns on together. Off by default, since it changes the look; see "Open" below.
 
+## At the terminal's depth (2026-11-10)
+
+A cue that is a colour is only as good as the colours the terminal has. Rounded to sixteen, Silver Aerogel's accent is
+its page, so ten controls' focus drew as their rest; and six palettes' disabled grey is a resting button's label. The
+owner ruled (THEME-16 (b)) that where a state's colour draws as the resting colour at the terminal's depth, the
+control falls back to its colour-free cue automatically: reverse video for the focus, faint for disabled. Each control
+compares the colours it draws the state in with the ones it rests in, as the depth draws them
+(`RenderContext.drawsAsResting`, `breathDrawsAsResting`), and passes the answer to the cue it already draws without
+colour; a highlight whose fill draws as its ground is reversed (`Palette.highlightFill`), which is how a block caret
+the colour of its field reverses its cell instead. `StateColourCollisionTests` sweeps every control through every
+shipped palette at every depth (`TUI_COLLISION_SWEEP=1`): before, at 16 colours, 16 focused controls drew as at rest
+and 51 disabled ones as enabled; after, none. At 256 colours
+and without colour nothing collided; a disabled `TabView` and `ColorPicker` look enabled at every depth, which is not a
+rounding.
+
 ## The table
 
 | Control | State | Cue at a colour depth | Status |

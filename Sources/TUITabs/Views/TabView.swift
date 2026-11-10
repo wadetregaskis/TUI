@@ -878,7 +878,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         attachTabClicks(to: &buffer, regions: strip.regions, context: context)
         return buffer.reversedForActiveTab(
             isFocused: isFocused, region: strip.regions.first { $0.index == selectedIndex }, isFolder: true,
-            context: context)
+            chip: chip, context: context)
             .clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
 
@@ -1139,7 +1139,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         attachTabClicks(to: &buffer, regions: regions, context: context)
         return buffer.reversedForActiveTab(
             isFocused: isFocused, region: regions.first { $0.index == selectedIndex }, isFolder: false,
-            context: context)
+            chip: chip, context: context)
             .clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
 

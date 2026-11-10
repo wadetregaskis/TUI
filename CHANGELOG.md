@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A focused or disabled control shows it on a 16-colour terminal in every palette.** Rounded to a terminal's sixteen
+colours, some palettes' states land on the colour the control rests in: in Silver Aerogel, whose accent becomes its
+page, a focused slider, stepper, tab view, menu, `.button` toggle and bordered or prominent button drew as at rest;
+Solid Colors' caret was the colour of its field; and in six palettes a disabled button drew as an enabled one. Where
+a state's colour draws as the resting colour at the terminal's depth, the control now says it as it does on a
+terminal with no colour: the focus in reverse video, disabled faint.
 **Views draw their words without the escape sequences written into them.** `Text("x\u{1B}[31my")` drew in red, and
 text from outside the app (a file name, a log line, network data) could change colours, set the window title or write
 the clipboard. Every view now removes escape sequences and control characters other than tabs and line breaks from the

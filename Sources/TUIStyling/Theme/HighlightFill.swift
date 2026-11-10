@@ -74,8 +74,9 @@ extension Palette {
     ///     a colour the terminal decides is the ground itself, which measures perfectly
     ///     well and shows nothing, so the fill alone cannot say whether the highlight is
     ///     visible.
-    /// - Returns: `.fill(fill)` where the fill, the tint and the ground all have RGB;
-    ///   otherwise `.reversed`, over this palette's ``Palette/foreground`` on the ground.
+    /// - Returns: `.fill(fill)` where the fill, the tint and the ground all have RGB,
+    ///   and the fill is not the ground as the terminal's depth draws them; otherwise
+    ///   `.reversed`, over this palette's ``Palette/foreground`` on the ground.
     package func highlightFill(
         _ fill: Color, over surface: Color? = nil, tint: Color? = nil
     ) -> HighlightFill {
@@ -83,8 +84,13 @@ extension Palette {
         // Without colour a fill draws nothing at all: a text field's caret and its
         // selection were both invisible. Reverse video is an attribute, which such a
         // terminal still draws.
+        let depth = ColorDepth.current
         guard fill.rgbComponents != nil, ground.rgbComponents != nil,
-            tint.map({ $0.rgbComponents != nil }) ?? true, ColorDepth.current > .noColor
+            tint.map({ $0.rgbComponents != nil }) ?? true, depth > .noColor,
+            // Nor where the depth rounds the fill onto its ground, which then shows
+            // nothing: Solid Colors' caret is its field's white at 16 colours, so a
+            // focused field showed no caret (THEME-16, 2026-11-10).
+            fill.downsampled(to: depth) != ground.downsampled(to: depth)
         else { return .reversed(ink: foreground, field: ground) }
         return .fill(fill)
     }

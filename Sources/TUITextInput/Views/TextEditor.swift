@@ -507,7 +507,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             context: context, buffer: &buffer, handler: handler,
             contentWidth: contentWidth, height: height, overflows: window.hasVerticalOverflow,
             focusID: persistedFocusID, isDisabled: isDisabled)
-        return buffer.fadedWithoutColor(if: isDisabled, context: context)
+        return buffer.fadedTextInput(if: isDisabled, text: nil, context: context)
     }
 
     /// The caret a focused editor draws at `column` of its line or row.

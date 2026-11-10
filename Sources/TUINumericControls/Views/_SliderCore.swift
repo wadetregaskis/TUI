@@ -239,14 +239,22 @@ struct _SliderCore: View, Renderable, Layoutable {
             showsThumb: context.environment.sliderThumbVisibility != .hidden
         )
 
-        // The arrows only: which part of a track is lit says the value.
+        // The arrows only: which part of a track is lit says the value. They breathe
+        // the accent from their dimmed grey; disabled, the read-out turns from the
+        // secondary tier to the tertiary. Where those draw alike at the terminal's
+        // depth, the state is said as without colour (THEME-16).
         let rightArrow = Self.trackLeft(gap: gap) + drawnTrackWidth + gap
+        let focusUnseen = isFocused && !isDisabled && context.arrowFocusDrawsAsResting
+        let greyUnseen = context.drawsAsResting(palette.foregroundTertiary, palette.foregroundSecondary)
         var buffer = FrameBuffer(
             lines: [content] + tickRows(drawnTrackWidth: drawnTrackWidth, isDisabled: isDisabled, context: context))
-            .reversedWithoutColor(if: isFocused && !isDisabled, rows: 0..<1, columns: 0..<1, context: context)
             .reversedWithoutColor(
-                if: isFocused && !isDisabled, rows: 0..<1, columns: rightArrow..<(rightArrow + 1), context: context)
-            .fadedWithoutColor(if: isDisabled, context: context)
+                if: isFocused && !isDisabled, rows: 0..<1, columns: 0..<1, focusDrawsAsResting: focusUnseen,
+                context: context)
+            .reversedWithoutColor(
+                if: isFocused && !isDisabled, rows: 0..<1, columns: rightArrow..<(rightArrow + 1),
+                focusDrawsAsResting: focusUnseen, context: context)
+            .fadedWithoutColor(if: isDisabled, greyDrawsAsEnabled: greyUnseen, context: context)
         buffer.opacityRegions += valueClaim.map { [$0] } ?? []
         // The track's own claims, in the track's coordinates, moved to where the
         // layout actually puts it: `"◀ "`, two cells at `.regular`, which
@@ -257,7 +265,9 @@ struct _SliderCore: View, Renderable, Layoutable {
         // against the page rather than claimed. One colour, two answers, decided by
         // `isEnabled`; §31.3.
         buffer.opacityRegions += trackClaims.map { $0.shifted(byX: Self.trackLeft(gap: gap), y: 0) }
-        if !context.isMeasuring {
+        // No runs where the breath draws only the arrows' resting colour: they would
+        // repaint that colour, unreversed, over the reversal above.
+        if !context.isMeasuring, !focusUnseen {
             buffer.animatedCells = arrowRuns(
                 cycle: cycle, palette: palette, drawnTrackWidth: drawnTrackWidth, gap: gap)
         }

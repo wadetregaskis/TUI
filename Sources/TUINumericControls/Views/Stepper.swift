@@ -570,9 +570,18 @@ private struct _StepperCore: View, Renderable, Layoutable {
                 spelling: context.textSpelling)
         )
 
-        var buffer = FrameBuffer(text: content).statingWithoutColor(focused: isFocused, disabled: isDisabled, context: context)
+        // The arrows breathe the accent from their dimmed grey, and the value turns
+        // from the secondary tier to the foreground; disabled, the value is in the
+        // tertiary. Where those draw alike at the terminal's depth, the state is said
+        // as without colour (THEME-16).
+        let focusUnseen = isFocused && context.arrowFocusDrawsAsResting && context.drawsAsResting(palette.foreground, palette.foregroundSecondary)
+        var buffer = FrameBuffer(text: content).statingWithoutColor(
+            focused: isFocused, disabled: isDisabled, focusDrawsAsResting: focusUnseen,
+            greyDrawsAsEnabled: context.drawsAsResting(palette.foregroundTertiary, palette.foregroundSecondary), context: context)
         buffer.opacityRegions += valueClaim.map { [$0] } ?? []
-        if !context.isMeasuring {
+        // No runs where the breath draws only the arrows' resting colour: they would
+        // repaint that colour, unreversed, over the reversal above.
+        if !context.isMeasuring, !focusUnseen {
             buffer.animatedCells = arrowRuns(
                 cycle: cycle, palette: palette, totalWidth: buffer.width)
         }

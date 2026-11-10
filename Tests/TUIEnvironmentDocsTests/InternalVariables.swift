@@ -43,6 +43,8 @@ enum InternalVariables {
         "TUI_BENCHMARKS": "The manifest reads it, to build TUI's own benchmarks.",
         "TUI_BENCH_MAX_DURATION_MS": "The benchmarks alone read it.",
         "TUI_BENCH_RUN_VIEW": "The benchmarks alone read it.",
+        "TUI_COLLISION_REPORT": "A test alone reads it.",
+        "TUI_COLLISION_SWEEP": "A test alone reads it.",
         "TUI_MEASURE_FLEX_PROBE": "A test alone reads it.",
         "TUI_PARALLEL_TEST_LOCK": "A tool alone reads it.",
         "TUI_PARALLEL_TEST_STALL_SECONDS": "A tool alone reads it.",
