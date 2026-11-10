@@ -61,7 +61,8 @@ A few more modifiers settle how much room a view takes, as they do in SwiftUI:
 - ``View/fixedSize(horizontal:vertical:)`` keeps a view at its natural size
   whatever it is offered, so a `Text` doesn't wrap or truncate.
 - ``View/layoutPriority(_:)`` lets a stack give a view its room before its
-  siblings when there isn't enough for all of them.
+  siblings when there isn't enough for all of them. A `Text` of several lines
+  beside it gives up lines, down to one, truncated.
 - `Spacer(minLength:)` keeps at least that many cells between its neighbours.
 - `containerRelativeFrame(_:alignment:)` sizes a view by its container, such as
   the scroll view it's in, and `aspectRatio(_:contentMode:)` by a ratio.

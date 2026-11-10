@@ -160,11 +160,72 @@ struct LayoutPriorityTests {
         #expect(without.hasSuffix(tenB), "without a priority the text keeps its width: \(without)")
     }
 
-    /// The column's distribution is the row's, along the other axis. A column
-    /// of multi-line `Text`s is no test of it: a `Text` measures at its full
-    /// height when offered none, so it has nothing to give — and SwiftUI's
-    /// column of two `Text`s came out the same with and without a priority
-    /// too (v-priority, v-equal).
+    private let threeLines = "one\ntwo\nthree"
+    private let otherThree = "four\nfive\nsix"
+
+    private func column<V: View>(height: Int, @ViewBuilder _ content: () -> V) -> [String] {
+        lines(VStack(alignment: .leading, spacing: 0) { content() }, width: 20, height: height).map {
+            String($0.reversed().drop { $0 == " " }.reversed())
+        }
+    }
+
+    @Test("A multi-line Text offered fewer rows answers fewer lines, one at least (SwiftUI: vpriority.out, min)")
+    func textAnswersAnOfferedHeight() {
+        let context = makeRenderContext(width: 20, height: 10)
+        func height<V: View>(_ view: V, _ offer: Int?) -> Int {
+            measureChild(view, proposal: ProposedSize(width: 20, height: offer), context: context).height
+        }
+        #expect(height(Text(threeLines), 0) == 1)
+        #expect(height(Text(threeLines), 2) == 2)
+        #expect(height(Text(threeLines), nil) == 3)
+        #expect(height(Text(threeLines), 5) == 3)
+        #expect(height(Text(threeLines).lineLimit(3), 0) == 1)
+        #expect(height(Text(threeLines).lineLimit(2...), 0) == 2)
+        #expect(height(Text(threeLines).lineLimit(3, reservesSpace: true), 0) == 3)
+        #expect(height(Text(threeLines).fixedSize(horizontal: false, vertical: true), 0) == 3)
+    }
+
+    @Test("A column gives a multi-line Text's lines by priority (SwiftUI: v-b-priority, v-a-priority)")
+    func columnOfTextsByPriority() {
+        let second = column(height: 4) {
+            Text(threeLines)
+            Text(otherThree).layoutPriority(1)
+        }
+        // The text cut to one line folds the rest into it, truncated, as a
+        // `lineLimit(1)` does.
+        #expect(second[0].hasPrefix("one") && Array(second.dropFirst()) == ["four", "five", "six"], "\(second)")
+        let first = column(height: 4) {
+            Text(threeLines).layoutPriority(1)
+            Text(otherThree)
+        }
+        #expect(Array(first.prefix(3)) == ["one", "two", "three"], "\(first)")
+        #expect(first.count == 4 && first[3].hasPrefix("four"), "\(first)")
+    }
+
+    @Test("Without a priority a column shares its rows; a text that cannot shrink keeps them (SwiftUI: v-equal, v-b-priority-a-fixed, v-b-priority-a-reserves)")
+    func columnOfTextsShares() {
+        let equal = column(height: 4) {
+            Text(threeLines)
+            Text(otherThree)
+        }
+        #expect(equal.count == 4 && equal[0] == "one" && equal[1].hasPrefix("two") && equal[2] == "four", "\(equal)")
+        #expect(equal[3].hasPrefix("five"), "\(equal)")
+        let fixed = column(height: 4) {
+            Text(threeLines).fixedSize(horizontal: false, vertical: true)
+            Text(otherThree).layoutPriority(1)
+        }
+        #expect(fixed.count == 4 && Array(fixed.prefix(3)) == ["one", "two", "three"], "\(fixed)")
+        #expect(fixed[3].hasPrefix("four"), "\(fixed)")
+        let reserving = column(height: 4) {
+            Text(threeLines).lineLimit(2...)
+            Text(otherThree).layoutPriority(1)
+        }
+        #expect(reserving.count == 4 && reserving[0] == "one" && reserving[2] == "four", "\(reserving)")
+        #expect(reserving[3].hasPrefix("five"), "\(reserving)")
+    }
+
+    /// The column's distribution is the row's, along the other axis, as the
+    /// columns of `Text`s above show (`vpriority.out`).
     @Test("The distribution offers the higher priority its length first, the lower keeping their minimums")
     func distributionByPriority() {
         // Two fixed children of 3 that cannot shrink, in 4: leading first

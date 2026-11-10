@@ -968,8 +968,26 @@ package struct TextStyle: Sendable, Equatable {
         // more lines than it allows, the render folds the extra lines into the
         // last kept line, which can make it wider; measure via `fitMeasured`.
         let policy = resolvedLineLimitPolicy(context: context)
+        // Offered fewer rows than its lines take, a text gives up lines, as
+        // SwiftUI's does: down to one, or to the lines a reservation keeps
+        // (`lineLimit(2...)`, `lineLimit(3, reservesSpace: true)`), the last
+        // kept one truncated — so a column short of rows can deal a sibling
+        // with a higher `layoutPriority` its lines while this text keeps its
+        // minimum (`Tools/SwiftUIProbes/Layout priority/vpriority.out`). The
+        // render lays it out in the rows it is dealt by the same rule.
+        let spacing = resolvedLineSpacing(context: context)
+        var rowLimit = policy.rowCount
+        var offerBinds = false
+        if let offered = proposal.height {
+            let fitting = max(
+                policy.reservedLines ?? 1, LineSpacingRows.lines(fittingRows: offered, spacing: spacing))
+            if fitting < min(wrapped.lines.count, rowLimit ?? wrapped.lines.count) {
+                rowLimit = fitting
+                offerBinds = true
+            }
+        }
         let naturalWidth: Int
-        if let limit = policy.rowCount, wrapped.lines.count > limit {
+        if let limit = rowLimit, wrapped.lines.count > limit {
             let mode = style.truncationMode ?? context.environment.truncationMode
             let atWordBoundary = style.truncatesAtWordBoundary
             let fitted = TextWrapping.fitMeasured(
@@ -990,23 +1008,23 @@ package struct TextStyle: Sendable, Equatable {
         // the rows the text is allowed to occupy. Resolved against the
         // environment exactly as the render does, or a cascaded
         // `.lineLimit(_:)` would reserve rows the render then refuses to draw.
-        var drawnLines = min(wrapped.lines.count, policy.rowCount ?? wrapped.lines.count)
+        var drawnLines = min(wrapped.lines.count, rowLimit ?? wrapped.lines.count)
         // …and a reservation is a FLOOR on the same number, so a text shorter
         // than its limit still asks its parent for the rows it will pad out to.
         if let reserved = policy.reservedLines { drawnLines = max(drawnLines, reserved) }
         // …and then the blank rows `.lineSpacing(_:)` interleaves. The limit
         // counts LINES, as in SwiftUI, so it is applied first and the spacing
         // expands what survives it.
-        let height = LineSpacingRows.displayRows(
-            forLines: drawnLines, spacing: resolvedLineSpacing(context: context))
+        let height = LineSpacingRows.displayRows(forLines: drawnLines, spacing: spacing)
 
         // Text is never flexible - it has a fixed size…
-        // …and it is a NATURAL size: everything above reads the effective width
-        // (`proposal.width ?? context.availableWidth`) and the environment, and
-        // nothing reads the vertical budget — a text does not shrink because the
-        // space it was offered is short, it overflows and the parent clips it.
-        // So the per-pass memo may answer a query under any budget from this.
-        return ViewSize.fixed(width, height).declaringNaturalSize()
+        // …and, unless the offered height took lines from it, a NATURAL size:
+        // everything above reads the effective width (`proposal.width ??
+        // context.availableWidth`) and the environment, and the vertical
+        // budget only where it bound. So the per-pass memo may answer a query
+        // under any budget at least this tall from it; an answer the offer cut
+        // short is kept for that offer alone.
+        return ViewSize.fixed(width, height).declaringNaturalSize(!offerBinds)
     }
 
     /// Whether this text, laid out `width` cells wide and at most `height`

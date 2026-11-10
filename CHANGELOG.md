@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `Text` of several lines gives up lines in a column too short for everything, as SwiftUI's does.** It kept every
+line however little room there was, so a sibling with a higher `layoutPriority` got nothing beside it. Offered fewer
+rows, a text now takes them, down to one (or the lines `lineLimit(2...)` or `reservesSpace:` keep), its last line
+truncated, and `.fixedSize(horizontal: false, vertical: true)` still keeps them all.
+
 **A list or table whose last rows go from under its focused row moves the focus to the new last row.** It was left
 past the end, where no row showed it and Space, Return and Delete did nothing until an arrow key brought it back.
 

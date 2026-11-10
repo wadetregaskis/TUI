@@ -358,12 +358,21 @@ messages cite that path), and what cites it.
   fixed frame wider than the row; which modifiers written after the priority keep it (`.foregroundStyle`,
   `.font`, `.opacity`, `.background`, `.id`, `.tag`, a `Group`) and which lose it (`.padding(0)`, `.frame`); and
   a column of two multi-line `Text`s (`priority.swift`, `priority.out`). Each child's width is read with a
-  `GeometryReader` in its background, in characters of a monospaced font.
-- **Ran:** macOS 15.8, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13.
+  `GeometryReader` in its background, in characters of a monospaced font. That column fitted both texts once
+  SwiftUI's line height was counted, so it answers nothing about priority; `vpriority.swift` (`vpriority.out`,
+  2026-11-10) asks again in lines of the font's own height: what a three-line `Text` answers under a width at a
+  height of 0, `nil`, one and two lines — plain, `.lineLimit(3)`, `.lineLimit(3, reservesSpace: true)`,
+  `.lineLimit(2...)`, `.fixedSize(horizontal: false, vertical: true)` — and how a column four lines tall shares
+  between two of them with a priority on either, on neither, and beside one that cannot shrink. A text offered
+  fewer lines than it has answers that many, one at the least (its lower bound, or all of them, where a range or
+  `fixedSize` says so), and the higher priority keeps its lines while the lower truncates to its minimum.
+- **Ran:** macOS 15.8, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-13; `vpriority.swift` on macOS 15.8.3 with
+  Xcode's Swift 6.2.4, 2026-11-10.
 - **Was:** `L12/probe/`.
 - **Cited by:** `Sources/TUIFoundation/Views/LayoutValueKey.swift`, `Sources/TUIView/Core/BufferModifier.swift`,
   `Sources/TUIFoundation/Views/StackGuidePropagation.swift`,
-  `Sources/TUIFoundation/Rendering/LinearSpaceDistribution.swift`; `Tests/TUIFoundationTests/LayoutPriorityTests.swift`;
+  `Sources/TUIFoundation/Rendering/LinearSpaceDistribution.swift`, `Sources/TUIFoundation/Views/Text.swift`;
+  `Tests/TUIFoundationTests/LayoutPriorityTests.swift`;
   `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (L14),
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
