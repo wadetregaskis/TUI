@@ -950,38 +950,6 @@ extension FocusManager {
         moveFocusInSection(direction: .backward, wrap: false)
     }
 
-    /// Moves focus to the next focusable element.
-    ///
-    /// When multiple sections exist, Tab navigates within the current section
-    /// first. Only when the current element is the last in its section does
-    /// Tab switch to the next section.
-    /// When only one section exists — or the active one is modal, which is the
-    /// same thing from inside — this cycles within it (wrapping).
-    public func focusNext() {
-        if sections.count > 1, !activeSectionIsModal {
-            let moved = moveFocusInSection(direction: .forward, wrap: false)
-            if !moved { activateNextSection() }
-        } else {
-            moveFocusInSection(direction: .forward, wrap: true)
-        }
-    }
-
-    /// Moves focus to the previous focusable element.
-    ///
-    /// When multiple sections exist, Shift+Tab navigates within the current
-    /// section first. Only when the current element is the first in its section
-    /// does Shift+Tab switch to the previous section.
-    /// When only one section exists — or the active one is modal — this cycles
-    /// within it (wrapping).
-    public func focusPrevious() {
-        if sections.count > 1, !activeSectionIsModal {
-            let moved = moveFocusInSection(direction: .backward, wrap: false)
-            if !moved { activatePreviousSection() }
-        } else {
-            moveFocusInSection(direction: .backward, wrap: true)
-        }
-    }
-
     /// Returns whether the given element is currently focused.
     ///
     /// - Parameter element: The element to check.
@@ -1665,7 +1633,7 @@ extension FocusManager {
     /// - Returns: `true` if focus moved to a new element, `false` if the
     ///   boundary was reached (and `wrap` is `false`) or no element is available.
     @discardableResult
-    fileprivate func moveFocusInSection(direction: FocusDirection, wrap: Bool = true) -> Bool {
+    func moveFocusInSection(direction: FocusDirection, wrap: Bool = true) -> Bool {
         guard let section = activeSection else { return false }
         let ring = section.focusables
         guard ring.contains(where: \.canBeFocused) else { return false }
