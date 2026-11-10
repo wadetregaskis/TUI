@@ -839,6 +839,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // A row the change put in fades in; one with a removal of its own
         // plays it where it was (`WindowedRowFade`).
         var fade = WindowedRowFade(context: context)
+        var zOrder = WindowedZOrder()
         var result = FrameBuffer()
         var placedIndex = 0
         for (buffer, spacingToApply, child) in collected {
@@ -857,9 +858,13 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
                         inWidth: min($0.extent, max(0, context.availableWidth)), offset: $0.offsets[placedIndex],
                         isMeasuring: context.isMeasuring)
                 } ?? buffer.horizontallyAligned(toWidth: maxWidth, alignment: alignment)
-            result.appendVertically(alignedBuffer, spacing: spacingToApply)
+            zOrder.append(alignedBuffer, of: child, to: &result, spacing: spacingToApply)
         }
-        return fade.finish(drawingOver: result, isRow: WindowedRow.isAmong(children, under: context.identity))
+        // Drawn again in ascending z-index where a drawn row has one of its own
+        // (`WindowedZOrder`).
+        return fade.finish(
+            drawingOver: zOrder.finish(result, context: context),
+            isRow: WindowedRow.isAmong(children, under: context.identity))
     }
 
     /// A pending scrollTo against EAGER (`.clip`) content: the stack renders
@@ -1055,6 +1060,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // A row the change put in fades in; one with a removal of its own
         // plays it where it was (`WindowedRowFade`).
         var fade = WindowedRowFade(context: context)
+        var zOrder = WindowedZOrder()
         var result = FrameBuffer()
         for (index, slot) in slots.enumerated() {
             let slotHeight = slot.spacingBefore + slot.height
@@ -1102,9 +1108,13 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             } else if slot.height > slotHeight {
                 slot = slot.clamped(toWidth: max(width, slot.width), height: slotHeight)
             }
-            result.appendVertically(slot, spacing: 0)
+            zOrder.append(slot, of: child, to: &result, spacing: 0)
         }
-        return fade.finish(drawingOver: result, isRow: WindowedRow.isAmong(children, under: context.identity))
+        // Drawn again in ascending z-index where a drawn row has one of its own
+        // (`WindowedZOrder`).
+        return fade.finish(
+            drawingOver: zOrder.finish(result, context: context),
+            isRow: WindowedRow.isAmong(children, under: context.identity))
     }
 }
 

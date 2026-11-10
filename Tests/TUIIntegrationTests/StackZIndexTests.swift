@@ -99,6 +99,90 @@ struct StackZIndexTests {
         #expect(app.screen.lines == ["AAAABB"])
     }
 
+    @Test("A raised row in a lazy column stays over a later row moved onto it")
+    func lazyColumnKeepsTheRaisedRowOnTop() {
+        let app = TestApp(width: 10, height: 2) {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                Text("AAAA").zIndex(1)
+                Text("BB").offset(y: -1)
+            }
+        }
+        #expect(app.screen.lines == ["AAAA", ""])
+        // Not raised, the later row is drawn over it, as before.
+        let flat = TestApp(width: 10, height: 2) {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                Text("AAAA")
+                Text("BB").offset(y: -1)
+            }
+        }
+        #expect(flat.screen.lines == ["BBAA", ""])
+    }
+
+    @Test("A raised row in a lazy column a scroll view windows stays on top, on every windowed path")
+    func windowedLazyColumnKeepsTheRaisedRowOnTop() {
+        // Two rows written out: the viewport's path.
+        let written = TestApp(width: 10, height: 3) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    Text("AAAA").zIndex(1)
+                    Text("BB").offset(y: -1)
+                }
+            }
+        }
+        #expect(written.screen.lines.first?.hasPrefix("AAAA") == true, "\(written.screen.lines)")
+        // A hundred rows of one height: the uniform window.
+        let uniform = TestApp(width: 10, height: 3) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<100, id: \.self) { index in
+                        Text(index == 0 ? "AAAA" : "BB\(index)")
+                            .offset(y: index == 1 ? -1 : 0)
+                            .zIndex(index == 0 ? 1 : 0)
+                    }
+                }
+            }
+        }
+        #expect(uniform.screen.lines.first?.hasPrefix("AAAA") == true, "\(uniform.screen.lines)")
+        // Hundreds of rows of differing heights: the anchored window.
+        let anchored = TestApp(width: 10, height: 3) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    ForEach(0..<400, id: \.self) { index in
+                        Text(index == 0 ? "AAAA" : index.isMultiple(of: 3) ? "C\(index)\nc" : "BB\(index)")
+                            .offset(y: index == 1 ? -1 : 0)
+                            .zIndex(index == 0 ? 1 : 0)
+                    }
+                }
+            }
+        }
+        #expect(anchored.screen.lines.first?.hasPrefix("AAAA") == true, "\(anchored.screen.lines)")
+    }
+
+    @Test("A raised view in a lazy row stays over a later sibling moved onto it")
+    func lazyRowKeepsTheRaisedViewOnTop() {
+        let app = TestApp(width: 10, height: 1) {
+            LazyHStack(spacing: 0) {
+                Text("AAAA").zIndex(1)
+                Text("BBBB").offset(x: -2)
+            }
+        }
+        #expect(app.screen.lines == ["AAAABB"])
+    }
+
+    @Test("A click lands on the raised row of a lazy column where it is drawn over the next")
+    func clickGoesToTheRaisedLazyRow() {
+        var tapped: [String] = []
+        let app = TestApp(width: 10, height: 2) {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                Text("AAAA").onTapGesture { tapped.append("A") }.zIndex(1)
+                Text("BB").onTapGesture { tapped.append("B") }.offset(x: 3, y: -1)
+            }
+        }
+        app.click(at: CellPoint(x: 3, y: 0))
+        app.click(at: CellPoint(x: 4, y: 0))
+        #expect(tapped == ["A", "B"])
+    }
+
     @Test("A click lands on the raised view where it is drawn over its sibling")
     func clickGoesToTheRaisedView() throws {
         var tapped: [String] = []

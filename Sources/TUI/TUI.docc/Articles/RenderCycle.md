@@ -341,7 +341,8 @@ in ascending z-index order (stable for ties), so a child with `.zIndex(1)`
 draws on top of an earlier sibling with the default `0`. A `VStack`, an
 `HStack`, a `Grid` and a `Layout` draw their children in the same order where
 any of them has a z-index, so a raised child stays over a later sibling an
-`.offset` moves onto it. The lazy stacks draw their rows in order.
+`.offset` moves onto it. A `LazyVStack` and a `LazyHStack` order the rows
+they draw the same way; a row their window leaves out draws nothing.
 
 Independent of that draw order, a view may emit an `OverlayLayer` —
 content tagged with a level (`.popover`, `.alert`, `.modal`, …) and an

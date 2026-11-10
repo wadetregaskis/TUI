@@ -15,6 +15,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+
+**`.zIndex` orders the children of a `VStack`, an `HStack`, a `Grid` and a `Layout`, not only a `ZStack`'s.** A
+view raised with `.zIndex(1)` was drawn under a later sibling an `.offset` or a negative padding moved onto it, and the
+click there went to the sibling. It now stays on top and takes the clicks where it is drawn, as in SwiftUI.
+
+**A `LazyVStack` and a `LazyHStack` order the rows they draw by `.zIndex` too.** A raised row went under the next row
+an `.offset` moved onto it, and the click there went to that row, inside a `ScrollView` or not. It now stays on top,
+as in the other stacks and in SwiftUI.
+
 **A `keyframeAnimator` that has played out on its trigger lets a `TestApp` rest.** It stopped asking for frames from a
 task a test's clock never ran, so `advance(by:)` went on drawing sixty frames a second of the end value, about six
 hundred more for every ten seconds a test moved on. It now stops in the frame that draws the end, in a running app as

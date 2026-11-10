@@ -843,6 +843,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // A column the change put in fades in; one with a removal of its own
         // plays it where it was (`WindowedRowFade`).
         var fade = WindowedRowFade(context: context)
+        var zOrder = WindowedZOrder(horizontally: true)
         var result = FrameBuffer()
         var placedIndex = 0
         for (buffer, spacingToApply, child) in collected {
@@ -862,9 +863,13 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
                     buffer.placedVerticallyDrawingOverhang(
                         inHeight: finalHeight, topPadding: $0.offsets[placedIndex], isMeasuring: context.isMeasuring)
                 } ?? buffer.verticallyAligned(toHeight: maxHeight, alignment: alignment)
-            result.appendHorizontally(aligned, spacing: spacingToApply)
+            zOrder.append(aligned, of: child, to: &result, spacing: spacingToApply)
         }
-        return fade.finish(drawingOver: result, isRow: WindowedRow.isAmong(children, under: context.identity))
+        // Drawn again in ascending z-index where a drawn row has one of its own
+        // (`WindowedZOrder`).
+        return fade.finish(
+            drawingOver: zOrder.finish(result, context: context),
+            isRow: WindowedRow.isAmong(children, under: context.identity))
     }
 }
 

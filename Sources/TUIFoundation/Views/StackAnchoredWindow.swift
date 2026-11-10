@@ -892,10 +892,8 @@ private final class AnchoredWindowFrame {
         // exists in order not to compute.
         let gradientFrame = context.gradientContentFrame(
             width: width,
-            height: max(
-                1,
-                frame.children.count * state.estimatedPitch(spacing: spacing)
-                    - (frame.children.count > 1 ? spacing : 0)))
+            height: max(1, frame.children.count * state.estimatedPitch(spacing: spacing)
+                - (frame.children.count > 1 ? spacing : 0)))
         let drawGraft = { (ordinal: Int, y: Int) in
             self.drawAnchoredGraft(
                 frame.child(at: ordinal), measuredWidth: frame.measuredWidth(of: ordinal), y: y,
@@ -931,6 +929,7 @@ private final class AnchoredWindowFrame {
         // plays it where it was (`WindowedRowFade`), kept in the content's
         // coordinates, which the band's origin does not move.
         var fade = WindowedRowFade(context: context)
+        var zOrder = WindowedZOrder()
         for (ordinal, y) in sorted {
             let rowHeight =
                 frame.pitch(of: ordinal)
@@ -958,7 +957,7 @@ private final class AnchoredWindowFrame {
                 rendered, WindowedRow(child, under: context.identity),
                 x: Self.gradientX(childWidth: rendered.width, extent: width, alignment: alignment), y: slotY
             ).horizontallyAligned(toWidth: width, alignment: alignment)
-            result.appendVertically(Self.slot(of: rendered, extent: rowHeight, width: width), spacing: 0)
+            zOrder.append(Self.slot(of: rendered, extent: rowHeight, width: width), of: child, to: &result, spacing: 0)
             // Rows are variable-height here, so unlike the uniform path this
             // cannot be a division — but the spans are being walked anyway. A
             // line in the gap between two rows belongs to the row below it;
@@ -969,6 +968,10 @@ private final class AnchoredWindowFrame {
             cursor = slotY + rowHeight
             if let key = frame.children.key(at: ordinal) { memo[key] = ordinal }
         }
+        // Drawn again in ascending z-index where a drawn row has one of its
+        // own (`WindowedZOrder`) — before the off-band grafts, which draw
+        // nothing in the band.
+        result = zOrder.finish(result, context: context)
         guard !frame.sawSpacer else { return nil }
         // A line past every row drawn lies below the last row — the fill
         // covers the viewport while rows remain — over what the scroll content

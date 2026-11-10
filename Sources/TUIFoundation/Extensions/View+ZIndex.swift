@@ -64,9 +64,9 @@ extension View {
     /// too, whose children overlap wherever an ``View/offset(x:y:)``, a
     /// negative padding or the layout's own placement puts one over another: a
     /// raised view stays over a later sibling moved onto it, and takes the
-    /// clicks where it is drawn. A ``LazyVStack`` and a ``LazyHStack`` draw
-    /// their rows in order, whatever their z-index. Where nothing overlaps,
-    /// the modifier has no visible effect.
+    /// clicks where it is drawn. A ``LazyVStack`` and a ``LazyHStack`` order
+    /// the rows they draw the same way; a row their window leaves out draws
+    /// nothing. Where nothing overlaps, the modifier has no visible effect.
     ///
     /// It need NOT be the outermost modifier, which it did until 2026-09-20:
     /// `.zIndex(1).padding(0)` lost its place in the draw order, because the

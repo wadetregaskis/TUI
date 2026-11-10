@@ -676,9 +676,13 @@ final class StackWindowState {
         // plays it where it was (`WindowedRowFade`), kept in the content's
         // coordinates, which the band's origin does not move.
         var fade = WindowedRowFade(context: context)
+        var zOrder = WindowedZOrder()
         defer {
+            // Drawn again in ascending z-index where a drawn row has one of its
+            // own (`WindowedZOrder`).
             result = fade.finish(
-                drawingOver: result, shiftedUpBy: sliceOrigin, isRow: WindowedRow.isAmong(children, under: context.identity))
+                drawingOver: zOrder.finish(result, context: context), shiftedUpBy: sliceOrigin,
+                isRow: WindowedRow.isAmong(children, under: context.identity))
         }
         for (ordinal, child, rowWidth, _) in rows {
             let rowY = ordinal * geometry.pitch
@@ -692,7 +696,7 @@ final class StackWindowState {
             slot = fade.drawn(
                 slot, WindowedRow(child, under: context.identity),
                 x: Self.gradientX(childWidth: rowWidth, extent: geometry.width, alignment: alignment), y: rowY)
-            result.appendVertically(slot, spacing: 0)
+            zOrder.append(slot, of: child, to: &result, spacing: 0)
             cursor = rowY + geometry.extent
             if let key = children.key(at: ordinal) { memo[key] = ordinal }
         }
