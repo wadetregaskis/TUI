@@ -766,6 +766,8 @@ extension RenderLoop {
         // tracker the cache has not been told about switches that memo off.
         // Safe here and not earlier: `beginRenderPass()` above does not clear
         // the mirror, and `buildEnvironment()` has already wired the cache.
+        // The walk forgets the mirror as it ends (below): between walks there
+        // is none.
         environment.installVolatileReadTracker(VolatileReadTracker())
         cursorTimer?.beginFrameReadTracking()
 
@@ -811,6 +813,12 @@ extension RenderLoop {
                 for read in bindingReads { read() }
             }
         }
+        // The walk's tracker ends with it. What runs before the next one —
+        // the wheel, a key — measures in contexts this walk or an earlier one
+        // captured, and those name whichever walk's tracker drew the control
+        // last: not this one, where this walk kept the control from a memo
+        // (`RenderCache.endVolatileReadTracking()`).
+        tuiContext.renderCache.endVolatileReadTracking()
 
         return SceneWalk(frame: frame, environment: environment, tooltipMovedThePage: tooltipMovedThePage)
     }

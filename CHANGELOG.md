@@ -21,6 +21,12 @@ rather than rewriting every row. Over the `Stress` sessions that is about 30% fe
 rows of dissimilar text sends about a tenth of what it did. What is on screen is the same. `TUI_SCROLL_OUTPUT=off`
 restores the old output, should a terminal get scroll regions wrong.
 
+**Scrolling a `List` or `Table` that isn't focused no longer keeps a row's size it shouldn't.** The wheel, or a
+key, over such a list between frames draws the rows past the last one on screen to learn how far it can scroll. When
+the frame before had kept the list from its cache, those rows were measured against the wrong frame's record of what
+they read, so a row whose size depended on the time or an animation had that size kept as if it never changed, and a
+debug build stopped on an assertion. Nothing is cached between frames now.
+
 **`TestApp` counts the same on every machine.** A running app times its views and keeps more of those it finds slow;
 `TestApp` did too, so a test counting how often a body ran or a view was drawn could pass on a fast machine and fail
 on a slow or busy one. It now times nothing. Apps are unchanged.

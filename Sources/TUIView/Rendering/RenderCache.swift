@@ -417,7 +417,11 @@ import TUIStyling
     /// a fresh tracker every frame, but `Stress`'s bench and the profiling
     /// harness install one per context and then open a pass per frame — clearing
     /// would switch the memo off there from frame two onwards, which is how this
-    /// memo shipped inert once already (§27).
+    /// memo shipped inert once already (§27). `RenderLoop` clears it instead as
+    /// each walk ends (``endVolatileReadTracking()``), because between walks a
+    /// context a walk captured may name an earlier walk's tracker than this —
+    /// the one that last drew a control a later walk kept from a memo — and the
+    /// wheel over a `List` measured rows in one, against these counters.
     public internal(set) var volatileReadTracker: VolatileReadTracker?
 
     /// Whether a probe (`measureChildRememberingOnlyItself`) is measuring,

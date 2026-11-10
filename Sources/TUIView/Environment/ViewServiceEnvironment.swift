@@ -110,13 +110,33 @@ extension EnvironmentValues {
     /// test failure rather than a stale size.
     ///
     /// Set ``renderCache`` before calling this: a tracker installed before the
-    /// cache mirrors onto nothing.
+    /// cache mirrors onto nothing. The render loop takes the mirror down again
+    /// as the walk ends (``RenderCache/endVolatileReadTracking()``).
     ///
     /// - Parameter tracker: The pass's tracker — a fresh one per frame in the
     ///   render loop, which derives its pulse-clock demand from the counts.
     package mutating func installVolatileReadTracker(_ tracker: VolatileReadTracker) {
         volatileReadTracker = tracker
         renderCache?.volatileReadTracker = tracker
+    }
+}
+
+extension RenderCache {
+    /// Forgets the mirror ``EnvironmentValues/installVolatileReadTracker(_:)``
+    /// set, as the walk that installed it ends: until the next one, nothing
+    /// is measured through the measure memo, served or stored.
+    ///
+    /// For what runs between walks with a context a walk captured — the wheel
+    /// over a `List`, whose bound renders the rows past the last one the walk
+    /// drew for their heights; a key that reveals a row; a type-select probe.
+    /// That context names the tracker of the walk that last drew the control,
+    /// and a walk since that kept the control from a memo, never drawing it,
+    /// installed another: the measure memo, reading the mirror, would gate on
+    /// counters nothing beneath it records to, and keep as safe a size that
+    /// read the clock. Without a walk there is no pass for a memo entry to
+    /// belong to, so nothing between walks is memoized at all.
+    package func endVolatileReadTracking() {
+        volatileReadTracker = nil
     }
 }
 

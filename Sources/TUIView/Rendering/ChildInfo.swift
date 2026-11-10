@@ -593,8 +593,10 @@ private func memoizedMeasure<V: View>(
     // costs 7.0ms / 78.2ms / 474.7ms per frame at 1×/4×/10× depth).
     //
     // Only when a `VolatileReadTracker` is already installed: the render loop
-    // always installs one, and requiring it keeps this off standalone
-    // measurement paths (and off the cost of minting one per call).
+    // installs one for each walk, and requiring it keeps this off standalone
+    // measurement paths (and off the cost of minting one per call) and off
+    // what is measured between walks, when the loop has taken it down
+    // (`RenderCache.endVolatileReadTracking()`).
     //
     // Read off the CACHE, not out of the environment. It is the same object —
     // `EnvironmentValues.installVolatileReadTracker` puts it in both places —
@@ -607,15 +609,18 @@ private func memoizedMeasure<V: View>(
     if let cache = context.renderCache, let tracker = cache.volatileReadTracker {
         // Debug-only, and the whole reason reading the mirror is sound: if some
         // path installed a tracker into the environment WITHOUT mirroring it,
-        // the counters snapshotted below belong to a different object than the
-        // one this subtree's volatile reads record to, and every unsafe
-        // measurement would be stored as safe — wrong sizes, no diagnostic.
+        // or measured in a context an earlier walk captured after a later walk
+        // installed its own, the counters snapshotted below belong to a
+        // different object than the one this subtree's volatile reads record
+        // to, and every unsafe measurement would be stored as safe — wrong
+        // sizes, no diagnostic.
         // Costs exactly the environment probe this change removes, in builds
         // where nothing is being measured.
         assert(
             context.environment.volatileReadTracker === tracker,
             "the pass's volatile-read tracker was installed without mirroring it onto the render "
-                + "cache — install one with EnvironmentValues.installVolatileReadTracker(_:)")
+                + "cache — install one with EnvironmentValues.installVolatileReadTracker(_:) — or "
+                + "outlived its walk (RenderCache.endVolatileReadTracking())")
         // `nil` for a view whose value cannot be hashed without reading bytes
         // it may leave undefined (see `ValueHashPlan.Shape.bypass`): measured,
         // and neither looked up nor kept.
