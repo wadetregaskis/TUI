@@ -2067,13 +2067,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Return ACTIVATES the focused row, and for a branch with no other
         // action the activation is to disclose it. An app's own primary action
         // (`contextMenu(forSelectionType:menu:primaryAction:)`) still wins —
-        // Left / Right keep the tree reachable when it does.
+        // Left / Right keep the tree reachable when it does. A leaf has nothing
+        // to disclose, so Return chooses it, as it does a flat list's row.
         handler.primaryAction =
             RowContextMenuHost.activation(for: handler, selection: selectionMenu(context.environment))
             ?? outline.map { activating in
-                { id in
-                    activating.setRowExpanded(
-                        AnyHashable(id), to: nil, includingDescendants: false)
+                { [weak handler] id in
+                    if !activating.setRowExpanded(AnyHashable(id), to: nil, includingDescendants: false) {
+                        handler?.chooseFocusedRow()
+                    }
                 }
             }
         handler.openContextMenu = keyboardMenuOpener(handler, context: context)

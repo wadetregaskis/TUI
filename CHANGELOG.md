@@ -15,6 +15,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Return selects a leaf of a hierarchical `List`.** It opens and closes a branch, and on a leaf did nothing; it now
+selects the leaf, as Space does and as Return does in a flat list. A `primaryAction` the app gives still takes Return.
+
 **A list's or table's focused row stays focused when the rows change.** A row inserted or removed above it, or a
 sort, left the focus where it was, on whichever row took that place, so Space, Return or Delete acted on a row you
 never moved to: always at the top of a list, and anywhere for a change between the top row on screen and the focused

@@ -28,6 +28,15 @@ extension ItemListHandler {
             primaryAction(id)
             return
         }
+        chooseFocusedRow()
+    }
+
+    /// What Space does to the focused row, and Return where the list has no
+    /// action for it: toggles its selection, anchors a later Shift-extend on
+    /// it, and follows its `NavigationLink`. A tree's Return, which discloses a
+    /// branch, calls it for a leaf, which has nothing to disclose.
+    @MainActor
+    package func chooseFocusedRow() {
         toggleSelectionAtFocusedIndex()
         anchorOnSelection(at: focusedIndex)
         followRowLink(at: focusedIndex)

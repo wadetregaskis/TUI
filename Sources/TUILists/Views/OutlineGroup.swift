@@ -64,6 +64,7 @@ import TUIView
 /// - **Return** activates it, which for a branch means disclosing it — unless
 ///   the app claims Return with the `primaryAction` of
 ///   ``View/contextMenu(forSelectionType:menu:primaryAction:)``, which wins.
+///   A leaf has nothing to disclose, and Return selects it, as Space does.
 /// - **Right** opens the focused branch and **Left** closes it, so a tree stays
 ///   reachable when the app has taken Return. Both fall through on a leaf, on a
 ///   branch already in that state, and on a list that is not a tree at all.
