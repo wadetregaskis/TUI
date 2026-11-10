@@ -124,11 +124,11 @@ struct HostileNumbersTimingTests {
     func timeline(value: Double) {
         let anchor = Date(timeIntervalSinceReferenceDate: 0)
         drawHostile(nows: Self.frameNows) { _ in
-            TimelineView(.periodic(from: anchor, by: value)) { context in Text("\(context.date)") }
+            TimelineView(.periodic(from: anchor, by: value)) { context in Text("\(String(describing: context.date))") }
         }
         let start = Date(timeIntervalSinceReferenceDate: value.isFinite ? value : 0)
         drawHostile(nows: Self.frameNows) { _ in
-            TimelineView(.periodic(from: start, by: 1)) { context in Text("\(context.date)") }
+            TimelineView(.periodic(from: start, by: 1)) { context in Text("\(String(describing: context.date))") }
         }
     }
 

@@ -111,7 +111,7 @@ struct NoTerminalTests {
     @Test("A regular file, and a closed stream")
     func fileAndClosed() throws {
         let path = NSTemporaryDirectory() + "tui-no-terminal-\(UUID().uuidString)"
-        FileManager.default.createFile(atPath: path, contents: Data())
+        _ = FileManager.default.createFile(atPath: path, contents: Data())
         defer { try? FileManager.default.removeItem(atPath: path) }
         let file = unsafe open(path, O_RDONLY)
         defer { close(file) }

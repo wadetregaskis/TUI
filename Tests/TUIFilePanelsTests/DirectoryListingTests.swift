@@ -233,7 +233,7 @@ struct FileBrowserTests {
         let many = fixture.url("Many")
         try FileManager.default.createDirectory(at: many, withIntermediateDirectories: false)
         for index in 0..<1_500 {
-            FileManager.default.createFile(atPath: many.appendingPathComponent("item\(index).txt").path, contents: nil)
+            _ = FileManager.default.createFile(atPath: many.appendingPathComponent("item\(index).txt").path, contents: nil)
         }
         let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
         await browser.refresh()
@@ -282,7 +282,7 @@ struct FileBrowserTests {
         let fixture = try FilePanelFixture()
         defer { fixture.remove() }
         let alpha = fixture.url("Alpha")
-        FileManager.default.createFile(
+        _ = FileManager.default.createFile(
             atPath: alpha.appendingPathComponent(".secret.txt").path, contents: nil)
         let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
         await browser.refresh()
