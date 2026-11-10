@@ -46,6 +46,10 @@ as a file's name is.
 read (no permission, or gone since it was listed) had a column saying "This folder is empty.", and once a column or
 the list's outline had looked into it, opening it said the same, rather than that it can't be opened, and why.
 
+**A disabled `List` or `Table` looks disabled.** At any colour depth it drew exactly as an enabled one without the
+focus; only a terminal with no colour, or Differentiate Without Color, showed it faint. It is drawn faint at every
+depth now.
+
 **A focus held still shows on a checked checkbox, a switch that is on, a link and a radio group.** With
 `TUI_BREATHING=0`, the View menu's Breathing Focus turned off or `.focusBreathing(false)`, the focus sits at the
 bright end of its breath, which is the colour those controls rest in, so nothing showed which one had it. Their label

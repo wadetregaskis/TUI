@@ -1333,7 +1333,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let buffer = isPrepared
             ? drawn(context: context)
             : observingBodyClosure(of: Self.self, context: context) { drawn(context: context) }
-        return buffer.fadedWithoutColor(if: isDisabled(in: context), context: context)
+        return buffer.drawnDisabled(if: isDisabled(in: context))
     }
 
     private func drawn(context: RenderContext) -> FrameBuffer {

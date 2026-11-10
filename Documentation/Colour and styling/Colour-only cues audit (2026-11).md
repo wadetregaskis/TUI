@@ -59,7 +59,8 @@ test, so every control turns on together. Off by default, since it changes the l
 | Menu, Picker menu | checked / disabled item | `✓` / grey | glyph / lightness |
 | List | selected / cursor row | `●` / filled bar | glyph / lightness |
 | Table, file dialog's list | selected rows | tint | lightness, weak; under DWC, `●` |
-| List, Table, TextField, TextEditor, SecureField | disabled | grey | lightness; under DWC, faint |
+| TextField, TextEditor, SecureField | disabled | grey | lightness; under DWC, faint |
+| List, Table | disabled | faint, at every depth | attribute (2026-11-10: before that, nothing at a colour depth; they have no ink of their own to grey) |
 | `.selectionDisabled` row | can't be selected | faint | attribute (italic too in Warp's light theme) |
 | TextField | focus / prompt | caret / grey | glyph / lightness |
 | DatePicker, field | active part / disabled | fill / no underline | lightness / attribute |

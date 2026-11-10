@@ -31,6 +31,15 @@ extension FrameBuffer {
         return drawnDisabled()
     }
 
+    /// This buffer drawn disabled, if `isDisabled`, at every depth: for a control with
+    /// no ink of its own to grey, as a `List` or a `Table` is, whose rows are the app's
+    /// views. Its faint was kept for where states are said without colour, so at any
+    /// colour depth a disabled one drew exactly as an enabled one without the focus.
+    @MainActor
+    package func drawnDisabled(if isDisabled: Bool) -> FrameBuffer {
+        isDisabled ? drawnDisabled() : self
+    }
+
     /// This buffer in the attributes that say "disabled", at any depth: faint, and
     /// italic where the host doesn't show faint. What a disabled control draws at
     /// no colour, and a row that can't be selected at every depth.
