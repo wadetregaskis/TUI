@@ -253,9 +253,14 @@ final class MenusSession: StressSession {
     /// start, its middle or its number at the trailing edge.
     private func rightClick() -> SessionStep {
         let status = Self.statusLine(on: screen)
+        // A row is read by its number and checked against its name: a number
+        // at the list's trailing edge can be cut short by a scroll bar drawn
+        // over the content under the pointer, and "#13" read as "#1" opened
+        // #13's menu where the session looked for #1's.
         let rows = screen.indices.compactMap { y -> (Int, Int, Int)? in
             guard screen[y] != status, let range = screen[y].range(of: #"#\d+\b"#, options: .regularExpression),
-                let id = Int(screen[y][range].dropFirst()), desk.index(of: id) != nil
+                let id = Int(screen[y][range].dropFirst()), let index = desk.index(of: id),
+                Self.row(String(screen[y][..<range.lowerBound]), isNamed: desk.documents[index].name)
             else { return nil }
             return (y, id, screen[y].distance(from: screen[y].startIndex, to: range.lowerBound))
         }
@@ -273,6 +278,23 @@ final class MenusSession: StressSession {
                 MouseEvent(button: .right, phase: .pressed, x: x, y: y),
                 MouseEvent(button: .right, phase: .released, x: x, y: y),
             ])
+    }
+
+    /// Whether the part of a row before its number holds `name` as the row's
+    /// whole name, not as a word of another's ("lazy" in "rapid lazy"): the
+    /// name column starts after a gap, or a box beside the list, and is
+    /// padded out to the status column.
+    private static func row(_ text: String, isNamed name: String) -> Bool {
+        let cells = Array(text)
+        let wanted = Array(name)
+        for start in cells.indices where cells[start...].starts(with: wanted) {
+            let before = start == 0 ? " " : cells[start - 1]
+            let leading = start < 2 ? " " : cells[start - 2]
+            let end = start + wanted.count
+            let after = end + 1 < cells.count ? String(cells[end...end + 1]) : "  "
+            if before == " ", leading == " " || "│╯╰╮╭".contains(leading), after == "  " { return true }
+        }
+        return false
     }
 
     /// Types into the tag field and opens its suggestions: the field focused

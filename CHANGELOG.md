@@ -34,6 +34,7 @@ menu now grows by the bar's column where there is room beside it, and takes it f
 **F2 opens the settings panel in the Example, as its Settings… item says.** The Example cycled its palette on F2, an
 app binding that comes before TUI's settings key, so the panel never opened on its key on any page. The palette now
 cycles on ⇧F2.
+
 **`ProposedViewSize.replacingUnspecifiedDimensions(by:)`, as in SwiftUI.** A `Layout` that takes what it is offered
 answers `proposal.replacingUnspecifiedDimensions()`: the proposal, with 10 cells, or the size given, for a dimension
 left unspecified. A layout ported from SwiftUI that used it did not compile.
