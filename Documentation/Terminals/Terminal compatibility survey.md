@@ -4301,6 +4301,7 @@ runs itself in the pane to send every sequence):
 | `requestAttention(message)`, on a host that posts notifications, with the next frame | `ESC ] 9 ; message ESC \`: the message sanitised as a title is (control characters dropped, line breaks and tabs as spaces), and after a space where it starts with a digit, so that no host reads it as a ConEmu command (`9 ; 4 ; …` is a progress report) |
 | The same, anywhere else, or with a message that is nothing but spaces once sanitised | `BEL`, outside any string sequence |
 | Several requests between two frames | each message once, in order; the bell once, with any a control rang for input it turned away |
+| `ringBell()` (`\.ringBell`), an app's control refusing input, with the next frame | `BEL`, on every host: never a notification. Rung several times between two frames, with TUI's controls' rings and attention's, it rings once |
 | Requests made as the app quits | written in the exit's farewell, before the alternate screen is left |
 | A toast posted with `desktop: .always`, or `.whenInactive` while the scene is not active (`NotificationDesktopDelivery`), with the frame that first draws it | the same `OSC 9`, sanitised the same way, on a host that posts notifications; anywhere else, this machine's own notification (`osascript`, `notify-send`) where the person is at it (`SessionLocality`; `TUI_SYSTEM_NOTIFICATIONS`), else **nothing** — never both, and no bell, as the toast is already on the screen (2026-11-07, the system route 2026-11-08) |
 

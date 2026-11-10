@@ -40,6 +40,9 @@ import TUICore
 /// which this terminal gets, and `TUI_NOTIFICATIONS=1` or `0` is the
 /// user's switch.
 ///
+/// To say that input was refused, ring the bell with ``RingBellAction``
+/// (`\.ringBell`) instead: that is never a notification.
+///
 /// TUI-specific, with no SwiftUI counterpart: a Mac app would bounce its Dock
 /// icon or post a notification itself, neither of which a program in a
 /// terminal can reach. See `Documentation/Terminals/Terminal compatibility

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`\.ringBell` rings the terminal's bell, to say input was refused.** TUI's own controls ring it when they turn
+input away; a control of your own, an `onKeyPress` that takes a key it can do nothing with, now does the same with
+`@Environment(\.ringBell) var ringBell` and `ringBell()`, instead of `requestAttention("")`. It rings with the next
+frame, once however often it was rung, and is never a desktop notification: `requestAttention(_:)` stays the way to
+say that something finished.
 **The per-control text-style modifiers are gone; write `.style(.control(.button)) { … }` and its kind instead.**
 `buttonTextStyle`, `toggleTextStyle`, `sliderTextStyle`, `stepperTextStyle`, `pickerTextStyle`,
 `radioButtonTextStyle`, `secureFieldTextStyle` and `textFieldTextStyle` each forwarded to `.style(.control(.x))`, and

@@ -953,6 +953,7 @@ EnvironmentValues.rename | var rename: RenameAction? { get }
 EnvironmentValues.requestAttention | var requestAttention: RequestAttentionAction { get }
 EnvironmentValues.resetFocus | var resetFocus: ResetFocusAction { get }
 EnvironmentValues.resolvedAutomaticToggleCharacterSet | var resolvedAutomaticToggleCharacterSet: ToggleCharacterSet { get set }
+EnvironmentValues.ringBell | var ringBell: RingBellAction { get }
 EnvironmentValues.scenePhase | var scenePhase: ScenePhase { get set }
 EnvironmentValues.scrollChainingDelay | var scrollChainingDelay: Duration { get set }
 EnvironmentValues.scrollExtentPrecision | var scrollExtentPrecision: ScrollExtentPrecision { get set }
@@ -2371,6 +2372,8 @@ ResizeBounds.isFixed | var isFixed: Bool { get }
 ResizeBounds.maximum | let maximum: Int?
 ResizeBounds.minimum | let minimum: Int
 ResizeBounds.unbounded | static let unbounded: ResizeBounds
+RingBellAction | struct RingBellAction
+RingBellAction.callAsFunction() | @MainActor func callAsFunction()
 RotatedShape | nonisolated struct RotatedShape<Content> where Content : Shape
 RotatedShape.AnimatableData | typealias AnimatableData = AnimatablePair<Content.AnimatableData, AnimatablePair<Angle.AnimatableData, UnitPoint.AnimatableData>> [extension where Content : Shape]
 RotatedShape.InsetShape | typealias InsetShape = RotatedShape<Content.InsetShape> [extension where Content : InsettableShape]

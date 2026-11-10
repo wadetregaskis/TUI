@@ -10,10 +10,13 @@ import TUI
 /// `.onKeyPress`: a view of the app's own that answers keys while it holds
 /// the focus — the arrows move a marker along a track, the digits typed are
 /// kept — ahead of the keys' usual work (an arrow otherwise moves the focus).
+/// An arrow that would take the marker past an end is refused, and says so
+/// with the terminal's bell (`\.ringBell`), as TUI's own controls do.
 struct KeyPressDemo: View {
     @State private var position = 0
     @State private var digits = ""
     @FocusState private var isFocused: Bool
+    @Environment(\.ringBell) private var ringBell
 
     private static let trackLength = 20
 
@@ -28,12 +31,14 @@ struct KeyPressDemo: View {
                     .border(isFocused ? .palette.accent : .palette.border)
                     .focusable()
                     .focused($isFocused)
+                    // Handled even at an end, so the arrow does not move the
+                    // focus instead: refused, with the bell.
                     .onKeyPress(.leftArrow) {
-                        position = max(0, position - 1)
+                        if position == 0 { ringBell() } else { position -= 1 }
                         return .handled
                     }
                     .onKeyPress(.rightArrow) {
-                        position = min(Self.trackLength - 1, position + 1)
+                        if position == Self.trackLength - 1 { ringBell() } else { position += 1 }
                         return .handled
                     }
                     .onKeyPress(characters: .decimalDigits) { press in

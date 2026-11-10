@@ -15,7 +15,9 @@ import Foundation
 /// Rung when a control turns input away rather than taking it — a character
 /// a field's ``TextContentType`` does not allow, typed or pasted — so that
 /// what was typed is not dropped silently (the owner's ruling on deviation
-/// T8, 2026-10-13).
+/// T8, 2026-10-13). An app's own control rings the same bell, through
+/// ``RingBellAction`` (`\.ringBell`), which calls ``ring()`` as TUI's controls
+/// do, so their rings in one frame are one.
 ///
 /// A ring is queued rather than written, as an OSC 52 copy is
 /// (``ClipboardWriter``): the run loop owns the terminal and writes the bell

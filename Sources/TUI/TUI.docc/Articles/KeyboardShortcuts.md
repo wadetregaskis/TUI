@@ -74,6 +74,31 @@ chord the kitty keyboard protocol lets through.
 An open drop-down takes every key before the focus path does, as an open menu
 does on macOS, and so does a drag in flight.
 
+### Refusing a key
+
+When your view takes a key but can do nothing with it — an arrow at the end of
+a track, a digit in a full field — ring the terminal's bell with
+``EnvironmentValues/ringBell``, as TUI's own controls do when they turn input
+away and as a Mac app's controls do with `NSSound.beep()`. Return
+``KeyPress/Result/handled`` all the same, or the key goes on to its usual work:
+an arrow moves the focus.
+
+```swift
+@Environment(\.ringBell) private var ringBell
+
+track
+    .focusable()
+    .onKeyPress(.rightArrow) {
+        if position == last { ringBell() } else { position += 1 }
+        return .handled
+    }
+```
+
+The bell rings with the next frame, once however many times it was rung since
+the last. It says "no", nothing more: to tell the person that something they
+were waiting for has finished, use ``EnvironmentValues/requestAttention``,
+which posts a desktop notification where the terminal can.
+
 ### Move, exit and delete commands
 
 ``View/onMoveCommand(perform:)``, ``View/onExitCommand(perform:)`` and
