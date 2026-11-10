@@ -27,10 +27,14 @@ struct STBLengthGuardTests {
         #expect(try PlatformImageLoader.stbLength(forByteCount: Int(Int32.max)) == Int32.max)
     }
 
-    @Test("A payload larger than stb_image's length parameter is rejected, not trapped")
-    func oversizedByteCountThrows() {
-        #expect(throws: ImageLoadError.self) {
-            try PlatformImageLoader.stbLength(forByteCount: Int(Int32.max) + 1)
+    // A 32-bit `Int` (wasm32's) cannot count past `Int32.max`: there is no
+    // payload too large to ask about, and the `+ 1` below traps there.
+    #if _pointerBitWidth(_64)
+        @Test("A payload larger than stb_image's length parameter is rejected, not trapped")
+        func oversizedByteCountThrows() {
+            #expect(throws: ImageLoadError.self) {
+                try PlatformImageLoader.stbLength(forByteCount: Int(Int32.max) + 1)
+            }
         }
-    }
+    #endif
 }

@@ -49,7 +49,12 @@ struct TextLayoutPaddingTests {
         // it was read from (`localization`, lane PARITYMISC, 2026-10-18): one
         // word, between the runs and the style, so still no padding.
         #expect(MemoryLayout<TextStyle>.size == 40, "\(MemoryLayout<TextStyle>.size)")
-        #expect(MemoryLayout<Text>.size == 72, "\(MemoryLayout<Text>.size)")
+        // Words are 4 bytes on wasm32: a `Text` is 60 there (WasmKit, 2026-11-10).
+        #if _pointerBitWidth(_64)
+            #expect(MemoryLayout<Text>.size == 72, "\(MemoryLayout<Text>.size)")
+        #else
+            #expect(MemoryLayout<Text>.size == 60, "\(MemoryLayout<Text>.size)")
+        #endif
     }
 
     @Test("A style's statements read back as the optionals they stand for")
@@ -84,7 +89,13 @@ struct TextLayoutPaddingTests {
             var count: Int
             var inner: Padded
         }
-        #expect(interiorPadding(of: Padded.self) == [1..<8])
-        #expect(interiorPadding(of: Nested.self) == [9..<16])
+        // An `Int` is aligned to its own size: 8 bytes, or 4 on wasm32.
+        #if _pointerBitWidth(_64)
+            #expect(interiorPadding(of: Padded.self) == [1..<8])
+            #expect(interiorPadding(of: Nested.self) == [9..<16])
+        #else
+            #expect(interiorPadding(of: Padded.self) == [1..<4])
+            #expect(interiorPadding(of: Nested.self) == [5..<8])
+        #endif
     }
 }

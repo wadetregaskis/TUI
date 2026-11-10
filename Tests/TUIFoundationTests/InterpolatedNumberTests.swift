@@ -173,8 +173,9 @@ struct InterpolatedNumberTests {
         // Foundation groups a conversion's integer in the locale on Apple's
         // platforms and not everywhere, so the digits are what is compared.
         let digits = { (number: InterpolatedNumber) in number.formatted(in: english).filter(\.isNumber) }
-        #expect(digits(InterpolatedNumber(Int.min, specifier: "%lld")) == "9223372036854775808", "all 64 bits")
-        #expect(digits(InterpolatedNumber(UInt.max, specifier: "%llu")) == "18446744073709551615", "all 64 bits")
+        // `Int64`, not `Int`, which is 32 bits on wasm32.
+        #expect(digits(InterpolatedNumber(Int64.min, specifier: "%lld")) == "9223372036854775808", "all 64 bits")
+        #expect(digits(InterpolatedNumber(UInt64.max, specifier: "%llu")) == "18446744073709551615", "all 64 bits")
         #expect(InterpolatedNumber(UInt8(200), specifier: "%u").formatted(in: english) == "200")
         #expect(InterpolatedNumber(255, specifier: "%llx").formatted(in: english) == "ff")
         #expect(InterpolatedNumber(Float(2.5), specifier: "%.1f").formatted(in: english) == "2.5")

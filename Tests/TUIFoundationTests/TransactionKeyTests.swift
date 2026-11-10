@@ -124,6 +124,13 @@ struct TransactionKeyTests {
         // The extras lead: a reference before the 73-byte animation and the
         // byte switches after it pads nothing.
         #expect(MemoryLayout<Transaction>.size == 84)
-        #expect(interiorPadding(of: Transaction.self).isEmpty)
+        // On wasm32 the reference is a 4-byte word and the animation after it
+        // is aligned to 8, so four bytes pad (WasmKit, 2026-11-10); the value
+        // hash's plans skip them, as they skip any padding.
+        #if _pointerBitWidth(_64)
+            #expect(interiorPadding(of: Transaction.self).isEmpty)
+        #else
+            #expect(interiorPadding(of: Transaction.self) == [4..<8])
+        #endif
     }
 }

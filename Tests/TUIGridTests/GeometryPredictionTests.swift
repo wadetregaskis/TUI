@@ -321,9 +321,15 @@ struct GeometryPredictionTests {
     func renderContextStride() {
         // The two halves of the carried origin sit in padding that was already
         // there (`RenderContext.geometryOriginX`): an `Int` more measured
-        // +2.4% on `anyview`, the stride moving to 112.
-        #expect(MemoryLayout<RenderContext>.size == 104)
-        #expect(MemoryLayout<RenderContext>.stride == 104)
+        // +2.4% on `anyview`, the stride moving to 112. Words are 4 bytes on
+        // wasm32, and there it is 60 (measured under WasmKit, 2026-11-10).
+        #if _pointerBitWidth(_64)
+            let expected = 104
+        #else
+            let expected = 60
+        #endif
+        #expect(MemoryLayout<RenderContext>.size == expected)
+        #expect(MemoryLayout<RenderContext>.stride == expected)
     }
 }
 

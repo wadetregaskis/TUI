@@ -100,7 +100,9 @@ struct KeyboardProtocolNegotiationTests {
 
     /// The push is followed by up to two half-second exchanges; a signal in
     /// them found no pop owed, and left the shell with every key an escape
-    /// code.
+    /// code. Not on WASI, which has no signals: nothing is armed there
+    /// (`Terminal.armSignalRestore()`).
+    #if !canImport(WASILibc)
     @Test("The pop is owed before the push goes out, through the exchanges after it")
     func popOwedBeforeThePush() {
         let (terminal, script) = makeTerminal(reads: [
@@ -119,6 +121,7 @@ struct KeyboardProtocolNegotiationTests {
         #expect(terminal.keyboardFlagsPushed)
         terminal.disableRawMode()
     }
+    #endif
 
     @Test("A pop is owed once, and a resume pushes the same flags without asking")
     func popAndRepush() {

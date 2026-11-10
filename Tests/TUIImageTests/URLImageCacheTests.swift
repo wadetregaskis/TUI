@@ -63,8 +63,16 @@ struct URLImageCacheTests {
     /// too long.
     private static let sizes: [(text: String, bytes: Int)] = [
         ("0", 0), ("1000", 1000), (" 64k ", 64 << 10), ("64KB", 64 << 10), ("64KiB", 64 << 10),
-        ("256M", 256 << 20), ("256 mib", 256 << 20), ("1G", 1 << 30), ("2gb", 2 << 30),
+        ("256M", 256 << 20), ("256 mib", 256 << 20), ("1G", 1 << 30), ("2gb", twoGiB),
     ]
+
+    /// 2 GiB is past a 32-bit `Int` (wasm32's), so there it names the most
+    /// there is, as any size too large does.
+    #if _pointerBitWidth(_64)
+        private static let twoGiB = 2 << 30
+    #else
+        private static let twoGiB = Int.max
+    #endif
 
     /// Values that name no size.
     private static let nonsizes: [String?] = [nil, "", "M", "-5", "+5", "1.5G", "256T", "256b", "lots", "١٢"]

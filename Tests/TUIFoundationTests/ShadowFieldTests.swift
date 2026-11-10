@@ -144,7 +144,7 @@ struct ShadowFieldTests {
     @Test("ShadowStyle leaves no byte between its fields undefined")
     func styleLayout() {
         #expect(interiorPadding(of: ShadowStyle.self).isEmpty, "\(interiorPadding(of: ShadowStyle.self))")
-        #expect(MemoryLayout<ShadowStyle>.size == 3 * 8 + MemoryLayout<Color>.size + 1)
+        #expect(MemoryLayout<ShadowStyle>.size == 3 * MemoryLayout<Int>.size + MemoryLayout<Color>.size + 1)
     }
 }
 

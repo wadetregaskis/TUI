@@ -26,7 +26,12 @@ struct GestureLayoutPaddingTests {
     @Test("A Text's tap: no padding, 88 → 85 → 93 → 101 bytes, one dense run")
     func textTap() {
         #expect(interiorPadding(of: TextTap.self).isEmpty, "\(interiorPadding(of: TextTap.self))")
-        #expect(MemoryLayout<TextTap>.size == 101)
+        // Words are 4 bytes on wasm32: 77 there (WasmKit, 2026-11-10).
+        #if _pointerBitWidth(_64)
+            #expect(MemoryLayout<TextTap>.size == 101)
+        #else
+            #expect(MemoryLayout<TextTap>.size == 77)
+        #endif
         let plans = ValueHashPlans()
         #expect(plans.plan(for: TextTap.self).shape == .dense)
     }

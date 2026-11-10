@@ -42,7 +42,12 @@ struct FrameLayoutPaddingTests {
     func size() {
         #expect(
             MemoryLayout<FlexibleFrameView<Text>>.size
-                == 6 * 8 + MemoryLayout<Alignment>.size + MemoryLayout<Text>.size)
-        #expect(MemoryLayout<FlexibleFrameView<Text>>.size == 168)
+                == 6 * MemoryLayout<Int>.size + MemoryLayout<Alignment>.size + MemoryLayout<Text>.size)
+        // Words are 4 bytes on wasm32: 108 there (WasmKit, 2026-11-10).
+        #if _pointerBitWidth(_64)
+            #expect(MemoryLayout<FlexibleFrameView<Text>>.size == 168)
+        #else
+            #expect(MemoryLayout<FlexibleFrameView<Text>>.size == 108)
+        #endif
     }
 }

@@ -112,6 +112,8 @@ struct KittyGraphicsEscapeTests {
 
     // MARK: - Deflated
 
+    // WASI has no `dlopen`, so no zlib to compress with (`SystemZlibTests`).
+    #if !canImport(WASILibc)
     @Test("Asked to compress, a transmission says o=z and carries fewer bytes — where there is a zlib")
     func compressedTransmitSaysSo() throws {
         try #require(SystemZlib.isAvailable, "no libz here; the raw path is the only one")
@@ -125,10 +127,14 @@ struct KittyGraphicsEscapeTests {
         #expect(deflated.contains("a=t,q=2,f=24,t=d,s=8,v=8,i=5,o=z;"), "the key sits with the others")
         #expect(deflated.count < raw.count / 3, "\(deflated.count) against \(raw.count) raw")
     }
+    #endif
 
     @Test("A payload deflate does not shrink is sent raw, even when compression was asked for")
     func incompressibleStaysRaw() throws {
-        try #require(SystemZlib.isAvailable)
+        // Where there is no zlib (WASI) the payload is raw all the more.
+        #if !canImport(WASILibc)
+            try #require(SystemZlib.isAvailable)
+        #endif
         // Four bytes: any zlib container is longer than that.
         let pixels: [UInt8] = [1, 2, 3, 4]
         let asked = KittyGraphics.transmit(pixels: pixels, width: 1, height: 1, id: 5, compressed: true)

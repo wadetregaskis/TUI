@@ -51,6 +51,15 @@ struct SystemZlibTests {
         return nil
     }
 
+    #if canImport(WASILibc)
+        /// WASI has no `dlopen`, so no zlib is borrowed there, and the two
+        /// tests that need one are left out below.
+        @Test("On WebAssembly no zlib is borrowed, so nothing is compressed")
+        func noZlibOnWASI() {
+            #expect(!SystemZlib.isAvailable)
+            #expect(SystemZlib.compress(Array(repeating: 7, count: 4096)) == nil)
+        }
+    #else
     @Test("Where a zlib was found, a deflated payload inflates back to the input")
     func roundTrip() throws {
         try #require(SystemZlib.isAvailable, "no libz on this host — nothing to test, and nothing is compressed")
@@ -68,11 +77,14 @@ struct SystemZlibTests {
         #expect(Self.inflate(deflated, expecting: input.count) == input)
     }
 
+    #endif
+
     @Test("Nothing in is nothing out, not a stream of nothing")
     func emptyInputIsDeclined() {
         #expect(SystemZlib.compress([]) == nil)
     }
 
+    #if !canImport(WASILibc)  // no zlib there: see `noZlibOnWASI`
     @Test("The level is honoured: the default deflates a repetitive payload at least as tightly as the fastest")
     func levelsAreDistinguishable() throws {
         try #require(SystemZlib.isAvailable)
@@ -83,4 +95,5 @@ struct SystemZlibTests {
         #expect(Self.inflate(fastest, expecting: input.count) == input)
         #expect(Self.inflate(normal, expecting: input.count) == input)
     }
+    #endif
 }

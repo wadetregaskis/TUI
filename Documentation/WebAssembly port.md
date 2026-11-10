@@ -245,7 +245,9 @@ macOS and Linux, and on wasm its `main` collided with the test runner's. What th
 | `ExampleTests` depends on the app | 16 files | the dependency on macOS and Linux only; the tests `#if canImport(Example)` |
 
 Counting the gates that were there before, 225 `@Test` functions are compiled out on WebAssembly: 59 exit tests, 5
-that need a thread, 99 that need POSIX, 17 whose values need a 64-bit `Int`, and the 45 of `ExampleTests`.
+that need a thread, 99 that need POSIX, 17 whose values need a 64-bit `Int`, and the 45 of `ExampleTests`. Gap 2's
+work (2026-11-10) left out five more, 230 in all: three that need a zlib and one a signal handler (103 POSIX), and
+one a count past `Int32` (18).
 
 **The tests run, though not yet as a suite.** `swift test --disable-xctest` runs a filter that touches no resource
 bundle (without `--disable-xctest` it asks Xcode's XCTest helper to open the wasm file, and fails). A whole run does
@@ -344,11 +346,19 @@ value-hash plans (gap 5).
    build directory, at its own path) given to the guest; then the `wasm` job runs the suite, every target, with the
    environment `parallel_test.py` gives the native runs. Under the interpreter the run above took two hours (7,129 s),
    with two targets cut short, so a compiling runtime is what makes it a CI step.
-2. **The tests' own assumptions (S each).** Tests that pin a 64-bit memory layout (`MemoryLayout<RenderContext>.size`
-   and the padding tests), expect libz (`SystemZlib`, Kitty compression), arm a signal's debt
-   (`KeyboardProtocolNegotiationTests`), read the source tree (`TUIEnvironmentDocsTests`), compute a length past
-   `Int32` (`STBLengthGuardTests`), or time real work (`BodyKeepTests`): each wants a 32-bit expectation, a
-   platform condition, or a reason. And the runner's own: Foundation's
+2. **The tests' own assumptions (S each; mostly done 2026-11-10).** Done, each measured under WasmKit before and
+   after: the 64-bit layouts have their wasm32 sizes beside them (`RenderContext` 60, `FlexibleFrameView<Text>` 108,
+   `TextTap` 77, `Text` 60, `ShadowStyle` and the padding finder's structs in words, `Transaction`'s four bytes of
+   padding after its reference); the number formats' 64-bit cases use `Int64` and `UInt64`; the zlib tests are
+   left out on WASI, which has no `dlopen` to borrow a libz with, and a test there says nothing is compressed; the
+   signal-debt test is left out there, where no signal handler is armed; `STBLengthGuardTests`' count past `Int32`
+   is 64-bit only (its `+ 1` trapped, ending TUIImageTests' run; it now runs to the end); and
+   `TUI_IMAGE_CACHE_SIZE=2gb` names `Int.max` on 32 bits. Left, not traced: `TUIEnvironmentDocsTests` read the
+   first files of the source tree and then failed with POSIX error 33, which is WASI's `EMFILE` (out of file
+   descriptors), so something on the way leaks one per file or folder, Foundation's enumerator or the runner; and
+   `BodyKeepTests`' two sibling counts are 2, not 1, where it is not the clock (the timing tests in the suite pass).
+   The value-hash tests that find `.bypass` are gap 5's; `PathTests`' arc (20 points against 13) and
+   `ProbeMeasureMemoTests` are not yet looked at. And the runner's own: Foundation's
    `createDirectory(withIntermediateDirectories:)` recursed into a stack check under `--dir /`, and `copyItem` and
    symbolic links failed under the host's `/tmp` (itself a link on macOS); with the build directory given to the
    guest instead those may go.
