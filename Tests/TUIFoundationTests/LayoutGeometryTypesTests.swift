@@ -110,4 +110,16 @@ struct LayoutGeometryTypesTests {
         let buffer = renderToBuffer(Empty { Text("gone") }, context: makeRenderContext(width: 4, height: 2))
         #expect(buffer.width == 0 && buffer.height == 0, "\(buffer.lines)")
     }
+
+    /// SwiftUI's idiom: unspecified dimensions become 10, or the size given;
+    /// specified ones are kept, zero included.
+    @Test("An unspecified dimension is replaced, a specified one kept")
+    func replacingUnspecifiedDimensions() {
+        #expect(ProposedViewSize.unspecified.replacingUnspecifiedDimensions() == .fixed(10, 10))
+        #expect(ProposedViewSize(width: 7, height: nil).replacingUnspecifiedDimensions() == .fixed(7, 10))
+        #expect(ProposedViewSize.zero.replacingUnspecifiedDimensions() == .fixed(0, 0))
+        #expect(
+            ProposedViewSize(width: nil, height: 3).replacingUnspecifiedDimensions(by: .fixed(4, 9))
+                == .fixed(4, 3))
+    }
 }

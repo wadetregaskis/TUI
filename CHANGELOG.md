@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`ProposedViewSize.replacingUnspecifiedDimensions(by:)`, as in SwiftUI.** A `Layout` that takes what it is offered
+answers `proposal.replacingUnspecifiedDimensions()`: the proposal, with 10 cells, or the size given, for a dimension
+left unspecified. A layout ported from SwiftUI that used it did not compile.
+
 **A diagnostic written to stderr while an image is being drawn no longer ends the app on macOS.** Drawing a picture
 points stderr at `/dev/null` for a moment, to hide a line Core Graphics prints, and a report written by another
 thread in that moment failed with "Bad file descriptor", which ended the process. The two now take turns.

@@ -41,6 +41,22 @@ public struct ProposedSize: Equatable, Sendable {
         Self(width: width, height: height)
     }
 
+    /// The proposal as a size, with `size`'s width or height standing in
+    /// for a dimension left unspecified — mirrors SwiftUI's
+    /// `ProposedViewSize.replacingUnspecifiedDimensions(by:)`, the usual
+    /// answer of a `Layout` that takes what it is offered.
+    ///
+    /// The default is SwiftUI's own 10 by 10, here in cells. The answer is a
+    /// ``ViewSize`` rather than SwiftUI's `CGSize` because that is what a
+    /// `Layout`'s `sizeThatFits` returns, so
+    /// `return proposal.replacingUnspecifiedDimensions()` compiles as it does
+    /// in SwiftUI; it is fixed on both axes, as a `CGSize` cannot flex.
+    ///
+    /// - Parameter size: The size whose dimensions replace unspecified ones.
+    public func replacingUnspecifiedDimensions(by size: ViewSize = .fixed(10, 10)) -> ViewSize {
+        .fixed(width ?? size.width, height ?? size.height)
+    }
+
     /// Creates a proposal of `size` — mirrors SwiftUI's
     /// `ProposedViewSize(_ size: CGSize)`, for offering a subview the size
     /// another subview answered with.

@@ -4839,6 +4839,15 @@ private struct CorpusGeometryLayout: Layout {
     }
 }
 
+/// SwiftUI's usual answer of a layout that takes what it is offered.
+private struct CorpusTakesWhatItIsOffered: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        proposal.replacingUnspecifiedDimensions()
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {}
+}
+
 // MARK: - Small parity
 
 @MainActor

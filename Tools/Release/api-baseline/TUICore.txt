@@ -479,6 +479,7 @@ ProposedSize.fixed(_:_:) | static func fixed(_ width: Int, _ height: Int) -> Pro
 ProposedSize.height | var height: Int?
 ProposedSize.init(_:) | init(_ size: ViewSize)
 ProposedSize.init(width:height:) | init(width: Int?, height: Int?)
+ProposedSize.replacingUnspecifiedDimensions(by:) | func replacingUnspecifiedDimensions(by size: ViewSize = .fixed(10, 10)) -> ViewSize
 ProposedSize.unspecified | static let unspecified: ProposedSize
 ProposedSize.width | var width: Int?
 ProposedSize.zero | static let zero: ProposedSize
