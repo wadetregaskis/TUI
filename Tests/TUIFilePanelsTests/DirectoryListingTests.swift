@@ -277,6 +277,25 @@ struct FileBrowserTests {
         #expect(browser.rows.isEmpty)
     }
 
+    /// A folder the column view or the outline read first, and could not: kept
+    /// as having no items, it opened as "This folder is empty.".
+    @Test("A folder a column could not read says why when it is opened, not that it is empty")
+    func peekedFailureOpensAsFailure() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let browser = FileBrowser(directory: fixture.root, rule: FileChoiceRule())
+        await browser.refresh()
+        let missing = fixture.url("missing")
+        await browser.loadFolder(missing)
+        browser.open(missing)
+        await browser.refresh()
+        guard case .failed(let failure) = browser.state else {
+            Issue.record("expected a failure, got \(browser.state)")
+            return
+        }
+        #expect(failure.folderName == "missing")
+    }
+
     @Test("Toggling hidden files updates opened folders without dropping visible child rows")
     func togglingHiddenFilesPreservesOpenedFolders() async throws {
         let fixture = try FilePanelFixture()

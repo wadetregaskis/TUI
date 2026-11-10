@@ -15,7 +15,8 @@ extension FileBrowser {
     /// Reads `folder` off the main actor, unless it has been read since the
     /// folder shown was last read again, and returns once it is read: as the
     /// outline opens a branch (its placeholder row asks), or the column view
-    /// shows a column. A folder that cannot be read has no items.
+    /// shows a column. A folder that cannot be read has no items, and why is
+    /// kept beside them (``folderFailures``).
     ///
     /// The read is the folder's, not the asker's: one task of its own, which
     /// every ask while it lasts awaits, and which the asker's cancellation
@@ -63,7 +64,11 @@ extension FileBrowser {
         guard generation == started else { return }
         // Named through the folder as it was asked for: a branch beneath a
         // link names its items through the link, as the listing names them.
+        // A folder that cannot be read has no items, and the reason is kept
+        // for its column, and so that opening it reads it again.
         let read = (try? result.get()) ?? []
+        let failure: DirectoryListingFailure?
+        if case .failure(let reason) = result { failure = reason } else { failure = nil }
         // Arranged as the panel says when it is published: a new order or
         // the hidden-files switch while it was arranged arranges it again,
         // since `arrangeFolders(as:)` may have run already without it.
@@ -76,6 +81,7 @@ extension FileBrowser {
             guard generation == started else { return }
         } while showsHiddenFiles != hidden || sortOrder != order
         folderListings[path] = read
+        folderFailures[path] = failure
         folderRows[path] = arranged.rows
         for row in arranged.rows { index(row) }
         attachBranches()
@@ -172,6 +178,7 @@ extension FileBrowser {
             path == target || path == "/" || target.hasPrefix(path + "/") || path.hasPrefix(inside)
         }
         folderListings = folderListings.filter { isKeptPath($0.key) }
+        folderFailures = folderFailures.filter { isKeptPath($0.key) }
         folderRows = folderRows.filter { isKeptPath($0.key) }
         folderIndex = folderIndex.filter { entry in
             let folder = entry.value.isPlaceholder ? entry.value.placeholderFolder : entry.key.deletingLastPathComponent()
@@ -191,6 +198,7 @@ extension FileBrowser {
         folderLoadingTimers = [:]
         foldersShowingLoading = []
         folderListings = [:]
+        folderFailures = [:]
         folderRows = [:]
         folderIndex = [:]
     }

@@ -34,6 +34,10 @@ line however little room there was, so a sibling with a higher `layoutPriority` 
 rows, a text now takes them, down to one (or the lines `lineLimit(2...)` or `reservesSpace:` keep), its last line
 truncated, and `.fixedSize(horizontal: false, vertical: true)` still keeps them all.
 
+**A file panel says why a folder it cannot read shows nothing, in the column view too.** A folder that could not be
+read (no permission, or gone since it was listed) had a column saying "This folder is empty.", and once a column or
+the list's outline had looked into it, opening it said the same, rather than that it can't be opened, and why.
+
 **A list or table whose last rows go from under its focused row moves the focus to the new last row.** It was left
 past the end, where no row showed it and Space, Return and Delete did nothing until an arrow key brought it back.
 

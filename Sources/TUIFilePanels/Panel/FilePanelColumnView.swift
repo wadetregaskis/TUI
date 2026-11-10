@@ -254,10 +254,11 @@ struct FilePanelColumnView: View {
         path == browser.directory.path ? browser.rows : browser.folderRows[path] ?? []
     }
 
-    /// What a column says with no items: why, for the folder shown; else that
-    /// it is being read, or is empty.
+    /// What a column says with no items: why, for the folder shown or one
+    /// that could not be read; else that it is being read, or is empty.
     private func emptyText(of path: String) -> String {
         if path == browser.directory.path { return browser.emptyText }
+        if let failure = browser.folderFailures[path] { return FileBrowser.unreadableText(failure) }
         guard browser.folderRows[path] == nil else {
             return LocalizationService.shared.string(for: LocalizationKey.FilePanel.emptyFolder)
         }

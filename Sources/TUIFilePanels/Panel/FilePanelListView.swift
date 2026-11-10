@@ -99,10 +99,15 @@ extension FileBrowser {
         case .loaded:
             LocalizationService.shared.string(for: LocalizationKey.FilePanel.emptyFolder)
         case .failed(let failure):
-            LocalizedStringKey.substituting(
-                [failure.folderName],
-                into: LocalizationService.shared.string(for: LocalizationKey.FilePanel.unreadableFolder))
-                + " " + failure.reason
+            Self.unreadableText(failure)
         }
+    }
+
+    /// What a view of a folder that could not be read says: which, and why.
+    static func unreadableText(_ failure: DirectoryListingFailure) -> String {
+        LocalizedStringKey.substituting(
+            [failure.folderName],
+            into: LocalizationService.shared.string(for: LocalizationKey.FilePanel.unreadableFolder))
+            + " " + failure.reason
     }
 }

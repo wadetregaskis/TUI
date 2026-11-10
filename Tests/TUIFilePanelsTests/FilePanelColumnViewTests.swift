@@ -181,6 +181,30 @@ struct FilePanelColumnViewTests {
         #expect(shown.contains("notes.md") && shown.contains("inner.txt"), "\(shown)")
     }
 
+    /// A folder that cannot be read — gone since it was listed here, as an
+    /// unreadable one would be, on any machine and as root — was a column
+    /// saying "This folder is empty.", and opened, the folder shown said so too.
+    @Test("A folder's column that cannot be read says why, and opened, it still does")
+    func unreadableColumn() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let gone = fixture.url("Gone")
+        try FileManager.default.createDirectory(at: gone, withIntermediateDirectories: true)
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver { panel(fixture, caller: caller, store: columnsStore()) }
+        await driver.waitFor("Gone/")
+        try FileManager.default.removeItem(at: gone)
+        // Rows: Alpha/, Gone/, …: Space selects Gone, which shows its column.
+        driver.press(.down)
+        driver.press(.space)
+        let peeked = await driver.waitFor("can’t be opened")
+        #expect(!peeked.contains("This folder is empty."), "\(peeked)")
+        driver.press(.enter)
+        await driver.waitFor("~ │ Gone")
+        let opened = await driver.waitFor("can’t be opened")
+        #expect(!opened.contains("This folder is empty."), "\(opened)")
+    }
+
     #if !canImport(WASILibc)  // No mkfifo, and no second thread to be its writer.
         /// On Linux a file's type is its extension's, so a named pipe called
         /// `x.log` is "text"; opened for its excerpt, it waited for a writer for

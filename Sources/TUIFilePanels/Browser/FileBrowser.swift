@@ -109,6 +109,13 @@ final class FileBrowser {
     /// arranges them again without reading them again.
     @ObservationIgnored var folderListings: [String: [FileEntry]] = [:]
 
+    /// Why each of those folders that could not be read could not, by path:
+    /// listed as having no items, so that it is not read again for each ask,
+    /// but opened, it is read again — a folder peeked at in the column view
+    /// or the outline that could not be read opened as "This folder is
+    /// empty." — and its column says why it has none.
+    var folderFailures: [String: DirectoryListingFailure] = [:]
+
     /// The outline branches currently open in list view, kept so that a reload
     /// (e.g. from changing file types) reloads their contents.
     @ObservationIgnored var openBranches: Set<URL> = []
@@ -188,7 +195,7 @@ final class FileBrowser {
         directory = folder
         rowIndex = [:]
         hiddenCount = 0
-        if let read = folderListings[folder.path] {
+        if folderFailures[folder.path] == nil, let read = folderListings[folder.path] {
             // Arranged when it was read; `refresh()` arranges it again.
             cancelLoadingPlaceholderTimer()
             listed = (folder, generation, read)
