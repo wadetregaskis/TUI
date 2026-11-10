@@ -31,7 +31,8 @@ import TUIFoundation
 /// machine the person is not at is one nobody sees, and on a shared machine,
 /// someone else's screen. `TUI_SYSTEM_NOTIFICATIONS=0` turns it off; `1` posts
 /// even where TUI cannot tell, for a session TUI cannot see into (zellij, GNU
-/// screen) at the person's own desk.
+/// screen) at the person's own desk. `TUI_NOTIFICATIONS=0` turns it off too, as
+/// it turns off the terminal's route: no notifications at all.
 ///
 /// Neither blocks the frame: the locality test (which may ask tmux for its
 /// clients) and the launch run on a background queue, and nothing waits for the
@@ -41,9 +42,10 @@ import TUIFoundation
 /// that starts with `-` is not one. The helper's input and output are the null
 /// device, not the terminal the app is drawing on.
 struct SystemNotifier: SystemNotificationBackend {
-    /// When it posts: `TUI_SYSTEM_NOTIFICATIONS`.
+    /// When it posts: `TUI_SYSTEM_NOTIFICATIONS`, unless `TUI_NOTIFICATIONS=0`
+    /// turned notifications off altogether.
     enum Setting: Equatable, Sendable {
-        /// Never (`0`).
+        /// Never (`TUI_SYSTEM_NOTIFICATIONS=0`, or `TUI_NOTIFICATIONS=0`).
         case off
         /// Where the person is at this machine (unset, or any other value).
         case whenLocal
@@ -51,7 +53,18 @@ struct SystemNotifier: SystemNotificationBackend {
         case always
 
         /// The setting `environment` asks for.
+        ///
+        /// `TUI_NOTIFICATIONS=0` comes first: it means no notifications at
+        /// all, not only none through the terminal (the owner's ruling of
+        /// 2026-11-10). Before, this machine still posted them itself unless
+        /// `TUI_SYSTEM_NOTIFICATIONS=0` was set as well, and someone who turns
+        /// notifications off means "none". `TUI_SYSTEM_NOTIFICATIONS` picks the
+        /// route only while notifications are on.
         init(environment: [String: String]) {
+            guard environment["TUI_NOTIFICATIONS"] != "0" else {
+                self = .off
+                return
+            }
             switch environment["TUI_SYSTEM_NOTIFICATIONS"] {
             case "0": self = .off
             case "1": self = .always

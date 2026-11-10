@@ -139,8 +139,9 @@ nothing — never both. The terminal goes first because its notification is its
 own (its icon; a click raises its window), where `osascript`'s names Script
 Editor and a click opens that. `TUI_SYSTEM_NOTIFICATIONS=0` turns the route
 off; `1` uses it where TUI cannot tell (zellij, GNU screen at the desk).
-`TUI_NOTIFICATIONS=0` turns the terminal route off, so the OS route then
-carries toasts, where it is on. The locality test (which can ask tmux for its
+`TUI_NOTIFICATIONS=0` turns both routes off: no notifications at all (the
+owner's ruling NOTIF, 2026-11-10; before it, the OS route then carried toasts
+unless `TUI_SYSTEM_NOTIFICATIONS=0` was set as well). The locality test (which can ask tmux for its
 clients) and the launch run on a utility queue; the helper's standard streams
 are the null device; the message is an argument of its own after `--` — the
 AppleScript reads it from `argv`, so nothing in it is ever AppleScript source —

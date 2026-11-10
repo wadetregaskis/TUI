@@ -589,7 +589,7 @@ terminal where the terminal posts one (Ghostty and iTerm2); elsewhere this
 machine posts it itself, with `osascript` on macOS or `notify-send` on Linux,
 but only where the person is at this machine — never over ssh. One or the
 other, never both. The person running the app can turn this machine's own
-posting on or off with `TUI_SYSTEM_NOTIFICATIONS` (<doc:EnvironmentVariables>). It is one-way: no buttons, and nothing reports whether it
+posting on or off with `TUI_SYSTEM_NOTIFICATIONS`, and every route off with `TUI_NOTIFICATIONS=0` (<doc:EnvironmentVariables>). It is one-way: no buttons, and nothing reports whether it
 was seen.
 
 ```swift

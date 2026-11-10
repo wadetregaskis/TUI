@@ -62,6 +62,22 @@ struct SystemNotifierTests {
         #expect(SystemNotifier.Setting(environment: environment) == expected)
     }
 
+    // The owner's ruling NOTIF (2026-11-10): `TUI_NOTIFICATIONS=0` means none at all, so the
+    // system route is off whatever `TUI_SYSTEM_NOTIFICATIONS` says; any other value of the first
+    // leaves the second to pick the route.
+    @Test(
+        "TUI_NOTIFICATIONS=0 turns this machine's notifications off too, whatever TUI_SYSTEM_NOTIFICATIONS says",
+        arguments: [
+            (["TUI_NOTIFICATIONS": "0"], SystemNotifier.Setting.off),
+            (["TUI_NOTIFICATIONS": "0", "TUI_SYSTEM_NOTIFICATIONS": "1"], .off),
+            (["TUI_NOTIFICATIONS": "1"], .whenLocal),
+            (["TUI_NOTIFICATIONS": "1", "TUI_SYSTEM_NOTIFICATIONS": "1"], .always),
+            (["TUI_NOTIFICATIONS": "1", "TUI_SYSTEM_NOTIFICATIONS": "0"], .off),
+        ])
+    func notificationsOffMeansNone(environment: [String: String], expected: SystemNotifier.Setting) {
+        #expect(SystemNotifier.Setting(environment: environment) == expected)
+    }
+
     @Test("The helper is what is installed: osascript, else notify-send where there is a bus and a display")
     func findsTheHelper() {
         let desktop = ["DBUS_SESSION_BUS_ADDRESS": "unix:path=/run/user/1000/bus", "DISPLAY": ":0", "PATH": "/bin:/usr/bin"]

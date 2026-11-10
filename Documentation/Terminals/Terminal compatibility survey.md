@@ -4307,7 +4307,8 @@ runs itself in the pane to send every sequence):
 Only to a host documented to post one (`TerminalClient.honoursNotifications`):
 Ghostty and iTerm2. `\.terminalCapabilities`' `.notifications` says which
 this is; `TUI_NOTIFICATIONS=1` sends notifications to any host, `0` keeps every
-request to the bell. Nothing reports whether the person saw either.
+request to the bell and turns this machine's own notifications off too, so a
+toast goes nowhere but the screen (2026-11-10). Nothing reports whether the person saw either.
 
 | Host | Posts `OSC 9` | Evidence | The bell |
 |---|---|---|---|

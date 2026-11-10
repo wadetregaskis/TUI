@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`TUI_NOTIFICATIONS=0` turns notifications off altogether.** It used to stop only those sent through the terminal,
+and at your own computer the app still posted them itself (with `osascript` or `notify-send`) unless
+`TUI_SYSTEM_NOTIFICATIONS=0` was set too. Now `0` means none at all; `TUI_SYSTEM_NOTIFICATIONS` still chooses the route
+while notifications are on.
 **A `Grid` narrower than its columns squeezes them instead of dropping them.** Columns were never squeezed, so a
 grid offered less than its full width was drawn at that width and cut: at 5 cells only its first column showed. It
 now shares the width among its columns as an `HStack` shares a row, as SwiftUI's grid does (measured): text in a

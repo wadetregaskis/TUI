@@ -207,12 +207,12 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_NOTIFICATIONS", .endUser, .linksAndNotifications,
             values: "`0` or `1`",
-            effect: "Whether the program's notifications go through the terminal, which shows them as your desktop's own. `0`: never, so the program rings the bell or uses `TUI_SYSTEM_NOTIFICATIONS` instead. `1`: always. Unset, where the terminal is known to show them.",
+            effect: "Whether the program sends notifications to your desktop at all, and whether they go through the terminal, which shows them as your desktop's own. `0`: none at all, neither through the terminal nor posted by this computer, so a program asking for your attention rings the bell instead. `1`: always through the terminal. Unset, through the terminal where it's known to show them, and elsewhere as `TUI_SYSTEM_NOTIFICATIONS` says.",
             reading: .eachUse),
         TUIEnvironmentVariable(
             "TUI_SYSTEM_NOTIFICATIONS", .endUser, .linksAndNotifications,
             values: "`0` or `1`",
-            effect: "Whether a notification the terminal can't show is posted by this computer itself, with `osascript` on macOS or `notify-send` on Linux. `0`: never. `1`: wherever the program can't tell where you are, such as inside zellij or GNU screen at your own desk. Unset, only where the program can tell you're at this computer, and never over ssh. A notification never comes twice: a terminal that shows them always gets them instead.",
+            effect: "Whether a notification the terminal can't show is posted by this computer itself, with `osascript` on macOS or `notify-send` on Linux. `0`: never. `1`: wherever the program can't tell where you are, such as inside zellij or GNU screen at your own desk. Unset, only where the program can tell you're at this computer, and never over ssh. A notification never comes twice: a terminal that shows them always gets them instead. `TUI_NOTIFICATIONS=0` turns these off too, whatever this says.",
             reading: .once),
         TUIEnvironmentVariable(
             "TUI_PROGRESS", .endUser, .linksAndNotifications,
