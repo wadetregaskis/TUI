@@ -143,9 +143,14 @@ enum DirectoryListing {
         var isDirectory = values?.isDirectory ?? false
         if isSymbolicLink {
             // A link to a folder opens as one: the link's own values describe
-            // the link, so ask what it leads to.
-            let target = try? url.resolvingSymlinksInPath().resourceValues(forKeys: [.isDirectoryKey])
-            isDirectory = target?.isDirectory ?? false
+            // the link, so ask what it leads to. `fileExists(atPath:isDirectory:)`
+            // follows the link (it is `stat`); `resolvingSymlinksInPath()` does
+            // not on WASI, where Foundation answers with the link's own path, and
+            // a link to a folder listed as a file (WasmKit, 2026-11-10).
+            var leadsToDirectory: ObjCBool = false
+            isDirectory =
+                FileManager.default.fileExists(atPath: url.path, isDirectory: &leadsToDirectory)
+                && leadsToDirectory.boolValue
         }
         let isFolder = isDirectory && (!isPackage || rule.enumeratesPackages)
         let type = contentType(of: url, values: values, isFolder: isFolder)

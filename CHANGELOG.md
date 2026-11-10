@@ -50,6 +50,9 @@ two of its seven border styles filled in; write `Dialog(title: "…", borderStyl
 its row in a `.sidebarAdaptable` sidebar the buttons a list row's swipe actions give it, revealed from the keyboard
 (⇧→ and ⇧←) or a trackpad's sideways swipe in the same way. A tab bar has no rows to swipe and shows none.
 
+**On WebAssembly, a symbolic link to a folder opens as a folder in the file panels.** It listed as a file there, as
+Foundation on WASI does not resolve a link's path; the listing asks the file system, which follows it.
+
 **On WebAssembly, a document saves, and a chosen language and a diagnostics file are written.** WASI has no atomic
 write, and a `FileDocument` or `ReferenceFileDocument` save, the language `LocalizationService` keeps and the first
 report to `TUI_DIAGNOSTICS_FILE` each asked for one, and wrote nothing. They write in place there now, as

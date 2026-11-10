@@ -338,6 +338,7 @@ Fixed here, each with the test that failed on WebAssembly:
   likely place, and it runs out natively too, only deeper. An app on wasm wants the bigger stack.
 
 - **A document saved, a language chosen or a diagnostic file started wrote nothing** (gap 4, fixed 2026-11-10).
+- **A symbolic link to a folder listed as a file in the file panels** (gap 7, fixed 2026-11-10).
 
 Found and not fixed, in the gaps below: dynamic properties inside enum payloads and the value-hash plans (gap 5).
 
@@ -388,9 +389,12 @@ Found and not fixed, in the gaps below: dynamic properties inside enum payloads 
    left: the tests that read German from the bundle found English under the runner (`BuiltInEnglishTests`,
    `PanelLocalizationTests`, `SceneRootLanguageChromeTests`), which the runner's `--dir /` and the bundle's place
    should now explain, and should be re-run; and an app's own resources, which only its own `Bundle.module` finds.
-7. **Symbolic links in the file panels (S–M).** A link to a folder lists as a file (`DirectoryListingTests`):
-   Foundation on WASI did not follow it for `isDirectory`. Whether that is the runner's `/tmp` or WASI's is the
-   first question.
+7. **Done 2026-11-10: a link to a folder lists as a folder.** It was WASI's, not the runner's `/tmp`: a probe in a
+   folder of its own found Foundation's `resolvingSymlinksInPath()` hands back the link's own path there, so the
+   resource values asked of it describe the link, while `stat` follows it. The listing asks
+   `FileManager.fileExists(atPath:isDirectory:)` now, which is `stat` everywhere; the four `DirectoryListingTests`
+   that failed under WasmKit pass. Left: a link chosen in a panel is still handed back unresolved on WASI
+   (`FileEntry`'s resolved URL is the same call), and `destinationOfSymbolicLink(atPath:)` answered nothing.
 8. **The coverage left out (M).** Of the 225 tests compiled out, the exit tests mostly test process-wide state; with
    one thread and no processes a test of the same promise is possible for some (a pin seen from a second task rather
    than a second thread), not for signals, pipes or ptys. Worth it where the code has a WebAssembly arm of its own:
