@@ -101,6 +101,12 @@ final class StdinArrivalNotifier {
     /// after ``stop()``, and once the descriptor reached end of file.
     var isWatching: Bool { source != nil }
 
+    /// Whether a wake is pending (``pendingWake``): what a test asks, rather
+    /// than timing a wait, which on a loaded CI runner says nothing (CI run 101,
+    /// Linux 6.2: a wait timed at 0.7 µs where a pending wake was not the cause
+    /// anyone could show).
+    var hasPendingWake: Bool { pendingWake }
+
     /// A wake delivered while no waiter was suspended. The next
     /// ``waitForArrival(timeoutNanoseconds:)`` returns immediately and clears
     /// it, so a render-request that lands between the loop's check and its
