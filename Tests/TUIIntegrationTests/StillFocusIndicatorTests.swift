@@ -16,6 +16,7 @@
 import Foundation
 import Testing
 import TUI
+@testable import TUIStyling
 import TUITesting
 
 /// One of the controls whose focus was told by its breath alone.
@@ -100,5 +101,18 @@ struct StillFocusIndicatorTests {
     func focusShowsWithoutColour(_ control: BreathOnlyControl) {
         let drawn = ColorDepth.withCurrent(.noColor) { rows(control, PaletteRegistry.all[0], still: false) }
         #expect(drawn.focused != drawn.resting, "\(control) without colour: the focus is not drawn")
+    }
+
+    /// The breath can't move where its colours can't be mixed: under the
+    /// `Terminal` palette until the terminal reports them, it holds at the bright
+    /// end whatever the setting.
+    @Test(
+        "Before the terminal reports its colours, a breathing focus on the same controls shows too",
+        arguments: BreathOnlyControl.allCases)
+    func focusShowsBeforeColoursAreReported(_ control: BreathOnlyControl) {
+        let drawn = TerminalColors.withCurrent(.unknown) {
+            ColorDepth.withCurrent(.truecolor) { rows(control, LiveTerminalPalette(), still: false) }
+        }
+        #expect(drawn.focused != drawn.resting, "\(control) under unreported colours: the focus is not drawn")
     }
 }

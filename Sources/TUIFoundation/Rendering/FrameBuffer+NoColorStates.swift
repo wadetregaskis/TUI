@@ -200,12 +200,18 @@ extension RenderContext {
     /// Whether a focused control's breath holds still here, at its bright end: the
     /// person turned it off (`TUI_BREATHING=0`, the View menu's Breathing Focus), the
     /// app did (`Scene.focusBreathing(false)`), or a view did for its subtree
-    /// (`.selectionIndicatorStyle(.none)`).
+    /// (`.selectionIndicatorStyle(.none)`). And where the breath can't move: its accent
+    /// or the page it breathes over has no RGB to mix, as under the `Terminal` palette
+    /// until the terminal reports its colours, so it holds at its bright end whatever
+    /// the setting (`SelectionEmphasisCycle.isAnimating(dim:bright:)`).
     ///
     /// Not in a window that does not appear active: a focus there is held half-way
     /// between its breath's ends, which a resting control does not draw
     /// (``SelectionEmphasisClock/cycle(_:)``).
     package var focusHoldsStill: Bool {
-        environment.selectionIndicatorStyle == .none && environment.appearsActive
+        guard environment.appearsActive else { return false }
+        if environment.selectionIndicatorStyle == .none { return true }
+        let palette = environment.palette
+        return palette.accent.rgbComponents == nil || palette.background.rgbComponents == nil
     }
 }

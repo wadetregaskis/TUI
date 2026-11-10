@@ -58,7 +58,8 @@ depth now.
 **A focus held still shows on a checked checkbox, a switch that is on, a link and a radio group.** With
 `TUI_BREATHING=0`, the View menu's Breathing Focus turned off or `.focusBreathing(false)`, the focus sits at the
 bright end of its breath, which is the colour those controls rest in, so nothing showed which one had it. Their label
-is now drawn in reverse video while they have the focus, as it is under Differentiate Without Color. A link inside a
+is now drawn in reverse video while they have the focus, as it is under Differentiate Without Color, and likewise under
+the `Terminal` palette before the terminal reports its colours, where the breath can't move. A link inside a
 `Text` does the same, and now also shows its focus on a terminal with no colour, where it showed none.
 
 **A list or table whose last rows go from under its focused row moves the focus to the new last row.** It was left
