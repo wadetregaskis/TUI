@@ -163,6 +163,9 @@ deliberate ASCII form. What was built, so each has one:
     pickers, segmented pickers, compact tabs and control groups were walled in `#`. Through the bordered button's cap
     table (`_ButtonAppearance.sized`, which `ControlEnds` reads) and a text field's chrome, both asking
     `TerminalSymbols.caps(ascii:)`. A three-row solid face's rows above and below are its shape, and stay `#`.
+  - a shape's one-row rounded ends, `▐ ▌`, as `( )` (CAPSULE-TAG, 2026-11-11), where the box tier draws them (`ShapeBoxCells.fill`): a one-row `Capsule` or `RoundedRectangle` fill, and a tag drawn on one,
+    `.background(.blue, in: Capsule())`, which read `#Beta#` and reads `(Beta)`. Parentheses, as a one-row rounded
+    stroke of the same shape already draws its ends. Taller shapes are pictures and keep their `#` corners.
   - a track, a progress bar's, a slider's or a gauge's (`TrackGlyphs`, 2026-11-11): `▬` and `━`
     as `=`, so `.dot` has a fill at all and `.knob`'s two rails differ (`=====o-----`); a blank Braille cell as a
     space, where a `.braille` track was dots end to end. The rest is left to the folding. Found by a bug hunt that

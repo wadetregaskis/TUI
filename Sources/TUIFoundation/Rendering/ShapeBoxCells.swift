@@ -58,7 +58,10 @@ struct RoundedCorners: Equatable, Sendable {
 /// as round (`▟` for a top-leading corner), the line tier's per-corner rule
 /// again. A frame one row tall ends in the half-block caps `▐ ▌` wherever
 /// rounded: the capsule vocabulary a text field and a solid button already
-/// draw. Where the terminal draws Block Elements short of the line (Apple
+/// draw; where text is spelled in ASCII (`TUI_PLAIN_TEXT`) those ends are `(`
+/// `)` (``TerminalSymbols/ASCII/roundOpenCap``), as the stroke's are, since
+/// folded at output a half block is `#`. Where the terminal draws Block
+/// Elements short of the line (Apple
 /// Terminal, ``EnvironmentValues/blockElementsFillTheLine``), a corner is a
 /// whole cell — drawn where at least half covered — as a solid button face's
 /// is there, and only the one-row caps are glyphs. A single cell is every
@@ -119,9 +122,11 @@ enum ShapeBoxCells {
     ///     two halves, as a rasterized shape's is
     ///     (``ShapeHalfBlocks/cell(upper:lower:)``, decisions B95). `nil` for
     ///     one sample a cell.
+    ///   - spellsASCII: Whether text is spelled in ASCII (`TUI_PLAIN_TEXT`): a
+    ///     one-row frame's rounded ends, the caps `▐ ▌`, are then `(` `)`.
     static func fill(
         _ path: Path, columns: Int, rows: Int, aspect: Double, corners: RoundedCorners, wholeCells: Bool,
-        colour: (Int, Int) -> Color, halves: ((Int, Int) -> Color)? = nil
+        spellsASCII: Bool, colour: (Int, Int) -> Color, halves: ((Int, Int) -> Color)? = nil
     ) -> ShapeCells {
         var cells = ShapeCells(width: columns, height: rows)
         guard columns > 0, rows > 0, aspect > 0 else { return cells }
@@ -148,6 +153,10 @@ enum ShapeBoxCells {
                     continue
                 }
                 let paint = colour(column, row)
+                if spellsASCII, let end = asciiCap(column: column, columns: columns, rows: rows, corners: corners) {
+                    cells[column, row] = ShapeCells.Cell(ink: paint, field: nil, glyph: end)
+                    continue
+                }
                 cells[column, row] =
                     bits == 15
                     ? ShapeCells.Cell(ink: nil, field: paint, glyph: " ")
@@ -155,6 +164,18 @@ enum ShapeBoxCells {
             }
         }
         return cells
+    }
+
+    /// The ASCII end a one-row frame's cell at `column` draws where `cut`
+    /// leaves it a cap, `▐` or `▌` — a rounded end — or `nil` for any other
+    /// cell: `(` and `)` (CAPSULE-TAG).
+    private static func asciiCap(column: Int, columns: Int, rows: Int, corners: RoundedCorners) -> Character? {
+        guard rows == 1, columns > 1 else { return nil }
+        if column == 0, corners.topLeading || corners.bottomLeading { return TerminalSymbols.ASCII.roundOpenCap }
+        if column == columns - 1, corners.topTrailing || corners.bottomTrailing {
+            return TerminalSymbols.ASCII.roundCloseCap
+        }
+        return nil
     }
 
     /// `bits` with a rounded corner's outermost quadrant removed where the

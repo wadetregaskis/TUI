@@ -58,6 +58,22 @@ extension TerminalSymbols {
         /// ``TerminalSymbols/closeCap`` (`▌`).
         package static let closeCap: Character = "]"
 
+        /// A shape's rounded opening end, `(`, where the glyph is the half
+        /// block ``TerminalSymbols/openCap`` (`▐`) that a one-row `Capsule` or
+        /// `RoundedRectangle` fill ends in: a tag's,
+        /// `.background(.blue, in: Capsule())`.
+        ///
+        /// Chosen where the shape draws it, as ``openCap`` is (CAPSULE-TAG): a
+        /// parenthesis, as a one-row rounded stroke of the same shape ends, so
+        /// a rounded end reads alike filled or stroked, and a tag does not read
+        /// as a button. A shape two rows tall or more is a picture, and its
+        /// quadrant corners are left to the folding, `#`.
+        package static let roundOpenCap: Character = "("
+
+        /// A shape's rounded closing end, `)`, where the glyph is
+        /// ``TerminalSymbols/closeCap`` (`▌`).
+        package static let roundCloseCap: Character = ")"
+
         /// `scalar` as ASCII in the cells it takes, or `nil` where the
         /// framework draws nothing like it.
         package static func spelling(of scalar: Unicode.Scalar) -> String? {

@@ -235,8 +235,14 @@ struct ShapeRasterTests {
 
     @Test("A filled box: cells of the paint, rounded corners cut by a quadrant, one row capped")
     func boxFill() {
-        func filled(_ path: Path, _ columns: Int, _ rows: Int, _ corners: RoundedCorners, wholeCells: Bool = false) -> [String] {
-            glyphs(ShapeBoxCells.fill(path, columns: columns, rows: rows, aspect: 2, corners: corners, wholeCells: wholeCells) { _, _ in .red })
+        func filled(
+            _ path: Path, _ columns: Int, _ rows: Int, _ corners: RoundedCorners, wholeCells: Bool = false,
+            ascii: Bool = false
+        ) -> [String] {
+            glyphs(
+                ShapeBoxCells.fill(
+                    path, columns: columns, rows: rows, aspect: 2, corners: corners, wholeCells: wholeCells,
+                    spellsASCII: ascii) { _, _ in .red })
         }
         let frame = CGRect(x: 0, y: 0, width: 6, height: 6)
         let rounded = Path(roundedRect: frame, cornerRadius: 1)
@@ -247,7 +253,15 @@ struct ShapeRasterTests {
         // Whole cells keep the caps, and a corner is its coverage.
         #expect(filled(capsule, 6, 1, RoundedCorners(all: true), wholeCells: true) == ["▐    ▌"])
         #expect(filled(rounded, 6, 3, RoundedCorners(all: true), wholeCells: true) == ["      ", "      ", "      "])
-        let cells = ShapeBoxCells.fill(rounded, columns: 6, rows: 3, aspect: 2, corners: RoundedCorners(all: true), wholeCells: false) { _, _ in .red }
+        // In ASCII the caps are parentheses (CAPSULE-TAG); a taller shape's
+        // corners stay quadrants, left to the folding.
+        #expect(filled(capsule, 6, 1, RoundedCorners(all: true), ascii: true) == ["(    )"])
+        #expect(filled(capsule, 6, 1, RoundedCorners(all: true), wholeCells: true, ascii: true) == ["(    )"])
+        #expect(filled(rounded, 6, 3, RoundedCorners(all: true), ascii: true) == ["▟    ▙", "      ", "▜    ▛"])
+        let cells = ShapeBoxCells.fill(
+            rounded, columns: 6, rows: 3, aspect: 2, corners: RoundedCorners(all: true), wholeCells: false,
+            spellsASCII: false
+        ) { _, _ in .red }
         #expect(cells[1, 1] == ShapeCells.Cell(ink: nil, field: .red, glyph: " "))
         #expect(cells[0, 0] == ShapeCells.Cell(ink: .red, field: nil, glyph: "▟"))
     }
@@ -260,7 +274,8 @@ struct ShapeRasterTests {
         let dot = Path(roundedRect: CGRect(x: 0, y: 0, width: 1, height: 2), cornerRadius: 0.5)
         for wholeCells in [false, true] {
             let cells = ShapeBoxCells.fill(
-                dot, columns: 1, rows: 1, aspect: 2, corners: RoundedCorners(all: true), wholeCells: wholeCells
+                dot, columns: 1, rows: 1, aspect: 2, corners: RoundedCorners(all: true), wholeCells: wholeCells,
+                spellsASCII: true
             ) { _, _ in .red }
             #expect(cells[0, 0] == ShapeCells.Cell(ink: nil, field: .red, glyph: " "), "whole cells: \(wholeCells)")
         }

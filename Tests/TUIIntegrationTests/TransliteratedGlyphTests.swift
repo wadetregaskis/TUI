@@ -130,6 +130,34 @@ struct TransliteratedGlyphTests {
         #expect(written.lines.map(\.stripped).joined().contains("▐ OK ▌"))
     }
 
+    /// A one-row shape filled behind content ends in the half blocks `▐ ▌`,
+    /// which the folding writes as the `#` they are: a tag was `#Beta#`
+    /// (CAPSULE-TAG). Its ends are parentheses where it draws them, as a
+    /// rounded one-row stroke's are; a taller shape is a picture, its
+    /// quadrant corners `#`.
+    @Test("A one-row rounded fill ends in ( ), and a taller one keeps its blocks")
+    func oneRowShapeEnds() {
+        func folded(_ view: some View, width: Int = 12, height: Int = 1) -> [String] {
+            drawn(view, width: width, height: height).map(PlainTerminalText.folding)
+        }
+        let tag = folded(Text("Beta").padding(.horizontal, 1).background(.blue, in: Capsule())).joined()
+        #expect(tag.hasPrefix("(Beta)"), "\(tag)")
+        let wider = folded(Text("Beta").padding(.horizontal, 2).background(.blue, in: Capsule())).joined()
+        #expect(wider.hasPrefix("( Beta )"), "\(wider)")
+        let rounded = folded(RoundedRectangle(cornerRadius: 1).fill(.blue).frame(width: 6, height: 1)).joined()
+        #expect(rounded.hasPrefix("(    )"), "\(rounded)")
+        // Square ends have no caps to spell.
+        let square = folded(Text("Beta").background(.blue, in: Rectangle())).joined()
+        #expect(square.hasPrefix("Beta"), "\(square)")
+        let tall = folded(Capsule().fill(.blue).frame(width: 8, height: 3), height: 3)
+        #expect(!tall.joined().contains("(") && tall.joined().contains("#"), "\(tall)")
+
+        let written = renderToBuffer(
+            Text("Beta").padding(.horizontal, 1).background(.blue, in: Capsule()),
+            context: makeRenderContext(width: 12, height: 1))
+        #expect(written.lines.map(\.stripped).joined().hasPrefix("▐Beta▌"))
+    }
+
     /// Folded, a three-row solid face's quadrant corners were `#`, so a large
     /// button was `##    ##` above and below its label (PLAIN-LINE).
     @Test("A three-row solid face is whole cells of its colour, with no glyph to fold")

@@ -69,7 +69,7 @@ enum GlassCells {
             palette: environment.palette)
         let fill = ShapeCells.drawing(
             drawn, as: .fill(FillStyle()), frame: frame, painter: painter, monochrome: false,
-            wholeCells: !environment.blockElementsFillTheLine)
+            wholeCells: !environment.blockElementsFillTheLine, spellsASCII: context.textSpelling.isASCII)
         // A glyph is drawn or not, by the ½ rule every glyph decision takes, so
         // a glass part-way arrived draws its rim's lines from half-way, in its
         // ink part-way from the surface they land on.

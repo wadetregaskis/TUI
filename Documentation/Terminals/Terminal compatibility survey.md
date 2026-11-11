@@ -7843,7 +7843,8 @@ K3).
   framework's own glyphs have ASCII forms there too (2026-11-10), in one table,
   `TerminalSymbols.ASCII` (TUICore), which the folding reads, and wider ones chosen where
   drawn: a toggle's `[x]`, a radio button's `(*)`, spinners' frames, a file panel's `d`/`f`/`l`,
-  a control's half-block ends `[ ]` (in the table a half block is `#`, as a Canvas's is);
+  a control's half-block ends `[ ]` (in the table a half block is `#`, as a Canvas's is),
+  a one-row rounded shape's `( )` (a tag on a `Capsule`);
   emoji chrome is off. Lines keep their weight in the table (2026-11-11): light `-` `|`,
   heavy `=` and `#`, double `=` and `|`, rounded corners `.` and `'`; a Braille cell is
   ` ` `'` `.` `:` or `#` by where its dots are.
