@@ -70,7 +70,10 @@ public final class TestApp {
     ///
     /// An `@AppStorage` that names no store reads and writes a store of this
     /// instance's, in memory, so a test leaves nothing behind in your real
-    /// preferences. `.defaultAppStorage(_:)` in `content` overrides it.
+    /// preferences. `.defaultAppStorage(_:)` in `content` overrides it. TUI's
+    /// own settings, as the View menu and the settings panel save them, are
+    /// kept there too, and the person's settings for all programs are never
+    /// read.
     ///
     /// - Parameters:
     ///   - width: The terminal's width, in cells.
@@ -101,6 +104,9 @@ public final class TestApp {
     private func useInMemoryAppStorage() {
         let store = TestAppStorage()
         headless.configureEnvironment { $0.defaultAppStorage = DefaultAppStorage(store) }
+        // TUI's own settings for the program too, as a running app keeps them
+        // beside its `@AppStorage`; none for all programs.
+        headless.keepSettings(programStore: store, allProgramsFile: nil)
     }
 
     // MARK: - Reading

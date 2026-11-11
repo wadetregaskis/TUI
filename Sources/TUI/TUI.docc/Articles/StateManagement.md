@@ -312,6 +312,8 @@ connection. TUI decides each kind of state by whose it is.
 - `@AppStorage` and `@SceneStorage` values, in `UserDefaults` on macOS and in `settings.json` in the app's configuration
   directory elsewhere (`TUI_CONFIG_DIR` moves it).
 - The language chosen in the app, in the same directory.
+- TUI's own settings as chosen in the app, and the person's settings for every TUI program (see
+  <doc:StateManagement#Settings-for-This-Program-and-All-Programs>).
 - A toolbar's customization, and a file panel's view mode, last folder and size.
 - Documents, and whatever a file panel opens, saves or creates.
 - Pictures downloaded for an `Image` or an `AsyncImage`, which go through `URLSession.shared` and so through Foundation's
@@ -334,6 +336,90 @@ app's machine. A file panel that opens over ssh says so.
 is measured again at each launch, because the next launch may be from another terminal. If such a measurement is ever
 cached, key it by the terminal's fingerprint (its answers to the device-attribute queries, and its version), never by
 its name in `TERM_PROGRAM`: several people, or one person's several terminals, can share one account and one name.
+
+## Settings for This Program and All Programs
+
+The settings panel (F2) and the View menu offer the same eleven settings in every app: the palette, the border style
+and the control style, then Breathing Focus, Spell Out Keys, Focus Follows Pointer, Arrows Follow Layout, Differentiate
+Without Color, Reduce Motion, Reduce Transparency and Increase Contrast. A person can keep each one for the program
+they change it in, and for every TUI program they run.
+
+### Which setting wins
+
+Seven layers decide each setting. The first that says anything wins:
+
+| | Layer | Where it comes from |
+|---|---|---|
+| 1 | This run's change | The View menu or the settings panel, until the program quits. It is also saved for the program (layer 4). |
+| 2 | A `TUI_*` variable | Set for this launch, such as `TUI_REDUCE_MOTION=1 myapp` (see <doc:EnvironmentVariables>) |
+| 3 | The program's code | Scene modifiers such as `.focusFollowsPointer(true)` and `.reduceMotion(true)`, a palette or appearance the scene states |
+| 4 | Saved for this program | Changes made in this program's View menu or settings panel in earlier runs |
+| 5 | Saved for all programs | The settings for all programs, in the panel's Settings for All Programs… |
+| 6 | The computer's setting | Reduce Motion, Increase Contrast and the rest, read where the person is at this machine |
+| 7 | TUI's default | |
+
+So what a person saved fills in only what the code and the launch leave unset, and a variable still means "this
+once". Three relations are older than the layers, and stay as they were:
+
+- **Focus Follows Pointer:** the program's `Scene.focusFollowsPointer(_:)` wins over `TUI_FOCUS_FOLLOWS_POINTER`.
+- **Reduce Motion, Breathing Focus and Spell Out Keys:** the program's code can add the aid even under the variable's
+  `0` (`.reduceMotion(true)` under `TUI_REDUCE_MOTION=0`), and can never take one away.
+- **Palette, Border Style and Control Style:** have no variable. A scene that states one decides it, even over this
+  run's choice: the panel disables the option and says why, unless the app hands its own state to
+  ``DisplayCommands``, when a choice goes into that state, for the app to keep as it likes. TUI saves only a choice it
+  holds itself.
+
+### Editing them
+
+Each of the panel's View and Accessibility settings has a box before it saying whether this level sets it. In the
+panel as it opens, the level is this program: a ticked box keeps the setting for this program, and the value shown is
+the one in force. **Settings for All Programs…** switches the two tabs to the person's settings for all programs, and
+**Done** switches back. At either level:
+
+- Changing a value ticks its box, and sets it at this level.
+- Ticking a box sets the value shown at this level.
+- Unticking a box gives the setting back: this level no longer sets it, and it is drawn faint, showing the value it now
+  inherits. For this program, that is what the code, the launch or the settings for all programs say; for all programs,
+  it is the computer's setting or TUI's default.
+
+The View menu shows the value in force, whichever layer decided it, and a choice there is this run's change, saved for
+the program. Everything is reached from the keyboard: Tab moves through the boxes and the values, and Space ticks a box
+or turns a check.
+
+### Where they are kept
+
+**For this program**, in the store an `@AppStorage` that names none uses (``StorageDefaults/backend``), under keys
+that start with `TUISettings.`, such as `TUISettings.reduceMotion`.
+
+**For all programs**, in one file of TUI's own:
+
+| System | File |
+|---|---|
+| macOS | `~/Library/Application Support/TUI/defaults.json` |
+| Linux and others | `$XDG_CONFIG_HOME/tui/defaults.json`, else `~/.config/tui/defaults.json` |
+| Windows | `%APPDATA%\TUI\defaults.json` |
+| With `TUI_CONFIG_DIR` set | `$TUI_CONFIG_DIR/TUI/defaults.json` |
+
+It's one JSON object, made to be edited by hand:
+
+```json
+{
+  "borderStyle" : "rounded",
+  "palette" : "amber",
+  "reduceMotion" : true,
+  "spelledOutKeys" : true
+}
+```
+
+The keys are `palette`, `borderStyle` and `controlStyle`, each the identifier of a built-in palette, border style or
+control style, and `focusBreathing`, `spelledOutKeys`, `focusFollowsPointer`, `arrowsFollowLayout`,
+`differentiateWithoutColor`, `reduceMotion`, `reduceTransparency` and `increaseContrast`, each `true` or `false`. A key
+that's missing isn't set. An entry TUI can't use, such as a palette it doesn't have, is skipped on its own, and a key it
+doesn't know is kept when it writes the file. A file that isn't a JSON object isn't read, and TUI never writes over it,
+so a mistake made by hand isn't lost to the next change made in a panel.
+
+A program reads the file when it starts and whenever its terminal regains the focus, so a change made in one program
+reaches another when you go back to it. Two programs that change it at once each write only the setting they changed.
 
 ## How Long State Lasts
 

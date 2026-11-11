@@ -4,8 +4,8 @@
 //  The settings panel on F2 (the owner, 2026-11-08): in every app, menu bar
 //  or not; the app's own F2 first; the `Settings` scene's tab view's tabs,
 //  then TUI's View and Accessibility after a divider, which the app may hide
-//  or replace; the Accessibility tab's checks the View menu's own, and never
-//  saved.
+//  or replace; the Accessibility tab's checks the View menu's own, kept in
+//  the program's own store: another TestApp, another store, starts afresh.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -224,7 +224,7 @@ struct SettingsPanelTests {
         #expect(app.scenes.isPresentingSettings, "openSettings, SettingsLink and Settings… still open it")
     }
 
-    @Test("Toggling in the Accessibility tab changes what views read, matches the View menu, and isn't kept")
+    @Test("Toggling in the Accessibility tab changes what views read, matches the View menu, and is kept only in its own store")
     mutating func accessibilityTab() {
         let probe = MotionProbe()
         let app = launched(PlainApp(probe: probe))
@@ -234,8 +234,10 @@ struct SettingsPanelTests {
         press(.right, in: app)  // the strip's cursor to Accessibility
         press(.space, in: app)  // chosen
         #expect(screen(app).contains("Differentiate Without Color"), "\(screen(app))")
-        press(.tab, in: app)  // Differentiate Without Color
-        press(.tab, in: app)  // Reduce Motion
+        // Each setting's box, then its check: Differentiate Without Color's
+        // two, then Reduce Motion's.
+        for _ in 0..<4 { press(.tab, in: app) }
+        #expect(app.focusedID == "tui.settings.reduceMotion")
         press(.space, in: app)
         #expect(probe.reduceMotion == true)
         press(.escape, in: app)
@@ -245,7 +247,7 @@ struct SettingsPanelTests {
 
         let probe2 = MotionProbe()
         let next = launched(PlainApp(probe: probe2))
-        #expect(probe2.reduceMotion == false, "the next run starts from the settings")
+        #expect(probe2.reduceMotion == false, "another app with a store of its own starts from the settings")
         withExtendedLifetime(next) {}
     }
 

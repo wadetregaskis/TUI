@@ -389,6 +389,21 @@ public enum LocalizationKey {
         /// The help of one of `DisplayCommands`' submenus while the scene sets
         /// what it would choose, so a choice would show nothing.
         case displaySetByApp = "menu.displaySetByApp"
+        /// The settings panel's button that turns TUI's tabs to the person's
+        /// settings for all programs.
+        case settingsForAllPrograms = "menu.settingsForAllPrograms"
+        /// The settings panel's title while it shows the settings for all
+        /// programs.
+        case settingsForAllProgramsTitle = "menu.settingsForAllProgramsTitle"
+        /// The line at the top of TUI's tabs saying what a ticked box means
+        /// for this program.
+        case keptForThisProgramHint = "menu.keptForThisProgramHint"
+        /// The same, for all programs.
+        case setForAllProgramsHint = "menu.setForAllProgramsHint"
+        /// The name of a setting's box for this program.
+        case keepForThisProgram = "menu.keepForThisProgram"
+        /// The name of a setting's box for all programs.
+        case setForAllPrograms = "menu.setForAllPrograms"
         case new = "menu.new"
         case open = "menu.open"
         case save = "menu.save"

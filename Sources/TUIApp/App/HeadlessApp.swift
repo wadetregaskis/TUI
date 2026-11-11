@@ -345,6 +345,31 @@ package final class HeadlessApp {
     /// The focused control's id, `nil` when nothing holds the focus.
     package var focusedID: String? { focusManager.currentFocusedID }
 
+    /// TUI's own settings for this app, level by level, as its View menu and
+    /// settings panel change them.
+    package var viewPreferenceOverrides: ViewPreferenceOverrides { renderer.viewPreferenceOverrides }
+
+    /// What the user's `TUI_*` variables state, which the app runner reads
+    /// from its process and a test sets here; none unless set.
+    package var statedByVariables: [ViewPreference: Bool] {
+        get { renderer.statedByVariables }
+        set { renderer.statedByVariables = newValue }
+    }
+
+    /// The host's own accessibility settings, which the app runner reads where
+    /// the user is at the machine and a test sets here; none unless set.
+    package var hostAccessibility: AccessibilityPreferences {
+        get { renderer.hostAccessibility }
+        set { renderer.hostAccessibility = newValue }
+    }
+
+    /// Keeps TUI's settings as a running app does: this program's in
+    /// `programStore`, and the person's for all programs in `allProgramsFile`.
+    /// Until then a test keeps none.
+    package func keepSettings(programStore: (any StorageBackend)?, allProgramsFile: AllProgramsSettingsFile?) {
+        renderer.viewPreferenceOverrides.adopt(programStore: programStore, allProgramsFile: allProgramsFile)
+    }
+
     /// How the arrow keys move the focus, which `TUI_ARROW_FOCUS` sets in an
     /// app and a test sets here: as the user's, which the View menu's choice
     /// replaces, and in force at once, for keys sent before the next frame.
@@ -484,6 +509,9 @@ private protocol HeadlessRendering: AnyObject {
     var sendsProgressReports: Bool { get set }
     var cursorFollowsFocus: CursorFollowsFocus? { get set }
     var arrowFocusRequested: ArrowFocus { get set }
+    var statedByVariables: [ViewPreference: Bool] { get set }
+    var hostAccessibility: AccessibilityPreferences { get set }
+    var viewPreferenceOverrides: ViewPreferenceOverrides { get }
     var configureEnvironment: ((inout EnvironmentValues) -> Void)? { get set }
 }
 

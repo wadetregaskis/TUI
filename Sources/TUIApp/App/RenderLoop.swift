@@ -209,9 +209,10 @@ internal final class RenderLoop<A: App> {
     /// never needs it.
     let controlStyleManager: ThemeManager
 
-    /// What the person chose in the View menu for this run
-    /// (``ViewPreferenceOverrides``): written at the root of every frame, and
-    /// applied over the scene's statements. Gone with the loop: never saved.
+    /// TUI's own settings, level by level (``ViewPreferenceOverrides``): what
+    /// the person saved resolved at the root of every frame, and this run's
+    /// choices applied over the scene's statements. Keeps nothing until the
+    /// app runner (or a test) gives it a store.
     let viewPreferenceOverrides: ViewPreferenceOverrides
 
     /// The central dependency container (lifecycle, key dispatch, preferences).
@@ -393,53 +394,35 @@ internal final class RenderLoop<A: App> {
     /// attached to tmux are without a tmux to ask.
     private let probeClientCapabilities: @Sendable () -> ClientCapabilities?
 
-    /// What the user asked for with the `TUI_*` accessibility variables
-    /// (`TUI_REDUCE_MOTION=1` and its three siblings), as the app runner
-    /// read them from the process: written at the root of every frame
-    /// (``EnvironmentValues/accessibilityReduceMotion``,
-    /// ``EnvironmentValues/accessibilityReduceTransparency``,
-    /// ``EnvironmentValues/accessibilityDifferentiateWithoutColor``,
-    /// ``EnvironmentValues/colorSchemeContrast``).
+    /// What the user's `TUI_*` variables state of TUI's settings, as the app
+    /// runner read them from the process: `TUI_REDUCE_MOTION` and its three
+    /// accessibility siblings at `1` or `0`, `TUI_KEY_SYMBOLS=0`,
+    /// `TUI_BREATHING=0`, `TUI_FOCUS_FOLLOWS_POINTER` and
+    /// `TUI_ARROW_FOCUS=geometric`. A preference a variable leaves unset is
+    /// left out. Resolved at the root of every frame over what the person
+    /// saved and the host's setting (``ViewPreferenceOverrides``), beneath the
+    /// scene's own statements.
     ///
     /// Empty unless the runner says otherwise. A headless app, the test
     /// harness and every other loop leave it out, so what they draw does not
     /// depend on the environment their process was started in — a user's
     /// exported setting would otherwise turn every transition in a test run
     /// into a fade.
-    private let requestedAccessibility: AccessibilityPreferences
-
-    /// What the user turned off with a variable (`TUI_REDUCE_MOTION=0`), as the app
-    /// runner read it from the process: taken out of ``hostAccessibility`` at the root
-    /// of every frame. Empty in every other loop, for the same reason.
-    private let declinedAccessibility: AccessibilityPreferences
+    var statedByVariables: [ViewPreference: Bool] = [:]
 
     /// The host's own accessibility settings, where the app runner is sure the
-    /// user is at this machine (``HostSettingsRefresher``): added to
-    /// ``requestedAccessibility``, less ``declinedAccessibility``, at the root of
-    /// every frame. Empty in every loop but the app runner's, for the same reason.
+    /// user is at this machine (``HostSettingsRefresher``): what decides one of
+    /// the four at the root of every frame where no variable and nothing the
+    /// person saved does. Empty in every loop but the app runner's, for the
+    /// reason ``statedByVariables`` gives.
     var hostAccessibility: AccessibilityPreferences = []
-
-    /// How the user asked for keys to be written with `TUI_KEY_SYMBOLS`, as
-    /// the app runner read it from the process: written at the root of every
-    /// frame as ``EnvironmentValues/keyNotation``.
-    ///
-    /// ``KeyNotation/symbols`` unless the runner says otherwise, for the reason
-    /// ``requestedAccessibility`` gives: what a test draws must not depend on the
-    /// environment its process was started in.
-    private let keyNotation: KeyNotation
-
-    /// Whether the user lets focus indications breathe, as the app runner read
-    /// `TUI_BREATHING` from the process: written at the root of every frame as
-    /// ``EnvironmentValues/focusBreathes``. `true` unless the runner says
-    /// otherwise, for the reason ``requestedAccessibility`` gives.
-    private let focusBreathes: Bool
 
     /// The spring-loading delay the user asked for with
     /// `TUI_SPRING_LOADING_DELAY`, as the app runner read it from the
     /// process, or `nil`: written at the root of every frame as
     /// ``EnvironmentValues/springLoadingDelay``, over the host's own (owner
     /// ruling B82). `nil` unless the runner says otherwise, for the reason
-    /// ``requestedAccessibility`` gives.
+    /// ``statedByVariables`` gives.
     private let springLoadingDelayRequested: Duration?
 
     /// The host's own spring-loading delay, where the app runner is sure the
@@ -452,26 +435,20 @@ internal final class RenderLoop<A: App> {
     /// `TUI_STILL`, which the app runner reads. See ``publishAnimationValues``.
     var stillDate: Date?
 
-    /// Whether the user asked for the focus to follow the pointer, with
-    /// `TUI_FOCUS_FOLLOWS_POINTER`, as the app runner read it, or `nil`: the
-    /// answer where the scene's own `.focusFollowsPointer(_:)` says nothing.
-    /// `nil` in every loop but the app runner's, for the reason
-    /// ``requestedAccessibility`` gives.
-    var focusFollowsPointerRequested: Bool?
-
     /// How the user asked the arrow keys to move the focus, with
-    /// `TUI_ARROW_FOCUS`, as the app runner read it: written at the root of
-    /// every frame as ``EnvironmentValues/arrowFocus``, for the View menu's
-    /// choice to replace. `.tabOrder` in every loop but the app runner's, for
-    /// the reason ``requestedAccessibility`` gives, and in a test's until it
-    /// sets one (`HeadlessApp.arrowFocus`).
-    var arrowFocusRequested = ArrowFocus.tabOrder
+    /// `TUI_ARROW_FOCUS`: its entry in ``statedByVariables``. `.tabOrder` in
+    /// every loop but the app runner's until a test sets one
+    /// (`HeadlessApp.arrowFocus`).
+    var arrowFocusRequested: ArrowFocus {
+        get { statedByVariables[.arrowsFollowLayout] == true ? .geometric : .tabOrder }
+        set { statedByVariables[.arrowsFollowLayout] = newValue == .geometric ? true : nil }
+    }
 
     /// The terminal session the app runs in, as the app runner read it from
     /// the process (`TerminalSession`), or `nil`: written at the root of
     /// every frame as ``EnvironmentValues/sceneStorageSession``, which
     /// `@SceneStorage` keeps its values per. `nil` in every loop but the app
-    /// runner's, for the reason ``requestedAccessibility`` gives.
+    /// runner's, for the reason ``statedByVariables`` gives.
     var sceneStorageSession: String?
 
     init(
@@ -498,10 +475,9 @@ internal final class RenderLoop<A: App> {
         terminal.hostState.keepsProgressAlive = !isTmux
         self.publishTerminalColors = publishTerminalColors
         self.probeClientCapabilities = probeClientCapabilities
-        self.requestedAccessibility = requestedAccessibility
-        self.declinedAccessibility = declinedAccessibility
-        self.keyNotation = keyNotation
-        self.focusBreathes = focusBreathes
+        self.statedByVariables = ViewPreference.stated(
+            requestedAccessibility: requestedAccessibility, declinedAccessibility: declinedAccessibility,
+            keyNotation: keyNotation, focusBreathes: focusBreathes)
         self.springLoadingDelayRequested = springLoadingDelayRequested
         self.app = app
         self.terminal = terminal
@@ -510,10 +486,12 @@ internal final class RenderLoop<A: App> {
         self.focusManager = focusManager
         self.paletteManager = paletteManager
         self.appearanceManager = appearanceManager
-        self.controlStyleManager = ThemeManager(
+        let controlStyleManager = ThemeManager(
             items: ControlStyle.standardStyles,
             renderTrigger: { [appState = tuiContext.appState] in appState.setNeedsRender() })
+        self.controlStyleManager = controlStyleManager
         self.viewPreferenceOverrides = ViewPreferenceOverrides(
+            managers: [.palette: paletteManager, .borderStyle: appearanceManager, .controlStyle: controlStyleManager],
             renderTrigger: { [appState = tuiContext.appState] in appState.setNeedsRender() })
         self.tuiContext = tuiContext
         // The windows ask this loop's app for a frame and for the quit, as
@@ -1098,30 +1076,27 @@ extension RenderLoop {
         }
         environment.notificationService = NotificationService.current
         environment.viewPreferenceOverrides = viewPreferenceOverrides
-        // The user's `TUI_REDUCE_MOTION`, and the host's own Reduce Motion
-        // where the user is provably at this machine, at the root, where the
-        // app runner passed them (see `requestedAccessibility`,
-        // `hostAccessibility`), the variable winning over the host either way
-        // (`declinedAccessibility`); a scene's own `.reduceMotion(_:)` is applied
-        // over them with the scene's other writes.
-        let accessibility = requestedAccessibility.union(hostAccessibility.subtracting(declinedAccessibility))
-        environment.accessibilityReduceMotion = accessibility.contains(.reduceMotion)
-        // And the three P5 reads beside it, which no scene adds to.
-        environment.accessibilityReduceTransparency = accessibility.contains(.reduceTransparency)
-        environment.accessibilityDifferentiateWithoutColor = accessibility.contains(.differentiateWithoutColor)
-        environment.colorSchemeContrast = accessibility.contains(.increaseContrast) ? .increased : .standard
-        // The user's `TUI_KEY_SYMBOLS` likewise; a scene's `.keyNotation(_:)`
-        // can only add to it.
-        environment.keyNotation = keyNotation
-        // The user's `TUI_BREATHING` likewise; a scene's `.focusBreathing(_:)`
-        // can only hold the breath too.
-        environment.focusBreathes = focusBreathes
-        // The user's `TUI_FOCUS_FOLLOWS_POINTER`, where they set it, for a
-        // scene's `.focusFollowsPointer(_:)` to replace, and the View menu to
-        // show and replace in turn.
-        environment.focusFollowsPointer = focusFollowsPointerRequested
-        // The user's `TUI_ARROW_FOCUS` likewise, for the View menu to replace.
-        environment.arrowFocus = arrowFocusRequested
+        // TUI's settings beneath the scene's own statements: the user's
+        // `TUI_*` variable for this launch, else what the person saved for
+        // this program, then for all programs, else the host's own setting
+        // where the user is provably at this machine (`hostAccessibility`),
+        // else TUI's default (`ViewPreferenceOverrides`). The scene's writes
+        // go over these — its `.reduceMotion(true)`, `.focusBreathing(false)`
+        // and `.keyNotation(.spelledOut)` can only add to them, and its
+        // `.focusFollowsPointer(_:)` replaces — and this run's choices over
+        // those.
+        viewPreferenceOverrides.hostAccessibility = hostAccessibility
+        for preference in ViewPreference.allCases {
+            let value = viewPreferenceOverrides.valueBeneathCode(
+                preference, statedByVariable: statedByVariables[preference])
+            // Focus Follows Pointer stays unset where nothing says, for the
+            // run loop to read as off: the scene's statement replaces it.
+            if let value {
+                preference.set(value, in: &environment)
+            } else if preference != .focusFollowsPointer {
+                preference.set(preference.defaultValue, in: &environment)
+            }
+        }
         // The user's spring-loading delay: their `TUI_SPRING_LOADING_DELAY`,
         // else the host's where they are provably at it, else macOS's default
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.

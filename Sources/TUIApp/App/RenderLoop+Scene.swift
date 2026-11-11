@@ -87,8 +87,9 @@ extension RenderLoop {
         // against the right config.
         tuiContext.mouseEventDispatcher.setActiveSupport(baseMouseSupport)
         // Whether a pointer move offers the focus to the control it lands on:
-        // what the scene says, else the user's `TUI_FOCUS_FOLLOWS_POINTER`.
-        let followsPointer = environment.focusFollowsPointer ?? focusFollowsPointerRequested ?? false
+        // what this run's choice, the scene, the user's
+        // `TUI_FOCUS_FOLLOWS_POINTER` or the saved settings say, else off.
+        let followsPointer = environment.focusFollowsPointer ?? false
         tuiContext.mouseEventDispatcher.pointerFocusManager = followsPointer ? focusManager : nil
         // How the arrows move the focus, for the keys that arrive before the
         // next frame: the user's `TUI_ARROW_FOCUS`, or the View menu's choice.

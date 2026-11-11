@@ -171,7 +171,8 @@ the focus. With ``Scene/focusFollowsPointer(_:)``, or the person's
 pointer moves onto takes the focus too, as a click there would, without
 pressing it. What the scene says wins over the variable, and the settings
 panel's (F2) and the View menu's Focus Follows Pointer win over both until the
-app quits. The terminal then reports every move of the mouse, wherever it reports
+app quits; kept for the app's next runs, the person's choice fills in only where
+neither says (<doc:StateManagement#Settings-for-This-Program-and-All-Programs>). The terminal then reports every move of the mouse, wherever it reports
 clicks.
 
 - **A pointer at rest takes nothing back.** Only a move onto another cell
@@ -262,7 +263,8 @@ a view below can set `.pulse` or `.blink` back. For the whole app there is a
 switch nothing below takes back: the person running it sets `TUI_BREATHING=0`
 (<doc:EnvironmentVariables>), or the app says ``Scene/focusBreathing(_:)``
 with `false`, perhaps from a setting of its own; in an app with a menu bar, the
-View menu's Breathing Focus overrides both until the app quits. Any of these makes
+View menu's Breathing Focus overrides both until the app quits, and is kept
+for the app's next runs, beneath both. Any of these makes
 ``EnvironmentValues/focusBreathes`` `false`, and while it is,
 ``EnvironmentValues/selectionIndicatorStyle`` reads `.none` whatever a view set.
 The app's `true` doesn't undo the person's `0`.

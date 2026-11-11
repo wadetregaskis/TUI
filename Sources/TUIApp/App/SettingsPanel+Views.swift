@@ -3,13 +3,13 @@
 //
 //  The settings panel drawn: a sheet over the window in front, its tabs in a
 //  segmented strip that stays put, the tab shown in a scroll view under it,
-//  and TUI's View and Accessibility tabs.
+//  and Done — with Settings for All Programs… beside it, which turns TUI's
+//  tabs (SettingsPanel+Tabs.swift) to the person's settings for every program.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
 import Foundation
-import TUIForms
 import TUIFoundation
 import TUIPickers
 import TUIPresentation
@@ -37,18 +37,26 @@ struct _SettingsPanelSheet: View {
             ) {
                 _FittedToContent(
                     content: _ContextReader { context in
-                        _SettingsPanelContent(
-                            panel: panel,
-                            tabs: appTabs(context)
-                                + builtIn.compactMap { Self.tab($0.tab, $0.choice, context.environment) })
+                        let level: SettingsLevel = panel.editsAllPrograms ? .allPrograms : .thisProgram
+                        let tui = builtIn.compactMap { Self.tab($0.tab, $0.choice, level, context.environment) }
+                        // For all programs, TUI's own tabs alone, as TUI
+                        // draws them: the app's are this program's.
+                        let tabs =
+                            switch level {
+                            case .thisProgram: appTabs(context) + tui
+                            case .allPrograms: tui.filter { $0.levels }
+                            }
+                        return _SettingsPanelContent(
+                            panel: panel, tabs: tabs, offersAllPrograms: tui.contains { $0.levels })
                     })
             }
     }
 
-    /// TUI's `tab`, as the app chose: its own content, the app's in its
-    /// place, or none.
+    /// TUI's `tab`, as the app chose: its own content at `level`, the app's in
+    /// its place, or none.
     private static func tab(
-        _ tab: BuiltInSettingsTab, _ choice: BuiltInSettingsTabChoice, _ environment: EnvironmentValues
+        _ tab: BuiltInSettingsTab, _ choice: BuiltInSettingsTabChoice, _ level: SettingsLevel,
+        _ environment: EnvironmentValues
     ) -> SettingsPanelTab? {
         let title = LocalizationService.shared.string(for: tab == .view ? .view : LocalizationKey.Menu.accessibility)
         switch choice {
@@ -59,10 +67,10 @@ struct _SettingsPanelSheet: View {
         case .shown:
             let content =
                 switch tab {
-                case .view: AnyView(_SettingsViewTab(environment: environment))
-                case .accessibility: AnyView(_SettingsAccessibilityTab(environment: environment))
+                case .view: AnyView(_SettingsViewTab(environment: environment, level: level))
+                case .accessibility: AnyView(_SettingsAccessibilityTab(environment: environment, level: level))
                 }
-            return SettingsPanelTab(title: title, isBuiltIn: true, content: content)
+            return SettingsPanelTab(title: title, isBuiltIn: true, levels: true, content: content)
         }
     }
 }
@@ -78,13 +86,17 @@ struct _SettingsPanelSheet: View {
 private struct _SettingsPanelContent: View {
     let panel: SettingsPanel
     let tabs: [SettingsPanelTab]
+    /// Whether one of TUI's own tabs is shown, which Settings for All
+    /// Programs… turns to the person's settings for all programs.
+    let offersAllPrograms: Bool
 
     var body: some View {
         let service = LocalizationService.shared
         let panel = panel
         let shown = tabs.isEmpty ? 0 : min(max(panel.selection, 0), tabs.count - 1)
         let firstBuiltIn = tabs.firstIndex { $0.isBuiltIn } ?? tabs.count
-        Dialog(title: service.string(for: LocalizationKey.Menu.settingsPanel), footerAlignment: .trailing) {
+        let title: LocalizationKey.Menu = panel.editsAllPrograms ? .settingsForAllProgramsTitle : .settingsPanel
+        Dialog(title: service.string(for: title), footerAlignment: .trailing) {
             VStack(alignment: .leading, spacing: 1) {
                 if tabs.count > 1 {
                     Picker(
@@ -109,65 +121,29 @@ private struct _SettingsPanelContent: View {
                 }
             }
         } footer: {
-            Button(service.string(for: LocalizationKey.Button.done)) { panel.dismiss() }
-                .keyboardShortcut(.cancelAction)
+            // Done leaves the settings for all programs, back to this
+            // program's; then it closes the panel.
+            if panel.editsAllPrograms {
+                Button(service.string(for: LocalizationKey.Button.done)) { panel.showThisProgram() }
+                    .keyboardShortcut(.cancelAction)
+            } else {
+                ButtonRow {
+                    if offersAllPrograms {
+                        Button(service.string(for: LocalizationKey.Menu.settingsForAllPrograms)) {
+                            panel.showAllPrograms()
+                        }
+                        .focusID("tui.settings.allPrograms")
+                    }
+                    Button(service.string(for: LocalizationKey.Button.done)) { panel.dismiss() }
+                        .keyboardShortcut(.cancelAction)
+                }
+            }
         }
     }
 
     /// A tab's title in the strip: its own, or the app's name.
     private static func title(of tab: SettingsPanelTab) -> String {
         tab.title ?? QuitPrompt.applicationName
-    }
-}
-
-// MARK: - TUI's Tabs
-
-/// View: the palette, the border style and the control style
-/// (``DisplayChoices``), then how the focus and the keys behave — Breathing
-/// Focus, Spell Out Keys, Focus Follows Pointer, Arrows Follow Layout — as the
-/// View menu offers them: one model, so the two agree.
-private struct _SettingsViewTab: View {
-    let environment: EnvironmentValues
-
-    var body: some View {
-        Form {
-            DisplayChoices(environment: environment).formRows
-            _PreferenceToggles(preferences: ViewPreference.inTab(.view), environment: environment)
-        }
-    }
-}
-
-/// Accessibility: Differentiate Without Color, Reduce Motion, Reduce
-/// Transparency and Increase Contrast, as the View menu offers them.
-private struct _SettingsAccessibilityTab: View {
-    let environment: EnvironmentValues
-
-    var body: some View {
-        Form {
-            _PreferenceToggles(preferences: ViewPreference.inTab(.accessibility), environment: environment)
-        }
-    }
-}
-
-/// A toggle for each of `preferences`, each turning it on or off for the rest
-/// of the run over the system's setting, the `TUI_*` variable and the scene's
-/// modifiers — the same choices the View menu's checks make
-/// (``ViewPreferenceOverrides``), so the two agree. Never saved. Disabled
-/// outside a running app, which has no choices to hold.
-private struct _PreferenceToggles: View {
-    let preferences: [ViewPreference]
-    let environment: EnvironmentValues
-
-    var body: some View {
-        let service = LocalizationService.shared
-        let overrides = environment.viewPreferenceOverrides
-        let on = Set(preferences.filter { $0.isOn(in: environment) })
-        ForEach(preferences, id: \.self) { preference in
-            Toggle(
-                service.string(for: preference.title),
-                isOn: Binding(get: { on.contains(preference) }, set: { overrides?[preference] = $0 }))
-        }
-        .disabled(overrides == nil)
     }
 }
 

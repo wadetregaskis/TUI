@@ -22,10 +22,11 @@ extension TUIEnvironmentVariables {
     /// The sentence each variable the settings panel and the View menu also
     /// set ends with.
     private static let viewMenu =
-        "The program's settings panel (F2) has this too, as does its View menu if it has a menu bar, and a choice there wins until the program quits."
+        "The program's settings panel (F2) has this too, as does its View menu if it has a menu bar. A choice there wins until the program quits, and is kept for its next runs, where this variable wins over it; the panel's Settings for All Programs... keeps one for every program."
 
     /// The default of each variable that a setting of the computer's also answers.
-    private static let systemSetting = "Unset, your computer's own setting decides, when you're at the machine the program runs on."
+    private static let systemSetting =
+        "Unset, what you've kept in the settings panel decides, and otherwise your computer's own setting, when you're at the machine the program runs on."
 
     private static let appearance: [TUIEnvironmentVariable] = [
         TUIEnvironmentVariable(
@@ -101,7 +102,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .keyboardAndMouse,
             values: "`1` or `0`",
-            effect: "`1`: moving the mouse onto a control makes it the one your keys act on, as a click would, without pressing it. A text field you've typed in keeps your keys until you click or press Tab. `0`: only a click or the keyboard does that. Unset, the program decides, and it's off unless the program turns it on. \(viewMenu)",
+            effect: "`1`: moving the mouse onto a control makes it the one your keys act on, as a click would, without pressing it. A text field you've typed in keeps your keys until you click or press Tab. `0`: only a click or the keyboard does that. Unset, the program decides, and where it doesn't, what you've kept in the settings panel, else it's off. \(viewMenu)",
             code: .overrides("`Scene.focusFollowsPointer(_:)`.")),
         TUIEnvironmentVariable(
             "TUI_CURSOR_FOLLOWS_FOCUS", .endUser, .keyboardAndMouse,
@@ -284,13 +285,19 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_CONFIG_DIR", .endUser, .files,
             values: "A folder",
-            effect: "Keeps the program's saved settings in a folder named after it inside this one, on every system, instead of the usual place. A way to try something without touching your real settings: `TUI_CONFIG_DIR=/tmp/try myapp`.",
+            effect: "Keeps the program's saved settings in a folder named after it inside this one, on every system, instead of the usual place, and your settings for all programs in its `TUI` folder. A way to try something without touching your real settings: `TUI_CONFIG_DIR=/tmp/try myapp`.",
             code: .overrides("`StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app. `LocalizationService` still keeps the language it saved here."),
             reading: .eachUse),
         TUIEnvironmentVariable(
             "XDG_CONFIG_HOME", .endUser, .files,
             values: "A folder",
-            effect: "Not on macOS: where the program's saved settings go, in a folder named after it. Unset, `.config` in your home folder. `TUI_CONFIG_DIR` wins over it.",
+            effect: "Not on macOS or Windows: where the program's saved settings go, in a folder named after it, and your settings for all programs, in its `tui` folder. Unset, `.config` in your home folder. `TUI_CONFIG_DIR` wins over it.",
+            code: .overrides("`StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app."),
+            reading: .eachUse),
+        TUIEnvironmentVariable(
+            "APPDATA", .endUser, .files,
+            values: "A folder",
+            effect: "Windows only, which sets it itself: where the program's saved settings go, in a folder named after it, and your settings for all programs, in its `TUI` folder. Unset, `AppData\\Roaming` in your home folder. `TUI_CONFIG_DIR` wins over it.",
             code: .overrides("`StorageDefaults.backend`, or `.defaultAppStorage(_:)` for part of an app."),
             reading: .eachUse),
     ]

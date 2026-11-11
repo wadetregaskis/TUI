@@ -1,6 +1,6 @@
 # State and dynamic properties: how it came to be
 
-One story per subject: finding dynamic properties, class properties held by several views, per-app render state, the update model, when a body runs, and how long a row's state lives. Each story has the record of its decisions below it (see the [Historical README](../README.md) for the arrangement).
+One story per subject: finding dynamic properties, class properties held by several views, per-app render state, the update model, when a body runs, scene storage, TUI's settings kept for a program and for every program, and how long a row's state lives. Each story has the record of its decisions below it (see the [Historical README](../README.md) for the arrangement).
 
 | Story | In short |
 |---|---|
@@ -10,4 +10,5 @@ One story per subject: finding dynamic properties, class properties held by seve
 | [The update model: when effects run](<The update model - when effects run.md>) | SwiftUI's update and effect ordering was measured (appended), and TUI's model set beside it.  |
 | [When a body runs: the plain-body memo](<When a body runs - the plain-body memo.md>) | A plain view of an app's runs `body` only when something it depends on changed, as in SwiftUI: compared by its fields, in two tiers. On by default by the owner's ruling of 2026-11-02 (PLAIN-MEMO); two 50 ms sibling bodies went from 201 ms a key to 1.0 ms. A read nothing tracks stays as drawn. |
 | [Scene storage per terminal session](<Scene storage per terminal session.md>) | The owner's ruling of 2026-11-08: `@SceneStorage` keeps a copy per terminal session (a tmux pane, `TERM_SESSION_ID`, `KITTY_WINDOW_ID` …) and one last saved from any session, read in that order. A new window starts from the last saved. Each kept 30 days after its last write, with no cap on how many. |
+| [Settings kept for a program and for every program](<Settings kept for a program and for every program.md>) | The owner's rulings of 2026-11-10 (USET-SAVE, -ORDER, -EDIT, -PLACE): TUI's own settings are saved for the program they're changed in, and the person can keep each for every TUI program in one hand-editable `defaults.json`; seven layers, the saved ones beneath the launch's variable and the program's code. **Open:** two questions put to the owner. |
 | [Row state lifetime](<Row state lifetime (2026-10-29).md>) | Measured: SwiftUI's lazy containers keep a removed row's state for as long as they live, as TUI's do. Decided (A+): keep that, and keep decoded pictures in the bounded image cache rather than in row state. |

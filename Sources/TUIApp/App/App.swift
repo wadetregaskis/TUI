@@ -439,7 +439,12 @@ extension AppRunner {
         // And the one that sends the terminal a progress bar, where the
         // terminal it identified takes one.
         loop.sendsProgressReports = TerminalClient.progressReportsSupported
-        loop.focusFollowsPointerRequested = TerminalClient.focusFollowsPointerRequested
+        loop.statedByVariables[.focusFollowsPointer] = TerminalClient.focusFollowsPointerRequested
+        // And the one that keeps TUI's settings: this program's in the store
+        // an `@AppStorage` that names none uses, and the person's for all
+        // programs in their file (each moved by `TUI_CONFIG_DIR`).
+        loop.viewPreferenceOverrides.adopt(
+            programStore: StorageDefaults.backend, allProgramsFile: .current())
         loop.sceneStorageSession = TerminalSession.identity(environment: ProcessInfo.processInfo.environment)
         loop.cursorFollowsFocus = CursorFollowsFocus.requested(environment: ProcessInfo.processInfo.environment)
         loop.arrowFocusRequested = ArrowFocus.requested(environment: ProcessInfo.processInfo.environment)
@@ -1119,8 +1124,10 @@ extension AppRunner {
         if isFocused {
             cursorTimer.restartFocusPhase()
             renderer.terminalFocusRegained()
-            // The user may have changed the host's settings while away.
+            // The user may have changed the host's settings while away, and
+            // their settings for all programs in another program.
             hostSettings?.refresh()
+            renderer.viewPreferenceOverrides.reloadAllPrograms()
         }
         appState.setNeedsRender()
     }

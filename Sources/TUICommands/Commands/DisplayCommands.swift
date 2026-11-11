@@ -79,6 +79,8 @@ public struct DisplayCommands: Commands {
     @Environment(\.palette) private var paletteInForce
     @Environment(\.appearance) private var appearanceInForce
     @Environment(\.controlStyle) private var controlStyleInForce
+    /// TUI's own settings, which a choice through a manager is saved in.
+    @Environment(\.viewPreferenceOverrides) private var overrides
 
     private let palette: Binding<any Palette>?
     private let appearance: Binding<Appearance>?
@@ -117,7 +119,7 @@ public struct DisplayCommands: Commands {
         DisplayChoices(
             managers: (paletteManager, appearanceManager, controlStyleManager), setByScene: setByScene,
             inForce: (paletteInForce, appearanceInForce, controlStyleInForce),
-            bindings: (palette, appearance, controlStyle))
+            bindings: (palette, appearance, controlStyle), overrides: overrides)
     }
 }
 

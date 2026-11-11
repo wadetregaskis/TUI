@@ -19,8 +19,8 @@ import TUIFoundation
 /// The owner's (2026-11-08): "we should never force apps to have a menu bar
 /// … Having other ways to adjust view settings, like themes, palettes,
 /// accessibility settings, would be good." One per run, made by what runs the
-/// app. Nothing it holds is
-/// saved: TUI's own choices last for the run (``ViewPreferenceOverrides``).
+/// app. Nothing it holds is saved; TUI's own choices are, by
+/// ``ViewPreferenceOverrides``.
 /// Not `Sendable`: asked from key handlers and frames, all on the main actor.
 final class SettingsPanel {
     /// The key that opens and closes the panel: F2 unless a scene moved it
@@ -48,6 +48,15 @@ final class SettingsPanel {
     /// The tab shown, by its place in the strip.
     private(set) var selection = 0
 
+    /// Whether TUI's tabs show the person's settings for all programs rather
+    /// than this program's: Settings for All Programs… turns it on, and Done
+    /// or the panel closing turns it off (the owner's USET-EDIT, 2026-11-10).
+    private(set) var editsAllPrograms = false
+
+    /// The tab shown before the panel turned to the settings for all
+    /// programs, which their strip of TUI's tabs alone does not have.
+    private var selectionBeforeAllPrograms = 0
+
     /// Asks for a frame.
     private let requestFrame: () -> Void
 
@@ -65,10 +74,30 @@ final class SettingsPanel {
         requestFrame()
     }
 
-    /// Takes the panel down.
+    /// Takes the panel down, out of the settings for all programs if it was
+    /// in them.
     func dismiss() {
         guard isPresented else { return }
         isPresented = false
+        if editsAllPrograms { showThisProgram() }
+        requestFrame()
+    }
+
+    /// Turns TUI's tabs to the person's settings for all programs, from the
+    /// first of them.
+    func showAllPrograms() {
+        guard !editsAllPrograms else { return }
+        selectionBeforeAllPrograms = selection
+        editsAllPrograms = true
+        selection = 0
+        requestFrame()
+    }
+
+    /// Turns back to this program's settings, at the tab shown before.
+    func showThisProgram() {
+        guard editsAllPrograms else { return }
+        editsAllPrograms = false
+        selection = selectionBeforeAllPrograms
         requestFrame()
     }
 
@@ -185,10 +214,12 @@ extension ScenePresenter {
 }
 
 /// One tab of the panel: its title — `nil` for the app's name — whether it
-/// is one of TUI's, and its content.
+/// is one of TUI's, whether it is TUI's own content, which shows either level
+/// of the person's settings (``SettingsLevel``), and its content.
 struct SettingsPanelTab {
     let title: String?
     let isBuiltIn: Bool
+    var levels = false
     let content: AnyView
 }
 

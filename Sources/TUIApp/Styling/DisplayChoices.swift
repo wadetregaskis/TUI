@@ -42,6 +42,11 @@ package struct DisplayChoices {
     let appearanceInForce: Appearance
     let controlStyleInForce: ControlStyle
 
+    /// TUI's own settings, which a choice through a manager goes to, saved
+    /// for the program (``ViewPreferenceOverrides/choose(_:_:)``); `nil`
+    /// chooses through the managers alone.
+    let overrides: ViewPreferenceOverrides?
+
     /// The app's own state, where it holds an option itself.
     let palette: Binding<any Palette>?
     let appearance: Binding<Appearance>?
@@ -74,18 +79,22 @@ package struct DisplayChoices {
             managers: (environment.paletteManager, environment.appearanceManager, environment.controlStyleManager),
             setByScene: environment.displayOptionsSetByScene,
             inForce: (environment.palette, environment.appearance, environment.controlStyle),
-            bindings: (bound.palette, bound.appearance, bound.controlStyle))
+            bindings: (bound.palette, bound.appearance, bound.controlStyle),
+            overrides: environment.viewPreferenceOverrides)
     }
 
     /// The choices over `managers` — the palette's, the appearance's and the
     /// control style's — with what is `inForce` in the same order, each going
-    /// to its binding in `bindings` where one is given.
+    /// to its binding in `bindings` where one is given, and otherwise to
+    /// `overrides`, which saves it for the program, where they are given.
     package init(
         managers: (ThemeManager?, ThemeManager?, ThemeManager?), setByScene: SceneDisplayOptions,
         inForce: (any Palette, Appearance, ControlStyle),
-        bindings: (Binding<any Palette>?, Binding<Appearance>?, Binding<ControlStyle>?)
+        bindings: (Binding<any Palette>?, Binding<Appearance>?, Binding<ControlStyle>?),
+        overrides: ViewPreferenceOverrides? = nil
     ) {
         (paletteManager, appearanceManager, controlStyleManager) = managers
+        self.overrides = overrides
         self.setByScene = setByScene
         (paletteInForce, appearanceInForce, controlStyleInForce) = inForce
         (palette, appearance, controlStyle) = bindings
@@ -100,26 +109,63 @@ package struct DisplayChoices {
     /// disabled control takes no focus to show its help on.
     package var formRows: some View { pickers(explainingInPlace: true) }
 
+    /// `option`'s picker as the settings panel's View tab lists it
+    /// (``formRows``), for a row of its own.
+    package func formRow(_ option: DisplayOption) -> some View { picker(for: option, explainingInPlace: true) }
+
+    /// The identifier of the option `option`'s picker shows.
+    package func identifierShown(_ option: DisplayOption) -> String {
+        switch option {
+        case .palette: paletteSelection.wrappedValue
+        case .borderStyle: appearanceSelection.wrappedValue
+        case .controlStyle: controlStyleSelection.wrappedValue.id
+        }
+    }
+
+    /// Whether a choice of `option` goes to TUI's own settings, saved for the
+    /// program: no binding takes it, the scene does not state its own, and a
+    /// manager holds it.
+    package func choosesThroughSettings(_ option: DisplayOption) -> Bool {
+        let bound =
+            switch option {
+            case .palette: palette != nil
+            case .borderStyle: appearance != nil
+            case .controlStyle: controlStyle != nil
+            }
+        return !bound && overrides != nil && availability(option.sceneOption) == .available
+    }
+
     /// The three pickers; a disabled one's reason on a line of its own under
     /// it where `explainingInPlace`, or in its help.
     @ViewBuilder
     private func pickers(explainingInPlace: Bool) -> some View {
-        picker(.palette, selection: paletteSelection, availability: availability(.palette), explainingInPlace) {
-            ForEach(0..<PaletteRegistry.all.count, id: \.self) { index in
-                Text(verbatim: PaletteRegistry.all[index].name).tag(PaletteRegistry.all[index].id)
+        picker(for: .palette, explainingInPlace: explainingInPlace)
+        picker(for: .borderStyle, explainingInPlace: explainingInPlace)
+        picker(for: .controlStyle, explainingInPlace: explainingInPlace)
+    }
+
+    /// `option`'s picker.
+    @ViewBuilder
+    private func picker(for option: DisplayOption, explainingInPlace: Bool) -> some View {
+        let availability = availability(option.sceneOption)
+        switch option {
+        case .palette:
+            picker(.palette, selection: paletteSelection, availability: availability, explainingInPlace) {
+                ForEach(0..<PaletteRegistry.all.count, id: \.self) { index in
+                    Text(verbatim: PaletteRegistry.all[index].name).tag(PaletteRegistry.all[index].id)
+                }
             }
-        }
-        picker(.borderStyle, selection: appearanceSelection, availability: availability(.appearance), explainingInPlace) {
-            ForEach(0..<AppearanceRegistry.all.count, id: \.self) { index in
-                Text(verbatim: AppearanceRegistry.all[index].localizedName).tag(AppearanceRegistry.all[index].id)
+        case .borderStyle:
+            picker(.borderStyle, selection: appearanceSelection, availability: availability, explainingInPlace) {
+                ForEach(0..<AppearanceRegistry.all.count, id: \.self) { index in
+                    Text(verbatim: AppearanceRegistry.all[index].localizedName).tag(AppearanceRegistry.all[index].id)
+                }
             }
-        }
-        picker(
-            .controlStyle, selection: controlStyleSelection, availability: availability(.controlStyle),
-            explainingInPlace
-        ) {
-            ForEach(0..<ControlStyle.standardStyles.count, id: \.self) { index in
-                Text(verbatim: ControlStyle.standardStyles[index].name).tag(ControlStyle.standardStyles[index])
+        case .controlStyle:
+            picker(.controlStyle, selection: controlStyleSelection, availability: availability, explainingInPlace) {
+                ForEach(0..<ControlStyle.standardStyles.count, id: \.self) { index in
+                    Text(verbatim: ControlStyle.standardStyles[index].name).tag(ControlStyle.standardStyles[index])
+                }
             }
         }
     }
@@ -192,9 +238,8 @@ extension DisplayChoices {
         }
         let manager = paletteManager
         let stated = setByScene.contains(.palette) ? paletteInForce.id : nil
-        return Binding(
-            get: { stated ?? manager?.current.id ?? "" },
-            set: { id in PaletteRegistry.palette(withId: id).map { manager?.setCurrent($0) } })
+        let choose = chooser(.palette) { id in PaletteRegistry.palette(withId: id).map { manager?.setCurrent($0) } }
+        return Binding(get: { stated ?? manager?.current.id ?? "" }, set: choose)
     }
 
     /// The border appearance chosen, by its id, as ``paletteSelection``.
@@ -208,9 +253,10 @@ extension DisplayChoices {
         }
         let manager = appearanceManager
         let stated = setByScene.contains(.appearance) ? appearanceInForce.id : nil
-        return Binding(
-            get: { stated ?? manager?.current.id ?? "" },
-            set: { id in AppearanceRegistry.all.first { $0.id == id }.map { manager?.setCurrent($0) } })
+        let choose = chooser(.borderStyle) { id in
+            AppearanceRegistry.all.first { $0.id == id }.map { manager?.setCurrent($0) }
+        }
+        return Binding(get: { stated ?? manager?.current.id ?? "" }, set: choose)
     }
 
     /// The control style chosen, as ``paletteSelection``.
@@ -218,8 +264,19 @@ extension DisplayChoices {
         if let controlStyle { return controlStyle }
         let manager = controlStyleManager
         let stated = setByScene.contains(.controlStyle) ? controlStyleInForce : nil
-        return Binding(
-            get: { stated ?? manager?.currentControlStyle ?? .automatic },
-            set: { manager?.setCurrent($0) })
+        let choose = chooser(.controlStyle) { id in
+            ControlStyle.standardStyles.first { $0.id == id }.map { manager?.setCurrent($0) }
+        }
+        return Binding(get: { stated ?? manager?.currentControlStyle ?? .automatic }, set: { choose($0.id) })
+    }
+
+    /// What choosing `option` by its identifier does where no binding takes
+    /// it: TUI's own settings choose it, saved for the program, or else
+    /// `manager` does, for the run.
+    private func chooser(
+        _ option: DisplayOption, manager: @escaping (String) -> Void
+    ) -> (String) -> Void {
+        guard let overrides else { return manager }
+        return { id in overrides.choose(.display(option), .identifier(id)) }
     }
 }

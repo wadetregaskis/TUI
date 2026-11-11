@@ -15,6 +15,17 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**TUI's settings are kept: for the program, and, if you like, for every TUI program.** A palette, border style,
+control style or check chosen in the settings panel (F2) or the View menu wins for the rest of the run, as before,
+and is now saved for the program's next runs, where a `TUI_*` variable set for that launch and the program's own
+code win over it. Each of the panel's View and Accessibility settings has a box saying whether the program keeps it;
+untick it to give the setting back. **Settings for All Programs…** turns the two tabs to your settings for every TUI
+program, kept in one hand-editable file, `defaults.json` in TUI's configuration folder
+(`~/Library/Application Support/TUI` on macOS, `~/.config/tui` elsewhere, `%APPDATA%\TUI` on Windows, moved by
+`TUI_CONFIG_DIR`), which fills in what a program leaves unset, above the computer's own setting. A program's saved
+settings are in its `@AppStorage` store under `TUISettings.` keys. An app's configuration folder on Windows is now
+under `%APPDATA%`, as TUI's is.
+
 **TUI says when macOS hides the notifications it posts itself.** On macOS, a notification TUI posts with `osascript`,
 for a terminal that can't post one, is Script Editor's, and macOS keeps it unshown while System Settings ▸
 Notifications ▸ Script Editor has notifications off. TUI now reads that setting and, where it's off, says so once

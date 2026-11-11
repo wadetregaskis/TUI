@@ -5,7 +5,7 @@
 //  the display options' submenus, then each preference a check showing
 //  whether it is on, which the person turns on or off for the rest of the
 //  run, over the host's setting, the `TUI_*` variable and the app's own scene
-//  modifiers, and never saved — the settings panel's View and Accessibility
+//  modifiers, kept for the program in its own store — the settings panel's View and Accessibility
 //  tabs, item for item.
 //
 //  Created by Wade Tregaskis

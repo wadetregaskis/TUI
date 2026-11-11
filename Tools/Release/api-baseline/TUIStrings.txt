@@ -162,6 +162,8 @@ LocalizationKey.Menu.hideAllTooltips | case hideAllTooltips
 LocalizationKey.Menu.hideWindow | case hideWindow
 LocalizationKey.Menu.increaseContrast | case increaseContrast
 LocalizationKey.Menu.init(rawValue:) | init?(rawValue: String)
+LocalizationKey.Menu.keepForThisProgram | case keepForThisProgram
+LocalizationKey.Menu.keptForThisProgramHint | case keptForThisProgramHint
 LocalizationKey.Menu.keyboardShortcuts | case keyboardShortcuts
 LocalizationKey.Menu.new | case new
 LocalizationKey.Menu.open | case open
@@ -172,7 +174,11 @@ LocalizationKey.Menu.reduceMotion | case reduceMotion
 LocalizationKey.Menu.reduceTransparency | case reduceTransparency
 LocalizationKey.Menu.save | case save
 LocalizationKey.Menu.selectAll | case selectAll
+LocalizationKey.Menu.setForAllPrograms | case setForAllPrograms
+LocalizationKey.Menu.setForAllProgramsHint | case setForAllProgramsHint
 LocalizationKey.Menu.settings | case settings
+LocalizationKey.Menu.settingsForAllPrograms | case settingsForAllPrograms
+LocalizationKey.Menu.settingsForAllProgramsTitle | case settingsForAllProgramsTitle
 LocalizationKey.Menu.settingsPanel | case settingsPanel
 LocalizationKey.Menu.shortcutsGeneral | case shortcutsGeneral
 LocalizationKey.Menu.shortcutsMenuBar | case shortcutsMenuBar

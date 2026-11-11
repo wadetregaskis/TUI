@@ -602,9 +602,13 @@ struct EditorApp: App {
 
 Build your tabs from `Form`, `Section`, `Toggle`, `Picker` and `Stepper`, as
 TUI's are, and they look alike. Your settings persist however you store them,
-usually with `@AppStorage`; TUI's last for the run, win over the system's
-settings, the `TUI_*` variables and your scene's modifiers, and are never
-saved. The menu bar's View menu offers everything in TUI's two tabs, in the
+usually with `@AppStorage`. TUI's win for the rest of the run over the
+system's settings, the `TUI_*` variables and your scene's modifiers, and are
+kept for the program's next run, where those win over them; each has a box
+before it saying whether this program keeps it, and **Settings for All
+Programs…** turns the two tabs to the person's settings for every TUI program,
+until **Done** (see <doc:StateManagement#Settings-for-This-Program-and-All-Programs>).
+The menu bar's View menu offers everything in TUI's two tabs, in the
 same order, and the two change the same choices, so they always agree: an app
 may show a menu bar and no settings panel, or the other way round, and lose
 nothing. A display option your scene states itself (a `.palette(_:)`, say) is
