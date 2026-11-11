@@ -599,18 +599,18 @@ struct ScreenSelectionTooltipTests {
                     Text("alpha beta gamma")
                     Text("explained").help("about it")
                 }
+                .frame(maxHeight: .infinity, alignment: .bottom)
             }
             .mouseSupport(.full)
         }
     }
 
     /// A status-bar tooltip adds a row above the bar's items, a row taken from
-    /// the page, which a WindowGroup re-centres: the selected cells move for as
-    /// long as the tooltip shows. The highlight used to go for good.
+    /// the page, which moves one at the window's foot (a centred one stays put
+    /// unless the row would cover it): the selected cells move for as long as
+    /// the tooltip shows. The highlight used to go for good.
     @Test("A selection the tooltip's row moved is highlighted again when the tooltip goes")
     func tooltipMovesThePageAndBack() throws {
-        // Eleven rows: the page is centred in what the bar leaves, and at this
-        // height one row less moves it (at ten, it would not).
         let app = TestApp(Page(), width: 40, height: 11)
         var now: Int64 = 16_666_667
         func frame(after nanos: Int64 = 16_666_667) {

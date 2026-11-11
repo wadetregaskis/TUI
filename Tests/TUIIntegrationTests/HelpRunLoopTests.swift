@@ -30,14 +30,23 @@ private struct HelpPageApp: App {
     /// middle of the window, so a status bar growing at the foot moves none
     /// of them.
     var topLeading = false
+    /// Whether the views sit at the foot of the window, so a status bar
+    /// growing for a tooltip moves them up: a page in the middle stays put
+    /// unless the bar's rows would cover it (decisions 2026-11-10
+    /// TIP-STILL-PAGE).
+    var atFoot = false
 
     init() {}
 
-    init(trigger: TooltipTrigger, style: TooltipStyle, delay: Double = 0.6, topLeading: Bool = false) {
+    init(
+        trigger: TooltipTrigger, style: TooltipStyle, delay: Double = 0.6, topLeading: Bool = false,
+        atFoot: Bool = false
+    ) {
         self.trigger = trigger
         self.style = style
         self.delay = delay
         self.topLeading = topLeading
+        self.atFoot = atFoot
     }
 
     var body: some Scene {
@@ -45,6 +54,8 @@ private struct HelpPageApp: App {
             Group {
                 if topLeading {
                     page.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                } else if atFoot {
+                    page.frame(maxHeight: .infinity, alignment: .bottom)
                 } else {
                     page
                 }
@@ -191,10 +202,13 @@ private struct SlidingHelpPage: View {
     }
 }
 
-/// The review's page (2026-10-12): three rows of `Text`, the first with help,
-/// laid out in the middle of the window, as a `WindowGroup` lays out a page
-/// that does not fill it. Nothing on it hovers but the help, so nothing else
-/// asks for a frame.
+/// The review's page (2026-10-12): three rows of `Text`, the first with help.
+/// It was laid out in the middle of the window, as a `WindowGroup` lays out a
+/// page that does not fill it, which the bar's row moved; since 2026-11-10
+/// such a page stays put unless the row would cover it (decisions
+/// TIP-STILL-PAGE), so it sits at the foot of the window, which the row
+/// does cover. Nothing on it hovers but the help, so nothing else asks for a
+/// frame.
 private struct CentredTextsApp: App {
     init() {}
 
@@ -205,14 +219,15 @@ private struct CentredTextsApp: App {
                 Text("beta")
                 Text("gamma")
             }
+            .frame(maxHeight: .infinity, alignment: .bottom)
         }
         .mouseSupport(.full)
     }
 }
 
-/// A centred page like that one under a focused button, which takes the
-/// `Text` with help away (another takes its row) or presents a sheet over the
-/// page. Five rows, so the bar's row moves it as it moves three.
+/// A page like that one under a focused button, which takes the `Text` with
+/// help away (another takes its row) or presents a sheet over the page. At
+/// the foot of the window, so the bar's row moves it.
 private struct CentredHelpUnderAButtonApp: App {
     var presentsSheet = false
 
@@ -225,6 +240,7 @@ private struct CentredHelpUnderAButtonApp: App {
     var body: some Scene {
         WindowGroup {
             CentredHelpUnderAButtonPage(presentsSheet: presentsSheet)
+                .frame(maxHeight: .infinity, alignment: .bottom)
         }
         .mouseSupport(.full)
     }
@@ -588,20 +604,22 @@ struct HelpRunLoopTests {
 
     /// Decided 2026-10-12 (decisions-HELP A-HELP-1, option 1). The status bar
     /// grows upwards for a tooltip, so the page above it is a row shorter, and
-    /// a page laid out in the middle of the window moves up; the view slides
-    /// out from under a resting pointer. Taken as the pointer leaving, that
+    /// a page the row would cover moves up (one laid out in the middle of the
+    /// window did too, before TIP-STILL-PAGE; this one sits at the foot); the
+    /// view slides out from under a resting pointer. Taken as the pointer leaving, that
     /// took the tooltip away, gave the row back, slid the view under the
     /// pointer again and restarted the delay: shown for one frame in every
     /// 0.6 s. A reshape the bar's rows for a tooltip cause is not a hover
     /// change to the tooltip (`TooltipState.held`). This steps every frame
     /// (`step`), so a frame drawn for any reason keeps it; the popover moves
     /// nothing and never had the defect (`hoverOnANonFocusableView`).
-    @Test("A hover tooltip in the status bar stays up over a page laid out in the middle")
+    @Test("A hover tooltip in the status bar stays up over a page its row moves")
     func hoverOverACentredPage() throws {
-        let driver = Driver(HelpPageApp(trigger: .automatic, style: .statusBar))
+        let driver = Driver(HelpPageApp(trigger: .automatic, style: .statusBar, atFoot: true))
         let text = try #require(driver.position(of: "plain text"))
         driver.app.send(MouseEvent(button: .none, phase: .moved, x: text.x + 1, y: text.y))
         driver.run(until: 0.7)
+        #expect(driver.position(of: "plain text")?.y != text.y, "precondition: the bar's growth moved the page")
         let shownFrames = (0..<30).reduce(0) { count, _ in
             driver.step()
             return count + (driver.shows("HELP-FOR-TEXT") ? 1 : 0)
@@ -616,7 +634,7 @@ struct HelpRunLoopTests {
     /// the frame after it drew the bar empty, the page moved back, and the
     /// re-entry that restarted the delay came after the walk, which no wake
     /// answered.
-    @Test("Over a centred page the hovered help shows after its delay, stays while the pointer rests, and goes when it moves off")
+    @Test("Over a page the bar moves the hovered help shows after its delay, stays while the pointer rests, and goes when it moves off")
     func hoverRestsOverACentredPage() throws {
         let driver = HelpDriver(CentredTextsApp())
         let alpha = try #require(driver.position(of: "alpha"))
@@ -631,11 +649,11 @@ struct HelpRunLoopTests {
             return count + (driver.shows("HELP-A") ? 1 : 0)
         }
         #expect(shownFrames == 30, "shown in \(shownFrames) of 30 frames while the pointer rested")
-        // Off the page, on the same row: the help goes, and the move is what
-        // asks for the frame that takes it away.
+        // Off the page, at the window's top: the help goes, and the move is
+        // what asks for the frame that takes it away.
         #expect(
-            driver.app.send(MouseEvent(button: .none, phase: .moved, x: 45, y: alpha.y)),
-            "nothing asked for the frame that takes the help away")
+            driver.app.send(MouseEvent(button: .none, phase: .moved, x: 45, y: 0)),
+            "nothing asked for the frame that takes the help away: \(driver.lines)")
         driver.step()
         driver.stepIfAsked()
         #expect(!driver.shows("HELP-A"), "the help stayed after the pointer moved off: \(driver.lines)")

@@ -113,7 +113,9 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
         // The content offers the window its title as it draws — on the seeding
         // walk too, although it measures, since the title sizes the top bar
         // (`PreferenceModifier.offerToWindowChrome`).
-        var page = placeContent(context: contentContext, rowsAbove: rows.menu + rows.top)
+        // Centred as with no tooltip, as a dialog over it is (`centredRow`).
+        let restingHeight = max(contentHeight, restingContentHeight(chrome, height: height))
+        var page = placeContent(context: contentContext, rows: rows, centringHeight: restingHeight - dock)
         guard !context.isMeasuring else {
             if let chrome, context.environment.seedsWindowChrome {
                 for edge in WindowChromeState.Edge.allCases {
@@ -209,7 +211,7 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
             page = page.compositingOverlays(
                 maxWidth: width, maxHeight: contentHeight, palette: palette,
                 images: context.environment.terminalImageStore, punching: &punched,
-                centringHeight: max(contentHeight, restingContentHeight(chrome, height: height)))
+                centringHeight: restingHeight)
             // What the layers punched and show differently from step to step: a
             // render at each of its steps draws those cells as they are then, as a
             // compositor inside the tree asks (`Opacity as composition.md` §109).
@@ -355,7 +357,10 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
     /// The content, drawn into the area the bars leave and centred in it — over
     /// the window background, when the content set one — with the drag preview
     /// riding above it.
-    @MainActor private func placeContent(context: RenderContext, rowsAbove: Int) -> FrameBuffer {
+    /// Vertically, centred in `centringHeight` rows, those with no tooltip in
+    /// the status bar (``centredRow(extent:within:centringIn:)``).
+    @MainActor private func placeContent(context: RenderContext, rows: Rows, centringHeight: Int) -> FrameBuffer {
+        let rowsAbove = rows.menu + rows.top
         // Drop targets re-register as the tree renders (like focus), so the
         // drag session's per-frame registry resets here, before the pass.
         let dragSession = context.environment.dragAndDropSession
@@ -375,9 +380,11 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
 
         var centered =
             if let background {
-                windowContent(buffer, over: background, context: context)
+                windowContent(buffer, over: background, centringHeight: centringHeight, context: context)
             } else {
-                Self.centerBuffer(buffer, inWidth: context.availableWidth, height: context.availableHeight)
+                Self.centerBuffer(
+                    buffer, inWidth: context.availableWidth, height: context.availableHeight,
+                    centringHeight: centringHeight)
             }
 
         // The screen selection's context menu, over the page it selected from:
@@ -485,8 +492,10 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
             .resolvingOpacity(onOpaqueFill: { nil }, surface: palette.background, palette: palette)
     }
 
-    /// Centers a buffer within the target dimensions.
-    @MainActor private static func centerBuffer(_ buffer: FrameBuffer, inWidth targetWidth: Int, height targetHeight: Int) -> FrameBuffer {
+    /// Centers a buffer within the target dimensions, vertically in `centringHeight` rows (`centredRow`).
+    @MainActor private static func centerBuffer(
+        _ buffer: FrameBuffer, inWidth targetWidth: Int, height targetHeight: Int, centringHeight: Int
+    ) -> FrameBuffer {
         // If buffer already fills the space exactly, return as-is
         if buffer.width == targetWidth && buffer.height == targetHeight {
             return buffer
@@ -505,7 +514,7 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
         result.reserveCapacity(targetHeight)
 
         // Calculate offsets for centering
-        let verticalOffset = max(0, (targetHeight - buffer.height) / 2)
+        let verticalOffset = centredRow(extent: buffer.height, within: targetHeight, centringIn: centringHeight)
         let horizontalOffset = max(0, (targetWidth - buffer.width) / 2)
 
         // The full-width blank rows are identical, so build one and reuse it.

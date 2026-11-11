@@ -39,14 +39,17 @@ struct HeldHelpRowsApp: App {
     }
 }
 
-/// A page laid out in the middle of the window, so the bar's row moves it:
-/// a focused button over a view with help, which puts a row above it.
+/// A page centred in a frame that fills the window, so the bar's row moves it
+/// as it moved a page `WindowGroup` centres before decisions 2026-11-10
+/// TIP-STILL-PAGE (which now stays put unless the row would cover it): a
+/// focused button over a view with help, which puts a row above it.
 struct HeldHelpCentredApp: App {
     init() {}
 
     var body: some Scene {
         WindowGroup {
             HeldHelpCentredPage()
+                .frame(maxHeight: .infinity)
         }
         .mouseSupport(.full)
     }

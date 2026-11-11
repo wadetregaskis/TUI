@@ -46,7 +46,8 @@ extension RenderLoop {
     /// hover tooltip through a reshape its own rows in the bar caused.
     ///
     /// The bar grows upwards for a tooltip, so a page laid out in the middle
-    /// of the window moves as the tooltip comes or goes, and the view under
+    /// of the window that its rows would cover moves up as the tooltip comes
+    /// or goes (one they wouldn't stays put, `centredRow`), and the view under
     /// the resting pointer slides out from under it. The dispatcher reports
     /// that as the pointer leaving; to the tooltip it is not
     /// (`TooltipState.held`, decisions-HELP A-HELP-1). Other hover observers

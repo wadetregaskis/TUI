@@ -188,15 +188,19 @@ calculation rather than a different design.
 Wrapping is ordinary text wrapping at the bar's width, and the row is drawn
 above the shortcut items, in the bar's own chrome.
 
-A dialog centred over the page — a sheet, an alert, the settings panel — does
-not move with it: it is centred in the rows the window has with no tooltip,
-and moved up only as far as the tooltip's rows would otherwise cover it
-(`OverlayLayer.placed(maxWidth:maxHeight:centringHeight:)`; the owner,
-2026-11-10: tips "should only move windows / dialogs / etc if _necessary_").
+A page laid out in the middle of the window (a `WindowGroup` centres one that
+does not fill it), and a dialog centred over the page — a sheet, an alert, the
+settings panel — do not move with it: each is centred in the rows the window
+has with no tooltip, and moved up only as far as the tooltip's rows would
+otherwise cover it (`centredRow(extent:within:centringIn:)` for the page,
+`OverlayLayer.placed(maxWidth:maxHeight:centringHeight:)` for a dialog; the
+owner, 2026-11-10: tips "should only move windows / dialogs / etc if
+_necessary_").
 
-Growing moves more than the bar. A page laid out in the middle of the window
-(a `WindowGroup` centres one that does not fill it) moves with the row, so the
-view under a resting pointer slides out from under it as its tooltip shows.
+Where it must, growing moves more than the bar. A page laid out in the middle
+of the window that the row would cover moves up with it, so the view under a
+resting pointer slides out from under it as its tooltip shows (before
+2026-11-10 every such page moved, covered or not).
 Taken as the pointer leaving, that took the tooltip away, which gave the row
 back, which slid the view under the pointer again and restarted the delay: a
 help that flashed for one frame (decisions-HELP A-HELP-1). A reshape that the

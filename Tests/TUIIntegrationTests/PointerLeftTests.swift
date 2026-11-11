@@ -20,8 +20,10 @@ import TUI
 import TUITesting
 @testable import TUITestSupport
 
-/// A `Text` with help and one with `.onHover`, at the top-left corner, or the
-/// help's in the middle of the window, where the status bar's row moves it.
+/// A `Text` with help and one with `.onHover`, at the top-left corner, or at
+/// the foot of the window, where the status bar's row moves them (`centred`:
+/// in the middle they once moved too, and now stay put unless the row would
+/// cover them, decisions 2026-11-10 TIP-STILL-PAGE).
 struct PointerPageApp: App {
     static let hovers = PointerLeftHoverLog()
     var centred = false
@@ -35,7 +37,7 @@ struct PointerPageApp: App {
     var body: some Scene {
         WindowGroup {
             if centred {
-                page
+                page.frame(maxHeight: .infinity, alignment: .bottom)
             } else {
                 page.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             }
