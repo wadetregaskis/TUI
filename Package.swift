@@ -257,7 +257,7 @@ let package = Package(
         // was blended over. So a toolchain fix would let `Color: View` move
         // back up, but as the code stands the dependency would stay.
         .target(name: "TUIView", dependencies: ["TUICore", "TUIStyling"]),
-        .target(name: "TUIImage", dependencies: ["CSTBImage", "TUIStyling"]),
+        .target(name: "TUIImage", dependencies: ["CSTBImage", "TUICore", "TUIStyling"]),
 
         // ── The split's carved modules ──────────────────────────────────────────────────────────────────
         // Modules of the planned split (Documentation/Historical/Module split plan, revision 4) that a step
