@@ -143,6 +143,29 @@ struct GraphicalDatePickerStyleTests {
         #expect(selection.date == date(2026, 10, 7))
     }
 
+    /// The selected day is filled in the accent, which a terminal without colour
+    /// does not draw: there it is reversed, as a list's selected row is, or no
+    /// cell said which day was chosen, nor where the arrows had moved it.
+    @Test("Without colour the selected day is drawn in reverse video, and no other day is")
+    func selectedDayWithoutColour() {
+        let lines = ColorDepth.withCurrent(.noColor) {
+            InputChainHarness(width: 30, height: 10).frame(picker(Selection(date(2026, 10, 7)))).lines
+        }
+        var reversed: [String] = []
+        for line in lines {
+            var state = SGRState()
+            for segment in line.ansiSegments() {
+                switch segment {
+                case .ansi(let sequence, true): state.apply(sequence)
+                case .ansi: continue
+                case .visible(let character):
+                    if state.reversesVideo, character != " " { reversed.append(String(character)) }
+                }
+            }
+        }
+        #expect(reversed == ["7"], "\(lines.map(\.stripped))")
+    }
+
     /// A date field beside the calendar, or the app itself, can move the
     /// selection into another month; the calendar shows it there, as SwiftUI's
     /// does, rather than a month the selected day is not in.

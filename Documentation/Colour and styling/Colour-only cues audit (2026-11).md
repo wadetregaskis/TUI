@@ -80,7 +80,7 @@ channels' arrows rest in the grey a disabled slider's do.
 | `.selectionDisabled` row | can't be selected | faint | attribute (italic too in Warp's light theme) |
 | TextField | focus / prompt | caret / grey | glyph / lightness |
 | DatePicker, field | active part / disabled | fill / no underline | lightness / attribute |
-| DatePicker, calendar | selected day | accent fill | lightness |
+| DatePicker, calendar | selected day | accent fill | lightness; reversed where the fill draws as the page, at no colour or rounded to the depth (2026-11-11: before that, no cell said which day was chosen there) |
 | DatePicker, calendar | today | accent ink | **hue only: fixed, today is bold** (also gave it its first cue at no colour) |
 | DatePicker, calendar | out of range / weekend / past | grey / secondary / faint | lightness / lightness / attribute |
 | File dialog | folder / greyed-out file / hidden file | bold and icon or `/` / grey / leading `.` | glyph / lightness / glyph |

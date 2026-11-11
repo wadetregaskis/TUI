@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A graphical `DatePicker` shows its selected day without colour.** The day was marked only by an accent fill, which
+a terminal without colour (or `NO_COLOR`) doesn't draw, nor one whose colours round the accent onto the page: no day
+looked chosen, and the arrows moved the date with nothing on the screen following it. There the day is now drawn in
+reverse video.
+
 **A graphical `DatePicker` shows the month its selection moved to.** When something other than the calendar moved
 the date into another month, a date field beside it or the app itself, the calendar went on showing the month it had,
 with no day selected in it. It now turns to the new month, as SwiftUI's does; a month turned with its ◀ and ▶ stays

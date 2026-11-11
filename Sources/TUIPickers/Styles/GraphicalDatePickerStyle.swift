@@ -247,9 +247,13 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         // weight each line of them is drawn a tier heavier, whole.
         var grid = [weekdayRow(calendar: calendar, palette: palette, spelling: context.textSpelling)]
         let days = monthGrid(month: month, calendar: calendar)
-        let marks = DayMarks(
+        var marks = DayMarks(
             selection: selection.wrappedValue, range: range, calendar: calendar,
             pastDays: context.environment.datePickerDistinguishesPastDays)
+        let selectedFill = isDisabled ? palette.foregroundTertiary : palette.accent
+        marks.reversesSelection =
+            ColorDepth.current == .noColor
+            || context.drawsAsResting(selectedFill.opaqueSpelling, palette.background.opaqueSpelling)
         let weekend = weekendColumns(days, calendar: calendar, environment: context.environment)
         for week in 0..<6 {
             grid.append(
@@ -401,6 +405,11 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         /// Whether a day before today is drawn faint
         /// (``EnvironmentValues/datePickerDistinguishesPastDays``).
         let pastDays: Bool
+        /// Whether the selected day is reversed rather than filled: its fill
+        /// draws as the page where there is no colour, or where the terminal's
+        /// depth rounds it onto the page, and no cell then said which day was
+        /// chosen, nor where the arrows had moved it.
+        var reversesSelection = false
 
         init(selection: Date, range: ClosedRange<Date>?, calendar: Calendar, pastDays: Bool) {
             selected = calendar.startOfDay(for: selection)
@@ -410,7 +419,8 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         }
     }
 
-    /// One day: its number in three cells, the selected day in the accent,
+    /// One day: its number in three cells, the selected day in the accent
+    /// (reversed where that fill would not show, `DayMarks.reversesSelection`),
     /// today in the accent's ink and bold, a day out of range dimmed, the
     /// weekend's in the secondary text colour, and a day gone by faint where
     /// asked.
@@ -427,6 +437,15 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         let inRange = marks.range.map { range in day >= range.start && day <= range.end } ?? true
         let dayStart = calendar.startOfDay(for: day)
         if dayStart == marks.selected {
+            if marks.reversesSelection {
+                // The palette's pair beside the 7, never a bare one, which
+                // would exchange whatever colours a reset left in force.
+                var style = TextStyle()
+                style.isInverted = true
+                style.foregroundColor = palette.foreground.opaqueSpelling
+                style.backgroundColor = palette.background.opaqueSpelling
+                return " " + ANSIRenderer.render(String(text.dropFirst()), with: style.resolved(with: palette))
+            }
             let fill = isDisabled ? palette.foregroundTertiary : palette.accent
             return " " + ANSIRenderer.colorize(
                 String(text.dropFirst()), foreground: palette.background.opaqueSpelling,
