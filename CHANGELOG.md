@@ -15,8 +15,6 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
-stops the two together, and the scene is `.background`. Outside a running app the closure just runs. The Example's
-Terminal page edits a note in your `$VISUAL` or `$EDITOR`.
 **`handOffTerminal(running:arguments:)` starts a program for a hand-off, and says how it ended.** It starts the
 program as an interactive one must be — in the app's process group, every signal at its default, with `posix_spawn`
 rather than Foundation's `Process`, whose group of its own stops an editor as it reads the keyboard — and returns
@@ -24,13 +22,12 @@ rather than Foundation's `Process`, whose group of its own stops an editor as it
 `.path(_:)` or `.name(_:)`, looked up in `PATH`; `$EDITOR`, which may carry arguments, runs through `/bin/sh -c` as
 git runs it. A program that stops itself alone stops the app too, so the shell gets the job back. On WebAssembly it
 throws `.unsupported`.
+
 **An app whose input is already at its end no longer risks spinning on Linux.** Run with `< /dev/null` or a
 finished pipe, an app watched its input for bytes that would never come, and on Linux the end could reach it as an
 endless run of "bytes ready", holding a core. It now asks the input itself whether it has ended, at the start and at
 every wake.
 
-reads the keyboard; the action's documentation says how. Outside a running app the closure just runs. The Example's
-Terminal page edits a note in your `$VISUAL` or `$EDITOR`.
 **An app can hand the terminal to another program — `$EDITOR`, a pager, `git commit` — and take it back.**
 `@Environment(\.handOffTerminal)` gives a `HandOffTerminalAction`: `handOffTerminal { … }` runs its closure at once,
 with the terminal as it was before the app started (main screen, the shell's settings, no mouse or other modes), and
@@ -38,23 +35,28 @@ takes it back after, as after ⌃Z: every mode set again, the size read again, e
 the closure returns and throws what it throws. While it runs, ⌃C and ⌃\ end the other program and not the app, ⌃Z
 stops the two together, and the scene is `.background`. Start an interactive program with `posix_spawn` in the app's
 process group, not with Foundation's `Process`, which starts it in a group of its own where an editor is stopped as it
-reads the keyboard; the action's documentation says how. Outside a running app the closure just runs.
+reads the keyboard; the action's documentation says how. Outside a running app the closure just runs. The Example's
+Terminal page edits a note in your `$VISUAL` or `$EDITOR`.
+
 **A redacted `TextEditor` hides its text too.** Like a redacted field, a redacted editor drew its text, copied and
 cut it, kept its kills, moved by words, selected a word on a double-click, wrapped its rows at its word breaks and
 lit up find matches where its words were. It now draws a glyph for each character with its line breaks kept, wraps
 where the glyphs wrap, refuses copy and cut, keeps no kill, moves and deletes one character for a word, selects the
 line on a double-click, and offers no find bar.
+
 **A redacted `TextField` hides what was typed, as a `SecureField` does.** Under `.redacted(reason:)`, or marked
 `.privacySensitive()` under `.redacted(reason: .privacy)`, a text field drew its text as it was, and copy, cut, Ctrl-K
 and Ctrl-Y, Option-arrows and a double-click all worked on it as on any field. It now draws a glyph for each character
 (spaces and wide characters included), its prompt is redacted too, and it behaves as a `SecureField`: nothing can be
 copied or cut out of it, a kill is not kept, and word motions and a double-click show no word breaks. SwiftUI's
 redacted field does none of this (deviation T12).
+
 **`sensoryFeedback` rings the bell for `.error` and `.warning`.** SwiftUI's `sensoryFeedback(_:trigger:)`, its
 `condition:` form and the forms whose closure answers a `SensoryFeedback?` used to fail to compile. They now ring the
 terminal's bell when the trigger changes, for the two kinds that say something went wrong; every other kind
 (`.success`, `.selection`, `.impact`, …) still fails to compile, with a message naming `.error`, `.warning` and
 `\.ringBell`, because a terminal can't make it felt and a bell would say the opposite.
+
 **`\.ringBell` rings the terminal's bell, to say input was refused.** TUI's own controls ring it when they turn
 input away; a control of your own, an `onKeyPress` that takes a key it can do nothing with, now does the same with
 `@Environment(\.ringBell) var ringBell` and `ringBell()`, instead of `requestAttention("")`. It rings with the next
@@ -80,15 +82,18 @@ page, a focused slider, stepper, tab view, menu, `.button` toggle and bordered o
 Solid Colors' caret was the colour of its field; and in six palettes a disabled button drew as an enabled one. Where
 a state's colour draws as the resting colour at the terminal's depth, the control now says it as it does on a
 terminal with no colour: the focus in reverse video, disabled faint.
+
 **Views draw their words without the escape sequences written into them.** `Text("x\u{1B}[31my")` drew in red, and
 text from outside the app (a file name, a log line, network data) could change colours, set the window title or write
 the clipboard. Every view now removes escape sequences and control characters other than tabs and line breaks from the
 words it draws: a `Text`, labels and titles, table and list cells, tab titles and badges. An app that writes its own
 colour codes into strings keeps them with `.textKeepsEscapeSequences()` on the views that show them.
+
 **`TUI_NOTIFICATIONS=0` turns notifications off altogether.** It used to stop only those sent through the terminal,
 and at your own computer the app still posted them itself (with `osascript` or `notify-send`) unless
 `TUI_SYSTEM_NOTIFICATIONS=0` was set too. Now `0` means none at all; `TUI_SYSTEM_NOTIFICATIONS` still chooses the route
 while notifications are on.
+
 **A `Grid` narrower than its columns squeezes them instead of dropping them.** Columns were never squeezed, so a
 grid offered less than its full width was drawn at that width and cut: at 5 cells only its first column showed. It
 now shares the width among its columns as an `HStack` shares a row, as SwiftUI's grid does (measured): text in a
@@ -99,12 +104,14 @@ a column whose cells fill takes what the others leave, wider than the columns to
 a `navigationDestination(isPresented:)` screen up, or a view-destination `NavigationLink`'s, a value the app appended
 to the path went on top and Back returned to the screen. It now takes the screen's place, and the screen's flag is
 set back to `false`. A value the screen pushes with `NavigationLink(value:)` still goes over it.
+
 **A `NavigationPath` holds only the app's values.** A screen pushed by `navigationDestination(isPresented:)` or
 `(item:)`, or by a `NavigationLink` with a view for its destination, went into a bound `NavigationPath`: its `count`
 included the screen, and its `codable` became `nil`, so the path could not be saved while the screen was up. The
 stack now keeps such a screen beside the path, as it already did for a typed path and as SwiftUI does; taking the
 value it was pushed over off the path takes it off too, and pushing that value again no longer brings the screen
 back with it, on either kind of path.
+
 **`.dialogBorder(_:style:titleColor:)` styles every alert and confirmation dialog; `alert` no longer takes
 `borderStyle:borderColor:titleColor:`.** Four of the fourteen `alert` forms took those three parameters after their
 closures, and the other ten, the `confirmationDialog`s among them, could not be styled at all. Apply
@@ -116,6 +123,7 @@ there. `AlertPanel`, `Dialog`, `Card` and `Panel` keep their own parameters, whi
 width than the terminal has starts a new line where the next one would not fit: `FlowLayout(spacing: 1) { … }`, each
 line as tall as its tallest member, used directly or through `AnyLayout`. SwiftUI has no such layout; this one is
 TUI's own.
+
 **A toggle's label wraps when it is wider than its space.** It was drawn on one line beside the box and cut off where
 the toggle ended, its last words gone with no ellipsis: the Example's File Panels page lost "machine" from its ssh
 toggle at 80 columns. It now wraps as a `Text` does, its first line beside the box and the rest under it, as SwiftUI's
@@ -624,6 +632,7 @@ Tab is unchanged, and arrows still stay inside the active section and a sheet. T
 try it on. See `Documentation/Input and focus/Geometric arrow focus.md`. The arrows reach controls a `ScrollView` has
 scrolled out of sight too, and the scroll views around one bring it into view, so a grid much larger than its scroll
 view is walked with the arrows alone.
+
 **`TUI_PLAIN_TEXT=transliterate` tries spelling text in ASCII before layout, an experiment.** For a terminal that shows
 only ASCII, every `Text`, button title, table cell and header, panel title and field prompt is spelled in Latin letters
 before it's measured, so `你好` is `ni hao` in six cells, where `TUI_PLAIN_TEXT=1` (and a non-UTF-8 locale) cut it to
@@ -645,6 +654,7 @@ placement of their own, `CommandGroupPlacement.accessibility`, which `CommandGro
 **The async `KittyGraphics.withSupport(_:compression:operation:)` runs its operation on the caller's actor.** It is
 `nonisolated(nonsending)`, and its `isolation:` parameter is gone; a call with a trailing closure compiles as before. It
 was the cause of two of Swift 6.4's deprecation warnings, which now has none.
+
 **`TUI_DEBUG_FOCUS` no longer writes to a fixed `/tmp/tui-debug.log`.** It writes to the file `TUI_DIAGNOSTICS_FILE`
 names, else to `tui-debug-<user>.log` in the temporary directory, so people sharing a machine don't share one log.
 
@@ -700,6 +710,7 @@ focus only within it, and while a menu is open, not at all. Off by default: it h
 **`TUI_BREATHING=0` holds every focus indication still.** The control that has the keyboard is picked out by colour
 and bold alone, rather than breathing or blinking; the text cursor still blinks. An app can do the same with
 `Scene.focusBreathing(false)`, which can't undo the person's `0`. Reduce Motion still leaves the breath alone.
+
 **A notification can also be posted on the desktop, through the terminal.** `post(_:desktop:)` takes
 `NotificationDesktopDelivery.always`, or `.whenInactive` for only while the terminal's window doesn't have the focus.
 It sends the message as `OSC 9` with the frame that draws the toast, to the terminals that post one (Ghostty and iTerm2,
