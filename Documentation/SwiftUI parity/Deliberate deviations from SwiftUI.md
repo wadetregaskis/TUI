@@ -298,6 +298,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   widest row placed. A lazy stack nested below other scroll content is not
   windowed. `LazyVGrid` and `LazyHGrid` measure every subview. `List` is the
   container built to scale.
+  Tab reaches only the rows drawn, as SwiftUI's reaches only the rows it has
+  made (measured, `Tools/SwiftUIProbes/Tab into rows off screen (1110F)`;
+  LAZY-TAB): a row below the window is scrolled in before Tab can land on it.
 - **Why:** TUI rebuilds the tree each frame and keeps no view objects, so
   for it creating a view is drawing it. The widest placed row is a steadier
   width than the first row's.
