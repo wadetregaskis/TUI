@@ -528,6 +528,16 @@ jobs:
         if: matrix.api_baseline
         run: python3 Tools/Release/api_baseline.py --check --skip-build
 
+      # SwiftUI source that must compile against TUI (CompileCorpus.swift),
+      # and SwiftUI spellings TUI refuses, each with its own error
+      # (UnavailableCorpus.swift, under -verify). Type-checking only, against
+      # the modules the Build step wrote: under a minute. Nothing ran it
+      # before 2026-11-10, and it had rotted (a CellPoint where the pointer's
+      # locations had become CGPoint). Xcode's compiler, as the stamp above.
+      - name: The SwiftUI compile corpora type-check
+        if: matrix.api_baseline
+        run: Tools/APIParity/compile_corpus.sh
+
       # Why the suite runs through Tools/ParallelTest/parallel_test.py, in
       # several processes, rather than `$SWIFT test` in one:
       #

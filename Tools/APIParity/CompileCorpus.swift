@@ -2930,7 +2930,7 @@ private struct ScrollTargetVisibilityShapes: View {
 /// scroll view's.
 @MainActor
 private struct CoordinateSpaceShapes: View {
-    @State private var location = CellPoint(x: 0, y: 0)
+    @State private var location = CGPoint.zero
     @State private var offset = 0
 
     var body: some View {
