@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An `HSplitView` or a `VSplitView` the terminal narrows and widens again puts its dividers back.** Each resize scaled
+the panes from the last resize's rounded sizes, so the dividers crept towards the leading edge, a cell or more each
+time. The panes are now scaled from the sizes last set, by a divider or at the start.
+
 **A toolbar item the bar is too narrow to show no longer takes the focus.** A top or bottom bar with more items than
 it has room for cuts the last of them, and Tab still went to a button it had cut to nothing, so the focus vanished and
 Return pressed a button nobody could see. Such an item now takes no focus and no click, and its keyboard shortcut

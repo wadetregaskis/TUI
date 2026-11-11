@@ -81,6 +81,16 @@ nonisolated public struct VSplitView<Content: View>: View {
 final class SplitPaneSizes {
     var sizes: [Int] = []
 
+    /// The sizes as last set — by the divider, or by a fresh start — and the
+    /// total they were set at. A split the terminal resizes scales these, not
+    /// the last scaling's result, whose rounding each trip would compound:
+    /// narrowed and widened again, the panes are what they were.
+    var reference: (sizes: [Int], total: Int)?
+
+    /// What the last render resolved `sizes` to. `sizes` differing from it is
+    /// a divider's move since, which becomes the new ``reference``.
+    var resolved: [Int] = []
+
     /// Each pane's bounds, as the last frame found them — read by the divider
     /// handlers, which move at event time, outside any render.
     var bounds: [SplitPaneBounds] = []
@@ -267,8 +277,8 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         let panes = panesBox.value
         let axis = axis
         let bounds = children.map { SplitPaneBounds.of($0.wrappedView, along: axis) }
-        panes.sizes = resolvedSizes(
-            panes.sizes, children: children, bounds: bounds, total: total, across: across, context: context)
+        panes.sizes = resolvedSizes(panes, children: children, bounds: bounds, total: total, across: across, context: context)
+        panes.resolved = panes.sizes
         panes.bounds = bounds
 
         let composite = CompositeEnvironment(context.environment)
@@ -304,23 +314,31 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
     private func crossExtent(of size: ViewSize) -> Int { axis == .horizontal ? size.height : size.width }
     private func position(_ offset: Int) -> (x: Int, y: Int) { axis == .horizontal ? (offset, 0) : (0, offset) }
 
-    /// The panes' sizes for `total` cells: the stored ones while there are as
-    /// many panes as before, rescaled to the new total when the split itself
-    /// changed size; otherwise a fresh start — a pane whose frame names an
-    /// ideal extent at that, a child that sizes to its content at its natural
-    /// extent, the filling children sharing the rest, or the last child taking
-    /// it when none fills. Either way held inside the panes' bounds.
+    /// The panes' sizes for `total` cells: while there are as many panes as
+    /// before, the sizes last set (``SplitPaneSizes/reference``), rescaled to
+    /// the new total when the split itself changed size; otherwise a fresh
+    /// start — a pane whose frame names an ideal extent at that, a child that
+    /// sizes to its content at its natural extent, the filling children
+    /// sharing the rest, or the last child taking it when none fills. Either
+    /// way held inside the panes' bounds.
     private func resolvedSizes(
-        _ stored: [Int], children: [ChildView], bounds: [SplitPaneBounds], total: Int, across: Int,
+        _ panes: SplitPaneSizes, children: [ChildView], bounds: [SplitPaneBounds], total: Int, across: Int,
         context: RenderContext
     ) -> [Int] {
         let count = children.count
         let available = max(count, total - (count - 1))
+        let stored = panes.sizes
         if stored.count == count, stored.allSatisfy({ $0 >= 1 }) {
-            let storedTotal = stored.reduce(0, +)
-            let sizes = storedTotal == available ? stored : Self.rescaled(stored, to: available)
+            // A divider moved since the last render, or nothing set yet: what
+            // stands now is what later sizes scale from.
+            if stored != panes.resolved || panes.reference?.sizes.count != count {
+                panes.reference = (stored, stored.reduce(0, +))
+            }
+            let reference = panes.reference ?? (stored, stored.reduce(0, +))
+            let sizes = reference.total == available ? reference.sizes : Self.rescaled(reference.sizes, to: available)
             return Self.fitted(sizes, within: bounds, total: available, givingFirst: Array(sizes.indices.reversed()))
         }
+        panes.reference = nil
         let proposal =
             axis == .horizontal
             ? ProposedViewSize(width: nil, height: across) : ProposedViewSize(width: across, height: nil)
