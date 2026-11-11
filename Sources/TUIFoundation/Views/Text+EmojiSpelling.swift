@@ -8,6 +8,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUICore
+
 /// Emoji as short ASCII: an emoticon where a well-known one exists, else a name
 /// between colons, as chat apps and GitHub write them.
 ///
@@ -50,19 +52,10 @@ enum EmojiSpelling {
     /// `character` spelled, or `nil` when it isn't an emoji.
     static func spelling(of character: Character) -> String? {
         let scalars = Array(character.unicodeScalars)
-        guard let first = scalars.first else { return nil }
+        guard character.isEmojiPresented, let first = scalars.first else { return nil }
         // A keycap: the key, a digit or `#` or `*`, the selector, then U+20E3.
-        if first.isASCII {
-            return scalars.contains("\u{20E3}") ? "[\(Character(first))]" : nil
-        }
+        if first.isASCII { return "[\(Character(first))]" }
         if let flag = flagSpelling(scalars) { return flag }
-        // An emoji by default, by the selector, or by a skin tone after it: a
-        // raised finger (U+261D) is text alone, and an emoji with one.
-        let isEmoji =
-            first.properties.isEmojiPresentation
-            || (first.properties.isEmoji && scalars.contains("\u{FE0F}"))
-            || (first.properties.isEmojiModifierBase && scalars.dropFirst().contains(where: isSkinTone))
-        guard isEmoji else { return nil }
         return named(scalars)
     }
 
