@@ -138,6 +138,13 @@ jobs:
       - name: Validate test module boundaries
         run: ./Tools/validate-test-boundaries.sh
 
+      # Every import of one of the package's own modules is a declared
+      # dependency. macOS's native build with 6.2 lets an undeclared one by
+      # (every module lands in one directory); 6.4's links and WebAssembly's
+      # build do not (TUIImage → TUICore, 2026-11-10). Seconds, from the manifest.
+      - name: Validate target imports
+        run: ./Tools/validate-target-imports.py
+
       # Milliseconds, and it guards a failure nothing else can see: a manifest
       # with a path/branch/revision dependency builds and tests perfectly here
       # while being impossible for anyone to depend on, and one with an

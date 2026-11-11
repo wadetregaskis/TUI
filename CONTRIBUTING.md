@@ -812,7 +812,10 @@ When you change what is saved:
   path.
   `Tools/validate-test-boundaries.sh` checks that every test file imports only
   what its target depends on, and that every support-target file is guarded,
-  and runs in CI.
+  and runs in CI. `Tools/validate-target-imports.py` is the same rule for
+  every target, sources included, at the package's own dependency closure: a
+  module imported without being declared builds on macOS with Swift 6.2 and
+  fails Swift 6.4's links and the WebAssembly build.
 - `Tests/ExampleTests` holds tests of the Example app's own views
   (`@testable import Example`), for when a test must drive what the app
   ships rather than a copy of its shape: a copy goes on passing after the
