@@ -19,6 +19,8 @@ import TUIFoundation
 /// legibility weight — its buttons are `Button`s, and the glyph, the border
 /// and the fade are the modifiers every view has.
 ///
+/// Its buttons sit at its trailing edge.
+///
 /// The fade is always applied, at 1 for the visible stretch, so the toast's
 /// structure — and the identities of everything in it, its buttons' focus
 /// included — never changes between its fade-in and the rest of its life.
@@ -66,6 +68,9 @@ struct NotificationToast: View {
                         .focusID(NotificationKeyboard.focusID(entry.id, button: index))
                     }
                 }
+                // At the toast's trailing edge, as a dialog's are, while its
+                // message reads from the leading one (the owner, 2026-11-10).
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .frame(width: max(1, width - Self.chromeWidth), alignment: .leading)

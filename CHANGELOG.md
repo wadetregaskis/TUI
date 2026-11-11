@@ -15,6 +15,8 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A toast's buttons sit at its trailing edge.** Its message still reads from the leading one.
+
 **Under `TUI_PLAIN_TEXT`, controls show their state in ASCII.** Where the terminal is sent plain text, toggles draw
 `[x]` and `[ ]`, radio buttons `(*)` and `( )`, spinners their own ASCII frames, a file panel `d`, `f` and `l` beside
 each name, and a field's or a button's ends `[ ]`; before, `■` and `□` were both `#`, empty radio buttons and half the

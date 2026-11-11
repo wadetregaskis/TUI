@@ -541,8 +541,8 @@ NotificationService.current.post(style: .success) {
 }
 ```
 
-A toast can carry buttons. Choosing one runs its action and dismisses the
-toast:
+A toast can carry buttons, on its last row at its trailing edge. Choosing one
+runs its action and dismisses the toast:
 
 ```swift
 NotificationService.current.post(
