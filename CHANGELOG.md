@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+
+
+**A `navigationDestination(isPresented:)` on a stack's root, presented while values are pushed, empties the path,
+as in SwiftUI.** Its screen went over the values, and Back returned to the last of them; it now goes over the root, the
+screen it is written on, and Back returns there. The same for `navigationDestination(item:)`.
+
 **`.aboutPanel(applicationName:…)` is the app's, whichever window is in front.** Written on one scene, the name
 titled the app menu only while one of that scene's windows was in front, and a `Window` without it, such as an
 inspector, brought the process's name back. It now holds for every window, as an Info.plist does; written on several

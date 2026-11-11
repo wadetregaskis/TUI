@@ -71,6 +71,11 @@ final class NavigationCoordinator {
     /// start of its next pass (``beginRegistrationPass()``).
     private var presentedBindings: [String: () -> Void] = [:]
 
+    /// The screen each view destination's token was pushed over, by token id
+    /// (``push(_:over:)``): what tells a destination written beside another on
+    /// one screen from the screens above that screen.
+    private var presentedDepths: [String: Int] = [:]
+
     /// A view a link registered, and the pass it was last registered in.
     private struct ViewDestination {
         let view: AnyView
@@ -146,6 +151,29 @@ extension NavigationCoordinator {
         var elements = read()
         elements.append(value)
         write(elements)
+    }
+
+    /// Pushes `value`, a view destination's token, over the screen at
+    /// `depth` — the root at `0` — taking off what is over that screen first,
+    /// as SwiftUI does for a screen a view destination written on that screen
+    /// pushes (measured,
+    /// `Tools/SwiftUIProbes/Navigation path and view destinations/navpath.out`,
+    /// case B): a `navigationDestination(isPresented:)` on the root, presented
+    /// while values are pushed, empties the path, and Back returns to the root.
+    ///
+    /// Kept: the screens right over that one that destinations written beside
+    /// this one pushed, so two stacked on one view still stack, each over the
+    /// other (unmeasured on SwiftUI; TUI's behaviour before, kept).
+    func push(_ value: AnyHashable, over depth: Int) {
+        let elements = read()
+        var kept = Array(elements.prefix(depth))
+        for element in elements.dropFirst(depth) {
+            guard let token = element.base as? NavigationViewToken, presentedDepths[token.id] == depth else { break }
+            kept.append(element)
+        }
+        kept.append(value)
+        if let token = value.base as? NavigationViewToken { presentedDepths[token.id] = depth }
+        write(kept)
     }
 
     /// Records the title `depth` is showing, for later crumbs.
@@ -283,6 +311,7 @@ extension NavigationCoordinator {
     /// Forgets token `id`'s binding: its modifier saw the screen go itself.
     func untrackPresentation(token id: String) {
         presentedBindings[id] = nil
+        presentedDepths[id] = nil
     }
 
     /// Clears the binding of every tracked screen that is no longer on the
@@ -357,4 +386,17 @@ extension EnvironmentValues {
         get { self[featureObject: .navigationCoordinator] as? NavigationCoordinator }
         set { self[featureObject: .navigationCoordinator] = newValue }
     }
+
+    /// Which screen of the enclosing ``NavigationStack`` this is: `0` on its
+    /// root, the screen's place on the path above it. `nil` outside a stack's
+    /// screens. A view destination written here puts its screen over this one
+    /// (`NavigationCoordinator.push(_:over:)`).
+    var navigationScreenDepth: Int? {
+        get { self[NavigationScreenDepthKey.self] }
+        set { self[NavigationScreenDepthKey.self] = newValue }
+    }
+}
+
+private struct NavigationScreenDepthKey: EnvironmentKey {
+    static let defaultValue: Int? = nil
 }

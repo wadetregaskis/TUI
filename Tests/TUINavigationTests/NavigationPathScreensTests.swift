@@ -44,6 +44,7 @@ private struct PathStack: View {
                     Text(verbatim: "VALUE \(value) inner=\(inner) shown=\(shown)")
                     Button("Inner") { inner = true }
                     Button("Hide") { shown = false }
+                    Button("Present") { shown = true }
                 }
                 .navigationDestination(isPresented: $inner) {
                     VStack {
@@ -102,6 +103,20 @@ struct NavigationPathScreensTests {
         // left, it would strand the user on a screen reached through one gone.
         try app.click("Hide")
         #expect(app.screen.contains("count=0 codable=true shown=false"), "\(app.screen)")
+    }
+
+    /// SwiftUI's, measured (`Tools/SwiftUIProbes/Navigation path and view
+    /// destinations/navpath.out`, case B): the screen goes over the root, the
+    /// screen its modifier is written on (the owner's NAV-B, 2026-11-10).
+    @Test("A destination written on the root, presented with values pushed, empties the path; Back returns to the root")
+    func rootDestinationEmptiesThePath() throws {
+        let app = TestApp(width: 60, height: 12) { PathStack() }
+        try app.click("Push 7")
+        #expect(app.screen.contains("VALUE 7"), "\(app.screen)")
+        try app.click("Present")
+        #expect(app.screen.contains("PRESENTED count=0 codable=true"), "\(app.screen)")
+        app.press(.escape)
+        #expect(app.screen.contains("count=0 codable=true shown=false"), "back on the root: \(app.screen)")
     }
 
     /// SwiftUI's, measured (`Tools/SwiftUIProbes/Navigation path and view

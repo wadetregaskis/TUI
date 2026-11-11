@@ -39,6 +39,7 @@ private struct TypedStack: View {
                 VStack {
                     Text(verbatim: "VALUE \(value)")
                     NavigationLink("Over") { DetailScreen(path: $path) }
+                    Button("Present") { shown = true }
                 }
             }
         }
@@ -68,6 +69,17 @@ struct TypedPathScreensTests {
         #expect(app.screen.contains("PRESENTED"), "\(app.screen)")
         app.press(.escape)
         #expect(app.screen.contains("path=[] shown=false"), "\(app.screen)")
+    }
+
+    /// SwiftUI's (`navpath.out`, case B; the owner's NAV-B, 2026-11-10).
+    @Test("A destination written on the root, presented with values pushed, empties the path; Back returns to the root")
+    func rootDestinationEmptiesTypedPath() throws {
+        let app = TestApp(width: 50, height: 12) { TypedStack() }
+        try app.click("Push 7")
+        try app.click("Present")
+        #expect(app.screen.contains("PRESENTED"), "\(app.screen)")
+        app.press(.escape)
+        #expect(app.screen.contains("path=[] shown=false"), "back on the root: \(app.screen)")
     }
 
     @Test("A view-destination link pushes its screen, which the binding never holds")

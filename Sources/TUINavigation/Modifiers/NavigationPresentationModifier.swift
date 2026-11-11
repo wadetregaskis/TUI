@@ -36,6 +36,9 @@ extension View {
     /// ```
     ///
     /// Apply it inside the stack: on the root, or on a pushed screen. The
+    /// screen goes over the one the modifier is written on, as SwiftUI's does:
+    /// one written on the root, presented while values are pushed, takes them
+    /// off the path first, and Back returns to the root. The
     /// binding is cleared by whatever route the screen leaves — Back, a
     /// breadcrumb, a pop to the root that takes the screen the modifier is
     /// written on away with it, or the app writing the path — as SwiftUI does.
@@ -187,7 +190,15 @@ nonisolated struct NavigationPresentationModifier<Content: View, Destination: Vi
                 isPresented.wrappedValue = false
             } else {
                 register(coordinator: coordinator, token: token, context: context)
-                coordinator.push(token)
+                // Over the screen this modifier is written on, as SwiftUI puts
+                // it: on the root with values pushed, the path is emptied first
+                // (measured, `navpath.out` case B). Only the root and the screen
+                // on top render, so only the root's can be under others here.
+                if let depth = context.environment.navigationScreenDepth {
+                    coordinator.push(token, over: depth)
+                } else {
+                    coordinator.push(token)
+                }
                 didPush.value = true
                 // The stack clears the flag if the screen leaves while this
                 // modifier is not rendering to see it go (a pop to the root

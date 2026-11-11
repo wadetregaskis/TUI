@@ -323,6 +323,8 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             ? context.makeGeometryAsk(role: .reader) : nil
         var base = context
         base.environment.navigationCoordinator = coordinator
+        // The root's place; each pushed screen states its own (`renderScreen`).
+        base.environment.navigationScreenDepth = 0
         // The screen's `containerRelativeFrame` container: the stack, less the
         // bar a pushed screen sits under.
         base = base.publishingContainerSize(
@@ -447,6 +449,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         // screen, which is what SwiftUI's dismiss does in a stack.
         let coordinator = coordinator
         screenContext.environment.dismiss = DismissAction { coordinator.pop() }
+        screenContext.environment.navigationScreenDepth = depth
 
         // Where the stack's Escape handler goes: BEHIND everything the screen is
         // about to register, although whether to register it at all is only

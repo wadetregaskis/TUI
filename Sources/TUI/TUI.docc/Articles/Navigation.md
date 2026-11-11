@@ -100,7 +100,10 @@ available. The stack keeps such a screen over the values it was pushed on, and
 drops it when your code takes one of those values off the path. A value your
 code appends while it is on top takes its place, as in SwiftUI, and a
 `navigationDestination(isPresented:)` flag is set back to `false`; a value its
-screen pushes with `NavigationLink(value:)` goes over it.
+screen pushes with `NavigationLink(value:)` goes over it. A
+`navigationDestination(isPresented:)` or `(item:)` puts its screen over the
+screen it is written on, as in SwiftUI: one on the root, presented while values
+are pushed, takes them off the path first, and Back returns to the root.
 
 ## What the terminal changes
 
