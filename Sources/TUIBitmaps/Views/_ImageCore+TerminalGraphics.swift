@@ -191,8 +191,11 @@ extension _ImageCore {
         let toneCurve = context.environment.imageToneCurve?.resolved(
             with: context.environment.palette)
         let edgeContrast = context.environment.imageEdgeContrast
-        // Only a mono picture's pixels depend on it (`recoloured`).
-        let inkThreshold = colorMode == .mono ? context.environment.imageInkThreshold : nil
+        // Only a mono picture's pixels depend on it (`recoloured`); a playing
+        // one's frames share one (`inkThreshold(for:colorMode:characterSet:context:)`).
+        let inkThreshold =
+            colorMode == .mono
+            ? self.inkThreshold(for: playing, colorMode: colorMode, characterSet: nil, context: context) : nil
         let adjustments = context.environment.imageAdjustments
         let posterizationLevels = context.environment.imagePosterization
         let dithering = context.environment.imageDithering

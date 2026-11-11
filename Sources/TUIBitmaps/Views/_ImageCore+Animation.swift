@@ -73,6 +73,9 @@ final class ImageAnimationPlayback {
     /// were (`_ImageCore+FrameConversions.swift`), with the pixels of whichever
     /// frame started it.
     var convertingFor: ImageRenderCache?
+    /// The ink threshold the frames share, and what it was measured with
+    /// (``ASCIIConverter/sharedInkThreshold(of:)``).
+    var sharedInkThreshold: (settings: SharedInkThresholdSettings, value: Double)?
     /// How many frames have a store token of their own.
     private var placedFrames = 0
     /// Whether the terminal is not to play these frames by itself: something
@@ -95,6 +98,7 @@ final class ImageAnimationPlayback {
         lifecycle.cancelTask(token: Self.decodeToken(token))
         lifecycle.cancelTask(token: Self.conversionToken(token))
         convertingFor = nil
+        sharedInkThreshold = nil
         for index in 0..<placedFrames { store?.release(token: Self.frameToken(token, index)) }
         placedFrames = 0
         keepsFramesHere = false

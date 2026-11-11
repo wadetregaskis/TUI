@@ -157,7 +157,9 @@ extension View {
     ///
     /// By default (`nil`) it is measured from each picture: the split between
     /// its two most different tones (Otsu's method), which lands where a
-    /// person would draw it for a subject against a background. Where the two
+    /// person would draw it for a subject against a background. A playing
+    /// picture's frames share one split, measured across all of them, so a
+    /// part that holds still stays ink or stays paper. Where the two
     /// most different tones are two parts of the subject — the two halves of
     /// a two-tone face — the split loses one of them, and a stated threshold
     /// is the black level that keeps it. In colour, braille draws what falls

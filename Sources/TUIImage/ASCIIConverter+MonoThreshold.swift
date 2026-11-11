@@ -127,4 +127,58 @@ extension ASCIIConverter {
     /// subject to separate from a background, only noise, and Otsu would split
     /// the noise down the middle and render it as speckle.
     static let minimumSeparableSpread = 16
+
+    /// The ink threshold an animation's frames share: Otsu's split of all of
+    /// them together, as ``inkThreshold`` states one (`0...1`), for every frame
+    /// to be converted with.
+    ///
+    /// ## Why one for all the frames
+    ///
+    /// Measured from each frame, the split moves with what moves in the
+    /// picture, and a part that holds still can cross it. The Example's
+    /// bouncing ball (the 80 × 40 one, before 2026-11-11) was a dark sky
+    /// (luminance 29), a ground a little lighter (61) and a ball much lighter
+    /// (102 to 221), whose split falls right by the ground's level. Resampled
+    /// to the cells, the ball's edges blend into the pixels around them, and
+    /// where the ball was moved the split from one side of the ground to the
+    /// other: drawn in mono at 100 × 25 cells the ground was ink in 6 frames of
+    /// 16 and paper in the rest, flashing white and black as the ball bounced
+    /// (the owner, 2026-11-10, item 23). One split, from every frame, puts each
+    /// tone on one side for the whole animation, so what holds still stays
+    /// still.
+    ///
+    /// ## What it is measured on
+    ///
+    /// Each frame's tones as the converters read them: after the adjustments,
+    /// the tone curve and the posterize, which move tones, and so where the
+    /// split falls. Not after the resampling and the edge lift, which depend on
+    /// the box a frame is drawn in and move only the pixels at an edge, so one
+    /// measure serves every box, the glyphs' and the pixels' alike. A long or
+    /// large animation is measured at a smaller size, up to
+    /// ``sharedThresholdPixelBudget`` pixels in all: a histogram needs no more.
+    ///
+    /// - Parameter frames: Every frame of the animation, composited.
+    package func sharedInkThreshold(of frames: [RGBAImage]) -> Double {
+        let pixelCount = frames.reduce(0) { $0 + $1.width * $1.height }
+        let scale = min(1, (Double(Self.sharedThresholdPixelBudget) / Double(max(1, pixelCount))).squareRoot())
+        var histogram = [Int](repeating: 0, count: 256)
+        var total = 0
+        for frame in frames where frame.width > 0 && frame.height > 0 {
+            var tones =
+                scale < 1
+                ? frame.scaledBilinear(
+                    to: max(1, Int(Double(frame.width) * scale)), max(1, Int(Double(frame.height) * scale)))
+                : frame
+            adjustments.apply(to: &tones)
+            if let toneCurve, !toneCurve.isIdentity {
+                tones.mapPixels(toneCurve.apply(to:))
+            }
+            Self.addToInkHistogram(posterized(tones), &histogram, &total)
+        }
+        return Self.inkThreshold(histogram: histogram, total: total) / 255
+    }
+
+    /// The most pixels ``sharedInkThreshold(of:)`` measures, across all the
+    /// frames: a million, a few milliseconds of work.
+    static let sharedThresholdPixelBudget = 1 << 20
 }

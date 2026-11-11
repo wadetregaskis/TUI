@@ -377,6 +377,34 @@ struct AnimatedImagePlaybackTests {
         #expect(app.screen != looks[2], "all converted: the new setting")
     }
 
+    @Test("In mono, the frames share one ink threshold, so what holds still stays still")
+    func monoFramesShareAThreshold() async throws {
+        // A dark sky, a lighter ground below it (rows 6 and 7), and a light ball
+        // of one pixel, then of thirty: alone, the first frame's split falls
+        // between the sky and the ground, and the second's between the ground
+        // and the ball.
+        let fixture = GIFFixture(
+            frames: [
+                .init(grey: 10, delay: 10), .init(grey: 40, rect: (0, 6, 8, 2), delay: 10),
+                .init(grey: 120, rect: (0, 0, 1, 1), delay: 10), .init(grey: 120, rect: (0, 0, 6, 5), delay: 10),
+            ],
+            repeats: 0)
+        let path = try fixture.write()
+        let app = HeadlessApp(
+            PageApp { Image(.file(path)).imageCharacterSet(.blocks(.fine)).imageColorMode(.mono).frame(width: 8, height: 4) },
+            width: 8, height: 4)
+        try await untilPlaying(app, at: 0)
+        var now: Int64 = 0
+        var grounds: [String] = []
+        while let next = app.nextWake(after: now), next < milli(400) {
+            now = next
+            app.frame(atNanos: now)
+            grounds.append(app.screen[3])
+        }
+        #expect(grounds.count == 3)
+        #expect(Set(grounds).count == 1, "the ground, frame by frame: \(grounds)")
+    }
+
     // MARK: - In the terminal's own pixels
 
     /// A whole loop in the terminal: the bytes each of two rounds cost.

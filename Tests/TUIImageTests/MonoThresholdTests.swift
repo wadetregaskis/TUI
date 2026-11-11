@@ -163,4 +163,41 @@ struct MonoThresholdTests {
         #expect(!ASCIIConverter.isMonoInk(RGBA(r: 110, g: 110, b: 110), threshold: threshold))
         #expect(ASCIIConverter.isMonoInk(RGBA(r: 190, g: 190, b: 190), threshold: threshold))
     }
+
+    // MARK: - An animation's frames
+
+    /// A dark sky, a lighter ground and a light ball, the ball `ball` pixels.
+    private func scene(ball: Int) -> RGBAImage {
+        image(levels: [UInt8](repeating: 20, count: 48 - ball) + [UInt8](repeating: 80, count: 16)
+            + [UInt8](repeating: 240, count: ball))
+    }
+
+    @Test("Frames whose own splits put a still part on both sides share one that keeps it on one")
+    func framesShareASplit() {
+        let small = scene(ball: 1)
+        let large = scene(ball: 30)
+        let ground = RGBA(r: 80, g: 80, b: 80)
+        // Alone, each frame draws the ground differently.
+        #expect(ASCIIConverter.isMonoInk(ground, threshold: ASCIIConverter.monoInkThreshold(for: small)))
+        #expect(!ASCIIConverter.isMonoInk(ground, threshold: ASCIIConverter.monoInkThreshold(for: large)))
+
+        let shared = ASCIIConverter().sharedInkThreshold(of: [small, large]) * 255
+        #expect(!ASCIIConverter.isMonoInk(ground, threshold: shared))
+        #expect(ASCIIConverter.isMonoInk(RGBA(r: 240, g: 240, b: 240), threshold: shared))
+        #expect(!ASCIIConverter.isMonoInk(RGBA(r: 20, g: 20, b: 20), threshold: shared))
+    }
+
+    @Test("The shared split is measured on the tones the frames are drawn in")
+    func sharedSplitFollowsAdjustments() {
+        let frames = [scene(ball: 1), scene(ball: 30)]
+        let brighter = ImageAdjustments(exposure: 1)
+        let adjusted = frames.map { frame in
+            var frame = frame
+            brighter.apply(to: &frame)
+            return frame
+        }
+        let measured = ASCIIConverter(adjustments: brighter).sharedInkThreshold(of: frames)
+        #expect(measured == ASCIIConverter().sharedInkThreshold(of: adjusted))
+        #expect(measured != ASCIIConverter().sharedInkThreshold(of: frames), "the adjustment moves the split here")
+    }
 }

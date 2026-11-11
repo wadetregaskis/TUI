@@ -21,6 +21,10 @@ costly setting (`imageShapeAware`, a dither) made every frame of the first loop 
 Its frames are now converted in a background task, in the order they will show: after a change the old frames go on
 playing until every new one is ready, and the first time round each is kept as soon as it is converted. A
 shape-aware frame of the Example's bouncing ball costs 5 to 8 ms in a release build and 200 to 300 ms in a debug one.
+**In mono, an animated picture's frames share one ink threshold.** Measured from each frame, Otsu's split moved
+with what moved in the picture, and a part that held still could cross it: the Example's old bouncing ball drew its
+ground white in some frames and black in others. The split is now measured once across every frame, for the glyphs
+and for real pixels alike, unless `imageInkThreshold(_:)` states one.
 
 **An idle app with a menu bar no longer holds a core on Ghostty, kitty or WezTerm.** Where the terminal reports a
 modifier key held on its own, the menu bar's underlined letters (and any `modifierKeyAlternate`) kept the animation

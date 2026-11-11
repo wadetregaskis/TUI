@@ -417,7 +417,8 @@ struct _ImageCore: View, Renderable, Layoutable {
                     with: context.environment.palette),
                 supersampling: context.environment.imageSupersampling, edgeThreshold: context.environment.imageEdgeThreshold,
                 edgeContrast: context.environment.imageEdgeContrast,
-                inkThreshold: context.environment.imageInkThreshold,
+                inkThreshold: inkThreshold(
+                    for: playing, colorMode: colorMode, characterSet: characterSet, context: context),
                 adjustments: context.environment.imageAdjustments, posterizationLevels: context.environment.imagePosterization,
                 contentMode: contentMode, aspectRatioOverride: aspectRatioOverride,
                 cellAspect: context.environment.imageCellAspect,

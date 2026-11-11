@@ -2,7 +2,7 @@
 //  _ImageCore+FrameConversions.swift
 //
 //  A playing picture's frames converted to glyphs ahead of the frame clock, off
-//  the main actor.
+//  the main actor, and the one ink threshold they share.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -146,5 +146,55 @@ private struct FrameConversionJob: Sendable {
                 return converter.convert(pixels, width: width, height: height)
             }
         }
+    }
+}
+
+// MARK: - One ink threshold for every frame
+
+/// What an animation's shared ink threshold depends on: the settings that move
+/// its tones (``ASCIIConverter/sharedInkThreshold(of:)``).
+struct SharedInkThresholdSettings: Equatable {
+    let toneCurve: ASCIIToneCurve?
+    let adjustments: ImageAdjustments
+    let posterizationLevels: Int?
+    let dithering: DitheringMode
+}
+
+extension _ImageCore {
+    /// The ink threshold to draw `playing`'s frame with: the one stated, else,
+    /// where the drawing is ink or none — mono, or braille's dots — the one its
+    /// frames share. `nil` to measure it from the picture, a still one.
+    func inkThreshold(
+        for playing: PlayingFrame?, colorMode: ASCIIColorMode, characterSet: ASCIICharacterSet?,
+        context: RenderContext
+    ) -> Double? {
+        let environment = context.environment
+        if let stated = environment.imageInkThreshold { return stated }
+        guard let playing, colorMode == .mono || characterSet == .blocks(.braille) else { return nil }
+        return playing.sharedInkThreshold(
+            SharedInkThresholdSettings(
+                toneCurve: environment.imageToneCurve?.resolved(with: environment.palette),
+                adjustments: environment.imageAdjustments, posterizationLevels: environment.imagePosterization,
+                dithering: environment.imageDithering))
+    }
+}
+
+extension PlayingFrame {
+    /// The ink threshold every frame of this picture is drawn with, where none
+    /// is stated, measured across them all once for these settings: so that a
+    /// part of the picture that holds still is on one side of it in every
+    /// frame (``ASCIIConverter/sharedInkThreshold(of:)``).
+    ///
+    /// `nil` before the frames have decoded, when the still picture showing is
+    /// the only one there is.
+    func sharedInkThreshold(_ settings: SharedInkThresholdSettings) -> Double? {
+        guard let animation = playback.animation else { return nil }
+        if let held = playback.sharedInkThreshold, held.settings == settings { return held.value }
+        let converter = ASCIIConverter(
+            dithering: settings.dithering, toneCurve: settings.toneCurve, adjustments: settings.adjustments,
+            posterizationLevels: settings.posterizationLevels)
+        let value = converter.sharedInkThreshold(of: animation.frames.map(\.image))
+        playback.sharedInkThreshold = (settings, value)
+        return value
     }
 }
