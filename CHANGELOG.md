@@ -16,7 +16,8 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 ## Unreleased
 
 **Under `TUI_PLAIN_TEXT`, a scrollbar's thumb is solid.** Its ends, drawn to an eighth of a cell, were `#`s in the
-groove's colour; every cell the thumb touches is now a whole cell of it.
+groove's colour; every cell the thumb touches is now a whole cell of it. And the gradient editor's dashed rule is
+`- - -`, where it was solid.
 
 **Under `TUI_PLAIN_TEXT`, a large solid button is a solid block of its colour.** Its rows above and below the label
 were its rounded corners in `#` (`##    ##`); the face is now drawn in whole cells there, as on Apple Terminal.

@@ -89,6 +89,9 @@ public struct GradientEditorPanel {
     /// persisted app-wide — see ``encodeRecents(_:)`` for the format.
     @AppStorage("tuikit.gradientEditor.recents") private var recentsRaw = ""
 
+    /// How words are spelled here: where in ASCII, the dashed rule is `- - -`.
+    @Environment(\.textSpelling) private var textSpelling
+
     /// Which of ◀ and ▶ holds the keyboard, bound only so each can name the other
     /// as where its focus goes when it disables itself: see ``actionRow``.
     @FocusState private var stopMoveFocus: StopMove?
@@ -393,8 +396,12 @@ public struct GradientEditorPanel {
         if !recents.isEmpty {
             // Dashed: a SUB-division within the library, deliberately
             // lighter than the solid rule that closes the whole library
-            // section below.
-            Text(String(repeating: "┄", count: Self.previewWidth))
+            // section below. In ASCII its dashes are a cell apart, `- - -`:
+            // folded, `┄` is a `-` in every cell, the solid rule's own.
+            Text(
+                textSpelling.isASCII
+                    ? String((0..<Self.previewWidth).map { $0.isMultiple(of: 2) ? "-" : " " })
+                    : String(repeating: "┄", count: Self.previewWidth))
                 .foregroundStyle(.palette.border)
             chipRows(for: recents)
         }

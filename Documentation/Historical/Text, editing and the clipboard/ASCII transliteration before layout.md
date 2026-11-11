@@ -229,6 +229,8 @@ pages in UTF-8, cell against cell. What was left, and what each became:
 - **A scrollbar's thumb** ends at an eighth of a cell in partial blocks, which were `#` in the groove's colour on the
   thumb's: a `#` at each end, and a thumb shorter than a cell a lone `#`. Where text is spelled in ASCII every cell
   the thumb touches is a whole cell of it (`ScrollbarColors.wholeCells`), as without colour.
+- **A dashed rule**, the gradient editor's between its presets and its recents, was `-` in every cell, the look of
+  the solid rule below it. It is `- - -` there. Chosen where drawn: one cell has no room for a dash and its gap.
 
 **What stays `#`, and why.** A block is `#` in the table, and these keep it:
 

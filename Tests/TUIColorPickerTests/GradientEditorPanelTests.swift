@@ -342,6 +342,30 @@ struct GradientEditorPanelRenderTests {
         #expect(strip.contains("38;2;0;0;255"), "stop 3's swatch in blue")
     }
 
+    /// Folded at output, `┄` is a `-` in every cell, the look of the solid
+    /// rule below it (PLAIN-LINE, 2026-11-11).
+    @Test("The dashed rule above the recents is dashed in ASCII too")
+    func recentsRuleInASCII() {
+        var ramp = Gradient(colors: [.rgb(255, 0, 0), .rgb(0, 0, 255)])
+        var presented = true
+        let store = MockStorageBackend()
+        store.setValue(GradientEditorPanel.encodeRecents([ramp]), forKey: "tuikit.gradientEditor.recents")
+        let panel = GradientEditorPanel(
+            gradient: Binding(get: { ramp }, set: { ramp = $0 }),
+            isPresented: Binding(get: { presented }, set: { presented = $0 })
+        )
+        .defaultAppStorage(store)
+        func lines(ascii: Bool) -> [String] {
+            let context = makeRenderContext(width: 70, height: 45) { environment, _ in
+                if ascii { environment.textSpelling = .ascii(.standard) }
+            }
+            return renderToBuffer(panel, context: context).lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+        }
+        #expect(lines(ascii: false).contains { $0.contains("┄┄┄┄") }, "\(lines(ascii: false))")
+        let ascii = lines(ascii: true)
+        #expect(ascii.contains { $0.contains("- - - -") }, "\(ascii)")
+    }
+
     @Test("A divider separates the gradient library from the colour editor")
     func libraryDividerPresent() {
         var ramp = Gradient(colors: [.rgb(255, 0, 0), .rgb(0, 0, 255)])
