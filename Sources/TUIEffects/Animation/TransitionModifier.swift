@@ -135,9 +135,11 @@ extension View {
     /// directly — a view's whole `body`, a modifier's content — fades out
     /// whatever it holds. Written on a branch, a case or a row,
     /// `.transition(.opacity)` fades it out as well. In a lazy stack, a
-    /// `Grid`, a `List` and a `Table`, which keep no memory of their children,
-    /// a branch, a case and a row come at once too; an `if`'s view fades there
-    /// both ways.
+    /// `Grid`, a `List` and a `Table` a branch, a case and a row fade in too,
+    /// and an `if`'s view fades there both ways. A row's own removal plays in
+    /// a lazy stack, drawn over the rows, which have taken its room at once,
+    /// and in a `Grid`; in a `List` and a `Table`, which compose their rows as
+    /// lines, it goes at once.
     ///
     /// ## What does not play its transition
     ///
@@ -169,8 +171,8 @@ extension View {
     /// - A view with no `nil` to stand in for it — the branch an `if`/`else`
     ///   leaves, a `switch`'s case, a `ForEach`'s row, the views of an `if`
     ///   holding several — whose transition has a modifier outside it that
-    ///   draws, as above, or that is in a lazy stack, a `Grid`, a `List` or a
-    ///   `Table`. Nothing keeps a picture of the whole to fade.
+    ///   draws, as above, or that is in a `List` or a `Table`. Nothing keeps a
+    ///   picture of the whole to fade.
     ///
     /// - Parameter transition: How to come and go.
     /// - Returns: A view that transitions.

@@ -225,8 +225,12 @@ mean every container keeping what each of its children drew from one frame to
 the next, which cost too much on frames where nothing animates. An `if` that is
 a view's whole `body` fades out whatever it holds. Write `.transition(.opacity)`
 on a branch, a case or a row to have it fade out as well. In a lazy stack, a
-`Grid`, a `List` and a `Table` a branch, a case and a row change at once both
-ways; an `if`'s view fades there too.
+`Grid`, a `List` and a `Table` a branch, a case and a row fade in too, and an
+`if`'s view fades both ways. A row with a `.transition` of its own plays its
+removal in a lazy stack and a `Grid`; in a `List` and a `Table`, which draw
+their rows as lines, it goes at once. A row that only scrolls into view, or
+that a removal above it brings into view, is not an arrival, and is drawn as
+it is.
 
 A ``Transition`` of your own describes the view at each ``TransitionPhase`` with
 ordinary modifiers, and what animates is each modifier's value between one phase
