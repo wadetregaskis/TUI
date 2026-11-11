@@ -51,7 +51,7 @@ func renderMenuPopup(
     // the hug below is the width of a picture the render never draws. A
     // `Toggle` is exactly that row: a checkbox on the page, a menu item with a
     // state mark here.
-    controller.sink.beginPass()
+    controller.beginRenderPass()
     var rowContext = context
     rowContext.environment.menuRowSink = controller.sink
     rowContext.environment.menuHighlightedOrdinal = controller.highlightedOrdinal

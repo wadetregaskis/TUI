@@ -1,0 +1,7 @@
+macOS Version 15.8.3 (Build 24H241)
+down-from-nothing: open: none | down: One | up: One | up: One
+up-from-nothing: open: none | up: More > none | down: More > none | down: More > none
+down-to-the-end: open: none | down: One | down: Two | down: Three | down: More > none | down: More > none
+submenu: open: none | up: More > none | right: More > S1 | down: More > S2 | left: More > S2 | left: More > S2 | right: More > S1 | right: More > S1
+up-from-first, no disabled row: open: none | down: One | up: One | up: One
+across-from-nothing: open: none | left: none | right: none

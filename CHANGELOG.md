@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A menu the keyboard opens shows its first enabled item highlighted at once.** A menu whose first item was disabled
+— the Edit menu's Undo with nothing to undo — opened from F10 or by an arrow with no item highlighted, though Return
+already chose the first enabled one, and a Down from there skipped it. The first enabled item is now lit on the frame
+that opens the menu, past disabled items and dividers, as on a Mac: in the menu bar, a pop-up `Menu`, a context menu,
+a toolbar pull-down and a submenu entered with →.
+
 **`handOffTerminal(running:arguments:)` starts a program for a hand-off, and says how it ended.** It starts the
 program as an interactive one must be — in the app's process group, every signal at its default, with `posix_spawn`
 rather than Foundation's `Process`, whose group of its own stops an editor as it reads the keyboard — and returns

@@ -105,6 +105,34 @@ final class MenuRowSink {
     func beginPass() {
         claims.removeAll(keepingCapacity: true)
         rows.removeAll(keepingCapacity: true)
+        firstEnabledRow = nil
+    }
+
+    // MARK: The first row a keyboard-opened menu highlights
+
+    /// Whether the first enabled row to render this pass takes the highlight:
+    /// set by a menu the keyboard just opened
+    /// (``MenuPopupController/opened(withSelection:)``), which cannot know
+    /// before its rows render which of them is the first it may rest on — a
+    /// disabled row or a divider may lead, and either may have changed since
+    /// the menu was last open (the Edit menu's Undo, disabled with nothing to
+    /// undo).
+    ///
+    /// Decided while the rows draw, NOT after: the highlight moved to the first
+    /// enabled row once the frame had drawn left that frame with no row lit,
+    /// so a menu opened by the keyboard showed nothing highlighted until the
+    /// next key (the owner, 2026-11-10).
+    var highlightsFirstEnabledRow = false
+
+    /// The row that took the highlight under ``highlightsFirstEnabledRow``.
+    private(set) var firstEnabledRow: Int?
+
+    /// Whether the row at `ordinal` takes the highlight as the first enabled
+    /// row to render — the same answer on every pass of the frame.
+    func takesFirstHighlight(ordinal: Int, isEnabled: Bool) -> Bool {
+        guard highlightsFirstEnabledRow, isEnabled else { return false }
+        if firstEnabledRow == nil { firstEnabledRow = ordinal }
+        return firstEnabledRow == ordinal
     }
 }
 
@@ -218,24 +246,48 @@ package final class MenuPopupController {
     ///   else to point with. From the unhighlighted state the first Down takes
     ///   the first row and the first Up the last.
     ///
-    /// The first row is the first known selectable ordinal when this menu has
-    /// been open before and `0` when it has not — and ordinal 0 is the first
-    /// BUTTON either way, since only a Button claims one. A leading `Divider`
-    /// costs nothing; a leading `.disabled()` row is caught by
-    /// ``MenuHighlight/adopt(selectable:)`` as soon as the frame draws.
+    /// The first row is the first ENABLED one, found as the rows draw
+    /// (``MenuRowSink/highlightsFirstEnabledRow``): a leading `Divider` or
+    /// `.disabled()` row is passed over, as macOS passes over them (measured
+    /// on 15.8, `Tools/SwiftUIProbes/Menu keyboard walk (1110E)`), and the
+    /// frame that opens the menu draws it lit. Until then nothing is
+    /// highlighted, but the menu counts as entered (``isEntered``).
     package func opened(withSelection: Bool) {
         closeSubmenu()
-        highlight.move(to: withSelection ? (highlight.selectable.first ?? 0) : nil)
+        highlight.move(to: nil)
+        highlightsFirstRow = withSelection
     }
 
     /// Records that the menu has closed, and any submenu open from it.
     package func closed() {
         closeSubmenu()
         highlight.move(to: nil)
+        highlightsFirstRow = false
     }
 
-    /// Takes the ordinals the frame just published.
+    /// Whether the next render highlights the first enabled row: the keyboard
+    /// opened the menu, and no key has moved the highlight since.
+    private var highlightsFirstRow = false
+
+    /// Whether the keyboard is in this menu: a row is highlighted, or will be
+    /// as soon as the rows draw (``opened(withSelection:)``).
+    var isEntered: Bool { highlightedOrdinal != nil || highlightsFirstRow }
+
+    /// Arms the rows' channel for the pass about to draw: the first enabled
+    /// row takes the highlight where the keyboard opened the menu and no key
+    /// has highlighted a row since.
+    func beginRenderPass() {
+        sink.beginPass()
+        sink.highlightsFirstEnabledRow = highlightsFirstRow && highlightedOrdinal == nil
+    }
+
+    /// Takes the ordinals the frame just published, and the first enabled row
+    /// as the highlight where it took it.
     func adoptRenderedRows() {
+        if highlightsFirstRow {
+            highlightsFirstRow = false
+            if highlightedOrdinal == nil, let first = sink.firstEnabledRow { highlight.move(to: first) }
+        }
         highlight.adopt(selectable: sink.selectableOrdinals)
     }
 
@@ -322,7 +374,7 @@ package final class MenuPopupController {
     /// it, when its first row is highlighted.
     func openSubmenu(at ordinal: Int, withSelection: Bool) {
         if let open = openSubmenu, open.ordinal == ordinal {
-            if withSelection, open.controller.highlightedOrdinal == nil {
+            if withSelection, !open.controller.isEntered {
                 open.controller.opened(withSelection: true)
             }
             return
@@ -358,7 +410,7 @@ package final class MenuPopupController {
     /// with the menu it opened from.
     var keyboardChain: [MenuPopupController] {
         var chain = [self]
-        while let open = chain[chain.count - 1].openSubmenu, open.controller.highlightedOrdinal != nil {
+        while let open = chain[chain.count - 1].openSubmenu, open.controller.isEntered {
             chain.append(open.controller)
         }
         return chain

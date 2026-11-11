@@ -546,10 +546,14 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         context.stateStorage?.markActive(context.identity)
         // A submenu's row publishes the submenu it opens with its ordinal
         // (`_MenuSubmenuRow`); every other row, `nil`.
-        context.environment.menuRowSink?.publish(
+        let sink = context.environment.menuRowSink
+        sink?.publish(
             ordinal: menuOrdinal, action: action, isEnabled: !isDisabled,
             submenu: context.environment.menuSubmenu)
+        // A menu the keyboard just opened lights its first enabled row as the
+        // row draws (`MenuRowSink.highlightsFirstEnabledRow`).
         return menuOrdinal == context.environment.menuHighlightedOrdinal
+            || sink?.takesFirstHighlight(ordinal: menuOrdinal, isEnabled: !isDisabled) == true
     }
 
     /// Everything a pass works out before it asks the style for anything.

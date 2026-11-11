@@ -661,8 +661,8 @@ so does a handler of your page's that takes F10 (`onKeyEvent`, `onKeyPress`).
 
 In the bar mode the keyboard walks the titles with every menu closed, and each
 title's letter is underlined. ← and → light the title before or after, round
-the ends; ↓, ↑, Return and Space open the lit title's menu, its first item
-highlighted; and a title's letter opens its menu, without ⌥. Escape, F10 and
+the ends; ↓, ↑, Return and Space open the lit title's menu, its first enabled
+item highlighted; and a title's letter opens its menu, without ⌥. Escape, F10 and
 any other key leave the bar mode, and the page doesn't hear the key, unless it
 is a Control chord: that goes on once the mode is gone, as it goes past an
 open menu, so a command's shortcut fires and ⌃Q quits.
