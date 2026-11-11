@@ -1355,3 +1355,19 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-10.
 - **Was:** written here.
 - **Cited by:** `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (T12).
+
+### Tab into rows off screen (1110F)
+
+- **Asks:** where Tab goes when the next control is below the visible area: rows of text fields in a 300 × 200
+  point key window, the first focused, Tab sent through the window sixteen times (`NSWindow.sendEvent`), the focused
+  row and the scroll view's clip origin printed after each. Four containers: a `ScrollView` of a `LazyVStack`, of a
+  `VStack`, a `Form` in `.formStyle(.grouped)` and one in `.formStyle(.columns)`.
+- **Files:** `tab.swift` (`swiftc -parse-as-library`), `tab.out`.
+- **Answers:** a lazy stack made 7 of its 60 fields, and Tab walks those 7 and wraps to the first: it never reaches
+  a row not yet made, and nothing scrolls. An eager stack's Tab walks on into the rows below; the clip origin stayed
+  at 0 throughout. A grouped form's Tab walks on and scrolls each row in at the bottom edge (37 points a row). A
+  columns form makes no scroll view at all: Tab walks on into rows the window cuts off.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-11.
+- **Was:** written here.
+- **Cited by:** `Documentation/Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md` (FORM-SCROLL,
+  LAZY-TAB); `Tests/TUIIntegrationTests/FormGroupedScrollTests.swift`.

@@ -1,0 +1,65 @@
+macOS Version 15.8.3 (Build 24H241)
+lazy (60 rows, 7 fields made at first)
+  start: row 0 y=0
+  tab 1: row 1 y=0
+  tab 2: row 2 y=0
+  tab 3: row 3 y=0
+  tab 4: row 4 y=0
+  tab 5: row 5 y=0
+  tab 6: row 6 y=0
+  tab 7: row 0 y=0
+  tab 8: row 1 y=0
+  tab 9: row 2 y=0
+  tab 10: row 3 y=0
+  tab 11: row 4 y=0
+  tab 12: row 5 y=0
+  tab 13: row 6 y=0
+  tab 14: row 0 y=0
+  tab 15: row 1 y=0
+  tab 16: row 2 y=0
+eager (60 rows, 60 fields made at first)
+  start: row 0 y=0
+  tab 1: row 1 y=0
+  tab 2: row 2 y=0
+  tab 3: row 3 y=0
+  tab 4: row 4 y=0
+  tab 5: row 5 y=0
+  tab 6: row 6 y=0
+  tab 7: row 7 y=0
+  tab 8: row 8 y=0
+  tab 9: row 9 y=0
+  tab 10: row 10 y=0
+  tab 11: row 11 y=0
+  tab 12: row 12 y=0
+  tab 13: row 13 y=0
+  tab 14: row 14 y=0
+  tab 15: row 15 y=0
+  tab 16: row 16 y=0
+grouped (30 rows, 30 fields made at first)
+  start: row 0 y=0
+  tab 1: row 1 y=0
+  tab 2: row 2 y=0
+  tab 3: row 3 y=0
+  tab 4: row 4 y=0
+  tab 5: row 5 y=42
+  tab 6: row 6 y=79
+  tab 7: row 7 y=116
+  tab 8: row 8 y=153
+  tab 9: row 9 y=190
+  tab 10: row 10 y=227
+  tab 11: row 11 y=264
+  tab 12: row 12 y=301
+columns (30 rows, 30 fields made at first)
+  start: row 0 none
+  tab 1: row 1 none
+  tab 2: row 2 none
+  tab 3: row 3 none
+  tab 4: row 4 none
+  tab 5: row 5 none
+  tab 6: row 6 none
+  tab 7: row 7 none
+  tab 8: row 8 none
+  tab 9: row 9 none
+  tab 10: row 10 none
+  tab 11: row 11 none
+  tab 12: row 12 none
