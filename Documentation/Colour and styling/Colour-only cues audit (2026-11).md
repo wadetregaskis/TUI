@@ -67,7 +67,7 @@ channels' arrows rest in the grey a disabled slider's do.
 | ProgressView `.block` | filled against empty | accent `█` on the track's fill | lightness |
 | ProgressView, indeterminate | running | sweeps or pulses | motion |
 | Gauge `.shade` | fill | `▓ ░` | glyph |
-| Gauge, circular | arc | lit arc, number in the centre | lightness, and the number |
+| Gauge, circular | arc | lit arc, number in the centre | lightness, and the number; under DWC, at no colour and where the depth draws the accent as the ring's grey, the lit cells in heavy lines (2026-11-11: before that, a ring with no number said nothing there) |
 | Notification | severity | `i ✓ ! ✗` | glyph |
 | Segmented Picker | selected / cursor / disabled | bold / fill / grey | attribute / lightness / lightness; under DWC, disabled faint |
 | TabView | active tab / focus / disabled | bold / breath / faint | attribute / motion / attribute, at every depth (2026-11-10: before that, nothing at a colour depth; the strip greys only a tab disabled on its own); under DWC, reversed |

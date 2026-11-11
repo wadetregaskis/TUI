@@ -559,6 +559,13 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
             }
             colorAt["\(cell.r),\(cell.c)"] = colour
         }
+        // Without colour, or where the accent draws as the ring's grey at the
+        // terminal's depth, the lit cells say so by their glyph: otherwise the
+        // ring was the same at every value, and one with no value label said
+        // nothing at all.
+        if context.statesWithoutColor || context.drawsAsResting(accent, dim) {
+            GaugeRingGlyphs.light(&glyphs, along: perimeter, isOn: isOn, ascii: context.textSpelling.isASCII)
+        }
 
         var lines: [String] = []
         var claims: [OpacityRegion] = []
@@ -665,6 +672,34 @@ private enum GaugePieDial {
     static func glyph(for fraction: Double, ascii: Bool = false) -> Character {
         let index = min(glyphs.count - 1, max(0, Int((fraction * 4).rounded())))
         return (ascii ? asciiGlyphs : glyphs)[index]
+    }
+}
+
+/// A ring dial's lit cells where they are told apart by glyph rather than
+/// colour (``RenderContext/statesWithoutColor``): each light line's heavy one,
+/// and in ASCII, where the two fold alike, `=` along the top and bottom and `#`
+/// elsewhere. A free helper because `_GaugeCore` is generic.
+private enum GaugeRingGlyphs {
+    /// `glyphs` with each cell of `perimeter` that `isOn` in its lit form.
+    static func light(
+        _ glyphs: inout [[Character]], along perimeter: [(r: Int, c: Int)], isOn: [Bool], ascii: Bool
+    ) {
+        for (index, cell) in perimeter.enumerated() where isOn[index] {
+            glyphs[cell.r][cell.c] = lit(glyphs[cell.r][cell.c], ascii: ascii)
+        }
+    }
+
+    static func lit(_ glyph: Character, ascii: Bool) -> Character {
+        if ascii { return glyph == "─" ? "=" : "#" }
+        switch glyph {
+        case "╭": return "┏"
+        case "╮": return "┓"
+        case "╰": return "┗"
+        case "╯": return "┛"
+        case "─": return "━"
+        case "│": return "┃"
+        default: return glyph
+        }
     }
 }
 

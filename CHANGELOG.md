@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A circular `Gauge` shows its value without colour.** The lit part of `.accessoryCircular`'s and
+`.accessoryCircularCapacity`'s ring was the accent and nothing else, so without colour, or where the terminal's colours
+round the accent onto the ring's grey, the ring looked the same at every value, and one without a value label said
+nothing. There, and under Differentiate Without Color, the lit cells are now drawn in heavy lines (`#` and `=` under
+`TUI_PLAIN_TEXT`).
+
 **Under `TUI_PLAIN_TEXT`, a tiny circular gauge shows how full it is.** `.accessoryCircularTiny`'s dial was blank at a
 quarter, a half and three quarters, and `o` both empty and full. It is now `.` `:` `+` `*` `#` from empty to full.
 

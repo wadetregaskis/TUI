@@ -263,6 +263,28 @@ struct GaugeSpeedometerOriginTests {
             colourCodes(bottom).count > colourCodes(top).count,
             "the bottom row carries the accent at low fill; top: \(top.debugDescription) bottom: \(bottom.debugDescription)")
     }
+
+    /// The lit cells were the accent and nothing else, so without colour the
+    /// ring was the same at every value, and a ring with no value label said
+    /// nothing at all.
+    @Test("Without colour the lit cells of a ring are drawn in heavy lines")
+    func litCellsWithoutColour() {
+        func heavyCells(_ style: some GaugeStyle, _ fraction: Double) -> Int {
+            let lines = ColorDepth.withCurrent(.noColor) {
+                renderToBuffer(
+                    Gauge(value: fraction) { EmptyView() }.gaugeStyle(style),
+                    context: makeRenderContext(width: 30, height: 6)
+                ).lines.map(\.stripped)
+            }
+            return lines.joined().filter { "┏┓┗┛━┃".contains($0) }.count
+        }
+        #expect(heavyCells(.accessoryCircular, 0.4) == 1, "one cell marks the position")
+        #expect(heavyCells(.accessoryCircular, 0.9) == 1)
+        let low = heavyCells(.accessoryCircularCapacity, 0.25)
+        let high = heavyCells(.accessoryCircularCapacity, 0.75)
+        #expect(low > 0 && high > low, "the lit arc grows with the value: \(low), \(high)")
+        #expect(heavyCells(.accessoryCircularCapacity, 0) == 0)
+    }
 }
 
 // MARK: - Custom styles
