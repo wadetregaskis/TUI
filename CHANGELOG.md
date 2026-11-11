@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Every segment of a segmented picker answers the pointer.** The segment under the pointer shows it as a button
+does, on a hovered face; before, only its label's ink changed, and on most terminals that showed nothing. With the
+focus following the pointer, a move onto any segment, or onto any option of a radio group, focuses the picker; before,
+only the one under its cursor did. The Settings panel's tab strip is one.
+
 **The Example keeps its palette and control style.** The palette chosen in View ▸ Palette, on the Theme page or with
 ⇧F2, and the control style, are the ones the next launch starts in, kept with `@AppStorage` as an app keeps its own
 choices. An edit of a single colour lasts the run.

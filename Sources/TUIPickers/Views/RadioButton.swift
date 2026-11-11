@@ -589,16 +589,8 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
             // Already the undoable binding, from above.
             let captureSelection = selection
             let captureHoveredIndexBox = hoveredIndexBox
-            // Tag only the currently-focused item's region with
-            // the group's focus ID so ScrollView's snap-to-focus
-            // anchors on the right radio button — not whichever
-            // one happens to come first. Arrow-key navigation
-            // changes handler.focusedIndex; the next render
-            // moves the tag to the new item, and the snap
-            // follows. Items that aren't currently focused get
-            // a nil focusID — the surrounding ScrollView's
-            // hit-test region falls through cleanly because
-            // mismatched IDs are skipped.
+            // The options' own regions carry no focus id: the group's
+            // goes on inert regions behind them (below the loop).
             for (index, region) in itemRegions.enumerated() {
                 let mouseHandlerID = mouseDispatcher.register(in: context) { event in
                     switch event.phase {
@@ -632,18 +624,41 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                 mouseDispatcher.fileClickRecognizer(.plain, for: mouseHandlerID, in: context)
                 buffer.hitTestRegions.append(
                     HitTestRegion(
-                        offsetX: region.x,
-                        offsetY: region.y,
-                        width: region.width,
-                        height: 1,
-                        handlerID: mouseHandlerID,
-                        focusID: index == handler.focusedIndex ? captureFocusID : nil
-                    )
-                )
+                        offsetX: region.x, offsetY: region.y, width: region.width, height: 1,
+                        handlerID: mouseHandlerID))
             }
+            Self.publishFocusRegions(
+                to: &buffer, itemRegions: itemRegions, cursor: handler.focusedIndex, focusID: captureFocusID,
+                dispatcher: mouseDispatcher, context: context)
         }
 
         return buffer
+    }
+
+    /// Behind the options, inert regions carrying the group's focus id, one per
+    /// option, the cursor's first: the first region carrying it is what a
+    /// reveal within the group and the terminal's text cursor go to, so a
+    /// scroll view's snap-to-focus anchors on the option the keys are on; the
+    /// union is the group a reveal of it just arrived at shows; and the focus
+    /// following the pointer finds the group under any option, not only the
+    /// cursor's. Passive: a press goes to the option in front.
+    @MainActor
+    private static func publishFocusRegions(
+        to buffer: inout FrameBuffer, itemRegions: [(x: Int, y: Int, width: Int)], cursor: Int, focusID: String,
+        dispatcher: MouseEventDispatcher, context: RenderContext
+    ) {
+        let inert = dispatcher.registerPassive(in: context) { _ in false }
+        let order =
+            itemRegions.indices.contains(cursor)
+            ? [cursor] + itemRegions.indices.filter { $0 != cursor } : Array(itemRegions.indices)
+        buffer.hitTestRegions.insert(
+            contentsOf: order.map { index in
+                let region = itemRegions[index]
+                return HitTestRegion(
+                    offsetX: region.x, offsetY: region.y, width: region.width, height: 1, handlerID: inert,
+                    focusID: focusID)
+            },
+            at: 0)
     }
 
     /// The items as one buffer, and where each option's own row sits within it.

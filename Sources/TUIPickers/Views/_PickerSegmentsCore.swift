@@ -238,8 +238,12 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                 isHovered: !isDisabled && (index == hoverBox.value || index == springLoading), isDisabled: isDisabled)
             let label = segmentLabel(option.label, isSelected: isSelected, effect: effect)
             let start = row.cells
+            // A segment under the pointer is drawn on a hovered button's face,
+            // so every segment answers the pointer as a button does; a face of
+            // lines has no field, and its label is lifted instead (`labelInk`).
+            let segmentField = segment.isHovered && field != nil ? palette.hoveredControlFace : field
             drawSegment(
-                label, as: segment, index: index, field: field, padding: padding, into: &row, runs: &runs,
+                label, as: segment, index: index, field: segmentField, padding: padding, into: &row, runs: &runs,
                 context: context)
             // The caps belong to the segments beside them, so the whole face
             // but its rules is somewhere to click.
@@ -328,7 +332,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                 : RowBackground.focused(in: context, palette: palette)) : nil
 
         var labelContext = Self.labelContext(index: index, in: context)
-        if let ink = labelInk(for: segment, isMarked: isMarked, face: face, context: context) {
+        if let ink = labelInk(for: segment, isMarked: isMarked, face: face, hasField: field != nil, context: context) {
             labelContext = labelContext.settingNotedEnvironment(
                 \.foregroundStyle, to: labelContext.environment.foregroundStyle.keepingShadows(on: .color(ink)), paint: true)
         }
@@ -372,8 +376,13 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
     ///   environment states a colour of its own, which a resting label keeps.
     ///
     /// Each on the face is floored for contrast against it, as a button's
-    /// label is, and lifted under the pointer.
-    private func labelInk(for segment: Segment, isMarked: Bool, face: Color, context: RenderContext) -> Color? {
+    /// label is. Under the pointer a face with a field shows the hover in its
+    /// fill (``Palette/hoveredControlFace``), and the label is lifted only
+    /// where that fill cannot show (``Palette/hoveredLabel(_:)``); a face of
+    /// lines has no field, so its label is lifted, as an outline button's is.
+    private func labelInk(
+        for segment: Segment, isMarked: Bool, face: Color, hasField: Bool, context: RenderContext
+    ) -> Color? {
         let palette = context.environment.palette
         if segment.isDisabled {
             return palette.foregroundTertiary
@@ -393,14 +402,23 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             resting = palette.foregroundSecondary.ensuringRenderedContrast(
                 atLeast: ViewConstants.labelContrastFloor, against: face)
         }
-        return segment.isHovered ? palette.hoveredLabel(resting) : resting
+        guard segment.isHovered else { return resting }
+        return hasField ? palette.hoveredLabel(resting) : palette.hoveredForeground(resting)
     }
 
     // MARK: - Pointer
 
-    /// One region per segment: the pointer lifts the label it is over, and a
-    /// click chooses that segment and focuses the control. Each is a
+    /// One region per segment: the pointer shows on the segment it is over,
+    /// and a click chooses that segment and focuses the control. Each is a
     /// spring-load target too, under `.enabled` — as a `Button` is.
+    ///
+    /// Behind them, two regions carrying the picker's focus id, as a colour
+    /// grid's are (`Color256Grid.publishRevealRegions`): the cursor's segment
+    /// first, the region a reveal within the control and the terminal's text
+    /// cursor go to, then the whole strip, which a reveal of the control just
+    /// arrived at takes, and in which the focus following the pointer finds
+    /// the picker under any segment or rule. Passive and inert: they are there
+    /// to be found, and a press goes to the segment in front of them.
     @MainActor
     private func attachMouse(
         to buffer: inout FrameBuffer, regions: [(x: Int, width: Int)], tags: [SelectionValue],
@@ -438,11 +456,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             // A click: a release off it chooses nothing (decisions B89).
             dispatcher.fileClickRecognizer(.plain, for: id, in: context)
             buffer.hitTestRegions.append(
-                HitTestRegion(
-                    offsetX: region.x, offsetY: 0, width: region.width, height: 1, handlerID: id,
-                    // The cursor's segment names the control, so a scroll view
-                    // revealing the focus reveals the segment the keys are on.
-                    focusID: index == handler.focusedIndex ? focusID : nil))
+                HitTestRegion(offsetX: region.x, offsetY: 0, width: region.width, height: 1, handlerID: id))
             if springLoads, let session = context.environment.dragAndDropSession {
                 session.registerSpringLoadTarget(
                     DragAndDropSession.SpringLoadTarget(
@@ -450,6 +464,34 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                         activate: { selection.wrappedValue = tag }),
                     in: context)
             }
+        }
+        publishFocusRegions(
+            to: &buffer, regions: regions, cursor: handler.focusedIndex, focusID: focusID, dispatcher: dispatcher,
+            context: context)
+    }
+
+    /// The two regions that name the picker (see `attachMouse`), at the back:
+    /// the cursor's segment, then the whole strip. The cursor's comes first
+    /// because, on one row, both are as tall, and the first is the one the
+    /// reveal within the control and the terminal's text cursor take.
+    @MainActor
+    private func publishFocusRegions(
+        to buffer: inout FrameBuffer, regions: [(x: Int, width: Int)], cursor: Int, focusID: String,
+        dispatcher: MouseEventDispatcher, context: RenderContext
+    ) {
+        guard let first = regions.first, let last = regions.last else { return }
+        let inert = dispatcher.registerPassive(in: context) { _ in false }
+        let strip = HitTestRegion(
+            offsetX: first.x, offsetY: 0, width: last.x + last.width - first.x, height: 1, handlerID: inert,
+            focusID: focusID)
+        buffer.hitTestRegions.insert(strip, at: 0)
+        if regions.indices.contains(cursor) {
+            let segment = regions[cursor]
+            buffer.hitTestRegions.insert(
+                HitTestRegion(
+                    offsetX: segment.x, offsetY: 0, width: segment.width, height: 1, handlerID: inert,
+                    focusID: focusID),
+                at: 0)
         }
     }
 
