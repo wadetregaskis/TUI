@@ -971,6 +971,25 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   area is found, which the frame-as-hit-area rule does not ask for.
 - **Decided:** [B-W1B-3](<../Historical/Shapes, effects and animation/Shapes.md#b-w1b-3-a-content-shape-is-carried-to-the-modifiers-around-it-as-geometry-markers>). **Lane.**
 
+### I12. `sensoryFeedback`'s `.error` and `.warning` ring the bell
+
+- **SwiftUI:** `sensoryFeedback(_:trigger:)` and its `condition:` and closure
+  forms play haptic feedback when the trigger changes; on macOS most kinds
+  play on no hardware ("Only plays feedback on iOS and watchOS", Apple's
+  documentation), `.alignment` and `.levelChange` on a Force Touch trackpad.
+- **TUI:** `.error` and `.warning` ring the terminal's bell, once per change
+  of the trigger the frame sees, never for its first value, and once a frame
+  with every other ring (`\.ringBell`, a control's refused input). Every other
+  kind (`.success`, `.selection`, `.impact`, …) is unavailable, so it fails to
+  compile, its message naming `.error`, `.warning` and `\.ringBell`
+  ([SensoryFeedback.swift](../../Sources/TUIFoundation/Modifiers/SensoryFeedback.swift),
+  `SensoryFeedbackTests`).
+- **Why:** the bell is the one feedback a terminal has, and it says "no": the
+  two kinds that mean something went wrong can say it; a `.success` would say
+  the opposite, and a `.selection` would ring on every arrow.
+- **Decided:** [the owner's decisions of 2026-11-08](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-api-polish-questions-answered-2026-11-10>),
+  BELL. **Owner** (2026-11-10).
+
 ---
 
 ## Text

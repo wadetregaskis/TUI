@@ -65,7 +65,13 @@ private struct Modifiers: View {
             Image(systemName: "globe").imageScale(.large) // expected-error {{'imageScale' is unavailable: A symbol is one character}}
             Image(systemName: "star").symbolRenderingMode(.hierarchical) // expected-error {{'symbolRenderingMode' is unavailable: A symbol is one character}}
             Text("a").onOpenURL { url in print(url) } // expected-error {{'onOpenURL(perform:)' is unavailable: Nothing can send a URL}}
-            Text("a").sensoryFeedback(.success, trigger: on) // expected-error {{'sensoryFeedback(_:trigger:)' is unavailable: A terminal has no haptics}}
+            Text("a").sensoryFeedback(.success, trigger: on) // expected-error {{'success' is unavailable: A terminal can't make this felt. Use .error or .warning, which ring the terminal's bell, or ring it yourself with @Environment(}}
+            Text("a").sensoryFeedback(.selection, trigger: on) // expected-error {{'selection' is unavailable: A terminal can't make this felt}}
+            Text("a").sensoryFeedback(.impact, trigger: on) // expected-error {{'impact' is unavailable: A terminal can't make this felt}}
+            Text("a").sensoryFeedback(.impact(weight: .light), trigger: on) // expected-error {{'impact(weight:intensity:)' is unavailable: A terminal can't make this felt}}
+            Text("a").sensoryFeedback(.impact(flexibility: .soft, intensity: 0.5), trigger: on) // expected-error {{'impact(flexibility:intensity:)' is unavailable: A terminal can't make this felt}}
+            Text("a").sensoryFeedback(.levelChange, trigger: on) { _, newValue in newValue } // expected-error {{'levelChange' is unavailable: A terminal can't make this felt}}
+            Text("a").sensoryFeedback(trigger: on) { _, _ in .increase } // expected-error {{'increase' is unavailable: A terminal can't make this felt}}
         }
         VStack {
             Text("a").accessibilityLabel("x") // expected-error {{'accessibilityLabel(_:isEnabled:)' is unavailable: A terminal has no accessibility tree}}

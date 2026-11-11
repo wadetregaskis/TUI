@@ -442,6 +442,21 @@ private struct TextScaleShapes: View {
     }
 }
 
+/// SwiftUI's sensory feedback in its four forms, with the two kinds a terminal
+/// plays on its bell.
+private struct SensoryFeedbackShapes: View {
+    @State private var attempts = 0
+
+    var body: some View {
+        VStack {
+            Text("a").sensoryFeedback(.error, trigger: attempts)
+            Text("b").sensoryFeedback(.warning, trigger: attempts) { oldValue, newValue in newValue > oldValue }
+            Text("c").sensoryFeedback(trigger: attempts) { _, newValue in newValue > 3 ? .error : nil }
+            Text("d").sensoryFeedback(trigger: attempts) { attempts > 3 ? SensoryFeedback.warning : nil }
+        }
+    }
+}
+
 /// The two font designs a terminal draws, and a system font by style.
 @MainActor
 private struct FontDesignShapes: View {

@@ -2786,6 +2786,9 @@ SelectionShapeStyle | struct SelectionShapeStyle
 SelectionShapeStyle.Resolved | typealias Resolved = Never
 SelectionShapeStyle.init() | init()
 SelectionShapeStyle.paint(in:) | func paint(in environment: EnvironmentValues) -> Paint
+SensoryFeedback | struct SensoryFeedback
+SensoryFeedback.error | static let error: SensoryFeedback
+SensoryFeedback.warning | static let warning: SensoryFeedback
 SeparatorShapeStyle | struct SeparatorShapeStyle
 SeparatorShapeStyle.Resolved | typealias Resolved = Never
 SeparatorShapeStyle.init() | init()
@@ -4071,6 +4074,10 @@ View.scrollbarProportionalThumb(_:) | nonisolated func scrollbarProportionalThum
 View.scrollbarSpacing(_:) | nonisolated func scrollbarSpacing(_ cells: Int) -> some View
 View.scrollbarWidth(_:) | nonisolated func scrollbarWidth(_ cells: Int) -> some View
 View.selectionIndicatorStyle(_:) | nonisolated func selectionIndicatorStyle(_ animation: TextCursorStyle.Animation) -> some View
+View.sensoryFeedback(_:trigger:) | nonisolated func sensoryFeedback<T>(_ feedback: SensoryFeedback, trigger: T) -> some View where T : Equatable
+View.sensoryFeedback(_:trigger:condition:) | nonisolated func sensoryFeedback<T>(_ feedback: SensoryFeedback, trigger: T, condition: @escaping (T, T) -> Bool) -> some View where T : Equatable
+View.sensoryFeedback(trigger:_:) | nonisolated func sensoryFeedback<T>(trigger: T, _ feedback: @escaping () -> SensoryFeedback?) -> some View where T : Equatable
+View.sensoryFeedback(trigger:_:) | nonisolated func sensoryFeedback<T>(trigger: T, _ feedback: @escaping (T, T) -> SensoryFeedback?) -> some View where T : Equatable
 View.shadow(color:radius:x:y:) | nonisolated func shadow(color: Color = Color(.sRGBLinear, white: 0, opacity: 0.33), radius: Int, x: Int = 0, y: Int = 0) -> some View
 View.shiftStepMultiplier(_:) | nonisolated func shiftStepMultiplier(_ factor: Int) -> some View
 View.simultaneousGesture(_:including:) | nonisolated func simultaneousGesture<T>(_ gesture: T, including mask: GestureMask = .all) -> some View where T : Gesture

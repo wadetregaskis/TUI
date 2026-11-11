@@ -233,25 +233,6 @@ extension View {
     @available(*, unavailable, message: "TUI doesn't use Combine. Use a .task, or an @Observable model.")
     @_alwaysEmitIntoClient
     nonisolated public func onReceive<Publisher>(_ publisher: Publisher, perform action: @escaping (Any) -> Void) -> Self { self }
-
-    @available(*, unavailable, message: "A terminal has no haptics, so delete this.")
-    @_alwaysEmitIntoClient
-    nonisolated public func sensoryFeedback<Trigger: Equatable>(_ feedback: SensoryFeedback, trigger: Trigger) -> Self { self }
-
-    @available(*, unavailable, message: "A terminal has no haptics, so delete this.")
-    @_alwaysEmitIntoClient
-    nonisolated public func sensoryFeedback<Trigger: Equatable>(
-        _ feedback: SensoryFeedback,
-        trigger: Trigger,
-        condition: @escaping (Trigger, Trigger) -> Bool
-    ) -> Self { self }
-}
-
-/// The kinds `sensoryFeedback(_:trigger:)` offers, there only for that
-/// modifier's compile error.
-@available(*, unavailable, message: "A terminal has no haptics.")
-public enum SensoryFeedback {
-    case alignment, decrease, error, impact, increase, levelChange, pathComplete, selection, start, stop, success, warning
 }
 
 // MARK: - Accessibility

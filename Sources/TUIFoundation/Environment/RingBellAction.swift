@@ -43,7 +43,8 @@ import TUICore
 /// something that finished while they were looking elsewhere, and posts a
 /// desktop notification where the terminal posts one. This is the
 /// "no" a Mac app says with `NSSound.beep()` when a control refuses a key, and
-/// is never a notification.
+/// is never a notification. SwiftUI's ``View/sensoryFeedback(_:trigger:)``
+/// rings it too, for ``SensoryFeedback/error`` and ``SensoryFeedback/warning``.
 ///
 /// TUI-specific: SwiftUI has no bell, and AppKit's `NSSound.beep()` is not
 /// SwiftUI.

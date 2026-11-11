@@ -99,6 +99,13 @@ the last. It says "no", nothing more: to tell the person that something they
 were waiting for has finished, use ``EnvironmentValues/requestAttention``,
 which posts a desktop notification where the terminal can.
 
+SwiftUI's ``View/sensoryFeedback(_:trigger:)`` rings the same bell, for the two
+kinds that say something went wrong, ``SensoryFeedback/error`` and
+``SensoryFeedback/warning``, when its trigger changes; its `condition:` form
+and the forms whose closure answers a kind or `nil` work as in SwiftUI. The
+other kinds, such as `.success` and `.selection`, fail to compile: a terminal
+cannot make them felt, and a bell would say the opposite.
+
 ### Move, exit and delete commands
 
 ``View/onMoveCommand(perform:)``, ``View/onExitCommand(perform:)`` and

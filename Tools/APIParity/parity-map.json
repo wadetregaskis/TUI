@@ -450,9 +450,28 @@
     },
     {
       "match": [
-        "SensoryFeedback*"
+        "SensoryFeedback.success",
+        "SensoryFeedback.selection",
+        "SensoryFeedback.selection(_:)",
+        "SensoryFeedback.increase",
+        "SensoryFeedback.decrease",
+        "SensoryFeedback.start",
+        "SensoryFeedback.stop",
+        "SensoryFeedback.alignment",
+        "SensoryFeedback.levelChange",
+        "SensoryFeedback.pathComplete",
+        "SensoryFeedback.impact",
+        "SensoryFeedback.impact(weight:intensity:)",
+        "SensoryFeedback.impact(flexibility:intensity:)",
+        "SensoryFeedback.press(_:)",
+        "SensoryFeedback.release(_:)",
+        "SensoryFeedback.Weight*",
+        "SensoryFeedback.Flexibility*",
+        "SensoryFeedback.SelectionFeedback*",
+        "SensoryFeedback.PressFeedback*",
+        "SensoryFeedback.ReleaseFeedback*"
       ],
-      "why": "Haptics need hardware a terminal does not have, and macOS plays most kinds on none either (Apple's documentation: \"Only plays feedback on iOS and watchOS\"; `.alignment` and `.levelChange` play on a Force Touch trackpad). The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8). The rest of this family once declined with it now ships: Spring and every spring animation, spring loading (SpringLoadingBehavior, a paused drag activating a control), and MeshGradient (drawn per cell, or as a picture where the terminal takes one)."
+      "why": "Haptic feedback a terminal cannot make felt: it has no haptics, and no sound of its own choosing, only the bell (BEL), which the terminal sounds, flashes or marks as its user has set it. `sensoryFeedback` and `SensoryFeedback` ship, with `.error` and `.warning` ringing the bell on a trigger change (the owner's ruling BELL, 2026-11-10, decisions of 2026-11-08); these kinds, and the arguments only they take, are refused at compile time with a message naming `.error`, `.warning` and `\\.ringBell`, because the bell says \"no\": a `.success` or `.selection` ringing it would say the opposite of what the program meant, or ring on every arrow. macOS plays most of them on no hardware either (Apple's documentation: \"Only plays feedback on iOS and watchOS\"; ruling O8, 2026-10-12)."
     },
     {
       "match": [
@@ -823,15 +842,6 @@
     },
     "View.sectionIndexLabel(_:)": {
       "why": "Names a section in a list's section index, the A-to-Z strip down an iOS list's edge; macOS has no section index (`listSectionIndexVisibility(_:)` is not in its SDK), so the label is inert there. The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."
-    },
-    "View.sensoryFeedback(_:trigger:)": {
-      "why": "Plays haptic feedback, which needs hardware a terminal does not have (SensoryFeedback's family). The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."
-    },
-    "View.sensoryFeedback(_:trigger:condition:)": {
-      "why": "As `sensoryFeedback(_:trigger:)`: haptics, refused under O8 with SensoryFeedback."
-    },
-    "View.sensoryFeedback(trigger:_:)": {
-      "why": "As `sensoryFeedback(_:trigger:)`: haptics, refused under O8 with SensoryFeedback."
     },
     "View.ignoresSafeArea(_:edges:)": {
       "why": "There is no safe area here to ignore: `safeAreaInset` puts its bar beside the view rather than growing a safe area under it, and the real safe area (SA-B) is not built (decisions B6, decided 2026-10-12; deviation L10). Refused so code that relies on reaching under a bar fails to compile rather than silently stopping at it."

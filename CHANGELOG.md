@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`sensoryFeedback` rings the bell for `.error` and `.warning`.** SwiftUI's `sensoryFeedback(_:trigger:)`, its
+`condition:` form and the forms whose closure answers a `SensoryFeedback?` used to fail to compile. They now ring the
+terminal's bell when the trigger changes, for the two kinds that say something went wrong; every other kind
+(`.success`, `.selection`, `.impact`, …) still fails to compile, with a message naming `.error`, `.warning` and
+`\.ringBell`, because a terminal can't make it felt and a bell would say the opposite.
 **`\.ringBell` rings the terminal's bell, to say input was refused.** TUI's own controls ring it when they turn
 input away; a control of your own, an `onKeyPress` that takes a key it can do nothing with, now does the same with
 `@Environment(\.ringBell) var ringBell` and `ringBell()`, instead of `requestAttention("")`. It rings with the next
