@@ -248,7 +248,8 @@ struct TablePage: View {
                 browserEntries,
                 selection: $singleSelection
             ) {
-                TableColumn("", value: \BrowserEntry.icon)
+                // The emoji, or its type letter where its name is spelled out.
+                TableColumn("") { (entry: BrowserEntry) in BrowserEntryIcon(entry: entry) }
                     .width(2)
                 // `.fit` sizes the Name column to its widest entry.
                 TableColumn("page.table.column.name", value: \BrowserEntry.name)

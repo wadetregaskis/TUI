@@ -43,6 +43,11 @@ struct BrowserEntry: Identifiable, Sendable {
         }
     }
 
+    /// The type a long listing writes, `d` a folder (or the parent) and `f`
+    /// a file, as a file panel's icons are where text is spelled in ASCII:
+    /// the icon where its emoji has no room (``BrowserEntryIcon``).
+    var typeLetter: String { isDirectory ? "d" : "f" }
+
     /// A short type label for the Table's Type column.
     var typeLabel: String {
         switch kind {
@@ -51,6 +56,25 @@ struct BrowserEntry: Identifiable, Sendable {
         case .file:
             let ext = (name as NSString).pathExtension
             return ext.isEmpty ? "File" : ext
+        }
+    }
+}
+
+/// A row's icon in a column two cells wide: its emoji, or where that has no
+/// room its type letter (``BrowserEntry/typeLetter``).
+///
+/// Under `TUI_PLAIN_TEXT=transliterate` an emoji is spelled by its name, and
+/// `:file_folder:` cut to two cells read `:.`. A file panel draws `d`, `l` and
+/// `f` there instead (`FilePanelIcon.letters`); an app asks whether the icon
+/// fits, which is the same question in public API: the emoji always fits its
+/// two cells, and only its spelled name does not.
+struct BrowserEntryIcon: View {
+    let entry: BrowserEntry
+
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            Text(verbatim: entry.icon)
+            Text(verbatim: entry.typeLetter)
         }
     }
 }
