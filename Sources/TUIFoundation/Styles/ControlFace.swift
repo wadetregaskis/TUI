@@ -26,7 +26,7 @@ package enum ControlFace {
         _ButtonAppearance.default.sized(
             environment.controlSize, shape: environment.buttonBorderShape,
             family: ButtonFaceFamily(environment),
-            raster: SolidRaster(environment),
+            raster: SolidRaster(environment), spellsASCII: environment.textSpelling.isASCII,
             segment: environment.isControlSegment)
     }
 

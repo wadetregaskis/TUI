@@ -15,9 +15,11 @@ extension TerminalSymbols {
     ///
     /// Two kinds:
     /// - **Forms chosen where the glyph is drawn**, wider than the glyph they
-    ///   stand for, so the view lays out around them: a radio button's `(*)`
-    ///   for its one-cell `●`. A view reads them where it would read the glyph,
-    ///   when its context spells text in ASCII (`TextSpelling.isASCII`). A
+    ///   stand for, so the view lays out around them, or a glyph whose meaning
+    ///   there differs from its shape: a radio button's `(*)` for its one-cell
+    ///   `●`, a control's `[ ]` for its half-block ends. A view reads them
+    ///   where it would read the glyph, when its context spells text in ASCII
+    ///   (`TextSpelling.isASCII`). A
     ///   toggle's `[x]` is ``ToggleCharacterSet``'s own `.ascii`, and a
     ///   spinner's frames are its style's: each is chosen at the point that
     ///   already chooses those glyphs.
@@ -43,6 +45,19 @@ extension TerminalSymbols {
         /// its label does.
         package static let radioDisabledUnselected = "( )"
 
+        /// A control's opening end, `[`, where the glyph is the half block
+        /// ``TerminalSymbols/openCap`` (`▐`): a button's, a text field's, a
+        /// segmented picker's or a tab chip's.
+        ///
+        /// Chosen where the ends are drawn, not by the folding: there `▐` is a
+        /// block, `#`, as it must be in a Canvas or a picture, and a control
+        /// walled in `#` does not read as one.
+        package static let openCap: Character = "["
+
+        /// A control's closing end, `]`, where the glyph is
+        /// ``TerminalSymbols/closeCap`` (`▌`).
+        package static let closeCap: Character = "]"
+
         /// `scalar` as ASCII in the cells it takes, or `nil` where the
         /// framework draws nothing like it.
         package static func spelling(of scalar: Unicode.Scalar) -> String? {
@@ -65,10 +80,10 @@ extension TerminalSymbols {
                 // their names: one cell has no room for those.
                 ("^", "⌃"),
                 ("o", "●○◉◎◦◯◌"), ("*", "•∙★☆✱"), (".", "·"), ("x", "✓✔✗✘"),
-                // The half blocks a field's, a button's and a picker's ends are
-                // drawn in, `▐ text ▌`: as brackets they still close the
-                // control, where `#` made a wall of each end.
-                ("[", "▐"), ("]", "▌"),
+                // Not the half blocks `▐ ▌`, which are `#` as every block is: a
+                // half block is a shape, which a Canvas cell, a picture's glyph
+                // and a track's fill are drawn in too. A control whose ends they
+                // are draws its own brackets where it draws them (``openCap``).
                 // Brackets, as an app or a button's `.brackets` shape draws
                 // them: their ASCII counterparts, where `Latin-ASCII` has none.
                 ("(", "❨❪⦅⸨"), (")", "❩❫⦆⸩"), ("<", "⟨〈❬❮⦉⟪⦑"), (">", "⟩〉❭❯⦊⟫⦒"),

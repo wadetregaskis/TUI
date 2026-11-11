@@ -81,10 +81,13 @@ struct FieldChrome {
     ///   - drawsCaps: Whether the control size in force draws a control's end
     ///     caps (``ControlSize/drawsEndCaps``): not at `.mini`, where a field is
     ///     its surface alone, as a mini button is its label alone.
+    ///   - spellsASCII: Whether text is spelled in ASCII (`TUI_PLAIN_TEXT`),
+    ///     where the half-block caps are brackets, `[text]`, as a button's are
+    ///     (``TerminalSymbols/caps(ascii:)``).
     init(
         style: any TextFieldStyle, palette: any Palette, isHovered: Bool,
         on background: Color? = nil, appearance: Appearance, controlStyle: ControlStyle = .automatic,
-        drawsCaps: Bool
+        drawsCaps: Bool, spellsASCII: Bool = false
     ) {
         guard style.drawsFieldSurface else {
             self.width = 0
@@ -123,9 +126,8 @@ struct FieldChrome {
                 isHovered
                 ? Color.lerp(surface, palette.accent.resolve(with: palette), phase: 0.35)
                 : surface
-            let caps = Self.caps(
-                (String(TerminalSymbols.openCap), String(TerminalSymbols.closeCap)), in: capColor.opaqueSpelling,
-                on: nil)
+            let glyphs = TerminalSymbols.caps(ascii: spellsASCII)
+            let caps = Self.caps((String(glyphs.open), String(glyphs.close)), in: capColor.opaqueSpelling, on: nil)
             self.open = caps.open
             self.close = caps.close
             self.capColor = capColor
@@ -140,7 +142,8 @@ struct FieldChrome {
         self.init(
             style: environment.textFieldStyle, palette: environment.palette, isHovered: isHovered,
             on: environment.surfaceBackground, appearance: environment.appearance,
-            controlStyle: environment.controlStyle, drawsCaps: environment.controlSize.drawsEndCaps)
+            controlStyle: environment.controlStyle, drawsCaps: environment.controlSize.drawsEndCaps,
+            spellsASCII: environment.textSpelling.isASCII)
     }
 
     /// The pair of caps last spelled, with everything their bytes are a function of.

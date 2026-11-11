@@ -86,9 +86,11 @@ struct PlainTerminalTextTests {
         #expect(PlainTerminalText.folding("← → ▲ ▼") == "< > ^ v")
         // Control as a caret, as terminals write it, rather than a blank.
         #expect(PlainTerminalText.folding("⌃Q quit") == "^Q quit")
-        // A control's half-block ends as brackets, where both were `#`, and
-        // the brackets an app draws as theirs, where most were blank.
-        #expect(PlainTerminalText.folding("▐ Save ▌") == "[ Save ]")
+        // A half block as the block it is, a Canvas's or a picture's cell as
+        // much as anything: a control whose ends they are draws its own
+        // brackets. And the brackets an app draws as theirs, where most were
+        // blank.
+        #expect(PlainTerminalText.folding("▐▌▀▄█") == "#####")
         #expect(PlainTerminalText.folding("⌜⌟❨❩⟨⟩⟦⟧") == "[]()<>[]")
         // Each radio button's circle, where the empty ones were blank.
         #expect(PlainTerminalText.folding("●◯◌") == "ooo")

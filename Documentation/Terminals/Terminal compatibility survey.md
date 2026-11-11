@@ -7842,7 +7842,8 @@ K3).
   `⌥F` as `Alt-F`): a modifier's name has no room in the one cell its symbol takes. The
   framework's own glyphs have ASCII forms there too (2026-11-10), in one table,
   `TerminalSymbols.ASCII` (TUICore), which the folding reads, and wider ones chosen where
-  drawn: a toggle's `[x]`, a radio button's `(*)`, spinners' frames, a file panel's `d`/`f`/`l`;
+  drawn: a toggle's `[x]`, a radio button's `(*)`, spinners' frames, a file panel's `d`/`f`/`l`,
+  a control's half-block ends `[ ]` (in the table a half block is `#`, as a Canvas's is);
   emoji chrome is off.
   `TUI_PLAIN_TEXT=transliterate` (an experiment, 2026-11-08) also spells text in ASCII
   before layout (`TextTransliteration`, TUIFoundation), so it takes the cells its

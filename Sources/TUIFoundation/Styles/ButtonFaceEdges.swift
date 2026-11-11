@@ -26,7 +26,7 @@ import TUICore
 /// ends where its label does, and shows the focus by breathing the label.
 struct ButtonFaceEdges: Equatable, Sendable {
     /// The cap before the label and the cap after it; `nil` for none.
-    let caps: (open: Character, close: Character)?
+    var caps: (open: Character, close: Character)?
     /// The rows above and below a three-row face; `nil` for a one-row face.
     let ring: Ring?
     /// Whether the face is drawn in lines alone, with no field under the
@@ -260,9 +260,15 @@ extension _ButtonAppearance {
     /// (``EnvironmentValues/isControlSegment``, a ``ControlGroup``'s) has no
     /// caps and one row at any size, as a segmented picker's segment: the
     /// face's ends are drawn round the group.
+    ///
+    /// Where text is spelled in ASCII (`spellsASCII`, `TUI_PLAIN_TEXT`), the
+    /// half-block caps are brackets, `[ OK ]` (``TerminalSymbols/caps(ascii:)``):
+    /// folded at output a half block is `#`, the block it is, and a face
+    /// walled in `#` does not read as a control. The rows of a three-row face
+    /// are its shape, and are left to the folding.
     func sized(
         _ size: ControlSize, shape: ButtonBorderShape, family: ButtonFaceFamily, raster: SolidRaster,
-        segment: Bool = false
+        spellsASCII: Bool, segment: Bool = false
     ) -> Self {
         guard !isPlain else { return self }
         var sized = self
@@ -286,6 +292,11 @@ extension _ButtonAppearance {
         case .braille(let thickness):
             sized.edges = caps ? Self.dotEdges(shape, tall: tall, thickness: thickness) : .bareOutline
             if shape.kind == .circle { sized.horizontalPadding = tall ? 2 : 0 }
+        }
+        if spellsASCII, let glyphs = sized.edges.caps, glyphs.open == TerminalSymbols.openCap,
+            glyphs.close == TerminalSymbols.closeCap
+        {
+            sized.edges.caps = TerminalSymbols.caps(ascii: true)
         }
         return sized
     }

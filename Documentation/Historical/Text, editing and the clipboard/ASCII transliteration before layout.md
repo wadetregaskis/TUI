@@ -137,10 +137,12 @@ deliberate ASCII form. What was built, so each has one:
 
 - **One table** of the framework's shapes in ASCII, `TerminalSymbols.ASCII` (TUICore), beside the glyphs themselves.
   The folding at output reads it (it was `PlainTerminalText`'s private table), and so does the transliteration's new
-  last step (`GlyphSpelling`), so a `▶` is `>` in a `Text` and in a stepper alike. Added to it: a control's half-block
-  ends, `▐ ▌`, as `[ ]` (fields, rounded buttons, pickers and compact tabs were walled in `#`); bracket pairs as their
+  last step (`GlyphSpelling`), so a `▶` is `>` in a `Text` and in a stepper alike. Added to it: bracket pairs as their
   ASCII counterparts (`⌜⌟` `[]`, `❨❩` `()`, `⟨⟩` `<>`, `⟦⟧` `[]`); the thin edge blocks `▏▕` as `|`; `◯` and `◌` as
-  `o`; the light and medium shades as `.` and `:`, so a `░` track under a `█` fill reads `#####.....`.
+  `o`; the light and medium shades as `.` and `:`, so a `░` track under a `█` fill reads `#####.....`. (For a day the
+  table had the half blocks `▐ ▌` as `[ ]` too, for a control's ends, which made a bracket of every half block: a
+  Canvas's cells, a picture's glyphs, a filled shape's one-row ends. They are `#` there again, and the controls draw
+  their own ends, below.)
 - **Wider forms chosen where the glyph is drawn**, at the point that already chooses it, read when the context spells
   text in ASCII (`TextSpelling.isASCII`):
   - a toggle's marks: `effectiveToggleCharacterSet` answers `.ascii`, `[x]` and `[ ]`, for any set whose marks are not
@@ -157,12 +159,16 @@ deliberate ASCII form. What was built, so each has one:
     `custom` sequence is the app's text and is spelled as its words are.
   - a file panel: a letter in a column of its own, as a long listing writes the type: `d` a folder, `l` an alias, `f`
     anything else, whose differences the extension already tells (`FilePanelIcon.letters`).
-  - a track, a progress bar's, a slider's or a gauge's (`TrackGlyphs`, 2026-11-11): the half blocks as `#`, where the
-    table's control ends made `.bar` read `]]]]]]--------` and ended `.blockFine`'s fill in a bracket; `▬` and `━`
+  - a control's half-block ends, `▐ ▌`, as `[ ]` (2026-11-11), where it draws them: fields, buttons and pop-up
+    pickers, segmented pickers, compact tabs and control groups were walled in `#`. Through the bordered button's cap
+    table (`_ButtonAppearance.sized`, which `ControlEnds` reads) and a text field's chrome, both asking
+    `TerminalSymbols.caps(ascii:)`. A three-row solid face's rows above and below are its shape, and stay `#`.
+  - a track, a progress bar's, a slider's or a gauge's (`TrackGlyphs`, 2026-11-11): `▬` and `━`
     as `=`, so `.dot` has a fill at all and `.knob`'s two rails differ (`=====o-----`); a blank Braille cell as a
     space, where a `.braille` track was dots end to end. The rest is left to the folding. Found by a bug hunt that
     drove each control under `transliterate`; the tracks had been read on the Example's pages with the table in
-    mind, where the brackets look deliberate.
+    mind, where the brackets look deliberate. It wrote the half blocks as `#` too while the table had them as brackets
+    (`.bar` read `]]]]]]--------`); now the table does.
   - a tiny circular gauge's dial (`GaugePieDial.asciiGlyphs`, 2026-11-11): `. : + * #` for `○ ◔ ◑ ◕ ●`, more ink
     for more of the dial, as the `.shade` spinner's frames run. Folded, the quarters were blank, and empty and full
     were both `o`.

@@ -20,6 +20,13 @@ package enum TerminalSymbols {
     /// Left half block (U+258C), used as closing cap for input controls.
     public static let closeCap: Character = "\u{258C}"
 
+    /// The two half-block caps, or, where text is spelled in ASCII
+    /// (`TUI_PLAIN_TEXT`), the brackets a control's ends are there
+    /// (``ASCII/openCap``): what every control that ends in them draws.
+    package static func caps(ascii: Bool) -> (open: Character, close: Character) {
+        ascii ? (ASCII.openCap, ASCII.closeCap) : (openCap, closeCap)
+    }
+
     // MARK: - Quadrants
 
     /// The quadrant glyphs by which quadrants of a cell are inked: bit 0

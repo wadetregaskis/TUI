@@ -83,7 +83,7 @@ struct TransliteratedGlyphTests {
         #expect(Set(frames).count > 1, "\(frames)")
     }
 
-    /// A track as the terminal is sent it: folded at output, `.bar`'s `▌` is a
+    /// A track as the terminal is sent it: folded at output, `.bar`'s `▌` was a
     /// control's closing end, `]`, so the bar read `]]]]]]]]--------`; `.dot`'s
     /// `▬` has no shape and was blank; a Braille track's empty cells were dots
     /// as its fill was; and `.knob`'s rail was `-` on both sides of the knob.
@@ -97,6 +97,37 @@ struct TransliteratedGlyphTests {
         #expect(!line.contains("]") && !line.contains("["), "\(line)")
         #expect(line.first != " ", "the fill is blank: \(line)")
         #expect(line.first != line.last, "the fill reads as the rest of the track: \(line)")
+    }
+
+    /// A control's half-block ends, `▐ … ▌`, are its brackets where it draws
+    /// them, since the folding writes a half block as the `#` it is: a
+    /// button's, a field's, and through `ControlEnds` a segmented picker's, a
+    /// tab chip's and a control group's. As written they are half blocks.
+    @Test("A control's half-block ends are brackets, and only where text is spelled in ASCII")
+    func controlEnds() {
+        let button = drawn(Button("OK") {}).joined()
+        #expect(button.contains("[ OK ]"), "\(button)")
+        let field = drawn(TextField("Name", text: .constant("Ada")).frame(width: 10)).joined()
+        #expect(field.hasPrefix("[Ada") && field.contains("]"), "\(field)")
+        let segments = PlainTerminalText.folding(
+            drawn(
+                Picker("", selection: .constant(1)) {
+                    Text("S").tag(1)
+                    Text("M").tag(2)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+            ).joined())
+        #expect(segments.contains("[ S | M ]"), "\(segments)")
+
+        var environment = EnvironmentValues()
+        let asWritten = ControlEnds(in: environment)
+        #expect((asWritten.open, asWritten.close) == ("▐", "▌"))
+        environment.textSpelling = .ascii(.standard)
+        let ascii = ControlEnds(in: environment)
+        #expect((ascii.open, ascii.close) == ("[", "]"))
+        let written = renderToBuffer(Button("OK") {}, context: makeRenderContext(width: 40, height: 8))
+        #expect(written.lines.map(\.stripped).joined().contains("▐ OK ▌"))
     }
 
     /// Folded at output, the dial's quarters `◔ ◑ ◕` have no shape and were

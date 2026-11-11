@@ -132,7 +132,8 @@ soon as it starts to fade out. Its cells stay blank meanwhile, so nothing moves.
 
 **Under `TUI_PLAIN_TEXT`, controls show their state in ASCII.** Where the terminal is sent plain text, toggles draw
 `[x]` and `[ ]`, radio buttons `(*)` and `( )`, spinners their own ASCII frames, a file panel `d`, `f` and `l` beside
-each name, and a field's or a button's ends `[ ]`; before, `■` and `□` were both `#`, empty radio buttons and half the
+each name, and a control's half-block ends `[ ]` (a field's, a button's, a picker's, a tab's), while a half block
+elsewhere, a Canvas's or a picture's, is `#`; before, `■` and `□` were both `#`, empty radio buttons and half the
 spinners were blank, and a toggle in a menu read `:white_large_square:`. Under `TUI_PLAIN_TEXT=transliterate`, an SF
 Symbol is spelled by its name, `:star:`, where it vanished, and `❤` typed without its selector is `<3`. Both remain for
 testing; nothing changes without the variable.
