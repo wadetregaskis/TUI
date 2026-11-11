@@ -84,7 +84,8 @@ final class _DatePickerCalendarHandler: PersistedFocusable {
     var onReturn: (() -> Void)?
 
     /// The first day of the month shown, which ◀ and ▶ turn without moving the
-    /// selection; a selection moved into another month brings it along.
+    /// selection; a selection moved into another month, by this calendar or by
+    /// anything else (`followSelection()`), brings it along.
     var displayedMonth: Date
 
     init(focusID: String, selection: Binding<Date>, range: ClosedRange<Date>?, calendar: Calendar) {
@@ -128,6 +129,8 @@ final class _DatePickerCalendarHandler: PersistedFocusable {
         let clamped = range.map { min(max(date, $0.lowerBound), $0.upperBound) } ?? date
         selection.wrappedValue = clamped
         displayedMonth = Self.startOfMonth(clamped, in: calendar)
+        // Seen: a ◀ or ▶ before the next frame turns from here, not back to it.
+        lastSeenSelection = clamped
     }
 
     /// Picks `day` of the month shown, keeping the selection's time of day.
@@ -140,6 +143,21 @@ final class _DatePickerCalendarHandler: PersistedFocusable {
         if let month = calendar.date(byAdding: .month, value: delta, to: displayedMonth) {
             displayedMonth = month
         }
+    }
+
+    /// The selection the last frame drew, or this calendar last chose.
+    private var lastSeenSelection: Date?
+
+    /// Shows the selection's month when something other than this calendar
+    /// moved it since the last frame — a date field beside it, or the app — as
+    /// SwiftUI's calendar follows its binding. Without it the calendar went on
+    /// showing a month the selected day was not in. A month turned by ◀ and ▶
+    /// is kept while the selection stays where it was. Called every frame.
+    func followSelection() {
+        let current = selection.wrappedValue
+        defer { lastSeenSelection = current }
+        guard let lastSeenSelection, lastSeenSelection != current else { return }
+        displayedMonth = Self.startOfMonth(current, in: calendar)
     }
 }
 
@@ -281,6 +299,7 @@ struct _DatePickerCalendarCore: View, Renderable, Layoutable {
         handler.range = range
         handler.calendar = calendar
         handler.onReturn = onReturn
+        handler.followSelection()
         return handler
     }
 

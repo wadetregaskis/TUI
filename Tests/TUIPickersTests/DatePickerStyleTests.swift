@@ -142,6 +142,25 @@ struct GraphicalDatePickerStyleTests {
         #expect(harness.frame(picker(selection)).lines.first?.stripped.contains("November 2026") == true)
         #expect(selection.date == date(2026, 10, 7))
     }
+
+    /// A date field beside the calendar, or the app itself, can move the
+    /// selection into another month; the calendar shows it there, as SwiftUI's
+    /// does, rather than a month the selected day is not in.
+    @Test("A selection moved elsewhere brings its month into view; a month turned by the arrows stays")
+    func followsTheSelection() {
+        let selection = Selection(date(2026, 10, 3))
+        let harness = InputChainHarness(width: 30, height: 10)
+        #expect(harness.frame(picker(selection)).lines.first?.stripped.contains("October 2026") == true)
+        selection.date = date(2027, 2, 14)
+        let moved = harness.frame(picker(selection)).lines.first?.stripped ?? ""
+        #expect(moved.contains("February 2027"), "\(moved)")
+        // ▶ turns the month without moving the selection, and the next frame keeps it.
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 20, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: 20, y: 0))
+        harness.frame(picker(selection))
+        let turned = harness.frame(picker(selection)).lines.first?.stripped ?? ""
+        #expect(turned.contains("March 2027"), "\(turned)")
+    }
 }
 
 @MainActor

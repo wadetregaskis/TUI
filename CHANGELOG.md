@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A graphical `DatePicker` shows the month its selection moved to.** When something other than the calendar moved
+the date into another month, a date field beside it or the app itself, the calendar went on showing the month it had,
+with no day selected in it. It now turns to the new month, as SwiftUI's does; a month turned with its ◀ and ▶ stays
+while the date stays put.
+
 **A scroll view keeps its layout while the focus moves inside it.** Under `.overContent` placement (the default), a
 scroll view's indicators sit beside its content while the focus is anywhere inside it — on the view, on a control in
 it, or on a scroll view in it — not only on the view itself. Moving the focus among the controls of a page, by Tab or
