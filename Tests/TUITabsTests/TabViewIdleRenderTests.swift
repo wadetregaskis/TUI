@@ -84,7 +84,14 @@ struct TabViewIdleRenderTests {
         // Two frames to settle: the first fills the memo and builds the
         // TabView's own `@State`, and the second is where that write is
         // applied. Each later frame's boundary reports what the frame BEFORE
-        // it wrote, so the two assertions below are about frames two and three.
+        // it wrote, so the assertions below are about frames three and four.
+        // Three, not two, here: the tab view takes the focus during the first
+        // frame, and the scroll view, with the focus inside it, lays out beside
+        // its bar from the second, which a running app's frame settling would
+        // have done within the first (`settleScrollIndicatorPlacement`); this
+        // harness walks once a frame, so the tabs' memo meets the new width a
+        // frame later.
+        frame(view, tui: tui, width: 60)
         frame(view, tui: tui, width: 60)
         frame(view, tui: tui, width: 60)
 

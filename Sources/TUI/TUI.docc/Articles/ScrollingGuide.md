@@ -164,7 +164,7 @@ ScrollView {
 
 ## Scroll bars
 
-When the content overflows, a scroll bar shows up over its last column while the pointer is over the view, and goes again when the pointer leaves. While the view holds the focus, the bar sits beside the content instead, in a column of its own, so a keyboard user can see where they are without the bar covering anything; your content has one column less while it's there. A scroller the keyboard can never focus, such as the one a menu too tall for the screen scrolls its items in, keeps its bar beside its content all the time, so you can see there is more without a mouse.
+When the content overflows, a scroll bar shows up over its last column while the pointer is over the view, and goes again when the pointer leaves. While the focus is in the view (on the view itself, or on a control or a scrolling view inside it), the bar sits beside the content instead, in a column of its own, so a keyboard user can see where they are without the bar covering anything; your content has one column less while it's there. Moving the focus around inside the view leaves the bar where it is, so the content is laid out again only when the focus comes in and when it leaves. A scroller the keyboard can never focus, such as the one a menu too tall for the screen scrolls its items in, keeps its bar beside its content all the time, so you can see there is more without a mouse.
 
 To keep the bar beside the content whenever it shows, pointer or not:
 

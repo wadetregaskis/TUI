@@ -128,7 +128,7 @@ Because of this, a row that scrolls away **keeps its `@State`**, where SwiftUI w
 
 Scrolling moves whole rows and columns, with no momentum or bounce. An animated `scrollTo` still glides, a line at a time.
 
-A scroll bar appears over the content's last column while the pointer is over an overflowing view, and goes when the pointer leaves, much as a Mac's overlay scrollers do, though without fading. While the view holds the focus, the bar moves beside the content into a column of its own, so a keyboard user sees it without it covering anything; the content has one column less while it's there. A scroller the keyboard can never focus, such as a tall menu's, keeps its bar beside its content all the time. ``View/scrollIndicatorPlacement(_:)`` with `.besideContent` keeps it beside the content whenever it shows. Hide it with `.scrollIndicators(.hidden)`.
+A scroll bar appears over the content's last column while the pointer is over an overflowing view, and goes when the pointer leaves, much as a Mac's overlay scrollers do, though without fading. While the focus is in the view, on it or on anything inside it, the bar moves beside the content into a column of its own, so a keyboard user sees it without it covering anything; the content has one column less while it's there. A scroller the keyboard can never focus, such as a tall menu's, keeps its bar beside its content all the time. ``View/scrollIndicatorPlacement(_:)`` with `.besideContent` keeps it beside the content whenever it shows. Hide it with `.scrollIndicators(.hidden)`.
 
 ## Pictures depend on the terminal
 

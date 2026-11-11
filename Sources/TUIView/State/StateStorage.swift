@@ -75,6 +75,7 @@ import TUICore
     /// | -180… | `DraggableModifier` (its own focus stop's id, for Copy) |
     /// | -190… | `DropDestinationModifier` (its own focus stop's id, for Paste) |
     /// | -200… | `_printChanges()`'s record of the body it last reported on (`bodyChangeRecordIndex`) |
+    /// | -210… | a scrolling view's indicator placement, kept for its render as a backdrop (`heldIndicatorPlacementIndex`) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with
@@ -136,6 +137,12 @@ import TUICore
         /// (``BodyChangeReport``). From the table above: kept at the view's own
         /// identity, so it is pruned with the view's own state.
         static let bodyChangeRecordIndex = -200
+
+        /// Where a scrolling view placed `.overContent` keeps whether it last
+        /// found the focus inside it, for its render as a modal's backdrop
+        /// (`HeldIndicatorPlacement`, in TUIFoundation). From the table above:
+        /// kept at the view's own identity, beside its content's `@State`.
+        package static let heldIndicatorPlacementIndex = -210
 
         /// The fields folded into one word before `Hasher` sees any — see
         /// ``mixHashWord(_:_:)``, and ``RenderCache/MeasureKey`` for why a

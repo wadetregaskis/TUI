@@ -10,7 +10,9 @@
 //  is hidden, and nothing they need to read is covered. The second is the
 //  default (SCROLLBAR-PLACEMENT, 2026-11-09), except for a scroller that can
 //  never hold the focus — a tall menu's — which keeps its indicators beside
-//  its content: a keyboard user has no other way to see them.
+//  its content: a keyboard user has no other way to see them. The focus counts
+//  wherever it is inside the view (2026-11-10), so moving it among the view's
+//  controls, or into a scroll view inside it, never lays the content out again.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -31,9 +33,9 @@ public enum ScrollIndicatorPlacement: Sendable, Equatable, CaseIterable {
 
     /// Over the content's edge — the vertical bar on its last column, the
     /// horizontal one on its last row, the "N more" lines on its first and last
-    /// — while the pointer is over the view; and while the view holds the
-    /// focus, as ``besideContent`` places them, in room of their own. Neither,
-    /// and none is drawn. Either way only where the content overflows, as the
+    /// — while the pointer is over the view; and while the focus is in the
+    /// view — on the view, or on anything inside it — as ``besideContent``
+    /// places them, in room of their own. Neither, and none is drawn. Either way only where the content overflows, as the
     /// visibility says.
     ///
     /// For the pointer the content keeps all of the view's room, and is laid
@@ -44,6 +46,14 @@ public enum ScrollIndicatorPlacement: Sendable, Equatable, CaseIterable {
     /// needs to see where they are and what is hidden, and an indicator drawn
     /// over the content then would cover what they could read only by leaving.
     /// Losing the focus gives the content its whole room back.
+    ///
+    /// The focus on a control inside the view, or on a scrolling view inside
+    /// it, counts as the view's own: the keyboard user is still in there, and
+    /// moving among the view's controls — by Tab or, with the focus following
+    /// the pointer, by the mouse — leaves its content where it is. Only coming
+    /// in and going out lay it out again, once each, rather than every step
+    /// that passes through the view itself (the owner's report of nested
+    /// scroll views jumping, 2026-11-10).
     ///
     /// A scroller that can never hold the focus — the one a menu too tall for
     /// its space scrolls its rows in, whose rows are the focus stops — places
@@ -146,7 +156,9 @@ extension RenderContext {
     /// and it is the true focus, not the drawn one (`indicatesFocus(_:)`):
     /// where the indicators go is layout, not a focus effect. The id is the one
     /// the view's last render persisted, read without claiming or storing
-    /// anything — a view never rendered has never been focused.
+    /// anything — a view never rendered has never been focused. The focus held
+    /// anywhere inside the view counts as its own
+    /// (``focusIsWithin(_:focusManager:)``).
     ///
     /// A view that can never hold the focus has its indicators beside its
     /// content always (``EnvironmentValues/scrollIndicatorsBesideForNoFocusStop``):
@@ -172,7 +184,8 @@ extension RenderContext {
         if let focusManager = environment.focusManager {
             let key = StateStorage.StateKey(identity: identity, propertyIndex: focusIDIndex)
             let persisted: StateBox<String>? = explicitFocusID == nil ? stateStorage?.existingStorage(for: key) : nil
-            if let focusID = explicitFocusID ?? persisted?.value { holdsFocus = focusManager.isFocused(id: focusID) }
+            holdsFocus = focusIsWithin(explicitFocusID ?? persisted?.value, focusManager: focusManager)
+            holdIndicatorPlacement(holdsFocus, focusManager: focusManager)
         }
         guard holdsFocus != environment.scrollIndicatorsBesideForFocus else { return self }
         var placed = self
@@ -181,7 +194,78 @@ extension RenderContext {
     }
 }
 
+/// Whether a scrolling view placed ``ScrollIndicatorPlacement/overContent``
+/// last found the focus inside it, decided from the live focus by its last
+/// render that was not a backdrop's, and read by the render of it as a
+/// backdrop (``RenderContext/focusIsWithin(_:focusManager:)``).
+///
+/// A class in a box, written through its property, so remembering the answer
+/// on every render is no state write: it asks for no frame and drops no
+/// cached drawing, as a `StateBox` value write would.
+package final class HeldIndicatorPlacement {
+    var besideForFocus = false
+}
+
 extension RenderContext {
+    /// Whether the focus is in the scrolling view this context renders: on the
+    /// view itself (`focusID`, `nil` for a view never rendered), or on a
+    /// control drawn anywhere below it — a row's button, a field, a scroll
+    /// view inside it (`FocusManager.focusedIdentity`, where the focused
+    /// control last registered).
+    ///
+    /// What places the indicators beside the content under
+    /// ``ScrollIndicatorPlacement/overContent``. Asked once a measure and once
+    /// a render of a view placed so; the identity walk climbs only the focused
+    /// control's chain, and only when the view itself does not hold the focus.
+    ///
+    /// Drawn as a backdrop, under a sheet, an alert or a popover, the page has
+    /// a throwaway focus manager that holds no focus
+    /// (`RenderContext.isolatedForBackground()`), and asked of it the answer
+    /// would always be "no": the page would be laid out again for the bar over
+    /// its content as the modal came up, and again beside it as it went. So a
+    /// backdrop is answered with what the view last decided from the live
+    /// focus, which its renders keep (``HeldIndicatorPlacement``): the page
+    /// under a modal is laid out as it was before the modal came.
+    ///
+    /// So is a frame on which the focus has not landed yet when this view
+    /// reads it: nothing holds it, or the control that holds it has not been
+    /// drawn since the focus manager last swept its record of where controls
+    /// are (`FocusManager.focusedIdentity` is `nil`). The second is the frame
+    /// a modal is dismissed on: the page's control gets the focus back before
+    /// the page is drawn, but it was last drawn under the backdrop's manager,
+    /// so the live one no longer knows where it is until it registers again,
+    /// after this view has read it. Until the focus lands, the view stays as
+    /// it was.
+    package func focusIsWithin(_ focusID: String?, focusManager: FocusManager) -> Bool {
+        if focusManager.isBackdrop { return heldBesideForFocus }
+        if let focusID, focusManager.isFocused(id: focusID) { return true }
+        guard let focused = focusManager.focusedIdentity else { return heldBesideForFocus }
+        return identity.isAncestor(of: focused)
+    }
+
+    /// What this view last decided from the live focus
+    /// (``HeldIndicatorPlacement``), `false` before it has decided.
+    private var heldBesideForFocus: Bool {
+        let held: StateBox<HeldIndicatorPlacement>? = stateStorage?.existingStorage(for: heldPlacementKey)
+        return held?.value.besideForFocus ?? false
+    }
+
+    /// Keeps `besideForFocus` as what this view decided from the live focus,
+    /// for the renders that cannot read it (``focusIsWithin(_:focusManager:)``).
+    /// Not in a measure, and not under a backdrop's throwaway focus manager.
+    func holdIndicatorPlacement(_ besideForFocus: Bool, focusManager: FocusManager) {
+        guard !focusManager.isBackdrop, !isMeasuring, let stateStorage else { return }
+        let held: StateBox<HeldIndicatorPlacement> = stateStorage.storage(
+            for: heldPlacementKey, default: HeldIndicatorPlacement())
+        let placement = held.value
+        placement.besideForFocus = besideForFocus
+    }
+
+    /// Where this view keeps ``HeldIndicatorPlacement``.
+    private var heldPlacementKey: StateStorage.StateKey {
+        StateStorage.StateKey(identity: identity, propertyIndex: StateStorage.StateKey.heldIndicatorPlacementIndex)
+    }
+
     /// This context as a scrolling view that can never hold the focus reads
     /// it: under ``ScrollIndicatorPlacement/overContent``, its indicators
     /// beside its content
@@ -199,8 +283,9 @@ extension RenderContext {
     }
 
     /// Asks for this frame to be walked again when the focus the view holds
-    /// is not the one its indicators were placed for: it changed during the
-    /// view's own render, after ``placingScrollIndicators(explicitFocusID:focusIDIndex:canHoldFocus:)``
+    /// (anywhere inside it, ``focusIsWithin(_:focusManager:)``) is not the one
+    /// its indicators were placed for: it changed during the view's own
+    /// render, after ``placingScrollIndicators(explicitFocusID:focusIDIndex:canHoldFocus:)``
     /// read it.
     ///
     /// That is the first focus stop on a page, which takes the focus as it
@@ -221,8 +306,14 @@ extension RenderContext {
     @MainActor
     package func settleScrollIndicatorPlacement(focusID: String) {
         guard !isMeasuring, environment.scrollIndicatorPlacement == .overContent,
-            let focusManager = environment.focusManager,
-            focusManager.isFocused(id: focusID) != environment.scrollIndicatorsBesideForFocus,
+            let focusManager = environment.focusManager
+        else { return }
+        // Kept as learnt here too: a frame whose focus arrived during its walk
+        // is laid out for it when walked again, even where the focus is again
+        // unsettled when the next walk reads it.
+        let holdsFocus = focusIsWithin(focusID, focusManager: focusManager)
+        holdIndicatorPlacement(holdsFocus, focusManager: focusManager)
+        guard holdsFocus != environment.scrollIndicatorsBesideForFocus,
             let stage = stateStorage?.effectStage, let cache = renderCache
         else { return }
         let identity = self.identity

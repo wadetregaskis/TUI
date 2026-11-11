@@ -246,6 +246,12 @@ struct RegionClippingTests {
                 Button("cccc") {}
             }
         }
+        // Twice: the first button takes the focus during the first render, and
+        // the scroll view, with the focus inside it, lays out beside its bar
+        // from the second — as an app's frame settles before it is drawn. The
+        // scroll below is then a scroll of the view as it stands, not one the
+        // bar's arrival re-reveals the focused button over.
+        _ = renderToBuffer(view, context: context)
         _ = renderToBuffer(view, context: context)
         let handler = context.environment.focusManager?.activeSection?.focusables
             .compactMap { $0 as? ScrollViewHandler }.first

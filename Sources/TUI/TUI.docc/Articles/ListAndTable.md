@@ -642,7 +642,7 @@ names; ``RowAction/customizeColumns`` rebinds the chord.
 
 ## Scroll Indicators
 
-When the rows don't all fit, a list or table draws a scroll bar at its right-hand edge: over the rows' last column while the pointer is over it, and in a column of its own while it holds the focus, when the rows have one column less. The bar shows where you are in the rows, and can be dragged or clicked. ``View/scrollIndicatorPlacement(_:)`` with `.besideContent` keeps the bar in its own column whenever it shows.
+When the rows don't all fit, a list or table draws a scroll bar at its right-hand edge: over the rows' last column while the pointer is over it, and in a column of its own while the focus is in it (on the list, or on a control in one of its rows), when the rows have one column less. The bar shows where you are in the rows, and can be dragged or clicked. ``View/scrollIndicatorPlacement(_:)`` with `.besideContent` keeps the bar in its own column whenever it shows.
 
 Hide it, or change how it's drawn, with the same modifiers a ``ScrollView`` takes:
 

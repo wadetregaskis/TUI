@@ -16,7 +16,7 @@ import TUIView
 
 /// A scrolling view's memory of whether the pointer is over it: its indicators
 /// are drawn over its content while it is, under
-/// ``ScrollIndicatorPlacement/overContent``, unless the view holds the focus.
+/// ``ScrollIndicatorPlacement/overContent``, unless the focus is in the view.
 package protocol ScrollIndicatorPointerTracking: AnyObject {
     /// Whether the pointer is over the view.
     var isPointerOver: Bool { get set }

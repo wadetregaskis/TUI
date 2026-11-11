@@ -407,6 +407,10 @@ struct ScrolledClickLocalizationTests {
     @Test("A reorder drag in a horizontally scrolled List still lands on the rows")
     func reorderSurvivesHorizontalClip() {
         let fixture = ListReorderFixture(horizontalViewport: 12)
+        // Settled first: the list takes the focus during the first render, and
+        // the scroll view, with the focus inside it, lays out beside its bar
+        // from the second, as an app's frame settles before it is drawn.
+        fixture.render()
         // Row positions off the UNSCROLLED frame, where the labels are still
         // drawn: a horizontal scroll moves no rows.
         let unscrolled = fixture.render()

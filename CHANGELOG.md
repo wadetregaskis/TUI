@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A scroll view keeps its layout while the focus moves inside it.** Under `.overContent` placement (the default), a
+scroll view's indicators sit beside its content while the focus is anywhere inside it — on the view, on a control in
+it, or on a scroll view in it — not only on the view itself. Moving the focus among the controls of a page, by Tab or
+with the focus following the pointer, no longer moves a scroll view's bar over its content and back, so the content no
+longer jumps, and a nested scroll view no longer slides out from under the pointer. A page under a sheet or an alert
+keeps the layout it had. Lists, tables and text editors follow the same rule.
+
 **Every segment of a segmented picker answers the pointer.** The segment under the pointer shows it as a button
 does, on a hovered face; before, only its label's ink changed, and on most terminals that showed nothing. With the
 focus following the pointer, a move onto any segment, or onto any option of a radio group, focuses the picker; before,
