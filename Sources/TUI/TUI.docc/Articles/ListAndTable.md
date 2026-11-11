@@ -250,8 +250,15 @@ TableColumn("Title", value: \.title)
 
 Bounded columns follow the rule a SwiftUI table on macOS lays its resizable
 columns out with: each starts at its ideal width and the space left over is
-shared evenly, never outside a column's bounds. Columns are not resized by
-dragging here.
+shared evenly, never outside a column's bounds.
+
+A user can resize any column but a `.width(_:)` one, within its bounds, as on
+macOS: by dragging the gap after its title, or from the keyboard, where
+<kbd>Ctrl</kbd>+<kbd>K</kbd> picks a column and <kbd>-</kbd>/<kbd>+</kbd>
+resize it. A table bound to a ``TableColumnCustomization`` keeps the width
+there, for a column with a `customizationID`; any other keeps it for as long
+as it is shown. ``TableColumnContent/disabledCustomizationBehavior(_:)`` with
+`.resize` takes it away (see "Customizing Columns" below).
 
 `.fit` scans every value in the column (not just the visible rows) so the
 width stays stable while scrolling; prefer a fixed width or the default for
