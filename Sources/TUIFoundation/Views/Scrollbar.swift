@@ -506,6 +506,15 @@ package struct ScrollbarColors {
     /// no fill to show: ``ThumbWithoutColor``.
     var thumbWithoutColor = ThumbWithoutColor.resting
 
+    /// Whether every cell the thumb touches is drawn whole, as without colour,
+    /// rather than its two ends in the partial blocks that put it at an
+    /// eighth of a cell: where text is spelled in ASCII (`TUI_PLAIN_TEXT`).
+    /// Folded at output a partial block is `#`, so the end of a thumb was a
+    /// `#` in the groove's colour on the thumb's, and a thumb shorter than a
+    /// cell a lone `#`. Whole, the thumb is solid, at most a cell longer at
+    /// each end than it says.
+    var wholeCells = false
+
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUILists and TUITables make these, for the lists'
     /// and tables' scrollbars.
@@ -579,6 +588,7 @@ package struct ScrollbarColors {
                 track: Self.track(in: palette),
                 arrow: Self.track(in: palette))
             pinned.thumbWithoutColor = .pinned
+            pinned.wholeCells = context.textSpelling.isASCII
             return pinned
         }
         guard isFocused else {
@@ -590,6 +600,7 @@ package struct ScrollbarColors {
                     ($0, palette.hoveredForeground(palette.foregroundSecondary))
                 })
             if !context.environment.isEnabled { resting.thumbWithoutColor = .pinned }
+            resting.wholeCells = context.textSpelling.isASCII
             return resting
         }
         // The cycle, not the live phase: building it reads no clock, so a
@@ -613,6 +624,7 @@ package struct ScrollbarColors {
             arrow: now,
             hover: hoveredCell.map { ($0, palette.hoveredForeground(now)) })
         focused.thumbWithoutColor = .focused
+        focused.wholeCells = context.textSpelling.isASCII
         return focused
     }
 
@@ -801,7 +813,8 @@ package struct ScrollbarColors {
         let cycle = context.environment.selectionEmphasis.cycle(true)
         guard cycle.isAnimating else { return nil }
         return ScrollbarPulse(
-            cycle: cycle, hoveredCell: hoveredCell, palette: context.environment.palette)
+            cycle: cycle, hoveredCell: hoveredCell, palette: context.environment.palette,
+            wholeCells: context.textSpelling.isASCII)
     }
 }
 
@@ -823,6 +836,9 @@ package struct ScrollbarPulse {
 
     let palette: any Palette
 
+    /// ``ScrollbarColors/wholeCells``, as the drawn bar has it.
+    var wholeCells = false
+
     /// One set of colours per point of the cycle, in cycle order.
     @MainActor
     var frames: [ScrollbarColors] {
@@ -832,12 +848,14 @@ package struct ScrollbarPulse {
         )
         .map { ScrollbarColors.separated($0, in: palette, standingOffThePage: false) }
             .map { accent in
-                ScrollbarColors(
+                var colors = ScrollbarColors(
                     thumb: accent, track: ScrollbarColors.track(in: palette), arrow: accent,
                     // The same step further the live draw takes, so the hovered
                     // cell breathes WITH the bar rather than sitting at a fixed
                     // tone while everything around it moves.
                     hover: hoveredCell.map { ($0, palette.hoveredForeground(accent)) })
+                colors.wholeCells = wholeCells
+                return colors
             }
     }
 }
@@ -962,12 +980,14 @@ package enum ScrollbarRenderer {
     ///
     /// Without colour every cell the thumb touches is ``ScrollbarColors/thumbWithoutColor``,
     /// whole: a fill is nothing there, and a partial block would show as much as the
-    /// cell's other part as of the thumb.
+    /// cell's other part as of the thumb. Where text is spelled in ASCII
+    /// (``ScrollbarColors/wholeCells``) every such cell is a whole cell of the thumb's
+    /// colour, for the same reason: folded, a partial block is a `#`.
     static func paint(of cell: ScrollbarCell, colors: ScrollbarColors) -> (glyph: String, ink: Color?, field: Color) {
         let (thumb, track) = (colors.thumb, colors.track)
         if cell.glyph == " " { return (" ", nil, track) }
         if ColorDepth.current == .noColor { return (String(colors.thumbWithoutColor.rawValue), nil, track) }
-        if cell.glyph == "█" { return (" ", nil, thumb) }
+        if cell.glyph == "█" || colors.wholeCells { return (" ", nil, thumb) }
         if cell.inverted { return (String(cell.glyph), track, thumb) }
         return (String(cell.glyph), thumb, track)
     }

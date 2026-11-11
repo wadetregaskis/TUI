@@ -226,6 +226,9 @@ pages in UTF-8, cell against cell. What was left, and what each became:
   Where text is spelled in ASCII the face is drawn in whole cells, as on Apple Terminal (`SolidRaster(_:)`), its
   colour with no glyph to fold. Only a control's face: a shape's fill keeps its quadrants, as the `#` of a shape, as
   `.background(in: Capsule())` keeps `#Tag#` (CAPSULE-TAG, open).
+- **A scrollbar's thumb** ends at an eighth of a cell in partial blocks, which were `#` in the groove's colour on the
+  thumb's: a `#` at each end, and a thumb shorter than a cell a lone `#`. Where text is spelled in ASCII every cell
+  the thumb touches is a whole cell of it (`ScrollbarColors.wholeCells`), as without colour.
 
 **What stays `#`, and why.** A block is `#` in the table, and these keep it:
 

@@ -8,6 +8,7 @@ import Testing
 
 @testable import TUIFoundation
 @testable import TUITestSupport
+import TUIView
 
 @Suite("Scrollbar")
 struct ScrollbarTests {
@@ -92,6 +93,27 @@ struct ScrollbarTests {
         #expect(
             inverted.glyph == "▄" && inverted.ink == Color.blue && inverted.field == Color.red,
             "an inverted end draws the track's glyph over a thumb field: \(inverted)")
+    }
+
+    /// Folded at output a partial block is `#`, so a thumb's end was a `#`
+    /// in the groove's colour on the thumb's (PLAIN-LINE, 2026-11-11).
+    @Test("Where text is spelled in ASCII, every cell the thumb touches is a whole cell of it")
+    @MainActor func wholeCellsInASCII() {
+        var colors = ScrollbarColors(thumb: Color.red, track: Color.blue, arrow: Color.red)
+        colors.wholeCells = true
+        withColorDepth(.truecolor) {
+            for cell in [ScrollbarCell(glyph: "▄", inverted: false), ScrollbarCell(glyph: "▂", inverted: true), .full] {
+                let painted = Bar.paint(of: cell, colors: colors)
+                #expect(painted.glyph == " " && painted.ink == nil && painted.field == Color.red, "\(cell): \(painted)")
+            }
+            let empty = Bar.paint(of: .empty, colors: colors)
+            #expect(empty.glyph == " " && empty.field == Color.blue, "\(empty)")
+        }
+        let context = makeRenderContext(width: 10, height: 4) { environment, _ in
+            environment.textSpelling = .ascii(.standard)
+        }
+        #expect(ScrollbarColors.focusIndicating(isFocused: false, context: context).wholeCells)
+        #expect(!ScrollbarColors.focusIndicating(isFocused: false, context: makeRenderContext(width: 10, height: 4)).wholeCells)
     }
 
     @Test("The thumb is at least one whole cell")
