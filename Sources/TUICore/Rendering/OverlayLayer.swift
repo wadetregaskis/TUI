@@ -442,6 +442,23 @@ package struct OverlayLayer: Sendable, Equatable {
     /// put and loses the overhang out of its content instead (018429dd,
     /// 2026-07-30).
     public func placed(maxWidth: Int, maxHeight: Int) -> (content: FrameBuffer, x: Int, y: Int) {
+        placed(maxWidth: maxWidth, maxHeight: maxHeight, centringHeight: maxHeight)
+    }
+
+    /// ``placed(maxWidth:maxHeight:)``, a centred layer centred in
+    /// `centringHeight` rows rather than `maxHeight`, and moved up from there
+    /// only as far as it must to stay within `maxHeight`.
+    ///
+    /// The window's content area is `centringHeight` rows with no tooltip in
+    /// its status bar, and loses `centringHeight - maxHeight` to one while it
+    /// shows. Centred in the rows it has, a dialog jumped up and back as the
+    /// help came and went; centred in the rows it has without one, it stays
+    /// where it is unless the tooltip's rows would cover it (the owner,
+    /// 2026-11-10: tips "should only move windows / dialogs / etc if
+    /// _necessary_").
+    package func placed(
+        maxWidth: Int, maxHeight: Int, centringHeight: Int
+    ) -> (content: FrameBuffer, x: Int, y: Int) {
         var clamped = content.clamped(toWidth: maxWidth, height: maxHeight)
         // `clamped(toWidth:height:)` deliberately keeps ALL hit-test regions —
         // in-flow clamping must never discard them, because the root compositor
@@ -481,7 +498,8 @@ package struct OverlayLayer: Sendable, Equatable {
         // typical GUI).
         if centered {
             let x = Self.centredOrigin(extent: width, within: maxWidth, delta: offsetX)
-            let y = Self.centredOrigin(extent: height, within: maxHeight, delta: offsetY)
+            let centred = Self.centredOrigin(extent: height, within: max(maxHeight, centringHeight), delta: offsetY)
+            let y = min(centred, max(0, maxHeight - height))
             return (clamped, x, y)
         }
 

@@ -49,9 +49,14 @@ extension FrameBuffer {
     /// on it and punches it, as a `ZStack`'s later child does, so it is owed a render
     /// at each of its steps; this runs after the walk with no render context to ask
     /// from, so the caller asks (`Opacity as composition.md` §109).
+    ///
+    /// A centred layer is centred in `centringHeight` rows, where given, and
+    /// moved up from there only as far as `maxHeight` needs
+    /// (``OverlayLayer/placed(maxWidth:maxHeight:centringHeight:)``): the
+    /// window's content area with no tooltip in its status bar.
     package func compositingOverlays(
         maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?,
-        punching punched: inout [AnimatedCellRun]
+        punching punched: inout [AnimatedCellRun], centringHeight: Int? = nil
     ) -> FrameBuffer {
         // The page's OWN opacity resolves first, before anything is drawn over
         // it. This is the screen root, so nothing is behind the page but the
@@ -135,7 +140,8 @@ extension FrameBuffer {
                     result = result.veiledAsBackdrop(
                         by: palette.overlayBackground, surface: palette.background, palette: palette, images: images)
                 }
-                let placed = layer.placed(maxWidth: maxWidth, maxHeight: maxHeight)
+                let placed = layer.placed(
+                    maxWidth: maxWidth, maxHeight: maxHeight, centringHeight: centringHeight ?? maxHeight)
                 wentLeading = layer.besideAnchorWidth != nil && placed.x < layer.offsetX
                 if layer.isOpaque {
                     surface = (x: placed.x, y: placed.y, width: placed.content.width, height: placed.content.height)

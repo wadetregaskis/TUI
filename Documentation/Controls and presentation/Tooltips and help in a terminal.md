@@ -188,6 +188,12 @@ calculation rather than a different design.
 Wrapping is ordinary text wrapping at the bar's width, and the row is drawn
 above the shortcut items, in the bar's own chrome.
 
+A dialog centred over the page — a sheet, an alert, the settings panel — does
+not move with it: it is centred in the rows the window has with no tooltip,
+and moved up only as far as the tooltip's rows would otherwise cover it
+(`OverlayLayer.placed(maxWidth:maxHeight:centringHeight:)`; the owner,
+2026-11-10: tips "should only move windows / dialogs / etc if _necessary_").
+
 Growing moves more than the bar. A page laid out in the middle of the window
 (a `WindowGroup` centres one that does not fill it) moves with the row, so the
 view under a resting pointer slides out from under it as its tooltip shows.

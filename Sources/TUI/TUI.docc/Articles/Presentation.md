@@ -4,7 +4,7 @@ Present alerts, sheets and other overlays above the current screen.
 
 ## Overview
 
-An alert or a sheet is a centred panel that dims the screen behind it and takes the keyboard. You can attach one to any view, wherever it is in the tree: TUI draws it at the top. <kbd>Esc</kbd> dismisses it, and the status bar says so while it's up. A presented panel can also be dragged by its title or border, and stays on screen. A sheet can be resized too, and moved and resized from the keyboard (<doc:Presentation#Moving-and-resizing-a-sheet>).
+An alert or a sheet is a centred panel that dims the screen behind it and takes the keyboard. You can attach one to any view, wherever it is in the tree: TUI draws it at the top. <kbd>Esc</kbd> dismisses it, and the status bar says so while it's up. A presented panel can also be dragged by its title or border, and stays on screen. Help showing in the status bar doesn't move it, unless the bar's extra rows would cover it. A sheet can be resized too, and moved and resized from the keyboard (<doc:Presentation#Moving-and-resizing-a-sheet>).
 
 ## Alerts
 

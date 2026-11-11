@@ -15,6 +15,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A dialog no longer jumps when a tooltip appears in the status bar.** A sheet, alert or other dialog centred over
+the page stays where it is as help shows and goes in the status bar, and moves up only where the tooltip's rows
+would cover it.
 **The settings panel and the View menu offer the same settings, and the panel has a border.** The panel (F2)
 is drawn as a titled dialog. Its View tab now holds Breathing Focus, Spell Out Keys, Focus Follows Pointer and the
 new Arrows Follow Layout after the palette, border style and control style, and its Accessibility tab the four

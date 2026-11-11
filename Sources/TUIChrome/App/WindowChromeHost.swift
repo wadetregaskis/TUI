@@ -208,7 +208,8 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
             var punched: [AnimatedCellRun] = []
             page = page.compositingOverlays(
                 maxWidth: width, maxHeight: contentHeight, palette: palette,
-                images: context.environment.terminalImageStore, punching: &punched)
+                images: context.environment.terminalImageStore, punching: &punched,
+                centringHeight: max(contentHeight, restingContentHeight(chrome, height: height)))
             // What the layers punched and show differently from step to step: a
             // render at each of its steps draws those cells as they are then, as a
             // compositor inside the tree asks (`Opacity as composition.md` §109).
@@ -289,6 +290,15 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
         let menu = chrome.menuBar == nil ? 0 : min(height - bottom, 1)
         let top = min(height - bottom - menu, Self.toolbarHeight(contentRows: chrome.rows(.top), style: chrome.style))
         return Rows(menu: menu, top: top, bottom: bottom)
+    }
+
+    /// The content area's height in a terminal of `height` rows with no
+    /// tooltip in the status bar: what a dialog is centred in, so that a
+    /// tooltip coming or going moves it only where the tooltip's rows would
+    /// cover it (`OverlayLayer.placed(maxWidth:maxHeight:centringHeight:)`).
+    @MainActor private func restingContentHeight(_ chrome: WindowChromeState?, height: Int) -> Int {
+        let rows = chrome.map { reservedRows($0, tooltipRows: 0, height: height) } ?? Rows()
+        return contentAreaHeight(terminalHeight: height, statusBarHeight: rows.bottom, headerHeight: rows.menu + rows.top)
     }
 
     /// How many rows of each bar's content its items are laid out in: all of
