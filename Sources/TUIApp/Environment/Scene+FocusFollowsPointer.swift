@@ -48,7 +48,9 @@ extension Scene {
     ///
     /// The pointer moves the focus, never a value or a selection: over a
     /// `List`, a `Table` or an outline, the list's cursor row follows the row
-    /// the pointer moves onto, and the selection stays. A control's label
+    /// the pointer moves onto, and the selection stays; a segmented picker's
+    /// and a radio group's cursor follow the segment or option under it, and
+    /// the choice stays, a disabled option taking nothing. A control's label
     /// counts as the control. The menu bar is no focus stop: a closed menu's
     /// title under the pointer opens nothing.
     ///

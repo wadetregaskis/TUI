@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**With the focus following the pointer, a segmented picker's and a radio group's cursor follow it.** The segment or
+option the pointer moves onto becomes the one the arrow keys, Space and Return act on, as a list's cursor row already
+did; the choice stays until you click or press Space or Return. A disabled option and the rule between two segments
+move nothing.
+
 **A view inserted again while it is leaving comes back from where it is.** It started its arrival from nothing, so a
 view fading out flashed to blank and a `.push` sliding out jumped to the far side to slide in again. It now returns
 from wherever its removal has it, the removal running on beneath its return as SwiftUI's does: a fade goes on down a

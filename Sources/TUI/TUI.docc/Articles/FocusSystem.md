@@ -192,7 +192,10 @@ clicks.
   the keys act on the row under it, but the selection stays where it is until
   you click or press Space or Return. Only a move of the pointer moves the
   cursor: rows the wheel or the keys scroll under a pointer at rest leave it
-  where it was.
+  where it was. A segmented picker's and a radio group's cursor follow it the
+  same way, to the segment or option under the pointer; a disabled option and
+  the rule between two segments move nothing. A field-style `DatePicker`'s
+  component, like a text field's caret, stays where the keys and clicks put it.
 - **A control's label counts as the control.** Moving onto the label of a
   `Slider`, a `Stepper`, a `Picker`, a `DatePicker`, a `ColorPicker`, a
   `Toggle` or a `LabeledContent`, beside it or in a form's label column,

@@ -628,7 +628,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                         handlerID: mouseHandlerID))
             }
             Self.publishFocusRegions(
-                to: &buffer, itemRegions: itemRegions, cursor: handler.focusedIndex, focusID: captureFocusID,
+                to: &buffer, itemRegions: itemRegions, handler: handler, focusID: captureFocusID,
                 dispatcher: mouseDispatcher, context: context)
         }
 
@@ -642,18 +642,35 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
     /// union is the group a reveal of it just arrived at shows; and the focus
     /// following the pointer finds the group under any option, not only the
     /// cursor's. Passive: a press goes to the option in front.
+    ///
+    /// While the focus follows the pointer, the cursor follows it too, as a
+    /// list's cursor row does: a move onto another cell of an option, with the
+    /// group holding the focus after it, puts the cursor on that option
+    /// (``RadioButtonGroupHandler/followPointer(toOption:drawing:)``). Each
+    /// option's region is then a handler of its own, which names its option,
+    /// since the move comes in the region's own columns; otherwise one serves
+    /// them all.
     @MainActor
     private static func publishFocusRegions(
-        to buffer: inout FrameBuffer, itemRegions: [(x: Int, y: Int, width: Int)], cursor: Int, focusID: String,
-        dispatcher: MouseEventDispatcher, context: RenderContext
+        to buffer: inout FrameBuffer, itemRegions: [(x: Int, y: Int, width: Int)], handler: RadioButtonGroupHandler,
+        focusID: String, dispatcher: MouseEventDispatcher, context: RenderContext
     ) {
-        let inert = dispatcher.registerPassive(in: context) { _ in false }
+        let cursor = handler.focusedIndex
+        let follows = context.environment.focusFollowsPointer == true
+        let shared = follows ? nil : dispatcher.registerPassive(in: context) { _ in false }
+        let drawing = HandlerDrawing(context)
         let order =
             itemRegions.indices.contains(cursor)
             ? [cursor] + itemRegions.indices.filter { $0 != cursor } : Array(itemRegions.indices)
         buffer.hitTestRegions.insert(
             contentsOf: order.map { index in
                 let region = itemRegions[index]
+                let inert = shared ?? dispatcher.registerPassive(in: context) { _ in false }
+                if shared == nil {
+                    dispatcher.filePointerFocusFollower(for: inert, in: context) { [handler] _ in
+                        handler.followPointer(toOption: index, drawing: drawing)
+                    }
+                }
                 return HitTestRegion(
                     offsetX: region.x, offsetY: region.y, width: region.width, height: 1, handlerID: inert,
                     focusID: focusID)

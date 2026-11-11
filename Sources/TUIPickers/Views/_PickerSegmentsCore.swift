@@ -466,7 +466,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             }
         }
         publishFocusRegions(
-            to: &buffer, regions: regions, cursor: handler.focusedIndex, focusID: focusID, dispatcher: dispatcher,
+            to: &buffer, regions: regions, handler: handler, focusID: focusID, dispatcher: dispatcher,
             context: context)
     }
 
@@ -474,13 +474,31 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
     /// the cursor's segment, then the whole strip. The cursor's comes first
     /// because, on one row, both are as tall, and the first is the one the
     /// reveal within the control and the terminal's text cursor take.
+    ///
+    /// While the focus follows the pointer, the cursor follows it too, as a
+    /// list's cursor row does: a move onto another cell of a segment, with the
+    /// picker holding the focus after it, puts the cursor on that segment
+    /// (``RadioButtonGroupHandler/followPointer(toOption:drawing:)``); a rule
+    /// between two is no segment, and moves nothing. The follower is the
+    /// strip's: the regions are searched front first, last filed first, so the
+    /// strip, filed behind the cursor's segment in front of it, is the one the
+    /// pointer finds, and the move comes in the strip's own columns.
     @MainActor
     private func publishFocusRegions(
-        to buffer: inout FrameBuffer, regions: [(x: Int, width: Int)], cursor: Int, focusID: String,
-        dispatcher: MouseEventDispatcher, context: RenderContext
+        to buffer: inout FrameBuffer, regions: [(x: Int, width: Int)], handler: RadioButtonGroupHandler,
+        focusID: String, dispatcher: MouseEventDispatcher, context: RenderContext
     ) {
         guard let first = regions.first, let last = regions.last else { return }
+        let cursor = handler.focusedIndex
         let inert = dispatcher.registerPassive(in: context) { _ in false }
+        if context.environment.focusFollowsPointer == true {
+            let drawing = HandlerDrawing(context)
+            dispatcher.filePointerFocusFollower(for: inert, in: context) { [handler] event in
+                let x = first.x + event.x
+                let segment = regions.firstIndex { x >= $0.x && x < $0.x + $0.width }
+                return handler.followPointer(toOption: segment, drawing: drawing)
+            }
+        }
         let strip = HitTestRegion(
             offsetX: first.x, offsetY: 0, width: last.x + last.width - first.x, height: 1, handlerID: inert,
             focusID: focusID)

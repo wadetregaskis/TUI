@@ -27,7 +27,8 @@ extension MouseEventDispatcher {
     /// not here, and a drag the keyboard carries is steered by the keys.
     ///
     /// Within the control, a cursor of its own may follow too: a `List`'s,
-    /// `Table`'s or outline's row (``filePointerFocusFollower(for:in:_:)``).
+    /// `Table`'s or outline's row, a segmented picker's segment, a radio
+    /// group's option (``filePointerFocusFollower(for:in:_:)``).
     /// It is offered the move whenever the control holds the focus after it —
     /// taken now or held already — and never otherwise, so everything that
     /// keeps the focus where it is (an edit, a sheet, an open menu, a disabled
