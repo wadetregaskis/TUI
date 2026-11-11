@@ -15,6 +15,8 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+reads the keyboard; the action's documentation says how. Outside a running app the closure just runs. The Example's
+Terminal page edits a note in your `$VISUAL` or `$EDITOR`.
 **An app can hand the terminal to another program — `$EDITOR`, a pager, `git commit` — and take it back.**
 `@Environment(\.handOffTerminal)` gives a `HandOffTerminalAction`: `handOffTerminal { … }` runs its closure at once,
 with the terminal as it was before the app started (main screen, the shell's settings, no mouse or other modes), and

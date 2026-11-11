@@ -11,8 +11,10 @@ import TUI
 /// What an app asks the terminal itself to do, outside the app's cells: a
 /// progress bar on its tab (`.terminalProgress(_:)`) and the person's attention
 /// (`\.requestAttention`), with `\.terminalCapabilities` saying whether this
-/// terminal does each. And, last, everything `\.terminalCapabilities` knows of
-/// what this terminal can do (``TerminalCapabilitiesDemo``).
+/// terminal does each; a note edited in the person's own editor, which the
+/// terminal is handed to (`\.handOffTerminal`, ``HandOffDemo``). And, last,
+/// everything `\.terminalCapabilities` knows of what this terminal can do
+/// (``TerminalCapabilitiesDemo``).
 ///
 /// The page states its progress for as long as it is open, so the bar is up
 /// while it is shown and gone when it is left.
@@ -62,6 +64,7 @@ struct TerminalPage: View {
             VStack(alignment: .leading, spacing: 1) {
                 progressSection
                 attentionSection
+                HandOffDemo()
                 TerminalCapabilitiesDemo()
             }
             .padding(.horizontal, 1)
