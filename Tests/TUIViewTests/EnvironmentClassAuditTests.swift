@@ -35,6 +35,7 @@ struct EnvironmentClassAuditTests {
         "DepartedUndoSteps": "service: handed to a text field's handler for event time",
         "UndoManager": "service: handed to a text field's handler for event time",
         "TerminalBell": "service: rung at event time",
+        "TerminalHandOff": "service: called at event time to hand the terminal to another program",
         "TypedClipboard": "service: read at event time",
         "KeysAfterFrame": "service: keys queued for after the frame",
         "ButtonKeyExtras": "provider-kept (@State); its key closures are used at event time, nothing is drawn from it",
