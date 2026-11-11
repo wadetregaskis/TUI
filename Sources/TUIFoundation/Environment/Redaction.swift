@@ -62,12 +62,12 @@ extension RedactionReasons {
     /// The glyph these reasons fill a cell with: a placeholder's where content
     /// is still to come, which wins over privacy — there is nothing yet to
     /// hide — and otherwise privacy's.
-    var glyph: Character {
+    package var glyph: Character {
         contains(.placeholder) ? Self.glyph : Self.privacyGlyph
     }
 
     /// Whether these reasons replace the text rather than merely restyle it.
-    var replacesContent: Bool {
+    package var replacesContent: Bool {
         contains(.placeholder) || contains(.privacy)
     }
 
@@ -80,7 +80,7 @@ extension RedactionReasons {
     ///
     /// Spaces and newlines survive, so wrapping still breaks in the same places
     /// and the skeleton keeps the shape of the sentence it stands in for.
-    func redacting(_ text: String) -> String {
+    package func redacting(_ text: String) -> String {
         guard replacesContent, !text.isEmpty else { return text }
         let glyph = self.glyph
         var redacted = ""
@@ -131,7 +131,7 @@ extension EnvironmentValues {
 
     /// The reasons that actually apply here: ``RedactionReasons/privacy`` only
     /// inside a privacy-sensitive subtree.
-    var effectiveRedactionReasons: RedactionReasons {
+    package var effectiveRedactionReasons: RedactionReasons {
         var reasons = redactionReasons
         if !isPrivacySensitive { reasons.remove(.privacy) }
         return reasons

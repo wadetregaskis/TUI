@@ -809,9 +809,12 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         let cascaded = context.environment.styleCascade.resolve(
             for: [.all, .text, .control(.textField)])
         // A text field draws what was typed, mapping tabs to spaces and control
-        // characters to replacement characters (\u{FFFD}).
-        let displayCharacter = TextFieldHandler.displayCharacter
-        let renderer = TextFieldContentRenderer(
+        // characters to replacement characters (\u{FFFD}) — or, redacted, a
+        // glyph for every character, as a SecureField masks.
+        let displayCharacter =
+            TextFieldHandler.redactedDisplay(context.environment.effectiveRedactionReasons)
+            ?? TextFieldHandler.displayCharacter
+        var renderer = TextFieldContentRenderer(
             prompt: prompt,
             isDisabled: isDisabled,
             displayCharacter: displayCharacter,
@@ -822,6 +825,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             legibilityWeight: context.environment.legibilityWeight,
             promptSpelling: context.textSpelling
         )
+        renderer.promptRedaction = context.environment.effectiveRedactionReasons
 
         let fieldContent = renderer.buildContent(
             text: text.wrappedValue,
@@ -915,7 +919,9 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             persistedFocusID: persistedFocusID,
             hoverBox: hoverBox,
             contentWidth: textWidth,
-            displayCharacter: TextFieldHandler.displayCharacter,
+            // As drawn: a redacted field's glyphs (``TextFieldHandler/redactedDisplay(_:keepingLineBreaks:)``).
+            displayCharacter: TextFieldHandler.redactedDisplay(context.environment.effectiveRedactionReasons)
+                ?? TextFieldHandler.displayCharacter,
             leadingCapWidth: leading,
             disclosureRange: disclosureRange)
     }
@@ -977,6 +983,12 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled
+        // Redacted, the field hides its text, and then it behaves as a
+        // SecureField does for every way the text could get out — no copy or
+        // cut, no kill to yank, a word motion one character, a double-click
+        // selecting all of it (the owner, 2026-11-10: hidden text "should not
+        // reveal its contents in any way"; ``TextFieldHandler/isSecure``).
+        handler.isSecure = context.environment.effectiveRedactionReasons.replacesContent
         menuTarget.handler = handler
         // Compose the per-field closure with any cascading `.onSubmit(of:)` in
         // scope that matches this field's role (.text by default). Stays nil when

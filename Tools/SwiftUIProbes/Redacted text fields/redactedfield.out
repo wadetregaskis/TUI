@@ -1,0 +1,25 @@
+== plain: 1 field(s); bytes differing from plain (a Text's: from the plain Text): 0
+  AppKitTextField string="hunter2 abc" editable=true selectable=true hidden=false alpha=1.0
+  first responder: true; moveWordBackward from the end -> 8
+  word around 2 -> 0..<7
+== placeholder: 1 field(s); bytes differing from plain (a Text's: from the plain Text): 0
+  AppKitTextField string="hunter2 abc" editable=true selectable=true hidden=false alpha=1.0
+  first responder: true; moveWordBackward from the end -> 8
+  word around 2 -> 0..<7
+== privacy: 2 field(s); bytes differing from plain (a Text's: from the plain Text): 0
+  AppKitTextField string="hunter2 abc" editable=true selectable=true hidden=false alpha=1.0
+  first responder: true; moveWordBackward from the end -> 8
+  word around 2 -> 0..<7
+  AppKitTextField string="hunter2 abc" editable=true selectable=true hidden=false alpha=1.0
+  first responder: true; moveWordBackward from the end -> 8
+  word around 2 -> 0..<7
+== privacyUnmarked: 1 field(s); bytes differing from plain (a Text's: from the plain Text): 0
+  AppKitTextField string="hunter2 abc" editable=true selectable=true hidden=false alpha=1.0
+  first responder: true; moveWordBackward from the end -> 8
+  word around 2 -> 0..<7
+== secure: 1 field(s); bytes differing from plain (a Text's: from the plain Text): 5550
+  AppKitSecureTextField string="hunter2 abc" editable=true selectable=true hidden=false alpha=1.0
+  first responder: true; moveWordBackward from the end -> 10
+  word around 2 -> 0..<11
+== text: 0 field(s); bytes differing from plain (a Text's: from the plain Text): 0
+== textPlaceholder: 0 field(s); bytes differing from plain (a Text's: from the plain Text): 3104

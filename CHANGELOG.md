@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A redacted `TextField` hides what was typed, as a `SecureField` does.** Under `.redacted(reason:)`, or marked
+`.privacySensitive()` under `.redacted(reason: .privacy)`, a text field drew its text as it was, and copy, cut, Ctrl-K
+and Ctrl-Y, Option-arrows and a double-click all worked on it as on any field. It now draws a glyph for each character
+(spaces and wide characters included), its prompt is redacted too, and it behaves as a `SecureField`: nothing can be
+copied or cut out of it, a kill is not kept, and word motions and a double-click show no word breaks. SwiftUI's
+redacted field does none of this (deviation T12).
 **`sensoryFeedback` rings the bell for `.error` and `.warning`.** SwiftUI's `sensoryFeedback(_:trigger:)`, its
 `condition:` form and the forms whose closure answers a `SensoryFeedback?` used to fail to compile. They now ring the
 terminal's bell when the trigger changes, for the two kinds that say something went wrong; every other kind

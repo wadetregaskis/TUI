@@ -57,7 +57,16 @@ extension TextFieldHandler {
     /// before the frame that would draw the text the last key typed.
     func softWrapLayout() -> SoftWrapLayout? {
         guard let wrapWidth else { return nil }
-        return SoftWrapLayout(Array(text.wrappedValue), width: wrapWidth, cellWidth: Self.verticalCellWidth)
+        return SoftWrapLayout(layoutCharacters, width: wrapWidth, cellWidth: Self.verticalCellWidth)
+    }
+
+    /// The characters the field lays out: its text, or, while it hides it
+    /// (``isSecure``), a glyph a character with its line breaks kept, so the
+    /// rows the keys move by break where the drawn mask does
+    /// (``redactedDisplay(_:keepingLineBreaks:)``), not where a hidden word does.
+    private var layoutCharacters: [Character] {
+        guard isSecure else { return Array(text.wrappedValue) }
+        return text.wrappedValue.map { $0.isNewline ? $0 : TerminalSymbols.maskBullet }
     }
 
     /// Scrolls a vertical field showing `rowCount` rows by `delta` of them,

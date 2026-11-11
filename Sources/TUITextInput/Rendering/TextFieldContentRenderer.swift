@@ -83,6 +83,11 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// Held here for the reason ``cursorSpeed`` is.
     var promptSpelling = TextSpelling.asWritten
 
+    /// The redaction the field's context is under, which the prompt is drawn
+    /// through as any `Text` in that context is: a redacted field's prompt is
+    /// a skeleton too, not the one readable thing in it.
+    var promptRedaction = RedactionReasons()
+
     /// The entered-text foreground, resolved to a concrete colour. A
     /// `.style(.control(.textField))` override may be a *semantic* colour (e.g.
     /// `.palette.accent`); resolving it against the palette here keeps a
@@ -342,7 +347,7 @@ struct TextFieldContentRenderer: FieldTextLayout {
         var context = RenderContext(availableWidth: 100, availableHeight: 1)
         context.textSpelling = promptSpelling
         let buffer = TUIView.renderToBuffer(prompt, context: context)
-        return buffer.lines.first?.stripped ?? ""
+        return promptRedaction.redacting(buffer.lines.first?.stripped ?? "")
     }
 
     /// Builds the prompt content for an UNFOCUSED empty field. The focused

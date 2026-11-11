@@ -136,6 +136,12 @@ final class TextFieldHandler: PersistedFocusable {
     /// every word motion and word deletion goes one character (see
     /// ``wordBoundary(forward:)``), so none shows where the hidden text's words
     /// break. Synced by the field's render pass.
+    ///
+    /// A ``TextField`` whose text is redacted — `.redacted(reason:)`, or
+    /// `.privacySensitive()` under `.privacy` — sets it too, and is masked as
+    /// a secure field is (``redactedDisplay(_:keepingLineBreaks:)``): hidden
+    /// text "should not reveal its contents in any way" (the owner,
+    /// 2026-11-10), and a secure field is the control that already hides it.
     var isSecure: Bool = false
 
     /// The clipboard this field reads and writes: the one in the environment
@@ -446,6 +452,26 @@ extension TextFieldHandler {
             return "\u{FFFD}"
         }
         return character
+    }
+
+    /// How a text input draws its text while `reasons` hide it, or `nil`
+    /// where they hide nothing: every character as ONE cell of the
+    /// redaction's glyph, as a ``SecureField`` draws a bullet for each.
+    ///
+    /// Not ``RedactionReasons/redacting(_:)``, which a `Text` draws through:
+    /// that keeps the spaces and gives a wide character two glyphs, so a
+    /// skeleton keeps the shape of its sentence. Typed text is the user's,
+    /// and its shape is part of what is hidden — where its words break, which
+    /// characters are wide — so it shows no more than a secure field's does,
+    /// its length (the owner, 2026-11-10). A line break stays one where
+    /// `keepingLineBreaks`, for an input of several lines, whose rows are its
+    /// layout rather than its words.
+    nonisolated static func redactedDisplay(
+        _ reasons: RedactionReasons, keepingLineBreaks: Bool = false
+    ) -> ((Character) -> Character)? {
+        guard reasons.replacesContent else { return nil }
+        let glyph = reasons.glyph
+        return { character in keepingLineBreaks && character.isNewline ? character : glyph }
     }
 
     /// Deletes the text in the given range and positions cursor at start.

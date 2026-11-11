@@ -39,8 +39,18 @@ extension _TextFieldCore {
     /// What was typed keeps its own characters.
     private func verticalSource(in context: RenderContext) -> (characters: [Character], isPrompt: Bool) {
         let string = text.wrappedValue
-        guard string.isEmpty, prompt != nil else { return (Array(string), false) }
-        return (Array(TextFieldContentRenderer.promptParagraphs(prompt, spelling: context.textSpelling)), true)
+        // Redacted, the text is a glyph a character and the prompt a skeleton
+        // (``TextFieldHandler/redactedDisplay(_:keepingLineBreaks:)``), laid out
+        // as drawn, so no row breaks where a hidden word did.
+        let reasons = context.environment.effectiveRedactionReasons
+        guard string.isEmpty, prompt != nil else {
+            guard let hidden = TextFieldHandler.redactedDisplay(reasons, keepingLineBreaks: true) else {
+                return (Array(string), false)
+            }
+            return (string.map(hidden), false)
+        }
+        let promptText = TextFieldContentRenderer.promptParagraphs(prompt, spelling: context.textSpelling)
+        return (Array(reasons.redacting(promptText)), true)
     }
 
     /// The layout of `source` in a field `contentWidth` cells wide inside its

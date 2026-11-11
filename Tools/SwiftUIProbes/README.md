@@ -1330,3 +1330,19 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-10.
 - **Was:** written here.
 - **Cited by:** `Sources/TUIGrid/Views/GridLattice.swift`, `Tests/TUIGridTests/GridNarrowTests.swift`.
+
+### Redacted text fields
+
+- **Asks:** what SwiftUI does with a `TextField` under `.redacted(reason: .placeholder)`, and marked
+  `.privacySensitive()` under `.privacy`, beside a plain field and a `SecureField`: whether the AppKit field behind
+  it still holds and draws the real text, takes the focus, moves by words and selects a word on a double-click
+  (`redactedfield.swift`, `redactedfield.out`). A program of top-level code; it never touches the pasteboard. A
+  `Text`, plain and redacted, checks that the harness draws redaction at all (3104 bytes of its bitmap differ).
+- **Found:** redaction does not reach a text field. A redacted field's bitmap is byte for byte a plain one's; it
+  holds `hunter2 abc`, takes the focus, `moveWordBackward:` from the end stops at 8 and the word around 2 is 0..<7,
+  where a `SecureField` stops at 10 and selects 0..<11.
+- **What TUI does with it:** the opposite, by the owner's ruling of 2026-11-10 (deviation T12): a redacted field
+  hides its text as a `SecureField` does.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-10.
+- **Was:** written here.
+- **Cited by:** `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (T12).
