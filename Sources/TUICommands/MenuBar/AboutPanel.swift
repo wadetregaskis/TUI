@@ -36,6 +36,12 @@ extension Scene {
     /// | `copyright` | `NSHumanReadableCopyright` | none |
     /// | `credits` | — | none |
     ///
+    /// The values are the app's, as an Info.plist's are: written on any one
+    /// scene, they hold for every window, whichever is in front. Written on
+    /// several with different values, the first scene's in the order the body
+    /// declares them wins — the main window group, as a rule, which the app
+    /// opens at launch.
+    ///
     /// The name titles the app's menu too, and its About and Quit items. The
     /// About alert shows the name, then "Version *applicationVersion*
     /// (*version*)" — the build beside the version only where the two differ —
@@ -58,7 +64,7 @@ extension Scene {
         applicationName: String? = nil, applicationVersion: String? = nil, version: String? = nil,
         copyright: String? = nil, credits: String? = nil
     ) -> some Scene {
-        environment(
+        appWideEnvironment(
             \.aboutPanel,
             AboutPanelInfo(
                 applicationName: applicationName, applicationVersion: applicationVersion, version: version,

@@ -69,6 +69,11 @@ struct SceneCatalog {
     /// drawn from.
     private(set) var commands = SceneCommands()
 
+    /// The app's own values (``Scene/appWideEnvironment(_:_:)``): each scene's
+    /// writes of them, the scenes in declaration order. Written for every
+    /// window, whichever is in front (``applyAppWideEnvironment(to:)``).
+    private var appWideEnvironmentWrites: [[(inout EnvironmentValues) -> Void]] = []
+
     /// The scenes' watched values (`onChange(of:)`), in declaration order,
     /// each scene's from the outside in: compared once a frame, for the scene
     /// rather than any one of its windows (``compareWatches(in:)``).
@@ -83,6 +88,22 @@ struct SceneCatalog {
     /// the run loop draws it, or `nil` where the app declares none.
     var launchTarget: SceneRenderTarget? {
         windows.first.map { SceneRenderTarget(path: $0.path) }
+    }
+
+    /// Writes the app's own values into `environment`: the last scene's
+    /// first, so that where two scenes write one value the first scene's
+    /// lands last and wins, and each scene's in its own order, so that within
+    /// a chain the write closest to the content wins.
+    func applyAppWideEnvironment(to environment: inout EnvironmentValues) {
+        for writes in appWideEnvironmentWrites.reversed() {
+            for write in writes { write(&environment) }
+        }
+    }
+
+    /// Keeps the app-wide values `configuration` writes.
+    private mutating func gatherAppWide(_ configuration: SceneConfiguration) {
+        guard !configuration.appWideEnvironmentWrites.isEmpty else { return }
+        appWideEnvironmentWrites.append(configuration.appWideEnvironmentWrites)
     }
 
     /// Walks `scene` and what it holds, configured by what the modifiers
@@ -102,6 +123,7 @@ struct SceneCatalog {
             return commands
         }
         if let overlay = scene as? any OverlayScene {
+            gatherAppWide(configuration)
             overlays.append(OverlayEntry(scene: overlay, configuration: configuration, identity: identity))
             return SceneCommands()
         }
@@ -115,6 +137,7 @@ struct SceneCatalog {
         guard let content = configuring.configuredContent else {
             // The end of a chain: the scene itself.
             guard let window = configuring as? any WindowScene else { return SceneCommands() }
+            gatherAppWide(configuration)
             windows.append(WindowEntry(window: window, configuration: configuration, path: path, identity: identity))
             return SceneCommands.ofWindow
         }

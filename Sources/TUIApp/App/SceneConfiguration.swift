@@ -35,6 +35,13 @@ struct SceneConfiguration {
     /// first — the order they run in, so the innermost write lands last.
     var environmentWrites: [(inout EnvironmentValues) -> Void] = []
 
+    /// The scene's writes of a value that is the app's rather than a window's
+    /// (`Scene.appWideEnvironment(_:_:)`), outermost first, as
+    /// ``environmentWrites`` are. Not applied with the scene's own writes: the
+    /// catalogue gathers them from every scene, and the run loop writes them
+    /// for every window (``SceneCatalog/applyAppWideEnvironment(to:)``).
+    var appWideEnvironmentWrites: [(inout EnvironmentValues) -> Void] = []
+
     /// The palette a `.palette(_:)` stated, on the scene or on the
     /// `WindowGroup`'s root view; `nil` when neither did.
     var palette: (any Palette)?

@@ -30,6 +30,10 @@ extension RenderLoop {
         // than any window of it; before the windows are read below, since an
         // action may open one.
         catalog.compareWatches(in: tuiContext.stateStorage)
+        // The app's own values, before anything is kept or drawn from this
+        // environment: every window and presentation has them, whichever
+        // scene wrote them.
+        catalog.applyAppWideEnvironment(to: &environment)
         // Not kept on a frame of one window: the copy would share the
         // environment's storage, which its next write would then duplicate.
         windowBaseEnvironment = scenes.holdsWindows ? environment : nil

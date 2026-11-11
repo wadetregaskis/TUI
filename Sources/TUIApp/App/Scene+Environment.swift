@@ -87,6 +87,22 @@ extension Scene {
     }
 }
 
+// MARK: - App-Wide Values
+
+extension Scene {
+    /// Sets an environment value that belongs to the app rather than to any
+    /// one window, as the bundle's Info.plist does in SwiftUI: written on any
+    /// scene, it reaches every window, and every presentation over one,
+    /// whichever is in front. Where several scenes write it, the first in the
+    /// order the body declares them wins, as the window the app opens at
+    /// launch is the first; within one scene's chain, the write closest to
+    /// the content, as with ``environment(_:_:)``. For a TUI modifier whose
+    /// value is the app's: `aboutPanel(applicationName:…)`.
+    package func appWideEnvironment<V>(_ keyPath: WritableKeyPath<EnvironmentValues, V>, _ value: V) -> some Scene {
+        _EnvironmentScene(content: self, keyPath: keyPath, isAppWide: true) { $0[keyPath: keyPath] = value }
+    }
+}
+
 // MARK: - Wrapper Scene
 
 /// Framework-internal scene wrapper that writes into the frame's root
@@ -103,6 +119,9 @@ internal struct _EnvironmentScene<Content: Scene>: Scene {
     /// (`.environment(_:_:)`); `nil` for any other write. A `var` with a
     /// default, so the memberwise initializer leaves it out for those.
     var keyPath: AnyKeyPath?
+    /// Whether the value is the app's rather than this scene's windows'
+    /// (``Scene/appWideEnvironment(_:_:)``).
+    var isAppWide = false
     let write: (inout EnvironmentValues) -> Void
 
     /// A primitive scene: it renders through `SceneRenderable`.
@@ -113,6 +132,10 @@ extension _EnvironmentScene: ConfiguringScene {
     /// Queued after the writes of the scenes outside it, so the one closest to
     /// the content lands last and wins, as in a view's environment.
     func configure(_ configuration: inout SceneConfiguration) {
+        if isAppWide {
+            configuration.appWideEnvironmentWrites.append(write)
+            return
+        }
         configuration.environmentWrites.append(write)
         if let keyPath { configuration.displayOptionsWritten.formUnion(SceneDisplayOptions(writing: keyPath)) }
     }

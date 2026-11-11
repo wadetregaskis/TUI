@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`.aboutPanel(applicationName:…)` is the app's, whichever window is in front.** Written on one scene, the name
+titled the app menu only while one of that scene's windows was in front, and a `Window` without it, such as an
+inspector, brought the process's name back. It now holds for every window, as an Info.plist does; written on several
+scenes with different values, the first scene's wins.
+
 **A disabled radio button's label is drawn disabled.** Its label was drawn as an enabled option's, in every
 palette, so only the `◌` beside it said it could not be chosen; it is now in the grey every disabled control's label is,
 as a toggle's is, whether the group, the option or an enclosing `.disabled()` disables it. And at no colour a disabled

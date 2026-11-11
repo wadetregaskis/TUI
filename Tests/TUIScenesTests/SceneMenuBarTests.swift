@@ -97,9 +97,8 @@ private struct SettingsBarlessApp: App {
 /// The apps with a Window menu name themselves (`aboutPanel`), or the
 /// app menu takes the process's name: the test runner's, which Swift 6.4's
 /// SwiftPM on Linux makes `TUIScenesTests-test-runner`, long enough to push
-/// the Window menu under the 60-column bar's `»` (CI 103). Every scene names
-/// it: the bar reads the environment of the window in front, so a name given
-/// only to the main group was lost when the Inspector came forward (CI 105).
+/// the Window menu under the 60-column bar's `»` (CI 103). Named on one scene,
+/// the name is the app's, whichever window is in front.
 private struct WindowsMenuApp: App {
     init() {}
     var body: some Scene {
@@ -107,7 +106,29 @@ private struct WindowsMenuApp: App {
             .commands { CommandMenu("Note") {} }
             .aboutPanel(applicationName: "Notes")
         Window("Inspector", id: "inspector") { Text("inspector window") }
+    }
+}
+
+/// The app's name given on the second scene alone.
+private struct NamedByInspectorApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup("Main") { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+        Window("Inspector", id: "inspector") { Text("inspector window") }
             .aboutPanel(applicationName: "Notes")
+    }
+}
+
+/// Two scenes naming the app differently.
+private struct TwoNamesApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup("Main") { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+            .aboutPanel(applicationName: "First", copyright: "© First")
+        Window("Inspector", id: "inspector") { Text("inspector window") }
+            .aboutPanel(applicationName: "Second")
     }
 }
 
@@ -119,7 +140,6 @@ private struct ToggleMenuApp: App {
             .commands { CommandMenu("Panels") { WindowVisibilityToggle(windowID: "inspector") } }
             .aboutPanel(applicationName: "Notes")
         Window("Inspector", id: "inspector") { Text("inspector window") }
-            .aboutPanel(applicationName: "Notes")
     }
 }
 
@@ -370,6 +390,38 @@ struct SceneMenuBarTests {
         choose(item: 0, in: app)
         #expect(app.scenes.windows.count == 1, "\(screen(app))")
         #expect(screen(app).contains("main window"), "\(screen(app))")
+    }
+
+    /// The owner's ruling ABOUT-NAME (2026-11-10): the app's name is the
+    /// app's, as an Info.plist's is, not the front window's.
+    @Test("The name given on one scene titles the app menu whichever window is in front")
+    mutating func aboutNameIsAppWide() {
+        let app = launched(NamedByInspectorApp())
+        #expect(rows(app)[0].hasPrefix(" Notes "), "named on the Inspector, with the main window in front: \(rows(app)[0])")
+        app.scenes.open(WindowTarget(id: "inspector"))
+        frame(app)
+        frame(app)
+        #expect(screen(app).contains("inspector window"), "\(screen(app))")
+        #expect(rows(app)[0].hasPrefix(" Notes "), "and with the Inspector in front: \(rows(app)[0])")
+
+        let notes = launched(WindowsMenuApp())
+        notes.scenes.open(WindowTarget(id: "inspector"))
+        frame(notes)
+        frame(notes)
+        #expect(rows(notes)[0].hasPrefix(" Notes "), "named on the main group: \(rows(notes)[0])")
+    }
+
+    @Test("Named differently on two scenes, the app is the first scene's, in all it says")
+    mutating func aboutNameFirstSceneWins() {
+        let app = launched(TwoNamesApp())
+        #expect(rows(app)[0].hasPrefix(" First "), "\(rows(app)[0])")
+        app.scenes.open(WindowTarget(id: "inspector"))
+        frame(app)
+        frame(app)
+        #expect(rows(app)[0].hasPrefix(" First "), "the Inspector's own does not win in front: \(rows(app)[0])")
+        open("First", in: app)
+        choose(item: 0, in: app)
+        #expect(screen(app).contains("© First"), "the whole statement is the first scene's: \(screen(app))")
     }
 
     @Test("Close Window closes the window in front")
