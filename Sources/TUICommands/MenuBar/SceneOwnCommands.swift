@@ -17,7 +17,9 @@ import TUIFoundation
 /// the app's menu holds About and Quit, the Edit menu Undo, Redo, Cut, Copy and
 /// Paste). `commandsRemoved()` takes them away, as there. The View menu's
 /// accessibility and display preferences are TUI's own: a SwiftUI app takes
-/// them from the system's settings.
+/// them from the system's settings. They are the settings panel's View and
+/// Accessibility tabs, item for item, so an app with a menu bar and no panel
+/// key, or a panel and no menu bar, offers all of them either way.
 ///
 /// Each does what a key does — the menu bar is a way to them, never the only
 /// one — and shows that key, without binding it again
@@ -31,7 +33,7 @@ import TUIFoundation
 /// | `undoRedo` | Undo, Redo | the app's `UndoManager`; disabled with nothing to undo or redo | the scene's undo and redo keys |
 /// | `pasteboard` | Cut, Copy, Paste | ⌘X, ⌘C, ⌘V to the focused view, after the menu closes | the same, through `commandKey` |
 /// | `help` | Keyboard Shortcuts; Show Tooltips; Show All Tooltips | the list of the keys in force, unless the scene turned it off (`Scene.keyboardShortcutOverlayDisabled`); whether tooltips show at all; every tooltip on the screen at once (`TooltipState`); each of the last two disabled where no view on the screen has help | F1, unless an app shortcut has it; —; ⌥ and the help key (⌥?), and Shift-F1, the chain's last resort, where Option does not arrive |
-/// | `accessibility` | Differentiate Without Color; Reduce Motion; Reduce Transparency; Increase Contrast; Breathing Focus; Spell Out Keys; Focus Follows Pointer | each turns its preference on or off for the rest of the run, over the system's setting, the `TUI_*` variable and the scene's modifiers (`ViewPreferenceOverrides`), checked while it is on; never saved | — |
+/// | `accessibility` | Palette ▸, Border Style ▸, Control Style ▸; Breathing Focus; Spell Out Keys; Focus Follows Pointer; Arrows Follow Layout; Differentiate Without Color; Reduce Motion; Reduce Transparency; Increase Contrast | the three submenus choose as the settings panel's View tab does (`DisplayChoices`), left out where the commands offer them (`DisplayCommands`); each check turns its preference on or off for the rest of the run, over the system's setting, the `TUI_*` variable and the scene's modifiers (`ViewPreferenceOverrides`), checked while it is on; never saved. The settings panel's View and Accessibility tabs, in their order | — |
 /// | `toolbar` | Customize Toolbar… | opens the customization panel of the page's customizable toolbar (`toolbar(id:content:)`), as its right-click does; only while the page shows one, and not where the commands offer it themselves (`ToolbarCommands`) | — |
 /// | `saveItem` | Close; Close All | closes the window in front; every window that may close but the one at the back; each disabled where it would close nothing (the Window menu's rule) | ⌘W; ⌥⌘W — a focused text field keeps Ctrl-W, its word rubout |
 /// | `windowArrangement` | Close Window | closes the window in front; disabled where the person may not: the last, one whose content disabled its dismissal, one showing a sheet | Escape |
@@ -70,6 +72,11 @@ struct SceneOwnCommands {
     /// Whether the scene's commands offer Customize Toolbar… themselves
     /// (``ToolbarCommands``), so the toolbar group has none of its own.
     let commandsOfferCustomizeToolbar: Bool
+
+    /// Whether the scene's commands offer Palette, Border Style and Control
+    /// Style themselves (``DisplayCommands``), so the View menu's own are
+    /// left out.
+    let commandsOfferDisplayChoices: Bool
 
     /// What `group` holds before an edit, where the bar renders in `context`;
     /// `nil` for a group TUI leaves empty.
@@ -142,21 +149,34 @@ struct SceneOwnCommands {
         return Self.items("customize-toolbar") { CustomizeToolbarCommand.item(chrome) }
     }
 
-    /// View ▸ the accessibility and display preferences, each a check showing
-    /// whether it is on, which turns it on or off for the rest of the run
-    /// (``ViewPreferenceOverrides``): the owner's "a way to enable or disable
-    /// them … in the View menu … by default" (2026-11-08). None outside a
-    /// running app, which has no choices to hold.
+    /// View ▸ the display options and the preferences: the palette, the
+    /// border style and the control style (``DisplayChoices``), unless the
+    /// commands offer them themselves (``DisplayCommands``); then each
+    /// preference a check showing whether it is on, which turns it on or off
+    /// for the rest of the run (``ViewPreferenceOverrides``): the owner's "a
+    /// way to enable or disable them … in the View menu … by default"
+    /// (2026-11-08). In the settings panel's order — its View tab's, then its
+    /// Accessibility tab's — and from the same model, so the two always agree
+    /// (the owner, 2026-11-10: "Full redundancy"). None outside a running
+    /// app, which has no choices to hold.
     private func preferenceItems(_ environment: EnvironmentValues) -> CommandItems? {
         guard let overrides = environment.viewPreferenceOverrides else { return nil }
         let service = LocalizationService.shared
         let on = Set(ViewPreference.allCases.filter { $0.isOn(in: environment) })
-        return Self.items("view-preferences") {
-            ForEach(ViewPreference.allCases, id: \.self) { preference in
+        let toggles = { (preferences: [ViewPreference]) in
+            ForEach(preferences, id: \.self) { preference in
                 Toggle(
                     service.string(for: preference.title),
                     isOn: Binding(get: { on.contains(preference) }, set: { overrides[preference] = $0 }))
             }
+        }
+        let offersDisplayChoices = commandsOfferDisplayChoices
+        return Self.items("view-preferences") {
+            if !offersDisplayChoices {
+                Section { DisplayChoices(environment: environment).pickers }
+            }
+            Section { toggles(ViewPreference.inTab(.view)) }
+            Section { toggles(ViewPreference.inTab(.accessibility)) }
         }
     }
 

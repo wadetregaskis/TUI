@@ -15,6 +15,18 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**The settings panel and the View menu offer the same settings, and the panel has a border.** The panel (F2)
+is drawn as a titled dialog. Its View tab now holds Breathing Focus, Spell Out Keys, Focus Follows Pointer and the
+new Arrows Follow Layout after the palette, border style and control style, and its Accessibility tab the four
+accessibility checks; every menu bar's View menu offers all of them in the same order, Palette, Border Style and
+Control Style included, so an app with a menu bar and no panel, or a panel and no menu bar, loses nothing.
+`DisplayCommands` moves the three submenus to the top of the View menu in place of TUI's own. An app that states its
+palette, border or control style at the scene and hands its state to `DisplayCommands` has the panel choose into
+that state too; one that hands none has the panel say why the choice is disabled, under it.
+**Arrows Follow Layout turns the geometric arrow keys on and off while the app runs.** It is
+`TUI_ARROW_FOCUS=geometric`, an experiment, as a check in the settings panel and the View menu; the choice wins over
+the variable until the app quits. It is off unless you turn it on.
+
 **↑ on a menu bar menu's first item goes back to its title.** The menu stays open with nothing highlighted, and ←
 and → then walk the menus without entering them, so an item with a submenu no longer catches →; ↓ enters the menu
 again. From an item, ← and → step to the next menu as before. A pop-up `Menu`, a context menu and a submenu still stop

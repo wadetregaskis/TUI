@@ -199,6 +199,7 @@ extension LocalizationService {
       "menu.focusBreathing": "Breathing Focus",
       "menu.spelledOutKeys": "Spell Out Keys",
       "menu.focusFollowsPointer": "Focus Follows Pointer",
+      "menu.arrowsFollowLayout": "Arrows Follow Layout",
       "menu.shortcutsOnThisScreen": "On This Screen",
       "menu.shortcutsStatusBar": "Status Bar",
       "menu.shortcutsGeneral": "General",

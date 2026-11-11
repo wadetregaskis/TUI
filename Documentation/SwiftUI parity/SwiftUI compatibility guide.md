@@ -857,12 +857,15 @@ so it quits when `q` would, whatever has the focus); the Edit menu holds Undo
 and Redo (the app's `UndoManager`, showing the scene's undo keys) and Cut, Copy
 and Paste (⌘X, ⌘C and ⌘V, through `commandKey`, to the focused view); the View
 menu ends with TUI's accessibility and display preferences, in a placement of
-TUI's own, `CommandGroupPlacement.accessibility` — Differentiate Without
-Color, Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus,
-Spell Out Keys and Focus Follows Pointer, each a check showing whether it is on,
-which the person turns on or off for the rest of the run over the system's
-setting, the `TUI_*` variable and the scene's own modifiers, never saved
-(owner, 2026-11-08; a SwiftUI app takes these from the system); the Help
+TUI's own, `CommandGroupPlacement.accessibility` — the settings panel's View and
+Accessibility tabs item for item, in their order (owner, 2026-11-10: "Full
+redundancy"): Palette ▸, Border Style ▸ and Control Style ▸ (unless
+`DisplayCommands` offers them), then Breathing Focus, Spell Out Keys, Focus
+Follows Pointer, Arrows Follow Layout, Differentiate Without Color, Reduce
+Motion, Reduce Transparency and Increase Contrast, each a check showing whether
+it is on, which the person turns on or off for the rest of the run over the
+system's setting, the `TUI_*` variable and the scene's own modifiers, never
+saved (owner, 2026-11-08; a SwiftUI app takes these from the system); the Help
 menu holds Show Tooltips and Show All Tooltips (see the Help row, §1).
 With a `Settings` scene the app's menu holds Settings…, presenting it, and
 shows its key: ⌘, through `commandKey`, or the one the scene's
@@ -937,9 +940,10 @@ value left `nil` comes from the bundle's Info.plist where there is one
 the process. The name titles the app's menu and its About and Quit items too
 (decisions MENUBAR, B-MENUBAR-2).
 
-TUI-only: `DisplayCommands`, a standard set beside SwiftUI's, adds View ▸
-Palette ▸, Border Style ▸ and Control Style ▸, each a `Picker`, so a submenu
-of the built-in choices with the one in force checked. With no arguments it
+TUI-only: `DisplayCommands`, a standard set beside SwiftUI's, puts View ▸
+Palette ▸, Border Style ▸ and Control Style ▸ at the top of the View menu, in
+place of TUI's own at its foot, each a `Picker`, so a submenu of the built-in
+choices with the one in force checked. With no arguments it
 chooses through the app's palette and appearance managers, which the `t` and
 `a` keys cycle, and its control style manager (`\.controlStyleManager`). Where
 the scene sets one of the three itself (a `.palette(_:)` or `.theme(_:)`, an
@@ -947,8 +951,10 @@ the scene sets one of the three itself (a `.palette(_:)` or `.theme(_:)`, an
 an environment modifier of it on the window group's root view), a manager's
 choice would show nothing, so that submenu is disabled, with help saying why;
 `DisplayCommands(palette:appearance:controlStyle:)` takes bindings to the
-app's own state, which the submenus then write (decisions MENUBAR,
-A-MENUBAR-1).
+app's own state, which the submenus then write, and the settings panel's View
+tab too (decisions MENUBAR, A-MENUBAR-1; owner, 2026-11-10). The panel says
+why a picker is disabled on a line under it, as a disabled control takes no
+focus to show its help on.
 
 `.toolbar(removing: .sidebarToggle)` takes away `NavigationSplitView`'s own
 toggle handles (the ◀ on the leftmost divider and the ▶ edge column), and any

@@ -256,7 +256,7 @@ A few things happen between frames that no view asks for, each covered on its ow
 - **Notifications.** The scene draws the toasts ``NotificationService`` posts, and sends one to the desktop where it asks to be: through the terminal where the terminal posts notifications, else through this machine's own (`TUI_SYSTEM_NOTIFICATIONS`). See <doc:Presentation>.
 - **Scene storage.** `@SceneStorage` values are kept per terminal session and saved as they change. See <doc:StateManagement>.
 - **Settings read again.** Each time the terminal regains the focus, the app reads the machine's accessibility settings again; and when the terminal says its colours changed, it asks for them again and repaints.
-- **The View menu's accessibility items.** In an app with a menu bar, Reduce Motion, Breathing Focus, Focus Follows Pointer and the rest override both the app's own setting and the environment variable until the app quits. See <doc:EnvironmentVariables>.
+- **The settings panel's and the View menu's preferences.** Reduce Motion, Breathing Focus, Focus Follows Pointer, Arrows Follow Layout and the rest, in the settings panel (F2) and in the View menu of an app with a menu bar, override both the app's own setting and the environment variable until the app quits. See <doc:EnvironmentVariables>.
 
 ## Subsystem Dependency Graph
 

@@ -413,7 +413,7 @@ The focused control is offered every key first. Whatever it doesn't use, these m
 | Down / Right | Move to next element in section (fallback) |
 | F6 | Move to the newest toast with a button, then to older ones, then back (see <doc:Presentation#Notifications>) |
 
-With `TUI_ARROW_FOCUS=geometric`, an experiment, an arrow moves instead to the nearest control on screen in its direction, and in Tab order only where there is none; Tab is unchanged, and the arrows stay inside the active focus section either way (see <doc:EnvironmentVariables>).
+With `TUI_ARROW_FOCUS=geometric`, or Arrows Follow Layout in the settings panel (F2) or the View menu, an experiment, an arrow moves instead to the nearest control on screen in its direction, and in Tab order only where there is none; Tab is unchanged, and the arrows stay inside the active focus section either way (see <doc:EnvironmentVariables>).
 
 A focused `.draggable` view can be carried from the keyboard: ⌃R picks it up, Tab and the arrows move to a destination, Return drops it, and Escape or ⌃R again puts it back. See <doc:DragAndDrop>.
 
@@ -582,8 +582,8 @@ then TUI's, after a divider:
 | Tab | What it holds |
 |-----|---------------|
 | Your app's | A `TabView` of `Tab`s in your `Settings` scene becomes one tab each, whether written there or as the body of a view of your own (`Settings { SettingsView() }`), and modifiers on it apply to each tab; any other content becomes one tab, named after the app |
-| View | The palette, the border style and the control style, as the menu bar's `DisplayCommands` offers them |
-| Accessibility | Differentiate Without Color, Reduce Motion, Reduce Transparency, Increase Contrast, Breathing Focus, Spell Out Keys and Focus Follows Pointer, the View menu's checks |
+| View | The palette, the border style and the control style, then Breathing Focus, Spell Out Keys, Focus Follows Pointer and Arrows Follow Layout |
+| Accessibility | Differentiate Without Color, Reduce Motion, Reduce Transparency and Increase Contrast |
 
 ```swift
 @main
@@ -604,8 +604,12 @@ Build your tabs from `Form`, `Section`, `Toggle`, `Picker` and `Stepper`, as
 TUI's are, and they look alike. Your settings persist however you store them,
 usually with `@AppStorage`; TUI's last for the run, win over the system's
 settings, the `TUI_*` variables and your scene's modifiers, and are never
-saved. The View menu's checks and the Accessibility tab change the same
-choices, so they always agree. Settings are app-wide: nothing deeper in the
+saved. The menu bar's View menu offers everything in TUI's two tabs, in the
+same order, and the two change the same choices, so they always agree: an app
+may show a menu bar and no settings panel, or the other way round, and lose
+nothing. A display option your scene states itself (a `.palette(_:)`, say) is
+disabled in both, and the panel says why under it, unless you hand your state
+to ``DisplayCommands``, whose bindings the panel then chooses into too. Settings are app-wide: nothing deeper in the
 view tree adds to them.
 
 The tab strip is a segmented control: ← and → move along it and Space

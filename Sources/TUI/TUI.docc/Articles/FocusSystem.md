@@ -17,8 +17,9 @@ These keys move the focus, once the focused control has let them go:
 | Arrow Down / Right | Move focus to the next element |
 | Arrow Up / Left | Move focus to the previous element |
 
-With `TUI_ARROW_FOCUS=geometric` (<doc:EnvironmentVariables>), an experiment
-for trying out, an arrow moves the focus to the nearest control on screen in its
+With `TUI_ARROW_FOCUS=geometric` (<doc:EnvironmentVariables>), or Arrows
+Follow Layout in the settings panel (F2) or the View menu, which wins until the
+app quits, an experiment for trying out, an arrow moves the focus to the nearest control on screen in its
 direction instead, so Down goes to the button below rather than the next one in
 Tab order; where there is none it falls back to Tab order. Tab is unchanged, and
 the arrows still stay inside the active focus section.
@@ -168,9 +169,9 @@ By default the mouse pointer only highlights what it is over, and a click moves
 the focus. With ``Scene/focusFollowsPointer(_:)``, or the person's
 `TUI_FOCUS_FOLLOWS_POINTER=1` (<doc:EnvironmentVariables>), the control the
 pointer moves onto takes the focus too, as a click there would, without
-pressing it. What the scene says wins over the variable, and in an app with a
-menu bar the View menu's Focus Follows Pointer wins over both until the app
-quits. The terminal then reports every move of the mouse, wherever it reports
+pressing it. What the scene says wins over the variable, and the settings
+panel's (F2) and the View menu's Focus Follows Pointer win over both until the
+app quits. The terminal then reports every move of the mouse, wherever it reports
 clicks.
 
 - **A pointer at rest takes nothing back.** Only a move onto another cell

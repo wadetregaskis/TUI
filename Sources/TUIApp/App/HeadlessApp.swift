@@ -346,10 +346,14 @@ package final class HeadlessApp {
     package var focusedID: String? { focusManager.currentFocusedID }
 
     /// How the arrow keys move the focus, which `TUI_ARROW_FOCUS` sets in an
-    /// app and a test sets here.
+    /// app and a test sets here: as the user's, which the View menu's choice
+    /// replaces, and in force at once, for keys sent before the next frame.
     package var arrowFocus: ArrowFocus {
         get { focusManager.arrowFocus }
-        set { focusManager.arrowFocus = newValue }
+        set {
+            renderer.arrowFocusRequested = newValue
+            focusManager.arrowFocus = newValue
+        }
     }
 
     /// The regions the focus manager keeps for the geometric arrows: empty
@@ -479,6 +483,7 @@ private protocol HeadlessRendering: AnyObject {
     var hostState: TerminalHostState { get }
     var sendsProgressReports: Bool { get set }
     var cursorFollowsFocus: CursorFollowsFocus? { get set }
+    var arrowFocusRequested: ArrowFocus { get set }
     var configureEnvironment: ((inout EnvironmentValues) -> Void)? { get set }
 }
 

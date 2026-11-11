@@ -90,6 +90,9 @@ extension RenderLoop {
         // what the scene says, else the user's `TUI_FOCUS_FOLLOWS_POINTER`.
         let followsPointer = environment.focusFollowsPointer ?? focusFollowsPointerRequested ?? false
         tuiContext.mouseEventDispatcher.pointerFocusManager = followsPointer ? focusManager : nil
+        // How the arrows move the focus, for the keys that arrive before the
+        // next frame: the user's `TUI_ARROW_FOCUS`, or the View menu's choice.
+        focusManager.arrowFocus = environment.arrowFocus
         applyChromeStyle(from: configuration, commands: commands)
         // The screen selection's copy key and the scene's copy-on-release.
         tuiContext.screenSelection.adopt(

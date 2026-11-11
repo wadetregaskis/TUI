@@ -16,13 +16,13 @@ import TUIFoundation
 ///
 /// TUI-specific: SwiftUI's apps take these from the system's settings.
 public enum BuiltInSettingsTab: Hashable, Sendable, CaseIterable {
-    /// View: the palette, the border style and the control style, as the menu
-    /// bar's `DisplayCommands` offers them.
+    /// View: the palette, the border style and the control style, then
+    /// Breathing Focus, Spell Out Keys, Focus Follows Pointer and Arrows
+    /// Follow Layout, as the menu bar's View menu offers them.
     case view
 
     /// Accessibility: Differentiate Without Color, Reduce Motion, Reduce
-    /// Transparency, Increase Contrast, Breathing Focus, Spell Out Keys and
-    /// Focus Follows Pointer, the View menu's checks.
+    /// Transparency and Increase Contrast, the View menu's checks.
     case accessibility
 }
 

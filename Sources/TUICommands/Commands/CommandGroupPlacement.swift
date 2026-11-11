@@ -170,13 +170,16 @@ public struct CommandGroupPlacement: Hashable, Sendable {
     /// the person using it — TUI-specific, with no SwiftUI counterpart: a
     /// SwiftUI app takes these from the system's settings.
     ///
-    /// By default, this group includes a check for each of Differentiate
-    /// Without Color, Reduce Motion, Reduce Transparency, Increase Contrast,
-    /// Breathing Focus, Spell Out Keys and Focus Follows Pointer, showing
-    /// whether it is on. Choosing one turns it on or off for the rest of the
-    /// run, over the system's setting, the user's `TUI_*` variable and the
-    /// scene's own modifiers (`Scene.reduceMotion(_:)` and the like); nothing
-    /// is saved. The last group of the View menu. `CommandGroup(replacing:
+    /// By default, this group includes what the settings panel's View and
+    /// Accessibility tabs offer, in their order: the Palette, Border Style and
+    /// Control Style submenus (unless ``DisplayCommands`` offers them), then a
+    /// check for each of Breathing Focus, Spell Out Keys, Focus Follows
+    /// Pointer, Arrows Follow Layout, Differentiate Without Color, Reduce
+    /// Motion, Reduce Transparency and Increase Contrast, showing whether it
+    /// is on. Choosing one turns it on or off for the rest of the run, over
+    /// the system's setting, the user's `TUI_*` variable and the scene's own
+    /// modifiers (`Scene.reduceMotion(_:)` and the like); nothing is saved.
+    /// The last group of the View menu. `CommandGroup(replacing:
     /// .accessibility) {}` takes them away, as it does any group's.
     public static let accessibility = Self(.accessibility)
 

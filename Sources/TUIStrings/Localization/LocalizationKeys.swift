@@ -357,6 +357,9 @@ public enum LocalizationKey {
         case spelledOutKeys = "menu.spelledOutKeys"
         /// The menu bar's View menu: whether the focus follows the pointer, a check.
         case focusFollowsPointer = "menu.focusFollowsPointer"
+        /// The menu bar's View menu and the settings panel: whether an arrow
+        /// goes to the nearest control that way (`arrowFocus`), a check.
+        case arrowsFollowLayout = "menu.arrowsFollowLayout"
         /// The list of keyboard shortcuts: the section of what the page binds.
         case shortcutsOnThisScreen = "menu.shortcutsOnThisScreen"
         /// The list of keyboard shortcuts: the status bar's section.

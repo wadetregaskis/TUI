@@ -19,8 +19,10 @@ extension TUIEnvironmentVariables {
         appearance + motion + keyboardAndMouse + language + output + linksAndNotifications + terminalQuirks
         + files + troubleshooting
 
-    /// The sentence each variable the View menu also sets ends with.
-    private static let viewMenu = "A program with a menu bar has this in its View menu too, which wins until the program quits."
+    /// The sentence each variable the settings panel and the View menu also
+    /// set ends with.
+    private static let viewMenu =
+        "The program's settings panel (F2) has this too, as does its View menu if it has a menu bar, and a choice there wins until the program quits."
 
     /// The default of each variable that a setting of the computer's also answers.
     private static let systemSetting = "Unset, your computer's own setting decides, when you're at the machine the program runs on."
@@ -95,7 +97,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_ARROW_FOCUS", .endUser, .keyboardAndMouse,
             values: "`geometric`",
-            effect: "An experiment. When the control your keys act on doesn't use an arrow key itself, the arrow moves to the nearest control in that direction, scrolling to it if it's out of sight, so Down goes to the button below. At the edge it stays put instead of wrapping around. Tab and Shift-Tab are unchanged. Unset, the arrows go in the same order as Tab."),
+            effect: "An experiment. When the control your keys act on doesn't use an arrow key itself, the arrow moves to the nearest control in that direction, scrolling to it if it's out of sight, so Down goes to the button below. At the edge it stays put instead of wrapping around. Tab and Shift-Tab are unchanged. Unset, the arrows go in the same order as Tab. \(viewMenu)"),
         TUIEnvironmentVariable(
             "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .keyboardAndMouse,
             values: "`1` or `0`",

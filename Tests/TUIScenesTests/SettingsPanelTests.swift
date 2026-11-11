@@ -116,6 +116,36 @@ private struct CustomizedApp: App {
     }
 }
 
+/// Where an app keeps its palette itself.
+@MainActor
+private final class PaletteBox {
+    var palette: any Palette = SystemPalette(.amber)
+}
+
+/// An app that states its own palette at the scene, handing its state to
+/// `DisplayCommands` where `bound`, and otherwise not.
+private struct OwnPaletteApp: App {
+    let box: PaletteBox
+    let bound: Bool
+
+    init() { self.init(box: PaletteBox(), bound: false) }
+
+    init(box: PaletteBox, bound: Bool) {
+        self.box = box
+        self.bound = bound
+    }
+
+    var body: some Scene {
+        let box = box
+        let binding = Binding<any Palette>(get: { box.palette }, set: { box.palette = $0 })
+        return WindowGroup { Text("PAGE") }
+            .palette(box.palette)
+            .commands {
+                if bound { DisplayCommands(palette: binding) } else { CommandMenu("Note") {} }
+            }
+    }
+}
+
 /// An app with no tab for the panel at all.
 private struct NoTabsApp: App {
     init() {}
@@ -282,5 +312,41 @@ struct SettingsPanelTests {
         let listed = binding.screen.lines
         #expect(listed.contains { $0.contains("F2") && $0.contains("mine") }, "\(listed.joined(separator: "\n"))")
         #expect(!listed.contains { $0.contains("F2") && $0.contains("Settings…") })
+    }
+
+    @Test("The View tab has the View menu's focus and key checks after the display options; Accessibility the rest")
+    mutating func viewTabChecks() throws {
+        let app = launched(PlainApp())
+        press(.f2, in: app)
+        let view = screen(app)
+        for title in ["Palette", "Breathing Focus", "Spell Out Keys", "Focus Follows Pointer", "Arrows Follow Layout"] {
+            #expect(view.contains(title), "\(title): \(view)")
+        }
+        #expect(!view.contains("Reduce Motion"), "\(view)")
+        #expect(app.arrowFocus == .tabOrder, "the experiment is off unless asked for")
+        try app.click("Arrows Follow Layout")
+        frame(app)
+        #expect(app.arrowFocus == .geometric, "\(screen(app))")
+        press(.right, in: app)
+        press(.escape, in: app)
+        #expect(viewMenu(app).contains { $0.contains("Arrows Follow Layout") && $0.contains("■") })
+        press(.f2, in: app)
+        press(.right, in: app)
+        press(.space, in: app)
+        let accessibility = screen(app)
+        #expect(accessibility.contains("Reduce Motion") && !accessibility.contains("Breathing Focus"), "\(accessibility)")
+    }
+
+    @Test("A display option the scene states is disabled with the reason in place, unless DisplayCommands has its state")
+    mutating func displayOptionSetByTheApp() {
+        let reason = "The app sets this itself"
+        let unbound = launched(OwnPaletteApp())
+        press(.f2, in: unbound)
+        #expect(screen(unbound).contains(reason), "\(screen(unbound))")
+
+        let box = PaletteBox()
+        let bound = launched(OwnPaletteApp(box: box, bound: true))
+        press(.f2, in: bound)
+        #expect(!screen(bound).contains(reason), "\(screen(bound))")
     }
 }

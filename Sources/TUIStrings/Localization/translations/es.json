@@ -169,6 +169,7 @@
   "menu.focusBreathing": "Foco pulsante",
   "menu.spelledOutKeys": "Escribir las teclas por su nombre",
   "menu.focusFollowsPointer": "El foco sigue al puntero",
+  "menu.arrowsFollowLayout": "Las flechas siguen la disposición",
   "menu.shortcutsOnThisScreen": "En esta pantalla",
   "menu.shortcutsStatusBar": "Barra de estado",
   "menu.shortcutsGeneral": "General",

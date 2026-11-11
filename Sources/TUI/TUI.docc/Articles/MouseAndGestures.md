@@ -267,7 +267,7 @@ The view modifier of the same name changes it while the app runs, for instance t
 
 A view that uses `onHover` asks for cursor movement by itself, so hover doesn't need `.full`.
 
-Two settings of the person running the app change what the mouse does. `TUI_SHIFT_CLICKS=0` leaves Shift-clicks to the terminal, which usually selects text with them. `TUI_FOCUS_FOLLOWS_POINTER=1`, or the View menu's Focus Follows Pointer, gives the keyboard to the control under the pointer as it moves, and an app can ask for that with ``Scene/focusFollowsPointer(_:)``. See <doc:FocusSystem> and <doc:EnvironmentVariables>.
+Two settings of the person running the app change what the mouse does. `TUI_SHIFT_CLICKS=0` leaves Shift-clicks to the terminal, which usually selects text with them. `TUI_FOCUS_FOLLOWS_POINTER=1`, or Focus Follows Pointer in the settings panel (F2) or the View menu, gives the keyboard to the control under the pointer as it moves, and an app can ask for that with ``Scene/focusFollowsPointer(_:)``. See <doc:FocusSystem> and <doc:EnvironmentVariables>.
 
 ## Topics
 

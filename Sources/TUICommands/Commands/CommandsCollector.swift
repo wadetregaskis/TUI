@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIApp
 import TUIFoundation
 
 // MARK: - The Items a Declaration Holds
@@ -99,6 +100,13 @@ struct CommandsCollector {
     /// (``ToolbarCommands``): the scene's own item is then left out, so the
     /// menu never has two.
     var offersCustomizeToolbar = false
+
+    /// Whether the commands offer View ▸ Palette, Border Style and Control
+    /// Style themselves (``DisplayCommands``): the scene's own are then left
+    /// out. With the app's state they choose into, which the settings panel's
+    /// View tab chooses into too.
+    var offersDisplayChoices = false
+    var displayBindings = DisplayChoices.Bindings()
 
     /// The place being collected: one step per block member and `if` branch.
     private var path: [Int] = []

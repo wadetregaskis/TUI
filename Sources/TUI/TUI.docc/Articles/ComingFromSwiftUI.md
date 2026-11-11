@@ -91,7 +91,7 @@ Button("Save") { save() }
 
 A terminal app has to be usable without a mouse, so the first control on a screen or in a new sheet takes the focus by itself. If you state a preference with `.defaultFocus`, or move the focus with `@FocusState`, that takes over.
 
-Tab and Shift-Tab move through the controls in order, and so do the arrow keys a control doesn't use itself. A user can set `TUI_ARROW_FOCUS=geometric`, an experiment, to have an arrow go to the nearest control on screen in that direction instead (<doc:EnvironmentVariables>).
+Tab and Shift-Tab move through the controls in order, and so do the arrow keys a control doesn't use itself. A user can set `TUI_ARROW_FOCUS=geometric`, or turn on Arrows Follow Layout in the settings panel (F2), an experiment, to have an arrow go to the nearest control on screen in that direction instead (<doc:EnvironmentVariables>).
 
 A link inside a `Text` is a control like any other. The Tab key stops on it, Return opens it, and it's underlined so that you can see it's a link. To remove the underline, write `.linkUnderline(false)`.
 

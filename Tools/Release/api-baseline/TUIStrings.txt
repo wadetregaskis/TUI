@@ -137,6 +137,7 @@ LocalizationKey.Menu | enum Menu
 LocalizationKey.Menu.about | case about
 LocalizationKey.Menu.aboutVersion | case aboutVersion
 LocalizationKey.Menu.accessibility | case accessibility
+LocalizationKey.Menu.arrowsFollowLayout | case arrowsFollowLayout
 LocalizationKey.Menu.borderStyle | case borderStyle
 LocalizationKey.Menu.close | case close
 LocalizationKey.Menu.closeAll | case closeAll

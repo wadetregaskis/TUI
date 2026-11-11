@@ -169,6 +169,7 @@
   "menu.focusBreathing": "フォーカスを明滅",
   "menu.spelledOutKeys": "キー名を文字で表示",
   "menu.focusFollowsPointer": "フォーカスをポインタに追従",
+  "menu.arrowsFollowLayout": "矢印キーをレイアウトに従わせる",
   "menu.shortcutsOnThisScreen": "この画面",
   "menu.shortcutsStatusBar": "ステータスバー",
   "menu.shortcutsGeneral": "一般",

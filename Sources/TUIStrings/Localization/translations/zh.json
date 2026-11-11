@@ -169,6 +169,7 @@
   "menu.focusBreathing": "焦点呼吸效果",
   "menu.spelledOutKeys": "以文字显示按键",
   "menu.focusFollowsPointer": "焦点跟随指针",
+  "menu.arrowsFollowLayout": "方向键按布局移动",
   "menu.shortcutsOnThisScreen": "此屏幕",
   "menu.shortcutsStatusBar": "状态栏",
   "menu.shortcutsGeneral": "通用",

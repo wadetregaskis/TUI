@@ -135,6 +135,11 @@ struct _MenuBarCore: View, Renderable {
             guard let commands = (declaration as? CommandsDeclaration)?.commands else { continue }
             collector.step(index, commands)
         }
+        // The app's state its `DisplayCommands` chooses into, for the settings
+        // panel's View tab to choose into too (`ViewPreferenceOverrides`).
+        if !context.isMeasuring {
+            context.environment.viewPreferenceOverrides?.displayBindings = collector.displayBindings
+        }
         // At the place a closed menu's items render to register their keys
         // (`registerShortcuts`), so what a look at them evaluates is theirs.
         let makesNoRows = { (items: CommandItems, menuKey: String) in
@@ -142,7 +147,8 @@ struct _MenuBarCore: View, Renderable {
         }
         guard commands.includesSceneCommands else { return collector.resolvedMenus(makesNoRows: makesNoRows) }
         let own = SceneOwnCommands(
-            showAbout: showAbout, commandsOfferCustomizeToolbar: collector.offersCustomizeToolbar)
+            showAbout: showAbout, commandsOfferCustomizeToolbar: collector.offersCustomizeToolbar,
+            commandsOfferDisplayChoices: collector.offersDisplayChoices)
         return collector.resolvedMenus(defaults: { own.items(for: $0, context: context) }, makesNoRows: makesNoRows)
     }
 

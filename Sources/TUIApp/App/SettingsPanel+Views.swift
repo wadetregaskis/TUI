@@ -59,7 +59,7 @@ struct _SettingsPanelSheet: View {
         case .shown:
             let content =
                 switch tab {
-                case .view: AnyView(_SettingsViewTab(choices: DisplayChoices(environment: environment)))
+                case .view: AnyView(_SettingsViewTab(environment: environment))
                 case .accessibility: AnyView(_SettingsAccessibilityTab(environment: environment))
                 }
             return SettingsPanelTab(title: title, isBuiltIn: true, content: content)
@@ -69,10 +69,12 @@ struct _SettingsPanelSheet: View {
 
 // MARK: - The Panel
 
-/// The tab strip — a segmented control, with a heavier rule between the
-/// app's tabs and TUI's — the tab shown under it in a `ScrollView`, which the
-/// arrow and paging keys scroll while it overflows, and the Done button, for
-/// the pointer, as the list of shortcuts has.
+/// The panel's box — a `Dialog` titled Settings, as every presented panel
+/// of TUI's is drawn, so it stands apart from the dimmed page — holding the
+/// tab strip — a segmented control, with a heavier rule between the app's
+/// tabs and TUI's — the tab shown under it in a `ScrollView`, which the arrow
+/// and paging keys scroll while it overflows, and the Done button in its
+/// footer, for the pointer, as the list of shortcuts has.
 private struct _SettingsPanelContent: View {
     let panel: SettingsPanel
     let tabs: [SettingsPanelTab]
@@ -82,9 +84,7 @@ private struct _SettingsPanelContent: View {
         let panel = panel
         let shown = tabs.isEmpty ? 0 : min(max(panel.selection, 0), tabs.count - 1)
         let firstBuiltIn = tabs.firstIndex { $0.isBuiltIn } ?? tabs.count
-        // Done at the trailing edge of the strip and the tab, whichever is
-        // wider, without widening the panel past them.
-        VStack(alignment: .trailing, spacing: 1) {
+        Dialog(title: service.string(for: LocalizationKey.Menu.settingsPanel), footerAlignment: .trailing) {
             VStack(alignment: .leading, spacing: 1) {
                 if tabs.count > 1 {
                     Picker(
@@ -108,10 +108,10 @@ private struct _SettingsPanelContent: View {
                     }
                 }
             }
+        } footer: {
             Button(service.string(for: LocalizationKey.Button.done)) { panel.dismiss() }
                 .keyboardShortcut(.cancelAction)
         }
-        .padding(.horizontal, 1)
     }
 
     /// A tab's title in the strip: its own, or the app's name.
@@ -122,36 +122,50 @@ private struct _SettingsPanelContent: View {
 
 // MARK: - TUI's Tabs
 
-/// View: the palette, the border style and the control style, as the menu
-/// bar's `DisplayCommands` offers them — one model (``DisplayChoices``), so
-/// the two agree.
+/// View: the palette, the border style and the control style
+/// (``DisplayChoices``), then how the focus and the keys behave — Breathing
+/// Focus, Spell Out Keys, Focus Follows Pointer, Arrows Follow Layout — as the
+/// View menu offers them: one model, so the two agree.
 private struct _SettingsViewTab: View {
-    let choices: DisplayChoices
+    let environment: EnvironmentValues
 
     var body: some View {
         Form {
-            choices.pickers
+            DisplayChoices(environment: environment).formRows
+            _PreferenceToggles(preferences: ViewPreference.inTab(.view), environment: environment)
         }
     }
 }
 
-/// Accessibility: the View menu's checks, each turning its preference on or
-/// off for the rest of the run over the system's setting, the `TUI_*`
-/// variable and the scene's modifiers — the same choices the menu makes
-/// (``ViewPreferenceOverrides``), so the two agree. Never saved.
+/// Accessibility: Differentiate Without Color, Reduce Motion, Reduce
+/// Transparency and Increase Contrast, as the View menu offers them.
 private struct _SettingsAccessibilityTab: View {
+    let environment: EnvironmentValues
+
+    var body: some View {
+        Form {
+            _PreferenceToggles(preferences: ViewPreference.inTab(.accessibility), environment: environment)
+        }
+    }
+}
+
+/// A toggle for each of `preferences`, each turning it on or off for the rest
+/// of the run over the system's setting, the `TUI_*` variable and the scene's
+/// modifiers — the same choices the View menu's checks make
+/// (``ViewPreferenceOverrides``), so the two agree. Never saved. Disabled
+/// outside a running app, which has no choices to hold.
+private struct _PreferenceToggles: View {
+    let preferences: [ViewPreference]
     let environment: EnvironmentValues
 
     var body: some View {
         let service = LocalizationService.shared
         let overrides = environment.viewPreferenceOverrides
-        let on = Set(ViewPreference.allCases.filter { $0.isOn(in: environment) })
-        Form {
-            ForEach(ViewPreference.allCases, id: \.self) { preference in
-                Toggle(
-                    service.string(for: preference.title),
-                    isOn: Binding(get: { on.contains(preference) }, set: { overrides?[preference] = $0 }))
-            }
+        let on = Set(preferences.filter { $0.isOn(in: environment) })
+        ForEach(preferences, id: \.self) { preference in
+            Toggle(
+                service.string(for: preference.title),
+                isOn: Binding(get: { on.contains(preference) }, set: { overrides?[preference] = $0 }))
         }
         .disabled(overrides == nil)
     }

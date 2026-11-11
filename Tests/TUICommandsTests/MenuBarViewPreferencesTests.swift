@@ -2,9 +2,11 @@
 //  MenuBarViewPreferencesTests.swift
 //
 //  The View menu's accessibility and display preferences, in every menu bar:
-//  each a check showing whether it is on, which the person turns on or off
-//  for the rest of the run, over the host's setting, the `TUI_*` variable
-//  and the app's own scene modifiers, and never saved.
+//  the display options' submenus, then each preference a check showing
+//  whether it is on, which the person turns on or off for the rest of the
+//  run, over the host's setting, the `TUI_*` variable and the app's own scene
+//  modifiers, and never saved — the settings panel's View and Accessibility
+//  tabs, item for item.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -80,6 +82,35 @@ private struct ReplacingApp: App {
     }
 }
 
+/// An app that offers the display options itself, at the top of View.
+private struct DisplayCommandsApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("PAGE") }
+            .commands { DisplayCommands() }
+    }
+}
+
+/// Shows how the arrows move the focus, over two buttons on a row: Tab order
+/// and geometry part on Down, which has nothing below.
+private struct ArrowsPage: View {
+    var body: some View {
+        HStack {
+            Button("LEFT") {}
+            Button("RIGHT") {}
+        }
+    }
+}
+
+/// An app with a menu bar over ``ArrowsPage``.
+private struct ArrowsApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { ArrowsPage() }
+            .commands { CommandMenu("Note") {} }
+    }
+}
+
 /// An app that declares one menu of its own and leaves the scene's commands.
 private struct PlainApp: App {
     init() {}
@@ -138,12 +169,16 @@ struct MenuBarViewPreferencesTests {
         let app = launched(PreferencesApp(probe: probe))
         #expect(titles(app).contains("View"), "\(app.screen.lines[0])")
         let menu = view(choosing: nil, in: app).joined(separator: "\n")
-        for title in [
+        let titles = [
+            "Palette", "Border Style", "Control Style",
+            "Breathing Focus", "Spell Out Keys", "Focus Follows Pointer", "Arrows Follow Layout",
             "Differentiate Without Color", "Reduce Motion", "Reduce Transparency", "Increase Contrast",
-            "Breathing Focus", "Spell Out Keys", "Focus Follows Pointer",
-        ] {
-            #expect(menu.contains(title), "\(title) in \(menu)")
-        }
+        ]
+        // All of them, in the settings panel's order: its View tab's, then
+        // its Accessibility tab's.
+        let rows = titles.map { title in menu.split(separator: "\n").firstIndex { $0.contains(title) } }
+        #expect(!rows.contains(nil), "\(menu)")
+        #expect(rows.compactMap { $0 } == rows.compactMap { $0 }.sorted(), "in order: \(menu)")
         // The app's own `.reduceMotion(true)` and `.keyNotation(.spelledOut)`
         // show checked, its `.focusBreathing(false)` not, the rest not.
         let checked = menu.split(separator: "\n").filter { $0.contains("■") }
@@ -158,17 +193,20 @@ struct MenuBarViewPreferencesTests {
         let probe = PreferencesProbe()
         let app = launched(PreferencesApp(probe: probe))
         #expect(app.screen.contains("MOTION REDUCED"))
-        view(choosing: 1, in: app)  // Reduce Motion, under Differentiate Without Color
+        // Palette, Border Style, Control Style; then Breathing Focus, Spell
+        // Out Keys, Focus Follows Pointer, Arrows Follow Layout; then
+        // Differentiate Without Color, Reduce Motion, …
+        view(choosing: Self.reduceMotionRow, in: app)
         #expect(app.screen.contains("MOTION FULL"), "\(app.screen)")
         #expect(probe.reduceMotion == false)
-        view(choosing: 1, in: app)
+        view(choosing: Self.reduceMotionRow, in: app)
         #expect(app.screen.contains("MOTION REDUCED"), "\(app.screen)")
 
-        view(choosing: 4, in: app)  // Breathing Focus, which the app held still
+        view(choosing: 3, in: app)  // Breathing Focus, which the app held still
         #expect(probe.breathes == true)
-        view(choosing: 5, in: app)  // Spell Out Keys, which the app asked for
+        view(choosing: 4, in: app)  // Spell Out Keys, which the app asked for
         #expect(probe.notation == .symbols)
-        view(choosing: 0, in: app)  // Differentiate Without Color
+        view(choosing: Self.reduceMotionRow - 1, in: app)  // Differentiate Without Color
         #expect(probe.differentiateWithoutColor == true)
     }
 
@@ -197,7 +235,7 @@ struct MenuBarViewPreferencesTests {
     mutating func notKept() {
         let probe = PreferencesProbe()
         let app = launched(PreferencesApp(probe: probe))
-        view(choosing: 1, in: app)
+        view(choosing: Self.reduceMotionRow, in: app)
         #expect(probe.reduceMotion == false)
 
         // Another run of the same app in the same process: nothing the first
@@ -206,6 +244,55 @@ struct MenuBarViewPreferencesTests {
         let rerun = launched(PreferencesApp(probe: again))
         #expect(again.reduceMotion == true, "\(rerun.screen)")
         #expect(rerun.screen.contains("MOTION REDUCED"))
+    }
+
+    /// Reduce Motion's row in View: after the three submenus, the View tab's
+    /// four checks and Differentiate Without Color.
+    private static let reduceMotionRow = 8
+
+    @Test("Arrows Follow Layout is off by default, and turns the geometric arrows on and off for the run")
+    mutating func arrowsFollowLayout() {
+        let app = launched(ArrowsApp())
+        #expect(app.arrowFocus == .tabOrder, "the experiment stays off unless asked for")
+        if app.focusedID == nil {
+            app.send(KeyEvent(key: .tab))
+            frame(app)
+        }
+        #expect(app.focusedID != nil)
+        let rows = view(choosing: nil, in: app)
+        #expect(rows.contains { $0.contains("Arrows Follow Layout") && !$0.contains("■") }, "\(rows)")
+        view(choosing: 6, in: app)
+        #expect(app.arrowFocus == .geometric)
+        #expect(view(choosing: nil, in: app).contains { $0.contains("Arrows Follow Layout") && $0.contains("■") })
+        // Up and Down, with nothing above or below either button, leave the
+        // focus where it is; in Tab order one of them goes to the other.
+        #expect(Set(arrowStops(in: app)).count == 1, "geometric: nothing lies above or below")
+        view(choosing: 6, in: app)
+        #expect(app.arrowFocus == .tabOrder)
+        #expect(Set(arrowStops(in: app)).count == 2, "Tab order: on to the other button")
+    }
+
+    /// Where the focus is before and after Up, then Down.
+    private mutating func arrowStops(in app: TestApp) -> [String?] {
+        var stops = [app.focusedID]
+        for key: Key in [.up, .down] {
+            app.send(KeyEvent(key: key))
+            frame(app)
+            stops.append(app.focusedID)
+        }
+        return stops
+    }
+
+    @Test("DisplayCommands takes the display options' place: they are listed once, at the top")
+    mutating func displayCommandsOnce() {
+        let own = view(choosing: nil, in: launched(PlainApp()))
+        #expect(own.filter { $0.contains("Palette") }.count == 1, "\(own.joined(separator: "\n"))")
+        let app = launched(DisplayCommandsApp())
+        let rows = view(choosing: nil, in: app)
+        let palette = rows.firstIndex { $0.contains("Palette") }
+        let breathing = rows.firstIndex { $0.contains("Breathing Focus") }
+        #expect(rows.filter { $0.contains("Palette") }.count == 1, "\(rows.joined(separator: "\n"))")
+        #expect(palette != nil && breathing != nil && palette! < breathing!, "\(rows.joined(separator: "\n"))")
     }
 
     @Test("CommandGroup(replacing: .accessibility) takes them away")

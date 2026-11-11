@@ -85,7 +85,7 @@ struct PaletteSwitcher: View {
 
 A `.palette(_:)` modifier wins over the manager for the views inside it, so an app that switches palettes this way leaves the modifier off its root.
 
-People can choose a palette themselves, too, in any app: the settings panel's View tab (F2) offers the built-in palettes, border styles and control styles through the same managers, as the menu bar's `DisplayCommands` does, and its Accessibility tab the accessibility preferences (see <doc:KeyboardShortcuts#The-Settings-Panel>). A palette the app states at the scene can't be overridden there: the choice is disabled, and says why.
+People can choose a palette themselves, too, in any app: the settings panel's View tab (F2) offers the built-in palettes, border styles and control styles through the same managers, as the menu bar's View menu does, and its Accessibility tab the accessibility preferences (see <doc:KeyboardShortcuts#The-Settings-Panel>). A palette the app states at the scene can't be overridden there: the choice is disabled, and says why, unless the app hands its own state to ``DisplayCommands`` (`DisplayCommands(palette: $palette)`), which the panel then chooses into as the menu does.
 
 ## Creating Custom Palettes
 

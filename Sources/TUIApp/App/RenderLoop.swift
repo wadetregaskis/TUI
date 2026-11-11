@@ -459,6 +459,14 @@ internal final class RenderLoop<A: App> {
     /// ``requestedAccessibility`` gives.
     var focusFollowsPointerRequested: Bool?
 
+    /// How the user asked the arrow keys to move the focus, with
+    /// `TUI_ARROW_FOCUS`, as the app runner read it: written at the root of
+    /// every frame as ``EnvironmentValues/arrowFocus``, for the View menu's
+    /// choice to replace. `.tabOrder` in every loop but the app runner's, for
+    /// the reason ``requestedAccessibility`` gives, and in a test's until it
+    /// sets one (`HeadlessApp.arrowFocus`).
+    var arrowFocusRequested = ArrowFocus.tabOrder
+
     /// The terminal session the app runs in, as the app runner read it from
     /// the process (`TerminalSession`), or `nil`: written at the root of
     /// every frame as ``EnvironmentValues/sceneStorageSession``, which
@@ -1112,6 +1120,8 @@ extension RenderLoop {
         // scene's `.focusFollowsPointer(_:)` to replace, and the View menu to
         // show and replace in turn.
         environment.focusFollowsPointer = focusFollowsPointerRequested
+        // The user's `TUI_ARROW_FOCUS` likewise, for the View menu to replace.
+        environment.arrowFocus = arrowFocusRequested
         // The user's spring-loading delay: their `TUI_SPRING_LOADING_DELAY`,
         // else the host's where they are provably at it, else macOS's default
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.

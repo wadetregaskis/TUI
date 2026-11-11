@@ -4,7 +4,8 @@
 //  Arrow keys that move the focus to the nearest control in their direction,
 //  on screen or scrolled out of sight, rather than to the next or previous in
 //  Tab order: an experiment,
-//  on with `TUI_ARROW_FOCUS=geometric`. See `Documentation/Input and focus/
+//  on with `TUI_ARROW_FOCUS=geometric`, or for the rest of the run with the
+//  View menu's or the settings panel's Arrows Follow Layout. See `Documentation/Input and focus/
 //  Geometric arrow focus.md` for the design and what keeping both modes costs.
 //
 //  Created by Wade Tregaskis
@@ -27,6 +28,22 @@ package enum ArrowFocus: Sendable, Equatable {
     /// runner asks, as it does for `TUI_CURSOR_FOLLOWS_FOCUS`.
     package static func requested(environment: [String: String]) -> Self {
         environment["TUI_ARROW_FOCUS"] == "geometric" ? .geometric : .tabOrder
+    }
+}
+
+private struct ArrowFocusKey: EnvironmentKey {
+    static let defaultValue = ArrowFocus.tabOrder
+}
+
+extension EnvironmentValues {
+    /// How the arrow keys move the focus: the user's `TUI_ARROW_FOCUS`,
+    /// written at the root of each frame, replaced by the person's choice in
+    /// the View menu or the settings panel (`ViewPreferenceOverrides`), which
+    /// lasts the run. The render loop hands it to the focus manager once the
+    /// scene's statements are in (``FocusManager/arrowFocus``).
+    package var arrowFocus: ArrowFocus {
+        get { self[ArrowFocusKey.self] }
+        set { self[ArrowFocusKey.self] = newValue }
     }
 }
 

@@ -16,6 +16,13 @@ import TUIFoundation
 /// Palette ▸, Border Style ▸ and Control Style ▸, each a submenu of the
 /// built-in choices with the one in force checked.
 ///
+/// Every menu bar's View menu has the three already, among TUI's own
+/// preferences at its foot, as the settings panel's View tab does
+/// (`CommandGroupPlacement.accessibility`). Declaring these moves them to the
+/// top of the View menu, in place of TUI's own, and is how an app that holds
+/// one of the options in its own state hands that state to them — and to the
+/// settings panel's View tab, which then chooses into it too.
+///
 /// TUI-specific: SwiftUI's apps take their colours and controls from the
 /// platform. Kept apart from SwiftUI's own sets (``ToolbarCommands``,
 /// ``SidebarCommands``), which it is written beside:
@@ -101,14 +108,32 @@ public struct DisplayCommands: Commands {
         CommandGroup(before: .toolbar) {
             Section { choices.pickers }
         }
+        DisplayChoicesOffered(bindings: .init(palette: palette, appearance: appearance, controlStyle: controlStyle))
     }
 
     /// The submenus' model, which the settings panel's View tab shares
-    /// (``DisplayChoices``).
+    /// (``DisplayChoices``), choosing into the same bindings.
     private var choices: DisplayChoices {
         DisplayChoices(
             managers: (paletteManager, appearanceManager, controlStyleManager), setByScene: setByScene,
             inForce: (paletteInForce, appearanceInForce, controlStyleInForce),
             bindings: (palette, appearance, controlStyle))
+    }
+}
+
+// MARK: - Offered
+
+/// What ``DisplayCommands`` tells the collector: that the commands offer the
+/// three submenus, so the View menu's own are left out, and the app's state
+/// they choose into, which the settings panel's View tab chooses into too.
+/// Adds no item.
+struct DisplayChoicesOffered: Commands, _CommandsPrimitive {
+    let bindings: DisplayChoices.Bindings
+
+    var body: Never { fatalError("DisplayChoicesOffered hands its commands over itself") }
+
+    func collectCommands(into collector: inout CommandsCollector) {
+        collector.offersDisplayChoices = true
+        collector.displayBindings = bindings
     }
 }
