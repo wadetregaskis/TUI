@@ -236,7 +236,8 @@ struct _SliderCore: View, Renderable, Layoutable {
             fillScaling: context.environment.trackFillGradientScaling,
             backgroundScaling: context.environment.trackBackgroundGradientScaling,
             graphics: context.gradientGraphics(token: "track-\(context.identity.path)"),
-            showsThumb: context.environment.sliderThumbVisibility != .hidden
+            showsThumb: context.environment.sliderThumbVisibility != .hidden,
+            spellsASCII: context.textSpelling.isASCII
         )
 
         // The arrows only: which part of a track is lit says the value. They breathe
@@ -681,7 +682,8 @@ struct _SliderCore: View, Renderable, Layoutable {
         fillScaling: TrackGradientScaling,
         backgroundScaling: TrackGradientScaling,
         graphics: GradientGraphicsContext?,
-        showsThumb: Bool
+        showsThumb: Bool,
+        spellsASCII: Bool
     ) -> (
         content: String, drawnTrackWidth: Int, valueClaim: OpacityRegion?,
         trackClaims: [OpacityRegion]
@@ -736,6 +738,7 @@ struct _SliderCore: View, Renderable, Layoutable {
                 fillScaling: fillScaling,
                 backgroundScaling: backgroundScaling,
                 palette: palette,
+                ascii: spellsASCII,
                 graphics: graphics,
                 neutralFraction: neutralFraction,
                 showsHead: showsThumb

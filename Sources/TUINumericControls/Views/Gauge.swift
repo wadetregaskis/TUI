@@ -446,6 +446,7 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
             backgroundScaling: context.environment.trackBackgroundGradientScaling,
             fillRamp: fill.ramp,
             palette: palette,
+            ascii: context.textSpelling.isASCII,
             graphics: context.gradientGraphics(token: "track-\(context.identity.path)")
         )
         return (

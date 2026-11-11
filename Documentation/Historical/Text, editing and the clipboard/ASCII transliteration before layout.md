@@ -157,6 +157,12 @@ deliberate ASCII form. What was built, so each has one:
     `custom` sequence is the app's text and is spelled as its words are.
   - a file panel: a letter in a column of its own, as a long listing writes the type: `d` a folder, `l` an alias, `f`
     anything else, whose differences the extension already tells (`FilePanelIcon.letters`).
+  - a track, a progress bar's, a slider's or a gauge's (`TrackGlyphs`, 2026-11-11): the half blocks as `#`, where the
+    table's control ends made `.bar` read `]]]]]]--------` and ended `.blockFine`'s fill in a bracket; `▬` and `━`
+    as `=`, so `.dot` has a fill at all and `.knob`'s two rails differ (`=====o-----`); a blank Braille cell as a
+    space, where a `.braille` track was dots end to end. The rest is left to the folding. Found by a bug hunt that
+    drove each control under `transliterate`; the tracks had been read on the Example's pages with the table in
+    mind, where the brackets look deliberate.
 - **No emoji chrome** where text is spelled in ASCII: `spellTextInASCII()` and `spellKeysInASCII()` turn
   `supportsEmojiChrome` off, so a control that draws an emoji only where the terminal shows them legibly draws what it
   draws elsewhere. The search field's magnifier was `:right_pointing_magnifying_glass:`; it is now no icon, as on a

@@ -789,6 +789,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
             backgroundScaling: context.environment.trackBackgroundGradientScaling,
             fillRamp: fill.ramp,
             palette: palette,
+            ascii: context.textSpelling.isASCII,
             graphics: context.gradientGraphics(token: "track-\(context.identity.path)")
         )
     }

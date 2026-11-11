@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Under `TUI_PLAIN_TEXT`, a progress bar's, a slider's and a gauge's track reads as a track.** Sent as plain text, a
+`.bar` track read `]]]]]]--------`, a `.dot` track had no fill, a `.braille` track was dots from end to end, and the
+two rails of a slider's `.knob` were the same. Each now draws its own ASCII: `########--------`, `=======o--------`,
+dots then spaces, and `=======o--------`.
+
 **A graphical `DatePicker` shows its selected day without colour.** The day was marked only by an accent fill, which
 a terminal without colour (or `NO_COLOR`) doesn't draw, nor one whose colours round the accent onto the page: no day
 looked chosen, and the arrows moved the date with nothing on the screen following it. There the day is now drawn in

@@ -13,6 +13,7 @@
 import Testing
 
 import TUI
+@testable import TUIApp
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -80,6 +81,22 @@ struct TransliteratedGlyphTests {
         let frames = style.asciiFrames
         #expect(frames.allSatisfy { $0.utf8.count == 1 && $0.utf8.allSatisfy { $0 < 0x80 } }, "\(frames)")
         #expect(Set(frames).count > 1, "\(frames)")
+    }
+
+    /// A track as the terminal is sent it: folded at output, `.bar`'s `▌` is a
+    /// control's closing end, `]`, so the bar read `]]]]]]]]--------`; `.dot`'s
+    /// `▬` has no shape and was blank; a Braille track's empty cells were dots
+    /// as its fill was; and `.knob`'s rail was `-` on both sides of the knob.
+    @Test(
+        "A track's fill reads as one in ASCII, and apart from the rest of the track",
+        arguments: [TrackStyle.bar, .blockFine, .dot, .braille, .knob, .shade, .block])
+    func trackGlyphs(style: TrackStyle) {
+        // 0.525 of 20 cells ends half way through the eleventh: `.blockFine`'s `▌`.
+        let drawnLine = drawn(ProgressView(value: 0.525).trackStyle(style), width: 20, height: 1).joined()
+        let line = PlainTerminalText.folding(drawnLine)
+        #expect(!line.contains("]") && !line.contains("["), "\(line)")
+        #expect(line.first != " ", "the fill is blank: \(line)")
+        #expect(line.first != line.last, "the fill reads as the rest of the track: \(line)")
     }
 
     @Test("A spinner draws its ASCII frame, and a bouncing one its track in dots")

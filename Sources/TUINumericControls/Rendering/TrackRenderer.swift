@@ -46,6 +46,9 @@ package enum TrackRenderer {
     ///   - palette: The palette the style's own colours are resolved against.
     ///     The three colours above arrive resolved; a style read from the
     ///     environment does not, and a palette role has no channels to emit.
+    ///   - ascii: Whether text is spelled in ASCII here (`TUI_PLAIN_TEXT`): the
+    ///     glyphs whose folding at output would say the wrong thing are drawn in
+    ///     ASCII instead (``TrackGlyphs``).
     ///   - graphics: Where to keep the track as a PICTURE, for a style whose
     ///     cells are colour and nothing else (`TrackConfiguration.isColourField`)
     ///     on a terminal that draws pictures — `nil` draws cells, which every
@@ -63,11 +66,13 @@ package enum TrackRenderer {
         backgroundScaling: TrackGradientScaling = .track,
         fillRamp: Gradient? = nil,
         palette: any Palette,
+        ascii: Bool = false,
         graphics: GradientGraphicsContext? = nil,
         neutralFraction: Double? = nil,
         showsHead: Bool = true
     ) -> ClaimingRow {
         let style = style.resolvingColours(with: palette)
+        func glyph(_ glyph: Character) -> Character { ascii ? TrackGlyphs.ascii(glyph) : glyph }
         // Read once per render, not once per cell. A gradient can only be
         // quantised as a ramp if it knows what the terminal will do to it; at
         // truecolor every helper below falls through to the plain interpolation.
@@ -88,7 +93,7 @@ package enum TrackRenderer {
         // The named cases are just presets; `.custom` carries a caller-supplied
         // recipe.
         func configured(_ config: TrackConfiguration) -> ClaimingRow {
-            var config = config
+            var config = ascii ? config.spelledInASCII : config
             if config.fillGradient == nil, let fillRamp { config.fillGradient = fillRamp }
             return Self.drawn(
                 from: neutral, to: fraction,
@@ -148,7 +153,7 @@ package enum TrackRenderer {
                 neutral: neutral,
                 showsHead: showsHead,
                 width: width,
-                filledChar: "▬",
+                filledChar: glyph("▬"),
                 headChar: "●",
                 emptyChar: "─",
                 fillColor: fillColor,
@@ -161,7 +166,7 @@ package enum TrackRenderer {
                 neutral: neutral,
                 showsHead: showsHead,
                 width: width,
-                filledChar: "━",
+                filledChar: glyph("━"),
                 headChar: "●",
                 emptyChar: "─",
                 fillColor: accentColor,
@@ -182,10 +187,10 @@ package enum TrackRenderer {
                 renderThreeSegmentStyle(
                     fraction: fraction,
                     width: width,
-                    leading: leading,
-                    middle: middle,
-                    trailing: trailing,
-                    backgroundPattern: backgroundPattern,
+                    leading: ascii ? TrackGlyphs.ascii(leading) : leading,
+                    middle: ascii ? TrackGlyphs.ascii(middle) : middle,
+                    trailing: ascii ? TrackGlyphs.ascii(trailing) : trailing,
+                    backgroundPattern: ascii ? TrackGlyphs.ascii(backgroundPattern) : backgroundPattern,
                     coloring: coloring,
                     fillColor: fillColor,
                     backgroundColor: backgroundColor,
