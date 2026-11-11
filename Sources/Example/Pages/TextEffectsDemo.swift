@@ -2,7 +2,7 @@
 //  TextEffectsDemo.swift
 //
 //  Text effects drawn with `TextRenderer`: a wave of capitals, a dissolve
-//  through ever-smaller glyphs, a typewriter, a rainbow and an underline
+//  through ever-smaller glyphs, a typewriter, a rainbow and underlines
 //  sweeping word by word — each a few lines over the glyphs of a
 //  `Text.Layout` (the owner's TEXT-EFFECTS ruling, 2026-10-28).
 //
@@ -43,6 +43,7 @@ struct TextEffectsDemo: View {
                             .padding(.top, MatrixRain.above)
                         effect("page.textStyles.effect.sweepChars", LetterSweep(time: time))
                         effect("page.textStyles.effect.sweep", WordGlide(time: time, text: sample))
+                        effect("page.textStyles.effect.slide", WordSlide(time: time, text: sample))
                     }
                     .indentedExamples()
                 }

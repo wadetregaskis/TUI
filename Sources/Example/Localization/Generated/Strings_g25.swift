@@ -27,6 +27,7 @@ extension ExampleStrings {
             "page.textStyles.effect.matrix": "Matrix rain",
             "page.textStyles.effect.congeal": "Matrix arrival",
             "page.textStyles.effect.sweepChars": "Underline by letter",
+            "page.textStyles.effect.slide": "Sliding underline",
         ],
         "de": [
             "page.textStyles.section.effects": "Texteffekte",
@@ -42,6 +43,7 @@ extension ExampleStrings {
             "page.textStyles.effect.matrix": "Matrix-Regen",
             "page.textStyles.effect.congeal": "Matrix-Ankunft",
             "page.textStyles.effect.sweepChars": "Unterstrich je Buchstabe",
+            "page.textStyles.effect.slide": "Gleitender Unterstrich",
         ],
         "fr": [
             "page.textStyles.section.effects": "Effets de texte",
@@ -57,6 +59,7 @@ extension ExampleStrings {
             "page.textStyles.effect.matrix": "Pluie Matrix",
             "page.textStyles.effect.congeal": "Arrivée Matrix",
             "page.textStyles.effect.sweepChars": "Souligné lettre à lettre",
+            "page.textStyles.effect.slide": "Souligné glissant",
         ],
         "it": [
             "page.textStyles.section.effects": "Effetti di testo",
@@ -72,6 +75,7 @@ extension ExampleStrings {
             "page.textStyles.effect.matrix": "Pioggia Matrix",
             "page.textStyles.effect.congeal": "Arrivo Matrix",
             "page.textStyles.effect.sweepChars": "Sottolineato per lettera",
+            "page.textStyles.effect.slide": "Sottolineato scorrevole",
         ],
         "es": [
             "page.textStyles.section.effects": "Efectos de texto",
@@ -87,6 +91,7 @@ extension ExampleStrings {
             "page.textStyles.effect.matrix": "Lluvia Matrix",
             "page.textStyles.effect.congeal": "Llegada Matrix",
             "page.textStyles.effect.sweepChars": "Subrayado por letra",
+            "page.textStyles.effect.slide": "Subrayado deslizante",
         ],
         "zh": [
             "page.textStyles.section.effects": "文字效果",
@@ -102,6 +107,7 @@ extension ExampleStrings {
             "page.textStyles.effect.matrix": "矩阵雨",
             "page.textStyles.effect.congeal": "矩阵降临",
             "page.textStyles.effect.sweepChars": "逐字母下划线",
+            "page.textStyles.effect.slide": "滑动下划线",
         ],
         "ja": [
             "page.textStyles.section.effects": "テキスト効果",
@@ -117,6 +123,7 @@ extension ExampleStrings {
             "page.textStyles.effect.matrix": "マトリックスの雨",
             "page.textStyles.effect.congeal": "マトリックス到来",
             "page.textStyles.effect.sweepChars": "一文字ずつ下線",
+            "page.textStyles.effect.slide": "滑る下線",
         ],
     ]
 }

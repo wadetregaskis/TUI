@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**The Example's Text Styles page has a sliding underline.** Beside *Underline by word*, whose front end runs ahead
+to the next word before its back end follows, *Sliding underline* moves both ends together, eased, from one word to the
+next.
+
 **F1's list of shortcuts is a bordered dialog, centred, in columns.** Its sections sit side by side, as many as the
 window is wide enough for, short ones sharing a column; where the window is too short, a long section carries on
 into the next column under its heading again rather than scroll. It scrolls downwards only when the window can't

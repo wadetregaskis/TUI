@@ -1,9 +1,10 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  TextEffectsDemo+Underline.swift
 //
-//  Two underline sweeps: one a letter at a time, and one gliding from word to
+//  Three underline sweeps: one a letter at a time; one gliding from word to
 //  word, stretching to reach the next and drawing its tail in after it (the
-//  owner's afternoon list, 2026-10-28, #5.4).
+//  owner's afternoon list, 2026-10-28, #5.4); and one sliding there whole,
+//  both ends at once (the owner's evening feedback, 2026-11-10, item 6).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -46,7 +47,7 @@ struct WordGlide: TextRenderer {
     }
 
     /// Seconds a glide from one word to the next takes, its pause included.
-    private static let stride = 0.9
+    static let stride = 0.9
 
     func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
         underlineWords(layout: layout, text: text, in: &ctx) { words in Self.span(of: words, at: time) }
@@ -62,6 +63,37 @@ struct WordGlide: TextRenderer {
         // The end that leads moves first: the right one going right.
         let start = UnderlineLeg.lerp(words[leg.from].lowerBound, words[leg.to].lowerBound, forward ? tail : head)
         let end = UnderlineLeg.lerp(words[leg.from].upperBound, words[leg.to].upperBound, forward ? head : tail)
+        return start..<max(start, end)
+    }
+}
+
+/// An underline under one word at a time, sliding whole to the next: both
+/// ends move together, eased, from one word's span to the next's, so the line
+/// stretches or shrinks only by the difference of the two words' widths as it
+/// goes. ``WordGlide``'s smoother sibling.
+struct WordSlide: TextRenderer {
+    var time: Double
+    let text: [Character]
+    var animatableData: Double {
+        get { time }
+        set { time = newValue }
+    }
+
+    /// Seconds a slide from one word to the next takes, its pause included:
+    /// ``WordGlide``'s, so the two keep step side by side.
+    private static let stride = WordGlide.stride
+
+    func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
+        underlineWords(layout: layout, text: text, in: &ctx) { words in Self.span(of: words, at: time) }
+    }
+
+    /// The cells underlined `time` seconds in, of `words` (two or more).
+    static func span(of words: [Range<Int>], at time: Double) -> Range<Int> {
+        let leg = UnderlineLeg(words: words, time: time, stride: stride)
+        // A third of the leg resting, then both ends together over the rest.
+        let moved = UnderlineLeg.eased((leg.progress - 1.0 / 3) * 1.5)
+        let start = UnderlineLeg.lerp(words[leg.from].lowerBound, words[leg.to].lowerBound, moved)
+        let end = UnderlineLeg.lerp(words[leg.from].upperBound, words[leg.to].upperBound, moved)
         return start..<max(start, end)
     }
 }
