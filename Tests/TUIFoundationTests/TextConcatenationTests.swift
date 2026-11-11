@@ -179,7 +179,7 @@ struct TextConcatenationTests {
     @Test("It measures as one text")
     func measuresAsOne() {
         let context = makeRenderContext(width: 40, height: 5)
-        let proposal = ProposedSize(width: 40, height: 5)
+        let proposal = ProposedViewSize(width: 40, height: 5)
         let joined = Text("\(Text(verbatim: "Name: ").bold())\(Text(verbatim: "Ada"))")
         let plain = Text(verbatim: "Name: Ada")
         #expect(

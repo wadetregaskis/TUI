@@ -95,7 +95,7 @@ nonisolated struct _AnimationValueModifier<Content: View, V: Equatable>: View {
 }
 
 @MainActor extension _AnimationValueModifier: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(
             content, proposal: proposal,
             context: childContext(context, isMeasuring: true))

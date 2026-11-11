@@ -169,7 +169,7 @@ private struct _DefaultToolbarItemCore: View, Renderable, Layoutable {
         item(context).map { TUIView.renderToBuffer($0, context: context) } ?? FrameBuffer()
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         item(context).map { measureChild($0, proposal: proposal, context: context) } ?? ViewSize.fixed(0, 0)
     }
 }

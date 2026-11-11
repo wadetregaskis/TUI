@@ -145,7 +145,7 @@ enum FocusSectionRegistrar {
 @MainActor extension FocusSectionModifier: Layoutable {
     /// Focus grouping is size-neutral (the active-section id and the breathing
     /// indicator colour don't change layout), so it measures as `content`.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

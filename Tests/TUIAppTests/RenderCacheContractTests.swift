@@ -442,7 +442,7 @@ struct RenderCacheContractTests: RenderCacheHarness {
     func scopedStyleChangeKeepsTheSizeMemo() {
         let shared = context()
         let cache = shared.environment.renderCache!
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
 
         // A pass per measurement, as the real loop does. Change detection short
         // circuits after the first visit *within* a pass — two-pass layout
@@ -490,7 +490,7 @@ struct RenderCacheContractTests: RenderCacheHarness {
     func themeStyleChangeDropsTheSizeMemo() {
         let shared = context()
         let cache = shared.environment.renderCache!
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
         func hits(_ theme: Theme) -> Int {
             cache.beginRenderPass()
             let before = cache.stats
@@ -587,7 +587,7 @@ struct RenderCacheContractTests: RenderCacheHarness {
     /// that is what these count.
     @Test("A non-Equatable environment value declines a stored SIZE too", arguments: [false, true])
     func incomparableEnvironmentDeclinesStoredSizes(asRow: Bool) {
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
 
         // Built the same way the buffer cases above are — no `AnyView` between
         // the modifier and the wrapper, because the uncomparable flag is set

@@ -23,7 +23,7 @@ private final class Placements {
 private struct CountedRow: Layout {
     let placements: Placements
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return ViewSize(
             width: sizes.map(\.width).reduce(0, +) + max(0, sizes.count - 1),
@@ -31,7 +31,7 @@ private struct CountedRow: Layout {
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         placements.count += 1
         var x = bounds.x
@@ -47,19 +47,19 @@ private struct CountedRow: Layout {
 private struct LoweredTop: Layout {
     let placements: Placements
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         CountedRow(placements: placements).sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         CountedRow(placements: placements).placeSubviews(
             in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
     }
 
     func explicitAlignment(
-        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout ()
     ) -> Double? {
         guide == .top ? Double(bounds.y + 1) : nil

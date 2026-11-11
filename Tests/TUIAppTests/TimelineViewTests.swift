@@ -268,7 +268,7 @@ struct TimelineViewTests {
     func measuresAsItsContent() {
         let (_, context, _) = harness()
         let seen = Seen()
-        let proposal = ProposedSize(width: 40, height: 8)
+        let proposal = ProposedViewSize(width: 40, height: 8)
         let bare = measureChild(Text("tick"), proposal: proposal, context: context)
         let wrapped = measureChild(
             timeline(.everyMinute, into: seen), proposal: proposal, context: context)
@@ -282,7 +282,7 @@ struct TimelineViewTests {
         // yields a fixed size, which would pin a content that wanted to grow.
         let (tui, context, scheduler) = harness()
         let seen = Seen()
-        let proposal = ProposedSize(width: 40, height: 8)
+        let proposal = ProposedViewSize(width: 40, height: 8)
         let flexible = TimelineView(.everyMinute) { timelineContext in
             tick(timelineContext, into: seen).frame(maxWidth: .infinity)
         }
@@ -499,7 +499,7 @@ struct TimelineViewTests {
                 tracked.isMeasuring = true
                 _ = renderToBuffer(view, context: tracked)
             } else {
-                _ = measureChild(view, proposal: ProposedSize(width: 40, height: 8), context: tracked)
+                _ = measureChild(view, proposal: ProposedViewSize(width: 40, height: 8), context: tracked)
             }
             return tracker.cacheUnsafeCount > 0
         }

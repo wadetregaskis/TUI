@@ -61,7 +61,7 @@ struct ImageNaturalSizeTests {
         tui.stateStorage.beginRenderPass()
         defer { tui.stateStorage.endRenderPass() }
         if measuring {
-            let size = measureChild(view, proposal: ProposedSize(width: width, height: height), context: context)
+            let size = measureChild(view, proposal: ProposedViewSize(width: width, height: height), context: context)
             return (size.width, size.height)
         }
         let buffer = renderToBuffer(view, context: context)

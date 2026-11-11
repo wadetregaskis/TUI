@@ -127,7 +127,7 @@
     }
 
     extension _SymbolEffectGlyph: Renderable, Layoutable {
-        func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
             measureChild(Text(verbatim: glyph), proposal: proposal, context: context)
         }
 

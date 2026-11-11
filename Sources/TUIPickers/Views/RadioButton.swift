@@ -455,7 +455,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
 
     /// A radio group is fixed: its options lay out at their natural size (it does
     /// not fill), so a single render is its exact, fixed measure.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureFixedByRendering(self, proposal: proposal, context: context)
     }
 

@@ -28,13 +28,13 @@ private struct Row: Layout {
     var tight = Tightness.all
     var asked: Asked?
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(
             width: subviews.map { $0.sizeThatFits(.unspecified).width }.reduce(0, +),
             height: subviews.map { $0.sizeThatFits(.unspecified).height }.max() ?? 0)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.x
         for subview in subviews {
             subview.place(at: CellPoint(x: x, y: bounds.y), proposal: .unspecified)
@@ -87,11 +87,11 @@ private struct Pair: View {
 /// Lays its subviews out as a `Row` does, and keeps `Layout`'s own
 /// `spacing(subviews:cache:)`: its subviews' preferences, merged.
 private struct Merging: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         Row().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         Row().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
     }
 }
@@ -108,12 +108,12 @@ private final class Read {
 private struct GapsReader: Layout {
     let read: Read
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         read.uniform.append(HStackLayout().gaps(between: subviews).isUniform)
         return HStackLayout().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         HStackLayout().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
     }
 }
@@ -123,12 +123,12 @@ private struct GapsReader: Layout {
 private struct SpacingReader: Layout {
     let read: Read
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         read.distances = subviews.map { $0.spacing.distance(to: ViewSpacing(), along: .horizontal) }
         return Row().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         Row().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
     }
 }

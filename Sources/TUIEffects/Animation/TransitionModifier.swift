@@ -293,7 +293,7 @@ private enum StateIndex {
     /// A transition never changes the size of its slot — see ``AnyTransition``
     /// on why the effects are applied to the buffer rather than to layout — so
     /// this measures exactly as its content, or as a custom body at rest.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let custom = transition.reducingMotion(in: context.environment).custom else {
             return measureChild(content, proposal: proposal, context: context)
         }
@@ -342,7 +342,7 @@ private enum StateIndex {
             // measured; a body bigger part-way is drawn inside it.
             let rest = custom.measure(
                 phase: .identity, content: live,
-                proposal: ProposedSize(width: context.availableWidth, height: context.availableHeight),
+                proposal: ProposedViewSize(width: context.availableWidth, height: context.availableHeight),
                 context: context)
             buffer = buffer.clamped(toWidth: rest.width, height: rest.height)
         }

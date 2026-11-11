@@ -52,7 +52,7 @@ private struct _NavigationCrumbLabel: View, Renderable, Layoutable {
         fatalError("_NavigationCrumbLabel renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(width: fitted(to: proposal.width).strippedLength, height: 1)
     }
 

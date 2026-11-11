@@ -829,7 +829,7 @@ public struct ChildView {
     }
 
     /// Measures this child view without rendering.
-    public func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func measure(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(view, proposal: proposal, context: childContext(context))
     }
 

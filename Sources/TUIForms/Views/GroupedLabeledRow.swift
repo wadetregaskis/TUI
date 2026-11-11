@@ -48,7 +48,7 @@ private struct _GroupedLabeledRowCore: View, Renderable, Layoutable {
     private func arrangement(width: Int, context: RenderContext) -> (start: Int, fills: Bool, least: Int) {
         let labelWidth = measureChild(collapsingLabel, proposal: .unspecified, context: context).width
         let rest = max(0, width - labelWidth)
-        let contentSize = measureChild(content, proposal: ProposedSize(width: rest, height: nil), context: context)
+        let contentSize = measureChild(content, proposal: ProposedViewSize(width: rest, height: nil), context: context)
         let least = labelWidth + contentSize.width
         guard contentSize.isWidthFlexible else { return (labelWidth, false, least) }
         let share = Int((Double(width) * Self.flexibleStart).rounded())
@@ -77,7 +77,7 @@ private struct _GroupedLabeledRowCore: View, Renderable, Layoutable {
         }
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let width = proposal.width else {
             // Asked for its ideal: the label, then the content at its own.
             let labelWidth = measureChild(collapsingLabel, proposal: .unspecified, context: context)

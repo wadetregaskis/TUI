@@ -22,7 +22,7 @@ func renderStackedVertically(_ children: [ChildView], context: RenderContext) ->
     return FrameBuffer(
         verticallyStacking: children.map { child in
             let size = child.measure(
-                proposal: ProposedSize(width: width, height: nil), context: context)
+                proposal: ProposedViewSize(width: width, height: nil), context: context)
             return child.render(width: width, height: size.height, context: context)
         })
 }
@@ -31,7 +31,7 @@ func renderStackedVertically(_ children: [ChildView], context: RenderContext) ->
 /// widest of them, and their heights summed.
 @MainActor
 func measureStackedVertically(
-    _ children: [ChildView], proposal: ProposedSize, context: RenderContext
+    _ children: [ChildView], proposal: ProposedViewSize, context: RenderContext
 ) -> ViewSize {
     var width = 0
     var height = 0

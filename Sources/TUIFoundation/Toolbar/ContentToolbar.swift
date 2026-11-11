@@ -121,7 +121,7 @@ nonisolated struct _ContentToolbarModifier<Content: View>: View, Renderable, Lay
         TUIView.renderToBuffer(content, context: withToolbar(context))
     }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: withToolbar(context))
     }
 }

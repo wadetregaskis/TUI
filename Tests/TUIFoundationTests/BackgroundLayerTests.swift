@@ -46,7 +46,7 @@ struct BackgroundLayerTests {
         let buffer = render(view)
         #expect(buffer.width == 2 && buffer.height == 1)
         #expect(buffer.lines.first?.stripped == "hi", "the base's glyphs are in front")
-        let measured = measureChild(view, proposal: ProposedSize(width: 20, height: 5), context: makeRenderContext())
+        let measured = measureChild(view, proposal: ProposedViewSize(width: 20, height: 5), context: makeRenderContext())
         #expect(measured.width == 2 && measured.height == 1)
     }
 

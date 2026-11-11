@@ -262,7 +262,7 @@ struct ContextMenuTests {
         let focusManager = FocusManager()
         let context = context(tui, focusManager: focusManager)
         _ = measureChild(
-            targetView(), proposal: ProposedSize(width: 40, height: 3), context: context)
+            targetView(), proposal: ProposedViewSize(width: 40, height: 3), context: context)
         #expect(menuState(tui, context).isOpen == false, "a measure never opens the menu")
         #expect(
             focusManager.section(id: "contextmenu-\(context.identity.path)") == nil,

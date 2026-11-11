@@ -41,7 +41,7 @@ struct FlexibleFrameSwiftUIRuleTests {
         let measured =
             offer == nil
             ? measureChild(view.fixedSize(), proposal: .unspecified, context: context)
-            : measureChild(view, proposal: ProposedSize(width: offer, height: nil), context: context)
+            : measureChild(view, proposal: ProposedViewSize(width: offer, height: nil), context: context)
         #expect(measured.width == buffer.width, "measured \(measured.width), drew \(buffer.width)")
         return buffer.width
     }

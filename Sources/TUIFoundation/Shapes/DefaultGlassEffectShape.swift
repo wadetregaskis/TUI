@@ -35,7 +35,7 @@ nonisolated public struct DefaultGlassEffectShape: Shape {
     ///
     /// - Parameter proposal: The space offered, in cells.
     /// - Returns: Nothing fixed, flexible both ways.
-    public func sizeThatFits(_ proposal: ProposedSize) -> ViewSize {
+    public func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize {
         ViewSize(width: 0, height: 0, isWidthFlexible: true, isHeightFlexible: true)
     }
 }

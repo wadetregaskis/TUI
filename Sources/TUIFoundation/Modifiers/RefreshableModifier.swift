@@ -384,7 +384,7 @@ enum RefreshRegistrar {
     /// The spinner overlays the content rather than displacing it, so the size
     /// is the content's whether a refresh is running or not — which is also
     /// what keeps the layout from twitching when one starts.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(
             content, proposal: proposal,
             context: context.withEnvironment(

@@ -52,7 +52,7 @@ nonisolated package struct _InlineMenuCore: View, Renderable, Layoutable {
     /// It used to be one render, discarded. That is the difference between four
     /// walks of a menu's tree per frame and three: the parent stack measures
     /// this view before it renders it, and both used to draw the whole column.
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         var measureContext = context
         measureContext.isMeasuring = true
         // The same preparation `measureFixedByRendering` did before rendering:

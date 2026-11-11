@@ -22,7 +22,7 @@ struct TextTerminalWidthTests {
         // Each CJK character occupies 2 terminal cells
         let text = Text("你好")  // 2 CJK chars = 4 terminal cells
         let context = testContext(width: 80)
-        let size = text.sizeThatFits(proposal: ProposedSize(width: 80, height: nil), context: context)
+        let size = text.sizeThatFits(proposal: ProposedViewSize(width: 80, height: nil), context: context)
         #expect(size.width == 4, "CJK text '你好' should report width 4 (2 cells per character), got \(size.width)")
     }
 
@@ -30,7 +30,7 @@ struct TextTerminalWidthTests {
     func asciiTextWidth() {
         let text = Text("Hello")
         let context = testContext(width: 80)
-        let size = text.sizeThatFits(proposal: ProposedSize(width: 80, height: nil), context: context)
+        let size = text.sizeThatFits(proposal: ProposedViewSize(width: 80, height: nil), context: context)
         #expect(size.width == 5, "ASCII text 'Hello' should report width 5")
     }
 
@@ -39,7 +39,7 @@ struct TextTerminalWidthTests {
         // "Hi你好" = 2 ASCII (2 cells) + 2 CJK (4 cells) = 6 terminal cells
         let text = Text("Hi你好")
         let context = testContext(width: 80)
-        let size = text.sizeThatFits(proposal: ProposedSize(width: 80, height: nil), context: context)
+        let size = text.sizeThatFits(proposal: ProposedViewSize(width: 80, height: nil), context: context)
         #expect(size.width == 6, "Mixed text 'Hi你好' should report width 6, got \(size.width)")
     }
 
@@ -49,7 +49,7 @@ struct TextTerminalWidthTests {
         // With maxWidth 6, should wrap to 2 lines
         let text = Text("你好 世界")
         let context = testContext(width: 6)
-        let size = text.sizeThatFits(proposal: ProposedSize(width: 6, height: nil), context: context)
+        let size = text.sizeThatFits(proposal: ProposedViewSize(width: 6, height: nil), context: context)
         #expect(size.height == 2, "CJK text should wrap to 2 lines at width 6, got \(size.height)")
         #expect(size.width == 4, "Each line should be 4 cells wide, got \(size.width)")
     }
@@ -96,7 +96,7 @@ struct TextTerminalWidthTests {
         let text = Text("这是一段没有空格的中文说明文字")  // 15 chars, 30 cells
         let context = testContext(width: 10)
         let size = text.sizeThatFits(
-            proposal: ProposedSize(width: 10, height: nil), context: context)
+            proposal: ProposedViewSize(width: 10, height: nil), context: context)
         #expect(size.height == 3, "30 cells at width 10 is 3 lines, got \(size.height)")
     }
 }
@@ -247,7 +247,7 @@ struct TextWhitespaceTests {
         let view = Text("straße").textCase(.uppercase)
         let context = context(width: 40)
         let size = measureChild(
-            view, proposal: ProposedSize(width: 40, height: nil), context: context)
+            view, proposal: ProposedViewSize(width: 40, height: nil), context: context)
         let drawn = renderToBuffer(view, context: context).lines.map(\.stripped)
 
         #expect(drawn == ["STRASSE"], "sanity: the render uppercases, got \(drawn)")
@@ -410,7 +410,7 @@ struct TextTruncationTests {
     func lineLimitCapsMeasuredHeight() {
         let text = Text("one two three four five six").lineLimit(1)
         let size = text.sizeThatFits(
-            proposal: ProposedSize(width: 10, height: nil),
+            proposal: ProposedViewSize(width: 10, height: nil),
             context: context(width: 10)
         )
         #expect(size.height == 1, "lineLimit(1) must report height 1, got \(size.height)")
@@ -429,7 +429,7 @@ struct TextTruncationTests {
         // With lineLimit(1) at width 10, remaining lines are folded into "abc d…" (width 6).
         let text = Text("abc\nd").lineLimit(1)
         let size = text.sizeThatFits(
-            proposal: ProposedSize(width: 10, height: nil),
+            proposal: ProposedViewSize(width: 10, height: nil),
             context: context(width: 10)
         )
         #expect(size.width == 6, "Text folded into one line should measure width 6, got \(size.width)")

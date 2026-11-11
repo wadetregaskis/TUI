@@ -462,7 +462,7 @@ private struct _ButtonCore: View, Renderable, Layoutable {
     /// asking the view it drew the label in whether that fills). A style whose
     /// body is structural — `_MenuItemButtonStyle`, whose `_MenuItemRowBar`
     /// answers `sizeThatFits` with `measureChild(row)` — never paints at all.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let entry = context.environment.primitiveButtonStyleChain {
             let (configuration, bodyContext) = primitiveStyling(entry, context: context)
             return entry.style.makeSize(

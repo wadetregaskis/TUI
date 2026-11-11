@@ -223,7 +223,7 @@ private struct _TimelineViewCore<Schedule: TimelineSchedule, Content: View>: Vie
 
     /// The timeline is exactly its content, flexibility included — forwarded
     /// rather than measured by rendering, so a flexible child stays flexible.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let (timeline, next, contentContext) = timelineContext(now: frameDate(context), noting: context)
         declareMeasure(next: next, context: context)
         let built = observingBodyClosure(of: Self.self, context: context) { content(timeline) }

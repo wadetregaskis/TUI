@@ -456,7 +456,7 @@ nonisolated public struct ModifiedView<Content: View, Modifier: BufferModifier>:
     /// (`BufferModifier._contentOverhang`): the delta is then negative, the
     /// proposal grows by it and the reported size shrinks by it, never below
     /// zero, as SwiftUI's does.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let adjustedContext = modifier.adjustContext(context)
         let overhang = modifier._contentOverhang
         let widthDelta =
@@ -468,13 +468,13 @@ nonisolated public struct ModifiedView<Content: View, Modifier: BufferModifier>:
         // child still treats the remaining space as its budget.
         var adjustedProposal = proposal
         if let proposedWidth = proposal.width {
-            adjustedProposal = ProposedSize(
+            adjustedProposal = ProposedViewSize(
                 width: max(0, proposedWidth - widthDelta),
                 height: proposal.height
             )
         }
         if let proposedHeight = adjustedProposal.height {
-            adjustedProposal = ProposedSize(
+            adjustedProposal = ProposedViewSize(
                 width: adjustedProposal.width,
                 height: max(0, proposedHeight - heightDelta)
             )

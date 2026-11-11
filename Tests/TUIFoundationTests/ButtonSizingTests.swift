@@ -50,7 +50,7 @@ struct ButtonSizingTests {
     func measuresFlexible() {
         let size = measureChild(
             Button("Open") {}.buttonStyle(.bordered).buttonSizing(.flexible),
-            proposal: ProposedSize(width: 30, height: 1),
+            proposal: ProposedViewSize(width: 30, height: 1),
             context: makeRenderContext(width: 30, height: 1))
         #expect(size.width == 30 && size.isWidthFlexible)
     }

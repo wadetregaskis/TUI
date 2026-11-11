@@ -41,7 +41,7 @@ struct FlexibleFrameViewMeasureTests {
     /// measure must match. Applies the proposal to the context the same way
     /// `renderChild` applies an allocation.
     private func renderedSize<V: View>(
-        _ view: V, proposal: ProposedSize, context: RenderContext
+        _ view: V, proposal: ProposedViewSize, context: RenderContext
     ) -> (width: Int, height: Int) {
         var renderContext = context
         if let width = proposal.width { renderContext.availableWidth = width }
@@ -53,13 +53,13 @@ struct FlexibleFrameViewMeasureTests {
     /// The proposals × contexts to measure each framed view under. Includes a
     /// roomy width, a mid squeeze, and a width narrow enough to force wrapping
     /// and content overflow.
-    private var scenarios: [(label: String, proposal: ProposedSize, context: RenderContext)] {
+    private var scenarios: [(label: String, proposal: ProposedViewSize, context: RenderContext)] {
         [
             ("unspecified@80", .unspecified, ctx(width: 80)),
-            ("propW40@80", ProposedSize(width: 40, height: nil), ctx(width: 80)),
-            ("propW12@80", ProposedSize(width: 12, height: nil), ctx(width: 80)),
+            ("propW40@80", ProposedViewSize(width: 40, height: nil), ctx(width: 80)),
+            ("propW12@80", ProposedViewSize(width: 12, height: nil), ctx(width: 80)),
             ("unspecified@30", .unspecified, ctx(width: 30)),
-            ("propWH@80", ProposedSize(width: 24, height: 6), ctx(width: 80, height: 24)),
+            ("propWH@80", ProposedViewSize(width: 24, height: 6), ctx(width: 80, height: 24)),
         ]
     }
 
@@ -150,7 +150,7 @@ struct FlexibleFrameViewMeasureTests {
     @Test("Flexibility flags follow the contract")
     func flexibilityFlags() {
         let context = ctx(width: 80, height: 24)
-        func flags<V: View>(_ view: V, proposal: ProposedSize = .unspecified) -> (w: Bool, h: Bool) {
+        func flags<V: View>(_ view: V, proposal: ProposedViewSize = .unspecified) -> (w: Bool, h: Bool) {
             let size = measureChild(view, proposal: proposal, context: context)
             return (size.isWidthFlexible, size.isHeightFlexible)
         }
@@ -168,7 +168,7 @@ struct FlexibleFrameViewMeasureTests {
         // back when offered more: flexible, reporting the clamped minimum.
         let squeezed = measureChild(
             Text("Hello world").frame(width: 20),
-            proposal: ProposedSize(width: 12, height: nil), context: context)
+            proposal: ProposedViewSize(width: 12, height: nil), context: context)
         #expect(squeezed.width == 12 && squeezed.isWidthFlexible)
 
         // Wrapping content reflows up to its ideal width but never grows past
@@ -177,13 +177,13 @@ struct FlexibleFrameViewMeasureTests {
         let wrapping = VStack(alignment: .leading) {
             Text("A noticeably longer line that can wrap")
         }
-        #expect(!flags(wrapping.frame(minWidth: 12), proposal: ProposedSize(width: 20, height: nil)).w)
+        #expect(!flags(wrapping.frame(minWidth: 12), proposal: ProposedViewSize(width: 20, height: nil)).w)
 
         // Width-flexible content under a fixed max grows until the cap…
         let flexible = Text("inner").frame(maxWidth: .infinity)
         let belowCap = measureChild(
             flexible.frame(maxWidth: .fixed(30)),
-            proposal: ProposedSize(width: 12, height: nil), context: context)
+            proposal: ProposedViewSize(width: 12, height: nil), context: context)
         #expect(belowCap.width == 12 && belowCap.isWidthFlexible)
 
         // …and is rigid once the cap is reached.

@@ -25,7 +25,7 @@ struct AspectRatioLayoutTests {
         return context
     }
 
-    private func size(_ view: some View, _ proposal: ProposedSize, cellAspect: Double = 1) -> (Int, Int) {
+    private func size(_ view: some View, _ proposal: ProposedViewSize, cellAspect: Double = 1) -> (Int, Int) {
         let measured = measureChild(view, proposal: proposal, context: context(cellAspect: cellAspect))
         return (measured.width, measured.height)
     }
@@ -58,8 +58,8 @@ struct AspectRatioLayoutTests {
     @Test("An axis offered nothing follows the ratio from the other")
     func openAxisFollowsTheRatio() {
         let wide = Color.red.aspectRatio(2, contentMode: .fit)
-        #expect(size(wide, ProposedSize(width: 20, height: nil)) == (20, 10))
-        #expect(size(wide, ProposedSize(width: nil, height: 5)) == (10, 5))
+        #expect(size(wide, ProposedViewSize(width: 20, height: nil)) == (20, 10))
+        #expect(size(wide, ProposedViewSize(width: nil, height: 5)) == (10, 5))
     }
 
     @Test("A view that does not take its offer keeps its own size")

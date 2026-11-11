@@ -315,7 +315,7 @@ nonisolated struct _ColorEffectView<Content: View>: View {
 @MainActor extension _ColorEffectView: Layoutable {
     /// A colour effect rewrites colours in place: same characters, same cells,
     /// same size.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

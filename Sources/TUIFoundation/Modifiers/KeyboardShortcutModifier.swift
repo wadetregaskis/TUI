@@ -92,7 +92,7 @@ nonisolated struct KeyboardShortcutModifier<Content: View>: View {
     /// measure keeps it off `measureChild`'s render-to-measure fallback and lets
     /// the wrapped view's flexibility propagate, exactly as `KeyEventModifier`
     /// does.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: planting(into: context))
     }
 }

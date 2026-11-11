@@ -91,13 +91,13 @@ nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func sizeThatFits(
-        proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         // Natural sizes: the cross axis keeps the proposal, the layout axis
         // is UNSPECIFIED. Proposing the whole extent to every subview made
         // the sum meaningless — a Spacer collapsed to zero, a GeometryReader
         // filled all of it and pushed every later sibling past the viewport.
-        let natural = ProposedSize(width: proposal.width, height: nil)
+        let natural = ProposedViewSize(width: proposal.width, height: nil)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         // The gaps the distribution reserves: between the subviews that occupy
         // the column, a flexible one even at a natural height of zero
@@ -134,12 +134,12 @@ nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         // The same distribution `VStack` itself uses: the least flexible
         // subviews dealt their share first, spacers what is left, and a
         // trailing clip only where even the minimums do not fit.
-        let natural = ProposedSize(width: bounds.width, height: nil)
+        let natural = ProposedViewSize(width: bounds.width, height: nil)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         let priorities = subviewPriorities(subviews)
         // With room for every subview, none is offered less than its natural
@@ -156,11 +156,11 @@ nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
             priorities: priorities,
             minimumSize: {
                 fits ? sizes[$0].height : max(
-                    subviews[$0].sizeThatFits(ProposedSize(width: bounds.width, height: 0)).height,
+                    subviews[$0].sizeThatFits(ProposedViewSize(width: bounds.width, height: 0)).height,
                     statedMinimumLength(of: subviews[$0].child, horizontally: false))
             },
             statedMinimum: { statedMinimumLength(of: subviews[$0].child, horizontally: false) },
-            sizeAt: { subviews[$0].sizeThatFits(ProposedSize(width: bounds.width, height: $1)).height })
+            sizeAt: { subviews[$0].sizeThatFits(ProposedViewSize(width: bounds.width, height: $1)).height })
         let run = guideRun(
             subviews, sizes: zip(sizes, heights).map { (width: $0.width, height: $1) }, fixedExtent: bounds.width)
         var y = bounds.y
@@ -168,7 +168,7 @@ nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
             let height = heights[index]
             subview.place(
                 at: CellPoint(x: bounds.x + (run?.offsets[index] ?? alignedOffset(for: sizes[index].width, in: bounds.width)), y: y),
-                proposal: ProposedSize(width: sizes[index].width, height: height))
+                proposal: ProposedViewSize(width: sizes[index].width, height: height))
             // A gap is charged behind a child that was actually placed — the
             // distributor's own rule, which is what keeps a clipped tail from
             // spending the room the visible children needed.
@@ -248,10 +248,10 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func sizeThatFits(
-        proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         // See `VStackLayout.sizeThatFits` — same reasoning, other axis.
-        let natural = ProposedSize(width: nil, height: proposal.height)
+        let natural = ProposedViewSize(width: nil, height: proposal.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         // See `VStackLayout.sizeThatFits` — the gaps the distribution reserves,
         // each between the two subviews it separates.
@@ -288,10 +288,10 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         // See `VStackLayout.placeSubviews` — same distribution, other axis.
-        let natural = ProposedSize(width: nil, height: bounds.height)
+        let natural = ProposedViewSize(width: nil, height: bounds.height)
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         let gaps = gaps(between: subviews)
         let (widths, heights) = arrangement(subviews, sizes: sizes, width: bounds.width, height: bounds.height)
@@ -311,7 +311,7 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
             walk.place(index, extent: width)
             subview.place(
                 at: CellPoint(x: x, y: bounds.y + (run?.offsets[index] ?? alignedOffset(for: heights[index], in: bounds.height))),
-                proposal: ProposedSize(width: width, height: heights[index]))
+                proposal: ProposedViewSize(width: width, height: heights[index]))
             x += width
         }
     }
@@ -336,16 +336,16 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
             priorities: subviewPriorities(subviews),
             minimumSize: {
                 max(
-                    subviews[$0].sizeThatFits(ProposedSize(width: 0, height: height)).width,
+                    subviews[$0].sizeThatFits(ProposedViewSize(width: 0, height: height)).width,
                     statedMinimumLength(of: subviews[$0].child, horizontally: true))
             },
             statedMinimum: { statedMinimumLength(of: subviews[$0].child, horizontally: true) },
-            sizeAt: { subviews[$0].sizeThatFits(ProposedSize(width: $1, height: height)).width })
+            sizeAt: { subviews[$0].sizeThatFits(ProposedViewSize(width: $1, height: height)).width })
         let heights: [Int] = (0..<sizes.count).map { index in
             guard widths[index] < sizes[index].width, !subviews[index].child.isSpacer else {
                 return sizes[index].height
             }
-            return subviews[index].sizeThatFits(ProposedSize(width: widths[index], height: height)).height
+            return subviews[index].sizeThatFits(ProposedViewSize(width: widths[index], height: height)).height
         }
         return (widths, heights)
     }
@@ -496,7 +496,7 @@ nonisolated public struct ZStackLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func sizeThatFits(
-        proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(proposal) }
         // A subview's explicit guide lines the layers up on that axis, as a
@@ -513,7 +513,7 @@ nonisolated public struct ZStackLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         let sizes = subviews.map { $0.sizeThatFits(proposal) }
         let (across, down) = guideRuns(

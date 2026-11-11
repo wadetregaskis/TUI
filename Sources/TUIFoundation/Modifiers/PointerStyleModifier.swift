@@ -66,7 +66,7 @@ nonisolated struct PointerStyleModifier<Content: View>: View {
 @MainActor extension PointerStyleModifier: Layoutable {
     /// Forwards measurement straight to the content: a pointer style changes
     /// no layout.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

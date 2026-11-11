@@ -63,7 +63,7 @@ struct TextLongWordBreakTests {
         let text = Text("Supercalifragilistic")
         let drawn = renderToBuffer(text, context: context(width: 10)).lines.map(\.stripped)
         #expect(drawn == ["Supercalif", "ragilistic"])
-        let size = text.sizeThatFits(proposal: ProposedSize(width: 10, height: nil), context: context(width: 10))
+        let size = text.sizeThatFits(proposal: ProposedViewSize(width: 10, height: nil), context: context(width: 10))
         #expect(size.width == 10)
         #expect(size.height == 2)
     }

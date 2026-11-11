@@ -16,14 +16,14 @@ import TUIView
 ///
 /// ```swift
 /// struct Diagonal: Layout {
-///     func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+///     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
 ///         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
 ///         return ViewSize(
 ///             width: sizes.reduce(0) { $0 + $1.width },
 ///             height: sizes.reduce(0) { $0 + $1.height })
 ///     }
 ///
-///     func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+///     func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
 ///         var x = bounds.x, y = bounds.y
 ///         for subview in subviews {
 ///             subview.place(at: CellPoint(x: x, y: y), proposal: .unspecified)
@@ -92,7 +92,7 @@ public protocol Layout {
     func updateCache(_ cache: inout Cache, subviews: Subviews)
 
     /// The size this layout needs for `proposal`.
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout Cache) -> ViewSize
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> ViewSize
 
     /// Positions each subview within `bounds`.
     ///
@@ -100,7 +100,7 @@ public protocol Layout {
     /// placed is not drawn. Placement order is draw order, so a layout may
     /// deliberately overlap its subviews.
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache)
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache)
 
     /// The position of the given horizontal alignment guide along the x axis,
     /// or `nil` when the layout gives it no explicit value.
@@ -111,7 +111,7 @@ public protocol Layout {
     ///
     /// ```swift
     /// func explicitAlignment(
-    ///     of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+    ///     of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
     ///     subviews: Subviews, cache: inout ()
     /// ) -> Double? {
     ///     guide == .leading ? Double(bounds.x + 10) : nil
@@ -132,7 +132,7 @@ public protocol Layout {
     /// - Returns: The guide's position, in the coordinate space of `bounds`;
     ///   `nil` for no explicit value.
     func explicitAlignment(
-        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double?
 
@@ -142,7 +142,7 @@ public protocol Layout {
     /// The vertical twin of
     /// ``explicitAlignment(of:in:proposal:subviews:cache:)-(HorizontalAlignment,_,_,_,_)``.
     func explicitAlignment(
-        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double?
 
@@ -220,7 +220,7 @@ extension Layout {
     /// Running, it records that this layout's type answers by it
     /// (`LayoutDefaultGuides`), so an edge guide is not asked of it again.
     public func explicitAlignment(
-        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
         LayoutDefaultGuides.noteDefault(type(of: self), along: .horizontal)
@@ -235,7 +235,7 @@ extension Layout {
     /// keeps to itself, as SwiftUI's default does (measured: decisions
     /// A-GUIDE-2). Recorded as the horizontal one is.
     public func explicitAlignment(
-        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
         LayoutDefaultGuides.noteDefault(type(of: self), along: .vertical)
@@ -406,7 +406,7 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
             axis, passesNoWidthOn: axis == .horizontal || isStaticallyOneView(Content.self))
     }
 
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let context = publishingChildAxis(context)
         let (subviews, _, _) = resolve(context: context)
         var cache = freshCache(subviews)
@@ -427,8 +427,8 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
     ///
     /// Grounding both passes in the same numbers makes measure/render parity
     /// structural here, the way `Text.displayString` does for text.
-    @MainActor private func grounded(_ proposal: ProposedSize, in context: RenderContext) -> ProposedSize {
-        ProposedSize(
+    @MainActor private func grounded(_ proposal: ProposedViewSize, in context: RenderContext) -> ProposedViewSize {
+        ProposedViewSize(
             width: proposal.width ?? max(0, context.availableWidth),
             height: proposal.height ?? max(0, context.availableHeight))
     }
@@ -446,7 +446,7 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
         }
 
         var cache = freshCache(subviews)
-        let proposal = ProposedSize(
+        let proposal = ProposedViewSize(
             width: max(0, context.availableWidth), height: max(0, context.availableHeight))
         let size = layout.sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
 
@@ -544,7 +544,7 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
         let (subviews, _, _) = resolve(context: context)
         guard defines || anyAlignmentGuide(in: subviews.children) else { return nil }
         var cache = freshCache(subviews)
-        let proposal = ProposedSize(
+        let proposal = ProposedViewSize(
             width: max(0, dimensions.width), height: max(0, dimensions.height))
         let size = layout.sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
         let bounds = CellRect(x: 0, y: 0, width: max(0, size.width), height: max(0, size.height))

@@ -358,7 +358,7 @@ private struct _AsyncImageCore<Content: View>: View, Renderable, Layoutable {
         context.withChildIdentity(type: Content.self, index: 0)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let current = stored(context)?.value ?? .empty
         let child = childContext(context)
         return measureChild(built(phase(current), child), proposal: proposal, context: child)

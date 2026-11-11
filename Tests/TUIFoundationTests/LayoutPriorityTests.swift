@@ -173,7 +173,7 @@ struct LayoutPriorityTests {
     func textAnswersAnOfferedHeight() {
         let context = makeRenderContext(width: 20, height: 10)
         func height<V: View>(_ view: V, _ offer: Int?) -> Int {
-            measureChild(view, proposal: ProposedSize(width: 20, height: offer), context: context).height
+            measureChild(view, proposal: ProposedViewSize(width: 20, height: offer), context: context).height
         }
         #expect(height(Text(threeLines), 0) == 1)
         #expect(height(Text(threeLines), 2) == 2)

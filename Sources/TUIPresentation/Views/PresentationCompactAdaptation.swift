@@ -78,7 +78,7 @@ nonisolated struct _PresentationCompactAdaptationView<Content: View>: View, Pres
 }
 
 @MainActor extension _PresentationCompactAdaptationView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

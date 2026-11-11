@@ -92,7 +92,7 @@ nonisolated public struct Divider: View, Equatable {
         return cells > 0 ? (character, cells) : (rule, 1)
     }
 
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // One cell across, flexible along the stack's minor axis so it spans
         // the row or column. In a row it must NOT be width-flexible: a
         // width-flexible child absorbs the row's whole slack, which pushed

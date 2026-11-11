@@ -524,7 +524,7 @@ private typealias StateIndex = ModalPresentationStateIndex
     /// the focus-section / status-bar side-effects on the render pass; a measure
     /// must not register or activate sections. The content's child identity
     /// mirrors the render path so measure-time @State binds to the same boxes.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(
             content, proposal: proposal,
             context: context.withChildIdentity(type: Content.self, index: 0))

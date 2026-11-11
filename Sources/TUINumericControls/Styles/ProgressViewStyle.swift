@@ -272,7 +272,7 @@ struct _StyledProgressView<Label: View, CurrentValueLabel: View>: View, Renderab
         return TUIView.renderToBuffer(styledBody(styles), context: context.withBranchIdentity("styled"))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let styles = context.environment.progressViewStyleChain
         if Self.drawsLinearBar(styles.style) {
             // In place, with no measure memo entry of its own. `measureChild` here

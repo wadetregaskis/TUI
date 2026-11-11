@@ -104,7 +104,7 @@ func placeLayer<Layer: View>(
     if framedContext.placesChildren, !framedContext.isMeasuring {
         let measured = measureChild(
             layer,
-            proposal: ProposedSize(width: framedContext.availableWidth, height: framedContext.availableHeight),
+            proposal: ProposedViewSize(width: framedContext.availableWidth, height: framedContext.availableHeight),
             context: framedContext)
         framedContext = framedContext.placingChild(
             gradient: framedContext.gradientFrame,
@@ -350,7 +350,7 @@ func compositeDrawnLayer(
 /// - Returns: The modifier's size.
 @MainActor
 func layeredSize<Layer: View>(
-    _ layer: Layer, baseSize: ViewSize, proposal: ProposedSize,
+    _ layer: Layer, baseSize: ViewSize, proposal: ProposedViewSize,
     context: RenderContext, modifierType: Any.Type
 ) -> ViewSize {
     // Returned whole — `isNaturalSize` included, which this is entitled to

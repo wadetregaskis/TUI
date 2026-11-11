@@ -44,7 +44,7 @@ struct HStackLayoutSqueezeTests {
         let context = makeBareRenderContext(width: 20, height: 10)
         let size = measureChild(
             HStackLayout { Text("alpha beta gamma delta epsilon"); Text("TAIL") },
-            proposal: ProposedSize(width: 20, height: nil), context: context)
+            proposal: ProposedViewSize(width: 20, height: nil), context: context)
         #expect(size.height > 1, "\(size)")
     }
 

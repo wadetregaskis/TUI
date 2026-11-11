@@ -195,7 +195,7 @@ private struct GeometryReport<T> {
 @MainActor extension OnGeometryChangeModifier: Layoutable {
     /// Measures as its content: reporting is the whole of this modifier's
     /// effect, and it contributes no geometry.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

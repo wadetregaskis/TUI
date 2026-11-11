@@ -346,7 +346,7 @@ nonisolated struct _PresentationDetentsView<Content: View>: View, PresentationDe
 }
 
 @MainActor extension _PresentationDetentsView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

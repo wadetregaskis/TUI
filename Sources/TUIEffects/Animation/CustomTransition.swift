@@ -28,7 +28,7 @@ import TUIView
 final class _AnyTransitionBox: Equatable, Sendable {
     private let draw: @MainActor (TransitionPhase, PlaceholderSource, RenderContext) -> FrameBuffer
     private let size:
-        @MainActor (TransitionPhase, PlaceholderSource, ProposedSize, RenderContext) -> ViewSize
+        @MainActor (TransitionPhase, PlaceholderSource, ProposedViewSize, RenderContext) -> ViewSize
 
     /// Whether the transition has motion — its ``TransitionProperties``, or
     /// for a composed pair either half's — which decides whether it is
@@ -97,7 +97,7 @@ final class _AnyTransitionBox: Equatable, Sendable {
     /// The body at `phase`, built around `content` and measured.
     @MainActor
     func measure(
-        phase: TransitionPhase, content: PlaceholderSource, proposal: ProposedSize,
+        phase: TransitionPhase, content: PlaceholderSource, proposal: ProposedViewSize,
         context: RenderContext
     ) -> ViewSize {
         size(phase, content, proposal, context)
@@ -128,7 +128,7 @@ private func renderTransitionBody<T: Transition>(
 /// The measuring twin of `renderTransitionBody(_:phase:content:context:)`.
 @MainActor
 private func measureTransitionBody<T: Transition>(
-    _ transition: T, phase: TransitionPhase, content: PlaceholderSource, proposal: ProposedSize,
+    _ transition: T, phase: TransitionPhase, content: PlaceholderSource, proposal: ProposedViewSize,
     context: RenderContext
 ) -> ViewSize {
     let bodyContext = context.withChildIdentity(type: T.Body.self)
@@ -179,7 +179,7 @@ nonisolated struct _ErasedTransitionBody<Content: View>: View {
         return custom.render(phase: phase, content: PlaceholderSource(view: content), context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let custom = base.custom else {
             return measureChild(effects, proposal: proposal, context: context)
         }
@@ -261,7 +261,7 @@ final class TransitionContentPicture {
                 let size = withScrubLifted(context) {
                     measureChild(
                         content,
-                        proposal: ProposedSize(
+                        proposal: ProposedViewSize(
                             width: context.availableWidth, height: context.availableHeight),
                         context: pinned(context, to: identity))
                 }

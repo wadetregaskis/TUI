@@ -148,7 +148,7 @@ private struct _SubviewCore: View, Renderable, Layoutable {
         fatalError("_SubviewCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         notingHost(context)
         return child.measure(proposal: proposal, context: context)
     }
@@ -285,7 +285,7 @@ private struct _SubviewMembersCore: View, Renderable, Layoutable {
         fatalError("_SubviewMembersCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureStackedVertically(members.children(range), proposal: proposal, context: context)
     }
 

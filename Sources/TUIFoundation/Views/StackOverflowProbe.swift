@@ -81,7 +81,7 @@ func measuresAsEagerColumn<V: View>(_ type: V.Type, depth: Int = 0) -> Bool {
     /// that walks a column that fits twice — on every layout of a text-style
     /// view's content-margins probe, a lookup per row where the memo keeps
     /// them and a measure per row where it does not.
-    func overflowProbeSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func overflowProbeSizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let budget = context.availableHeight
         var rowContext = context.askingOverflow(false)
         if budget > 0, budget < Int.max {

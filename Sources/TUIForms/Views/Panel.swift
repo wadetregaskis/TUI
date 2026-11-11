@@ -245,7 +245,7 @@ struct _PanelCore<Content: View, Footer: View>: View, Renderable, Layoutable {
     /// Measures via the shared container path so a Panel sizes analytically
     /// (through the `Layoutable` `_ContainerViewCore`) instead of falling into
     /// `measureChild`'s render-to-measure fallback.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureContainer(
             title: title,
             config: config,

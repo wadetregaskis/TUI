@@ -80,7 +80,7 @@ nonisolated struct StatusBarSystemItemsModifier<Content: View>: View {
 @MainActor extension StatusBarSystemItemsModifier: Layoutable {
     /// System status-bar items render on a separate bar, not inline, so this
     /// measures as `content` (and the toggle side-effects stay render-only).
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

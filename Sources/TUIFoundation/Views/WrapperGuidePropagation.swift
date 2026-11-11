@@ -48,7 +48,7 @@ import TUIView
         if minHeight != nil || idealHeight != nil || maxHeight != nil { contentContext.hasExplicitHeight = true }
         let measured = measureChild(
             content,
-            proposal: ProposedSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
+            proposal: ProposedViewSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
             context: contentContext)
         let size = (width: measured.width, height: measured.height)
         let x =
@@ -171,7 +171,7 @@ private protocol BorderRingQuerying {
         _ query: AlignmentGuideQuery, in dimensions: ViewDimensions, context: RenderContext
     ) -> Double? {
         let size = measureChild(
-            content, proposal: ProposedSize(width: dimensions.width, height: dimensions.height), context: context)
+            content, proposal: ProposedViewSize(width: dimensions.width, height: dimensions.height), context: context)
         return TUIFoundation.explicitGuide(
             of: content, query, in: ViewDimensions(width: size.width, height: size.height), context: context
         ).map { query.translated($0, by: (x: x - size.width / 2, y: y - size.height / 2)) }

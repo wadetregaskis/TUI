@@ -125,7 +125,7 @@ nonisolated struct _ContentShapeView<Content: View, S: Shape>: View {
 
 @MainActor extension _ContentShapeView: Layoutable {
     /// A content shape changes what takes the pointer, never the frame.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

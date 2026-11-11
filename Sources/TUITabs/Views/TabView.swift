@@ -375,7 +375,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         func measureTab(_ index: Int) -> ViewSize {
             measureChild(
                 tabs[index].content.padding(insets),
-                proposal: ProposedSize(width: nil, height: nil),
+                proposal: ProposedViewSize(width: nil, height: nil),
                 context: tabMeasureContext(index, available: available, context: context))
         }
         guard let stateStorage = context.stateStorage else {
@@ -488,7 +488,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         measureContext.availableHeight = drawnHeight
         let size = measureChild(
             tabs[selectedIndex].content.padding(insets),
-            proposal: ProposedSize(width: nil, height: nil), context: measureContext)
+            proposal: ProposedViewSize(width: nil, height: nil), context: measureContext)
         guard size.width < available, panelWidth <= available else {
             return (render: panelWidth, natural: panelWidth)
         }
@@ -532,7 +532,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         return (rows, centers)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let spelled = spellingTitles(context) { return spelled.sizeThatFits(proposal: proposal, context: context) }
         if let measured = measuringCustomLabels(context) {
             return measured.sizeThatFits(proposal: proposal, context: context)

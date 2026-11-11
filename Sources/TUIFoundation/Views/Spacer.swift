@@ -92,7 +92,7 @@ extension ChildView {
 // MARK: - Spacer Rendering
 
 @MainActor extension Spacer: Renderable, Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Spacer is fully flexible - it expands to fill available space.
         // The minLength is its minimum size requirement; without one, the
         // default distance along the stack's axis (``defaultMinLength(along:)``),

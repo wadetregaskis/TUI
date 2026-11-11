@@ -123,7 +123,7 @@ struct _SceneOverlayHost<Content: View>: View, Renderable, Layoutable {
 
     /// Transparent: it measures as its content, the overlays being presented
     /// over it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

@@ -58,7 +58,7 @@ extension _ScrollViewCore {
     /// which is most places, since a `VStack` lays this view out across its
     /// width whatever width it answers: `scrolleager` (400 eager rows under a
     /// heading) +22.6% per frame, `scrollfollow` +7.2%.
-    func idealSize(proposal: ProposedSize, context: RenderContext) -> (width: Int, height: Int) {
+    func idealSize(proposal: ProposedViewSize, context: RenderContext) -> (width: Int, height: Int) {
         let wantsHorizontal = axes.contains(.horizontal)
         let environment = context.environment
         // Asked at `overflowing: true`: could a bar be drawn at all? That needs
@@ -196,7 +196,7 @@ extension _ScrollViewCore {
         var probe = idealContentContext(context)
         probe.availableHeight = viewportHeight + 1
         return ChildView(content).measure(
-            proposal: ProposedSize(width: nil, height: nil), context: probe
+            proposal: ProposedViewSize(width: nil, height: nil), context: probe
         ).height > viewportHeight
     }
 

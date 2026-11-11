@@ -167,7 +167,7 @@ extension _ScrollViewCore {
         measureContext.availableWidth = renderWidth
         let natural = measureNaturalExtent(
             content, along: .vertical,
-            proposal: ProposedSize(width: renderWidth, height: nil),
+            proposal: ProposedViewSize(width: renderWidth, height: nil),
             context: measureContext,
             startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight))
         return (width: renderWidth, height: max(viewportHeight, natural.height))
@@ -178,7 +178,7 @@ extension _ScrollViewCore {
     func naturalContentWidth(contentWidth: Int, canvas: RenderContext) -> Int? {
         let natural = naturalExtent(
             content, along: .horizontal,
-            proposal: ProposedSize(width: nil, height: nil),
+            proposal: ProposedViewSize(width: nil, height: nil),
             context: canvas,
             startingBudget: naturalExtentStartingBudget(forVisible: contentWidth))
         return natural.fillsBudget ? nil : natural.size.width
@@ -293,7 +293,7 @@ extension _ScrollViewCore {
                 ? viewportHeight + 1 : naturalExtentStartingBudget(forVisible: viewportHeight)
         }
         return measureChild(
-            content, proposal: ProposedSize(width: contentWidth, height: nil), context: probe
+            content, proposal: ProposedViewSize(width: contentWidth, height: nil), context: probe
         ).height > viewportHeight
     }
 

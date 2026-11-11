@@ -54,7 +54,7 @@ struct _ToolbarPullDown<Label: View, Items: View>: View, Renderable, Layoutable 
 
     /// The menu floats over the page: the footprint is the button, open or
     /// closed.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(
             trigger(state(in: context), focusManager: nil, onOpen: nil), proposal: proposal,
             context: triggerContext(context))

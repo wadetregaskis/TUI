@@ -179,7 +179,7 @@ extension ViewSize {
     }
 }
 
-extension ProposedSize {
+extension ProposedViewSize {
     /// Creates a proposal of `size`, such as the bounds a layout was given —
     /// mirrors SwiftUI's `ProposedViewSize(_ size: CGSize)`.
     ///
@@ -307,7 +307,7 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
     /// The content is *not* measured. Measuring it would mean building it, which
     /// needs a proxy, which needs the size this call is computing — the
     /// circularity SwiftUI resolves the same way, by making the reader greedy.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(
             width: context.fillingWidth(proposal: proposal),
             height: proposal.height ?? context.availableHeight,

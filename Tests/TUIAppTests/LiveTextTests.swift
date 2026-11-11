@@ -190,7 +190,7 @@ struct LiveTextTests {
         tui.renderCache.frameDate = base
         scheduler.beginFrame()
         _ = renderToBuffer(Text(live: TickSource(origin: base)), context: measuring)
-        _ = measureChild(Text(live: TickSource(origin: base)), proposal: ProposedSize(width: 40, height: 8), context: context)
+        _ = measureChild(Text(live: TickSource(origin: base)), proposal: ProposedViewSize(width: 40, height: 8), context: context)
         scheduler.endFrame()
         #expect(scheduler.isIdle)
     }
@@ -209,7 +209,7 @@ struct LiveTextTests {
                 tracked.isMeasuring = true
                 _ = renderToBuffer(text, context: tracked)
             } else {
-                _ = measureChild(text, proposal: ProposedSize(width: 40, height: 8), context: tracked)
+                _ = measureChild(text, proposal: ProposedViewSize(width: 40, height: 8), context: tracked)
             }
             #expect(tracker.sizeHold(since: mark) == .until(base.addingTimeInterval(60)))
             tracker.endScope(mark)

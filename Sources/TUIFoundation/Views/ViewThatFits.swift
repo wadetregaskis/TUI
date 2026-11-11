@@ -137,7 +137,7 @@ private struct _ViewThatFitsCore<Content: View>: View, Renderable, Layoutable {
         fatalError("_ViewThatFitsCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Ground the proposal into the context before anything below reads it —
         // the same two lines `_ContainerViewCore.sizeThatFits` opens with, and
         // the same two `measureFixedByRendering` (the fallback a NON-Layoutable
@@ -146,7 +146,7 @@ private struct _ViewThatFitsCore<Content: View>: View, Renderable, Layoutable {
         // on-screen width while the caller asked about a narrower one answered a
         // different question from the render that follows.
         // `_HStackCore.resolvedLayout` re-measures a column it squeezed at
-        // `ProposedSize(width: allocated, height: nil)` and leaves
+        // `ProposedViewSize(width: allocated, height: nil)` and leaves
         // `availableWidth` at the whole row's, while `renderChild` DOES narrow
         // it — so a 30-cell row allocating 9 cells here measured the WIDE
         // candidate (18x1) and made 1 the row height, then the render picked the

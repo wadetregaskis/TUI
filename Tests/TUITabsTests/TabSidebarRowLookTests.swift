@@ -43,7 +43,7 @@ private struct DrawCounter: View, Renderable, Layoutable {
         return FrameBuffer(lines: ["COUNTED"])
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(7, 1)
     }
 }

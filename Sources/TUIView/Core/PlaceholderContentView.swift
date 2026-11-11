@@ -61,7 +61,7 @@ package final class PlaceholderSource {
     /// Creates a source from its two halves.
     package convenience init(
         render: @escaping @MainActor (RenderContext) -> FrameBuffer,
-        measure: @escaping @MainActor (ProposedSize, RenderContext) -> ViewSize
+        measure: @escaping @MainActor (ProposedViewSize, RenderContext) -> ViewSize
     ) {
         self.init(drawing: PlaceholderClosures(render: render, measure: measure))
     }
@@ -77,7 +77,7 @@ package final class PlaceholderSource {
     @MainActor func render(_ context: RenderContext) -> FrameBuffer { drawing.render(context) }
 
     /// Measures it.
-    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+    @MainActor func measure(_ proposal: ProposedViewSize, _ context: RenderContext) -> ViewSize {
         drawing.measure(proposal, context)
     }
 }
@@ -87,16 +87,16 @@ package final class PlaceholderSource {
 /// as a view can, where a `@MainActor` closure could not capture that view.
 package protocol PlaceholderDrawing {
     @MainActor func render(_ context: RenderContext) -> FrameBuffer
-    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize
+    @MainActor func measure(_ proposal: ProposedViewSize, _ context: RenderContext) -> ViewSize
 }
 
 private struct PlaceholderClosures: PlaceholderDrawing {
     let renderClosure: @MainActor (RenderContext) -> FrameBuffer
-    let measureClosure: @MainActor (ProposedSize, RenderContext) -> ViewSize
+    let measureClosure: @MainActor (ProposedViewSize, RenderContext) -> ViewSize
 
     init(
         render: @escaping @MainActor (RenderContext) -> FrameBuffer,
-        measure: @escaping @MainActor (ProposedSize, RenderContext) -> ViewSize
+        measure: @escaping @MainActor (ProposedViewSize, RenderContext) -> ViewSize
     ) {
         renderClosure = render
         measureClosure = measure
@@ -104,7 +104,7 @@ private struct PlaceholderClosures: PlaceholderDrawing {
 
     @MainActor func render(_ context: RenderContext) -> FrameBuffer { renderClosure(context) }
 
-    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+    @MainActor func measure(_ proposal: ProposedViewSize, _ context: RenderContext) -> ViewSize {
         measureClosure(proposal, context)
     }
 }
@@ -116,7 +116,7 @@ private struct PlaceholderView<V: View>: PlaceholderDrawing {
         TUIView.renderToBuffer(view, context: context)
     }
 
-    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+    @MainActor func measure(_ proposal: ProposedViewSize, _ context: RenderContext) -> ViewSize {
         measureChild(view, proposal: proposal, context: context)
     }
 }
@@ -133,7 +133,7 @@ private struct PlaceholderView<V: View>: PlaceholderDrawing {
 
 @MainActor extension PlaceholderContentView: Layoutable {
     /// Measures as the view the placeholder stands for.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let scrub = context.stateStorage?.animations.scrub else {
             return source.measure(proposal, context)
         }

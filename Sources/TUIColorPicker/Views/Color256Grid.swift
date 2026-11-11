@@ -569,7 +569,7 @@ struct _Color256GridCore: View, Renderable {
 // MARK: - Layout
 
 extension _Color256GridCore: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // O(rows): the footprint follows from the arrangement, no need to place
         // all 256 cells just to size it (this is measured for every tab-width
         // probe). The width offered decides how far the palette folds, so the

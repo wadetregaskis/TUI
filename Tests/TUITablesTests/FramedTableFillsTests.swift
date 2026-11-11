@@ -88,7 +88,7 @@ struct FramedTableFillsTests {
         let rows = (1...3).map(Row.init)
         let size = measureChild(
             Table(rows) { TableColumn("Name", value: \.name) },
-            proposal: ProposedSize(width: 30, height: nil), context: makeRenderContext(width: 30, height: 20))
+            proposal: ProposedViewSize(width: 30, height: nil), context: makeRenderContext(width: 30, height: 20))
         #expect(size.isHeightFlexible)
     }
 }

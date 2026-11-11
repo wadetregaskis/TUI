@@ -409,7 +409,7 @@ private func verifyServe(
 @inline(never)
 @MainActor
 package func verifyServedSize(
-    _ served: ViewSize, label: @autoclosure () -> String, proposal: ProposedSize, context: RenderContext,
+    _ served: ViewSize, label: @autoclosure () -> String, proposal: ProposedViewSize, context: RenderContext,
     measure: (RenderContext) -> ViewSize
 ) -> ViewSize {
     let checkMark = context.renderCache?.leases.beginDetachedComputation()
@@ -444,7 +444,7 @@ package func verifyServedSize(
 @MainActor
 func measureValueMemoized<Key: Equatable, Row>(
     key: Key,
-    proposal: ProposedSize,
+    proposal: ProposedViewSize,
     context: RenderContext,
     slot: Int = 0,
     build: () -> Row,

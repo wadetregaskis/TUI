@@ -205,7 +205,7 @@ private func noteEnvironmentChange<V>(
     /// Forwarding the measurement to the content under the modified
     /// environment matches the semantics of the render path and skips
     /// rendering the (possibly expensive) content to measure it.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Also on the measure walk. The measure memo has the same environment
         // blind spot as the buffer cache, and measurement runs first, so a
         // change noticed only on the render walk would already have served a
@@ -323,7 +323,7 @@ private func applying<V>(_ transform: (inout V) -> Void, to value: inout V) -> V
 }
 
 @MainActor extension TransformEnvironmentModifier: Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: transformed(context))
     }
 }

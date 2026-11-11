@@ -27,7 +27,7 @@ private struct CountedRows: View, Renderable, Layoutable {
     let counter: MeasureCount
     var body: Never { fatalError("renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         counter.count += 1
         return ViewSize.fixed(6, 100)
     }
@@ -55,7 +55,7 @@ struct ColumnShareMeasureTests {
         let counter = MeasureCount()
         let context = makeRenderContext(width: 30, height: 12)
         _ = measureChild(
-            nested(depth: 20, counter: counter), proposal: ProposedSize(width: nil, height: nil), context: context)
+            nested(depth: 20, counter: counter), proposal: ProposedViewSize(width: nil, height: nil), context: context)
         #expect(counter.count <= 200, "\(counter.count) measures of the rows")
     }
 }

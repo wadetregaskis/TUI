@@ -232,7 +232,7 @@ import TUIFoundation
             return content
         }
 
-        func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
             // The effect never changes a glyph's size, so the measure applies none.
             measureChild(content, proposal: proposal, context: contentContext(context))
         }

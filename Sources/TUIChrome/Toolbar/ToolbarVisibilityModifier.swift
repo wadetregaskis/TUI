@@ -188,7 +188,7 @@ nonisolated struct _ToolbarBarStatementModifier<Content: View>: View, Renderable
 
     /// The statement is the window's, so this measures as `content` — but for
     /// a presentation's first frame, whose seed finds its rows by a measure.
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if context.environment.presentationToolbar?.isSeeding == true { declareToPresentation(context: context) }
         return measureChild(content, proposal: proposal, context: context)
     }

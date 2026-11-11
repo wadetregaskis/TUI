@@ -166,7 +166,7 @@ nonisolated struct _MatchedGeometryEffectView<Content: View>: View {
 @MainActor extension _MatchedGeometryEffectView: Renderable, Layoutable {
     /// The effect never changes the view's place in its parent's layout:
     /// this measures as its content.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 

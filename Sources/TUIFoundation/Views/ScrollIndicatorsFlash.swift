@@ -282,7 +282,7 @@ nonisolated struct _ScrollIndicatorsFlashCore<Content: View, Value: Equatable>: 
     }
 
     /// Measures as its content: a flash changes no layout.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: flashing(context))
     }
 }

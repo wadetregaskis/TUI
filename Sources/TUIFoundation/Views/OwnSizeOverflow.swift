@@ -61,7 +61,7 @@ func ownSizePastOffer<V: View>(
     of content: V, width: Int, height: Int, context: RenderContext
 ) -> (width: Int, height: Int)? {
     guard !context.isMeasuring, drawsAtItsOwnSize(V.self) else { return nil }
-    let size = measureChild(content, proposal: ProposedSize(width: width, height: height), context: context)
+    let size = measureChild(content, proposal: ProposedViewSize(width: width, height: height), context: context)
     guard size.width > width || size.height > height else { return nil }
     return (width: max(width, size.width), height: max(height, size.height))
 }

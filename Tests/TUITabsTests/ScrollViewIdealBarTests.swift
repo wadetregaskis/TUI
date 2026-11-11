@@ -32,7 +32,7 @@ private struct CountedRow: View, Layoutable {
     let count: MeasureCount
     var body: Never { fatalError("CountedRow renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         count.value += 1
         return ViewSize.fixed(text.count, 1)
     }
@@ -109,7 +109,7 @@ struct ScrollViewIdealBarTests {
     /// and a `TabView` send, where the content's own measure answers the bar —
     /// and the height stated, where a second measure has to.
     nonisolated private static let askShapes = [
-        ProposedSize(width: nil, height: nil), ProposedSize(width: nil, height: 10),
+        ProposedViewSize(width: nil, height: nil), ProposedViewSize(width: nil, height: 10),
     ]
 
     // MARK: The measure contract
@@ -152,7 +152,7 @@ struct ScrollViewIdealBarTests {
         arguments: [(9, 9), (10, 10), (11, 10), (50, 10)])
     func idealHeightIsNotTheProbe(rowCount: Int, expected: Int) {
         let size = measureChild(
-            rows(count: rowCount), proposal: ProposedSize(width: nil, height: nil),
+            rows(count: rowCount), proposal: ProposedViewSize(width: nil, height: nil),
             context: measureContext(width: 40, height: 10))
         #expect(size.height == expected, "\(rowCount) rows in 10: height \(size.height)")
     }
@@ -173,7 +173,7 @@ struct ScrollViewIdealBarTests {
             }
         }
         let size = measureChild(
-            view, proposal: ProposedSize(width: nil, height: nil),
+            view, proposal: ProposedViewSize(width: nil, height: nil),
             context: measureContext(width: 40, height: 10))
         #expect(size.width == (rowCount > 10 ? 7 : 5), "width \(size.width)")
         #expect(count.value == rowCount, "\(rowCount) rows were measured \(count.value) times")
@@ -189,7 +189,7 @@ struct ScrollViewIdealBarTests {
     @Test(
         "Placed at its ideal width, a scroll view draws the bar the answer made room for",
         arguments: [9, 10, 11], askShapes)
-    func renderAgreesWithTheAnswer(rowCount: Int, proposal: ProposedSize) {
+    func renderAgreesWithTheAnswer(rowCount: Int, proposal: ProposedViewSize) {
         let view = rows(count: rowCount)
         // "row 0" … "row 9" are five cells; "row 10" is six.
         let contentWidth = rowCount > 10 ? 6 : 5
@@ -211,7 +211,7 @@ struct ScrollViewIdealBarTests {
     @Test(
         "Placed at its ideal width, a scroll view of a lazy stack agrees with the answer",
         arguments: [3, 4], askShapes)
-    func renderAgreesThroughALazyStack(rowCount: Int, proposal: ProposedSize) {
+    func renderAgreesThroughALazyStack(rowCount: Int, proposal: ProposedViewSize) {
         let view = ScrollView {
             LazyVStack(alignment: .leading, spacing: 0) {
                 ForEach(0..<rowCount, id: \.self) { Text("row \($0)").frame(height: 3) }
@@ -232,7 +232,7 @@ struct ScrollViewIdealBarTests {
     @Test(
         "Placed at its ideal width, a scroll view of height-filling content agrees with it",
         arguments: askShapes)
-    func renderAgreesForFillingContent(proposal: ProposedSize) {
+    func renderAgreesForFillingContent(proposal: ProposedViewSize) {
         let view = ScrollView { Text("x").frame(maxHeight: .infinity) }
         let ideal = measureChild(
             view, proposal: proposal, context: measureContext(width: 40, height: 10)
@@ -248,7 +248,7 @@ struct ScrollViewIdealBarTests {
     @Test("A proposed width is not widened")
     func proposedWidthIsKept() {
         let size = measureChild(
-            rows(count: 50), proposal: ProposedSize(width: 12, height: nil),
+            rows(count: 50), proposal: ProposedViewSize(width: 12, height: nil),
             context: measureContext(width: 40, height: 10))
         #expect(size.width == 12)
     }
@@ -258,7 +258,7 @@ struct ScrollViewIdealBarTests {
     @Test("The bar does not widen the answer past the available width")
     func barIsCappedAtTheAvailableWidth() {
         let size = measureChild(
-            rows(count: 50), proposal: ProposedSize(width: nil, height: 10),
+            rows(count: 50), proposal: ProposedViewSize(width: nil, height: 10),
             context: measureContext(width: 6, height: 10))
         #expect(size.width == 6, "a 6-cell content in 6 available cells: \(size.width)")
     }
@@ -283,7 +283,7 @@ struct ScrollViewIdealBarTests {
     ) {
         let view = strip.scrollIndicators(visibility).scrollIndicatorStyle(style)
         let size = measureChild(
-            view, proposal: ProposedSize(width: width, height: nil),
+            view, proposal: ProposedViewSize(width: width, height: nil),
             context: measureContext(width: width, height: 10))
         #expect(size.height == expected, "\(width) wide, \(visibility), \(style): height \(size.height)")
     }

@@ -198,7 +198,7 @@ nonisolated package struct TintModifier<Content: View, S: ShapeStyle>: View {
 }
 
 @MainActor extension TintModifier: Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
 }

@@ -39,7 +39,7 @@ struct PositionModifierTests {
         // are measured in.
         let size = measureChild(
             Text("ab").position(x: 3, y: 3),
-            proposal: ProposedSize(width: 20, height: 6),
+            proposal: ProposedViewSize(width: 20, height: 6),
             context: makeRenderContext(width: 20, height: 6))
         #expect(size.width == 20)
         #expect(size.height == 6)

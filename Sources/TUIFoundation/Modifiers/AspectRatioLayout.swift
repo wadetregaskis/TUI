@@ -85,7 +85,7 @@ nonisolated struct _AspectRatioView<Content: View>: View {
 }
 
 @MainActor extension _AspectRatioView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let ratio = cellRatio(context: context),
             let target = target(width: proposal.width, height: proposal.height, ratio: ratio)
         else { return measureChild(content, proposal: proposal, context: context) }

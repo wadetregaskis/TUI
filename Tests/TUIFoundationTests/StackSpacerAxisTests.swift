@@ -36,7 +36,7 @@ import Testing
 struct StackSpacerAxisTests {
     private func measure<V: View>(_ view: V, width: Int = 24, height: Int = 6) -> ViewSize {
         let context = makeRenderContext(width: width, height: height)
-        return measureChild(view, proposal: ProposedSize(width: width, height: height), context: context)
+        return measureChild(view, proposal: ProposedViewSize(width: width, height: height), context: context)
     }
 
     private func render<V: View>(_ view: V, width: Int = 24, height: Int = 6) -> [String] {

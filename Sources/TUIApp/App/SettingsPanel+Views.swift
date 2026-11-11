@@ -173,7 +173,7 @@ private struct _ContextReader<Content: View>: View, Renderable, Layoutable {
         TUIView.renderToBuffer(content(context), context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content(context), proposal: proposal, context: context)
     }
 }
@@ -196,7 +196,7 @@ private struct _FittedToContent<Content: View>: View, Renderable, Layoutable {
         return TUIView.renderToBuffer(content, context: fitted)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let available = CellSize(
             width: proposal.width ?? context.availableWidth, height: proposal.height ?? context.availableHeight)
         let size = fittedSize(available: available, context)

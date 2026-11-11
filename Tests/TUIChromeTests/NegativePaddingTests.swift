@@ -29,7 +29,7 @@ struct NegativePaddingTests {
 
     private func size(_ view: some View, width: Int = 20, height: Int = 6) -> ViewSize {
         measureChild(
-            view, proposal: ProposedSize(width: width, height: height),
+            view, proposal: ProposedViewSize(width: width, height: height),
             context: makeRenderContext(width: width, height: height))
     }
 

@@ -48,13 +48,13 @@ nonisolated public struct AnyLayout: Layout {
     }
 
     @MainActor public func sizeThatFits(
-        proposal: ProposedSize, subviews: Subviews, cache: inout Cache
+        proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache
     ) -> ViewSize {
         box.sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache.base)
     }
 
     @MainActor public func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache
     ) {
         box.placeSubviews(
             in: bounds, proposal: proposal, subviews: subviews, cache: &cache.base)
@@ -67,7 +67,7 @@ nonisolated public struct AnyLayout: Layout {
 
     /// The erased layout's answer.
     @MainActor public func explicitAlignment(
-        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
         box.explicitAlignment(
@@ -76,7 +76,7 @@ nonisolated public struct AnyLayout: Layout {
 
     /// The erased layout's answer.
     @MainActor public func explicitAlignment(
-        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
         box.explicitAlignment(
@@ -139,9 +139,9 @@ private protocol AnyLayoutBox {
     func makeCache(subviews: LayoutSubviews) -> Any
     func updateCache(_ cache: inout Any, subviews: LayoutSubviews)
     func sizeThatFits(
-        proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any) -> ViewSize
+        proposal: ProposedViewSize, subviews: LayoutSubviews, cache: inout Any) -> ViewSize
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any)
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: LayoutSubviews, cache: inout Any)
     func spacing(subviews: LayoutSubviews, cache: inout Any) -> ViewSpacing
     /// Whether the erased layout lays out grid cells.
     var expandsWholeGridRows: Bool { get }
@@ -149,10 +149,10 @@ private protocol AnyLayoutBox {
     /// through a nested `AnyLayout` too.
     func definesExplicitAlignment(along axis: Axis) -> Bool
     func explicitAlignment(
-        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: LayoutSubviews, cache: inout Any) -> Double?
     func explicitAlignment(
-        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: LayoutSubviews, cache: inout Any) -> Double?
 }
 
@@ -177,7 +177,7 @@ nonisolated private struct ConcreteBox<L: Layout>: AnyLayoutBox {
     }
 
     @MainActor func sizeThatFits(
-        proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any
+        proposal: ProposedViewSize, subviews: LayoutSubviews, cache: inout Any
     ) -> ViewSize {
         guard var typed = cache as? L.Cache else { return ViewSize.fixed(0, 0) }
         let size = layout.sizeThatFits(proposal: proposal, subviews: subviews, cache: &typed)
@@ -186,7 +186,7 @@ nonisolated private struct ConcreteBox<L: Layout>: AnyLayoutBox {
     }
 
     @MainActor func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: LayoutSubviews, cache: inout Any
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: LayoutSubviews, cache: inout Any
     ) {
         guard var typed = cache as? L.Cache else { return }
         layout.placeSubviews(
@@ -210,7 +210,7 @@ nonisolated private struct ConcreteBox<L: Layout>: AnyLayoutBox {
     }
 
     @MainActor func explicitAlignment(
-        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: LayoutSubviews, cache: inout Any
     ) -> Double? {
         guard var typed = cache as? L.Cache else { return nil }
@@ -221,7 +221,7 @@ nonisolated private struct ConcreteBox<L: Layout>: AnyLayoutBox {
     }
 
     @MainActor func explicitAlignment(
-        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: LayoutSubviews, cache: inout Any
     ) -> Double? {
         guard var typed = cache as? L.Cache else { return nil }

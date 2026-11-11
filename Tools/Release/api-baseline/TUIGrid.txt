@@ -21,14 +21,14 @@ GridLayout.AnimatableData | typealias AnimatableData = EmptyAnimatableData
 GridLayout.Cache | struct Cache
 GridLayout._definesExplicitAlignment | @MainActor static var _definesExplicitAlignment: Bool { get }
 GridLayout.alignment | var alignment: Alignment
-GridLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache) -> Double?
-GridLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache) -> Double?
+GridLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache) -> Double?
+GridLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache) -> Double?
 GridLayout.horizontalSpacing | var horizontalSpacing: Int?
 GridLayout.init(alignment:horizontalSpacing:verticalSpacing:) | init(alignment: Alignment = .center, horizontalSpacing: Int? = nil, verticalSpacing: Int? = nil)
 GridLayout.layoutProperties | @MainActor static var layoutProperties: LayoutProperties { get }
 GridLayout.makeCache(subviews:) | @MainActor func makeCache(subviews: GridLayout.Subviews) -> GridLayout.Cache
-GridLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache)
-GridLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache) -> ViewSize
+GridLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache)
+GridLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: GridLayout.Subviews, cache: inout GridLayout.Cache) -> ViewSize
 GridLayout.spacing(subviews:cache:) | @MainActor func spacing(subviews: GridLayout.Subviews, cache: inout GridLayout.Cache) -> ViewSpacing
 GridLayout.updateCache(_:subviews:) | @MainActor func updateCache(_ cache: inout GridLayout.Cache, subviews: GridLayout.Subviews)
 GridLayout.verticalSpacing | var verticalSpacing: Int?

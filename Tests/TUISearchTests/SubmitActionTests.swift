@@ -180,7 +180,7 @@ struct SubmitActionTests {
         // Multiple renders + a measure pass: the action is assembled, never run.
         _ = renderToBuffer(view, context: context)
         _ = renderToBuffer(view, context: context)
-        _ = measureChild(view, proposal: ProposedSize(width: 40, height: 1), context: context)
+        _ = measureChild(view, proposal: ProposedViewSize(width: 40, height: 1), context: context)
         #expect(fired == 0, "no submit action fires during layout")
     }
 

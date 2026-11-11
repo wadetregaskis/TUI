@@ -85,7 +85,7 @@
             },
             statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
             sizeAt: { index, offer in
-                children[index].measure(proposal: ProposedSize(width: nil, height: offer), context: context).height
+                children[index].measure(proposal: ProposedViewSize(width: nil, height: offer), context: context).height
             }
         )
     }
@@ -108,7 +108,7 @@
     /// this one and the scroll view is still measured in the whole height, and the
     /// scroll view a row short of fitting under two headers can still lose a column.
     func widthsInShares(
-        of children: [ChildView], squeezable: [(index: Int, size: ViewSize)], proposal: ProposedSize, limit: Int,
+        of children: [ChildView], squeezable: [(index: Int, size: ViewSize)], proposal: ProposedViewSize, limit: Int,
         context: RenderContext
     ) -> [ViewSize] {
         var sizes: [ViewSize] = []
@@ -131,7 +131,7 @@
             available: max(0, limit), context: context)
         for (index, size) in squeezable where shares[index] < size.height {
             sizes[index] = children[index].measure(
-                proposal: ProposedSize(width: proposal.width, height: shares[index]), context: context)
+                proposal: ProposedViewSize(width: proposal.width, height: shares[index]), context: context)
         }
         return sizes
     }

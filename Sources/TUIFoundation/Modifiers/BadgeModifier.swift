@@ -284,7 +284,7 @@ private func viewCarriesBadge<V: View>(_ view: V) -> Bool {
     /// Measures `content` under the *same* badge-bearing environment the render
     /// uses: a child that draws the badge (a tab, a list row) sizes differently
     /// with it set, so the plain context would under-measure.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: badgeContext(context))
     }
 }

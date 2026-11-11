@@ -63,7 +63,7 @@ import TUICore
     /// render path may write (``RenderContext/isMeasuring``).
     func widthCountingFillers(
         _ width: Int, children: ChildViewCollection, walked: Int, state: StackWindowState,
-        proposal: ProposedSize, widthLimit: Int, context: RenderContext
+        proposal: ProposedViewSize, widthLimit: Int, context: RenderContext
     ) -> (width: Int, isFlexible: Bool) {
         let records = state.rowWidths
         let bandReach = state.bandFillReach
@@ -77,7 +77,7 @@ import TUICore
         var measureContext = context
         measureContext.isMeasuring = true
         measureContext.leaveScrollOrigin()
-        let rowProposal = ProposedSize(width: asksIdealWidth ? nil : widthLimit, height: nil)
+        let rowProposal = ProposedViewSize(width: asksIdealWidth ? nil : widthLimit, height: nil)
         func measured(_ ordinal: Int) -> ViewSize {
             let child = children[ordinal]
             let size = child.measure(proposal: rowProposal, context: measureContext)

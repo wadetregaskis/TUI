@@ -8,12 +8,12 @@
 
 /// How much space a parent proposes to a child view.
 ///
-/// Similar to SwiftUI's `ProposedViewSize`. The parent suggests dimensions,
+/// SwiftUI's `ProposedViewSize`, in cells. The parent suggests dimensions,
 /// and the child can accept, ignore, or partially use them.
 ///
 /// - `nil` means "use your ideal size" (no constraint)
 /// - A specific value means "try to fit in this space"
-public struct ProposedSize: Equatable, Sendable {
+public struct ProposedViewSize: Equatable, Sendable {
     /// The proposed width in characters, or nil for ideal width.
     public var width: Int?
 
@@ -67,9 +67,6 @@ public struct ProposedSize: Equatable, Sendable {
         self.init(width: size.width, height: size.height)
     }
 }
-
-/// SwiftUI's name for ``ProposedSize``.
-public typealias ProposedViewSize = ProposedSize
 
 /// The size a view needs and whether it can flex.
 ///

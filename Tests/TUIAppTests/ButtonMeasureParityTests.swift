@@ -123,7 +123,7 @@ struct ButtonMeasureParityTests {
                 }))
         let hugging = style.apply(to: Button(action: {}, label: { Text(verbatim: "note") }))
         for width in [20, 60] {
-            let proposal = ProposedSize(width: width, height: nil)
+            let proposal = ProposedViewSize(width: width, height: nil)
             let fills = measureChild(filling, proposal: proposal, context: context(width: width))
             #expect(fills.width == renderToBuffer(filling, context: context(width: width)).width)
             #expect(fills.isWidthFlexible, "\(style) at \(width): \(fills)")

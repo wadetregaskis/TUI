@@ -42,7 +42,7 @@ private struct CountedRow: View, Layoutable {
     var readsViewport = false
     var body: Never { fatalError("CountedRow renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measures.count += 1
         if readsViewport { _ = context.environment.scrollViewportSize }
         return ViewSize.fixed(text.count, 1)

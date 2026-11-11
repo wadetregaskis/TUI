@@ -55,13 +55,13 @@ private final class Seen {
 private struct Reads: Layout {
     let seen: Seen
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         seen.values = subviews.map(\.containerValues)
         return ViewSize(width: 1, height: 1)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {}
 }
 

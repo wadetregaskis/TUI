@@ -16,13 +16,13 @@ import TUIGrid
 /// spacing preferences ask — the way SwiftUI's own `ViewSpacing` documentation
 /// writes a layout that honours them.
 private struct SpacedRow: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         let widths = subviews.map { $0.sizeThatFits(.unspecified).width }
         return ViewSize(width: widths.reduce(0, +) + gaps(subviews).reduce(0, +), height: 1)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         let gaps = gaps(subviews)
         var x = bounds.x
@@ -42,12 +42,12 @@ private struct SpacedRow: Layout {
 
 /// A layout that asks for no space around itself at all.
 private struct Tight: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: subviews.map { $0.sizeThatFits(.unspecified).width }.reduce(0, +), height: 1)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         var x = bounds.x
         for subview in subviews {
@@ -68,13 +68,13 @@ private final class Seen {
 private struct ReadsSpacing: Layout {
     let seen: Seen
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         seen.spacings = subviews.map(\.spacing)
         return ViewSize(width: 1, height: 1)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {}
 }
 

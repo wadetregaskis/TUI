@@ -92,7 +92,7 @@ private struct _GroupSectionsCore<Sections: View, Content: View>: View, Renderab
         fatalError("_GroupSectionsCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureStackedVertically(
             resolveChildViews(from: sections, context: context), proposal: proposal, context: context)
     }

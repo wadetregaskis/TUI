@@ -94,7 +94,7 @@ package protocol LayoutPlacing {
     ///
     /// Geometry is computed from measurement under `proposal`; nothing is
     /// rendered and no side effects run.
-    func placement(at ordinal: Int, proposal: ProposedSize, context: RenderContext) -> Placement?
+    func placement(at ordinal: Int, proposal: ProposedViewSize, context: RenderContext) -> Placement?
 
     /// Routes a target identity to the ordinal of the child leading to it —
     /// `nil` when the target is not under this container ("not mine").
@@ -105,11 +105,11 @@ package protocol LayoutPlacing {
     /// Non-`nil` when every placement provably has exactly this extent along
     /// the container's primary axis under `proposal` (§5i): placement
     /// arithmetic, scrollbars, and viewport mapping become exact and O(1).
-    func uniformExtent(proposal: ProposedSize, context: RenderContext) -> Int?
+    func uniformExtent(proposal: ProposedViewSize, context: RenderContext) -> Int?
 }
 
 extension LayoutPlacing {
     /// Containers without a provable uniform extent are variable (§5i's
     /// `measured` source): estimates + the layout cache serve them.
-    public func uniformExtent(proposal: ProposedSize, context: RenderContext) -> Int? { nil }
+    public func uniformExtent(proposal: ProposedViewSize, context: RenderContext) -> Int? { nil }
 }

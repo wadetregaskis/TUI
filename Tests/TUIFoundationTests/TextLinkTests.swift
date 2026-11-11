@@ -221,12 +221,12 @@ struct TextLinkTests {
     @Test("The measure counts the written destination, and a text without links is untouched")
     func linkDisplayIsMeasured() {
         var context = makeRenderContext(width: 40, height: 6)
-        let proposal = ProposedSize(width: 40, height: nil)
+        let proposal = ProposedViewSize(width: 40, height: nil)
         #expect(Text(sentence).sizeThatFits(proposal: proposal, context: context).width == 12)
         context.environment.linkDisplay = .urlInParentheses
         #expect(Text(sentence).sizeThatFits(proposal: proposal, context: context).width == 39)
         // Too wide for 20 cells: it wraps, and the measure says so.
-        #expect(Text(sentence).sizeThatFits(proposal: ProposedSize(width: 20, height: nil), context: context).height > 1)
+        #expect(Text(sentence).sizeThatFits(proposal: ProposedViewSize(width: 20, height: nil), context: context).height > 1)
         context.environment.linkDisplay = .urlOnly
         #expect(Text(sentence).sizeThatFits(proposal: proposal, context: context).width == 32)
         #expect(Text("See docs now").sizeThatFits(proposal: proposal, context: context).width == 12)

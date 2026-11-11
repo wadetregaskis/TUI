@@ -296,7 +296,7 @@ private struct _MenuStyleBody: View, Renderable, Layoutable {
     /// for the same reason: ``MenuStyle/makeBuffer(configuration:context:)`` is
     /// `renderToBuffer(makeBody(configuration:))` and lives in an extension, not
     /// a protocol requirement, so every style's buffer is its body's buffer.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let style = context.environment.menuStyle
         // A body that cannot size itself is going to be drawn to be measured
         // whichever way it is asked; going through the style would only build

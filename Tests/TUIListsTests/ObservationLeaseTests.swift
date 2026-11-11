@@ -452,7 +452,7 @@ struct ObservationLeaseTests {
         environment.installVolatileReadTracker(VolatileReadTracker())
         let context = RenderContext(availableWidth: 30, availableHeight: 3, environment: environment, tuiContext: tui)
         let leases = tui.renderCache.leases
-        let unproposed = ProposedSize(width: nil, height: nil)
+        let unproposed = ProposedViewSize(width: nil, height: nil)
         tui.renderCache.beginRenderPass()
         _ = measureChild(DrawnReader(model: model), proposal: unproposed, context: context)
         #expect(census.snapshot.armed(.bodyMeasure) == 1, "measured at the frame's level, observed")

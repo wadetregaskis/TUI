@@ -114,7 +114,7 @@ struct _PanelToggleButton: View, Renderable, Layoutable {
         return buffer
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let toggle = toggle(context) else { return ViewSize.fixed(0, 0) }
         return measureChild(button(toggle, name: nil, context: context), proposal: proposal, context: context)
     }

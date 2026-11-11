@@ -1,7 +1,7 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  ProposedSizeTests.swift
+//  ProposedViewSizeTests.swift
 //
-//  `ProposedSize`, SwiftUI's `ProposedViewSize` in cells: `.zero` (the
+//  `ProposedViewSize`, SwiftUI's own type in cells: `.zero` (the
 //  semantic audit's item 113) beside `.unspecified`.
 //
 //  Created by Wade Tregaskis
@@ -11,12 +11,12 @@ import Testing
 
 @testable import TUICore
 
-@Suite("ProposedSize")
-struct ProposedSizeTests {
+@Suite("ProposedViewSize")
+struct ProposedViewSizeTests {
     @Test(".zero proposes no space on either axis, and .unspecified none at all")
     func zeroAndUnspecified() {
-        #expect(ProposedSize.zero == ProposedSize(width: 0, height: 0))
-        #expect(ProposedSize.unspecified == ProposedSize(width: nil, height: nil))
-        #expect(ProposedSize.zero != .unspecified)
+        #expect(ProposedViewSize.zero == ProposedViewSize(width: 0, height: 0))
+        #expect(ProposedViewSize.unspecified == ProposedViewSize(width: nil, height: nil))
+        #expect(ProposedViewSize.zero != .unspecified)
     }
 }

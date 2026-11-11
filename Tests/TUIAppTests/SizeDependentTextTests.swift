@@ -132,7 +132,7 @@ struct SizeDependentTextTests {
         let (tui, context) = harness(width: width)
         tui.renderCache.beginRenderPass()
         tui.renderCache.frameDate = base
-        let size = measureChild(view, proposal: ProposedSize(width: width, height: nil), context: context)
+        let size = measureChild(view, proposal: ProposedViewSize(width: width, height: nil), context: context)
         let buffer = renderToBuffer(view, context: context)
         return (buffer.lines.first?.stripped ?? "", size.width)
     }

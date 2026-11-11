@@ -430,7 +430,7 @@ struct ValueHashPlanTests {
             context.renderCache = cache
             context.environment.installVolatileReadTracker(VolatileReadTracker())
             _ = measureChild(
-                VStack { Text("one").padding(1); Text("two") }, proposal: ProposedSize(width: nil, height: nil),
+                VStack { Text("one").padding(1); Text("two") }, proposal: ProposedViewSize(width: nil, height: nil),
                 context: context)
         }
         measureOnce(in: RenderCache(valueHashPlans: shared))

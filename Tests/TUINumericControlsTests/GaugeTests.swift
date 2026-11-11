@@ -223,7 +223,7 @@ struct GaugeTests {
         }
         .gaugeStyle(.accessoryCircular)
         let context = makeRenderContext(width: 40, height: 4)
-        let measured = measureChild(gauge, proposal: ProposedSize(width: 40, height: nil), context: context)
+        let measured = measureChild(gauge, proposal: ProposedViewSize(width: 40, height: nil), context: context)
         let rendered = renderToBuffer(gauge, context: context)
         #expect(measured.width == rendered.width)
         #expect(measured.height == rendered.height)
@@ -381,7 +381,7 @@ struct CustomGaugeStyleTests {
     func customStyleSizeMatchesRender() {
         let gauge = Gauge(value: 0.6) { Text("CPU") }.gaugeStyle(BlocksGaugeStyle())
         let context = makeRenderContext(width: 40, height: 4)
-        let measured = measureChild(gauge, proposal: ProposedSize(width: 40, height: nil), context: context)
+        let measured = measureChild(gauge, proposal: ProposedViewSize(width: 40, height: nil), context: context)
         let rendered = renderToBuffer(gauge, context: context)
         #expect(measured.height == rendered.height)
         #expect(measured.width == rendered.width)

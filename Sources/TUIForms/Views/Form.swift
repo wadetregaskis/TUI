@@ -460,7 +460,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
     /// Still `.fixed`, exactly as before: a form hugs its content on both axes,
     /// and the column it composes is the content. What changed is that the
     /// column is measured instead of drawn.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         var measureContext = context
         measureContext.isMeasuring = true
         measureContext.hasExplicitWidth = false
@@ -553,7 +553,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
             .compactMap { row -> Int? in
                 guard case .field(let label, _) = row.kind, !row.hidesLabel else { return nil }
                 return row.leadingInset
-                    + measureChild(label, proposal: ProposedSize(width: nil, height: nil), context: context).width
+                    + measureChild(label, proposal: ProposedViewSize(width: nil, height: nil), context: context).width
             }
             .max() ?? 0
     }
@@ -566,7 +566,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
                 if case .button = row.kind { return nil }
                 return measureChild(
                     formRowView(row, pillar: pillar, contentWidth: 0),
-                    proposal: ProposedSize(width: nil, height: nil), context: context
+                    proposal: ProposedViewSize(width: nil, height: nil), context: context
                 ).width
             }
             .max() ?? 0

@@ -70,7 +70,7 @@ nonisolated package struct _CollapsingLabel<Label: View>: View, Renderable, Layo
 
     /// Size from one render (it drops to nothing for a blank label and adds a
     /// trailing space otherwise — both need the render), flexibility from the label.
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let size = measureFixedByRendering(self, proposal: proposal, context: context)
         let labelFlexible = label.map {
             measureChild($0, proposal: proposal, context: context).isWidthFlexible
@@ -119,7 +119,7 @@ nonisolated package struct _DetachedControlLabel<Label: View>: View, Renderable,
 
     @MainActor package var body: Never { fatalError("_DetachedControlLabel renders via Renderable") }
 
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(label, proposal: proposal, context: context)
     }
 

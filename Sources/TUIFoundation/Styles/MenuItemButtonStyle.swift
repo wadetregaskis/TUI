@@ -95,7 +95,7 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
         return context.spelled(context.environment.keyNotation.spelling(symbols))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(row(in: context), proposal: proposal, context: context)
     }
 

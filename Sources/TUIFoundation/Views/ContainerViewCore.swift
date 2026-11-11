@@ -107,7 +107,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         return context.publishingContainerAxis(.vertical)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let spelled = spelled(in: context) { return spelled.sizeThatFits(proposal: proposal, context: context) }
         // Resolve the space we were offered (proposal wins over the context,
         // exactly as renderChild sets availableWidth/Height before rendering).
@@ -164,7 +164,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             footerContext.availableHeight = innerAvailableHeight
             let size = measureChild(
                 footerView.padding(footerPadding),
-                proposal: ProposedSize(width: innerWidthAvailable, height: innerAvailableHeight),
+                proposal: ProposedViewSize(width: innerWidthAvailable, height: innerAvailableHeight),
                 context: footerContext)
             footerNaturalWidth = min(size.width, innerWidthAvailable)
             footerNaturalHeight = min(size.height, innerAvailableHeight)
@@ -195,7 +195,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         } else {
             let bodySize = measureChild(
                 content.padding(padding),
-                proposal: ProposedSize(width: innerWidthAvailable, height: bodyAvailableHeight),
+                proposal: ProposedViewSize(width: innerWidthAvailable, height: bodyAvailableHeight),
                 context: bodyContext)
             bodyWidth = min(bodySize.width, innerWidthAvailable)
             bodyHeight = min(bodySize.height, bodyAvailableHeight)
@@ -232,7 +232,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             footerContext.availableHeight = innerAvailableHeight
             let size = measureChild(
                 footerView.padding(footerPadding),
-                proposal: ProposedSize(width: innerWidth, height: innerAvailableHeight),
+                proposal: ProposedViewSize(width: innerWidth, height: innerAvailableHeight),
                 context: footerContext)
             footerFinalHeight = min(size.height, innerAvailableHeight)
         }
@@ -537,7 +537,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             var sized = probe
             sized.availableWidth = max(1, width)
             return measureChild(
-                probeView, proposal: ProposedSize(width: nil, height: nil), context: sized)
+                probeView, proposal: ProposedViewSize(width: nil, height: nil), context: sized)
         }
 
         let preferred = min(innerWidth, max(1, context.environment.dialogPreferredWidth))

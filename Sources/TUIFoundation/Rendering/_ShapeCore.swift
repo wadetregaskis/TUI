@@ -131,7 +131,7 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
 
     var body: Never { fatalError("_ShapeCore renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         shape.sizeThatFits(proposal)
     }
 

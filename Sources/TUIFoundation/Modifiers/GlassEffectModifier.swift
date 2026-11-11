@@ -240,7 +240,7 @@ nonisolated struct _GlassEffect<Content: View, S: Shape>: View {
 
 @MainActor extension _GlassEffect: Layoutable {
     /// The content's size: glass changes nothing about layout.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: glass.isIdentity ? context : contentContext(context))
     }
 }

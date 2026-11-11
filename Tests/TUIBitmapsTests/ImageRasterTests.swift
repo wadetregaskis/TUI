@@ -66,7 +66,7 @@ struct ImageRasterTests {
         func isEqual(to other: any _ImageRaster) -> Bool { false }
 
         @MainActor
-        func sizeThatFits(proposal: ProposedSize, options: _ImageRasterOptions, context: RenderContext) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, options: _ImageRasterOptions, context: RenderContext) -> ViewSize {
             inner.sizeThatFits(proposal: proposal, options: options, context: context)
         }
 

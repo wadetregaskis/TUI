@@ -112,7 +112,7 @@ nonisolated struct NavigationSplitViewColumnWidthView<Content: View>: View {
     /// `!context.isMeasuring` because an accumulating `reduce` would double-apply
     /// there, this key's `reduce` keeps the last value: writing it twice in a
     /// pass is idempotent.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         publishColumnWidth(context: context)
         return measureChild(content, proposal: proposal, context: context)
     }

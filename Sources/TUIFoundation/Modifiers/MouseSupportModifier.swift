@@ -77,7 +77,7 @@ nonisolated package struct MouseSupportModifier<Content: View>: View {
 @MainActor extension MouseSupportModifier: Layoutable {
     /// Behaviour-only decorator — renders `content` unchanged, so it measures as
     /// `content` (the terminal-state side-effect above is render-only).
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

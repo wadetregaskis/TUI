@@ -33,7 +33,7 @@ nonisolated public struct AnyShape: Shape {
     }
 
     /// The erased shape's size.
-    public func sizeThatFits(_ proposal: ProposedSize) -> ViewSize {
+    public func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize {
         base.sizeThatFits(proposal)
     }
 }

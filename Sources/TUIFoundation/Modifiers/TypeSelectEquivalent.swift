@@ -29,7 +29,7 @@ nonisolated struct _TypeSelectEquivalentModifier<Content: View>: View, Renderabl
         TUIView.renderToBuffer(content, context: context)
     }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

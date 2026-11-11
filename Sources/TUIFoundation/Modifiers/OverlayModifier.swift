@@ -81,7 +81,7 @@ extension OverlayModifier: Equatable where Base: Equatable, Overlay: Equatable {
     /// is a `ZStack`'s rule rather than an overlay's: a badge wider than the
     /// thing it badges widened the view it was laid on, and with it every
     /// sibling in the enclosing stack.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard Base.self != EmptyView.self else { return ViewSize.fixed(0, 0) }
         return layeredSize(
             overlay, baseSize: measureChild(base, proposal: proposal, context: context),

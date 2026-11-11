@@ -43,7 +43,7 @@ struct _SourcedImageRaster: _ImageRaster {
     }
 
     @MainActor
-    func sizeThatFits(proposal: ProposedSize, options: _ImageRasterOptions, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, options: _ImageRasterOptions, context: RenderContext) -> ViewSize {
         let core = self.core(options)
         guard let samplingFactor = options.samplingFactor else {
             return core.sizeThatFits(proposal: proposal, context: context)

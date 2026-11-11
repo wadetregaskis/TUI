@@ -32,9 +32,9 @@ AlertPanel.warning(title:message:actions:) | static func warning(title titleKey:
 AlertPanel.warning(title:message:actions:) | static func warning<S1, S2>(title: S1, message: S2, @ViewBuilder actions: () -> Actions) -> AlertPanel<Actions> where S1 : StringProtocol, S2 : StringProtocol [extension where Actions : View]
 AlertPresentationModifier.body | @MainActor var body: Never { get }
 AlertPresentationModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, Actions : View, Message : View]
-AlertPresentationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, Actions : View, Message : View]
+AlertPresentationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View, Actions : View, Message : View]
 AutomaticPresentationSizing | struct AutomaticPresentationSizing
-AutomaticPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+AutomaticPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize
 CustomPresentationDetent | protocol CustomPresentationDetent : SendableMetatype
 CustomPresentationDetent.Context | typealias Context = PresentationDetent.Context
 CustomPresentationDetent.height(in:) | static func height(in context: Self.Context) -> Int?
@@ -50,14 +50,14 @@ DialogSeverity.automatic | static let automatic: DialogSeverity
 DialogSeverity.critical | static let critical: DialogSeverity
 DialogSeverity.standard | static let standard: DialogSeverity
 FittedPresentationSizing | struct FittedPresentationSizing
-FittedPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+FittedPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize
 FormPresentationSizing | struct FormPresentationSizing
-FormPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+FormPresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize
 ModalPresentationModifier.body | @MainActor var body: Never { get }
 ModalPresentationModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, Modal : View]
-ModalPresentationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, Modal : View]
+ModalPresentationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View, Modal : View]
 PagePresentationSizing | struct PagePresentationSizing
-PagePresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+PagePresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize
 PresentationAdaptation | struct PresentationAdaptation
 PresentationAdaptation.automatic | static var automatic: PresentationAdaptation { get }
 PresentationAdaptation.fullScreenCover | static var fullScreenCover: PresentationAdaptation { get }
@@ -88,11 +88,11 @@ PresentationSizing.fitted | static var fitted: FittedPresentationSizing { get } 
 PresentationSizing.fitted(horizontal:vertical:) | func fitted(horizontal: Bool, vertical: Bool) -> some PresentationSizing
 PresentationSizing.form | static var form: FormPresentationSizing { get } [extension where Self == FormPresentationSizing]
 PresentationSizing.page | static var page: PagePresentationSizing { get } [extension where Self == PagePresentationSizing]
-PresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+PresentationSizing.proposedSize(for:context:) | func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize
 PresentationSizing.sticky(horizontal:vertical:) | func sticky(horizontal: Bool = false, vertical: Bool = false) -> some PresentationSizing
 PresentationSizingContext | struct PresentationSizingContext
 PresentationSizingRoot | struct PresentationSizingRoot
-PresentationSizingRoot.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+PresentationSizingRoot.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 View.alert(_:isPresented:actions:) | nonisolated func alert<Actions>(_ title: Text, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions) -> some View where Actions : View
 View.alert(_:isPresented:actions:) | nonisolated func alert<Actions>(_ titleKey: LocalizedStringKey, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions) -> some View where Actions : View
 View.alert(_:isPresented:actions:) | nonisolated func alert<S, Actions>(_ title: S, isPresented: Binding<Bool>, @ViewBuilder actions: @escaping () -> Actions) -> some View where S : StringProtocol, Actions : View

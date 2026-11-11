@@ -38,7 +38,7 @@ struct _PickerOptionsReader<SelectionValue: Hashable, Content: View, Built: View
 
     var body: Never { fatalError("_PickerOptionsReader renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if context.environment.rendersForRegistrationsOnly { return .fixed(0, 0) }
         return measureChild(
             build(entries(in: context), context.environment.isInPopUpMenu), proposal: proposal,

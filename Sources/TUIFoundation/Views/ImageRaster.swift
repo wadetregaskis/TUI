@@ -38,7 +38,7 @@ package protocol _ImageRaster: Sendable {
     /// The size the picture takes when offered `proposal`, drawn as `options`
     /// say — ``Layoutable/sizeThatFits(proposal:context:)`` for the picture.
     @MainActor
-    func sizeThatFits(proposal: ProposedSize, options: _ImageRasterOptions, context: RenderContext) -> ViewSize
+    func sizeThatFits(proposal: ProposedViewSize, options: _ImageRasterOptions, context: RenderContext) -> ViewSize
 
     /// The picture, drawn as `options` say in the space `context` offers —
     /// ``Renderable/renderToBuffer(context:)`` for the picture.
@@ -89,7 +89,7 @@ struct _ImageRasterHost: View, Renderable, Layoutable {
         fatalError("_ImageRasterHost renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         raster.sizeThatFits(proposal: proposal, options: options, context: context)
     }
 

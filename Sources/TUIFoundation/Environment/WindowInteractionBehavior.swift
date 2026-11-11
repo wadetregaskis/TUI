@@ -87,7 +87,7 @@ nonisolated struct _WindowDismissBehaviorModifier<Content: View>: View, Renderab
     }
 
     /// Transparent: it measures as its content.
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

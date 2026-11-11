@@ -219,7 +219,7 @@ nonisolated struct NavigationPresentationModifier<Content: View, Destination: Vi
 @MainActor extension NavigationPresentationModifier: Layoutable {
     /// Measures as its content: the push is the whole of this modifier's
     /// effect, and it contributes no geometry.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

@@ -90,7 +90,7 @@ nonisolated struct PreferenceModifier<Content: View, K: PreferenceKey>: View {
 @MainActor extension PreferenceModifier: Layoutable {
     /// Publishes a preference and renders `content` unchanged, so it measures as
     /// `content` (and the preference write stays a render-pass side-effect).
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -190,7 +190,7 @@ where K.Value: Equatable {
     /// Renders `content` unchanged (it only collects/observes preferences), so it
     /// measures as `content`. Forwarding also keeps the push/pop and the change
     /// callback to the render pass — a measure must not fire preference actions.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -238,7 +238,7 @@ nonisolated struct TransformPreferenceModifier<Content: View, K: PreferenceKey>:
 
 @MainActor extension TransformPreferenceModifier: Layoutable {
     /// Renders `content` unchanged, so it measures as `content`.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

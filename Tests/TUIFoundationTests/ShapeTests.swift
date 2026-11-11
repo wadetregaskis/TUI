@@ -232,7 +232,7 @@ struct ShapeTests {
 
     @Test("Shapes fill whatever they are offered")
     func flexible() {
-        let size = Circle().sizeThatFits(ProposedSize(width: 30, height: 10))
+        let size = Circle().sizeThatFits(ProposedViewSize(width: 30, height: 10))
         #expect(size.isWidthFlexible && size.isHeightFlexible)
         let stack = renderToBuffer(
             VStack(spacing: 0) {

@@ -110,7 +110,7 @@ struct GridNarrowTests {
     func measureMatchesRender() {
         for width in [5, 10, 15, 20, 26, 34] {
             let measured = measureChild(
-                threeText, proposal: ProposedSize(width: width, height: nil),
+                threeText, proposal: ProposedViewSize(width: width, height: nil),
                 context: makeRenderContext(width: 60, height: 30))
             let drawn = renderToBuffer(threeText, context: makeRenderContext(width: width, height: 30))
             #expect(measured.width == drawn.width, "at \(width)")

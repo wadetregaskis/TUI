@@ -91,7 +91,7 @@ nonisolated package struct PositionView<Content: View>: View {
     /// Fills what it is offered: a positioned view's own size says nothing
     /// about where it sits, and its parent must reserve the whole space for
     /// the coordinates to mean anything.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(
             width: proposal.width ?? context.availableWidth,
             height: proposal.height ?? context.availableHeight,
@@ -123,7 +123,7 @@ nonisolated package struct PositionView<Content: View>: View {
     func placedContent(_ context: RenderContext) -> RenderContext {
         guard context.carriesGeometryOrigin, !context.isMeasuring else { return context }
         let size = measureChild(
-            content, proposal: ProposedSize(width: context.availableWidth, height: context.availableHeight),
+            content, proposal: ProposedViewSize(width: context.availableWidth, height: context.availableHeight),
             context: context)
         return context.placingChild(gradient: nil, x: x - size.width / 2, y: y - size.height / 2)
     }

@@ -109,12 +109,12 @@ AnyGradient.paint(in:) | func paint(in environment: EnvironmentValues) -> Paint
 AnyLayout | nonisolated struct AnyLayout
 AnyLayout.AnimatableData | typealias AnimatableData = EmptyAnimatableData
 AnyLayout.Cache | struct Cache
-AnyLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache) -> Double?
-AnyLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache) -> Double?
+AnyLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache) -> Double?
+AnyLayout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache) -> Double?
 AnyLayout.init(_:) | init<L>(_ layout: L) where L : Layout
 AnyLayout.makeCache(subviews:) | @MainActor func makeCache(subviews: AnyLayout.Subviews) -> AnyLayout.Cache
-AnyLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache)
-AnyLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache) -> ViewSize
+AnyLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache)
+AnyLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache) -> ViewSize
 AnyLayout.spacing(subviews:cache:) | @MainActor func spacing(subviews: AnyLayout.Subviews, cache: inout AnyLayout.Cache) -> ViewSpacing
 AnyLayout.updateCache(_:subviews:) | @MainActor func updateCache(_ cache: inout AnyLayout.Cache, subviews: AnyLayout.Subviews)
 AnyScrollTargetBehavior | struct AnyScrollTargetBehavior
@@ -126,7 +126,7 @@ AnyShape | nonisolated struct AnyShape
 AnyShape.AnimatableData | typealias AnimatableData = EmptyAnimatableData
 AnyShape.init(_:) | init<S>(_ shape: S) where S : Shape
 AnyShape.path(in:) | func path(in rect: CGRect) -> Path
-AnyShape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+AnyShape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 AnyShapeStyle | struct AnyShapeStyle
 AnyShapeStyle.Resolved | typealias Resolved = Never
 AnyShapeStyle.init(_:) | init<S>(_ style: S) where S : ShapeStyle
@@ -215,7 +215,7 @@ BackgroundStyle.paint(in:) | func paint(in environment: EnvironmentValues) -> Pa
 BadgeModifier.body | @MainActor var body: Never { get }
 BadgeModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 BadgeModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-BadgeModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+BadgeModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 BadgeModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 BadgeModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 BadgeProminence | struct BadgeProminence
@@ -397,7 +397,7 @@ Circle.corners(in:) | func corners(in size: CGSize?) -> Circle.Corners?
 Circle.init() | init()
 Circle.inset(by:) | func inset(by amount: CGFloat) -> Circle
 Circle.path(in:) | func path(in rect: CGRect) -> Path
-Circle.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+Circle.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 Color.Resolved.AnimatableData | typealias AnimatableData = AnimatablePair<Float, AnimatablePair<Float, AnimatablePair<Float, Float>>>
 Color.Resolved.Resolved | typealias Resolved = Never
 Color.Resolved.animatableData | @MainActor var animatableData: Color.Resolved.AnimatableData { get set }
@@ -551,7 +551,7 @@ DefaultGlassEffectShape.AnimatableData | typealias AnimatableData = EmptyAnimata
 DefaultGlassEffectShape.init() | init()
 DefaultGlassEffectShape.path(in:) | func path(in rect: CGRect) -> Path
 DefaultGlassEffectShape.role | static var role: ShapeRole { get }
-DefaultGlassEffectShape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+DefaultGlassEffectShape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 DefaultLabelStyle | struct DefaultLabelStyle
 DefaultLabelStyle.init() | init()
 DefaultLabelStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: DefaultLabelStyle.Configuration) -> some View
@@ -574,7 +574,7 @@ DimmedModifier._keepsContentGeometry | @MainActor static var _keepsContentGeomet
 DimmedModifier.body | @MainActor var body: Never { get }
 DimmedModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 DimmedModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-DimmedModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+DimmedModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 DimmedModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 DimmedModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 DisabledModifier.body | @MainActor var body: some View { get }
@@ -583,7 +583,7 @@ DisabledModifier.disabled | let disabled: Bool
 DisabledModifier.init(content:disabled:) | init(content: Content, disabled: Bool)
 DisabledModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 DisabledModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-DisabledModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+DisabledModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 DisabledModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 DisabledModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 DisabledTextSelectability | struct DisabledTextSelectability
@@ -628,7 +628,7 @@ Divider.body | @MainActor var body: Never { get }
 Divider.init() | init()
 Divider.init(character:) | init(character: Character)
 Divider.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-Divider.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Divider.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 Double._arg | var _arg: Double { get }
 Double._specifier | var _specifier: String { get }
 DragConfiguration | struct DragConfiguration
@@ -685,7 +685,7 @@ DragSession.phase | let phase: DragSession.Phase
 DraggableModifier._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get } [extension where Content : View]
 DraggableModifier.body | @MainActor var body: Never { get }
 DraggableModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-DraggableModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+DraggableModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 DraggableModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 DraggableModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 DropConfiguration | struct DropConfiguration
@@ -704,7 +704,7 @@ DropDelegate.validateDrop(info:) | @MainActor func validateDrop(info: DropInfo) 
 DropDelegate.validateDrop(info:) | @MainActor func validateDrop(info: DropInfo) -> Bool
 DropDestinationModifier.body | @MainActor var body: Never { get }
 DropDestinationModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-DropDestinationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+DropDestinationModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 DropDestinationModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 DropDestinationModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 DropInfo | struct DropInfo
@@ -1051,7 +1051,7 @@ FlexibleFrameView.animatableData | @MainActor var animatableData: AnimatablePair
 FlexibleFrameView.body | @MainActor var body: Never { get }
 FlexibleFrameView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 FlexibleFrameView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-FlexibleFrameView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+FlexibleFrameView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 FlexibleFrameView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 Float._arg | var _arg: Float { get }
 Float._specifier | var _specifier: String { get }
@@ -1062,8 +1062,8 @@ FlowLayout._definesExplicitAlignment | @MainActor static var _definesExplicitAli
 FlowLayout.alignment | var alignment: Alignment
 FlowLayout.init(alignment:spacing:lineSpacing:) | init(alignment: Alignment = .topLeading, spacing: Int? = nil, lineSpacing: Int? = nil)
 FlowLayout.lineSpacing | var lineSpacing: Int?
-FlowLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: FlowLayout.Subviews, cache: inout ())
-FlowLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: FlowLayout.Subviews, cache: inout ()) -> ViewSize
+FlowLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: FlowLayout.Subviews, cache: inout ())
+FlowLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: FlowLayout.Subviews, cache: inout ()) -> ViewSize
 FlowLayout.spacing | var spacing: Int?
 FocusInteractions | struct FocusInteractions
 FocusInteractions.activate | static let activate: FocusInteractions
@@ -1213,7 +1213,7 @@ ForEach.init(subviews:content:) | @MainActor init<V>(subviews view: V, @ViewBuil
 ForEach.onDelete(perform:) | func onDelete(perform action: ((IndexSet) -> Void)?) -> ForEach<Data, ID, Content> [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
 ForEach.onMove(perform:) | func onMove(perform action: ((IndexSet, Int) -> Void)?) -> ForEach<Data, ID, Content> [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
 ForEach.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
-ForEach.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
+ForEach.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
 ForEachSubviewCollection | @MainActor struct ForEachSubviewCollection<Content> where Content : View
 ForEachSubviewCollection.Element | typealias Element = Subview [extension where Content : View]
 ForEachSubviewCollection.Index | typealias Index = Int [extension where Content : View]
@@ -1538,8 +1538,8 @@ HStackLayout._definesExplicitAlignment | @MainActor static var _definesExplicitA
 HStackLayout.alignment | var alignment: VerticalAlignment
 HStackLayout.init(alignment:spacing:) | init(alignment: VerticalAlignment = .top, spacing: Int? = nil)
 HStackLayout.layoutProperties | @MainActor static var layoutProperties: LayoutProperties { get }
-HStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: HStackLayout.Subviews, cache: inout ())
-HStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: HStackLayout.Subviews, cache: inout ()) -> ViewSize
+HStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: HStackLayout.Subviews, cache: inout ())
+HStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: HStackLayout.Subviews, cache: inout ()) -> ViewSize
 HStackLayout.spacing | var spacing: Int?
 HandOffTerminalAction | struct HandOffTerminalAction
 HandOffTerminalAction.callAsFunction(_:) | @MainActor func callAsFunction<Result, Failure>(_ body: () throws(Failure) -> Result) throws(Failure) -> Result where Failure : Error
@@ -1708,7 +1708,7 @@ KeyEquivalent.upArrow | static let upArrow: KeyEquivalent
 KeyEvent.displayString | var displayString: String? { get }
 KeyEventModifier.body | @MainActor var body: Never { get }
 KeyEventModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-KeyEventModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+KeyEventModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 KeyEventModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 KeyEventModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 KeyNotation | enum KeyNotation
@@ -1773,16 +1773,16 @@ Layout.Subviews | typealias Subviews = LayoutSubviews
 Layout._definesExplicitAlignment | @MainActor static var _definesExplicitAlignment: Bool { get }
 Layout._definesExplicitAlignment | @MainActor static var _definesExplicitAlignment: Bool { get }
 Layout.callAsFunction(_:) | nonisolated func callAsFunction<V>(@ViewBuilder _ content: () -> V) -> some View where V : View
-Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
-Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
-Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
-Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
+Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
+Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
+Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
+Layout.explicitAlignment(of:in:proposal:subviews:cache:) | @MainActor func explicitAlignment(of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize, subviews: Self.Subviews, cache: inout Self.Cache) -> Double?
 Layout.layoutProperties | @MainActor static var layoutProperties: LayoutProperties { get }
 Layout.layoutProperties | @MainActor static var layoutProperties: LayoutProperties { get }
 Layout.makeCache(subviews:) | @MainActor func makeCache(subviews: Self.Subviews) -> Self.Cache
 Layout.makeCache(subviews:) | @MainActor func makeCache(subviews: Self.Subviews) -> Self.Cache [extension where Self.Cache == ()]
-Layout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Self.Subviews, cache: inout Self.Cache)
-Layout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: Self.Subviews, cache: inout Self.Cache) -> ViewSize
+Layout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Self.Subviews, cache: inout Self.Cache)
+Layout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: Self.Subviews, cache: inout Self.Cache) -> ViewSize
 Layout.spacing(subviews:cache:) | @MainActor func spacing(subviews: Self.Subviews, cache: inout Self.Cache) -> ViewSpacing
 Layout.spacing(subviews:cache:) | @MainActor func spacing(subviews: Self.Subviews, cache: inout Self.Cache) -> ViewSpacing
 Layout.updateCache(_:subviews:) | @MainActor func updateCache(_ cache: inout Self.Cache, subviews: Self.Subviews)
@@ -1796,11 +1796,11 @@ LayoutProperties.stackOrientation | var stackOrientation: Axis?
 LayoutSubview | @MainActor struct LayoutSubview
 LayoutSubview.==(_:_:) | @MainActor static func == (lhs: LayoutSubview, rhs: LayoutSubview) -> Bool
 LayoutSubview.containerValues | @MainActor var containerValues: ContainerValues { get }
-LayoutSubview.dimensions(in:) | @MainActor func dimensions(in proposal: ProposedSize) -> ViewDimensions
-LayoutSubview.place(at:anchor:proposal:) | @MainActor func place(at position: CellPoint, anchor: UnitPoint = .topLeading, proposal: ProposedSize)
-LayoutSubview.place(in:anchor:proposal:) | @MainActor func place(in bounds: CellRect, anchor: UnitPoint, proposal: ProposedSize)
+LayoutSubview.dimensions(in:) | @MainActor func dimensions(in proposal: ProposedViewSize) -> ViewDimensions
+LayoutSubview.place(at:anchor:proposal:) | @MainActor func place(at position: CellPoint, anchor: UnitPoint = .topLeading, proposal: ProposedViewSize)
+LayoutSubview.place(in:anchor:proposal:) | @MainActor func place(in bounds: CellRect, anchor: UnitPoint, proposal: ProposedViewSize)
 LayoutSubview.priority | @MainActor var priority: Double { get }
-LayoutSubview.sizeThatFits(_:) | @MainActor func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+LayoutSubview.sizeThatFits(_:) | @MainActor func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 LayoutSubview.spacing | @MainActor var spacing: ViewSpacing { get }
 LayoutSubview.subscript(_:) | @MainActor subscript<K>(key: K.Type) -> K.Value where K : LayoutValueKey { get }
 LayoutSubviews | @MainActor struct LayoutSubviews
@@ -2032,7 +2032,7 @@ MouseSupport.standard | static let standard: MouseSupport
 MouseSupport.subCellLocations | var subCellLocations: Bool
 MouseSupportModifier.body | @MainActor var body: Never { get }
 MouseSupportModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-MouseSupportModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+MouseSupportModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 MouseSupportModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 MouseSupportModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 MoveCommandDirection | enum MoveCommandDirection
@@ -2082,22 +2082,22 @@ OffsetView.animatableData | @MainActor var animatableData: AnimatablePair<Double
 OffsetView.body | @MainActor var body: Never { get }
 OffsetView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 OffsetView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-OffsetView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+OffsetView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 OffsetView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 OnHoverModifier.body | @MainActor var body: Never { get }
 OnHoverModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-OnHoverModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+OnHoverModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 OnHoverModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 OnHoverModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 OnMouseEventModifier.body | @MainActor var body: Never { get }
 OnMouseEventModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-OnMouseEventModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+OnMouseEventModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 OnMouseEventModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 OnMouseEventModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 OnSubmitModifier.body | @MainActor var body: some View { get }
 OnSubmitModifier.content | let content: Content
 OnSubmitModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-OnSubmitModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+OnSubmitModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 OnSubmitModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 OnSubmitModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 OpenSettingsAction | struct OpenSettingsAction
@@ -2131,7 +2131,7 @@ Optional._makeGesture(gesture:inputs:) | @MainActor static func _makeGesture(ges
 OverlayModifier._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where Base : View, Overlay : View]
 OverlayModifier.body | @MainActor var body: Never { get }
 OverlayModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Base : View, Overlay : View]
-OverlayModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Base : View, Overlay : View]
+OverlayModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Base : View, Overlay : View]
 PaddingModifier._changesLayout | @MainActor static var _changesLayout: Bool { get }
 PaddingModifier._contentOverhang | @MainActor var _contentOverhang: (width: Int, height: Int) { get }
 PaddingModifier._translatesAlignmentGuides | @MainActor static var _translatesAlignmentGuides: Bool { get }
@@ -2256,7 +2256,7 @@ PositionView.animatableData | @MainActor var animatableData: AnimatablePair<Doub
 PositionView.body | @MainActor var body: Never { get }
 PositionView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 PositionView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-PositionView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+PositionView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 PositionView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 PrimitiveButtonStyle | protocol PrimitiveButtonStyle : Sendable
 PrimitiveButtonStyle.Body | associatedtype Body : View
@@ -2281,7 +2281,7 @@ PrimitiveButtonStyleConfiguration.trigger() | func trigger()
 Prominence | enum Prominence
 Prominence.increased | case increased
 Prominence.standard | case standard
-ProposedSize.init(_:) | init(_ size: CellSize)
+ProposedViewSize.init(_:) | init(_ size: CellSize)
 QuitBehavior | enum QuitBehavior
 QuitBehavior.always | case always
 QuitBehavior.rootOnly | case rootOnly
@@ -2350,7 +2350,7 @@ RefreshIndicator.init(style:color:) | init(style: SpinnerStyle = .dots, color: C
 RefreshIndicator.style | var style: SpinnerStyle
 RefreshableModifier.body | @MainActor var body: some View { get }
 RefreshableModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-RefreshableModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+RefreshableModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 RenameAction | struct RenameAction
 RenameAction.callAsFunction() | @MainActor func callAsFunction()
 RenameButton | struct RenameButton<Label> where Label : View
@@ -2847,8 +2847,8 @@ Shape.size(_:) | func size(_ size: CGSize) -> some Shape
 Shape.size(_:anchor:) | func size(_ size: CGSize, anchor: UnitPoint) -> some Shape
 Shape.size(width:height:) | func size(width: CGFloat, height: CGFloat) -> some Shape
 Shape.size(width:height:anchor:) | func size(width: CGFloat, height: CGFloat, anchor: UnitPoint) -> some Shape
-Shape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
-Shape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+Shape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
+Shape.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 Shape.stroke(_:lineWidth:antialiased:) | func stroke<S>(_ content: S, lineWidth: CGFloat = 1, antialiased: Bool = true) -> StrokeShapeView<Self, S, EmptyView> where S : ShapeStyle
 Shape.stroke(_:style:antialiased:) | func stroke<S>(_ content: S, style: StrokeStyle, antialiased: Bool = true) -> StrokeShapeView<Self, S, EmptyView> where S : ShapeStyle
 Shape.stroke(lineWidth:) | func stroke(lineWidth: CGFloat = 1) -> some Shape
@@ -3019,7 +3019,7 @@ Spacer.body | @MainActor var body: Never { get }
 Spacer.init(minLength:) | init(minLength: Int? = nil)
 Spacer.minLength | var minLength: Int?
 Spacer.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-Spacer.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Spacer.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 SpatialTapGesture | nonisolated struct SpatialTapGesture
 SpatialTapGesture.Body | typealias Body = Never
 SpatialTapGesture.Value | struct Value
@@ -3224,7 +3224,7 @@ StyleCascadeModifier.init(content:scope:attributes:) | init(content: Content, sc
 StyleCascadeModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 StyleCascadeModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
 StyleCascadeModifier.scope | let scope: StyleScope
-StyleCascadeModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+StyleCascadeModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 StyleCascadeModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 StyleCascadeModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 StyleScope | enum StyleScope
@@ -3451,7 +3451,7 @@ Text.lineLimit(_:) | func lineLimit(_ limit: Int?) -> Text
 Text.monospaced(_:) | func monospaced(_ isActive: Bool = true) -> Text
 Text.monospacedDigit() | func monospacedDigit() -> Text
 Text.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-Text.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Text.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 Text.strikethrough(_:color:) | func strikethrough(_ isActive: Bool = true, color: Color? = nil) -> Text
 Text.strikethrough(_:pattern:color:) | func strikethrough(_ isActive: Bool = true, pattern: Text.LineStyle.Pattern, color: Color? = nil) -> Text
 Text.textScale(_:isEnabled:) | func textScale(_ scale: Text.Scale, isEnabled: Bool = true) -> Text
@@ -3482,13 +3482,13 @@ TextFieldStyle.drawsFieldSurface | var drawsFieldSurface: Bool { get }
 TextFieldStyle.fieldBorder | var fieldBorder: BorderStyle? { get }
 TextFieldStyle.fieldBorder | var fieldBorder: BorderStyle? { get }
 TextProxy | struct TextProxy
-TextProxy.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+TextProxy.sizeThatFits(_:) | func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 TextRenderer | @MainActor protocol TextRenderer : Animatable
 TextRenderer.displayPadding | @MainActor var displayPadding: EdgeInsets { get }
 TextRenderer.displayPadding | @MainActor var displayPadding: EdgeInsets { get }
 TextRenderer.draw(layout:in:) | @MainActor func draw(layout: Text.Layout, in ctx: inout GraphicsContext)
-TextRenderer.sizeThatFits(proposal:text:) | @MainActor func sizeThatFits(proposal: ProposedSize, text: TextProxy) -> ViewSize
-TextRenderer.sizeThatFits(proposal:text:) | @MainActor func sizeThatFits(proposal: ProposedSize, text: TextProxy) -> ViewSize
+TextRenderer.sizeThatFits(proposal:text:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, text: TextProxy) -> ViewSize
+TextRenderer.sizeThatFits(proposal:text:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, text: TextProxy) -> ViewSize
 TextSelectability | protocol TextSelectability
 TextSelectability.allowsSelection | static var allowsSelection: Bool { get }
 TextSelectability.disabled | static var disabled: DisabledTextSelectability { get } [extension where Self == DisabledTextSelectability]
@@ -3530,7 +3530,7 @@ ThemeModifier.content | let content: Content
 ThemeModifier.init(content:theme:) | init(content: Content, theme: Theme)
 ThemeModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 ThemeModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-ThemeModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+ThemeModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 ThemeModifier.theme | let theme: Theme
 ThemeModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 ThemeModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
@@ -3568,7 +3568,7 @@ TintModifier.content | let content: Content
 TintModifier.init(content:tint:) | init(content: Content, tint: S?)
 TintModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, S : ShapeStyle]
 TintModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View, S : ShapeStyle]
-TintModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, S : ShapeStyle]
+TintModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View, S : ShapeStyle]
 TintModifier.tint | let tint: S?
 TintModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, S : ShapeStyle]
 TintModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, S : ShapeStyle]
@@ -3756,8 +3756,8 @@ VStackLayout._definesExplicitAlignment | @MainActor static var _definesExplicitA
 VStackLayout.alignment | var alignment: HorizontalAlignment
 VStackLayout.init(alignment:spacing:) | init(alignment: HorizontalAlignment = .leading, spacing: Int? = nil)
 VStackLayout.layoutProperties | @MainActor static var layoutProperties: LayoutProperties { get }
-VStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: VStackLayout.Subviews, cache: inout ())
-VStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: VStackLayout.Subviews, cache: inout ()) -> ViewSize
+VStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: VStackLayout.Subviews, cache: inout ())
+VStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: VStackLayout.Subviews, cache: inout ()) -> ViewSize
 VStackLayout.spacing | var spacing: Int?
 VerticalAlignment | struct VerticalAlignment
 VerticalAlignment.==(_:_:) | static func == (lhs: VerticalAlignment, rhs: VerticalAlignment) -> Bool
@@ -4196,8 +4196,8 @@ ZStackLayout.Cache | typealias Cache = Void
 ZStackLayout._definesExplicitAlignment | @MainActor static var _definesExplicitAlignment: Bool { get }
 ZStackLayout.alignment | var alignment: Alignment
 ZStackLayout.init(alignment:) | init(alignment: Alignment = .topLeading)
-ZStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: ZStackLayout.Subviews, cache: inout ())
-ZStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: ZStackLayout.Subviews, cache: inout ()) -> ViewSize
+ZStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: ZStackLayout.Subviews, cache: inout ())
+ZStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: ZStackLayout.Subviews, cache: inout ()) -> ViewSize
 _AppearanceButtonStyle | struct _AppearanceButtonStyle
 _AppearanceButtonStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: _AppearanceButtonStyle.Configuration) -> some View
 _ChangedGesture | nonisolated struct _ChangedGesture<Content> where Content : Gesture, Content.Value : Equatable

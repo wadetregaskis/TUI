@@ -492,7 +492,7 @@ private struct _StepperCore: View, Renderable, Layoutable {
 
     /// Fixed-size: the arrows plus the value read-out. The label (and any
     /// flexibility it carries) lives in the sibling `_CollapsingLabel`.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureFixedByRendering(self, proposal: proposal, context: context)
     }
 

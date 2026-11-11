@@ -170,7 +170,7 @@ nonisolated package struct BufferView: View, Renderable, Layoutable {
     }
 
     /// A pre-built buffer is exactly its own size — measured directly, no render.
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(buffer.width, buffer.height)
     }
 }

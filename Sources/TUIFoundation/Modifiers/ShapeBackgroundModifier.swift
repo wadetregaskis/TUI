@@ -75,7 +75,7 @@ nonisolated struct _ShapeBackground<Content: View, S: Shape, Style: ShapeStyle>:
 
 @MainActor extension _ShapeBackground: Layoutable {
     /// The view's size: the shape is laid in it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context.raisingBackgroundProminence(under: style))
     }
 }

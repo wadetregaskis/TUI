@@ -226,7 +226,7 @@ nonisolated struct _PresentationContentInteractionView<Content: View>: View, Pre
 }
 
 @MainActor extension _PresentationContentInteractionView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -277,7 +277,7 @@ nonisolated struct _PresentationBackgroundInteractionView<Content: View>: View, 
 }
 
 @MainActor extension _PresentationBackgroundInteractionView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

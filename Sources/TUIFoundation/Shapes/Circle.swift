@@ -27,7 +27,7 @@ nonisolated public struct Circle: Shape {
 
     /// Fills whatever it is offered, from nothing — SwiftUI's circle answers
     /// the proposal itself, with an unstated side small.
-    public func sizeThatFits(_ proposal: ProposedSize) -> ViewSize {
+    public func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize {
         ViewSize(width: 0, height: 0, isWidthFlexible: true, isHeightFlexible: true)
     }
 

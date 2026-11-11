@@ -118,7 +118,7 @@ struct _SliderCore: View, Renderable, Layoutable {
     ///
     /// Slider is width-flexible: it has a minimum width but expands
     /// to fill available horizontal space in HStack.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let chrome = chromeWidth(
             showsValue: context.environment.sliderShowsValue, gap: Self.arrowGap(in: context.environment))
         let proposedWidth = proposal.width ?? (defaultTrackWidth + chrome)

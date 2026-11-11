@@ -109,7 +109,7 @@ nonisolated struct _RowEditRestrictionView<Content: View>: View {
 @MainActor extension _RowEditRestrictionView: Layoutable {
     /// Measures as its content: the report is the whole of this view's effect,
     /// and it contributes no geometry.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

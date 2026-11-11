@@ -289,7 +289,7 @@ private struct Flattening {
     /// Dimming rewrites each line in place — same line count, each padded to the
     /// content width — so the dimmed layer is exactly `content`'s size and
     /// flexibility.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

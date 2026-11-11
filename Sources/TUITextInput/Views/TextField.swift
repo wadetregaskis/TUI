@@ -693,7 +693,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
     ///
     /// TextField is width-flexible: it has a minimum width but expands
     /// to fill available horizontal space in HStack.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if axis == .vertical {
             if let read = withLivePromptRead(in: context, measuring: true) {
                 return read.verticalSize(proposal: proposal, context: context)

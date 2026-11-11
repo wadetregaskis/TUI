@@ -67,7 +67,7 @@ struct SafeAreaInsetTests {
         #expect(drawn.last?.trimmingCharacters(in: .whitespaces) == "bar")
         let measured = measureChild(
             Text("A").safeAreaInset(edge: .bottom) { Text("BBB") },
-            proposal: ProposedSize(width: 10, height: 6), context: makeRenderContext())
+            proposal: ProposedViewSize(width: 10, height: 6), context: makeRenderContext())
         #expect(measured.width == 3 && measured.height == 2, "the measure agrees with the render")
     }
 

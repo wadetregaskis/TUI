@@ -382,7 +382,7 @@ struct WindowedFillerWidthTests {
             content: ForEach(0..<48, id: \.self) { index in
                 FillerListRowView(index: index, row: index < 30 ? .short : row)
             })
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
         // No hypothesis yet: the walk answers.
         let walked = stack.sizeThatFits(proposal: proposal, context: context)
 
@@ -394,7 +394,7 @@ struct WindowedFillerWidthTests {
         var narrow = context
         narrow.availableWidth = 35
         for ordinal in 0..<children.count {
-            let size = children[ordinal].measure(proposal: ProposedSize(width: 35, height: nil), context: narrow)
+            let size = children[ordinal].measure(proposal: ProposedViewSize(width: 35, height: nil), context: narrow)
             state.rowWidths.note(ordinal: ordinal, size: size)
         }
         state.rowWidths.markSeeded()
@@ -424,7 +424,7 @@ struct WindowedFillerWidthTests {
         let stack = _VStackCore(
             alignment: .leading, spacing: 0, overflow: .window,
             content: ForEach(10..<58, id: \.self) { _ in ShortFiller() })
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
         let walked = stack.sizeThatFits(proposal: proposal, context: context)
 
         let state = stack.uniformWindowState(context: context)
@@ -434,7 +434,7 @@ struct WindowedFillerWidthTests {
         narrow.availableWidth = 8
         var squeezed = 0
         for ordinal in 0..<children.count {
-            let size = children[ordinal].measure(proposal: ProposedSize(width: 8, height: nil), context: narrow)
+            let size = children[ordinal].measure(proposal: ProposedViewSize(width: 8, height: nil), context: narrow)
             if size.isWidthFlexible, size.width < 8 { squeezed += 1 }
             state.rowWidths.note(ordinal: ordinal, size: size)
         }
@@ -454,7 +454,7 @@ struct WindowedFillerWidthTests {
 private struct ShortFiller: View, Renderable, Layoutable {
     var body: Never { fatalError("ShortFiller renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let offer = proposal.width ?? context.availableWidth
         return ViewSize(width: offer >= 20 ? offer : max(0, offer - 1), height: 1, isWidthFlexible: true, isHeightFlexible: false)
     }

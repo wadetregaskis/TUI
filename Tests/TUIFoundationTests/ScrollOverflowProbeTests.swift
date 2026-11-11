@@ -33,7 +33,7 @@ private struct SizedRow: View, Layoutable {
     let measures: RowMeasures
     var body: Never { fatalError("SizedRow renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measures.count += 1
         return ViewSize.fixed(width, height).declaringNaturalSize()
     }
@@ -50,7 +50,7 @@ private struct ViewportReadingRow: View, Layoutable {
     let measures: RowMeasures
     var body: Never { fatalError("ViewportReadingRow renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measures.count += 1
         _ = context.environment.scrollViewportSize
         return ViewSize.fixed(4, 1).declaringNaturalSize()
@@ -232,7 +232,7 @@ struct ScrollOverflowProbeTests {
             canvas.availableHeight = viewportHeight + 1
             return canvas
         }
-        let proposal = ProposedSize(width: Self.width, height: nil)
+        let proposal = ProposedViewSize(width: Self.width, height: nil)
         let measured = measureChild(content, proposal: proposal, context: canvas(context))
         let fresh = measureChild(content, proposal: proposal, context: canvas(liveContext()))
         #expect(measured.width == 25, "the full measure was served the stopped column's width: \(measured)")
@@ -294,7 +294,7 @@ struct ScrollOverflowProbeTests {
             ).askingIdealWidth(false)
             canvas.availableWidth = Self.width
             canvas.availableHeight = naturalExtentStartingBudget(forVisible: viewportHeight)
-            _ = measureChild(column, proposal: ProposedSize(width: Self.width, height: nil), context: canvas)
+            _ = measureChild(column, proposal: ProposedViewSize(width: Self.width, height: nil), context: canvas)
         }
         #expect(marked == unmarked, "\(marked) lookups under the mark, \(unmarked) without it")
         #expect(measures.count == 20, "each ask measured its ten rows once: \(measures.count)")

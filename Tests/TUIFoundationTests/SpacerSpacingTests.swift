@@ -79,9 +79,9 @@ struct SpacerSpacingTests {
         // What a `Layout` stack reads of a spacer: its own measure, a gap long
         // along the axis it is in, nothing across it.
         let context = makeRenderContext(width: 10, height: 3)
-        let inRow = measureChild(Spacer(), proposal: ProposedSize(width: 0, height: 0), context: context.publishingContainerAxis(.horizontal))
+        let inRow = measureChild(Spacer(), proposal: ProposedViewSize(width: 0, height: 0), context: context.publishingContainerAxis(.horizontal))
         #expect(inRow.width == 1 && inRow.height == 0, "\(inRow)")
-        let inColumn = measureChild(Spacer(), proposal: ProposedSize(width: 0, height: 0), context: context.publishingContainerAxis(.vertical))
+        let inColumn = measureChild(Spacer(), proposal: ProposedViewSize(width: 0, height: 0), context: context.publishingContainerAxis(.vertical))
         #expect(inColumn.width == 0 && inColumn.height == 0, "\(inColumn)")
     }
 }

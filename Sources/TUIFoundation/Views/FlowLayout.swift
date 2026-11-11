@@ -100,7 +100,7 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func sizeThatFits(
-        proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         let lines = lines(of: subviews, width: proposal.width)
         let widest = lines.map(\.width).max() ?? 0
@@ -110,7 +110,7 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         var y = bounds.y
         for line in lines(of: subviews, width: bounds.width) {
@@ -120,7 +120,7 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
                     at: CellPoint(
                         x: lineX + member.x,
                         y: y + alignment.vertical.childOffset(childHeight: member.size.height, in: line.height)),
-                    proposal: ProposedSize(width: member.size.width, height: member.size.height))
+                    proposal: ProposedViewSize(width: member.size.width, height: member.size.height))
             }
             y += line.height + lineGap
         }
@@ -159,7 +159,7 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
                 gap = 0
             }
             if let limit, size.width > limit {
-                size = subviews[index].sizeThatFits(ProposedSize(width: limit, height: nil))
+                size = subviews[index].sizeThatFits(ProposedViewSize(width: limit, height: nil))
             }
             line.members.append((index, line.width + gap, size))
             line.width += gap + size.width

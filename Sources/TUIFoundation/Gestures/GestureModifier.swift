@@ -325,7 +325,7 @@ nonisolated struct GestureAttachment<Content: View, G: Gesture>: View {
 @MainActor extension GestureAttachment: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged, so it
     /// measures as its content does.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

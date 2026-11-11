@@ -72,7 +72,7 @@ nonisolated package struct _MenuSubmenuRow<Label: View, Items: View>: View, Rend
         fatalError("_MenuSubmenuRow renders via Renderable")
     }
 
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(row, proposal: proposal, context: rowContext(context))
     }
 

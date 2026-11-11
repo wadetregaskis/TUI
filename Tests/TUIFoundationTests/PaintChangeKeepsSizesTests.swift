@@ -22,7 +22,7 @@ struct PaintChangeKeepsSizesTests {
     private struct CountingCell: View, Renderable, Layoutable {
         let width: Int
         var body: Never { fatalError("CountingCell renders via Renderable") }
-        func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
             unsafe Counters.measures += 1
             return ViewSize.fixed(width, 1)
         }

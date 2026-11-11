@@ -26,10 +26,10 @@ struct ZStackLayoutFlexibilityTests {
     func reportsFlexibility() {
         let context = makeBareRenderContext(width: 20, height: 5)
         let size = measureChild(
-            ZStackLayout { Color.red }, proposal: ProposedSize(width: 20, height: 5), context: context)
+            ZStackLayout { Color.red }, proposal: ProposedViewSize(width: 20, height: 5), context: context)
         #expect(size.isWidthFlexible && size.isHeightFlexible, "\(size)")
         let rigid = measureChild(
-            ZStackLayout { Text("x") }, proposal: ProposedSize(width: 20, height: 5), context: context)
+            ZStackLayout { Text("x") }, proposal: ProposedViewSize(width: 20, height: 5), context: context)
         #expect(!rigid.isWidthFlexible && !rigid.isHeightFlexible, "\(rigid)")
     }
 

@@ -107,14 +107,14 @@ nonisolated struct _FixedSizeView<Content: View>: View {
         let width =
             horizontal
             ? idealExtent(
-                along: .horizontal, proposal: ProposedSize(width: nil, height: vertical ? nil : offeredHeight),
+                along: .horizontal, proposal: ProposedViewSize(width: nil, height: vertical ? nil : offeredHeight),
                 offered: offeredWidth, context: context)?.width
             : nil
         guard vertical else { return (width, nil) }
         var heightContext = context
         heightContext.availableWidth = width ?? offeredWidth
         let height = idealExtent(
-            along: .vertical, proposal: ProposedSize(width: width ?? offeredWidth, height: nil), offered: offeredHeight,
+            along: .vertical, proposal: ProposedViewSize(width: width ?? offeredWidth, height: nil), offered: offeredHeight,
             context: heightContext)?.height
         return (width, height)
     }
@@ -130,7 +130,7 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// without calling itself flexible (a `List` nested in a hugging `List`)
     /// climbed it to the edge of `Int`, the content laid out at every rung.
     @MainActor private func idealExtent(
-        along axis: Axis, proposal: ProposedSize, offered: Int, context: RenderContext
+        along axis: Axis, proposal: ProposedViewSize, offered: Int, context: RenderContext
     ) -> ViewSize? {
         let budget = naturalExtentStartingBudget(forVisible: offered)
         var probe = context.askingIdealWidth(axis == .horizontal)
@@ -177,7 +177,7 @@ nonisolated struct _FixedSizeView<Content: View>: View {
 }
 
 @MainActor extension _FixedSizeView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         var contentContext = flagged(context)
         guard horizontal || vertical else { return measureChild(content, proposal: proposal, context: contentContext) }
         let offeredWidth = proposal.width ?? context.availableWidth
@@ -186,7 +186,7 @@ nonisolated struct _FixedSizeView<Content: View>: View {
         contentContext.availableWidth = ideal.width ?? offeredWidth
         contentContext.availableHeight = ideal.height ?? offeredHeight
         var size = measureChild(
-            content, proposal: ProposedSize(width: ideal.width ?? offeredWidth, height: ideal.height ?? offeredHeight),
+            content, proposal: ProposedViewSize(width: ideal.width ?? offeredWidth, height: ideal.height ?? offeredHeight),
             context: contentContext)
         if let width = ideal.width { (size.width, size.isWidthFlexible) = (width, false) }
         if let height = ideal.height { (size.height, size.isHeightFlexible) = (height, false) }

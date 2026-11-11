@@ -194,7 +194,7 @@ package func minimumLength(of child: ChildView, horizontally: Bool, across: Int?
     if !horizontally, child.wrappedView is any ClampsHeightToOffer {
         return statedMinimumLength(of: child, horizontally: false)
     }
-    let proposal = horizontally ? ProposedSize(width: 0, height: across) : ProposedSize(width: across, height: 0)
+    let proposal = horizontally ? ProposedViewSize(width: 0, height: across) : ProposedViewSize(width: across, height: 0)
     let size = child.measure(proposal: proposal, context: context)
     return max(horizontally ? size.width : size.height, statedMinimumLength(of: child, horizontally: horizontally))
 }

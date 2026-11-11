@@ -78,7 +78,7 @@ import TUIView
         // Spacers take what the fixed rows leave, so their share is only known
         // once every fixed row has been measured — the same order the render
         // loop uses, off the same numbers.
-        let proposal = ProposedSize(width: context.availableWidth, height: nil)
+        let proposal = ProposedViewSize(width: context.availableWidth, height: nil)
         let sizes = children.map { child in
             child.isSpacer
                 ? ViewSize.fixed(0, 0)

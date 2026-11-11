@@ -32,7 +32,7 @@ private final class AnchoredWindowFrame {
     let children: ChildViewCollection
     let spacing: Int
     let state: StackWindowState
-    let proposal: ProposedSize
+    let proposal: ProposedViewSize
     let context: RenderContext
 
     private(set) var sawSpacer = false
@@ -42,7 +42,7 @@ private final class AnchoredWindowFrame {
 
     init(
         children: ChildViewCollection, spacing: Int, state: StackWindowState,
-        proposal: ProposedSize, context: RenderContext
+        proposal: ProposedViewSize, context: RenderContext
     ) {
         self.children = children
         self.spacing = spacing
@@ -727,7 +727,7 @@ private final class AnchoredWindowFrame {
         let width = context.availableWidth
         let frame = AnchoredWindowFrame(
             children: children, spacing: spacing, state: state,
-            proposal: ProposedSize(width: width, height: nil), context: childContext)
+            proposal: ProposedViewSize(width: width, height: nil), context: childContext)
 
         let declaredMode = context.environment.declaredAnchorModes.standing
         let anchorMode = ScrollAnchorMode.effective(

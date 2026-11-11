@@ -136,7 +136,7 @@ enum FocusPathRegistrar {
 @MainActor extension FocusPathModifier: Layoutable {
     /// Behaviour-only decorator — it renders `content` unchanged, so it
     /// measures as its content does.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

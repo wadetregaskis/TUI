@@ -449,7 +449,7 @@ final class OutlineSubtreeIndex<Element, ID: Hashable> {
                             (
                                 measureChild(
                                     view,
-                                    proposal: ProposedSize(
+                                    proposal: ProposedViewSize(
                                         width: rowContext.availableWidth, height: nil),
                                     context: rowContext),
                                 rowContext.availableWidth

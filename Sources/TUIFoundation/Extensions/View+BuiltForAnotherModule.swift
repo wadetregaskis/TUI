@@ -50,7 +50,7 @@ extension View {
 
     /// Measures this view with a border of `style` (`border(style:)`): the
     /// measure twin of ``renderBordered(style:context:)``.
-    package func measureBordered(style: BorderStyle?, proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func measureBordered(style: BorderStyle?, proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(border(style: style), proposal: proposal, context: context)
     }
 

@@ -28,7 +28,7 @@ extension GaugeStyle {
     /// (`Documentation/Performance/What makes a page slow to open.md`).
     @MainActor
     func makeSize(
-        configuration: Configuration, proposal: ProposedSize, context: RenderContext
+        configuration: Configuration, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         measureChild(
             observingStyleBody(of: Self.self, kind: .styleMeasure, context: context) {

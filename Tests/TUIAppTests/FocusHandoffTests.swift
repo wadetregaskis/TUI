@@ -234,7 +234,7 @@ struct FocusHandoffTests {
         tui.stateStorage.beginRenderPass()
         manager.beginRenderPass()
         _ = measureChild(
-            ArrowRow(state: RowState()), proposal: ProposedSize(width: 60, height: 12),
+            ArrowRow(state: RowState()), proposal: ProposedViewSize(width: 60, height: 12),
             context: context(tui, manager))
         #expect(manager.focusHandoffs.isEmpty)
         manager.endRenderPass()

@@ -213,7 +213,7 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
         renderStackedVertically(childViews(context: context), context: context)
     }
 
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
     }
 }

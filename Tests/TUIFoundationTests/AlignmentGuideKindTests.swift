@@ -21,13 +21,13 @@ extension HorizontalAlignment {
 /// A layout of the app's own that stacks its subviews and states nothing
 /// about guides, so the default `explicitAlignment` answers for it.
 private struct PlainColumn: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return ViewSize(width: sizes.map(\.width).max() ?? 0, height: sizes.map(\.height).reduce(0, +))
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         var y = bounds.y
         for subview in subviews {

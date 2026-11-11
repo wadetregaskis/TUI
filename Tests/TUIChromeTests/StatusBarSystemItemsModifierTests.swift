@@ -150,7 +150,7 @@ struct StatusBarSystemItemsModifierTests {
         let modified = Text("Test").statusBarSystemItems(
             theme: true, appearance: true, returnKey: false, escapeKey: false)
         let size = measureChild(
-            modified, proposal: ProposedSize(width: 80, height: 24), context: context)
+            modified, proposal: ProposedViewSize(width: 80, height: 24), context: context)
 
         #expect(!statusBar.showThemeItem)
         #expect(!statusBar.showAppearanceItem)
@@ -159,6 +159,6 @@ struct StatusBarSystemItemsModifierTests {
         // And it measures as its content, which is why it may skip the render.
         #expect(
             size == measureChild(
-                Text("Test"), proposal: ProposedSize(width: 80, height: 24), context: context))
+                Text("Test"), proposal: ProposedViewSize(width: 80, height: 24), context: context))
     }
 }

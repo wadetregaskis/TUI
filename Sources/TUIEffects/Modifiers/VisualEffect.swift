@@ -152,7 +152,7 @@ nonisolated struct _VisualEffectView<Content: View, Effect: VisualEffect>: View 
     }
 
     /// Effects do not change layout: this measures as its content.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

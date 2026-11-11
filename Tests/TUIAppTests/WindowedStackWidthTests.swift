@@ -54,10 +54,10 @@ struct WindowedStackWidthTests {
         tuiContext.stateStorage.beginRenderPass()
         tuiContext.renderCache.beginRenderPass()
         let natural = measureChild(
-            view, proposal: ProposedSize(width: nil, height: nil),
+            view, proposal: ProposedViewSize(width: nil, height: nil),
             context: context(tuiContext, height: viewport, window: nil))
         let extent = measureChild(
-            view, proposal: ProposedSize(width: 40, height: nil),
+            view, proposal: ProposedViewSize(width: 40, height: nil),
             context: context(tuiContext, height: 4096, window: nil))
         _ = renderToBuffer(
             view,

@@ -43,7 +43,7 @@ import TUIFoundation
     /// draw or measure, plainly.
     func hostInPresentation(
         _ host: PresentationToolbarItems, context: RenderContext, measuring: Bool
-    ) -> (render: () -> FrameBuffer, measure: (ProposedSize) -> ViewSize) {
+    ) -> (render: () -> FrameBuffer, measure: (ProposedViewSize) -> ViewSize) {
         let declaration = declaring(in: context)
         // On a drawn walk, and in the presentation's first-frame seed — a
         // measuring render — however it reaches this view.
@@ -153,7 +153,7 @@ import TUIFoundation
     }
 
     /// The view's size with its rows.
-    func sizeInPresentation(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeInPresentation(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let (depth, contentContext) = declaring(in: context)
         let (top, bottom) = presentationEntries(depth: depth, context: context)
         guard !top.isEmpty || !bottom.isEmpty else {
@@ -164,7 +164,7 @@ import TUIFoundation
         let rows = topSize.height + bottomSize.height
         let body = measureChild(
             content,
-            proposal: ProposedSize(width: proposal.width, height: proposal.height.map { max(0, $0 - rows) }),
+            proposal: ProposedViewSize(width: proposal.width, height: proposal.height.map { max(0, $0 - rows) }),
             context: contentContext)
         var width = max(body.width, topSize.width, bottomSize.width)
         if let limit = proposal.width { width = min(width, limit) }

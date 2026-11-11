@@ -185,7 +185,7 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         return buffer
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(entry.view, proposal: proposal, context: entryContext(context))
     }
 

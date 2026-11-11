@@ -50,7 +50,7 @@ extension ListRowSeparatorModifier: Equatable where Content: Equatable {
 
 @MainActor extension ListRowSeparatorModifier: Layoutable {
     /// Draws `content` unchanged, so it measures as `content`.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

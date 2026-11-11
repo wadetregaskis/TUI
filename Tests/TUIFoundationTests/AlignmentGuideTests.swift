@@ -269,7 +269,7 @@ struct AlignmentGuideTests {
         }
         let context = makeBareRenderContext(width: 10, height: 4)
         let tall = measureNaturalExtent(
-            canvas, along: .vertical, proposal: ProposedSize(width: 10, height: nil),
+            canvas, along: .vertical, proposal: ProposedViewSize(width: 10, height: nil),
             context: context, startingBudget: naturalExtentStartingBudget(forVisible: 4))
         #expect(tall.height == 10_001)
 
@@ -287,7 +287,7 @@ struct AlignmentGuideTests {
             Text("ssssss")
         }
         let ideal = measureNaturalExtent(
-            column, along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+            column, along: .horizontal, proposal: ProposedViewSize(width: nil, height: nil),
             context: makeBareRenderContext(width: 30, height: 4),
             startingBudget: naturalExtentStartingBudget(forVisible: 30))
         #expect(ideal.width == 1_000_006)
@@ -312,7 +312,7 @@ struct AlignmentGuideTests {
 
             let (ideal, measureReports) = collectingGuideErrors {
                 measureNaturalExtent(
-                    column, along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+                    column, along: .horizontal, proposal: ProposedViewSize(width: nil, height: nil),
                     context: context, startingBudget: naturalExtentStartingBudget(forVisible: 30))
             }
             #expect(ideal.width == 6, "guide \(guide) -> ideal \(ideal.width)")
@@ -367,7 +367,7 @@ struct AlignmentGuideTests {
             #expect(buffer.lines.map(\.stripped) == ["g     ", "ssssss"], "guide \(guide)")
 
             let (_, measureReports) = collectingGuideErrors {
-                measureChild(column, proposal: ProposedSize(width: 30, height: 4), context: context)
+                measureChild(column, proposal: ProposedViewSize(width: 30, height: 4), context: context)
             }
             #expect(measureReports.isEmpty, "a measure pass reports nothing: \(measureReports)")
         }

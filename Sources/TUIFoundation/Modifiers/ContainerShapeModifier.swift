@@ -126,7 +126,7 @@ nonisolated struct _ContainerShapeView<Content: View>: View {
         // The container's own size, before its content renders: measured as
         // a frame offered this much, a flexible axis taking all of it.
         let size = measureChild(
-            content, proposal: ProposedSize(width: context.availableWidth, height: context.availableHeight),
+            content, proposal: ProposedViewSize(width: context.availableWidth, height: context.availableHeight),
             context: carried)
         let columns = size.isWidthFlexible ? max(size.width, context.availableWidth) : size.width
         let rows = size.isHeightFlexible ? max(size.height, context.availableHeight) : size.height
@@ -139,7 +139,7 @@ nonisolated struct _ContainerShapeView<Content: View>: View {
 
 @MainActor extension _ContainerShapeView: Layoutable {
     /// The content's size: a container shape changes nothing about layout.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

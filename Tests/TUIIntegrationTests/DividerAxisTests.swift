@@ -177,14 +177,14 @@ private struct Row: Layout {
         return properties
     }
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         #expect(subviews.layoutDirection == .leftToRight)
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return ViewSize(
             width: sizes.reduce(0) { $0 + $1.width }, height: sizes.map(\.height).max() ?? 0)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         var x = bounds.x
         for subview in subviews {
             subview.place(at: CellPoint(x: x, y: bounds.y), proposal: .unspecified)

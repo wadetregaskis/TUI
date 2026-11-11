@@ -41,11 +41,11 @@ private func reader(_ told: Told, in space: NamedCoordinateSpace, width: Int = 4
 /// Places subview `i` three cells right and one row down per step — a
 /// `Layout` an app might write.
 private struct Diagonal: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: 20, height: 5)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
             subviews[index].place(at: CellPoint(x: bounds.x + 3 * index, y: bounds.y + index), proposal: .unspecified)
         }

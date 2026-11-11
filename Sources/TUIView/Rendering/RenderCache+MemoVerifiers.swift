@@ -149,7 +149,7 @@ extension RenderCache {
 
     /// Records a served size a fresh measurement did not agree with.
     @MainActor public func noteMeasureMemoMismatch(
-        viewType: String, served: ViewSize, fresh: ViewSize, proposal: ProposedSize,
+        viewType: String, served: ViewSize, fresh: ViewSize, proposal: ProposedViewSize,
         availableWidth: Int, availableHeight: Int, identity: String = ""
     ) {
         guard measureMemoMismatches.count < 20 else { return }

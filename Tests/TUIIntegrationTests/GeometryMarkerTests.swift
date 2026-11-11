@@ -28,7 +28,7 @@ private struct MarkerProbe: View, Renderable, Layoutable {
 
     var body: Never { fatalError("MarkerProbe renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(
             width: squeezes ? max(0, min(width, proposal.width ?? width)) : width, height: height,
             isWidthFlexible: false, isHeightFlexible: false)
@@ -95,11 +95,11 @@ private func drawnProbe(in buffer: FrameBuffer) -> CellPoint? {
 
 /// Places its subviews on a diagonal, three cells right and one row down each.
 private struct DiagonalLayout: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: 3 * subviews.count + 2, height: subviews.count)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for (index, subview) in subviews.enumerated() {
             subview.place(at: CellPoint(x: bounds.x + 3 * index, y: bounds.y + index), proposal: .unspecified)
         }

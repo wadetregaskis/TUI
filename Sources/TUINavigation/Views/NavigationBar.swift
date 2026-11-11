@@ -127,7 +127,7 @@ struct NavigationBar {
             ? 0
             : measureChild(
                 backButton(back, coordinator: coordinator),
-                proposal: ProposedSize(width: nil, height: nil),
+                proposal: ProposedViewSize(width: nil, height: nil),
                 context: barContext.withChildIdentity(type: NavigationBarID.self)
             ).width
         // The screen's items, and the room they take: the title and the trail
@@ -333,7 +333,7 @@ extension NavigationBar {
             }
             func width(_ run: AnyView?) -> Int {
                 guard let run else { return 0 }
-                return measureChild(run, proposal: ProposedSize(width: nil, height: 1), context: context).width + 1
+                return measureChild(run, proposal: ProposedViewSize(width: nil, height: 1), context: context).width + 1
             }
             leading = run([.leading])
             trailing = run([.principal, .secondary, .trailing])

@@ -53,11 +53,11 @@ private struct TurningField: View, Renderable {
 
 /// A `Layout` that lays every subview at the same origin, the last on top.
 private struct Stacked: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: 2, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
             subviews[index].place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }

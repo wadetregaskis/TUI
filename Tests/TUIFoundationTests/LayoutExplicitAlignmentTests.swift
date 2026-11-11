@@ -22,7 +22,7 @@ extension HorizontalAlignment {
 /// Lays its subviews out left to right, one cell apart, and states nothing
 /// about guides: the default `explicitAlignment` answers for it.
 private struct Row: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return ViewSize(
             width: sizes.map(\.width).reduce(0, +) + max(0, sizes.count - 1),
@@ -30,7 +30,7 @@ private struct Row: Layout {
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         var x = bounds.x
         for subview in subviews {
@@ -43,18 +43,18 @@ private struct Row: Layout {
 /// `Row`, with its leading guide moved three cells in — SwiftUI's own
 /// `explicitAlignment` documentation example, in cells.
 private struct Indented: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         Row().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         Row().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
     }
 
     func explicitAlignment(
-        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout ()
     ) -> Double? {
         guide == .leading ? Double(bounds.x + 3) : nil

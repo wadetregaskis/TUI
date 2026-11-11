@@ -128,7 +128,7 @@ List.listFooterSeparator(_:) | func listFooterSeparator(_ show: Bool = true) -> 
 ListRowSeparatorModifier._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where Content : View]
 ListRowSeparatorModifier.body | @MainActor var body: Never { get }
 ListRowSeparatorModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-ListRowSeparatorModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+ListRowSeparatorModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 ListRowSeparatorModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 ListRowSeparatorModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 ListRowType | enum ListRowType<SelectionValue> where SelectionValue : Hashable, SelectionValue : Sendable
@@ -202,7 +202,7 @@ SelectableListRow.type | let type: ListRowType<SelectionValue>
 SelectionDisabledModifier._keepsContentGeometry | @MainActor static var _keepsContentGeometry: Bool { get } [extension where Content : View]
 SelectionDisabledModifier.body | @MainActor var body: Never { get }
 SelectionDisabledModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
-SelectionDisabledModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+SelectionDisabledModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 SelectionDisabledModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 SelectionDisabledModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 SelectionMode | enum SelectionMode

@@ -108,7 +108,7 @@ struct EmptyContentLayoutTests {
             EmptyView().padding(2)
             Text("B")
         }
-        let measured = measureChild(stack, proposal: ProposedSize(width: 8, height: nil), context: context)
+        let measured = measureChild(stack, proposal: ProposedViewSize(width: 8, height: nil), context: context)
         let drawn = renderToBuffer(stack, context: context)
         #expect(measured.height == 2)
         #expect(drawn.height == measured.height, "measured \(measured.height) rows, drew \(drawn.height)")

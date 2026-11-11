@@ -536,7 +536,7 @@ package func makeChildInfo<V: View>(for view: V, context: RenderContext) -> Chil
 ///   - context: The rendering context.
 /// - Returns: The size this view needs.
 @MainActor
-package func measureChild<V: View>(_ view: V, proposal: ProposedSize, context: RenderContext) -> ViewSize {
+package func measureChild<V: View>(_ view: V, proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
     memoizedMeasure(view, proposal: proposal, context: context, remembersDescendants: true)
 }
 
@@ -562,7 +562,7 @@ package func measureChild<V: View>(_ view: V, proposal: ProposedSize, context: R
 /// nowhere, which a probe inside a probe finds too (``RenderCache/isProbing``).
 @MainActor
 package func measureChildRememberingOnlyItself<V: View>(
-    _ view: V, proposal: ProposedSize, context: RenderContext
+    _ view: V, proposal: ProposedViewSize, context: RenderContext
 ) -> ViewSize {
     memoizedMeasure(view, proposal: proposal, context: context, remembersDescendants: false)
 }
@@ -577,7 +577,7 @@ package func measureChildRememberingOnlyItself<V: View>(
 @inline(__always)
 @MainActor
 private func memoizedMeasure<V: View>(
-    _ view: V, proposal: ProposedSize, context: RenderContext, remembersDescendants: Bool
+    _ view: V, proposal: ProposedViewSize, context: RenderContext, remembersDescendants: Bool
 ) -> ViewSize {
     // Deep-nesting guard: if the recursion is about to overflow the stack, stop
     // descending and answer the size of the notice drawn in its place, rather
@@ -691,7 +691,7 @@ private func memoizedMeasure<V: View>(
 @inline(never)
 @MainActor
 private func measureBeneathProbe<V: View>(
-    _ view: V, proposal: ProposedSize, context: RenderContext, cache: RenderCache
+    _ view: V, proposal: ProposedViewSize, context: RenderContext, cache: RenderCache
 ) -> ViewSize {
     let key = measureKey(for: view, proposal: proposal, context: context, cache: cache)
     if let key, let served = servedMeasure(view, key: key, proposal: proposal, context: context, cache: cache) {
@@ -716,7 +716,7 @@ private func measureBeneathProbe<V: View>(
 @inline(__always)
 @MainActor
 private func measureKey<V: View>(
-    for view: V, proposal: ProposedSize, context: RenderContext, cache: RenderCache
+    for view: V, proposal: ProposedViewSize, context: RenderContext, cache: RenderCache
 ) -> RenderCache.MeasureKey? {
     guard let valueHash = viewValueHash(view, plans: cache.valueHashPlans) else {
         cache.noteMeasureMemoBypass()
@@ -743,7 +743,7 @@ private func measureKey<V: View>(
 @inline(__always)
 @MainActor
 private func servedMeasure<V: View>(
-    _ view: V, key: RenderCache.MeasureKey, proposal: ProposedSize, context: RenderContext,
+    _ view: V, key: RenderCache.MeasureKey, proposal: ProposedViewSize, context: RenderContext,
     cache: RenderCache
 ) -> ViewSize? {
     // What this query can accept without a clamp — the gate a stored
@@ -810,7 +810,7 @@ func measureIdentityHash(_ identity: ViewIdentity, generation: UInt8) -> Int {
 /// ``measureChild`` without the per-pass memo — the measurement itself.
 @MainActor
 private func measureChildUncached<V: View>(
-    _ view: V, proposal: ProposedSize, context: RenderContext
+    _ view: V, proposal: ProposedViewSize, context: RenderContext
 ) -> ViewSize {
     // Measure what will be DRAWN: an `Animatable` view mid-animation is a
     // different size from the one the tree describes, and a measure that used
@@ -833,7 +833,7 @@ private func measureChildUncached<V: View>(
 @MainActor
 @inline(never)
 private func measureAnimating<V: View>(
-    _ view: V, proposal: ProposedSize, context: RenderContext
+    _ view: V, proposal: ProposedViewSize, context: RenderContext
 ) -> ViewSize {
     if let animated = resolvingAnimation(view, context: context, isMeasuring: true) {
         return measureResolved(animated, proposal: proposal, context: context)
@@ -845,7 +845,7 @@ private func measureAnimating<V: View>(
 /// substitution is settled.
 @MainActor
 private func measureResolved<V: View>(
-    _ view: V, proposal: ProposedSize, context: RenderContext
+    _ view: V, proposal: ProposedViewSize, context: RenderContext
 ) -> ViewSize {
     // Use Layoutable if available (mark as measuring to suppress side-effects).
     //
@@ -944,7 +944,7 @@ private func measureResolved<V: View>(
 @inline(never)
 @MainActor
 private func measureCompositeBody<V: View>(
-    _ view: V, proposal: ProposedSize, context: RenderContext
+    _ view: V, proposal: ProposedViewSize, context: RenderContext
 ) -> ViewSize {
     let childContext = context.withChildIdentity(type: V.Body.self)
     // The properties prepared exactly as the render path prepares them:
@@ -1029,7 +1029,7 @@ private func measureCompositeBody<V: View>(
 ///   - context: The rendering context.
 /// - Returns: The view's size, always reported as fixed.
 @MainActor
-package func measureFixedByRendering<V: View>(_ view: V, proposal: ProposedSize, context: RenderContext) -> ViewSize {
+package func measureFixedByRendering<V: View>(_ view: V, proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
     let buffer = renderToBuffer(view, context: fixedMeasureContext(proposal: proposal, context: context))
     return ViewSize.fixed(buffer.width, buffer.height)
 }
@@ -1042,7 +1042,7 @@ package func measureFixedByRendering<V: View>(_ view: V, proposal: ProposedSize,
 /// it drew, which has to be asked under the same context for the two answers
 /// to be about one drawing.
 @MainActor
-package func fixedMeasureContext(proposal: ProposedSize, context: RenderContext) -> RenderContext {
+package func fixedMeasureContext(proposal: ProposedViewSize, context: RenderContext) -> RenderContext {
     var measureContext = context
     measureContext.isMeasuring = true
     // Clear hasExplicitWidth so the view reports its natural (minimum) size

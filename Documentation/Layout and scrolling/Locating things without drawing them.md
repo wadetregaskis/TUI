@@ -313,14 +313,14 @@ The signature must be **seekable and bidirectional from day one**:
 protocol LayoutPlacing {
     /// Placements are addressed by ordinal so a caller can START at the
     /// anchor and walk OUTWARD in both directions, rather than from child 0.
-    func placementCount(proposal: ProposedSize, context: RenderContext) -> Int
-    func placement(at ordinal: Int, proposal: ProposedSize, context: RenderContext) -> Placement?
+    func placementCount(proposal: ProposedViewSize, context: RenderContext) -> Int
+    func placement(at ordinal: Int, proposal: ProposedViewSize, context: RenderContext) -> Placement?
     func ordinal(of step: ViewIdentity, context: RenderContext) -> Int?
 
     /// Non-nil when every placement has exactly this extent along the
     /// scroll axis under this proposal. The uniform fast path (§5i):
     /// placement arithmetic and the scrollbar become exact and O(1).
-    func uniformExtent(proposal: ProposedSize, context: RenderContext) -> Int?
+    func uniformExtent(proposal: ProposedViewSize, context: RenderContext) -> Int?
 }
 ```
 

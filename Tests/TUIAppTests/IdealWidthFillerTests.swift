@@ -68,7 +68,7 @@ private struct WholeOfferLeaf: View, Renderable, Layoutable {
         FrameBuffer(lines: [String(repeating: "-", count: max(0, context.availableWidth))], width: max(0, context.availableWidth))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(width: proposal.width ?? context.availableWidth, height: 1, isWidthFlexible: true)
     }
 }
@@ -89,7 +89,7 @@ private struct TallySpy: View, Renderable, Layoutable {
         FrameBuffer(lines: [String(repeating: "0", count: width)], width: width)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         tally.count += 1
         return ViewSize.fixed(width, 1)
     }
@@ -120,7 +120,7 @@ private struct SpacedRow: View {
 @MainActor
 private func idealSize(of view: some View) -> ViewSize {
     measureChild(
-        view, proposal: ProposedSize(width: nil, height: nil),
+        view, proposal: ProposedViewSize(width: nil, height: nil),
         context: RenderContext(
             availableWidth: 4_096, availableHeight: 4_096, tuiContext: TUIContext()
         ).askingIdealWidth())
@@ -134,7 +134,7 @@ private func horizontalExtent(of view: some View) -> ViewSize {
     var environment = EnvironmentValues()
     environment.applyRuntimeServices(from: tuiContext)
     return measureNaturalExtent(
-        view, along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+        view, along: .horizontal, proposal: ProposedViewSize(width: nil, height: nil),
         context: RenderContext(
             availableWidth: 40, availableHeight: 4_096,
             environment: environment, tuiContext: tuiContext),
@@ -167,7 +167,7 @@ struct IdealWidthFillerTests {
         let context = RenderContext(
             availableWidth: 4_096, availableHeight: 4_096, tuiContext: TUIContext())
         let size = measureChild(
-            view, proposal: ProposedSize(width: frame.proposal, height: nil),
+            view, proposal: ProposedViewSize(width: frame.proposal, height: nil),
             context: context.askingIdealWidth(frame.marked))
         #expect(size.width == frame.width)
         #expect(size.isWidthFlexible == frame.flexible)
@@ -180,7 +180,7 @@ struct IdealWidthFillerTests {
     func aFrameAroundAFillerStaysOne() {
         let size = measureChild(
             WholeOfferLeaf().frame(maxWidth: .infinity),
-            proposal: ProposedSize(width: nil, height: nil),
+            proposal: ProposedViewSize(width: nil, height: nil),
             context: RenderContext(
                 availableWidth: 4_096, availableHeight: 4_096, tuiContext: TUIContext()
             ).askingIdealWidth())

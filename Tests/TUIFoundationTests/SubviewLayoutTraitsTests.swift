@@ -63,12 +63,12 @@ private final class RankLog {
 private struct RankReader: Layout {
     let log: RankLog
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         log.ranks = subviews.map { $0[Rank.self] }
         return ViewSize(width: 1, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for subview in subviews { subview.place(in: bounds, anchor: .topLeading, proposal: proposal) }
     }
 }
@@ -228,13 +228,13 @@ private final class GuideLog {
 private struct GuideReader: Layout {
     let log: GuideLog
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         log.leading = subviews.map { $0.dimensions(in: .unspecified)[.leading] }
         log.top = subviews.map { $0.dimensions(in: .unspecified)[.top] }
         return ViewSize(width: 1, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for subview in subviews { subview.place(in: bounds, anchor: .topLeading, proposal: proposal) }
     }
 }
@@ -251,7 +251,7 @@ private struct MeasureCounted: View, Renderable, Layoutable {
 
     var body: Never { fatalError("MeasureCounted renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measures.count += 1
         return ViewSize.fixed(1, 1)
     }

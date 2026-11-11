@@ -191,7 +191,7 @@ nonisolated package struct _MemoizedRow<Element: Equatable, Source, Content: Vie
     /// rows hit in the `fanout` stress scenario, and building the view eagerly
     /// once per row per pass was `ForEach.makeChild`'s 21% of that frame, nearly
     /// all of it thrown away.
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureValueMemoized(
             key: element, proposal: proposal, context: context, build: { content },
             measure: { measureChild($0, proposal: proposal, context: $1) })

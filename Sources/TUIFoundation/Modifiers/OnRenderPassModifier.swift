@@ -33,7 +33,7 @@ nonisolated struct OnRenderPassModifier<Content: View>: View {
 }
 
 @MainActor extension OnRenderPassModifier: Renderable, Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Observation must not be memoised away: a cached measurement that
         // skips this call would hide real layout participation from the
         // instrumentation. Declaring the side effect makes the memos decline.

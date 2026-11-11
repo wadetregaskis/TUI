@@ -207,7 +207,7 @@ private struct _SceneConfiguredContent: View, Renderable, Layoutable {
         TUIView.renderToBuffer(content, context: configured(context))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: configured(context))
     }
 

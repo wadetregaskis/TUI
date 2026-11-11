@@ -19,12 +19,12 @@ import TUITesting
 
 /// Every subview at the layout's origin, one over the next.
 private struct Piled: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return ViewSize(width: sizes.map(\.width).max() ?? 0, height: sizes.map(\.height).max() ?? 0)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for subview in subviews {
             subview.place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }

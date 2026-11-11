@@ -101,7 +101,7 @@ final class CanvasViews {
 
     /// `text`'s size in cells, offered `width` by `height`: `nil` is its own.
     func size(of text: Text, width: Int?, height: Int?) -> ViewSize {
-        measureChild(text, proposal: ProposedSize(width: width, height: height), context: textContext())
+        measureChild(text, proposal: ProposedViewSize(width: width, height: height), context: textContext())
     }
 
     /// `text` as the cells it draws in, in `shading` where it has one.
@@ -114,7 +114,7 @@ final class CanvasViews {
             default: break
             }
         }
-        let size = measureChild(text, proposal: ProposedSize(width: width, height: height), context: drawingContext)
+        let size = measureChild(text, proposal: ProposedViewSize(width: width, height: height), context: drawingContext)
         return renderChild(text, width: width ?? size.width, height: height ?? size.height, context: drawingContext)
     }
 

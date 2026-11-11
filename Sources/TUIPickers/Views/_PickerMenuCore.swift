@@ -83,7 +83,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// differently — and the rest is the button face's own chrome
     /// (``ControlFace``), round a title `fit(_:to:)`-padded to exactly the
     /// inner width less the two cells of padding the face adds.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // The same context `measureFixedByRendering` would have rendered under,
         // because `innerWidth` caps itself against `availableWidth`.
         var measureContext = context

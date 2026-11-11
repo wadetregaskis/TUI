@@ -64,7 +64,7 @@ func renderMenuPopup(
     let inset = 1
     let widthCap = max(1, context.availableWidth - 2 - 2 * inset)
     let natural = measureChild(
-        rowsOnly, proposal: ProposedSize(width: widthCap, height: nil), context: rowContext)
+        rowsOnly, proposal: ProposedViewSize(width: widthCap, height: nil), context: rowContext)
     let rowWidth = max(1, min(natural.width, widthCap)) + 2 * inset
 
     // Rendered against a canvas as tall as the column actually is, on purpose:
@@ -96,7 +96,7 @@ func renderMenuPopup(
     sized = sized.withAvailableHeight(
         max(1, measureNaturalExtent(
             rowsOnly, along: .vertical,
-            proposal: ProposedSize(width: rowWidth, height: nil), context: sized,
+            proposal: ProposedViewSize(width: rowWidth, height: nil), context: sized,
             startingBudget: naturalExtentStartingBudget(forVisible: context.availableHeight)
         ).height))
     let column = TUIView.renderToBuffer(rowsOnly, context: sized)

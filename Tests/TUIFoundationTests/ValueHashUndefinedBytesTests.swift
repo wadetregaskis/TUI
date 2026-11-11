@@ -288,7 +288,7 @@ struct ValueHashUndefinedBytesTests {
             }
         }
         try #require(copied)
-        let unspecified = ProposedSize(width: nil, height: nil)
+        let unspecified = ProposedViewSize(width: nil, height: nil)
         unsafe poke(content, gaps, 0xAA)
         let first = measureChild(erased, proposal: unspecified, context: context)
         let before = cache.measureMemoTotals
@@ -314,7 +314,7 @@ struct ValueHashUndefinedBytesTests {
         let cache = try #require(context.renderCache)
         let view = HoldsAppChoice(choice: .word("four"))
         #expect(hash(view, cache: cache) == nil)
-        let unspecified = ProposedSize(width: nil, height: nil)
+        let unspecified = ProposedViewSize(width: nil, height: nil)
         let bypassesBefore = cache.measureMemoBypasses
         let entriesBefore = cache.measureEntryCount
         let first = measureChild(view, proposal: unspecified, context: context)
@@ -341,7 +341,7 @@ struct ValueHashUndefinedBytesTests {
     func importedBitfieldsAreNotServedAcross() throws {
         let context = memoisedContext()
         let cache = try #require(context.renderCache)
-        let unspecified = ProposedSize(width: nil, height: nil)
+        let unspecified = ProposedViewSize(width: nil, height: nil)
         let bypassesBefore = cache.measureMemoBypasses
         let one = measureChild(BitfieldRow(lo: 1), proposal: unspecified, context: context)
         let two = measureChild(BitfieldRow(lo: 2), proposal: unspecified, context: context)
@@ -365,7 +365,7 @@ struct ValueHashUndefinedBytesTests {
         defer { releaseFromTheTop(&levels) }
         let bypassesBefore = cache.measureMemoBypasses
         let size = measureChild(
-            levels[levels.count - 1], proposal: ProposedSize(width: nil, height: nil), context: context)
+            levels[levels.count - 1], proposal: ProposedViewSize(width: nil, height: nil), context: context)
         #expect(size.height > 0)
         #expect(cache.measureMemoBypasses > bypassesBefore)
     }

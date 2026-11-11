@@ -84,7 +84,7 @@ nonisolated struct _ToolbarItemHiddenModifier<Content: View>: View, Renderable, 
     }
 
     /// No room at all while hidden, so a stack closes up round it.
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard hides(in: context) else { return measureChild(content, proposal: proposal, context: context) }
         return ViewSize(width: 0, height: 0)
     }

@@ -103,7 +103,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     }
 
     /// Measures the VStack without rendering.
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let context = context.publishingContainerAxis(.vertical, passesNoWidthOn: isStaticallyOneView(Content.self))
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
@@ -119,7 +119,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     /// stop once its rows pass the budget: `overflowProbeSizeThatFits`, which
     /// asks this walk with a `stop` — the one walk, so a column that never
     /// reaches it answers from the rows it measured, as it does unasked.
-    @MainActor func clipSizeThatFits(proposal: ProposedSize, context: RenderContext, stoppingAt stop: Int? = nil) -> ViewSize {
+    @MainActor func clipSizeThatFits(proposal: ProposedViewSize, context: RenderContext, stoppingAt stop: Int? = nil) -> ViewSize {
         if context.asksOverflow { return overflowProbeSizeThatFits(proposal: proposal, context: context) }
         // A view that has left takes no room (`StackGlide`).
         let children = stackChildren(of: content, context: context).laidOut
@@ -290,7 +290,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     /// come from distributing the leftover after every sibling has rendered,
     /// which is genuinely a property of the fill, not of any one child.
     /// (`renderWindow` forfeits laziness for spacers for the same reason.)
-    @MainActor private func windowSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor private func windowSizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         context.environment.volatileReadTracker?.recordWindowedMeasure()
         var measureContext = context
         measureContext.isMeasuring = true

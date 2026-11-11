@@ -93,7 +93,7 @@ struct _ImageCore: View, Renderable, Layoutable {
 
     // MARK: - Layoutable
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let environment = context.environment
         // Already finite, positive and bounded: the environment's setter is
         // the one place that rule lives. Any positive zoom is honoured; the

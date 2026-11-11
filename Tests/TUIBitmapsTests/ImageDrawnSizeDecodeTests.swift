@@ -175,7 +175,7 @@ struct ImageDrawnSizeDecodeTests {
         environment.imageCellAspect = 2.0
         let context = RenderContext(availableWidth: 40, availableHeight: 40, environment: environment, tuiContext: tui)
         let view = Image(.file(fixture.path)).resizable().scaledToFit()
-        let size = measureChild(view, proposal: ProposedSize(width: 40, height: 40), context: context)
+        let size = measureChild(view, proposal: ProposedViewSize(width: 40, height: 40), context: context)
         // 200 × 50 at a 2:1 cell, 40 wide: 40 × 5, as the picture whole is.
         #expect(size.width == 40 && size.height == 5)
         #expect(cache.byteCount == 0, "the render decodes it, for the box this measure answered")

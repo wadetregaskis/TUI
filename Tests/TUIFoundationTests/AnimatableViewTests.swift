@@ -62,7 +62,7 @@ private final class Screen {
     func measure(_ fraction: Double, atMillis millis: Int) -> Int {
         context.environment.frameNowNanos = Int64(millis) * 1_000_000
         return measureChild(
-            Bar(fraction: fraction), proposal: ProposedSize(width: 20, height: 3),
+            Bar(fraction: fraction), proposal: ProposedViewSize(width: 20, height: 3),
             context: context
         ).width
     }

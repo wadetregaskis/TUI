@@ -125,7 +125,7 @@ struct DialogPreferredWidthTests {
         struct RigidGrid: View, Renderable, Layoutable {
             static let naturalWidth = 120
             var body: Never { fatalError("renders via Renderable") }
-            func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+            func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
                 ViewSize(
                     width: Self.naturalWidth, height: 4,
                     isWidthFlexible: false, isHeightFlexible: false)

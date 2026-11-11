@@ -516,14 +516,14 @@ extension Optional: ChildViewProvider where Wrapped: View {
     /// noting its type, as the render does (`contentContext(noting:)`): the
     /// measure walk runs first, and a swap noticed only by the render would
     /// already have served a stale size.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(view, proposal: proposal, context: contentContext(noting: context))
     }
 }
 
 @MainActor extension EmptyView: Layoutable {
     /// An empty view occupies no cells.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(0, 0)
     }
 }
@@ -533,7 +533,7 @@ extension Optional: ChildViewProvider where Wrapped: View {
     /// the render pass uses so `@State` resolves identically. The inactive-
     /// branch state invalidation in `renderToBuffer` is a render-time
     /// side-effect and is intentionally not repeated during measurement.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         switch self {
         case .trueContent(let content):
             return measureChild(content, proposal: proposal, context: context.withBranchIdentity("true"))

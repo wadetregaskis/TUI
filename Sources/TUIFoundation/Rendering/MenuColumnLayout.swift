@@ -196,7 +196,7 @@ private func planMenuColumn(
     // slots resolve to the same identities either way (362c8839).
     let natural = measureChild(
         menuView,
-        proposal: ProposedSize(
+        proposal: ProposedViewSize(
             width: context.availableWidth, height: capHeight > 0 ? capHeight : nil),
         context: context)
     let menuWidth = max(1, min(natural.width, context.availableWidth))
@@ -260,7 +260,7 @@ private func planMenuColumn(
         return MenuColumnPlan(width: menuWidth, drawnHeight: natural.height, sized: sized)
     }
     let drawnHeight = measureChild(
-        menuView, proposal: ProposedSize(width: menuWidth, height: nil),
+        menuView, proposal: ProposedViewSize(width: menuWidth, height: nil),
         context: sized.withAvailableHeight(capHeight + 1)
     ).height
     let fits = MenuColumnPlan(

@@ -41,13 +41,13 @@ enum CustomLayoutScenario {
 private struct Flow: Layout {
     var spacing = 1
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         let rows = lines(of: subviews, in: proposal.width ?? 40)
         return ViewSize(width: rows.map(\.width).max() ?? 0, height: rows.count)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         for (row, line) in lines(of: subviews, in: bounds.width).enumerated() {
             var x = bounds.x

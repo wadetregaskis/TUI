@@ -172,7 +172,7 @@ struct OverlayModifierTests {
     @Test("A wide overlay does not change the size of the view it is laid over")
     func wideOverlayDoesNotResizeItsBase() {
         let context = testContext()
-        let proposal = ProposedSize(width: 80, height: 24)
+        let proposal = ProposedViewSize(width: 80, height: 24)
         let bare = measureChild(Text("Hi"), proposal: proposal, context: context)
         let overlaid = measureChild(
             Text("Hi").overlay { Text("a very much wider overlay") },
@@ -190,7 +190,7 @@ struct OverlayModifierTests {
     @Test("A wide overlay does not widen its siblings or the stack holding them")
     func wideOverlayDoesNotWidenTheStack() {
         let context = testContext()
-        let proposal = ProposedSize(width: 80, height: 24)
+        let proposal = ProposedViewSize(width: 80, height: 24)
         let plain = measureChild(
             VStack {
                 Text("Hi")

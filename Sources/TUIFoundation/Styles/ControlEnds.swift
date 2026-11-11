@@ -226,7 +226,7 @@ nonisolated package struct ControlFaceCap: View, Renderable, Layoutable {
         fatalError("ControlFaceCap renders via Renderable")
     }
 
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(ControlEnds(in: context.environment).width / 2, 1)
     }
 
@@ -258,7 +258,7 @@ nonisolated package struct ControlFaceRule: View, Renderable, Layoutable {
         fatalError("ControlFaceRule renders via Renderable")
     }
 
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(1, 1)
     }
 

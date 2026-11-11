@@ -264,7 +264,7 @@ extension _NavigationSplitViewCore {
         else { return }
         for column in visibleColumns where toggleState.removedByColumn[column] == nil {
             preferences.push()
-            _ = measureColumn(column, proposal: ProposedSize(width: nil, height: nil), context: context)
+            _ = measureColumn(column, proposal: ProposedViewSize(width: nil, height: nil), context: context)
             recordToggleRemoval(
                 of: column, from: preferences.pop(), toggleState: toggleState, context: context)
         }

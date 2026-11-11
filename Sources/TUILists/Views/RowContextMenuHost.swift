@@ -306,7 +306,7 @@ package enum RowContextMenuHost {
         var probe = context
         probe.isMeasuring = true
         let size = measureChild(
-            _RowMenuItems(items: items), proposal: ProposedSize(width: nil, height: nil),
+            _RowMenuItems(items: items), proposal: ProposedViewSize(width: nil, height: nil),
             context: probe)
         return size.width > 0 && size.height > 0
     }

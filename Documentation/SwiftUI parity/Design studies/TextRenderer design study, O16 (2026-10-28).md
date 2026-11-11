@@ -94,7 +94,7 @@ and a row down. The text renderer keeps that rule.
 | `DrawingOptions` | Accepted and ignored: there is no subpixel quantization to disable. |
 | `textRenderer(_:)` | An environment value read by `Text` when it draws (one nil check where none is set, as the strike sweep's is). Every `Text` below takes it, as in SwiftUI; a nested one replaces it. |
 | `customAttribute(_:)` | Stored on the `Text`'s runs (concatenation keeps it, as SwiftUI's does); one per type per span. |
-| `sizeThatFits(proposal:text:)` | Over `ProposedSize`/`ViewSize` in cells (TUI's spelling of `ProposedViewSize`/`CGSize`, parity map §2.2); the default asks the proxy, which measures the text as it measures now. |
+| `sizeThatFits(proposal:text:)` | Over `ProposedSize` (renamed `ProposedViewSize` 2026-11-10)/`ViewSize` in cells (TUI's spelling of `ProposedViewSize`/`CGSize`, parity map §2.2); the default asks the proxy, which measures the text as it measures now. |
 | `displayPadding` | Cells the renderer may draw beyond the text's frame on each edge, rounded out. See §4. |
 | `Text.LayoutKey` | Phase 3: published as a preference with `Anchor<CGPoint>` (TUI has `Anchor`), so a parent can read a text's layout. |
 

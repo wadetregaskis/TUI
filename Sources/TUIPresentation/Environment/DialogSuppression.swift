@@ -210,7 +210,7 @@ struct _AlertFooter: View, Renderable, Layoutable {
     /// The blank rows between the toggle and the buttons.
     private static let toggleSpacing = 1
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let buttonsSize = measureChild(
             buttonsView, proposal: proposal,
             context: context.withChildIdentity(type: _AlertButtons.self, index: ChildIndex.buttons))

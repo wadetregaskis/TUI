@@ -167,7 +167,7 @@ drawn. SwiftUI draws both. `strokeBorder` draws the whole line inside.
 
 SwiftUI's takes a `ProposedViewSize` and answers a `CGSize`. TUI's layout
 asks for cells and for whether each axis fills (`ViewSize`), as a custom
-`Layout` already answers, so a shape's `sizeThatFits` takes a `ProposedSize`
+`Layout` already answers, so a shape's `sizeThatFits` takes a `ProposedSize` (renamed `ProposedViewSize` 2026-11-10)
 and answers a `ViewSize`. The default fills both axes from nothing, as a
 `Color` does — SwiftUI's default, the proposal, read in TUI's terms. A
 ported override fails to compile (`ProposedViewSize` is `renamed` in the

@@ -25,11 +25,11 @@ import TUIApp
 
 /// A `Layout` that lays every subview at the same origin, the last on top.
 private struct Overlap: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: 4, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
             subviews[index].place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }
@@ -38,11 +38,11 @@ private struct Overlap: Layout {
 
 /// A `Layout` that lays its one subview two columns in.
 private struct Indented: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: 6, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
             subviews[index].place(at: CellPoint(x: bounds.x + 2, y: bounds.y), proposal: .unspecified)
         }
@@ -51,11 +51,11 @@ private struct Indented: Layout {
 
 /// A `Layout` that lays every subview at the same origin, the last on top, six cells wide.
 private struct WideOverlap: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: 6, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
             subviews[index].place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
         }
@@ -65,11 +65,11 @@ private struct WideOverlap: Layout {
 /// A `Layout` that lays its first subview at the origin, 80 × 24, and every other one
 /// cell of its own after it: five to a row, sixteen columns apart, top to bottom.
 private struct Scattered: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: 80, height: 24)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for index in subviews.indices {
             let cell = max(0, index - 1)
             let at = index == 0 ? (x: 0, y: 0) : (x: (cell % 5) * 16, y: cell / 5)

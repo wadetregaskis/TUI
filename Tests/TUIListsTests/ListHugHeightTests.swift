@@ -41,7 +41,7 @@ struct ListHugHeightTests {
         let size = measureChild(
             List {
                 Text("alpha")
-            }, proposal: ProposedSize(width: nil, height: 8), context: context)
+            }, proposal: ProposedViewSize(width: nil, height: 8), context: context)
         #expect(!size.isWidthFlexible && size.isHeightFlexible, "\(size)")
         #expect(size.width < 30, "\(size)")
     }

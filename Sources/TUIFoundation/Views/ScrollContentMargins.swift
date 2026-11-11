@@ -473,13 +473,13 @@ struct _ScrollContentMargins<Content: View>: View, Renderable, Layoutable {
         return inner
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let sides = sides(in: proposal.width ?? context.availableWidth)
         let across = sides.leading + sides.trailing
         let along = insets.top + insets.bottom
         let size = measureChild(
             content,
-            proposal: ProposedSize(
+            proposal: ProposedViewSize(
                 width: proposal.width.map { max(0, $0 - across) },
                 height: proposal.height.map { max(0, $0 - along) }),
             context: innerContext(context, sides: sides))

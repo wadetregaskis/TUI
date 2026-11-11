@@ -107,7 +107,7 @@ public protocol Layoutable: Renderable {
     ///   - proposal: The size proposed by the parent (nil dimensions mean "use ideal").
     ///   - context: The rendering context.
     /// - Returns: The size this view needs and whether it's flexible.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 }
 
 // MARK: - Default Layoutable Implementation
@@ -118,7 +118,7 @@ extension Layoutable {
     /// This fallback ensures backward compatibility but is less efficient
     /// than a proper `sizeThatFits` implementation that calculates size
     /// without rendering.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Create a context with proposed dimensions if available
         var measureContext = context
         if let width = proposal.width {
@@ -612,7 +612,7 @@ extension View where Self: Layoutable {
     /// re-copying the context at every level.
     @MainActor
     public static func _measureSelf(
-        _ view: Self, proposal: ProposedSize, context: RenderContext
+        _ view: Self, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize? {
         view.sizeThatFits(proposal: proposal, context: context)
     }

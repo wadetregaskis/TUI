@@ -111,7 +111,7 @@ nonisolated private struct _HiddenView<Content: View>: View, Renderable, Layouta
 
     @MainActor var body: Never { fatalError("_HiddenView renders via Renderable") }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 
@@ -184,7 +184,7 @@ nonisolated private struct _HitTestingView<Content: View>: View, Renderable, Lay
 
     @MainActor var body: Never { fatalError("_HitTestingView renders via Renderable") }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 

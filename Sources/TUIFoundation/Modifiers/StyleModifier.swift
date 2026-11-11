@@ -59,7 +59,7 @@ nonisolated package struct StyleCascadeModifier<Content: View>: View {
 }
 
 @MainActor extension StyleCascadeModifier: Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
 }

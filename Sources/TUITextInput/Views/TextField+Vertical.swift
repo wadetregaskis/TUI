@@ -70,7 +70,7 @@ extension _TextFieldCore {
     /// ``Text`` measures — not the field's ideal width, which a parent asking
     /// with no proposal (a stack's render pass does) never draws it at: the
     /// field fills the width it is given, and its rows are that width's.
-    func verticalSize(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func verticalSize(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let capWidth = FieldChrome.width(
             for: context.environment.textFieldStyle, drawsCaps: context.environment.controlSize.drawsEndCaps)
         let width = max(minContentWidth + capWidth, proposal.width ?? (defaultContentWidth + capWidth))

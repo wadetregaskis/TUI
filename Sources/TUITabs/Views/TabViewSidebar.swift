@@ -349,7 +349,7 @@ nonisolated struct _TabViewSidebarAccessoryModifier<Content: View>: View, Render
         TUIView.renderToBuffer(content, context: accessorized(context))
     }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: accessorized(context))
     }
 }

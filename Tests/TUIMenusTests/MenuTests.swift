@@ -446,7 +446,7 @@ struct MenuTests {
         tui.keyEventDispatcher.clearHandlers()
         // `measureChild` sets `isMeasuring` itself.
         let size = measureChild(
-            view, proposal: ProposedSize(width: 40, height: 24), context: context)
+            view, proposal: ProposedViewSize(width: 40, height: 24), context: context)
         #expect(size.height == 1, "the footprint is the collapsed label")
         #expect(tui.keyEventDispatcher.handlerCount == 0, "a measure registers nothing")
     }

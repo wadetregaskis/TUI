@@ -161,7 +161,7 @@ struct StackSharingTests {
         }
         var context = makeRenderContext(width: 20, height: 4096)
         context.availableHeight = measureChild(
-            page, proposal: ProposedSize(width: 20, height: nil), context: context
+            page, proposal: ProposedViewSize(width: 20, height: nil), context: context
         ).height
         let scrolled = renderToBuffer(page, context: context).lines.map(\.stripped)
         for label in ["strip", "block 0", "block 1", "block 2", "after"] {

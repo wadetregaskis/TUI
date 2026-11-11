@@ -474,16 +474,15 @@ PreferenceValues | struct PreferenceValues
 PreferenceValues.init() | init()
 PreferenceValues.merge(_:) | mutating func merge(_ other: PreferenceValues)
 PreferenceValues.subscript(_:) | subscript<K>(key: K.Type) -> K.Value where K : PreferenceKey { get set }
-ProposedSize | struct ProposedSize
-ProposedSize.fixed(_:_:) | static func fixed(_ width: Int, _ height: Int) -> ProposedSize
-ProposedSize.height | var height: Int?
-ProposedSize.init(_:) | init(_ size: ViewSize)
-ProposedSize.init(width:height:) | init(width: Int?, height: Int?)
-ProposedSize.replacingUnspecifiedDimensions(by:) | func replacingUnspecifiedDimensions(by size: ViewSize = .fixed(10, 10)) -> ViewSize
-ProposedSize.unspecified | static let unspecified: ProposedSize
-ProposedSize.width | var width: Int?
-ProposedSize.zero | static let zero: ProposedSize
-ProposedViewSize | typealias ProposedViewSize = ProposedSize
+ProposedViewSize | struct ProposedViewSize
+ProposedViewSize.fixed(_:_:) | static func fixed(_ width: Int, _ height: Int) -> ProposedViewSize
+ProposedViewSize.height | var height: Int?
+ProposedViewSize.init(_:) | init(_ size: ViewSize)
+ProposedViewSize.init(width:height:) | init(width: Int?, height: Int?)
+ProposedViewSize.replacingUnspecifiedDimensions(by:) | func replacingUnspecifiedDimensions(by size: ViewSize = .fixed(10, 10)) -> ViewSize
+ProposedViewSize.unspecified | static let unspecified: ProposedViewSize
+ProposedViewSize.width | var width: Int?
+ProposedViewSize.zero | static let zero: ProposedViewSize
 RetainedSubtreeIndex.init(roots:expectedChecks:) | init(roots: [ViewIdentity], expectedChecks: Int = 0)
 RetainedSubtreeIndex.isEmpty | var isEmpty: Bool { get }
 RetainedSubtreeIndex.retains(_:) | mutating func retains(_ identity: ViewIdentity) -> Bool

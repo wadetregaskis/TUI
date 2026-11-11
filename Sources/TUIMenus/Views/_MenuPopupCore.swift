@@ -73,7 +73,7 @@ struct _MenuPopupCore: View, Renderable, Layoutable {
 
     /// The menu floats *over* the page, so the layout footprint is the
     /// collapsed label — open or closed.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if context.environment.isInPopUpMenu {
             return measureChild(submenuRow, proposal: proposal, context: context)
         }

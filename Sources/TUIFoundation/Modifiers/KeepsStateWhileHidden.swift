@@ -72,7 +72,7 @@ nonisolated private struct _HiddenStateKeeper<Content: View>: View, Renderable, 
 
     /// Transparent: no chrome and no identity step, so it measures exactly as
     /// what it wraps.
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard keeps else { return measureChild(content, proposal: proposal, context: context) }
         var inner = context
         inner.environment.keepsHiddenState = true

@@ -211,7 +211,7 @@ private struct _NavigationLinkCore<Label: View, Destination: View>: View, Render
         return TUIView.renderToBuffer(button, context: context.withChildIdentity(type: type(of: button)))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if Self.drawsAsRowContent(context: context, measuring: true) {
             let content = labelContent(context: context)
             return measureChild(content, proposal: proposal, context: context.withChildIdentity(type: type(of: content)))

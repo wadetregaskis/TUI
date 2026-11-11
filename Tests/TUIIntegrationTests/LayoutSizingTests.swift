@@ -576,7 +576,7 @@ struct TextInputSizingTests {
             let context = RenderContext(
                 availableWidth: proposedWidth, availableHeight: 1, tuiContext: TUIContext()).isolatingRenderCache()
             let measured = measureChild(
-                field, proposal: ProposedSize(width: proposedWidth, height: 1), context: context)
+                field, proposal: ProposedViewSize(width: proposedWidth, height: 1), context: context)
             let rendered = renderToBuffer(field, context: context)
             #expect(
                 measured.width == rendered.width,

@@ -340,7 +340,7 @@ nonisolated package struct ThemeModifier<Content: View>: View {
 }
 
 @MainActor extension ThemeModifier: Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
 }

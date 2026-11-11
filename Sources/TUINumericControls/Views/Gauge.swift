@@ -304,7 +304,7 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
     /// measure) keeps `sizeThatFits` and `renderToBuffer` in agreement.
     ///
     /// A custom ``GaugeStyle`` draws an ordinary view, so it is measured as one.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let style = context.environment.gaugeStyle
         guard let shape = style.builtInShape else {
             return style.makeSize(

@@ -115,7 +115,7 @@ nonisolated struct PreferenceLayerModifier<Base: View, K: PreferenceKey, Layer: 
 
 @MainActor extension PreferenceLayerModifier: Layoutable {
     /// The base's size: the layer is laid out inside it and cut to it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(base, proposal: proposal, context: context)
     }
 }

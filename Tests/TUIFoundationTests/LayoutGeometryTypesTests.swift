@@ -39,7 +39,7 @@ private struct FillsBounds: Layout {
 
     func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for subview in subviews {
-            subview.place(at: bounds.origin, proposal: ProposedSize(bounds.size))
+            subview.place(at: bounds.origin, proposal: ProposedViewSize(bounds.size))
         }
     }
 }
@@ -65,15 +65,9 @@ struct LayoutGeometryTypesTests {
 
     @Test("A proposal can be made of either kind of size")
     func proposals() {
-        #expect(ProposedSize(ViewSize.fixed(3, 2)) == ProposedSize(width: 3, height: 2))
-        #expect(ProposedSize(ViewSize.flexible(minWidth: 3, minHeight: 2)) == ProposedSize(width: 3, height: 2))
-        #expect(ProposedSize(CellSize(width: 3, height: 2)) == ProposedSize(width: 3, height: 2))
-    }
-
-    @Test("ProposedViewSize is SwiftUI's name for ProposedSize")
-    func typealiasIsTheSameType() {
-        #expect(ProposedViewSize.self == ProposedSize.self)
-        #expect(ProposedViewSize.zero == ProposedSize.zero)
+        #expect(ProposedViewSize(ViewSize.fixed(3, 2)) == ProposedViewSize(width: 3, height: 2))
+        #expect(ProposedViewSize(ViewSize.flexible(minWidth: 3, minHeight: 2)) == ProposedViewSize(width: 3, height: 2))
+        #expect(ProposedViewSize(CellSize(width: 3, height: 2)) == ProposedViewSize(width: 3, height: 2))
     }
 
     @Test("The two sizes convert, a CellSize becoming fixed and a ViewSize losing its flexibility")

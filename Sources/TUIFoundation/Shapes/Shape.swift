@@ -92,7 +92,7 @@ nonisolated public protocol Shape: Sendable, Animatable, View {
     ///
     /// - Parameter proposal: The space offered, in cells.
     /// - Returns: The size the shape needs, and whether it fills more.
-    func sizeThatFits(_ proposal: ProposedSize) -> ViewSize
+    func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize
 }
 
 // MARK: - ShapeRole
@@ -114,7 +114,7 @@ extension Shape {
     public static var role: ShapeRole { .fill }
 
     /// Fills whatever it is offered, from nothing, as a ``Color`` does.
-    public func sizeThatFits(_ proposal: ProposedSize) -> ViewSize {
+    public func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize {
         ViewSize(width: 0, height: 0, isWidthFlexible: true, isHeightFlexible: true)
     }
 

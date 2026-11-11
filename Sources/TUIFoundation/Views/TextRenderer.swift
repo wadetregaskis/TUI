@@ -53,7 +53,7 @@ public protocol TextRenderer: Animatable {
     func draw(layout: Text.Layout, in ctx: inout GraphicsContext)
 
     /// The size of the text in `proposal`. The default is the text's own.
-    func sizeThatFits(proposal: ProposedSize, text: TextProxy) -> ViewSize
+    func sizeThatFits(proposal: ProposedViewSize, text: TextProxy) -> ViewSize
 
     /// How far past the text's frame the renderer draws, on each edge. The
     /// default is none. A cell has no rasterizing layer for padding to size:
@@ -63,7 +63,7 @@ public protocol TextRenderer: Animatable {
 
 extension TextRenderer {
     /// The text's own size: what it lays itself out at.
-    public func sizeThatFits(proposal: ProposedSize, text: TextProxy) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, text: TextProxy) -> ViewSize {
         text.sizeThatFits(proposal)
     }
 
@@ -74,10 +74,10 @@ extension TextRenderer {
 /// A proxy for a text view that custom text renderers use — mirrors
 /// SwiftUI's `TextProxy`.
 public struct TextProxy {
-    let measure: (ProposedSize) -> ViewSize
+    let measure: (ProposedViewSize) -> ViewSize
 
     /// The space the text needs for `proposal`, as it lays itself out.
-    public func sizeThatFits(_ proposal: ProposedSize) -> ViewSize {
+    public func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize {
         measure(proposal)
     }
 }
@@ -153,7 +153,7 @@ extension EnvironmentValues {
     /// The size this text needs: a text renderer in force says it, asking the
     /// text's own through its proxy unless it knows better; with none, one
     /// environment read and the text's own (`ownSize(proposal:context:)`).
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let renderer = context.environment.textRenderer?.renderer else {
             return ownSize(proposal: proposal, context: context)
         }

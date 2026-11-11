@@ -337,7 +337,7 @@ private struct DrawnTwice<Content: View>: View, Renderable, Layoutable {
 
     var body: Never { fatalError("DrawnTwice renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 

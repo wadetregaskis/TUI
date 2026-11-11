@@ -247,7 +247,7 @@ package func measureContainer<Content: View, Footer: View>(
     config: ContainerConfig,
     content: Content,
     footer: Footer?,
-    proposal: ProposedSize,
+    proposal: ProposedViewSize,
     context: RenderContext
 ) -> ViewSize {
     measureChild(

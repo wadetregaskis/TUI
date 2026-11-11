@@ -45,7 +45,7 @@ struct _SearchFieldPlace<Field: View>: View, Renderable, Layoutable {
         }
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         switch place(context) {
         case .here:
             return measureChild(field, proposal: proposal, context: context)

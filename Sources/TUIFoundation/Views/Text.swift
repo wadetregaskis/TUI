@@ -933,7 +933,7 @@ package struct TextStyle: Sendable, Equatable {
     /// The size this text lays itself out at, whatever renderer draws it
     /// (``sizeThatFits(proposal:context:)``, in `TextRenderer.swift`, asks a
     /// renderer in force first).
-    func ownSize(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func ownSize(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // A key's words in the language a subtree's `\.locale` names; a text
         // that is no key pays a nil check.
         if localization != nil, let read = relocalized(in: context) {

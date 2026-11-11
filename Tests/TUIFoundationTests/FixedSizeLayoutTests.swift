@@ -32,7 +32,7 @@ struct FixedSizeLayoutTests {
     func textKeepsIdealWidth() {
         let wrapped = lines(Text("a label of twenty-six cells"), width: 12)
         #expect(wrapped.count > 1, "unfixed, it wraps: \(wrapped)")
-        let size = measureChild(Text("a label of twenty-six cells").fixedSize(), proposal: ProposedSize(width: 12, height: 10), context: ctx(width: 12))
+        let size = measureChild(Text("a label of twenty-six cells").fixedSize(), proposal: ProposedViewSize(width: 12, height: 10), context: ctx(width: 12))
         #expect(size.width == 27 && size.height == 1, "\(size)")
         #expect(!size.isWidthFlexible)
     }
@@ -52,7 +52,7 @@ struct FixedSizeLayoutTests {
     func verticalOnly() {
         let size = measureChild(
             Text("a label of twenty-six cells").fixedSize(horizontal: false, vertical: true),
-            proposal: ProposedSize(width: 12, height: 10), context: ctx(width: 12))
+            proposal: ProposedViewSize(width: 12, height: 10), context: ctx(width: 12))
         #expect(size.width <= 12 && size.height > 1, "\(size)")
     }
 

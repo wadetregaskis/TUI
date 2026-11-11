@@ -291,7 +291,7 @@ struct ConditionalStateIdentityTests {
         // reaches the conditional with `isMeasuring` set. It may add the true
         // branch's own slot; it must not take the false branch's away.
         _ = measureChild(
-            ButtonHost(showA: true), proposal: ProposedSize(width: 40, height: 10), context: ctx)
+            ButtonHost(showA: true), proposal: ProposedViewSize(width: 40, height: 10), context: ctx)
 
         #expect(
             storage.count > live,

@@ -406,7 +406,7 @@ extension ListRowsPassThrough {
             // over rows nobody draws would otherwise rebuild its answer every
             // frame. Bounded by the rows the hug asks about, not the tree.
             measure: { [content] in
-                let proposal = ProposedSize(width: rowContext.availableWidth, height: nil)
+                let proposal = ProposedViewSize(width: rowContext.availableWidth, height: nil)
                 let size: ViewSize
                 if let equatableElement = element as? any Equatable {
                     rowContext.renderCache?.markActive(rowContext.identity)
@@ -498,7 +498,7 @@ extension ListRowsPassThrough {
     /// measured. See `ForEach.memoizedChild(keyedBy:element:key:)` for why.
     private static func measureMemoizedRow<RowKey: Equatable>(
         keyedBy rowKey: RowKey, element: Data.Element, build: @escaping (Data.Element) -> Content,
-        proposal: ProposedSize, context: RenderContext
+        proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         measureChild(_MemoizedRow(element: rowKey, source: element, build: build), proposal: proposal, context: context)
     }

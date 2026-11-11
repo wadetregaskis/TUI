@@ -27,7 +27,7 @@ struct FlowLayoutTests {
 
     /// The size reported for `proposal`, measured where the width offered is
     /// the width there is, as it is when the layout is drawn.
-    private func size(_ view: some View, _ proposal: ProposedSize) -> ViewSize {
+    private func size(_ view: some View, _ proposal: ProposedViewSize) -> ViewSize {
         measureChild(view, proposal: proposal, context: makeRenderContext(width: proposal.width ?? 80, height: 10))
     }
 
@@ -55,7 +55,7 @@ struct FlowLayoutTests {
         // `a` and the two-row `b` share a line two rows tall; `cc` starts
         // below it, not beside `b`'s second row.
         #expect(lines(view, width: 4).prefix(3) == ["a b", "  b", "cc"])
-        #expect(size(view, ProposedSize(width: 4, height: nil)) == ViewSize(width: 3, height: 3))
+        #expect(size(view, ProposedViewSize(width: 4, height: nil)) == ViewSize(width: 3, height: 3))
     }
 
     @Test("Offered no width, the ideal is every member on one line")
@@ -65,8 +65,8 @@ struct FlowLayoutTests {
 
     @Test("Offered a width, it reports its widest line, never more than the width")
     func finiteReportsWidestLine() {
-        #expect(size(chips, ProposedSize(width: 6, height: nil)) == ViewSize(width: 5, height: 2))
-        #expect(size(chips, ProposedSize(width: 100, height: 1)) == ViewSize(width: 8, height: 1))
+        #expect(size(chips, ProposedViewSize(width: 6, height: nil)) == ViewSize(width: 5, height: 2))
+        #expect(size(chips, ProposedViewSize(width: 100, height: 1)) == ViewSize(width: 8, height: 1))
     }
 
     @Test("Offered zero, every member gets a line of its own at its minimum")
@@ -90,7 +90,7 @@ struct FlowLayoutTests {
         // At 7, the text's ideal is `hello` over `world`, five wide, which
         // fits beside `x`.
         #expect(lines(view, width: 7).prefix(2) == ["x hello", "  world"])
-        #expect(size(view, ProposedSize(width: 7, height: nil)) == ViewSize(width: 7, height: 2))
+        #expect(size(view, ProposedViewSize(width: 7, height: nil)) == ViewSize(width: 7, height: 2))
     }
 
     @Test("A member wider than the width starts a line and overhangs; the size stays within the offer")
@@ -102,7 +102,7 @@ struct FlowLayoutTests {
         let drawn = lines(view, width: 7)
         #expect(drawn.first == "x", "\(drawn)")
         #expect(drawn.dropFirst().first?.hasPrefix("hello") == true, "\(drawn)")
-        #expect(size(view, ProposedSize(width: 7, height: nil)) == ViewSize(width: 7, height: 2))
+        #expect(size(view, ProposedViewSize(width: 7, height: nil)) == ViewSize(width: 7, height: 2))
     }
 
     @Test("Spacing and line spacing are stated in cells")
@@ -113,7 +113,7 @@ struct FlowLayoutTests {
             Text(verbatim: "cc")
         }
         #expect(lines(view, width: 6).prefix(3) == ["aa  bb", "", "cc"])
-        #expect(size(view, ProposedSize(width: 6, height: nil)) == ViewSize(width: 6, height: 3))
+        #expect(size(view, ProposedViewSize(width: 6, height: nil)) == ViewSize(width: 6, height: 3))
     }
 
     @Test("A member of no width takes no gap and never breaks a line")

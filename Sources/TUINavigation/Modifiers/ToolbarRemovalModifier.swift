@@ -148,7 +148,7 @@ nonisolated struct ToolbarRemovalView<Content: View>: View {
     /// what it asked for before it lays the handles out. The keys' `reduce` is
     /// an OR, so publishing twice in a pass is idempotent, and so is declaring
     /// the title's removal to the window's chrome.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         publish(context: context)
         return measureChild(content, proposal: proposal, context: context)
     }

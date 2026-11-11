@@ -191,7 +191,7 @@ struct SymbolVariantsTests {
     func variantKeepsTheIcon() {
         func width(_ view: some View) -> Int {
             measureChild(
-                view, proposal: ProposedSize(width: 30, height: 4),
+                view, proposal: ProposedViewSize(width: 30, height: 4),
                 context: makeBareRenderContext(width: 30, height: 4)
             ).width
         }

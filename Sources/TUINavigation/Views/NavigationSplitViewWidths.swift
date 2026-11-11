@@ -95,7 +95,7 @@ extension _NavigationSplitViewCore {
         var measureContext = context.withAvailableSize(
             width: usable, height: context.availableHeight)
         measureContext.environment.fixedSizeWidth = true
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
         let preferences = context.environment.preferenceStorage
         let trailing = visibleColumns.count - 1
 
@@ -118,7 +118,7 @@ extension _NavigationSplitViewCore {
     /// Measures a column's content: its natural width and whether it's
     /// width-flexible (fills its column).
     func measureColumn(
-        _ column: NavigationSplitViewColumn, proposal: ProposedSize, context: RenderContext
+        _ column: NavigationSplitViewColumn, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         switch column {
         case .sidebar:

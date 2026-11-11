@@ -228,7 +228,7 @@ extension _TableCellSource {
             var measuring = context
             measuring.isMeasuring = true
             let natural = measureChild(
-                view, proposal: ProposedSize(width: context.availableWidth, height: nil),
+                view, proposal: ProposedViewSize(width: context.availableWidth, height: nil),
                 context: measuring)
             return TUIView.renderToBuffer(
                 view, context: context.withAvailableHeight(max(1, min(natural.height, context.availableHeight))))

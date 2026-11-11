@@ -87,7 +87,7 @@ struct EditorLayoutTests {
             _ = pass { renderToBuffer(editor("a"), context: context) }
             let size = pass {
                 measureChild(
-                    editor("1\n2\n3\n4\n5\n6"), proposal: ProposedSize(width: 30, height: nil), context: context)
+                    editor("1\n2\n3\n4\n5\n6"), proposal: ProposedViewSize(width: 30, height: nil), context: context)
             }
             #expect(size.height == 6, "wrapping: \(wraps)")
         }

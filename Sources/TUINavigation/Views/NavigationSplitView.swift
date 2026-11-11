@@ -290,7 +290,7 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
         fatalError("_NavigationSplitViewCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Collapsed, one column shows.
         let minWidth = minimumColumnWidth * (isCollapsed(context) ? 1 : isThreeColumn ? 3 : 2)
         return ViewSize(width: minWidth, height: 1, isWidthFlexible: true, isHeightFlexible: true)

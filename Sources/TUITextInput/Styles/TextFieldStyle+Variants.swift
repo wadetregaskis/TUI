@@ -154,7 +154,7 @@ struct _StyledFieldFrame<Content: View & Renderable & Layoutable>: View, Rendera
         return content.renderBordered(style: border, context: context.withBranchIdentity("bordered"))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let border = context.environment.textFieldStyle.fieldBorder else {
             if Content._isAnimatable { return measureChild(content, proposal: proposal, context: context) }
             // No memo entry of its own: this frame's entry (same identity, same

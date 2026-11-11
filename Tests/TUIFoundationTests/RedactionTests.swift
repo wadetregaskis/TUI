@@ -34,7 +34,7 @@ struct RedactionTests {
 
     private func size(_ view: some View, width: Int = 30, height: Int = 6) -> ViewSize {
         measureChild(
-            view, proposal: ProposedSize(width: width, height: height),
+            view, proposal: ProposedViewSize(width: width, height: height),
             context: makeBareRenderContext(width: width, height: height))
     }
 

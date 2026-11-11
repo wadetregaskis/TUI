@@ -137,7 +137,7 @@ struct _SearchFieldFocus<Content: View>: View, Renderable, Layoutable {
         return TUIView.renderToBuffer(content, context: context.withEnvironment(environment))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard context.environment.searchFocusOffer != nil else {
             return measureChild(content, proposal: proposal, context: context)
         }

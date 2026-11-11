@@ -417,7 +417,7 @@ nonisolated package struct _TextSuggestionsReader<Content: View, Suggestions: Vi
         content
     }
 
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         publishing(in: context).sizeThatFits(proposal: proposal, context: context)
     }
 

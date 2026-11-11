@@ -32,12 +32,12 @@ private final class SubviewReadings {
 private struct ReadsSubviews: Layout {
     let readings: SubviewReadings
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         readings.tags = subviews.map { $0.containerValues.tag(for: Int.self) }
         return ViewSize(width: 1, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {}
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {}
 }
 
 @MainActor

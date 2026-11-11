@@ -45,7 +45,7 @@ private struct MarkSpy: View, Renderable, Layoutable {
         return FrameBuffer(lines: ["spy"], width: 3)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if context.asksIdealWidth { log.measuredUnderMark += 1 }
         return ViewSize.fixed(3, 1)
     }
@@ -84,13 +84,13 @@ struct NaturalExtentAskTests {
         let horizontal = MarkLog()
         _ = measureNaturalExtent(
             MarkSpy(log: horizontal), along: .horizontal,
-            proposal: ProposedSize(width: nil, height: nil), context: base, startingBudget: 4_096)
+            proposal: ProposedViewSize(width: nil, height: nil), context: base, startingBudget: 4_096)
         #expect(horizontal.measuredUnderMark > 0)
 
         let vertical = MarkLog()
         _ = measureNaturalExtent(
             MarkSpy(log: vertical), along: .vertical,
-            proposal: ProposedSize(width: 40, height: nil), context: base.askingIdealWidth(),
+            proposal: ProposedViewSize(width: 40, height: nil), context: base.askingIdealWidth(),
             startingBudget: 4_096)
         #expect(vertical.measuredUnderMark == 0, "the vertical ladder kept an outer probe's mark")
     }
@@ -131,12 +131,12 @@ struct NaturalExtentAskTests {
         let marked = plain.askingIdealWidth()
         var wholeContent = plain
         wholeContent.environment.asksWholeContentWidth = true
-        let open = ProposedSize(width: nil, height: nil)
+        let open = ProposedViewSize(width: nil, height: nil)
 
         #expect(marked.contentWidthAsk(proposal: open, widthLimit: 4_096, heightLimit: 4_096) == .probe)
         #expect(
             marked.contentWidthAsk(
-                proposal: ProposedSize(width: 50, height: nil), widthLimit: 50, heightLimit: 4_096)
+                proposal: ProposedViewSize(width: 50, height: nil), widthLimit: 50, heightLimit: 4_096)
                 == .serve, "a probe under a width proposal walked")
         #expect(
             marked.contentWidthAsk(proposal: open, widthLimit: 96, heightLimit: 4_096) == .serve,
@@ -146,7 +146,7 @@ struct NaturalExtentAskTests {
             "a probe under a height bound walked")
         #expect(
             marked.contentWidthAsk(
-                proposal: ProposedSize(width: nil, height: 10), widthLimit: 4_096, heightLimit: 10)
+                proposal: ProposedViewSize(width: nil, height: 10), widthLimit: 4_096, heightLimit: 10)
                 == .prefix)
         #expect(
             wholeContent.contentWidthAsk(proposal: open, widthLimit: 4_096, heightLimit: 4_096)
@@ -169,7 +169,7 @@ struct NaturalExtentAskTests {
             })
         var environment = EnvironmentValues()
         environment.applyRuntimeServices(from: tuiContext)
-        let open = ProposedSize(width: nil, height: nil)
+        let open = ProposedViewSize(width: nil, height: nil)
         func ask(_ context: RenderContext) -> Int? {
             let children = resolveChildViewCollection(from: stack.content, context: context)
             return stack.contentWidthOverAllRows(

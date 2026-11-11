@@ -310,7 +310,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         return lattice
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Ground the proposal into the context before the lattice reads it —
         // the same two lines `_ContainerViewCore.sizeThatFits` and
         // `_ViewThatFitsCore.sizeThatFits` open with. `lattice` measures every
@@ -318,7 +318,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         // `context.availableWidth`, so without this the proposal reached only
         // the final clamp and the row heights belonged to a width the grid was
         // never going to be drawn at. `_HStackCore.resolvedLayout` re-measures
-        // a column it squeezed at `ProposedSize(width: allocated, height: nil)`
+        // a column it squeezed at `ProposedViewSize(width: allocated, height: nil)`
         // and leaves `availableWidth` at the whole row's, while `renderChild`
         // DOES narrow it: "alpha beta gamma delta epsilon" beside "TAIL" in a
         // 20-cell row measured as 2 lines wrapped at 20, the row became 2 lines
@@ -409,7 +409,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
                     // is that measure and render agree. The measure is the one
                     // `lattice` already took, so it is a memo hit.
                     let measured = cell.measure(
-                        proposal: ProposedSize(width: max(0, boxWidth), height: max(1, rowHeight)),
+                        proposal: ProposedViewSize(width: max(0, boxWidth), height: max(1, rowHeight)),
                         context: context)
                     let seat = placement(
                         width: measured.width, height: measured.height, in: box, cell: cell,

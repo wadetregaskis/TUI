@@ -312,7 +312,7 @@ struct _DatePickerCore: View, Renderable, Layoutable {
         fatalError("_DatePickerCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureFixedByRendering(self, proposal: proposal, context: context)
     }
 

@@ -31,7 +31,7 @@ private struct CountingRow: View, Renderable, Layoutable {
 
     var body: Never { fatalError("CountingRow renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         work.count += 1
         return ViewSize.fixed(8, 1)
     }

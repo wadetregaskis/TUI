@@ -89,5 +89,5 @@ nonisolated package struct _MemberlessEffectCarrier: View {
 
 @MainActor extension _MemberlessEffectCarrier: Layoutable {
     /// It occupies no cells.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize { ViewSize.fixed(0, 0) }
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize { ViewSize.fixed(0, 0) }
 }

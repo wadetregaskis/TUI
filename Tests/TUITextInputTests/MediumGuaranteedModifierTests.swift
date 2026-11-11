@@ -27,7 +27,7 @@ struct MediumGuaranteedModifierTests {
 
     private func width(_ text: String) -> Int {
         measureChild(
-            Text(verbatim: text), proposal: ProposedSize(width: 80, height: 1),
+            Text(verbatim: text), proposal: ProposedViewSize(width: 80, height: 1),
             context: makeRenderContext()
         ).width
     }

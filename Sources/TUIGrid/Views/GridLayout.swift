@@ -89,7 +89,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
         cache = makeCache(subviews: subviews)
     }
 
-    @MainActor public func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout Cache) -> ViewSize {
+    @MainActor public func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) -> ViewSize {
         let lattice = fitted(cache: &cache, subviews: subviews, width: proposal.width)
         return ViewSize(
             width: min(lattice.totalWidth, max(0, proposal.width ?? lattice.totalWidth)),
@@ -99,7 +99,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
     }
 
     @MainActor public func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Cache
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache
     ) {
         let lattice = fitted(cache: &cache, subviews: subviews, width: bounds.width)
         let origins = lattice.columnOrigins
@@ -117,7 +117,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
                     x: bounds.x + (row.spansFullWidth ? 0 : origins[column]),
                     y: bounds.y + rowTops[rowIndex],
                     width: max(0, boxWidth), height: rowHeight)
-                let cellProposal = ProposedSize(width: max(0, boxWidth), height: rowHeight)
+                let cellProposal = ProposedViewSize(width: max(0, boxWidth), height: rowHeight)
                 let size = subview.sizeThatFits(cellProposal)
                 let seat = GridLattice.placement(
                     width: min(size.width, box.width), height: min(size.height, box.height),
@@ -138,7 +138,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
     /// The subviews' explicit values for a custom guide or a text baseline,
     /// merged — the default; none for an edge or the centre.
     @MainActor public func explicitAlignment(
-        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: HorizontalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
         guard !guide.isEdgeOrCentre else { return nil }
@@ -148,7 +148,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
     /// The subviews' explicit values for a custom guide or a text baseline,
     /// merged — the default; none for an edge or the centre.
     @MainActor public func explicitAlignment(
-        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedSize,
+        of guide: VerticalAlignment, in bounds: CellRect, proposal: ProposedViewSize,
         subviews: Subviews, cache: inout Cache
     ) -> Double? {
         guard !guide.isEdgeOrCentre else { return nil }
@@ -169,7 +169,7 @@ nonisolated public struct GridLayout: Layout, Sendable, Equatable {
             minimum: { index in
                 let subview = subviews[rows[index.row].cells[index.cell]]
                 return max(
-                    subview.sizeThatFits(ProposedSize(width: 0, height: nil)).width,
+                    subview.sizeThatFits(ProposedViewSize(width: 0, height: nil)).width,
                     statedMinimumLength(of: subview.child, horizontally: true))
             },
             measure: { subviews[rows[$0.row].cells[$0.cell]].sizeThatFits($1) })

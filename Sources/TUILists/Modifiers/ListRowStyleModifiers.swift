@@ -151,7 +151,7 @@ extension _ListRowInsetsView: ListRowInsetsStatement {
 }
 
 @MainActor extension _ListRowInsetsView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let insets = effectiveInsets else { return measureChild(content, proposal: proposal, context: context) }
         return measureChild(content.padding(insets), proposal: proposal, context: context)
     }
@@ -272,7 +272,7 @@ nonisolated struct _ListRowColorView<Content: View>: View {
 
 @MainActor extension _ListRowColorView: Layoutable {
     /// Measures as its content: a fill is behind the row, not part of it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -354,7 +354,7 @@ nonisolated struct _ListRowBackgroundView<Content: View, Background: View>: View
 @MainActor extension _ListRowBackgroundView: Layoutable {
     /// The row measures as its content: a background is behind it, not beside
     /// it, and must not make the row taller or wider than what it holds.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

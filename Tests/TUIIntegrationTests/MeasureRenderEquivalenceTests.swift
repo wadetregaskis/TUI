@@ -80,7 +80,7 @@ struct MeasureRenderEquivalenceTests {
         var flexOut: [String] = []
         for w in widths {
             let availableWidth = w ?? 80
-            let proposal = w.map { ProposedSize(width: $0, height: nil) } ?? .unspecified
+            let proposal = w.map { ProposedViewSize(width: $0, height: nil) } ?? .unspecified
             let wLabel = w.map(String.init) ?? "nil"
 
             let measured = measureChild(view, proposal: proposal, context: makeContext(width: availableWidth, height: height))
@@ -367,7 +367,7 @@ struct MeasureRenderEquivalenceTests {
         let _: any Layoutable = AnyView(Text("hi"))
 
         let wrapping = Text("A fairly long line of text that wraps when the width is narrow")
-        let proposal = ProposedSize(width: 20, height: nil)
+        let proposal = ProposedViewSize(width: 20, height: nil)
         let direct = measureChild(wrapping, proposal: proposal, context: makeContext(width: 20, height: height))
         let erased = measureChild(AnyView(wrapping), proposal: proposal, context: makeContext(width: 20, height: height))
 
@@ -389,7 +389,7 @@ struct MeasureRenderEquivalenceTests {
     func decoratorsForwardFlexibility() {
         func widthFlexible<V: View>(_ view: V) -> Bool {
             measureChild(
-                view, proposal: ProposedSize(width: 40, height: nil),
+                view, proposal: ProposedViewSize(width: 40, height: nil),
                 context: makeContext(width: 40, height: height)
             ).isWidthFlexible
         }
@@ -419,7 +419,7 @@ struct MeasureRenderEquivalenceTests {
     func flexibilityContract() {
         func widthFlexible<V: View>(_ view: V, width: Int = 40) -> Bool {
             measureChild(
-                view, proposal: ProposedSize(width: width, height: nil),
+                view, proposal: ProposedViewSize(width: width, height: nil),
                 context: makeContext(width: width, height: height)
             ).isWidthFlexible
         }

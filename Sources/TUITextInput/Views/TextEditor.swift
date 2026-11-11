@@ -356,7 +356,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         fatalError("_TextEditorCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let width = context.fillingWidth(proposal: proposal)
         // A wrapping editor is as tall as its rows at the width it is given.
         // Given no width — the ideal-width ask, whose answer is 0 as SwiftUI's

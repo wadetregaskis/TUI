@@ -46,7 +46,7 @@ struct ImageHorizontalScrollFitTests {
     func horizontalScrollCapsAtViewport() {
         let context = horizontalScrollContext(viewport: (20, 10), offer: (4096, 4096))
         let size = measureChild(
-            Image(.file("/no/such/image.png")), proposal: ProposedSize(width: nil, height: nil), context: context)
+            Image(.file("/no/such/image.png")), proposal: ProposedViewSize(width: nil, height: nil), context: context)
         #expect(size.width == 20, "fits the viewport width (20), not the probe's 4,096: \(size.width)")
         #expect(size.height <= 10, "and its height (10): \(size.height)")
     }
@@ -56,7 +56,7 @@ struct ImageHorizontalScrollFitTests {
     func horizontalScrollKeepsASmallerBound() {
         let context = horizontalScrollContext(viewport: (20, 10), offer: (4096, 4096))
         let size = measureChild(
-            Image(.file("/no/such/image.png")), proposal: ProposedSize(width: 8, height: nil), context: context)
+            Image(.file("/no/such/image.png")), proposal: ProposedViewSize(width: 8, height: nil), context: context)
         #expect(size.width == 8, "the 8-wide bound was widened to the viewport: \(size.width)")
     }
 
@@ -67,7 +67,7 @@ struct ImageHorizontalScrollFitTests {
     func horizontalScrollHonoursAStatedSize() {
         let context = horizontalScrollContext(viewport: (20, 10), offer: (4096, 4096))
         let size = measureChild(
-            Image(.file("/no/such/image.png")), proposal: ProposedSize(width: 60, height: nil), context: context)
+            Image(.file("/no/such/image.png")), proposal: ProposedViewSize(width: 60, height: nil), context: context)
         #expect(size.width == 60, "the frame's 60 was capped to the viewport: \(size.width)")
         #expect(size.height <= 10, "the unstated axis is still capped: \(size.height)")
     }
@@ -94,9 +94,9 @@ struct ImageHorizontalScrollFitTests {
     func horizontalScrollZoomGrowsPastTheViewport() {
         let context = horizontalScrollContext(viewport: (20, 10), offer: (4096, 4096))
         let base = measureChild(
-            Image(.file("/no/such/image.png")), proposal: ProposedSize(width: nil, height: nil), context: context)
+            Image(.file("/no/such/image.png")), proposal: ProposedViewSize(width: nil, height: nil), context: context)
         let zoomed = measureChild(
-            Image(.file("/no/such/image.png")).imageZoom(2), proposal: ProposedSize(width: nil, height: nil),
+            Image(.file("/no/such/image.png")).imageZoom(2), proposal: ProposedViewSize(width: nil, height: nil),
             context: context)
         #expect(zoomed.width == base.width * 2, "zoom 2 doubles the capped width: \(zoomed.width) vs \(base.width)")
     }

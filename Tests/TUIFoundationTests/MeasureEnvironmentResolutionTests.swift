@@ -54,7 +54,7 @@ struct MeasureEnvironmentResolutionTests {
             let context = self.context(terminalWidth: width)
             let measured = measureChild(
                 WidthBranchingView(),
-                proposal: ProposedSize(width: nil, height: nil),
+                proposal: ProposedViewSize(width: nil, height: nil),
                 context: context)
             let rendered = renderToBuffer(WidthBranchingView(), context: context)
 
@@ -79,7 +79,7 @@ struct MeasureEnvironmentResolutionTests {
         // closure captured from `body` does, and what `wrappedValue` prefers.
         let view = WidthBranchingView()
         let context = self.context(terminalWidth: 120)
-        _ = measureChild(view, proposal: ProposedSize(width: nil, height: nil), context: context)
+        _ = measureChild(view, proposal: ProposedViewSize(width: nil, height: nil), context: context)
 
         var boxed: Int?
         for child in Mirror(reflecting: view).children {

@@ -241,9 +241,9 @@ struct DepthLimitTests {
         let context = RenderContext(availableWidth: 80, availableHeight: 24, environment: environment)
         let noticeWidth = DepthLimit.notice.strippedLength
         withFloor(at: nil) {
-            let offered = measureChild(Text("x"), proposal: ProposedSize(width: nil, height: nil), context: context)
+            let offered = measureChild(Text("x"), proposal: ProposedViewSize(width: nil, height: nil), context: context)
             #expect(offered == .fixed(noticeWidth, 1))
-            let narrow = measureChild(Text("x"), proposal: ProposedSize(width: 3, height: 0), context: context)
+            let narrow = measureChild(Text("x"), proposal: ProposedViewSize(width: 3, height: 0), context: context)
             #expect(narrow == .fixed(3, 0))
         }
     }

@@ -114,7 +114,7 @@ struct TextFieldStyleTests {
                 let view = style.apply(to: TextField("Name", text: .constant("hello")))
                 let renderContext = context(width: width, focusManager: focusManager)
                 let measured = measureChild(
-                    view, proposal: ProposedSize(width: width, height: 1),
+                    view, proposal: ProposedViewSize(width: width, height: 1),
                     context: renderContext)
                 let rendered = rawLine(view, context: renderContext).stripped
                 #expect(
@@ -130,9 +130,9 @@ struct TextFieldStyleTests {
         let renderContext = context(width: 80, focusManager: focusManager)
         let field = TextField("Name", text: .constant(""))
         let capped = measureChild(
-            field, proposal: ProposedSize(width: nil, height: 1), context: renderContext)
+            field, proposal: ProposedViewSize(width: nil, height: 1), context: renderContext)
         let plain = measureChild(
-            field.textFieldStyle(.plain), proposal: ProposedSize(width: nil, height: 1),
+            field.textFieldStyle(.plain), proposal: ProposedViewSize(width: nil, height: 1),
             context: renderContext)
         #expect(capped.width - plain.width == 2, "\(capped.width) vs \(plain.width)")
     }

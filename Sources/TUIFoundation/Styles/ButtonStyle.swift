@@ -244,7 +244,7 @@ extension ButtonStyle {
     @MainActor
     func makeSize(
         configuration: Configuration,
-        proposal: ProposedSize,
+        proposal: ProposedViewSize,
         context: RenderContext
     ) -> ViewSize {
         measureChild(

@@ -275,7 +275,7 @@ extension GridLattice {
     ///   - measure: A cell's size when offered a proposal.
     mutating func fit(
         toWidth width: Int, grows: Bool = true, rows: [Row], minimum: (CellIndex) -> Int,
-        measure: (CellIndex, ProposedSize) -> ViewSize
+        measure: (CellIndex, ProposedViewSize) -> ViewSize
     ) {
         // The cells that decide each column's width: the ones Pass A counts.
         var members = [[CellIndex]](repeating: [], count: columns.count)
@@ -299,7 +299,7 @@ extension GridLattice {
             naturalSizes: columns, isFlexible: fills, available: max(0, width), spacing: horizontalSpacing,
             minimumSize: { widest($0, minimum) ?? 0 },
             statedMinimum: { column in widest(column) { fills[column] ? minimum($0) : 0 } ?? 0 },
-            sizeAt: { column, offer in widest(column) { measure($0, ProposedSize(width: offer, height: nil)).width } })
+            sizeAt: { column, offer in widest(column) { measure($0, ProposedViewSize(width: offer, height: nil)).width } })
 
         // A cell given less than it asked for wraps into more lines; one given
         // as much keeps the height it had.
@@ -312,7 +312,7 @@ extension GridLattice {
                 guard !cell.unsizedAxes.contains(.vertical) else { continue }
                 let size =
                     box < cell.size.width
-                    ? measure(CellIndex(row: rowIndex, cell: cellIndex), ProposedSize(width: max(0, box), height: nil))
+                    ? measure(CellIndex(row: rowIndex, cell: cellIndex), ProposedViewSize(width: max(0, box), height: nil))
                     : cell.size
                 height = max(height, size.height)
             }

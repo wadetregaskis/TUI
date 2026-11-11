@@ -99,7 +99,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     /// draws a band or every row is known only by drawing it. Flexibility comes
     /// from the parts, so a `.frame(maxWidth: .infinity)` content still reports
     /// the section width-flexible to its parent.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let stack = pinningStack(context) {
             return stackedSize(
                 layout: stack.layout, proposal: proposal, context: drawingContext(context))
@@ -243,7 +243,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         let drawn = TUIView.renderToBuffer(
             footer,
             context: fixedMeasureContext(
-                proposal: ProposedSize(width: context.availableWidth, height: nil),
+                proposal: ProposedViewSize(width: context.availableWidth, height: nil),
                 context: chromeContext(context, .sectionFooter)))
         return drawnChrome(drawn, context)?.height ?? 0
     }
@@ -267,7 +267,7 @@ extension _SectionCore {
     /// views' extents along the stack's axis, `spacing` between every two that
     /// draw something, and across it the widest of them.
     private func stackedSize(
-        layout: PinnedSectionLayout, proposal: ProposedSize, context: RenderContext
+        layout: PinnedSectionLayout, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         let vertical = layout.axis == .vertical
         var along = 0
@@ -278,8 +278,8 @@ extension _SectionCore {
         for child in partChildren(context).joined() {
             let size = child.measure(
                 proposal: vertical
-                    ? ProposedSize(width: proposal.width, height: nil)
-                    : ProposedSize(width: nil, height: proposal.height),
+                    ? ProposedViewSize(width: proposal.width, height: nil)
+                    : ProposedViewSize(width: nil, height: proposal.height),
                 context: context)
             if size.isWidthFlexible { widthFlexible = true }
             if size.isHeightFlexible { heightFlexible = true }
@@ -315,7 +315,7 @@ extension _SectionCore {
                 // lazy stack offers its children across it.
                 if vertical {
                     let height = child.measure(
-                        proposal: ProposedSize(width: context.availableWidth, height: nil), context: context
+                        proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context
                     ).height
                     return child.render(width: context.availableWidth, height: max(0, height), context: context)
                 }

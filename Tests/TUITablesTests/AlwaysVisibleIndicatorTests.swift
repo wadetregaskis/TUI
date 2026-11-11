@@ -183,7 +183,7 @@ struct AlwaysVisibleIndicatorTests {
                 tui.stateStorage.beginRenderPass()
                 tui.renderCache.beginRenderPass()
                 let size = measureChild(
-                    view, proposal: ProposedSize(width: 40, height: 8), context: context)
+                    view, proposal: ProposedViewSize(width: 40, height: 8), context: context)
                 let buffer = renderToBuffer(view, context: context)
                 tui.stateStorage.endRenderPass()
                 return (size.height, buffer.height)
@@ -250,7 +250,7 @@ struct AlwaysVisibleHugMeasureTests {
         tui.stateStorage.beginRenderPass()
         tui.renderCache.beginRenderPass()
         let size = measureChild(
-            view, proposal: ProposedSize(width: 40, height: height), context: context)
+            view, proposal: ProposedViewSize(width: 40, height: height), context: context)
         let buffer = renderToBuffer(view, context: context)
         tui.stateStorage.endRenderPass()
         return (size.height, buffer.height)

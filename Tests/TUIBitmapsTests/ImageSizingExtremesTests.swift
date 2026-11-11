@@ -32,11 +32,11 @@ struct ImageSizingExtremesTests {
         let context = makeScrollContext(viewport: (20, 10))
         let base = measureChild(
             Image(.file("/no/such/image.png")).imageFitTarget(.viewport),
-            proposal: ProposedSize(width: 80, height: nil),
+            proposal: ProposedViewSize(width: 80, height: nil),
             context: context)
         let size = measureChild(
             Image(.file("/no/such/image.png")).imageFitTarget(.viewport).imageZoom(factor),
-            proposal: ProposedSize(width: 80, height: nil),
+            proposal: ProposedViewSize(width: 80, height: nil),
             context: context)
         #expect(size.width >= 1 && size.height >= 1, "\(factor): \(size)")
         if !factor.isFinite || factor <= 0 {

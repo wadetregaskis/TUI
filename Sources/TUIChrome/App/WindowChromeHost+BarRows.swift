@@ -40,7 +40,7 @@ import TUIFoundation
         guard !entries.isEmpty else { return [] }
         let style = chrome.style(edge)
         let measureContext = barContext(edge, width: width, rows: context.availableHeight, style: style, context: context)
-        let proposal = ProposedSize(width: style.barContentWidth(width), height: nil)
+        let proposal = ProposedViewSize(width: style.barContentWidth(width), height: nil)
         // A title menu is the title, counted with it.
         func tallest(_ entries: [WindowChromeState.ToolbarEntry]) -> Int {
             entries.filter { !$0.isTitleMenu }.map {

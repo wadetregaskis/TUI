@@ -74,7 +74,7 @@ struct MenuMeasureParityTests {
             .menuStyle(.inline)
         let full = context(width: 120, height: 20)
         let measured = measureChild(
-            view, proposal: ProposedSize(width: proposedWidth, height: nil), context: full)
+            view, proposal: ProposedViewSize(width: proposedWidth, height: nil), context: full)
         let rendered = renderToBuffer(view, context: context(width: proposedWidth, height: 20))
         #expect(measured.width == rendered.width, "at \(proposedWidth)")
         #expect(measured.height == rendered.height, "at \(proposedWidth)")

@@ -161,7 +161,7 @@ private struct ScopedPlaceholder<Content: View>: PlaceholderDrawing {
         TUIView.renderToBuffer(content, context: scope.restored(context))
     }
 
-    @MainActor func measure(_ proposal: ProposedSize, _ context: RenderContext) -> ViewSize {
+    @MainActor func measure(_ proposal: ProposedViewSize, _ context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: scope.restored(context))
     }
 }
@@ -192,7 +192,7 @@ nonisolated struct _ScopedTransactionView<Content: View>: View {
         TUIView.renderToBuffer(content, context: scoped(context))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: scoped(context))
     }
 }

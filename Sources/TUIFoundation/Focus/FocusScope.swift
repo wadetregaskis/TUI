@@ -425,7 +425,7 @@ nonisolated struct _FocusScopeModifier<Content: View>: View {
 }
 
 @MainActor extension _FocusScopeModifier: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -478,7 +478,7 @@ nonisolated struct _PrefersDefaultFocusModifier<Content: View>: View {
 @MainActor extension _PrefersDefaultFocusModifier: Layoutable {
     /// Measures as its content, with no offer: a measure pass registers
     /// nothing, so nothing would claim it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

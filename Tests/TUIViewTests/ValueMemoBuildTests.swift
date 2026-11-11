@@ -29,7 +29,7 @@ struct ValueMemoBuildTests {
         let text: String
         var body: Never { fatalError("Leaf renders via Renderable") }
         func renderToBuffer(context: RenderContext) -> FrameBuffer { FrameBuffer(text: text) }
-        func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
             ViewSize.fixed(text.count, 1)
         }
     }

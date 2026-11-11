@@ -351,7 +351,7 @@ private enum StateIndex {
     /// `content` — both when dismissed and when presented. Forwarding also keeps
     /// the focus-section / status-bar side-effects on the render pass; a measure
     /// must not register or activate sections.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // The content's child identity mirrors the render path so
         // measure-time @State binds to the same boxes.
         measureChild(

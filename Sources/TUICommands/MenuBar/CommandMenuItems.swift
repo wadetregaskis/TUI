@@ -53,12 +53,12 @@ struct _CommandMenuItems: View, Renderable, Layoutable, ChildViewProvider {
         }
         return FrameBuffer(
             verticallyStacking: childViews(context: context).map { child in
-                let size = child.measure(proposal: ProposedSize(width: width, height: nil), context: context)
+                let size = child.measure(proposal: ProposedViewSize(width: width, height: nil), context: context)
                 return child.render(width: width, height: size.height, context: context)
             })
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         var width = 0
         var height = 0
         for child in childViews(context: context) {

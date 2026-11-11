@@ -585,7 +585,7 @@ struct GridTests {
     /// disagree.
     ///
     /// A squeezing `HStack` makes them disagree: it re-measures a column it
-    /// narrowed at `ProposedSize(width: allocated)` with the ROW's context,
+    /// narrowed at `ProposedViewSize(width: allocated)` with the ROW's context,
     /// then renders the column at the allocation. `lattice` measured its cells
     /// against the context alone, so the grid reported the height of a wrap it
     /// never draws and the row clipped the line it had not budgeted for.
@@ -601,7 +601,7 @@ struct GridTests {
         }
 
         let squeezed = measureChild(
-            grid, proposal: ProposedSize(width: 15, height: nil), context: makeRenderContext(width: 20, height: 12))
+            grid, proposal: ProposedViewSize(width: 15, height: nil), context: makeRenderContext(width: 20, height: 12))
         let drawn = renderToBuffer(grid, context: makeRenderContext(width: 15, height: 12))
         #expect(drawn.lines.count == 3)
         #expect(squeezed.height == drawn.lines.count)
@@ -633,13 +633,13 @@ private final class CellCount {
 private struct CountsSubviews: Layout {
     let counted: CellCount
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         counted.count = subviews.count
         return VStackLayout().sizeThatFits(proposal: proposal, subviews: subviews, cache: &cache)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         VStackLayout().placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
     }

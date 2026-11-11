@@ -51,7 +51,7 @@ private struct CountingProbe: View, Renderable, Layoutable {
         return FrameBuffer(text: "PROBE")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         counter.measures += 1
         return ViewSize.fixed(5, 1)
     }

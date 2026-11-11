@@ -80,7 +80,7 @@ private struct MemoKey<ID: Hashable>: Equatable {
 }
 
 @MainActor extension _MemoizedView: Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureValueMemoized(
             key: memoKey, proposal: proposal, context: context, build: { content },
             measure: { measureChild($0, proposal: proposal, context: $1) })

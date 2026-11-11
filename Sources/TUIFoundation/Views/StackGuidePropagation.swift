@@ -74,12 +74,12 @@ import TUIView
             },
             statedMinimum: { statedMinimumLength(of: children[$0], horizontally: false) },
             sizeAt: { index, offer in
-                children[index].measure(proposal: ProposedSize(width: nil, height: offer), context: context).height
+                children[index].measure(proposal: ProposedViewSize(width: nil, height: offer), context: context).height
             })
         let sizes = children.indices.map { index -> (width: Int, height: Int) in
             guard !children[index].isSpacer else { return (width: 0, height: 0) }
             let size = children[index].measure(
-                proposal: ProposedSize(width: dimensions.width, height: heights[index]),
+                proposal: ProposedViewSize(width: dimensions.width, height: heights[index]),
                 context: context)
             return (width: min(size.width, dimensions.width), height: heights[index])
         }

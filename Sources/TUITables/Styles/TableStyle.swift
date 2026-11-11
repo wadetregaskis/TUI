@@ -121,7 +121,7 @@ extension TableStyle {
     /// ``makeBuffer(configuration:context:)``.
     @MainActor
     func measureBody(
-        configuration: Configuration, proposal: ProposedSize, context: RenderContext
+        configuration: Configuration, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         measureChild(
             observingStyleBody(of: Self.self, kind: .styleMeasure, context: context) {

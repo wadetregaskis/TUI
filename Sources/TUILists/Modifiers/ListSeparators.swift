@@ -89,7 +89,7 @@ nonisolated struct _ListRowSeparatorPreferenceView<Content: View>: View {
         renderReportingSeparator(content, change: change, sections: false, context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -224,7 +224,7 @@ nonisolated struct _ListSectionSeparatorView<Content: View>: View {
         renderReportingSeparator(content, change: change, sections: true, context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

@@ -190,7 +190,7 @@ nonisolated struct _ScrollTransitionView<Content: View, Effect: VisualEffect>: V
     }
 
     /// Effects do not change layout: this measures as its content.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

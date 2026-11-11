@@ -171,7 +171,7 @@ struct _InspectorToggleHost<Content: View>: View, Renderable, Layoutable {
         TUIView.renderToBuffer(content, context: toggling(context))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: toggling(context))
     }
 }
@@ -220,7 +220,7 @@ nonisolated struct _InspectorColumnWidthView<Content: View>: View, InspectorColu
 }
 
 @MainActor extension _InspectorColumnWidthView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

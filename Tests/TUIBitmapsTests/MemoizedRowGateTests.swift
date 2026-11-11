@@ -200,7 +200,7 @@ struct MemoizedRowGateTests {
         let context = RenderContext(
             availableWidth: 40, availableHeight: 8,
             environment: environment, tuiContext: tuiContext)
-        let proposal = ProposedSize(width: 40, height: nil)
+        let proposal = ProposedViewSize(width: 40, height: nil)
         _ = measureChild(view, proposal: proposal, context: context)
         _ = measureChild(view, proposal: proposal, context: context)
         #expect(measures == 2, "both measures fired the hook, got \(measures)")

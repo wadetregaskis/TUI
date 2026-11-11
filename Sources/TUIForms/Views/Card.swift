@@ -274,7 +274,7 @@ private struct _CardCore<Content: View, Footer: View>: View, Renderable, Layouta
 
     /// Measures via the shared container path (analytical) instead of the
     /// render-to-measure fallback.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureContainer(
             title: title,
             config: config,

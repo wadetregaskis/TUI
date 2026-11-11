@@ -91,7 +91,7 @@ nonisolated package struct _BlendModeView<Content: View>: View {
 
 @MainActor extension _BlendModeView: Layoutable {
     /// Blending rewrites colours in place: same characters, same cells, same size.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

@@ -200,7 +200,7 @@ nonisolated struct _BorderRings<Bordered: View>: View, Renderable, Layoutable {
         rings.renderToBuffer(context: context)
     }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         rings.sizeThatFits(proposal: proposal, context: context)
     }
 }

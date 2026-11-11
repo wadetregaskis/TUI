@@ -190,7 +190,7 @@ nonisolated struct ModifierKeyAlternateModifier<Content: View, Alternate: View>:
     /// one: a size a memoised ancestor kept across frames (`EquatableView`, a
     /// `ForEach` row) would otherwise be the modified view's while the
     /// alternate draws, and a wider alternate would be cut to fit it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard let monitor = context.environment.modifierKeyMonitor else {
             return measureChild(content, proposal: proposal, context: context)
         }

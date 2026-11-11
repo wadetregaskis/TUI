@@ -79,7 +79,7 @@ nonisolated struct _SizeDependentText: View {
 }
 
 @MainActor extension _SizeDependentText: Renderable, Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard choosesBySize else { return text.sizeThatFits(proposal: proposal, context: context) }
         return chosen(
             width: proposal.width ?? context.availableWidth, height: proposal.height, context: context,

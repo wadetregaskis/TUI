@@ -163,7 +163,7 @@ struct _SearchAccessoryFrame<Content: View>: View, Renderable, Layoutable {
         return TUIView.renderToBuffer(content, context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

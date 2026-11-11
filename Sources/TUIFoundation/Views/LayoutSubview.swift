@@ -19,9 +19,9 @@ import TUIView
 final class LayoutPlacements {
     /// The placement recorded for a subview index, in the order placed —
     /// placement order is draw order, so a layout can deliberately overlap.
-    private(set) var entries: [(index: Int, x: Int, y: Int, proposal: ProposedSize)] = []
+    private(set) var entries: [(index: Int, x: Int, y: Int, proposal: ProposedViewSize)] = []
 
-    func record(index: Int, x: Int, y: Int, proposal: ProposedSize) {
+    func record(index: Int, x: Int, y: Int, proposal: ProposedViewSize) {
         entries.append((index, x, y, proposal))
     }
 }
@@ -75,7 +75,7 @@ public struct LayoutSubview: @MainActor Equatable {
     /// `isWidthFlexible` / `isHeightFlexible`, which is what SwiftUI layouts
     /// infer by probing three times with `.zero`, `.unspecified` and
     /// `.infinity`. `.width` and `.height` read the same either way.
-    public func sizeThatFits(_ proposal: ProposedSize) -> ViewSize {
+    public func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize {
         child.measure(proposal: proposal, context: context)
     }
 
@@ -85,7 +85,7 @@ public struct LayoutSubview: @MainActor Equatable {
     /// ``View/alignmentGuide(_:computeValue:)-(HorizontalAlignment,_)`` are
     /// carried through, so `subview.dimensions(in: p)[.leading]` reports what
     /// the subview asked for rather than the guide's default.
-    public func dimensions(in proposal: ProposedSize) -> ViewDimensions {
+    public func dimensions(in proposal: ProposedViewSize) -> ViewDimensions {
         let size = child.measure(proposal: proposal, context: context)
         let bare = ViewDimensions(width: size.width, height: size.height)
         guard child.providesAlignmentGuide, let provider = alignmentGuideProvider(of: child.wrappedView)
@@ -144,7 +144,7 @@ public struct LayoutSubview: @MainActor Equatable {
     ///   - anchor: The point *within the subview* that meets `position`.
     ///     Defaults to `.topLeading`, which needs no arithmetic at all.
     ///   - proposal: The size to offer the subview.
-    public func place(at position: CellPoint, anchor: UnitPoint = .topLeading, proposal: ProposedSize) {
+    public func place(at position: CellPoint, anchor: UnitPoint = .topLeading, proposal: ProposedViewSize) {
         let size = child.measure(proposal: proposal, context: context)
         let x = Int((Double(position.x) - anchor.x * Double(size.width)).rounded(.down))
         let y = Int((Double(position.y) - anchor.y * Double(size.height)).rounded(.down))
@@ -163,7 +163,7 @@ public struct LayoutSubview: @MainActor Equatable {
     ///   - bounds: The region to place within.
     ///   - anchor: The point of both the subview and the region that meet.
     ///   - proposal: The size to offer the subview.
-    public func place(in bounds: CellRect, anchor: UnitPoint, proposal: ProposedSize) {
+    public func place(in bounds: CellRect, anchor: UnitPoint, proposal: ProposedViewSize) {
         let size = child.measure(proposal: proposal, context: context)
         let x = Int((anchor.x * Double(bounds.width - size.width)).rounded(.down))
         let y = Int((anchor.y * Double(bounds.height - size.height)).rounded(.down))

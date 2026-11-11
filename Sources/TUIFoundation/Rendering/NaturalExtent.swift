@@ -76,7 +76,7 @@ import TUIView
 func measureNaturalExtent<V: View>(
     _ view: V,
     along axis: Axis,
-    proposal: ProposedSize,
+    proposal: ProposedViewSize,
     context: RenderContext,
     startingBudget: Int
 ) -> ViewSize {
@@ -103,7 +103,7 @@ struct NaturalExtentAnswer {
 func naturalExtent<V: View>(
     _ view: V,
     along axis: Axis,
-    proposal: ProposedSize,
+    proposal: ProposedViewSize,
     context: RenderContext,
     startingBudget: Int
 ) -> NaturalExtentAnswer {
@@ -257,7 +257,7 @@ extension RenderContext {
     ///   - widthLimit: `proposal.width ?? availableWidth`.
     ///   - heightLimit: `proposal.height ?? availableHeight`.
     @MainActor
-    func contentWidthAsk(proposal: ProposedSize, widthLimit: Int, heightLimit: Int)
+    func contentWidthAsk(proposal: ProposedViewSize, widthLimit: Int, heightLimit: Int)
         -> ContentWidthAsk
     {
         guard proposal.height == nil else { return .prefix }
@@ -282,7 +282,7 @@ extension RenderContext {
     /// `TextEditor` scrolled sideways through four thousand blank columns.
     /// Everywhere else a nil width means the available width, as it always
     /// has, and the view fills it.
-    package func fillingWidth(proposal: ProposedSize) -> Int {
+    package func fillingWidth(proposal: ProposedViewSize) -> Int {
         proposal.width ?? (asksIdealWidth ? 0 : availableWidth)
     }
 }

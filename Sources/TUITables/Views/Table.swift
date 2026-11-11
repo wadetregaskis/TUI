@@ -978,7 +978,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render remains — a single render whose context mirrors the fallback's first
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if isPrepared {
             return measuredSizeThatFits(proposal: proposal, context: context)
         }
@@ -987,7 +987,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
     }
 
-    private func measuredSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    private func measuredSizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         var context = RowSelectionIndicator.resolvingForTable(context)
         Self.claimCellText(in: &context)
         if let style = customStyle(context.environment) {
@@ -1272,7 +1272,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         let measured = measureChild(
             container,
-            proposal: ProposedSize(
+            proposal: ProposedViewSize(
                 width: context.availableWidth, height: context.availableHeight),
             context: context)
         return (measured.width, measured.height)
@@ -2215,7 +2215,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let probe = Self.probing(context)
         return sectionHeaders.indices.map { index in
             let size = measureChild(
-                sectionHeaders[index].view, proposal: ProposedSize(width: width, height: nil),
+                sectionHeaders[index].view, proposal: ProposedViewSize(width: width, height: nil),
                 context: sectionHeaderContext(
                     index, width: width, height: max(1, context.availableHeight), context: probe))
             // An empty header (a `Text("")`) still holds its row's line, as
@@ -5504,7 +5504,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 // get, for the size this table keeps in the same store.
                 return verifyServedSize(
                     cached, label: "\(Self.self) column \(column.declarationIndex) fit width",
-                    proposal: ProposedSize(width: cap, height: nil), context: context
+                    proposal: ProposedViewSize(width: cap, height: nil), context: context
                 ) {
                     ViewSize.fixed(
                         scanForFitWidth(of: column, cappedAt: cap, context: $0), 0)
@@ -6846,7 +6846,7 @@ private struct _TableContentView: View, Renderable, Layoutable {
     /// trailing one, and none at all for no lines. The container that holds them
     /// measures them every frame, and measured by rendering, every line was
     /// inset — a new string — only to be counted.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard !lines.isEmpty else { return ViewSize.fixed(0, 0) }
         return ViewSize.fixed((lineWidths.max() ?? 0) + 1 + trailingCells, lines.count)
     }
@@ -6937,7 +6937,7 @@ private struct _TableSizeStub: View, Renderable, Layoutable {
         fatalError("_TableSizeStub renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(width, height)
     }
 

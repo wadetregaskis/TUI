@@ -334,7 +334,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
     private func placingContent(in contentContext: RenderContext, frame context: RenderContext) -> RenderContext {
         let size = measureChild(
             content,
-            proposal: ProposedSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
+            proposal: ProposedViewSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
             context: contentContext)
         let finalWidth = finalWidth(
             content: size.width, offer: context.availableWidth, offeredNothing: isOfferedNoWidth(in: context))
@@ -543,7 +543,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
     /// other constraint shape measures analytically
     /// too, by mirroring `renderToBuffer`'s sizing math around one content
     /// measure — see `measureAnalytically(proposal:context:)`.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard hasInfiniteMaxWidth else {
             return measureAnalytically(proposal: proposal, context: context)
         }
@@ -585,7 +585,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
         }
         let contentSize = measureChild(
             content,
-            proposal: ProposedSize(width: contentProposalWidth, height: targetHeight),
+            proposal: ProposedViewSize(width: contentProposalWidth, height: targetHeight),
             context: contentContext)
 
         // Flexible under the ideal-width ask too — it still fills whatever it
@@ -652,7 +652,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
     /// - the *frame's* report is capped at its own availability, because the
     ///   same clamp applies to the frame's buffer in its parent (a
     ///   `.frame(width: 20)` squeezed into 12 cells renders 12 wide).
-    private func measureAnalytically(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    private func measureAnalytically(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let availableWidth = proposal.width ?? context.availableWidth
         let availableHeight = proposal.height ?? context.availableHeight
         let (widthAxis, heightAxis) = (self.widthAxis, self.heightAxis)
@@ -681,7 +681,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
         }
         let contentSize = measureChild(
             content,
-            proposal: ProposedSize(
+            proposal: ProposedViewSize(
                 width: widthAxis.contentProposal(availableWidth, unspecified: asksIdealWidth),
                 height: targetHeight),
             context: contentContext)

@@ -487,7 +487,7 @@ package enum SGRColorRewrite {
 @MainActor extension _OpacityView: Layoutable {
     /// Fading rewrites colours in place: same characters, same cells, same
     /// size. An invisible view still occupies its space, as in SwiftUI.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

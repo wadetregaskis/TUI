@@ -266,7 +266,7 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
 }
 
 @MainActor extension _StyleEnvironmentView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: childContext(context))
     }
 }

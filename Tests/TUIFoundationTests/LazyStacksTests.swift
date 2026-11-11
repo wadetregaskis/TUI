@@ -407,7 +407,7 @@ private struct FlagProbe: View, Renderable, Layoutable {
         return FrameBuffer(text: "PROBE")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         flag.measured = true
         return ViewSize.fixed(5, 1)
     }
@@ -492,7 +492,7 @@ struct LazyStackLazinessTests {
         let context = makeBareRenderContext(width: 20, height: 3)
 
         let size = measureChild(
-            stack, proposal: ProposedSize(width: 20, height: nil), context: context)
+            stack, proposal: ProposedViewSize(width: 20, height: nil), context: context)
         #expect(log.renderCalls == 0, "measuring drew \(log.renderCalls) probes")
         #expect(log.measureCalls > 0, "…while genuinely measuring them")
         // Append-while-fits saturates: 8 + 1+8 = 17 fits, the third column
@@ -531,7 +531,7 @@ private struct CallLogProbe: View, Renderable, Layoutable {
         return FrameBuffer(text: String(repeating: "x", count: width))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         log.measureCalls += 1
         return ViewSize.fixed(width, 1)
     }

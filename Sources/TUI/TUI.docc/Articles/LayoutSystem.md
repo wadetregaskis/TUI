@@ -258,8 +258,8 @@ When neither a stack nor a frame expresses the arrangement, conform to
 
 ```swift
 struct Diagonal: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize { … }
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize { … }
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for (index, subview) in subviews.enumerated() {
             subview.place(at: CellPoint(x: bounds.x + index, y: bounds.y + index), proposal: .unspecified)
         }
@@ -270,7 +270,7 @@ Diagonal { Text("one"); Text("two") }
 ```
 
 A subview that is never placed is not drawn, and placement order is draw order.
-``ProposedViewSize`` is SwiftUI's name for ``ProposedSize``, and `ProposedSize(_:)`
+``ProposedViewSize`` is SwiftUI's type, in cells, and `ProposedViewSize(_:)`
 makes a proposal of a size, whether a subview's ``ViewSize`` or a region's
 ``CellSize``. Those two stay apart because a ``ViewSize`` also says which axes can
 grow; `CellSize(_:)` and `ViewSize(_:)` convert between them. A layout that takes
@@ -300,7 +300,7 @@ TUI's layout is inspired by SwiftUI's layout protocol. Layout containers like ``
 
 ### Pass 1: Measure
 
-The parent proposes a size to each child via ``ProposedSize``. Each child responds with a ``ViewSize`` that describes how much space it needs and whether it can flex.
+The parent proposes a size to each child via ``ProposedViewSize``. Each child responds with a ``ViewSize`` that describes how much space it needs and whether it can flex.
 
 ```
 Parent (VStack)
@@ -320,12 +320,12 @@ Parent allocates:
   Button → render(width: 40, height: 1)   // Gets full width, fixed height
 ```
 
-### ProposedSize
+### ProposedViewSize
 
-``ProposedSize`` represents the space a parent offers to a child. Either dimension can be `nil`, meaning "use your ideal size."
+``ProposedViewSize`` represents the space a parent offers to a child. Either dimension can be `nil`, meaning "use your ideal size."
 
 ```swift
-public struct ProposedSize {
+public struct ProposedViewSize {
     public var width: Int?
     public var height: Int?
 }
@@ -364,7 +364,7 @@ Views that participate in two-pass layout conform to `Layoutable` (which extends
 
 ```swift
 protocol Layoutable: Renderable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 }
 ```
 
@@ -376,7 +376,7 @@ Layout containers wrap their children in `ChildView`, which provides a uniform i
 
 ```swift
 struct ChildView {
-    func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize
+    func measure(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
     func render(width: Int, height: Int, context: RenderContext) -> FrameBuffer
 }
 ```
@@ -422,7 +422,7 @@ fixed.
 
 ## See Also
 
-- ``ProposedSize``
+- ``ProposedViewSize``
 - ``ViewSize``
 - ``GeometryReader``
 - ``AlignmentID``

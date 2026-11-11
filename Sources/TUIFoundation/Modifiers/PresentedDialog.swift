@@ -18,7 +18,7 @@ package func renderPresentedDialog<V: View>(
     _ content: V, context: RenderContext, capHeight: Int
 ) -> FrameBuffer {
     let naturalHeight = measureChild(
-        content, proposal: ProposedSize(width: context.availableWidth, height: nil),
+        content, proposal: ProposedViewSize(width: context.availableWidth, height: nil),
         context: context
     ).height
     if capHeight > 0, naturalHeight > capHeight {

@@ -129,7 +129,7 @@ private struct _GroupElementsCore<Subviews: View, Content: View>: View, Renderab
         fatalError("_GroupElementsCore renders via Renderable")
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureStackedVertically(
             resolveChildViews(from: elements, context: context), proposal: proposal, context: context)
     }

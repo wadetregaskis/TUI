@@ -34,7 +34,7 @@ private final class Screen {
     func measure<V: View>(_ view: V, atMillis millis: Int) -> ViewSize {
         context.environment.frameNowNanos = Int64(millis) * 1_000_000
         return measureChild(
-            view, proposal: ProposedSize(width: 30, height: 8), context: context)
+            view, proposal: ProposedViewSize(width: 30, height: 8), context: context)
     }
 }
 

@@ -148,7 +148,7 @@ struct _MenuSectionedItems<Items: View>: View, Renderable, Layoutable, ChildView
         renderStackedVertically(childViews(context: context), context: context)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
     }
 }
@@ -259,7 +259,7 @@ nonisolated package struct _MenuSectionHeader: View, Renderable, Layoutable {
         TUIView.renderToBuffer(header, context: sectionChromeContext(context, .sectionHeader))
     }
 
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(header, proposal: proposal, context: sectionChromeContext(context, .sectionHeader))
     }
 }

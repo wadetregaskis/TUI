@@ -15,7 +15,7 @@ import Testing
 /// below where the previous one started. Exercises the whole contract —
 /// measure, place, and a size that is neither the sum nor the max.
 private struct Diagonal: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         var width = 0
         var height = 0
         for (index, subview) in subviews.enumerated() {
@@ -27,7 +27,7 @@ private struct Diagonal: Layout {
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         for (index, subview) in subviews.enumerated() {
             subview.place(at: CellPoint(x: bounds.x + index, y: bounds.y + index), proposal: .unspecified)
@@ -42,12 +42,12 @@ private struct AnchorAt: Layout {
     let width: Int
     let height: Int
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: width, height: height)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         for subview in subviews {
             subview.place(in: bounds, anchor: anchor, proposal: .unspecified)
@@ -75,12 +75,12 @@ private struct Cached: Layout {
         cache = subviews.count
     }
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout Int) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Int) -> ViewSize {
         ViewSize(width: cache, height: 1)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout Int
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Int
     ) {
         for subview in subviews {
             subview.place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
@@ -95,12 +95,12 @@ private struct Span: LayoutValueKey {
 /// Reports the total span its subviews asked for, so a test can prove the
 /// value actually arrived.
 private struct SumOfSpans: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         ViewSize(width: subviews.reduce(0) { $0 + $1[Span.self] }, height: 1)
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         for subview in subviews {
             subview.place(at: CellPoint(x: bounds.x, y: bounds.y), proposal: .unspecified)
@@ -112,7 +112,7 @@ private struct SumOfSpans: Layout {
 /// case of a flow layout, which is where the Example's track editor puts its
 /// toggles and buttons.
 private struct SideBySide: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         var width = 0
         var height = 0
         for (index, subview) in subviews.enumerated() {
@@ -124,7 +124,7 @@ private struct SideBySide: Layout {
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         var x = bounds.x
         for subview in subviews {
@@ -198,12 +198,12 @@ struct LayoutProtocolTests {
     func unplacedSubviewsAreNotDrawn() {
         struct PlacesFirstOnly: Layout {
             func sizeThatFits(
-                proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) -> ViewSize {
                 ViewSize(width: 10, height: 1)
             }
             func placeSubviews(
-                in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) {
                 subviews.first?.place(at: CellPoint(x: 0, y: 0), proposal: .unspecified)
             }
@@ -268,12 +268,12 @@ struct LayoutProtocolTests {
         struct AtOrigin: Layout {
             let anchor: UnitPoint
             func sizeThatFits(
-                proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) -> ViewSize {
                 ViewSize(width: 12, height: 1)
             }
             func placeSubviews(
-                in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
                     subview.place(at: CellPoint(x: 0, y: 0), anchor: anchor, proposal: .unspecified)
@@ -298,12 +298,12 @@ struct LayoutProtocolTests {
         struct AtColumn: Layout {
             let anchor: UnitPoint
             func sizeThatFits(
-                proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) -> ViewSize {
                 ViewSize(width: 12, height: 1)
             }
             func placeSubviews(
-                in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
                     subview.place(at: CellPoint(x: 6, y: 0), anchor: anchor, proposal: .unspecified)
@@ -363,12 +363,12 @@ struct LayoutProtocolTests {
     func layoutPriorityIsALayoutValue() {
         struct MaxPriority: Layout {
             func sizeThatFits(
-                proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) -> ViewSize {
                 ViewSize(width: Int(subviews.map(\.priority).max() ?? 0), height: 1)
             }
             func placeSubviews(
-                in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
                     subview.place(at: CellPoint(x: 0, y: 0), proposal: .unspecified)
@@ -391,13 +391,13 @@ struct LayoutProtocolTests {
         // readable by a custom layout, not just by a stack.
         struct ReadsGuide: Layout {
             func sizeThatFits(
-                proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) -> ViewSize {
                 let guide = subviews[0].dimensions(in: .unspecified)[HorizontalAlignment.leading]
                 return ViewSize(width: Int(guide), height: 1)
             }
             func placeSubviews(
-                in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+                in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
             ) {
                 for subview in subviews {
                     subview.place(at: CellPoint(x: 0, y: 0), proposal: .unspecified)

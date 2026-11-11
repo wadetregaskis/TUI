@@ -199,7 +199,7 @@ private final class HandlerIDBox {
     /// Forwards measurement to the content — help text changes no layout. The
     /// child is measured with `helpText` set, so a control that reads it while
     /// measuring sees the same value it will render with.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         var childContext = context
         childContext.environment.helpText = text
         return measureChild(content, proposal: proposal, context: childContext)

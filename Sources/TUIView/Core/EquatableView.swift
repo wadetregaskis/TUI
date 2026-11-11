@@ -115,7 +115,7 @@ nonisolated public struct EquatableView<Content: View & Equatable>: View {
     /// environment changes a measure could depend on), an identical size. That
     /// value comparison is exactly why this is safe where an identity-keyed
     /// measure memo is not.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureValueMemoized(
             key: content, proposal: proposal, context: context, build: { content },
             measure: { measureChild($0, proposal: proposal, context: $1) })

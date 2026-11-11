@@ -29,7 +29,7 @@ nonisolated package struct OffsetView<Content: View>: View {
 }
 
 @MainActor extension OffsetView: Renderable, Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Layout keeps the content's natural size — the offset displaces
         // only the drawing (SwiftUI semantics).
         measureChild(content, proposal: proposal, context: context)

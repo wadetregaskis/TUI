@@ -209,7 +209,7 @@ extension _ZStackCore {
     /// guides are left to the residual (`GeometryAsk`).
     func childContexts(_ drawn: [ChildView], context: RenderContext) -> [RenderContext]? {
         guard context.placesChildren, !context.isMeasuring else { return nil }
-        let proposal = ProposedSize(width: context.availableWidth, height: context.availableHeight)
+        let proposal = ProposedViewSize(width: context.availableWidth, height: context.availableHeight)
         let sizes = drawn.map { $0.measure(proposal: proposal, context: context) }
         let frameWidth = sizes.map(\.width).max() ?? 0
         let frameHeight = sizes.map(\.height).max() ?? 0
@@ -231,7 +231,7 @@ extension _ZStackCore: Layoutable {
     /// flexible on an axis when any child is — a flexible child fills that extent,
     /// so the stack does too. Alignment and z-index affect placement/draw order,
     /// not size.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let context = context.takingSectionsApart().offeringAWidth(unless: isStaticallyOneView(Content.self))
         // A layer that has left takes no room (`StackGlide`).
         let children = stackChildren(of: content, context: context).laidOut
@@ -337,7 +337,7 @@ extension _ZStackCore: AlignmentGuideQuerying {
         let drawn = children.filter { !$0.isSpacer }
         let sizes = drawn.map { child -> (width: Int, height: Int) in
             let size = child.measure(
-                proposal: ProposedSize(width: dimensions.width, height: dimensions.height),
+                proposal: ProposedViewSize(width: dimensions.width, height: dimensions.height),
                 context: context)
             return (width: min(size.width, dimensions.width), height: min(size.height, dimensions.height))
         }

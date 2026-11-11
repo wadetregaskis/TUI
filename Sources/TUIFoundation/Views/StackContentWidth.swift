@@ -352,7 +352,7 @@ struct ContentWidthRecord {
         // Unproposed, under the mark: each row is asked its IDEAL width, which
         // is the question — a filling frame answers with its content rather
         // than the rung (``RenderContext/asksIdealWidth``).
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
         var walked = from
         // An inherited maximum can already be at this ask's ceiling — a wider
         // ask kept it — and then there is nothing left to walk for: the answer
@@ -581,7 +581,7 @@ struct ContentWidthRecord {
         }
         // Asked as the walk asks — unproposed, under the mark — or the answers
         // are not comparable with the record's.
-        let unproposed = ProposedSize(width: nil, height: nil)
+        let unproposed = ProposedViewSize(width: nil, height: nil)
 
         // Every row measured here is known exactly; every other row is at most
         // the runner-up, on the challenge's premise that it did not move.
@@ -715,7 +715,7 @@ struct ContentWidthRecord {
         let (measureContext, tracker) = rowWidthContext(context, width: record.measuredAt)
         let mark = tracker.beginScope()
         defer { tracker.endScope(mark) }
-        let unproposed = ProposedSize(width: nil, height: nil)
+        let unproposed = ProposedViewSize(width: nil, height: nil)
         var moved = false
         for ordinal in entering where ordinal < min(record.covered, children.count) {
             let row = children[ordinal]
@@ -761,7 +761,7 @@ struct ContentWidthRecord {
         rowContext.isMeasuring = true
         rowContext.availableWidth = widthLimit
         rowContext.leaveScrollOrigin()
-        return child.measure(proposal: ProposedSize(width: nil, height: nil), context: rowContext)
+        return child.measure(proposal: ProposedViewSize(width: nil, height: nil), context: rowContext)
     }
 }
 

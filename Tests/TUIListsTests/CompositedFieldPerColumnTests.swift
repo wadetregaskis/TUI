@@ -157,11 +157,11 @@ struct CompositedFieldPerColumnTests {
     private struct AtColumns: Layout {
         let columns: [Int]
 
-        func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
             ViewSize(width: 8, height: 1)
         }
 
-        func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+        func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
             for index in subviews.indices {
                 subviews[index].place(at: CellPoint(x: bounds.x + columns[index], y: bounds.y), proposal: .unspecified)
             }
@@ -308,11 +308,11 @@ struct CompositedFieldPerColumnTests {
     private struct AtCells: Layout {
         let cells: [(x: Int, y: Int)]
 
-        func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
             ViewSize(width: 24, height: 6)
         }
 
-        func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+        func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
             for index in subviews.indices {
                 subviews[index].place(
                     at: CellPoint(x: bounds.x + cells[index].x, y: bounds.y + cells[index].y), proposal: .unspecified)

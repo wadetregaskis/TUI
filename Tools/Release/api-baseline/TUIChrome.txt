@@ -18,7 +18,7 @@ HelpModifier._keepsContentGeometry | @MainActor static var _keepsContentGeometry
 HelpModifier.body | @MainActor var body: Never { get }
 HelpModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 HelpModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
-HelpModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+HelpModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 HelpModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 HelpModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
 LabeledToolbarItemGroupContent | nonisolated struct LabeledToolbarItemGroupContent<Content, Label> where Content : View, Label : View

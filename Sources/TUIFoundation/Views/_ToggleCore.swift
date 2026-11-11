@@ -81,7 +81,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
     /// label: the toggle fills its width iff its label does. The single-render
     /// fallback would size it the same, but always reports fixed — this adds the
     /// structural label probe so a flexible label still makes the toggle flexible.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Inside an open pop-up menu this toggle IS a menu row — see
         // ``menuRow(context:)`` — so it is the row that gets measured, not a
         // checkbox the menu would then not draw.
@@ -651,7 +651,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
     /// Renders a single label part at its natural size, wrapped to `maxWidth`
     /// where it is wider.
     private func renderLabelPart(_ part: ChildView, maxWidth: Int, context: RenderContext) -> FrameBuffer {
-        let size = part.measure(proposal: ProposedSize(width: maxWidth, height: nil), context: context)
+        let size = part.measure(proposal: ProposedViewSize(width: maxWidth, height: nil), context: context)
         return part.render(width: min(size.width, maxWidth), height: size.height, context: context)
     }
 

@@ -403,7 +403,7 @@ struct _ProgressViewCore<Label: View, CurrentValueLabel: View>: View, Renderable
     /// render-to-measure fallback — which rendered the whole bar (and, for an
     /// indeterminate bar, started its animation task) just to read back a size
     /// that is fully determined by the label's presence.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let width = proposal.width ?? context.availableWidth
         // 2 lines only when the label line is actually visible (a blank label
         // like `ProgressView("")` collapses to just the bar). Rendering the

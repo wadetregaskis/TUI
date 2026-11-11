@@ -37,7 +37,7 @@ struct HitTestingModifierTests {
 
     private func size(_ view: some View, width: Int = 24, height: Int = 8) -> ViewSize {
         measureChild(
-            view, proposal: ProposedSize(width: width, height: height),
+            view, proposal: ProposedViewSize(width: width, height: height),
             context: makeBareRenderContext(width: width, height: height))
     }
 

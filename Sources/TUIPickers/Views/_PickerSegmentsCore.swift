@@ -106,7 +106,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
     /// depend on which segment is selected or under the cursor (2026-10-26:
     /// `_PickerSegmentsCore.sizeThatFits` 26.6% of a frame of the Stress
     /// `pickers` scenario, `drawSegment` 16.3% of it).
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let options = self.options
         guard !options.isEmpty, context.stateStorage != nil else { return ViewSize.fixed(0, 0) }
         let measureContext = fixedMeasureContext(proposal: proposal, context: context)
@@ -120,7 +120,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
             let labelContext = Self.labelContext(index: index, in: measureContext)
             let size = measureChild(
                 label.bold(isSelected && marksSelection),
-                proposal: ProposedSize(width: labelContext.availableWidth, height: labelContext.availableHeight),
+                proposal: ProposedViewSize(width: labelContext.availableWidth, height: labelContext.availableHeight),
                 context: labelContext)
             guard size.height <= 1, !size.isWidthFlexible else {
                 return measureFixedByRendering(self, proposal: proposal, context: context)

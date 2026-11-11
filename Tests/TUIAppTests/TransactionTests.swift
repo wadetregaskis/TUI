@@ -208,7 +208,7 @@ struct TransactionTests {
                 availableWidth: 20, availableHeight: 10, environment: env, tuiContext: tui)
             tui.stateStorage.beginRenderPass()
             let size = measureChild(
-                view, proposal: ProposedSize(width: 20, height: 10), context: context)
+                view, proposal: ProposedViewSize(width: 20, height: 10), context: context)
             let buffer = renderToBuffer(view, context: context)
             tui.stateStorage.endRenderPass()
             return (size.height, buffer.lines.count)

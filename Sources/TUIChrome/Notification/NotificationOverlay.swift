@@ -240,7 +240,7 @@ enum NotificationOverlay {
                 erasedType: NotificationToast.self, key: entry.id.rawValue.uuidString)
             toastContext.availableWidth = width
             let toast = NotificationToast(entry: entry, width: width, opacity: opacity, chosen: context.chosen(entry.id))
-            let size = measureChild(toast, proposal: ProposedSize(width: width, height: nil), context: toastContext)
+            let size = measureChild(toast, proposal: ProposedViewSize(width: width, height: nil), context: toastContext)
             guard drawn.isEmpty || height + size.height <= maxHeight else { break }
             let buffer = TUIView.renderToBuffer(toast, context: toastContext)
             height += buffer.height

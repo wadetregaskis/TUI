@@ -136,7 +136,7 @@ nonisolated struct _ValueScopedTransactionView<Content: View, V: Equatable>: Vie
 @MainActor extension _ValueScopedTransactionView: Layoutable {
     /// Measures as its content — under the same transaction the render will
     /// use, so animatable geometry is measured where it is drawn.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: transformedContext(context) ?? context)
     }
 }

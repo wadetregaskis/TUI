@@ -165,7 +165,7 @@ struct ScrollViewReservedIndicatorCanvasTests {
         let seen: Seen
         var body: Never { fatalError("ImageIdentityProbe renders via Renderable") }
 
-        func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+        func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
             _ImageCore(source: source).sizeThatFits(proposal: proposal, context: context)
         }
 

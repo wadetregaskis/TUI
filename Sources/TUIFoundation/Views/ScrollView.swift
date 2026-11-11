@@ -324,7 +324,7 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
 
     // MARK: Layout
 
-    func sizeThatFits(proposal: ProposedSize, context given: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context given: RenderContext) -> ViewSize {
         let read = placingIndicators(hidingAutomaticIndicators(given))
         if let margined = margined(context: read) {
             return margined.sizeThatFits(proposal: proposal, context: read)

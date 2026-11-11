@@ -83,7 +83,7 @@ struct PreferenceLayerTests {
             .preference(key: TitleKey.self, value: "a much longer title")
             .overlayPreferenceValue(TitleKey.self) { Text($0) }
         #expect(frame(view).line.count == 2)
-        let measured = measureChild(view, proposal: ProposedSize(width: 20, height: 5), context: makeRenderContext())
+        let measured = measureChild(view, proposal: ProposedViewSize(width: 20, height: 5), context: makeRenderContext())
         #expect(measured.width == 2 && measured.height == 1)
     }
 }

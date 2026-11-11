@@ -390,7 +390,7 @@ extension _ScrollViewCore {
         else { return 0 }
         canvas.availableWidth = contentWidth
         let drawn = measureNaturalExtent(
-            content, along: .vertical, proposal: ProposedSize(width: contentWidth, height: nil), context: canvas,
+            content, along: .vertical, proposal: ProposedViewSize(width: contentWidth, height: nil), context: canvas,
             startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight)
         ).width
         let room = contentWidth - drawn

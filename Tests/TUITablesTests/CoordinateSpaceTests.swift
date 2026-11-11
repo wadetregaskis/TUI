@@ -688,7 +688,7 @@ private struct DroppingMarkers<Content: View>: View, Renderable, Layoutable {
 
     var body: Never { fatalError("DroppingMarkers renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 
@@ -723,7 +723,7 @@ private struct RefutingMeasure<Content: View>: View, Renderable, Layoutable {
 
     var body: Never { fatalError("RefutingMeasure renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 

@@ -503,7 +503,7 @@ private struct _SpinnerCore: View, Renderable, Layoutable {
 
     /// A spinner is fixed-size (a fixed-width glyph plus an optional fixed label),
     /// so a single render is its exact, fixed measure.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureFixedByRendering(self, proposal: proposal, context: context)
     }
 

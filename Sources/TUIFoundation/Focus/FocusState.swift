@@ -407,7 +407,7 @@ extension FocusBindingRegistrar {
 }
 
 @MainActor extension _FocusedModifier: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
 
@@ -497,7 +497,7 @@ nonisolated struct _DefaultFocusModifier<Content: View, Value: Hashable>: View {
 }
 
 @MainActor extension _DefaultFocusModifier: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

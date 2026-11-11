@@ -41,7 +41,7 @@ nonisolated struct BackgroundLayerModifier<Base: View, Background: View>: View {
 
 @MainActor extension BackgroundLayerModifier: Layoutable {
     /// The base's size, as ``OverlayModifier``'s is.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard Base.self != EmptyView.self else { return ViewSize.fixed(0, 0) }
         return layeredSize(
             background, baseSize: measureChild(base, proposal: proposal, context: context),

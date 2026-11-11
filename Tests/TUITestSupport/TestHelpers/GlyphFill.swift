@@ -26,7 +26,7 @@ struct GlyphFill: View, Renderable, Layoutable {
 
     var body: Never { fatalError("GlyphFill renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(
             width: proposal.width ?? context.availableWidth, height: proposal.height ?? context.availableHeight,
             isWidthFlexible: true, isHeightFlexible: true)

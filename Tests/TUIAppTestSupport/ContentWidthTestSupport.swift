@@ -112,7 +112,7 @@ func contentWidthAsks<Row: View>(
         ).askingIdealWidth()
         if underInvalidatedMemo { context = context.invalidatingMeasureMemo() }
         let children = resolveChildViewCollection(from: stack.content, context: context)
-        let proposal = ProposedSize(width: nil, height: nil)
+        let proposal = ProposedViewSize(width: nil, height: nil)
         return stack.contentWidthOverAllRows(
             children, widthLimit: limit,
             ask: context.contentWidthAsk(proposal: proposal, widthLimit: limit, heightLimit: 4_096),

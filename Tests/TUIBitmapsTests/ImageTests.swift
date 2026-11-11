@@ -635,7 +635,7 @@ struct ImageSizingTests {
         ).isolatingRenderCache()
         let size = measureChild(
             Image(.file("/no/such/image.png")),
-            proposal: ProposedSize(width: 40, height: nil),
+            proposal: ProposedViewSize(width: 40, height: nil),
             context: context)
         #expect(size.width == 40, "takes the offered width: \(size.width)")
         #expect(size.height < 100, "height is bounded, not the 4096-line canvas: \(size.height)")
@@ -648,7 +648,7 @@ struct ImageSizingTests {
         let context = makeScrollContext(viewport: (20, 10))
         let size = measureChild(
             Image(.file("/no/such/image.png")).imageFitTarget(.viewport),
-            proposal: ProposedSize(width: 80, height: nil),
+            proposal: ProposedViewSize(width: 80, height: nil),
             context: context)
         #expect(size.width == 20, "uses the viewport width (20), not the proposal (80): \(size.width)")
         #expect(size.height <= 10, "bounded by the viewport height (10): \(size.height)")
@@ -661,7 +661,7 @@ struct ImageSizingTests {
         let context = makeScrollContext(viewport: (20, 10))
         let size = measureChild(
             Image(.file("/no/such/image.png")),
-            proposal: ProposedSize(width: 80, height: nil),
+            proposal: ProposedViewSize(width: 80, height: nil),
             context: context)
         #expect(size.width == 80, "default uses the proposal width (80), not the viewport (20): \(size.width)")
     }
@@ -671,11 +671,11 @@ struct ImageSizingTests {
         let context = makeScrollContext(viewport: (20, 10))
         let base = measureChild(
             Image(.file("/no/such/image.png")).imageFitTarget(.viewport),
-            proposal: ProposedSize(width: 80, height: nil),
+            proposal: ProposedViewSize(width: 80, height: nil),
             context: context)
         let zoomed = measureChild(
             Image(.file("/no/such/image.png")).imageFitTarget(.viewport).imageZoom(2),
-            proposal: ProposedSize(width: 80, height: nil),
+            proposal: ProposedViewSize(width: 80, height: nil),
             context: context)
         #expect(zoomed.width == base.width * 2, "zoom 2 doubles width: \(zoomed.width) vs \(base.width)")
         #expect(zoomed.height == base.height * 2, "zoom 2 doubles height: \(zoomed.height) vs \(base.height)")

@@ -399,7 +399,7 @@ nonisolated package struct PopoverPresentationModifier<Content: View, Popover: V
     /// The popover floats over the page, so the layout footprint is the
     /// presenting content — presented or not. Forwarding also keeps the
     /// section registration on the render pass.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(
             content, proposal: proposal,
             context: context.withChildIdentity(type: Content.self, index: 0))

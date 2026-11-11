@@ -100,7 +100,7 @@ struct TableAnalyticMeasureTests {
 
                     let measured = measureChild(
                         table,
-                        proposal: ProposedSize(width: width, height: height),
+                        proposal: ProposedViewSize(width: width, height: height),
                         context: context)
 
                     #expect(
@@ -127,7 +127,7 @@ struct TableAnalyticMeasureTests {
         renderContext.hasExplicitWidth = false
         let buffer = renderToBuffer(table, context: renderContext)
         let measured = measureChild(
-            table, proposal: ProposedSize(width: 40, height: 16), context: context)
+            table, proposal: ProposedViewSize(width: 40, height: 16), context: context)
         #expect(measured.width == buffer.width && measured.height == buffer.height)
     }
 
@@ -195,7 +195,7 @@ struct TableAnalyticMeasureTests {
                     let buffer = renderToBuffer(table, context: renderContext)
                     let measured = measureChild(
                         table,
-                        proposal: ProposedSize(width: width, height: height),
+                        proposal: ProposedViewSize(width: width, height: height),
                         context: context)
 
                     #expect(
@@ -225,7 +225,7 @@ struct TableAnalyticMeasureTests {
                 renderContext.hasExplicitWidth = false
                 let buffer = renderToBuffer(table, context: renderContext)
                 let measured = measureChild(
-                    table, proposal: ProposedSize(width: 60, height: budget), context: context)
+                    table, proposal: ProposedViewSize(width: 60, height: budget), context: context)
                 #expect(
                     measured.width == buffer.width && measured.height == buffer.height,
                     """

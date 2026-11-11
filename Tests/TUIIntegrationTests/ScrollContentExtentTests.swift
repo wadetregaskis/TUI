@@ -114,7 +114,7 @@ struct ScrollContentExtentTests {
         }
         let height = measureNaturalExtent(
             tall, along: .vertical,
-            proposal: ProposedSize(width: 40, height: nil),
+            proposal: ProposedViewSize(width: 40, height: nil),
             context: context(), startingBudget: 4_096
         ).height
         #expect(height == Self.tallRowCount, "vertical extent is the content's, not the budget's")
@@ -126,7 +126,7 @@ struct ScrollContentExtentTests {
         }
         let width = measureNaturalExtent(
             wide, along: .horizontal,
-            proposal: ProposedSize(width: nil, height: nil),
+            proposal: ProposedViewSize(width: nil, height: nil),
             context: context(), startingBudget: 4_096
         ).width
         #expect(width == Self.tallRowCount, "horizontal extent is the content's, not the budget's")
@@ -143,7 +143,7 @@ struct ScrollContentExtentTests {
         }
         let size = measureNaturalExtent(
             view, along: .vertical,
-            proposal: ProposedSize(width: 20, height: nil),
+            proposal: ProposedViewSize(width: 20, height: nil),
             context: context(), startingBudget: 4)
         #expect(size.height == 30, "truncated at the first budget's row boundary")
     }
@@ -163,7 +163,7 @@ struct ScrollContentExtentTests {
         // by the ordinary under-budget rule instead.
         let size = measureNaturalExtent(
             List { ForEach(0..<3, id: \.self) { Text(verbatim: "row \($0)") } }, along: .vertical,
-            proposal: ProposedSize(width: 40, height: nil),
+            proposal: ProposedViewSize(width: 40, height: nil),
             context: context(), startingBudget: 4_096)
         #expect(size.height == 4_096, "stopped at the first rung: \(size.height)")
         #expect(size.isHeightFlexible, "…because the content said it fills what it is given")

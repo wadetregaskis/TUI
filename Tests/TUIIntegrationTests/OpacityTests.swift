@@ -186,7 +186,7 @@ struct OpacityTests {
         #expect(faded.width == plain.width)
         #expect(faded.lines.count == plain.lines.count)
         #expect(faded.hitTestRegions.count == plain.hitTestRegions.count)
-        let proposal = ProposedSize(width: 40, height: 6)
+        let proposal = ProposedViewSize(width: 40, height: 6)
         #expect(
             measureChild(Text("hello").opacity(0), proposal: proposal, context: context)
                 == measureChild(Text("hello"), proposal: proposal, context: context))

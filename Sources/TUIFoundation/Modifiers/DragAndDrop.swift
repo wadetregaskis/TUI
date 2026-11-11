@@ -122,7 +122,7 @@ nonisolated package struct DraggableModifier<Content: View, Payload>: View {
 }
 
 @MainActor extension DraggableModifier: Renderable, Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 
@@ -451,7 +451,7 @@ nonisolated package struct DropDestinationModifier<Content: View, Payload>: View
 }
 
 @MainActor extension DropDestinationModifier: Renderable, Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 

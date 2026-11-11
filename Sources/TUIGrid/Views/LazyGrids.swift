@@ -51,10 +51,10 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
     // MARK: Geometry
 
     /// The size to offer a subview in a track of this extent.
-    private func proposal(forTrack extent: Int) -> ProposedSize {
+    private func proposal(forTrack extent: Int) -> ProposedViewSize {
         axis == .vertical
-            ? ProposedSize(width: extent, height: nil)
-            : ProposedSize(width: nil, height: extent)
+            ? ProposedViewSize(width: extent, height: nil)
+            : ProposedViewSize(width: nil, height: extent)
     }
 
     /// How thick each line is: row heights when vertical, column widths when
@@ -86,7 +86,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
     /// A `nil` proposal (an unconstrained context — a `ScrollView`'s scrolling
     /// axis, or a stack probing a child's ideal size) resolves against the
     /// grid's own IDEAL demand instead.
-    private func across(of proposal: ProposedSize, subviewCount: Int) -> Int {
+    private func across(of proposal: ProposedViewSize, subviewCount: Int) -> Int {
         let proposed = axis == .vertical ? proposal.width : proposal.height
         guard let proposed, proposed > 0 else { return idealAcross(for: subviewCount) }
         return proposed
@@ -132,7 +132,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
     // MARK: Layout
 
     func sizeThatFits(
-        proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) -> ViewSize {
         let tracks = GridItem.resolve(
             items, available: across(of: proposal, subviewCount: subviews.count), wrapping: axis)
@@ -165,7 +165,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         let tracks = GridItem.resolve(
             items, available: axis == .vertical ? bounds.width : bounds.height, wrapping: axis)
@@ -187,7 +187,7 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
                 subviews[index].place(
                     in: cell,
                     anchor: (track.alignment ?? alignment).unitPoint,
-                    proposal: ProposedSize(width: cell.width, height: cell.height))
+                    proposal: ProposedViewSize(width: cell.width, height: cell.height))
                 across += track.extent + track.spacing
             }
             along += breadth + spacing
@@ -400,7 +400,7 @@ private struct _LazyGridSections<Content: View>: View, Renderable, Layoutable {
         context.withChildIdentity(type: Self.self)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard hasSections(context) else { return measureChild(flat, proposal: proposal, context: context) }
         return measureChild(sectioned, proposal: proposal, context: sectionedContext(context))
     }

@@ -33,7 +33,7 @@ struct LineSpacingTests {
 
     private func size(_ view: some View, width: Int = 12, height: Int = 20) -> ViewSize {
         measureChild(
-            view, proposal: ProposedSize(width: width, height: height),
+            view, proposal: ProposedViewSize(width: width, height: height),
             context: makeBareRenderContext(width: width, height: height))
     }
 
@@ -121,7 +121,7 @@ struct LineSpacingTests {
             let view = Text(verbatim: prose).lineSpacing(spacing)
             let context = makeBareRenderContext(width: 12, height: 40)
             let measured = measureChild(
-                view, proposal: ProposedSize(width: 12, height: 40), context: context)
+                view, proposal: ProposedViewSize(width: 12, height: 40), context: context)
             let drawn = renderToBuffer(view, context: context)
             #expect(
                 measured.height == drawn.height,

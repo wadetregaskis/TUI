@@ -291,7 +291,7 @@ private struct _ContentUnavailableViewCore<Label: View, Description: View, Actio
     /// measure and render must occur at the same width (they do in two-pass
     /// layout). It is *not* flexible in the contract sense (it does not fill to
     /// the edge — only the left pad grows), so it reports `.fixed`.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureFixedByRendering(self, proposal: proposal, context: context)
     }
 

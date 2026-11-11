@@ -29,7 +29,7 @@ import TUICore
     /// the rows its budget reaches instead (`reachedRows`) — exactly the rows
     /// the walk would draw.
     func anchoredSizeThatFits(
-        _ children: ChildViewCollection, proposal: ProposedSize, context: RenderContext
+        _ children: ChildViewCollection, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize? {
         let state = uniformWindowState(context: context)
         let count = children.count
@@ -43,7 +43,7 @@ import TUICore
         measureContext.leaveScrollOrigin()
         let widthLimit = proposal.width ?? context.availableWidth
         let heightLimit = proposal.height ?? context.availableHeight
-        let sampleProposal = ProposedSize(width: widthLimit, height: nil)
+        let sampleProposal = ProposedViewSize(width: widthLimit, height: nil)
         let sampleSize = min(count, Self.anchoredWidthSampleCount)
         // Built once, for the check below and the sample: a subscript BUILDS
         // its child, and building the sixteen twice cost a million-row
@@ -164,7 +164,7 @@ import TUICore
     /// priced at it — capped at the budget. Returns the sampled rows whose
     /// widths count, and the height.
     private func sampledRows(
-        _ sample: [ChildView], count: Int, state: StackWindowState, proposal: ProposedSize,
+        _ sample: [ChildView], count: Int, state: StackWindowState, proposal: ProposedViewSize,
         heightLimit: Int, context: RenderContext
     ) -> (counted: ArraySlice<ViewSize>, height: Int) {
         var estimate = state.estimatedPitch(spacing: spacing)
@@ -226,7 +226,7 @@ import TUICore
     /// `Documentation/Layout and scrolling/Locating things without drawing them.md`, which also
     /// says why a count of rows built can move.
     private func reachedRows(
-        _ children: ChildViewCollection, built: [ChildView], proposal: ProposedSize,
+        _ children: ChildViewCollection, built: [ChildView], proposal: ProposedViewSize,
         heightLimit: Int, context: RenderContext
     ) -> (counted: ArraySlice<ViewSize>, height: Int, isNatural: Bool)? {
         let slots = reachedRowSlots(

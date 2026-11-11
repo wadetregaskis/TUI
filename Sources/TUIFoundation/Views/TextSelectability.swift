@@ -120,7 +120,7 @@ nonisolated struct _TextSelectionScope<Content: View>: View, Renderable, Layouta
         return buffer
     }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(
             content.environment(\.textSelectionAllowed, allowsSelection), proposal: proposal, context: context)
     }

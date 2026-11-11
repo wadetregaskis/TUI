@@ -947,12 +947,12 @@ extension _ButtonStyleBody: Layoutable {
     /// none. Asked only of a button that drew its whole offer — one narrower
     /// than that is not filling it, keeps the answer it always had, and pays
     /// for no second measure.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         sized(in: context).measure(proposal: proposal, context: context)
     }
 
     /// ``sizeThatFits(proposal:context:)`` once the appearance is sized.
-    private func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    private func measure(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let labelView = configuration.labelView {
             return viewLabelSize(labelView, proposal: proposal, context: context)
         }
@@ -982,7 +982,7 @@ extension _ButtonStyleBody: Layoutable {
     /// ask a copy of the row in placeholder colours, whose caps and label
     /// wrappers the memo had never seen, and measured them all again.
     private func viewLabelSize(
-        _ labelView: AnyView, proposal: ProposedSize, context: RenderContext
+        _ labelView: AnyView, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         let measureContext = fixedMeasureContext(proposal: proposal, context: context)
         let width = measureContext.availableWidth
@@ -1055,10 +1055,10 @@ extension _ButtonStyleBody: Layoutable {
     /// pass's measure memo keeps its answer and nothing it finds on the way,
     /// and serves it what the drawing just measured.
     private func drawnViewFills(
-        _ drawn: some View, width: Int, proposal: ProposedSize, context: RenderContext
+        _ drawn: some View, width: Int, proposal: ProposedViewSize, context: RenderContext
     ) -> Bool {
         measureChildRememberingOnlyItself(
-            drawn, proposal: ProposedSize(width: width, height: proposal.height), context: context
+            drawn, proposal: ProposedViewSize(width: width, height: proposal.height), context: context
         ).isWidthFlexible
     }
 }

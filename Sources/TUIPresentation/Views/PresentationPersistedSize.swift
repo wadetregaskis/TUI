@@ -53,7 +53,7 @@ package struct _PresentationPersistedSizeView<Content: View>: View, Presentation
 }
 
 @MainActor extension _PresentationPersistedSizeView: Layoutable {
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

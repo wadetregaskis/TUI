@@ -75,7 +75,7 @@ struct BugClassSiblingTests {
         // measure DOES resolve each item's shortcut, because it has to reserve
         // the width of the hint, so "resolved" and "registered" must stay
         // separate things.
-        _ = measureChild(menu, proposal: ProposedSize(width: 40, height: 12), context: context)
+        _ = measureChild(menu, proposal: ProposedViewSize(width: 40, height: 12), context: context)
         #expect(!tui.keyboardShortcuts.trigger(for: KeyEvent(key: .character("i"))))
         #expect(fired == 0, "no phantom shortcut fired, got \(fired)")
 

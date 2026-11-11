@@ -193,7 +193,7 @@ struct GeometryReaderTests {
         }
         let size = measureChild(
             view,
-            proposal: ProposedSize(width: 25, height: 6),
+            proposal: ProposedViewSize(width: 25, height: 6),
             context: makeRenderContext(width: 40, height: 10))
 
         #expect(size.width == 25)

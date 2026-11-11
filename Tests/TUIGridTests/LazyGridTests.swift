@@ -255,7 +255,7 @@ struct LazyGridTests {
         }
         let context = makeBareRenderContext(width: 60, height: 20)
         let unconstrained = measureChild(
-            grid, proposal: ProposedSize(width: nil, height: nil), context: context)
+            grid, proposal: ProposedViewSize(width: nil, height: nil), context: context)
         let drawn = renderToBuffer(grid, context: context)
 
         #expect(
@@ -271,7 +271,7 @@ struct LazyGridTests {
     func flexibilityIsDeclared() {
         let context = makeBareRenderContext(width: 40, height: 10)
         func measure(_ view: some View) -> ViewSize {
-            measureChild(view, proposal: ProposedSize(width: 40, height: 10), context: context)
+            measureChild(view, proposal: ProposedViewSize(width: 40, height: 10), context: context)
         }
         let adaptive = measure(
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 4))]) { Text(verbatim: "a") })

@@ -29,7 +29,7 @@ struct _SearchFindChord: View, Renderable, Layoutable {
     /// The journal kind of a search field's Find chord.
     static let kind = EffectJournal.Kind("searchFindChord")
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(width: 0, height: 0)
     }
 

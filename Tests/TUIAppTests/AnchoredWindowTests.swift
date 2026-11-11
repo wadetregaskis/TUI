@@ -385,7 +385,7 @@ private struct UniformMeasureCountRow: View, Renderable, Layoutable {
         FrameBuffer(lines: ["row \(index)"], width: 8)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         log.measures += 1
         return ViewSize.fixed(8, 1)
     }
@@ -411,7 +411,7 @@ private struct MeasureCountRow: View, Renderable, Layoutable {
             lines: Array(repeating: "row \(index)", count: index % 3 + 1), width: 8)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         log.measures += 1
         return ViewSize.fixed(8, index % 3 + 1)
     }

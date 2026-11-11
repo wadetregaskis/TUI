@@ -33,7 +33,7 @@ struct TextTransliterationTests {
     private func size(_ view: some View, transliterating: Bool = true) -> ViewSize {
         var context = makeRenderContext(width: 30, height: 6)
         context.textSpelling = transliterating ? .ascii(.standard) : .asWritten
-        return measureChild(view, proposal: ProposedSize(width: 30, height: 6), context: context)
+        return measureChild(view, proposal: ProposedViewSize(width: 30, height: 6), context: context)
     }
 
     @Test("Off by default: the words are drawn as written")
@@ -71,7 +71,7 @@ struct TextTransliterationTests {
         let line = renderToBuffer(Text(verbatim: "⌥F Café ⌘S"), context: context).lines.first?.stripped ?? ""
         #expect(line.hasPrefix("Alt-F Café Cmd-S"))
         let measured = measureChild(
-            Text(verbatim: "⇧⇥ 你好"), proposal: ProposedSize(width: 30, height: 6), context: context)
+            Text(verbatim: "⇧⇥ 你好"), proposal: ProposedViewSize(width: 30, height: 6), context: context)
         #expect(measured.width == "Shift-Tab ".count + 4)
         #expect(TextTransliteration.spelled("⌃Q quit", as: .asciiKeys) == "^Q quit")
         #expect(TextTransliteration.spelled("plain", as: .asciiKeys) == "plain")

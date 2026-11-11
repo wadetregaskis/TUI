@@ -45,7 +45,7 @@ AnyView.childViews(context:) | @MainActor func childViews(context: RenderContext
 AnyView.init(_:) | init<V>(_ view: V) where V : View
 AnyView.init(erasing:) | init<V>(erasing view: V) where V : View
 AnyView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-AnyView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+AnyView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 AnyView.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool
 AppState.clearObservers() | func clearObservers()
 AppState.consumeNeedsCacheClear() | func consumeNeedsCacheClear() -> Bool
@@ -154,7 +154,7 @@ ChildView.init(_:identityType:childIndex:) | @MainActor init<V, IdentityType>(_ 
 ChildView.init(_:identityType:key:) | @MainActor init<V, IdentityType>(_ view: V, identityType: IdentityType.Type, key: String) where V : View
 ChildView.isSpacer | @MainActor let isSpacer: Bool
 ChildView.matchesSeekKey(_:) | @MainActor func matchesSeekKey(_ key: String) -> Bool
-ChildView.measure(proposal:context:) | @MainActor func measure(proposal: ProposedSize, context: RenderContext) -> ViewSize
+ChildView.measure(proposal:context:) | @MainActor func measure(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 ChildView.providesAlignmentGuide | @MainActor let providesAlignmentGuide: Bool
 ChildView.render(width:height:context:) | @MainActor func render(width: Int, height: Int, context: RenderContext) -> FrameBuffer
 ChildView.renderContext(under:) | @MainActor func renderContext(under context: RenderContext) -> RenderContext
@@ -194,7 +194,7 @@ ConditionalView.childViews(context:) | @MainActor func childViews(context: Rende
 ConditionalView.falseContent(_:) | case falseContent(FalseContent)
 ConditionalView.identityBranchLabel | @MainActor var identityBranchLabel: String? { get } [extension where TrueContent : View, FalseContent : View]
 ConditionalView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where TrueContent : View, FalseContent : View]
-ConditionalView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where TrueContent : View, FalseContent : View]
+ConditionalView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where TrueContent : View, FalseContent : View]
 ConditionalView.trueContent(_:) | case trueContent(TrueContent)
 ContentRewrapping | @MainActor protocol ContentRewrapping : SingleContentWrapper
 ContentRewrapping.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View
@@ -238,7 +238,7 @@ EmptyView.body | @MainActor var body: Never { get }
 EmptyView.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView]
 EmptyView.init() | nonisolated init()
 EmptyView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-EmptyView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+EmptyView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 Environment | @propertyWrapper struct Environment<Value>
 Environment.init(_:) | init(_ keyPath: KeyPath<EnvironmentValues, Value>)
 Environment.init(_:) | init(_ type: Value.Type) where Value : Observable
@@ -251,7 +251,7 @@ EnvironmentModifier.init(content:keyPath:value:) | init(content: Content, keyPat
 EnvironmentModifier.keyPath | let keyPath: WritableKeyPath<EnvironmentValues, V>
 EnvironmentModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 EnvironmentModifier.rewrapping(_:) | @MainActor func rewrapping<Inner>(_ view: Inner) -> any View where Inner : View [extension where Content : View]
-EnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+EnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 EnvironmentModifier.value | let value: V
 EnvironmentModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 EnvironmentModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
@@ -277,7 +277,7 @@ EquatableView.body | @MainActor var body: Never { get }
 EquatableView.content | var content: Content
 EquatableView.init(content:) | init(content: Content)
 EquatableView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : Equatable, Content : View]
-EquatableView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : Equatable, Content : View]
+EquatableView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : Equatable, Content : View]
 EquatableView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : Equatable, Content : View]
 EquatableView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : Equatable, Content : View]
 ExplicitIDProviding | @MainActor protocol ExplicitIDProviding
@@ -332,10 +332,10 @@ KeyframesBuilder.buildPartialBlock(accumulated:next:) | static func buildPartial
 KeyframesBuilder.buildPartialBlock(accumulated:next:) | static func buildPartialBlock(accumulated: some Keyframes<Value>, next: some Keyframes<Value>) -> some Keyframes<Value>
 KeyframesBuilder.buildPartialBlock(first:) | static func buildPartialBlock<Content>(first: Content) -> Content where Value == Content.Value, Content : Keyframes
 KeyframesBuilder.buildPartialBlock(first:) | static func buildPartialBlock<K>(first: K) -> K where Value == K.Value, K : KeyframeTrackContent
-LayoutPlacing.uniformExtent(proposal:context:) | @MainActor func uniformExtent(proposal: ProposedSize, context: RenderContext) -> Int?
+LayoutPlacing.uniformExtent(proposal:context:) | @MainActor func uniformExtent(proposal: ProposedViewSize, context: RenderContext) -> Int?
 Layoutable | @MainActor protocol Layoutable : Renderable
-Layoutable.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
-Layoutable.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+Layoutable.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
+Layoutable.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 LazyChildViewProvider | @MainActor protocol LazyChildViewProvider
 LazyChildViewProvider.childViewCollection(context:) | @MainActor func childViewCollection(context: RenderContext) -> ChildViewCollection
 LinearKeyframe | nonisolated struct LinearKeyframe<Value> where Value : Animatable
@@ -346,7 +346,7 @@ ModifiedContent | struct ModifiedContent<Content, Modifier>
 ModifiedContent.AnimatableData | typealias AnimatableData = AnimatablePair<Content.AnimatableData, Modifier.AnimatableData> [extension where Content : Animatable, Modifier : Animatable]
 ModifiedContent._animated(_:context:isMeasuring:) | @MainActor static func _animated(_ view: ModifiedContent<Content, Modifier>, context: RenderContext, isMeasuring: Bool) -> ModifiedContent<Content, Modifier>? [extension where Content : View, Modifier : ViewModifier]
 ModifiedContent._isAnimatable | @MainActor static var _isAnimatable: Bool { get } [extension where Content : View, Modifier : ViewModifier]
-ModifiedContent._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: ModifiedContent<Content, Modifier>, proposal: ProposedSize, context: RenderContext) -> ViewSize? [extension where Content : View, Modifier : ViewModifier]
+ModifiedContent._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: ModifiedContent<Content, Modifier>, proposal: ProposedViewSize, context: RenderContext) -> ViewSize? [extension where Content : View, Modifier : ViewModifier]
 ModifiedContent._renderSelf(_:context:) | @MainActor static func _renderSelf(_ view: ModifiedContent<Content, Modifier>, context: RenderContext) -> FrameBuffer? [extension where Content : View, Modifier : ViewModifier]
 ModifiedContent.animatableData | @MainActor var animatableData: ModifiedContent<Content, Modifier>.AnimatableData { get set } [extension where Content : Animatable, Modifier : Animatable]
 ModifiedContent.body | @MainActor var body: some View { get } [extension where Content : View, Modifier : ViewModifier]
@@ -372,7 +372,7 @@ ModifiedView.identityBranchLabel | @MainActor var identityBranchLabel: String? {
 ModifiedView.init(content:modifier:) | init(content: Content, modifier: Modifier)
 ModifiedView.modifier | var modifier: Modifier
 ModifiedView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, Modifier : BufferModifier]
-ModifiedView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, Modifier : BufferModifier]
+ModifiedView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View, Modifier : BufferModifier]
 ModifiedView.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool [extension where Content : ChildViewProvider, Content : View, Modifier : BufferModifier]
 ModifiedView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, Modifier : BufferModifier]
 MoveKeyframe | nonisolated struct MoveKeyframe<Value> where Value : Animatable
@@ -391,7 +391,7 @@ ObjectEnvironmentModifier.init(content:object:) | init(content: Content, object:
 ObjectEnvironmentModifier.object | let object: T?
 ObjectEnvironmentModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, T : Observable]
 ObjectEnvironmentModifier.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View, T : Observable]
-ObjectEnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, T : Observable]
+ObjectEnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View, T : Observable]
 ObjectEnvironmentModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, T : Observable]
 ObjectEnvironmentModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, T : Observable]
 OpacityRegion.opacity(of:) | static func opacity(of alpha: UInt8) -> Double
@@ -401,11 +401,11 @@ Optional._statesSpacingPreference | @MainActor static var _statesSpacingPreferen
 Optional.body | @MainActor var body: some View { get } [extension where Wrapped : View]
 Optional.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where Wrapped : View]
 Optional.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Wrapped : View]
-Optional.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Wrapped : View]
+Optional.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Wrapped : View]
 PlaceholderContentView | nonisolated struct PlaceholderContentView<Value>
 PlaceholderContentView.body | @MainActor var body: Never { get }
 PlaceholderContentView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer
-PlaceholderContentView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize
+PlaceholderContentView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize
 Placement.child | @MainActor let child: ChildView
 Placement.height | @MainActor let height: Int
 Placement.identity | @MainActor let identity: ViewIdentity
@@ -502,7 +502,7 @@ RenderCache.measureMemoMismatches | var measureMemoMismatches: [String] { get }
 RenderCache.measureMemoStores | var measureMemoStores: Int { get }
 RenderCache.measureMemoTotals | var measureMemoTotals: (hits: Int, misses: Int) { get }
 RenderCache.noteAppliedEnvironment(_:identity:keyPath:depth:) | func noteAppliedEnvironment(_ value: @autoclosure () -> Any, identity: ViewIdentity, keyPath: AnyKeyPath, depth: Int) -> RenderCache.EnvironmentChange
-RenderCache.noteMeasureMemoMismatch(viewType:served:fresh:proposal:availableWidth:availableHeight:identity:) | @MainActor func noteMeasureMemoMismatch(viewType: String, served: ViewSize, fresh: ViewSize, proposal: ProposedSize, availableWidth: Int, availableHeight: Int, identity: String = "")
+RenderCache.noteMeasureMemoMismatch(viewType:served:fresh:proposal:availableWidth:availableHeight:identity:) | @MainActor func noteMeasureMemoMismatch(viewType: String, served: ViewSize, fresh: ViewSize, proposal: ProposedViewSize, availableWidth: Int, availableHeight: Int, identity: String = "")
 RenderCache.noteRenderMemoMismatch(viewType:served:fresh:identity:) | @MainActor func noteRenderMemoMismatch(viewType: String, served: FrameBuffer, fresh: FrameBuffer, identity: String = "")
 RenderCache.removeInactive() | func removeInactive()
 RenderCache.renderMemoMismatches | var renderMemoMismatches: [String] { get }
@@ -609,7 +609,7 @@ TransformEnvironmentModifier.init(content:keyPath:transform:) | init(content: Co
 TransformEnvironmentModifier.keyPath | let keyPath: WritableKeyPath<EnvironmentValues, V>
 TransformEnvironmentModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View]
 TransformEnvironmentModifier.rewrapping(_:) | @MainActor func rewrapping<Inner>(_ view: Inner) -> any View where Inner : View [extension where Content : View]
-TransformEnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View]
+TransformEnvironmentModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 TransformEnvironmentModifier.transform | let transform: (inout V) -> Void
 TransformEnvironmentModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 TransformEnvironmentModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
@@ -641,9 +641,9 @@ View._isAnimatable | @MainActor static var _isAnimatable: Bool { get } [extensio
 View._isSpacer | @MainActor static var _isSpacer: Bool { get }
 View._isSpacer | @MainActor static var _isSpacer: Bool { get }
 View._logChanges() | @MainActor @preconcurrency static func _logChanges()
-View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedSize, context: RenderContext) -> ViewSize?
-View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedSize, context: RenderContext) -> ViewSize?
-View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedSize, context: RenderContext) -> ViewSize? [extension where Self : Layoutable]
+View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedViewSize, context: RenderContext) -> ViewSize?
+View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedViewSize, context: RenderContext) -> ViewSize?
+View._measureSelf(_:proposal:context:) | @MainActor static func _measureSelf(_ view: Self, proposal: ProposedViewSize, context: RenderContext) -> ViewSize? [extension where Self : Layoutable]
 View._paintsToItsEdges | nonisolated static var _paintsToItsEdges: Bool { get }
 View._paintsToItsEdges | nonisolated static var _paintsToItsEdges: Bool { get }
 View._paintsToItsEdges | nonisolated static var _paintsToItsEdges: Bool { get } [extension where Self : SingleContentWrapper]
@@ -709,7 +709,7 @@ ZIndexProviding.zIndexValue | @MainActor var zIndexValue: Double { get }
 _MemoizedView | nonisolated struct _MemoizedView<Content, ID> where Content : View, ID : Hashable
 _MemoizedView.body | @MainActor var body: Never { get }
 _MemoizedView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Content : View, ID : Hashable]
-_MemoizedView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize [extension where Content : View, ID : Hashable]
+_MemoizedView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View, ID : Hashable]
 _MemoizedView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View, ID : Hashable]
 _MemoizedView.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View, ID : Hashable]
 _ResolvedKeyframeTrackContent | struct _ResolvedKeyframeTrackContent<Value> where Value : Animatable

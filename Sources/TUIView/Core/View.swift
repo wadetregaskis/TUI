@@ -254,7 +254,7 @@ public protocol View {
     /// Not to be implemented by hand: conform to ``Layoutable`` instead.
     @MainActor
     static func _measureSelf(
-        _ view: Self, proposal: ProposedSize, context: RenderContext
+        _ view: Self, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize?
 }
 
@@ -362,6 +362,6 @@ public extension View {
     @inlinable
     @MainActor
     static func _measureSelf(
-        _ view: Self, proposal: ProposedSize, context: RenderContext
+        _ view: Self, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize? { nil }
 }

@@ -19,15 +19,15 @@ import TUI
 
 /// Proposes 40 by 12, and nothing else.
 private struct FixedSizing: PresentationSizing {
-    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
-        ProposedSize(width: 40, height: 12)
+    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
+        ProposedViewSize(width: 40, height: 12)
     }
 }
 
 /// Proposes the content's own ideal width, plus ten, at its own height.
 private struct RoomierSizing: PresentationSizing {
-    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
-        ProposedSize(width: root.sizeThatFits(.unspecified).width + 10, height: nil)
+    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
+        ProposedViewSize(width: root.sizeThatFits(.unspecified).width + 10, height: nil)
     }
 }
 
@@ -349,7 +349,7 @@ private enum AnyStickyChoice {
 private struct _AnyChoiceSizing: PresentationSizing, _StickyPresentationSizing {
     let isSticky: Bool
 
-    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
+    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
         .unspecified
     }
 

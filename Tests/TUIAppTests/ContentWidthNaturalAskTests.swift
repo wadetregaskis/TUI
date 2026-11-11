@@ -166,7 +166,7 @@ struct ContentWidthNaturalAskTests {
             let core = stack()
             return core.anchoredSizeThatFits(
                 resolveChildViewCollection(from: core.content, context: context),
-                proposal: ProposedSize(width: nil, height: nil), context: context)?.width
+                proposal: ProposedViewSize(width: nil, height: nil), context: context)?.width
         }
         #expect(ask() == Self.wideRowWidth)
 
@@ -195,7 +195,7 @@ struct ContentWidthNaturalAskTests {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(0..<Self.rows, id: \.self) { FillerOrTextRow(index: $0) }
                 },
-                along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+                along: .horizontal, proposal: ProposedViewSize(width: nil, height: nil),
                 context: RenderContext(
                     availableWidth: 40, availableHeight: 4_096,
                     environment: environment, tuiContext: tuiContext),
@@ -307,7 +307,7 @@ struct ContentWidthNaturalAskTests {
         stack.uniformWindowState(context: context).hypothesisExtent = 1
         let size = stack.uniformSeekSizeThatFits(
             resolveChildViewCollection(from: stack.content, context: context),
-            proposal: ProposedSize(width: nil, height: nil), context: context)
+            proposal: ProposedViewSize(width: nil, height: nil), context: context)
         #expect(size?.width == min(cells, 4_096), "the filler's offered width was counted")
         #expect(
             size?.isWidthFlexible == (cells < 4_096),
@@ -347,7 +347,7 @@ struct ContentWidthNaturalAskTests {
         state.bandFillReach = departed.width
         let size = stack.uniformSeekSizeThatFits(
             resolveChildViewCollection(from: stack.content, context: context),
-            proposal: ProposedSize(width: nil, height: nil), context: context)
+            proposal: ProposedViewSize(width: nil, height: nil), context: context)
         #expect(size?.width == Self.wideRowWidth)
         #expect(size?.isWidthFlexible == false, "the filler's record outlived the filler")
     }
@@ -376,7 +376,7 @@ struct ContentWidthNaturalAskTests {
                         .alignmentGuide(.leading) { $0[.leading] }
                 }
             },
-            along: .horizontal, proposal: ProposedSize(width: nil, height: nil),
+            along: .horizontal, proposal: ProposedViewSize(width: nil, height: nil),
             context: RenderContext(
                 availableWidth: 40, availableHeight: 4_096,
                 environment: environment, tuiContext: tuiContext),

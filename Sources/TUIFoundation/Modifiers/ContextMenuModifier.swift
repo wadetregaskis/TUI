@@ -358,7 +358,7 @@ private enum ContextMenuKeyRegistrar {
     /// The menu is presented *over* the content, so the layout footprint is just
     /// the content — and forwarding keeps the focus-section / trigger side effects
     /// on the render pass, never a measure.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // One environment application deeper, as `publishIsFocused` makes the
         // render walk's — by hand, because a measure must not note.
         var contentContext = context.withChildIdentity(type: Content.self, index: 0)

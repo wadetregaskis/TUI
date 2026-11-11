@@ -337,7 +337,7 @@ struct _SwatchGridCore: View, Renderable {
 // MARK: - Layout
 
 extension _SwatchGridCore: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(
             width: columns * cellWidth,
             height: rows * cellHeight,

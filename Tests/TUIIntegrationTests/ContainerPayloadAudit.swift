@@ -397,7 +397,7 @@ struct ContainerPayloadAudit {
 /// audit exercises, and one that dropped `opacityRegions` while lifting the
 /// other three payloads.
 private struct AuditColumn: Layout {
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
         return ViewSize(
             width: sizes.map(\.width).max() ?? 0,
@@ -405,7 +405,7 @@ private struct AuditColumn: Layout {
     }
 
     func placeSubviews(
-        in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()
+        in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()
     ) {
         var y = bounds.y
         for index in subviews.indices {

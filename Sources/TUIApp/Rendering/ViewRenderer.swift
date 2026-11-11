@@ -193,7 +193,7 @@ extension ViewRenderer {
             availableWidth: width, availableHeight: Self.tallestInlineRender, environment: makeEnvironment())
         measuring.isMeasuring = true
         let measured = context.stateStorage.inRenderPass {
-            measureChild(view, proposal: ProposedSize(width: width, height: nil), context: measuring)
+            measureChild(view, proposal: ProposedViewSize(width: width, height: nil), context: measuring)
         }
         return min(max(measured.height, 1), Self.tallestInlineRender)
     }

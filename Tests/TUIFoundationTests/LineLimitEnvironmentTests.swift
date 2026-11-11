@@ -28,7 +28,7 @@ struct LineLimitEnvironmentTests {
 
     private func measured(_ view: some View, width: Int = 12, height: Int = 20) -> ViewSize {
         measureChild(
-            view, proposal: ProposedSize(width: width, height: nil),
+            view, proposal: ProposedViewSize(width: width, height: nil),
             context: makeRenderContext(width: width, height: height))
     }
 

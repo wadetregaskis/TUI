@@ -582,7 +582,7 @@ struct NestedLazyStackReachTests {
         tui.renderCache.beginRenderPass()
         let size = measureChild(
             ScrollView { NestedLazyContent(rows: 300, tallFirst: false) },
-            proposal: ProposedSize(width: 30, height: nil), context: context)
+            proposal: ProposedViewSize(width: 30, height: nil), context: context)
         tui.stateStorage.endRenderPass()
         #expect(size.height == 1 + 16 + 2 * 284)
     }

@@ -147,7 +147,7 @@ nonisolated struct OnInteractiveResizeChangeModifier<Content: View>: View {
 
 @MainActor extension OnInteractiveResizeChangeModifier: Layoutable {
     /// Behaviour only: it measures as its content does.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

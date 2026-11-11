@@ -198,7 +198,7 @@ nonisolated struct _FocusedValueModifier<Content: View, Publishing: FocusedValue
 }
 
 @MainActor extension _FocusedValueModifier: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

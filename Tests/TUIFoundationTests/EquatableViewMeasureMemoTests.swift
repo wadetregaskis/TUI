@@ -92,10 +92,10 @@ struct EquatableViewMeasureMemoTests {
         let ctx = context(cache)
         let view = Probe(text: "wrap me across widths if narrow").equatable()
 
-        _ = measureChild(view, proposal: ProposedSize(width: 40, height: nil), context: ctx)
+        _ = measureChild(view, proposal: ProposedViewSize(width: 40, height: nil), context: ctx)
         let hitsBefore = cache.stats.hits
         // Different proposal width → different key → miss (not the width-40 entry).
-        _ = measureChild(view, proposal: ProposedSize(width: 12, height: nil), context: ctx)
+        _ = measureChild(view, proposal: ProposedViewSize(width: 12, height: nil), context: ctx)
 
         #expect(cache.stats.hits == hitsBefore, "a different proposal must not hit the width-40 entry")
     }

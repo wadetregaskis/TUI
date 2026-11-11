@@ -189,7 +189,7 @@ private struct _DisclosedStateRetainer<Content: View>: View, Renderable, Layouta
 
     /// Transparent: the wrapper adds no chrome and no identity step, so it
     /// measures exactly as what it wraps.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: contentContext(context))
     }
 

@@ -105,7 +105,7 @@ extension MouseEvent {
 @MainActor extension OnMouseEventModifier: Layoutable {
     /// Forwards measurement straight to the content — the mouse
     /// modifier doesn't change layout.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

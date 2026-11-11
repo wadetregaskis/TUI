@@ -238,7 +238,7 @@ struct ViewThatFitsRenderTests {
         // the context still says 30 — `_HStackCore.resolvedLayout`'s re-measure
         // of a child narrower than its ideal.
         let squeezed = measureChild(
-            fits, proposal: ProposedSize(width: 9, height: nil), context: ctx(width: 30, height: 8))
+            fits, proposal: ProposedViewSize(width: 9, height: nil), context: ctx(width: 30, height: 8))
         #expect(squeezed.height == 3, "9 cells cannot hold the 18-cell row, so the 3-row fallback is measured")
         #expect(squeezed.width == 1)
 

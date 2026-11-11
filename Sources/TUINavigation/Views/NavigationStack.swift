@@ -255,7 +255,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
 
     // MARK: Measurement
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let elements = read()
         var childContext = context
         childContext.environment.navigationCoordinator = coordinator
@@ -274,7 +274,7 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         }
 
         let bar = NavigationBar.height
-        let inner = ProposedSize(
+        let inner = ProposedViewSize(
             width: proposal.width,
             height: proposal.height.map { max(0, $0 - bar) })
         childContext = childContext.withAvailableSize(

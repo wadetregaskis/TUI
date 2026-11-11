@@ -48,13 +48,13 @@ nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
     ///
     /// One function for both passes, so the measure and the render cannot
     /// disagree about what either child was offered.
-    @MainActor private func plan(_ proposal: ProposedSize, context: RenderContext)
-        -> (inset: ViewSize, base: ViewSize, baseProposal: ProposedSize, gap: Int)
+    @MainActor private func plan(_ proposal: ProposedViewSize, context: RenderContext)
+        -> (inset: ViewSize, base: ViewSize, baseProposal: ProposedViewSize, gap: Int)
     {
         let insetProposal =
             stacksVertically
-            ? ProposedSize(width: proposal.width, height: nil)
-            : ProposedSize(width: nil, height: proposal.height)
+            ? ProposedViewSize(width: proposal.width, height: nil)
+            : ProposedViewSize(width: nil, height: proposal.height)
         let insetSize = measureChild(
             inset, proposal: insetProposal, context: layerContext(context, modifierType: Self.self))
         let along = stacksVertically ? insetSize.height : insetSize.width
@@ -62,8 +62,8 @@ nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
         let gap = along > 0 ? spacing : 0
         let baseProposal =
             stacksVertically
-            ? ProposedSize(width: proposal.width, height: proposal.height.map { max(0, $0 - along - gap) })
-            : ProposedSize(width: proposal.width.map { max(0, $0 - along - gap) }, height: proposal.height)
+            ? ProposedViewSize(width: proposal.width, height: proposal.height.map { max(0, $0 - along - gap) })
+            : ProposedViewSize(width: proposal.width.map { max(0, $0 - along - gap) }, height: proposal.height)
         let baseSize = measureChild(base, proposal: baseProposal, context: context)
         return (insetSize, baseSize, baseProposal, gap)
     }
@@ -73,7 +73,7 @@ nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
     /// The two children's union: summed along the stacking axis, the larger of
     /// the two across it — measured in SwiftUI, a bar wider than its view
     /// makes the result the bar's width.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let (insetSize, baseSize, _, gap) = plan(proposal, context: context)
         if stacksVertically {
             return ViewSize(
@@ -92,7 +92,7 @@ nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
 
 @MainActor extension SafeAreaInsetModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let proposal = ProposedSize(
+        let proposal = ProposedViewSize(
             width: max(0, context.availableWidth), height: max(0, context.availableHeight))
         let (insetSize, _, baseProposal, gap) = plan(proposal, context: context)
 

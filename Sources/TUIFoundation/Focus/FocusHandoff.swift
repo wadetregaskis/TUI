@@ -168,7 +168,7 @@ nonisolated struct _FocusHandoffModifier<Content: View, Value: Hashable>: View {
 @MainActor extension _FocusHandoffModifier: Layoutable {
     /// Measures as its content, with no offer: a measure pass registers nothing,
     /// so nothing would claim it.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

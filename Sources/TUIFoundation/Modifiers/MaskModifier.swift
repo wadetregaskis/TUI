@@ -88,7 +88,7 @@ nonisolated struct _MaskView<Content: View, Mask: View>: View {
 
 @MainActor extension _MaskView: Layoutable {
     /// Masking changes what draws, never the frame.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

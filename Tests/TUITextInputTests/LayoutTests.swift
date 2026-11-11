@@ -17,41 +17,41 @@ private class LayoutTestModel {
     init() {}
 }
 
-// MARK: - ProposedSize Tests
+// MARK: - ProposedViewSize Tests
 
-@Suite("ProposedSize Tests")
-struct ProposedSizeTests {
+@Suite("ProposedViewSize Tests")
+struct ProposedViewSizeTests {
 
     @Test("unspecified has nil dimensions")
     func unspecifiedIsNil() {
-        let size = ProposedSize.unspecified
+        let size = ProposedViewSize.unspecified
         #expect(size.width == nil)
         #expect(size.height == nil)
     }
 
     @Test("fixed creates specific dimensions")
     func fixedDimensions() {
-        let size = ProposedSize.fixed(80, 24)
+        let size = ProposedViewSize.fixed(80, 24)
         #expect(size.width == 80)
         #expect(size.height == 24)
     }
 
     @Test("init with partial dimensions")
     func partialDimensions() {
-        let widthOnly = ProposedSize(width: 40, height: nil)
+        let widthOnly = ProposedViewSize(width: 40, height: nil)
         #expect(widthOnly.width == 40)
         #expect(widthOnly.height == nil)
 
-        let heightOnly = ProposedSize(width: nil, height: 10)
+        let heightOnly = ProposedViewSize(width: nil, height: 10)
         #expect(heightOnly.width == nil)
         #expect(heightOnly.height == 10)
     }
 
-    @Test("ProposedSize is equatable")
+    @Test("ProposedViewSize is equatable")
     func equatable() {
-        let a = ProposedSize.fixed(80, 24)
-        let b = ProposedSize.fixed(80, 24)
-        let c = ProposedSize.fixed(40, 24)
+        let a = ProposedViewSize.fixed(80, 24)
+        let b = ProposedViewSize.fixed(80, 24)
+        let c = ProposedViewSize.fixed(40, 24)
 
         #expect(a == b)
         #expect(a != c)
@@ -135,7 +135,7 @@ struct LayoutableTests {
         let context = RenderContext(availableWidth: 80, availableHeight: 24, tuiContext: TUIContext()).isolatingRenderCache()
 
         // With narrow proposed width, text should wrap
-        let size = text.sizeThatFits(proposal: ProposedSize(width: 6, height: nil), context: context)
+        let size = text.sizeThatFits(proposal: ProposedViewSize(width: 6, height: nil), context: context)
 
         #expect(size.width == 5)  // "Hello" or "World" (5 chars each)
         #expect(size.height == 2)  // Two lines after wrap

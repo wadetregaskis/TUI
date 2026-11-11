@@ -52,7 +52,7 @@ private struct Prober<Content: View>: View, Renderable, Layoutable {
         TUIView.renderToBuffer(content, context: context.withChildIdentity(type: Content.self))
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChildRememberingOnlyItself(
             content, proposal: proposal, context: context.withChildIdentity(type: Content.self))
     }
@@ -74,7 +74,7 @@ func probeMemoisedContext(width: Int) -> RenderContext {
 @Suite("A measure made to ask one thing keeps one answer")
 struct ProbeMeasureMemoTests {
     private static let width = 40
-    private static let proposal = ProposedSize(width: width, height: nil)
+    private static let proposal = ProposedViewSize(width: width, height: nil)
 
     @Test("A probe keeps its own answer and nothing it found on the way")
     func probeKeepsOneEntry() throws {
@@ -271,7 +271,7 @@ private struct CountedLeaf: View, Renderable, Layoutable {
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer { FrameBuffer(text: "leaf") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         counter.measures += 1
         return ViewSize.fixed(4, 1)
     }

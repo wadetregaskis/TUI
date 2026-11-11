@@ -36,7 +36,7 @@ extension MenuStyle {
     /// measures to the full available width through `AnyView`.
     @MainActor
     func makeSize(
-        configuration: Configuration, proposal: ProposedSize, context: RenderContext
+        configuration: Configuration, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         measureChild(
             observingStyleBody(of: Self.self, kind: .styleMeasure, context: context) {

@@ -43,7 +43,7 @@ import TUIView
 /// struct SquareSizing: PresentationSizing {
 ///     func proposedSize(
 ///         for root: PresentationSizingRoot, context: PresentationSizingContext
-///     ) -> ProposedSize {
+///     ) -> ProposedViewSize {
 ///         .init(width: 40, height: 20)
 ///     }
 /// }
@@ -55,14 +55,14 @@ public protocol PresentationSizing {
     ///   - root: The presentation's content, to measure.
     ///   - context: Contextual information about the presentation.
     /// - Returns: The proposal, in cells; `nil` on an axis fits the content.
-    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize
+    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize
 }
 
 /// A proxy to a view provided to the presentation with a defined presentation
 /// size.
 public struct PresentationSizingRoot {
     /// Measures the presentation's content.
-    let measure: (ProposedSize) -> ViewSize
+    let measure: (ProposedViewSize) -> ViewSize
 
     /// Asks the subview for its size.
     ///
@@ -70,7 +70,7 @@ public struct PresentationSizingRoot {
     /// - Returns: The size of the presentation's content view given
     ///   `proposal` — a ``ViewSize``, as ``LayoutSubview`` answers, in cells
     ///   and saying whether the content fills an axis.
-    public func sizeThatFits(_ proposal: ProposedSize) -> ViewSize {
+    public func sizeThatFits(_ proposal: ProposedViewSize) -> ViewSize {
         measure(proposal)
     }
 }
@@ -94,14 +94,14 @@ public struct PresentationSizingContext {
 /// content's height); a terminal sheet has always fitted its content, and
 /// `.automatic` keeps it so, so no sheet that does not ask changes size.
 public struct AutomaticPresentationSizing: PresentationSizing {
-    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
+    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
         .unspecified
     }
 }
 
 /// A presentation sizing dictated by the ideal size of the content.
 public struct FittedPresentationSizing: PresentationSizing {
-    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
+    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
         .unspecified
     }
 }
@@ -117,8 +117,8 @@ public struct FormPresentationSizing: PresentationSizing {
     /// The rows a form sheet is proposed.
     static let height = 25
 
-    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
-        ProposedSize(width: min(Self.width, context.area.width), height: min(Self.height, context.area.height))
+    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
+        ProposedViewSize(width: min(Self.width, context.area.width), height: min(Self.height, context.area.height))
     }
 }
 
@@ -129,8 +129,8 @@ public struct PagePresentationSizing: PresentationSizing {
     /// The columns a page sheet is proposed.
     static let width = 96
 
-    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
-        ProposedSize(width: min(Self.width, context.area.width), height: context.area.height)
+    public func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
+        ProposedViewSize(width: min(Self.width, context.area.width), height: context.area.height)
     }
 }
 
@@ -168,9 +168,9 @@ struct _FittingPresentationSizing<Base: PresentationSizing>: PresentationSizing,
     let horizontal: Bool
     let vertical: Bool
 
-    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
+    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
         let proposal = base.proposedSize(for: root, context: context)
-        return ProposedSize(width: horizontal ? nil : proposal.width, height: vertical ? nil : proposal.height)
+        return ProposedViewSize(width: horizontal ? nil : proposal.width, height: vertical ? nil : proposal.height)
     }
 
     var stickyAxes: (horizontal: Bool, vertical: Bool) {
@@ -184,7 +184,7 @@ struct _KeepingPresentationSizing<Base: PresentationSizing>: PresentationSizing,
     let horizontal: Bool
     let vertical: Bool
 
-    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedSize {
+    func proposedSize(for root: PresentationSizingRoot, context: PresentationSizingContext) -> ProposedViewSize {
         base.proposedSize(for: root, context: context)
     }
 
@@ -258,7 +258,7 @@ nonisolated struct _PresentationSizingView<Content: View>: View, PresentationSiz
 }
 
 @MainActor extension _PresentationSizingView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
@@ -347,7 +347,7 @@ func applyPresentationSizing(
         // the content's own where the axis fits it.
         let fitted =
             width == nil || height == nil
-            ? root.sizeThatFits(ProposedSize(width: width ?? area.width, height: height)) : nil
+            ? root.sizeThatFits(ProposedViewSize(width: width ?? area.width, height: height)) : nil
         let now = CellSize(width: width ?? fitted?.width ?? 0, height: height ?? fitted?.height ?? 0)
         let largest = CellSize(
             width: max(now.width, kept.size?.width ?? 0), height: max(now.height, kept.size?.height ?? 0))

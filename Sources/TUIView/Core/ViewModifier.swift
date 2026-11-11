@@ -262,7 +262,7 @@ extension ModifiedContent: View where Content: View, Modifier: ViewModifier {
     /// The measure-side twin of ``_renderSelf(_:context:)``.
     @MainActor
     public static func _measureSelf(
-        _ view: Self, proposal: ProposedSize, context: RenderContext
+        _ view: Self, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize? {
         guard Modifier._isEnvironmentalModifier else { return nil }
         let resolvedContext = context.withChildIdentity(type: AnyView.self, index: 0)

@@ -342,7 +342,7 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
     ///
     /// SecureField is width-flexible: it has a minimum width but expands
     /// to fill available horizontal space in HStack.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // The rendered field is `openCap + content + closeCap`, so the total
         // width is the content width plus the two caps. Report that total so a
         // parent (e.g. HStack) allocates the field accurately. A `.plain` field

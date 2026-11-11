@@ -68,7 +68,7 @@ nonisolated package struct NotificationHostModifier<Content: View>: View {
 @MainActor extension NotificationHostModifier: Layoutable {
     /// Notifications are transient overlays composited onto the page content,
     /// so the layout footprint is the base `content`.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

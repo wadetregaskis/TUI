@@ -67,7 +67,7 @@ struct ForEachStandaloneTests {
     func measureMatchesRender() {
         let context = makeRenderContext(width: 20, height: 6)
         let size = measureChild(
-            Fonts(), proposal: ProposedSize(width: 20, height: 6), context: context)
+            Fonts(), proposal: ProposedViewSize(width: 20, height: 6), context: context)
         let lines = render(Fonts()).filter { !$0.isEmpty }
         #expect(size.height == lines.count, "\(size) vs \(lines)")
         #expect(size.width == 11, "the widest element, \"Large Title\": \(size)")

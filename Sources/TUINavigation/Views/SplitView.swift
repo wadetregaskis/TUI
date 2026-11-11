@@ -242,7 +242,7 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
 
     /// Fills what it is offered, as a split view in a window does; on an axis
     /// with no offer, its children's natural extent.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let children = resolveChildViews(from: content, context: context)
         let natural = children.map { $0.measure(proposal: .unspecified, context: context) }
         let along = natural.reduce(0) { $0 + extent(of: $1) } + max(0, children.count - 1)
@@ -323,7 +323,7 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         }
         let proposal =
             axis == .horizontal
-            ? ProposedSize(width: nil, height: across) : ProposedSize(width: across, height: nil)
+            ? ProposedViewSize(width: nil, height: across) : ProposedViewSize(width: across, height: nil)
         let natural = children.map { $0.measure(proposal: proposal, context: context) }
         // A pane that names where it starts is placed there, not shared out.
         let fills = zip(natural, bounds).map { size, pane in

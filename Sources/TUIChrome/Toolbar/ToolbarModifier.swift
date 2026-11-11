@@ -156,7 +156,7 @@ nonisolated struct _ToolbarModifier<Content: View, Items: ToolbarContent>: View,
 
     /// The items are drawn by the window's bars, so this measures as `content`
     /// — except in presented content, which draws them round it.
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if context.environment.presentationHostsToolbar {
             guard let host = context.environment.presentationToolbar else {
                 return sizeInPresentation(proposal: proposal, context: context)

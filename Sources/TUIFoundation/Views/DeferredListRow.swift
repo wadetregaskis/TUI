@@ -31,7 +31,7 @@ package func deferredListRow(
         carriesBadge: rowCarriesBadge(child.wrappedView),
         measure: {
             let size = child.measure(
-                proposal: ProposedSize(width: context.availableWidth, height: nil), context: context)
+                proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context)
             return (size, context.availableWidth)
         },
         render: { placement, prominence in
@@ -72,7 +72,7 @@ package func deferredListRow(
 @MainActor
 package func loneListRow<V: View>(of content: V, context: RenderContext) -> LazyListRowContent? {
     let measured = measureChild(
-        content, proposal: ProposedSize(width: context.availableWidth, height: nil), context: context)
+        content, proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context)
     guard measured.height > 0 || measured.isHeightFlexible else { return nil }
     var rowContext = context
     if context.gradientFrame != nil {

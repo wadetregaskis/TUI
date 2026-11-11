@@ -127,7 +127,7 @@ private struct _CanvasCore<Symbols: View>: View, Renderable, Layoutable {
 
     /// As a shape: what it is offered, and SwiftUI's ideal of 10 in each axis
     /// where nothing is said.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         Rectangle().sizeThatFits(proposal)
     }
 

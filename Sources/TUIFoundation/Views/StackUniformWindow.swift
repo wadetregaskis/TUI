@@ -433,7 +433,7 @@ final class StackWindowState {
             extent = known
         } else {
             let seed = children[0].measure(
-                proposal: ProposedSize(width: width, height: nil), context: childContext)
+                proposal: ProposedViewSize(width: width, height: nil), context: childContext)
             guard seed.height > 0 else {
                 state.broken = true
                 return nil
@@ -449,7 +449,7 @@ final class StackWindowState {
         let count = children.count
         let totalHeight = count * pitch - spacing
 
-        let proposal = ProposedSize(width: width, height: nil)
+        let proposal = ProposedViewSize(width: width, height: nil)
         guard
             let seeking = resolvingUniformSeek(
                 in: window, children: children, state: state, pitch: pitch, extent: extent,
@@ -644,7 +644,7 @@ final class StackWindowState {
     /// (``RowWidthRecords``), not as the width this render offered.
     private func verifiedUniformRows(
         _ ordinals: [Int], children: ChildViewCollection, extent: Int,
-        state: StackWindowState, proposal: ProposedSize, context: RenderContext
+        state: StackWindowState, proposal: ProposedViewSize, context: RenderContext
     ) -> [UniformBandRow]? {
         var result: [UniformBandRow] = []
         result.reserveCapacity(ordinals.count)
@@ -710,7 +710,7 @@ final class StackWindowState {
         band: [UniformBandRow],
         grafted: [UniformBandRow],
         children: ChildViewCollection, state: StackWindowState,
-        proposal: ProposedSize, context: RenderContext
+        proposal: ProposedViewSize, context: RenderContext
     ) {
         // Not `(band + grafted).reduce`: that concatenation would allocate a
         // fresh array of the band on every frame of every windowed stack.
@@ -745,7 +745,7 @@ final class StackWindowState {
     /// that walk in this pass, so the memo serves most of them; the steady
     /// state still measures nothing beyond the band.
     private func seedWidthRecords(
-        _ children: ChildViewCollection, state: StackWindowState, proposal: ProposedSize,
+        _ children: ChildViewCollection, state: StackWindowState, proposal: ProposedViewSize,
         context: RenderContext
     ) {
         guard !state.rowWidths.isSeeded else { return }
@@ -808,7 +808,7 @@ final class StackWindowState {
     private func resolvingUniformSeek(
         in window: ScrollContentWindow, children: ChildViewCollection,
         state: StackWindowState, pitch: Int, extent: Int, totalHeight: Int,
-        proposal: ProposedSize, context: RenderContext
+        proposal: ProposedViewSize, context: RenderContext
     ) -> (window: ScrollContentWindow, resolved: Int?)? {
         var window = window
         guard let seek = window.seek else { return (window, nil) }
@@ -873,7 +873,7 @@ final class StackWindowState {
     /// and inert flags, and the render path's verification remains the
     /// falsification net for the height itself).
     func uniformSeekSizeThatFits(
-        _ children: ChildViewCollection, proposal: ProposedSize, context: RenderContext
+        _ children: ChildViewCollection, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize? {
         let state = uniformWindowState(context: context)
         guard let extent = state.hypothesisExtent, !state.broken, extent > 0
@@ -968,7 +968,7 @@ final class StackWindowState {
         var measureContext = context
         measureContext.isMeasuring = true
         measureContext.leaveScrollOrigin()
-        let sampleProposal = ProposedSize(width: widthLimit, height: nil)
+        let sampleProposal = ProposedViewSize(width: widthLimit, height: nil)
         var maxWidth = 0
         var widthFlexible = false
         var heightFlexible = false

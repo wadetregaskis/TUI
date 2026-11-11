@@ -38,7 +38,7 @@ nonisolated package struct OnSubmitModifier<Content: View>: View {
 }
 
 @MainActor extension OnSubmitModifier: Layoutable {
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
 }
@@ -78,7 +78,7 @@ nonisolated struct SubmitScopeModifier<Content: View>: View {
 }
 
 @MainActor extension SubmitScopeModifier: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: modifiedContext(context))
     }
 }

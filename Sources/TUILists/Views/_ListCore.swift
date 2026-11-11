@@ -610,7 +610,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// #6). Flexible height instead lands in the weighted-share branch, which
     /// splits the column evenly. Hugging content is opt-in via
     /// `.fixedSize(horizontal:)`, which proposes an unbounded width.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let height = proposal.height ?? context.availableHeight
         // Default: greedy on both axes, no rows built — the O(1) measure that
         // makes the layout pass cheap.
@@ -724,7 +724,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 // rows no frame draws.
                 return verifyServedSize(
                     cached, label: "\(Self.self) widest row",
-                    proposal: ProposedSize(width: context.availableWidth, height: nil), context: context
+                    proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context
                 ) { checkContext in
                     var rowContext = checkContext
                     rowContext.environment.fixedSizeWidth = false
@@ -4231,7 +4231,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             for child in children {
                 gradientTops.append(top)
                 top += child.measure(
-                    proposal: ProposedSize(width: context.availableWidth, height: nil),
+                    proposal: ProposedViewSize(width: context.availableWidth, height: nil),
                     context: context
                 ).height
             }

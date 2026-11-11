@@ -30,12 +30,12 @@ private final class Seen {
 private struct Counting: Layout {
     let seen: Seen
 
-    func sizeThatFits(proposal: ProposedSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
         seen.count = subviews.count
         return ViewSize(width: 1, height: 1)
     }
 
-    func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: Subviews, cache: inout ()) {
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
         for subview in subviews { subview.place(in: bounds, anchor: .topLeading, proposal: proposal) }
     }
 }

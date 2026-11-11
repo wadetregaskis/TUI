@@ -49,7 +49,7 @@ package enum DepthLimit {
     ///   - proposal: The proposal it was measured with.
     ///   - context: The context it was measured in.
     @inline(never)
-    package static func measured(_ type: Any.Type, proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package static func measured(_ type: Any.Type, proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         note(type, context: context)
         let width = min(noticeRow.width, max(0, proposal.width ?? context.availableWidth))
         let height = min(1, max(0, min(proposal.height ?? .max, context.availableHeight)))

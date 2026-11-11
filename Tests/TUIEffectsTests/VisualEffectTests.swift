@@ -102,7 +102,7 @@ struct VisualEffectTests {
         let context = makeRenderContext(width: 12, height: 3)
         let size = measureChild(
             Text("abc").visualEffect { content, _ in content.offset(x: 5).opacity(0.5) },
-            proposal: ProposedSize(width: 12, height: 3), context: context)
+            proposal: ProposedViewSize(width: 12, height: 3), context: context)
         #expect(size.width == 3 && size.height == 1)
     }
 

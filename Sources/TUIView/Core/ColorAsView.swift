@@ -48,7 +48,7 @@ nonisolated package struct _StyleFillBlock: View {
 }
 
 @MainActor extension _StyleFillBlock: Renderable, Layoutable {
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize(width: 0, height: 0, isWidthFlexible: true, isHeightFlexible: true)
     }
 

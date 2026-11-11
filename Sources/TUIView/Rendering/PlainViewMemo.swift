@@ -297,7 +297,7 @@ func renderPlainMemoized<V: View>(
 @inline(never)
 @MainActor
 func measurePlainMemoized<V: View>(
-    _ view: V, comparison: ValueComparison, proposal: ProposedSize, context: RenderContext,
+    _ view: V, comparison: ValueComparison, proposal: ProposedViewSize, context: RenderContext,
     measure: (V, RenderContext) -> ViewSize
 ) -> ViewSize {
     let cache = unsafe context.renderCache.unsafelyUnwrapped

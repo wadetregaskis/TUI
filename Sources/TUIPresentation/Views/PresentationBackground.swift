@@ -96,7 +96,7 @@ nonisolated struct _PresentationBackgroundView<Content: View>: View, Presentatio
 }
 
 @MainActor extension _PresentationBackgroundView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

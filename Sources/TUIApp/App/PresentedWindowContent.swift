@@ -71,7 +71,7 @@ private struct _PresentedWindowCore<Data: Hashable, Content: View>: View, Render
         return TUIView.renderToBuffer(built(binding, at: content), context: content)
     }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let content = contentContext(context)
         return measureChild(built(valueBinding(context: context), at: content), proposal: proposal, context: content)
     }

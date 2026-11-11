@@ -235,12 +235,12 @@ struct _AlertPanelCore<Actions: View>: View, Renderable, Layoutable {
     /// Measures via the shared container path, applying the same `maxWidth`
     /// clamp `renderToBuffer` uses — to the proposal as well as the context, so
     /// the container reads the clamped width whether or not a proposal is set.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         var alertContext = context
         alertContext.availableWidth = min(context.availableWidth, Self.maxWidth)
         var alertProposal = proposal
         if let width = proposal.width {
-            alertProposal = ProposedSize(width: min(width, Self.maxWidth), height: proposal.height)
+            alertProposal = ProposedViewSize(width: min(width, Self.maxWidth), height: proposal.height)
         }
         let buttons = alertActions(from: actions, in: context)
         let config = resolvedConfig(context)

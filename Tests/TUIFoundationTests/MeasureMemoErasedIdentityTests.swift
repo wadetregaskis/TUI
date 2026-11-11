@@ -35,7 +35,7 @@ struct MeasureMemoErasedIdentityTests {
     }
 
     private func naturalWidth(of view: some View, context: RenderContext) -> Int {
-        measureChild(view, proposal: ProposedSize(width: nil, height: nil), context: context).width
+        measureChild(view, proposal: ProposedViewSize(width: nil, height: nil), context: context).width
     }
 
     /// Both labels are short enough to live inside their `String` rather than

@@ -563,10 +563,6 @@
     "LocalCoordinateSpace": {
       "tuikit": "CoordinateSpace.local",
       "why": "Sources/TUIFoundation/Views/GeometryReader.swift:99-100 — `case local`, \"Relative to the GeometryReader itself, whose origin is (0, 0)\", consumed by `frame(in:)` at :49-58 where it is documented as \"always exact\". SwiftUI's struct is just the protocol-based spelling of the same case."
-    },
-    "ProposedViewSize": {
-      "tuikit": "ProposedSize",
-      "why": "Sources/TUICore/Rendering/LayoutTypes.swift:16 — `public struct ProposedSize` with `width: Int?` / `height: Int?` and `.unspecified` / `.fixed(_:_:)`. Same role and same nil-means-ideal semantics as `ProposedViewSize`, in cells rather than CGFloat per §2.2. It is what `Layout."
     }
   },
   "notImplemented": {
@@ -836,6 +832,9 @@
     },
     "EnvironmentValues.scrollDismissesKeyboardMode": {
       "why": "The environment half of `scrollDismissesKeyboard(_:)`, refused with it (ScrollDismissesKeyboardMode's family; ruling O8)."
+    },
+    "ProposedViewSize.infinity": {
+      "why": "A cell count has no infinite value, and `Int.max` would overflow the arithmetic a layout does with a proposal (Sources/TUICore/Rendering/LayoutTypes.swift, the comment on `zero`). SwiftUI's `.infinity` asks for a view's maximum size; TUI's `ViewSize` already says which axes can grow, so no probe is needed. Listed since the type took SwiftUI's name on 2026-11-10, which made its members compared directly."
     },
     "View.scrollDismissesKeyboard(_:)": {
       "why": "Dismisses an on-screen keyboard as content scrolls; there is none here, and none on macOS, where every mode is inert. The owner's ruling O8 (2026-10-12): an API that does nothing on macOS either is refused, failing to compile, as `submitLabel` is (\"we don't implement SwiftUI API we can't actually do anything sensible with\"; refusals re-examined, wave 17, O8)."

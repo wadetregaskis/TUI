@@ -81,7 +81,7 @@ struct VerticalTextFieldTests {
         let model = Model("aaaa bbbb cccc dddd eeee")
         let view = VStack { field(model).lineLimit(1...5) }
         let context = makeRenderContext(width: 12, height: 20)
-        let size = measureChild(view, proposal: ProposedSize(width: 12, height: nil), context: context)
+        let size = measureChild(view, proposal: ProposedViewSize(width: 12, height: nil), context: context)
         #expect(size.height == 3)
         #expect(renderToBuffer(view, context: context).height == size.height)
     }
@@ -483,7 +483,7 @@ struct VerticalTextFieldTests {
             field(model).textInputSuggestions { Text("Apple").searchCompletion(Crop(id: "Apple")) }
         }
         let context = makeRenderContext(width: 12, height: 20)
-        let size = measureChild(view, proposal: ProposedSize(width: 12, height: nil), context: context)
+        let size = measureChild(view, proposal: ProposedViewSize(width: 12, height: nil), context: context)
         let drawn = renderToBuffer(view, context: context)
         #expect(rows(drawn).map { $0.trimmingTrailingSpaces } == ["aaaaaaaaaaa"], "no ▾, one row")
         #expect(size.height == drawn.height, "measured \(size.height) rows, drew \(drawn.height)")

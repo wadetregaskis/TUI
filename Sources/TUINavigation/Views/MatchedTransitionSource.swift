@@ -252,7 +252,7 @@ nonisolated private struct _MatchedTransitionSourceView<Content: View>: View, Re
         fatalError("_MatchedTransitionSourceView renders via Renderable")
     }
 
-    @MainActor func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 

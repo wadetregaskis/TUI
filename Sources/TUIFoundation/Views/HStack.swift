@@ -265,7 +265,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
             minimumSize: { minimumLength(of: children[$0], horizontally: true, across: nil, context: context) },
             statedMinimum: { statedMinimumLength(of: children[$0], horizontally: true) },
             sizeAt: { index, offer in
-                let size = children[index].measure(proposal: ProposedSize(width: offer, height: nil), context: context)
+                let size = children[index].measure(proposal: ProposedViewSize(width: offer, height: nil), context: context)
                 squeezed[index] = size
                 return size.width
             })
@@ -285,7 +285,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
             } else {
                 let size =
                     squeezed[index].flatMap { $0.width == widths[index] ? $0 : nil }
-                    ?? child.measure(proposal: ProposedSize(width: widths[index], height: nil), context: context)
+                    ?? child.measure(proposal: ProposedViewSize(width: widths[index], height: nil), context: context)
                 if !size.isNaturalSize { childrenAreNatural = false }
                 tallestConsumedChild = max(tallestConsumedChild, size.height)
                 finalHeight[index] = size.height
@@ -356,7 +356,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
     }
 
     /// Measures the HStack without rendering.
-    @MainActor package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
@@ -366,7 +366,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
 
     /// `.clip` size: the shared `resolvedLayout` (measure → distribute → height),
     /// reported with its analytic total width clamped to the constraint.
-    @MainActor private func clipSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor private func clipSizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // A view that has left takes no room (`StackGlide`).
         let children = stackChildren(of: content, context: context).laidOut
         guard !children.isEmpty else { return ViewSize.fixed(0, 0) }
@@ -417,7 +417,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
     /// come from distributing the leftover after every sibling has rendered,
     /// which is genuinely a property of the fill, not of any one child.
     /// (`renderWindow` forfeits laziness for spacers for the same reason.)
-    @MainActor private func windowSizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    @MainActor private func windowSizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         context.environment.volatileReadTracker?.recordWindowedMeasure()
         var measureContext = context
         measureContext.isMeasuring = true
@@ -594,7 +594,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
                 let childHeight =
                     layout.fillsHeight(ofChildAt: index)
                     ? child.measure(
-                        proposal: ProposedSize(width: finalWidths[index], height: rowHeight),
+                        proposal: ProposedViewSize(width: finalWidths[index], height: rowHeight),
                         context: context
                     ).height
                     : layout.childHeights[index]

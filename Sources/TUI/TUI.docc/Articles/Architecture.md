@@ -38,7 +38,7 @@ Built-in views include:
 
 Layout containers use a two-pass system to distribute space among children:
 
-1. **Measure**: Each child is proposed a size (``ProposedSize``) and returns a ``ViewSize`` with flexibility flags
+1. **Measure**: Each child is proposed a size (``ProposedViewSize``) and returns a ``ViewSize`` with flexibility flags
 2. **Render**: The parent distributes remaining space among flexible children and renders each with its final allocation
 
 This enables spacers, flexible text fields, and proportional sizing. See <doc:LayoutSystem> for details.

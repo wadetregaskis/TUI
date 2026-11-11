@@ -163,7 +163,7 @@ extension StateStorage {
     /// Renders `content` unchanged, so it measures as `content`. Forwarding is
     /// also what keeps the change-detection and `action` firing on the render
     /// pass — a measure must not observe values or fire `onChange`.
-    package func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

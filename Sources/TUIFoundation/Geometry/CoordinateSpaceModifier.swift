@@ -119,7 +119,7 @@ nonisolated struct CoordinateSpaceModifier<Content: View>: View {
 
 @MainActor extension CoordinateSpaceModifier: Layoutable {
     /// Measures as its content: naming a space changes no geometry.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

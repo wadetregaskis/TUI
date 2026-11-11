@@ -30,7 +30,7 @@ extension EnvironmentValues {
 private struct HintedLeaf: View, Renderable, Layoutable, Equatable {
     var body: Never { fatalError("HintedLeaf renders via Renderable") }
 
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         ViewSize.fixed(context.environment.widthHint ?? 3, 1)
     }
 

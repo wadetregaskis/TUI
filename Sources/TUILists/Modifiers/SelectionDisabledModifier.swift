@@ -111,7 +111,7 @@ extension SelectionDisabledModifier: Equatable where Content: Equatable {
     /// Measures `content` unchanged: dimming a row's colour does not change
     /// its size, and measurement never reports a restriction (`report(_:)`
     /// guards `!context.isMeasuring`, matching `.deleteDisabled()`).
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

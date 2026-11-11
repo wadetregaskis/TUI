@@ -62,7 +62,7 @@ struct GreedyIdealWidthTests {
     func aGreedyViewHasNoIdealWidth(_ greedy: GreedyCase) {
         let context = RenderContext(
             availableWidth: 4_096, availableHeight: 4_096, tuiContext: TUIContext())
-        let open = ProposedSize(width: nil, height: nil)
+        let open = ProposedViewSize(width: nil, height: nil)
         let ideal = measureChild(greedy.view, proposal: open, context: context.askingIdealWidth())
         #expect(ideal.width == 0)
         #expect(ideal.isWidthFlexible)
@@ -89,7 +89,7 @@ struct GreedyIdealWidthTests {
         environment.applyRuntimeServices(from: tuiContext)
         let answer = naturalExtent(
             Text("hi").position(x: 2, y: 0), along: .horizontal,
-            proposal: ProposedSize(width: nil, height: nil),
+            proposal: ProposedViewSize(width: nil, height: nil),
             context: RenderContext(
                 availableWidth: 40, availableHeight: 4_096,
                 environment: environment, tuiContext: tuiContext),

@@ -91,7 +91,7 @@
         count: Int, childAt: (Int) -> ChildView, width: Int?, context: RenderContext,
         keepsMeasuresLive: Bool, stoppingPast heightLimit: Int?
     ) -> [RowSlot] {
-        let proposal = ProposedSize(width: width, height: nil)
+        let proposal = ProposedViewSize(width: width, height: nil)
         let liveMarks = keepsMeasuresLive ? context.renderCache : nil
         var slots: [RowSlot] = []
         // Only an unbounded walk knows it will take every row; a bounded one
@@ -230,7 +230,7 @@
         resolveChildViewCollection(from: content, context: placementContext(context)).count
     }
 
-    package func placement(at ordinal: Int, proposal: ProposedSize, context: RenderContext) -> Placement? {
+    package func placement(at ordinal: Int, proposal: ProposedViewSize, context: RenderContext) -> Placement? {
         let queryContext = placementContext(context)
         let slots = naturalRowSlots(width: proposal.width, context: queryContext)
         guard slots.indices.contains(ordinal) else { return nil }

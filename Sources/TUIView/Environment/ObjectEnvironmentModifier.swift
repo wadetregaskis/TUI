@@ -64,7 +64,7 @@ nonisolated package struct ObjectEnvironmentModifier<Content: View, T: Observabl
     /// fallback (which would render the content to measure it). Mirrors
     /// ``EnvironmentModifier``'s conformance; injecting an observable has no
     /// layout effect, only an environment one.
-    public func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: objectContext(context))
     }
 

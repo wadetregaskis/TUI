@@ -94,7 +94,7 @@ nonisolated struct _SectionActionsView<Content: View, Actions: View>: View {
         let info = content.extractSectionInfo(context: context.withChildIdentity(type: Content.self))
         let actionsContext = context.withChildIdentity(erasedType: Actions.self, key: "sectionActions")
         let size = measureChild(
-            actions, proposal: ProposedSize(width: context.availableWidth, height: context.availableHeight),
+            actions, proposal: ProposedViewSize(width: context.availableWidth, height: context.availableHeight),
             context: actionsContext)
         guard size.width > 0, size.height > 0 else { return info }
         let header = info.headerBuffer ?? FrameBuffer()

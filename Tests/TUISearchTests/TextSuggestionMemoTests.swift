@@ -264,7 +264,7 @@ struct TextSuggestionMemoTests {
         let context = RenderContext(availableWidth: width, availableHeight: 5, tuiContext: TUIContext())
         var text = ""
         let binding = Binding(get: { text }, set: { text = $0 })
-        let proposal = ProposedSize(width: width, height: nil)
+        let proposal = ProposedViewSize(width: width, height: nil)
         let plain = measureChild(TextField("F", text: binding), proposal: proposal, context: context)
         let offered = measureChild(
             TextField("F", text: binding).textInputSuggestions { Text("x") }, proposal: proposal, context: context)

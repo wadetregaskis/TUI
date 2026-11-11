@@ -124,7 +124,7 @@ nonisolated struct AnchorPreferenceModifier<Content: View, Value>: View {
 @MainActor extension AnchorPreferenceModifier: Layoutable {
     /// Publishes a preference and renders `content` unchanged, so it measures
     /// as `content`.
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }

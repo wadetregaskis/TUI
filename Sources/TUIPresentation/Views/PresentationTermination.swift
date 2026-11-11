@@ -91,7 +91,7 @@ nonisolated struct _AppTerminationView<Content: View>: View, AppTerminationPreve
 }
 
 @MainActor extension _AppTerminationView: Layoutable {
-    func sizeThatFits(proposal: ProposedSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }
 }
