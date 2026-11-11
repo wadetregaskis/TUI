@@ -411,6 +411,16 @@ if it has left the data. The removal is drawn over the rows: they do not glide
 here, and beneath the row that has taken its room it would not show. The rows
 around still move at once. `WindowedRowFadeTests`.
 
+**Only the cells it paints, 2026-11-11** (ROW-REMOVAL): the removal was
+composited whole, its blank cells as cells, so a row as wide as the stack — a
+label and a spacer, as a list's row is — hid the row that had moved into its
+place for the whole removal, and a row sliding out left a blank line behind it.
+It is now drawn only where it paints (`FrameBuffer.composite(paintedCellsOf:at:)`:
+the runs of painted cells, the blanks between words included in what shows
+through, as content drawn after an overflow cuts it), its fades and runs cut to
+those cells. Where its glyphs meet the row beneath they still cover it, a fade
+giving way below half as any fade over text does. `WindowedRowRemovalTests`.
+
 ### B-FB16-3. A `Grid`'s cells move at once
 
 *`Grid`, `GridRow`*

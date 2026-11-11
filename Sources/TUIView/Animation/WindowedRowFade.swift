@@ -25,7 +25,8 @@ import TUICore
 // once (decisions B-FB16-2, B-FB16-5). So a removal is drawn OVER the rows,
 // where the eager stacks draw it beneath its siblings while they glide into its
 // room: here the row below has taken that room on the frame of the change, and
-// beneath it the removal would not show.
+// beneath it the removal would not show. Over it, only the cells the removal
+// paints are drawn, so the row below shows wherever the removal is blank.
 //
 // A settled frame — nothing animating, nothing fading, nothing leaving —
 // appends each drawn row's identity to an array and keeps it with the data's
@@ -259,12 +260,18 @@ package struct WindowedRowFade {
 }
 
 extension FrameBuffer {
-    /// This buffer with `pictures` drawn over it, each at its place: the
-    /// removals a windowing container plays (``WindowedRowFade``).
+    /// This buffer with `pictures` drawn over it, each at its place and only
+    /// where it paints (``composite(paintedCellsOf:at:)``): the removals a
+    /// windowing container plays (``WindowedRowFade``). Each is drawn where
+    /// the row below has already moved up, so its blank cells are that row's:
+    /// composited whole, a row as wide as the stack hid it for the whole
+    /// removal.
     @MainActor
     package func drawingOver(_ pictures: [(picture: FrameBuffer, x: Int, y: Int)]) -> FrameBuffer {
         guard !pictures.isEmpty else { return self }
-        return pictures.reduce(self) { $0.composited(with: $1.picture, at: (x: $1.x, y: $1.y)) }
+        var result = self
+        for leaving in pictures { result.composite(paintedCellsOf: leaving.picture, at: (x: leaving.x, y: leaving.y)) }
+        return result
     }
 }
 

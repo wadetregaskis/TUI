@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A lazy stack's row leaving by its own transition no longer hides the row that took its place.** The row was
+drawn over the rows where it had been, blank cells and all, so under a row as wide as the stack, as a list's row
+with a spacer is, the row that moved up was hidden until the removal ended. Only the cells the leaving row paints
+are drawn now; the row beneath shows everywhere else.
+
 **A `Form` too narrow for its labels keeps its checkboxes in the control column.** A field row squeezed its label and
 its value between them, but a checkbox or a radio group was indented the whole width of the labels, and its title
 wrapped a letter or two to a line at the right edge. The label column now gives way, to what the widest control

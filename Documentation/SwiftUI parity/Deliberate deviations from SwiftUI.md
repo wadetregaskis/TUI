@@ -1817,7 +1817,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   stack, a `List` and a `Table` draw in their window fade in too, and a lazy
   stack's row with a transition of its own plays its removal where it was,
   drawn over the rows, which do not glide there and have already taken its
-  room; a `List`'s or a `Table`'s goes at once, its rows composed as lines
+  room, and only where it paints, so the row beneath shows past its glyphs
+  (2026-11-11); a `List`'s or a `Table`'s goes at once, its rows composed as lines
   (`WindowedRowFade`, `WindowedRowFadeTests`, 2026-11-08). A row the window
   reaches by scrolling, or because rows above it went, was a row already,
   and is drawn as it is.
