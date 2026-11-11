@@ -180,6 +180,7 @@ LocalizationKey.Menu.settings | case settings
 LocalizationKey.Menu.settingsForAllPrograms | case settingsForAllPrograms
 LocalizationKey.Menu.settingsForAllProgramsTitle | case settingsForAllProgramsTitle
 LocalizationKey.Menu.settingsPanel | case settingsPanel
+LocalizationKey.Menu.shortcutsContinued | case shortcutsContinued
 LocalizationKey.Menu.shortcutsGeneral | case shortcutsGeneral
 LocalizationKey.Menu.shortcutsMenuBar | case shortcutsMenuBar
 LocalizationKey.Menu.shortcutsNextControl | case shortcutsNextControl

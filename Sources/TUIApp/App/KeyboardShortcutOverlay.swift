@@ -236,46 +236,91 @@ struct _KeyboardShortcutOverlaySheet: View {
     }
 }
 
-/// The list's heading, its sections in a `ScrollView`, which the arrow and paging
-/// keys scroll while it overflows, and the Done button, for the pointer.
-private struct _KeyboardShortcutOverlayContent: View {
+/// The list in a `Dialog` titled Keyboard Shortcuts, as the settings panel
+/// is drawn, so it stands apart from the dimmed page: its sections in columns
+/// (``_ShortcutOverlayColumnsCore``) as wide as the window allows, the dialog
+/// as small as they are and centred, its own scroll view taking them where
+/// they are too tall, which the arrow and paging keys scroll; and the Done
+/// button in its footer, for the pointer.
+///
+/// A core, as the settings panel's fitting is: the columns are chosen for the
+/// rows the dialog shows of them, and only the space the sheet offers says
+/// that. The dialog's body is measured with an unbounded height, to find
+/// whether it overflows. No state of its own.
+private struct _KeyboardShortcutOverlayContent: View, Renderable, Layoutable {
     let listing: ShortcutOverlayListing
     let done: () -> Void
 
-    @Environment(\.textSpelling) private var textSpelling
+    var body: Never { fatalError("_KeyboardShortcutOverlayContent renders via Renderable") }
 
-    var body: some View {
-        let service = LocalizationService.shared
-        let keyWidth = listing.keyColumnWidth(spelling: textSpelling)
-        VStack(alignment: .leading, spacing: 1) {
-            Text(verbatim: service.string(for: LocalizationKey.Menu.keyboardShortcuts)).bold()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 1) {
-                    ForEach(Array(listing.sections.enumerated()), id: \.offset) { _, section in
-                        ShortcutOverlaySectionView(section: section, keyWidth: keyWidth)
-                    }
-                }
-            }
-            HStack {
-                Spacer()
-                Button(service.string(for: LocalizationKey.Button.done)) { done() }
-                    .keyboardShortcut(.cancelAction)
-            }
+    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+        let size = fittedSize(
+            CellSize(
+                width: proposal.width ?? context.availableWidth, height: proposal.height ?? context.availableHeight),
+            context)
+        return ViewSize.fixed(size.width, size.height)
+    }
+
+    func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        let available = CellSize(width: context.availableWidth, height: context.availableHeight)
+        let size = fittedSize(available, context)
+        var fitted = context
+        fitted.availableWidth = size.width
+        fitted.availableHeight = size.height
+        return TUIView.renderToBuffer(dialog(in: available, context), context: fitted)
+    }
+
+    /// The dialog at its own size, no larger than `available`.
+    private func fittedSize(_ available: CellSize, _ context: RenderContext) -> CellSize {
+        let size = measureChild(
+            dialog(in: available, context),
+            proposal: ProposedViewSize(width: available.width, height: available.height), context: context)
+        return CellSize(width: min(size.width, available.width), height: min(size.height, available.height))
+    }
+
+    /// The dialog, its columns laid out for the rows of `available` its
+    /// border, padding and footer leave: measured, with a one-row body in
+    /// their place, so a footer drawn taller (a bordered button) is counted.
+    private func dialog(in available: CellSize, _ context: RenderContext) -> some View {
+        let chrome = measureChild(
+            box { Text(verbatim: " ") }, proposal: ProposedViewSize(width: available.width, height: available.height),
+            context: context
+        ).height - 1
+        let listing = listing
+        let keyWidth = listing.keyColumnWidth(spelling: context.environment.textSpelling)
+        return box {
+            _ShortcutOverlayColumnsCore(
+                listing: listing, keyWidth: keyWidth, visibleHeight: max(1, available.height - chrome))
         }
-        .padding(.horizontal, 1)
+        // As wide as the columns want, up to the window: the columns, not a
+        // comfortable line length, are what this dialog is made of.
+        .dialogPreferredWidth(max(1, available.width))
+    }
+
+    /// The dialog around `content`.
+    private func box<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        let service = LocalizationService.shared
+        let done = done
+        return Dialog(title: service.string(for: LocalizationKey.Menu.keyboardShortcuts), footerAlignment: .trailing) {
+            content()
+        } footer: {
+            Button(service.string(for: LocalizationKey.Button.done)) { done() }
+                .keyboardShortcut(.cancelAction)
+        }
     }
 }
 
-/// One section: its heading, in bold, and a row for each key, the keys in a
-/// column of their own.
-private struct ShortcutOverlaySectionView: View {
-    let section: ShortcutOverlayListing.Section
+/// One section, or the part of one a column shows: its heading, in bold, and a
+/// row for each key, the keys in a column of their own.
+struct ShortcutOverlaySectionView: View {
+    let title: String
+    let rows: [ListedShortcut]
     let keyWidth: Int
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(verbatim: section.title).bold()
-            ForEach(Array(section.rows.enumerated()), id: \.offset) { _, row in
+            Text(verbatim: title).bold()
+            ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
                 HStack(alignment: .top, spacing: 2) {
                     Text(verbatim: row.key).frame(width: keyWidth, alignment: .trailing)
                     Text(verbatim: row.title)

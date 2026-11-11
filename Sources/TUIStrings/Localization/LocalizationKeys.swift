@@ -374,6 +374,9 @@ public enum LocalizationKey {
         case shortcutsMenuBar = "menu.shortcutsMenuBar"
         /// The list of keyboard shortcuts: what the help key does.
         case shortcutsShowTooltip = "menu.shortcutsShowTooltip"
+        /// The list of keyboard shortcuts: a section's heading again, at the
+        /// top of the column it carries on into (`%@` is the heading).
+        case shortcutsContinued = "menu.shortcutsContinued"
         /// The menu bar's Help ▸ Keyboard Shortcuts, and the heading of the list it shows.
         case keyboardShortcuts = "menu.keyboardShortcuts"
         /// The settings panel's name (F2), which its tab strip is labelled with.

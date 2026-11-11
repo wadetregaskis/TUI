@@ -282,7 +282,8 @@ struct KeyboardShortcutOverlayTests {
         press(f1, in: app)
         let lines = app.screen.text.split(separator: "\n").map(String.init)
         let scene = try #require(lines.firstIndex { $0.contains("⌃Y") })
-        let menu = try #require(lines.firstIndex { $0.trimmingCharacters(in: .whitespaces).hasPrefix("Window") })
+        // The Window menu's heading, which may head a column of its own.
+        let menu = try #require(lines.firstIndex { $0.range(of: #"(^|\s)Window(\s|$)"#, options: .regularExpression) != nil })
         #expect(menu < scene, "\(lines)")
         #expect(!lines.contains { $0.contains("On This Screen") }, "\(lines)")
 

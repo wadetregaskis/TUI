@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**F1's list of shortcuts is a bordered dialog, centred, in columns.** Its sections sit side by side, as many as the
+window is wide enough for, short ones sharing a column; where the window is too short, a long section carries on
+into the next column under its heading again rather than scroll. It scrolls downwards only when the window can't
+show it all, and never sideways.
+
 **A playing picture converts its frames ahead, off the main actor, and no longer stutters when a setting changes.**
 An animated `Image` drawn as glyphs converted each frame the first time it showed, in the render that showed it, so a
 costly setting (`imageShapeAware`, a dither) made every frame of the first loop late, and again after each change.

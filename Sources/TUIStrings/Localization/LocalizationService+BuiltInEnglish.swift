@@ -207,6 +207,7 @@ extension LocalizationService {
       "menu.shortcutsPreviousControl": "Previous Control",
       "menu.shortcutsMenuBar": "Menu Bar",
       "menu.shortcutsShowTooltip": "Show Tooltip",
+      "menu.shortcutsContinued": "%@ (cont.)",
       "menu.keyboardShortcuts": "Keyboard Shortcuts",
       "menu.settingsPanel": "Settings",
       "menu.accessibility": "Accessibility",

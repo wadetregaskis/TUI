@@ -552,9 +552,14 @@ an alert, the list is what that presentation answers to. A handler that hears
 keys for itself, `onKeyPress` or `onKeyEvent`, isn't listed: it's a closure, and
 nothing can ask it what it answers to.
 
-The arrow and paging keys scroll a list too long for the window. Escape, F1 or
-Done takes it down, and the page's shortcuts don't fire while it's up. The menu
-bar's Help ▸ Keyboard Shortcuts shows it too.
+The list is a bordered dialog, centred, its sections side by side in as many
+columns as the window is wide enough for: each section kept whole, short ones
+sharing a column. Where that is too tall for the window, a long section carries
+on into the next column under its heading again ("Edit (cont.)") rather than
+scroll. It never scrolls sideways; a list still too tall, as in a window too
+narrow for two columns, scrolls downwards, by the arrow and paging keys. Escape,
+F1 or Done takes it down, and the page's shortcuts don't fire while it's up.
+The menu bar's Help ▸ Keyboard Shortcuts shows it too.
 
 **F1 is yours if you bind it.** The list is a default binding, in the chain's last
 layer, so anything of yours on F1 comes first: `onKeyPress`, `onKeyEvent`, a

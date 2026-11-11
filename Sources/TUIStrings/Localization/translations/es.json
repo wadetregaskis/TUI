@@ -177,6 +177,7 @@
   "menu.shortcutsPreviousControl": "Control anterior",
   "menu.shortcutsMenuBar": "Barra de menús",
   "menu.shortcutsShowTooltip": "Mostrar descripción",
+  "menu.shortcutsContinued": "%@ (cont.)",
   "menu.keyboardShortcuts": "Atajos de teclado",
   "menu.settingsPanel": "Ajustes",
   "menu.accessibility": "Accesibilidad",
