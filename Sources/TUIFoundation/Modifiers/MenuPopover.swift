@@ -364,6 +364,14 @@ package func presentMenuPopover<Items: View>(
 /// leaves them with the menu it opened from until the pointer or Right goes
 /// into it.
 ///
+/// A menu bar's menu has one stop more: Up on its first row goes back to its
+/// title — the menu stays open with no row highlighted, as a pointer-opened
+/// one is — where Left and Right step along the titles with nothing
+/// highlighted in the menus they open, so no submenu's row catches Right;
+/// Down comes back to the first row, and Up to the last. A pop-up menu and
+/// a submenu stop at their first row, as macOS's do (the owner, 2026-11-10,
+/// MENUBAR-KEYS).
+///
 /// Only what the menu acts on is swallowed — exactly what the focus ring
 /// swallowed for it before. A key equivalent typed with the menu open must still
 /// reach the shortcut registry (`InputHandler` layer 3.5, below this one), which
@@ -403,13 +411,19 @@ private func attachMenuKeys(
             if let ordinal = menu.highlightedOrdinal, menu.sink.submenu(at: ordinal) != nil {
                 menu.openSubmenu(at: ordinal, withSelection: true)
             } else {
-                barStep?.step(1)
+                barStep?.step(1, chain[0].isEntered)
             }
             return true
         case .left:
             // Leaves a submenu for its row; in a menu bar's menu, steps to the
             // menu before it.
-            if let opener { opener.closeSubmenu() } else { barStep?.step(-1) }
+            if let opener { opener.closeSubmenu() } else { barStep?.step(-1, menu.isEntered) }
+            return true
+        case .up where barStep != nil && opener == nil && !event.shift
+            && menu.highlightedOrdinal != nil && menu.highlightedOrdinal == menu.highlight.selectable.first:
+            // From a menu bar's menu's first row, back to its title.
+            menu.closeSubmenu()
+            menu.highlight.move(to: nil)
             return true
         default:
             guard menu.highlight.handle(event, multiplier: multiplier, pageSize: pageSize) else { return false }
@@ -443,12 +457,15 @@ package struct MenuBackdropPassThrough {
 }
 
 /// What Left and Right do in an open menu that is one of a menu bar's: step to
-/// the menu beside it, `-1` the one before and `1` the one after.
+/// the menu beside it, `-1` the one before and `1` the one after, its first
+/// row highlighted if the keyboard was in the menu stepped from, and nothing
+/// highlighted if it was on the title (Up from the first row): the step keeps
+/// the keyboard at the level it was.
 package struct MenuBarStep {
-    /// Steps by the offset given.
-    package let step: (Int) -> Void
+    /// Steps by the offset given, entering the menu stepped to or not.
+    package let step: (_ offset: Int, _ entersMenu: Bool) -> Void
 
-    package init(step: @escaping (Int) -> Void) {
+    package init(step: @escaping (_ offset: Int, _ entersMenu: Bool) -> Void) {
         self.step = step
     }
 }

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**↑ on a menu bar menu's first item goes back to its title.** The menu stays open with nothing highlighted, and ←
+and → then walk the menus without entering them, so an item with a submenu no longer catches →; ↓ enters the menu
+again. From an item, ← and → step to the next menu as before. A pop-up `Menu`, a context menu and a submenu still stop
+at their first item.
+
 **A menu the keyboard opens shows its first enabled item highlighted at once.** A menu whose first item was disabled
 — the Edit menu's Undo with nothing to undo — opened from F10 or by an arrow with no item highlighted, though Return
 already chose the first enabled one, and a Down from there skipped it. The first enabled item is now lit on the frame

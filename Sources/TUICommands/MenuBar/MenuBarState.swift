@@ -49,11 +49,12 @@ final class MenuBarState {
     }
 
     /// Opens the menu `offset` places from the open one among `count` menus,
-    /// wrapping round the ends as a menu bar's arrows do; the keyboard steps,
-    /// so its first row is highlighted.
-    func step(_ offset: Int, among count: Int) {
+    /// wrapping round the ends as a menu bar's arrows do, with its first
+    /// enabled row highlighted `withSelection` — the keyboard was in the menu
+    /// it stepped from — or nothing, the keyboard on the titles.
+    func step(_ offset: Int, among count: Int, withSelection: Bool) {
         guard let openMenu, count > 0 else { return }
-        open(((openMenu + offset) % count + count) % count, withSelection: true)
+        open(((openMenu + offset) % count + count) % count, withSelection: withSelection)
     }
 
     /// Closes the open menu, if any, and leaves the bar mode. Idempotent.

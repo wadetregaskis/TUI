@@ -656,8 +656,16 @@ so does a handler of your page's that takes F10 (`onKeyEvent`, `onKeyPress`).
 |-----|------------------------|------------------|
 | F10 (fn-F10 on a Mac keyboard) | lights the first title, opening nothing: the bar mode, below | closes it |
 | ⌥ and a title's letter | opens that menu | opens that menu instead |
-| ← → | — | the menu before or after, round the ends |
-| ↑ ↓, Return, Escape | — | as in any pop-up menu: move, choose, close |
+| ← → | — | the menu before or after, round the ends; → on an item with a submenu opens the submenu, and ← in a submenu goes back to its item |
+| ↑ ↓, Return, Escape | — | as in any pop-up menu: move, choose, close; ↑ on the first item goes back to the title |
+
+A menu the keyboard opens highlights its first enabled item, passing over
+disabled items and dividers, as macOS does; one the pointer opens highlights
+nothing. ↑ on the first item goes back to the menu's title: the menu stays
+open with nothing highlighted, ← and → step to the menus beside it with
+nothing highlighted in them either, so an item with a submenu doesn't catch →,
+and ↓ enters the menu at its first item (↑ at its last). A pop-up `Menu`, a
+context menu and a submenu stop at their first item instead, as macOS's do.
 
 In the bar mode the keyboard walks the titles with every menu closed, and each
 title's letter is underlined. ← and → light the title before or after, round

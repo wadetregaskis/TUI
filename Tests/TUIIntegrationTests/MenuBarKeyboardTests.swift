@@ -3,8 +3,10 @@
 //
 //  The keyboard in the menu bar's menus (the owner, 2026-11-10, MENUBAR-KEYS):
 //  a menu the keyboard opens draws its first ENABLED item lit, on the frame
-//  that opens it, as macOS does
-//  (`Tools/SwiftUIProbes/Menu keyboard walk (1110E)`).
+//  that opens it; Up on the first item goes back to the title, where Left and
+//  Right walk the menus without entering them, so a submenu's row no longer
+//  catches Right; and a pop-up menu and a submenu stop at their first row, as
+//  macOS's do (`Tools/SwiftUIProbes/Menu keyboard walk (1110E)`).
 //
 //  The highlight is read from the DRAWN frame, against the same menu opened
 //  by the pointer (nothing highlighted) and drawn at the same instant: the
@@ -136,6 +138,54 @@ struct MenuBarKeyboardTests {
         #expect(driver.shows("G1"), "Gamma, the last title: \(driver.rows)")
         driver.key(.right)
         #expect(try litRow(driver, openedBy: " Alpha ") == "A1", "round to Alpha: \(driver.rows)")
+    }
+
+    @Test("Up on the first item goes back to the title, the menu open with nothing lit; Down enters again")
+    func upGoesBackToTheTitle() throws {
+        let driver = Driver()
+        driver.key(.f10)
+        driver.key(.down)
+        driver.key(.up)
+        #expect(driver.shows("A1"), "the menu stays open: \(driver.rows)")
+        #expect(try litRow(driver, openedBy: " Alpha ") == nil, "no item lit: \(driver.rows)")
+        driver.key(.down)
+        #expect(try litRow(driver, openedBy: " Alpha ") == "A1")
+        driver.key(.down)
+        driver.key(.up)
+        #expect(try litRow(driver, openedBy: " Alpha ") == "A1", "Up below the first item moves up")
+    }
+
+    @Test("On the title Left and Right walk the menus without entering them, past a submenu's row")
+    func titleLevelWalksPastSubmenus() throws {
+        let driver = Driver()
+        driver.key(.f10)
+        driver.key(.down)
+        driver.key(.up)
+        driver.key(.right)
+        #expect(driver.shows("BSub") && !driver.shows("BS1"), "Beta, its submenu shut: \(driver.rows)")
+        #expect(try litRow(driver, openedBy: " Beta ") == nil, "nothing lit in Beta: \(driver.rows)")
+        driver.key(.right)
+        #expect(driver.shows("G1") && !driver.shows("BSub"), "on to Gamma: \(driver.rows)")
+        driver.key(.left)
+        driver.key(.down)
+        #expect(try litRow(driver, openedBy: " Beta ") == "BSub", "Down enters Beta: \(driver.rows)")
+        driver.key(.up)
+        driver.key(.up)
+        #expect(try litRow(driver, openedBy: " Beta ") == "B1", "Up from the title takes the last item")
+    }
+
+    @Test("A submenu stops at its first row; Left goes back to its row, and Right on it opens it again")
+    func submenuStopsAtItsFirstRow() throws {
+        let driver = Driver()
+        driver.key(.f10)
+        driver.key(.right)
+        driver.key(.down)
+        driver.key(.right)
+        #expect(driver.shows("BS1"), "\(driver.rows)")
+        driver.key(.up)
+        #expect(driver.shows("BS1"), "Up in the submenu leaves it open: \(driver.rows)")
+        driver.key(.enter)
+        #expect(KeysProbe.shared.log == ["bs1"], "still on its first row")
     }
 
     @Test("A pop-up Menu the keyboard opens lights its first enabled item, and Up there stops")

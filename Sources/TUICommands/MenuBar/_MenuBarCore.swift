@@ -31,8 +31,11 @@ import TUIFoundation
 /// another title opens its menu, as on a Mac
 /// (``titleTracking(_:titles:state:context:)``). The open menu is a pop-up `Menu`'s:
 /// the same rows, keys and highlight, hanging from its title over the whole
-/// window. A keyboard-opened menu highlights its first item, a pointer-opened
-/// one nothing. The titles are not in the Tab ring: the bar is reached by its
+/// window. A keyboard-opened menu highlights its first enabled item, a
+/// pointer-opened one nothing; Up on the first item goes back to the title,
+/// the menu open with nothing highlighted, where Left and Right step along
+/// the titles without entering the menus and Down enters again
+/// (`presentMenuPopover`'s keys). The titles are not in the Tab ring: the bar is reached by its
 /// keys and the pointer.
 ///
 /// **Titles wider than the row.** The row scrolls to keep the open menu's
@@ -152,8 +155,8 @@ struct _MenuBarCore: View, Renderable {
     ) {
         var presenter = context
         let count = titles.columns.count
-        presenter.environment.menuBarStep = MenuBarStep { [weak state] offset in
-            state?.step(offset, among: count)
+        presenter.environment.menuBarStep = MenuBarStep { [weak state] offset, entersMenu in
+            state?.step(offset, among: count, withSelection: entersMenu)
         }
         presentMenuPopover(
             items: _CommandMenuItems(groups: menu.groups), over: &buffer, controller: state.controller,
