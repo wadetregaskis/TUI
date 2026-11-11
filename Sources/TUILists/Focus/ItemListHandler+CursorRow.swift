@@ -6,7 +6,8 @@
 //  removed above it, a sort or a branch opened above it left the index where it
 //  was and the cursor on another row — the one Space, Return and Delete then
 //  acted on. In SwiftUI the cursor is the selection, which an id names, so it
-//  never leaves its row; here it follows its row by id the same way.
+//  never leaves its row; here it follows its row by id the same way. So does
+//  the anchor a Shift-arrow or Shift-click range is measured from.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -76,5 +77,47 @@ extension ItemListHandler {
             return
         }
         cursorRowID = focusedIndex == checked.index ? checked.id : id(at: focusedIndex)
+    }
+
+    /// Puts the range anchor (``selectionAnchor``) back on the row it stood on
+    /// last frame, found by its id, when the rows changed under it — what
+    /// ``followCursorRow(from:ownMovePending:)`` does for the cursor. The anchor
+    /// is an index too, so a row arriving above it, or a sort, left it on
+    /// another row, and the next Shift-Down selected a span from a row the user
+    /// never chose. It runs on its own rather than off the cursor's check: a
+    /// row inserted between the cursor and an anchor below it moves only the
+    /// anchor's row.
+    ///
+    /// Left alone, as the cursor is: an anchor set since the last frame, a move
+    /// of the list's own still on its way to the data, and a row that is gone,
+    /// whose place the row after it takes.
+    ///
+    /// Costs nothing without an anchor, and one id read on a frame with one
+    /// (``rememberAnchorRow(checked:)`` reuses it).
+    ///
+    /// - Parameter ownMovePending: Whether a move of the list's own was
+    ///   awaited as this frame began.
+    /// - Returns: The anchor and the id this read, for
+    ///   ``rememberAnchorRow(checked:)``; `nil` with no anchor.
+    func followAnchorRow(ownMovePending: Bool) -> (index: Int, id: SelectionValue?)? {
+        guard let anchor = selectionAnchor else { return nil }
+        let current = id(at: anchor)
+        guard let remembered = anchorRowID, anchor == anchorRowOrdinal, !ownMovePending,
+            current != remembered, let found = index(of: remembered, near: anchor)
+        else { return (anchor, current) }
+        selectionAnchor = found
+        return (found, remembered)
+    }
+
+    /// Remembers the anchor's row for the next frame's
+    /// ``followAnchorRow(ownMovePending:)``. Reads no id when the anchor is
+    /// still where `checked` read it.
+    func rememberAnchorRow(checked: (index: Int, id: SelectionValue?)?) {
+        anchorRowOrdinal = selectionAnchor
+        guard let anchor = selectionAnchor, movedRowsPendingFrames == 0 else {
+            anchorRowID = nil
+            return
+        }
+        anchorRowID = anchor == checked?.index ? checked?.id : id(at: anchor)
     }
 }

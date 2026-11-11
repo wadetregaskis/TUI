@@ -1618,6 +1618,14 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     var cursorRowID: SelectionValue?
     var cursorRowOrdinal = 0
 
+    /// The id of the row the range anchor (``selectionAnchor``) stood on when
+    /// the last frame was drawn, and the anchor then — what
+    /// ``followAnchorRow(ownMovePending:)`` finds the anchor's row by, as
+    /// ``cursorRowID`` is the cursor's. `nil` with no anchor, on a row with no
+    /// id, or while a move of the list's own is awaited.
+    var anchorRowID: SelectionValue?
+    var anchorRowOrdinal: Int?
+
     /// Whether this list holds the focus, as of the last render.
     ///
     /// Set by the owning view alongside the rest of the per-frame wiring. The

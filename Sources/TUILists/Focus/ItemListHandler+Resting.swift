@@ -212,6 +212,7 @@ extension ItemListHandler {
         // The cursor's own row, which the hold's shift misses when the change
         // was between the top row and the cursor, or a sort.
         let checkedCursor = followCursorRow(from: cursorBefore, ownMovePending: ownMovePending)
+        let checkedAnchor = followAnchorRow(ownMovePending: ownMovePending)
         keepCursorOnTheRows()
         clampScrollOffset()
         clampTopClip()
@@ -224,6 +225,7 @@ extension ItemListHandler {
         applyAnchorHold()
         rememberTopRow()
         rememberCursorRow(checked: checkedCursor)
+        rememberAnchorRow(checked: checkedAnchor)
     }
 
     /// Re-resolves this frame's overscroll allowance (§1.5) — how far past its

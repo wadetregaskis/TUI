@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A Shift-arrow range in a `List` or a `Table` starts from the row you chose, when the rows change under it.** The
+row a range is measured from stayed at its place rather than with its row, so after a row arrived above it, or the
+table was sorted, the next Shift-Down or Shift-click selected rows from somewhere else. It now follows its row, as the
+cursor does.
+
 **With the focus following the pointer, a segmented picker's and a radio group's cursor follow it.** The segment or
 option the pointer moves onto becomes the one the arrow keys, Space and Return act on, as a list's cursor row already
 did; the choice stays until you click or press Space or Return. A disabled option and the rule between two segments
