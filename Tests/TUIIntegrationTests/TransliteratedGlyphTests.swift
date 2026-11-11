@@ -130,6 +130,17 @@ struct TransliteratedGlyphTests {
         #expect(written.lines.map(\.stripped).joined().contains("▐ OK ▌"))
     }
 
+    /// A Braille face's every dot was `.`, so its one-row ends and its
+    /// three-row outline were dots all alike, the blank cells among them.
+    @Test("A Braille face reads as a dotted outline in ASCII")
+    func brailleFace() {
+        let one = PlainTerminalText.folding(drawn(Button("Save") {}.controlStyle(.braille)).joined())
+        #expect(one.contains(": Save :"), "\(one)")
+        let rows = drawn(Button("Save") {}.buttonBorderShape(.roundedRectangle).controlSize(.large).controlStyle(.braille))
+            .map(PlainTerminalText.folding).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        #expect(rows.count == 3 && rows[0].contains("'''") && rows[2].contains("..."), "\(rows)")
+    }
+
     /// Folded at output, the dial's quarters `◔ ◑ ◕` have no shape and were
     /// blank, and `○` and `●` are both `o`: empty and full read alike.
     @Test("A tiny circular gauge draws a different ASCII mark at each quarter, none blank")

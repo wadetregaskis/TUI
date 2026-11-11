@@ -198,6 +198,44 @@ entries, each spinner style's ASCII frames, and a reverse lookup over the SF Sym
 With the flag off, the one addition on a hot path is `effectiveToggleCharacterSet`'s read of `textSpelling`, an
 environment lookup per toggle drawn.
 
+## Boxes and every style (2026-11-11)
+
+The owner's ruling PLAIN-LINE (c): a full ASCII appearance, boxes and every style, not only the controls that state
+their value. Every Example page was walked in a PTY (pyte) under `TUI_PLAIN_TEXT=transliterate`, beside the same
+pages in UTF-8, cell against cell. What was left, and what each became:
+
+- **Lines had lost their weight.** Every line was `-` or `|` and every corner `+`, so `.heavy`, `.doubleLine` and
+  `.rounded` boxes were all a `.line` box: a dialog's, a sheet's, a group box's, a table's rules, a tab view's frame,
+  a split view's divider alike. In **the table**: a light line `-` `|`; a heavy one `=` along and `#` down, its
+  corners and junctions `#`, so a heavy box is `#=====#`; a double one `=` along and `|` down with `+` corners,
+  `+=====+`, one column having no room for two lines; a rounded corner `.` above and `'` below, as an ASCII box
+  rounds one; a dashed line down `:`. In the table rather than where each box is drawn, because a box glyph means the
+  same wherever it is, a dozen views draw them (a border, a sheet's corners, a tab's tees, a grip, a glass rim, a
+  gauge's ring, a shape's stroke), and some read their glyphs back (a sheet's grabber finds its top rule by its
+  corners), which a style swapped for an ASCII one before drawing would break.
+- **Braille was dots.** Every Braille cell was `.`, a blank one too, so a Braille border and a Braille-dotted button
+  were dots all alike, and a Braille picture's empty sky dots end to end. The table writes a cell by where its dots
+  are: blank ` `, upper half `'`, lower half `.`, both `:`, six dots or more `#`. A dotted box is `'''` above and
+  `...` below between walls of `:`, a dotted button `: Save :`. (`TrackGlyphs` had a blank Braille cell as a space,
+  and `━` as `=`, for a track alone; the table has both now, and it keeps only `▬`.)
+- **Blanks.** The corner triangles `◢◣◤◥`, which no transform knows, were blank: the barber-pole progress style
+  showed nothing, a double-width scrollbar's arrows nothing, a three-row circular button's diagonals nothing. They are
+  `/` and `\` by their long side: the pole's stripes `////`, the arrows `/\` and `\/`. Also the diagonal and hooked
+  arrows `↖↘↗↙↰↱`, and the moon `☾☽` as `C` and `D`, as the `.moon` spinner's frames have it.
+
+**What stays `#`, and why.** A block is `#` in the table, and these keep it:
+
+- *Pictures*: images, Canvas output, a shape's raster, a gradient's half blocks, a material's stripes. Their glyphs
+  split a cell between two colours, and the colours, which a plain-text terminal still shows, are the picture; `#`
+  says "ink here" as well as one character can. Spelling a picture as an ASCII-art ramp is what an image's `.ascii`
+  rendering is for, and an app can choose it.
+- *A solid fill*: a progress bar's `.block` fill, the lit run of the `.sweep`, `.pulse`, `.knightRider` and
+  `.gradient` styles, a colour swatch. `#` is ASCII's block, and the motion and the gradient are colour. A glyph ramp
+  for a trail or a gradient (`#=-.`) would change a cell's glyph from frame to frame, which an animated run does not
+  carry (it carries colours), so every tick would render the view again where it now hands the run loop its frames.
+  A swatch's `#` is drawn in its own colour on its own colour: it shows only where there is no colour, as the block
+  it then has to be.
+
 ## Limits left
 
 - Han-only Japanese in an app whose language isn't Japanese is read as Chinese (see above), and a subtree's own

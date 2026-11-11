@@ -7844,7 +7844,9 @@ K3).
   `TerminalSymbols.ASCII` (TUICore), which the folding reads, and wider ones chosen where
   drawn: a toggle's `[x]`, a radio button's `(*)`, spinners' frames, a file panel's `d`/`f`/`l`,
   a control's half-block ends `[ ]` (in the table a half block is `#`, as a Canvas's is);
-  emoji chrome is off.
+  emoji chrome is off. Lines keep their weight in the table (2026-11-11): light `-` `|`,
+  heavy `=` and `#`, double `=` and `|`, rounded corners `.` and `'`; a Braille cell is
+  ` ` `'` `.` `:` or `#` by where its dots are.
   `TUI_PLAIN_TEXT=transliterate` (an experiment, 2026-11-08) also spells text in ASCII
   before layout (`TextTransliteration`, TUIFoundation), so it takes the cells its
   spelling needs; the folding here stays for chrome and what that doesn't reach.

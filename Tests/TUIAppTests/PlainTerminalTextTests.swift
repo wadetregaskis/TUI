@@ -96,6 +96,25 @@ struct PlainTerminalTextTests {
         #expect(PlainTerminalText.folding("●◯◌") == "ooo")
     }
 
+    /// Every line was `-` or `|` and every corner `+`, so a heavy, a double
+    /// and a rounded box were a light one, and every Braille cell was `.`,
+    /// blank or full (PLAIN-LINE, 2026-11-11).
+    @Test("A box is drawn in its lines' weight, rounded where it is, and Braille by where its dots are")
+    func boxes() {
+        #expect(PlainTerminalText.folding("┌──┐│└──┘") == "+--+|+--+")
+        #expect(PlainTerminalText.folding("╭──╮│╰──╯") == ".--.|'--'")
+        #expect(PlainTerminalText.folding("┏━━┓┃┣┫┗━━┛") == "#==#####==#")
+        #expect(PlainTerminalText.folding("╔══╗║╠╣╚══╝") == "+==+|+++==+")
+        // A dashed line down is the dots it looks like.
+        #expect(PlainTerminalText.folding("┊╎┆") == ":::")
+        // A blank cell blank; dots above, below, both, and most of the cell.
+        #expect(PlainTerminalText.folding("⠀⠉⣀⡇⣿") == " '.:#")
+        // The corner triangles by their long side: stripes, a peak, a valley.
+        #expect(PlainTerminalText.folding("◢◤◢◣◥◤") == "///\\\\/")
+        // Arrows and the moon an app's words draw, which were blank.
+        #expect(PlainTerminalText.folding("↰ ↘↗ ☾☽") == "^ \\/ CD")
+    }
+
     @Test("A toast's and an alert's emoji marks come out as ASCII that says the same, in their two cells")
     func emojiMarks() {
         #expect(PlainTerminalText.folding("\u{26A0}\u{FE0F}") == "! ")

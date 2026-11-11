@@ -13,21 +13,17 @@ import TUIFoundation
 /// The ASCII a track draws in place of a glyph that folds badly at output.
 ///
 /// The folding (`TerminalSymbols.ASCII`) knows a glyph, not what it is for.
-/// `▬` has no shape in the table and was blank, so `.dot` drew no fill at all. A blank
-/// Braille cell is a dot there as a full one is, so a `.braille` track was dots
-/// end to end. And `━` is `-` as `─` is, so the two rails of `.knob` read alike.
+/// `▬` has no shape in the table and was blank, so `.dot` drew no fill at all.
 /// Everything else is left to the folding, which spells it as a `Text`'s
-/// glyphs are spelled.
+/// glyphs are spelled: there `━` is `=`, a heavy line, so the two rails of
+/// `.knob` differ (`=====o-----`), and a blank Braille cell is a space, so a
+/// `.braille` track's empty cells are not dots as its fill is. (Both were
+/// this table's until the folding learned them, 2026-11-11.)
 enum TrackGlyphs {
-    /// `glyph` as a track draws it in ASCII: a heavy rail `=`, a blank
-    /// Braille cell a space; any other glyph as it is. (A half block, `▌`, is
-    /// the folding's `#`, as every block is.)
+    /// `glyph` as a track draws it in ASCII: a bar `=`; any other glyph as it
+    /// is. (A half block, `▌`, is the folding's `#`, as every block is.)
     static func ascii(_ glyph: Character) -> Character {
-        switch glyph {
-        case "▬", "━": "="
-        case "\u{2800}": " "
-        default: glyph
-        }
+        glyph == "▬" ? "=" : glyph
     }
 
     /// Each glyph of `glyphs` as ``ascii(_:)`` draws it.

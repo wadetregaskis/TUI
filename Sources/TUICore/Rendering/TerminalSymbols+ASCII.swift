@@ -63,18 +63,62 @@ extension TerminalSymbols {
         package static func spelling(of scalar: Unicode.Scalar) -> String? {
             if let spelled = shapes[scalar] { return spelled }
             switch scalar.value {
-            case 0x2500...0x257F: return "+"  // the lines of `shapes`, and then the corners
+            case 0x2500...0x257F: return "+"  // the lines of `shapes`, and then the light and double corners
             case 0x2580...0x259F, 0x25A0...0x25A9: return "#"  // blocks, shades and squares
-            case 0x2800...0x28FF: return "."  // Braille
+            case 0x2800...0x28FF: return braille(dots: scalar.value - 0x2800)
             default: return nil
+            }
+        }
+
+        /// A Braille cell as what its dots look like from across the room:
+        /// a blank one blank, dots only in its upper half `'`, only in its
+        /// lower half `.`, in both `:`, and six dots or more `#`.
+        ///
+        /// By where the dots are, because that is what a Braille border, a
+        /// dotted button face and a Braille picture all draw with: a dotted
+        /// box's top edge is dots at the head of its cells and its bottom
+        /// dots at their foot, so it reads `'''` above and `...` below,
+        /// between walls of `:`. Every cell was `.`, a blank one too, so a
+        /// Braille picture's empty sky was dots from end to end.
+        private static func braille(dots: UInt32) -> String {
+            // Unicode numbers a cell's dots down its left column and then its
+            // right, and gives the bottom row the last two bits: the upper
+            // half (rows 0 and 1) is 0x01, 0x02, 0x08 and 0x10.
+            let upper: UInt32 = dots & 0x1B
+            let lower: UInt32 = dots & 0xE4
+            switch (upper != 0, lower != 0) {
+            case (false, false): return " "
+            case (true, false): return "'"
+            case (false, true): return "."
+            case (true, true): return dots.nonzeroBitCount >= 6 ? "#" : ":"
             }
         }
 
         private static let shapes: [Unicode.Scalar: String] = {
             var table: [Unicode.Scalar: String] = [:]
             for (spelled, scalars) in [
-                ("-", "─━═╌╍┄┅┈┉╴╶╸╺╼╾‐‑‒–—―"), ("|", "│┃║╎╏┆┇┊┋╵╷╹╻╽╿"), ("/", "╱"), ("\\", "╲"), ("X", "╳"),
-                ("<", "←◀◂◄‹«"), (">", "→▶▸►›»"), ("^", "↑▲△▴"), ("v", "↓▼▽▾"),
+                // A line by its weight. Along, a light one `-` and a heavy or
+                // a double one `=`, so a box in `.heavy` or `.doubleLine` is
+                // not a box in `.line`. Down, a light or a double one `|`, one
+                // column having no room for two lines, and a heavy one `#`, as
+                // are its corners and junctions: `+=====+` is a double box's
+                // top and `#=====#` a heavy one's. A dashed line down `:`, the
+                // dots it looks like; a dashed line along has no one-cell
+                // form but its weight's.
+                ("-", "─╌┄┈╴╶╼╾‐‑‒–—―"), ("=", "━═╍┅┉╸╺"), ("|", "│║╵╷╽╿"), ("#", "┃╹╻┏┓┗┛┣┫┳┻╋"),
+                (":", "╎╏┆┇┊┋"), ("/", "╱"), ("\\", "╲"), ("X", "╳"),
+                // A rounded corner as an ASCII box rounds one: `.----.` above
+                // and `'----'` below.
+                (".", "╭╮"), ("'", "╰╯"),
+                // The corner triangles by their long side: the barber pole's
+                // stripes `◢◤` are `//`, a scrollbar's arrows `◢◣` and `◥◤`
+                // a peak `/\` and a valley `\/`. They were blank.
+                ("/", "◢◤"), ("\\", "◣◥"),
+                ("<", "←◀◂◄‹«"), (">", "→▶▸►›»"), ("^", "↑▲△▴↰↱"), ("v", "↓▼▽▾"),
+                ("\\", "↖↘"), ("/", "↗↙"),
+                // The moon by its lit side, as the `.moon` spinner's ASCII
+                // frames have it.
+                ("C", "☾"), ("D", "☽"),
                 // Control as terminals write it, `^Q`, for what is drawn without
                 // being spelled before layout, where the other modifiers are
                 // their names: one cell has no room for those.

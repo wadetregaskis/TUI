@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Under `TUI_PLAIN_TEXT`, a box keeps its lines' weight, and Braille its shape.** Sent as plain text, every line was
+`-` or `|` and every corner `+`, so a heavy, a double and a rounded box were all one light box, and every Braille cell
+was `.`, a blank one too. A heavy box is now `#=====#`, a double one `+=====+`, a rounded one `.-----.` over
+`'-----'`, and a dashed line down `:`; a Braille cell is `'`, `.`, `:` or `#` by where its dots are, and blank where
+it has none, so a Braille border, a Braille-dotted button and a Braille picture keep their outlines. The barber-pole
+progress style, blank before, is `////`, and a scrollbar's triangle arrows `/\` and `\/`.
+
 **A control named with `.focusID(_:)` answers to its `@FocusState`.** `TextField(…).focusID("email")
 .focused($field, equals: .email)` kept its name, but the binding pointed at a name of its own that no control had, so
 setting `field = .email` moved the focus nowhere and `field` never read `.email`. The binding now follows the control
