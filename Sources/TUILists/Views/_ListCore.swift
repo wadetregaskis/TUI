@@ -3145,6 +3145,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             ),
             at: 0
         )
+        followPointerWithCursor(
+            for: mouseHandlerID, handler: state.handler, dispatcher: mouseDispatcher,
+            rowAt: Self.rowLookup(state.visibleRowYRanges, topInset: topInset, contentColumns: contentColumns),
+            context: context)
 
         // A one-row region at the keyboard cursor's on-screen line, stamped
         // with the SAME focusID and inserted ahead of the container region:
@@ -3172,6 +3176,27 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         }
 
         return true
+    }
+
+    /// While the focus follows the pointer, the list's cursor row follows it
+    /// too: a move onto another cell of a content row, with the list holding
+    /// the focus after it, puts the cursor on that row
+    /// (``ItemListHandler/followPointer(toRow:drawing:)``). A section's header
+    /// or footer is no content row, and moves nothing.
+    ///
+    /// Only a move of the pointer counts — the dispatcher offers nothing when
+    /// the rows move under a pointer at rest, as the wheel moves them — so the
+    /// keys and the wheel keep the cursor until the pointer moves again.
+    private func followPointerWithCursor(
+        for id: HitTestRegion.HandlerID, handler: ItemListHandler<SelectionValue>, dispatcher: MouseEventDispatcher,
+        rowAt: @escaping (_ x: Int, _ y: Int) -> (rowIndex: Int, type: ListRowType<SelectionValue>)?,
+        context: RenderContext
+    ) {
+        guard context.environment.focusFollowsPointer == true else { return }
+        let drawing = HandlerDrawing(context)
+        dispatcher.filePointerFocusFollower(for: id, in: context) { [handler] event in
+            handler.followPointer(toRow: Self.contentRow(rowAt(event.x, event.y)), drawing: drawing)
+        }
     }
 
     /// A hover observer over the list, where a section has actions: they are

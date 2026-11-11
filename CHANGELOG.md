@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**With the focus following the pointer, a list's cursor row follows it.** Over a `List`, a `Table` or an outline,
+the row the pointer moves onto becomes the row the keys act on; the selection stays until you click or press Space
+or Return, and rows the wheel scrolls under a still pointer leave the cursor where it was. A closed menu bar title
+still opens nothing under the pointer.
+
 **A circular `Gauge` shows its value without colour.** The lit part of `.accessoryCircular`'s and
 `.accessoryCircularCapacity`'s ring was the accent and nothing else, so without colour, or where the terminal's colours
 round the accent onto the ring's grey, the ring looked the same at every value, and one without a value label said

@@ -195,6 +195,12 @@ package final class MouseEventDispatcher {
     /// ``fileControlPointerShape(_:for:in:)``.
     var controlPointerShapes: [HitTestRegion.HandlerID: PointerShape] = [:]
 
+    /// The controls this frame that move a cursor of their own to the pointer
+    /// when the focus follows it — a `List`'s row — by the id of the region
+    /// carrying their focus id, cleared with the handler table. See
+    /// ``filePointerFocusFollower(for:in:_:)``.
+    var pointerFocusFollowers: [HitTestRegion.HandlerID: (MouseEvent) -> Bool] = [:]
+
     /// For each region the pointer's shape is read from, the styles and the
     /// see-through wrappers whose views it is inside, this frame, cleared with
     /// the handler table: what tells a region nested in another from one that
@@ -462,6 +468,7 @@ extension MouseEventDispatcher {
         hoverObserverIDs.removeAll(keepingCapacity: true)
         pointerStyleRegions.removeAll(keepingCapacity: true)
         controlPointerShapes.removeAll(keepingCapacity: true)
+        pointerFocusFollowers.removeAll(keepingCapacity: true)
         pointerShapeEnclosures.removeAll(keepingCapacity: true)
         pointerShapeWrappers.removeAll(keepingCapacity: true)
         passiveIDs.removeAll(keepingCapacity: true)

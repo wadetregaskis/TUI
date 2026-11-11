@@ -187,6 +187,15 @@ clicks.
   a menu is open it moves nothing: the menu follows the pointer itself.
 - **A disabled control, or one under a sheet, takes nothing**, and a drag,
   by the mouse or carried by the keyboard, moves no focus on its way.
+- **The pointer moves the focus, never a value or a selection.** In a `List`,
+  a `Table` or an outline, the list's cursor row follows the pointer too, so
+  the keys act on the row under it, but the selection stays where it is until
+  you click or press Space or Return. Only a move of the pointer moves the
+  cursor: rows the wheel or the keys scroll under a pointer at rest leave it
+  where it was.
+- **The menu bar is not a focus stop.** Passing over a closed menu's title
+  opens nothing, as on a Mac; a click or F10 opens it. While a menu is open,
+  moving onto another title opens that menu, and moving onto an item lights it.
 
 ## Focus Indicator
 

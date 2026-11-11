@@ -4590,6 +4590,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             ),
             at: 0
         )
+        // While the focus follows the pointer, the cursor row follows it too,
+        // as a `List`'s does (`ItemListHandler.followPointer(toRow:drawing:)`):
+        // a row's content columns, never its header or border.
+        if context.environment.focusFollowsPointer == true {
+            let drawing = HandlerDrawing(context)
+            let handler = state.handler
+            let bands = state.drawnBands
+            mouseDispatcher.filePointerFocusFollower(for: mouseHandlerID, in: context) { event in
+                let row = contentColumns.contains(event.x)
+                    ? Self.drawnRow(atLine: event.y, interiorTopY: interiorTopY, bands: bands) : nil
+                return handler.followPointer(toRow: row, drawing: drawing)
+            }
+        }
 
         registerDragTargets(
             handlerID: mouseHandlerID, state: state, context: context, interiorTopY: interiorTopY,
