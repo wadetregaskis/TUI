@@ -11,6 +11,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
 import Testing
 
 import TUIEffects
@@ -24,6 +25,59 @@ import TUITables
 private struct Item: Identifiable {
     let id: Int
     var name: String { String(repeating: "\(id)", count: 4) }
+}
+
+/// How many times the ids of ``CountedItem``s have been read.
+private final class IDReads: Sendable {
+    private let count = Mutex(0)
+    var value: Int { count.withLock { $0 } }
+    func note() { count.withLock { $0 += 1 } }
+    func reset() { count.withLock { $0 = 0 } }
+}
+
+/// A row whose id counts its reads: what a container's search of its rows by
+/// key costs, in keys.
+private struct CountedItem: Identifiable {
+    let number: Int
+    let reads: IDReads
+    var id: Int {
+        reads.note()
+        return number
+    }
+    /// The number alone: four digits fit the narrowest of the containers.
+    var name: String { "\(number)" }
+}
+
+/// Where a reader's proxy is kept, for a test to scroll with between frames.
+@MainActor
+private final class ProxyBox {
+    var proxy: ScrollViewProxy?
+}
+
+/// `items` as rows of `shape` (a scrolling one), in a reader whose proxy
+/// `box` keeps.
+private struct ScrolledRows: View {
+    let items: [CountedItem]
+    let shape: WindowedShape
+    let box: ProxyBox
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            let _ = box.proxy = proxy  // swiftlint:disable:this redundant_discardable_let
+            switch shape {
+            case .list:
+                List(items) { Text($0.name) }
+            case .table:
+                Table(items) { TableColumn("N", value: \CountedItem.name) }
+            default:
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(items) { Text($0.name) }
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// The containers under test, each holding a loop's rows.
@@ -158,6 +212,42 @@ struct WindowedRowFadeTests {
         _ = frames.draw(Rows(ids: all, shape: shape), atMillis: 0)
         _ = frames.buffer(Rows(ids: Array(all.dropFirst(2)), shape: shape), atMillis: 1000, changed: true)
         #expect(fades(frames.buffer(Rows(ids: Array(all.dropFirst(2)), shape: shape), atMillis: 1500)).isEmpty)
+    }
+
+    /// Whether a row the window reaches was a row already is asked of the
+    /// row's own place first, which a scroll does not change: asked by a scan
+    /// from the first row, a glide deep in the rows read every key above the
+    /// window on each frame that brought a row in (Stress's `glide` took
+    /// 3.5 ms a frame three thousand frames in, against 0.36 ms at first).
+    @Test(
+        "A glide deep in the rows reads the keys of the rows it draws, not of every row above them",
+        arguments: [WindowedShape.scrolledLazyStack, .list, .table])
+    func glideDeepInTheRowsReadsFewKeys(shape: WindowedShape) {
+        let frames = Frames()
+        let reads = IDReads()
+        let box = ProxyBox()
+        let rows = ScrolledRows(
+            items: (0..<2_000).map { CountedItem(number: $0, reads: reads) }, shape: shape, box: box)
+        _ = frames.draw(rows, atMillis: 0)
+        box.proxy?.scrollTo(1_500, anchor: .top)
+        _ = frames.draw(rows, atMillis: 100)
+        let deep = frames.draw(rows, atMillis: 200)
+        #expect(deep.contains { $0.contains("1500") }, "scrolled to row 1500: \(deep)")
+        // Five rows on under an animation stated on every frame, as a
+        // `.transaction` over the rows states it: five rows come into the
+        // window, one a frame or so, each of them a row already. The request
+        // itself may look for its row by a scan, once (a list's and a
+        // table's do), on the frame that takes it; what is counted is the
+        // glide's frames after it.
+        box.proxy?.scrollTo(1_505, anchor: .top)
+        _ = frames.draw(rows, atMillis: 300, changed: true)
+        reads.reset()
+        var drawn: [String] = []
+        for millis in stride(from: 400, through: 1_500, by: 100) {
+            drawn = frames.draw(rows, atMillis: millis, changed: true)
+        }
+        #expect(drawn.contains { $0.contains("1505") }, "glided to row 1505: \(drawn)")
+        #expect(reads.value < 1_000, "\(reads.value) id reads over the glide, with 1,500 rows above it")
     }
 
     @Test("A lazy stack's row with a transition of its own plays it as it leaves", arguments: [false, true])

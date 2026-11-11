@@ -421,6 +421,19 @@ through, as content drawn after an overflow cuts it), its fades and runs cut to
 those cells. Where its glyphs meet the row beneath they still cover it, a fade
 giving way below half as any fade over text does. `WindowedRowRemovalTests`.
 
+**The membership test looks at the row's own place first, 2026-11-11** (HUNT
+glide): it scanned the data from the first row for the row's key, so each row
+a glide brought into the window under an animation read a key for every row
+above it, and Stress's `glide`, gliding a line a frame, slowed with every frame
+(0.36 ms a frame over its first 300, 3.5 ms over 10,000). A row now carries its
+ordinal on the frame that drew it, and the test reads the key there before it
+scans (`WindowedRow.isKeyed(amongCount:keyAt:)`): a scroll changes no data, so
+that one read answers it, and only a change that moved the row or put it in
+pays the scan. The ordinal is only where to look first, so it can cost a scan
+but never give a wrong answer. A list's or a table's `scrollTo` still finds its
+row by a scan once, on the frame that takes the request, as a `scrollTo` of a
+row a lazy stack has not drawn does. `WindowedRowFadeTests`.
+
 ### B-FB16-3. A `Grid`'s cells move at once
 
 *`Grid`, `GridRow`*

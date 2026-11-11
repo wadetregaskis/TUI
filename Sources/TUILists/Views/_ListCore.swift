@@ -1646,10 +1646,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// Fades in the rows of `drawn` an animated change put in, as an eager
     /// stack fades its children in (`WindowedRowFade`): a row the window
     /// reaches by scrolling, or because rows above it went, was a row already
-    /// and is drawn as it is. A row is found among the rows by its key
-    /// (``RowSource/index(ofScrollKey:)``), asked only of one an animated
-    /// change may have put in. A removal is not played here: the rows are
-    /// composed as lines, past where a picture could be drawn over them.
+    /// and is drawn as it is. A row is found among the rows by its key, at
+    /// its own index first (``WindowedRow/isKeyed(amongCount:keyAt:)``),
+    /// asked only of one an animated change may have put in. A removal is
+    /// not played here: the rows are composed as lines, past where a picture
+    /// could be drawn over them.
     private func fadeArrivingRows(
         _ drawn: [(index: Int, row: SelectableListRow<SelectionValue>)], of source: RowSource<SelectionValue>,
         context: RenderContext
@@ -1661,12 +1662,12 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             // Its key only where it is asked: a tagged row builds itself to say.
             guard
                 let presence = fade.presence(
-                    of: WindowedRow(identity: identity, key: nil, type: nil), x: 0, y: 0,
+                    of: WindowedRow(identity: identity, key: nil, type: nil, ordinal: index), x: 0, y: 0,
                     drawsSomething: content.buffer.height > 0, key: source.scrollKey(at: index))
             else { continue }
             content.transformRender { DefaultTransition.faded($0, by: presence) }
         }
-        _ = fade.finish { row in row.key.map { source.index(ofScrollKey: $0) != nil } ?? false }
+        _ = fade.finish { row in row.isKeyed(amongCount: source.count, keyAt: source.scrollKey(at:)) }
     }
 
     /// How many of the rows the in-flight drag came from are inside the window

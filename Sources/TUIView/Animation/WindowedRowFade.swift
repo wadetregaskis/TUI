@@ -45,19 +45,43 @@ package struct WindowedRow {
     /// The type of the view it drew, for a removal of its own; `nil` where
     /// the container plays none.
     package let type: Any.Type?
+    /// Where it is among the container's rows on the frame that drew it, where
+    /// the container knows: the first place a membership test looks for its
+    /// key (``isKeyed(amongCount:keyAt:)``).
+    package let ordinal: Int?
 
-    package init(identity: ViewIdentity, key: String?, type: Any.Type?) {
+    package init(identity: ViewIdentity, key: String?, type: Any.Type?, ordinal: Int? = nil) {
         self.identity = identity
         self.key = key
         self.type = type
+        self.ordinal = ordinal
     }
 
-    /// A stack's child, under the stack at `parent`.
+    /// A stack's child, under the stack at `parent`, at `ordinal` among the
+    /// stack's children where the stack knows it.
     @MainActor
-    package init(_ child: ChildView, under parent: ViewIdentity) {
+    package init(_ child: ChildView, under parent: ViewIdentity, ordinal: Int? = nil) {
         self.init(
             identity: child.identityStep.identity(under: parent), key: child.identityChildKey,
-            type: child.identityStep.type ?? child.viewType)
+            type: child.identityStep.type ?? child.viewType, ordinal: ordinal)
+    }
+
+    /// Whether this row's key is among `count` rows whose keys `keyAt` reads:
+    /// at the row's ``ordinal`` first, else by a scan from the first row.
+    ///
+    /// A row a scroll brings into the window — a glide does on every frame —
+    /// is where it was in the data, since a scroll changes none, so its own
+    /// ordinal answers with one key read. A scan from the first row read a key
+    /// for every row above it: a row ten thousand down read ten thousand on
+    /// each frame of a glide, and Stress's `glide` took 3.5 ms a frame at
+    /// three thousand frames, up from 0.36 ms at three hundred. Only a change
+    /// that moved the row, or put it in, scans. The ordinal is only where to
+    /// look first, so a key found there is among the rows wherever the row
+    /// was: a wrong ordinal costs the scan, never a wrong answer.
+    package func isKeyed(amongCount count: Int, keyAt: (Int) -> String?) -> Bool {
+        guard let key else { return false }
+        if let ordinal, ordinal >= 0, ordinal < count, keyAt(ordinal) == key { return true }
+        return (0..<count).contains { keyAt($0) == key }
     }
 }
 
@@ -76,14 +100,15 @@ extension WindowedRow {
 
     /// Whether a row is among `children`, a stack's children built on demand,
     /// under the stack at `parent`: by its key where it has one, which builds
-    /// no row; else by building each to compare its identity.
+    /// no row, looked for at the row's ordinal first; else by building each
+    /// to compare its identity.
     @MainActor
     package static func isAmong(
         _ children: ChildViewCollection, under parent: ViewIdentity
     ) -> @MainActor (Self) -> Bool {
         if let eager = children.eagerChildViews { return isAmong(eager, under: parent) }
         return { row in
-            if let key = row.key { return children.firstOrdinal(forKey: key) != nil }
+            if row.key != nil { return row.isKeyed(amongCount: children.count, keyAt: children.key(at:)) }
             return (0..<children.count).contains { children[$0].identityStep.identity(under: parent) == row.identity }
         }
     }
@@ -182,7 +207,9 @@ package struct WindowedRowFade {
         guard let animation, drawsSomething, let wasRow = record.isRow else { return nil }
         if wasDrawn == nil { wasDrawn = Set(record.drawn.map(\.row.identity)) }
         guard wasDrawn?.contains(identity) == false,
-            !wasRow(row.key == nil ? WindowedRow(identity: identity, key: rowKey(), type: row.type) : row),
+            !wasRow(
+                row.key == nil
+                    ? WindowedRow(identity: identity, key: rowKey(), type: row.type, ordinal: row.ordinal) : row),
             // A transition of its own, declared at its address as it drew.
             !storage.departures.isPresent(at: identity)
         else { return nil }

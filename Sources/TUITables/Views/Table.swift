@@ -5763,7 +5763,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         for band in bands {
             guard case .row(let index) = band.entry, index >= 0, index < data.count else { continue }
             let item = data[index]
-            let row = WindowedRow(identity: rowIdentity(of: item, context: context), key: nil, type: nil)
+            let row = WindowedRow(
+                identity: rowIdentity(of: item, context: context), key: nil, type: nil, ordinal: index)
             guard
                 let presence = fade.presence(
                     of: row, x: 0, y: band.yStart, drawsSomething: band.height > 0, key: identityKey(item.id))
@@ -5771,7 +5772,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             claims.append(
                 OpacityRegion(offsetX: 0, offsetY: band.yStart, width: width, height: band.height, opacity: presence))
         }
-        _ = fade.finish { row in row.key.map { key in data.contains { identityKey($0.id) == key } } ?? false }
+        _ = fade.finish { row in row.isKeyed(amongCount: data.count) { identityKey(data[$0].id) } }
         return claims
     }
 

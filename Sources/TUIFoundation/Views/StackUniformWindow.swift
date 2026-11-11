@@ -694,7 +694,7 @@ final class StackWindowState {
                 viewportHeight: geometry.viewportHeight,
                 context: rowContext(ordinal, rowWidth))
             slot = fade.drawn(
-                slot, WindowedRow(child, under: context.identity),
+                slot, WindowedRow(child, under: context.identity, ordinal: ordinal),
                 x: Self.gradientX(childWidth: rowWidth, extent: geometry.width, alignment: alignment), y: rowY)
             zOrder.append(slot, of: child, to: &result, spacing: 0)
             cursor = rowY + geometry.extent

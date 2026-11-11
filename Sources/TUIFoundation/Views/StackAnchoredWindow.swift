@@ -954,7 +954,7 @@ private final class AnchoredWindowFrame {
                         extent: width, alignment: alignment),
                     y: slotY))
             rendered = fade.drawn(
-                rendered, WindowedRow(child, under: context.identity),
+                rendered, WindowedRow(child, under: context.identity, ordinal: ordinal),
                 x: Self.gradientX(childWidth: rendered.width, extent: width, alignment: alignment), y: slotY
             ).horizontallyAligned(toWidth: width, alignment: alignment)
             zOrder.append(Self.slot(of: rendered, extent: rowHeight, width: width), of: child, to: &result, spacing: 0)
