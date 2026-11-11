@@ -36,4 +36,19 @@ package struct TransitionClock: Sendable, Equatable {
         let elapsed = Double(nowNanos - startNanos) / 1_000_000_000
         return animation.isFinished(at: elapsed) ? 1 : animation.fraction(at: elapsed)
     }
+
+    /// How present a view arriving `arrival` of the way is, where it came back
+    /// while `removal` was taking it out: the removal runs on, and the arrival
+    /// takes the view from wherever that has it to fully present. Removed and
+    /// inserted again at 30% (T21), an `.opacity` drew `r + (1 − r) q`, where
+    /// `r` is how present the removal running on has it and `q` how far the
+    /// arrival has got: 0.61 a fifth of the way back, not the 0 of a fresh
+    /// arrival or the 0.76 of one from where the removal stood.
+    package static func presence(
+        arriving arrival: Double, returningFrom removal: Self?, at nowNanos: Int64
+    ) -> Double {
+        guard let removal else { return arrival }
+        let left: Double = min(1, max(0, 1 - removal.fraction(at: nowNanos)))
+        return left + (1 - left) * arrival
+    }
 }

@@ -257,19 +257,30 @@ private enum StateIndex {
         // does: the removal takes the view from wherever the arrival has it
         // (`AnyTransition.Effect.leaving`). Once it had arrived, the clock is
         // `nil` and the removal plays as it is.
-        let (insertion, removal) = (transition.insertion, transition.removal)
+        //
+        // A view that came back while it was leaving is the same view, and
+        // the removal runs on beneath its return (`TransitionClock`): it
+        // comes back by the removal's effect, from where that has it, so an
+        // `asymmetric` move returns from the side it was leaving by. The
+        // insertion's effect never plays then, so a removal of the returning
+        // view takes the removal's effect alone from where the return has it.
+        let now = context.environment.frameNowNanos
+        let returning = phase == 1 ? nil : storage.departures.removalInterrupted(at: context.identity, nowNanos: now)
+        let (insertion, removal) = (returning == nil ? transition.insertion : transition.removal, transition.removal)
         let arrival = phase == 1 ? nil : storage.animations.arrivalClock(at: key)
         storage.departures.present(
             DepartureStore.Departure(
                 viewType: Self.self, width: buffer.width, height: buffer.lines.count,
                 explicitAnimation: transition.removalAnimation,
                 render: { departurePhase, now in
-                    AnyTransition.Effect.leaving(
+                    let arrived = TransitionClock.presence(
+                        arriving: arrival?.fraction(at: now) ?? 1, returningFrom: returning, at: now)
+                    return AnyTransition.Effect.leaving(
                         buffer, insertion: insertion, removal: removal, presence: departurePhase,
-                        arrived: min(1, max(0, arrival?.fraction(at: now) ?? 1)), context: context
+                        arrived: min(1, max(0, arrived)), context: context
                     ).slotBuffer()
                 }),
-            at: context.identity)
+            at: context.identity, returningFrom: returning)
 
         // `!= 1`, not `< 1`: a spring goes PAST its target and comes back, and
         // above 1 is a picture (the view a cell beyond where it lands) rather
@@ -277,7 +288,11 @@ private enum StateIndex {
         // Exactly 1 is the settled value the store returns for a finished or
         // unanimated arrival, so the fast path still catches every idle frame.
         guard phase != 1 else { return buffer }
-        return transition.insertion.apply(to: buffer, phase: phase, context: context).slotBuffer()
+        guard let returning else {
+            return transition.insertion.apply(to: buffer, phase: phase, context: context).slotBuffer()
+        }
+        let presence = TransitionClock.presence(arriving: phase, returningFrom: returning, at: now)
+        return transition.removal.apply(to: buffer, phase: presence, context: context).slotBuffer()
     }
 }
 
@@ -335,11 +350,15 @@ private enum StateIndex {
         let key = AnimationStore.Key(
             identity: context.identity, owner: ObjectIdentifier(Self.self),
             slot: StateIndex.phase)
+        let now = context.environment.frameNowNanos
         let phase = storage.animations.arrivalPhase(
-            for: key, animation: animation,
-            nowNanos: context.environment.frameNowNanos, isMeasuring: false)
+            for: key, animation: animation, nowNanos: now, isMeasuring: false)
+        // Back while it was leaving: from `.didDisappear`, where the removal
+        // running on has it, as the effects path comes back by the removal.
+        let returning = phase == 1 ? nil : storage.departures.removalInterrupted(at: context.identity, nowNanos: now)
         var buffer = custom.render(
-            presence: phase, from: .willAppear, content: live,
+            presence: TransitionClock.presence(arriving: phase, returningFrom: returning, at: now),
+            from: returning == nil ? .willAppear : .didDisappear, content: live,
             recordingAround: .transitionBlank(content, at: context.identity), context: context)
         if phase != 1 {
             // The slot is the body's size at rest, which is what the layout
@@ -361,14 +380,22 @@ private enum StateIndex {
                 viewType: Self.self, width: width, height: height,
                 explicitAnimation: transition.removalAnimation,
                 render: { departurePhase, now in
-                    custom.render(
-                        presence: departurePhase, arrived: min(1, max(0, arrival?.fraction(at: now) ?? 1)),
-                        from: .didDisappear,
+                    let arrived = min(
+                        1,
+                        max(
+                            0,
+                            TransitionClock.presence(
+                                arriving: arrival?.fraction(at: now) ?? 1, returningFrom: returning, at: now)))
+                    // Returning, its values were never at `.willAppear`'s:
+                    // each is taken from where the return has it.
+                    return custom.render(
+                        presence: returning == nil ? departurePhase : departurePhase * arrived,
+                        arrived: returning == nil ? arrived : 1, from: .didDisappear,
                         content: .departedContent(parting),
                         recordingAround: .departedBlank(parting), context: context
                     ).clamped(toWidth: width, height: height)
                 }),
-            at: context.identity)
+            at: context.identity, returningFrom: returning)
         return buffer
     }
 }

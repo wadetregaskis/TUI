@@ -221,7 +221,7 @@ DepartureStore.hasDepartures(at:) | func hasDepartures(at nowNanos: Int64) -> Bo
 DepartureStore.init() | init()
 DepartureStore.isEmpty | var isEmpty: Bool { get }
 DepartureStore.noteDrawnUnchanged(at:leftBy:byErasing:) | func noteDrawnUnchanged(at identity: ViewIdentity, leftBy type: @autoclosure () -> any Any.Type, byErasing eraser: any Any.Type)
-DepartureStore.present(_:at:) | func present(_ departure: DepartureStore.Departure, at identity: ViewIdentity)
+DepartureStore.present(_:at:returningFrom:) | func present(_ departure: DepartureStore.Departure, at identity: ViewIdentity, returningFrom: TransitionClock? = nil)
 DepartureStore.removeAll() | func removeAll()
 DrawsContentUnchanged | @MainActor protocol DrawsContentUnchanged : SingleContentWrapper
 DynamicProperty | protocol DynamicProperty

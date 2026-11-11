@@ -282,7 +282,10 @@ is, as SwiftUI's does: the animation it interrupted runs on, and the new one
 takes the view from wherever that has it. A view removed while it is still
 arriving keeps on towards its place for a moment, slowing, as the removal takes
 it out the way the removal goes — for `.push` and `.slide`, the other side,
-reached by crossing the slot rather than by jumping there.
+reached by crossing the slot rather than by jumping there. A view inserted
+again while it is leaving is the same view coming back, not a new one
+arriving: it returns from where it is, by the way it was leaving, so a
+`.push` sliding out to the leading side slides back in from there.
 
 ## Springs
 

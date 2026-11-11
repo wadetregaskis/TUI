@@ -110,11 +110,20 @@ package final class DepartureStore {
         /// the one such wrapper that cannot say so by its type. See
         /// ``noteDrawnUnchanged(at:leftBy:byErasing:)``.
         var erasedBy: ObjectIdentifier?
+        /// The removal the view came back during, while it is arriving again
+        /// — see ``removalInterrupted(at:nowNanos:)``.
+        var returningFrom: TransitionClock?
 
         /// Whether a slot that may draw the picture of a view of `type` may
         /// draw this one: the view that left it, or the eraser that drew it.
         func wasLeft(by type: ObjectIdentifier) -> Bool {
             departure.viewType == type || erasedBy == type
+        }
+
+        /// The removal playing, once it has started.
+        var removalPlaying: TransitionClock? {
+            guard let leftAtNanos, let animation else { return nil }
+            return TransitionClock(animation: animation, startNanos: leftAtNanos)
         }
     }
 
@@ -153,9 +162,51 @@ extension DepartureStore {
     /// store it has not left — the same contract the animation scheduler uses
     /// for its tokens, and for the same reason: nothing else can report an
     /// absence.
-    public func present(_ departure: Departure, at identity: ViewIdentity) {
+    ///
+    /// `returningFrom` is the removal the view came back during, while it is
+    /// still arriving (``removalInterrupted(at:nowNanos:)``): kept with the
+    /// entry so each frame of the arrival can ask for it again.
+    public func present(
+        _ departure: Departure, at identity: ViewIdentity, returningFrom: TransitionClock? = nil
+    ) {
         entries[identity] = Entry(
-            departure: departure, leftAtNanos: nil, animation: nil, presentThisPass: true)
+            departure: departure, leftAtNanos: nil, animation: nil, presentThisPass: true,
+            returningFrom: returningFrom)
+    }
+
+    /// The removal a view at `identity` has come back during, before it has
+    /// declared itself this pass: the one still playing there, or the one it
+    /// came back during on an earlier frame and is still arriving from. `nil`
+    /// where none is, or where the removal had played out — the view then
+    /// simply arrives.
+    ///
+    /// SwiftUI does not restart a view that comes back mid-removal: it is the
+    /// same view, and the removal runs on beneath its return, which takes it
+    /// from wherever the removal has it to fully present (``TransitionClock``;
+    /// measured, `Tools/SwiftUIProbes/Transitions/tr5.out` T21 to T24). So
+    /// the view's return is drawn with the REMOVAL's effect, from where it
+    /// had got: an `asymmetric` move comes back from the side it was leaving
+    /// by. Replaced by the view's ``present(_:at:returningFrom:)``, the record
+    /// of the removal started its arrival from nothing.
+    package func removalInterrupted(at identity: ViewIdentity, nowNanos: Int64) -> TransitionClock? {
+        guard !entries.isEmpty, let entry = entries[identity], !entry.presentThisPass else { return nil }
+        guard let playing = entry.removalPlaying else { return entry.returningFrom }
+        return playing.fraction(at: nowNanos) < 1 ? playing : nil
+    }
+
+    /// Ends the removal playing at `identity`, for a view that has come back
+    /// before it finished — an `if`'s, which reports its view itself rather
+    /// than re-declaring it (`DefaultTransition`) — and returns it if it has
+    /// not played out, for the arrival to come back from
+    /// (``removalInterrupted(at:nowNanos:)``). Left in place, the removal
+    /// would play on with nothing to draw it, and the `if` would take it for a
+    /// transition of the view's own and stand aside from the next removal.
+    package func endRemoval(at identity: ViewIdentity, nowNanos: Int64) -> TransitionClock? {
+        guard !entries.isEmpty, let entry = entries[identity], !entry.presentThisPass,
+            let playing = entry.removalPlaying
+        else { return nil }
+        entries.removeValue(forKey: identity)
+        return playing.fraction(at: nowNanos) < 1 ? playing : nil
     }
 
     /// Whether a view with a transition of its own has declared itself at

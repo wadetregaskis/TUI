@@ -181,6 +181,84 @@ struct TransitionInterruptionTests {
         _ = slot.draw(absent.map { $0.transition(Swept(drawn: drawn)) }, atMillis: 500)
         #expect(isNear(drawn.values.last, -2), "\(drawn.values)")
     }
+
+    // MARK: - Back mid-removal
+
+    /// SwiftUI (T22 to T24): inserted again 30% into its removal, the view is
+    /// the same view, and comes back from where the removal has it, the
+    /// removal running on beneath its return: `r + (1 − r) q` present, by the
+    /// removal's effect — so an asymmetric move returns from the side it was
+    /// leaving by. It used to start its arrival from nothing, from the side
+    /// it arrives from.
+    @Test(
+        "A view inserted again mid-removal comes back from where it is, the way it was going",
+        arguments: [pushAside, .push(from: .trailing), .move(edge: .leading)])
+    func returnCarriesOn(transition: AnyTransition) {
+        let slot = Slot()
+        _ = slot.row(true, transition, atMillis: 0)
+        #expect(slot.row(true, transition, atMillis: 1100) == "XXXXXXXXXX", "precondition: arrived")
+        _ = slot.row(false, transition, atMillis: 1100)
+        #expect(slot.row(false, transition, atMillis: 1400) == "XXXXXXX", "precondition: 30% out to the leading side")
+        #expect(slot.row(true, transition, atMillis: 1400) == "XXXXXXX", "it comes back from where it is")
+        // The removal has it 0.5 present by now, and the return 0.2 of the
+        // way from there: 0.6, four cells off the leading side.
+        #expect(slot.row(true, transition, atMillis: 1600) == "XXXXXX")
+        // The removal has played out; the return is 0.7 of the way from nothing.
+        #expect(slot.row(true, transition, atMillis: 2100) == "XXXXXXX")
+        #expect(slot.row(true, transition, atMillis: 2400) == "XXXXXXXXXX")
+    }
+
+    /// The same view, removed again while it comes back: from where the
+    /// return has it, by the removal's effect alone.
+    @Test("A view removed again while it comes back leaves from where it is")
+    func removalOfAReturnCarriesOn() {
+        let slot = Slot()
+        let transition = Self.pushAside
+        _ = slot.row(true, transition, atMillis: 0)
+        _ = slot.row(true, transition, atMillis: 1100)
+        _ = slot.row(false, transition, atMillis: 1100)
+        _ = slot.row(false, transition, atMillis: 1400)
+        _ = slot.row(true, transition, atMillis: 1400)
+        #expect(slot.row(true, transition, atMillis: 1600) == "XXXXXX", "precondition: 0.6 present")
+        #expect(slot.row(false, transition, atMillis: 1600) == "XXXXXX", "the removal starts where the view is")
+    }
+
+    /// An `if`'s default fade, inserted again mid-removal (T21: 0.71 down to
+    /// 0.59 and back up to 1).
+    @Test("A view fading out that is inserted again fades back in from where it is")
+    func defaultFadeReturnCarriesOn() {
+        let screen = FadeScreen()
+        _ = screen.fades(false, atMillis: 0, animated: false)
+        _ = screen.fades(true, atMillis: 10, animated: false)
+        _ = screen.fades(false, atMillis: 100, animated: true)
+        #expect(screen.fades(false, atMillis: 400, animated: false) == [0.7], "precondition: 30% out")
+        #expect(screen.fades(true, atMillis: 400, animated: true) == [0.7], "it comes back from where it is")
+        #expect(screen.fades(true, atMillis: 600, animated: false) == [0.6], "0.5 + 0.5 × 0.2")
+        #expect(screen.fades(true, atMillis: 1100, animated: false) == [0.7], "the removal over, 0.7 of the way")
+        #expect(screen.fades(true, atMillis: 1500, animated: false).isEmpty, "arrived")
+        // And removed once more after it has: as any view that has arrived.
+        _ = screen.fades(false, atMillis: 1500, animated: true)
+        #expect(screen.fades(false, atMillis: 2000, animated: false) == [0.5], "its removal starts, and plays")
+    }
+
+    /// A body of the app's own comes back from `.didDisappear`, where the
+    /// removal has it.
+    @Test("A body inserted again mid-removal comes back from where its removal has each value")
+    func bodyReturnCarriesOn() {
+        let drawn = Drawn()
+        let slot = Slot()
+        let present: Text? = Text("XX")
+        let absent: Text? = nil
+        _ = slot.draw(present.map { $0.transition(Swept(drawn: drawn)) }, atMillis: 0)
+        _ = slot.draw(present.map { $0.transition(Swept(drawn: drawn)) }, atMillis: 1100)
+        _ = slot.draw(absent.map { $0.transition(Swept(drawn: drawn)) }, atMillis: 1100)
+        _ = slot.draw(absent.map { $0.transition(Swept(drawn: drawn)) }, atMillis: 1400)
+        #expect(isNear(drawn.values.last, 3), "precondition: 30% out")
+        _ = slot.draw(present.map { $0.transition(Swept(drawn: drawn)) }, atMillis: 1400)
+        #expect(isNear(drawn.values.last, 3), "it comes back from where it is: \(drawn.values)")
+        _ = slot.draw(present.map { $0.transition(Swept(drawn: drawn)) }, atMillis: 1600)
+        #expect(isNear(drawn.values.last, 4), "0.6 present, from 10: \(drawn.values)")
+    }
 }
 
 /// Whether `value` is `expected`, give or take the rounding of a fraction.

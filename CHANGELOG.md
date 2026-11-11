@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A view inserted again while it is leaving comes back from where it is.** It started its arrival from nothing, so a
+view fading out flashed to blank and a `.push` sliding out jumped to the far side to slide in again. It now returns
+from wherever its removal has it, the removal running on beneath its return as SwiftUI's does: a fade goes on down a
+little and comes back up, and a `.push` or `.slide` slides back in from the side it was leaving by.
+
 **A view removed part-way through its arrival leaves from where it is.** A `.push`, a `.slide` or any `asymmetric`
 transition whose removal goes the other way jumped to the far side on the first frame of its removal: 30% in, it went
 from 70% off the trailing side to 70% off the leading one. It now crosses its slot from where it was, its arrival

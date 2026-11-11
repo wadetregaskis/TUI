@@ -301,7 +301,7 @@ struct TransitionTests {
         #expect(screen.draw(false, .opacity, atMillis: 0) == ["----"])
     }
 
-    @Test("Coming back cancels the departure and runs the insertion again")
+    @Test("Coming back mid-removal carries on from where the view is")
     func returningCancelsTheDeparture() {
         var context = makeRenderContext(width: 8, height: 4)
         context.environment.canAnimate = true
@@ -323,10 +323,12 @@ struct TransitionTests {
         _ = draw(true, atMillis: 1100)
         _ = draw(false, atMillis: 1100)
         #expect(draw(false, atMillis: 1500).first == "  XX")
-        // Present again. Not "resumed from where it was leaving" — it arrives,
-        // which is the same thing that happens to any view that appears.
-        #expect(draw(true, atMillis: 1600).first == "    ")
-        #expect(draw(true, atMillis: 2100).first == "  XX")
+        // Present again: the same view, coming back from where the removal
+        // has it, as SwiftUI's does (`Tools/SwiftUIProbes/Transitions/tr5.out`
+        // T22) — not arriving from nothing, which it did until 2026-11-11.
+        #expect(draw(true, atMillis: 1600).first == "  XX")
+        // The removal over, the return three quarters of the way from nothing.
+        #expect(draw(true, atMillis: 2350).first == " XXX")
         #expect(draw(true, atMillis: 2600).first == "XXXX")
     }
 
