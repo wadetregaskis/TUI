@@ -70,26 +70,8 @@ extension AppRunner {
     /// registration (stopping the instant it lands would strand the shell in
     /// raw mode on the alternate screen), so re-raising it would just re-enter
     /// the handler.
-    ///
-    /// The mouse mode is set to `.none` on the way down and NOT re-applied here
-    /// on the way up: the loop re-evaluates the effective mode every frame and
-    /// re-emits it on change, so the first frame after resume — forced by the
-    /// diff-cache invalidation — restores whatever mode the scene wants.
     private func suspendUntilContinued(renderer: RenderLoop<A>) {
-        terminal.applyMouseSupport(.disabled)
-        // The pointer goes where it likes, unreported, until the mode is back.
-        tuiContext.mouseEventDispatcher.forgetRestingPointer()
-        // The styling reset first: a frame may have ended with styling in
-        // force, and leaving the alternate screen does not restore SGR. The
-        // shell's window title back with it; the first frame after the resume
-        // sets the app's again. The hairlines' strips go too: iTerm2 shows a
-        // line left on the alternate screen on the shell's (`HairlineLayer`).
-        terminal.handBack(
-            farewell: renderer.handBackHairlines() + renderer.handBackPicturesUnderText()
-                + renderer.handBackHostState(),
-            restoringStyling: renderer.restoreTerminalStyling)
-        // The shell's screen is back, so held soft-trap reports can be read there.
-        SoftTrap.terminalRestored()
+        handBackTerminal(renderer: renderer)
         // Our own resume delivers a SIGCONT too; the repaint is already
         // forced below, so arm the source to swallow that one signal.
         // Arming (not consume-after-resume): the SIGCONT source runs on the
@@ -130,6 +112,34 @@ extension AppRunner {
         tuiContext.mouseEventDispatcher.forgetRestingPointer()
         terminal.disableRawMode()
         retakeTerminal(renderer: renderer)
+    }
+
+    /// Hands the terminal back to the shell: the mouse mode off, the
+    /// hairlines' strips, the pictures drawn under text and the window title
+    /// taken back, the styling reset, raw mode off with every mode it set, the
+    /// cursor shown and the alternate screen left: the Ctrl-Z suspend's way
+    /// down.
+    ///
+    /// The mouse mode is set to `.none` here and NOT re-applied by
+    /// ``retakeTerminal(renderer:)``: the loop re-evaluates the effective mode
+    /// every frame and re-emits it on change, so the first frame after —
+    /// forced by the diff-cache invalidation — restores whatever mode the
+    /// scene wants.
+    private func handBackTerminal(renderer: RenderLoop<A>) {
+        terminal.applyMouseSupport(.disabled)
+        // The pointer goes where it likes, unreported, until the mode is back.
+        tuiContext.mouseEventDispatcher.forgetRestingPointer()
+        // The styling reset first: a frame may have ended with styling in
+        // force, and leaving the alternate screen does not restore SGR. The
+        // shell's window title back with it; the first frame after the resume
+        // sets the app's again. The hairlines' strips go too: iTerm2 shows a
+        // line left on the alternate screen on the shell's (`HairlineLayer`).
+        terminal.handBack(
+            farewell: renderer.handBackHairlines() + renderer.handBackPicturesUnderText()
+                + renderer.handBackHostState(),
+            restoringStyling: renderer.restoreTerminalStyling)
+        // The shell's screen is back, so held soft-trap reports can be read there.
+        SoftTrap.terminalRestored()
     }
 
     /// Waits until this process is the terminal's foreground job, stopping
