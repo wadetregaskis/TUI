@@ -50,6 +50,13 @@ extension ASCIIConverter {
     static func monoInkThreshold(for image: RGBAImage) -> Double {
         var histogram = [Int](repeating: 0, count: 256)
         var total = 0
+        addToInkHistogram(image, &histogram, &total)
+        return inkThreshold(histogram: histogram, total: total)
+    }
+
+    /// Counts `image`'s pixels into `histogram`, by luminance, where
+    /// ``monoInkThreshold(for:)`` would.
+    private static func addToInkHistogram(_ image: RGBAImage, _ histogram: inout [Int], _ total: inout Int) {
         // Only the pixels the split decides. Every consumer asks coverage first —
         // `isMonoInk` is `pixel.a >= 128 && …`, braille's dot gate is
         // `coverage >= 128, …`, and the pixel path's mono quantiser and the dither
@@ -73,6 +80,11 @@ extension ASCIIConverter {
             histogram[min(255, max(0, Int(pixel.luminance)))] += 1
             total += 1
         }
+    }
+
+    /// Otsu's split of a histogram ``addToInkHistogram(_:_:_:)`` counted
+    /// `total` pixels into.
+    private static func inkThreshold(histogram: [Int], total: Int) -> Double {
         guard total > 0 else { return midLuminance }
 
         guard let lowest = histogram.firstIndex(where: { $0 > 0 }),
