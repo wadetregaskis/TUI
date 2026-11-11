@@ -695,6 +695,15 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _columnFocus: String?
 
+    /// Where a `Table` whose columns do not fit is scrolled sideways, made by
+    /// the table on the first frame they do not; `nil` for a `List` and for a
+    /// table whose columns have always fitted. See ``TableHorizontalScroll``.
+    package var horizontalScroll: TableHorizontalScroll? { get { _horizontalScroll } set { _horizontalScroll = newValue } }
+
+    /// ``horizontalScroll``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _horizontalScroll: TableHorizontalScroll?
+
     /// The tree inside this list, when there is one — see
     /// ``OutlineRowActivating``. Left and Right collapse and expand through it.
     ///

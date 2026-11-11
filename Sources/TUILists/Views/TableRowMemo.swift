@@ -93,6 +93,10 @@ package struct TableRowFrameKey: Equatable {
     /// that changed only the tone a `TabView` lifts its body onto — went on
     /// serving every kept striped row in the old surface's stripe.
     package let stripe: Color?
+    /// Which column the row starts at: the first, but in a table scrolled
+    /// sideways (decisions TABLE-HSCROLL), whose window of columns can be as
+    /// wide, column for column, as another.
+    package let firstColumn: Int
     package let alignments: [HorizontalAlignment]
     package let truncations: [TruncationMode]
     package let lineLimits: [Int]
@@ -123,7 +127,7 @@ package struct TableRowFrameKey: Equatable {
     package init(
         columnWidths: [Int], columnSpacing: Int, gutter: Int, rowWidth: Int, ink: Color,
         selectedMark: RowSelectionIndicator, unselectedMark: RowSelectionIndicator, stripe: Color?,
-        alignments: [HorizontalAlignment], truncations: [TruncationMode], lineLimits: [Int], colorDepth: ColorDepth,
+        firstColumn: Int, alignments: [HorizontalAlignment], truncations: [TruncationMode], lineLimits: [Int], colorDepth: ColorDepth,
         colorGeneration: Int, widthGeneration: Int, cellText: StyleAttributes, boldCells: Bool,
         insideListRow: Bool
     ) {
@@ -135,6 +139,7 @@ package struct TableRowFrameKey: Equatable {
         self.selectedMark = selectedMark
         self.unselectedMark = unselectedMark
         self.stripe = stripe
+        self.firstColumn = firstColumn
         self.alignments = alignments
         self.truncations = truncations
         self.lineLimits = lineLimits

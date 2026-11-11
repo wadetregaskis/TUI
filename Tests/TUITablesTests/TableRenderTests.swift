@@ -409,24 +409,28 @@ struct TableRenderTests {
         #expect(asText.contains("more rows below"))
     }
 
+    /// Narrower than their headers by their own `max`: a column that states
+    /// no bound is never laid out narrower than its header, the table
+    /// scrolling sideways instead (decisions TABLE-HSCROLL).
     @Test("Narrow columns truncate cell values with an ellipsis")
     func narrowTruncation() {
         let lines = strippedLines(
             Table(sampleRows, selection: .constant(String?.none)) {
-                TableColumn("Filename", value: \Row.name)
-                TableColumn("Size", value: \Row.size)
+                TableColumn("Filename", value: \Row.name).width(max: 4)
+                TableColumn("Size", value: \Row.size).width(max: 3)
             },
-            context: tableContext(width: 14, height: 8)
+            context: tableContext(width: 16, height: 8)
         )
 
         expectClosedBorder(lines)
         // The header title "Filename" cannot fit a narrow column → ellipsis.
         #expect(lines.contains { $0.contains("…") }, "expected ellipsis truncation: \(lines)")
         // A long value ("200K") gets clipped with an ellipsis too.
-        let joined = lines.joined()
-        #expect(joined.contains("…"))
-        // No interior line overflows the 14-cell box.
-        #expect(lines.allSatisfy { $0.count == 14 }, "rows must not overflow the box: \(lines)")
+        #expect(lines.contains { $0.contains("20…") }, "\(lines)")
+        // No interior line overflows the box, which the bounded columns keep
+        // within the 16 cells offered.
+        let width = lines.first?.count ?? 0
+        #expect(width <= 16 && lines.allSatisfy { $0.count == width }, "rows must not overflow the box: \(lines)")
     }
 
     @Test("Columns stay aligned: every data row shares the box width")

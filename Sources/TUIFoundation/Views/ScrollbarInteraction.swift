@@ -398,7 +398,7 @@ extension ScrollbarRenderer {
 
     /// Horizontal convenience wrapper over ``mouseHandler(for:length:vertical:arrows:proportional:behavior:)``
     /// — the bar position is `event.x`.
-    static func horizontalMouseHandler(
+    package static func horizontalMouseHandler(
         for state: ScrollableOffsetState, length: Int, arrows: ScrollbarArrows,
         proportional: Bool, behavior: ScrollbarClickBehavior
     ) -> (MouseEvent) -> Bool {

@@ -15,6 +15,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `Table` whose columns do not fit scrolls sideways.** The columns were squeezed until their cells were nothing but
+`…`, six of them in a narrow table showing only ellipses, and a column with a `.width(min:)` wider than the table hid
+the rest with no sign they were there. Now, once the columns' minimum widths exceed the table's width (a column that
+states none is never narrower than its header), the table scrolls a whole column at a time, the header with it, and
+a horizontal scrollbar under the rows shows where you are. → and ← move it where the rows have no use for them, ⇧→
+and ⇧← in any table, as do the sideways wheel, Shift with the wheel and the scrollbar; a column picked with ⌃K or
+sorted by with ⌃S scrolls into sight. A table whose columns fit is unchanged.
+
 **A grouped `Form` scrolls, as SwiftUI's does.** A form in `.formStyle(.grouped)` taller than its space was cut off, and
 Tab could move the focus onto a control below the window, out of sight. It is a scroll view now, as SwiftUI's is on
 macOS: the wheel and the Page Up, Page Down, Home and End keys the focused control leaves scroll it, and Tab scrolls

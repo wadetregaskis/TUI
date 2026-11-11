@@ -84,8 +84,13 @@ extension ItemListHandler {
         // Held with Option it carries that state down the WHOLE subtree, which
         // is the outline-view gesture people already know from the Finder: ⌥→
         // opens everything under the branch, ⌥← folds it all away again.
+        //
+        // A table whose columns do not fit scrolls sideways on whichever of
+        // the two keys the rows had no use for, and on both with Shift, which
+        // reaches a tree's too (decisions TABLE-HSCROLL).
         case .right, .left:
-            return handleDisclosureKey(event)
+            if event.shift, horizontalScroll?.scrolls == true { return stepColumnsSideways(event) }
+            return handleDisclosureKey(event) || stepColumnsSideways(event)
 
         case .delete, .backspace:
             return deleteFocusedRow()

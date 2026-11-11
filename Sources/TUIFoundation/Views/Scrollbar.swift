@@ -285,7 +285,7 @@ extension EnvironmentValues {
     /// Whether this subtree's horizontally scrolling views reserve a bottom
     /// scrollbar. There is no horizontal text indicator, so the style does not
     /// enter into it — a `.text` subtree still gets its horizontal bar.
-    func showsHorizontalScrollbar(overflowing: @autoclosure () -> Bool) -> Bool {
+    package func showsHorizontalScrollbar(overflowing: @autoclosure () -> Bool) -> Bool {
         !scrollIndicatorsOverlayContent && horizontalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing())
     }
 
@@ -1121,7 +1121,7 @@ package enum ScrollbarRenderer {
     /// A horizontal scrollbar `width` cells wide: a `◀`/`▶` arrow assembly at each
     /// end wrapped around a sub-cell-precise track, as one row with the claims its
     /// colours owe.
-    static func horizontalScrollbar(
+    package static func horizontalScrollbar(
         width: Int, extent: Int, viewport: Int, offset: Int,
         arrows: ScrollbarArrows, proportional: Bool, colors: ScrollbarColors
     ) -> ClaimingRow {

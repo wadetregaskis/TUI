@@ -716,6 +716,21 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// scan over every row among them.
     var cascadesCellText: Bool?
 
+    /// The columns drawn and their widths, on the copy ``horizontallyWindowed(_:)``
+    /// makes of a table whose columns do not fit and so scrolls sideways;
+    /// `nil` on any other. Where it is set, ``columns`` holds the window's
+    /// columns alone and ``unwindowedColumns`` all of them.
+    var horizontalWindow: TableHorizontalWindow?
+
+    /// Every column the table shows, on a copy ``horizontalWindow`` narrowed
+    /// to the ones on screen; `nil` on any other.
+    var unwindowedColumns: [_TableColumnSpec<Value>]?
+
+    /// Every column the table shows, whichever are on screen: what the keys
+    /// that reach beyond the window — the sort chords, type select, the column
+    /// keys — choose among.
+    private var allColumns: [_TableColumnSpec<Value>] { unwindowedColumns ?? columns }
+
     var body: Never {
         fatalError("_TableCore renders via Renderable")
     }
@@ -825,16 +840,23 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// table's handler without making one: a table nobody has resized pays a
     /// state lookup and nothing else (decisions B-D4T-7).
     private mutating func applyKeptWidths(_ context: RenderContext) {
-        guard let storage = context.stateStorage else { return }
-        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
-        guard let box: StateBox<ItemListHandler<Value.ID>> = storage.existingStorage(for: key) else { return }
-        let widths = box.value.transientColumnWidths
+        guard let handler = existingHandler(context) else { return }
+        let widths = handler.transientColumnWidths
         guard !widths.isEmpty else { return }
         for index in columns.indices where columns[index].resizedWidth == nil {
             if let width = widths[columns[index].columnKey] {
                 columns[index].resizedWidth = width
             }
         }
+    }
+
+    /// This table's handler, when a frame has made one, read without making
+    /// one: a table nobody has drawn yet has nothing kept.
+    private func existingHandler(_ context: RenderContext) -> ItemListHandler<Value.ID>? {
+        guard let storage = context.stateStorage else { return nil }
+        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
+        let box: StateBox<ItemListHandler<Value.ID>>? = storage.existingStorage(for: key)
+        return box?.value
     }
 
     /// Gives the columns the line limits ``EnvironmentValues/tableRowHeights``
@@ -884,7 +906,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// The table's container drawn — and under `.tableStyle(.surface)` painted
     /// with its tones, where there is no border, so the header (when there is
     /// one) is line 0.
+    ///
+    /// In the height the horizontal scrollbar's line came out of, where there
+    /// is one: offered the rows' alone, the container squeezed the header out.
     private func render(_ container: some View, on surface: CollectionSurface?, context: RenderContext) -> FrameBuffer {
+        var context = context
+        context.availableHeight += horizontalWindow?.barLines ?? 0
         let buffer = TUIView.renderToBuffer(container, context: context)
         return surface?.painted(buffer, headerLines: 0..<headerLines(context.environment), context: context) ?? buffer
     }
@@ -1011,6 +1038,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if let height = proposal.height {
             measureContext.availableHeight = height
         }
+        // Columns that do not fit: measured as drawn, the window's columns
+        // over the rows and the horizontal scrollbar's line under them.
+        if let windowed = horizontallyWindowed(measureContext) {
+            let barLines = windowed.table.horizontalWindow?.barLines ?? 0
+            var size = windowed.table.measuredSizeThatFits(
+                proposal: ProposedViewSize(width: proposal.width, height: proposal.height.map { $0 - barLines }),
+                context: windowed.context)
+            size.height += barLines
+            return size
+        }
 
         // A table's dimensions are arithmetic, not something to be discovered
         // by building the thing and measuring the result. Rendering the whole
@@ -1071,11 +1108,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
+        // As the window decided it, where the columns scroll sideways.
         let wantsScrollbar =
-            !data.isEmpty
-            && context.environment.verticalScrollIndicators(
-                overflowing: data.count > rowArea
-            ).bar
+            horizontalWindow?.showsVerticalBar
+            ?? (!data.isEmpty
+                && context.environment.verticalScrollIndicators(
+                    overflowing: data.count > rowArea
+                ).bar)
         let innerWidth = innerWidth(context.availableWidth, context.environment, showsBar: wantsScrollbar)
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
@@ -1195,9 +1234,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 innerWidth: innerWidth(context.availableWidth, context.environment, showsBar: true)
                     - context.environment.scrollbarWidth,
                 gutter: gutter, context: context)
-        let wantsScrollbar = context.environment.verticalScrollIndicators(
-            overflowing: overflows
-        ).bar
+        let wantsScrollbar =
+            horizontalWindow?.showsVerticalBar
+            ?? context.environment.verticalScrollIndicators(overflowing: overflows).bar
         let innerWidth = innerWidth(context.availableWidth, context.environment, showsBar: wantsScrollbar)
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
@@ -1351,6 +1390,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         if let prepared = prepared(context) { return prepared.renderToBuffer(context: context) }
         context = Self.placingScrollIndicators(context, focusID: focusID)
+        // Columns that do not fit: the window of them on screen, drawn over
+        // the line the horizontal scrollbar takes.
+        if let windowed = horizontallyWindowed(context) { return windowed.table.drawn(context: windowed.context) }
         // `.tableStyle(.surface)`: everything below is drawn on the table's own
         // surface — a field in a cell steps off it, a stripe tints over it — and
         // the finished buffer is painted with it at the end. Taken AFTER the
@@ -1372,24 +1414,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Calculate available width inside container (subtract border + padding).
         let gutter = selectionGutter(context.environment)
 
-        // A single-line table decides a scrollbar cheaply (one line per row).
-        // A multi-line table's overflow is its total WRAPPED height, so that
-        // walk is only run when a bar is in play at all — scrollbars are opt-in
-        // (`.hidden` by default), which is what keeps the default path free of
-        // it (see `multiLineOverflows`).
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
         let isMultiLine = usesMultiLineLayout
-        let wantsScrollbar =
-            !data.isEmpty
-            && context.environment.verticalScrollIndicators(
-                overflowing: isMultiLine
-                    ? multiLineOverflows(
-                rowArea: rowArea,
-                innerWidth: innerWidth(context.availableWidth, context.environment, showsBar: true)
-                    - context.environment.scrollbarWidth,
-                gutter: gutter, context: context)
-                    : data.count > rowArea
-            ).bar
+        let wantsScrollbar = drawsVerticalScrollbar(rowArea: rowArea, gutter: gutter, context: context)
         let innerWidth = innerWidth(context.availableWidth, context.environment, showsBar: wantsScrollbar)
         let contentInnerWidth = max(1, innerWidth - (wantsScrollbar ? context.environment.scrollbarWidth : 0))
         // The columns stop short of the bar by the spacing; the rows' fills do
@@ -1466,9 +1493,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         //
         // An unframed table in a `VStack` reaches none of this and still hugs,
         // which is what it wants.
-        let (filledContentLines, filledContentWidths) = Self.filled(
+        var (filledContentLines, filledContentWidths) = Self.filled(
             contentLines, toRows: context.hasExplicitHeight ? rowArea : nil,
             knownWidth: renderState?.uniformLineWidth)
+        appendHorizontalScrollbarLine(
+            to: &filledContentLines, widths: &filledContentWidths, claims: &contentClaims, gutter: gutter,
+            verticalBarAt: wantsScrollbar ? contentInnerWidth : nil, handler: renderState?.handler, context: context)
 
         let container = ContainerView(
             title: nil,
@@ -1510,6 +1540,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             if !isDisabled(in: context) { buffer.observePointerForOverlaidIndicators(of: state.handler, context: context) }
             presentRowMenu(over: &buffer, state: state, context: context)
             presentColumnMenu(over: &buffer, state: state, context: context)
+            attachHorizontalScrollbarHandler(to: &buffer, gutter: gutter, state: state, context: context)
         }
         return buffer
     }
@@ -2873,8 +2904,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.outlineActivation = outline
         handler.selectionDisabledRows = selectionDisabledRows
         handler.onMove = moveAction
-        handler.onSort = sortKeyAction
+        handler.onSort = sortKeyAction(revealingIn: handler)
         handler.columnEditing = columnEditing(handler, context: context)
+        syncHorizontalScroll(handler, context: context)
         // A picked column that has gone — hidden from its own menu — hands
         // the pick to the first column left, before the header draws it, so
         // the mode the status bar still advertises has a column on screen.
@@ -4345,7 +4377,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         _ handler: ItemListHandler<Value.ID>, context: RenderContext
     ) -> TableColumnEditing? {
         guard headerLines(context.environment) > 0 else { return nil }
-        guard let binding = columnCustomization, columns.contains(where: { $0.customizationID != nil }) else {
+        guard let binding = columnCustomization, allColumns.contains(where: { $0.customizationID != nil }) else {
             return resizingColumnEditing(handler)
         }
         // Each key asks the customization as it stands, not this frame's
@@ -4403,7 +4435,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// state; nothing moves, and no menu opens. Lists no column when none may
     /// be resized.
     private func resizingColumnEditing(_ handler: ItemListHandler<Value.ID>) -> TableColumnEditing {
-        let columns = columns
+        let columns = allColumns
         return TableColumnEditing(
             currentColumns: { columns.filter(\.isResizable).map(\.columnKey) },
             move: { _, _ in },
@@ -4560,7 +4592,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // The wheel scrolls a table that does not hold the focus: reported, as
         // in `_ListCore`, or the row around it is served unscrolled.
         let mouseHandlerID = mouseDispatcher.register(
-            in: context, reportingChangesTo: { [handler = state.handler] in handler.drawnPosition },
+            in: context,
+            reportingChangesTo: { [handler = state.handler] in
+                [handler.drawnPosition] + (handler.horizontalScroll.map { [DrawnScrollPosition($0.axis)] } ?? [])
+            },
             containerMouseHandler(
                 state: state,
                 context: context,
@@ -4841,7 +4876,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             // nothing to open is still a click.
             let spent = headerGesture.flatMap { headerGapEvent(event, gesture: $0, handler: captureHandler) }
                 ?? RowContextMenuHost.preflight(
-                    event, wheel: { captureHandler.handleWheelEvent($0) }, menu: menu, row: { rowAt(y: event.y) })
+                    event,
+                    // Sideways first: Shift turns the vertical wheel sideways.
+                    wheel: { captureHandler.handleHorizontalWheel($0) ?? captureHandler.handleWheelEvent($0) },
+                    menu: menu, row: { rowAt(y: event.y) })
             if let spent { return spent }
 
             if event.button == .left {
@@ -4979,7 +5017,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func outlineTriangleHit(
         columnWidths: [Int], firstColumnLeft: Int, context: RenderContext
     ) -> (@MainActor (Int, Int) -> Bool)? {
-        guard let outline, let column = columns.first, let width = columnWidths.first else {
+        // Scrolled sideways past the first column, the triangle with it.
+        guard let outline, horizontalWindow?.first ?? 0 == 0, let column = columns.first,
+            let width = columnWidths.first
+        else {
             return nil
         }
         let rows = data
@@ -5040,10 +5081,271 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return scaled.isFinite ? Int(min(max(0, scaled), Double(contentWidth))) : 0
     }
 
+    // MARK: - Scrolling sideways
+
+    /// This table as it draws when its columns do not fit beside one another
+    /// — the window of them on screen (``horizontalWindow``) — and the context
+    /// to draw it in, its height less the horizontal scrollbar's line; `nil`
+    /// for a table whose columns fit, which draws as it always has (decisions
+    /// TABLE-HSCROLL).
+    ///
+    /// The columns do not fit when their minimum widths
+    /// (``minimumColumnWidths(columnsWidth:gutter:context:)``) do not; the
+    /// window then shows them at those widths from the column the user
+    /// scrolled to, as SwiftUI's table lays its columns out at their minimums
+    /// once they overflow it. Decided at the width the rows will have, so the
+    /// vertical scrollbar is decided here too, at the height the horizontal
+    /// one leaves, and the window carries the answer to the draw.
+    ///
+    /// Reads where the user scrolled to off the handler and writes nothing: a
+    /// measure asks this too, and the frame that draws publishes the window
+    /// (``syncHorizontalScroll(_:context:)``).
+    private func horizontallyWindowed(_ context: RenderContext) -> (table: Self, context: RenderContext)? {
+        guard horizontalWindow == nil, columns.count > 1 else { return nil }
+        let environment = context.environment
+        let gutter = selectionGutter(environment)
+        let wide = columnsWidth(context.availableWidth, environment, showsBar: false)
+        let barPossible = !data.isEmpty && environment.verticalScrollIndicators(overflowing: true).bar
+        let narrow = barPossible ? columnsWidth(context.availableWidth, environment, showsBar: true) : wide
+        // The minimums are no wider at the narrower width (a ratio's share and
+        // a fit's scan cap only shrink), so fitting the narrower width at the
+        // wider width's minimums is fitting at every width the rows may have:
+        // the one question a table whose columns fit pays for.
+        let wideMinimums = minimumColumnWidths(columnsWidth: wide, gutter: gutter, context: context)
+        guard TableHorizontalWindow.overflows(wideMinimums, spacing: columnSpacing, gutter: gutter, columnsWidth: narrow)
+        else { return nil }
+
+        // A line for the horizontal scrollbar, where the indicators show and
+        // the rows keep at least one.
+        let barLines =
+            context.availableHeight - chromeLines(environment) >= 2
+                && environment.showsHorizontalScrollbar(overflowing: true) ? 1 : 0
+        var windowedContext = context
+        windowedContext.availableHeight = context.availableHeight - barLines
+        let rowArea = max(1, windowedContext.availableHeight - chromeLines(environment))
+        let handler = existingHandler(context)
+        let scroll = handler?.horizontalScroll
+        // The column the keyboard has picked, or a sort chord just made
+        // primary, scrolled into sight.
+        let revealed = (handler?.columnFocus ?? scroll?.pendingReveal).flatMap { key in
+            columns.firstIndex { $0.columnKey == key }
+        }
+        func window(columnsWidth: Int, showsBar: Bool) -> TableHorizontalWindow? {
+            let minimums =
+                columnsWidth == wide
+                ? wideMinimums : minimumColumnWidths(columnsWidth: columnsWidth, gutter: gutter, context: context)
+            guard TableHorizontalWindow.overflows(minimums, spacing: columnSpacing, gutter: gutter, columnsWidth: columnsWidth)
+            else { return nil }
+            let viewport = max(1, columnsWidth - gutter)
+            let (stops, extent) = TableHorizontalWindow.stops(of: minimums, spacing: columnSpacing, viewport: viewport)
+            var first = TableHorizontalWindow.snappedStart(
+                requested: scroll?.axis.scrollOffset ?? 0, drawn: scroll?.drawnStart ?? 0,
+                dragging: scroll?.axis.scrollbarDragGrab != nil, stops: stops)
+            if let revealed {
+                first = TableHorizontalWindow.revealing(
+                    column: revealed, from: first, widths: minimums, spacing: columnSpacing, viewport: viewport,
+                    stops: stops)
+            }
+            return TableHorizontalWindow(
+                first: first,
+                widths: TableHorizontalWindow.shownWidths(
+                    from: first, of: minimums, spacing: columnSpacing, viewport: viewport),
+                stops: stops, extent: extent, viewport: viewport, showsVerticalBar: showsBar, barLines: barLines)
+        }
+        let showsBar: Bool
+        if !barPossible {
+            showsBar = false
+        } else if usesMultiLineLayout {
+            // As `drawn` asks it: at the width a bar would leave, where the rows
+            // wrap tallest — here, the window's columns at that width.
+            guard let barred = window(columnsWidth: narrow, showsBar: true) else { return nil }
+            let overflows = windowed(barred).multiLineOverflows(
+                rowArea: rowArea,
+                innerWidth: innerWidth(context.availableWidth, environment, showsBar: true) - environment.scrollbarWidth,
+                gutter: gutter, context: windowedContext)
+            showsBar = environment.verticalScrollIndicators(overflowing: overflows).bar
+        } else {
+            showsBar = environment.verticalScrollIndicators(overflowing: data.count > rowArea).bar
+        }
+        guard let chosen = window(columnsWidth: showsBar ? narrow : wide, showsBar: showsBar) else { return nil }
+        return (windowed(chosen), windowedContext)
+    }
+
+    /// This table narrowed to `window`'s columns.
+    private func windowed(_ window: TableHorizontalWindow) -> Self {
+        var table = self
+        table.unwindowedColumns = columns
+        table.columns = Array(columns[window.first..<min(columns.count, window.first + window.widths.count)])
+        table.horizontalWindow = window
+        return table
+    }
+
+    /// The width the columns lay out in, out of `width` — as `drawn` works it
+    /// out: inside the border and its padding, less the vertical scrollbar
+    /// and the spacing before it when `showsBar`.
+    private func columnsWidth(_ width: Int, _ environment: EnvironmentValues, showsBar: Bool) -> Int {
+        let inner = innerWidth(width, environment, showsBar: showsBar)
+        let content = max(1, inner - (showsBar ? environment.scrollbarWidth : 0))
+        return max(1, content - environment.rowScrollbarSpacing(showsBar: showsBar))
+    }
+
+    /// The narrowest each column is drawn without being cut, the width it
+    /// takes in a table that scrolls sideways: a `.fixed` column's width (or
+    /// the one a user dragged it to), a `.fit` column's fitted width and a
+    /// `.ratio` column's share, as when the columns fit; and a flexible
+    /// column's `min` — or, where it states none, its header's width (its
+    /// title and sort arrow), so a column is never narrower than its own
+    /// header, which says what the column is (up to its `max`). Under hidden
+    /// headers a column that states no minimum has none, but a cell.
+    ///
+    /// SwiftUI's columns have a minimum width of their own when none is
+    /// stated (`NSTableColumn`'s, 10 points); a cell is coarser than a point,
+    /// and one cell would show `…` and nothing else.
+    private func minimumColumnWidths(columnsWidth: Int, gutter: Int, context: RenderContext) -> [Int] {
+        let contentWidth = max(0, columnsWidth - columnSpacing * (columns.count - 1) - gutter)
+        let cap = fitScanCap(contentWidth: contentWidth)
+        let showsHeader = headerLines(context.environment) > 0
+        return columns.map { column in
+            let width: Int
+            switch column.effectiveWidth {
+            case .fixed(let fixed):
+                width = fixed
+            case .ratio(let ratio):
+                width = Self.ratioWidth(ratio, of: contentWidth)
+            case .fit:
+                width = fitWidth(of: column, cappedAt: cap, context: context)
+            case .flexible(let minimum, _, let maximum):
+                let header = showsHeader ? headerTitle(for: column).strippedLength : 0
+                width = max(minimum ?? 0, min(header, maximum ?? Int.max))
+            }
+            return max(1, width)
+        }
+    }
+
+    /// Hands the handler this frame's window — where the keys and the wheel
+    /// step from, and what the horizontal scrollbar measures — or tells it
+    /// the columns fit, so the keys go on to whatever else wants them.
+    /// Render only: a measure is offered a width the frame may not get.
+    private func syncHorizontalScroll(_ handler: ItemListHandler<Value.ID>, context: RenderContext) {
+        guard !context.isMeasuring else { return }
+        guard let window = horizontalWindow else {
+            // A table whose columns have always fitted has nothing to clear.
+            if handler.horizontalScroll?.scrolls == true || handler.horizontalScroll?.pendingReveal != nil {
+                handler.horizontalScroll?.stops = []
+                handler.horizontalScroll?.pendingReveal = nil
+            }
+            return
+        }
+        var scroll = handler.horizontalScroll ?? TableHorizontalScroll()
+        scroll.stops = window.stops
+        scroll.drawnStart = window.offset
+        scroll.pendingReveal = nil
+        scroll.axis.extent = window.extent
+        scroll.axis.viewportHeight = window.viewport
+        scroll.axis.scrollOffset = window.offset
+        handler.horizontalScroll = scroll
+    }
+
+    /// Whether `drawn` draws the vertical scrollbar beside rows `rowArea`
+    /// lines tall. A single-line table decides a scrollbar cheaply (one line
+    /// per row). A multi-line table's overflow is its total WRAPPED height, so
+    /// that walk is only run when a bar is in play at all — scrollbars are
+    /// opt-in (`.hidden` by default), which is what keeps the default path
+    /// free of it (see `multiLineOverflows`). A table that scrolls sideways
+    /// decided this with its window, at the height the horizontal scrollbar
+    /// leaves (``horizontallyWindowed(_:)``).
+    private func drawsVerticalScrollbar(rowArea: Int, gutter: Int, context: RenderContext) -> Bool {
+        if let decided = horizontalWindow?.showsVerticalBar { return decided }
+        guard !data.isEmpty else { return false }
+        let environment = context.environment
+        return environment.verticalScrollIndicators(
+            overflowing: usesMultiLineLayout
+                ? multiLineOverflows(
+                    rowArea: rowArea,
+                    innerWidth: innerWidth(context.availableWidth, environment, showsBar: true)
+                        - environment.scrollbarWidth,
+                    gutter: gutter, context: context)
+                : data.count > rowArea
+        ).bar
+    }
+
+    /// The horizontal scrollbar, on the line the window kept for it under the
+    /// rows, appended to the content's `lines` with its width and claims —
+    /// where the table scrolls sideways and the bar is shown.
+    private func appendHorizontalScrollbarLine(
+        to lines: inout [String], widths: inout [Int], claims: inout [OpacityRegion], gutter: Int,
+        verticalBarAt barColumn: Int?, handler: ItemListHandler<Value.ID>?, context: RenderContext
+    ) {
+        guard let window = horizontalWindow, window.barLines > 0 else { return }
+        let bar = horizontalScrollbarLine(
+            window, gutter: gutter, verticalBarAt: barColumn, width: widths.max() ?? 0,
+            flash: handler?.indicatorFlash.strength(context: context), context: context)
+        claims += bar.claims.map { $0.shifted(byX: 0, y: lines.count) }
+        lines.append(bar.text)
+        widths.append(bar.width)
+    }
+
+    /// The horizontal scrollbar's line, as a row line: blank across the
+    /// gutter, the bar under the columns that scroll, blank to the vertical
+    /// scrollbar's column — a corner of its track there, when there is one,
+    /// as a `ScrollView` draws where its two bars meet — and on to `width`.
+    private func horizontalScrollbarLine(
+        _ window: TableHorizontalWindow, gutter: Int, verticalBarAt barColumn: Int?, width: Int, flash: Double?,
+        context: RenderContext
+    ) -> (text: String, claims: [OpacityRegion], width: Int) {
+        let environment = context.environment
+        let palette = environment.palette
+        var row = ClaimingRow()
+        row.skip(cells: gutter)
+        row.append(
+            contentsOf: ScrollbarRenderer.horizontalScrollbar(
+                width: window.viewport, extent: window.extent, viewport: window.viewport, offset: window.offset,
+                arrows: environment.scrollbarArrows, proportional: environment.scrollbarProportionalThumb,
+                colors: .resting(in: palette, flash: flash)))
+        if let barColumn, barColumn > row.cells {
+            row.skip(cells: barColumn - row.cells)
+            let corner = environment.scrollbarWidth
+            row.append(String.spaces(corner), cells: corner, ink: nil, field: ScrollbarColors.track(in: palette))
+        }
+        if width > row.cells { row.skip(cells: width - row.cells) }
+        return (row.text, row.claims, row.cells)
+    }
+
+    /// The horizontal scrollbar's region: its arrows step a column, its track
+    /// pages and its thumb drags, through the handler's axis, which the next
+    /// frame snaps to a column (``TableHorizontalWindow/snappedStart(requested:drawn:dragging:stops:)``).
+    /// Operating it focuses the table, as the vertical bar's does.
+    @MainActor
+    private func attachHorizontalScrollbarHandler(
+        to buffer: inout FrameBuffer, gutter: Int, state: PopulatedRenderState, context: RenderContext
+    ) {
+        guard let window = horizontalWindow, window.barLines > 0, !context.isMeasuring, !isDisabled(in: context),
+            let axis = state.handler.horizontalScroll?.axis,
+            let dispatcher = context.environment.mouseEventDispatcher
+        else { return }
+        let environment = context.environment
+        let barHandler = ScrollbarRenderer.horizontalMouseHandler(
+            for: axis, length: window.viewport, arrows: environment.scrollbarArrows,
+            proportional: environment.scrollbarProportionalThumb, behavior: environment.scrollbarClickBehavior)
+        let handlerID = dispatcher.register(
+            in: context, reportingChangesTo: { DrawnScrollPosition(axis) },
+            ScrollbarRenderer.focusing(barHandler, focusID: state.focusID, focusManager: environment.focusManager))
+        // The bar's line is the rows' last, above the bottom border.
+        let border = borderWidth(environment)
+        buffer.hitTestRegions.append(
+            HitTestRegion(
+                offsetX: border + Self.containerPadding.leading + gutter, offsetY: buffer.height - 1 - border,
+                width: window.viewport, height: 1, handlerID: handlerID))
+        ScrollbarRenderer.driveAutoRepeat(
+            state: axis, token: "table-hscrollbar-repeat-\(context.identity.path)", context: context)
+    }
+
     private func calculateColumnWidths(
         availableWidth: Int, spacing: Int, gutter: Int, context: RenderContext
     ) -> [Int] {
         guard !columns.isEmpty else { return [] }
+        // A window of columns scrolled sideways is drawn at the widths it chose.
+        if let horizontalWindow { return horizontalWindow.widths }
 
         let totalSpacing = spacing * (columns.count - 1)
         let contentWidth = max(0, availableWidth - totalSpacing - gutter)
@@ -5398,7 +5700,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// `typeSelectEquivalent(_:)`, or else the view cell's first line drawn as
     /// a measure, which registers nothing (the row may be far out of sight).
     private func typeSelectText(of item: Value, context: RenderContext) -> String? {
-        guard let column = columns.first else { return nil }
+        guard let column = allColumns.first else { return nil }
         var probe = Self.probing(context)
         probe.environment.isTypeSelectProbe = true
         let value = cellValue(column, for: item, width: max(1, context.availableWidth), context: probe)
@@ -5758,7 +6060,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// arrow and the chords cannot disagree about which column is primary.
     private var primarySortColumnIndex: Int? {
         guard let sortModel else { return nil }
-        return columns.firstIndex { column in
+        return allColumns.firstIndex { column in
             column.sortComparator.flatMap(sortModel.primaryOrder) != nil
         }
     }
@@ -5776,16 +6078,21 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// `nil` — leaving both chords to the app — for a table with no `sortOrder`
     /// binding or no sortable column, which is exactly when no header takes a
     /// click either.
-    private var sortKeyAction: ((RowAction) -> Void)? {
+    ///
+    /// Among every column the table shows, on screen or scrolled out of it
+    /// (``allColumns``), and the column it sorts by is scrolled into sight
+    /// (``TableHorizontalScroll/pendingReveal``).
+    private func sortKeyAction(revealingIn handler: ItemListHandler<Value.ID>) -> ((RowAction) -> Void)? {
         // NOT a convenience ordering: the binding is tested first, and with
         // `contains(where:)` rather than a `filter`, because this property runs
         // on every pass of every table — measure passes included, which is why
         // `viewportHeight` above is gated on `isMeasuring`. Building the index
         // list here charged an array allocation per pass to tables that have no
         // `sortOrder` binding at all, which is most of them.
+        let columns = allColumns
         guard sortModel != nil, columns.contains(where: { $0.sortComparator != nil })
         else { return nil }
-        return { action in
+        return { [weak handler] action in
             // Walked when a key actually arrives rather than once per pass: a
             // keystroke is rare and this allocates. Non-empty, per the guard.
             let sortable = columns.indices.filter { columns[$0].sortComparator != nil }
@@ -5806,6 +6113,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             }
             guard let index else { return }
             toggleSort(column: columns[index])
+            handler?.horizontalScroll?.pendingReveal = columns[index].columnKey
         }
     }
 
@@ -5839,6 +6147,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             unselectedMark: RowSelectionIndicator.forRow(
                 isFocused: false, isSelected: false, context: context, palette: palette),
             stripe: stripe,
+            firstColumn: horizontalWindow?.first ?? 0,
             alignments: columns.map(\.alignment),
             truncations: columns.map(\.truncationMode),
             lineLimits: columns.map(\.lineLimit),

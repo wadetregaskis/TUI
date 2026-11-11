@@ -2157,6 +2157,23 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-SCROLL-1](<../Historical/Scrolling/Paging and view-aligned scrolling.md#b-scroll-1-paging-under-a-top-or-leading-margin-steps-the-container-not-swiftuis-half-margin-longer-page>).
   **Lane.**
 
+### R16. A `Table` scrolls sideways by whole columns
+
+- **SwiftUI (Apple's documentation, not measured):** a table on macOS scrolls
+  horizontally, by points, once its columns' minimum widths exceed its width;
+  a column with no stated minimum has `NSTableColumn`'s, 10 points.
+- **TUI:** it scrolls a whole column at a time: the first column on screen
+  starts at its first cell, and the one the width runs out in is cut short,
+  ending in `…`. A column that states no minimum is never narrower than its
+  header (`TableHorizontalWindow`, `TableHorizontalScrollTests`). A column
+  wider than the table is cut to it and scrolled past, not within.
+- **Why:** a value cut through at the leading edge reads as another value
+  (`12,345` as `345`), and a cell is too coarse to show part of a glyph; one
+  cell for a column would show `…` alone, and a column narrower than its
+  header no longer says what it is.
+- **Decided:** [TABLE-HSCROLL](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-morning-page-answered-2026-11-11>).
+  **Lane.**
+
 ---
 
 ## Lists, tables and controls

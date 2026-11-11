@@ -257,6 +257,31 @@ dragging here.
 width stays stable while scrolling; prefer a fixed width or the default for
 very large tables where a per-frame content scan is undesirable.
 
+### When the Columns Do Not Fit
+
+When the columns' minimum widths add up to more than the table's width, the
+table scrolls sideways, as SwiftUI's does on macOS. A column's minimum is its
+`.width(min:)`, a `.width(_:)` column's width, a `.fit` column's fitted width or
+a `.ratio` column's share; a column that states none is never narrower than
+its header, title and sort arrow, so every column keeps the name that says
+what it is. The columns are laid out at their minimums and scroll a whole
+column at a time: the first column on screen always starts at its first cell,
+and the one the table's width runs out in is cut short, ending in `…`. The
+header scrolls with its columns, and a horizontal scrollbar under the rows
+shows where you are (`.scrollIndicators(.hidden, axes: .horizontal)` hides
+it; the table still scrolls).
+
+| Input | Scrolls |
+|-------|---------|
+| → / ← | A column, when the rows have no use for the key (a hierarchical table's open and close rows) |
+| ⇧→ / ⇧← | A column, in any table |
+| The sideways wheel, or Shift with the wheel | A column a tick |
+| The scrollbar | Its arrows step a column, its track pages, its thumb drags |
+| ⌃K, ⌃S | The column picked, or the column now sorted by, into sight |
+
+A column wider than the table is drawn alone, cut to the table's width, with
+the next column a step away. A table whose columns fit draws as it always has.
+
 ### Column Alignment
 
 A column's alignment places both its header and its cells: `.leading` (and

@@ -61,6 +61,7 @@ struct TableSortOrderTests {
             fitFirstColumn: Bool = false,
             width: Int = 40,
             nameTitle: String = "Name",
+            nameMaxWidth: Int? = nil,
             trailingSizeColumn: Bool = false,
             markHidden: Bool = false
         ) -> FrameBuffer {
@@ -76,8 +77,9 @@ struct TableSortOrderTests {
             let unsortedSize = TableColumn("Size") { (row: Row) in Text(verbatim: row.sizeText) }
             let table: AnyView
             if let binding {
-                let nameColumn: TableColumn<Row, KeyPathComparator<Row>, Text, Text> =
+                let declaredName: TableColumn<Row, KeyPathComparator<Row>, Text, Text> =
                     TableColumn(nameTitle, value: \Row.name)
+                let nameColumn = nameMaxWidth.map { declaredName.width(max: $0) } ?? declaredName
                 let sortedSize = TableColumn("Size", value: \Row.size) { Text(verbatim: $0.sizeText) }
                 table =
                     sortableSizeColumn
@@ -166,10 +168,14 @@ struct TableSortOrderTests {
     /// the part a reader cannot reconstruct — "Tra…" could be any of several
     /// columns and says nothing about the order — and a cramped table is
     /// exactly when you most need to see which column you just sorted by.
+    ///
+    /// Narrower than its header by its own `max`: a column that states no
+    /// bound is never laid out narrower than its header, the table scrolling
+    /// sideways instead (decisions TABLE-HSCROLL).
     @Test("A column too narrow for both keeps the indicator and truncates the title")
     func indicatorOutranksTheTitle() {
         let harness = Harness(sortOrder: [KeyPathComparator(\Row.name, order: .reverse)])
-        harness.render(width: 20, nameTitle: "Trackname")
+        harness.render(width: 24, nameTitle: "Trackname", nameMaxWidth: 7)
         let header = harness.headerLine
         #expect(header.contains("▼"), "header: \(header.debugDescription)")
         #expect(header.contains("…"), "header should be truncated: \(header.debugDescription)")
