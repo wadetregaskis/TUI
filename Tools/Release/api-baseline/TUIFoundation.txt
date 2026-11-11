@@ -1542,7 +1542,18 @@ HStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeS
 HStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, subviews: HStackLayout.Subviews, cache: inout ()) -> ViewSize
 HStackLayout.spacing | var spacing: Int?
 HandOffTerminalAction | struct HandOffTerminalAction
+HandOffTerminalAction.Executable | struct Executable
+HandOffTerminalAction.Executable.name(_:) | static func name(_ name: String) -> HandOffTerminalAction.Executable
+HandOffTerminalAction.Executable.path(_:) | static func path(_ path: String) -> HandOffTerminalAction.Executable
+HandOffTerminalAction.LaunchError | enum LaunchError
+HandOffTerminalAction.LaunchError.couldNotStart(errno:) | case couldNotStart(errno: Int32)
+HandOffTerminalAction.LaunchError.couldNotWait(errno:) | case couldNotWait(errno: Int32)
+HandOffTerminalAction.LaunchError.unsupported | case unsupported
+HandOffTerminalAction.Termination | enum Termination
+HandOffTerminalAction.Termination.exit(_:) | case exit(Int32)
+HandOffTerminalAction.Termination.uncaughtSignal(_:) | case uncaughtSignal(Int32)
 HandOffTerminalAction.callAsFunction(_:) | @MainActor func callAsFunction<Result, Failure>(_ body: () throws(Failure) -> Result) throws(Failure) -> Result where Failure : Error
+HandOffTerminalAction.callAsFunction(running:arguments:) | @discardableResult @MainActor func callAsFunction(running executable: HandOffTerminalAction.Executable, arguments: [String] = []) throws(HandOffTerminalAction.LaunchError) -> HandOffTerminalAction.Termination
 HelpLink | struct HelpLink
 HelpLink.body | @MainActor @ViewBuilder var body: some View { get }
 HelpLink.init(action:) | init(action: @escaping () -> Void)

@@ -7,14 +7,6 @@
 import Foundation
 import TUI
 
-#if canImport(Darwin)
-    import Darwin
-#elseif canImport(Glibc)
-    import Glibc
-#elseif canImport(Musl)
-    import Musl
-#endif
-
 // MARK: - Hand-off Demo
 
 /// The Terminal page's last-but-one section: a note, edited in the person's own
@@ -48,78 +40,31 @@ struct HandOffDemo: View {
         defer { try? FileManager.default.removeItem(at: file) }
         // `$1` keeps the path out of the command's words; the shell expands the
         // person's own editor, arguments and all, as git does.
-        let status = handOffTerminal {
-            ForegroundCommand.run(["/bin/sh", "-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"", "sh", file.path])
-        }
-        guard let status else {
+        let ended: HandOffTerminalAction.Termination
+        do {
+            ended = try handOffTerminal(
+                running: .path("/bin/sh"),
+                arguments: ["-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"", "sh", file.path]
+            )
+        } catch {
             outcome = L("page.terminal.handOffUnavailable")
             return
         }
-        guard status == 0, let edited = try? String(contentsOf: file, encoding: .utf8) else {
-            outcome = "\(L("page.terminal.handOffStatus")) \(status)"
+        guard ended == .exit(0), let edited = try? String(contentsOf: file, encoding: .utf8) else {
+            outcome = "\(L("page.terminal.handOffStatus")) \(Self.describe(ended))"
             return
         }
         note = edited.trimmingCharacters(in: .whitespacesAndNewlines)
         outcome = L("page.terminal.handOffSaved")
     }
-}
 
-// MARK: - Starting a program in the foreground
-
-/// Starts a program the way `\.handOffTerminal`'s documentation asks for an
-/// interactive one: in the app's process group, which is the terminal's
-/// foreground group, with every signal at its default action and none
-/// blocked, and waits for it to end.
-///
-/// Not Foundation's `Process`, which starts its child in a process group of its
-/// own: the terminal treats that as a background job, and stops an editor that
-/// reads the keyboard (`SIGTTIN`). And with the defaults, because a program
-/// inherits the signals its parent ignores, and the app ignores `SIGPIPE`, and
-/// `SIGINT` and `SIGQUIT` while it hands the terminal over.
-enum ForegroundCommand {
-    /// Runs `arguments` — the program's path, then its arguments — with this
-    /// process's environment, and waits for it.
-    ///
-    /// - Returns: Its exit status, 128 plus the signal that ended it, or `nil`
-    ///   where no program can be started.
-    static func run(_ arguments: [String]) -> Int32? {
-        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
-            guard let path = arguments.first else { return nil }
-            let environment = ProcessInfo.processInfo.environment.map { "\($0.key)=\($0.value)" }
-            let argv: [UnsafeMutablePointer<CChar>?] = unsafe arguments.map { unsafe strdup($0) } + [nil]
-            let envp: [UnsafeMutablePointer<CChar>?] = unsafe environment.map { unsafe strdup($0) } + [nil]
-            defer {
-                unsafe argv.forEach { unsafe free($0) }
-                unsafe envp.forEach { unsafe free($0) }
-            }
-            #if canImport(Darwin)
-                var attributes: posix_spawnattr_t?
-            #else
-                var attributes = unsafe posix_spawnattr_t()
-            #endif
-            unsafe posix_spawnattr_init(&attributes)
-            defer { unsafe posix_spawnattr_destroy(&attributes) }
-            var defaults = sigset_t()
-            unsafe sigfillset(&defaults)
-            unsafe sigdelset(&defaults, SIGKILL)
-            unsafe sigdelset(&defaults, SIGSTOP)
-            unsafe posix_spawnattr_setsigdefault(&attributes, &defaults)
-            var none = sigset_t()
-            unsafe sigemptyset(&none)
-            unsafe posix_spawnattr_setsigmask(&attributes, &none)
-            unsafe posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_SETSIGDEF | POSIX_SPAWN_SETSIGMASK))
-
-            var child: pid_t = 0
-            guard unsafe posix_spawn(&child, path, nil, &attributes, argv, envp) == 0 else { return nil }
-            var status: Int32 = 0
-            while unsafe waitpid(child, &status, 0) < 0 {
-                guard errno == EINTR else { return nil }
-            }
-            // `WIFEXITED` and the rest are macros Swift does not import.
-            let signal = status & 0x7F
-            return signal == 0 ? (status >> 8) & 0xFF : 128 + signal
-        #else
-            return nil
-        #endif
+    /// An ending as a shell shows it: the exit status, or 128 plus the signal
+    /// that ended the editor.
+    static func describe(_ ended: HandOffTerminalAction.Termination) -> String {
+        switch ended {
+        case .exit(let status): "\(status)"
+        case .uncaughtSignal(let signal): "\(128 + signal)"
+        @unknown default: "?"
+        }
     }
 }

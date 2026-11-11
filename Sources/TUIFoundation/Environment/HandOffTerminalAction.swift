@@ -15,9 +15,8 @@ import TUICore
 /// closure runs, and then takes it back: for running `$EDITOR`, a pager, or
 /// `git commit` from inside an app.
 ///
-/// Read it from the environment and call it with the work to do while the
-/// other program has the terminal. The closure runs at once, on the main
-/// actor, and the call returns what it returns:
+/// Read it from the environment and call it with the program to run, which
+/// has the terminal until it ends:
 ///
 /// ```swift
 /// struct NoteView: View {
@@ -28,11 +27,13 @@ import TUICore
 ///         Button("Edit in $EDITOR") {
 ///             let file = FileManager.default.temporaryDirectory.appendingPathComponent("note.txt")
 ///             try? note.write(to: file, atomically: true, encoding: .utf8)
-///             // `runInForeground` is the app's: see "Starting the program" below.
-///             let status = handOffTerminal {
-///                 runInForeground(["/bin/sh", "-c", "${EDITOR:-vi} \"$1\"", "sh", file.path])
-///             }
-///             if status == 0, let edited = try? String(contentsOf: file, encoding: .utf8) {
+///             // The shell splits the editor's own arguments (`code --wait`), as
+///             // git does; `$1` keeps the path out of the command's words.
+///             let ended = try? handOffTerminal(
+///                 running: .path("/bin/sh"),
+///                 arguments: ["-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"", "sh", file.path]
+///             )
+///             if ended == .exit(0), let edited = try? String(contentsOf: file, encoding: .utf8) {
 ///                 note = edited
 ///             }
 ///         }
@@ -40,8 +41,13 @@ import TUICore
 /// }
 /// ```
 ///
-/// The closure may throw: the action throws what it throws, and takes the
-/// terminal back first, as it does when it returns.
+/// ``callAsFunction(running:arguments:)`` starts the program as an
+/// interactive one must be started, and waits for it. For anything else —
+/// several programs in turn, or one started some other way — call the action
+/// with a closure instead: the closure runs at once, on the main actor, while
+/// the terminal is handed over, and the call returns what it returns. It may
+/// throw: the action throws what it throws, and takes the terminal back first,
+/// as it does when it returns.
 ///
 /// ## What the other program gets
 ///
@@ -85,9 +91,10 @@ import TUICore
 ///
 /// ## Starting the program
 ///
-/// The closure runs the other program however it likes, and waits for it.
-/// For an interactive one, start it in the app's process group, with every
-/// signal at its default action: `posix_spawn` with the
+/// ``callAsFunction(running:arguments:)`` does this. A closure runs the other
+/// program however it likes, and waits for it. For an interactive one, start
+/// it in the app's process group, with every signal at its default action:
+/// `posix_spawn` with the
 /// `POSIX_SPAWN_SETSIGDEF` and `POSIX_SPAWN_SETSIGMASK` flags (every signal in
 /// the first set, none in the mask), and `waitpid` for it. Not Foundation's
 /// `Process`: it starts its child in a process group of its own (measured on
@@ -99,15 +106,17 @@ import TUICore
 ///
 /// ## ⌃Z while the other program runs
 ///
-/// The closure is opaque to TUI, which cannot tell what it starts. So ⌃Z
-/// works as job control does for a program in the app's process group: the
-/// app takes the stop's default action for the hand-off, ⌃Z stops the app
-/// and the program together, the shell reports the job stopped, and `fg`
-/// resumes both, as for `git commit` running an editor. A program in another
-/// process group, or one that stops itself alone, is out of TUI's reach: the
-/// app goes on waiting in the closure, and the terminal looks hung until the
-/// program is continued (`kill -CONT`) from elsewhere. Nothing of TUI's own
-/// suspend is left pending when the closure returns.
+/// ⌃Z works as job control does for a program in the app's process group:
+/// the app takes the stop's default action for the hand-off, ⌃Z stops the
+/// app and the program together, the shell reports the job stopped, and `fg`
+/// resumes both, as for `git commit` running an editor. A program started by
+/// ``callAsFunction(running:arguments:)`` that stops itself alone, as one
+/// that reads ⌃Z as a key may, stops the app too: the app sees its program
+/// stop. A closure is opaque to TUI, which cannot tell what it starts, so
+/// there a program in another process group, or one that stops itself alone,
+/// is out of TUI's reach: the app goes on waiting in the closure, and the
+/// terminal looks hung until the program is continued (`kill -CONT`) from
+/// elsewhere. Nothing of TUI's own suspend is left pending after either.
 ///
 /// ## Where it does nothing
 ///

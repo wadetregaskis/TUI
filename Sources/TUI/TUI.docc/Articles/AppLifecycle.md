@@ -203,16 +203,24 @@ Steps 8–11 are the output optimization layer: line-level diffing reduces write
 
 ## Handing the Terminal to Another Program
 
-An app runs `$EDITOR`, a pager or `git commit` through ``EnvironmentValues/handOffTerminal``: the closure it is called with runs at once, on the main actor, while the other program has the terminal, and the call returns what the closure returns or throws what it throws.
+An app runs `$EDITOR`, a pager or `git commit` through ``EnvironmentValues/handOffTerminal``. Called with a program, ``HandOffTerminalAction/callAsFunction(running:arguments:)``, it starts the program with the terminal handed to it, waits for it to end, takes the terminal back, and returns how it ended:
 
 ```swift
 @Environment(\.handOffTerminal) private var handOffTerminal
 
 Button("Edit in $EDITOR") {
-    let status = handOffTerminal { runInForeground(["/bin/sh", "-c", "${EDITOR:-vi} \"$1\"", "sh", path]) }
-    if status == 0 { reload(path) }
+    // The shell splits the editor's own arguments (`code --wait`), as git does.
+    let ended = try? handOffTerminal(
+        running: .path("/bin/sh"),
+        arguments: ["-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"", "sh", path]
+    )
+    if ended == .exit(0) { reload(path) }
 }
 ```
+
+The program is ``HandOffTerminalAction/Executable/path(_:)`` or ``HandOffTerminalAction/Executable/name(_:)``, a name looked up in `PATH` as a shell looks it up (`posix_spawnp`). It gets the app's environment and working directory, as `system(3)` gives them; a shell or `/usr/bin/env` gives it others. How it ended is a value, ``HandOffTerminalAction/Termination``: ``HandOffTerminalAction/Termination/exit(_:)`` with its status, non-zero included, or ``HandOffTerminalAction/Termination/uncaughtSignal(_:)`` with the signal that ended it. What throws is a program that could not be started or waited for, ``HandOffTerminalAction/LaunchError``, and ``HandOffTerminalAction/LaunchError/unsupported`` where no program can be started: on WebAssembly, which has no processes, and on Windows until the run loop is ported there.
+
+Called with a closure instead, the action runs it at once, on the main actor, while the other program has the terminal, and returns what the closure returns or throws what it throws: for several programs in turn, or one started some other way. The program form is the closure form with the spawn inside it, so what follows holds for both.
 
 It is the ⌃Z round trip without the stop. On the way out the loop draws a frame at ``ScenePhase/background`` and hands the terminal back as a suspend does: the mouse mode off, the hairlines, pictures under text and window title taken back, the styling reset, raw mode off (the kitty keyboard protocol's flags popped, every input mode off, the shell's termios back), the cursor shown and the alternate screen left. Turning raw mode off disarms the two threads that watch the input for a hung loop, the stall watchdog and the quit key's watch, so nothing of the app's reads the other program's keys or writes to its screen; the loop itself reads nothing until the closure returns, which holds the main actor. Input the driver had queued for the app is dropped by the change of termios, as for a suspend: it may hold reports in the app's encodings. What the app had read and not handled stays the app's, handled after.
 
@@ -220,7 +228,7 @@ While the closure runs, ⌃C, ⌃\\ and ⌃Z are signal characters again, sent t
 
 On the way back the signals are put back (each ignored once more first, which discards one still pending: on Linux a signal blocked on every thread waits, ignored or not), and the terminal is taken back as after an external stop, since the program may have left any mode in any state: once in the foreground, raw mode made again from the shell's termios, every mode asserted, the diff cache invalidated, and a frame drawn that reads the size again and writes every line.
 
-A program started for the hand-off belongs in the app's process group, which is the terminal's foreground group, with every signal at its default: `posix_spawn` with `POSIX_SPAWN_SETSIGDEF` and `POSIX_SPAWN_SETSIGMASK`, and `waitpid`. Foundation's `Process` starts its child in a group of its own (measured on macOS), where an editor that reads the keyboard is stopped by `SIGTTIN`; and a program spawned without the defaults inherits the signals the app ignores. ⌃Z stops a program in another group, or one that stops itself alone, without the app, which TUI cannot see through the closure: the app waits on in it, and the terminal looks hung until the program is continued (`kill -CONT`) from elsewhere. Outside a running app — a headless or test app, a snapshot, WebAssembly — the closure just runs, and so does a call made inside the closure.
+A program started for the hand-off belongs in the app's process group, which is the terminal's foreground group, with every signal at its default, and the program form starts it so (`ForegroundProgram`, in TUIFoundation): `posix_spawn` with `POSIX_SPAWN_SETSIGDEF` and `POSIX_SPAWN_SETSIGMASK`, and `waitpid`. Foundation's `Process` starts its child in a group of its own (measured on macOS), where an editor that reads the keyboard is stopped by `SIGTTIN`; and a program spawned without the defaults inherits the signals the app ignores. The program form waits with `WUNTRACED`, so it sees its program stop: one that stops itself alone, as a program reading ⌃Z as a key may, is followed by a `SIGTSTP` the app sends itself, so the shell sees the whole job stopped and takes the terminal back, and `fg` continues both. (A stop it sees only after `fg` has continued both, because ⌃Z stopped the app too before it read the report, is not made again: `waitpid` with `WCONTINUED` says the program was continued.) Through a closure TUI cannot see the program: ⌃Z stops one in another group, or one that stops itself alone, without the app, which waits on in the closure, and the terminal looks hung until the program is continued (`kill -CONT`) from elsewhere. Outside a running app — a headless or test app, a snapshot — the program is started and the closure runs, with no terminal to hand over; so does a call made inside the closure.
 
 ## Cleanup
 

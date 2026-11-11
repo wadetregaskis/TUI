@@ -21,6 +21,11 @@ parent, as an app runs from a shell, and checks:
      job does; continued (what `fg` sends), the command goes on, and once it
      ends the app takes the terminal back and does not suspend itself after,
      with no stop left pending.
+  4. A command that stops itself alone (`kill -STOP $$`), as a program that
+     reads ⌃Z as a key may: the app, which started it through
+     `handOffTerminal(running:arguments:)` and so sees it stop, stops too, so
+     the shell gets the job back rather than a terminal that looks hung;
+     continued, both run on, and the command's exit status is shown.
 
 Each run ends with ⌃Q, which quits with status 0.
 
@@ -93,6 +98,8 @@ class App:
         self.out = b""
         self.pending = b""
         self.pidfile = os.path.join(tempfile.mkdtemp(dir=SCRATCH), "pids")
+        # The command says who is who: its parent, the app, and itself.
+        command = command.replace("WRITE-PIDS", 'echo "$PPID $$" > "$IDLE_PROBE_HANDOFF_PIDFILE"')
         env = {k: v for k, v in os.environ.items() if k not in STRIPPED}
         env.update({
             "TERM": "xterm-256color",
@@ -236,8 +243,8 @@ class App:
                 pass
 
     def pids(self):
-        """The app's process ID and the command's, as the probe writes them once
-        the command has started, which may be after the command's first line."""
+        """The app's process ID and the command's, as a command's `WRITE-PIDS`
+        writes them."""
         deadline = time.time() + 5.0
         while time.time() < deadline:
             try:
@@ -331,7 +338,7 @@ def interrupted_and_resized():
 
 def stopped_with_the_command():
     print("── 3. ⌃Z while the command runs ──", flush=True)
-    app = App("echo CHILD-READY; exec sleep 30")
+    app = App("WRITE-PIDS; echo CHILD-READY; exec sleep 30")
     try:
         app.settle()
         mark = app.hand_off()
@@ -359,6 +366,32 @@ def stopped_with_the_command():
         app.kill()
 
 
+def stopped_alone():
+    print("── 4. a command that stops itself alone ──", flush=True)
+    app = App("WRITE-PIDS; echo CHILD-READY; kill -STOP $$; echo CHILD-RESUMED; exit 5")
+    try:
+        app.settle()
+        mark = app.hand_off()
+        app_pid, command_pid = app.pids()
+        check(app_pid is not None, "the command says who is who")
+        if app_pid is None:
+            return
+        deadline = time.time() + 5.0
+        while time.time() < deadline and not (stopped(app_pid) and stopped(command_pid)):
+            app.pump(0.1)
+        check(stopped(command_pid), "the command stops itself")
+        check(stopped(app_pid), "the app stops with it, so the shell gets the job back")
+        # What `fg` does.
+        os.killpg(app_pid, signal.SIGCONT)
+        check(app.wait_for(b"CHILD-RESUMED", 10.0, mark), "continued, the command runs on")
+        check(app.wait_for(b"handoffs 1 exit 5", 15.0, mark), "and once it ends the app takes the terminal back")
+        app.pump(1.0)
+        check(not stopped(app_pid) and app.running(), "the app runs on, not stopped again")
+        app.quit("4")
+    finally:
+        app.kill()
+
+
 def main():
     if not os.path.exists(BINARY):
         print("no binary at %s" % BINARY)
@@ -366,6 +399,7 @@ def main():
     handed_over_and_back()
     interrupted_and_resized()
     stopped_with_the_command()
+    stopped_alone()
     if failures:
         print("\n%d check(s) failed" % len(failures))
         sys.exit(1)

@@ -15,6 +15,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+stops the two together, and the scene is `.background`. Outside a running app the closure just runs. The Example's
+Terminal page edits a note in your `$VISUAL` or `$EDITOR`.
+**`handOffTerminal(running:arguments:)` starts a program for a hand-off, and says how it ended.** It starts the
+program as an interactive one must be — in the app's process group, every signal at its default, with `posix_spawn`
+rather than Foundation's `Process`, whose group of its own stops an editor as it reads the keyboard — and returns
+`.exit(status)` or `.uncaughtSignal(signal)`, throwing only when the program cannot be started. A program is
+`.path(_:)` or `.name(_:)`, looked up in `PATH`; `$EDITOR`, which may carry arguments, runs through `/bin/sh -c` as
+git runs it. A program that stops itself alone stops the app too, so the shell gets the job back. On WebAssembly it
+throws `.unsupported`.
 **An app whose input is already at its end no longer risks spinning on Linux.** Run with `< /dev/null` or a
 finished pipe, an app watched its input for bytes that would never come, and on Linux the end could reach it as an
 endless run of "bytes ready", holding a core. It now asks the input itself whether it has ended, at the start and at
