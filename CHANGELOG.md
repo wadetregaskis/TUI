@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An idle app with a menu bar no longer holds a core on Ghostty, kitty or WezTerm.** Where the terminal reports a
+modifier key held on its own, the menu bar's underlined letters (and any `modifierKeyAlternate`) kept the animation
+clock ticking, and every tick drew the whole screen again instead of replaying the breathing focus: about 95% of a
+core in the Example's debug build on Ghostty, against nearly none on Apple Terminal. Such a view now asks for a frame
+only when the keys it shows change.
+
 **TUI's settings are kept: for the program, and, if you like, for every TUI program.** A palette, border style,
 control style or check chosen in the settings panel (F2) or the View menu wins for the rest of the run, as before,
 and is now saved for the program's next runs, where a `TUI_*` variable set for that launch and the program's own

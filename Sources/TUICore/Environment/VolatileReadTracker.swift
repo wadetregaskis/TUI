@@ -182,7 +182,13 @@ package final class VolatileReadTracker {
     ///   changes without writing anything the render cache sees;
     /// - a container-relative shape's read of where it is in its container
     ///   (`RenderContext.containerRelativeOrigin`), which sets its corners: a
-    ///   subtree that moves under the same size keeps its key.
+    ///   subtree that moves under the same size keeps its key;
+    /// - the modifier keys held, which a `modifierKeyAlternate` and the menu
+    ///   bar's underlined letters are drawn from. A change of them asks for
+    ///   its own frame (`ModifierKeyMonitor.record`). Counted in ``reads``
+    ///   until 2026-11-10, they kept the clock ticking in every app with a
+    ///   menu bar on a terminal that reports a modifier key held alone, and
+    ///   each tick walked the whole scene: most of a core, idle, on Ghostty.
     ///
     /// Like ``reads``, only ever compared as a delta.
     ///

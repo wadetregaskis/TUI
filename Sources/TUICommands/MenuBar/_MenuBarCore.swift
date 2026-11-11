@@ -332,8 +332,12 @@ extension _MenuBarCore {
     private func showsMnemonics(_ context: RenderContext) -> Bool {
         guard let monitor = context.environment.modifierKeyMonitor else { return false }
         // Drawn from keys that change between frames with no state changing,
-        // as a modifier key alternate is: no memo may keep it.
-        context.environment.volatileReadTracker?.recordVolatileRead()
+        // as a modifier key alternate is: no memo may keep it. An unkeyed
+        // read, not a read of the pulse: that kept the animation clock
+        // ticking, and every tick rendering the whole scene, in every app
+        // with a menu bar on a terminal that reports Option held alone
+        // (Ghostty, 2026-11-10). The change of Option asks for its frame.
+        context.environment.volatileReadTracker?.recordUnkeyedRead()
         if !context.isMeasuring { monitor.noteDrawnFrom(.option) }
         return monitor.current.contains(.option)
     }

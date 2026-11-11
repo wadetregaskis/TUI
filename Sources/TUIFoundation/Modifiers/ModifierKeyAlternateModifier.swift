@@ -125,9 +125,12 @@ nonisolated struct ModifierKeyAlternateModifier<Content: View, Alternate: View>:
             return TUIView.renderToBuffer(content, context: context)
         }
         // What is drawn depends on keys that change between frames with no
-        // state changing, so no memo may keep it, and a change of them needs
-        // a frame.
-        context.environment.volatileReadTracker?.recordVolatileRead()
+        // state changing, so no memo may keep it: an unkeyed read, NOT a read
+        // of the pulse, which would keep the animation clock ticking, and the
+        // whole scene rendering on every tick, for as long as this is on
+        // screen. A change of the keys asks for its own frame
+        // (`ModifierKeyMonitor.record`, through `noteDrawnFrom` below).
+        context.environment.volatileReadTracker?.recordUnkeyedRead()
         if !context.isMeasuring {
             monitor.noteDrawnFrom()
             keepModifiedView(context: context, monitor: monitor)
@@ -186,7 +189,7 @@ nonisolated struct ModifierKeyAlternateModifier<Content: View, Alternate: View>:
 @MainActor extension ModifierKeyAlternateModifier: Layoutable {
     /// Measures whichever of the two it would draw.
     ///
-    /// The choice is the same volatile read as the render's, and recorded as
+    /// The choice is the same unkeyed read as the render's, and recorded as
     /// one: a size a memoised ancestor kept across frames (`EquatableView`, a
     /// `ForEach` row) would otherwise be the modified view's while the
     /// alternate draws, and a wider alternate would be cut to fit it.
@@ -194,7 +197,7 @@ nonisolated struct ModifierKeyAlternateModifier<Content: View, Alternate: View>:
         guard let monitor = context.environment.modifierKeyMonitor else {
             return measureChild(content, proposal: proposal, context: context)
         }
-        context.environment.volatileReadTracker?.recordVolatileRead()
+        context.environment.volatileReadTracker?.recordUnkeyedRead()
         if showsAlternate(held: monitor.current) {
             return measureChild(alternate, proposal: proposal, context: alternateContext(context))
         }
