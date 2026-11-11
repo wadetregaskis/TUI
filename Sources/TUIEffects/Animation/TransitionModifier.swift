@@ -53,11 +53,12 @@ extension View {
     /// something directly. A removal with a longer animation of its own than
     /// the change's finishes at the stack's new place.
     ///
-    /// That is what an eager `VStack`, `HStack` and `ZStack` do, and a
-    /// `Layout` with its subviews' places. Elsewhere a removal keeps its room
-    /// while it plays and gives it back at once after — in a `Layout`, a lazy
-    /// stack, a `Grid`, a `List` and a `nil` rendered on its own — and the
-    /// children of a lazy stack, a `Grid` and a `List` move at once.
+    /// That is what an eager `VStack`, `HStack` and `ZStack` do, a `Layout`
+    /// with its subviews' places, and a `Grid` with its cells', though a cell
+    /// leaving keeps its room while it plays, as a `nil` rendered on its own
+    /// does. The rows of a lazy stack, a `List` and a `Table` take their new
+    /// places at once; a lazy stack's row leaving by its own transition plays
+    /// over them where it was, drawn only where it paints.
     /// ``View/transitionSpace(_:)`` keeps the room in an eager stack too, for
     /// an app that wants the views around to stand still while a view leaves.
     ///

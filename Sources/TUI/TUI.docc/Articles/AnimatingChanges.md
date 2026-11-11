@@ -255,13 +255,17 @@ The effects apply to the rendered cells rather than to layout: a view sliding
 in gets its space at once and moves into it. `.scale` has no sub-cell rendering
 to shrink, so it uncovers the view from its anchor a cell at a time.
 
-The layout changes at once, as SwiftUI's does, and under the animation the
-views it moves glide from where they were to where they now go: a view arriving
-is drawn where it lands while the row below slides out of its way, and a view
-leaving gives its room back at once and plays its removal where it was,
-beneath the views gliding up over it. `View.transitionSpace(_:)` holds an
-`if`'s room until its removal has played, for an app that wants the views
-around to stand still.
+The layout changes at once, as SwiftUI's does. Under the animation, in an
+eager stack, a `ZStack`, a `Grid` and a `Layout`, the views it moves glide from
+where they were to where they now go: a view arriving is drawn where it lands
+while the row below slides out of its way, and a view leaving plays its removal
+where it was, beneath the views gliding up over it. It gives its room back at
+once, except in a `Grid`, which keeps a leaving cell's room while it plays. The
+rows of a lazy stack, a `List` and a `Table` take their new places at once, and
+a lazy stack's row leaving by its own transition plays over them where it was,
+drawn only where it paints, so the row that has taken its place shows around
+it. `View.transitionSpace(_:)` holds an `if`'s room until its removal has
+played, for an app that wants the views around to stand still.
 
 A **removal** needs something to play it, because the view is gone from the
 tree by the time anything notices. The picture the view drew on its last frame
