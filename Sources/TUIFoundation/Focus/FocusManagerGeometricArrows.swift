@@ -27,7 +27,7 @@ package enum ArrowFocus: Sendable, Equatable {
     /// in `environment`, `.tabOrder` with `tab`, and `nil` with any other
     /// value or none, where what the person kept in the settings panel
     /// decides. Only the app runner asks, as it does for
-    /// `TUI_CURSOR_FOLLOWS_FOCUS`.
+    /// `TUI_TEXT_CURSOR_FOLLOWS_FOCUS`.
     package static func requested(environment: [String: String]) -> Self? {
         switch environment["TUI_ARROW_FOCUS"] {
         case "geometric": .geometric

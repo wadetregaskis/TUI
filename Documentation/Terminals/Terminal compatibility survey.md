@@ -3764,8 +3764,8 @@ treats as the foreground is unknown. Reading the setting "off" would mean
 changing a Warp preference, and that is for the owner to do.
 
 **The terminal's own cursor shown on the focus: UNMEASURED on every host
-(2026-11-07).** `TUI_CURSOR_FOLLOWS_FOCUS=1` (a proof of concept, see
-`Documentation/Input and focus/Cursor follows focus (proof of concept).md`)
+(2026-11-07).** `TUI_TEXT_CURSOR_FOLLOWS_FOCUS=1` (a proof of concept, see
+`Documentation/Input and focus/Text cursor follows focus (proof of concept).md`)
 leaves the cursor shown on a focused control's first cell, over its focus
 colours: the card's keys 1–6 row above asks the same of a reversed cell. Open
 per host: whether the cursor hides the cell under it, whether it is seen

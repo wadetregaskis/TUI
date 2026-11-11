@@ -105,9 +105,9 @@ extension TUIEnvironmentVariables {
             effect: "`1`: moving the mouse onto a control makes it the one your keys act on, as a click would, without pressing it. A text field you've typed in keeps your keys until you click or press Tab. `0`: only a click or the keyboard does that. Unset, the program decides, and where it doesn't, what you've kept in the settings panel, else it's off. \(viewMenu)",
             code: .overrides("`Scene.focusFollowsPointer(_:)`.")),
         TUIEnvironmentVariable(
-            "TUI_CURSOR_FOLLOWS_FOCUS", .endUser, .keyboardAndMouse,
+            "TUI_TEXT_CURSOR_FOLLOWS_FOCUS", .endUser, .keyboardAndMouse,
             values: "`1`, `show` or `hidden`",
-            effect: "An experiment, for a screen reader, a braille display or a magnifier that follows the terminal's cursor: the cursor moves to the control your keys act on after each change. `1` or `show` shows it there, and `hidden` moves it there but keeps it hidden. Unset, the cursor is hidden except in a text field you're typing in."),
+            effect: "An experiment, for a screen reader, a braille display or a magnifier that follows the terminal's text cursor: the text cursor (not the mouse pointer, which `TUI_FOCUS_FOLLOWS_POINTER` is about) moves to the control your keys act on after each change. `1` or `show` shows it there, and `hidden` moves it there but keeps it hidden. Unset, the cursor is hidden except in a text field you're typing in."),
         TUIEnvironmentVariable(
             "TUI_SPRING_LOADING_DELAY", .endUser, .keyboardAndMouse,
             values: "Seconds, such as `0.3` or `1`",

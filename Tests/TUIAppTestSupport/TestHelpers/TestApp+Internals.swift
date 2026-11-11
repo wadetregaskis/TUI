@@ -85,9 +85,9 @@ extension TestApp {
         set { headless.sendsProgressReports = newValue }
     }
 
-    var cursorFollowsFocus: CursorFollowsFocus? {
-        get { headless.cursorFollowsFocus }
-        set { headless.cursorFollowsFocus = newValue }
+    var textCursorFollowsFocus: TextCursorFollowsFocus? {
+        get { headless.textCursorFollowsFocus }
+        set { headless.textCursorFollowsFocus = newValue }
     }
 
     var cursorVisible: Bool { headless.cursorVisible }

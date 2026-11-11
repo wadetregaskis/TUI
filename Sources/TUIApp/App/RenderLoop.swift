@@ -101,10 +101,10 @@ internal final class RenderLoop<A: App> {
     var parkedCursor: CellPoint?
 
     /// Whether the terminal's own cursor follows the focus, and is shown
-    /// there, or `nil`: the proof of concept `TUI_CURSOR_FOLLOWS_FOCUS` turns
+    /// there, or `nil`: the proof of concept `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns
     /// on, which the app runner reads (`RenderLoop+Cursor.swift`). `nil` in
     /// every other loop unless a test says otherwise.
-    var cursorFollowsFocus: CursorFollowsFocus?
+    var textCursorFollowsFocus: TextCursorFollowsFocus?
 
     /// Whether text is spelled in ASCII before layout: all of it under the
     /// experiment `TUI_PLAIN_TEXT=transliterate`, only the key symbols for any
@@ -121,7 +121,7 @@ internal final class RenderLoop<A: App> {
     /// context: the status bar's tooltip and copy note.
     var textSpelling = TextSpelling.asWritten
 
-    /// Whether the last frame left the cursor shown (``cursorFollowsFocus``).
+    /// Whether the last frame left the cursor shown (``textCursorFollowsFocus``).
     var showsCursor = false
 
     /// The terminal's size at the previous frame, `nil` before the first: a

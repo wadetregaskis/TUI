@@ -66,7 +66,7 @@ promised: TUI is a source package built with the app, without library evolution,
   in any release.
 - **`package` declarations,** which clients cannot see, and `@_spi` (there is none).
 - **Experimental environment variables:** those the end-user table describes as "an experiment, for trying out"
-  (`TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_ARROW_FOCUS`), those off pending a measurement (`TUI_GRAPHICS_PLAYBACK`), and
+  (`TUI_TEXT_CURSOR_FOLLOWS_FOCUS`, `TUI_ARROW_FOCUS`), those off pending a measurement (`TUI_GRAPHICS_PLAYBACK`), and
   every developer and internal variable (`TUI_PLAIN_TEXT=transliterate` is one). An experiment can change or go in
   any release; one that is promoted joins the promise from the release that says so.
 - **The bytes TUI writes to the terminal:** the escape sequences it chooses, which cells it repaints and when, its
@@ -144,7 +144,7 @@ Answered by the owner on 2026-11-09, in chat; the record is in
 | 2 | Underscored names | Not API, and may change at any time. Every remaining underscored public was checked the same day, and the one that did not have to be public (`_MemoizedView`'s initializer) made `internal`; the 14 accidental ones already were |
 | 3 | Which public enums may gain cases | Any, in any release; apps write `@unknown default:` |
 | 4 | Which of the 35 library products are promised | All of them |
-| 5 | Each experiment: `TUI_ARROW_FOCUS`, `TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK`, the held-press widening (A-TEXT2-1) | **Open:** the owner tests each and decides before 1.0 |
+| 5 | Each experiment: `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK`, the held-press widening (A-TEXT2-1) | **Open:** the owner tests each and decides before 1.0 |
 | 6 | Raising the minimum Swift or macOS | B: only a major release raises one; any release may lower one |
 | 7 | Deprecation | A: deprecate in a minor, remove in the next major. SwiftUI's deprecations followed case by case |
 | 8 | Read compatibility of persisted settings | Both ways within a major; kept across majors where it can be |

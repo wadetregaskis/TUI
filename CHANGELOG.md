@@ -808,10 +808,11 @@ a light background, disabled is now faint and italic, for a control at no colour
 `.selectionDisabled(_:)` at any depth. So is a text field's prompt at no colour, which faint alone told from text
 somebody typed. Every other host, and Warp in a dark theme, draws exactly what it did.
 
-**`TUI_CURSOR_FOLLOWS_FOCUS=1` tries out the terminal's own cursor on the focused control.** An experiment, off by
-default, for judging what screen readers, braille displays and magnifiers make of it: after each frame the real cursor
-goes to the focused control's first cell (a text field's insertion point, as before) and is shown there; `hidden` puts it
-there and keeps it hidden. See `Documentation/Input and focus/Cursor follows focus (proof of concept).md`.
+**`TUI_TEXT_CURSOR_FOLLOWS_FOCUS=1` tries out the terminal's own text cursor on the focused control.** An experiment,
+off by default, for judging what screen readers, braille displays and magnifiers make of it: after each frame the
+terminal's text cursor (not the mouse pointer, which `TUI_FOCUS_FOLLOWS_POINTER` is about) goes to the focused control's
+first cell (a text field's insertion point, as before) and is shown there; `hidden` puts it there and keeps it hidden.
+See `Documentation/Input and focus/Text cursor follows focus (proof of concept).md`.
 
 **The focus can follow the mouse pointer.** With `TUI_FOCUS_FOLLOWS_POINTER=1`, or the app's
 `Scene.focusFollowsPointer()`, the control the pointer moves onto takes the focus, as a click there would, without

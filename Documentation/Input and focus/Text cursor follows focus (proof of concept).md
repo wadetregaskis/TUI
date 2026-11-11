@@ -1,4 +1,4 @@
-# The terminal's cursor follows the focus: proof of concept
+# The terminal's text cursor follows the focus: proof of concept
 
 Status, 2026-11-07: **a rough proof of concept, off by default**, so the owner can see it and judge its side effects. It
 is not finished, and nobody has seen it in a real terminal yet: screen capture on this machine shows only the wallpaper
@@ -8,8 +8,8 @@ is not finished, and nobody has seen it in a real terminal yet: screen capture o
 ## How to try it
 
 ```sh
-TUI_CURSOR_FOLLOWS_FOCUS=1 swift run Example        # or =show: the real cursor, shown, on the focused control
-TUI_CURSOR_FOLLOWS_FOCUS=hidden swift run Example   # the real cursor moved there, but kept hidden
+TUI_TEXT_CURSOR_FOLLOWS_FOCUS=1 swift run Example        # or =show: the real cursor, shown, on the focused control
+TUI_TEXT_CURSOR_FOLLOWS_FOCUS=hidden swift run Example   # the real cursor moved there, but kept hidden
 ```
 
 `1` and `show` are the same. Any other value, or none, leaves things as they were: the cursor hidden for the whole run,

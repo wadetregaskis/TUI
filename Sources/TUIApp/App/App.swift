@@ -446,7 +446,7 @@ extension AppRunner {
         loop.viewPreferenceOverrides.adopt(
             programStore: StorageDefaults.backend, allProgramsFile: .current())
         loop.sceneStorageSession = TerminalSession.identity(environment: ProcessInfo.processInfo.environment)
-        loop.cursorFollowsFocus = CursorFollowsFocus.requested(environment: ProcessInfo.processInfo.environment)
+        loop.textCursorFollowsFocus = TextCursorFollowsFocus.requested(environment: ProcessInfo.processInfo.environment)
         loop.arrowFocusRequested = ArrowFocus.requested(environment: ProcessInfo.processInfo.environment)
         loop.textRespelling = PlainTerminalText.respelling(in: ProcessInfo.processInfo.environment)
         loop.progressAbsence = TerminalCapabilities.progressAbsence(

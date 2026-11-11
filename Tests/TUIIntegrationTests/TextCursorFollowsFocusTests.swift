@@ -1,7 +1,7 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  CursorFollowsFocusTests.swift
+//  TextCursorFollowsFocusTests.swift
 //
-//  The proof of concept `TUI_CURSOR_FOLLOWS_FOCUS` turns on: the terminal's
+//  The proof of concept `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns on: the terminal's
 //  own cursor left on the focused control after each frame, shown or kept
 //  hidden, and handed back shown at the end.
 //
@@ -19,8 +19,8 @@ import TUITesting
 @testable import TUITestSupport
 
 @MainActor
-@Suite("The terminal's cursor follows the focus")
-struct CursorFollowsFocusTests {
+@Suite("The terminal's text cursor follows the focus")
+struct TextCursorFollowsFocusTests {
     private struct Page: View {
         var body: some View {
             VStack(alignment: .leading) {
@@ -46,12 +46,12 @@ struct CursorFollowsFocusTests {
 
     @Test("Only `1`, `show` and `hidden` turn it on")
     func variable() {
-        let key = "TUI_CURSOR_FOLLOWS_FOCUS"
-        #expect(CursorFollowsFocus.requested(environment: [key: "1"]) == .shown)
-        #expect(CursorFollowsFocus.requested(environment: [key: "show"]) == .shown)
-        #expect(CursorFollowsFocus.requested(environment: [key: "hidden"]) == .hidden)
-        #expect(CursorFollowsFocus.requested(environment: [key: "0"]) == nil)
-        #expect(CursorFollowsFocus.requested(environment: [:]) == nil)
+        let key = "TUI_TEXT_CURSOR_FOLLOWS_FOCUS"
+        #expect(TextCursorFollowsFocus.requested(environment: [key: "1"]) == .shown)
+        #expect(TextCursorFollowsFocus.requested(environment: [key: "show"]) == .shown)
+        #expect(TextCursorFollowsFocus.requested(environment: [key: "hidden"]) == .hidden)
+        #expect(TextCursorFollowsFocus.requested(environment: [key: "0"]) == nil)
+        #expect(TextCursorFollowsFocus.requested(environment: [:]) == nil)
     }
 
     @Test("Off, a button's focus leaves the cursor where the frame ended, hidden")
@@ -66,7 +66,7 @@ struct CursorFollowsFocusTests {
     @Test("Shown, the cursor sits on the focused control's first cell, and moves with the focus")
     func shown() throws {
         let app = TestApp(PageApp())
-        app.cursorFollowsFocus = .shown
+        app.textCursorFollowsFocus = .shown
         app.advance(by: .milliseconds(20))
         #expect(app.cursor == (try corner(of: "one", in: app)))
         #expect(app.cursorVisible)
@@ -79,7 +79,7 @@ struct CursorFollowsFocusTests {
     @Test("Hidden, the cursor sits there and stays hidden")
     func hidden() throws {
         let app = TestApp(PageApp())
-        app.cursorFollowsFocus = .hidden
+        app.textCursorFollowsFocus = .hidden
         app.advance(by: .milliseconds(20))
         #expect(app.cursor == (try corner(of: "one", in: app)))
         #expect(!app.cursorVisible)
@@ -104,7 +104,7 @@ struct CursorFollowsFocusTests {
     @Test("Shown, a frame with nothing focused on screen hides it again")
     func hiddenWhenNothingFocused() throws {
         let app = TestApp(SwitchingApp())
-        app.cursorFollowsFocus = .shown
+        app.textCursorFollowsFocus = .shown
         app.advance(by: .milliseconds(20))
         #expect(app.cursorVisible)
         app.press(.enter)
@@ -118,7 +118,7 @@ struct CursorFollowsFocusTests {
         let harness = RenderLoopHarness()
         let (terminal, output) = ScriptedTerminalOutput.terminal()
         let loop = harness.loop(PageApp(), on: terminal)
-        loop.cursorFollowsFocus = .shown
+        loop.textCursorFollowsFocus = .shown
         _ = loop.render()
         _ = loop.render()
         let region = try #require(

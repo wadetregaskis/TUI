@@ -689,7 +689,7 @@ The essay's praise for `menuconfig` is the single-column version of the same poi
 | Write `CUP` + `?25h` only if frame or focus changed. Wrap in sync output (mode 2026) with the frame, to avoid a visible hop. | `Terminal` | ½ day |
 | Controls choose a better spot: text fields their caret, toggles their mark | `FocusRegistration` helper, plus a `.cursorAnchor(_:)` modifier, TUI-specific | 1 day |
 | Text fields: skip the synthetic caret, use the real one. The real cursor at the caret should probably be **on by default** as SwiftTUI's is, given `TextCursorStyle` needs `DECSCUSR` handling. Owner's call: it changes the look. | `TextFieldContentRenderer` | 1 day |
-| Environment: `TUI_CURSOR_FOLLOWS_FOCUS=1`, and `TUI_ACCESSIBLE=1` bundling it with "still" | As other `TUI_*` | ½ hour |
+| Environment: `TUI_CURSOR_FOLLOWS_FOCUS=1` (renamed `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` 2026-11-10), and `TUI_ACCESSIBLE=1` bundling it with "still" | As other `TUI_*` | ½ hour |
 | Survey | Rule: measure per terminal, and record | ½ day |
 
 **What could go wrong**

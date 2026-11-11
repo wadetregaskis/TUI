@@ -485,7 +485,7 @@ and the like, on and off from inside the app.
   `AccessibilityPreferences` read from the host and the `TUI_*` variables), Breathing Focus (`TUI_BREATHING`), Spell Out
   Keys (`TUI_KEY_SYMBOLS=0`) and Focus Follows Pointer (`TUI_FOCUS_FOLLOWS_POINTER`). Each is a `Toggle`, checked while
   it is on in the frame's environment, so the check shows the effective state whoever decided it.
-- **Left out.** `TUI_CURSOR_FOLLOWS_FOCUS`: an experiment, three-valued (shown, hidden, off), for a screen reader or a
+- **Left out.** `TUI_CURSOR_FOLLOWS_FOCUS` (renamed `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` 2026-11-10): an experiment, three-valued (shown, hidden, off), for a screen reader or a
   magnifier that has to be set up before the app starts anyway. The palette, border and control style: already
   `DisplayCommands`, opt-in, and choices among many rather than switches. The terminal-capability switches
   (`TUI_GRAPHICS`, `TUI_HYPERLINKS`, `TUI_HAIRLINES` and the like): they say what the terminal can do, not how the

@@ -31,7 +31,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| EXPERIMENTS | Each experiment, promoted, kept as a documented experiment, or deleted before 1.0 (API-STABILITY point 5, 2026-11-09: you'll test them first): `TUI_ARROW_FOCUS`, `TUI_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK` (Ghostty 1.4.0 plays every panel of the animation probe right, seen 2026-11-09), and the held-press widening (A-TEXT2-1). The [API stability policy](<API stability policy.md>) leaves an experiment out of the promise until it is promoted. | Decide each after trying it | They stay experiments, unpromised; 1.0 waits for your call |
+| EXPERIMENTS | Each experiment, promoted, kept as a documented experiment, or deleted before 1.0 (API-STABILITY point 5, 2026-11-09: you'll test them first): `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK` (Ghostty 1.4.0 plays every panel of the animation probe right, seen 2026-11-09), and the held-press widening (A-TEXT2-1). The [API stability policy](<API stability policy.md>) leaves an experiment out of the promise until it is promoted. | Decide each after trying it | They stay experiments, unpromised; 1.0 waits for your call |
 
 ### Open on 2026-11-01
 

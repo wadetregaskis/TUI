@@ -464,11 +464,11 @@ package final class HeadlessApp {
     }
 
     /// Whether the terminal's own cursor follows the focus, as
-    /// `TUI_CURSOR_FOLLOWS_FOCUS` asks the app runner (`RenderLoop.cursorFollowsFocus`):
+    /// `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` asks the app runner (`RenderLoop.textCursorFollowsFocus`):
     /// `nil` until a test says so.
-    var cursorFollowsFocus: CursorFollowsFocus? {
-        get { renderer.cursorFollowsFocus }
-        set { renderer.cursorFollowsFocus = newValue }
+    var textCursorFollowsFocus: TextCursorFollowsFocus? {
+        get { renderer.textCursorFollowsFocus }
+        set { renderer.textCursorFollowsFocus = newValue }
     }
 
     /// Whether the frames so far left the terminal's cursor shown.
@@ -507,7 +507,7 @@ private protocol HeadlessRendering: AnyObject {
     var scenes: ScenePresenter { get }
     var hostState: TerminalHostState { get }
     var sendsProgressReports: Bool { get set }
-    var cursorFollowsFocus: CursorFollowsFocus? { get set }
+    var textCursorFollowsFocus: TextCursorFollowsFocus? { get set }
     var arrowFocusRequested: ArrowFocus? { get set }
     var statedByVariables: [ViewPreference: Bool] { get set }
     var hostAccessibility: AccessibilityPreferences { get set }
