@@ -264,8 +264,9 @@ extension _ButtonAppearance {
     /// Where text is spelled in ASCII (`spellsASCII`, `TUI_PLAIN_TEXT`), the
     /// half-block caps are brackets, `[ OK ]` (``TerminalSymbols/caps(ascii:)``):
     /// folded at output a half block is `#`, the block it is, and a face
-    /// walled in `#` does not read as a control. The rows of a three-row face
-    /// are its shape, and are left to the folding.
+    /// walled in `#` does not read as a control. A three-row solid face is
+    /// drawn in whole cells there (``SolidRaster/init(_:)``), so its rows
+    /// above and below have no glyph to fold.
     func sized(
         _ size: ControlSize, shape: ButtonBorderShape, family: ButtonFaceFamily, raster: SolidRaster,
         spellsASCII: Bool, segment: Bool = false
@@ -398,8 +399,20 @@ enum SolidRaster: Equatable, Sendable {
         self = !blockElementsFillTheLine ? .wholeCells : cornerTrianglesFillTheCell ? .cornerTriangles : .quadrants
     }
 
-    /// The raster the terminal `environment` describes draws.
+    /// The raster the terminal `environment` describes draws; in whole cells
+    /// wherever text is spelled in ASCII (`TUI_PLAIN_TEXT`).
+    ///
+    /// Folded at output a quadrant is `#`, as every block is, so a three-row
+    /// face's rows above and below its label were its corners in `#`
+    /// (`##    ##`) round cells of its colour. In whole cells the face is its
+    /// colour alone, as Apple Terminal draws it, and has no glyph to fold
+    /// (PLAIN-LINE, 2026-11-11). A shape's fill keeps its quadrants, as the
+    /// `#` of a shape: only a control's face is chosen here.
     init(_ environment: EnvironmentValues) {
+        guard !environment.textSpelling.isASCII else {
+            self = .wholeCells
+            return
+        }
         self.init(
             blockElementsFillTheLine: environment.blockElementsFillTheLine,
             cornerTrianglesFillTheCell: environment.cornerTrianglesFillTheCell)

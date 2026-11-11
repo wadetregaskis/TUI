@@ -222,6 +222,10 @@ pages in UTF-8, cell against cell. What was left, and what each became:
   showed nothing, a double-width scrollbar's arrows nothing, a three-row circular button's diagonals nothing. They are
   `/` and `\` by their long side: the pole's stripes `////`, the arrows `/\` and `\/`. Also the diagonal and hooked
   arrows `↖↘↗↙↰↱`, and the moon `☾☽` as `C` and `D`, as the `.moon` spinner's frames have it.
+- **A three-row solid face's corners**, quadrants, were `#`: `##    ##` above and below a large button's label.
+  Where text is spelled in ASCII the face is drawn in whole cells, as on Apple Terminal (`SolidRaster(_:)`), its
+  colour with no glyph to fold. Only a control's face: a shape's fill keeps its quadrants, as the `#` of a shape, as
+  `.background(in: Capsule())` keeps `#Tag#` (CAPSULE-TAG, open).
 
 **What stays `#`, and why.** A block is `#` in the table, and these keep it:
 

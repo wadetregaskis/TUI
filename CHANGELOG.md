@@ -15,6 +15,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Under `TUI_PLAIN_TEXT`, a large solid button is a solid block of its colour.** Its rows above and below the label
+were its rounded corners in `#` (`##    ##`); the face is now drawn in whole cells there, as on Apple Terminal.
+
 **Under `TUI_PLAIN_TEXT`, a box keeps its lines' weight, and Braille its shape.** Sent as plain text, every line was
 `-` or `|` and every corner `+`, so a heavy, a double and a rounded box were all one light box, and every Braille cell
 was `.`, a blank one too. A heavy box is now `#=====#`, a double one `+=====+`, a rounded one `.-----.` over

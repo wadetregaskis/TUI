@@ -130,6 +130,22 @@ struct TransliteratedGlyphTests {
         #expect(written.lines.map(\.stripped).joined().contains("▐ OK ▌"))
     }
 
+    /// Folded, a three-row solid face's quadrant corners were `#`, so a large
+    /// button was `##    ##` above and below its label (PLAIN-LINE).
+    @Test("A three-row solid face is whole cells of its colour, with no glyph to fold")
+    func tallSolidFace() {
+        for shape in [ButtonBorderShape.capsule, .roundedRectangle, .circle] {
+            let rows = drawn(Button("Save") {}.buttonBorderShape(shape).controlSize(.large))
+            let folded = rows.map(PlainTerminalText.folding)
+            #expect(!folded.joined().contains("#"), "\(shape): \(folded)")
+            #expect(folded.count == 3 && folded.contains { $0.contains("Save") }, "\(shape): \(folded)")
+        }
+        var environment = EnvironmentValues()
+        #expect(SolidRaster(environment) != .wholeCells)
+        environment.textSpelling = .ascii(.standard)
+        #expect(SolidRaster(environment) == .wholeCells)
+    }
+
     /// A Braille face's every dot was `.`, so its one-row ends and its
     /// three-row outline were dots all alike, the blank cells among them.
     @Test("A Braille face reads as a dotted outline in ASCII")
