@@ -126,6 +126,58 @@ struct SystemNotifierTests {
         #expect(none.all.isEmpty)
     }
 
+    @Test("Script Editor's notifications, which osascript posts, are read from the settings' allow bit")
+    func scriptEditorPermission() {
+        let id = SystemNotifier.scriptEditorBundleID
+        // As the settings held them on the owner's Mac, 2026-11-10: Script
+        // Editor's off, Ghostty's allowed.
+        let off: [String: Any] = ["bundle-id": "com.apple.ScriptEditor2", "flags": 0x200E]
+        let on: [String: Any] = ["bundle-id": "com.apple.scripteditor2", "flags": 0x1280_200E]
+        let other: [String: Any] = ["bundle-id": "com.mitchellh.ghostty", "flags": 0x1280_200E]
+        let flagless: [String: Any] = ["bundle-id": "com.apple.ScriptEditor2"]
+        #expect(SystemNotifier.permission(of: id, in: [other, off]) == .denied)
+        #expect(SystemNotifier.permission(of: id, in: [on]) == .allowed)
+        #expect(SystemNotifier.permission(of: id, in: [other]) == .unknown)
+        #expect(SystemNotifier.permission(of: id, in: [flagless]) == .unknown)
+        #expect(SystemNotifier.permission(of: id, in: nil) == .unknown)
+    }
+
+    @Test(
+        "Through osascript, with Script Editor's notifications off, it says so and posts all the same",
+        arguments: [SystemNotifier.Permission.denied, .allowed, .unknown])
+    func saysWhenScriptEditorIsOff(permission: SystemNotifier.Permission) {
+        let launches = Launches()
+        let warnings = Mutex<[String]>([])
+        let notifier = SystemNotifier(
+            setting: .always, helper: .osascript("/usr/bin/osascript"), title: "Demo", isLocal: { true },
+            launch: { executable, arguments in launches.value.withLock { $0.append((executable, arguments)) } },
+            perform: { $0() }, scriptEditorPermission: { permission },
+            warn: { message in warnings.withLock { $0.append(message) } })
+        notifier.post("Build finished")
+        #expect(launches.all.count == 1)
+        let said = warnings.withLock { $0 }
+        if permission == .denied {
+            #expect(said == [SystemNotifier.scriptEditorDeniedMessage])
+            #expect(said.first?.contains("System Settings ▸ Notifications ▸ Script Editor") == true)
+        } else {
+            #expect(said.isEmpty)
+        }
+    }
+
+    @Test("notify-send never asks about Script Editor")
+    func notifySendNeverAsks() {
+        let asked = Mutex(false)
+        let notifier = SystemNotifier(
+            setting: .always, helper: .notifySend("/usr/bin/notify-send"), title: "Demo", isLocal: { true },
+            launch: { _, _ in }, perform: { $0() },
+            scriptEditorPermission: {
+                asked.withLock { $0 = true }
+                return .denied
+            })
+        notifier.post("Build finished")
+        #expect(!asked.withLock { $0 })
+    }
+
     @Test("Control characters are dropped, a line break is a space, and a blank message posts nothing")
     func sanitised() {
         let launches = Launches()

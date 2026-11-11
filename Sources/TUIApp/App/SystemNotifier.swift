@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 import TUIFoundation
 
 /// This machine's own notifications — AppleScript's `display notification`
@@ -23,7 +24,9 @@ import TUIFoundation
 /// where it does not, so no notification is ever delivered twice. The terminal
 /// goes first because its notification is the terminal's own — its icon, and a
 /// click that brings its window forward — where `osascript`'s is attributed to
-/// Script Editor, and a click opens that.
+/// Script Editor, and a click opens that. macOS shows it only where System
+/// Settings ▸ Notifications ▸ Script Editor allows it; where that is off, a post
+/// says so once, as a diagnostic (``post(_:)``).
 ///
 /// Only where the person is at this machine (``SessionLocality/isLocal()``,
 /// positive evidence, so any doubt — an ssh session, a tmux attached from
@@ -158,6 +161,15 @@ struct SystemNotifier: SystemNotificationBackend {
     /// on it.
     let perform: @Sendable (@escaping @Sendable () -> Void) -> Void
 
+    /// Whether macOS shows Script Editor's notifications, which are what
+    /// `osascript` posts (``scriptEditorPermission()``), asked at each post
+    /// through it, off the main thread.
+    let scriptEditorPermission: @Sendable () -> Permission
+
+    /// Says something about the notifications to whoever runs the app: a
+    /// diagnostic, once per message (`SoftTrap.warn`).
+    let warn: @Sendable (String) -> Void
+
     /// This process's notifier: its environment's setting, the helper this
     /// machine has, the process's name as the title, the locality test, and
     /// `Process` on a utility queue.
@@ -171,14 +183,19 @@ struct SystemNotifier: SystemNotificationBackend {
             title: ProcessInfo.processInfo.processName,
             isLocal: { SessionLocality.isLocal() },
             launch: Self.launchProcess,
-            perform: Self.performInBackground)
+            perform: Self.performInBackground,
+            scriptEditorPermission: { Self.scriptEditorPermission() },
+            warn: { SoftTrap.warn($0) })
     }
 
-    /// A notifier with every part given: a test's, which launches nothing.
+    /// A notifier with every part given: a test's, which launches nothing,
+    /// and by default reads no settings and says nothing.
     init(
         setting: Setting, helper: Helper?, title: String, isLocal: @escaping @Sendable () -> Bool,
         launch: @escaping @Sendable (_ executable: String, _ arguments: [String]) -> Void,
-        perform: @escaping @Sendable (@escaping @Sendable () -> Void) -> Void
+        perform: @escaping @Sendable (@escaping @Sendable () -> Void) -> Void,
+        scriptEditorPermission: @escaping @Sendable () -> Permission = { .unknown },
+        warn: @escaping @Sendable (String) -> Void = { _ in }
     ) {
         self.setting = setting
         self.helper = helper
@@ -186,19 +203,30 @@ struct SystemNotifier: SystemNotificationBackend {
         self.isLocal = isLocal
         self.launch = launch
         self.perform = perform
+        self.scriptEditorPermission = scriptEditorPermission
+        self.warn = warn
     }
 
     /// Posts `message` where the setting, the helper and the locality test
     /// allow, with its control characters dropped (a line break is a space);
     /// nothing for a message with nothing left to say.
+    ///
+    /// Through `osascript`, it first reads whether macOS shows Script Editor's
+    /// notifications, and where they are off says so (``warn``), once: macOS
+    /// keeps such a notification unshown, and nothing else would tell the
+    /// person why none appears. It posts all the same, as the setting is
+    /// macOS's to change, and read from a key nothing documents.
     func post(_ message: String) {
         guard setting != .off, let helper else { return }
         let text = TerminalHostState.sanitizedText(message)
         guard text.contains(where: { !$0.isWhitespace }) else { return }
-        let (setting, title, isLocal, launch) = (setting, title, isLocal, launch)
+        let notifier = self
         perform {
-            guard setting == .always || isLocal() else { return }
-            launch(helper.path, helper.arguments(title: title, message: text))
+            guard notifier.setting == .always || notifier.isLocal() else { return }
+            if case .osascript = helper, notifier.scriptEditorPermission() == .denied {
+                notifier.warn(Self.scriptEditorDeniedMessage)
+            }
+            notifier.launch(helper.path, helper.arguments(title: notifier.title, message: text))
         }
     }
 

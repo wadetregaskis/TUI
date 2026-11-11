@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**TUI says when macOS hides the notifications it posts itself.** On macOS, a notification TUI posts with `osascript`,
+for a terminal that can't post one, is Script Editor's, and macOS keeps it unshown while System Settings ▸
+Notifications ▸ Script Editor has notifications off. TUI now reads that setting and, where it's off, says so once
+among its diagnostics. Ghostty and iTerm2, which post the notification themselves, show it only while their window
+isn't in front, so `desktop: .always` reaches the desktop there only while another app is in front.
+
 **A toast's emoji wait for its fade-in to finish.** An emoji is drawn in colours of its own, which no fade reaches, so
 a toast's glyph appeared at full strength at once and its text and border faded in round it. Now every emoji in a
 toast, its style's glyph and any in its message or views, is drawn only while the toast is fully opaque, and goes as

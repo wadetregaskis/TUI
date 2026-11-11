@@ -214,7 +214,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_SYSTEM_NOTIFICATIONS", .endUser, .linksAndNotifications,
             values: "`0` or `1`",
-            effect: "Whether a notification the terminal can't show is posted by this computer itself, with `osascript` on macOS or `notify-send` on Linux. `0`: never. `1`: wherever the program can't tell where you are, such as inside zellij or GNU screen at your own desk. Unset, only where the program can tell you're at this computer, and never over ssh. A notification never comes twice: a terminal that shows them always gets them instead. `TUI_NOTIFICATIONS=0` turns these off too, whatever this says.",
+            effect: "Whether a notification the terminal can't show is posted by this computer itself, with `osascript` on macOS or `notify-send` on Linux. `0`: never. `1`: wherever the program can't tell where you are, such as inside zellij or GNU screen at your own desk. Unset, only where the program can tell you're at this computer, and never over ssh. On macOS these are Script Editor's notifications, so they show only where System Settings > Notifications > Script Editor allows them. A notification never comes twice: a terminal that shows them always gets them instead. `TUI_NOTIFICATIONS=0` turns these off too, whatever this says.",
             reading: .once),
         TUIEnvironmentVariable(
             "TUI_PROGRESS", .endUser, .linksAndNotifications,

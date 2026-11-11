@@ -4325,14 +4325,43 @@ Measured on tmux 3.7c with `progress_probe.py --tmux-forwarding` (record
 `data/tmux-3.7c-progress-forwarding.json`): a pane's `OSC 9` reached neither
 client, with the `progressbar` feature or without, and its `BEL` reached both.
 
+### Whether a notification appears — measured 2026-11-10, macOS 15.8.3
+
+Posting is not showing. Measured by sending `OSC 9` from a shell in each host,
+once with its window in front and once with Finder in front, and reading what
+macOS's Notification Center kept (its database under
+`~/Library/Group Containers/group.com.apple.usernoted/db2/`, `presented` per
+record), with each host's notifications allowed in System Settings:
+
+| Route | Its window in front | Another app in front |
+|---|---|---|
+| Ghostty 1.4.0, `OSC 9` | **nothing**: no notification is posted at all | a banner, Ghostty's |
+| iTerm2 3.7.6, `OSC 9` | posted to Notification Center, but **no banner** (`presented` 0) | a banner, iTerm2's ("Alert", "Session *name*: *message*") |
+| `osascript`'s `display notification` | posted as **Script Editor's** (`com.apple.scripteditor2`); a banner only where Script Editor's notifications are allowed | the same |
+
+So on Ghostty and iTerm2 a toast posted with `desktop: .always` reaches the
+desktop only while the terminal is not in front: its window in front, the
+terminal keeps it to itself, as an app in front usually does, and the toast is
+on the screen anyway. `.whenInactive` is the delivery that matches them.
+
+And the system route needs Script Editor allowed: on the owner's Mac, Script
+Editor's notifications were off (System Settings ▸ Notifications ▸ Script
+Editor; its `flags` in `com.apple.ncprefs` lacked bit 25, `1 << 25`, which every
+app with notifications allowed there had), and the ten "Build finished" toasts
+the Example posted from a terminal without `OSC 9` were each kept unshown
+(`presented` 0). TUI reads that setting before it posts through `osascript`,
+and where it is off says so once, as a diagnostic (`SystemNotifier`): the
+setting is macOS's to change, never TUI's. The bit is not documented; TUI
+reads only "off" from it, so a different meaning costs at most a wrong
+diagnostic, never a notification.
+
 ### Owed
 
 - **A look on Ghostty and iTerm2**: whether the bar appears, where, and how
   long one no program updates stays up (`progress_probe.py --hold 20`, and
-  `--timeout 20`); and whether a notification appears
-  (`progress_probe.py --notify`, which a host may first ask the person's
-  permission for). Ghostty's run needs its consent for a new script path,
-  with someone there to give it.
+  `--timeout 20`). Whether a notification appears is measured above
+  (2026-11-10). Ghostty's run needs its consent for a new script path, with
+  someone there to give it.
 - **The leak check on the GUI hosts**: both screens, on Ghostty and iTerm2,
   which TUI sends it to, and on Apple Terminal and Warp, which it sends it
   to only under `TUI_PROGRESS=1`.

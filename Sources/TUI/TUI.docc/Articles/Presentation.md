@@ -585,9 +585,13 @@ it from another window: ``NotificationDesktopDelivery``. `.never`, the default,
 draws only the toast; `.whenInactive` posts it on the desktop too while the
 terminal's window doesn't have the focus, where the toast would go unseen; and
 `.always` posts it whatever has the focus. It goes through the
-terminal where the terminal posts one (Ghostty and iTerm2); elsewhere this
+terminal where the terminal posts one (Ghostty and iTerm2), which shows it
+only while its window isn't in front, so there `.always` reaches the desktop
+no more often than `.whenInactive` does; elsewhere this
 machine posts it itself, with `osascript` on macOS or `notify-send` on Linux,
-but only where the person is at this machine — never over ssh. One or the
+but only where the person is at this machine — never over ssh. On macOS
+those are Script Editor's notifications, shown only where System Settings ▸
+Notifications ▸ Script Editor allows them (<doc:Troubleshooting>). One or the
 other, never both. The person running the app can turn this machine's own
 posting on or off with `TUI_SYSTEM_NOTIFICATIONS`, and every route off with `TUI_NOTIFICATIONS=0` (<doc:EnvironmentVariables>). It is one-way: no buttons, and nothing reports whether it
 was seen.

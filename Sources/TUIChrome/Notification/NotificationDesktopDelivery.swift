@@ -25,7 +25,9 @@ import TUIFoundation
 /// overrides). Where the terminal posts none, this machine posts it itself —
 /// `osascript` on macOS, `notify-send` on a Linux desktop — but only where the
 /// person is at this machine (never over ssh, nor in a tmux attached from
-/// elsewhere; `TUI_SYSTEM_NOTIFICATIONS=0` turns it off). One route or the
+/// elsewhere; `TUI_SYSTEM_NOTIFICATIONS=0` turns it off). On macOS those are
+/// Script Editor's notifications, which macOS shows only where System Settings
+/// ▸ Notifications ▸ Script Editor allows them. One route or the
 /// other, never both, so it arrives once. Unlike `requestAttention`, it never
 /// rings the bell instead: the toast is already on the screen. It is one-way
 /// — nothing reports whether the person saw it, and its buttons are the
@@ -45,6 +47,11 @@ public enum NotificationDesktopDelivery: Hashable, Sendable {
     /// as the terminal reports it, mode 1004), where the toast goes unseen.
     case whenInactive
     /// Posted on the desktop too, whatever has the focus.
+    ///
+    /// Ghostty and iTerm2, which post it themselves, show it only while their
+    /// window is not in front (measured; Ghostty drops it, iTerm2 keeps it in
+    /// Notification Center without a banner), so there it reaches the desktop
+    /// when ``whenInactive`` would.
     case always
 }
 
