@@ -16,7 +16,16 @@ extension RGBAImage {
         guard width > 0, height > 0 else { return self }
         let columns = Swift.min(width, Swift.max(1, Int((Double(width) * fraction.width).rounded(.up))))
         let rows = Swift.min(height, Swift.max(1, Int((Double(height) * fraction.height).rounded(.up))))
-        guard columns < width || rows < height else { return self }
+        return croppedToLeading(columns: columns, rows: rows)
+    }
+
+    /// The image's top-leading `columns` × `rows` pixels, or as many of them
+    /// as it has: what ``croppedToLeading(fraction:)`` cut from another frame
+    /// of the same size.
+    func croppedToLeading(columns: Int, rows: Int) -> RGBAImage {
+        let columns = Swift.min(width, columns)
+        let rows = Swift.min(height, rows)
+        guard columns > 0, rows > 0, columns < width || rows < height else { return self }
         var out: [RGBA] = []
         out.reserveCapacity(columns * rows)
         for row in 0..<rows {

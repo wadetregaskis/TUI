@@ -350,6 +350,33 @@ struct AnimatedImagePlaybackTests {
         #expect(due >= started + milli(100))
     }
 
+    // MARK: - Converting the frames
+
+    @Test("A setting changed while it plays: the old frames go on playing until the new ones are all converted")
+    func settingChangeKeepsPlaying() async throws {
+        // `picture` says which setting: true colour, then mono.
+        let mode = Showing()
+        mode.path = try threeFrames().write()
+        let app = HeadlessApp(
+            PageApp { picture(mode.path).imageColorMode(mode.picture ? .trueColor : .mono) }, width: 20, height: 10)
+        try await untilPlaying(app, at: 0)
+        // A loop at the first setting, so every frame has been drawn at it.
+        var now: Int64 = 0
+        var looks: [[String]] = [app.screen]
+        while let next = app.nextWake(after: now), next < milli(400) {
+            now = next
+            app.frame(atNanos: now)
+            looks.append(app.screen)
+        }
+        #expect(looks.count == 3)
+        mode.picture = false
+        app.frame(atNanos: now)
+        #expect(app.screen == looks[2], "drawn as it was, not converted here")
+        await finishStartedTasks(of: app.lifecycle)
+        app.frame(atNanos: now)
+        #expect(app.screen != looks[2], "all converted: the new setting")
+    }
+
     // MARK: - In the terminal's own pixels
 
     /// A whole loop in the terminal: the bytes each of two rounds cost.

@@ -426,8 +426,8 @@ struct _ImageCore: View, Renderable, Layoutable {
                 resizing: resizing,
                 canvas: laidOut,
                 playing: playing,
-                stateStorage: context.stateStorage!,
-                identity: context.identity
+                token: token,
+                context: context
             )
         }
         // A picture drawn in the foreground style — a template's pixels, a
@@ -677,9 +677,11 @@ extension _ImageCore {
         resizing: _ImageResizing?,
         canvas: (width: Int, height: Int)?,
         playing: PlayingFrame?,
-        stateStorage: StateStorage,
-        identity: ViewIdentity
+        token: String,
+        context: RenderContext
     ) -> FrameBuffer {
+        let stateStorage = context.stateStorage!
+        let identity = context.identity
         let targetSize = Self.cellBox(
             imageWidth: canvas?.width ?? rawImage.width,
             imageHeight: canvas?.height ?? rawImage.height,
@@ -705,59 +707,8 @@ extension _ImageCore {
         let colorDepth = ColorDepth.current
         let cacheKey = StateStorage.StateKey(identity: identity, propertyIndex: StateIndex.renderCache)
         let cacheBox: StateBox<ImageRenderCache?> = stateStorage.storage(for: cacheKey, default: nil)
-        // A playing picture's conversions are kept per frame, and a frame's is
-        // no write to the view's state, which would ask for a frame.
-        let held = playing.map { $0.playback.conversion(ofFrame: $0.index) } ?? cacheBox.value
-        if let cache = held, cache.matches(
-            source: source,
-            decodedPixels: decodedPixels,
-            rawImageWidth: rawImage.width,
-            rawImageHeight: rawImage.height,
-            width: targetSize.width,
-            height: targetSize.height,
-            characterSet: characterSet,
-            shapeAware: shapeAware,
-            colorMode: colorMode,
-            dithering: dithering,
-            toneCurve: toneCurve,
-            supersampling: supersampling,
-            edgeThreshold: edgeThreshold,
-            edgeContrast: edgeContrast,
-            inkThreshold: inkThreshold,
-            adjustments: adjustments,
-            posterizationLevels: posterizationLevels,
-            contentMode: contentMode,
-            aspectRatioOverride: aspectRatioOverride,
-            cellAspect: cellAspect,
-            terminalColors: terminalColors,
-            colorDepth: colorDepth,
-            templateInk: templateInk,
-            resizing: resizing
-        ) {
-            return Self.buffer(for: cache.art, monoColours: monoColours)
-        }
-
-        let converter = ASCIIConverter(
-            characterSet: characterSet,
-            shapeAware: shapeAware,
-            colorMode: colorMode,
-            dithering: dithering,
-            supersampling: supersampling,
-            edgeThreshold: edgeThreshold,
-            toneCurve: toneCurve,
-            edgeContrast: edgeContrast,
-            inkThreshold: inkThreshold,
-            adjustments: adjustments,
-            posterizationLevels: posterizationLevels
-        )
-        var pixels = templateInk.map { rawImage.templated(in: $0) } ?? rawImage
-        if let resizing, resizing.slices {
-            pixels = pixels.sliced(
-                resizing, columns: targetSize.width, rows: targetSize.height, cellAspect: cellAspect)
-        }
-        let art = converter.convert(pixels, width: targetSize.width, height: targetSize.height)
-
-        let conversion = ImageRenderCache(
+        // Every input to the conversion, for the lookup and for the entry stored.
+        let settings = ImageRenderCache(
             source: source,
             decodedPixels: decodedPixels,
             rawImageWidth: rawImage.width,
@@ -782,8 +733,47 @@ extension _ImageCore {
             colorDepth: colorDepth,
             templateInk: templateInk,
             resizing: resizing,
-            art: art
+            art: ASCIIArt(lines: [])
         )
+        // A playing picture's conversions are kept per frame, and a frame's is
+        // no write to the view's state, which would ask for a frame.
+        let held = playing.map { $0.playback.conversion(ofFrame: $0.index) } ?? cacheBox.value
+        // The pixels first: the comparison that usually decides it (a playing
+        // picture's next frame) is the cheapest.
+        if let cache = held, cache.decodedPixels == decodedPixels, cache.hasSameSettings(as: settings) {
+            return Self.buffer(for: cache.art, monoColours: monoColours)
+        }
+
+        let converter = ASCIIConverter(
+            characterSet: characterSet,
+            shapeAware: shapeAware,
+            colorMode: colorMode,
+            dithering: dithering,
+            supersampling: supersampling,
+            edgeThreshold: edgeThreshold,
+            toneCurve: toneCurve,
+            edgeContrast: edgeContrast,
+            inkThreshold: inkThreshold,
+            adjustments: adjustments,
+            posterizationLevels: posterizationLevels
+        )
+        // A playing picture's frames are converted ahead, off the main actor;
+        // until they are, what to draw instead of converting this one here.
+        if let playing,
+            let meanwhile = framesConvertingAhead(
+                playing, settings: settings, frame: rawImage, converter: converter, token: token, context: context)
+        {
+            return Self.buffer(
+                for: meanwhile.art, monoColours: ImageMonoColours(for: meanwhile.colorMode, in: context.environment))
+        }
+
+        var pixels = templateInk.map { rawImage.templated(in: $0) } ?? rawImage
+        if let resizing, resizing.slices {
+            pixels = pixels.sliced(
+                resizing, columns: targetSize.width, rows: targetSize.height, cellAspect: cellAspect)
+        }
+        let art = converter.convert(pixels, width: targetSize.width, height: targetSize.height)
+        let conversion = settings.converted(decodedPixels, to: art)
         if let playing {
             playing.playback.keep(conversion, ofFrame: playing.index)
         } else {

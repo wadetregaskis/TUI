@@ -84,51 +84,22 @@ struct ImageRenderCache: Equatable {
     var resizing: _ImageResizing?
     var art: ASCIIArt
 
-    /// Returns whether `self` was built from the same inputs as the
-    /// pending render. Compares everything except the cached `art`.
-    func matches(  // swiftlint:disable:this function_parameter_count
-        source: ImageSource,
-        decodedPixels: DecodedPixels,
-        rawImageWidth: Int, rawImageHeight: Int,
-        width: Int, height: Int,
-        characterSet: ASCIICharacterSet, shapeAware: Bool, colorMode: ASCIIColorMode,
-        dithering: DitheringMode, toneCurve: ASCIIToneCurve?,
-        supersampling: Int?, edgeThreshold: Double?, edgeContrast: Double, inkThreshold: Double?,
-        adjustments: ImageAdjustments, posterizationLevels: Int?, contentMode: ContentMode,
-        aspectRatioOverride: Double?,
-        cellAspect: Double,
-        terminalColors: TerminalColors,
-        colorDepth: ColorDepth,
-        templateInk: RGBA?,
-        resizing: _ImageResizing?
-    ) -> Bool {
-        guard self.rawImageWidth == rawImageWidth,
-            self.rawImageHeight == rawImageHeight,
-            self.width == width,
-            self.height == height,
-            self.characterSet == characterSet,
-            self.shapeAware == shapeAware,
-            self.colorMode == colorMode,
-            self.dithering == dithering,
-            self.toneCurve == toneCurve,
-            self.supersampling == supersampling,
-            self.edgeThreshold == edgeThreshold,
-            self.edgeContrast == edgeContrast,
-            self.inkThreshold == inkThreshold,
-            self.adjustments == adjustments,
-            self.posterizationLevels == posterizationLevels,
-            self.contentMode == contentMode,
-            self.aspectRatioOverride == aspectRatioOverride,
-            self.cellAspect == cellAspect,
-            self.terminalColors == terminalColors,
-            self.colorDepth == colorDepth,
-            self.templateInk == templateInk,
-            self.resizing == resizing,
-            self.decodedPixels == decodedPixels
-        else { return false }
-        // Last: the scalar comparisons above reject the frequent miss — a
-        // resize — before this one runs. It is the field that decides
-        // correctness, not the one that usually decides the answer.
-        return self.source == source
+    /// Whether `other` was converted with every input this was but the pixels
+    /// and what came of them: another frame of one animation, at the same
+    /// settings, in the same box.
+    func hasSameSettings(as other: Self) -> Bool {
+        var other = other
+        other.decodedPixels = decodedPixels
+        other.art = art
+        return other == self
+    }
+
+    /// This conversion's settings, for the frame whose pixels `decodedPixels`
+    /// are, converted to `art`.
+    func converted(_ decodedPixels: DecodedPixels, to art: ASCIIArt) -> Self {
+        var conversion = self
+        conversion.decodedPixels = decodedPixels
+        conversion.art = art
+        return conversion
     }
 }

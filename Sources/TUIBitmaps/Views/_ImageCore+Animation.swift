@@ -69,6 +69,10 @@ final class ImageAnimationPlayback {
     /// Each frame's conversion, under ``artByteBudget``.
     private var art: [Int: ImageRenderCache] = [:]
     private var artBytes = 0
+    /// The settings the frames are being converted at off the main actor, or
+    /// were (`_ImageCore+FrameConversions.swift`), with the pixels of whichever
+    /// frame started it.
+    var convertingFor: ImageRenderCache?
     /// How many frames have a store token of their own.
     private var placedFrames = 0
     /// Whether the terminal is not to play these frames by itself: something
@@ -82,10 +86,15 @@ final class ImageAnimationPlayback {
 
     static func frameToken(_ token: String, _ index: Int) -> String { "\(token)-frame-\(index)" }
 
+    /// The token the frames' conversions are made under, beside the view's own.
+    static func conversionToken(_ token: String) -> String { token + "-conversions" }
+
     /// Lets go of everything, for a picture that will start again from its first
     /// frame if it comes back: the view's disappear handler, or a new source.
     func stop(token: String, lifecycle: LifecycleManager, store: TerminalImageStore?) {
         lifecycle.cancelTask(token: Self.decodeToken(token))
+        lifecycle.cancelTask(token: Self.conversionToken(token))
+        convertingFor = nil
         for index in 0..<placedFrames { store?.release(token: Self.frameToken(token, index)) }
         placedFrames = 0
         keepsFramesHere = false
@@ -119,11 +128,18 @@ final class ImageAnimationPlayback {
     /// The conversion kept of frame `index`.
     func conversion(ofFrame index: Int) -> ImageRenderCache? { art[index] }
 
-    /// Keeps `conversion` of frame `index`, within the budget.
+    /// Keeps `conversion` of frame `index`, within the budget. Past it, the
+    /// frame keeps none: not the one it had, at settings no longer drawn,
+    /// which would be drawn in its place while its frames convert
+    /// (``_ImageCore/framesConvertingAhead(_:settings:frame:converter:token:context:)``)
+    /// and, once they have, for ever.
     func keep(_ conversion: ImageRenderCache, ofFrame index: Int) {
         let bytes = conversion.art.lines.reduce(0) { $0 + $1.utf8.count }
         let replaced = art[index].map { $0.art.lines.reduce(0) { $0 + $1.utf8.count } } ?? 0
-        guard artBytes - replaced + bytes <= Self.artByteBudget else { return }
+        guard artBytes - replaced + bytes <= Self.artByteBudget else {
+            if art.removeValue(forKey: index) != nil { artBytes -= replaced }
+            return
+        }
         art[index] = conversion
         artBytes += bytes - replaced
     }
