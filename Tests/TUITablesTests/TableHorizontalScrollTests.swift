@@ -59,6 +59,18 @@ private struct WideFirstColumn: View {
     }
 }
 
+/// The six columns under a button that holds the focus, so the table rests
+/// unfocused and its indicators, under `.overContent` (the default), are
+/// drawn over its rows for the pointer alone.
+private struct UnderAButton: View {
+    var body: some View {
+        VStack(spacing: 0) {
+            Button("top") {}
+            SixColumns()
+        }
+    }
+}
+
 @MainActor
 private final class Harness {
     let app: TestApp
@@ -255,6 +267,22 @@ struct TableHorizontalScrollTests {
         harness.send(MouseEvent(button: .left, phase: .pressed, x: x, y: barY))
         harness.send(MouseEvent(button: .left, phase: .released, x: x, y: barY))
         #expect(harness.header(showing: "Alpha") == nil, "\(harness.screen)")
+    }
+
+    @Test("Under .overContent, the horizontal scrollbar is drawn over the rows for the pointer, and works there")
+    func overlaidBarForThePointer() throws {
+        let harness = Harness(UnderAButton(), width: 20)
+        try #require(harness.header(showing: "Alpha") != nil, "\(harness.screen)")
+        #expect(!harness.screen.contains("◀"), "no bar with the pointer elsewhere: \(harness.screen)")
+        let y = try #require(harness.lines.firstIndex { $0.contains("a1") }, "\(harness.screen)")
+        harness.send(MouseEvent(button: .none, phase: .moved, x: 5, y: y))
+        let bar = try #require(harness.barLine, "\(harness.screen)")
+        #expect(bar.contains("◀") && bar.contains("▶"), "a bar over the rows' last line: \(harness.screen)")
+        #expect(harness.lines.contains { $0.contains("a3") }, "the rows keep their lines: \(harness.screen)")
+        let barY = try #require(harness.lines.firstIndex { $0 == bar }, "\(harness.screen)")
+        harness.send(MouseEvent(button: .left, phase: .pressed, x: 20 - 3, y: barY))
+        harness.send(MouseEvent(button: .left, phase: .released, x: 20 - 3, y: barY))
+        #expect(harness.header(showing: "Alpha") == nil, "its track pages the columns: \(harness.screen)")
     }
 
     @Test("A table that scrolls sideways measures as it draws")

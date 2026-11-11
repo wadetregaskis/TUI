@@ -2046,9 +2046,16 @@ extension ItemListHandler: ScrollIndicatorPointerTracking {
     ///   - contentHeight: The content area's height, in lines: the "N more"
     ///     lines need ``ResolvedScrollIndicators/minimumTextHeight`` of them.
     ///   - environment: The control's environment.
-    package func resolveOverlaidIndicators(overflowing: Bool, contentHeight: Int, environment: EnvironmentValues) {
+    ///   - horizontalOverflow: Whether the columns overflow sideways, for a
+    ///     `Table` that scrolls that way; `nil` for one that does not. Its
+    ///     horizontal bar is drawn over the rows for the pointer too, so the
+    ///     pointer is watched for it.
+    package func resolveOverlaidIndicators(
+        overflowing: Bool, contentHeight: Int, environment: EnvironmentValues, horizontalOverflow: Bool? = nil
+    ) {
         let overlaid = environment.overlaidVerticalScrollIndicators(overflowing: overflowing, hovered: isPointerOver)
-        showsIndicatorsForPointer = environment.showsScrollIndicatorsForPointer(verticalOverflow: overflowing)
+        showsIndicatorsForPointer = environment.showsScrollIndicatorsForPointer(
+            verticalOverflow: overflowing, horizontalOverflow: horizontalOverflow)
         overlaysScrollbar = overlaid.bar
         overlaysTextIndicators = overlaid.text && contentHeight >= ResolvedScrollIndicators.minimumTextHeight
     }

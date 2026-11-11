@@ -1517,12 +1517,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         //
         // An unframed table in a `VStack` reaches none of this and still hugs,
         // which is what it wants.
-        var (filledContentLines, filledContentWidths) = Self.filled(
+        let (filledLines, filledWidths) = Self.filled(
             contentLines, toRows: context.hasExplicitHeight ? rowArea : nil,
             knownWidth: renderState?.uniformLineWidth)
-        appendHorizontalScrollbarLine(
-            to: &filledContentLines, widths: &filledContentWidths, claims: &contentClaims, gutter: gutter,
-            verticalBarAt: wantsScrollbar ? contentInnerWidth : nil, handler: renderState?.handler, context: context)
+        var rows = _TableDrawnRows(lines: filledLines, runs: contentRuns, claims: contentClaims, payload: contentPayload)
+        var rowWidths = filledWidths
+        let horizontalBarLength = drawHorizontalScrollbar(
+            on: &rows, widths: &rowWidths, gutter: gutter, besideBarAt: wantsScrollbar ? contentInnerWidth : nil,
+            state: renderState, context: context)
 
         let container = ContainerView(
             title: nil,
@@ -1540,9 +1542,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     claims: header.claims,
                     trailingCells: trailingPadding(context.environment, showsBar: wantsScrollbar))
                 _TableContentView(
-                    lines: filledContentLines, lineWidths: filledContentWidths, runs: contentRuns,
-                    claims: contentClaims, payload: contentPayload,
-                    trailingCells: trailingPadding(context.environment, showsBar: wantsScrollbar))
+                    lines: rows.lines, lineWidths: rowWidths, runs: rows.runs, claims: rows.claims,
+                    payload: rows.payload, trailingCells: trailingPadding(context.environment, showsBar: wantsScrollbar))
             }
         }
         var buffer = render(container, on: surface, context: context)
@@ -1564,7 +1565,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             if !isDisabled(in: context) { buffer.observePointerForOverlaidIndicators(of: state.handler, context: context) }
             presentRowMenu(over: &buffer, state: state, context: context)
             presentColumnMenu(over: &buffer, state: state, context: context)
-            attachHorizontalScrollbarHandler(to: &buffer, gutter: gutter, state: state, context: context)
+            attachHorizontalScrollbarHandler(
+                to: &buffer, length: horizontalBarLength, gutter: gutter, state: state, context: context)
         }
         return buffer
     }
@@ -2522,7 +2524,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // As on the single-line path: drawn over the rows for the pointer, the
         // indicators reserve nothing, and only the drawing learns of them.
         handler.resolveOverlaidIndicators(
-            overflowing: furthest > 0, contentHeight: contentHeight, environment: context.environment)
+            overflowing: furthest > 0, contentHeight: contentHeight, environment: context.environment,
+            horizontalOverflow: horizontalWindow.map { _ in true })
         return furthest
     }
 
@@ -3179,7 +3182,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Drawn over the rows for the pointer, the indicators reserve nothing
         // above: only the drawing learns of them.
         handler.resolveOverlaidIndicators(
-            overflowing: overflowing, contentHeight: contentHeight, environment: context.environment)
+            overflowing: overflowing, contentHeight: contentHeight, environment: context.environment,
+            horizontalOverflow: horizontalWindow.map { _ in true })
         return (handler, overflowing)
     }
 
@@ -5355,20 +5359,61 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         ).bar
     }
 
-    /// The horizontal scrollbar, on the line the window kept for it under the
-    /// rows, appended to the content's `lines` with its width and claims —
-    /// where the table scrolls sideways and the bar is shown.
-    private func appendHorizontalScrollbarLine(
-        to lines: inout [String], widths: inout [Int], claims: inout [OpacityRegion], gutter: Int,
-        verticalBarAt barColumn: Int?, handler: ItemListHandler<Value.ID>?, context: RenderContext
-    ) {
-        guard let window = horizontalWindow, window.barLines > 0 else { return }
+    /// Where this frame draws the horizontal scrollbar, and its track's
+    /// length: on the line the window kept for it under the rows — or over
+    /// their last line, under `.overContent` with the pointer over the table
+    /// and the focus elsewhere, as the vertical bar is drawn over their last
+    /// column then, and as a `ScrollView` draws its own; `nil` where the
+    /// columns fit, or no bar is drawn. Over the rows the track stops short
+    /// of the vertical bar drawn over them, where there is one; there must
+    /// be a line besides the one it covers, as in a `ScrollView`.
+    private func horizontalBarPlacement(
+        lineCount: Int, gutter: Int, handler: ItemListHandler<Value.ID>?, overlaidBarColumn: Int?,
+        context: RenderContext
+    ) -> (overRows: Bool, length: Int)? {
+        guard let window = horizontalWindow else { return nil }
+        if window.barLines > 0 { return (false, window.viewport) }
+        guard lineCount > 1, let handler,
+            context.environment.overlaidHorizontalScrollbar(overflowing: true, hovered: handler.isPointerOver)
+        else { return nil }
+        let length = min(window.viewport, (overlaidBarColumn ?? Int.max) - gutter)
+        return length > 0 ? (true, length) : nil
+    }
+
+    /// The horizontal scrollbar drawn where ``horizontalBarPlacement(lineCount:gutter:handler:overlaidBarColumn:context:)``
+    /// says: appended to the rows' lines, on the line the window kept for it,
+    /// or over their last line — what was drawn there going, its runs, claims
+    /// and cells' regions with it, so a press there reaches the bar. It meets
+    /// the vertical bar beside the rows (`besideBar`), or the one drawn over
+    /// them, at a corner. Returns the bar's track length, `nil` where none is
+    /// drawn.
+    private func drawHorizontalScrollbar(
+        on rows: inout _TableDrawnRows, widths: inout [Int], gutter: Int, besideBarAt besideBar: Int?,
+        state: PopulatedRenderState?, context: RenderContext
+    ) -> Int? {
+        guard let window = horizontalWindow,
+            let placement = horizontalBarPlacement(
+                lineCount: rows.lines.count, gutter: gutter, handler: state?.handler,
+                overlaidBarColumn: state?.overlaidScrollbarColumn, context: context)
+        else { return nil }
         let bar = horizontalScrollbarLine(
-            window, gutter: gutter, verticalBarAt: barColumn, width: widths.max() ?? 0,
-            flash: handler?.indicatorFlash.strength(context: context), context: context)
-        claims += bar.claims.map { $0.shifted(byX: 0, y: lines.count) }
-        lines.append(bar.text)
+            window, length: placement.length, gutter: gutter,
+            verticalBarAt: besideBar ?? state?.overlaidScrollbarColumn, width: widths.max() ?? 0,
+            flash: state?.handler.indicatorFlash.strength(context: context), context: context)
+        if placement.overRows {
+            let last = rows.lines.count - 1
+            rows.runs.removeAll { $0.offsetY == last }
+            rows.claims = rows.claims.compactMap {
+                $0.clipped(toColumns: $0.offsetX..<($0.offsetX + $0.width), rows: 0..<last)
+            }
+            rows.payload = rows.payload.clipped(toRows: 0..<last)
+            rows.lines.removeLast()
+            widths.removeLast()
+        }
+        rows.claims += bar.claims.map { $0.shifted(byX: 0, y: rows.lines.count) }
+        rows.lines.append(bar.text)
         widths.append(bar.width)
+        return placement.length
     }
 
     /// The horizontal scrollbar's line, as a row line: blank across the
@@ -5376,8 +5421,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// scrollbar's column — a corner of its track there, when there is one,
     /// as a `ScrollView` draws where its two bars meet — and on to `width`.
     private func horizontalScrollbarLine(
-        _ window: TableHorizontalWindow, gutter: Int, verticalBarAt barColumn: Int?, width: Int, flash: Double?,
-        context: RenderContext
+        _ window: TableHorizontalWindow, length: Int, gutter: Int, verticalBarAt barColumn: Int?, width: Int,
+        flash: Double?, context: RenderContext
     ) -> (text: String, claims: [OpacityRegion], width: Int) {
         let environment = context.environment
         let palette = environment.palette
@@ -5385,7 +5430,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         row.skip(cells: gutter)
         row.append(
             contentsOf: ScrollbarRenderer.horizontalScrollbar(
-                width: window.viewport, extent: window.extent, viewport: window.viewport, offset: window.offset,
+                width: length, extent: window.extent, viewport: window.viewport, offset: window.offset,
                 arrows: environment.scrollbarArrows, proportional: environment.scrollbarProportionalThumb,
                 colors: .resting(in: palette, flash: flash)))
         if let barColumn, barColumn > row.cells {
@@ -5403,25 +5448,26 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// Operating it focuses the table, as the vertical bar's does.
     @MainActor
     private func attachHorizontalScrollbarHandler(
-        to buffer: inout FrameBuffer, gutter: Int, state: PopulatedRenderState, context: RenderContext
+        to buffer: inout FrameBuffer, length: Int?, gutter: Int, state: PopulatedRenderState, context: RenderContext
     ) {
-        guard let window = horizontalWindow, window.barLines > 0, !context.isMeasuring, !isDisabled(in: context),
+        guard let length, !context.isMeasuring, !isDisabled(in: context),
             let axis = state.handler.horizontalScroll?.axis,
             let dispatcher = context.environment.mouseEventDispatcher
         else { return }
         let environment = context.environment
         let barHandler = ScrollbarRenderer.horizontalMouseHandler(
-            for: axis, length: window.viewport, arrows: environment.scrollbarArrows,
+            for: axis, length: length, arrows: environment.scrollbarArrows,
             proportional: environment.scrollbarProportionalThumb, behavior: environment.scrollbarClickBehavior)
         let handlerID = dispatcher.register(
             in: context, reportingChangesTo: { DrawnScrollPosition(axis) },
             ScrollbarRenderer.focusing(barHandler, focusID: state.focusID, focusManager: environment.focusManager))
-        // The bar's line is the rows' last, above the bottom border.
+        // The bar's line is the rows' last, above the bottom border, whether
+        // it was kept for the bar or the bar is drawn over it.
         let border = borderWidth(environment)
         buffer.hitTestRegions.append(
             HitTestRegion(
                 offsetX: border + Self.containerPadding.leading + gutter, offsetY: buffer.height - 1 - border,
-                width: window.viewport, height: 1, handlerID: handlerID))
+                width: length, height: 1, handlerID: handlerID))
         ScrollbarRenderer.driveAutoRepeat(
             state: axis, token: "table-hscrollbar-repeat-\(context.identity.path)", context: context)
     }

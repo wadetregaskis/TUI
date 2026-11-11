@@ -276,7 +276,9 @@ column at a time: the first column on screen always starts at its first cell,
 and the one the table's width runs out in is cut short, ending in `…`. The
 header scrolls with its columns, and a horizontal scrollbar under the rows
 shows where you are (`.scrollIndicators(.hidden, axes: .horizontal)` hides
-it; the table still scrolls).
+it; the table still scrolls). Placed `.overContent`, the default, it is drawn
+as the vertical bar is: on a line of its own while the focus is in the table,
+and otherwise over the rows' last line while the pointer is over it.
 
 | Input | Scrolls |
 |-------|---------|

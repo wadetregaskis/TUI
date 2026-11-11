@@ -291,7 +291,7 @@ extension EnvironmentValues {
 
     /// Whether a horizontal bar is drawn over the content's last row of a view
     /// the pointer is over (``ScrollIndicatorPlacement/overContent``).
-    func overlaidHorizontalScrollbar(overflowing: Bool, hovered: Bool) -> Bool {
+    package func overlaidHorizontalScrollbar(overflowing: Bool, hovered: Bool) -> Bool {
         scrollIndicatorsOverlayContent && hovered && horizontalScrollIndicatorVisibility.showsIndicator(overflowing: overflowing)
     }
 }

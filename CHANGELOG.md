@@ -19,7 +19,8 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 `…`, six of them in a narrow table showing only ellipses, and a column with a `.width(min:)` wider than the table hid
 the rest with no sign they were there. Now, once the columns' minimum widths exceed the table's width (a column that
 states none is never narrower than its header), the table scrolls a whole column at a time, the header with it, and
-a horizontal scrollbar under the rows shows where you are. → and ← move it where the rows have no use for them, ⇧→
+a horizontal scrollbar under the rows shows where you are (placed `.overContent`, over the rows' last line for the
+pointer while the table does not hold the focus). → and ← move it where the rows have no use for them, ⇧→
 and ⇧← in any table, as do the sideways wheel, Shift with the wheel and the scrollbar; a column picked with ⌃K or
 sorted by with ⌃S scrolls into sight. A table whose columns fit is unchanged.
 
