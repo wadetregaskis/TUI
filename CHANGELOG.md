@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A toast's emoji wait for its fade-in to finish.** An emoji is drawn in colours of its own, which no fade reaches, so
+a toast's glyph appeared at full strength at once and its text and border faded in round it. Now every emoji in a
+toast, its style's glyph and any in its message or views, is drawn only while the toast is fully opaque, and goes as
+soon as it starts to fade out. Its cells stay blank meanwhile, so nothing moves.
+
 **A toast's buttons sit at its trailing edge.** Its message still reads from the leading one.
 
 **Under `TUI_PLAIN_TEXT`, controls show their state in ASCII.** Where the terminal is sent plain text, toggles draw

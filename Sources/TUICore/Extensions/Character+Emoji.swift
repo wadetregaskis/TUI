@@ -28,4 +28,13 @@ extension Character {
             || (first.properties.isEmojiModifierBase
                 && scalars.dropFirst().contains { (0x1F3FB...0x1F3FF).contains($0.value) })
     }
+
+    /// Whether a terminal draws this character in colours of its own, which no
+    /// foreground colour reaches, so no fade does: an emoji
+    /// (``isEmojiPresented``), or a bare pictograph from the supplementary
+    /// planes (`🖥` without its selector), which terminals paint from a colour
+    /// emoji font for want of a text glyph (`isBarePictographUnderAdvancer`).
+    package var drawsInItsOwnColours: Bool {
+        isEmojiPresented || isBarePictographUnderAdvancer
+    }
 }

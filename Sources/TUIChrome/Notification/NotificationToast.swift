@@ -19,7 +19,8 @@ import TUIFoundation
 /// legibility weight — its buttons are `Button`s, and the glyph, the border
 /// and the fade are the modifiers every view has.
 ///
-/// Its buttons sit at its trailing edge.
+/// Its buttons sit at its trailing edge. Its emoji — its style's glyph, and any
+/// in the message or the views — are drawn only while it is fully opaque.
 ///
 /// The fade is always applied, at 1 for the visible stretch, so the toast's
 /// structure — and the identities of everything in it, its buttons' focus
@@ -75,6 +76,12 @@ struct NotificationToast: View {
         }
         .frame(width: max(1, width - Self.chromeWidth), alignment: .leading)
         .border(entry.style.colour)
+        // An emoji is drawn in colours of its own, which no fade reaches, so
+        // it would stand at full strength while the rest fades in round it.
+        // It waits for the fade-in to finish and goes as the fade-out starts,
+        // its cells blank meanwhile (the owner's ruling NOTIF-EMOJI (a),
+        // 2026-11-10). Applied at 1 too, so the structure never changes.
+        .hidingEmoji(opacity < 1)
         .opacity(opacity)
     }
 
