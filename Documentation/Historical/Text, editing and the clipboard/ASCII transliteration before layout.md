@@ -163,6 +163,9 @@ deliberate ASCII form. What was built, so each has one:
     space, where a `.braille` track was dots end to end. The rest is left to the folding. Found by a bug hunt that
     drove each control under `transliterate`; the tracks had been read on the Example's pages with the table in
     mind, where the brackets look deliberate.
+  - a tiny circular gauge's dial (`GaugePieDial.asciiGlyphs`, 2026-11-11): `. : + * #` for `○ ◔ ◑ ◕ ●`, more ink
+    for more of the dial, as the `.shade` spinner's frames run. Folded, the quarters were blank, and empty and full
+    were both `o`.
 - **No emoji chrome** where text is spelled in ASCII: `spellTextInASCII()` and `spellKeysInASCII()` turn
   `supportsEmojiChrome` off, so a control that draws an emoji only where the terminal shows them legibly draws what it
   draws elsewhere. The search field's magnifier was `:right_pointing_magnifying_glass:`; it is now no icon, as on a

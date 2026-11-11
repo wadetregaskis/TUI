@@ -99,6 +99,17 @@ struct TransliteratedGlyphTests {
         #expect(line.first != line.last, "the fill reads as the rest of the track: \(line)")
     }
 
+    /// Folded at output, the dial's quarters `◔ ◑ ◕` have no shape and were
+    /// blank, and `○` and `●` are both `o`: empty and full read alike.
+    @Test("A tiny circular gauge draws a different ASCII mark at each quarter, none blank")
+    func tinyDial() {
+        let marks = [0.0, 0.25, 0.5, 0.75, 1.0].map { value in
+            let dial = drawn(Gauge(value: value) { EmptyView() }.gaugeStyle(.accessoryCircularTiny), width: 4, height: 1)
+            return PlainTerminalText.folding(dial.joined()).trimmingCharacters(in: .whitespaces)
+        }
+        #expect(Set(marks).count == 5 && !marks.contains(""), "\(marks)")
+    }
+
     @Test("A spinner draws its ASCII frame, and a bouncing one its track in dots")
     func spinnerDrawn() {
         let moon = drawn(Spinner(style: .moon)).joined()

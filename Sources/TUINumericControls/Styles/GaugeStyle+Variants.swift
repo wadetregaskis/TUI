@@ -136,7 +136,8 @@ public struct AccessoryCircularCapacityGaugeStyle: GaugeStyle, Equatable {
 
 /// A gauge style that draws a single compact pie glyph (`○◔◑◕●`) beside the
 /// value — for when a gauge must fit a tight space and exact resolution isn't
-/// important.
+/// important. Where text is spelled in ASCII (`TUI_PLAIN_TEXT`) the five are
+/// `. : + * #`, more ink for more of the dial.
 ///
 /// TUI-specific: SwiftUI has no counterpart, because the constraint it answers is
 /// a terminal's. The ring dial is three rows tall, and a gauge inside a list row

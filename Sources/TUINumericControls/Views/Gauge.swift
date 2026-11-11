@@ -466,7 +466,8 @@ private struct _GaugeCore<Label: View, CurrentValueLabel: View, BoundsLabel: Vie
         var row = ClaimingRow()
         // A gradient tint: the ramp's colour at the value.
         let ink = TrackFill(environment: context.environment, palette: palette).ramp?.color(at: fraction) ?? palette.accent
-        row.append(String(GaugePieDial.glyph(for: fraction)), cells: 1, ink: ink)
+        row.append(
+            String(GaugePieDial.glyph(for: fraction, ascii: context.textSpelling.isASCII)), cells: 1, ink: ink)
         let valueText = inlineText(currentValueLabel, slot: .currentValue, context: context)
         if valueText.strippedLength > 0 {
             row.skip(cells: 1)
@@ -655,9 +656,15 @@ private enum GaugePieDial {
     /// 0 % / 25 % / 50 % / 75 % / 100 %.
     static let glyphs: [Character] = ["○", "◔", "◑", "◕", "●"]
 
-    static func glyph(for fraction: Double) -> Character {
+    /// The same five where text is spelled in ASCII (`TUI_PLAIN_TEXT`): more ink
+    /// for more of the dial, as the `.shade` spinner's ASCII frames run. Folded
+    /// at output the quarters have no shape and were blank, and `○` and `●` are
+    /// both `o`, so an empty dial and a full one read alike.
+    static let asciiGlyphs: [Character] = [".", ":", "+", "*", "#"]
+
+    static func glyph(for fraction: Double, ascii: Bool = false) -> Character {
         let index = min(glyphs.count - 1, max(0, Int((fraction * 4).rounded())))
-        return glyphs[index]
+        return (ascii ? asciiGlyphs : glyphs)[index]
     }
 }
 

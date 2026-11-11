@@ -15,6 +15,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Under `TUI_PLAIN_TEXT`, a tiny circular gauge shows how full it is.** `.accessoryCircularTiny`'s dial was blank at a
+quarter, a half and three quarters, and `o` both empty and full. It is now `.` `:` `+` `*` `#` from empty to full.
+
 **Under `TUI_PLAIN_TEXT`, a progress bar's, a slider's and a gauge's track reads as a track.** Sent as plain text, a
 `.bar` track read `]]]]]]--------`, a `.dot` track had no fill, a `.braille` track was dots from end to end, and the
 two rails of a slider's `.knob` were the same. Each now draws its own ASCII: `########--------`, `=======o--------`,
