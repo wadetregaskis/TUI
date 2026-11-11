@@ -4996,6 +4996,38 @@ cell by itself; Ghostty goes on while it has a placement, so TUI's stop is what 
 **`v`, stated plainly.** `v=1` is for ever and `v=n` is `n - 1` passes (both sources),
 counting the pass it is in, and any `s` resets the count. TUI sends passes left + 1.
 
+### Ghostty stops reading an app's output after playing an animation itself — measured 2026-11-11, Ghostty 1.4.0
+
+The owner (2026-11-10): with `TUI_GRAPHICS_PLAYBACK=1`, the Example "sometimes hangs for quite a long
+time when switching away from the animated ball image", and seems much faster with `0`.
+
+Measured on the Example (debug, `TUI_EXAMPLE_PICTURE='Bouncing Ball'`) in real Ghostty windows, through
+a pass-through PTY relay that timestamps every chunk each way and logs any write the terminal took more
+than 50 ms to accept, with `TUI_FRAME_TRACE`. A script cycled the Images page: open it, `p` to the next
+picture, `P` back to the ball, Escape, four seconds apart, four rounds.
+
+| | Longest single write Ghostty took to accept |
+|---|---|
+| Playback on, session 1 | **8.5 s**, then 27, 11.8, 8.4, 14.8 and 41 s over the next three minutes, the last two with no picture on screen at all |
+| Playback on, session 2 (window behind another, the ball played 190 s, then Escape) | **21 s** before the first byte of the next frame, then the 14 KB frame dribbled in over 52 s |
+| Playback on, four other sessions (front or behind, 6-12 leaves each) | every frame accepted within 0.30 s of its key |
+| Playback off, the same cycle | 0.36 s (machine at load 48) |
+
+TUI never waits in that time: the frame after the key was drawn in 100-400 ms, its bytes handed to the
+PTY, and the write then sat in the terminal's input. `sample` of the Ghostty process during a stall:
+its `io-reader` thread in `__ulock_wait2` for all 607 samples, every other thread idle (`renderer` and
+`io` in `kevent64`, the main thread in its run loop), and a dozen short-lived `CVDisplayLink` threads,
+the main thread in `CVDisplayLink::stop()`. So the reader waits on a lock nobody is busy holding.
+
+Not reproduced by: the same recorded bytes written at the same timing into a fresh Ghostty (longest
+0.10 s with playback, 0.07 s without), nor a probe writing a frame's worth of text every 50 ms beside one
+running animation, by classic placement or by placeholder cells, 16 frames, 120-180 s (no write over
+50 ms). So the trigger is narrower than "an animation is playing": a hypothesis, not established, is the
+window's display link stopping and starting while Ghostty plays an animation in a window not in front.
+
+What TUI does with it: nothing yet. Playback stays off unless `TUI_GRAPHICS_PLAYBACK=1`
+(`playbackTrustsHandshake`), and whether it ever goes on is the owner's, among the experiments.
+
 ### Windows Terminal and Sixel — read 2026-11-02, not measured
 
 No Windows machine here. Read from `microsoft/terminal`'s main branch, through
