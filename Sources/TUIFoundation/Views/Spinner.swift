@@ -161,6 +161,40 @@ public enum SpinnerStyle: Sendable {
         }
     }
 
+    /// The frames for a terminal sent plain text (`TUI_PLAIN_TEXT`): each
+    /// built-in style's own in ASCII, one cell each, drawn after its shape —
+    /// folded at output, the Braille dots were all `.`, the blocks all `#`
+    /// and the circles, corners and emoji blank, so half the styles stood
+    /// still or showed nothing. A ``custom(_:)`` sequence is the app's text,
+    /// spelled as its words are.
+    ///
+    /// ``bouncing`` is not here: it is drawn a track at a time, by
+    /// `renderBouncingFrame(frameIndex:color:trackColor:ascii:)`.
+    package var asciiFrames: [String] {
+        switch self {
+        case .dots: return [".", "o", "O", "o"]
+        case .line, .bouncing, .custom: return frames
+        // The bracket's corners as the slashes that slope like them.
+        case .dancingLine: return ["/", "|", "\\", "|", "\\", "|", "/", "|"]
+        // The circles' and the square's rotations as a line turning.
+        case .pie, .beachball, .box, .curve, .earth: return ["|", "/", "-", "\\"]
+        case .column: return ["_", "_", "-", "-", "=", "=", "#", "#", "#", "=", "=", "-", "-", "_"]
+        case .bar: return ["#", "#", "=", "=", "-", "-", ".", ".", ".", "-", "-", "=", "=", "#"]
+        case .shade: return [" ", ".", "+", "#", "+", "."]
+        // The missing corner going round, as the letters whose shapes have it.
+        case .blockWedge: return ["L", "F", "7", "J"]
+        case .spinningTriangle: return [">", "v", "<", "^"]
+        // Full, waning, last quarter (lit on the left), new, then waxing.
+        case .moon: return ["O", "O", "C", "(", ".", ")", "D", "O"]
+        // The hour hand, two frames to the hour, from 1 o'clock to 12:30.
+        case .clock:
+            return [
+                "/", "/", "/", "/", "-", "-", "\\", "\\", "\\", "\\", "|", "|",
+                "/", "/", "/", "/", "-", "-", "\\", "\\", "\\", "\\", "|", "|",
+            ]
+        }
+    }
+
     /// How long each frame of this style is shown at the standard speed, in
     /// seconds: a whole number of 1/60 s ticks, from 4 (66.7 ms) to 18 (300 ms).
     ///
@@ -278,10 +312,14 @@ extension SpinnerStyle {
     ///   - color: The resolved highlight color for the leading dot.
     ///   - trackColor: The color for inactive track positions.
     /// - Returns: An ANSI-colored string representing the track.
+    ///   - ascii: Whether to draw in ASCII: `.` for the track, `O` for the
+    ///     highlight and `o` for its trail, where every cell was a `●` that
+    ///     only its colour set apart.
     static func renderBouncingFrame(
         frameIndex: Int,
         color: Color,
-        trackColor: Color
+        trackColor: Color,
+        ascii: Bool = false
     ) -> String {
         let positions = bouncingPositions(trackLength: trackWidth)
         let cycle = positions.count
@@ -301,16 +339,16 @@ extension SpinnerStyle {
             }
 
             guard let age else {
-                result += ANSIRenderer.colorize("●", foreground: trackColor)
+                result += ANSIRenderer.colorize(ascii ? "." : "●", foreground: trackColor)
                 continue
             }
             if age == 0 {
                 // The highlight itself.
-                result += ANSIRenderer.colorize("●", foreground: color)
+                result += ANSIRenderer.colorize(ascii ? "O" : "●", foreground: color)
             } else {
                 let phase = 1.0 - trailOpacities[age]
                 result += ANSIRenderer.colorize(
-                    "●", foreground: Color.lerp(color, trackColor, phase: phase))
+                    ascii ? "o" : "●", foreground: Color.lerp(color, trackColor, phase: phase))
             }
         }
 
@@ -681,7 +719,7 @@ private struct _SpinnerCore: View, Renderable, Layoutable {
             return positions.indices.map {
                 SpinnerStyle.renderBouncingFrame(
                     frameIndex: $0, color: color.spendingAlpha(over: palette.background),
-                    trackColor: trackColor)
+                    trackColor: trackColor, ascii: context.textSpelling.isASCII)
             }
         default:
             // The opaque spelling, with the alpha claimed in `renderToBuffer`. Safe
@@ -689,7 +727,18 @@ private struct _SpinnerCore: View, Renderable, Layoutable {
             // colour — only the glyph changes — so one region describes them all.
             // `.bouncing` above is the exception: it cannot be claimed, so it spends
             // instead, which is why it is the one style that claims nothing.
-            return style.frames.map { ANSIRenderer.colorize($0, foreground: color.opaqueSpelling) }
+            //
+            // Where text is spelled in ASCII, the style's ASCII frames, and a
+            // custom sequence spelled as the app's words are.
+            let frames: [String]
+            if !context.textSpelling.isASCII {
+                frames = style.frames
+            } else if case .custom = style {
+                frames = style.frames.map(context.spelled)
+            } else {
+                frames = style.asciiFrames
+            }
+            return frames.map { ANSIRenderer.colorize($0, foreground: color.opaqueSpelling) }
         }
     }
 }

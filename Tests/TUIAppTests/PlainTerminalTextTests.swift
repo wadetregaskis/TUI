@@ -86,6 +86,12 @@ struct PlainTerminalTextTests {
         #expect(PlainTerminalText.folding("← → ▲ ▼") == "< > ^ v")
         // Control as a caret, as terminals write it, rather than a blank.
         #expect(PlainTerminalText.folding("⌃Q quit") == "^Q quit")
+        // A control's half-block ends as brackets, where both were `#`, and
+        // the brackets an app draws as theirs, where most were blank.
+        #expect(PlainTerminalText.folding("▐ Save ▌") == "[ Save ]")
+        #expect(PlainTerminalText.folding("⌜⌟❨❩⟨⟩⟦⟧") == "[]()<>[]")
+        // Each radio button's circle, where the empty ones were blank.
+        #expect(PlainTerminalText.folding("●◯◌") == "ooo")
     }
 
     @Test("A toast's and an alert's emoji marks come out as ASCII that says the same, in their two cells")

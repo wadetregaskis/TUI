@@ -7778,7 +7778,11 @@ K3).
   common in front of a terminal showing UTF-8 perfectly well. Cell for cell, so that
   nothing above it has to know. `TUI_PLAIN_TEXT` forces it, for testing. The key
   symbols alone are spelled before layout wherever it applies (`TextSpelling.asciiKeys`,
-  `⌥F` as `Alt-F`): a modifier's name has no room in the one cell its symbol takes.
+  `⌥F` as `Alt-F`): a modifier's name has no room in the one cell its symbol takes. The
+  framework's own glyphs have ASCII forms there too (2026-11-10), in one table,
+  `TerminalSymbols.ASCII` (TUICore), which the folding reads, and wider ones chosen where
+  drawn: a toggle's `[x]`, a radio button's `(*)`, spinners' frames, a file panel's `d`/`f`/`l`;
+  emoji chrome is off.
   `TUI_PLAIN_TEXT=transliterate` (an experiment, 2026-11-08) also spells text in ASCII
   before layout (`TextTransliteration`, TUIFoundation), so it takes the cells its
   spelling needs; the folding here stays for chrome and what that doesn't reach.

@@ -43,16 +43,24 @@ extension EnvironmentValues {
     /// where the person set `TUI_PLAIN_TEXT=transliterate` — the app's render
     /// loop, a one-off render's, a headless app's — after the services that
     /// publish the locale.
+    ///
+    /// And no emoji chrome (``supportsEmojiChrome``), so a control that draws
+    /// an emoji only where the terminal shows them legibly — the search
+    /// field's magnifier — draws what it draws elsewhere: in ASCII the
+    /// magnifier was `:right_pointing_magnifying_glass:`.
     package mutating func spellTextInASCII() {
         textSpelling = .ascii(TextReading(languageCode: locale.language.languageCode?.identifier))
+        supportsEmojiChrome = false
     }
 
     /// Has the key symbols below spelled in ASCII and nothing else
     /// (``TextSpelling/asciiKeys``): what a root does for a terminal that
     /// shows only ASCII where the person did not ask for the transliteration,
-    /// so `⌥F` is `Alt-F` rather than a blank and an `F`.
+    /// so `⌥F` is `Alt-F` rather than a blank and an `F`. No emoji chrome
+    /// either, as for ``spellTextInASCII()``.
     package mutating func spellKeysInASCII() {
         textSpelling = .asciiKeys
+        supportsEmojiChrome = false
     }
 }
 
@@ -143,9 +151,13 @@ extension BadgeValue {
 ///    `Latin-ASCII`.
 /// 4. The few letters `Latin-ASCII` keeps: Arabic's and Hebrew's `ʿ` and `ʾ`
 ///    become `'`; the BGN soft and hard sign marks `ʹ` and `ʺ` are dropped.
+/// 5. What is left that has an ASCII form (``GlyphSpelling``): an SF Symbol as
+///    its name, `:gearshape:`; the framework's shapes as
+///    `TerminalSymbols.ASCII` writes them, `▶` `>`; an emoji that is text by
+///    default, `❤` `<3`.
 ///
-/// What none of these knows (box drawing, `✓`) comes back as it was, for the
-/// folding at output to deal with in the cells it takes.
+/// What none of these knows comes back as it was, for the folding at output to
+/// deal with in the cells it takes.
 package enum TextTransliteration {
     /// `string` spelled as `spelling` says: as written, its key symbols in
     /// ASCII, or all of it in ASCII; and first, unless `keepingEscapes`, its
@@ -206,7 +218,7 @@ package enum TextTransliteration {
         }
         let transform = StringTransform(transformID(reading))
         let latin = words.applyingTransform(transform, reverse: false) ?? words
-        return withoutMarks(latin)
+        return GlyphSpelling.spelled(withoutMarks(latin))
     }
 
     /// The ICU transform for `reading`: its Cyrillic romanization, Greek's, and

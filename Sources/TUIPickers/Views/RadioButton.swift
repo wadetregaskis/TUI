@@ -755,14 +755,19 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         // and where the focus holds still (`focusHoldsStill`): a still breath sits
         // at its bright end, the accent a selected option's ● rests in, so the two
         // ●s were the same.
+        //
+        // Where text is spelled in ASCII, the indicators are their ASCII forms,
+        // `(*)` and `( )`: folded at output, `●` was an `o` and `◯` a blank, so
+        // nothing said the options were radio buttons until one was picked.
         let focusWithoutBreath = isFocused && (context.statesWithoutColor || context.focusHoldsStill)
+        let ascii = context.textSpelling.isASCII
         let indicator: String
         if isSelected || (isFocused && !focusWithoutBreath) {
-            indicator = TerminalSymbols.radioSelected
+            indicator = ascii ? TerminalSymbols.ASCII.radioSelected : TerminalSymbols.radioSelected
         } else if isDisabled {
-            indicator = TerminalSymbols.radioDisabledUnselected
+            indicator = ascii ? TerminalSymbols.ASCII.radioDisabledUnselected : TerminalSymbols.radioDisabledUnselected
         } else {
-            indicator = TerminalSymbols.radioUnselected
+            indicator = ascii ? TerminalSymbols.ASCII.radioUnselected : TerminalSymbols.radioUnselected
         }
 
         // Determine indicator color based on state. Priority
@@ -854,7 +859,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         let labelBuffer = labelView.renderToBuffer(context: labelContext)
 
         // The indicator is one cell wide by construction — all three glyphs are
-        // — and the space after it makes two.
+        // — or three in ASCII, and the space after it makes one more.
         let indentWidth = indicator.strippedLength + 1
         let indent = String.spaces(indentWidth)
         var lines = labelBuffer.lines.enumerated().map { row, line in

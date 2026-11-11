@@ -83,10 +83,34 @@ struct TextTransliterationTests {
         #expect(TextTransliteration.spelled("Café", as: .asWritten) == "Café")
     }
 
-    @Test("What the transform has nothing to say about is left for the folding at output")
-    func boxDrawingIsLeft() {
-        #expect(TextTransliteration.transliterated("ok ✓ ┼") == "ok ✓ ┼")
+    /// They were left for the folding at output, which wrote the same in the
+    /// same cells; a bracket it had no form for was a blank.
+    @Test("The framework's shapes and brackets are spelled as the folding at output writes them")
+    func shapesAreSpelled() {
+        #expect(TextTransliteration.transliterated("ok ✓ ┼ ▶") == "ok x + >")
+        #expect(TextTransliteration.transliterated("⌜ ⌟ ❨ ❩ ⟨ ⟩ ⟦ ⟧ ▕ ▏") == "[ ] ( ) < > [ ] | |")
     }
+
+    /// Folded at output, each was a blank: no transform knows them.
+    @Test("An emoji that is text by default is spelled at the end; a text base with a skin tone is an emoji")
+    func textDefaultEmoji() {
+        #expect(TextTransliteration.transliterated("❤ ☺ ☝") == "<3 :) :white_up_pointing_index:")
+        #expect(EmojiSpelling.spelled("☝🏽 ✌🏿") == ":white_up_pointing_index: :victory_hand:")
+    }
+
+    #if canImport(AppKit)
+        /// Folded at output, a symbol's Private Use glyph was two blank cells.
+        @Test("An SF Symbol is spelled as its name between colons, without its fill, as an emoji is")
+        func symbols() throws {
+            let star = try #require(SFSymbol.glyph(named: "star.fill"))
+            let gear = try #require(SFSymbol.glyph(named: "gearshape"))
+            let share = try #require(SFSymbol.glyph(named: "square.and.arrow.up"))
+            #expect(
+                TextTransliteration.transliterated("\(star) Favourites \(gear) \(share)")
+                    == ":star: Favourites :gearshape: :square.and.arrow.up:")
+            #expect(SFSymbol.name(ofGlyph: "a") == nil)
+        }
+    #endif
 
     @Test("A context made from an environment carries its spelling; a copy keeps it")
     func contextCarriesSpelling() {

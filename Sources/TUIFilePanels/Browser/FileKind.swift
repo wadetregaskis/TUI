@@ -62,6 +62,17 @@ enum FileKind: Sendable, CaseIterable {
         }
     }
 
+    /// The kind as one letter, where text is spelled in ASCII: `d` a folder
+    /// and `l` an alias, as a long listing writes them, and `f` the rest,
+    /// whose differences a name's extension already tells.
+    var asciiLetter: String {
+        switch self {
+        case .folder: "d"
+        case .alias: "l"
+        case .application, .pdf, .image, .audio, .video, .archive, .code, .text, .document: "f"
+        }
+    }
+
     /// The SF Symbol drawing the kind, where the terminal's font has them
     /// (`SFSymbol.canRender(named:)`), by the names of the table TUI
     /// bakes (SF Symbols 6 named `doc` `document`, `doc.text`

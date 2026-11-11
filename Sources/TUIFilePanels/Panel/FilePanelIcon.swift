@@ -20,10 +20,19 @@ enum FilePanelIcon: Equatable {
     /// None: a folder's name ends in a slash instead, as `ls -F` marks one,
     /// and the terminal file managers that draw no icons do.
     case none
+    /// A letter in a column of its own, as a long listing writes an item's
+    /// type: `d` a folder, `l` an alias, `f` anything else
+    /// (``FileKind/asciiLetter``). Where text is spelled in ASCII
+    /// (`TUI_PLAIN_TEXT`): an emoji's name, `:file_folder:`, was as wide as
+    /// its name made it, so the names no longer lined up, and an SF Symbol's
+    /// glyph was blank.
+    case letters
 
-    /// The icons drawn where emoji chrome is (or is not) drawn legibly, and
-    /// the SF Symbols font is (or is not) installed.
-    static func resolve(supportsEmojiChrome: Bool, symbolsRender: Bool) -> Self {
+    /// The icons drawn where text is (or is not) spelled in ASCII, emoji
+    /// chrome is (or is not) drawn legibly, and the SF Symbols font is (or is
+    /// not) installed.
+    static func resolve(spellsASCII: Bool, supportsEmojiChrome: Bool, symbolsRender: Bool) -> Self {
+        if spellsASCII { return .letters }
         if supportsEmojiChrome { return .emoji }
         return symbolsRender ? .symbols : .none
     }
@@ -42,7 +51,7 @@ private struct FilePanelIconsKey: EnvironmentKey {
 extension EnvironmentValues {
     /// The icons a file panel draws, where something pins them: `nil`, as
     /// everywhere but in tests, for the terminal's own
-    /// (``FilePanelIcon/resolve(supportsEmojiChrome:symbolsRender:)``). The
+    /// (``FilePanelIcon/resolve(spellsASCII:supportsEmojiChrome:symbolsRender:)``). The
     /// SF Symbols' font is the machine's, not the environment's, so a test
     /// pins the icons rather than draw what its host happens to have.
     var filePanelIcons: FilePanelIcon? {
@@ -59,6 +68,8 @@ struct FilePanelNameCell: View {
     let entry: FileEntry
 
     @Environment(\.supportsEmojiChrome) private var supportsEmojiChrome
+
+    @Environment(\.textSpelling) private var textSpelling
 
     @Environment(\.filePanelIcons) private var pinned
 
@@ -83,7 +94,8 @@ struct FilePanelNameCell: View {
         let icons =
             pinned
             ?? FilePanelIcon.resolve(
-                supportsEmojiChrome: supportsEmojiChrome, symbolsRender: FilePanelIcon.symbolsRender)
+                spellsASCII: textSpelling.isASCII, supportsEmojiChrome: supportsEmojiChrome,
+                symbolsRender: FilePanelIcon.symbolsRender)
         switch icons {
         case .emoji:
             HStack(spacing: 1) {
@@ -93,6 +105,11 @@ struct FilePanelNameCell: View {
         case .symbols:
             HStack(spacing: 1) {
                 FilePanelColumns.cell(SFSymbol.glyph(named: entry.fileKind.symbolName) ?? "", entry)
+                FilePanelColumns.cell(entry.name, entry, bold: entry.isFolder)
+            }
+        case .letters:
+            HStack(spacing: 1) {
+                FilePanelColumns.cell(entry.fileKind.asciiLetter, entry)
                 FilePanelColumns.cell(entry.name, entry, bold: entry.isFolder)
             }
         case .none:

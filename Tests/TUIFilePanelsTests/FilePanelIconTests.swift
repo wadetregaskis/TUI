@@ -66,11 +66,32 @@ struct FilePanelIconTests {
         }
     #endif
 
-    @Test("Emoji where the terminal draws emoji chrome; else SF Symbols where they draw; else none")
+    @Test("Letters where text is spelled in ASCII; else emoji where drawn; else SF Symbols where they draw; else none")
     func tiers() {
-        #expect(FilePanelIcon.resolve(supportsEmojiChrome: true, symbolsRender: true) == .emoji)
-        #expect(FilePanelIcon.resolve(supportsEmojiChrome: false, symbolsRender: true) == .symbols)
-        #expect(FilePanelIcon.resolve(supportsEmojiChrome: false, symbolsRender: false) == .none)
+        #expect(FilePanelIcon.resolve(spellsASCII: true, supportsEmojiChrome: true, symbolsRender: true) == .letters)
+        #expect(FilePanelIcon.resolve(spellsASCII: false, supportsEmojiChrome: true, symbolsRender: true) == .emoji)
+        #expect(FilePanelIcon.resolve(spellsASCII: false, supportsEmojiChrome: false, symbolsRender: true) == .symbols)
+        #expect(FilePanelIcon.resolve(spellsASCII: false, supportsEmojiChrome: false, symbolsRender: false) == .none)
+    }
+
+    /// Before, each emoji was spelled by its name, `:file_folder: Alpha`,
+    /// as wide as the name, so the names no longer lined up.
+    @Test("Where text is spelled in ASCII, each name has its kind's letter in a column of its own")
+    func letterIcons() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let driver = FilePanelDriver {
+            panel(fixture, caller: caller, icons: nil).environment(\.textSpelling, .ascii(.standard))
+        }
+        let shown = await driver.waitFor("notes.md")
+        #expect(shown.contains("d Alpha "), "\(shown)")
+        #expect(shown.contains("l linked "), "\(shown)")
+        #expect(shown.contains("f beta.txt"), "\(shown)")
+        #expect(!shown.contains(":file_folder:"), "\(shown)")
+        let alpha = try #require(driver.position(of: "Alpha"))
+        let beta = try #require(driver.position(of: "beta.txt"))
+        #expect(alpha.x == beta.x)
     }
 
     /// A panel over `fixture`'s root, in a terminal that draws emoji chrome.

@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Under `TUI_PLAIN_TEXT`, controls show their state in ASCII.** Where the terminal is sent plain text, toggles draw
+`[x]` and `[ ]`, radio buttons `(*)` and `( )`, spinners their own ASCII frames, a file panel `d`, `f` and `l` beside
+each name, and a field's or a button's ends `[ ]`; before, `■` and `□` were both `#`, empty radio buttons and half the
+spinners were blank, and a toggle in a menu read `:white_large_square:`. Under `TUI_PLAIN_TEXT=transliterate`, an SF
+Symbol is spelled by its name, `:star:`, where it vanished, and `❤` typed without its selector is `<3`. Both remain for
+testing; nothing changes without the variable.
+
 **A dialog no longer jumps when a tooltip appears in the status bar.** A sheet, alert or other dialog centred over
 the page stays where it is as help shows and goes in the status bar, and moves up only where the tooltip's rows
 would cover it.

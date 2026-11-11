@@ -125,6 +125,64 @@ as written                 round 1                     round 2
 Emoji: 🙂 ok 🎉 👍          Emoji: 🙂 ok 🎉 👍           Emoji: :) ok :tada: :+1:
 ```
 
+## The framework's own glyphs (2026-11-10)
+
+The owner tried the experiment by hand on 2026-11-10 and found the framework's own glyphs the weak part: SF Symbols
+vanished, toggles showed no state (`■` and `□` both folded to `#`, `⬛︎` and `⬜︎` to nothing), a toggle in a menu read
+`:white_large_square:`, radio buttons marked only the selected option (`◯` folded to a blank), half the spinners stood
+still or showed nothing, a file panel's icons were names of different widths (`:file_folder:`, `:memo:`), and most of
+the Example's bracket pairs were blank. The cause was one thing: those glyphs went through the paths meant for an
+app's words — the emoji spelling before layout, or the folding at output, cell for cell — and neither has room for a
+deliberate ASCII form. What was built, so each has one:
+
+- **One table** of the framework's shapes in ASCII, `TerminalSymbols.ASCII` (TUICore), beside the glyphs themselves.
+  The folding at output reads it (it was `PlainTerminalText`'s private table), and so does the transliteration's new
+  last step (`GlyphSpelling`), so a `▶` is `>` in a `Text` and in a stepper alike. Added to it: a control's half-block
+  ends, `▐ ▌`, as `[ ]` (fields, rounded buttons, pickers and compact tabs were walled in `#`); bracket pairs as their
+  ASCII counterparts (`⌜⌟` `[]`, `❨❩` `()`, `⟨⟩` `<>`, `⟦⟧` `[]`); the thin edge blocks `▏▕` as `|`; `◯` and `◌` as
+  `o`; the light and medium shades as `.` and `:`, so a `░` track under a `█` fill reads `#####.....`.
+- **Wider forms chosen where the glyph is drawn**, at the point that already chooses it, read when the context spells
+  text in ASCII (`TextSpelling.isASCII`):
+  - a toggle's marks: `effectiveToggleCharacterSet` answers `.ascii`, `[x]` and `[ ]`, for any set whose marks are not
+    ASCII, so the menu row's mark too. A set that is ASCII already is the app's and is kept.
+  - a radio button: `(*)` selected (or focused, as `●` is), `( )` otherwise, disabled included: the dotted `◌` has no
+    ASCII shape that would not read as a mark, and a disabled option is dimmed as its label is. Parentheses because
+    they say "one of these" as `[ ]` says "any of these", and the star says which without colour, which answers the
+    owner's question 19.8 without a second luminosity.
+  - a spinner: `SpinnerStyle.asciiFrames`, one cell each, after each style's shape: the Braille `dots` a dot growing
+    and shrinking (`. o O o`), the circles and the square a line turning (`| / - \`), the bracket's corners as the
+    slashes that slope like them, `column` and `bar` filling through `_ - = #`, `shade` through ` . + #`,
+    `blockWedge` as `L F 7 J`, the moon by its lit side (`O C ( . ) D`), the clock by its hour hand. `bouncing` draws
+    its track as `.`, the highlight `O` and the trail `o`, where every cell was `●` set apart only by colour. A
+    `custom` sequence is the app's text and is spelled as its words are.
+  - a file panel: a letter in a column of its own, as a long listing writes the type: `d` a folder, `l` an alias, `f`
+    anything else, whose differences the extension already tells (`FilePanelIcon.letters`).
+- **No emoji chrome** where text is spelled in ASCII: `spellTextInASCII()` and `spellKeysInASCII()` turn
+  `supportsEmojiChrome` off, so a control that draws an emoji only where the terminal shows them legibly draws what it
+  draws elsewhere. The search field's magnifier was `:right_pointing_magnifying_glass:`; it is now no icon, as on a
+  terminal without emoji chrome.
+- **SF Symbols as their names**, `:star:` for `star.fill`: the transliteration's last step looks a Private Use glyph up
+  in the name table (`SFSymbol.name(ofGlyph:)`, a walk of the packed codepoints, memoized with the words around it)
+  and writes it between colons, as an emoji's name is: one convention for a picture named in words, whether the app
+  used an emoji or a symbol. Without `fill`, which says how it is drawn, as an emoji's skin tone and selector are
+  dropped; the rest of the name as Apple wrote it, dots and all, so it can be looked up. Only where the table is
+  (Apple platforms), and only where the symbol would have been drawn (the SF Symbols font installed): where it would
+  not, `Label` shows its title alone and a bare `Image` nothing, as without the flag.
+- **Emoji that are text by default** (`❤`, `☺`, `☝` with no selector) are spelled at the transliteration's end, after
+  `Latin-ASCII` has had `©` and `™`; they folded to blanks. A text base with a skin tone (`☝🏽`) is an emoji, and
+  spelled with the others.
+
+**Which mode.** Everything but the SF Symbols' names and the emoji applies wherever the terminal is sent plain text
+(`TUI_PLAIN_TEXT=1`, or a locale naming a character set other than UTF-8), not only under `transliterate`: the
+folding left the same toggles and radio buttons stateless there, and the owner's KEY-SPELL ruling had already taken a
+changed layout over blank glyphs for that mode. Names are words, and words are spelled only under `transliterate`.
+
+**Cost.** The Example's release binary (`swift build -c release`, Xcode 26.3's Swift 6.2.4, then `strip`) grew by
+33,056 bytes, 18,600,864 to 18,633,920 (+0.18%); unstripped by 38,688. What it holds: one table of a few dozen
+entries, each spinner style's ASCII frames, and a reverse lookup over the SF Symbols table already in the binary.
+With the flag off, the one addition on a hot path is `effectiveToggleCharacterSet`'s read of `textSpelling`, an
+environment lookup per toggle drawn.
+
 ## Limits left
 
 - Han-only Japanese in an app whose language isn't Japanese is read as Chinese (see above), and a subtree's own

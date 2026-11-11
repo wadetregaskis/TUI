@@ -22,9 +22,11 @@
 /// - Skin tones and the emoji presentation selector are dropped; a sequence
 ///   joined with zero-width joiners names each part, `:man_woman_girl:`.
 ///
-/// An emoji is a character drawn as an emoji by default, or by the selector
-/// asking for it: `©` and `™`, text by default, are left for `Latin-ASCII`,
-/// which knows them (`(C)`, `TM`).
+/// An emoji is a character drawn as an emoji by default, by the selector
+/// asking for it, or by a skin tone after it. One that is text by default, with
+/// none of these, is left for `Latin-ASCII`, which knows `©` and `™` (`(C)`,
+/// `TM`), and spelled at the transliteration's end if it is still there
+/// (``textSpelling(of:)``): `❤` is `<3` too.
 enum EmojiSpelling {
     /// `string` with each emoji spelled; the same string where it has none.
     static func spelled(_ string: String) -> String {
@@ -54,10 +56,28 @@ enum EmojiSpelling {
             return scalars.contains("\u{20E3}") ? "[\(Character(first))]" : nil
         }
         if let flag = flagSpelling(scalars) { return flag }
+        // An emoji by default, by the selector, or by a skin tone after it: a
+        // raised finger (U+261D) is text alone, and an emoji with one.
         let isEmoji =
             first.properties.isEmojiPresentation
             || (first.properties.isEmoji && scalars.contains("\u{FE0F}"))
+            || (first.properties.isEmojiModifierBase && scalars.dropFirst().contains(where: isSkinTone))
         guard isEmoji else { return nil }
+        return named(scalars)
+    }
+
+    /// `character` spelled where it is an emoji that is text by default, drawn
+    /// with no selector (`❤`, `☺`, `☝`): what the transliteration has not
+    /// made ASCII by its end, so `©` and `™` are `Latin-ASCII`'s. `nil` for
+    /// anything else.
+    static func textSpelling(of character: Character) -> String? {
+        let scalars = Array(character.unicodeScalars)
+        guard let first = scalars.first, !first.isASCII, first.properties.isEmoji else { return nil }
+        return named(scalars)
+    }
+
+    /// An emoji's short form, or its name between colons.
+    private static func named(_ scalars: [Unicode.Scalar]) -> String? {
         // The base, without what only changes how it looks.
         let base = scalars.filter { !isPresentationOnly($0) }
         if let short = shortForms[String(String.UnicodeScalarView(base))] { return short }
@@ -79,7 +99,12 @@ enum EmojiSpelling {
     /// The selectors and the skin-tone modifiers: they change how an emoji
     /// looks, not what it is.
     private static func isPresentationOnly(_ scalar: Unicode.Scalar) -> Bool {
-        scalar.value == 0xFE0F || scalar.value == 0xFE0E || (0x1F3FB...0x1F3FF).contains(scalar.value)
+        scalar.value == 0xFE0F || scalar.value == 0xFE0E || isSkinTone(scalar)
+    }
+
+    /// The five skin-tone modifiers.
+    private static func isSkinTone(_ scalar: Unicode.Scalar) -> Bool {
+        (0x1F3FB...0x1F3FF).contains(scalar.value)
     }
 
     /// The scalar's Unicode name as a short name: lowercased, `_` for spaces

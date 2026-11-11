@@ -108,6 +108,28 @@ struct FrontCodedNames {
         }
     }
 
+    /// The bytes of the name at `index`: a walk of its block alone, each name
+    /// rebuilt from the one before it, up to it.
+    func name(at index: Int) -> [UInt8] {
+        blocks.withUTF8Buffer { blob in
+            let first = index - index % blockSize
+            var position = Int(blockStarts[first / blockSize])
+            var name: [UInt8] = []
+            for current in first...index {
+                if current != first {
+                    unsafe name.removeLast(name.count - Int(blob[position]))
+                    position += 1
+                }
+                while unsafe blob[position] != Self.newline {
+                    unsafe name.append(blob[position])
+                    position += 1
+                }
+                position += 1
+            }
+            return name
+        }
+    }
+
     /// Unsigned byte-lexicographic comparison of the head name starting at
     /// `start` against `query`: negative if the head sorts before the query,
     /// `0` if equal, positive after. Equals Swift `String` ordering because

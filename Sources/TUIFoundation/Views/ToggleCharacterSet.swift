@@ -5,6 +5,7 @@
 //  License: MIT
 
 import TUICore
+import TUIView
 
 // MARK: - ToggleCharacterSet
 
@@ -149,6 +150,12 @@ public struct ToggleCharacterSet: Sendable, Hashable {
         return "\u{229F}" + String.spaces(max(0, onMark.strippedLength - 1))
     }
 
+    /// Whether every glyph of the set is ASCII, so a terminal sent plain text
+    /// draws it as it is.
+    var isASCII: Bool {
+        [onMark, offMark, openBracket, closeBracket].allSatisfy { $0.utf8.allSatisfy { $0 < 0x80 } }
+    }
+
     package static func automatic(emojiChrome: Bool) -> Self {
         emojiChrome ? .emoji : .unicode
     }
@@ -242,9 +249,16 @@ extension EnvironmentValues {
     /// `RenderLoop`'s per-frame client probe sees. Reading this follows a re-attach
     /// for free, and a mid-run flip re-renders memoized subtrees because
     /// `EnvironmentSnapshot` already carries the resolved answer.
+    ///
+    /// Where text is spelled in ASCII (`TUI_PLAIN_TEXT`), a set whose marks are
+    /// not ASCII draws as ``ToggleCharacterSet/ascii``: folded at output, `■`
+    /// and `□` were both `#`, and `⬛︎` and `⬜︎` nothing, so a toggle showed no
+    /// state at all.
     public var effectiveToggleCharacterSet: ToggleCharacterSet {
         let style = toggleCharacterSet
-        return style.resolvesFromTerminal ? resolvedAutomaticToggleCharacterSet : style
+        let resolved = style.resolvesFromTerminal ? resolvedAutomaticToggleCharacterSet : style
+        guard textSpelling.isASCII, !resolved.isASCII else { return resolved }
+        return .ascii
     }
 }
 

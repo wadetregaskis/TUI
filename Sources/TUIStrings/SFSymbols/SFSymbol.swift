@@ -68,6 +68,25 @@ public enum SFSymbol {
         #endif
     }
 
+    /// The name of the symbol `scalar` draws, or `nil` where it draws none:
+    /// ``glyph(named:)`` the other way round, for text spelled in ASCII, where
+    /// a symbol is written as its name. The first name in order where several
+    /// share a glyph.
+    ///
+    /// A walk of the packed codepoints, a few microseconds, for a lookup that
+    /// the spelling memoizes with the words around it.
+    package static func name(ofGlyph scalar: Unicode.Scalar) -> String? {
+        #if canImport(AppKit)
+        guard scalar.value >= puaBase, scalar.value - puaBase <= UInt32(UInt16.max) else { return nil }
+        let offset = UInt16(truncatingIfNeeded: scalar.value - puaBase)
+        guard let index = (0..<bakedCount).first(where: { codepointOffset(at: $0) == offset }) else { return nil }
+        let name = names.name(at: index)
+        return String(unsafeUninitializedCapacity: name.count) { unsafe $0.initialize(fromContentsOf: name) }
+        #else
+        return nil
+        #endif
+    }
+
     /// Whether the named symbol would actually appear on screen here.
     ///
     /// The two halves of the question, which have to be asked together:
