@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**With the focus following the pointer, a control's label focuses the control.** Moving onto the label of a
+`Slider`, `Stepper`, `Picker`, `DatePicker`, `ColorPicker` or `LabeledContent`, beside it or in a form's label
+column, focuses the control, as moving onto the control does.
+
 **With the focus following the pointer, a list's cursor row follows it.** Over a `List`, a `Table` or an outline,
 the row the pointer moves onto becomes the row the keys act on; the selection stays until you click or press Space
 or Return, and rows the wheel scrolls under a still pointer leave the cursor where it was. A closed menu bar title

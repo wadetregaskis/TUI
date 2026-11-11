@@ -201,6 +201,12 @@ package final class MouseEventDispatcher {
     /// ``filePointerFocusFollower(for:in:_:)``.
     var pointerFocusFollowers: [HitTestRegion.HandlerID: (MouseEvent) -> Bool] = [:]
 
+    /// The regions this frame that name a control for the focus following the
+    /// pointer without carrying its focus id — a control's label
+    /// (`_LabelledControlRow`) — with the focus id each names, cleared with
+    /// the handler table. See ``filePointerFocusName(_:for:in:)``.
+    var pointerFocusNames: [HitTestRegion.HandlerID: String] = [:]
+
     /// For each region the pointer's shape is read from, the styles and the
     /// see-through wrappers whose views it is inside, this frame, cleared with
     /// the handler table: what tells a region nested in another from one that
@@ -469,6 +475,7 @@ extension MouseEventDispatcher {
         pointerStyleRegions.removeAll(keepingCapacity: true)
         controlPointerShapes.removeAll(keepingCapacity: true)
         pointerFocusFollowers.removeAll(keepingCapacity: true)
+        pointerFocusNames.removeAll(keepingCapacity: true)
         pointerShapeEnclosures.removeAll(keepingCapacity: true)
         pointerShapeWrappers.removeAll(keepingCapacity: true)
         passiveIDs.removeAll(keepingCapacity: true)

@@ -129,17 +129,21 @@ struct _AutomaticLabeledContent: View {
     @ViewBuilder var body: some View {
         switch placement {
         case .standalone:
-            HStack(spacing: 0) {
-                _CollapsingLabel(label: configuration.label, controlDisabled: false)
-                configuration.content
+            _LabelledControlRow {
+                HStack(spacing: 0) {
+                    _CollapsingLabel(label: configuration.label, controlDisabled: false)
+                    configuration.content
+                }
             }
         case .listRow:
-            HStack(spacing: 0) {
-                _CollapsingLabel(label: configuration.label, controlDisabled: false)
-                configuration.content
-                    .foregroundStyle(.secondary)
-                    .environment(\.unstatedMultilineTextAlignment, .trailing)
-                    .frame(maxWidth: .infinity, alignment: .trailing)
+            _LabelledControlRow {
+                HStack(spacing: 0) {
+                    _CollapsingLabel(label: configuration.label, controlDisabled: false)
+                    configuration.content
+                        .foregroundStyle(.secondary)
+                        .environment(\.unstatedMultilineTextAlignment, .trailing)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
             }
         case .groupedFormRow:
             _GroupedLabeledRow(label: configuration.label, content: configuration.content)

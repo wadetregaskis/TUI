@@ -154,24 +154,28 @@ public struct ColorPicker {
         // Two-column gaps between the swatch and each channel group, so a
         // channel's value field reads as its own ("…102  G ◀…", not "102 G"
         // where the G looks like a suffix of the previous channel's value).
-        HStack(spacing: 2) {
-            // `.labelsHidden()` drops the whole label COLUMN, width and gap
-            // included — the point of `colorPickerLabelWidth` is a shared
-            // pillar, and a pillar of hidden captions is just an indent.
-            if !labelsHidden, drawsLabel {
-                Group {
-                    if let labelView {
-                        labelView
-                    } else {
-                        Text(title)
+        // The label names the swatch, the first control, for the pointer
+        // (`_LabelledControlRow`); each channel's letter names its own slider.
+        _LabelledControlRow {
+            HStack(spacing: 2) {
+                // `.labelsHidden()` drops the whole label COLUMN, width and gap
+                // included — the point of `colorPickerLabelWidth` is a shared
+                // pillar, and a pillar of hidden captions is just an indent.
+                if !labelsHidden, drawsLabel {
+                    Group {
+                        if let labelView {
+                            labelView
+                        } else {
+                            Text(title)
+                        }
                     }
+                    .frame(width: labelWidth, alignment: .leading)
+                    .foregroundStyle(.palette.foregroundSecondary)
                 }
-                .frame(width: labelWidth, alignment: .leading)
-                .foregroundStyle(.palette.foregroundSecondary)
-            }
-            swatch
-            if !channelsHidden {
-                ForEach(channels, id: \.self) { channel($0) }
+                swatch
+                if !channelsHidden {
+                    ForEach(channels, id: \.self) { channel($0) }
+                }
             }
         }
     }
@@ -240,22 +244,25 @@ public struct ColorPicker {
         // texts — Text trims leading whitespace, which is exactly how the old
         // layout ended up reading "102 G" with the G hugging the previous
         // channel's value.
-        HStack(spacing: 1) {
-            Text(label).foregroundStyle(.palette.foregroundTertiary)
-            // The slider's built-in read-out is a percentage; these channels
-            // show the raw 0–255 value instead, so the built-in display is
-            // off. No fixed frame: the three channels split the available
-            // width evenly (Slider is width-flexible), growing finer on wide
-            // terminals and compressing — track first, never the arrows —
-            // on narrow ones.
-            Slider(value: binding, in: 0...255, step: step)
-                .sliderShowsValue(false)
-            // The value in a fixed-width right-aligned 3-column field
-            // ("  0" … "255") — frame alignment, because string padding would
-            // be trimmed.
-            Text("\(Int(binding.wrappedValue))")
-                .frame(width: 3, alignment: .trailing)
-                .foregroundStyle(.palette.foregroundTertiary)
+        // The letter names its slider for the pointer (`_LabelledControlRow`).
+        _LabelledControlRow {
+            HStack(spacing: 1) {
+                Text(label).foregroundStyle(.palette.foregroundTertiary)
+                // The slider's built-in read-out is a percentage; these channels
+                // show the raw 0–255 value instead, so the built-in display is
+                // off. No fixed frame: the three channels split the available
+                // width evenly (Slider is width-flexible), growing finer on wide
+                // terminals and compressing — track first, never the arrows —
+                // on narrow ones.
+                Slider(value: binding, in: 0...255, step: step)
+                    .sliderShowsValue(false)
+                // The value in a fixed-width right-aligned 3-column field
+                // ("  0" … "255") — frame alignment, because string padding would
+                // be trimmed.
+                Text("\(Int(binding.wrappedValue))")
+                    .frame(width: 3, alignment: .trailing)
+                    .foregroundStyle(.palette.foregroundTertiary)
+            }
         }
     }
 

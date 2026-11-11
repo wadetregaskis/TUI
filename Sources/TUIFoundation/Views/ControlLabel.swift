@@ -146,3 +146,65 @@ nonisolated package struct _DetachedControlLabel<Label: View>: View, Renderable,
             context: context, controlDisabled: controlDisabled)
     }
 }
+
+/// A control and its label, laid out together — the stack of a `Slider`, a
+/// `Stepper`, a `Picker`, a `DatePicker` or a `LabeledContent`, or a form's
+/// field row — as one place where the focus following the pointer finds the
+/// control: a move onto the label offers the control the focus, as a move onto
+/// the control does (owner ruling HOVER-FOCUS b). Only the focus: the label
+/// moves no value.
+///
+/// The control is the first focus id the content's regions carry, in the
+/// order they were drawn: a `ColorPicker`'s swatch before its channels, a
+/// graphical `DatePicker`'s calendar before its time. Content carrying none
+/// (a `LabeledContent` of plain text, a disabled control) names nothing. A
+/// control in the label itself keeps its own cells, in front of this region.
+///
+/// The region goes behind the whole content, so the control's regions and
+/// any in the label stay in front of it, and is a hover observer that only
+/// names the control (`MouseEventDispatcher.filePointerFocusName(_:for:in:)`):
+/// it carries no focus id, so the control's own region is still the first
+/// with its id, where a reveal and the text cursor go, and it takes no press
+/// and no hover from what is behind it. Filed only while the focus follows the
+/// pointer.
+nonisolated package struct _LabelledControlRow<Content: View>: View, Renderable, Layoutable {
+    let content: Content
+
+    package init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    @MainActor package var body: Never { fatalError("_LabelledControlRow renders via Renderable") }
+
+    @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+        measureChild(content, proposal: proposal, context: context)
+    }
+
+    @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        var buffer = TUIView.renderToBuffer(content, context: context)
+        guard !context.isMeasuring, context.environment.focusFollowsPointer == true,
+            let dispatcher = context.environment.mouseEventDispatcher,
+            buffer.width > 0, buffer.height > 0
+        else { return buffer }
+        guard let named = buffer.hitTestRegions.lazy.compactMap(\.focusID).first else { return buffer }
+        let id = dispatcher.registerHoverObserver(in: context) { _ in false }
+        dispatcher.filePointerFocusName(named, for: id, in: context)
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: id), at: 0)
+        return buffer
+    }
+}
+
+/// Seen through by a container asking for a z-index or an alignment guide, as
+/// `_BehindContentTapModifier` is: it draws its content where it is, unchanged,
+/// at its own identity.
+extension _LabelledControlRow: SingleContentWrapper {
+    package var wrappedContent: Content { content }
+
+    package static var _keepsContentGeometry: Bool { true }
+
+    package func wrappedContentContext(_ context: RenderContext) -> RenderContext? { context }
+}
+
+/// Draws its content unchanged, at its own identity, so a removal transition
+/// written inside it plays — see `DrawsContentUnchanged`.
+extension _LabelledControlRow: DrawsContentUnchanged {}

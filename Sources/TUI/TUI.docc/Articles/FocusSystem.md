@@ -193,6 +193,10 @@ clicks.
   you click or press Space or Return. Only a move of the pointer moves the
   cursor: rows the wheel or the keys scroll under a pointer at rest leave it
   where it was.
+- **A control's label counts as the control.** Moving onto the label of a
+  `Slider`, a `Stepper`, a `Picker`, a `DatePicker`, a `ColorPicker`, a
+  `Toggle` or a `LabeledContent`, beside it or in a form's label column,
+  focuses the control.
 - **The menu bar is not a focus stop.** Passing over a closed menu's title
   opens nothing, as on a Mac; a click or F10 opens it. While a menu is open,
   moving onto another title opens that menu, and moving onto an item lights it.

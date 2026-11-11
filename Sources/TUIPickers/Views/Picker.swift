@@ -209,28 +209,34 @@ public struct Picker<Label: View, SelectionValue: Hashable, Content: View> {
                 Text(verbatim: "—").foregroundStyle(.palette.foregroundTertiary)
             }
         } else if style.resolvesToSegments {
-            HStack(alignment: .top, spacing: 0) {
-                _CollapsingLabel(label: label, controlDisabled: isDisabled)
-                _PickerSegmentsCore(
-                    entries: entries, selection: selection, isPalette: style is PalettePickerStyle,
-                    focusID: focusID, isDisabled: isDisabled, isMixed: isMixed)
+            _LabelledControlRow {
+                HStack(alignment: .top, spacing: 0) {
+                    _CollapsingLabel(label: label, controlDisabled: isDisabled)
+                    _PickerSegmentsCore(
+                        entries: entries, selection: selection, isPalette: style is PalettePickerStyle,
+                        focusID: focusID, isDisabled: isDisabled, isMixed: isMixed)
+                }
             }
         } else if style.resolvesToMenu {
-            HStack(alignment: .top, spacing: 0) {
-                _CollapsingLabel(label: label, controlDisabled: isDisabled)
-                _PickerMenuCore(
-                    entries: entries,
-                    selection: selection,
-                    focusID: focusID,
-                    isDisabled: isDisabled,
-                    currentValueLabel: currentValueLabel,
-                    isMixed: isMixed
-                )
+            _LabelledControlRow {
+                HStack(alignment: .top, spacing: 0) {
+                    _CollapsingLabel(label: label, controlDisabled: isDisabled)
+                    _PickerMenuCore(
+                        entries: entries,
+                        selection: selection,
+                        focusID: focusID,
+                        isDisabled: isDisabled,
+                        currentValueLabel: currentValueLabel,
+                        isMixed: isMixed
+                    )
+                }
             }
         } else {
-            HStack(alignment: .top, spacing: 0) {
-                _CollapsingLabel(label: label, controlDisabled: isDisabled)
-                radioGroup(entries: entries, horizontal: horizontal)
+            _LabelledControlRow {
+                HStack(alignment: .top, spacing: 0) {
+                    _CollapsingLabel(label: label, controlDisabled: isDisabled)
+                    radioGroup(entries: entries, horizontal: horizontal)
+                }
             }
         }
     }

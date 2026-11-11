@@ -132,19 +132,21 @@ nonisolated public struct Stepper<Label: View>: View {
         // leading space ("◀ 5 ▶"). The control's mouse regions are offset by the
         // composing HStack. `controlKind` lets the label resolve
         // `.style(.control(.stepper))` like the value.
-        HStack(spacing: 0) {
-            _CollapsingLabel(label: label, controlDisabled: isDisabled)
-            _StepperCore(
-                display: display,
-                boundsWidth: boundsWidth,
-                makeHandler: makeHandler,
-                syncValue: syncValue,
-                onIncrement: onIncrement,
-                onDecrement: onDecrement,
-                focusID: focusID,
-                isDisabled: isDisabled,
-                onEditingChanged: onEditingChanged
-            )
+        _LabelledControlRow {
+            HStack(spacing: 0) {
+                _CollapsingLabel(label: label, controlDisabled: isDisabled)
+                _StepperCore(
+                    display: display,
+                    boundsWidth: boundsWidth,
+                    makeHandler: makeHandler,
+                    syncValue: syncValue,
+                    onIncrement: onIncrement,
+                    onDecrement: onDecrement,
+                    focusID: focusID,
+                    isDisabled: isDisabled,
+                    onEditingChanged: onEditingChanged
+                )
+            }
         }
         .environment(\.controlKind, .stepper)
     }

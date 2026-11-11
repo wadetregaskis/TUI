@@ -142,35 +142,37 @@ nonisolated public struct Slider<Label: View, ValueLabel: View>: View {
         // sitting between the ▶ and it: the read-out is drawn by the core.
         // Top-aligned, so a slider with ticks — whose core is taller than its
         // row — keeps its labels on the track's row.
-        HStack(alignment: .top, spacing: 0) {
-            _CollapsingLabel(label: label, controlDisabled: isDisabled)
-            // An `EmptyView` value label — what SwiftUI's newer initialisers
-            // default to — takes no cell, padding included.
-            if let minimumValueLabel, !(minimumValueLabel is EmptyView) {
-                minimumValueLabel.padding(.trailing, 1)
-            }
-            let core = _SliderCore(
-                value: value,
-                bounds: bounds,
-                step: step,
-                trackStyle: trackStyle,
-                focusID: focusID,
-                isDisabled: isDisabled,
-                onEditingChanged: onEditingChanged,
-                neutralValue: neutralValue,
-                enabledBounds: enabledBounds,
-                ticks: ticks
-            )
-            // The app's description of the value stands where the read-out
-            // would, and the read-out steps aside for it.
-            if let currentValueLabel {
-                core.environment(\.sliderShowsValue, false)
-                currentValueLabel.padding(.leading, 1)
-            } else {
-                core
-            }
-            if let maximumValueLabel, !(maximumValueLabel is EmptyView) {
-                maximumValueLabel.padding(.leading, 1)
+        _LabelledControlRow {
+            HStack(alignment: .top, spacing: 0) {
+                _CollapsingLabel(label: label, controlDisabled: isDisabled)
+                // An `EmptyView` value label — what SwiftUI's newer initialisers
+                // default to — takes no cell, padding included.
+                if let minimumValueLabel, !(minimumValueLabel is EmptyView) {
+                    minimumValueLabel.padding(.trailing, 1)
+                }
+                let core = _SliderCore(
+                    value: value,
+                    bounds: bounds,
+                    step: step,
+                    trackStyle: trackStyle,
+                    focusID: focusID,
+                    isDisabled: isDisabled,
+                    onEditingChanged: onEditingChanged,
+                    neutralValue: neutralValue,
+                    enabledBounds: enabledBounds,
+                    ticks: ticks
+                )
+                // The app's description of the value stands where the read-out
+                // would, and the read-out steps aside for it.
+                if let currentValueLabel {
+                    core.environment(\.sliderShowsValue, false)
+                    currentValueLabel.padding(.leading, 1)
+                } else {
+                    core
+                }
+                if let maximumValueLabel, !(maximumValueLabel is EmptyView) {
+                    maximumValueLabel.padding(.leading, 1)
+                }
             }
         }
         .environment(\.controlKind, .slider)

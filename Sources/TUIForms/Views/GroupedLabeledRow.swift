@@ -19,8 +19,10 @@ struct _GroupedLabeledRow: View {
     let label: AnyView
     let content: AnyView
 
+    /// The label and the control as one place the pointer finds the control
+    /// (`_LabelledControlRow`).
     var body: some View {
-        _GroupedLabeledRowCore(label: label, content: content)
+        _LabelledControlRow { _GroupedLabeledRowCore(label: label, content: content) }
     }
 }
 

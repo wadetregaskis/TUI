@@ -592,7 +592,13 @@ private struct _FormFieldRow: View {
     @Environment(\.labeledContentStyleChain) private var styles
     @Environment(\.labeledContentPlacement) private var placement
 
-    @ViewBuilder var body: some View {
+    /// The label and the control as one place the pointer finds the control
+    /// (`_LabelledControlRow`), across the label column.
+    var body: some View {
+        _LabelledControlRow { row }
+    }
+
+    @ViewBuilder private var row: some View {
         if !styles.isRoot {
             _StyledLabeledContent(
                 configuration: LabeledContentStyleConfiguration(label: label, content: content))

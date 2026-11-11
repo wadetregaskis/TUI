@@ -93,12 +93,14 @@ struct _DatePickerField: View {
         // same "label, one separating space, or nothing at all" unit `Picker`,
         // `Slider` and `Stepper` use, and it is where `.labelsHidden()` is
         // honoured. Spacing 0 because the unit carries its own space.
-        HStack(spacing: 0) {
-            _CollapsingLabel(label: configuration.label, controlDisabled: isDisabled)
-            _DatePickerCore(
-                selection: configuration.$selection, range: configuration.range,
-                displayedComponents: configuration.displayedComponents, focusID: focusID,
-                isDisabled: isDisabled, isStepperField: isStepperField, onActivate: onActivate)
+        _LabelledControlRow {
+            HStack(spacing: 0) {
+                _CollapsingLabel(label: configuration.label, controlDisabled: isDisabled)
+                _DatePickerCore(
+                    selection: configuration.$selection, range: configuration.range,
+                    displayedComponents: configuration.displayedComponents, focusID: focusID,
+                    isDisabled: isDisabled, isStepperField: isStepperField, onActivate: onActivate)
+            }
         }
     }
 }

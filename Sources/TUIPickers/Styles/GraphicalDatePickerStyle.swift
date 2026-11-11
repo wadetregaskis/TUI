@@ -48,17 +48,21 @@ struct _GraphicalDatePicker: View {
 
     var body: some View {
         let components = configuration.displayedComponents
-        VStack(alignment: .leading, spacing: 0) {
-            _CollapsingLabel(label: configuration.label, controlDisabled: isDisabled)
-            if components.contains(.date) {
-                _DatePickerCalendarCore(
-                    selection: configuration.$selection, range: configuration.range,
-                    focusID: focusID, isDisabled: isDisabled)
-            }
-            if components.contains(.hourAndMinute) {
-                _DatePickerCore(
-                    selection: configuration.$selection, range: configuration.range,
-                    displayedComponents: .hourAndMinute, focusID: nil, isDisabled: isDisabled)
+        // The label names the calendar, or the time where there is none
+        // (`_LabelledControlRow`).
+        _LabelledControlRow {
+            VStack(alignment: .leading, spacing: 0) {
+                _CollapsingLabel(label: configuration.label, controlDisabled: isDisabled)
+                if components.contains(.date) {
+                    _DatePickerCalendarCore(
+                        selection: configuration.$selection, range: configuration.range,
+                        focusID: focusID, isDisabled: isDisabled)
+                }
+                if components.contains(.hourAndMinute) {
+                    _DatePickerCore(
+                        selection: configuration.$selection, range: configuration.range,
+                        displayedComponents: .hourAndMinute, focusID: nil, isDisabled: isDisabled)
+                }
             }
         }
     }

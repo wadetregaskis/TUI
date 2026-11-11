@@ -19,8 +19,10 @@ extension MouseEventDispatcher {
     ///
     /// The control is the innermost region under the pointer that carries a
     /// focus id: a `Button`'s, a `TextField`'s, a `List`'s, whatever a click
-    /// there would focus. A region with none — a label, a backdrop — is looked
-    /// through to the one behind it, which the focus manager then judges.
+    /// there would focus — or names one: a control's label names its control
+    /// (``filePointerFocusName(_:for:in:)``). A region with neither — a
+    /// backdrop, a row's text — is looked through to the one behind it, which
+    /// the focus manager then judges.
     /// Never while a drag is under way: a held button's moves arrive as drags,
     /// not here, and a drag the keyboard carries is steered by the keys.
     ///
@@ -36,13 +38,16 @@ extension MouseEventDispatcher {
     func focusFollowingPointer(_ event: MouseEvent, movedCell: Bool) -> Bool {
         guard movedCell, let focusManager = pointerFocusManager else { return false }
         if let session = dragAndDropSession, session.carry != nil || session.active != nil { return false }
-        guard let region = matchingRegions(at: event.x, y: event.y).first(where: { $0.focusID != nil }),
-            let focusID = region.focusID
+        // A region naming a control without being it (a label) counts as the
+        // control (``filePointerFocusName(_:for:in:)``).
+        guard let region = matchingRegions(at: event.x, y: event.y).first(where: {
+            $0.focusID != nil || pointerFocusNames[$0.handlerID] != nil
+        }), let focusID = region.focusID ?? pointerFocusNames[region.handlerID]
         else {
             return false
         }
         let moved = focusManager.focusFollowingPointer(id: focusID)
-        guard let follow = pointerFocusFollowers[region.handlerID],
+        guard region.focusID != nil, let follow = pointerFocusFollowers[region.handlerID],
             focusManager.currentFocusedID == focusID, !focusManager.activeSectionIsMenu
         else { return moved }
         let local = localize(event, byOffsetX: region.localOriginX, offsetY: region.localOriginY)
@@ -73,4 +78,28 @@ extension MouseEventDispatcher {
 
     /// The journal kind of a pointer focus follower's filing.
     static let pointerFocusFollowerKind = EffectJournal.Kind("pointerFocusFollower")
+
+    /// Files the region `id` names as naming the control answering to
+    /// `focusID`, for the focus following the pointer alone: a move onto it
+    /// offers that control the focus, as a move onto the control would. A
+    /// control's label (`_LabelledControlRow`), whose region carries no focus
+    /// id of its own, so the control's own region is still the first with its
+    /// id, where a reveal and the text cursor go; and a hover observer, so
+    /// presses and the hover go on to what is behind it. Filed every frame, as
+    /// the region is, and replayed with it when a memo serves the label.
+    @MainActor
+    package func filePointerFocusName(_ focusID: String, for id: HitTestRegion.HandlerID, in context: RenderContext) {
+        guard !context.isMeasuring else { return }
+        pointerFocusNames[id] = focusID
+        context.environment.volatileReadTracker?.recordReplayableEffect()
+        guard let journal = context.recordingEffectJournal else { return }
+        let token = context.environment.keyChannelToken
+        journal.append(
+            EffectJournal.Entry(kind: Self.pointerFocusNameKind, channelToken: token) { replay in
+                replay.environment.mouseEventDispatcher?.pointerFocusNames[id] = focusID
+            })
+    }
+
+    /// The journal kind of a pointer focus name's filing.
+    static let pointerFocusNameKind = EffectJournal.Kind("pointerFocusName")
 }
