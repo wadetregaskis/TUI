@@ -131,7 +131,7 @@ Password ▐                                     ▌
 
 The fields have an empty title because the `LabeledContent` names them. A toggle and a button carry their own labels, so they don't need one. A `Picker`, `Slider`, `Stepper` or `DatePicker` written directly in a form puts its own title in the label column.
 
-For the look of a grouped settings screen, with a border around each section, add `.formStyle(.grouped)`.
+For the look of a grouped settings screen, with a border around each section, add `.formStyle(.grouped)`. A grouped form is a scroll view, as SwiftUI's is: it fills the space it's given, and when its sections are taller than that, the wheel and Page Up and Page Down scroll it, and Tab scrolls the control it moves to into view. The default columns form doesn't scroll, as SwiftUI's doesn't, so put a tall one in a `ScrollView`.
 
 ## Checking what people type
 

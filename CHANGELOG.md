@@ -15,6 +15,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A grouped `Form` scrolls, as SwiftUI's does.** A form in `.formStyle(.grouped)` taller than its space was cut off, and
+Tab could move the focus onto a control below the window, out of sight. It is a scroll view now, as SwiftUI's is on
+macOS: the wheel and the Page Up, Page Down, Home and End keys the focused control leaves scroll it, and Tab scrolls
+the control it lands on into view. Like SwiftUI's, it fills the space it is offered rather than hugging its sections,
+its sections spanning its width, so views below it in a stack move to the bottom, and the scroll modifiers written on it (`.scrollIndicators`,
+`.scrollPosition`, `.contentMargins` and the rest) apply to it. A columns form, the default, still does not scroll,
+as SwiftUI's does not.
+
 **Under `TUI_PLAIN_TEXT`, a scrollbar's thumb is solid.** Its ends, drawn to an eighth of a cell, were `#`s in the
 groove's colour; every cell the thumb touches is now a whole cell of it. And the gradient editor's dashed rule is
 `- - -`, where it was solid.

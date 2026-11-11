@@ -194,7 +194,7 @@ nonisolated public struct ScrollView<Content: View>: View {
     /// of walking them. Not `.focusable(false)`, which takes the content out of
     /// the ring with it. The wheel still scrolls it; it answers the pointer,
     /// not the focus.
-    func withoutFocusStop() -> ScrollView<Content> {
+    package func withoutFocusStop() -> ScrollView<Content> {
         var copy = self
         copy.isFocusStop = false
         return copy

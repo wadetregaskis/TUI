@@ -23,6 +23,11 @@ import TUIFoundation
 ///   each field row spread across it as SwiftUI's are: the label at the leading
 ///   edge, a fixed value at the trailing edge, a field or a slider from 45% of
 ///   the row, and a toggle's checkbox at the trailing edge, its label leading.
+///   A grouped form is a scroll view, as SwiftUI's is on macOS: it fills the
+///   space it is offered, scrolls by the wheel and by the paging keys the
+///   focused control leaves, and scrolls a control the focus moves to into
+///   view. A columns form does not scroll, as SwiftUI's does not; put it in a
+///   ``ScrollView`` to scroll it.
 ///
 /// Row kinds follow macOS conventions:
 ///
@@ -67,7 +72,7 @@ nonisolated public struct Form<Content: View>: View {
     }
 
     @MainActor public var body: some View {
-        _FormLayout(content: content)
+        _FormScroller(content: _FormLayout(content: content))
             .paintingScrollContentBackground()
     }
 }
@@ -372,8 +377,8 @@ private func groupView(branch: String?, spacing: Int, @ViewBuilder _ elements: (
 
 /// Grouped layout for one element: a section is a bordered box (its title bold
 /// above it); a bare row renders as-is. Every section box is framed to the same
-/// `contentWidth` (the form's widest row) so the boxes' right borders line up
-/// vertically, and a button sits at its row's leading edge, as SwiftUI's
+/// `contentWidth` (the form's widest row, or the width it fills) so the boxes'
+/// right borders line up vertically, and a button sits at its row's leading edge, as SwiftUI's
 /// grouped form puts one (measured).
 @MainActor @ViewBuilder
 private func groupedElementView(_ element: _FormElement, pillar: Int, contentWidth: Int) -> some View {
@@ -468,7 +473,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         measureContext.hasExplicitWidth = false
         if let width = proposal.width { measureContext.availableWidth = width }
         if let height = proposal.height { measureContext.availableHeight = height }
-        guard let composed = composedColumn(context: measureContext) else {
+        guard let composed = composedColumn(context: measureContext, fillsWidth: proposal.width != nil) else {
             // A custom style renders itself through `makeBuffer`, and there is
             // nothing structural here to measure.
             return measureFixedByRendering(self, proposal: proposal, context: context)
@@ -478,7 +483,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        guard let composed = composedColumn(context: context) else {
+        guard let composed = composedColumn(context: context, fillsWidth: true) else {
             // Custom style: hand it the (type-erased) content to render itself.
             // The body sees the style outside this one, so a `Form(configuration)`
             // in it lays the form out as that style would.
@@ -496,7 +501,7 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
     /// One function so the measure and the render cannot compose different
     /// trees — the pillar and the content width are derived here, and both
     /// callers get the same answer for the same context.
-    private func composedColumn(context: RenderContext) -> AnyView? {
+    private func composedColumn(context: RenderContext, fillsWidth: Bool) -> AnyView? {
         let style = context.environment.formStyle
         let grouped: Bool
         if style is GroupedFormStyle {
@@ -524,6 +529,12 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
                 contentWidth = self.contentWidth(of: elements, pillar: pillar, context: context)
             }
         }
+        // A grouped form fills the width it is laid out at, being a scroll
+        // view, and its sections span it, as SwiftUI's do: each box is its
+        // rows' width, a cell of padding and a border each side. Asked for its
+        // ideal width it hugs its widest row, so a parent that sizes to fit
+        // lays it out at that.
+        if grouped, fillsWidth { contentWidth = max(contentWidth, context.availableWidth - 4) }
 
         let column = VStack(alignment: .leading, spacing: grouped ? 1 : 0) {
             ForEach(_indexed(elements)) { entry in
@@ -536,20 +547,10 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
                 }
             }
         }
-        // A grouped form is a scroll view on macOS, and takes `contentMargins`
-        // as one does (measured): around its sections, and not passed on to
-        // them. TUI's form does not scroll, so they are its padding. A
-        // columns form ignores them, as macOS's does.
-        let margins = context.environment.contentMargins
-        if grouped, !margins.isEmpty, !margins.content.isZero {
-            return AnyView(
-                column
-                    .environment(\.labeledContentPlacement, .groupedFormRow)
-                    .transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
-                    .padding(margins.content))
-        }
         // A grouped form's labelled rows spread across it, its own and any
-        // `LabeledContent` drawn in one (`_GroupedLabeledRow`).
+        // `LabeledContent` drawn in one (`_GroupedLabeledRow`). Its scroll
+        // view, and the `contentMargins` that scroll view takes, are
+        // `_FormScroller`'s, around this layout.
         if grouped { return AnyView(column.environment(\.labeledContentPlacement, .groupedFormRow)) }
         return AnyView(column)
     }

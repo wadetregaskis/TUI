@@ -64,6 +64,9 @@ public struct ColumnsFormStyle: FormStyle, Equatable {
 /// is spread the same way: the label at the leading edge, the checkbox at the
 /// trailing one.
 ///
+/// A form in this style is a scroll view, as SwiftUI's is on macOS: it fills
+/// the space it is offered and scrolls what is taller (see ``Form``).
+///
 /// `Equatable` on the same terms as ``AutomaticFormStyle``, and this is the half
 /// that earns the cross-type comparison: replacing it with either of the others
 /// takes the section borders away.
