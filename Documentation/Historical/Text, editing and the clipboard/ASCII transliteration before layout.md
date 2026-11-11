@@ -228,7 +228,8 @@ pages in UTF-8, cell against cell. What was left, and what each became:
   `.background(in: Capsule())` keeps `#Tag#` (CAPSULE-TAG, open).
 - **A scrollbar's thumb** ends at an eighth of a cell in partial blocks, which were `#` in the groove's colour on the
   thumb's: a `#` at each end, and a thumb shorter than a cell a lone `#`. Where text is spelled in ASCII every cell
-  the thumb touches is a whole cell of it (`ScrollbarColors.wholeCells`), as without colour.
+  the thumb touches is a whole cell of it, as without colour: every bar, a scroll view's, a text editor's, a list's,
+  a table's and a menu's, its colours going through `ScrollbarColors.spelled(_:)`.
 - **A dashed rule**, the gradient editor's between its presets and its recents, was `-` in every cell, the look of
   the solid rule below it. It is `- - -` there. Chosen where drawn: one cell has no room for a dash and its gap.
 
@@ -244,6 +245,21 @@ pages in UTF-8, cell against cell. What was left, and what each became:
   carry (it carries colours), so every tick would render the view again where it now hands the run loop its frames.
   A swatch's `#` is drawn in its own colour on its own colour: it shows only where there is no colour, as the block
   it then has to be.
+
+**Cost**, measured over the five commits together, against the commit before them:
+
+- *Size.* The Example's release binary (`swift build -c release`, Xcode 26's Swift 6.2.4, then `strip`) is the same,
+  18,802,144 bytes; unstripped it is 80 bytes larger.
+- *Without the variable* a page sends the terminal the same bytes: identical output, byte for byte, from the
+  Containers, Buttons, Shapes and Tables pages in their first four seconds (the Scroll View and Progress pages
+  animate, and differ from run to run whichever binary). The choices made where drawn ask `textSpelling`, which is
+  `asWritten` there. A Stress A/B (`ab_bench.py`, cpu per frame, ten reps, a busy machine) of `controls`,
+  `scrollfollow`, `tables-scroll`, `menus`, `framedcolumns`, `sheetrows` and `pickers`: five indistinguishable,
+  `tables-scroll` 1.3% faster and `pickers` 1.0% slower (95% interval +0.5% to +1.3%), noise of the size the same
+  build shows run to run.
+- *Under `transliterate`* the Buttons page sends 120 bytes fewer (16,451 against 16,571: the large faces' quadrant
+  corners and their colours), Shapes 10 fewer, Containers and Tables as many; the same A/B with the variable set
+  found all seven indistinguishable.
 
 ## Limits left
 

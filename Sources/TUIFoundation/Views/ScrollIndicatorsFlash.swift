@@ -129,7 +129,12 @@ extension ScrollbarColors {
             Self.separated(
                 Color.lerp(color, peak, phase: strength), in: palette, standingOffThePage: false)
         }
-        return Self(thumb: toward(thumb), track: track, arrow: toward(arrow), hover: hover)
+        // A copy, so what the bar is drawn as without colour and in ASCII
+        // (`thumbWithoutColor`, `wholeCells`) flashes as it rests.
+        var lit = Self(thumb: toward(thumb), track: track, arrow: toward(arrow), hover: hover)
+        lit.thumbWithoutColor = thumbWithoutColor
+        lit.wholeCells = wholeCells
+        return lit
     }
 
     /// ``resting(in:)``, lit by a flash of `flash` when there is one.

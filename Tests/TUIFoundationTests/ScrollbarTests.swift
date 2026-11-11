@@ -114,6 +114,11 @@ struct ScrollbarTests {
         }
         #expect(ScrollbarColors.focusIndicating(isFocused: false, context: context).wholeCells)
         #expect(!ScrollbarColors.focusIndicating(isFocused: false, context: makeRenderContext(width: 10, height: 4)).wholeCells)
+        // A list's, a table's and a menu's bar rest in these colours, and a
+        // flash keeps what the bar is drawn as.
+        let palette = context.environment.palette
+        let resting = ScrollbarColors.resting(in: palette).spelled(context.textSpelling)
+        #expect(resting.wholeCells && resting.flashing(0.5, in: palette).wholeCells)
     }
 
     @Test("The thumb is at least one whole cell")

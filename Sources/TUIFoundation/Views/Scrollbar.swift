@@ -515,6 +515,18 @@ package struct ScrollbarColors {
     /// each end than it says.
     var wholeCells = false
 
+    /// These colours with ``wholeCells`` as `spelling` has it: whole where text
+    /// is spelled in ASCII. What every bar's colours go through, the resting
+    /// ones a list, a table or a menu draws as much as a scroll view's.
+    ///
+    /// Not part of a bar memo's key (`ScrollbarMemo.Key`): the spelling is the
+    /// root's, written once for the life of the app.
+    package func spelled(_ spelling: TextSpelling) -> Self {
+        var colors = self
+        colors.wholeCells = spelling.isASCII
+        return colors
+    }
+
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and TUILists and TUITables make these, for the lists'
     /// and tables' scrollbars.
@@ -588,8 +600,7 @@ package struct ScrollbarColors {
                 track: Self.track(in: palette),
                 arrow: Self.track(in: palette))
             pinned.thumbWithoutColor = .pinned
-            pinned.wholeCells = context.textSpelling.isASCII
-            return pinned
+            return pinned.spelled(context.textSpelling)
         }
         guard isFocused else {
             var resting = Self(
@@ -600,8 +611,7 @@ package struct ScrollbarColors {
                     ($0, palette.hoveredForeground(palette.foregroundSecondary))
                 })
             if !context.environment.isEnabled { resting.thumbWithoutColor = .pinned }
-            resting.wholeCells = context.textSpelling.isASCII
-            return resting
+            return resting.spelled(context.textSpelling)
         }
         // The cycle, not the live phase: building it reads no clock, so a
         // focused bar no longer forces a full re-render on every tick. The
@@ -624,8 +634,7 @@ package struct ScrollbarColors {
             arrow: now,
             hover: hoveredCell.map { ($0, palette.hoveredForeground(now)) })
         focused.thumbWithoutColor = .focused
-        focused.wholeCells = context.textSpelling.isASCII
-        return focused
+        return focused.spelled(context.textSpelling)
     }
 
     /// The far end of the focused bar's breath: the accent LIFTED, away from

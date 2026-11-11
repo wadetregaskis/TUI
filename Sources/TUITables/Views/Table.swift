@@ -2129,7 +2129,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             offset: metrics.offset,
             arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context)),
+            colors: .resting(in: palette, flash: handler.indicatorFlash.strength(context: context))
+                .spelled(context.textSpelling),
             width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
     }
 
