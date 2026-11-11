@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**The Example keeps its palette and control style.** The palette chosen in View ▸ Palette, on the Theme page or with
+⇧F2, and the control style, are the ones the next launch starts in, kept with `@AppStorage` as an app keeps its own
+choices. An edit of a single colour lasts the run.
+
 **`TUI_BREATHING=1`, `TUI_KEY_SYMBOLS=1` and `TUI_ARROW_FOCUS=tab` undo a kept setting for one launch.** Each
 variable said only one thing, so a still focus, keys spelled out or Arrows Follow Layout kept in the settings panel could
 not be undone for one run; now each says the other too, and wins over what is kept, as `TUI_REDUCE_MOTION=0` does.

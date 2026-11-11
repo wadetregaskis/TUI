@@ -125,8 +125,9 @@ Built as described. Not done, and why:
   `TUI_KEY_SYMBOLS=1` and `TUI_ARROW_FOCUS=tab` say the other way (ENV-EITHER-WAY, the owner's decisions of 2026-11-08,
   2026-11-10 section).
 - The Example holds its palette and control style in its own state, so TUI does not keep them for it (the ruling's
-  "code wins"); whether TUI should restore a saved choice through the bindings a program hands `DisplayCommands` is put
-  to the owner.
+  "code wins"). Decided the next day: TUI does not restore a choice through the bindings a program hands
+  `DisplayCommands`; the Example keeps its own with `@AppStorage`, as any app keeps what it holds (EXAMPLE-KEEPS, the
+  owner's decisions of 2026-11-08, 2026-11-10 section).
 
 ## For a future reader
 

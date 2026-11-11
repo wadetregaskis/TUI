@@ -10,12 +10,13 @@
 // Only where the package can depend on the app (see Package.swift).
 #if canImport(Example)
 
+import Foundation
 import Testing
 
 @testable import Example
 import TUI
 @testable import TUIFoundation
-import TUITesting
+@testable import TUITesting
 
 @MainActor
 @Suite("The Example's menu bar", .serialized)
@@ -102,6 +103,32 @@ struct ExampleMenuBarTests {
         _ = try submenu(row: 1, choosing: 3, in: app)
         let borders = try submenu(row: 1, choosing: nil, in: app)
         #expect(borders.contains { $0.contains("✓") && $0.contains("Heavy") }, "the manager's border: \(borders)")
+    }
+
+    /// The Example keeps its palette and control style with `@AppStorage`
+    /// (the owner, 2026-11-10): TUI keeps only the choices it holds itself,
+    /// and these the app holds.
+    @Test("The palette and control style chosen in View are the ones the next launch starts in")
+    func paletteAndControlStyleKept() throws {
+        let folder = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "example-kept-\(UUID().uuidString)", isDirectory: true)
+        let store = JSONFileStorage(fileURL: folder.appendingPathComponent("settings.json"))
+        func launchedKeeping() -> TestApp {
+            let app = launched()
+            app.headless.configureEnvironment { $0.defaultAppStorage = DefaultAppStorage(store) }
+            app.press(.escape)
+            return app
+        }
+        let amber = PaletteRegistry.all[1].name
+        let first = launchedKeeping()
+        _ = try submenu(row: 0, choosing: 1, in: first)
+        _ = try submenu(row: 2, choosing: 2, in: first)
+
+        let next = launchedKeeping()
+        let palettes = try submenu(row: 0, choosing: nil, in: next)
+        #expect(palettes.contains { $0.contains("✓") && $0.contains(amber) }, "the palette kept: \(palettes)")
+        let styles = try submenu(row: 2, choosing: nil, in: next)
+        #expect(styles.contains { $0.contains("✓") && $0.contains("Lines") }, "the control style kept: \(styles)")
     }
 
     @Test("Every control-style picker offers Thick Braille, two dots thick, as the appearances do")
