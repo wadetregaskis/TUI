@@ -199,20 +199,32 @@ extension _AnyTransitionBox {
     /// `content` with every animatable value interpolated — see
     /// ``TransitionScrub``. A scrub already installed (a transition drawn
     /// inside another's departing picture) is put back afterwards.
+    ///
+    /// A removal that interrupted the view's arrival `arrived` of the way
+    /// (`arrived < 1`, from `.didDisappear`) is recorded at `.willAppear` as
+    /// well, and each value is drawn from where the arrival has it towards
+    /// the removal's end (``TransitionScrub/Mode/drawLeaving(presence:arrived:)``),
+    /// as an effect's is (`AnyTransition.Effect.leaving`).
     @MainActor
     func render(
-        presence: Double, from end: TransitionPhase, content: PlaceholderSource,
+        presence: Double, arrived: Double = 1, from end: TransitionPhase, content: PlaceholderSource,
         recordingAround blank: PlaceholderSource, context: RenderContext
     ) -> FrameBuffer {
-        guard presence != 1, let store = context.stateStorage?.animations else {
+        let interrupted = arrived < 1 && end == .didDisappear
+        guard presence != 1 || interrupted, let store = context.stateStorage?.animations else {
             return render(phase: .identity, content: content, context: context)
         }
         let scrub = TransitionScrub()
         let enclosing = store.scrub
         store.scrub = scrub
         defer { store.scrub = enclosing }
+        if interrupted {
+            scrub.mode = .recordArrival
+            _ = render(phase: .willAppear, content: blank, context: context)
+            scrub.mode = .record
+        }
         _ = render(phase: end, content: blank, context: context)
-        scrub.mode = .draw(presence: presence)
+        scrub.mode = interrupted ? .drawLeaving(presence: presence, arrived: arrived) : .draw(presence: presence)
         return render(phase: .identity, content: content, context: context)
     }
 }

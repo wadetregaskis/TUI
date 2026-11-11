@@ -206,8 +206,8 @@ CubicKeyframe.init(_:duration:startVelocity:endVelocity:) | init(_ to: Value, du
 DepartureStore.Departure | struct Departure
 DepartureStore.Departure.explicitAnimation | let explicitAnimation: Animation??
 DepartureStore.Departure.height | let height: Int
-DepartureStore.Departure.init(viewType:width:height:explicitAnimation:render:) | init(viewType: any Any.Type, width: Int, height: Int, explicitAnimation: Animation??, render: @escaping (Double) -> FrameBuffer)
-DepartureStore.Departure.render | let render: (Double) -> FrameBuffer
+DepartureStore.Departure.init(viewType:width:height:explicitAnimation:render:) | init(viewType: any Any.Type, width: Int, height: Int, explicitAnimation: Animation??, render: @escaping (Double, Int64) -> FrameBuffer)
+DepartureStore.Departure.render | let render: (Double, Int64) -> FrameBuffer
 DepartureStore.Departure.viewType | let viewType: ObjectIdentifier
 DepartureStore.Departure.width | let width: Int
 DepartureStore.beginRenderPass() | func beginRenderPass()

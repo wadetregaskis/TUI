@@ -38,9 +38,18 @@ package final class TransitionScrub {
     package enum Mode {
         /// Noting the end phase's values.
         case record
+        /// Noting the values of the phase a view was arriving from, for a
+        /// removal that interrupted its arrival: recorded before the end
+        /// phase, the removal's.
+        case recordArrival
         /// Drawing at `.identity`, `presence` of the way from the end phase.
         /// Above 1 while a spring overshoots, which extrapolates.
         case draw(presence: Double)
+        /// Drawing a removal that interrupted an arrival `arrived` of the way:
+        /// each value where the arrival has it, taken `1 − presence` of the
+        /// way to the end phase's — SwiftUI's arithmetic for a transition a
+        /// later change reverses (``TransitionClock``).
+        case drawLeaving(presence: Double, arrived: Double)
     }
 
     /// The pass being drawn.
@@ -49,6 +58,10 @@ package final class TransitionScrub {
     /// The end phase's values, by the key the store would have filed them
     /// under. Type-erased for the reason the store's records are.
     private var ends: [AnimationStore.Key: Any] = [:]
+
+    /// The values of the phase the view was arriving from, where a removal
+    /// interrupted its arrival (``Mode/recordArrival``).
+    private var starts: [AnimationStore.Key: Any] = [:]
 
     /// Where the draw pass has drawn a value part-way. What is below one of
     /// these was built FROM a part-way value — a modifier's body evaluated at
@@ -84,6 +97,20 @@ package final class TransitionScrub {
         case .record:
             ends[key] = target
             return target
+        case .recordArrival:
+            starts[key] = target
+            return target
+        case .drawLeaving(let presence, let arrived):
+            // As below, a value neither end phase produced is the rest
+            // value; one only one of them did is the rest value at the other.
+            let start = starts[key] as? D, end = ends[key] as? D
+            guard start != nil || end != nil,
+                !interpolatedAt.contains(where: { $0.isAncestor(of: key.identity) })
+            else { return target }
+            let arriving = (start ?? target).interpolated(towards: target, amount: arrived)
+            let drawn = (end ?? target).interpolated(towards: arriving, amount: presence)
+            if drawn != target { interpolatedAt.append(key.identity) }
+            return drawn
         case .draw(let presence):
             // A value the end phase did not produce — a modifier present at
             // one phase only — is drawn as the `.identity` render has it.

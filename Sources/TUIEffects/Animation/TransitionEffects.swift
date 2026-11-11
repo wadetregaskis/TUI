@@ -100,6 +100,85 @@ extension AnyTransition.Effect {
         }
     }
 
+    /// The view leaving, `presence` present on the way out, having arrived
+    /// `arrived` of the way by now: a removal that interrupted its arrival,
+    /// which runs on beneath it as SwiftUI's does (``TransitionClock``).
+    ///
+    /// SwiftUI takes each value a transition sets from wherever the arrival
+    /// has it to where the removal ends (measured,
+    /// `Tools/SwiftUIProbes/Transitions/tr5.out` T18 to T20), so for each
+    /// effect:
+    ///
+    /// - one the insertion and the removal both make — a symmetric
+    ///   transition's, or `.push`'s fade — is `arrived × presence` present:
+    ///   the arrival's value taken to the removal's end;
+    /// - one the removal alone makes starts from nothing, as it would have,
+    ///   and is `presence` present;
+    /// - one the insertion alone makes is taken from where the arrival has it
+    ///   to nothing, `1 − presence × (1 − arrived)` present.
+    ///
+    /// So `.push(from: .trailing)` removed 30% in carries on from 70% off the
+    /// trailing side towards the leading one, its fade from 0.3, where taking
+    /// the removal's own effect to the arrival's phase jumped it to 70% off the
+    /// leading side. A view that had arrived plays the removal as it is.
+    ///
+    /// Displacements add, as SwiftUI's offsets do, and are drawn once: the
+    /// insertion's and the removal's moves pull opposite ways, and drawing one
+    /// after the other would clip what the first pushed past the slot.
+    @MainActor
+    static func leaving(
+        _ buffer: FrameBuffer, insertion: Self, removal: Self, presence: Double, arrived: Double,
+        context: RenderContext
+    ) -> TransitionPicture {
+        guard arrived < 1 else { return removal.apply(to: buffer, phase: presence, context: context) }
+        guard insertion != removal else {
+            return removal.apply(to: buffer, phase: presence * arrived, context: context)
+        }
+        var insertionOnly = insertion.leaves
+        var steps: [(effect: Self, phase: Double)] = []
+        for leaf in removal.leaves {
+            if let shared = insertionOnly.firstIndex(of: leaf) {
+                insertionOnly.remove(at: shared)
+                steps.append((leaf, presence * arrived))
+            } else {
+                steps.append((leaf, presence))
+            }
+        }
+        let unwinding: Double = 1 - presence * (1 - arrived)
+        steps += insertionOnly.map { ($0, unwinding) }
+
+        var drawn = buffer
+        var (dx, dy) = (0, 0)
+        for (effect, phase) in steps {
+            let away = 1 - max(0, phase)
+            switch effect {
+            case .move(let edge):
+                switch edge {
+                case .leading: dx -= scaled(buffer.width, away)
+                case .trailing: dx += scaled(buffer.width, away)
+                case .top: dy -= scaled(buffer.height, away)
+                case .bottom: dy += scaled(buffer.height, away)
+                }
+            case .offset(let x, let y):
+                dx += scaled(x, away)
+                dy += scaled(y, away)
+            default:
+                drawn = effect.apply(to: drawn, phase: phase, context: context).buffer
+            }
+        }
+        return TransitionPicture(buffer: translated(drawn, dx: dx, dy: dy))
+    }
+
+    /// The effects this one is made of, in the order they apply, leaving out
+    /// any that does nothing.
+    private var leaves: [Self] {
+        switch self {
+        case .identity: []
+        case .combined(let first, let second): first.leaves + second.leaves
+        default: [self]
+        }
+    }
+
     /// The view moved by `(dx, dy)`: WITHIN its slot while it is arriving, and
     /// standing outside the slot once the spring has carried it past home.
     ///

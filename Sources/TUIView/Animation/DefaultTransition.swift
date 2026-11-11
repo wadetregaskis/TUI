@@ -48,8 +48,7 @@ struct OptionalPresence {
     /// Where the view drew it — the address a `nil` keeps a slot open at.
     var identity: ViewIdentity?
     /// The arrival in progress, if the view is still fading in.
-    var arrival: Animation?
-    var arrivalStartNanos: Int64 = 0
+    var arrival: TransitionClock?
     /// The render pass that last wrote the record (`StateStorage.currentPass`),
     /// which keeps it through the sweep.
     var pass: UInt32 = 0
@@ -239,8 +238,7 @@ extension StateStorage {
     ) -> Double {
         // Seen before, empty, and put there by an animated change: arriving.
         if record.seen, record.picture == nil, let animation, wasOnScreen(record.pass) {
-            record.arrival = animation
-            record.arrivalStartNanos = nowNanos
+            record.arrival = TransitionClock(animation: animation, startNanos: nowNanos)
         }
         record.picture = picture
         record.identity = identity
@@ -248,12 +246,11 @@ extension StateStorage {
         record.seen = true
         record.holds = true
         guard let arrival = record.arrival else { return 1 }
-        let elapsed = Double(nowNanos - record.arrivalStartNanos) / 1_000_000_000
-        guard !arrival.isFinished(at: elapsed) else {
+        guard !arrival.animation.isFinished(at: Double(nowNanos - arrival.startNanos) / 1_000_000_000) else {
             record.arrival = nil
             return 1
         }
-        return arrival.fraction(at: elapsed)
+        return arrival.fraction(at: nowNanos)
     }
 
     /// Records that the `if` at `scope` is empty. If it held a view that drew
@@ -341,15 +338,21 @@ extension StateStorage {
         if let frameAnimation, let identity = record.identity,
             !departures.hasEntry(at: identity, leftBy: pictureType), wasOnScreen(lastWritten)
         {
-            var arrived = 1.0
-            if let arrival = record.arrival {
-                arrived = min(1, max(0, arrival.fraction(at: Double(nowNanos - record.arrivalStartNanos) / 1_000_000_000)))
-            }
+            // A view removed while it was still fading in leaves from where
+            // its arrival has got by then, the arrival running on beneath the
+            // removal as SwiftUI's does (``TransitionClock``): it is
+            // `arrived × phase` present, not `phase` (the first frame of its
+            // removal popped it to full strength) nor its strength when it
+            // went times `phase`.
+            let arrival = record.arrival
             departures.beginDeparture(
                 DepartureStore.Departure(
                     viewType: pictureType, width: picture.width, height: picture.lines.count,
                     explicitAnimation: nil,
-                    render: { phase in DefaultTransition.faded(picture, by: phase * arrived) }),
+                    render: { phase, now in
+                        let arrived: Double = min(1, max(0, arrival?.fraction(at: now) ?? 1))
+                        return DefaultTransition.faded(picture, by: phase * arrived)
+                    }),
                 at: identity, animation: frameAnimation, nowNanos: nowNanos)
         }
         record.picture = nil

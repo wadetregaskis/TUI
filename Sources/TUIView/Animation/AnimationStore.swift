@@ -403,6 +403,15 @@ extension AnimationStore {
         return 0
     }
 
+    /// The arrival running at `key` (``arrivalPhase(for:animation:nowNanos:isMeasuring:)``):
+    /// its animation and when it began, or `nil` where the view has arrived
+    /// or arrived at once. What a removal that interrupts it carries on with
+    /// (``TransitionClock``). Reads only.
+    package func arrivalClock(at key: Key) -> TransitionClock? {
+        guard let record = records[key], let animation = record.animation else { return nil }
+        return TransitionClock(animation: animation, startNanos: record.startNanos)
+    }
+
     /// Reports an animation this pass started to the completions waiting on
     /// the change — a measure starts nothing.
     private func noteStarted(

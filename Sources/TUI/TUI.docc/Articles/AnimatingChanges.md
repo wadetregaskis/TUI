@@ -277,6 +277,13 @@ draws, though a modifier that draws nothing of its own, such as `.onAppear` or
 `.foregroundStyle`, may come after it: in a few shapes the removal fades rather
 than play the transition, and `View.transition(_:)` lists them.
 
+A change that reverses a transition part-way carries it on from where the view
+is, as SwiftUI's does: the animation it interrupted runs on, and the new one
+takes the view from wherever that has it. A view removed while it is still
+arriving keeps on towards its place for a moment, slowing, as the removal takes
+it out the way the removal goes — for `.push` and `.slide`, the other side,
+reached by crossing the slot rather than by jumping there.
+
 ## Springs
 
 ``Animation/spring(duration:bounce:blendDuration:)`` is a real damped oscillator, evaluated in

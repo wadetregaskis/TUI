@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A view removed part-way through its arrival leaves from where it is.** A `.push`, a `.slide` or any `asymmetric`
+transition whose removal goes the other way jumped to the far side on the first frame of its removal: 30% in, it went
+from 70% off the trailing side to 70% off the leading one. It now crosses its slot from where it was, its arrival
+running on beneath the removal as SwiftUI's does; a `.move`, an `.opacity` and an `if`'s default fade keep moving
+towards their place for a moment before they turn back, rather than turning at once.
+
 **A lazy stack's row leaving by its own transition no longer hides the row that took its place.** The row was
 drawn over the rows where it had been, blank cells and all, so under a row as wide as the stack, as a list's row
 with a spacer is, the row that moved up was hidden until the removal ended. Only the cells the leaving row paints

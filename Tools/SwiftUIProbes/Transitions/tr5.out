@@ -1,0 +1,133 @@
+move(edge: .trailing), inserted then removed at 30%
+  before: GREEN@(0,0 10x10)
+  t=0.00: GREEN@(0,0 10x10)
+  t=0.20: GREEN@(0,0 10x10)  RED@(182,10 200x100)
+  t=0.40: GREEN@(0,0 10x10)  RED@(162,10 200x100)
+  -- second change at 0.60
+  t=0.60: GREEN@(0,0 10x10)  RED@(142,10 200x100)
+  t=0.80: RED@(130,10 200x100)  GREEN@(0,0 10x10)
+  t=1.00: RED@(121,10 200x100)  GREEN@(0,0 10x10)
+  t=1.20: RED@(117,10 200x100)  GREEN@(0,0 10x10)
+  t=1.40: RED@(117,10 200x100)  GREEN@(0,0 10x10)
+  t=1.60: RED@(121,10 200x100)  GREEN@(0,0 10x10)
+  t=1.80: RED@(129,10 200x100)  GREEN@(0,0 10x10)
+  t=2.00: RED@(141,10 200x100)  GREEN@(0,0 10x10)
+  t=2.20: RED@(160,10 200x100)  GREEN@(0,0 10x10)
+  t=2.40: RED@(180,10 200x100)  GREEN@(0,0 10x10)
+  t=2.60: GREEN@(0,0 10x10)
+  t=2.80: GREEN@(0,0 10x10)
+  t=3.00: GREEN@(0,0 10x10)
+asymmetric(move .trailing, move .leading), inserted then removed at 30%
+  before: GREEN@(0,0 10x10)
+  t=0.00: GREEN@(0,0 10x10)
+  t=0.20: GREEN@(0,0 10x10)  RED@(182,10 200x100)
+  t=0.40: GREEN@(0,0 10x10)  RED@(162,10 200x100)
+  -- second change at 0.60
+  t=0.60: GREEN@(0,0 10x10)  RED@(142,10 200x100)
+  t=0.80: RED@(89,10 200x100)  GREEN@(0,0 10x10)
+  t=1.00: RED@(41,10 200x100)  GREEN@(0,0 10x10)
+  t=1.20: RED@(-3,10 200x100)  GREEN@(0,0 10x10)
+  t=1.40: RED@(-43,10 200x100)  GREEN@(0,0 10x10)
+  t=1.60: RED@(-79,10 200x100)  GREEN@(0,0 10x10)
+  t=1.80: RED@(-111,10 200x100)  GREEN@(0,0 10x10)
+  t=2.00: RED@(-140,10 200x100)  GREEN@(0,0 10x10)
+  t=2.20: RED@(-160,10 200x100)  GREEN@(0,0 10x10)
+  t=2.40: RED@(-180,10 200x100)  GREEN@(0,0 10x10)
+  t=2.60: GREEN@(0,0 10x10)
+  t=2.80: GREEN@(0,0 10x10)
+  t=3.00: GREEN@(0,0 10x10)
+push(from: .trailing), inserted then removed at 30%
+  before: GREEN@(0,0 10x10)
+  t=0.00: GREEN@(0,0 10x10)
+  t=0.20: GREEN@(0,0 10x10)  RED@(183,10 200x100) a0.08
+  t=0.40: GREEN@(0,0 10x10)  RED@(163,10 200x100) a0.18
+  -- second change at 0.60
+  t=0.60: RED@(139,10 200x100) a0.29  GREEN@(0,0 10x10)
+  t=0.80: RED@(91,10 200x100) a0.34  GREEN@(0,0 10x10)
+  t=1.00: RED@(43,10 200x100) a0.39  GREEN@(0,0 10x10)
+  t=1.20: RED@(-2,10 200x100) a0.41  GREEN@(0,0 10x10)
+  t=1.40: RED@(-42,10 200x100) a0.41  GREEN@(0,0 10x10)
+  t=1.60: RED@(-75,10 200x100) a0.39  GREEN@(0,0 10x10)
+  t=1.80: RED@(-111,10 200x100) a0.35  GREEN@(0,0 10x10)
+  t=2.00: RED@(-139,10 200x100) a0.29  GREEN@(0,0 10x10)
+  t=2.20: RED@(-160,10 200x100) a0.20  GREEN@(0,0 10x10)
+  t=2.40: RED@(-180,10 200x100) a0.10  GREEN@(0,0 10x10)
+  t=2.60: GREEN@(0,0 10x10)
+  t=2.80: GREEN@(0,0 10x10)
+  t=3.00: GREEN@(0,0 10x10)
+opacity, removed then inserted again at 30%
+  before: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.20: RED@(0,10 200x100) a0.91  GREEN@(0,0 10x10)
+  t=0.40: RED@(0,10 200x100) a0.81  GREEN@(0,0 10x10)
+  -- second change at 0.60
+  t=0.60: RED@(0,10 200x100) a0.71  GREEN@(0,0 10x10)
+  t=0.80: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.65
+  t=1.00: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.61
+  t=1.20: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.59
+  t=1.40: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.59
+  t=1.60: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.60
+  t=1.80: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.64
+  t=2.00: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.70
+  t=2.20: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.80
+  t=2.40: GREEN@(0,0 10x10)  RED@(0,10 200x100) a0.90
+  t=2.60: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=2.80: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=3.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+move(edge: .trailing), removed then inserted again at 30%
+  before: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.20: RED@(18,10 200x100)  GREEN@(0,0 10x10)
+  t=0.40: RED@(38,10 200x100)  GREEN@(0,0 10x10)
+  -- second change at 0.60
+  t=0.60: RED@(58,10 200x100)  GREEN@(0,0 10x10)
+  t=0.80: GREEN@(0,0 10x10)  RED@(70,10 200x100)
+  t=1.00: GREEN@(0,0 10x10)  RED@(79,10 200x100)
+  t=1.20: GREEN@(0,0 10x10)  RED@(83,10 200x100)
+  t=1.40: GREEN@(0,0 10x10)  RED@(83,10 200x100)
+  t=1.60: GREEN@(0,0 10x10)  RED@(79,10 200x100)
+  t=1.80: GREEN@(0,0 10x10)  RED@(72,10 200x100)
+  t=2.00: GREEN@(0,0 10x10)  RED@(59,10 200x100)
+  t=2.20: GREEN@(0,0 10x10)  RED@(40,10 200x100)
+  t=2.40: GREEN@(0,0 10x10)  RED@(20,10 200x100)
+  t=2.60: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=2.80: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=3.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+asymmetric(move .trailing, move .leading), removed then inserted again at 30%
+  before: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.20: RED@(-19,10 200x100)  GREEN@(0,0 10x10)
+  t=0.40: RED@(-38,10 200x100)  GREEN@(0,0 10x10)
+  -- second change at 0.60
+  t=0.60: RED@(-59,10 200x100)  GREEN@(0,0 10x10)
+  t=0.80: GREEN@(0,0 10x10)  RED@(-71,10 200x100)
+  t=1.00: GREEN@(0,0 10x10)  RED@(-79,10 200x100)
+  t=1.20: GREEN@(0,0 10x10)  RED@(-83,10 200x100)
+  t=1.40: GREEN@(0,0 10x10)  RED@(-83,10 200x100)
+  t=1.60: GREEN@(0,0 10x10)  RED@(-79,10 200x100)
+  t=1.80: GREEN@(0,0 10x10)  RED@(-71,10 200x100)
+  t=2.00: GREEN@(0,0 10x10)  RED@(-60,10 200x100)
+  t=2.20: GREEN@(0,0 10x10)  RED@(-40,10 200x100)
+  t=2.40: GREEN@(0,0 10x10)  RED@(-20,10 200x100)
+  t=2.60: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=2.80: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=3.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+push(from: .trailing), removed then inserted again at 30%
+  before: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=0.20: RED@(-18,10 200x100) a0.91  GREEN@(0,0 10x10)
+  t=0.40: RED@(-38,10 200x100) a0.81  GREEN@(0,0 10x10)
+  -- second change at 0.60
+  t=0.60: RED@(-58,10 200x100) a0.71  GREEN@(0,0 10x10)
+  t=0.80: GREEN@(0,0 10x10)  RED@(-71,10 200x100) a0.65
+  t=1.00: GREEN@(0,0 10x10)  RED@(-79,10 200x100) a0.61
+  t=1.20: GREEN@(0,0 10x10)  RED@(-83,10 200x100) a0.59
+  t=1.40: GREEN@(0,0 10x10)  RED@(-83,10 200x100) a0.58
+  t=1.60: GREEN@(0,0 10x10)  RED@(-79,10 200x100) a0.60
+  t=1.80: GREEN@(0,0 10x10)  RED@(-71,10 200x100) a0.64
+  t=2.00: GREEN@(0,0 10x10)  RED@(-60,10 200x100) a0.70
+  t=2.20: GREEN@(0,0 10x10)  RED@(-40,10 200x100) a0.80
+  t=2.40: GREEN@(0,0 10x10)  RED@(-20,10 200x100) a0.90
+  t=2.60: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=2.80: GREEN@(0,0 10x10)  RED@(0,10 200x100)
+  t=3.00: GREEN@(0,0 10x10)  RED@(0,10 200x100)

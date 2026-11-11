@@ -32,7 +32,7 @@ import TUICore
 ///
 /// The closure is why this type is here rather than beside `AnyTransition`: the
 /// hosts live in this module and the transitions live above it. A closure from
-/// phase to buffer is the whole contract, and it lets each side keep what it
+/// phase (and the time) to buffer is the whole contract, and it lets each side keep what it
 /// knows to itself.
 /// Not `Sendable`, exactly as ``StateStorage`` is not: it is a stored property
 /// of one, and the compiler keeps it on the main-actor render path that holds it.
@@ -40,8 +40,12 @@ package final class DepartureStore {
 
     /// A view's parting picture.
     public struct Departure {
-        /// Draws the view at `phase` — `1` fully present, `0` fully gone.
-        public let render: (Double) -> FrameBuffer
+        /// Draws the view at `phase` — `1` fully present, `0` fully gone — on
+        /// the frame at the time it is handed, in nanoseconds on the frame
+        /// clock: a view removed before it had arrived carries its arrival on
+        /// as it leaves, as SwiftUI's does (``TransitionClock``), so how
+        /// present it is depends on when as well as on the removal's phase.
+        public let render: (_ phase: Double, _ nowNanos: Int64) -> FrameBuffer
 
         /// The size it occupied: what its picture is drawn at, and the room a
         /// slot keeps where the container holds the room open while it leaves
@@ -72,7 +76,7 @@ package final class DepartureStore {
         /// Creates a departure record.
         public init(
             viewType: Any.Type, width: Int, height: Int, explicitAnimation: Animation??,
-            render: @escaping (Double) -> FrameBuffer
+            render: @escaping (_ phase: Double, _ nowNanos: Int64) -> FrameBuffer
         ) {
             self.viewType = ObjectIdentifier(viewType)
             self.width = width
@@ -263,7 +267,7 @@ extension DepartureStore {
             return nil
         }
         // Backwards: a removal runs the transition from present to absent.
-        return entry.departure.render(1 - animation.fraction(at: elapsed))
+        return entry.departure.render(1 - animation.fraction(at: elapsed), nowNanos)
     }
 
     /// The size a departing view is still holding open, or `nil` if none is.

@@ -673,8 +673,10 @@ messages cite that path), and what cites it.
   animation, and parts of a `combined` transition with different ones. `tr3.swift`: whether a fade reaches
   what a view draws displaced by `.offset`, with no transition and with `.opacity`. `tr4.swift`: what
   `.blurReplace` draws besides the blur — how far it scales, about which point, and whether it fades — in
-  `.downUp` and `.upUp`, sampled every 0.25 s under a 2 s animation. Each is a program alone
-  (`@main`, built with `-parse-as-library`); `tr2`, `tr3` and `tr4` copy `tr1`'s harness.
+  `.downUp` and `.upUp`, sampled every 0.25 s under a 2 s animation. `tr5.swift`: a change that reverses a
+  transition part-way, 30% into a 2 s linear animation, under another — `.move`, an `asymmetric` pair of moves
+  and `.push` removed mid-insertion, and those and `.opacity` inserted again mid-removal — sampled every 0.2 s.
+  Each is a program alone (`@main`, built with `-parse-as-library`); `tr2` to `tr5` copy `tr1`'s harness.
   Found: with no transition the leaving view fades out where it was, drawn beneath its siblings, while the new
   one fades in and the views below glide — a branch flip, a `switch` case and a `ForEach` row alike, and a
   whole body's two branches overlap at its origin; each half of an `asymmetric` transition keeps its own
@@ -682,9 +684,15 @@ messages cite that path), and what cites it.
   which plays the transition at once under any `withAnimation`; a transition's own animation plays with no
   `withAnimation`; each part of a `combined` transition runs under its own; a collapsing transition's
   neighbours move continuously as its frame shrinks; a view drawn displaced fades with the view it belongs to;
-  `.blurReplace` scales about the centre between 0.9 and 1 (`.upUp` leaves to 1.1) and fades between 0 and 1.
-- **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19 (`tr4`: 2026-10-24). Samples move by a point or two, and an
-  opacity by a hundredth, with the frame's timing.
+  `.blurReplace` scales about the centre between 0.9 and 1 (`.upUp` leaves to 1.1) and fades between 0 and 1;
+  a transition a later change reverses is one view throughout, never a second copy, and is neither restarted nor
+  frozen: the animation it interrupted runs on, and each value is taken from wherever that has it to the new
+  end by the new animation's fraction (`old(t)` interpolated towards the new end) — a value the reversed half
+  sets that the other does not (an `asymmetric` move's other edge, `.push`'s) starts from rest, so a view
+  re-inserted mid-removal comes back from the side it was leaving by, and one removed mid-insertion carries on
+  from the side it was arriving from.
+- **Ran:** macOS 15.8, Xcode 26's SDK and Swift 6.2.4, 2026-10-19 (`tr4`: 2026-10-24; `tr5`: 2026-11-11, on macOS
+  15.8.3). Samples move by a point or two, and an opacity by a hundredth, with the frame's timing.
 - **Was:** `TRANSITIONS2/probe/`.
 - **Cited by:** `Sources/TUIEffects/Animation/AnyTransition.swift`,
   `Sources/TUIEffects/Animation/TransitionModifier.swift`, `Sources/TUIEffects/Animation/TransitionEffects.swift`,
@@ -696,7 +704,8 @@ messages cite that path), and what cites it.
   `Documentation/Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md`,
   `Documentation/Historical/Shapes, effects and animation/Matched geometry and the zoom transition.md` (B-O4-2),
   `Documentation/Historical/Shapes, effects and animation/Inserting and removing views - transitions and the default fade.md` (A34);
-  `Sources/TUIEffects/Animation/BuiltInTransitions.swift`, `Tests/TUIEffectsTests/BlurReplaceTransitionTests.swift`.
+  `Sources/TUIEffects/Animation/BuiltInTransitions.swift`, `Tests/TUIEffectsTests/BlurReplaceTransitionTests.swift`;
+  (`tr5`) `Sources/TUIView/Animation/TransitionClock.swift`, `Tests/TUIEffectsTests/TransitionInterruptionTests.swift`.
 
 ### Badge prominence
 

@@ -83,10 +83,14 @@ struct BlurReplaceTransitionTests {
 
     @Test("Up-up leaves whole, fading, where down-up shrinks toward the centre")
     func upUpRemovalIsTheFadeAlone() {
+        // Up-up arrives before it goes: its first sight here is animated, and
+        // a view removed while still arriving carries its arrival on as it
+        // leaves, the insertion's reveal with it (`TransitionInterruptionTests`).
         let upUp = Screen()
         _ = upUp.draw(true, .blurReplace(.upUp), atMillis: 0)
-        _ = upUp.draw(false, .blurReplace(.upUp), atMillis: 0)
-        #expect(upUp.draw(false, .blurReplace(.upUp), atMillis: 400)[0] == String(repeating: "X", count: 20))
+        _ = upUp.draw(true, .blurReplace(.upUp), atMillis: 1100)
+        _ = upUp.draw(false, .blurReplace(.upUp), atMillis: 1100)
+        #expect(upUp.draw(false, .blurReplace(.upUp), atMillis: 1500)[0] == String(repeating: "X", count: 20))
 
         let downUp = Screen()
         _ = downUp.draw(true, .blurReplace(.downUp), atMillis: 0)

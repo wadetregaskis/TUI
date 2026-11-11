@@ -252,21 +252,22 @@ private enum StateIndex {
         // the transaction of the change that removes it, which the slot host
         // hands to the store at removal time.
         //
-        // The arrival phase is folded in. A view removed mid-insertion is
-        // only PART present, and a departure recorded from the raw content
-        // buffer started the removal from full presence — the first departing
-        // frame popped a 30%-arrived view to 100%. Scaling the removal's
-        // phase by how far the arrival had got keeps the picture continuous
-        // for the (symmetric) common case, and monotonic for every case.
-        let removal = transition.removal
-        let arrival = min(1, max(0, phase))
+        // The arrival is folded in. A view removed mid-insertion is only PART
+        // present, and its arrival runs on beneath the removal, as SwiftUI's
+        // does: the removal takes the view from wherever the arrival has it
+        // (`AnyTransition.Effect.leaving`). Once it had arrived, the clock is
+        // `nil` and the removal plays as it is.
+        let (insertion, removal) = (transition.insertion, transition.removal)
+        let arrival = phase == 1 ? nil : storage.animations.arrivalClock(at: key)
         storage.departures.present(
             DepartureStore.Departure(
                 viewType: Self.self, width: buffer.width, height: buffer.lines.count,
                 explicitAnimation: transition.removalAnimation,
-                render: { departurePhase in
-                    removal.apply(to: buffer, phase: departurePhase * arrival, context: context)
-                        .slotBuffer()
+                render: { departurePhase, now in
+                    AnyTransition.Effect.leaving(
+                        buffer, insertion: insertion, removal: removal, presence: departurePhase,
+                        arrived: min(1, max(0, arrival?.fraction(at: now) ?? 1)), context: context
+                    ).slotBuffer()
                 }),
             at: context.identity)
 
@@ -353,15 +354,16 @@ private enum StateIndex {
         // The content's picture, as the body was handed it this frame: a
         // departing view has nothing else left to draw.
         let parting = picture.buffer ?? FrameBuffer()
-        let arrival = min(1, max(0, phase))
+        let arrival = phase == 1 ? nil : storage.animations.arrivalClock(at: key)
         let (width, height) = (buffer.width, buffer.lines.count)
         storage.departures.present(
             DepartureStore.Departure(
                 viewType: Self.self, width: width, height: height,
                 explicitAnimation: transition.removalAnimation,
-                render: { departurePhase in
+                render: { departurePhase, now in
                     custom.render(
-                        presence: departurePhase * arrival, from: .didDisappear,
+                        presence: departurePhase, arrived: min(1, max(0, arrival?.fraction(at: now) ?? 1)),
+                        from: .didDisappear,
                         content: .departedContent(parting),
                         recordingAround: .departedBlank(parting), context: context
                     ).clamped(toWidth: width, height: height)
