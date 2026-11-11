@@ -152,7 +152,7 @@ Four things make it trustworthy, and each was validated by measurement:
 | **RAM beside CPU** | Reads the harness's `rss-peak` and prints `ram OLD->NEW` after the verdict. Plain medians, not a bootstrap: peak RSS barely varies between runs of one binary, so an interval on it would be theatre. A change over a megabyte is worth a look; below that it is allocator noise. |
 | **Randomised run order** | A fixed order is a fixed bias — every hand-run pass showed whichever binary ran *second* as slower, including the pass where that was the original. |
 | **Paired ratios + a bootstrap CI** | A and B run adjacent in time, so drift hits both; comparing per-rep ratios cancels it, and the interval prices what is left. |
-| **Calibrated iteration count** | 300 iterations of a 160 µs scenario is 50 ms of measurement, mostly warm-up. Each run is sized to ~4.5 s (1.5 s with `--quick`). |
+| **Calibrated iteration count** | 300 iterations of a 160 µs scenario is 50 ms of measurement, mostly warm-up. Each run is sized to ~4.5 s (1.5 s with `--quick`), priced by a pilot of up to 1,000 frames: one of 30 priced `glide` by the frames before its first `scrollTo`, and its runs lasted minutes. |
 
 **Noise floor** (identical binary against a copy of itself, machine at load
 1.7 with a browser taking 27% of a core): `dashboard` ±0.7%, `table` ±1.7%,

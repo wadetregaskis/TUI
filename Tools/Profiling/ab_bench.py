@@ -34,7 +34,9 @@ tool is built to give, because it is the one that was missing.
 
 A fixed iteration count is also a trap: 300 iterations of a 160 µs scenario is
 50 ms of measurement, mostly warm-up. Iterations are calibrated per scenario
-from a pilot run so every measurement lasts about the same wall time.
+from pilot runs so every measurement lasts about the same wall time: a short
+one, then one of up to a thousand frames, a tenth of a run, priced from, so a
+scenario whose first frames are not its typical ones is not priced by them.
 
 Only the standard library, like the rest of this directory.
 """
@@ -176,9 +178,26 @@ def run(binary, scenario, scale, iterations, cols, rows, cold=False):
             work)
 
 
-def calibrate(binary, scenario, scale, target_seconds, cols, rows, cold=False):
-    """Iterations that make one run last roughly `target_seconds`."""
-    wall_us, _, _, _ = run(binary, scenario, scale, 30, cols, rows, cold)
+# The pilots that price a frame. The first, short, sizes the second at a tenth
+# of a run, which is the one priced from — capped, so that a scenario whose
+# first frames are cheaper than the rest costs at most this many of its dear
+# ones to find out. One pilot of 30 frames priced `glide` by the frames before
+# its first `scrollTo` (made on the 32nd), a fifth of what its gliding frames
+# cost, and each run lasted minutes against a 4.5 s target (2026-11-11).
+PILOT_ITERATIONS = 30
+MAX_SECOND_PILOT = 1_000
+
+
+def calibrate(binary, scenario, scale, target_seconds, cols, rows, cold=False, runner=None):
+    """Iterations that make one run last roughly `target_seconds`.
+
+    `runner` stands in for `run` in a test.
+    """
+    runner = runner or run
+    wall_us, _, _, _ = runner(binary, scenario, scale, PILOT_ITERATIONS, cols, rows, cold)
+    second = int(target_seconds * 100_000 / max(wall_us, 1.0))
+    second = max(PILOT_ITERATIONS, min(second, MAX_SECOND_PILOT))
+    wall_us, _, _, _ = runner(binary, scenario, scale, second, cols, rows, cold)
     iterations = int(target_seconds * 1_000_000 / max(wall_us, 1.0))
     return max(50, min(iterations, 200_000))
 
