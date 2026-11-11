@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A toolbar item the bar is too narrow to show no longer takes the focus.** A top or bottom bar with more items than
+it has room for cuts the last of them, and Tab still went to a button it had cut to nothing, so the focus vanished and
+Return pressed a button nobody could see. Such an item now takes no focus and no click, and its keyboard shortcut
+still works.
+
 **With the focus following the pointer, a control's label focuses the control.** Moving onto the label of a
 `Slider`, `Stepper`, `Picker`, `DatePicker`, `ColorPicker` or `LabeledContent`, beside it or in a form's label
 column, focuses the control, as moving onto the control does.

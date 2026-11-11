@@ -170,6 +170,9 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
         // keyed under, and the memo would go on serving the old picture.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
         let entryContext = entryContext(context)
+        if context.availableWidth <= 0, !context.isMeasuring {
+            return renderedForShortcutsAlone(entryContext)
+        }
         var buffer = TUIView.renderToBuffer(entry.view, context: entryContext)
         if let item = entry.customizableItem, let chrome = context.environment.windowChrome,
             chrome.customizingToolbarID == item.toolbarID
@@ -187,6 +190,25 @@ struct _ToolbarEntryView: View, Renderable, Layoutable {
 
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(entry.view, proposal: proposal, context: entryContext(context))
+    }
+
+    /// An item the row had no cell left for — a bar too narrow for its items
+    /// cuts the last of them to nothing — drawn nowhere: rendered at the width
+    /// it asks for, for the keyboard shortcuts it registers alone, as a closed
+    /// menu's items are (`withRegistrationOnlyChannels()`), so it takes no
+    /// focus and no click, and its shortcut still works.
+    ///
+    /// Not left unrendered, which is not the same: the focus went to the
+    /// button nobody could see, and Return pressed it. Nor dropped, which
+    /// would take its shortcut away with the cells.
+    private func renderedForShortcutsAlone(_ entryContext: RenderContext) -> FrameBuffer {
+        entryContext.withThrowawayFrameDemand { quiet in
+            var unseen = quiet.withRegistrationOnlyChannels()
+            unseen.availableWidth = max(1, measureChild(entry.view, proposal: .unspecified, context: quiet).width)
+            unseen.hasExplicitWidth = false
+            _ = TUIView.renderToBuffer(entry.view, context: unseen)
+        }
+        return FrameBuffer()
     }
 
     /// Whether the item is drawn inert: see the type's discussion.

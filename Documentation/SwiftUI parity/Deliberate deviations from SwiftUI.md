@@ -2287,7 +2287,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   each drawn only while something is placed in it. `.principal` replaces the
   title and `.status` goes to the bottom bar (iOS's readings). A bar appears or
   goes one frame after the page that changed it. The window's title is the
-  outermost `.navigationTitle` drawn.
+  outermost `.navigationTitle` drawn. A bar too narrow for its items cuts the
+  last of them, where macOS moves them into an overflow menu: an item cut to
+  nothing takes no focus and no click, and its keyboard shortcut still works.
 - **Why:** a bar's rows must be known before the page is laid out.
 - **Decided:** [§2.6](<SwiftUI compatibility guide.md#26-toolbars-are-the-windows-bars-commands-are-its-menu-bar>). **Recorded.**
 
