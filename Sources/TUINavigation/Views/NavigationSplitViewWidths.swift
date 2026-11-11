@@ -239,7 +239,7 @@ extension _NavigationSplitViewCore {
                     natural: defaultColumnWidth(
                         for: column, style: style,
                         isThreeColumnLayout: isThreeColumn, usableWidth: usableWidth),
-                    userPinned: widths?.isUserSet(column) == true ? widths?.value(for: column) : nil,
+                    userPinned: widths?.userWidth(for: column),
                     request: measured[index].request)
                 // Reserve at least minimumColumnWidth for every column still to
                 // the right, so a wide left column can't starve them.
@@ -251,7 +251,8 @@ extension _NavigationSplitViewCore {
                 // Persist the clamped effective width WITHOUT marking it
                 // user-set, so a style-derived column keeps a valid drag/keyboard
                 // seed yet still re-derives when the style changes; a user-set
-                // column simply keeps its (now re-clamped) value.
+                // column's seed is re-clamped too, and the width the user gave
+                // it (`userWidth(for:)`) stays what the layout asks for.
                 if writeBack {
                     widths?.setClamped(width, for: column)
                 }
@@ -291,7 +292,7 @@ extension _NavigationSplitViewCore {
         // `.navigationSplitViewColumnWidthReset(_:)` clears the user's pins.
         for index in 0..<max(0, count - 1) {
             let column = visibleColumns[index]
-            let pinned = widths?.isUserSet(column) == true ? widths?.value(for: column) : nil
+            let pinned = widths?.userWidth(for: column)
             let request = measured[index].request
             guard pinned != nil || request != nil else { continue }
             natural[index] = max(

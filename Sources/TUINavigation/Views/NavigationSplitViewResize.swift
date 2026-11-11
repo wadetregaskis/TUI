@@ -136,7 +136,26 @@ final class SplitViewWidths {
     /// from "never observed" so the first token doesn't wipe a persisted resize.
     private var lastResetToken: AnyHashable??
 
+    /// The width each user-set column was given, as the layout first held it
+    /// (``setClamped(_:for:)``): what it asks for from then on, whatever a
+    /// narrower terminal holds it to for a while. Apart from ``widths``, the
+    /// width shown, or a terminal narrowed and widened again left the column
+    /// at the narrow width.
+    private var intended: [NavigationSplitViewColumn: Int] = [:]
+
+    /// Columns set since the layout last held them: the first clamp after a
+    /// drag or a key settles the intent at what is shown, so a drag past the
+    /// widest the layout allows asks for that widest and no more.
+    private var unsettled: Set<NavigationSplitViewColumn> = []
+
+    /// The width shown — the drag and key handlers' starting point.
     func value(for column: NavigationSplitViewColumn) -> Int? { widths[column] }
+
+    /// The width the user gave `column`, or `nil` where the user has not
+    /// resized it: what the layout asks for it.
+    func userWidth(for column: NavigationSplitViewColumn) -> Int? {
+        userSet.contains(column) ? intended[column] ?? widths[column] : nil
+    }
 
     /// Whether `column` has been explicitly resized by the user (so it should
     /// override the style default).
@@ -147,14 +166,21 @@ final class SplitViewWidths {
     /// keyboard handlers.
     func set(_ width: Int, for column: NavigationSplitViewColumn) {
         widths[column] = width
+        intended[column] = width
         userSet.insert(column)
+        unsettled.insert(column)
     }
 
     /// Stores the clamped effective width for a frame *without* marking the
     /// column as user-set. Used by the split view's per-frame write-back so a
     /// style-derived column keeps a valid drag/keyboard seed while still
-    /// re-deriving from the style when the style changes.
-    func setClamped(_ width: Int, for column: NavigationSplitViewColumn) { widths[column] = width }
+    /// re-deriving from the style when the style changes. The first after a
+    /// user resize settles that resize at the width shown; later ones leave
+    /// the user's width alone.
+    func setClamped(_ width: Int, for column: NavigationSplitViewColumn) {
+        widths[column] = width
+        if unsettled.remove(column) != nil { intended[column] = width }
+    }
 
     /// Releases every user-set width so the columns re-derive from the style /
     /// size-to-fit content on the next render, when `token` differs from the last
@@ -166,6 +192,8 @@ final class SplitViewWidths {
         guard let lastResetToken else { return }  // first observation: record only
         if lastResetToken != token {
             widths.removeAll()
+            intended.removeAll()
+            unsettled.removeAll()
             userSet.removeAll()
         }
     }

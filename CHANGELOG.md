@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `NavigationSplitView` column keeps the width you gave it when the terminal narrows for a while.** A terminal
+too narrow for a column you had widened held it in, and the column stayed that narrow once the terminal was wide
+again. It now goes back to your width as soon as there is room.
+
 **An `HSplitView` or a `VSplitView` the terminal narrows and widens again puts its dividers back.** Each resize scaled
 the panes from the last resize's rounded sizes, so the dividers crept towards the leading edge, a cell or more each
 time. The panes are now scaled from the sizes last set, by a divider or at the start.
