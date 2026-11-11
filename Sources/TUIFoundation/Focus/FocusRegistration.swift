@@ -67,9 +67,11 @@ package enum FocusRegistration {
         // `.focusID(_:)` but above the auto-generated path id. Claimed on the
         // render pass only — a measuring control resolves the persisted id
         // below, which is this id if the control is the one that took it.
-        let assigned =
-            context.isMeasuring
-            ? nil : context.environment.assignedFocusID?.claim(context.identity)
+        let offer = context.isMeasuring ? nil : context.environment.assignedFocusID
+        let assigned = offer?.claim(context.identity)
+        // The claimant's own id wins, and the binding follows it there: the
+        // modifier maps its value to whatever this control registers under.
+        if assigned != nil, let explicitFocusID { offer?.claimantDeclares(explicitFocusID) }
         let declared = explicitFocusID ?? assigned
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: propertyIndex)
         // Written as an argument rather than a `let` on purpose: the default is

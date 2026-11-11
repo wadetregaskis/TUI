@@ -50,6 +50,13 @@ package final class AssignedFocusID {
     /// Whose it is. `nil` until the first focusable renders below the modifier.
     private var claimant: ViewIdentity?
 
+    /// The id the claimant registers under when it is not ``id``: its own
+    /// `.focusID(_:)`, which ranks above the offer. The binding maps its value
+    /// to this one, so a control the app named still answers to its
+    /// `@FocusState`. `nil` while nothing has claimed, or the claimant took
+    /// the offer as it is.
+    package private(set) var claimantFocusID: String?
+
     package init(id: String) {
         self.id = id
     }
@@ -74,6 +81,16 @@ package final class AssignedFocusID {
         }
         return claimant == identity ? id : nil
     }
+
+    /// Records that the claimant registers under `focusID`, its own declared
+    /// id, rather than the one offered.
+    func claimantDeclares(_ focusID: String) {
+        claimantFocusID = focusID == id ? nil : focusID
+    }
+
+    /// The id the binding maps its value to: the one the claimant registers
+    /// under.
+    var boundFocusID: String { claimantFocusID ?? id }
 }
 
 private struct AssignedFocusIDKey: EnvironmentKey {
@@ -323,13 +340,19 @@ nonisolated struct _FocusedModifier<Content: View, Value: Hashable>: View {
 
 @MainActor extension _FocusedModifier: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let id = forcedID(context)
-        FocusBindingRegistrar.bind(store: store, value: value, focusID: id, context: context)
         // A fresh offer per render: the claim is this render's, so the same
         // control takes the id again next frame rather than the offer staying
         // spent.
-        let env = context.environment.setting(\.assignedFocusID, to: AssignedFocusID(id: id))
-        return TUIView.renderToBuffer(content, context: context.withEnvironment(env))
+        let offer = AssignedFocusID(id: forcedID(context))
+        let env = context.environment.setting(\.assignedFocusID, to: offer)
+        let buffer = TUIView.renderToBuffer(content, context: context.withEnvironment(env))
+        // Bound after the content, to the id the control below registered
+        // under: the offer, or its own `.focusID(_:)`, which outranks it. Bound
+        // to the offer alone, a named control's state mapped its value to an
+        // id nothing registered, so writing it focused nothing and reading it
+        // never saw the control focused.
+        FocusBindingRegistrar.bind(store: store, value: value, focusID: offer.boundFocusID, context: context)
+        return buffer
     }
 }
 

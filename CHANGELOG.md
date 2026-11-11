@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A control named with `.focusID(_:)` answers to its `@FocusState`.** `TextField(…).focusID("email")
+.focused($field, equals: .email)` kept its name, but the binding pointed at a name of its own that no control had, so
+setting `field = .email` moved the focus nowhere and `field` never read `.email`. The binding now follows the control
+to the name it was given.
+
 **A Shift-arrow range in a `List` or a `Table` starts from the row you chose, when the rows change under it.** The
 row a range is measured from stayed at its place rather than with its row, so after a row arrived above it, or the
 table was sorted, the next Shift-Down or Shift-click selected rows from somewhere else. It now follows its row, as the

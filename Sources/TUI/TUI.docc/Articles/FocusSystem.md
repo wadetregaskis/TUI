@@ -88,7 +88,9 @@ Three more modifiers shape the order that Tab follows:
   keyboard. The same goes for the sections a `NavigationSplitView`'s columns
   and a `NavigationStack`'s pushed screens make.
 - `focusID(_:)` pins an explicit identity on a control, instead of the one
-  derived from its position in the tree.
+  derived from its position in the tree. A `focused(_:equals:)` outside it
+  binds to the control under that identity, so a named control still answers
+  to its `@FocusState`.
 
 ## When a Control Loses Focus
 
