@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A disabled radio button's label is drawn disabled.** Its label was drawn as an enabled option's, in every
+palette, so only the `◌` beside it said it could not be chosen; it is now in the grey every disabled control's label is,
+as a toggle's is, whether the group, the option or an enclosing `.disabled()` disables it. And at no colour a disabled
+stepper's, slider's, picker's or date picker's label is faint, as its control is; it was drawn as an enabled one's.
+
 **The Example's Text Styles page has a sliding underline.** Beside *Underline by word*, whose front end runs ahead
 to the next word before its back end follows, *Sliding underline* moves both ends together, eased, from one word to the
 next.

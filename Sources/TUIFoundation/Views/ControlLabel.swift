@@ -28,6 +28,19 @@ enum _ControlLabel {
                 palette.foregroundTertiary.opacity(
                     ViewConstants.disabledForeground, over: palette.background)))
     }
+
+    /// `buffer`, a label drawn through ``dimmingWhenDisabled(_:context:controlDisabled:)``,
+    /// drawn faint too where a disabled control says so without colour
+    /// (``FrameBuffer/fadedWithoutColor(if:greyDrawsAsEnabled:context:)``), as the
+    /// control beside it is. At no colour the grey is gone, and a stepper's,
+    /// slider's or picker's label was drawn as an enabled one's while a toggle's,
+    /// faded with its control, was faint.
+    @MainActor
+    static func fadingWhenDisabled(
+        _ buffer: FrameBuffer, context: RenderContext, controlDisabled: Bool = false
+    ) -> FrameBuffer {
+        buffer.fadedWithoutColor(if: controlDisabled || !context.environment.isEnabled, context: context)
+    }
 }
 
 /// Renders an inline control label followed by one separating space — or
@@ -86,10 +99,12 @@ nonisolated package struct _CollapsingLabel<Label: View>: View, Renderable, Layo
         // cannot come to disagree about what hidden means.
         guard !context.environment.controlLabelsAreHidden else { return FrameBuffer() }
         guard let label, !(label is EmptyView) else { return FrameBuffer() }
-        let buffer = TUIView.renderToBuffer(
-            _ControlLabel.dimmingWhenDisabled(
-                label, context: context, controlDisabled: controlDisabled),
-            context: context)
+        let buffer = _ControlLabel.fadingWhenDisabled(
+            TUIView.renderToBuffer(
+                _ControlLabel.dimmingWhenDisabled(
+                    label, context: context, controlDisabled: controlDisabled),
+                context: context),
+            context: context, controlDisabled: controlDisabled)
         guard !buffer.isBlank else { return FrameBuffer() }
         // `replacingLines`, not `FrameBuffer(lines:)`: a label is a full view
         // slot, so its content can carry runs, hit-test regions and overlays,
@@ -124,8 +139,10 @@ nonisolated package struct _DetachedControlLabel<Label: View>: View, Renderable,
     }
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIView.renderToBuffer(
-            _ControlLabel.dimmingWhenDisabled(label, context: context, controlDisabled: controlDisabled),
-            context: context)
+        _ControlLabel.fadingWhenDisabled(
+            TUIView.renderToBuffer(
+                _ControlLabel.dimmingWhenDisabled(label, context: context, controlDisabled: controlDisabled),
+                context: context),
+            context: context, controlDisabled: controlDisabled)
     }
 }

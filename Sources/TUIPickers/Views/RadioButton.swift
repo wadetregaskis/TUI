@@ -843,9 +843,23 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         if claimed == nil || claimed == .list || claimed == .table {
             labelContext.environment.controlKind = .radioButton
         }
-        // The whole row is the click target, so the whole row answers the
-        // pointer — indicator and label together, the way a `Toggle` does.
-        if isHovered, !isDisabled {
+        // A disabled option's label is drawn in the grey every disabled
+        // control's label is, as a `Toggle`'s is. It was drawn as an enabled
+        // one's: the item's own `.disabled()` set `isEnabled`, which a `Text`
+        // does not read, and the group's flag set nothing at all, so only the
+        // `◌` said the option could not be chosen (the owner's item 22,
+        // 2026-11-10). The grey is the environment's foreground, so a label
+        // with a colour of its own keeps it.
+        if isDisabled {
+            labelContext = labelContext.settingNotedEnvironment(
+                \.foregroundStyle,
+                to: labelContext.environment.foregroundStyle.keepingShadows(
+                    on: .color(
+                        palette.foregroundTertiary.opacity(
+                            ViewConstants.disabledForeground, over: palette.background))), paint: true)
+        } else if isHovered {
+            // The whole row is the click target, so the whole row answers the
+            // pointer — indicator and label together, the way a `Toggle` does.
             let base =
                 labelContext.environment.foregroundStyle?.representative
                 ?? labelContext.environment.styleCascade
