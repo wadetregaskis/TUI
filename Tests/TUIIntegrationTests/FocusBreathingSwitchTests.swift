@@ -20,11 +20,12 @@ import TUITesting
 @MainActor
 @Suite("The breathing switch")
 struct FocusBreathingSwitchTests {
-    @Test("Only `0` turns it off")
+    @Test("`0` turns it off and `1` on; anything else says nothing")
     func variable() {
         #expect(TerminalClient.focusBreathingRequested(environment: ["TUI_BREATHING": "0"]) == false)
-        #expect(TerminalClient.focusBreathingRequested(environment: ["TUI_BREATHING": "1"]))
-        #expect(TerminalClient.focusBreathingRequested(environment: [:]))
+        #expect(TerminalClient.focusBreathingRequested(environment: ["TUI_BREATHING": "1"]) == true)
+        #expect(TerminalClient.focusBreathingRequested(environment: ["TUI_BREATHING": "yes"]) == nil)
+        #expect(TerminalClient.focusBreathingRequested(environment: [:]) == nil)
     }
 
     @Test(

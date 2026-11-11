@@ -120,8 +120,10 @@ preference.
 
 Built as described. Not done, and why:
 
-- A `TUI_*` variable that can only say one thing (`TUI_BREATHING=0`, `TUI_KEY_SYMBOLS=0`, `TUI_ARROW_FOCUS=geometric`)
-  cannot override a saved setting the other way for one launch. A second value for each would; it is put to the owner.
+- ~~A `TUI_*` variable that can only say one thing (`TUI_BREATHING=0`, `TUI_KEY_SYMBOLS=0`, `TUI_ARROW_FOCUS=geometric`)
+  cannot override a saved setting the other way for one launch.~~ Done the next day: `TUI_BREATHING=1`,
+  `TUI_KEY_SYMBOLS=1` and `TUI_ARROW_FOCUS=tab` say the other way (ENV-EITHER-WAY, the owner's decisions of 2026-11-08,
+  2026-11-10 section).
 - The Example holds its palette and control style in its own state, so TUI does not keep them for it (the ruling's
   "code wins"); whether TUI should restore a saved choice through the bindings a program hands `DisplayCommands` is put
   to the owner.

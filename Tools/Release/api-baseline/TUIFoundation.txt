@@ -3338,7 +3338,7 @@ TerminalCellPoints | struct TerminalCellPoints
 TerminalCellPoints.height | var height: Double
 TerminalCellPoints.init(width:height:) | init(width: Double, height: Double)
 TerminalCellPoints.width | var width: Double
-TerminalClient.keyNotationRequested | static let keyNotationRequested: KeyNotation
+TerminalClient.keyNotationRequested | static let keyNotationRequested: KeyNotation?
 TerminalProgress | enum TerminalProgress
 TerminalProgress.error(_:) | case error(Double?)
 TerminalProgress.indeterminate | case indeterminate

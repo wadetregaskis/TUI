@@ -24,10 +24,16 @@ package enum ArrowFocus: Sendable, Equatable {
     case geometric
 
     /// What the user asked for: `.geometric` with `TUI_ARROW_FOCUS=geometric`
-    /// in `environment`, `.tabOrder` with any other value or none. Only the app
-    /// runner asks, as it does for `TUI_CURSOR_FOLLOWS_FOCUS`.
-    package static func requested(environment: [String: String]) -> Self {
-        environment["TUI_ARROW_FOCUS"] == "geometric" ? .geometric : .tabOrder
+    /// in `environment`, `.tabOrder` with `tab`, and `nil` with any other
+    /// value or none, where what the person kept in the settings panel
+    /// decides. Only the app runner asks, as it does for
+    /// `TUI_CURSOR_FOLLOWS_FOCUS`.
+    package static func requested(environment: [String: String]) -> Self? {
+        switch environment["TUI_ARROW_FOCUS"] {
+        case "geometric": .geometric
+        case "tab": .tabOrder
+        default: nil
+        }
     }
 }
 

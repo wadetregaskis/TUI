@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`TUI_BREATHING=1`, `TUI_KEY_SYMBOLS=1` and `TUI_ARROW_FOCUS=tab` undo a kept setting for one launch.** Each
+variable said only one thing, so a still focus, keys spelled out or Arrows Follow Layout kept in the settings panel could
+not be undone for one run; now each says the other too, and wins over what is kept, as `TUI_REDUCE_MOTION=0` does.
+`TerminalClient.keyNotationRequested` is `nil` where the variable says nothing.
+
 
 
 **A `navigationDestination(isPresented:)` on a stack's root, presented while values are pushed, empties the path,

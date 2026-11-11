@@ -73,11 +73,12 @@ struct GeometricArrowFocusTests {
         return seen
     }
 
-    @Test("Only `geometric` says anything")
+    @Test("`geometric` and `tab` say which; anything else says nothing")
     func variable() {
         #expect(ArrowFocus.requested(environment: ["TUI_ARROW_FOCUS": "geometric"]) == .geometric)
-        #expect(ArrowFocus.requested(environment: ["TUI_ARROW_FOCUS": "1"]) == .tabOrder)
-        #expect(ArrowFocus.requested(environment: [:]) == .tabOrder)
+        #expect(ArrowFocus.requested(environment: ["TUI_ARROW_FOCUS": "tab"]) == .tabOrder)
+        #expect(ArrowFocus.requested(environment: ["TUI_ARROW_FOCUS": "1"]) == nil)
+        #expect(ArrowFocus.requested(environment: [:]) == nil)
     }
 
     @Test("Down goes to the button below, not the next in Tab order")

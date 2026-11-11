@@ -396,9 +396,9 @@ internal final class RenderLoop<A: App> {
 
     /// What the user's `TUI_*` variables state of TUI's settings, as the app
     /// runner read them from the process: `TUI_REDUCE_MOTION` and its three
-    /// accessibility siblings at `1` or `0`, `TUI_KEY_SYMBOLS=0`,
-    /// `TUI_BREATHING=0`, `TUI_FOCUS_FOLLOWS_POINTER` and
-    /// `TUI_ARROW_FOCUS=geometric`. A preference a variable leaves unset is
+    /// accessibility siblings, `TUI_KEY_SYMBOLS` and `TUI_BREATHING` at `1`
+    /// or `0`, `TUI_FOCUS_FOLLOWS_POINTER`, and `TUI_ARROW_FOCUS` at
+    /// `geometric` or `tab`. A preference a variable leaves unset is
     /// left out. Resolved at the root of every frame over what the person
     /// saved and the host's setting (``ViewPreferenceOverrides``), beneath the
     /// scene's own statements.
@@ -436,12 +436,12 @@ internal final class RenderLoop<A: App> {
     var stillDate: Date?
 
     /// How the user asked the arrow keys to move the focus, with
-    /// `TUI_ARROW_FOCUS`: its entry in ``statedByVariables``. `.tabOrder` in
-    /// every loop but the app runner's until a test sets one
-    /// (`HeadlessApp.arrowFocus`).
-    var arrowFocusRequested: ArrowFocus {
-        get { statedByVariables[.arrowsFollowLayout] == true ? .geometric : .tabOrder }
-        set { statedByVariables[.arrowsFollowLayout] = newValue == .geometric ? true : nil }
+    /// `TUI_ARROW_FOCUS`: its entry in ``statedByVariables``, `nil` where it
+    /// says nothing. `nil` in every loop but the app runner's until a test
+    /// sets one (`HeadlessApp.arrowFocus`).
+    var arrowFocusRequested: ArrowFocus? {
+        get { statedByVariables[.arrowsFollowLayout].map { $0 ? .geometric : .tabOrder } }
+        set { statedByVariables[.arrowsFollowLayout] = newValue.map { $0 == .geometric } }
     }
 
     /// The terminal session the app runs in, as the app runner read it from
@@ -465,8 +465,8 @@ internal final class RenderLoop<A: App> {
         probeClientCapabilities: @escaping @Sendable () -> ClientCapabilities? = ClientCapabilityRefresher.probeHost,
         requestedAccessibility: AccessibilityPreferences = [],
         declinedAccessibility: AccessibilityPreferences = [],
-        keyNotation: KeyNotation = .symbols,
-        focusBreathes: Bool = true,
+        keyNotation: KeyNotation? = nil,
+        focusBreathes: Bool? = nil,
         springLoadingDelayRequested: Duration? = nil
     ) {
         self.isTmux = isTmux

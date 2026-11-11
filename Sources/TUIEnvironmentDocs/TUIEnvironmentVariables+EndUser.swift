@@ -84,21 +84,21 @@ extension TUIEnvironmentVariables {
             code: .cannotOverride("`Scene.reduceMotion(_:)` can ask for less motion too, even under `0`, but `false` doesn't undo `1`.")),
         TUIEnvironmentVariable(
             "TUI_BREATHING", .endUser, .motion,
-            values: "`0`",
-            effect: "Stops the highlight on the control your keys act on from slowly pulsing or blinking: it's shown by colour and bold, and a control already in that colour, like a ticked checkbox or a link, shows it with its label in reverse video. The text cursor still blinks. `TUI_REDUCE_MOTION` doesn't do this by itself. \(viewMenu)",
+            values: "`0` or `1`",
+            effect: "`0` stops the highlight on the control your keys act on from slowly pulsing or blinking: it's shown by colour and bold, and a control already in that colour, like a ticked checkbox or a link, shows it with its label in reverse video. The text cursor still blinks. `TUI_REDUCE_MOTION` doesn't do this by itself. `1` lets it pulse, even where you've kept it still in the settings panel. Unset, what you've kept there decides, else it pulses. \(viewMenu)",
             code: .cannotOverride("`Scene.focusBreathing(false)` holds it still too, but `true` doesn't undo `0`. `.selectionIndicatorStyle(.none)` holds part of a screen still. `focusBreathes` is read-only.")),
     ]
 
     private static let keyboardAndMouse: [TUIEnvironmentVariable] = [
         TUIEnvironmentVariable(
             "TUI_KEY_SYMBOLS", .endUser, .keyboardAndMouse,
-            values: "`0`",
-            effect: "Writes keyboard shortcuts out in words, such as `Ctrl-Shift-Z`, instead of in symbols, for a font that has no symbols for the keys. \(viewMenu)",
+            values: "`0` or `1`",
+            effect: "`0` writes keyboard shortcuts out in words, such as `Ctrl-Shift-Z`, instead of in symbols, for a font that has no symbols for the keys. `1` writes them in symbols, even where you've kept the words in the settings panel. Unset, what you've kept there decides, else symbols. \(viewMenu)",
             code: .cannotOverride("`Scene.keyNotation(.spelledOut)` asks for the names too, but `.symbols` doesn't undo this. `keyNotation` is read-only.")),
         TUIEnvironmentVariable(
             "TUI_ARROW_FOCUS", .endUser, .keyboardAndMouse,
-            values: "`geometric`",
-            effect: "An experiment. When the control your keys act on doesn't use an arrow key itself, the arrow moves to the nearest control in that direction, scrolling to it if it's out of sight, so Down goes to the button below. At the edge it stays put instead of wrapping around. Tab and Shift-Tab are unchanged. Unset, the arrows go in the same order as Tab. \(viewMenu)"),
+            values: "`geometric` or `tab`",
+            effect: "An experiment. `geometric`: when the control your keys act on doesn't use an arrow key itself, the arrow moves to the nearest control in that direction, scrolling to it if it's out of sight, so Down goes to the button below. At the edge it stays put instead of wrapping around. Tab and Shift-Tab are unchanged. `tab`: the arrows go in the same order as Tab, even where you've kept Arrows Follow Layout on in the settings panel. Unset, what you've kept there decides, else the order of Tab. \(viewMenu)"),
         TUIEnvironmentVariable(
             "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .keyboardAndMouse,
             values: "`1` or `0`",

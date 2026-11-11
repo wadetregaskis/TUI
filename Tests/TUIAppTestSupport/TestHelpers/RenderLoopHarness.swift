@@ -79,7 +79,7 @@ final class RenderLoopHarness {
     func loop<A: App>(
         _ app: A, isTmux: Bool = false, accessibility: AccessibilityPreferences = [],
         declinedAccessibility: AccessibilityPreferences = [],
-        keyNotation: KeyNotation = .symbols, clientCapabilities: ClientCapabilities? = nil,
+        keyNotation: KeyNotation? = nil, clientCapabilities: ClientCapabilities? = nil,
         springLoadingDelay: Duration? = nil
     ) -> RenderLoop<A> {
         loop(
@@ -93,7 +93,7 @@ final class RenderLoopHarness {
     func loop<A: App>(
         _ app: A, on terminal: any HostStateKeeping, isTmux: Bool = false,
         accessibility: AccessibilityPreferences = [], declinedAccessibility: AccessibilityPreferences = [],
-        keyNotation: KeyNotation = .symbols,
+        keyNotation: KeyNotation? = nil,
         clientCapabilities: ClientCapabilities? = nil, springLoadingDelay: Duration? = nil
     ) -> RenderLoop<A> {
         RenderLoop(

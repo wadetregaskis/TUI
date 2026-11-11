@@ -508,7 +508,7 @@ private protocol HeadlessRendering: AnyObject {
     var hostState: TerminalHostState { get }
     var sendsProgressReports: Bool { get set }
     var cursorFollowsFocus: CursorFollowsFocus? { get set }
-    var arrowFocusRequested: ArrowFocus { get set }
+    var arrowFocusRequested: ArrowFocus? { get set }
     var statedByVariables: [ViewPreference: Bool] { get set }
     var hostAccessibility: AccessibilityPreferences { get set }
     var viewPreferenceOverrides: ViewPreferenceOverrides { get }

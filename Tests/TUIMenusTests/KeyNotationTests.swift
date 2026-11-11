@@ -99,11 +99,12 @@ struct KeyNotationTests {
 
     // MARK: - Where the notation comes from
 
-    @Test("The user asks with TUI_KEY_SYMBOLS=0, and nothing else asks")
+    @Test("The user asks for the names with TUI_KEY_SYMBOLS=0 and the symbols with 1, and nothing else asks")
     func environmentVariable() {
         #expect(TerminalClient.keyNotationRequested(environment: ["TUI_KEY_SYMBOLS": "0"]) == .spelledOut)
         #expect(TerminalClient.keyNotationRequested(environment: ["TUI_KEY_SYMBOLS": "1"]) == .symbols)
-        #expect(TerminalClient.keyNotationRequested(environment: [:]) == .symbols)
+        #expect(TerminalClient.keyNotationRequested(environment: ["TUI_KEY_SYMBOLS": "yes"]) == nil)
+        #expect(TerminalClient.keyNotationRequested(environment: [:]) == nil)
         #expect(EnvironmentValues().keyNotation == .symbols, "a key's default does not read the process")
     }
 

@@ -164,8 +164,8 @@ extension EnvironmentValues {
     /// ``KeyNotation``.
     ///
     /// ``KeyNotation/symbols`` unless the user set `TUI_KEY_SYMBOLS=0` in
-    /// the environment the app runs in (``TerminalClient/keyNotationRequested``)
-    /// or the app asked for the names with the TUI-specific
+    /// the environment the app runs in (``TerminalClient/keyNotationRequested``),
+    /// kept the names in the settings panel, or the app asked for the names with the TUI-specific
     /// `Scene.keyNotation(_:)`. Read-only, so that a view cannot hand symbols
     /// back to a user who asked for names; read it to write a key in text of
     /// the app's own (``KeyNotation/spelling(_:)``).
@@ -180,20 +180,27 @@ extension EnvironmentValues {
 extension TerminalClient {
     /// How the user asked for keys to be written: ``KeyNotation/spelledOut``
     /// with `TUI_KEY_SYMBOLS=0` in the environment the app was started in,
-    /// for a terminal font with no glyph for the symbols, and
-    /// ``KeyNotation/symbols`` otherwise. Read once, at first use.
+    /// for a terminal font with no glyph for the symbols,
+    /// ``KeyNotation/symbols`` with `1`, and `nil` where the variable says
+    /// neither. Read once, at first use.
     ///
     /// The app runner hands it to its render loop, which writes it into the
     /// root of every frame's environment, as
-    /// ``EnvironmentValues/keyNotation``, before the scene's own
-    /// `.keyNotation(_:)`. Only the app runner reads it: a headless app's
-    /// loop, and every test's, draws the symbols.
-    public static let keyNotationRequested: KeyNotation =
+    /// ``EnvironmentValues/keyNotation``, over what the person kept in the
+    /// settings panel and before the scene's own `.keyNotation(_:)`: so `1`
+    /// undoes names kept there, for one launch. Only the app runner reads it:
+    /// a headless app's loop, and every test's, draws the symbols. The
+    /// notation in force is ``EnvironmentValues/keyNotation``.
+    public static let keyNotationRequested: KeyNotation? =
         keyNotationRequested(environment: ProcessInfo.processInfo.environment)
 
     /// The rule behind ``keyNotationRequested``, posed on its input so it can
     /// be asked without changing what a whole process reads.
-    static func keyNotationRequested(environment: [String: String]) -> KeyNotation {
-        environment["TUI_KEY_SYMBOLS"] == "0" ? .spelledOut : .symbols
+    static func keyNotationRequested(environment: [String: String]) -> KeyNotation? {
+        switch environment["TUI_KEY_SYMBOLS"] {
+        case "1": .symbols
+        case "0": .spelledOut
+        default: nil
+        }
     }
 }

@@ -26,7 +26,8 @@ extension EnvironmentValues {
     /// blink under `.selectionIndicatorStyle(.blink)`.
     ///
     /// `true` unless the user set `TUI_BREATHING=0` in the environment the app
-    /// runs in (`TerminalClient.focusBreathingRequested`) or the app turned
+    /// runs in (`TerminalClient.focusBreathingRequested`), kept a still focus
+    /// in the settings panel, or the app turned
     /// it off with the TUI-specific `Scene.focusBreathing(_:)`. While it is
     /// `false`, ``selectionIndicatorStyle`` reads
     /// ``TextCursorStyle/Animation/none`` whatever a view set it to, so every
@@ -47,20 +48,25 @@ extension EnvironmentValues {
 
 extension TerminalClient {
     /// Whether the user lets focus indications breathe: `false` with
-    /// `TUI_BREATHING=0` in the environment the app was started in, and `true`
-    /// otherwise. Read once, at first use.
+    /// `TUI_BREATHING=0` in the environment the app was started in, `true`
+    /// with `1`, and `nil` otherwise. Read once, at first use.
     ///
     /// The app runner hands it to its render loop, which writes it into the
     /// root of every frame's environment, as
-    /// ``EnvironmentValues/focusBreathes``, before the scene's own
-    /// `.focusBreathing(_:)`. Only the app runner reads it: a headless app's
-    /// loop, and every test's, breathes.
-    package static let focusBreathingRequested: Bool =
+    /// ``EnvironmentValues/focusBreathes``, over what the person kept in the
+    /// settings panel and before the scene's own `.focusBreathing(_:)`: so
+    /// `1` undoes a still focus kept there, for one launch. Only the app runner
+    /// reads it: a headless app's loop, and every test's, breathes.
+    package static let focusBreathingRequested: Bool? =
         focusBreathingRequested(environment: ProcessInfo.processInfo.environment)
 
     /// The rule behind ``focusBreathingRequested``, posed on its input so it
     /// can be asked without changing what a whole process reads.
-    static func focusBreathingRequested(environment: [String: String]) -> Bool {
-        environment["TUI_BREATHING"] != "0"
+    static func focusBreathingRequested(environment: [String: String]) -> Bool? {
+        switch environment["TUI_BREATHING"] {
+        case "1": true
+        case "0": false
+        default: nil
+        }
     }
 }

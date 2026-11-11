@@ -194,18 +194,21 @@ struct UserSettingsPrecedenceTests {
         (.focusBreathing, Layers(program: true, allPrograms: false), true),
         (.focusBreathing, Layers(code: CodeStatements(holdsBreath: true), program: true), false),
         (.focusBreathing, Layers(variable: false, program: true), false),
+        (.focusBreathing, Layers(variable: true, program: false, allPrograms: false), true),
         (.focusBreathing, Layers(run: true, variable: false, code: CodeStatements(holdsBreath: true)), true),
         // Spell Out Keys: code asking for the names.
         (.spelledOutKeys, Layers(allPrograms: true), true),
         (.spelledOutKeys, Layers(program: false, allPrograms: true), false),
         (.spelledOutKeys, Layers(code: CodeStatements(spellsKeys: true), program: false), true),
         (.spelledOutKeys, Layers(variable: true, program: false), true),
+        (.spelledOutKeys, Layers(variable: false, program: true, allPrograms: true), false),
         (.spelledOutKeys, Layers(run: false, code: CodeStatements(spellsKeys: true)), false),
         // Arrows Follow Layout: no code, no computer setting.
         (.arrowsFollowLayout, Layers(), false),
         (.arrowsFollowLayout, Layers(allPrograms: true), true),
         (.arrowsFollowLayout, Layers(program: false, allPrograms: true), false),
         (.arrowsFollowLayout, Layers(variable: true, program: false), true),
+        (.arrowsFollowLayout, Layers(variable: false, program: true, allPrograms: true), false),
         (.arrowsFollowLayout, Layers(run: false, variable: true), false),
         // Focus Follows Pointer, where the scene says nothing.
         (.focusFollowsPointer, Layers(), false),
@@ -297,5 +300,24 @@ struct UserSettingsPrecedenceTests {
         launch.headless.statedByVariables = [.reduceMotion: false]
         frame(launch)
         #expect(underVariable.values[.reduceMotion] == false, "TUI_REDUCE_MOTION=0 still means this once")
+    }
+
+    /// The variables that once said one thing (`TUI_BREATHING=0`,
+    /// `TUI_KEY_SYMBOLS=0`, `TUI_ARROW_FOCUS=geometric`) say the other too, so
+    /// one launch can undo a kept setting either way.
+    @Test("TUI_BREATHING=1, TUI_KEY_SYMBOLS=1 and TUI_ARROW_FOCUS=tab state the setting off, as the app runner reads them")
+    func variablesStateEitherWay() {
+        let environment = ["TUI_BREATHING": "1", "TUI_KEY_SYMBOLS": "1", "TUI_ARROW_FOCUS": "tab"]
+        var stated = ViewPreference.stated(
+            requestedAccessibility: [], declinedAccessibility: [],
+            keyNotation: TerminalClient.keyNotationRequested(environment: environment),
+            focusBreathes: TerminalClient.focusBreathingRequested(environment: environment))
+        stated[.arrowsFollowLayout] = ArrowFocus.requested(environment: environment).map { $0 == .geometric }
+        #expect(stated == [.focusBreathing: true, .spelledOutKeys: false, .arrowsFollowLayout: false])
+        let unset = ViewPreference.stated(
+            requestedAccessibility: [], declinedAccessibility: [],
+            keyNotation: TerminalClient.keyNotationRequested(environment: [:]),
+            focusBreathes: TerminalClient.focusBreathingRequested(environment: [:]))
+        #expect(unset.isEmpty, "unset, they say nothing, and what was kept decides")
     }
 }

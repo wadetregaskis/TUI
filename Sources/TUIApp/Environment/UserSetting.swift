@@ -131,12 +131,12 @@ extension ViewPreference {
 
     /// What the user's variables state, by preference, from what the app
     /// runner read of them: each accessibility preference `requested` (`1`)
-    /// or `declined` (`0`), the names under `TUI_KEY_SYMBOLS=0`, a still
-    /// focus under `TUI_BREATHING=0`. A preference no variable states is
-    /// left out.
+    /// or `declined` (`0`), the names under `TUI_KEY_SYMBOLS=0` and the
+    /// symbols under `1`, a still focus under `TUI_BREATHING=0` and a
+    /// breathing one under `1`. A preference no variable states is left out.
     package static func stated(
         requestedAccessibility requested: AccessibilityPreferences,
-        declinedAccessibility declined: AccessibilityPreferences, keyNotation: KeyNotation, focusBreathes: Bool
+        declinedAccessibility declined: AccessibilityPreferences, keyNotation: KeyNotation?, focusBreathes: Bool?
     ) -> [Self: Bool] {
         var stated: [Self: Bool] = [:]
         for preference in allCases {
@@ -147,8 +147,8 @@ extension ViewPreference {
                 stated[preference] = false
             }
         }
-        if keyNotation == .spelledOut { stated[.spelledOutKeys] = true }
-        if !focusBreathes { stated[.focusBreathing] = false }
+        if let keyNotation { stated[.spelledOutKeys] = keyNotation == .spelledOut }
+        if let focusBreathes { stated[.focusBreathing] = focusBreathes }
         return stated
     }
 }
