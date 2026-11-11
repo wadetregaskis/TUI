@@ -95,7 +95,7 @@ enum ForegroundCommand {
             #if canImport(Darwin)
                 var attributes: posix_spawnattr_t?
             #else
-                var attributes = posix_spawnattr_t()
+                var attributes = unsafe posix_spawnattr_t()
             #endif
             unsafe posix_spawnattr_init(&attributes)
             defer { unsafe posix_spawnattr_destroy(&attributes) }
