@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An app whose input is already at its end no longer risks spinning on Linux.** Run with `< /dev/null` or a
+finished pipe, an app watched its input for bytes that would never come, and on Linux the end could reach it as an
+endless run of "bytes ready", holding a core. It now asks the input itself whether it has ended, at the start and at
+every wake.
+
 reads the keyboard; the action's documentation says how. Outside a running app the closure just runs. The Example's
 Terminal page edits a note in your `$VISUAL` or `$EDITOR`.
 **An app can hand the terminal to another program — `$EDITOR`, a pager, `git commit` — and take it back.**

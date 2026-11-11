@@ -131,6 +131,11 @@ final class StdinArrivalNotifier {
     ///   reason, as `Terminal.readSource`.
     func start(descriptor: Int32 = STDIN_FILENO) {
         self.descriptor = descriptor
+        // Already at its end (`< /dev/null`, a finished pipe): nothing will
+        // arrive, so nothing is watched. Not left to the source's first event,
+        // which on Linux need not come for a hang-up that happened before it
+        // was armed (CI run 105, Linux 6.3 arm64).
+        if Self.isAtEndOfInput(descriptor) { return }
         let src = DispatchSource.makeReadSource(
             fileDescriptor: descriptor,
             queue: .main
@@ -194,6 +199,12 @@ final class StdinArrivalNotifier {
     /// page from run to run, and no macOS lane ever did (2026-09-29 to
     /// 10-01). So a 0 is a question for ``isAtEndOfInput(_:)``, which asks the
     /// descriptor itself.
+    ///
+    /// And so is any other count. CI run 105 (Linux 6.3 arm64) found a source
+    /// on a descriptor at end of file still watching after 188 s, the main
+    /// actor starved all that while: a handler fired again and again with a
+    /// count that was not 0, which this then took for bytes. The descriptor is
+    /// asked every time; it is two system calls, against a spin.
     private func handleReadable() {
         guard let source else { return }
         handleReadable(reportedBytes: source.data)
@@ -203,7 +214,7 @@ final class StdinArrivalNotifier {
     /// ready. Internal so a test can hand it the 0 a race produces, which no
     /// test can make libdispatch produce on cue.
     func handleReadable(reportedBytes: UInt) {
-        if reportedBytes == 0, Self.isAtEndOfInput(descriptor) {
+        if Self.isAtEndOfInput(descriptor) {
             source?.cancel()
             source = nil
             return

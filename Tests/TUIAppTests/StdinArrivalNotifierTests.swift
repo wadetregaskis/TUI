@@ -185,6 +185,46 @@ struct StdinArrivalNotifierTests {
             notifier.handleReadable(reportedBytes: 0)
             #expect(!notifier.isWatching, "at end of file the source must go, or it fires forever")
         }
+
+        /// CI run 105, Linux 6.3 arm64: on a descriptor at end of file the
+        /// source was still watching after 188 s, with `isAtEndOfInput` true —
+        /// and the run starved the main actor that long, the signature of a
+        /// handler firing again and again. Whatever count libdispatch reports
+        /// with a hang-up, end of file is the descriptor's to say, so a firing
+        /// told some bytes are ready asks it too.
+        @MainActor
+        @Test("A source told bytes are ready, on a descriptor at EOF, stops watching it")
+        func readyBytesAtEOFStopsTheSource() throws {
+            var fds: [Int32] = [-1, -1]
+            try unsafe #require(pipe(&fds) == 0)
+            defer { close(fds[0]) }
+
+            let notifier = StdinArrivalNotifier()
+            notifier.start(descriptor: fds[0])
+            defer { notifier.stop() }
+
+            try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
+            notifier.handleReadable(reportedBytes: 1)
+            #expect(!notifier.isWatching, "at end of file the source must go, whatever count it was handed")
+        }
+
+        /// The other way the same run could have gone: no event at all for a
+        /// descriptor already at its end when the source starts. Stdin is that
+        /// whenever an app is run with `< /dev/null` or a finished pipe, so the
+        /// start asks the descriptor once, not only the source.
+        @MainActor
+        @Test("A descriptor already at EOF when watching starts is not watched")
+        func startAtEOFDoesNotWatch() throws {
+            var fds: [Int32] = [-1, -1]
+            try unsafe #require(pipe(&fds) == 0)
+            defer { close(fds[0]) }
+            try #require(Self.closeWriteEnd(fds[1], awaitingHangUpOn: fds[0]))
+
+            let notifier = StdinArrivalNotifier()
+            notifier.start(descriptor: fds[0])
+            defer { notifier.stop() }
+            #expect(!notifier.isWatching, "nothing will ever arrive, and a source would only fire at the end")
+        }
     #endif
 
     #if !canImport(WASILibc)  // wasip1 has no pipe(2).
