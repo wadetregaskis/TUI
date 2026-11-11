@@ -91,6 +91,11 @@ final class SplitPaneSizes {
     /// a divider's move since, which becomes the new ``reference``.
     var resolved: [Int] = []
 
+    /// The ``reference`` the split last had at each number of panes, so a pane
+    /// that goes and comes back — an inspector hidden and shown — finds the
+    /// panes as the reader left them, not at a fresh start.
+    var remembered: [Int: (sizes: [Int], total: Int)] = [:]
+
     /// Each pane's bounds, as the last frame found them — read by the divider
     /// handlers, which move at event time, outside any render.
     var bounds: [SplitPaneBounds] = []
@@ -271,6 +276,10 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         let total = axis == .horizontal ? width : height
         let across = axis == .horizontal ? height : width
 
+        // Kept across the pass's prune. A divider's focus id marked the split
+        // drawn, so with one pane, and no divider, its sizes went every frame:
+        // an inspector hidden and shown again came back at a fresh start.
+        if !context.isMeasuring { stateStorage.markActive(context.identity) }
         let panesBox: StateBox<SplitPaneSizes> = stateStorage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.sizes),
             default: SplitPaneSizes())
@@ -327,7 +336,14 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
     ) -> [Int] {
         let count = children.count
         let available = max(count, total - (count - 1))
-        let stored = panes.sizes
+        var stored = panes.sizes
+        // As many panes as some earlier frame had: they start as they stood then.
+        if stored.count != count, let earlier = panes.remembered[count] {
+            panes.reference = earlier
+            panes.resolved = earlier.sizes
+            stored = earlier.sizes
+        }
+        defer { if let reference = panes.reference { panes.remembered[count] = reference } }
         if stored.count == count, stored.allSatisfy({ $0 >= 1 }) {
             // A divider moved since the last render, or nothing set yet: what
             // stands now is what later sizes scale from.

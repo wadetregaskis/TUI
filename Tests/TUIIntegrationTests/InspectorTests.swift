@@ -108,4 +108,26 @@ struct InspectorTests {
         harness.frame(page())
         #expect(column(of: "count 1", in: harness.frame(page())) != nil, "the editor's count survived")
     }
+
+    @Test("Hidden and shown again, the inspector is as wide as the reader left it")
+    func showingAgainKeepsWidth() throws {
+        let harness = InputChainHarness(width: 60, height: 6)
+        let shown = Shown()
+        let page = { Editor().inspector(isPresented: shown.binding) { Text("traits") } }
+        harness.frame(page())
+        // The editor's button is the first stop, the divider the second: two
+        // Shift-Lefts widen the column ten cells.
+        harness.play([KeyEvent(key: .tab), KeyEvent(key: .left, shift: true), KeyEvent(key: .left, shift: true)]) {
+            page()
+        }
+        let widened = try #require(column(of: "traits", in: harness.frame(page())))
+        #expect(widened == 60 - _InspectorModifier<Editor, Text>.defaultWidth - 10)
+        shown.value = false
+        harness.frame(page())
+        harness.frame(page())
+        shown.value = true
+        harness.frame(page())
+        // It came back at its default width, as a fresh split starts.
+        #expect(column(of: "traits", in: harness.frame(page())) == widened)
+    }
 }

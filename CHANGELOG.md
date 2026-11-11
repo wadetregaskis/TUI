@@ -15,6 +15,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An inspector hidden and shown again is as wide as you left it.** It came back at its default width, whatever you
+had dragged it to. So does a pane of your own in an `HSplitView` or a `VSplitView` that comes and goes.
+
 **A `NavigationSplitView` column keeps the width you gave it when the terminal narrows for a while.** A terminal
 too narrow for a column you had widened held it in, and the column stayed that narrow once the terminal was wide
 again. It now goes back to your width as soon as there is room.
