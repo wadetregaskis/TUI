@@ -25,6 +25,10 @@ shape-aware frame of the Example's bouncing ball costs 5 to 8 ms in a release bu
 with what moved in the picture, and a part that held still could cross it: the Example's old bouncing ball drew its
 ground white in some frames and black in others. The split is now measured once across every frame, for the glyphs
 and for real pixels alike, unless `imageInkThreshold(_:)` states one.
+**The Example's animated picture shows what real pixels draw.** The bouncing ball is now a shaded, lit, chequered
+ball at 320 × 200 over a floor running off to a hazy horizon, with a soft shadow, drawn by
+`Tools/ExampleImages/make_bouncing_ball.py`; the old one was 80 × 40 pixel art, which looked the same in glyphs and
+in Kitty graphics. It is 102 KB more.
 
 **An idle app with a menu bar no longer holds a core on Ghostty, kitty or WezTerm.** Where the terminal reports a
 modifier key held on its own, the menu bar's underlined letters (and any `modifierKeyAlternate`) kept the animation

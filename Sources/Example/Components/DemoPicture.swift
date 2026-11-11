@@ -3,9 +3,10 @@
 //
 //  The pictures the image page carries, to flick between without finding one
 //  of your own: the mascot of each platform TUI runs on, the one it is
-//  running on shown first, a photograph, and a little animation.
+//  running on shown first, a photograph, and an animation.
 //
-//  Credits and licences are in THIRD-PARTY-NOTICES.md.
+//  Credits and licences are in THIRD-PARTY-NOTICES.md. The animation has
+//  neither: Tools/ExampleImages/make_bouncing_ball.py draws it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
