@@ -49,35 +49,65 @@ struct WordGlide: TextRenderer {
     private static let stride = 0.9
 
     func draw(layout: Text.Layout, in ctx: inout GraphicsContext) {
-        let all = glyphs(of: layout)
-        let words = Self.words(all.map { character(of: $0.glyph, in: text, layout: layout) })
-        guard words.count > 1 else {
-            for (_, glyph) in all { ctx.draw(glyph) }
-            return
-        }
-        // The words visited in turn, out and back: 0, 1, 2, 1, 0, 1, …
-        let legs = (words.count - 1) * 2
-        let leg = Int(time / Self.stride) % legs
-        let from = leg < words.count - 1 ? leg : legs - leg
-        let to = leg < words.count - 1 ? leg + 1 : legs - leg - 1
+        underlineWords(layout: layout, text: text, in: &ctx) { words in Self.span(of: words, at: time) }
+    }
+
+    /// The cells underlined `time` seconds in, of `words` (two or more).
+    static func span(of words: [Range<Int>], at time: Double) -> Range<Int> {
+        let leg = UnderlineLeg(words: words, time: time, stride: stride)
         // A third of the leg resting, a third for each end.
-        let progress = (time / Self.stride).truncatingRemainder(dividingBy: 1)
-        let head = Self.eased((progress - 1.0 / 3) * 3)
-        let tail = Self.eased((progress - 2.0 / 3) * 3)
-        let forward = to > from
+        let head = UnderlineLeg.eased((leg.progress - 1.0 / 3) * 3)
+        let tail = UnderlineLeg.eased((leg.progress - 2.0 / 3) * 3)
+        let forward = leg.to > leg.from
         // The end that leads moves first: the right one going right.
-        let start = Self.lerp(words[from].lowerBound, words[to].lowerBound, forward ? tail : head)
-        let end = Self.lerp(words[from].upperBound, words[to].upperBound, forward ? head : tail)
-        for (index, glyph) in all {
-            var swept = ctx
-            swept.textAttributes.underline = index >= start && index < end
-            swept.draw(glyph)
-        }
+        let start = UnderlineLeg.lerp(words[leg.from].lowerBound, words[leg.to].lowerBound, forward ? tail : head)
+        let end = UnderlineLeg.lerp(words[leg.from].upperBound, words[leg.to].upperBound, forward ? head : tail)
+        return start..<max(start, end)
+    }
+}
+
+/// Draws `layout`'s glyphs with those `span` picks, from the words of `text`,
+/// underlined; plain where the text has fewer than two words to move between.
+private func underlineWords(
+    layout: Text.Layout, text: [Character], in ctx: inout GraphicsContext,
+    span: ([Range<Int>]) -> Range<Int>
+) {
+    let all = glyphs(of: layout)
+    let words = UnderlineLeg.words(all.map { character(of: $0.glyph, in: text, layout: layout) })
+    guard words.count > 1 else {
+        for (_, glyph) in all { ctx.draw(glyph) }
+        return
+    }
+    let underlined = span(words)
+    for (index, glyph) in all {
+        var swept = ctx
+        swept.textAttributes.underline = underlined.contains(index)
+        swept.draw(glyph)
+    }
+}
+
+/// Which two words an underline is moving between, and how far through the
+/// move it is: the words visited in turn, out and back (0, 1, 2, 1, 0, 1, …),
+/// one leg every `stride` seconds.
+struct UnderlineLeg {
+    /// The word it leaves.
+    let from: Int
+    /// The word it moves to.
+    let to: Int
+    /// How far through the leg, 0 to 1.
+    let progress: Double
+
+    init(words: [Range<Int>], time: Double, stride: Double) {
+        let legs = (words.count - 1) * 2
+        let leg = Int(time / stride) % legs
+        from = leg < words.count - 1 ? leg : legs - leg
+        to = leg < words.count - 1 ? leg + 1 : legs - leg - 1
+        progress = (time / stride).truncatingRemainder(dividingBy: 1)
     }
 
     /// Each word's glyphs, by index, from the text's characters: a word is a
     /// run of non-blanks.
-    private static func words(_ characters: [Character?]) -> [Range<Int>] {
+    static func words(_ characters: [Character?]) -> [Range<Int>] {
         var words: [Range<Int>] = []
         var start: Int?
         for (index, character) in characters.enumerated() {
@@ -94,13 +124,13 @@ struct WordGlide: TextRenderer {
     }
 
     /// `fraction`, clamped to 0…1 and eased in and out.
-    private static func eased(_ fraction: Double) -> Double {
+    static func eased(_ fraction: Double) -> Double {
         let clamped = min(1, max(0, fraction))
         return clamped * clamped * (3 - 2 * clamped)
     }
 
     /// The cell `fraction` of the way from `from` to `to`, rounded.
-    private static func lerp(_ from: Int, _ to: Int, _ fraction: Double) -> Int {
+    static func lerp(_ from: Int, _ to: Int, _ fraction: Double) -> Int {
         Int((Double(from) + Double(to - from) * fraction).rounded())
     }
 }
