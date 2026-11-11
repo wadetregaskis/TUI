@@ -15,6 +15,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An app can hand the terminal to another program — `$EDITOR`, a pager, `git commit` — and take it back.**
+`@Environment(\.handOffTerminal)` gives a `HandOffTerminalAction`: `handOffTerminal { … }` runs its closure at once,
+with the terminal as it was before the app started (main screen, the shell's settings, no mouse or other modes), and
+takes it back after, as after ⌃Z: every mode set again, the size read again, every line drawn again. It returns what
+the closure returns and throws what it throws. While it runs, ⌃C and ⌃\ end the other program and not the app, ⌃Z
+stops the two together, and the scene is `.background`. Start an interactive program with `posix_spawn` in the app's
+process group, not with Foundation's `Process`, which starts it in a group of its own where an editor is stopped as it
+reads the keyboard; the action's documentation says how. Outside a running app the closure just runs.
 **A redacted `TextEditor` hides its text too.** Like a redacted field, a redacted editor drew its text, copied and
 cut it, kept its kills, moved by words, selected a word on a double-click, wrapped its rows at its word breaks and
 lit up find matches where its words were. It now draws a glyph for each character with its line breaks kept, wraps

@@ -98,6 +98,68 @@ struct SignalManagerTests {
         signals.stop()  // must not crash / double-cancel
     }
 
+    // MARK: Handing the terminal to another program
+
+    /// `number`'s disposition, as the address of its handler: 0 for `SIG_DFL`,
+    /// 1 for `SIG_IGN`, anything else a handler. Read by setting one, as
+    /// `signal` only can, and put back whole, flags and all.
+    private func disposition(_ number: Int32) -> Int {
+        var saved = sigaction()
+        _ = unsafe sigaction(number, nil, &saved)
+        let current = signal(number, SIG_IGN)
+        _ = unsafe sigaction(number, &saved, nil)
+        return unsafe unsafeBitCast(current, to: Int.self)
+    }
+
+    @Test("A hand-off ignores SIGINT and SIGQUIT, gives SIGTSTP its default, and puts all three back after")
+    func handOffDispositions() async {
+        let signals = SignalManager()
+        defer { signals.stop() }
+        await signals.install(wake: {})
+        let numbers = [SIGINT, SIGQUIT, SIGTSTP]
+        let before = numbers.map(disposition)
+
+        signals.beginHandOff()
+        #expect(signals.isHandedOff)
+        #expect(disposition(SIGINT) == 1, "⌃C is the other program's")
+        #expect(disposition(SIGQUIT) == 1, "and so is ⌃\\")
+        #expect(disposition(SIGTSTP) == 0, "⌃Z stops the app with the other program, as job control does")
+        signals.endHandOff()
+
+        #expect(!signals.isHandedOff)
+        #expect(numbers.map(disposition) == before, "each is back as it was")
+    }
+
+    @Test("A SIGINT and a SIGQUIT during a hand-off end nothing and shut nothing down after; one after it does")
+    func interruptDuringHandOff() async {
+        let signals = SignalManager()
+        defer { signals.stop() }
+        let (wakes, continuation) = AsyncStream.makeStream(of: Void.self)
+        await signals.install(wake: { continuation.yield() })
+        var iterator = wakes.makeAsyncIterator()
+
+        signals.beginHandOff()
+        // What ⌃C and ⌃\ send the whole foreground group in the terminal's own
+        // settings. Ignored, these do nothing to the test runner either.
+        kill(getpid(), SIGINT)
+        kill(getpid(), SIGQUIT)
+        signals.endHandOff()
+        await signals.awaitRearmed()
+
+        // A resize, watched throughout, so the main queue has run what was
+        // queued behind it.
+        kill(getpid(), SIGWINCH)
+        _ = await iterator.next()
+        #expect(signals.consumeResizeFlag())
+        #expect(!signals.shouldShutdown, "the ⌃C was the other program's")
+        #expect(!signals.consumeSuspendFlag())
+
+        // And after the hand-off, SIGINT is watched again.
+        kill(getpid(), SIGINT)
+        _ = await iterator.next()
+        #expect(signals.shouldShutdown)
+    }
+
     #if !os(Linux)
         @Test("stop() puts a default disposition back, rather than leaving the signal ignored")
         func stopRestoresTheDefaultDisposition() async {

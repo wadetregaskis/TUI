@@ -117,15 +117,16 @@ extension AppRunner {
     /// Hands the terminal back to the shell: the mouse mode off, the
     /// hairlines' strips, the pictures drawn under text and the window title
     /// taken back, the styling reset, raw mode off with every mode it set, the
-    /// cursor shown and the alternate screen left: the Ctrl-Z suspend's way
-    /// down.
+    /// cursor shown and the alternate screen left. Shared by
+    /// the Ctrl-Z suspend and a hand-off to another program
+    /// (``handOffTerminal(renderer:cursorTimer:running:)``).
     ///
     /// The mouse mode is set to `.none` here and NOT re-applied by
     /// ``retakeTerminal(renderer:)``: the loop re-evaluates the effective mode
     /// every frame and re-emits it on change, so the first frame after —
     /// forced by the diff-cache invalidation — restores whatever mode the
     /// scene wants.
-    private func handBackTerminal(renderer: RenderLoop<A>) {
+    func handBackTerminal(renderer: RenderLoop<A>) {
         terminal.applyMouseSupport(.disabled)
         // The pointer goes where it likes, unreported, until the mode is back.
         tuiContext.mouseEventDispatcher.forgetRestingPointer()
@@ -144,7 +145,7 @@ extension AppRunner {
 
     /// Waits until this process is the terminal's foreground job, stopping
     /// again while it is not: the resume of a stop, by `fg` or `bg`.
-    private func waitUntilForeground() {
+    func waitUntilForeground() {
         #if !canImport(WASILibc)
         // `bg` resumes a stopped job too, and a BACKGROUND process must not touch the terminal:
         // the escapes below would garble the shell's prompt, and grabbing raw
@@ -166,8 +167,9 @@ extension AppRunner {
     /// Takes the terminal back the way `run` set it up, after a stop: the
     /// alternate screen, the cursor hidden, raw mode and its modes, the
     /// host's own modes, and every line repainted. Shared by the Ctrl-Z
-    /// resume and the recovery from an external stop.
-    private func retakeTerminal(renderer: RenderLoop<A>) {
+    /// resume, the recovery from an external stop, and the end of a hand-off
+    /// to another program.
+    func retakeTerminal(renderer: RenderLoop<A>) {
         terminal.enterAlternateScreen()
         SoftTrap.holdUntilTerminalRestored()
         terminal.hideCursor()

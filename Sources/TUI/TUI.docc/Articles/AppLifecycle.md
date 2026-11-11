@@ -201,6 +201,27 @@ Steps 8–11 are the output optimization layer: line-level diffing reduces write
 
 > For full details on each step, see <doc:RenderCycle>.
 
+## Handing the Terminal to Another Program
+
+An app runs `$EDITOR`, a pager or `git commit` through ``EnvironmentValues/handOffTerminal``: the closure it is called with runs at once, on the main actor, while the other program has the terminal, and the call returns what the closure returns or throws what it throws.
+
+```swift
+@Environment(\.handOffTerminal) private var handOffTerminal
+
+Button("Edit in $EDITOR") {
+    let status = handOffTerminal { runInForeground(["/bin/sh", "-c", "${EDITOR:-vi} \"$1\"", "sh", path]) }
+    if status == 0 { reload(path) }
+}
+```
+
+It is the ⌃Z round trip without the stop. On the way out the loop draws a frame at ``ScenePhase/background`` and hands the terminal back as a suspend does: the mouse mode off, the hairlines, pictures under text and window title taken back, the styling reset, raw mode off (the kitty keyboard protocol's flags popped, every input mode off, the shell's termios back), the cursor shown and the alternate screen left. Turning raw mode off disarms the two threads that watch the input for a hung loop, the stall watchdog and the quit key's watch, so nothing of the app's reads the other program's keys or writes to its screen; the loop itself reads nothing until the closure returns, which holds the main actor. Input the driver had queued for the app is dropped by the change of termios, as for a suspend: it may hold reports in the app's encodings. What the app had read and not handled stays the app's, handled after.
+
+While the closure runs, ⌃C, ⌃\\ and ⌃Z are signal characters again, sent to the whole foreground group, the app included. The app ignores `SIGINT` and `SIGQUIT`, as `system(3)` does while its child runs, and cancels `SIGINT`'s source, whose handler would otherwise shut the app down once the closure returned (on Darwin a kqueue source fires for an ignored signal too). `SIGTSTP` gets its default action and its source is cancelled too, so ⌃Z stops the app with a program in its process group, the shell gets the job back, and `fg` continues both, with no suspend of the app's own pending after. `SIGTERM`, `SIGWINCH` and `SIGCONT` are watched as ever.
+
+On the way back the signals are put back (each ignored once more first, which discards one still pending: on Linux a signal blocked on every thread waits, ignored or not), and the terminal is taken back as after an external stop, since the program may have left any mode in any state: once in the foreground, raw mode made again from the shell's termios, every mode asserted, the diff cache invalidated, and a frame drawn that reads the size again and writes every line.
+
+A program started for the hand-off belongs in the app's process group, which is the terminal's foreground group, with every signal at its default: `posix_spawn` with `POSIX_SPAWN_SETSIGDEF` and `POSIX_SPAWN_SETSIGMASK`, and `waitpid`. Foundation's `Process` starts its child in a group of its own (measured on macOS), where an editor that reads the keyboard is stopped by `SIGTTIN`; and a program spawned without the defaults inherits the signals the app ignores. ⌃Z stops a program in another group, or one that stops itself alone, without the app, which TUI cannot see through the closure: the app waits on in it, and the terminal looks hung until the program is continued (`kill -CONT`) from elsewhere. Outside a running app — a headless or test app, a snapshot, WebAssembly — the closure just runs, and so does a call made inside the closure.
+
 ## Cleanup
 
 When the main loop exits: via SIGINT or SIGTERM, the quit key, or programmatic shutdown: `cleanup()` restores the terminal:

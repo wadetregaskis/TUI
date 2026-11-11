@@ -110,6 +110,9 @@ final class SignalManager {
 
     private struct Registration {
         let number: Int32
+        /// What the source's handler sets: kept so a hand-off can make the
+        /// source again (``endHandOff()``).
+        let kind: Kind
         /// The disposition to restore on teardown, on Darwin, where `nil` is
         /// `SIG_DFL` — the usual case, and one to restore like any other. Unused
         /// on Linux, where the disposition must not be touched — see
@@ -253,7 +256,13 @@ final class SignalManager {
         #else
             let previous = signal(number, SIG_IGN)
         #endif
+        arm(number, kind: kind, barrier: barrier, previous: previous)
+    }
 
+    /// Makes the source for `number`, its handler setting `kind`'s flag, and
+    /// keeps `previous` to restore on teardown: ``register(_:kind:barrier:)``'s
+    /// second half, and all of a source made again after a hand-off.
+    private func arm(_ number: Int32, kind: Kind, barrier: SignalRegistrationBarrier, previous: Disposition?) {
         let source = DispatchSource.makeSignalSource(signal: number, queue: .main)
         source.setEventHandler { [weak self] in
             // Queue is `.main`, and the main queue is the main actor's
@@ -282,7 +291,123 @@ final class SignalManager {
         }
         source.setRegistrationHandler(handler: barrier.callback())
         source.resume()
-        registrations.append(Registration(number: number, previous: previous, source: source))
+        registrations.append(Registration(number: number, kind: kind, previous: previous, source: source))
+    }
+
+    // MARK: Handing the terminal to another program
+
+    /// What ``beginHandOff()`` changed, for ``endHandOff()`` to put back.
+    private struct HandOffState {
+        /// Each signal's action before the hand-off, whole: a handler's flags
+        /// and mask with it (`FatalSignalTerminalRestore`'s `SIGQUIT` handler
+        /// runs on the alternate stack).
+        var actions: [(number: Int32, action: sigaction)]
+        /// The calling thread's signal mask before the hand-off.
+        var mask: sigset_t
+        /// The sources cancelled for the hand-off, to be made again.
+        var paused: [Registration]
+    }
+
+    /// Set while the terminal is handed to another program.
+    private var handOffState: HandOffState?
+
+    /// The sources made again after the last hand-off, and how many, for a
+    /// test to wait until they are armed (``awaitRearmed()``).
+    private var rearming: (barrier: SignalRegistrationBarrier, count: Int)?
+
+    /// The signals whose sources a hand-off cancels: what a terminal in
+    /// canonical mode sends the whole foreground group for ⌃C and ⌃Z.
+    private static let pausedForHandOff: [Int32] = [SIGINT, SIGTSTP]
+
+    /// Sets the signals up for the terminal being handed to another program
+    /// (`AppRunner.handOffTerminal`): ⌃C, ⌃\\ and ⌃Z are signals again in the
+    /// terminal's own settings, sent to every process in the foreground group,
+    /// the app's included, and are meant for the other program.
+    ///
+    /// - `SIGINT` and `SIGQUIT` are ignored, as `system(3)` ignores them while
+    ///   its child runs: neither ends the app, nor shuts it down once the
+    ///   closure returns. `SIGINT`'s source is cancelled, as on Darwin a
+    ///   kqueue source fires for an ignored signal too, and its handler would
+    ///   run after the closure; a cancelled source's never does.
+    /// - `SIGTSTP` takes its default action, stopping the app with the other
+    ///   program, and the shell gets the job back; `fg` continues both. Its
+    ///   source is cancelled for the same reason, so no suspend is pending
+    ///   after. Unblocked on this thread, which on Linux may block it
+    ///   (libdispatch blocks a signal on the thread it lands on, and reads it
+    ///   from a `signalfd`), so that it can stop the process at all.
+    ///
+    /// `SIGTERM`, `SIGWINCH` and `SIGCONT` are watched as ever: a termination
+    /// ends the app once the closure returns, and a resize repaints at the new
+    /// size.
+    func beginHandOff() {
+        guard handOffState == nil else { return }
+        let paused = registrations.filter { Self.pausedForHandOff.contains($0.number) }
+        for registration in paused { registration.source.cancel() }
+        registrations.removeAll { Self.pausedForHandOff.contains($0.number) }
+        var actions: [(number: Int32, action: sigaction)] = []
+        for number in [SIGINT, SIGQUIT, SIGTSTP] {
+            var action = sigaction()
+            guard unsafe sigaction(number, nil, &action) == 0 else { continue }
+            actions.append((number, action))
+        }
+        // Each set by a call of its own, never from a list of handlers: a
+        // handler is a C function pointer, and `SIG_IGN`'s is 1, one of the
+        // low addresses Swift takes for `nil` of an `Optional` around a value
+        // holding one. A loop over `[(Int32, Disposition?)]` ran no iteration
+        // at all, its iterator's first element read as the end (measured,
+        // Swift 6.2.4, debug build). `nil` is `SIG_DFL`, in every C library's
+        // spelling of `signal`.
+        signal(SIGINT, SIG_IGN)
+        signal(SIGQUIT, SIG_IGN)
+        signal(SIGTSTP, nil)
+        var stop = sigset_t()
+        unsafe sigemptyset(&stop)
+        unsafe sigaddset(&stop, SIGTSTP)
+        var mask = sigset_t()
+        _ = unsafe pthread_sigmask(SIG_UNBLOCK, &stop, &mask)
+        handOffState = HandOffState(actions: actions, mask: mask, paused: paused)
+    }
+
+    /// Puts back what ``beginHandOff()`` changed, as the app takes the
+    /// terminal back: each signal's action, the thread's mask, and the
+    /// sources it cancelled, made again.
+    ///
+    /// Each signal is ignored once more before its action is put back, which
+    /// discards one still pending (POSIX: setting `SIG_IGN` discards a pending
+    /// signal). On Linux a signal blocked on every thread waits pending, even
+    /// ignored, and the source made again would read it from its `signalfd`:
+    /// a ⌃C pressed in the other program would shut the app down after all.
+    func endHandOff() {
+        guard let state = handOffState else { return }
+        handOffState = nil
+        for (number, saved) in state.actions {
+            signal(number, SIG_IGN)
+            var action = saved
+            _ = unsafe sigaction(number, &action, nil)
+        }
+        var mask = state.mask
+        _ = unsafe pthread_sigmask(SIG_SETMASK, &mask, nil)
+        // Made again without waiting for them to arm: the run loop goes on at
+        // once. A signal in the moment before is lost, and only a `kill` can
+        // send one then, since raw mode makes ⌃C and ⌃Z keys again first.
+        let barrier = SignalRegistrationBarrier()
+        for registration in state.paused {
+            arm(registration.number, kind: registration.kind, barrier: barrier, previous: registration.previous)
+        }
+        rearming = (barrier, state.paused.count)
+    }
+
+    /// Whether the terminal is handed to another program.
+    var isHandedOff: Bool { handOffState != nil }
+
+    /// Returns once the sources the last ``endHandOff()`` made again are
+    /// armed: for a test, which sends them a signal next.
+    func awaitRearmed() async {
+        guard let (barrier, count) = rearming else { return }
+        rearming = nil
+        var iterator = barrier.events.makeAsyncIterator()
+        for _ in 0..<count { _ = await iterator.next() }
+        barrier.finish()
     }
 
     /// Cancels the signal sources and restores prior dispositions (Darwin).
@@ -336,6 +461,12 @@ final class SignalManager {
 
     /// A no-op: the suspend path it guards cannot run here.
     func expectSelfResume() {}
+
+    /// A no-op: there is no foreground group to share signals with.
+    func beginHandOff() {}
+
+    /// A no-op, as ``beginHandOff()`` is.
+    func endHandOff() {}
 
     /// A no-op. `wake` is unused because nothing here can wake the loop; stdin
     /// is the only event source, and the arrival notifier owns that.

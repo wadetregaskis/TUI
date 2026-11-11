@@ -903,6 +903,7 @@ EnvironmentValues.font | var font: Font? { get set }
 EnvironmentValues.fontResolutionContext | var fontResolutionContext: Font.Context { get }
 EnvironmentValues.foregroundStyle | var foregroundStyle: Paint? { get set }
 EnvironmentValues.gradientGraphics | var gradientGraphics: Bool { get set }
+EnvironmentValues.handOffTerminal | var handOffTerminal: HandOffTerminalAction { get }
 EnvironmentValues.headerProminence | var headerProminence: Prominence { get set }
 EnvironmentValues.horizontalScrollBounceBehavior | var horizontalScrollBounceBehavior: ScrollBounceBehavior { get set }
 EnvironmentValues.horizontalScrollIndicatorVisibility | var horizontalScrollIndicatorVisibility: ScrollIndicatorVisibility { get set }
@@ -1540,6 +1541,8 @@ HStackLayout.layoutProperties | @MainActor static var layoutProperties: LayoutPr
 HStackLayout.placeSubviews(in:proposal:subviews:cache:) | @MainActor func placeSubviews(in bounds: CellRect, proposal: ProposedSize, subviews: HStackLayout.Subviews, cache: inout ())
 HStackLayout.sizeThatFits(proposal:subviews:cache:) | @MainActor func sizeThatFits(proposal: ProposedSize, subviews: HStackLayout.Subviews, cache: inout ()) -> ViewSize
 HStackLayout.spacing | var spacing: Int?
+HandOffTerminalAction | struct HandOffTerminalAction
+HandOffTerminalAction.callAsFunction(_:) | @MainActor func callAsFunction<Result, Failure>(_ body: () throws(Failure) -> Result) throws(Failure) -> Result where Failure : Error
 HelpLink | struct HelpLink
 HelpLink.body | @MainActor @ViewBuilder var body: some View { get }
 HelpLink.init(action:) | init(action: @escaping () -> Void)

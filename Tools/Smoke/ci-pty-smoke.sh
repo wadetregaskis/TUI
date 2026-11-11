@@ -158,6 +158,14 @@ echo "── no terminal, and renderOnce ──"
 echo "── ⌃\\ and SIGQUIT: a quit, not a crash, even when hung ──"
 "$PY" "$HERE/quit_key_smoke.py" "$BUILD_DIR/IdleProbe"
 
+# `\.handOffTerminal`: the terminal handed to a shell command (cooked, the main
+# screen, no mouse mode, the command reading what is typed at it) and taken back
+# (every mode and line again); ⌃C ends the command and not the app, a resize is
+# drawn at the new size, and ⌃Z stops the app and the command together, leaving
+# no suspend pending. Against IdleProbe's `handoff` mode. Three short runs.
+echo "── handing the terminal to another program ──"
+"$PY" "$HERE/hand_off_smoke.py" "$BUILD_DIR/IdleProbe"
+
 # Presses that arrive together: a control's action is drawn before the next
 # event is read, by every route, while typing, arrows and a paste stay one batch.
 # Only the real loop does this, and nothing but a PTY reaches it. Against

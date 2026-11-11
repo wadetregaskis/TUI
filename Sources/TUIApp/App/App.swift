@@ -697,6 +697,10 @@ extension AppRunner {
 
         wireUpdates(renderer: renderer, cursorTimer: cursorTimer, scheduler: animationScheduler)
 
+        // `\.handOffTerminal` hands this terminal over while the loop runs, and
+        // nothing after: the teardown takes the handler away (`cleanup`).
+        installTerminalHandOff(renderer: renderer, cursorTimer: cursorTimer)
+
         // Under the kitty keyboard protocol ⌃\ is a report only a running
         // loop reads: should the loop stall with input waiting, a thread of
         // its own pops the protocol's flags so the next ⌃\ is the byte the
@@ -799,7 +803,6 @@ extension AppRunner {
         cursorTimer.stop()
         // And the watchdog, before the teardown writes and pops for itself.
         stopStallWatchdog()
-
         // Cleanup
         cleanup(renderer: renderer)
     }
@@ -1244,6 +1247,9 @@ extension AppRunner {
     }
 
     fileprivate func cleanup(renderer: RenderLoop<A>) {
+        // First, so that a closure handed to `\.handOffTerminal` from here on
+        // (a view's `onDisappear`) just runs, the terminal no longer the app's.
+        tuiContext.terminalHandOff.handler = nil
         // Before the terminal teardown: this forks tmux, and doing it while our
         // pane is still alive is the tidy window. A crash skips this — then the
         // hooks' own `||` arm removes them on their next firing instead (see

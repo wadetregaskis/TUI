@@ -407,6 +407,12 @@ package final class TUIContext {
     /// Its ring asks this context's render state for the frame.
     package let terminalBell: TerminalBell
 
+    /// How this app hands its terminal to another program and takes it back
+    /// (``TerminalHandOff``): with a handler while its run loop runs, and
+    /// without one in every other context, where a closure handed to it just
+    /// runs.
+    package let terminalHandOff = TerminalHandOff()
+
     /// The keys to press once the frame being drawn is on the screen — a menu
     /// bar's item's key (``KeysAfterFrame``). Pressing one asks this
     /// context's render state for the frame.

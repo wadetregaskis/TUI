@@ -56,6 +56,9 @@ import TUI
 // One mode serves `Tools/Smoke/activation_batch_smoke.py`: `presses` puts one
 // control on screen and logs what the app does to a file (`Presses`), for what
 // the run loop does with presses that arrive together.
+//
+// And one serves `Tools/Smoke/hand_off_smoke.py`: `handoff` hands the terminal
+// to a shell command and takes it back (`HandOffProbe`).
 
 // MARK: - Mode
 
@@ -85,6 +88,9 @@ enum ProbeMode: String {
     /// One control, whose action disables it: what two presses read in one
     /// batch do. See ``Presses``.
     case presses
+    /// One button, which hands the terminal to a shell command through
+    /// `\.handOffTerminal`. See ``HandOffProbe``.
+    case handoff
 
     static var current: Self {
         ProcessInfo.processInfo.environment["IDLE_PROBE_MODE"]
@@ -177,6 +183,8 @@ private struct ProbeContent: View {
                 }
         case .presses:
             Presses()
+        case .handoff:
+            HandOffProbe()
         }
     }
 }
