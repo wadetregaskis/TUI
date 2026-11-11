@@ -92,42 +92,11 @@ package enum PlainTerminalText {
     static func folded(_ character: Character) -> String {
         let cells = character.terminalWidth
         guard cells > 0 else { return "" }
-        let spelled = chrome(character) ?? letters(character) ?? ""
+        // The framework's shapes first, in their one table, then letters.
+        let shape = character.unicodeScalars.first.flatMap(TerminalSymbols.ASCII.spelling(of:))
+        let spelled = shape ?? letters(character) ?? ""
         return String(spelled.prefix(cells)).padding(toLength: cells, withPad: " ", startingAt: 0)
     }
-
-    /// Box drawing, blocks and the other shapes the framework draws with, which no
-    /// transform has anything to say about.
-    private static func chrome(_ character: Character) -> String? {
-        guard let scalar = character.unicodeScalars.first else { return nil }
-        if let spelled = shapes[scalar] { return spelled }
-        switch scalar.value {
-        case 0x2500...0x257F: return "+"  // the lines of `shapes`, and then the corners
-        case 0x2580...0x259F, 0x25A0...0x25A9: return "#"  // blocks, shades and squares
-        case 0x2800...0x28FF: return "."  // Braille
-        default: return nil
-        }
-    }
-
-    private static let shapes: [Unicode.Scalar: String] = {
-        var table: [Unicode.Scalar: String] = [:]
-        for (spelled, scalars) in [
-            ("-", "─━═╌╍┄┅┈┉╴╶╸╺╼╾‐‑‒–—―"), ("|", "│┃║╎╏┆┇┊┋╵╷╹╻╽╿"), ("/", "╱"), ("\\", "╲"), ("X", "╳"),
-            ("<", "←◀◂◄‹«"), (">", "→▶▸►›»"), ("^", "↑▲△▴"), ("v", "↓▼▽▾"),
-            // Control as terminals write it, `^Q`, for what is drawn without
-            // being spelled before layout (`Respelling`), where the other
-            // modifiers are their names: one cell has no room for those.
-            ("^", "⌃"),
-            ("o", "●○◉◎◦"), ("*", "•∙★☆✱"), (".", "·"), ("x", "✓✔✗✘"),
-            // The marks of a toast's style and an alert's title, emoji two
-            // cells wide, so each has room for its spelling; ⚠ and ℹ by their
-            // base, the selector after it being part of the same character.
-            ("!", "⚠"), ("i", "ℹ"), ("ok", "✅"), ("X", "❌🛑"),
-        ] as [(String, String)] {
-            for scalar in scalars.unicodeScalars { table[scalar] = spelled }
-        }
-        return table
-    }()
 
     /// Letters: `é` to `e`, `ß` to `ss`, and, where Foundation has them, other scripts
     /// to Latin (`你` to `ni`). ICU's rules, which Foundation carries anyway.
