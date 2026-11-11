@@ -116,9 +116,11 @@ jobs:
       - name: Trust the workspace
         run: git config --global --add safe.directory '*'
 
+      # python3 too: the swift image has none, and the target-imports check
+      # below is Python (CI run 104 failed there with "python3: No such file").
       - name: Install SwiftLint
         run: |
-          apt-get update && apt-get install -y curl unzip
+          apt-get update && apt-get install -y curl unzip python3
           arch="$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')"
           curl -fsSL "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_${arch}.zip" -o swiftlint.zip
           unzip -o swiftlint.zip -d /usr/local/bin
