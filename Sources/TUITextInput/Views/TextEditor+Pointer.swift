@@ -59,7 +59,7 @@ struct EditorPointer {
         let displayColumn =
             handler.scrollColumn + max(0, min(event.x, contentWidth - 1))
         let line = handler.scrollLine + row
-        let allLines = handler.readLines()
+        let allLines = handler.displayLines()
         let lineChars = allLines.indices.contains(line) ? allLines[line] : []
         let column = TabLayout.charIndex(
             forDisplayColumn: displayColumn, in: lineChars, tabWidth: tabWidth)

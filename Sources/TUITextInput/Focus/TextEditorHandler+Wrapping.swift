@@ -15,7 +15,7 @@ extension TextEditorHandler {
     /// where it scrolls sideways (``View/textEditorWrapsLines(_:)``).
     func wrappedRows() -> WrappedRows? {
         guard let wrapWidth else { return nil }
-        return layout().wrapped(width: wrapWidth, tabWidth: tabWidth)
+        return displayLayout().wrapped(width: wrapWidth, tabWidth: tabWidth)
     }
 
     /// The row the caret is drawn on, among all of them, by its affinity.

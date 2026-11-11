@@ -142,7 +142,9 @@ final class TextEditorHandler: PersistedFocusable {
             desiredColumn = caretColumnInRow(in: rows)
             return
         }
-        let lines = lines ?? readLines()
+        // The column is the one drawn: a hidden text's glyphs, not its tabs
+        // and wide characters.
+        let lines = isSecure ? displayLines() : lines ?? readLines()
         guard cursorLine < lines.count else {
             // Out-of-bounds cursor (stale state, normalised elsewhere): fall
             // back to the raw index rather than reading a missing line.
@@ -216,6 +218,23 @@ final class TextEditorHandler: PersistedFocusable {
     /// The document laid out, for the text it was laid out from.
     private var cachedLayout: EditorLayout?
 
+    /// The glyph the editor draws for every character while its text is
+    /// hidden — redacted, or privacy-sensitive under privacy redaction — and
+    /// `nil` while it is shown. Synced by the editor's render pass.
+    var hidingGlyph: Character?
+
+    /// Whether the editor hides its text (``hidingGlyph``), and so behaves as
+    /// a ``SecureField`` does for every way the text could get out, as a
+    /// field does (``TextFieldHandler/isSecure``): no copy or cut, no kill
+    /// kept for Ctrl-Y, every word motion and word deletion one character, a
+    /// double-click selecting the whole line rather than a word. Hidden text
+    /// "should not reveal its contents in any way" (the owner, 2026-11-10).
+    var isSecure: Bool { hidingGlyph != nil }
+
+    /// The hidden text laid out as it is drawn, for the text and glyph it was
+    /// made from (``displayLayout(of:)``).
+    private var cachedDisplayLayout: (text: String, glyph: Character, layout: EditorLayout)?
+
     /// The layout of the text the binding holds now: the one kept, while the
     /// text is the one it was made from, and a new one otherwise.
     func layout() -> EditorLayout {
@@ -235,6 +254,37 @@ final class TextEditorHandler: PersistedFocusable {
     /// The bound text as per-line character arrays (always at least one line).
     func readLines() -> [[Character]] {
         layout().lines
+    }
+
+    /// The layout the editor DRAWS, wraps and maps the pointer by: the
+    /// text's own (``layout()``), or, while it is hidden, a ``hidingGlyph``
+    /// for every character with the line breaks kept, so no row breaks where
+    /// a hidden word ends and no cell shows a character wide. One glyph a
+    /// character keeps every line and column where the text's own are, so
+    /// the caret, the selection and the edits need no mapping.
+    func displayLayout() -> EditorLayout {
+        displayLayout(of: text.wrappedValue)
+    }
+
+    /// The display layout of `current` (``displayLayout()``), kept as the
+    /// handler's, as ``layout(of:)`` keeps the text's.
+    func displayLayout(of current: String) -> EditorLayout {
+        guard let glyph = hidingGlyph else { return layout(of: current) }
+        if let kept = cachedDisplayLayout, kept.text == current, kept.glyph == glyph { return kept.layout }
+        let fresh = EditorLayout(text: Self.hiding(current, with: glyph))
+        cachedDisplayLayout = (current, glyph, fresh)
+        return fresh
+    }
+
+    /// The lines as drawn (``displayLayout()``).
+    func displayLines() -> [[Character]] {
+        displayLayout().lines
+    }
+
+    /// `text` with every character but a line break drawn as `glyph`
+    /// (``TextFieldHandler/redactedDisplay(_:keepingLineBreaks:)``).
+    nonisolated static func hiding(_ text: String, with glyph: Character) -> String {
+        String(text.map { $0.isNewline ? $0 : glyph })
     }
 
     func writeLines(_ lines: [[Character]]) {
@@ -770,7 +820,7 @@ final class TextEditorHandler: PersistedFocusable {
             moveByRows(delta, in: rows, pastTheEnds: true)
             return
         }
-        let lines = readLines()
+        let lines = displayLines()
         let target = cursorLine + delta
         guard target >= 0, target < lines.count else { return }
         cursorLine = target
@@ -785,7 +835,7 @@ final class TextEditorHandler: PersistedFocusable {
             moveByRows(pages * step, in: rows, pastTheEnds: false)
             return
         }
-        let lines = readLines()
+        let lines = displayLines()
         let target = min(max(0, cursorLine + pages * step), lines.count - 1)
         cursorLine = target
         cursorColumn = TabLayout.charIndex(
@@ -821,14 +871,16 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// The column to the left of `column` at the previous word boundary.
     /// See ``WordBoundary``, which `TextField` shares — the two used to
-    /// disagree about the underscore.
+    /// disagree about the underscore. One column, where the text is hidden
+    /// (``isSecure``), as a secure field's word motion goes.
     private func wordBoundaryLeft(_ line: [Character], from column: Int) -> Int {
-        WordBoundary.previous(in: line, from: column)
+        isSecure ? max(0, column - 1) : WordBoundary.previous(in: line, from: column)
     }
 
-    /// The column to the right of `column` at the next word boundary.
+    /// The column to the right of `column` at the next word boundary, or the
+    /// next column where the text is hidden.
     private func wordBoundaryRight(_ line: [Character], from column: Int) -> Int {
-        WordBoundary.next(in: line, from: column)
+        isSecure ? min(line.count, column + 1) : WordBoundary.next(in: line, from: column)
     }
 
     func moveWordLeft() {
@@ -883,11 +935,12 @@ final class TextEditorHandler: PersistedFocusable {
         var lines = readLines()
         let line = lines[cursorLine]
         if cursorColumn < line.count {
-            killRing = String(line[cursorColumn...])
+            // Hidden text is deleted, and none of it kept (``isSecure``).
+            if !isSecure { killRing = String(line[cursorColumn...]) }
             lines[cursorLine].removeSubrange(cursorColumn..<line.count)
             writeLines(lines)
         } else if cursorLine < lines.count - 1 {
-            killRing = "\n"
+            if !isSecure { killRing = "\n" }
             lines[cursorLine].append(contentsOf: lines[cursorLine + 1])
             lines.remove(at: cursorLine + 1)
             writeLines(lines)

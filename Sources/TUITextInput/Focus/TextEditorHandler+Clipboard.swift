@@ -40,6 +40,9 @@ extension TextEditorHandler {
     func perform(_ command: StandInEditingCommand) -> Bool {
         switch command {
         case .copy, .cut:
+            // Hidden text is neither copied nor cut (``isSecure``): the key is
+            // taken, as a secure field takes it, and nothing happens.
+            if isSecure { return block != nil || selectionRange != nil }
             if let block {
                 clipboard.write(blockText(block))
                 if command == .cut { deleteBlock(block) }
@@ -82,7 +85,7 @@ extension TextEditorHandler {
         clearSelection()
         guard cursorColumn > 0 else { return }
         var lines = readLines()
-        killRing = String(lines[cursorLine][..<cursorColumn])
+        if !isSecure { killRing = String(lines[cursorLine][..<cursorColumn]) }
         lines[cursorLine].removeSubrange(..<cursorColumn)
         cursorColumn = 0
         writeLines(lines)
@@ -95,9 +98,13 @@ extension TextEditorHandler {
     func killWordBackward() {
         clearSelection()
         var lines = readLines()
-        let start = StandInEditingCommand.wordRuboutStart(in: lines[cursorLine], before: cursorColumn)
+        // Hidden text's "word" is one character, and none of it is kept.
+        let start =
+            isSecure
+            ? max(0, cursorColumn - 1)
+            : StandInEditingCommand.wordRuboutStart(in: lines[cursorLine], before: cursorColumn)
         guard start < cursorColumn else { return }
-        killRing = String(lines[cursorLine][start..<cursorColumn])
+        if !isSecure { killRing = String(lines[cursorLine][start..<cursorColumn]) }
         lines[cursorLine].removeSubrange(start..<cursorColumn)
         cursorColumn = start
         writeLines(lines)
@@ -205,7 +212,7 @@ extension TextEditorHandler {
 // MARK: - The context menu
 
 extension TextEditorHandler: TextEditingMenuHandler {
-    var menuCanCopy: Bool { selectionRange != nil || block?.columns.isEmpty == false }
+    var menuCanCopy: Bool { !isSecure && (selectionRange != nil || block?.columns.isEmpty == false) }
 
     var menuCanYank: Bool { !killRing.isEmpty }
 

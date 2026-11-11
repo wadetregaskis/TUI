@@ -26,6 +26,10 @@ extension TextEditorHandler {
         let lineEnd = TextEditorPosition(line: line, column: lines[line].count)
         let paragraphEnd = lineBreak ? TextEditorPosition(line: line + 1, column: 0) : lineEnd
         switch granularity {
+        case .word where isSecure:
+            // Hidden text shows no word breaks (``isSecure``): a word is the
+            // line, as a secure field's is all of its text.
+            return (TextEditorPosition(line: line, column: 0), paragraphEnd)
         case .word where column == lines[line].count && lineBreak:
             return (lineEnd, paragraphEnd)
         case .word:

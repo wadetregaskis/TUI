@@ -1218,7 +1218,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [B-TEXTFMT-1](<../Historical/Text, editing and the clipboard/Formatting and live text.md#b-textfmt-1-a-number-interpolated-without-a-specifier-is-drawn-in-the-locale-without-swiftuis-padding>).
   **Owner** (2026-10-24).
 
-### T12. A redacted text field hides its text as a `SecureField` does
+### T12. A redacted text field or editor hides its text as a `SecureField` does
 
 - **SwiftUI:** redaction does not reach a text field. Under
   `.redacted(reason: .placeholder)`, and with `.privacySensitive()` under
@@ -1228,21 +1228,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   a `SecureField` stops at 10 and selects all of it (measured, macOS 15.8,
   2026-11-10, `Tools/SwiftUIProbes/Redacted text fields/redactedfield.out`; a
   `Text` beside it is redacted, so the harness draws redaction).
-- **TUI:** a `TextField` (either axis) whose text is redacted
+- **TUI:** a `TextField` (either axis) or a `TextEditor` whose text is redacted
   — `.redacted(reason:)` with `.placeholder` or `.privacy`, the latter where
-  the field is marked `.privacySensitive()`, and not inside `.unredacted()` —
+  the input is marked `.privacySensitive()`, and not inside `.unredacted()` —
   draws a glyph for each character (`░`, or the secure field's `●` for
-  privacy), spaces and wide characters included, a vertical field's line
-  breaks kept and its rows wrapped where the mask wraps; its prompt is a
-  skeleton too. It behaves
+  privacy), spaces and wide characters included, its line breaks kept, its
+  rows wrapped where the mask wraps; its prompt is a skeleton too. It behaves
   as a `SecureField` does for everything the text could leak through: no copy
   or cut (the context menu's Copy is off), no kill kept for Ctrl-Y, every word
-  motion and word deletion one character, and a double-click selecting the
-  field's whole text (`TextFieldHandler.isSecure`; `RedactedTextFieldTests`).
-  Typing, pasting in and undo work as before.
+  motion and word deletion one character, a double-click selecting the field's
+  whole text (an editor's whole line), and an editor offers no find bar
+  (`TextFieldHandler.isSecure`, `TextEditorHandler.isSecure`;
+  `RedactedTextFieldTests`, `RedactedTextEditorTests`). Typing, pasting in and
+  undo work as before.
 - **Why:** the owner (2026-11-10): text hidden by redaction "should not reveal
   its contents in any way", word motion included; a `SecureField` already
-  hid its text that way, so a redacted field reuses it.
+  hid its text that way, so a redacted input reuses it.
 - **Decided:** [HIDDEN-TEXT](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-api-polish-questions-answered-2026-11-10>).
   **Owner** (2026-11-10).
 

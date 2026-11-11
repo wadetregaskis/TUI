@@ -168,6 +168,9 @@ public struct TextEditor {
 
     @Environment(\.textEditorStyle) private var style
     @Environment(\.findNavigator) private var find
+    /// Why the editor's text is hidden, if it is: hidden text has no find bar,
+    /// whose matches would light up where a word is (``findIsOff``).
+    @Environment(\.effectiveRedactionReasons) private var redaction
     /// The app's shortcuts, and the focus they are scoped by: an app's own Find
     /// takes the find bar's keys (``appShortcutTakes(_:)``).
     @Environment(\.keyboardShortcutRegistry) private var shortcuts
@@ -206,7 +209,7 @@ public struct TextEditor {
                 _TextEditorCore(
                     text: text, focusID: focusID, isDisabled: isDisabled,
                     selection: finding ? findChannel : selection, menuTarget: menuTarget,
-                    opensFindOnControlF: !find.isFindDisabled,
+                    opensFindOnControlF: !findIsOff,
                     // Every match tinted while the bar is up, the current one
                     // selected over it, as macOS's find bar marks them.
                     findMatches: presented
@@ -220,7 +223,7 @@ public struct TextEditor {
                 // apart (the kitty protocol; elsewhere it is Ctrl-G). With no
                 // query yet, Ctrl-G presents the bar.
                 guard press.modifiers.contains(.control), press.modifiers.isDisjoint(with: [.option, .command]),
-                    !find.isFindDisabled,
+                    !findIsOff,
                     !appShortcutTakes(press)
                 else { return .ignored }
                 if press.key == "f" || press.key == "F" || findQuery.isEmpty {
@@ -232,7 +235,7 @@ public struct TextEditor {
             }
             // The Edit menu's Find… and Find Next are enabled while an editor
             // with a find bar has the focus, and only then (`TextFinding`).
-            .focusedValue(\.textFinding, find.isFindDisabled ? nil : TextFinding())
+            .focusedValue(\.textFinding, findIsOff ? nil : TextFinding())
             .paintingScrollContentBackground()
         } else {
             style.makeAnyBody(configuration: TextEditorStyleConfiguration())
@@ -247,9 +250,14 @@ extension TextEditor: View {}
     /// Whether the find bar is up: as the app's binding says, or as Ctrl-F and
     /// Done left it.
     private var isFindPresented: Bool {
-        guard !find.isFindDisabled else { return false }
+        guard !findIsOff else { return false }
         return find.isPresented?.wrappedValue ?? isFindShownLocally
     }
+
+    /// Whether the editor has no find bar: the app turned it off
+    /// (``View/findDisabled(_:)``), or the text is hidden, where a match lit
+    /// up would show where a word is (the owner, 2026-11-10).
+    private var findIsOff: Bool { find.isFindDisabled || redaction.replacesContent }
 
     private func setFindPresented(_ presented: Bool) {
         if let binding = find.isPresented {
@@ -389,6 +397,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled
+        // Redacted, the editor hides its text as a SecureField does
+        // (``TextEditorHandler/isSecure``).
+        handler.hidingGlyph = Self.hidingGlyph(in: context)
         menuTarget.handler = handler
         // The app's undo manager, which the editor's edits are registered with,
         // and where the editor leaves them when it goes away; and the steps of
@@ -425,7 +436,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             context: context, handler: handler, focusID: persistedFocusID)
         let isFocused = FocusRegistration.isFocused(context: context, focusID: persistedFocusID)
 
-        let displayLines = handler.readLines()
+        let displayLines = handler.displayLines()
         // Whether a bar is drawn over the text, for the pointer, rather than
         // beside it (`TextEditor+OverlaidIndicators.swift`): it takes no room.
         // Never while the editor holds the focus (`placingScrollIndicators`).
@@ -440,7 +451,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // `EditorLayout.endFrame()`); a measure is not the end of a frame.
         // And where the caret is, for the run loop to park the terminal's cursor on.
         if !context.isMeasuring {
-            handler.layout().endFrame()
+            handler.displayLayout().endFrame()
             handler.insertionPoint = handler.drawnInsertionPoint(column: window.caretColumn, rows: window.rows, width: window.contentWidth, height: height)
         }
 
@@ -639,7 +650,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: lines.count,
                 offset: handler.scrollLine, caretColumn: caretColumn, rows: nil)
         }
-        let layout = handler.layout()
+        let layout = handler.displayLayout()
         var rows = layout.wrapped(width: width, tabWidth: tabWidth)
         let overflows = rows.rowCount > height
         let contentWidth = overflows ? max(1, width - barWidth) : width
@@ -675,7 +686,20 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
         let box: StateBox<TextEditorHandler>? = context.stateStorage?.existingStorage(for: key)
         let current = text.wrappedValue
-        return box?.value.layout(of: current) ?? EditorLayout(text: current)
+        // As drawn: a hidden text's glyphs (``TextEditorHandler/displayLayout(of:)``).
+        let glyph = Self.hidingGlyph(in: context)
+        if let handler = box?.value {
+            handler.hidingGlyph = glyph
+            return handler.displayLayout(of: current)
+        }
+        return EditorLayout(text: glyph.map { TextEditorHandler.hiding(current, with: $0) } ?? current)
+    }
+
+    /// The glyph a redacted editor draws for each character, or `nil` where
+    /// its text is shown.
+    static func hidingGlyph(in context: RenderContext) -> Character? {
+        let reasons = context.environment.effectiveRedactionReasons
+        return reasons.replacesContent ? reasons.glyph : nil
     }
 
     /// Advances the handler's scroll offsets so the cursor stays visible.
@@ -811,6 +835,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     package func resolveOwnEnvironment(_ environment: EnvironmentValues) {
         _style.resolveEnvironment(environment)
         _find.resolveEnvironment(environment)
+        _redaction.resolveEnvironment(environment)
         _shortcuts.resolveEnvironment(environment)
         _focusManager.resolveEnvironment(environment)
     }

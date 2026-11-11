@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A redacted `TextEditor` hides its text too.** Like a redacted field, a redacted editor drew its text, copied and
+cut it, kept its kills, moved by words, selected a word on a double-click, wrapped its rows at its word breaks and
+lit up find matches where its words were. It now draws a glyph for each character with its line breaks kept, wraps
+where the glyphs wrap, refuses copy and cut, keeps no kill, moves and deletes one character for a word, selects the
+line on a double-click, and offers no find bar.
 **A redacted `TextField` hides what was typed, as a `SecureField` does.** Under `.redacted(reason:)`, or marked
 `.privacySensitive()` under `.redacted(reason: .privacy)`, a text field drew its text as it was, and copy, cut, Ctrl-K
 and Ctrl-Y, Option-arrows and a double-click all worked on it as on any field. It now draws a glyph for each character
