@@ -620,6 +620,11 @@ private enum StateIndex {
     static let outlineCache = 5
 }
 
+/// What the plain layout's width pass throws when the columns' minimum widths
+/// do not fit beside one another, so the table scrolls sideways instead
+/// (``_TableCore/plainColumnWidths(availableWidth:spacing:gutter:context:)``).
+private struct TableColumnsOverflow: Error {}
+
 /// Internal core view that handles table rendering inside a ContainerView.
 private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// The inset between the table's border and its row lines.
@@ -725,6 +730,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// Every column the table shows, on a copy ``horizontalWindow`` narrowed
     /// to the ones on screen; `nil` on any other.
     var unwindowedColumns: [_TableColumnSpec<Value>]?
+
+    /// Set on the copy ``overflowingLayout(_:)`` makes of a table whose
+    /// columns overflow but that found no window to scroll them in: it draws
+    /// them squeezed, and does not ask again.
+    var squeezesColumns = false
 
     /// Every column the table shows, whichever are on screen: what the keys
     /// that reach beyond the window — the sort chords, type select, the column
@@ -1038,16 +1048,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if let height = proposal.height {
             measureContext.availableHeight = height
         }
-        // Columns that do not fit: measured as drawn, the window's columns
-        // over the rows and the horizontal scrollbar's line under them.
-        if let windowed = horizontallyWindowed(measureContext) {
-            let barLines = windowed.table.horizontalWindow?.barLines ?? 0
-            var size = windowed.table.measuredSizeThatFits(
-                proposal: ProposedViewSize(width: proposal.width, height: proposal.height.map { $0 - barLines }),
-                context: windowed.context)
-            size.height += barLines
-            return size
-        }
 
         // A table's dimensions are arithmetic, not something to be discovered
         // by building the thing and measuring the result. Rendering the whole
@@ -1069,20 +1069,32 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // (which is what the first two copies disagreeing about it cost).
         // The style question too: `.visible` with a SCROLLBAR spends a column,
         // not a line, and both analytic paths already handle that shape.
-        if measureContext.environment.alwaysShowsVerticalTextIndicators,
-            measureContext.environment.scrollIndicatorStyle == .text
-        {
-            let buffer = renderToBuffer(context: measureContext)
-            size = (buffer.width, buffer.height)
-        } else if usesMultiLineLayout {
-            size =
-                analyticMultiLineSize(context: measureContext)
-                ?? {
-                    let buffer = renderToBuffer(context: measureContext)
-                    return (buffer.width, buffer.height)
-                }()
-        } else {
-            size = analyticSingleLineSize(context: measureContext)
+        do {
+            if measureContext.environment.alwaysShowsVerticalTextIndicators,
+                measureContext.environment.scrollIndicatorStyle == .text
+            {
+                let buffer = renderToBuffer(context: measureContext)
+                size = (buffer.width, buffer.height)
+            } else if usesMultiLineLayout {
+                size =
+                    try analyticMultiLineSize(context: measureContext)
+                    ?? {
+                        let buffer = renderToBuffer(context: measureContext)
+                        return (buffer.width, buffer.height)
+                    }()
+            } else {
+                size = try analyticSingleLineSize(context: measureContext)
+            }
+        } catch {
+            // Columns that do not fit: measured as drawn, the window's columns
+            // over the rows and the horizontal scrollbar's line under them.
+            let laidOut = overflowingLayout(measureContext)
+            let barLines = laidOut.table.horizontalWindow?.barLines ?? 0
+            var size = laidOut.table.measuredSizeThatFits(
+                proposal: ProposedViewSize(width: proposal.width, height: proposal.height.map { $0 - barLines }),
+                context: laidOut.context)
+            size.height += barLines
+            return size
         }
 
         // `.fit` is content-sized (a fixed width derived from the data), so
@@ -1104,7 +1116,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// choices in `renderToBuffer` / `buildScrollbarContent` /
     /// `buildPopulatedContent` — TableAnalyticMeasureTests holds the two
     /// paths equal across the configuration matrix.
-    private func analyticSingleLineSize(context: RenderContext) -> (width: Int, height: Int) {
+    ///
+    /// Throws where the columns do not fit beside one another, as the width
+    /// pass finds (``plainColumnWidths(availableWidth:spacing:gutter:context:)``).
+    private func analyticSingleLineSize(
+        context: RenderContext
+    ) throws(TableColumnsOverflow) -> (width: Int, height: Int) {
         let palette = context.environment.palette
         let gutter = selectionGutter(context.environment)
         let rowArea = max(1, context.availableHeight - chromeLines(context.environment))
@@ -1120,7 +1137,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
         let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
-        let columnWidths = calculateColumnWidths(
+        let columnWidths = try plainColumnWidths(
             availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter,
             context: context)
         var headerLine = renderHeader(
@@ -1219,9 +1236,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ///
     /// `TableAnalyticMeasureTests` holds this equal to the rendered size across
     /// the multi-line configuration matrix, including the ladder's tall budgets.
+    ///
+    /// Throws where the columns do not fit beside one another, as the width
+    /// pass finds (``plainColumnWidths(availableWidth:spacing:gutter:context:)``).
     private func analyticMultiLineSize(
         context: RenderContext
-    ) -> (width: Int, height: Int)? {
+    ) throws(TableColumnsOverflow) -> (width: Int, height: Int)? {
         // Empty is a placeholder line, not rows — the render's business.
         guard !data.isEmpty else { return nil }
         let palette = context.environment.palette
@@ -1242,7 +1262,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // The columns stop short of the bar by the spacing; the rows' fills do
         // not (`View.scrollbarSpacing(_:)`).
         let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
-        let columnWidths = calculateColumnWidths(
+        let columnWidths = try plainColumnWidths(
             availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter,
             context: context)
         let contentWidth = tableContentWidth(columnWidths, within: innerWidth, gutter: gutter)
@@ -1390,9 +1410,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         if let prepared = prepared(context) { return prepared.renderToBuffer(context: context) }
         context = Self.placingScrollIndicators(context, focusID: focusID)
-        // Columns that do not fit: the window of them on screen, drawn over
-        // the line the horizontal scrollbar takes.
-        if let windowed = horizontallyWindowed(context) { return windowed.table.drawn(context: windowed.context) }
+        // Where the columns do not fit, the window of them is drawn in this.
+        let unsurfacedContext = context
         // `.tableStyle(.surface)`: everything below is drawn on the table's own
         // surface — a field in a cell steps off it, a stripe tints over it — and
         // the finished buffer is painted with it at the end. Taken AFTER the
@@ -1423,9 +1442,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // not (`View.scrollbarSpacing(_:)`).
         let columnsWidth = max(1, contentInnerWidth - context.environment.rowScrollbarSpacing(showsBar: wantsScrollbar))
 
-        let columnWidths = calculateColumnWidths(
-            availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter,
-            context: context)
+        // Columns that do not fit: the window of them on screen, drawn over
+        // the line the horizontal scrollbar takes.
+        guard let columnWidths = try? plainColumnWidths(
+            availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter, context: context)
+        else {
+            let laidOut = overflowingLayout(unsurfacedContext)
+            return laidOut.table.drawn(context: laidOut.context)
+        }
 
         let contentLines: [String]
         var contentRuns: [AnimatedCellRun] = []
@@ -5083,10 +5107,25 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     // MARK: - Scrolling sideways
 
+    /// This table as it draws when the plain layout's width pass found its
+    /// columns do not fit beside one another
+    /// (``plainColumnWidths(availableWidth:spacing:gutter:context:)``): the
+    /// window of them on screen (``horizontallyWindowed(_:)``) — or, where
+    /// at the height and width a window would have there is none to take,
+    /// this table squeezed, as it drew before it scrolled sideways, which
+    /// does not ask again. A table whose columns fit never comes here, so it
+    /// pays for none of it.
+    private func overflowingLayout(_ context: RenderContext) -> (table: Self, context: RenderContext) {
+        if let windowed = horizontallyWindowed(context) { return windowed }
+        var squeezed = self
+        squeezed.squeezesColumns = true
+        return (squeezed, context)
+    }
+
     /// This table as it draws when its columns do not fit beside one another
     /// — the window of them on screen (``horizontalWindow``) — and the context
     /// to draw it in, its height less the horizontal scrollbar's line; `nil`
-    /// for a table whose columns fit, which draws as it always has (decisions
+    /// where they fit at the width the rows have here (decisions
     /// TABLE-HSCROLL).
     ///
     /// The columns do not fit when their minimum widths
@@ -5107,13 +5146,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let wide = columnsWidth(context.availableWidth, environment, showsBar: false)
         let barPossible = !data.isEmpty && environment.verticalScrollIndicators(overflowing: true).bar
         let narrow = barPossible ? columnsWidth(context.availableWidth, environment, showsBar: true) : wide
-        // The minimums are no wider at the narrower width (a ratio's share and
-        // a fit's scan cap only shrink), so fitting the narrower width at the
-        // wider width's minimums is fitting at every width the rows may have:
-        // the one question a table whose columns fit pays for.
         let wideMinimums = minimumColumnWidths(columnsWidth: wide, gutter: gutter, context: context)
-        guard TableHorizontalWindow.overflows(wideMinimums, spacing: columnSpacing, gutter: gutter, columnsWidth: narrow)
-        else { return nil }
 
         // A line for the horizontal scrollbar, where the indicators show and
         // the rows keep at least one.
@@ -5215,11 +5248,64 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             case .fit:
                 width = fitWidth(of: column, cappedAt: cap, context: context)
             case .flexible(let minimum, _, let maximum):
-                let header = showsHeader ? headerTitle(for: column).strippedLength : 0
-                width = max(minimum ?? 0, min(header, maximum ?? Int.max))
+                return Self.flexibleMinimum(
+                    minimum: minimum, maximum: maximum,
+                    header: showsHeader ? headerTitle(for: column).strippedLength : 0)
             }
             return max(1, width)
         }
+    }
+
+    /// A flexible column's minimum width (``minimumColumnWidths(columnsWidth:gutter:context:)``):
+    /// its `minimum`, or its header's width up to its `maximum`, and one cell
+    /// at least.
+    private static func flexibleMinimum(minimum: Int?, maximum: Int?, header: Int) -> Int {
+        max(1, minimum ?? 0, min(header, maximum ?? Int.max))
+    }
+
+    /// The plain layout's column widths (``calculateColumnWidths(availableWidth:spacing:gutter:context:)``),
+    /// or a throw where the columns' minimum widths do not fit in
+    /// `availableWidth`: the table scrolls sideways instead (``overflowingLayout(_:)``).
+    ///
+    /// The question asked in the width pass itself, of the widths it found: a
+    /// fixed, ratio or fit column's minimum is the width it was given there,
+    /// so only a flexible column's is asked for, and its header measured only
+    /// where bounds that cost no measuring do not settle it — a table whose
+    /// columns fit pays one walk over its columns and nothing else.
+    private func plainColumnWidths(
+        availableWidth: Int, spacing: Int, gutter: Int, context: RenderContext
+    ) throws(TableColumnsOverflow) -> [Int] {
+        let widths = calculateColumnWidths(
+            availableWidth: availableWidth, spacing: spacing, gutter: gutter, context: context)
+        guard horizontalWindow == nil, !squeezesColumns, columns.count > 1 else { return widths }
+        // As `TableHorizontalWindow.overflows` asks it, once.
+        let room: Int = availableWidth - gutter - spacing * (columns.count - 1)
+        var given = 0
+        var stated = 0
+        var bound = 0
+        for (index, column) in columns.enumerated() {
+            guard case .flexible(let minimum, _, let maximum) = column.effectiveWidth else {
+                given += widths[index]
+                continue
+            }
+            stated += Self.flexibleMinimum(minimum: minimum, maximum: maximum, header: 0)
+            // No header is wider than its bytes: no character takes more
+            // cells than it has UTF-8 bytes (an escape takes none), and the
+            // sort arrow and its space (` ▲`) are four.
+            let headerBound: Int = column.title.utf8.count + (column.sortComparator == nil ? 0 : 4)
+            bound += Self.flexibleMinimum(minimum: minimum, maximum: maximum, header: headerBound)
+        }
+        if given + bound <= room { return widths }
+        if given + stated > room { throw TableColumnsOverflow() }
+        let showsHeader = headerLines(context.environment) > 0
+        var exact = given
+        for column in columns {
+            guard case .flexible(let minimum, _, let maximum) = column.effectiveWidth else { continue }
+            exact += Self.flexibleMinimum(
+                minimum: minimum, maximum: maximum, header: showsHeader ? headerTitle(for: column).strippedLength : 0)
+        }
+        if exact > room { throw TableColumnsOverflow() }
+        return widths
     }
 
     /// Hands the handler this frame's window — where the keys and the wheel
