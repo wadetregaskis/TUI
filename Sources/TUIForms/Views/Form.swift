@@ -16,7 +16,9 @@ import TUIFoundation
 ///   classic macOS layout: field labels right-aligned to a shared pillar, controls
 ///   left-aligned in the column after it, push buttons in that column too, section
 ///   headers bold and right-aligned to the pillar, sections separated by a blank
-///   line.
+///   line. Where the labels and the controls do not fit side by side, the
+///   pillar gives way, to what the widest control leaves but never less than
+///   half the width, and the labels wrap in it.
 /// - ``FormStyle/grouped`` — each ``Section`` drawn as a bordered group, and
 ///   each field row spread across it as SwiftUI's are: the label at the leading
 ///   edge, a fixed value at the trailing edge, a field or a slider from 45% of
@@ -506,10 +508,22 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         }
 
         let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
-        let pillar = pillarWidth(of: elements, context: context)
+        var pillar = pillarWidth(of: elements, context: context)
         // The widest non-button row: in columns the width a row with a
         // `formRowAlignment` is framed to; in grouped the shared box width.
-        let contentWidth = contentWidth(of: elements, pillar: pillar, context: context)
+        var contentWidth = contentWidth(of: elements, pillar: pillar, context: context)
+        // A row measures no wider than the width it is offered, so a form that
+        // fills it may be one that does not fit. Only labels wider than half
+        // the width are narrowed, so a form whose labels are not asks nothing
+        // more of its rows (a field fills the width, so the second test alone
+        // would be every such form, every frame).
+        if pillar > (context.availableWidth - 1) / 2, contentWidth >= context.availableWidth {
+            let narrowed = narrowedPillar(pillar, of: elements, within: context.availableWidth, context: context)
+            if narrowed < pillar {
+                pillar = narrowed
+                contentWidth = self.contentWidth(of: elements, pillar: pillar, context: context)
+            }
+        }
 
         let column = VStack(alignment: .leading, spacing: grouped ? 1 : 0) {
             ForEach(_indexed(elements)) { entry in
@@ -556,6 +570,32 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
                     + measureChild(label, proposal: ProposedViewSize(width: nil, height: nil), context: context).width
             }
             .max() ?? 0
+    }
+
+    /// The label column of a form too narrow for its labels and its controls
+    /// side by side: what the widest control leaves, but never less than half
+    /// the width, so the labels wrap in the column rather than the controls
+    /// in theirs. Every row is laid out to it. Left to each row, a field's row
+    /// squeezed its label and its value between them, and a checkbox was
+    /// indented the whole label column, its title wrapped a letter or two to
+    /// a line at the trailing edge.
+    private func narrowedPillar(
+        _ pillar: Int, of elements: [_FormElement], within width: Int, context: RenderContext
+    ) -> Int {
+        let controls = formRows(of: elements)
+            .compactMap { row -> Int? in
+                let control: AnyView
+                switch row.kind {
+                case .field(_, let content): control = content
+                case .control: control = AnyView(baseRowView(row, pillar: 0))
+                case .button, .plain: return nil
+                }
+                return measureChild(control, proposal: ProposedViewSize(width: nil, height: nil), context: context).width
+            }
+            .max() ?? 0
+        let half: Int = (width - 1) / 2
+        let left: Int = width - 1 - controls
+        return max(0, min(pillar, max(half, left)))
     }
 
     /// The form's content width: the widest non-button row, which a row with a

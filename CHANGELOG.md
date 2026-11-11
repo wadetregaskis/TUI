@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `Form` too narrow for its labels keeps its checkboxes in the control column.** A field row squeezed its label and
+its value between them, but a checkbox or a radio group was indented the whole width of the labels, and its title
+wrapped a letter or two to a line at the right edge. The label column now gives way, to what the widest control
+leaves or half the width, and every row is laid out to it.
+
 **An inspector hidden and shown again is as wide as you left it.** It came back at its default width, whatever you
 had dragged it to. So does a pane of your own in an `HSplitView` or a `VSplitView` that comes and goes.
 

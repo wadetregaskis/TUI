@@ -280,6 +280,37 @@ struct FormTests {
         #expect(column(of: "Wi-Fi", in: bare) != nil && column(of: "Wi-Fi", in: faded) == column(of: "Wi-Fi", in: bare), "\(bare)\n\(faded)")
     }
 
+    @Test("Too narrow for its labels and controls, a form keeps one control column, the labels giving way")
+    func narrowFormKeepsOneControlColumn() {
+        // A label of 26 cells in 30: a checkbox was indented the whole label
+        // column, 27 cells, where it had 2 left for its title.
+        let out = lines(
+            Form {
+                LabeledContent("Trusted devices on account", value: "three")
+                Toggle("Notify", isOn: .constant(true))
+            }, width: 30)
+        let value = column(of: "three", in: out)
+        let title = column(of: "Notify", in: out)
+        // The widest control, the checkbox and its title, is 8 cells: the
+        // labels have 21, and a cell between.
+        #expect(value == 22, "\(out)")
+        #expect(title.map { $0 - 2 } == value, "the box in the value column, its title after it: \(out)")
+        // A control too wide for even that leaves the labels half.
+        let wideControl = lines(
+            Form {
+                LabeledContent("Trusted devices on account", value: "a value of twenty-four")
+                Toggle("Notify", isOn: .constant(true))
+            }, width: 30)
+        #expect(column(of: "Notify", in: wideControl).map { $0 - 2 } == 15, "\(wideControl)")
+        // With the room, the label column is the labels' width as before.
+        let wide = lines(
+            Form {
+                LabeledContent("Trusted devices on account", value: "three")
+                Toggle("Notify", isOn: .constant(true))
+            }, width: 50)
+        #expect(column(of: "three", in: wide) == 27, "\(wide)")
+    }
+
     // MARK: - macOS columns conventions
 
     @Test("A bare Toggle is box-first in the control column (its label is clickable)")
