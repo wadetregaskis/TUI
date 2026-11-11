@@ -5014,6 +5014,32 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     // MARK: - Column Width Calculation
 
+    /// How far a `.fit` column's scan need go: single-line cells are CLIPPED
+    /// to their column, so once a `.fit` column's widest-so-far already spans
+    /// the whole interior, no later row can change anything visible — stop
+    /// scanning. Multi-line cells instead WRAP at the column width, so there
+    /// the true maximum matters and the scan must run to the end (`nil`).
+    private func fitScanCap(contentWidth: Int) -> Int? {
+        columns.contains(where: { $0.lineLimit > 1 }) ? nil : contentWidth
+    }
+
+    /// A `.ratio` column's width out of `contentWidth`.
+    private static func ratioWidth(_ ratio: Double, of contentWidth: Int) -> Int {
+        // `.ratio` takes an unvalidated Double from public API, and a ratio is
+        // usually computed (`part / whole`) — so NaN and ±infinity arrive in
+        // practice, and `Int(Double)` traps on both, as it does on any value
+        // past Int's range. Treat a non-finite ratio as zero and clamp the rest
+        // to the space actually available: a bad ratio should render a
+        // degenerate column, not kill the app. Clamped in Double space, BEFORE
+        // the conversion: `Int(_: Double)` traps on NaN, on ±infinity, and on
+        // any finite value past Int's range (`1e30` is finite and still traps),
+        // so no post-conversion clamp can save it. A column can never be wider
+        // than the content area anyway, so bounding to that is both safe and
+        // correct.
+        let scaled: Double = Double(contentWidth) * ratio
+        return scaled.isFinite ? Int(min(max(0, scaled), Double(contentWidth))) : 0
+    }
+
     private func calculateColumnWidths(
         availableWidth: Int, spacing: Int, gutter: Int, context: RenderContext
     ) -> [Int] {
@@ -5021,14 +5047,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         let totalSpacing = spacing * (columns.count - 1)
         let contentWidth = max(0, availableWidth - totalSpacing - gutter)
-
-        // Single-line cells are CLIPPED to their column, so once a `.fit`
-        // column's widest-so-far already spans the whole interior, no later
-        // row can change anything visible — stop scanning. Multi-line cells
-        // instead WRAP at the column width, so there the true maximum
-        // matters and the scan must run to the end.
-        let fitScanCap =
-            columns.contains(where: { $0.lineLimit > 1 }) ? nil : Optional(contentWidth)
+        let fitScanCap = fitScanCap(contentWidth: contentWidth)
 
         var widths = [Int](repeating: 0, count: columns.count)
         var usedWidth = 0
@@ -5041,19 +5060,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 widths[index] = fixedWidth
                 usedWidth += fixedWidth
             case .ratio(let ratio):
-                // `.ratio` takes an unvalidated Double from public API, and a
-                // ratio is usually computed (`part / whole`) — so NaN and ±infinity
-                // arrive in practice, and `Int(Double)` traps on both, as it does
-                // on any value past Int's range. Treat a non-finite ratio as zero
-                // and clamp the rest to the space actually available: a bad ratio
-                // should render a degenerate column, not kill the app.
-                // Clamped in Double space, BEFORE the conversion: `Int(_: Double)`
-                // traps on NaN, on ±infinity, and on any finite value past Int's
-                // range (`1e30` is finite and still traps), so no post-conversion
-                // clamp can save it. A column can never be wider than the content
-                // area anyway, so bounding to that is both safe and correct.
-                let scaled = Double(contentWidth) * ratio
-                let ratioWidth = scaled.isFinite ? Int(min(max(0, scaled), Double(contentWidth))) : 0
+                let ratioWidth = Self.ratioWidth(ratio, of: contentWidth)
                 widths[index] = ratioWidth
                 usedWidth += ratioWidth
             case .fit:
