@@ -46,6 +46,8 @@ struct ImageHarness {
         var sourceScale = 3
         var depth = "truecolor"
         var edgeContrast = 0.0
+        var shapeAware = false
+        var image: String?
 
         var args = CommandLine.arguments.dropFirst().makeIterator()
         while let arg = args.next() {
@@ -59,6 +61,8 @@ struct ImageHarness {
             case "--source-scale": sourceScale = args.next().flatMap(Int.init) ?? sourceScale
             case "--depth": depth = args.next() ?? depth
             case "--edge-contrast": edgeContrast = args.next().flatMap { Double($0) } ?? edgeContrast
+            case "--shape-aware": shapeAware = true
+            case "--image": image = args.next()
             case "--help", "-h":
                 print(usage)
                 return
@@ -98,9 +102,15 @@ struct ImageHarness {
         // difference in how often a quantiser is asked comes from.
         let (width, height) = path == "pixel" ? (cols * 8, rows * 17) : (cols, rows)
         let units = width * height
-        let source = photograph(width: width * sourceScale / 2, height: height * sourceScale / 2)
         let converter = ASCIIConverter(
-            colorMode: colorMode, dithering: dithering, edgeContrast: edgeContrast)
+            shapeAware: shapeAware, colorMode: colorMode, dithering: dithering, edgeContrast: edgeContrast)
+        if let image {
+            measureFrames(
+                of: image, converter, width: width, height: height, path: path, iterations: iterations,
+                label: "mode=\(mode) dither=\(dither) shape=\(shapeAware)")
+            return
+        }
+        let source = photograph(width: width * sourceScale / 2, height: height * sourceScale / 2)
 
         // One untimed pass: it pays for every lazily-built table and warms the
         // allocator, neither of which is what a steady-state figure is about.
@@ -136,6 +146,45 @@ struct ImageHarness {
         }
         let art = converter.convert(source, width: width, height: height)
         return art.lines.count &+ (art.lines.first?.utf8.count ?? 0) &+ art.coverage.count
+    }
+
+    /// Every frame of an animated file, each converted once per iteration: what
+    /// a playing picture costs per frame shown, the first time round, before a
+    /// view has a conversion of it to keep. The first pass's slowest frame is
+    /// printed too: it is what a frame of the animation waits for when nothing
+    /// was converted ahead of it.
+    private static func measureFrames(
+        of file: String, _ converter: ASCIIConverter, width: Int, height: Int, path: String, iterations: Int,
+        label: String
+    ) {
+        guard let animation = AnimatedImageDecoder.decode(atPath: file, maxPixelCount: nil) else {
+            FileHandle.standardError.write(Data("not an animated picture: \(file)\n".utf8))
+            return
+        }
+        let frames = animation.frames.map(\.image)
+        let clock = ContinuousClock()
+        var checksum = 0
+        var slowest = Duration.zero
+        for frame in frames {
+            let start = clock.now
+            checksum &+= run(converter, frame, width, height, path)
+            slowest = max(slowest, clock.now - start)
+        }
+        let start = clock.now
+        for _ in 0..<iterations {
+            for frame in frames { checksum &+= run(converter, frame, width, height, path) }
+        }
+        let perFrame = (clock.now - start) / (iterations * frames.count)
+        print("""
+            path=\(path) \(label) out=\(width)x\(height) \
+            src=\(animation.width)x\(animation.height) frames=\(frames.count) iterations=\(iterations)
+            \(milliseconds(perFrame).formatted(.fixed(3))) ms/frame   first pass slowest \
+            \(milliseconds(slowest).formatted(.fixed(3))) ms   checksum=\(checksum)
+            """)
+    }
+
+    private static func milliseconds(_ duration: Duration) -> Double {
+        Double(duration.components.seconds) * 1000 + Double(duration.components.attoseconds) / 1e15
     }
 
     /// The palette quantiser on its own, over DISTINCT colours.
@@ -312,6 +361,6 @@ struct ImageHarness {
         Usage: ImageHarness [--path glyph|pixel|colour|palette] [--mode truecolor|ansi256|ansi16|grayscale|mono|shades8]
                             [--dither none|floyd] [--cols C] [--rows R] [--iterations N]
                             [--source-scale S] [--depth truecolor|ansi256|ansi16|mono]
-                            [--edge-contrast AMOUNT]
+                            [--edge-contrast AMOUNT] [--shape-aware] [--image ANIMATED_FILE]
         """
 }

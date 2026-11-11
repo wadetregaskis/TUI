@@ -775,6 +775,21 @@ whole pixel grid (816,000 px at 120×50); on `--path glyph` it runs over the
 box-reduced sub-cell grid instead — 120×100 for the default charset, sixty-odd
 times smaller — so a glyph-path number says almost nothing about it.
 
+`--image FILE` converts the frames of an animated file instead (a GIF
+anywhere; an APNG or WebP where ImageIO reads them), each once per iteration,
+and prints the cost per frame and the first pass's slowest frame: what a
+playing picture pays the first time round, and the first pass also pays for
+the process-wide tables a mode builds on first use. `--shape-aware` matches
+glyphs by shape (`ASCIIConverter.shapeAware`), the costliest glyph mode. On
+the Example's bouncing ball at 140×45 cells (2026-11-11), a shape-aware frame
+cost 8.0 ms in release and about 200 ms in a debug build, a dithered `ansi256`
+one 1.4 ms and 25 ms, and the first shape-aware or dithered conversion in a
+debug process 1.1 to 1.9 s:
+
+```bash
+"$BIN" --image Sources/Example/Resources/bouncing-ball.gif --mode truecolor --cols 140 --rows 45 --shape-aware
+```
+
 One trap in reading the checksum: switching the flag on CHANGES it, because the
 mask moves the middle pixel it samples. So a checksum that is equal with and
 without `--edge-contrast` is proof the mask never ran, and a checksum that
