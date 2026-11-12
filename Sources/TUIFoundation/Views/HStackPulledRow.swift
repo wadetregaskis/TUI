@@ -76,6 +76,12 @@ extension _HStackCore: ScrollPlacing {}
         guard
             let band = PulledParallel.fill(
                 window: window, children: placed, state: pulledRowState(context: context), context: context,
+                holder: { PulledParallel.holder(of: $0, count: children.count, child: { children[$0] }, context: context) },
+                place: { index, seek in
+                    PulledParallel.place(
+                        of: seek, in: children[index], width: layout.widths[index],
+                        height: layout.childHeights[index], context: context)
+                },
                 render: { index, childContext, height in
                     children[index].isSpacer
                         ? FrameBuffer(emptyWithWidth: layout.widths[index], height: 0)

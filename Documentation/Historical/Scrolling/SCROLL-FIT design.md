@@ -433,9 +433,16 @@ container carries is searched for below its rows, level by level:
   its own offset, and every piece it placed, by where the row's answer put the viewport's top
   (`pulledPosition`). So each level resolves the seek among its own rows; a box relays it as it
   relays any request, and the parallel shape hands it to its lead and re-hands its other pulled
-  children their place below the container's new top. *Not yet:* a key in a parallel
-  container's pulled child other than its lead (the tallest), two lazy stacks side by side, is
-  not found; the lead would have to be the child holding the key for that frame.
+  children their place below the container's new top. *Built in the fourth lane:* the seek goes
+  to the child below which the search finds the key (`PulledParallel.holder(of:)`): handed to
+  it when it is pulled, the container's lines then moving by where it put the viewport's top;
+  aimed at the key's place in it when it is drawn whole (a stack of 256 rows or fewer), the
+  container's position worked out from that place (`aimedOffset`); either way every other pulled
+  child, the lead among them, is handed its place below the container's new top. With no child
+  holding it, the lead is handed it, as before. So a key in the shorter of two lazy stacks side
+  by side is found. At 98447fc67 neither the lazy nor the eager page found it: not a regression.
+  Two `LazyVStack`s side by side split the row's width otherwise than two filling `VStack`s
+  (as at 98447fc67 too), so their twin is compared by the line the key lands on.
 - **A row drawn whole is aimed into.** The row is drawn once for the key's place alone, measuring
   and with no cache: the child the key names stamps two geometry markers on its drawing
   (`seekTargetTop`, `seekTargetEnd`), which every container moves with what it draws, so the

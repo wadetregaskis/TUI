@@ -62,6 +62,12 @@ extension _ZStackCore: ScrollPlacing {}
         guard
             let band = PulledParallel.fill(
                 window: window, children: placed, state: pulledLayersState(context: context), context: context,
+                holder: { PulledParallel.holder(of: $0, count: drawn.count, child: { drawn[$0] }, context: context) },
+                place: { index, seek in
+                    PulledParallel.place(
+                        of: seek, in: drawn[index], width: context.availableWidth, height: sizes[index].height,
+                        context: context)
+                },
                 render: { index, layerContext, height in
                     drawn[index].render(width: context.availableWidth, height: height, context: layerContext)
                 })

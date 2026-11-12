@@ -40,6 +40,16 @@ private struct SeekPage<ID: Hashable, Content: View>: View {
 struct PulledLocateTests {
     enum Shape: String, CaseIterable, Sendable {
         case titled, secondOfTwo, boxed, nestedPulled, nestedSmall, hStack
+        /// Two stacks side by side, the key in the shorter: pulled too, or
+        /// short enough to be drawn whole.
+        case sideBySide, sideBySideSmall
+
+        /// The shapes whose eager twin lays its rows out across as the lazy
+        /// page does. Two stacks side by side do not: two `LazyVStack`s split
+        /// a row's width otherwise than two filling `VStack`s (as at
+        /// 98447fc67, before the pull), so those are compared by the line the
+        /// key lands on alone.
+        static let twinned = allCases.filter { $0 != .sideBySide && $0 != .sideBySideSmall }
     }
 
     /// The ids of stack `prefix`'s rows, which are their texts: unique on
@@ -105,6 +115,15 @@ struct PulledLocateTests {
                     rows("a", 400)
                 }
             }
+        case .sideBySide, .sideBySideSmall:
+            // The row's lines are the taller stack's.
+            VStack(alignment: .leading, spacing: 0) {
+                Text("title")
+                HStack(alignment: .top, spacing: 1) {
+                    rows("a", 400)
+                    rows("b", shape == .sideBySide ? 300 : 120)
+                }
+            }
         case .nestedPulled, .nestedSmall:
             // Twelve groups of 300 rows, each stack pulled, or 300 of twenty,
             // the outer stack windowed and its groups drawn whole.
@@ -138,6 +157,8 @@ struct PulledLocateTests {
         switch shape {
         case .titled, .boxed, .hStack: "a301"
         case .secondOfTwo: "b250"
+        case .sideBySide: "b150"
+        case .sideBySideSmall: "b100"
         case .nestedPulled: "g9r150"
         case .nestedSmall: "g250r12"
         }
@@ -186,7 +207,7 @@ struct PulledLocateTests {
 
     /// Twin: the same rows drawn eagerly, whose seek finds the key below a row
     /// by the same search and places it from the rows' exact places.
-    @Test("A seek draws what the same seek over the eager rows draws", arguments: Shape.allCases)
+    @Test("A seek draws what the same seek over the eager rows draws", arguments: Shape.twinned)
     func seekDrawsWhatTheEagerOneDraws(_ shape: Shape) {
         for anchor in [UnitPoint.top, .center, .bottom, nil] {
             let lazy = Self.app(shape, lazy: true, anchor: anchor)
@@ -208,7 +229,7 @@ struct PulledLocateTests {
     /// From where a seek lands, the page scrolls on as it would from there:
     /// paging up and down again draws what the eager twin draws, and Home
     /// brings the top back.
-    @Test("After a seek, paging and Home draw what the eager rows draw", arguments: Shape.allCases)
+    @Test("After a seek, paging and Home draw what the eager rows draw", arguments: Shape.twinned)
     func scrollingOnAfterASeek(_ shape: Shape) {
         let lazy = Self.app(shape, lazy: true, anchor: .center)
         let eager = Self.app(shape, lazy: false, anchor: .center)
