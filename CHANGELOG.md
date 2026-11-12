@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A paragraph wider than 4,096 cells in a horizontal `ScrollView` stays on one line.** Asked how wide it would be
+with nothing stopping it, a `Text` answered wrapped at the 4,096 cells the scroll view offered first, so a longer
+paragraph broke at the last space before that and was drawn as two lines, its tail under its head, instead of
+scrolling on. It now answers with its lines unwrapped, as SwiftUI's does.
+
 **A `Table` in a vertical `ScrollView` is its rows' height.** Tables stacked in a scroll view with no frame were
 each dealt an even share of the height their rows added up to, so a short one was drawn with blank rows after its
 last and a long one was cut short, scrolling inside the page. Now each is as tall as its rows, its header and border,

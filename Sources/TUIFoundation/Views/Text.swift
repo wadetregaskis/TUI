@@ -946,7 +946,20 @@ package struct TextStyle: Sendable, Equatable {
         }
         // Text has a fixed size based on its content.
         // If a width is proposed, we may word-wrap.
-        let maxWidth = proposal.width ?? context.availableWidth
+        //
+        // Asked for its ideal width by the natural-extent ladder — no width
+        // proposed, under the ideal-width mark, on one of the ladder's budgets
+        // — a text answers with its lines unwrapped, as SwiftUI's does. Wrapped
+        // at the budget instead, a paragraph wider than it broke at the last
+        // space before it and reported a width SHORT of the budget, which the
+        // ladder took for a width the text chose rather than one it was cut
+        // to: the paragraph was drawn broken there, in a horizontal
+        // `ScrollView`, an alert's message and a field's prompt. Unwrapped, it
+        // reports more than the budget, and the ladder climbs past it. Only
+        // the ladder's budgets: a `ViewThatFits` or a toolbar asking the same
+        // question within the screen's width keeps the wrapped answer.
+        let unwraps = proposal.width == nil && context.asksIdealWidth && isNaturalExtentBudget(context.availableWidth)
+        let maxWidth = proposal.width ?? (unwraps ? Int.max : context.availableWidth)
         // Measure the string the render will DRAW, not the one that was
         // written: `.textCase(.uppercase)` can change the width (ß → SS, ﬁ →
         // FI), and a measure of the untransformed text would reserve the wrong
