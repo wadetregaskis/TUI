@@ -129,10 +129,10 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
     // MARK: - Lines
 
     /// One line's members, each at its offset from the line's leading edge.
-    private struct Line {
-        var members: [(index: Int, x: Int, size: ViewSize)] = []
-        var width = 0
-        var height = 0
+    package struct Line {
+        package var members: [(index: Int, x: Int, size: ViewSize)] = []
+        package var width = 0
+        package var height = 0
         /// The last member that took any width: the one a gap is asked of.
         var lastOccupying: Int?
     }
@@ -140,7 +140,7 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
     /// The subviews packed greedily into lines no wider than `width`, or all
     /// on one when it is `nil`. Both passes go through here, so the size
     /// reported and the arrangement drawn cannot disagree.
-    @MainActor private func lines(of subviews: Subviews, width limit: Int?) -> [Line] {
+    @MainActor package func lines(of subviews: Subviews, width limit: Int?) -> [Line] {
         let gaps = gaps(between: subviews)
         var lines: [Line] = []
         var line = Line()
@@ -177,7 +177,7 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
 
     /// The rows between lines in force: the stated ones, or the vertical
     /// distance views prefer.
-    @MainActor private var lineGap: Int {
+    @MainActor package var lineGap: Int {
         lineSpacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
     }
 

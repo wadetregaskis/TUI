@@ -15,14 +15,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
-**A long `GroupBox`, `DisclosureGroup` or `Section` in a scroll view builds only the rows on screen.** A
-`GroupBox { ForEach(items) { … } }` of thousands of rows, an expanded `DisclosureGroup` of them or a `Section` drawn
-on its own built every row on every frame, as eager containers do: 10,000 rows took seconds a frame in a debug build.
-Past 256 rows, in scroll content, each is drawn as a `LazyVStack` is, building a screenful of rows whatever their
-count, while the wheel, the keys and End still reach every one. As with a lazy stack, a row's `onAppear` and `.task`
-run when it scrolls into view, not when the container appears, and the column is as wide as the space offered rather
-than its widest row. SwiftUI's containers have no lazy counterpart, and these differences are deliberate. Smaller
-containers, and the rows of a stack inside one, are built as before.
+**A long `GroupBox`, `DisclosureGroup`, `Section` or `FlowLayout` in a scroll view builds only the rows on
+screen.** A `GroupBox { ForEach(items) { … } }` of thousands of rows, an expanded `DisclosureGroup` of them, a
+`Section` drawn on its own or a `FlowLayout` of thousands of tags built every row on every frame, as eager containers
+do: 10,000 rows took seconds a frame in a debug build. Past 256 rows, in scroll content, each is drawn as a
+`LazyVStack` is (a flow as a lazy stack of its lines), building a screenful of rows whatever their count, while the
+wheel, the keys and End still reach every one. As with a lazy stack, a row's `onAppear` and `.task` run when it
+scrolls into view, not when the container appears, and the column is as wide as the space offered rather than its
+widest row. A flow still measures every item when its data or width changes, to break its lines as before.
+SwiftUI's containers have no lazy counterpart, and these differences are deliberate. Smaller containers, and the
+rows of a stack inside one, are built as before.
 
 **A burst of wheel ticks over two lazy stacks lands where the same ticks one at a time land.** Twenty ticks read in
 one frame, up from the end of a scroll view holding two long `LazyVStack`s one below the other, put the screen about

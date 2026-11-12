@@ -111,6 +111,21 @@ struct ScrollFitBaselineTests {
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 
+    /// SCROLL-FIT P8 (A-SCROLLFIT-5 (a)): a flow of 10,000 items measures
+    /// every one on its first frame, to break its lines from the top, and is
+    /// drawn as a lazy stack of those lines, so a wheel step builds only the
+    /// items of the lines on screen: the items' data is equatable, and their
+    /// measures are kept. Each line on screen draws its items afresh, about
+    /// 150 at 60 × 24, where a lazy stack's rows are served from the memo.
+    /// (Before P8, the first frame built 80,000 rows, and every frame after
+    /// measured them all again.)
+    @Test("A 10,000-item FlowLayout under a title builds a screenful of items for a wheel step")
+    func tallFlowLayoutUnderTitle() {
+        let result = tall(.flowLayout, .underTitle)
+        #expect(result.builtStep < 250, "a wheel step built \(result.builtStep)")
+        #expect(result.builtFirst < 40_000, "built \(result.builtFirst)")
+    }
+
     /// Content-sized up to the ladder's first rung, then the height offered.
     @Test("A 10,000-line TextEditor under a title is 4,095 lines")
     func tallTextEditorUnderTitle() {

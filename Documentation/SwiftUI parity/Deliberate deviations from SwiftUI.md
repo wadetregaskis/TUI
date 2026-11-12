@@ -2637,7 +2637,7 @@ held key has left the loop behind by a quarter of a second, even an action does 
 (`ActivationHold`), or a key held on slow frames would go on acting for seconds after its release. Every press
 still runs.
 
-### F4. A long `GroupBox`, `DisclosureGroup` or `Section` builds only the rows on screen
+### F4. A long `GroupBox`, `DisclosureGroup`, `Section` or `FlowLayout` builds only the rows on screen
 
 - **SwiftUI:** these containers have no lazy counterpart and are eager: every
   row is made when the container appears, so each row's `onAppear` and `.task`
@@ -2645,19 +2645,22 @@ still runs.
   A-SCROLLFIT-1).
 - **TUI:** in scroll content, past 256 rows — the lazy stack's threshold — a
   `GroupBox`, an expanded `DisclosureGroup` or a `Section` drawn as one view
-  directly around its rows draws as a lazy stack does: only the rows the
-  scroll view shows are built, so a row's `onAppear` and `.task` run when it
-  scrolls in. The column is as wide as the space it is offered, as a lazy
-  stack's band is, not its widest row, which only every row measured could
-  say. A row scrolled in does not fade in (`WindowedRowFade`). At or below
-  256 rows, outside a scroll view, and for rows a stack or another container
-  in the box lays out, every row is built as before
-  (`ImplicitColumnWindowing.swift`, `WindowedContainersTests`).
+  directly around its rows, and a `FlowLayout` of more items, draw as a lazy
+  stack does: only the rows (a flow's lines) the scroll view shows are built,
+  so a row's `onAppear` and `.task` run when it scrolls in. The column is as
+  wide as the space it is offered, as a lazy stack's band is, not its widest
+  row, which only every row measured could say. A row scrolled in does not
+  fade in (`WindowedRowFade`). A flow measures every item to break
+  its lines from the top, as before, and a loop over equatable data keeps
+  those measures until the data or the width changes. At or below 256 rows,
+  outside a scroll view, and for rows a stack or another container in the
+  box lays out, every row is built as before (`ImplicitColumnWindowing.swift`,
+  `FlowLayoutWindowing.swift`, `WindowedContainersTests`).
 - **Why:** an app has SwiftUI's remedy for an eager container, the lazy type,
   only where one exists; elsewhere TUI must not make it pay for every row. A
   `GroupBox` of 10,000 rows built every row on every frame (1.5 to 14 s a
   case in a debug build).
-- **Decided:** [A-SCROLLFIT-1](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-morning-page-answered-2026-11-11>),
+- **Decided:** [A-SCROLLFIT-1 and A-SCROLLFIT-5](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-morning-page-answered-2026-11-11>),
   [SCROLL-FIT design §1c](<../Historical/Scrolling/SCROLL-FIT design.md#1c-containers-with-no-lazy-counterpart-a-scrollfit-1>).
   **Owner** (2026-11-11).
 

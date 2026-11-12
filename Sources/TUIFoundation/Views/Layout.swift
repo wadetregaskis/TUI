@@ -408,6 +408,11 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
 
     @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let childContext = publishingChildAxis(context)
+        // A long flow in scroll content is a lazy stack of its lines
+        // (`FlowLayoutWindowing.swift`).
+        if let flow = windowedFlow(width: proposal.width ?? max(0, childContext.availableWidth), context: childContext) {
+            return flow.sizeThatFits(proposal: proposal, context: childContext)
+        }
         noteLayout(context: childContext)
         let (subviews, placements, _) = resolve(context: childContext)
         var cache = freshCache(subviews)
@@ -448,6 +453,9 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = publishingChildAxis(context)
+        if let flow = windowedFlow(width: max(0, context.availableWidth), context: context) {
+            return flow.renderToBuffer(context: context)
+        }
         let (subviews, placements, departing) = resolve(context: context)
         guard !subviews.isEmpty else {
             // Nothing to place, and still a subview the change took out may

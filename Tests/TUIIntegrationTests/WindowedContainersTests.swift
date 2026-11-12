@@ -6,7 +6,7 @@
 //  as one view — directly around a `ForEach` of more rows than a lazy stack
 //  draws whole builds only the rows on screen in scroll content, whatever its
 //  row count, draws what the same rows in an eager `VStack` draw, and still
-//  reaches every row.
+//  reaches every row. A `FlowLayout` of as many items draws its lines so.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -25,21 +25,23 @@ import TUITesting
 @Suite("SCROLL-FIT P8: containers with no lazy counterpart build only the rows on screen")
 struct WindowedContainersTests {
     enum Shape: String, CaseIterable, Sendable {
-        case groupBox, titledGroupBox, disclosureGroup, section
+        case groupBox, titledGroupBox, disclosureGroup, section, flow
     }
 
-    /// A row's text: two lines every third row.
+    /// A row's text: two lines every third row in a column; in a flow, words
+    /// of one to four letters after the number, so lines break unevenly.
     private static func label(_ index: Int, shape: Shape) -> String {
+        if shape == .flow { return "a\(index)" + String(repeating: "x", count: index % 4) }
         return index.isMultiple(of: 3) ? "a\(index)\n  more" : "a\(index)"
     }
 
     /// The rows, as the container's whole content. Drawn `whole`, each fills
     /// the column's width, as the rows of a windowed column are drawn: a
     /// column drawn whole hugs its widest row, which only every row measured
-    /// can say (`windowedColumnSize`).
+    /// can say (`windowedColumnSize`). A flow's items keep their own widths.
     @ViewBuilder
     private static func rows(_ count: Int, shape: Shape, builds: Builds, whole: Bool = false) -> some View {
-        if whole {
+        if whole, shape != .flow {
             ForEach(0..<count, id: \.self) { index in
                 Text(label(index, shape: shape)).frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -58,11 +60,16 @@ struct WindowedContainersTests {
         case .titledGroupBox: GroupBox("Box") { rows() }
         case .disclosureGroup: disclosure(rows())
         case .section: rows()
+        case .flow: flow(rows())
         }
     }
 
     private static func disclosure<Rows: View>(_ rows: Rows) -> some View {
         DisclosureGroup("More", isExpanded: .constant(true)) { rows }
+    }
+
+    private static func flow<Rows: View>(_ rows: Rows) -> some View {
+        FlowLayout(spacing: 1) { rows }
     }
 
     /// `rows` in `shape` under a title and over a footer in scroll content;
@@ -151,7 +158,8 @@ struct WindowedContainersTests {
     /// ladder's sixteen-row samples, as a lazy stack's does (pinned under 150
     /// in `ScrollFitBaselineTests`); a disclosure group's also the rows its
     /// focused button's continuation probe looks through (`focusRingStops`),
-    /// bounded whatever the count.
+    /// bounded whatever the count. A flow's first frame measures every item
+    /// to break its lines (A-SCROLLFIT-5 (a)); its steps measure none again.
     /// (Before P8, every row on every frame: 10,000 a step.)
     @Test("Around 10,000 rows, a page builds fewer than 100 rows, the same as around 2,000",
           arguments: Shape.allCases)
@@ -160,7 +168,11 @@ struct WindowedContainersTests {
         let twoThousand = Self.builtPerStep(shape, rows: 2_000)
         #expect(tenThousand.dropFirst().allSatisfy { $0 < 100 }, "\(shape): \(tenThousand)")
         #expect(tenThousand.dropFirst() == twoThousand.dropFirst(), "\(shape): \(twoThousand) \(tenThousand)")
-        #expect(tenThousand[0] < 150 && tenThousand[0] == twoThousand[0], "\(shape): \(twoThousand) \(tenThousand)")
+        if shape == .flow {
+            #expect(tenThousand[0] < 4 * 10_000, "\(shape): \(tenThousand)")
+        } else {
+            #expect(tenThousand[0] < 150 && tenThousand[0] == twoThousand[0], "\(shape): \(twoThousand) \(tenThousand)")
+        }
     }
 
     @Test("Around 10,000 rows, End shows the last row and the footer; Home brings the title back",
