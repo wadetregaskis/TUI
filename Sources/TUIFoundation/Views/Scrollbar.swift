@@ -140,7 +140,7 @@ package struct ResolvedScrollIndicators: Sendable {
     @usableFromInline package let text: Bool
 
     /// Nothing is drawn: the content scrolls silently.
-    @usableFromInline static let none = Self(bar: false, text: false)
+    @usableFromInline package static let none = Self(bar: false, text: false)
 
     /// Spelled out, and `@inlinable`, for the `@inlinable`
     /// `EnvironmentValues.verticalScrollIndicators(overflowing:)`

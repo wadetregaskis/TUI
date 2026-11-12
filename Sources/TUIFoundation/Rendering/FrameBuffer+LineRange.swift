@@ -19,7 +19,7 @@ extension FrameBuffer {
     /// the buffer, as a section carries a header its band leaves out: a focus
     /// move onto a control there still finds where to scroll. Floating layers
     /// travel whole, moved up: they float free of the lines already.
-    func lines(in rows: Range<Int>) -> FrameBuffer {
+    package func lines(in rows: Range<Int>) -> FrameBuffer {
         let kept = rows.clamped(to: 0..<height)
         guard kept != 0..<height else { return self }
         var bare = self
