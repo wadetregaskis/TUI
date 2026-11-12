@@ -135,13 +135,19 @@ private final class Harness {
     }
 
     /// A left-button drag along line `y` from `from` to `to`, a cell at a
-    /// time, then the release there.
-    func drag(y: Int, from: Int, to: Int) {
+    /// time, then `extra` more reports between `to` and the cell before it —
+    /// a pointer wiggled there, as a terminal reports nothing for one held
+    /// still — then the release at `to`.
+    func drag(y: Int, from: Int, to: Int, extra: Int = 0) {
         send(MouseEvent(button: .left, phase: .pressed, x: from, y: y))
         var x = from
         while x != to {
             x += to > from ? 1 : -1
             send(MouseEvent(button: .left, phase: .dragged, x: x, y: y))
+        }
+        let before = to + (to > from ? -1 : 1)
+        for report in 0..<extra {
+            send(MouseEvent(button: .left, phase: .dragged, x: report.isMultiple(of: 2) ? before : to, y: y))
         }
         send(MouseEvent(button: .left, phase: .released, x: to, y: y))
     }
@@ -346,6 +352,24 @@ struct TableHorizontalScrollTests {
         #expect(
             model.order == ["alpha", "bravo", "delta", "charlie", "echo", "foxtrot"],
             "\(model.order)\n\(harness.screen)")
+    }
+
+    @Test("A title dragged past the table's edge scrolls the columns, and goes on past the ones that come")
+    func dragPastTheEdgeScrolls() throws {
+        let model = Customized()
+        let harness = Harness(CustomizedColumns(model: model), width: 20)
+        let y = try #require(harness.lines.firstIndex { $0.contains("Alpha") }, "\(harness.screen)")
+        let alpha = try #require(harness.column(of: "Alpha", on: y), "\(harness.screen)")
+        harness.drag(y: y, from: alpha + 1, to: 19, extra: 6)
+        let moved = try #require(model.order.firstIndex(of: "alpha"), "\(model.order)")
+        #expect(moved >= 3, "Alpha went past the columns scrolled into sight: \(model.order)\n\(harness.screen)")
+        // At the edge, where the window runs out: in sight, cut short or not.
+        #expect(harness.lines[y].contains("Al"), "and is still in sight: \(harness.screen)")
+        #expect(!harness.lines[y].contains("Bravo"), "the columns scrolled: \(harness.screen)")
+        // And back the other way, to the first place.
+        let back = try #require(harness.column(of: "Al", on: y), "\(harness.screen)")
+        harness.drag(y: y, from: back + 1, to: 0, extra: 8)
+        #expect(model.order.first == "alpha", "\(model.order)\n\(harness.screen)")
     }
 
     @Test("A table that scrolls sideways measures as it draws")

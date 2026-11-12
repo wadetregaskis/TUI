@@ -71,7 +71,7 @@ extension ItemListHandler {
 
     /// Moves the window `delta` columns, when it can go that way.
     @discardableResult
-    func stepColumns(by delta: Int) -> Bool {
+    package func stepColumns(by delta: Int) -> Bool {
         guard var scroll = horizontalScroll, scroll.scrolls, let stop = scroll.stop(steppingBy: delta) else {
             return false
         }

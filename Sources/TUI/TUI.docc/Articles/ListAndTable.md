@@ -287,6 +287,7 @@ and otherwise over the rows' last line while the pointer is over it.
 | The sideways wheel, or Shift with the wheel | A column a tick |
 | The scrollbar | Its arrows step a column, its track pages, its thumb drags |
 | ⌃K, ⌃S | The column picked, or the column now sorted by, into sight |
+| Dragging a title to the table's edge | A column each time the pointer moves there, the title moving on past it (a table bound to a ``TableColumnCustomization``) |
 
 A column wider than the table is drawn alone, cut to the table's width, with
 the next column a step away. A table whose columns fit draws as it always has.

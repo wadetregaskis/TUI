@@ -4215,11 +4215,24 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             gesture.moved = false
             return true
         case .dragged:
-            if let target = reorderTarget(for: column, atX: x, handler: handler),
-                let id = column.customizationID, let binding = columnCustomization
-            {
+            // Past the titles' ends, as at them: a column dragged off the
+            // table's edge goes as far as that edge.
+            let band = gesture.titlesBand(spacing: columnSpacing)
+            let held = min(max(x, band.lowerBound), band.upperBound - 1)
+            let target = reorderTarget(for: column, atX: held, handler: handler)
+            if let target, let id = column.customizationID, let binding = columnCustomization {
                 binding.wrappedValue.move(
                     id, toPlaceOf: target, declared: declaredColumns.compactMap(\.customizationID))
+                gesture.moved = true
+            } else if target == nil, columnCustomization != nil, column.allows(.reorder),
+                let edge = held == band.upperBound - 1 ? 1 : held == band.lowerBound ? -1 : nil,
+                handler.stepColumns(by: edge)
+            {
+                // At an edge of a table that scrolls sideways, with nothing
+                // there to take the column's place: the next column that way
+                // scrolls into sight, for the next report to move it past. A
+                // column a report, not on a clock: what the drag already
+                // hears, where a pointer held still hears nothing more.
                 gesture.moved = true
             }
             return true
@@ -7232,6 +7245,14 @@ private final class _TableHeaderGesture {
 
     /// Whether the drag has moved a column — then its release sorts nothing.
     var moved = false
+
+    /// The cells the titles span on ``line``, from the first title's first
+    /// to the last title's last, `spacing` apart: what a table that scrolls
+    /// sideways shows of its columns.
+    func titlesBand(spacing: Int) -> Range<Int> {
+        let width: Int = columnWidths.reduce(0, +) + spacing * max(0, columnWidths.count - 1)
+        return titlesX..<(titlesX + max(1, width))
+    }
 
     init(
         focusManager: FocusManager?, focusID: String, line: Int, titlesX: Int, columnWidths: [Int], widest: Int,

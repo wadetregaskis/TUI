@@ -22,7 +22,8 @@ states none is never narrower than its header), the table scrolls a whole column
 a horizontal scrollbar under the rows shows where you are (placed `.overContent`, over the rows' last line for the
 pointer while the table does not hold the focus). → and ← move it where the rows have no use for them, ⇧→
 and ⇧← in any table, as do the sideways wheel, Shift with the wheel and the scrollbar; a column picked with ⌃K or
-sorted by with ⌃S scrolls into sight. A table whose columns fit is unchanged.
+sorted by with ⌃S scrolls into sight, and a title dragged to the table's edge scrolls it a column and moves on past.
+A table whose columns fit is unchanged.
 
 **A grouped `Form` scrolls, as SwiftUI's does.** A form in `.formStyle(.grouped)` taller than its space was cut off, and
 Tab could move the focus onto a control below the window, out of sight. It is a scroll view now, as SwiftUI's is on
