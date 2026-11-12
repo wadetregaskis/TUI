@@ -372,7 +372,7 @@ differs (now pulled) and `timeline-rows` differs between runs of one binary.
 
 Still to do after the second lane:
 
-- **`TabView`, a pushed `NavigationStack` screen and `Grid`.** A tab view's content is reached by single-child steps, so a lazy stack in it is
+- ~~**`TabView`, a pushed `NavigationStack` screen**~~ **and `Grid`.** The first two built in the fifth lane, below; `Grid` tried there and not landed. A tab view's content is reached by single-child steps, so a lazy stack in it is
   already pulled, but the request is not moved below the strip (the strip's lines and the
   tallest tab's padding are not relayed): its rows are misplaced by the strip, and End does not
   reach its last row (`PulledContainersTests`). A pushed screen sits below the bar as an indexed
@@ -425,7 +425,8 @@ Still to do after the second lane:
   (`RenderWalkCheckpoint.rewind`, `FocusManager.rewindRegistrations(to:)`), as it takes back its
   handler ids and key handlers: kept, the row the second drawing brought on screen above the rest
   was filed after them all, and Tab from the control just revealed skipped it.
-- **What the outermost stack did that a pulled column does not yet:** a row held by
+- **What the outermost stack did that a pulled column does not yet** (built in the fifth lane,
+  below, but the departing-row transitions and a row held outside the anchored child): a row held by
   `.anchorPosition(.row(id))`, the top-row hold, `scrollTargetLayout` and the visibility
   observers' rows, and the eager stack's departing-row transitions. A pulled column takes over
   only from a column that holds a pulled child, which before P2 drew that child whole.
@@ -445,6 +446,82 @@ Still to do after the second lane:
   informed step), so the extra rung the second lane named needs an answer that grows between
   two measures, which a sample measured at a taller rung could give; unmeasured, it is a
   write frame's cost growing by about 480 rows per eightfold height, not per row.
+
+  *Built in the fifth lane (2026-11-12), which closes P2:*
+
+  - **Target layout and the visibility observers.** A pulled column hands its pulled children
+    `reportsTargetLayout` when the scroll view has a behaviour and the column is not marked
+    itself, and answers up the rows of the marked stack a child is (the anchored child's, or the
+    first drawn that has some), moved by the column line the child's line 0 falls on. Marked
+    itself, it reports its own children as the fill placed them, and takes the mark off theirs.
+    For the visibility observers it reports its own children, as the eager column it took over
+    from did. `PulledTargetLayoutTests` twins `.viewAligned` and `.paging` over a stack under a
+    title against the same lines as one top-level stack (its first row the title, keyed alike,
+    so it too draws by the anchored window): every tick and page lands alike.
+  - **The top-row hold.** The anchored child, handed `.position`, is handed the scroll view's
+    `topRowHold`; it rebinds its top row by key as the outermost stack does, and the column moves
+    its offset, and every piece, by the lines the change put above that row
+    (`holdingRow`), reporting the offset as the hold's. Not the key rebind the fourth lane
+    suspected: a stack handed a hold does rebind by key (`rebindingAnchor`'s held-row branch);
+    it was the hold that never reached it.
+  - **A held row.** The scroll view's `.anchorPosition` binding is handed with the request to the
+    anchored child (`ScrollContentWindow.holdsDesignatedRow`), which holds the row as the
+    outermost stack does; the column follows its offset as for the hold. *Not built:* a row held
+    in a child other than the one the viewport's top lies in (a title at the top, the held row in
+    the stack below it) is not held. The column would have to find the child that holds the key
+    (a nested search, once per designation) and move its anchor there at the row's place.
+  - **The write frame.** Traced rung by rung (a temporary print in `naturalExtent` and of each
+    row built, over `PulledColumnTests`' sections paged once and written): at 40 sections the
+    ladder measured 4,096 → 4,096 (480 rows) and 32,768 → 12,040
+    (240), at 320 a third rung, 262,144 → 96,320 (240 more). The outer stack's estimate was capped
+    at each rung, and a cap says nothing past it, so the ladder climbed by eight. On the ladder's
+    budgets (`isNaturalExtentBudget`, no proposed height) a pulled column's anchored estimate is
+    now answered whole (`sampledRows`' `answersWhole`, for a stack that `pullsItsRows`; any other
+    keeps the cap, as an eager stack does under a budget, `LazyStackSemanticsTests`), and the
+    ladder's informed step clears it in one rung: two rungs whatever the height, 746 rows in that
+    trace at 40 sections and at 320. `PulledColumnTests` bounds the count at 746 for 40, 320 and
+    2,560 sections rather than pinning it: a full run gave 506 at 40 and 746 at 320, one rung's
+    sample served by a pass's memo or not by what ran before in the process.
+  - **A lazy stack in an `if` among a column's views** (found by the P9 lane in an app's `Layout`)
+    was not pulled where it stood: an `if` holds its view as its child at index 0, a sibling step,
+    under an `Optional` (no `else`) or the branch an `if`/`else` took, and neither is
+    `ScrollPlacing`. Its measure walked every row on the first frame (33,165 rows built at 10,000);
+    the request reached it all the same, since the view is laid out among the column's children,
+    so later frames drew a band. `isPulledWhereItStands` passes an `if`'s identity through
+    (`holdsItsChildrenForAContainer`). *Found on the way, not fixed:* twenty wheel ticks in one
+    frame up from the end of two stacked lazy stacks (`PulledColumnTests`' `twoStacked`, with or
+    without the `if`) land about two dozen lines short of where the same rows drawn eager land;
+    a tick at a time they match. Not traced.
+  - **`TabView` and a pushed `NavigationStack` screen** forward through `PulledChromeRelay`, the box's
+    relay made package-wide (the box uses it too): each files itself pulled once its measure has
+    measured the child (`notePulledContainer`, after the measure — filed before it, on the first
+    measure nothing below had filed yet, and the memo kept the measure from running again), hands
+    the child the request below its strip or bar, addressed to it, and keeps of its own lines only
+    those the band reaches. The tab view tells its tab's request the panel's filler below it (the
+    tallest tab's height less the selected one's) and pads a band only by that, not to the panel's
+    whole height, and centres the band as the whole tab, by its natural width. The pushed screen
+    pads a band to the screen's width only. `_NavigationStackCore` is `ScrollPlacing`, its screen
+    being a child among the others it keeps. In `PulledContainersTests` both tab styles and the
+    pushed screen draw what their eager twins draw at the top, paged and at the end. The tab views'
+    twin hugs its widest row: a tab view sizes its panel by its tab's measure, and a `LazyVStack`'s
+    measure is its widest row's, so a lazy stack in a tab is as wide as its rows, not the panel (as
+    before the pull; SwiftUI's lazy stack is flexible across, a parity question for P7's widths).
+    Their rows built are bounded alike at 1,000, 10,000 and 100,000 rows rather than equal: the tab
+    view measures its tab at two heights (the panel's and the drawn), so where the measuring ladder
+    lands against the stack's estimate moves a sample between steps. A pushed screen is a focus
+    section of its own, which takes the keys from a scroll view around its stack, so its tests
+    scroll by the wheel.
+  - **`Grid` — tried, not landed.** A lazy stack in a `GridRow` cell is still drawn whole (a
+    probe: 63,081 rows built for the first frame at 10,000 rows, 7,008 at 1,000). The lane drew a
+    filed-pulled grid as a band of its lattice's lines, its cells eager, a pulled cell handed a
+    request from its top when the band reached that, from its end when the band reached that, and
+    otherwise its own position from the frame before moved by the grid's scroll (kept at the
+    grid's identity). Its twin matched at the top, over three pages and at End, but Page Down
+    stalled near row 215 of 300: the cell's place in its own lines and the lattice's estimate for
+    it disagree mid-scroll — most likely the stack clamping a handed position at its own estimated
+    end, shorter than the lattice's (not traced). What is left is to place a pulled cell's row by
+    what the cell drew, as a column places a pulled child, rather than by the lattice's estimate:
+    about a day. The attempt is not in the history.
 
 **As the fourth lane measured it** (2026-11-12, `ab_bench.py`, release, cpu per frame, base
 b52006fe7 against the lane's tip 7647fbbaa, a busy box, load 7.5): `app-shapes` +0.1%,
@@ -992,6 +1069,7 @@ already running separately.
 | **P1** | `ScrollContentAnchor` in `ScrollViewHandler` (B-SCROLLFIT-11); the fill engine (B-SCROLLFIT-12), with `_VStackCore`'s anchored window as the column shape; the derived offset by dead reckoning, held with the anchor. Content at the origin only, which is today's coverage. Byte-identical; parity harness (`frame_parity.py`); A/B. *Moved out on the way in (2026-11-11):* `ScrollPlacing` and the uniform window as fixed pitch (to P2 and P3, their first users, see 1b); drags holding their mapping (2b) and the first frame without a total (1d) to P2, since each changes what P1 must not: a drag over estimated rows draws other rows, and the first frame's rows built are a count `ScrollFitBaselineTests` pins | 6 | None. Sizes and built counts unchanged |
 | **P2** | Drags hold their mapping (2b) and the first frame without a total (1d), from P1. Every placing container reads the request: the column through `VStack`; parallel through `HStack`/`ZStack`/`.background`/`.overlay`; forward through every wrapper, chrome, `TabView`, `NavigationStack`, `Section`; the off-band request; locate by route (B-SCROLLFIT-15); the focus reveal as an anchor (1e). Deletes design D's walk, `consumableScrollWindow`'s origin test and the origin mark. `scroll-fit` scenario; `grouped-feed` gate; A/B | 4 | No size changes. `tallLazyStackAlone`'s first frame 20,075 → < 100 rows built (from P1). `tallLazyStackUnderTitle` drawn whole → pulled (< 100 rows built). `lazyVStack underTitle`/`twoStacked` built 54k/104k → < 100/< 200. The `groupBox`, `tabView` and `navigationStack` rows wrap an eager `VStack` and are unchanged |
 | **P2 as built** (2026-11-12) | The column through `VStack` and `LazyVStack` at any count (`StackPulledColumn.swift`); forward through bodies, modifiers, `Section`, `.padding` and the content margins (which relayed already); the off-band request; drags holding their mapping; the first frame without a total; `ScrollPlacing` (the marker the pulled column conforms to, read from the identity chain); design D's walk kept only below containers that do not pull. Moved to P3: the parallel shape (`HStack`, `ZStack`, `.background`/`.overlay`), forwarding through the bordered container (`GroupBox`, `.border()`), `TabView` and `NavigationStack`; locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4); the focus reveal as an anchor (1e); and in a pulled column, a held row, the top-row hold, target layout and departing-row transitions. See "As P2 built it" under 1b | 4 | `tallLazyStackAlone` 20,075 → 124 rows built on the first frame (< 150 pinned: the measure ladder's samples count); `tallLazyStackUnderTitle` 9 × 10,000 drawn whole → 59 × 26 pulled, 119 built; `tallListUnderTitle` 16,000+ → 12,300 (the first frame's measuring walk); 3- and 60-row rows unchanged |
+| **P2, fifth lane** (2026-11-12) | In a pulled column: target layout, the visibility observers' rows, the top-row hold and a held row in the anchored child; the write frame's ladder answered whole; a lazy stack in an `if` among a column's views; forward through `TabView` and a pushed `NavigationStack` screen (`PulledChromeRelay`). Left: a lazy stack in a `Grid` (tried, a band of the lattice drifts from what the cell draws: about a day), departing-row transitions in a pulled column, a held row outside the anchored child. See "Built in the fifth lane" under 1b | — | Rows built a write frame equal at 40 and 320 sections |
 | **P3** | `List` and `Table` as column-shaped consumers, fixed pitch; off-band cursor row and registration; Page Up/Down by the outer viewport (B-SCROLLFIT-5); type-select checked. Behind the switch. From P2: the parallel and remaining forward shapes, locate by route, the focus reveal as an anchor, and a pulled column's held row, top-row hold and target layout | 2½ + about 3 from P2 | None with the switch off. New tests with it on |
 | **P4** | Variable rows on the engine: `List`, multi-line `Table`, `TextEditor` as a lines leaf with its caret marker, grouped `Form`. Behind the switch | 3 | None with the switch off |
 | **P5** | Nil-proposal answers; fillers declare (B-SCROLLFIT-7, 8); `.fixedSize` on the ladder (2f) | 1 | In the 10,000-row tests: `fixedSize` `Table` 23 → 10,003 and `tallTableFixedSize` 4,153 → < 100 rows built; already content-sized views under `fixedSize` at 10,000 go 23 → their content. The table's 3/60-row `fixedSize` rows unchanged |
