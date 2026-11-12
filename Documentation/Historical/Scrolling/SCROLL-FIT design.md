@@ -338,8 +338,16 @@ and a container that pulls need not be one a placement query can walk. The secon
   position moved by the container's delta — draw every other child whole, and keep of each only
   the band. The container's lines are its tallest pulled child's (the lead's), moved to the
   lead's place; the band is the lead's, reaching the container's top or end when the lead's
-  holds its first or last row. A glide, a z-index and an explicit alignment guide are left out
-  of a pulled row's drawing.
+  holds its first or last row. Each child stands where the eager container puts it — by the
+  alignment or the explicit guides' run, across by the row's widths or the z-stack's frame — and
+  the pieces are drawn through the eager container's z-order and glide (`zOrderedStackBuffer`,
+  `glidingStackBuffer`), each at its place in the band as it drew, its blank lines above and
+  below no cover over a sibling. `PulledContainersTests` compares every pulled shape, a guided
+  row, a z-indexed one, a guided z-stack and a row whose child glides out with its eager twin,
+  frame by frame. The twin is a `VStack` given `.frame(maxWidth: .infinity, alignment:
+  .leading)`: a `LazyVStack` fills its width, an eager one hugs its widest row, so a box or a
+  badge around the two differed by that alone. The scrollbar's column is left out of the
+  comparison: the lazy stack's thumb reads its estimated height, the eager one's its exact one.
 - **A pulled column entered at an edge places its anchor afresh.** A column inside a pulled
   column (a `GroupBox` is one, `VStack { label; Box { content } }`) handed a request counted from
   its top or end kept treating its anchored row as one the anchor had stayed in, whenever the
@@ -357,19 +365,22 @@ load 3.5): `app-shapes/boxed-lazy` (a title over a `GroupBox` around 100,000 ent
 0.59 ms a frame (−99.9%) and RSS 1,010 → 14.7 MB; every other scroll scenario within the noise
 (`grouped-feed`, `headed-log`, `titled-lazy`, `two-stacked-lazy`, `sidebar`, `file-browser`,
 `scrollfollow`, `glide`, `megalist`, `scrolleager`, `dashboard`, `session/log`), `session/editor`
-+1.4% and `session/chat` +0.3%. `frame_parity.py`: 154 of 156 cases draw alike; `boxed-lazy`
++1.4% and `session/chat` +0.3%. Re-run with the nested-column fix and the parallel shape's
+guides, z-order and glides (a27df296a, load 3.1): `boxed-lazy` 701.3 → 0.59 ms, the rest within
+the noise or under 1.1% (`session/editor` +0.7%, `session/log` +1.1%). `frame_parity.py`: 154 of 156 cases draw alike; `boxed-lazy`
 differs (now pulled) and `timeline-rows` differs between runs of one binary.
 
 Still to do after the second lane:
 
-- **`TabView`, a pushed `NavigationStack` screen, `.background`/`.overlay` with a view, and
-  `Grid`.** A tab view's content is reached by single-child steps, so a lazy stack in it is
+- **`TabView`, a pushed `NavigationStack` screen and `Grid`.** A tab view's content is reached by single-child steps, so a lazy stack in it is
   already pulled, but the request is not moved below the strip (the strip's lines and the
   tallest tab's padding are not relayed): its rows are misplaced by the strip, and End does not
   reach its last row (`PulledContainersTests`). A pushed screen sits below the bar as an indexed
-  child. An overlay or background laid out by a view is laid out against the band, not the
-  content (`.topTrailing` badges every band's top line); a shape style fills the band, which is
-  right. `NavigationStack` at its root and a shape-style background already pull.
+  child. A relay below the strip alone (tried in the second lane) drew End right but not the rest:
+  the tab view sizes its panel by every tab's measure, so its rows built still grew with the row
+  count and its width and centring differed from the eager twin's. `NavigationStack` at its root,
+  `.background` and `.overlay` (with a style or a view: the twin comparison draws them alike)
+  already pull.
 - **Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).** A pulled column answers a `scrollTo`
   of its own rows (by the running pitch); a key inside a pulled child is not searched, as under
   design D.

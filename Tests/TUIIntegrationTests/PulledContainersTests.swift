@@ -26,6 +26,11 @@ import TUITesting
 struct PulledContainersTests {
     enum Shape: String, CaseIterable, Sendable {
         case border, groupBox, background, overlay, hStack, zStack, tabView, navigationStack
+        /// A row whose gutter an explicit guide moves down, a row whose gutter
+        /// overlaps the stack and is drawn over it by its z-index, a z-stack
+        /// whose badge a guide moves down: what the eager containers draw
+        /// differently from their plain layout, which a pulled one must too.
+        case hStackGuided, hStackZIndex, zStackGuided
 
         /// The shapes that pull: every one but `TabView`, whose strip the
         /// request is not yet moved below (SCROLL-FIT design, "Still to do").
@@ -41,38 +46,99 @@ struct PulledContainersTests {
         }
     }
 
-    @ViewBuilder
+    /// The same rows in an eager `VStack`, filling its width as a
+    /// `LazyVStack` does (SwiftUI's is flexible across; an eager one hugs its
+    /// widest row): what the lazy stack must draw.
+    private static func eagerRows(_ count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<count, id: \.self) { index in
+                Text(index.isMultiple(of: 3) ? "a\(index)\n  more" : "a\(index)")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private static func wrapped(_ shape: Shape, rows count: Int, builds: Builds) -> some View {
+        wrapped(shape) { rows(count, builds: builds) }
+    }
+
+    @ViewBuilder
+    private static func wrapped<Rows: View>(_ shape: Shape, _ rows: () -> Rows) -> some View {
         switch shape {
-        case .border: rows(count, builds: builds).border()
-        case .groupBox: GroupBox { rows(count, builds: builds) }
-        case .background: rows(count, builds: builds).background(Color.blue)
-        case .overlay: rows(count, builds: builds).overlay(alignment: .topTrailing) { Text("*") }
+        case .border: rows().border()
+        case .groupBox: GroupBox { rows() }
+        case .background: rows().background(Color.blue)
+        case .overlay: rows().overlay(alignment: .topTrailing) { Text("*") }
         case .hStack:
             HStack(alignment: .top, spacing: 1) {
                 Text("|")
-                rows(count, builds: builds)
+                rows()
             }
         case .zStack:
             ZStack(alignment: .topLeading) {
                 Color.clear
-                rows(count, builds: builds)
+                rows()
             }
-        case .tabView: TabView { Tab("One", systemImage: "a.circle") { rows(count, builds: builds) } }
-        case .navigationStack: NavigationStack { rows(count, builds: builds) }
+        case .tabView: TabView { Tab("One", systemImage: "a.circle") { rows() } }
+        case .navigationStack: NavigationStack { rows() }
+        case .hStackGuided:
+            HStack(alignment: .top, spacing: 1) {
+                Text("|\n|").alignmentGuide(.top) { _ in -2 }
+                rows()
+            }
+        case .hStackZIndex:
+            // The rows' leading padding lies under the badge before them,
+            // which its z-index draws over the rows that come after it.
+            HStack(alignment: .top, spacing: -1) {
+                Text("#").zIndex(1)
+                rows().padding(.leading, 1)
+            }
+        case .zStackGuided:
+            ZStack(alignment: .topLeading) {
+                rows()
+                Text("*").alignmentGuide(.top) { _ in -2 }.alignmentGuide(.leading) { _ in -5 }
+            }
         }
     }
 
     private static func app(_ shape: Shape, rows count: Int, builds: Builds) -> TestApp {
+        page { wrapped(shape, rows: count, builds: builds) }
+    }
+
+    private static func page<Content: View>(@ViewBuilder _ content: @escaping () -> Content) -> TestApp {
         TestApp(width: 30, height: 12) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("title")
-                    wrapped(shape, rows: count, builds: builds)
+                    content()
                     Text("footer")
                 }
             }
         }
+    }
+
+    /// The pulled container draws what the same rows drawn eagerly draw,
+    /// line for line but the scrollbar's column: the thumb reads the lazy
+    /// stack's estimated height (rows of two lines every third, priced by a
+    /// sample), the eager stack's exact one.
+    @Test("A pulled container draws what the eager one draws, at the top, paged and at the end",
+          arguments: Shape.pulled)
+    func drawsWhatTheEagerOneDraws(_ shape: Shape) {
+        let lazy = Self.app(shape, rows: 300, builds: Builds())
+        let eager = Self.page { Self.wrapped(shape) { Self.eagerRows(300) } }
+        func content(_ app: TestApp) -> [String] { app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) } }
+        func check(_ step: String) {
+            #expect(content(lazy) == content(eager), "\(shape) \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
+        }
+        check("top")
+        for page in 1...3 {
+            _ = lazy.press(.pageDown)
+            _ = eager.press(.pageDown)
+            check("page \(page)")
+        }
+        _ = lazy.press(.end)
+        _ = eager.press(.end)
+        check("end")
     }
 
     /// The rows built on the first frame and on each of five page-downs.
@@ -132,6 +198,25 @@ struct PulledContainersTests {
         #expect(lines[last].contains("more") && lines[last - 1].contains("a399"), "\(shape): \(app.screen)")
     }
 
+    /// A gutter leaving a row under an animation glides out in a pulled row as
+    /// in the eager one: mid-way, both draw the same frame.
+    @Test("A row's child leaving under an animation is drawn mid-glide as the eager row draws it")
+    func glidingGutterMatchesTheEagerRow() {
+        let lazy = TestApp(width: 30, height: 12) { GlidingRow(eager: false) }
+        let eager = TestApp(width: 30, height: 12) { GlidingRow(eager: true) }
+        func content(_ app: TestApp) -> [String] {
+            app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) }
+        }
+        #expect(content(lazy) == content(eager), "before:\n\(lazy.screen)\n---\n\(eager.screen)")
+        _ = lazy.press(.character("g"))
+        _ = eager.press(.character("g"))
+        for step in 1...3 {
+            lazy.advance(by: .milliseconds(100))
+            eager.advance(by: .milliseconds(100))
+            #expect(content(lazy) == content(eager), "step \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
+        }
+    }
+
     /// Entered from below — the fill coming up from a heading under the
     /// container, the stack in it handed a request counted from the
     /// container's end — the last row still sits right above the heading, or
@@ -188,5 +273,27 @@ struct PulledContainersTests {
         }
         let missing = (0..<300).filter { !seen.contains($0) }
         #expect(missing.isEmpty, "\(shape): \(missing.count) rows never drawn: \(missing.prefix(10))")
+    }
+}
+
+/// A gutter beside 300 rows that leaves under an animation when `g` is
+/// pressed, the rows lazy or eager.
+private struct GlidingRow: View {
+    let eager: Bool
+    @State private var showsGutter = true
+
+    var body: some View {
+        ScrollView {
+            HStack(alignment: .top, spacing: 1) {
+                if showsGutter { Text("|\n|") }
+                if eager {
+                    VStack(alignment: .leading, spacing: 0) { ForEach(0..<300, id: \.self) { Text("a\($0)") } }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    LazyVStack(alignment: .leading, spacing: 0) { ForEach(0..<300, id: \.self) { Text("a\($0)") } }
+                }
+            }
+        }
+        .onKeyEvent(.character("g")) { withAnimation(.linear(duration: 0.5)) { showsGutter = false } }
     }
 }

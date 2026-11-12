@@ -48,11 +48,33 @@ private struct PulledParallelAnswer {
     let holdsLast: Bool
 }
 
+/// One child's part of a parallel container's band: what it draws there,
+/// cut to the band, and how far down the band that starts.
+struct PulledParallelPiece {
+    let buffer: FrameBuffer
+    let y: Int
+    let bandHeight: Int
+
+    /// The piece as a column the band's height, blank above and below it:
+    /// what a row lays beside its neighbours. Layered — a z-order, a glide —
+    /// the piece is drawn at `y` as it is, so its blanks cover nothing.
+    var column: FrameBuffer {
+        var column = y > 0 ? FrameBuffer(emptyWithWidth: buffer.width, height: y) : FrameBuffer()
+        column.appendVertically(buffer, spacing: 0)
+        if column.height < bandHeight {
+            column.appendVertically(
+                FrameBuffer(emptyWithWidth: buffer.width, height: bandHeight - column.height), spacing: 0)
+        }
+        return column
+    }
+}
+
 @MainActor
 enum PulledParallel {
     /// The band `window` asks of a container whose children stand side by
-    /// side or over one another, as one buffer per child, each the band's
-    /// height; `window`'s reply answered as a windowed stack's is. `nil` when
+    /// side or over one another, as one piece per child (`nil` for a child
+    /// that draws nothing there) and the band's height; `window`'s reply
+    /// answered as a windowed stack's is. `nil` when
     /// no child is pulled, or the tallest pulled one drew itself whole, and
     /// the container draws its children whole.
     ///
@@ -71,7 +93,7 @@ enum PulledParallel {
     static func fill(
         window: ScrollContentWindow, children: [PulledParallelChild], state: PulledParallelState,
         context: RenderContext, render: (Int, RenderContext, Int) -> FrameBuffer
-    ) -> [FrameBuffer?]? {
+    ) -> (pieces: [PulledParallelPiece?], height: Int)? {
         guard let reply = window.reply,
             let lead = children.indices.filter({ children[$0].isPulled }).max(by: {
                 children[$0].height < children[$1].height
@@ -140,10 +162,12 @@ enum PulledParallel {
         if leading.holdsLast { bottom = max(bottom, total) }
 
         let bandHeight = max(0, bottom - top)
-        var pieces: [FrameBuffer?] = Array(repeating: nil, count: children.count)
+        var pieces: [PulledParallelPiece?] = Array(repeating: nil, count: children.count)
         for index in children.indices {
             guard let buffer = answers[index]?.buffer ?? wholes[index], let pieceTop = tops[index] else { continue }
-            pieces[index] = Self.placed(buffer, at: pieceTop - top, inHeight: bandHeight)
+            let y = pieceTop - top
+            pieces[index] = PulledParallelPiece(
+                buffer: buffer.lines(in: max(0, -y)..<max(0, bandHeight - y)), y: max(0, y), bandHeight: bandHeight)
         }
 
         state.position = position
@@ -156,20 +180,6 @@ enum PulledParallel {
         reply.sliceHoldsLastRow = leading.holdsLast
         reply.pulledPosition = position
         ScrollContentReply.journal(from: context)
-        return pieces
-    }
-
-    /// `buffer` placed `y` lines down a column `height` lines tall, as wide as
-    /// it is, and cut to it.
-    private static func placed(_ buffer: FrameBuffer, at y: Int, inHeight height: Int) -> FrameBuffer {
-        let kept = buffer.lines(in: max(0, -y)..<max(0, height - y))
-        let width = buffer.width
-        var column = FrameBuffer()
-        if y > 0 { column = FrameBuffer(emptyWithWidth: width, height: min(y, height)) }
-        column.appendVertically(kept, spacing: 0)
-        if column.height < height {
-            column.appendVertically(FrameBuffer(emptyWithWidth: width, height: height - column.height), spacing: 0)
-        }
-        return column
+        return (pieces, bandHeight)
     }
 }
