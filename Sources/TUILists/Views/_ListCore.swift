@@ -545,6 +545,9 @@ private enum StateIndex {
     /// The row menu — the selection menu's — and what it was opened on
     /// (``RowMenuState``).
     static let rowMenu = -82
+    /// Whether the rows were found taller than a line (``ListPulledPitch``),
+    /// for a list SCROLL-FIT's pull draws a band of (`_ListCore+Pulled.swift`).
+    static let pulledPitch = -83
 }
 
 /// Internal core view that handles list rendering inside a
@@ -594,6 +597,11 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// that keeps the menu (`_ListCore+RowMenu.swift`).
     static var rowMenuStateIndex: Int { StateIndex.rowMenu }
 
+    /// The handler's and the pulled pitch's slots, for the pull
+    /// (`_ListCore+Pulled.swift`).
+    static var handlerStateIndex: Int { StateIndex.handler }
+    static var pulledPitchStateIndex: Int { StateIndex.pulledPitch }
+
     /// The List is greedy on both axes: it fills the width it is offered and pads
     /// to fill the height. So its size is simply the offered space — and crucially
     /// no rows are built or measured here. Previously, being `Renderable`-only,
@@ -611,13 +619,23 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// splits the column evenly. Hugging content is opt-in via
     /// `.fixedSize(horizontal:)`, which proposes an unbounded width.
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        let height = proposal.height ?? context.availableHeight
+        // A `scrollTo` searching the rows of a column above, under SCROLL-FIT's
+        // switch, asks only whether a row here carries its key.
+        if context.environment.scrollFitsContent, let search = ScrollKeyLocate.search(in: context),
+            !search.marksTarget
+        {
+            answerSearch(search, context: context)
+            return .zero
+        }
+        // Pulled, its content's height, held (`_ListCore+Pulled.swift`).
+        let pulled = pulledHeight(context: context)
+        let height = pulled ?? proposal.height ?? context.availableHeight
         // Default: greedy on both axes, no rows built — the O(1) measure that
         // makes the layout pass cheap.
         guard context.environment.fixedSizeWidth else {
             return ViewSize(
                 width: context.fillingWidth(proposal: proposal), height: height,
-                isWidthFlexible: true, isHeightFlexible: true)
+                isWidthFlexible: true, isHeightFlexible: pulled == nil)
         }
         // `.fixedSize(horizontal:)`: hug content — the widest of ALL rows, stable
         // across scroll. Opt-in, so building the rows to measure them is fine, and
@@ -629,7 +647,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // below a hugging list — a sidebar's footer — was pushed off the bottom.
         return ViewSize(
             width: allRowsContentWidth(context: context.drawingListSectionChrome()), height: height,
-            isWidthFlexible: false, isHeightFlexible: true)
+            isWidthFlexible: false, isHeightFlexible: pulled == nil)
     }
 
     /// The List's hugged width: the widest of every row (plus a title and the
@@ -899,14 +917,33 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// B-D5G-9): a reader in a row asking `.scrollView` is answered in the
     /// list's content window, not by a scroll view around the list.
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        context.drawingAsVerticalScroller { renderFrame(context: context) }
+        context.drawingAsVerticalScroller { renderPulledFrame(context: context) ?? renderFrame(context: context) }
             .drawnDisabled(if: isDisabled(in: context))
+    }
+
+    /// The container the list draws its rows in: its border, padding and
+    /// footer rule, as its style draws them. Asked by the frame, and by the
+    /// pull for the lines it keeps above and below the rows.
+    func listContainerConfig(context: RenderContext) -> ContainerConfig {
+        let style = context.environment.listStyle
+        return ContainerConfig(
+            borderStyle: context.environment.appearance.borderStyle,
+            borderColor: context.environment.palette.border,
+            titleColor: nil,
+            padding: style.rowPadding,
+            showFooterSeparator: showFooterSeparator,
+            hasBorder: style.showsBorder, keepsSelectionInside: false  // the box is the list's
+        )
     }
 
     /// The list's frame, and its content window within it: the rows' lines,
     /// inside the border and below a borderless title, as tall as the rows
-    /// get (``renderToBuffer(context:)``).
-    private func renderFrame(context: RenderContext) -> (buffer: FrameBuffer, viewport: CellRect?) {
+    /// get (``renderToBuffer(context:)``). `pulled`, the rows a pulled list
+    /// draws (`_ListCore+Pulled.swift`): from there, with no indicators of its
+    /// own, as the scroll view around it scrolls it.
+    func renderFrame(
+        context: RenderContext, pulled: ListPulledRows? = nil
+    ) -> (buffer: FrameBuffer, viewport: CellRect?) {
         // A section this list draws as one row keeps the list's styling; under
         // `.listStyle(.surface)` everything is drawn on the list's own surface,
         // and the finished buffer painted with it at the end.
@@ -918,7 +955,6 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             context.drawingListSectionChrome().placingScrollIndicators(
                 explicitFocusID: focusID, focusIDIndex: StateIndex.focusID),
             when: context.environment.listStyle is SurfaceListStyle)
-        let palette = context.environment.palette
         let style = context.environment.listStyle
         let stateStorage = context.stateStorage!
         // Started as the rows are extracted (`armSelectionGathering`), ended
@@ -953,7 +989,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // checked once the list knows (``settleScrollbarPrediction``).
         var rowContext = context
         rowContext.environment.restoreStatedScrollIndicatorPlacement()
-        let predictsBar = predictsScrollbar(stateStorage: stateStorage, context: context)
+        let predictsBar = pulled == nil && predictsScrollbar(stateStorage: stateStorage, context: context)
         if context.environment.fixedSizeWidth {
             rowContext.environment.fixedSizeWidth = false
         } else {
@@ -989,14 +1025,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // separator" of 2 this used to charge was both: a footer that wraps, or a
         // column of two views, is taller than a line, and
         // `.listFooterSeparator(false)` draws no rule.
-        let containerConfig = ContainerConfig(
-            borderStyle: context.environment.appearance.borderStyle,
-            borderColor: palette.border,
-            titleColor: nil,
-            padding: style.rowPadding,
-            showFooterSeparator: showFooterSeparator,
-            hasBorder: style.showsBorder, keepsSelectionInside: false  // the box is the list's
-        )
+        let containerConfig = listContainerConfig(context: context)
         // A BORDERED container draws the title inside its top border row
         // (the container's chrome is its borders and the footer separator, and
         // nothing else), so it costs no line of its own — charging one
@@ -1032,10 +1061,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 editRestrictions: editRestrictions,
                 context: context,
                 stateStorage: stateStorage,
-                palette: palette,
                 style: style,
                 targetContentHeight: targetContentHeight,
-                predictedBar: predictsBar
+                predictedBar: predictsBar,
+                pulled: pulled
             )
             content = _ListContentView(
                 lines: result.lines, runs: result.runs, claims: result.claims, knownWidth: result.lineWidth)
@@ -1284,14 +1313,15 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         editRestrictions: RowEditRestrictions,
         context: RenderContext,
         stateStorage: StateStorage,
-        palette: any Palette,
         style: any ListStyle,
         targetContentHeight: Int,
-        predictedBar: Bool
+        predictedBar: Bool,
+        pulled: ListPulledRows?
     ) -> (
         lines: [String], lineWidth: Int?, runs: [AnimatedCellRun], claims: [OpacityRegion],
         state: PopulatedRenderState
     ) {
+        let palette = context.environment.palette
         let persistedFocusID = FocusRegistration.persistFocusID(
             context: context,
             explicitFocusID: focusID,
@@ -1304,7 +1334,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // its landing slot, and only the handler knows a drag is hovering.
         let (handler, wantsScrollbar) = resolvePopulatedHandler(
             source: source, persistedFocusID: persistedFocusID, stateStorage: stateStorage,
-            context: context, contentHeight: targetContentHeight)
+            context: context, contentHeight: targetContentHeight, pulled: pulled)
         settleScrollbarPrediction(predictedBar, wantsScrollbar, context: context)
         // The slot is drawn among the rows and takes a line of the same content
         // area, so the rows get one less to walk. Reserved HERE, once, rather
@@ -1899,7 +1929,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         persistedFocusID: String,
         stateStorage: StateStorage,
         context: RenderContext,
-        contentHeight: Int
+        contentHeight: Int,
+        pulled: ListPulledRows? = nil
     ) -> (handler: ItemListHandler<SelectionValue>, showsScrollbar: Bool) {
         let handlerKey = StateStorage.StateKey(
             identity: context.identity, propertyIndex: StateIndex.handler)
@@ -1943,12 +1974,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // offset. Applied HERE, at the one point the list resolves them, so
         // every consumer downstream — the window origin, the row budget, the
         // max offset, the overscroll settle, the composers — agrees.
-        let indicators = context.environment
-            .verticalScrollIndicators(overflowing: overflowing)
-            .fitting(contentHeight: contentHeight)
+        let indicators = Self.indicators(overflowing: overflowing, contentHeight: contentHeight, pulled: pulled, context)
         let showsScrollbar = indicators.bar
         handler.showsScrollbarBesideContent =
-            context.environment.verticalScrollIndicatorsBesideContent(overflowing: overflowing).bar
+            pulled == nil && context.environment.verticalScrollIndicatorsBesideContent(overflowing: overflowing).bar
         // Clamp the offset against the largest possible visible-row
         // count (one indicator, at an end); the exact viewport is
         // finalised by `ScrollRowWindow` once the offset is known.
@@ -2057,7 +2086,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // `ScrollViewProxy.scrollTo` reaches a list as it does a scroll view:
         // registered each render with the reader around it, and the request it
         // parks placed against this frame's rows before the offset settles.
-        if !context.isMeasuring {
+        // Not a pulled list's: the scroll view around it finds the row, and
+        // hands the list the seek with its request.
+        if !context.isMeasuring, pulled == nil {
             context.environment.scrollToRegistry?.register(
                 handler: handler, identity: context.identity, renderCache: context.renderCache)
             // A glide in flight, then the request, then a bound position —
@@ -2074,6 +2105,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             measuring: context.isMeasuring, overflowing: overflowing,
             drawsTextIndicators: indicators.text,
             firstRowHeight: source.content(at: 0).buffer.height)
+        if let pulled { pulled.pin(handler) }
         handler.reportScrollPosition(rowID: { source.scrollID(at: $0) }, context: context)
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
@@ -2108,7 +2140,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Drawn over the rows for the pointer, the bar reserves nothing above:
         // only the drawing below learns of it.
         handler.resolveOverlaidIndicators(
-            overflowing: overflowing, contentHeight: contentHeight, environment: context.environment)
+            overflowing: overflowing && pulled == nil, contentHeight: contentHeight, environment: context.environment)
         return (handler, showsScrollbar)
     }
 
@@ -4068,7 +4100,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 
     // MARK: - Row Extraction
 
-    private func extractRows<V: View>(from content: V, context: RenderContext) -> RowSource<SelectionValue> {
+    func extractRows<V: View>(from content: V, context: RenderContext) -> RowSource<SelectionValue> {
         // A `Group` or an `if`/`else` contributes exactly its content's rows, so
         // it is taken off before anything is asked (see ``ListRowsPassThrough``).
         // Left on, every question below was answered by the wrapper: a `ForEach`
