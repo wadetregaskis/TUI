@@ -109,7 +109,9 @@ import TUICore
         } else {
             (counted, height) = sampledRows(
                 sampleChildren, count: count, state: state, proposal: sampleProposal,
-                heightLimit: heightLimit, answersWhole: proposal.height == nil && isNaturalExtentBudget(heightLimit),
+                heightLimit: heightLimit,
+                answersWhole: proposal.height == nil && pullsItsRows(context: context)
+                    && isNaturalExtentBudget(heightLimit),
                 context: measureContext)
         }
 
@@ -164,7 +166,8 @@ import TUICore
     /// the sampled rows whose widths count, and the height.
     ///
     /// `answersWhole` is a scroll view's natural-extent ladder asking how tall
-    /// the stack is with nothing to stop it (``isNaturalExtentBudget(_:)``):
+    /// a stack that places its rows as a pulled column is with nothing to
+    /// stop it (``isNaturalExtentBudget(_:)``, ``pullsItsRows(context:)``):
     /// the estimate is an answer for the whole stack, not for the prefix a
     /// budget reaches, so it is answered whole, and the ladder steps past a
     /// rung it overflows in one informed step (`naturalExtent`). Capped, a
@@ -172,7 +175,10 @@ import TUICore
     /// until a rung cleared the estimate, measuring the sample again on every
     /// rung: in a trace of a write over 320 sections, each a lazy stack, 986
     /// rows were built to 40 sections' 746, a rung more per eightfold height.
-    /// Answered whole, both build 746: two rungs, whatever the height.
+    /// Answered whole, both build 746: two rungs, whatever the height. Any
+    /// other stack keeps the cap, as an eager stack does under a budget
+    /// (`LazyStackSemanticsTests`): one that is all a scroll view's content
+    /// takes the climb, a sample a rung.
     private func sampledRows(
         _ sample: [ChildView], count: Int, state: StackWindowState, proposal: ProposedViewSize,
         heightLimit: Int, answersWhole: Bool, context: RenderContext
