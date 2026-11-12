@@ -208,8 +208,12 @@ as it does today. The wheel, the arrows, Page Down, a glide step and a short scr
 change the offset by a delta, and the delta is walked in row space from the anchor: one line up
 looks at one row. That is the trick the anchored stack already plays
 (`advanceAnchor(to:)`, `lastDerivedOffset`), lifted from one stack into the scroll view. A move
-of more than four screens (a long drag, `scrollTo(y:)`, End on unknown content) lands by
-estimate (2b). A `scrollTo`, a focus jump or a `.scrollPosition(id:)` names a row, and that row
+of more than four screens and more than 256 lines (a long drag, `scrollTo(y:)`, End on unknown
+content) lands by estimate (2b). *Corrected after P2 (2026-11-12):* the threshold was four
+screens alone, so twenty wheel ticks read in one frame on a twelve-line screen (sixty lines) were
+landed by the running pitch, and a pulled stack, which walks its column's delta in its own lines,
+landed rows away from where the same ticks one at a time land (`scrollWalkableDelta`,
+`PulledColumnTests`' many-ticks twin). A `scrollTo`, a focus jump or a `.scrollPosition(id:)` names a row, and that row
 simply becomes the anchor.
 
 **The fill.** To draw, the scroll view hands its content a **pull request**:

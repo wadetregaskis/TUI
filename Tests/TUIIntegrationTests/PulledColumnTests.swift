@@ -174,6 +174,27 @@ struct PulledColumnTests {
         }
     }
 
+    /// Many wheel ticks in one frame walk the scroll delta across both
+    /// stacks at once: from the end, up past the second stack's top into the
+    /// first, they land where the same rows drawn whole land, as single
+    /// ticks do.
+    @Test("Many wheel ticks in one frame up from the end land where the eager rows land",
+          arguments: [Shape.twoStacked, .conditional, .ifElse], [5, 20, 40])
+    func manyTicksInOneFrameMatchTheEagerOne(_ shape: Shape, ticks: Int) {
+        let lazy = Self.app(shape, rows: 400, builds: Builds())
+        let eager = Self.eagerConditional(shape)
+        func content(_ app: TestApp) -> [String] {
+            app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) }
+        }
+        _ = lazy.press(.end)
+        _ = eager.press(.end)
+        for step in 1...4 {
+            lazy.scroll(.up, by: ticks, at: CellPoint(x: 5, y: 5))
+            eager.scroll(.up, by: ticks, at: CellPoint(x: 5, y: 5))
+            #expect(content(lazy) == content(eager), "\(shape) \(ticks) × \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
+        }
+    }
+
     @Test("Paging reaches every row of a stack under a title, in order, and Home brings the title back")
     func pagingUnderATitleReachesEveryRow() {
         let builds = Builds()

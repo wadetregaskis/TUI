@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A burst of wheel ticks over two lazy stacks lands where the same ticks one at a time land.** Twenty ticks read in
+one frame, up from the end of a scroll view holding two long `LazyVStack`s one below the other, put the screen about
+two dozen lines away from where twenty single ticks put it, and twenty more snapped back to the last rows: a move of
+more than four screens was placed by the rows' average height, which a stack under another view counts from a place
+of its own. A move of up to 256 lines is now walked row by row whatever the screen's height.
+
 **A lazy stack under a title is settled on and held as one that is a scroll view's whole content.** In a scroll
 view whose `VStack` held a title over a long `LazyVStack` marked `.scrollTargetLayout()`,
 `.scrollTargetBehavior(.viewAligned)` stopped a wheel tick or a key inside a row and `.paging` cut rows at a page's

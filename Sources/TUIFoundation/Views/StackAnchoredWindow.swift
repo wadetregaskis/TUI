@@ -524,8 +524,9 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     /// it) — names rows after it, which the target's lines cannot hide: its
     /// pitch clamped them away and the target was drawn on line 0. The anchor
     /// is then the row after it, so the walk covers only the lines past the
-    /// target, by `advanceAnchor`'s own rule: exactly within four screens, by
-    /// estimate beyond, as any jump that far is.
+    /// target, by `advanceAnchor`'s own rule: exactly within four screens (or
+    /// ``scrollWalkableDelta`` lines), by estimate beyond, as any jump that
+    /// far is.
     private func anchorSeekTarget(
         _ ordinal: Int, top: Int, offset: Int, frame: AnchoredWindowFrame,
         state: StackWindowState, children: ChildViewCollection

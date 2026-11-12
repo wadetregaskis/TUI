@@ -60,6 +60,11 @@ extension ScrollFillColumn {
     var walksJumps: Bool { false }
 }
 
+/// The lines a scroll delta may span and still be walked row by row however
+/// short the screen (`advanceAnchor`): about the rows the windowing
+/// threshold builds, each measured once, in the frame that moves that far.
+let scrollWalkableDelta = 256
+
 extension ScrollFillColumn {
     /// Re-binds the persisted anchor ordinal to its stable key (§5f). The
     /// fast path — the key still lives at the remembered ordinal — is one
@@ -124,6 +129,14 @@ extension ScrollFillColumn {
     /// Applies a scroll offset to the persisted anchor. A big jump seeks by
     /// estimate (O(1), approximate — what a scrollbar drag means); a small
     /// delta walks rows until it is consumed (one line up looks at one row).
+    /// Small is within four screens, or within ``scrollWalkableDelta`` lines
+    /// however short the screen: a burst of wheel ticks read in one frame —
+    /// sixty lines on a twelve-line screen — is a walked move, and placed by
+    /// the running pitch it landed rows away from where the same ticks one at
+    /// a time land. A pulled stack walks its column's delta in its own lines,
+    /// which its estimate does not share: twenty ticks up from the end of two
+    /// stacked stacks landed eighteen rows low, and twenty more on the last
+    /// rows again.
     ///
     /// `linesBelow` is what the scroll content draws below this stack — a
     /// section's footer (``ScrollContentWindow/linesBelow``) — which ends the
@@ -133,7 +146,8 @@ extension ScrollFillColumn {
         var anchor = min(self.anchor.ordinal, count - 1)
         var within = self.anchor.within
         let delta = offset - self.anchor.derivedOffset
-        if abs(delta) > viewportHeight * 4, let reported = self.anchor.reportedTotal,
+        let jumps = abs(delta) > max(viewportHeight * 4, scrollWalkableDelta)
+        if jumps, let reported = self.anchor.reportedTotal,
             offset + viewportHeight >= reported
         {
             // A jump to the very bottom of what this stack last reported — End,
@@ -154,7 +168,7 @@ extension ScrollFillColumn {
             // never shown.
             let pastEnd = min(offset + viewportHeight - reported, linesBelow)
             (anchor, within) = tailAnchor(endingAt: viewportHeight - pastEnd)
-        } else if abs(delta) > viewportHeight * 4, !walksJumps {
+        } else if jumps, !walksJumps {
             let estimate = estimatedPitch
             anchor = min(count - 1, max(0, offset / estimate))
             within = max(0, offset - anchor * estimate)
