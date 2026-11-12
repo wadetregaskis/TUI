@@ -10,6 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUI
@@ -25,7 +26,14 @@ import TUITesting
 struct PulledColumnTests {
     enum Shape: CaseIterable, Sendable {
         case titled, twoStacked, boxed, paddedTwoStacked
+        /// The second stack of `twoStacked` in an `if` among the column's
+        /// children, and in the first branch of an `if`/`else`.
+        case conditional, ifElse
     }
+
+    /// What the `if`s test, read at run time so the compiler keeps both
+    /// branches.
+    private static let shows = ProcessInfo.processInfo.environment["TUI_TEST_HIDES_STACK"] == nil
 
     private static func rows(_ prefix: String, _ count: Int, builds: Builds) -> some View {
         LazyVStack(alignment: .leading, spacing: 0) {
@@ -64,6 +72,20 @@ struct PulledColumnTests {
                         Text("title")
                         GroupBox { rows("a", count, builds: builds) }
                     }
+                case .conditional:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("first")
+                        rows("a", count, builds: builds)
+                        Text("second")
+                        if shows { rows("b", count, builds: builds) }
+                    }
+                case .ifElse:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("first")
+                        rows("a", count, builds: builds)
+                        Text("second")
+                        if shows { rows("b", count, builds: builds) } else { Text("none") }
+                    }
                 }
             }
         }
@@ -84,12 +106,73 @@ struct PulledColumnTests {
     }
 
     @Test("The rows built for a first frame and each page are the same at 1,000, 10,000 and 100,000 rows",
-          arguments: [Shape.titled, .twoStacked])
+          arguments: [Shape.titled, .twoStacked, .conditional, .ifElse])
     func builtRowsIndependentOfRowCount(_ shape: Shape) {
         let small = Self.builtPerStep(shape, rows: 1_000)
         #expect(small.allSatisfy { $0 < 200 }, "\(shape): \(small)")
         #expect(Self.builtPerStep(shape, rows: 10_000) == small, "\(shape)")
         #expect(Self.builtPerStep(shape, rows: 100_000) == small, "\(shape)")
+    }
+
+    /// `count` rows as `rows` draws them, in an eager stack as wide as the
+    /// lazy one: what the lazy one must draw.
+    private static func eagerRows(_ prefix: String, _ count: Int) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<count, id: \.self) { index in
+                Text(index.isMultiple(of: 3) ? "\(prefix)\(index)\n  more" : "\(prefix)\(index)")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// The `if` shapes drawn whole: both stacks eager.
+    private static func eagerConditional(_ shape: Shape) -> TestApp {
+        TestApp(width: 30, height: 12) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("first")
+                    eagerRows("a", 400)
+                    Text("second")
+                    if shape == .twoStacked {
+                        eagerRows("b", 400)
+                    } else if shape == .conditional {
+                        if shows { eagerRows("b", 400) }
+                    } else {
+                        if shows { eagerRows("b", 400) } else { Text("none") }
+                    }
+                }
+            }
+        }
+    }
+
+    /// A lazy stack in an `if` is reached from the column through the `if`'s
+    /// branch, a step of the `if`'s own: pulled as the column's other
+    /// children are, it draws what the same rows drawn whole draw.
+    @Test("A lazy stack in an `if` among a column's children draws what the eager one draws",
+          arguments: [Shape.twoStacked, .conditional, .ifElse])
+    func conditionalDrawsWhatTheEagerOneDraws(_ shape: Shape) {
+        let lazy = Self.app(shape, rows: 400, builds: Builds())
+        let eager = Self.eagerConditional(shape)
+        func content(_ app: TestApp) -> [String] {
+            app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) }
+        }
+        func check(_ step: String) {
+            #expect(content(lazy) == content(eager), "\(shape) \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
+        }
+        check("top")
+        for page in 1...3 {
+            _ = lazy.press(.pageDown)
+            _ = eager.press(.pageDown)
+            check("page \(page)")
+        }
+        _ = lazy.press(.end)
+        _ = eager.press(.end)
+        check("end")
+        for step in 1...30 {
+            lazy.scroll(.up, at: CellPoint(x: 5, y: 5))
+            eager.scroll(.up, at: CellPoint(x: 5, y: 5))
+            check("up \(step)")
+        }
     }
 
     @Test("Paging reaches every row of a stack under a title, in order, and Home brings the title back")
@@ -113,10 +196,11 @@ struct PulledColumnTests {
         #expect(app.screen.lines[0].hasPrefix("title"), "\(app.screen)")
     }
 
-    @Test("Two stacked: End shows the second stack's last row, and the first's last row sits right above the second heading")
-    func twoStackedMeetEdgeToEdge() {
+    @Test("Two stacked: End shows the second stack's last row, and the first's last row sits right above the second heading",
+          arguments: [Shape.twoStacked, .conditional, .ifElse])
+    func twoStackedMeetEdgeToEdge(_ shape: Shape) {
         let builds = Builds()
-        let app = Self.app(.twoStacked, rows: 400, builds: builds)
+        let app = Self.app(shape, rows: 400, builds: builds)
         _ = app.press(.end)
         #expect(app.screen.contains("b399"), "\(app.screen)")
         var met = false

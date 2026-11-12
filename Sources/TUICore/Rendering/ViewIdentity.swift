@@ -287,6 +287,13 @@ extension ViewIdentity {
         return ViewIdentity(node: cursor)
     }
 
+    /// Whether this identity's own step is a conditional's branch: the view
+    /// an `if`/`else` holds, one of two, never beside another.
+    package var isBranchStep: Bool {
+        if case .branch = node.step { return true }
+        return false
+    }
+
     /// Whether this identity's own step is a sibling step: an indexed or keyed
     /// descent, a child among others (see ``singleChildRoot``).
     package var isSiblingStep: Bool {

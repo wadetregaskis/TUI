@@ -236,8 +236,9 @@
         while let node = cursor, node.depth > contentDepth {
             if node.isSiblingStep {
                 guard let parent = node.parent,
-                    context.renderCache?.pullConsumers.layoutPlaces(parent)
-                        ?? parent.leafType.map({ $0 is any ScrollPlacing.Type }) ?? false
+                    parent.holdsItsChildrenForAContainer
+                        || context.renderCache?.pullConsumers.layoutPlaces(parent)
+                            ?? parent.leafType.map({ $0 is any ScrollPlacing.Type }) ?? false
                 else { return false }
             }
             cursor = node.parent
@@ -254,6 +255,25 @@
 }
 
 extension _VStackCore: ScrollPlacing {}
+
+/// What an `if` without an `else` is in a view builder: `Optional`, whose
+/// view is its child at index 0.
+private protocol OptionalViewContent {}
+extension Optional: OptionalViewContent where Wrapped: View {}
+
+extension ViewIdentity {
+    /// Whether this identity is an `if`'s: an `Optional` a builder made, or
+    /// the branch an `if`/`else` took. Its view is its child at index 0 — a
+    /// sibling step, though nothing stands beside it — and is laid out among
+    /// the children of the container the `if` is written in, so a lazy stack
+    /// in an `if` among a column's children is pulled by the column as one
+    /// written there plainly is (`isPulledWhereItStands`). Taken for a
+    /// container of its own, it drew the stack whole, every row measured on
+    /// the first frame.
+    fileprivate var holdsItsChildrenForAContainer: Bool {
+        isBranchStep || leafType.map { $0 is any OptionalViewContent.Type } == true
+    }
+}
 
 // MARK: - LayoutPlacing
 

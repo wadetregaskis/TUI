@@ -67,7 +67,7 @@ with a walk of the page that measures it, and a scroll view drew its content all
 It now draws only down to the bottom of what is visible: 124 rows for the lazy stack.
 
 **A long `LazyVStack` anywhere in a scroll view's content draws only the rows on screen.** Under a title, beside
-another in one `VStack`, or in each row of an outer `LazyVStack`, a lazy stack of more than 256 rows was measured
+another in one `VStack` (in an `if` among its views too), or in each row of an outer `LazyVStack`, a lazy stack of more than 256 rows was measured
 over every row and drawn whole, on every frame that changed anything: a feed of forty sections of 300 entries built
 27,932 rows a frame. The `VStack` or `LazyVStack` that holds one now places it outward from the scroll position, as
 a lazy stack that is the scroll view's whole content always was, so it builds about a screenful. Its height, and so
