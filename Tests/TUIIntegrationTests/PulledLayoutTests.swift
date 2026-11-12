@@ -230,13 +230,6 @@ struct PulledLayoutTests {
         check("home")
     }
 
-    @Test func p9debug() {
-        let app = Self.app(.flow, rows: 1_000, lazy: true)
-        _ = app.screen
-        print("=== page")
-        _ = app.press(.pageDown)
-    }
-
     /// The rows built on the first frame, on each of five page-downs, on two
     /// wheel steps and at End.
     private static func builtPerStep(_ shape: Shape, rows: Int) -> [Int] {
