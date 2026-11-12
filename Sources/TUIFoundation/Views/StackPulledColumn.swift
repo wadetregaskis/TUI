@@ -494,25 +494,14 @@ private enum PulledPlace {
             position: position, end: end, zero: zero)
     }
 
-    /// `context` with `request` in it for the pulled child at `identity`.
-    ///
-    /// A memo between this column and what reads the request keys on no part
-    /// of it — a `ForEach` row's trusts the environment its subtree noted, and
-    /// a request is noted by no one — so a child handed a request other than
-    /// the last frame's has its memo entries dropped, buffers only: a request
-    /// moves which of the child's lines are drawn, never its size. One handed
-    /// the same request (an idle frame, a child off the band) keeps them, and
-    /// its reply is said again from the memo's journal.
+    /// `context` with `request` in it for the pulled child at `identity`
+    /// (``RenderContext/handingPulled(_:to:last:)``), remembered as handed
+    /// this frame.
     private func handing(
         _ request: ScrollContentWindow, to identity: ViewIdentity, frame: PulledColumnFrame, context: RenderContext
     ) -> RenderContext {
-        if frame.state.pulledRequests[identity] != request {
-            context.renderCache?.clearAffected(by: identity, keepingSizes: true)
-        }
         frame.handed[identity] = request
-        var rowContext = context
-        rowContext.environment.scrollContentWindow = request
-        return rowContext
+        return context.handingPulled(request, to: identity, last: frame.state.pulledRequests[identity])
     }
 
     /// The band: the pieces in row order, one below another. A piece placed

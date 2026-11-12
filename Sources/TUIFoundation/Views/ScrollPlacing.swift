@@ -8,6 +8,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUICore
+import TUIView
+
 /// A container that places its children against a scroll view's request,
 /// handing the request on to the children that are pulled (SCROLL-FIT design
 /// B-SCROLLFIT-12): a column outward from an anchor (`_VStackCore`,
@@ -25,3 +28,26 @@
 /// `NavigationStack`).
 @MainActor
 package protocol ScrollPlacing {}
+
+@MainActor extension RenderContext {
+    /// This context with `request` in it for the pulled child at `identity`,
+    /// which was handed `last` on the frame before.
+    ///
+    /// A memo between the container and what reads the request keys on no
+    /// part of it — a `ForEach` row's trusts the environment its subtree
+    /// noted, and a request is noted by no one — so a child handed a request
+    /// other than the last frame's has its memo entries dropped, buffers only:
+    /// a request moves which of the child's lines are drawn, never its size.
+    /// One handed the same request (an idle frame, a child off the band) keeps
+    /// them, and its reply is said again from the memo's journal.
+    func handingPulled(
+        _ request: ScrollContentWindow, to identity: ViewIdentity, last: ScrollContentWindow?
+    ) -> RenderContext {
+        if last != request {
+            renderCache?.clearAffected(by: identity, keepingSizes: true)
+        }
+        var handed = self
+        handed.environment.scrollContentWindow = request
+        return handed
+    }
+}
