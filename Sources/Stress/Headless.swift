@@ -39,8 +39,14 @@ enum Headless {
     /// every share a profile of one reports, which it understated by as much.
     /// Each line's length closes its words, so where the lines break counts.
     private static func contentChecksum(_ buffer: FrameBuffer) -> Int {
+        contentChecksum(lines: buffer.lines)
+    }
+
+    /// ``contentChecksum(_:)`` over lines however they were drawn: a session's
+    /// screen, for `--frame-checksums`.
+    static func contentChecksum(lines: [String]) -> Int {
         var hash: UInt64 = 0xcbf2_9ce4_8422_2325
-        for var line in buffer.lines {
+        for var line in lines {
             line.withUTF8 { hash = unsafe mixed(UnsafeRawBufferPointer($0), into: hash) }
         }
         return Int(truncatingIfNeeded: hash)
@@ -448,7 +454,8 @@ enum Headless {
         cols: Int,
         rows: Int,
         cold: Bool,
-        census countsObservation: Bool = false
+        census countsObservation: Bool = false,
+        frameChecksums: Bool = false
     ) -> Int {
         guard let scenario = Scenarios.byID(id) else {
             print("bench: unknown scenario '\(id)'. Known: \(Scenarios.all.map(\.id).joined(separator: ", "))")
@@ -540,7 +547,12 @@ enum Headless {
                 cpuMeasured = true
             }
             memoCounts.add(from: countsBefore, to: MemoCounts(warm.renderCache))
-            checksum = checksum &+ contentChecksum(buffer)
+            let frameChecksum = contentChecksum(buffer)
+            checksum = checksum &+ frameChecksum
+            // Each frame's own, for `Tools/Profiling/frame_parity.py`: two builds
+            // that must draw alike are compared frame by frame, and the sum above
+            // can say only that some frame differs.
+            if frameChecksums { print("frame \(iteration) checksum=\(frameChecksum)") }
             if isBlank(buffer) { blankFrames += 1 }
         }
         let trimmed = StackGuard.truncationCount - trimmedBefore

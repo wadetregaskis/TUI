@@ -49,6 +49,10 @@ enum SessionRunner {
         /// Print every cache's entry count every this many steps (0: never),
         /// for `Tools/Profiling/cache_growth.py`.
         var cacheSizesEvery = 0
+        /// Print a checksum of the screen after each step (`--frame-checksums`),
+        /// for `Tools/Profiling/frame_parity.py` to compare two builds frame by
+        /// frame.
+        var frameChecksums = false
     }
 
     /// What one kind of step cost, over every step of that kind.
@@ -279,8 +283,9 @@ enum SessionRunner {
     }
 
     /// What the runner does with the frame a step drew besides timing it:
-    /// prints it, styling stripped, when `--show-steps` names the step, and
-    /// asks the session whether it shows what it should.
+    /// prints it, styling stripped, when `--show-steps` names the step, prints
+    /// its checksum under `--frame-checksums`, and asks the session whether it
+    /// shows what it should.
     @MainActor
     private static func inspect(
         _ session: DrivenSession, after step: SessionStep, _ index: Int, options: Options, into report: inout Report
@@ -288,6 +293,9 @@ enum SessionRunner {
         if options.showSteps?.contains(index) == true {
             Swift.print("  frame after step \(index) (\(step.action)):")
             for line in session.screen() { Swift.print("  | " + line.stripped) }
+        }
+        if options.frameChecksums {
+            Swift.print("frame \(index) checksum=\(Headless.contentChecksum(lines: session.screen()))")
         }
         if options.checks { checkFrame(of: session, after: index, action: step.action, into: &report) }
     }

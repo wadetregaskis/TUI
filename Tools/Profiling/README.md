@@ -253,6 +253,20 @@ before believing a small number — the same measurement went from ±5.2% at
 `--window 3.0` to ±3.5% at 8.0. A tie is reported as indistinguishable, not
 as a verdict.
 
+## Whether two builds draw alike — `frame_parity.py`
+
+```
+Tools/Profiling/frame_parity.py /tmp/old /tmp/new                 # every scenario, variant and session
+Tools/Profiling/frame_parity.py /tmp/old /tmp/new --scenarios app-shapes/grouped-feed session/log
+```
+
+Runs each scenario on both binaries with `--bench --frame-checksums` and
+compares every frame's content checksum, naming the first frame that differs.
+It is the oracle for a change that must change no output — a refactor on a hot
+path, or SCROLL-FIT's P1 (`Documentation/Historical/Scrolling/SCROLL-FIT design.md`,
+gate 4) — over the scenes, sizes and input the scenarios make, which the suite
+does not draw. Try `--cols`/`--rows` too: a narrow terminal takes other paths.
+
 ## What a change did, in counts — `ab_counters.py`
 
 Times need a quiet machine; counts don't. `ab_counters.py` runs every scenario

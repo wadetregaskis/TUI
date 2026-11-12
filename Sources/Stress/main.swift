@@ -22,7 +22,7 @@
 //    TUI_STRESS_SCALE    | --scale <n>        size multiplier (1 is already heavy)
 //    TUI_STRESS_SEED     | --seed <n>         synthetic-data seed
 //    TUI_STRESS_AUTOPILOT| --autopilot        self-drive continuous re-renders
-//    --bench options: --iterations <n> --cols <c> --rows <r> --cold
+//    --bench options: --iterations <n> --cols <c> --rows <r> --cold --frame-checksums
 //    TUI_STRESS_STRIPES  | --stripes <b>      --bench under .alternatingRowBackgrounds(<b>): automatic, enabled, disabled
 //                                                (a scenario only: any other run, or another value, stops)
 //    TUI_HAIRLINES=1                          --bench as if the terminal drew hairline list separators
@@ -69,6 +69,7 @@ let usageText = """
     Interactive:  Stress
     Self-check:   Stress --selfcheck [--scale N]
     Benchmark:    Stress --bench --scenario <id> [--variant V] [--iterations N] [--cols C] [--rows R] [--cold] [--stripes automatic|enabled|disabled]
+                  [--frame-checksums]  (each frame's checksum, for Tools/Profiling/frame_parity.py)
     Variants:     Stress --variants
     Sessions:     Stress --sessions
     Session:      Stress --session <id> [--steps N] [--verify] [--resize-every N] [--cols C] [--rows R] [--show]
@@ -184,13 +185,14 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
             options.width = cols
             options.height = rows
             options.checks = false
+            options.frameChecksums = rawArgs.contains("--frame-checksums")
             let report = SessionRunner.run(descriptor, config: config, options: options)
             SessionRunner.print(report, id: sessionID, options: options, config: config)
             return 0
         }
         return Headless.bench(
             id, config: config, iterations: iterations, cols: cols, rows: rows, cold: cold,
-            census: rawArgs.contains("--census"))
+            census: rawArgs.contains("--census"), frameChecksums: rawArgs.contains("--frame-checksums"))
     }
     exit(Int32(code))
 } else {

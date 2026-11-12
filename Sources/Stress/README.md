@@ -61,6 +61,12 @@ itself alive. Until 2026-10-08 every cold frame's did — about 180 KB a frame
 on `framedcolumns` and 4.4 MB on `kitchensink` — so a cold run before then
 timed a process that grew by that much every frame.
 
+`--frame-checksums` prints each frame's checksum as well as the run's sum (a
+session's, each step's screen). `Tools/Profiling/frame_parity.py OLD NEW` runs
+two builds over the same scenarios with it and names the first frame that
+differs: the oracle for a change that must draw exactly what it drew before,
+as SCROLL-FIT's P1 must (`Documentation/Historical/Scrolling/SCROLL-FIT design.md`).
+
 `--stripes` prices the stripe a `Table` draws by default (and a `List` under
 `.alternatingRowBackgrounds()`) on ONE build: runs of the same binary under
 `disabled` and `automatic` differ by the stripe's own work — the background
