@@ -295,6 +295,21 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         return child
     }
 
+    /// The branch the selected tab's content is drawn at.
+    private func selectedContentIdentity(_ context: RenderContext) -> ViewIdentity {
+        context.identity.branch("tab-\(tabs[selectedIndex].value)")
+    }
+
+    /// The lines of the panel below the selected tab's content: what pads it
+    /// to the tallest tab's height. What a pulled tab's request is told lies
+    /// below it, and all the filler a band that reaches its last row is drawn
+    /// above.
+    private func panelLinesBelowContent(insets: EdgeInsets, available: Int, context: RenderContext) -> Int {
+        let sizes = tabContentSizes(insets: insets, available: available, context: context)
+        let selected = sizes[AnyHashable(tabs[selectedIndex].value)]?.height ?? 0
+        return max(0, tallestContentHeight(insets: insets, available: available, context: context) - selected)
+    }
+
     /// The context tab `index`'s content is MEASURED in: its own branch
     /// identity, `available` across, and the height the render lays it out in
     /// (``contentMeasureHeight(available:context:)``).
@@ -538,6 +553,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             return measured.sizeThatFits(proposal: proposal, context: context)
         }
         guard !tabs.isEmpty else { return ViewSize.fixed(0, 0) }
+        // A lazy stack in the selected tab is pulled through the strip
+        // (`PulledChromeRelay`): files this tab view as holding one, once the
+        // tabs are measured below, which files the lazy stack.
+        defer { context.notePulledContainer(holding: { [selectedContentIdentity(context)] }) }
         let style = context.environment.tabStripLook
         var ctx = context
         ctx.availableWidth = proposal.width ?? context.availableWidth
@@ -732,6 +751,13 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             insets: insets, available: avail, panelWidth: interior,
             drawnHeight: contentCtx.availableHeight, context: context)
         contentCtx.availableWidth = widths.render
+        // A pulled view in the tab is handed the request below the strip and
+        // the content's border line, above the filler and the bottom line.
+        let relay = PulledChromeRelay(
+            context: context, linesAbove: chrome - 1,
+            linesBelow: { 1 + panelLinesBelowContent(insets: insets, available: avail, context: context) },
+            addressing: contentCtx.identity)
+        if let relay { contentCtx = relay.contentContext(contentCtx) }
         let full = TUIView.renderToBuffer(
             tabs[selectedIndex].content.padding(insets).background(surface), context: contentCtx)
         let content = full.clamped(toWidth: widths.natural, height: full.height)
@@ -771,10 +797,15 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // (`contentMeasureHeight`), so `tallestContentHeight` can pad the panel
         // a strip row past what fits. Either way the content clips INSIDE the
         // border, like any other bordered container.
-        let contentPad = max(0, (interior - content.width) / 2)
+        // Centred as the whole tab is, not as the band (see `renderCompact`).
+        let contentPad = max(0, (interior - (relay == nil ? content.width : max(content.width, widths.natural))) / 2)
         let contentStartY = box.count
-        let (visibleContent, panelContentHeight) = borderedPanelContent(
+        var (visibleContent, panelContentHeight) = borderedPanelContent(
             content: content, insets: insets, avail: avail, chrome: chrome, context: context)
+        if relay != nil {
+            visibleContent = content
+            panelContentHeight = content.height + panelLinesBelowContent(insets: insets, available: avail, context: context)
+        }
         for line in visibleContent.lines {
             box.append(boxLine(panelRow(
                 line, used: line.strippedLength, leftPad: contentPad, width: interior, surface: surface)))
@@ -830,9 +861,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             contentsOf: visibleContent.shiftedOpacityRegions(
                 byX: contentShiftX, y: contentStartY))
         attachTabClicks(to: &buffer, regions: strip.regions, context: context)
-        return buffer.reversedForActiveTab(
+        let drawn = buffer.reversedForActiveTab(
             isFocused: isFocused, region: strip.regions.first { $0.index == selectedIndex }, isFolder: true,
             chip: chip, context: context)
+        return (relay.map { $0.banded(drawn, content: content) } ?? drawn)
             .clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
 
@@ -1033,6 +1065,12 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
             insets: insets, available: context.availableWidth, panelWidth: panelWidth,
             drawnHeight: contentCtx.availableHeight, context: context)
         contentCtx.availableWidth = widths.render
+        // A pulled view in the tab is handed the request below the strip.
+        let relay = PulledChromeRelay(
+            context: context, linesAbove: stripChrome(rows, bordered: false),
+            linesBelow: { panelLinesBelowContent(insets: insets, available: context.availableWidth, context: context) },
+            addressing: contentCtx.identity)
+        if let relay { contentCtx = relay.contentContext(contentCtx) }
         let full = TUIView.renderToBuffer(
             tabs[selectedIndex].content.padding(insets).background(surface), context: contentCtx)
         let content = full.clamped(toWidth: widths.natural, height: full.height)
@@ -1051,7 +1089,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // alignment (sliders / fields stay lined up). Each row is `panelRow`'s — the
         // content spliced in, the pads either side claimed — and its claims move to
         // the row it lands on, in panel coordinates.
-        let leftPad = max(0, (panelWidth - content.width) / 2)
+        // Centred as the whole tab is, not as the band: a band is only as
+        // wide as the rows it holds, and the page would move as it scrolled.
+        let blockWidth = relay == nil ? content.width : max(content.width, widths.natural)
+        let leftPad = max(0, (panelWidth - blockWidth) / 2)
         var padded: [OpacityRegion] = []
         var centredLines = content.lines.enumerated().map { row, line -> String in
             let panelLine = panelRow(
@@ -1062,8 +1103,13 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // Size the panel to the TALLEST tab so switching tabs doesn't change the
         // panel height: pad the (selected) content down to that height with
         // surface-filled rows, so the shorter tabs read as the same island.
-        let panelContentHeight = tallestContentHeight(
-            insets: insets, available: context.availableWidth, context: context)
+        // A band pads by the lines below the tab, which are cut with the
+        // strip when it does not reach them.
+        let panelContentHeight =
+            relay == nil
+            ? tallestContentHeight(insets: insets, available: context.availableWidth, context: context)
+            : centredLines.count
+                + panelLinesBelowContent(insets: insets, available: context.availableWidth, context: context)
         while centredLines.count < panelContentHeight {
             // A filler row is a panel row with no content: surface all the way across,
             // one pad and so one claim.
@@ -1091,9 +1137,10 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         // coordinates; `appendVertically` has carried the panel's up, shifted.
         buffer.opacityRegions += claims
         attachTabClicks(to: &buffer, regions: regions, context: context)
-        return buffer.reversedForActiveTab(
+        let drawn = buffer.reversedForActiveTab(
             isFocused: isFocused, region: regions.first { $0.index == selectedIndex }, isFolder: false,
             chip: chip, context: context)
+        return (relay.map { $0.banded(drawn, content: content) } ?? drawn)
             .clamped(toWidth: context.availableWidth, height: context.availableHeight)
     }
 

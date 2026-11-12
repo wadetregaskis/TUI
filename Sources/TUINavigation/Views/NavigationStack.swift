@@ -268,9 +268,9 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             noting: false)
 
         guard let top = elements.last else {
-            return measureChild(
-                root, proposal: proposal,
-                context: childContext.withChildIdentity(type: type(of: root)))
+            let rootContext = childContext.withChildIdentity(type: type(of: root))
+            defer { context.notePulledContainer(holding: { [rootContext.identity] }) }
+            return measureChild(root, proposal: proposal, context: rootContext)
         }
 
         let bar = NavigationBar.height
@@ -282,6 +282,10 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             height: max(0, childContext.availableHeight - bar))
 
         let screenChildContext = childContext.withChildIdentity(type: NavigationScreen.self, index: elements.count)
+        // A lazy stack on the pushed screen is pulled through the bar
+        // (`PulledChromeRelay`): files this stack as holding one, once the
+        // screen is measured below, which files the lazy stack.
+        defer { context.notePulledContainer(holding: { [screenChildContext.identity] }) }
         let destination = observingBodyClosure(of: Self.self, context: screenChildContext, observesWhenMeasuring: true) {
             coordinator.destination(for: top)
         }
@@ -474,7 +478,14 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
             }
         }
         preferences?.push()
-        let screenChildContext = screenContext.withChildIdentity(type: NavigationScreen.self, index: depth)
+        var screenChildContext = screenContext.withChildIdentity(type: NavigationScreen.self, index: depth)
+        // A pulled view on the screen is handed the request below the bar,
+        // and the stack draws the bar only while the band holds the screen's
+        // first row.
+        let relay = PulledChromeRelay(
+            context: context, linesAbove: NavigationBar.height, linesBelow: { 0 },
+            addressing: screenChildContext.identity)
+        if let relay { screenChildContext = relay.contentContext(screenChildContext) }
         var content =
             observingBodyClosure(of: Self.self, context: screenChildContext) {
                 coordinator.destination(for: top)
@@ -494,16 +505,22 @@ private struct _NavigationStackCore<Root: View>: View, Renderable, Layoutable {
         let hidesTitle =
             published?[ToolbarTitleRemovedKey.self] == true || context.environment.toolbarTitleRemoved
 
-        content = NavigationBar.padded(content, toWidth: width, height: contentHeight)
+        // A band is as tall as the lines it holds, not the screen.
+        content = NavigationBar.padded(content, toWidth: width, height: relay == nil ? contentHeight : content.height)
 
         var buffer = NavigationBar(coordinator: coordinator).render(
             title: title, subtitle: subtitle, hidesBack: hidesBack, hidesTitle: hidesTitle, width: width,
             escapeHandlerSlot: escapeHandlerSlot,
             items: screenContext.environment.navigationBarItems, context: context)
         buffer.appendVertically(content)
-        return (buffer, zoom)
+        return (relay.map { $0.banded(buffer, content: content) } ?? buffer, zoom)
     }
 }
+
+/// A pushed screen is the stack's child at its depth, among the others it
+/// keeps, so a lazy stack on it is pulled only because the stack is a
+/// container that forwards (`ScrollPlacing`).
+extension _NavigationStackCore: ScrollPlacing {}
 
 // MARK: - Identity tags
 

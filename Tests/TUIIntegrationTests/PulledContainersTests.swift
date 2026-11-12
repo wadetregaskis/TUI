@@ -35,10 +35,22 @@ struct PulledContainersTests {
         /// out against the whole stack: the badge under its last row, the
         /// mark beside its first.
         case overlayView, backgroundView
+        /// A screen pushed on a `NavigationStack`, under its bar, and a
+        /// `TabView` in its bordered style, under its folder strip.
+        case pushedScreen, borderedTabView
 
-        /// The shapes that pull: every one but `TabView`, whose strip the
-        /// request is not yet moved below (SCROLL-FIT design, "Still to do").
-        static let pulled = allCases.filter { $0 != .tabView }
+        /// The shapes that pull: every one.
+        static let pulled = allCases
+        /// Whether the eager twin fills its width as the lazy stack does: in
+        /// a column it is drawn as wide as the column, but a tab view sizes
+        /// its panel by its tab's measure, which for a `LazyVStack` is its
+        /// widest row's, as an eager stack's is.
+        var eagerTwinFills: Bool { self != .tabView && self != .borderedTabView }
+
+        /// Those whose last row ends right above what follows them, or on a
+        /// box's bottom line: every one but the bordered tab view, whose
+        /// content inset stands between.
+        static let flush = allCases.filter { $0 != .borderedTabView }
     }
 
     private static func rows(_ count: Int, builds: Builds) -> some View {
@@ -53,13 +65,13 @@ struct PulledContainersTests {
     /// The same rows in an eager `VStack`, filling its width as a
     /// `LazyVStack` does (SwiftUI's is flexible across; an eager one hugs its
     /// widest row): what the lazy stack must draw.
-    private static func eagerRows(_ count: Int) -> some View {
+    private static func eagerRows(_ count: Int, fills: Bool = true) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(0..<count, id: \.self) { index in
                 Text(index.isMultiple(of: 3) ? "a\(index)\n  more" : "a\(index)")
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: fills ? .infinity : nil, alignment: .leading)
     }
 
     private static func wrapped(_ shape: Shape, rows count: Int, builds: Builds) -> some View {
@@ -85,8 +97,7 @@ struct PulledContainersTests {
                 Color.clear
                 rows()
             }
-        case .tabView: TabView { Tab("One", systemImage: "a.circle") { rows() } }
-        case .navigationStack: NavigationStack { rows() }
+        case .tabView, .navigationStack, .pushedScreen, .borderedTabView: pages(shape, rows)
         case .hStackGuided:
             HStack(alignment: .top, spacing: 1) {
                 Text("|\n|").alignmentGuide(.top) { _ in -2 }
@@ -104,6 +115,42 @@ struct PulledContainersTests {
                 rows()
                 Text("*").alignmentGuide(.top) { _ in -2 }.alignmentGuide(.leading) { _ in -5 }
             }
+        }
+    }
+
+    /// The page containers: the tab views and the navigation stacks.
+    @ViewBuilder
+    private static func pages<Rows: View>(_ shape: Shape, _ rows: () -> Rows) -> some View {
+        switch shape {
+        case .tabView: TabView { Tab("One", systemImage: "a.circle") { rows() } }
+        case .borderedTabView: TabView { Tab("One", systemImage: "a.circle") { rows() } }.tabViewStyle(.bordered)
+        case .navigationStack: NavigationStack { rows() }
+        default:
+            let screen = rows()
+            NavigationStack(path: .constant([1])) {
+                Text("root").navigationDestination(for: Int.self) { _ in screen }
+            }
+        }
+    }
+
+    /// `key` pressed on `app`. A pushed screen is a focus section of its
+    /// own, which takes the keys from the scroll view around the navigation
+    /// stack, so there the wheel stands in: four ticks a page, and as many as
+    /// reach either end, turned twice to the end.
+    private static func press(_ key: Key, in app: TestApp, shape: Shape) {
+        guard shape == .pushedScreen else {
+            _ = app.press(key)
+            return
+        }
+        let middle = CellPoint(x: 5, y: 5)
+        switch key {
+        case .pageDown: app.scroll(.down, by: 4, at: middle)
+        // A second turn: the first lands on the estimated end, and the band
+        // it draws there learns the true one.
+        case .end:
+            app.scroll(.down, by: 400, at: middle)
+            app.scroll(.down, by: 4, at: middle)
+        default: app.scroll(.up, by: 400, at: middle)
         }
     }
 
@@ -131,19 +178,19 @@ struct PulledContainersTests {
           arguments: Shape.pulled)
     func drawsWhatTheEagerOneDraws(_ shape: Shape) {
         let lazy = Self.app(shape, rows: 300, builds: Builds())
-        let eager = Self.page { Self.wrapped(shape) { Self.eagerRows(300) } }
+        let eager = Self.page { Self.wrapped(shape) { Self.eagerRows(300, fills: shape.eagerTwinFills) } }
         func content(_ app: TestApp) -> [String] { app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) } }
         func check(_ step: String) {
             #expect(content(lazy) == content(eager), "\(shape) \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
         }
         check("top")
         for page in 1...3 {
-            _ = lazy.press(.pageDown)
-            _ = eager.press(.pageDown)
+            Self.press(.pageDown, in: lazy, shape: shape)
+            Self.press(.pageDown, in: eager, shape: shape)
             check("page \(page)")
         }
-        _ = lazy.press(.end)
-        _ = eager.press(.end)
+        Self.press(.end, in: lazy, shape: shape)
+        Self.press(.end, in: eager, shape: shape)
         check("end")
     }
 
@@ -155,17 +202,28 @@ struct PulledContainersTests {
         var counts = [builds.count]
         for _ in 0..<5 {
             builds.count = 0
-            _ = app.press(.pageDown)
+            Self.press(.pageDown, in: app, shape: shape)
             counts.append(builds.count)
         }
         return counts
     }
 
-    @Test("The rows built for a first frame and each page are the same at 1,000 and 10,000 rows",
+    /// A tab view measures its tab at two heights, the panel's and the one it
+    /// draws in, so where the scroll view's measuring ladder lands against
+    /// the stack's estimate moves a sample or two between steps: its counts
+    /// are bounded alike at every size rather than equal.
+    @Test("The rows built for a first frame and each page do not grow with the row count",
           arguments: Shape.pulled)
     func builtRowsIndependentOfRowCount(_ shape: Shape) {
         let small = Self.builtPerStep(shape, rows: 1_000)
         #expect(small.allSatisfy { $0 < 300 }, "\(shape): \(small)")
+        guard shape.eagerTwinFills else {
+            for count in [10_000, 100_000] {
+                let built = Self.builtPerStep(shape, rows: count)
+                #expect(built.allSatisfy { $0 < 300 }, "\(shape) at \(count): \(built)")
+            }
+            return
+        }
         #expect(Self.builtPerStep(shape, rows: 10_000) == small, "\(shape)")
     }
 
@@ -174,10 +232,10 @@ struct PulledContainersTests {
     func endReachesTheLastRow(_ shape: Shape) {
         let builds = Builds()
         let app = Self.app(shape, rows: 400, builds: builds)
-        _ = app.press(.end)
+        Self.press(.end, in: app, shape: shape)
         #expect(app.screen.contains("a399"), "\(shape): \(app.screen)")
         #expect(app.screen.contains("footer"), "\(shape): \(app.screen)")
-        _ = app.press(.home)
+        Self.press(.home, in: app, shape: shape)
         #expect(app.screen.lines[0].hasPrefix("title"), "\(shape): \(app.screen)")
     }
 
@@ -185,11 +243,11 @@ struct PulledContainersTests {
     /// request reaches the stack counted from the box's end above that line:
     /// at End the last row sits right on the bottom line, the footer right
     /// below; unboxed, right above the footer.
-    @Test("At the end, the last row sits right above the footer, or on a box's bottom line", arguments: Shape.pulled)
+    @Test("At the end, the last row sits right above the footer, or on a box's bottom line", arguments: Shape.flush)
     func lastRowMeetsTheFooter(_ shape: Shape) {
         let builds = Builds()
         let app = Self.app(shape, rows: 400, builds: builds)
-        _ = app.press(.end)
+        Self.press(.end, in: app, shape: shape)
         let lines = app.screen.lines
         guard let footer = lines.firstIndex(where: { $0.hasPrefix("footer") }), footer >= 3 else {
             Issue.record("\(shape): no footer below the stack: \(app.screen)")
@@ -227,7 +285,7 @@ struct PulledContainersTests {
     /// container, the stack in it handed a request counted from the
     /// container's end — the last row still sits right above the heading, or
     /// on a box's bottom line above it.
-    @Test("A wrapped stack entered from below ends right above the next heading", arguments: Shape.pulled)
+    @Test("A wrapped stack entered from below ends right above the next heading", arguments: Shape.flush)
     func wrappedStackEnteredFromBelow(_ shape: Shape) {
         let builds = Builds()
         let app = TestApp(width: 30, height: 12) {
@@ -242,7 +300,7 @@ struct PulledContainersTests {
                 }
             }
         }
-        _ = app.press(.end)
+        Self.press(.end, in: app, shape: shape)
         #expect(app.screen.contains("b399"), "\(shape): \(app.screen)")
         let boxed = shape == .border || shape == .groupBox
         var met = false
@@ -274,7 +332,7 @@ struct PulledContainersTests {
         }
         collect()
         for _ in 0..<60 {
-            _ = app.press(.pageDown)
+            Self.press(.pageDown, in: app, shape: shape)
             collect()
         }
         let missing = (0..<300).filter { !seen.contains($0) }

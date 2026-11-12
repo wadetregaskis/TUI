@@ -74,8 +74,9 @@ a lazy stack that is the scroll view's whole content always was, so it builds ab
 the scrollbar, "~N more" and `onScrollGeometryChange`'s content size, is now an estimate for rows of varying height,
 as it already was for a lazy stack that is the whole content, and `onGeometryChange` on it reports the rows it draws.
 So does one inside a `GroupBox`, a `.border()` or another box, an `HStack` or a `ZStack`: the box draws its top
-line only while the stack's first row is on screen, and its bottom line and footer only with its last. A lazy stack
-in a pushed `NavigationStack` screen or a `Grid` is still drawn whole, as before.
+line only while the stack's first row is on screen, and its bottom line and footer only with its last. So does one in
+a `TabView`'s tab, under its strip, and on a pushed `NavigationStack` screen, under its bar. A lazy stack in a `Grid`
+is still drawn whole, as before.
 
 **A `NavigationSplitView` in a `ScrollView` or under `.fixedSize` is as tall as its tallest column.** Offered no
 height, it answered one line: in a scroll view it took the viewport's height, so the sidebar's rows past it could

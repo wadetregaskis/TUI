@@ -40,7 +40,7 @@ package protocol ScrollPlacing {}
     /// by, and only once something is filed at all, which on most pages
     /// nothing ever is. Says whether it filed it.
     @discardableResult
-    func notePulledContainer(holding children: () -> [ViewIdentity]) -> Bool {
+    package func notePulledContainer(holding children: () -> [ViewIdentity]) -> Bool {
         guard scrollContentOriginDepth != 0, let cache = renderCache else { return false }
         let holds = !cache.pullConsumers.isEmpty && children().contains { cache.pullConsumers.holdsConsumer(below: $0) }
         cache.pullConsumers.note(identity, as: holds ? .pullsChildren : nil)
