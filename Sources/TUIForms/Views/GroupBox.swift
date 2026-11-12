@@ -147,8 +147,10 @@ public struct DefaultGroupBoxStyle: GroupBoxStyle, Equatable {
     public func makeBody(configuration: Configuration) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             configuration.label
+            // Its rows past the lazy stack's threshold are built only while
+            // on screen, in scroll content (`ImplicitColumnWindowing.swift`).
             Box {
-                configuration.content
+                configuration.content.windowingItsRows()
             }
         }
     }

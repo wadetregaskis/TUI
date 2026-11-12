@@ -209,12 +209,20 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     /// Vertical is the right default for the same reason `TupleView` stacks
     /// that way: it is what an un-laid-out run of sibling views means here,
     /// and it is what SwiftUI's documented example produces.
+    ///
+    /// The column of a container with no lazy counterpart (`GroupBox`,
+    /// `DisclosureGroup`, a `Section` drawn as one view) is drawn as a lazy
+    /// stack past its threshold, in scroll content (`ImplicitColumnWindowing.swift`).
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        renderStackedVertically(childViews(context: context), context: context)
+        if let column = windowedColumn(context: context) { return renderWindowed(column, context: context) }
+        return renderStackedVertically(childViews(context: context), context: context)
     }
 
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
+        if let column = windowedColumn(context: context) {
+            return windowedColumnSize(column.sizeThatFits(proposal: proposal, context: context), proposal: proposal, context: context)
+        }
+        return measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
     }
 }
 

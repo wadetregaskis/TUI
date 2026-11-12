@@ -132,7 +132,10 @@ public struct AutomaticDisclosureGroupStyle: DisclosureGroupStyle, Equatable {
             }
 
             if expansion.wrappedValue {
-                configuration.content.padding(.leading, DisclosureMetrics.contentIndent)
+                // Its rows past the lazy stack's threshold are built only
+                // while on screen, in scroll content
+                // (`ImplicitColumnWindowing.swift`).
+                configuration.content.windowingItsRows().padding(.leading, DisclosureMetrics.contentIndent)
             }
         }
     }

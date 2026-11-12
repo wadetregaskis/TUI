@@ -15,6 +15,7 @@ import Synchronization
 import Testing
 
 import TUIEffects
+import TUIForms
 @testable import TUIFoundation
 import TUIGrid
 import TUILists
@@ -140,6 +141,26 @@ private struct SlidingRows: View {
     }
 }
 
+/// `ids` in a `GroupBox` in scroll content, under a title: past 256 rows
+/// the box builds only those on screen (SCROLL-FIT P8, design §1g), so its
+/// rows take the windowed record, a reader's proxy kept in `box`.
+private struct BoxedRows: View {
+    let ids: [Int]
+    let box: ProxyBox
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            let _ = box.proxy = proxy  // swiftlint:disable:this redundant_discardable_let
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("title")
+                    GroupBox { ForEach(ids, id: \.self) { id in Text(Item(id: id).name) } }
+                }
+            }
+        }
+    }
+}
+
 /// A view drawn frame by frame as the run loop draws it: the change's
 /// transaction in force for the one pass that shows the change.
 @MainActor
@@ -259,5 +280,41 @@ struct WindowedRowFadeTests {
         #expect(half.contains { $0.hasSuffix("22") && !$0.hasPrefix("2") }, "sliding out: \(half)")
         let end = frames.draw(SlidingRows(ids: [1, 3], scrolled: scrolled), atMillis: 2100)
         #expect(!end.contains { $0.contains("2") }, "gone: \(end)")
+    }
+
+    /// A windowed box's rows (SCROLL-FIT P8) take the record a lazy stack's
+    /// take (design §1g): one a scroll brings into the band was a row
+    /// already, and comes without a fade, though a change animates the frame.
+    @Test("A windowed box's rows scrolled into view under an animation do not fade")
+    func windowedBoxRowsScrolledInDoNotFade() {
+        let frames = Frames()
+        let box = ProxyBox()
+        let rows = BoxedRows(ids: Array(0..<300), box: box)
+        _ = frames.draw(rows, atMillis: 0)
+        box.proxy?.scrollTo(150, anchor: .top)
+        var found: [Double] = []
+        var drawn: [String] = []
+        for millis in stride(from: 100, through: 1_500, by: 100) {
+            let buffer = frames.buffer(rows, atMillis: millis, changed: true)
+            found += fades(buffer)
+            drawn = buffer.withLayersDrawn().lines.map(\.stripped)
+        }
+        #expect(drawn.contains { $0.contains("150") }, "scrolled to row 150: \(drawn)")
+        #expect(found.isEmpty, "rows scrolled in faded: \(found)")
+    }
+
+    /// And one an animated change puts in among them fades in where it
+    /// lands, as in the lazy stack.
+    @Test("A row inserted into a windowed box under an animation fades in")
+    func windowedBoxRowInsertedFades() {
+        let frames = Frames()
+        let box = ProxyBox()
+        let before = (0..<300).filter { $0 != 2 }
+        _ = frames.draw(BoxedRows(ids: before, box: box), atMillis: 0)
+        let after = BoxedRows(ids: Array(0..<300), box: box)
+        _ = frames.draw(after, atMillis: 1000, changed: true)
+        let late = frames.buffer(after, atMillis: 1600)
+        #expect(fades(late) == [0.6], "fading in: \(fades(late))")
+        #expect(fades(frames.buffer(after, atMillis: 2100)).isEmpty)
     }
 }
