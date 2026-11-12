@@ -282,6 +282,10 @@ private enum PulledPlace {
         {
             frame.knownHeights[row.ordinal] = row.end
         }
+        // A request counted from this column's top or end — the column above
+        // fills to it from a neighbour, or has just moved its anchor into it —
+        // places the anchor afresh, whatever this column remembers of it.
+        let enteredAtAnEdge = window.edge != .position
         frame.enter(edgeOf: &window, estimatedEnd: frame.anchor.reportedTotal ?? frame.rowCount * frame.estimatedPitch)
         let resolvedSeek = resolvePulledSeek(frame: frame, window: &window)
         frame.advanceAnchor(to: window.offset, viewportHeight: window.viewportHeight, linesBelow: 0)
@@ -289,10 +293,13 @@ private enum PulledPlace {
         guard !frame.sawSpacer else { return nil }
 
         // Which edge a pulled anchored row counts from: its own position when
-        // the anchor stayed in it, else the edge it is nearer.
+        // the anchor stayed in it, else the edge it is nearer. Not after an
+        // entry at an edge, which moved the anchor even where it names the row
+        // it named before: a column in a row of an outer one, entered from
+        // below, handed its last row the position that row had frames ago.
         let anchored = frame.anchor.ordinal
         let stayed =
-            state.pulledAnchorRow?.ordinal == anchored && before.ordinal == anchored
+            !enteredAtAnEdge && state.pulledAnchorRow?.ordinal == anchored && before.ordinal == anchored
             && before.key == frame.anchor.key && resolvedSeek == nil
         let edge: PullEdge =
             stayed ? .position : frame.anchor.within * 2 < frame.height(of: anchored) ? .top : .end

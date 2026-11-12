@@ -168,15 +168,7 @@ struct PulledContainersTests {
                 met = true
             }
         }
-        // A `GroupBox` is a column of its own (`VStack { label; Box { content } }`):
-        // a pulled column inside a pulled column, entered from below, steps over the
-        // heading below it. A pulled-column bug, not the box's — `.border()` passes —
-        // left to the next lane (SCROLL-FIT design, "Still to do").
-        withKnownIssue("a nested pulled column entered from below skips the row below it") {
-            #expect(met, "\(shape): the second heading never came on screen below the stack: \(app.screen)")
-        } when: {
-            shape == .groupBox
-        }
+        #expect(met, "\(shape): the second heading never came on screen below the stack: \(app.screen)")
     }
 
     @Test("Paging reaches every row, in order", arguments: Shape.pulled)

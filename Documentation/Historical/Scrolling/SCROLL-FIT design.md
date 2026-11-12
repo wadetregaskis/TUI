@@ -340,6 +340,13 @@ and a container that pulls need not be one a placement query can walk. The secon
   lead's place; the band is the lead's, reaching the container's top or end when the lead's
   holds its first or last row. A glide, a z-index and an explicit alignment guide are left out
   of a pulled row's drawing.
+- **A pulled column entered at an edge places its anchor afresh.** A column inside a pulled
+  column (a `GroupBox` is one, `VStack { label; Box { content } }`) handed a request counted from
+  its top or end kept treating its anchored row as one the anchor had stayed in, whenever the
+  entry landed on the row it remembered, and handed that row the position it had frames before:
+  in `VStack { first; GroupBox { LazyVStack }; second; LazyVStack }`, scrolled up from the end,
+  the heading `second` was stepped over. P2's own bug, which the box's pull exposed: before it the
+  box was drawn whole.
 - **Two relay fixes the shapes needed.** A request counted from a view's end is counted from its
   content's end, `linesBelow` further up (`ScrollContentWindow.beneath`, which subtracted
   `linesAbove` whatever the edge), and a pulled content's position is answered back through the
@@ -363,11 +370,6 @@ Still to do after the second lane:
   child. An overlay or background laid out by a view is laid out against the band, not the
   content (`.topTrailing` badges every band's top line); a shape style fills the band, which is
   right. `NavigationStack` at its root and a shape-style background already pull.
-- **A pulled column inside a pulled column, entered from below, steps over the row below it.**
-  `GroupBox` is a column of its own (`VStack { label; Box { content } }`): in
-  `VStack { first; GroupBox { LazyVStack }; second; LazyVStack }`, scrolled up from the end, the
-  heading `second` never comes on screen (`PulledContainersTests`, a known issue there; the same
-  page with `.border()` in place of the `GroupBox` passes).
 - **Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).** A pulled column answers a `scrollTo`
   of its own rows (by the running pitch); a key inside a pulled child is not searched, as under
   design D.
