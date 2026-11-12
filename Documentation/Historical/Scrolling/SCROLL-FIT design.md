@@ -687,6 +687,21 @@ way (the existing cap, rarely spent).
 
 If it does not, P2 does not land.
 
+**As P2 measured it** (2026-11-12, `ab_bench.py`, release, cpu per frame, 10 reps, base 98447fc67
+against the pull's commit, on a busy box). `grouped-feed` 37.5 → 1.55 ms a frame (−95.9%) and
+RSS 80.3 → 17.6 MB, under D's base; `grouped-feed-uniform` −96.1% (73.0 → 17.4 MB);
+`headed-log` −97.7% (50.5 → 14.9 MB). Rows built a write frame (`PulledColumnTests`, 30 × 12):
+506 at 40 sections, against 27,932 under D; at 320 sections 986, not the same: the scroll view's
+natural-extent ladder climbs one rung more for the taller estimate and samples there again, a
+step per eightfold height rather than a row per row, as for a stack at the origin. Pages with
+nothing pulled: `megalist`, `scrolleager`, `dashboard`, the sessions `editor`, `chat` and `log`,
+and the app shapes `sidebar`, `file-browser`, `code-editor` and `code-editor-tailing` within
+the noise; `scrollfollow` +1.2% and `glide` +1.5%, under the owner's few-percent line.
+`frame_parity.py` over every scenario, variant and session: 151 of 153 draw alike, the pulled
+`grouped-feed`, `grouped-feed-uniform` and `headed-log` among them; `app-shapes/timeline-rows`
+differs between two runs of one binary too (its timelines read the clock), and
+`session/inbox-commands` only in the menu bar's first item, the binary's name.
+
 **Stress scenarios to add** (variants of a new `scroll-fit` scenario in `Sources/Stress/Scenarios/`,
 the page moving every tick unless noted; each lane adds the variants its code reaches and A/Bs
 them):
