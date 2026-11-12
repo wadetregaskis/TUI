@@ -36,6 +36,19 @@ final class PulledColumnFrame {
     private(set) var sawSpacer = false
     /// The requests this frame handed its pulled children, by identity.
     var handed: [ViewIdentity: ScrollContentWindow] = [:]
+    /// Where the focus ring stood when the fill began: what the rows above the
+    /// anchor, drawn after it and the rows below, file their controls at.
+    var focusMark: (manager: FocusManager, mark: FocusRegistrationMark)?
+
+    /// Draws `body`, a row above every row drawn since the fill began, its
+    /// controls filed ahead of theirs in the focus ring
+    /// (`FocusManager.registering(at:_:)`): so the ring runs in the rows'
+    /// order, as an eager column's does, wherever the fill started.
+    func drawingAbove<T>(_ body: () -> T) -> T {
+        guard let focusMark else { return body() }
+        return focusMark.manager.registering(at: focusMark.mark, body)
+    }
+
     init(
         children: ChildViewCollection, spacing: Int, state: StackWindowState, anchor: ScrollContentAnchor,
         proposal: ProposedViewSize, context: RenderContext

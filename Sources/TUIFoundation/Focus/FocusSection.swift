@@ -24,6 +24,12 @@ package final class FocusSection {
     /// not registered yet this walk (``reserve(_:)``).
     private(set) var reservedIDs: Set<String> = []
 
+    /// Where the next element registered is filed: at the end, or — while a
+    /// container draws rows that stand above rows it has already drawn
+    /// (`FocusManager.registering(at:_:)`) — at this place, which moves on
+    /// past each element filed there.
+    var registrationPlace: Int?
+
     /// Creates a new focus section with the given identifier.
     ///
     /// - Parameter id: A unique identifier for this section.
@@ -44,7 +50,7 @@ extension FocusSection {
         // Registering fills a place reserved for it, where the reservation put it.
         reservedIDs.remove(element.focusID)
         guard !focusables.contains(where: { $0.focusID == element.focusID }) else { return }
-        focusables.append(element)
+        file(element)
     }
 
     /// Files `element` in its place now, ahead of what registers before its
@@ -52,8 +58,27 @@ extension FocusSection {
     /// registers (``holdsReservation``).
     func reserve(_ element: Focusable) {
         guard !focusables.contains(where: { $0.focusID == element.focusID }) else { return }
-        focusables.append(element)
+        file(element)
         reservedIDs.insert(element.focusID)
+    }
+
+    /// Takes back the elements filed at `range`, and any place reserved for
+    /// one of them (`FocusManager.rewindRegistrations(to:)`).
+    func unfile(_ range: Range<Int>) {
+        let range = range.clamped(to: focusables.indices)
+        for element in focusables[range] { reservedIDs.remove(element.focusID) }
+        focusables.removeSubrange(range)
+    }
+
+    /// Files `element` at ``registrationPlace``, or at the end.
+    private func file(_ element: Focusable) {
+        guard let place = registrationPlace, place < focusables.count else {
+            focusables.append(element)
+            if registrationPlace != nil { registrationPlace = focusables.count }
+            return
+        }
+        focusables.insert(element, at: place)
+        registrationPlace = place + 1
     }
 
     /// Whether a place is reserved here for an element that has not registered

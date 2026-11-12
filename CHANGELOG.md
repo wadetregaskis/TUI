@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Shift-Tab steps back to the control above a long lazy stack once it is scrolled out of sight.** In a scroll view
+whose `VStack` held a long `LazyVStack` under a button, scrolled a line or two down, Shift-Tab from the stack's first
+row skipped the button and went on to the control before the scroll view, and Tab from the button, once it had
+scrolled back into view, skipped the stack's first row: the controls above the scroll position were filed in the focus
+order after the rows below it. They are filed in the order they stand, as with an eager `VStack`.
+
 **`scrollTo` finds a row inside a lazy stack that is not the scroll view's whole content.** `proxy.scrollTo(id)`
 and `ScrollPosition.scrollTo(id:)` looked for the id only among the rows of the stack that was the scroll view's
 content, so a row of a `LazyVStack` under a title, in the second of two stacks, in a `GroupBox` or beside a gutter

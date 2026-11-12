@@ -382,9 +382,23 @@ Still to do after the second lane:
   `.background` and `.overlay` (with a style or a view: the twin comparison draws them alike)
   already pull.
 - ~~**Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).**~~ Built in the third lane, below.
-- **The focus reveal as an anchor (1e).** Reveal still moves the offset; the walk carries it.
-  A pulled column draws its children as it fills, anchored row first, so a focusable child above
-  its anchor registers after the rows below it.
+- **The focus reveal as an anchor (1e).** Reveal still moves the offset, by the drawn region
+  (`snapViewportToFocusedControl`), and the walk carries it; a control off the band is grafted at
+  an estimate and pursued over frames. Not built in the third lane. Nor are the edge rows of a
+  pulled child next to the focus: Shift-Tab from a control below a pulled stack whose last rows
+  are off screen (a button under a 300-row stack, scrolled to its top) goes to the band's last
+  row, where the eager stack goes to its own last row, which a pulled stack never registers.
+  *Built in the third lane:* the order of what does register. A pulled column draws its anchored
+  row, then the rows below, then the rows above, nearest first, then its children off the band;
+  so the controls above the anchor were filed in the focus ring after the ones below, and Tab
+  from the band's last row went back up to a row above it. Those above are now filed at the
+  place the column's first row would take (`FocusManager.registering(at:_:)`,
+  `FocusSection.registrationPlace`), each ahead of the one drawn before, so the ring is in the
+  rows' order (`PulledFocusTests`). And a scroll view that draws its content a second time in a
+  frame (the reveal moved it) takes back the first drawing's registrations
+  (`RenderWalkCheckpoint.rewind`, `FocusManager.rewindRegistrations(to:)`), as it takes back its
+  handler ids and key handlers: kept, the row the second drawing brought on screen above the rest
+  was filed after them all, and Tab from the control just revealed skipped it.
 - **What the outermost stack did that a pulled column does not yet:** a row held by
   `.anchorPosition(.row(id))`, the top-row hold, `scrollTargetLayout` and the visibility
   observers' rows, and the eager stack's departing-row transitions. A pulled column takes over

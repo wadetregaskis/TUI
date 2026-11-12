@@ -228,6 +228,7 @@ private enum PulledPlace {
             seeking?.handedEdge
             ?? (stayed ? .position : frame.anchor.within * 2 < frame.height(of: anchored) ? .top : .end)
 
+        frame.focusMark = context.environment.focusManager.map { ($0, $0.registrationMark()) }
         var drawn = fillPulled(
             frame: frame, window: window, anchoredEdge: edge, seek: seeking?.handed, width: width,
             context: childContext)
@@ -342,7 +343,9 @@ private enum PulledPlace {
             // A margin row above is drawn whole or not at all: a pulled one
             // would be asked only for lines no one sees.
             if isMargin, frame.isPulled(ordinal) { break }
-            let piece = drawPulledRow(ordinal, at: .end(end), frame: frame, window: window, width: width, context: context)
+            let piece = frame.drawingAbove {
+                drawPulledRow(ordinal, at: .end(end), frame: frame, window: window, width: width, context: context)
+            }
             above.append(piece)
             if isMargin { break }
             nextEnd = piece.firstLine.map { $0 - (ordinal > 0 ? frame.gap(after: ordinal - 1) : 0) }
@@ -482,29 +485,46 @@ private enum PulledPlace {
         }
         guard !ordinals.isEmpty else { return }
         let bandHeight = result.height
-        for ordinal in ordinals {
+        // Those above, nearest first, each filed ahead of the one before in
+        // the focus ring: so they run in order, ahead of the band.
+        let above = ordinals.filter { $0 < first.ordinal }
+        for ordinal in above.reversed() + ordinals.filter({ $0 > last.ordinal }) {
             let isAbove = ordinal < first.ordinal
             let estimate =
                 isAbove
                 ? first.top - (first.ordinal - ordinal) * frame.estimatedPitch
                 : bandTop + bandHeight + (ordinal - last.ordinal - 1) * frame.estimatedPitch
             let drawnRow: FrameBuffer
-            if frame.isPulled(ordinal) {
-                var request = ScrollContentWindow(
-                    offset: -window.viewportHeight, viewportHeight: window.viewportHeight,
-                    contentIdentity: frame.child(at: ordinal).identity(under: context), reply: ScrollContentReply())
-                request.isPulled = true
-                request.edge = .top
-                let rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
-                drawnRow = frame.child(at: ordinal).render(
-                    width: width, height: max(context.availableHeight, window.viewportHeight * 4), context: rowContext)
+            if isAbove {
+                drawnRow = frame.drawingAbove {
+                    drawOffBandChild(ordinal, frame: frame, window: window, width: width, context: context)
+                }
             } else {
-                drawnRow = drawOffBandRow(
-                    frame.child(at: ordinal), width: width, viewportHeight: window.viewportHeight, context: context)
+                drawnRow = drawOffBandChild(ordinal, frame: frame, window: window, width: width, context: context)
             }
             let bandLocalY =
                 isAbove ? min(estimate - bandTop, -window.viewportHeight) : max(estimate - bandTop, bandHeight)
             graftOffBandRow(drawnRow, into: &result, bandLocalY: bandLocalY)
         }
+    }
+
+    /// Off-band child `ordinal`, drawn for its regions and its places in the
+    /// focus ring: a pulled one handed a request that stays still while it is
+    /// off the band, any other drawn as an off-band row is.
+    private func drawOffBandChild(
+        _ ordinal: Int, frame: PulledColumnFrame, window: ScrollContentWindow, width: Int, context: RenderContext
+    ) -> FrameBuffer {
+        guard frame.isPulled(ordinal) else {
+            return drawOffBandRow(
+                frame.child(at: ordinal), width: width, viewportHeight: window.viewportHeight, context: context)
+        }
+        var request = ScrollContentWindow(
+            offset: -window.viewportHeight, viewportHeight: window.viewportHeight,
+            contentIdentity: frame.child(at: ordinal).identity(under: context), reply: ScrollContentReply())
+        request.isPulled = true
+        request.edge = .top
+        let rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
+        return frame.child(at: ordinal).render(
+            width: width, height: max(context.availableHeight, window.viewportHeight * 4), context: rowContext)
     }
 }

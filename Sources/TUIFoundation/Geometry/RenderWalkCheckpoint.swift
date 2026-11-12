@@ -50,9 +50,13 @@ import TUIView
 /// it drew it, keeps the last drawing's, which run when the walk is done
 /// (decisions B-D5G-4, B-D5G-11).
 ///
+/// A control's place in the focus ring is put back too
+/// (`FocusManager.rewindRegistrations(to:)`): the ring is the order controls
+/// register in, so a row a scroll view's second drawing brought on screen
+/// above the first drawing's rows was filed after them all.
+///
 /// Nor does it put back the live registrations that are not numbered by
-/// position: a control's place in the focus ring, a keyboard shortcut, a
-/// status-bar item, a drop target. Those registries take a second
+/// position: a keyboard shortcut, a status-bar item, a drop target. Those registries take a second
 /// registration of the same thing as one, so a view drawn in both drawings is
 /// registered once; but a view drawn only in the first — a row of a band the
 /// scroll view replaced — stays registered for the frame, in the first
@@ -83,6 +87,8 @@ package struct RenderWalkCheckpoint {
     private let docks: [String: PaneLedger.PostedDock]?
     /// How many windowing containers had noted the rows they drew.
     private let windowedRowsNoted: Int?
+    /// Where the focus ring stood, or `nil` without a focus manager.
+    private let focusMark: FocusRegistrationMark?
     /// The drawing, open on the effect stage until ``keep()``.
     private let effects: ProvisionalEffects
 
@@ -98,6 +104,7 @@ package struct RenderWalkCheckpoint {
         preferences = context.environment.preferenceStorage?.current
         journalCount = context.recordingEffectJournal?.count
         docks = context.environment.focusManager?.panes.docks
+        focusMark = context.environment.focusManager?.registrationMark()
         windowedRowsNoted = context.stateStorage?.windowedRowsNoted
         effects = ProvisionalEffects(context: context)
     }
@@ -136,6 +143,8 @@ package struct RenderWalkCheckpoint {
         if let journalCount { context.renderCache?.effectJournal.truncate(to: journalCount) }
         // What the settle asks of the walk is the kept drawing's alone.
         if let docks { context.environment.focusManager?.panes.docks = docks }
+        // The ring is the order controls register in: the kept drawing's.
+        if let focusMark { context.environment.focusManager?.rewindRegistrations(to: focusMark) }
         if let windowedRowsNoted { context.stateStorage?.rewindWindowedRows(to: windowedRowsNoted) }
         // What the first drawing would have done is not done, and what its
         // views remembered in deciding to is put back.
