@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An alert's long message and a text field's long prompt are no longer cut.** An alert read its message off a
+canvas 4,096 cells square, so a line past the 4,096th never reached the alert, though it scrolls long messages, and
+a paragraph wider than that was broken early; a `TextField` with `axis: .vertical` read its prompt the same way. A
+field on one line showed no more than the first 100 cells of its prompt, however wide the field. Each is now read at
+its natural size.
+
 **A paragraph wider than 4,096 cells in a horizontal `ScrollView` stays on one line.** Asked how wide it would be
 with nothing stopping it, a `Text` answered wrapped at the 4,096 cells the scroll view offered first, so a longer
 paragraph broke at the last space before that and was drawn as two lines, its tail under its head, instead of

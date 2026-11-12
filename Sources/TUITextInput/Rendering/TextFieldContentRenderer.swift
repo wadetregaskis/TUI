@@ -341,11 +341,18 @@ struct TextFieldContentRenderer: FieldTextLayout {
 
     // MARK: - Prompt
 
-    /// The prompt's plain text, or `""` when there is no prompt.
+    /// The prompt's plain text, or `""` when there is no prompt: drawn on one
+    /// line as wide as it is — the caller cuts it to the field — rather than
+    /// on a fixed 100 cells, which hid the rest of a prompt in a field wider
+    /// than that.
     func promptString() -> String {
         guard let prompt else { return "" }
-        var context = RenderContext(availableWidth: 100, availableHeight: 1)
+        var context = RenderContext(availableWidth: 0, availableHeight: 1)
         context.textSpelling = promptSpelling
+        context.availableWidth = measureNaturalExtent(
+            prompt, along: .horizontal, proposal: ProposedViewSize(width: nil, height: 1), context: context,
+            startingBudget: naturalExtentStartingBudget(forVisible: 0)
+        ).width
         let buffer = TUIView.renderToBuffer(prompt, context: context)
         return promptRedaction.redacting(buffer.lines.first?.stripped ?? "")
     }

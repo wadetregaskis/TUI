@@ -81,14 +81,15 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
     /// alert happens to be written: under a menu bar's single row or a
     /// `.lineLimit(1)` it came out as one line, cut at the terminal's width, and
     /// wrapped at this context's width it would break early in the panel, which
-    /// wraps it again at its own.
-    private func renderedMessage(context: RenderContext) -> String {
+    /// wraps it again at its own. Drawn at its natural size
+    /// (``renderAtNaturalSize(_:context:)``), so no canvas cuts it either: a
+    /// fixed 4,096-cell one broke a wider paragraph early and lost every line
+    /// past its 4,096th, which the panel would have scrolled to.
+    func renderedMessage(context: RenderContext) -> String {
         guard let message else { return "" }
         var messageContext = context.withChildIdentity(type: Message.self, index: 2)
-        messageContext.availableWidth = unconfinedMessageSize
-        messageContext.availableHeight = unconfinedMessageSize
         messageContext.environment.lineLimit = .unlimited
-        let messageBuffer = TUIView.renderToBuffer(message, context: messageContext)
+        let messageBuffer = renderAtNaturalSize(message, context: messageContext)
         return messageBuffer.lines.joined(separator: "\n").stripped
     }
 
@@ -333,9 +334,6 @@ nonisolated package struct AlertPresentationModifier<Content: View, Actions: Vie
         return baseBuffer
     }
 }
-
-/// The room a message is rendered in, before the panel wraps it at its own width.
-private let unconfinedMessageSize = 4096
 
 /// StateStorage property indices for ``AlertPresentationModifier``. A free enum
 /// because the modifier is generic (which can't hold static stored properties).

@@ -45,12 +45,15 @@ extension TextFieldContentRenderer {
     /// The prompt's text, paragraph by paragraph, for a field that draws it over
     /// several rows — or `""` for none — spelled as `spelling` says, as the
     /// field's own context would spell it: the prompt is drawn in a context of
-    /// its own.
+    /// its own, at its natural size (``renderAtNaturalSize(_:context:)``), so
+    /// no paragraph is broken before the field wraps it at its own width, and
+    /// none is lost however many there are.
     static func promptParagraphs(_ prompt: Text?, spelling: TextSpelling) -> String {
         guard let prompt else { return "" }
-        var context = RenderContext(availableWidth: 4096, availableHeight: 4096)
+        // No extent of its own: the prompt is measured for one.
+        var context = RenderContext(availableWidth: 0, availableHeight: 0)
         context.textSpelling = spelling
-        let buffer = TUIView.renderToBuffer(prompt, context: context)
+        let buffer = renderAtNaturalSize(prompt, context: context)
         return buffer.lines.map(\.stripped).joined(separator: "\n")
     }
 

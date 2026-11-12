@@ -73,7 +73,7 @@ import TUIView
 ///     single measure; content taller than it costs one extra measure per
 ///     ``growthFactor``.
 @MainActor
-func measureNaturalExtent<V: View>(
+package func measureNaturalExtent<V: View>(
     _ view: V,
     along axis: Axis,
     proposal: ProposedViewSize,
@@ -166,7 +166,7 @@ func naturalExtent<V: View>(
 /// being cut off at it.
 @MainActor
 @inlinable
-func naturalExtentStartingBudget(forVisible extent: Int) -> Int {
+package func naturalExtentStartingBudget(forVisible extent: Int) -> Int {
     max(extent * 64, 4096)
 }
 
@@ -203,6 +203,33 @@ func naturalExtentStartingBudget(forVisible extent: Int) -> Int {
 @inlinable
 package func isNaturalExtentBudget(_ budget: Int) -> Bool {
     budget >= naturalExtentStartingBudget(forVisible: 0) / 2
+}
+
+/// `view` drawn at its natural size: as wide as it is with nothing to wrap it,
+/// and as tall as it then is, each measured up the ladder, so no canvas bounds
+/// either.
+///
+/// For a caller that reads the words a view DRAWS rather than placing it — a
+/// text field's prompt, an alert's message — and lays them out again at a
+/// width of its own. Those read them off a fixed 4,096-cell canvas, which broke
+/// a wider paragraph where the canvas ended, so the reader wrapped it early,
+/// and lost every line past its 4,096th.
+///
+/// A view that fills what it is offered along an axis has no natural extent
+/// there (``NaturalExtentAnswer/fillsBudget``), and is drawn at `context`'s
+/// own.
+@MainActor
+package func renderAtNaturalSize<V: View>(_ view: V, context: RenderContext) -> FrameBuffer {
+    var canvas = context
+    let across = naturalExtent(
+        view, along: .horizontal, proposal: ProposedViewSize(width: nil, height: nil), context: canvas,
+        startingBudget: naturalExtentStartingBudget(forVisible: context.availableWidth))
+    if !across.fillsBudget { canvas.availableWidth = across.size.width }
+    let down = naturalExtent(
+        view, along: .vertical, proposal: ProposedViewSize(width: canvas.availableWidth, height: nil),
+        context: canvas, startingBudget: naturalExtentStartingBudget(forVisible: context.availableHeight))
+    if !down.fillsBudget { canvas.availableHeight = down.size.height }
+    return TUIView.renderToBuffer(view, context: canvas)
 }
 
 // MARK: - Which question a width ask is
