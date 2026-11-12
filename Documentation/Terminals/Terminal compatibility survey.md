@@ -5017,13 +5017,27 @@ TUI never waits in that time: the frame after the key was drawn in 100-400 ms, i
 PTY, and the write then sat in the terminal's input. `sample` of the Ghostty process during a stall:
 its `io-reader` thread in `__ulock_wait2` for all 607 samples, every other thread idle (`renderer` and
 `io` in `kevent64`, the main thread in its run loop), and a dozen short-lived `CVDisplayLink` threads,
-the main thread in `CVDisplayLink::stop()`. So the reader waits on a lock nobody is busy holding.
+the main thread in `CVDisplayLink::stop()`. **Corrected 2026-11-11:** this is not evidence of a stuck lock. A
+Ghostty playing the same animation normally, the app idle and nothing stalled, shows `io-reader` in `__ulock_wait2`
+too, so that frame may only mean the reader was waiting for `io-gather`'s next batch; what `io-gather` did during a
+stall is not known.
 
 Not reproduced by: the same recorded bytes written at the same timing into a fresh Ghostty (longest
 0.10 s with playback, 0.07 s without), nor a probe writing a frame's worth of text every 50 ms beside one
 running animation, by classic placement or by placeholder cells, 16 frames, 120-180 s (no write over
 50 ms). So the trigger is narrower than "an animation is playing": a hypothesis, not established, is the
 window's display link stopping and starting while Ghostty plays an animation in a window not in front.
+
+**Measured again 2026-11-11 (evening), to reduce it for a report to Ghostty.** The machine is an Apple
+Virtualization VM (macOS 15.8.3, `VirtualMac2,1`); every Ghostty number in this section comes from it. The Example
+with the ball played 190 s behind another window, then Escape: **1 of 6** sessions stalled, the first 1 KB after the
+key taking 5.7 s at load ~11, while other Ghostty windows running at the same moment were unaffected. Short plays
+(6-8 s) then a key: 0 of 44. Unhidden 1.5 s before the leave: 0 of 6. A replay of the stalled session's bytes at
+the same timing: 0 of 1. A standalone script sending the same commands (frames, `a=a,s=3,v=1`, then on leaving
+`a=a,s=1`, text, `a=d,d=I`), across window behind or visible, the app hidden and unhidden every 3 s, 20-190 s of
+play, text while playing or none, RGB or RGBA, 16-24 frames, 320x200 or 640x320: **0 of 47**. Still no reliable
+recipe and no cause; the draft report and its tools are in `Documentation/Working notes/Ghostty report/`
+(git-ignored), for the owner to post.
 
 What TUI does with it: nothing yet. Playback stays off unless `TUI_GRAPHICS_PLAYBACK=1`
 (`playbackTrustsHandshake`), and whether it ever goes on is the owner's, among the experiments.
