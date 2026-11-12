@@ -76,36 +76,38 @@ struct ScrollFitBaselineTests {
 
     /// A `List` takes the height it is offered, and a scroll view's content
     /// is offered the ladder's first rung: 4,096 lines, whatever its rows.
+    /// The first frame's measuring walk draws only down to the viewport's
+    /// bottom since SCROLL-FIT P2 (design 1d), so the frame builds its rows
+    /// three times rather than four.
     @Test("A 10,000-row List under a title is 4,095 lines and builds that many rows on the first frame")
     func tallListUnderTitle() {
         let result = tall(.listPlain, .underTitle)
         #expect(result.sizeA == CellSize(width: 59, height: 4_095))
-        #expect(result.builtFirst > 16_000, "built \(result.builtFirst)")
+        #expect(result.builtFirst > 12_000, "built \(result.builtFirst)")
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 
-    /// At the scroll content's origin a lazy stack consumes the scroll
-    /// window: a wheel step builds a handful of rows, but the first frame
-    /// builds every row twice.
-    @Test("A 10,000-row LazyVStack at the scroll content's origin windows its steps but not its first frame")
+    /// A lazy stack is pulled wherever it stands (SCROLL-FIT P2): it bands
+    /// itself against the request the column above it hands it, and its first
+    /// frame needs no total — the measuring walk that frame begins with draws
+    /// down to the viewport's bottom only (design 1d). So the first frame and a
+    /// wheel step each build about a screenful, alone or under a title. Its
+    /// size, as `onGeometryChange` reads it, is the band it draws, at the
+    /// origin and below a title alike. (Before P2: alone, 20,075 rows built on
+    /// the first frame; under a title, drawn whole, 9 × 10,000 and 50,000+.)
+    @Test("A 10,000-row LazyVStack at the scroll content's origin builds a screenful on its first frame and a step")
     func tallLazyStackAlone() {
         let result = tall(.lazyVStack, .alone)
         #expect(result.sizeA == CellSize(width: 59, height: 26))
-        #expect(result.builtFirst >= 20_000, "built \(result.builtFirst)")
+        #expect(result.builtFirst < 150, "built \(result.builtFirst)")
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 
-    /// Below a title it is pulled by the column that holds it (SCROLL-FIT P2):
-    /// a wheel step builds a handful of rows, and its size, as
-    /// `onGeometryChange` reads it, is the band it draws, as at the origin.
-    /// The first frame still builds every row twice, as at the origin, on the measuring walk an app's
-    /// first frame begins with (design 1d). Before P2: drawn whole,
-    /// 9 × 10,000, 50,000+ rows built on the first frame.
-    @Test("A 10,000-row LazyVStack under a title is pulled: a wheel step builds a handful of rows")
+    @Test("A 10,000-row LazyVStack under a title is pulled: a screenful on its first frame and a step")
     func tallLazyStackUnderTitle() {
         let result = tall(.lazyVStack, .underTitle)
         #expect(result.sizeA == CellSize(width: 59, height: 26))
-        #expect(result.builtFirst < 21_000, "built \(result.builtFirst)")
+        #expect(result.builtFirst < 150, "built \(result.builtFirst)")
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 

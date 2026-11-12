@@ -437,7 +437,18 @@ extension _ScrollViewCore {
             // the frame's first drawing, which the caller says.
             topRowHold: context.isMeasuring ? .off : topRowHold)
         measureContext.availableWidth = extents.width
-        measureContext.availableHeight = extents.height
+        // A measuring render's drawing is thrown away past the viewport — the
+        // app's first frame walks the page once so to learn the chrome it
+        // declares (`RenderLoop.prepareWindowChrome`), and a windowed stack
+        // takes no window under a measure — so the content is given only the
+        // lines down to the viewport's bottom to draw into, and answers with
+        // the height its measure found. Given all of it, a lazy stack drew every
+        // row its measure had priced on that walk: 10,000 rows for a screenful,
+        // the first frame's whole cost (SCROLL-FIT, design 1d).
+        let drawsPrefixOnly = context.isMeasuring && axes.contains(.vertical)
+        measureContext.availableHeight =
+            drawsPrefixOnly
+            ? min(extents.height, max(0, verticalScrollOffset) + viewportHeight) : extents.height
         // The content is placed at minus the offsets this drawing is made at,
         // in the viewport: so a reader is told where it is in the viewport
         // (`.scrollView`) before it is drawn, at whatever offset that is, and
@@ -529,8 +540,9 @@ extension _ScrollViewCore {
                 reply.seekResolvedOffset.map { ($0, reply.resolvedOffsetIsHold) }, extents, nil, placement)
         }
         return (
-            buffer, nil, reply?.seekResolvedOffset.map { ($0, reply?.resolvedOffsetIsHold ?? false) }, extents,
-            reply?.drawnLines, placement)
+            buffer, drawsPrefixOnly ? (0, extents.height, false) : nil,
+            reply?.seekResolvedOffset.map { ($0, reply?.resolvedOffsetIsHold ?? false) }, extents,
+            drawsPrefixOnly ? nil : reply?.drawnLines, placement)
     }
 
     // MARK: Windowing

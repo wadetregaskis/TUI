@@ -432,6 +432,16 @@ one engine.**
   viewport was full?), so the first frame needs no total. P2 pins the count at under 100 at
   10,000 rows (moved from P1, which changes no count the baseline pins: section 4).
 
+  *Corrected in P2 (2026-11-12): the cause was not the scrollbar's round.* An app's first frame
+  begins with a throwaway measuring walk of the whole page, for the chrome its content declares
+  (`RenderLoop.prepareWindowChrome`). Under a measure a windowed stack takes no window, so it
+  drew every row its measure had priced into the canvas the scroll view gave it, twice. A
+  scroll view's measuring render now gives its content only the lines down to the viewport's
+  bottom, and answers with the height its measure found
+  (`_ScrollViewCore.renderedContent`'s `drawsPrefixOnly`). The baseline's count is 124 at
+  10,000 rows alone and 119 under a title, the sixteen-row samples of the measure ladder's
+  rungs included, so the pin is under 150; a 10,000-row `List` under a title, which the same
+  walk drew to its 4,095-line canvas, builds 12,300 rows on its first frame rather than 16,000+.
 
 ### 1e. Focus: an unbuilt row stays reachable
 

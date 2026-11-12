@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A scroll view's first frame no longer draws every row of a long lazy stack in it.** An app's first frame begins
+with a walk of the page that measures it, and a scroll view drew its content all the way down on that walk: a
+`LazyVStack` of 10,000 rows built every row twice before the first frame showed, and a long `List` drew 4,096 lines.
+It now draws only down to the bottom of what is visible: 124 rows for the lazy stack.
+
 **A long `LazyVStack` anywhere in a scroll view's content draws only the rows on screen.** Under a title, beside
 another in one `VStack`, or in each row of an outer `LazyVStack`, a lazy stack of more than 256 rows was measured
 over every row and drawn whole, on every frame that changed anything: a feed of forty sections of 300 entries built

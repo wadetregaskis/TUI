@@ -62,12 +62,12 @@ struct PulledColumnTests {
         }
     }
 
-    /// The rows built on each of five page-downs.
+    /// The rows built on the first frame and on each of five page-downs.
     private static func builtPerStep(_ shape: Shape, rows: Int) -> [Int] {
         let builds = Builds()
         let app = app(shape, rows: rows, builds: builds)
         _ = app.screen
-        var counts: [Int] = []
+        var counts = [builds.count]
         for _ in 0..<5 {
             builds.count = 0
             _ = app.press(.pageDown)
@@ -76,7 +76,7 @@ struct PulledColumnTests {
         return counts
     }
 
-    @Test("The rows built for each page are the same at 1,000, 10,000 and 100,000 rows",
+    @Test("The rows built for a first frame and each page are the same at 1,000, 10,000 and 100,000 rows",
           arguments: [Shape.titled, .twoStacked])
     func builtRowsIndependentOfRowCount(_ shape: Shape) {
         let small = Self.builtPerStep(shape, rows: 1_000)
