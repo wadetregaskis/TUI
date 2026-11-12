@@ -76,6 +76,7 @@ import TUICore
     /// | -190… | `DropDestinationModifier` (its own focus stop's id, for Paste) |
     /// | -200… | `_printChanges()`'s record of the body it last reported on (`bodyChangeRecordIndex`) |
     /// | -210… | a scrolling view's indicator placement, kept for its render as a backdrop (`heldIndicatorPlacementIndex`) |
+    /// | -220… | SCROLL-FIT's parallel pull: `_HStackCore`'s pulled row (-220), `_ZStackCore`'s pulled layers (-221) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with

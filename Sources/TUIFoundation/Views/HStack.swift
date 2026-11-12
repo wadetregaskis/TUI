@@ -122,7 +122,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
     /// row's own size and flexibility, and — per child — the height each was
     /// measured at and whether it fills its height. Both passes read the same
     /// answer, which is what keeps them from disagreeing.
-    private struct ResolvedRowLayout {
+    struct ResolvedRowLayout {
         let widths: [Int]
         let totalWidth: Int
         let height: Int
@@ -160,7 +160,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
     /// Asked of no child at all where the content's type holds nothing that
     /// can state one (``View/_statesSpacingPreference``, a compile-time
     /// chain), which is almost every row.
-    @MainActor private func gaps(between children: [ChildView], context: RenderContext) -> StackGaps {
+    @MainActor func gaps(between children: [ChildView], context: RenderContext) -> StackGaps {
         guard resolvesSpacingPerPair, Content._statesSpacingPreference else { return StackGaps(uniform: spacing) }
         return StackGaps(uniform: spacing, stating: children, along: .horizontal, context: context)
     }
@@ -177,7 +177,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
     ///   (``RenderContext/asksIdealWidth`` under a nil width), which a row
     ///   answers with its children's ideal widths summed and nothing
     ///   distributed — see the comment at the distribution.
-    @MainActor private func resolvedLayout(
+    @MainActor func resolvedLayout(
         _ children: [ChildView], gaps: StackGaps, availableWidth: Int, asksIdealWidth: Bool = false,
         context: RenderContext
     ) -> ResolvedRowLayout {
@@ -360,7 +360,13 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
-        case .window: return windowSizeThatFits(proposal: proposal, context: withPinnedSectionScope(context))
+        case .window:
+            let size = windowSizeThatFits(proposal: proposal, context: withPinnedSectionScope(context))
+            // A lazy row is a `ScrollPlacing` type too (`HStackPulledRow.swift`).
+            context.notePulledContainer(holding: {
+                stackChildren(of: content, context: context).laidOut.map { $0.identity(under: context) }
+            })
+            return size
         }
     }
 
@@ -375,6 +381,9 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         let layout = resolvedLayout(
             children, gaps: gaps(between: children, context: context), availableWidth: widthLimit,
             asksIdealWidth: asksIdealWidth, context: context)
+        // A pulled view among the children makes this row one a column hands
+        // a request to (`HStackPulledRow.swift`).
+        context.notePulledContainer(holding: { children.map { $0.identity(under: context) } })
         // Natural when its children are AND the row is at least as tall as the
         // tallest answer it was built from. A row reads the vertical budget
         // nowhere: it measures children at their ideal, distributes WIDTH, and
@@ -497,6 +506,9 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let context = context.publishingContainerAxis(.horizontal, passesNoWidthOn: true)
+        // A row holding a pulled view draws the band a request asks for
+        // (`HStackPulledRow.swift`).
+        if let pulled = renderPulledRow(context: context) { return pulled }
         switch overflow {
         case .clip: return renderClip(context: context)
         case .window:

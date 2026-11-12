@@ -29,7 +29,7 @@ struct PulledContainersTests {
 
         /// The shapes that pull: every one but `TabView`, whose strip the
         /// request is not yet moved below (SCROLL-FIT design, "Still to do").
-        static let pulled = allCases.filter { ![.tabView, .hStack, .zStack].contains($0) }
+        static let pulled = allCases.filter { $0 != .tabView }
     }
 
     private static func rows(_ count: Int, builds: Builds) -> some View {

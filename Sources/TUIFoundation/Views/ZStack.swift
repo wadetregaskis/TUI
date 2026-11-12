@@ -63,7 +63,7 @@ nonisolated public struct ZStack<Content: View>: View {
 // MARK: - Internal ZStack Core
 
 /// Internal view that handles the actual rendering of ZStack.
-private struct _ZStackCore<Content: View>: View, Renderable {
+struct _ZStackCore<Content: View>: View, Renderable {
     let alignment: Alignment
     let content: Content
 
@@ -84,6 +84,9 @@ private struct _ZStackCore<Content: View>: View, Renderable {
         // walk that drew it kept whole (`RenderContext.takingSectionsApart()`):
         // it publishes no axis, which is how every stack clears that.
         let context = context.takingSectionsApart().offeringAWidth(unless: isStaticallyOneView(Content.self))
+        // A stack holding a pulled view draws the band a request asks for
+        // (`ZStackPulledLayers.swift`).
+        if let pulled = renderPulledLayers(context: context) { return pulled }
         // A layer that has left takes no room, and is drawn where it was while
         // its removal plays (`StackGlide`).
         let split = stackChildren(of: content, context: context)
@@ -268,6 +271,9 @@ extension _ZStackCore: Layoutable {
             hasFlexibleWidth = hasFlexibleWidth || size.isWidthFlexible
             hasFlexibleHeight = hasFlexibleHeight || size.isHeightFlexible
         }
+        // A pulled view among the layers makes this stack one a column hands a
+        // request to (`ZStackPulledLayers.swift`).
+        context.notePulledContainer(holding: { children.map { $0.identity(under: context) } })
         // A guide can push a layer off the alignment line and grow the frame
         // past the largest child; the render does this, so the measure must.
         if hasGuides {
