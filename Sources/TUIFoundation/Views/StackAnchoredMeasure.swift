@@ -109,7 +109,8 @@ import TUICore
         } else {
             (counted, height) = sampledRows(
                 sampleChildren, count: count, state: state, proposal: sampleProposal,
-                heightLimit: heightLimit, context: measureContext)
+                heightLimit: heightLimit, answersWhole: proposal.height == nil && isNaturalExtentBudget(heightLimit),
+                context: measureContext)
         }
 
         var maxWidth = 0
@@ -159,11 +160,22 @@ import TUICore
 
     /// The estimate: the first sixteen rows measured, the pitch averaged over
     /// them (or the running average the windowed render keeps), and every row
-    /// priced at it — capped at the budget. Returns the sampled rows whose
-    /// widths count, and the height.
+    /// priced at it — capped at the budget, unless `answersWhole`. Returns
+    /// the sampled rows whose widths count, and the height.
+    ///
+    /// `answersWhole` is a scroll view's natural-extent ladder asking how tall
+    /// the stack is with nothing to stop it (``isNaturalExtentBudget(_:)``):
+    /// the estimate is an answer for the whole stack, not for the prefix a
+    /// budget reaches, so it is answered whole, and the ladder steps past a
+    /// rung it overflows in one informed step (`naturalExtent`). Capped, a
+    /// clamp said nothing of what lay past it, so the ladder climbed by eight
+    /// until a rung cleared the estimate, measuring the sample again on every
+    /// rung: in a trace of a write over 320 sections, each a lazy stack, 986
+    /// rows were built to 40 sections' 746, a rung more per eightfold height.
+    /// Answered whole, both build 746: two rungs, whatever the height.
     private func sampledRows(
         _ sample: [ChildView], count: Int, state: StackWindowState, proposal: ProposedViewSize,
-        heightLimit: Int, context: RenderContext
+        heightLimit: Int, answersWhole: Bool, context: RenderContext
     ) -> (counted: ArraySlice<ViewSize>, height: Int) {
         var estimate = state.estimatedPitch(spacing: spacing)
         var sampleTotal = 0
@@ -192,7 +204,7 @@ import TUICore
         let prefix = min(sample.count, Self.walkedRowCount(
             budget: heightLimit, pitch: estimate, spacing: spacing, count: count))
         let total = count * estimate - spacing
-        return (sampled.prefix(prefix), min(total, max(0, heightLimit)))
+        return (sampled.prefix(prefix), answersWhole ? max(0, total) : min(total, max(0, heightLimit)))
     }
 
     /// Every row a stack drawn WHOLE will draw under `heightLimit`, measured,

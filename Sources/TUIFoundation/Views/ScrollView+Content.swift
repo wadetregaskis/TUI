@@ -200,14 +200,13 @@ extension _ScrollViewCore {
     ///
     /// The question the scrollbar's first round asks, and all it needs to: see
     /// ``resolveScrollbars(viewportWidth:viewportHeight:horizontal:knownHorizontalBar:textLines:lastContentHeight:context:)``.
-    /// The climb is what made the round dear. A lazy stack past the windowing
-    /// threshold reports its estimate clamped to the budget it is offered, and a
-    /// clamp says nothing about what lies past it, so the ladder climbs by eight
-    /// until its budget clears the whole estimate, asking the stack's sampled
-    /// rows again at every rung — three rungs for a hundred thousand rows of one
-    /// and two lines. The first rung already knows the content overflows: it
-    /// offers thousands of lines, and content that fills them is taller than
-    /// any viewport.
+    /// The climb is what made the round dear. Each rung measures the content
+    /// again — a lazy stack's sampled rows among it — and content taller than
+    /// a rung takes one more: a stack that reports its estimate whole on the
+    /// ladder (`sampledRows`' `answersWhole`) one informed step, an eager one
+    /// a step per eightfold height. The first rung already knows the content
+    /// overflows: it offers thousands of lines, and content that fills them is
+    /// taller than any viewport.
     ///
     /// The first rung rather than one line past the viewport, because it is
     /// the ladder's own question. A yes is the ladder's yes for everything but

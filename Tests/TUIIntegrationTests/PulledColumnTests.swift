@@ -183,11 +183,11 @@ struct PulledColumnTests {
 
     /// Each section is priced by a sample of its stack, never walked: 506 rows
     /// a write frame at 40 sections, against 27,932 when nested stacks were
-    /// drawn whole (design D). At 320 the scroll view's natural-extent ladder
-    /// climbs one rung more for the taller estimate and samples again there,
-    /// as it does for a stack at the origin: a step per eightfold height, not
-    /// a row per row.
-    @Test("Lazy stacks in the rows of an outer one build a sample a write frame, not their rows, at 40 and 320 sections")
+    /// drawn whole (design D). The same at 320: the outer stack answers the
+    /// scroll view's natural-extent ladder with its whole estimate, which the
+    /// ladder steps past in one rung. Capped at each rung, the taller estimate
+    /// took a rung more and a sample more (986 rows).
+    @Test("Lazy stacks in the rows of an outer one build the same sample a write frame at 40 and 320 sections")
     func groupedSectionsBuildAScreenful() {
         func builtOnWrite(sections: Int) -> Int {
             let builds = Builds()
@@ -202,7 +202,7 @@ struct PulledColumnTests {
         let forty = builtOnWrite(sections: 40)
         #expect(forty < 1_000, "a write frame built \(forty) rows")
         let threeHundredTwenty = builtOnWrite(sections: 320)
-        #expect(threeHundredTwenty <= 2 * forty, "320 sections: \(threeHundredTwenty), 40: \(forty)")
+        #expect(threeHundredTwenty == forty, "320 sections: \(threeHundredTwenty), 40: \(forty)")
     }
 }
 
