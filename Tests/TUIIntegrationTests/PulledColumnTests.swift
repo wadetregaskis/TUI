@@ -24,7 +24,7 @@ import TUITesting
 @Suite("SCROLL-FIT pull: lazy stacks anywhere in scroll content build only what is on screen")
 struct PulledColumnTests {
     enum Shape: CaseIterable, Sendable {
-        case titled, twoStacked, boxed
+        case titled, twoStacked, boxed, paddedTwoStacked
     }
 
     private static func rows(_ prefix: String, _ count: Int, builds: Builds) -> some View {
@@ -49,6 +49,13 @@ struct PulledColumnTests {
                     VStack(alignment: .leading, spacing: 0) {
                         Text("first")
                         rows("a", count, builds: builds)
+                        Text("second")
+                        rows("b", count, builds: builds)
+                    }
+                case .paddedTwoStacked:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("first")
+                        rows("a", count, builds: builds).padding(.vertical, 1)
                         Text("second")
                         rows("b", count, builds: builds)
                     }
@@ -126,11 +133,48 @@ struct PulledColumnTests {
         #expect(met, "the second heading never came on screen above the second stack: \(app.screen)")
     }
 
-    /// A bordered box does not pull its content yet (B-SCROLLFIT-13; P3): the
-    /// stack in it is drawn whole, measured over every row, so every row is
-    /// still reached.
-    @Test("A lazy stack in a GroupBox, which does not pull yet, is drawn whole: End shows its last row")
-    func boxedStackIsDrawnWhole() {
+    /// A padded stack is handed its request below the padding's top line,
+    /// whatever the request counts from: entered from its end, as the fill
+    /// comes up from the second heading, it counts from the end of the
+    /// padding below the stack, not from the stack's own.
+    @Test("A padded stack entered from below ends a padding line above the heading under it")
+    func paddedStackEnteredFromBelow() {
+        let builds = Builds()
+        let app = Self.app(.paddedTwoStacked, rows: 400, builds: builds)
+        _ = app.press(.end)
+        var met = false
+        for _ in 0..<400 where !met {
+            app.scroll(.up, by: 3, at: CellPoint(x: 5, y: 5))
+            let lines = app.screen.lines
+            if let heading = lines.firstIndex(where: { $0.hasPrefix("second") }), heading >= 3 {
+                #expect(
+                    lines[heading - 3].hasPrefix("a399") && lines[heading - 2].contains("more")
+                        && lines[heading - 1].allSatisfy { $0 == " " },
+                    "\(app.screen)")
+                met = true
+            }
+        }
+        #expect(met, "the second heading never came on screen below the padded stack: \(app.screen)")
+    }
+
+    /// The padding above a pulled stack is drawn only while the stack's first
+    /// row is: in the middle of the stack every line is a row.
+    @Test("A padded stack paged into its middle draws no padding line among its rows")
+    func paddedStackMiddleHasNoPaddingLine() {
+        let builds = Builds()
+        let app = Self.app(.paddedTwoStacked, rows: 400, builds: builds)
+        for _ in 0..<6 { _ = app.press(.pageDown) }
+        let lines = app.screen.lines
+        let blank = lines.indices.filter { lines[$0].allSatisfy { $0 == " " } }
+        #expect(blank.isEmpty, "blank lines at \(blank): \(app.screen)")
+        #expect(lines.contains { $0.hasPrefix("a") }, "\(app.screen)")
+    }
+
+    /// A box hands its body the request below its top line
+    /// (`ContainerViewCore+Pulled.swift`), so End reaches the stack's last
+    /// row in it (`PulledContainersTests` counts the rows it builds).
+    @Test("A lazy stack in a GroupBox is pulled through it: End shows its last row")
+    func boxedStackReachesItsLastRow() {
         let builds = Builds()
         let app = Self.app(.boxed, rows: 400, builds: builds)
         _ = app.press(.end)

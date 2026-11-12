@@ -51,16 +51,24 @@ struct ScrollWindowRelay {
     ///
     /// Either may be negative: a negative padding's overhang, its frame pulled
     /// in over the content, and all the arithmetic below holds for it.
-    init?(context: RenderContext, linesAbove: Int, linesBelow: () -> Int) {
+    ///
+    /// `addressing` re-addresses the window to the content, for a view that
+    /// draws its content as one child among others (a box's body beside its
+    /// footer, SCROLL-FIT's forward shape): there single-child steps do not
+    /// lead from the view to the content, so the content is the origin the
+    /// window names. A window re-addressed is relayed even with no lines
+    /// around the content.
+    init?(context: RenderContext, linesAbove: Int, linesBelow: () -> Int, addressing content: ViewIdentity? = nil) {
         guard !context.isMeasuring, let window = context.environment.scrollContentWindow,
             window.isAtOrigin(context.identity)
         else { return nil }
         let linesBelow = linesBelow()
-        guard linesAbove != 0 || linesBelow != 0 else { return nil }
+        guard linesAbove != 0 || linesBelow != 0 || content != nil else { return nil }
         self.reply = window.reply
         self.contentReply = window.reply == nil ? nil : ScrollContentReply()
-        self.window = window.beneath(
-            linesAbove: linesAbove, linesBelow: linesBelow, reply: contentReply)
+        var relayed = window.beneath(linesAbove: linesAbove, linesBelow: linesBelow, reply: contentReply)
+        if let content { relayed.contentIdentity = content }
+        self.window = relayed
         self.linesAbove = linesAbove
     }
 
@@ -123,6 +131,9 @@ struct ScrollWindowRelay {
         if let columns = contentReply.targetVisibleColumns { reply.targetVisibleColumns = columns }
         if let column = contentReply.seekResolvedColumn { reply.seekResolvedColumn = column }
         if let ids = contentReply.targetIDs { reply.targetIDs = ids }
+        // Where the viewport's top fell in a pulled content's lines, in the
+        // view's: a column that pulled the view places its band by it.
+        if let position = contentReply.pulledPosition { reply.pulledPosition = position + linesAbove }
         guard let origin = contentReply.sliceOriginY, let total = contentReply.sliceTotalHeight
         else {
             // A full-height buffer: the view's lines surround it whole.

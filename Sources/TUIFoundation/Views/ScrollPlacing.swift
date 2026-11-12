@@ -30,6 +30,19 @@ import TUIView
 package protocol ScrollPlacing {}
 
 @MainActor extension RenderContext {
+    /// Files the container at this context's identity as one that holds a
+    /// pulled view (`PullConsumers.Kind.pullsChildren`) — one below any of
+    /// `children`, the identities its measure has just measured — or
+    /// withdraws it: a column above hands such a container a request, which
+    /// it hands on. Only in scroll content, where there is a request to pull
+    /// by, and only once something is filed at all, which on most pages
+    /// nothing ever is.
+    func notePulledContainer(holding children: () -> [ViewIdentity]) {
+        guard scrollContentOriginDepth != 0, let cache = renderCache else { return }
+        let holds = !cache.pullConsumers.isEmpty && children().contains { cache.pullConsumers.holdsConsumer(below: $0) }
+        cache.pullConsumers.note(identity, as: holds ? .pullsChildren : nil)
+    }
+
     /// This context with `request` in it for the pulled child at `identity`,
     /// which was handed `last` on the frame before.
     ///

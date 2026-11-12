@@ -280,9 +280,13 @@ struct ScrollContentWindow: Hashable {
     /// This window as content drawn `above` lines further down, with `below`
     /// lines drawn under it, sees it — a section's content, between its header
     /// and its footer — answering into `reply`.
+    ///
+    /// An offset counted from the view's end (``PullEdge/end``, a pulled
+    /// view entered from below) is counted from the content's end instead,
+    /// `below` lines further up.
     func beneath(linesAbove above: Int, linesBelow below: Int, reply: ScrollContentReply?) -> Self {
         var window = self
-        window.offset -= above
+        window.offset += edge == .end ? below : -above
         window.linesAbove += above
         window.linesBelow += below
         window.reply = reply

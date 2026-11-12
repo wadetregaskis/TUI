@@ -186,6 +186,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // so it does not stretch its container. (The wrapped tree cannot answer
         // this: a ScrollView always reports flexible, masking its content.)
         var bodyFlexibleHeight = false
+        var pulledBody = false
         if style.scrollsOverflowingBody {
             let size = scrollableBodySize(
                 availableHeight: bodyAvailableHeight, innerWidth: innerWidthAvailable,
@@ -193,12 +194,17 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
             bodyWidth = min(size.width, innerWidthAvailable)
             bodyHeight = min(size.height, bodyAvailableHeight)
         } else {
-            let bodySize = measureChild(
+            var bodySize = measureChild(
                 content.padding(padding),
                 proposal: ProposedViewSize(width: innerWidthAvailable, height: bodyAvailableHeight),
                 context: bodyContext)
+            // A pulled view in the body (`ContainerViewCore+Pulled.swift`).
+            if let pulled = pulledBodySize(body: bodyContext, innerWidth: innerWidthAvailable, context: base) {
+                bodySize = pulled
+                pulledBody = true
+            }
             bodyWidth = min(bodySize.width, innerWidthAvailable)
-            bodyHeight = min(bodySize.height, bodyAvailableHeight)
+            bodyHeight = pulledBody ? bodySize.height : min(bodySize.height, bodyAvailableHeight)
             bodyFlexibleHeight = bodySize.isHeightFlexible
         }
 
@@ -263,7 +269,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // its surplus, and a box alone still fills it.
         return ViewSize(
             width: min(totalWidth, max(0, base.availableWidth)),
-            height: min(totalHeight, max(0, base.availableHeight)),
+            height: pulledBody ? totalHeight : min(totalHeight, max(0, base.availableHeight)),
             isWidthFlexible: fillsWidth,
             isHeightFlexible: sheetHeight != nil || bodyFlexibleHeight || footerFlexibleHeight
         )
@@ -349,12 +355,16 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         var bodyContext = bodyInner.placingChild(
             gradient: bodyInner.gradientFrame, x: hasBorder ? 1 : 0, y: hasBorder || title != nil ? 1 : 0)
         bodyContext.availableHeight = bodyAvailableHeight
+        // A pulled view in the body is handed this box's request below its
+        // top line, and the box is drawn round the band it answers
+        // (`ContainerViewCore+Pulled.swift`).
+        let relay = pulledRelay(body: bodyContext, footerHeight: footerHeight, context: context)
         var bodyBuffer =
             style.scrollsOverflowingBody
             ? scrollableBody(
                 availableHeight: bodyAvailableHeight, innerWidth: innerContext.availableWidth,
                 context: bodyContext)
-            : TUIView.renderToBuffer(content.padding(padding), context: bodyContext)
+            : TUIView.renderToBuffer(content.padding(padding), context: relay?.contentContext(bodyContext) ?? bodyContext)
                 .clamped(toWidth: innerContext.availableWidth, height: bodyAvailableHeight)
 
         // A sheet's detent names a height for the box, so a body that does not
@@ -362,7 +372,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // rather than blank rows below the box. Content that CAN fill already
         // did: it was offered `bodyAvailableHeight`, which the host set from
         // the detent.
-        if let sheetHeight {
+        if let sheetHeight, relay == nil {
             let bodyTarget = max(0, sheetHeight - chromeHeight - footerHeight)
             if bodyBuffer.height < bodyTarget, !bodyBuffer.isEmpty {
                 bodyBuffer.lines.append(
@@ -382,7 +392,10 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // space available between the side borders.
         let titleWidth = title.map { $0.strippedLength + 4 } ?? 0  // " Title " + borders
         let footerNaturalWidth = measuredFooter?.width ?? 0
-        let contentBasedWidth = max(titleWidth, bodyBuffer.width, footerNaturalWidth, sheetInnerWidth)
+        // A band is as wide as the rows it holds; the box is as wide as the
+        // body measured, so it keeps its width as the page scrolls.
+        let bandFloor = relay == nil ? 0 : pulledBodyWidth(bodyContext, innerWidth: innerContext.availableWidth)
+        let contentBasedWidth = max(titleWidth, bodyBuffer.width, footerNaturalWidth, sheetInnerWidth, bandFloor)
         let innerWidth = context.resolveContainerWidth(
             contentWidth: contentBasedWidth,
             innerAvailableWidth: innerContext.availableWidth
@@ -427,6 +440,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // Final guard: never exceed the space the container was given.
         var container = assembled.clamped(toWidth: context.availableWidth, height: context.availableHeight)
         if hasBorder, style.keepsSelectionInside { fileInterior(of: &container, context: context) }
+        if let relay { container = banded(container, body: bodyBuffer, relay: relay) }
         return container
     }
 
