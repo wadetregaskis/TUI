@@ -3,7 +3,8 @@
 //
 //  What the memo on plain composites must not serve stale,
 //  through the real render loop, with the memo switched on for the app under
-//  test. See Documentation/Working notes/plain-body-memo-study.md.
+//  test. See Documentation/Historical/State and dynamic properties/When a body
+//  runs - the plain-body memo.md.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

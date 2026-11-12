@@ -4,7 +4,8 @@
 //  How many times a plain composite's `body` runs in a frame, and on whose
 //  behalf: the real render loop (`HeadlessApp`), a leaf's `@State` written
 //  between frames, each run classified by the stack that made it. The study
-//  in Documentation/Working notes/plain-body-memo-study.md reads these lines.
+//  that read these lines is recorded in Documentation/Historical/State and
+//  dynamic properties/When a body runs - the plain-body memo.md.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

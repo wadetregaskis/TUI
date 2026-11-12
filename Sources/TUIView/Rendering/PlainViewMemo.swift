@@ -3,8 +3,9 @@
 //
 //  A memo on the plain composites of an app: what stops a body running on a
 //  frame in which nothing it depends on changed, as SwiftUI's does not.
-//  `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns it off. See
-//  Documentation/Working notes/plain-body-memo-study.md.
+//  `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns it off. The study and the decision are
+//  in Documentation/Historical/State and dynamic properties/When a body runs -
+//  the plain-body memo.md.
 //
 //  It is the value memo (`renderValueMemoized`, `measureValueMemoized`), and so
 //  its journal, its leases, its verifiers, its store gates and its invalidations
