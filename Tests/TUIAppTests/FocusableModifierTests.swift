@@ -89,6 +89,33 @@ struct FocusableModifierTests {
             "Tab moved off Alpha onto \(manager.currentFocusedID ?? "nil")")
     }
 
+    /// A plain button keeps two cells in front of its label for the focus
+    /// bullet, blank while unfocused, so a column of them stays aligned as the
+    /// focus moves. One that can never be focused shows no bullet, and kept
+    /// the cells anyway: the search field's ✗ stood two blank cells further
+    /// out than the row's spacing put it, and took clicks there.
+    ///
+    /// `.hidden()` is the control case: it suppresses focus too, through
+    /// another flag, and a hidden view keeps the shape it has when shown.
+    @Test("Under focusable(false) a plain button is its label alone; hidden, it keeps its cells")
+    func plainButtonUnderFalseFlagKeepsNoBulletCells() {
+        func drawn(_ view: some View) -> String {
+            renderBuffer(view, TUIContext(), FocusManager()).lines.first?.stripped ?? ""
+        }
+        let declined = drawn(
+            HStack(spacing: 0) { Text("A"); Button("X") {}.buttonStyle(.plain).focusable(false); Text("B") })
+        #expect(declined == "AXB")
+        let viewLabel = drawn(
+            HStack(spacing: 0) {
+                Text("A"); Button {} label: { Text("X") }.buttonStyle(.plain).focusable(false); Text("B")
+            })
+        #expect(viewLabel == "AXB")
+        let hidden = drawn(HStack(spacing: 0) { Text("A"); Button("X") {}.buttonStyle(.plain).hidden(); Text("B") })
+        #expect(hidden == "A   B")
+        let focusable = drawn(HStack(spacing: 0) { Text("A"); Button("X") {}.buttonStyle(.plain); Text("B") })
+        #expect(focusable.hasPrefix("A") && focusable.hasSuffix("XB") && focusable.count == 5, "\(focusable)")
+    }
+
     @Test("An inner focusable(true) does not re-open a focusable(false) subtree")
     func innerTrueDoesNotReopen() {
         // The suppression is ADDITIVE, like `.disabled(_:)` and unlike SwiftUI,

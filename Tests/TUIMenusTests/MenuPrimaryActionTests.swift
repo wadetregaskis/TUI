@@ -90,4 +90,20 @@ struct MenuPrimaryActionTests {
         }
         #expect(log.entries == ["next"])
     }
+
+    /// The caret takes no focus, so under the plain style it keeps no cells for
+    /// a focus bullet: it stood two blank cells off the label, which took the
+    /// clicks that open the menu.
+    @Test("Under the plain style the caret sits against the label, and only the caret opens the menu")
+    func plainCaretAgainstLabel() throws {
+        let log = ExportLog()
+        let harness = InputChainHarness()
+        let page = { self.menu(log).buttonStyle(.plain) }
+        let line = harness.frame(page()).lines.first?.stripped ?? ""
+        let caret = try #require(line.range(of: "Export" + DropdownMenu.closedCaret), "\(line)")
+        let column = line.distance(from: line.startIndex, to: caret.upperBound)
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: column, y: 0))
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: column, y: 0))
+        #expect(!isOpen(harness.frame(page())), "a click past the caret opens nothing: \(line)")
+    }
 }

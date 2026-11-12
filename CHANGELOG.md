@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**The search field's ✗ stands one cell past the field, and only the ✗ empties it.** It stood three cells out, and a
+click on the two blank cells before it emptied the field too: a plain button kept two cells in front of its label for
+a focus bullet even under `.focusable(false)`, where it can never show one. A plain button there is now its label
+alone, as SwiftUI's is, so a `Menu`'s caret beside a plain primary action sits against it too. `.hidden()` still
+keeps a plain button's cells, so hiding one moves nothing.
+
 **A long lazy stack inside a `Layout` of your own in a scroll view draws only the rows on screen.** A `LazyVStack`
 of thousands of rows among the subviews of a layout an app writes (`MyColumns { header; LazyVStack { … }; footer }`)
 was drawn whole: a first frame built every row several times over (43,000 row builds for 10,000 rows), and a

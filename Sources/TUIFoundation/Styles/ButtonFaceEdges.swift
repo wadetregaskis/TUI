@@ -422,6 +422,20 @@ enum SolidRaster: Equatable, Sendable {
 // MARK: - Drawing the edges
 
 extension _ButtonStyleBody {
+    /// This plain body as drawn under `context`: under `.focusable(false)`
+    /// (``EnvironmentValues/declinesFocus``) it can never hold the focus, so it
+    /// keeps no cells for the bullet that would show it, and is its label
+    /// alone, as SwiftUI's is. The search field's ✗ stood two blank cells past
+    /// the field, and took clicks there. The variant that marks focus in the
+    /// label reserves nothing, and a label never focused never breathes.
+    @MainActor
+    func decliningFocus(in context: RenderContext) -> Self {
+        guard context.environment.declinesFocus, !appearance.indicatesFocusInLabel else { return self }
+        var declined = appearance
+        declined.indicatesFocusInLabel = true
+        return Self(configuration: configuration, appearance: declined, isSized: true)
+    }
+
     /// The SGR introducer a one-row face's caps are drawn in now.
     static func capSequence(_ caps: ButtonCapCycle) -> String? {
         var capStyle = TextStyle()

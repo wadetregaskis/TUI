@@ -842,7 +842,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   item 29; not measured).
 - **TUI:** it reaches every control in the subtree, and an inner
   `.focusable(true)` does not reopen a subtree an ancestor closed. A click
-  still activates.
+  still activates. A plain button under it is its label alone: elsewhere it
+  keeps two cells in front of the label for the focus bullet, which it can
+  never show here.
 - **Why:** a TUI modifier wraps a subtree. Additive is what stops a Tab
   stop appearing with nothing drawn behind it.
 - **Decided:** [§4a](<SwiftUI compatibility guide.md#4a-swiftui-has-it--tui-should-add-it>) (the Common modifiers row),

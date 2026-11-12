@@ -342,6 +342,25 @@ private struct KeepsHiddenStateKey: EnvironmentKey {
     static let defaultValue = false
 }
 
+private struct DeclinesFocusKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether `.focusable(false)` above took this subtree out of focus, so
+    /// nothing in it can ever hold the focus and nothing needs room to show it:
+    /// a plain button here keeps no cells for the focus bullet it would never
+    /// draw, and is its label alone, as SwiftUI's is.
+    ///
+    /// Not ``isFocusSuppressed``, which `.hidden()` sets too: a hidden view
+    /// keeps the shape it has when shown, or hiding it would move the layout.
+    /// Set in the measure as well as the render, so the two agree.
+    package var declinesFocus: Bool {
+        get { self[DeclinesFocusKey.self] }
+        set { self[DeclinesFocusKey.self] = newValue }
+    }
+}
+
 extension EnvironmentValues {
     /// Whether the state of a branch a conditional turns away from is kept
     /// rather than dropped — set by `View.keepsStateWhileHidden(_:)` for its

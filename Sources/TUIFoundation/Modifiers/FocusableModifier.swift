@@ -77,8 +77,10 @@ private enum FocusableStateIndex {
     static let focusID = -10
 }
 
-/// Registers its content as a focus stop (see ``View/focusable(_:)``). It is
-/// size-neutral: focusability never changes layout, so it measures as `content`.
+/// Registers its content as a focus stop (see ``View/focusable(_:)``). It
+/// measures as `content`, told what it tells it when it draws: under
+/// `.focusable(false)` a plain button keeps no cells for a focus bullet
+/// (``EnvironmentValues/declinesFocus``).
 nonisolated struct FocusableModifier<Content: View>: View {
     let content: Content
     let isFocusable: Bool
@@ -98,7 +100,7 @@ nonisolated struct FocusableModifier<Content: View>: View {
         // label). Returns the id only when a stop was actually registered.
         let focusID = registerFocusStop(context: context)
 
-        var contentContext = context
+        var contentContext = declining(context)
 
         // `.focusable(false)` is not "add no stop of my own" — SwiftUI's
         // parameter is documented as "`false` otherwise", the view not taking
@@ -204,9 +206,23 @@ nonisolated struct FocusableModifier<Content: View>: View {
     /// content — bumped by hand, never through `publishIsFocused`, which must
     /// not note from a measure (see there).
     fileprivate func modifiedContext(_ context: RenderContext) -> RenderContext {
-        var contentContext = context
+        var contentContext = declining(context)
         contentContext.environmentApplicationDepth += 1
         return contentContext
+    }
+
+    /// `context`, telling the content under `.focusable(false)` that it can
+    /// never hold the focus (``EnvironmentValues/declinesFocus``), in the
+    /// measure and the render alike, since what it changes is a width: a plain
+    /// button there keeps no cells for a focus bullet. One-way, as
+    /// `isFocusSuppressed` is.
+    ///
+    /// Noted on every pass, `true` and `false` alike, and not assigned: a
+    /// memoized button below is compared by its own value, which a flip of
+    /// `isFocusable` up here leaves as it was, so only the note tells its memo
+    /// that its width moved.
+    fileprivate func declining(_ context: RenderContext) -> RenderContext {
+        context.settingNotedEnvironment(\.declinesFocus, to: context.environment.declinesFocus || !isFocusable)
     }
 }
 

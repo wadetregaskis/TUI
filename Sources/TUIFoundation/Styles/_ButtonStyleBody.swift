@@ -34,8 +34,9 @@ struct _ButtonStyleBody: View, Renderable {
     /// ``ButtonBorderShape`` in force under `context` — read here, at the one
     /// place a measure and a render both pass, so the two cannot disagree.
     private func sized(in context: RenderContext) -> Self {
-        // A plain appearance has no face to size: no environment read for it.
-        guard !isSized, !appearance.isPlain else { return self }
+        // A plain appearance has no face to size, only, under
+        // `.focusable(false)`, the cells of a focus bullet to give up.
+        guard !isSized, !appearance.isPlain else { return isSized ? self : decliningFocus(in: context) }
         let environment = context.environment
         return Self(
             configuration: configuration,
