@@ -115,6 +115,14 @@ extension _ScrollViewCore {
         // the sheet's height. Across them it offers its own extent, so a box
         // in a vertical scroll view still spans the sheet's width.
         contentContext.consumeSheetSize(along: axes)
+        // And a height to fill, for the same reason: down the axis it scrolls
+        // it gives its content none (SwiftUI's proposal is unspecified), so a
+        // `Table` in it is its rows' height rather than a share of the column
+        // it stands in. Kept, three tables of 2, 5 and 30 rows in a `VStack`
+        // here were each dealt a third of their rows' total: the short ones
+        // drawn with blank rows, the long one cut (decisions
+        // TABLE-IN-SCROLL-HEIGHT). A frame in the content gives one again.
+        if axes.contains(.vertical), contentContext.hasExplicitHeight { contentContext.hasExplicitHeight = false }
         // Depth plus one, so 0 can mean "no scroll content". A chain too deep
         // for two bytes is marked as none, which answers as the estimate did.
         let depth = contentContext.identity.depth + 1

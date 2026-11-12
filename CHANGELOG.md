@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `Table` in a vertical `ScrollView` is its rows' height.** Tables stacked in a scroll view with no frame were
+each dealt an even share of the height their rows added up to, so a short one was drawn with blank rows after its
+last and a long one was cut short, scrolling inside the page. Now each is as tall as its rows, its header and border,
+and the page scrolls past them, up to the scroll view's own height: a table taller than that is that tall and scrolls
+its rows within it, building only the rows on screen. A `.frame(height:)` still gives a table a height to fill, as
+before. (SwiftUI draws such a table 0 points tall; this is deviation L19.)
+
 **A `Table` whose columns do not fit scrolls sideways.** The columns were squeezed until their cells were nothing but
 `…`, six of them in a narrow table showing only ellipses, and a column with a `.width(min:)` wider than the table hid
 the rest with no sign they were there. Now, once the columns' minimum widths exceed the table's width (a column that

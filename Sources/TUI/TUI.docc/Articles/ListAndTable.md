@@ -292,6 +292,38 @@ and otherwise over the rows' last line while the pointer is over it.
 A column wider than the table is drawn alone, cut to the table's width, with
 the next column a step away. A table whose columns fit draws as it always has.
 
+### How Tall a Table Is
+
+A table takes the height it is given and scrolls the rows that do not fit: the
+window's, a frame's, a sheet's. Two tables in a `VStack` share the stack's
+height, as two lists do.
+
+In a vertical ``ScrollView``, which gives its content no height, a table with
+no frame is as tall as its rows, its header and border with them, up to the
+scroll view's own height, so several tables can be stacked in one page that
+scrolls past them all. A table taller than the scroll view is that tall and
+scrolls its rows within it, so however many rows it has, it builds only those
+on screen:
+
+```swift
+ScrollView {
+    VStack {
+        ForEach(groups) { group in
+            Text(group.title)
+            Table(group.rows) {
+                TableColumn("Name", value: \.name)
+                TableColumn("Size", value: \.size)
+            }
+        }
+    }
+}
+```
+
+SwiftUI draws such a table 0 points tall, so a SwiftUI app shares that code
+only with a height on each table: `.frame(height:)` works the same in both,
+and a table framed taller than its rows draws empty rows below them, as
+SwiftUI's does.
+
 ### Column Alignment
 
 A column's alignment places both its header and its cells: `.leading` (and

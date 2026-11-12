@@ -1048,6 +1048,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if let height = proposal.height {
             measureContext.availableHeight = height
         }
+        // In scroll content, never taller than the scroll view: measured
+        // within that, a table that measures by drawing draws no more rows
+        // than it will show (the ladder's first rung is 4,096 lines).
+        if let cap = scrollViewportCap(context) {
+            measureContext.availableHeight = min(measureContext.availableHeight, cap)
+        }
 
         // A table's dimensions are arithmetic, not something to be discovered
         // by building the thing and measuring the result. Rendering the whole
@@ -1099,12 +1105,37 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
         // `.fit` is content-sized (a fixed width derived from the data), so
         // like `.fixed` it does not grow with the available width. The height is
-        // flexible, as a `List`'s is and SwiftUI's table's: a table takes the
-        // height it is offered and scrolls what does not fit, so a stack deals
-        // it a share rather than measuring it at one (decisions A-LAYOUT-1).
+        // flexible where the table was given one (`hasExplicitHeight`: a frame,
+        // a window, a sheet), as a `List`'s is and SwiftUI's table's: a table
+        // takes the height it is offered and scrolls what does not fit, so a
+        // stack deals it a share rather than measuring it at one (decisions
+        // A-LAYOUT-1). Given none — in a vertical scroll view, which offers its
+        // content no height — it fills nothing (`filled(_:toRows:knownWidth:)`),
+        // so it is its rows' height, and a column keeps that whole (decisions
+        // TABLE-IN-SCROLL-HEIGHT). Flexible there, three tables in a scroll
+        // view's column were each dealt a third of their rows' total.
         let fillsWidth = columns.contains { $0.effectiveWidth.growsWithAvailableWidth }
         return ViewSize(
-            width: size.width, height: size.height, isWidthFlexible: fillsWidth, isHeightFlexible: true)
+            width: size.width, height: scrollViewportCap(context).map { min(size.height, $0) } ?? size.height,
+            isWidthFlexible: fillsWidth, isHeightFlexible: context.hasExplicitHeight)
+    }
+
+    /// In scroll content with no height given, the height of the scroll view
+    /// showing the table, which is as tall as it gets there: a taller table
+    /// scrolls its rows within that and builds only those on screen; `nil`
+    /// anywhere else. Drawn whole, a table of
+    /// 10,000 rows built every row on every frame, an idle redraw 70 ms
+    /// where it had been 44 and a scroll step 144 ms where it had been 89, and
+    /// at 100,000 rows 927 ms and 2.3 s (debug build, `TestApp`).
+    ///
+    /// The viewport is read only in scroll content (`scrollContentOriginDepth`
+    /// is set there and nowhere else), since its getter tells the memos above
+    /// not to keep what read it.
+    private func scrollViewportCap(_ context: RenderContext) -> Int? {
+        guard !context.hasExplicitHeight, context.scrollContentOriginDepth != 0,
+            let viewport = context.environment.scrollViewportSize?.height
+        else { return nil }
+        return max(1, viewport)
     }
 
     /// The single-line table's rendered size, computed without building its

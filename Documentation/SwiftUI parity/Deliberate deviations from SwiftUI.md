@@ -498,6 +498,33 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** lane, 2026-10-28 ([A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space - overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-its-childrens-minimums-answered-cheaply>)
   is about an overfull column). **Lane.**
 
+### L19. In a vertical scroll view, a `Table` is its rows' height, up to the scroll view's
+
+- **SwiftUI:** a `Table` in a vertical `ScrollView` with no frame is 0 points
+  tall and shows nothing: its ideal height is 0, and a scroll view offers its
+  content no height. `.scrollDisabled(true)` and `.fixedSize(horizontal:
+  false, vertical: true)` leave it at 0; a `.frame(height:)` or
+  `.frame(minHeight:)` gives it that height, and past its last row it draws
+  empty rows, striped where rows alternate (measured 2026-11-11, macOS 15.8.3,
+  `Tools/SwiftUIProbes/Tables in a scroll view (1111T)/tables.out`).
+- **TUI:** it is its rows' height, its header and border with them, and a
+  column of several keeps each whole: the scroll view gives its content no
+  height to fill (`hasExplicitHeight` cleared,
+  `_ScrollViewCore.contentContext(_:)`), and a table given none reports its
+  height fixed. It is never taller than the scroll view showing it: a taller
+  one is that tall and scrolls its rows within it, so it builds only the rows
+  on screen. A frame gives a height, as in SwiftUI, and the table fills it
+  (`TableInScrollViewHeightTests`).
+- **Why:** SwiftUI's zero hides the table, so no SwiftUI program relies on it:
+  one that works frames its tables, and that works the same here. Before, a
+  table's height was flexible here too, and a column of tables of 2, 5 and 30
+  rows dealt each a third of their rows' total, padding the short ones with
+  blank rows and cutting the long one. The cap because a table drawn whole
+  builds every row on every frame: 10,000 rows took an idle redraw from 44 to
+  70 ms, and 100,000 to 927 ms (debug build).
+- **Decided:** [TABLE-IN-SCROLL-HEIGHT](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-morning-page-answered-2026-11-11>),
+  in the lane, 2026-11-11. **Lane.**
+
 ## State and data flow
 
 ### S1. A dynamic property in an optional field is live
