@@ -39,6 +39,14 @@ final class PulledColumnFrame {
     var focusBeyond: [Int: VerticalEdge] = [:]
     /// The requests this frame handed its pulled children, by identity.
     var handed: [ViewIdentity: ScrollContentWindow] = [:]
+    /// Whether the pulled children are asked for the rows of a stack marked
+    /// with `scrollTargetLayout()`: the scroll view has a behaviour to settle
+    /// on them, and the column is not marked itself.
+    var asksTargetLayout = false
+    /// The scroll view's `.anchorPosition` binding, which the column hands
+    /// only to the child the viewport's top lies in, with the request to hold
+    /// the row it names (``ScrollContentWindow/holdsDesignatedRow``).
+    var heldRow: AnchorPositionBinding?
     /// Where the focus ring stood when the fill began: what the rows above the
     /// anchor, drawn after it and the rows below, file their controls at.
     var focusMark: (manager: FocusManager, mark: FocusRegistrationMark)?

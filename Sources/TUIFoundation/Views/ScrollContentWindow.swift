@@ -28,7 +28,7 @@ struct ScrollContentWindow: Hashable {
             lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek, lhs.columnSeek == rhs.columnSeek,
             lhs.columnReport == rhs.columnReport,
             lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow, lhs.edge == rhs.edge,
-            lhs.isPulled == rhs.isPulled, lhs.focusBeyond == rhs.focusBeyond
+            lhs.isPulled == rhs.isPulled, lhs.focusBeyond == rhs.focusBeyond, lhs.holdsDesignatedRow == rhs.holdsDesignatedRow
         else { return false }
         return lhs.reportsTargetLayout == rhs.reportsTargetLayout
             && lhs.reportsTargetVisibility == rhs.reportsTargetVisibility && lhs.topRowHold == rhs.topRowHold
@@ -51,6 +51,7 @@ struct ScrollContentWindow: Hashable {
         hasher.combine(reportsTargetVisibility)
         hasher.combine(topRowHold)
         hasher.combine(focusBeyond)
+        hasher.combine(holdsDesignatedRow)
     }
 
     /// The scroll offset in the coordinates of the stack that consumes this
@@ -192,6 +193,12 @@ struct ScrollContentWindow: Hashable {
     /// by `.anchorPosition(.row(id))`, the row at the top held as rows change
     /// above it — is the outer column's to answer, not this view's.
     var isPulled = false
+
+    /// Whether a pulled view holds the row `.anchorPosition(.row(id))` names,
+    /// when it is one of its own: the column above hands the scroll view's
+    /// held row on to the child the viewport's top lies in, which then holds
+    /// it as the outermost stack does (`StackPulledColumn.swift`).
+    var holdsDesignatedRow = false
 
     /// The edge of a pulled view the focused control stands just past — the
     /// control is the next one after the view's last, or the one before its

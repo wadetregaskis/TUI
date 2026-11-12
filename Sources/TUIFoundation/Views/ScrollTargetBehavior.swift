@@ -384,8 +384,10 @@ extension View {
     ///
     /// The views found are the rows of a vertical stack and the columns of a
     /// horizontal one — lazy or eager — that is the scroll view's content, or
-    /// the content under a `Section`'s header or inside the content margins.
-    /// A stack further in (below a header in a `VStack`, say) is not found.
+    /// the content under a `Section`'s header or inside the content margins,
+    /// or a lazy stack further in that the scroll view draws a screen at a
+    /// time (a `LazyVStack` of more than 256 rows below a header in a
+    /// `VStack`, say). An eager stack further in is not found.
     ///
     /// - Parameter isEnabled: Whether the mark applies.
     /// - Returns: A view whose stack is, or is not, a scroll target layout.

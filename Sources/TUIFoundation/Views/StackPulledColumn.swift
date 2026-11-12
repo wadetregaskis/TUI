@@ -40,6 +40,15 @@ private struct PulledPiece {
     /// Whether a pulled child resolved the seek it was handed: its position
     /// is where the seek put the viewport's top in its lines.
     var resolvedSeek = false
+    /// The rows a pulled child marked with `scrollTargetLayout()` reported,
+    /// in the column's lines.
+    var targetRows: TargetLayoutSpans?
+    /// How far the anchored pulled child moved the viewport's top down its
+    /// lines to hold a row where it was, as rows changed above it: its top
+    /// row (``ScrollContentWindow/topRowHold``), or the row
+    /// `.anchorPosition(.row(id))` names (`heldRowIsTopRow` false).
+    var heldShift = 0
+    var heldRowIsTopRow = true
 
     /// The piece `delta` lines further down the column.
     func shifted(by delta: Int) -> Self {
@@ -47,6 +56,9 @@ private struct PulledPiece {
             ordinal: ordinal, top: top + delta, buffer: buffer, firstLine: firstLine.map { $0 + delta },
             endLine: endLine.map { $0 + delta }, position: position, end: end, zero: zero.map { $0 + delta })
         piece.resolvedSeek = resolvedSeek
+        piece.targetRows = targetRows?.shifted(by: delta)
+        piece.heldShift = heldShift
+        piece.heldRowIsTopRow = heldRowIsTopRow
         return piece
     }
 }
@@ -61,6 +73,16 @@ private enum PulledPlace {
     /// counted as `edge` says, for a pulled child; for a whole one, from its
     /// top.
     case anchored(within: Int, edge: PullEdge)
+
+    /// The top, in the column's lines, of a row `height` lines tall drawn
+    /// whole here, with the viewport's top at `viewportTop`.
+    func top(ofHeight height: Int, viewportTop: Int) -> Int {
+        switch self {
+        case .top(let y): y
+        case .end(let y): y - height
+        case .anchored(let within, _): viewportTop - within
+        }
+    }
 }
 
 // MARK: - The pulled render
@@ -172,9 +194,17 @@ private enum PulledPlace {
         guard let reply = window.reply else { return nil }
         var childContext = context
         childContext.leaveScrollOrigin()
-        // A row held by `.anchorPosition(.row(id))` is the scroll view's own
-        // content's, and none below is it.
+        // A row held by `.anchorPosition(.row(id))` is held by the child the
+        // viewport's top lies in, handed it with its request; no other child
+        // holds it.
+        let heldRow = context.environment.anchorPosition
         childContext.environment.anchorPosition = nil
+        // Marked with `scrollTargetLayout()`, the column's own children are the
+        // views a behaviour settles on, and none of theirs: the mark the
+        // environment carries down is taken off them.
+        let spanRequest = targetSpanRequest(window: window, context: context)
+        let reportsOwnRows = spanRequest?.layout == true
+        if reportsOwnRows { childContext.environment.isScrollTargetLayout = false }
         let children = resolveChildViewCollection(from: content, context: childContext)
         guard !children.isEmpty else { return nil }
         let state = uniformWindowState(context: context)
@@ -185,6 +215,8 @@ private enum PulledPlace {
             children: children, spacing: spacing, state: state,
             anchor: window.anchor?.claimed(byColumn: context.identity, state: state) ?? state.ownAnchor,
             proposal: ProposedViewSize(width: width, height: nil), context: childContext)
+        frame.asksTargetLayout = window.reportsTargetLayout && !reportsOwnRows
+        frame.heldRow = heldRow
 
         var window = window
         let before = (ordinal: frame.anchor.ordinal, key: frame.anchor.key)
@@ -235,6 +267,7 @@ private enum PulledPlace {
             context: childContext)
         guard !frame.sawSpacer, !drawn.isEmpty else { return nil }
         let resolvedSeek = settle(seeking, of: anchored, drawn: &drawn, window: &window)
+        let held = resolvedSeek == nil ? holdingRow(of: anchored, drawn: &drawn, window: &window) : nil
         guard let first = drawn.first, let last = drawn.last else { return nil }
 
         // The anchored row's place for the next frame: a pulled one's own
@@ -277,7 +310,10 @@ private enum PulledPlace {
         reply.sliceHoldsFirstRow = first.ordinal == 0 && first.firstLine != nil
         reply.sliceHoldsLastRow = last.ordinal == children.count - 1 && last.endLine != nil
         reply.pulledPosition = window.offset
-        reply.reportResolvedOffset(resolvedSeek, isHold: false)
+        reply.reportResolvedOffset(resolvedSeek ?? held?.offset, isHold: resolvedSeek == nil && held?.isTopRow == true)
+        reportPulledTargets(
+            drawn, anchored: anchored, request: spanRequest, asksChildren: frame.asksTargetLayout, frame: frame,
+            into: reply, context: context)
         if let at = window.reportsIDAt {
             let sampleY = window.sampleY(at: at, contentBelow: !reply.sliceHoldsLastRow)
             let sampled = drawn.last { $0.top <= sampleY } ?? first
@@ -309,6 +345,25 @@ private enum PulledPlace {
             return window.offset
         case nil: return nil
         }
+    }
+
+    /// The offset a held row moved the column to, or `nil`, and whether the
+    /// row was the top-row hold's. The anchored child, pulled and handed the
+    /// scroll view's hold or its `.anchorPosition(.row(id))`, kept the row on
+    /// its line as rows changed above it, moving the viewport's top down its
+    /// lines by what the change put above that row: the column's offset moves
+    /// as far, and every piece with it, so the rows keep their places on
+    /// screen and the offset counts the lines now above them, as a top-level
+    /// stack's hold reports it.
+    private func holdingRow(
+        of anchored: Int, drawn: inout [PulledPiece], window: inout ScrollContentWindow
+    ) -> (offset: Int, isTopRow: Bool)? {
+        guard let piece = drawn.first(where: { $0.ordinal == anchored }), piece.heldShift != 0,
+            !piece.heldRowIsTopRow || window.topRowHold == .holding
+        else { return nil }
+        window.offset += piece.heldShift
+        drawn = drawn.map { $0.shifted(by: piece.heldShift) }
+        return (window.offset, piece.heldRowIsTopRow)
     }
 
     /// The fill: the anchored row, then outward — down from each row's end
@@ -365,52 +420,24 @@ private enum PulledPlace {
         let height = frame.height(of: ordinal)
         let viewportTop = window.offset
         guard frame.isPulled(ordinal) else {
-            let rowTop: Int
-            switch place {
-            case .top(let y): rowTop = y
-            case .end(let y): rowTop = y - height
-            case .anchored(let within, _): rowTop = viewportTop - within
-            }
+            let rowTop = place.top(ofHeight: height, viewportTop: viewportTop)
             let buffer = child.render(width: width, height: height, context: context)
                 .horizontallyAligned(toWidth: width, alignment: alignment)
             return PulledPiece(
                 ordinal: ordinal, top: rowTop, buffer: buffer, firstLine: rowTop, endLine: rowTop + height,
                 position: nil, end: nil, zero: nil)
         }
-        var request = ScrollContentWindow(
-            offset: 0, viewportHeight: window.viewportHeight,
-            contentIdentity: child.identity(under: context), reply: ScrollContentReply())
-        request.isPulled = true
-        request.focusBeyond = frame.focusBeyond[ordinal]
-        switch place {
-        case .top(let y):
-            request.offset = viewportTop - y
-            request.edge = .top
-        case .end(let y):
-            request.offset = viewportTop - y
-            request.edge = .end
-        case .anchored(let within, let edge):
-            request.edge = edge
-            request.offset = edge == .end ? within - height : within
-        }
-        if let seek {
-            request.seek = seek.request
-            request.linesAbove = seek.linesAbove
-            request.linesBelow = seek.linesBelow
-        }
-        let rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
+        let request = pulledRequest(
+            ordinal, at: place, seek: seek, height: height, frame: frame, window: window, context: context)
+        var rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
+        if request.holdsDesignatedRow { rowContext.environment.anchorPosition = frame.heldRow }
         let canvas = max(context.availableHeight, height, window.viewportHeight * 4)
         let buffer = child.render(width: width, height: canvas, context: rowContext)
             .horizontallyAligned(toWidth: width, alignment: alignment)
         let answer = request.reply!
         guard let origin = answer.sliceOriginY, let end = answer.sliceTotalHeight else {
             // Drawn whole after all: placed as a whole row is.
-            let rowTop: Int
-            switch place {
-            case .top(let y): rowTop = y
-            case .end(let y): rowTop = y - buffer.height
-            case .anchored(let within, _): rowTop = viewportTop - within
-            }
+            let rowTop = place.top(ofHeight: buffer.height, viewportTop: viewportTop)
             return PulledPiece(
                 ordinal: ordinal, top: rowTop, buffer: buffer, firstLine: rowTop, endLine: rowTop + buffer.height,
                 position: nil, end: nil, zero: nil)
@@ -430,7 +457,48 @@ private enum PulledPlace {
             endLine: answer.sliceHoldsLastRow ? pieceTop + buffer.height : nil,
             position: position, end: end, zero: zero)
         piece.resolvedSeek = seek != nil && answer.seekResolvedOffset != nil
+        piece.targetRows = answer.targetLayoutRows?.shifted(by: zero)
+        if seek == nil, answer.seekResolvedOffset != nil {
+            piece.heldShift = position - request.offset
+            piece.heldRowIsTopRow = answer.resolvedOffsetIsHold
+        }
         return piece
+    }
+
+    /// The request pulled row `ordinal`, `height` lines tall by its measure,
+    /// is handed at `place`, with `seek` when it is handed one.
+    private func pulledRequest(
+        _ ordinal: Int, at place: PulledPlace, seek: HandedSeek?, height: Int, frame: PulledColumnFrame,
+        window: ScrollContentWindow, context: RenderContext
+    ) -> ScrollContentWindow {
+        var request = ScrollContentWindow(
+            offset: 0, viewportHeight: window.viewportHeight,
+            contentIdentity: frame.child(at: ordinal).identity(under: context), reply: ScrollContentReply())
+        request.isPulled = true
+        request.focusBeyond = frame.focusBeyond[ordinal]
+        request.reportsTargetLayout = frame.asksTargetLayout
+        switch place {
+        case .top(let y):
+            request.offset = window.offset - y
+            request.edge = .top
+        case .end(let y):
+            request.offset = window.offset - y
+            request.edge = .end
+        case .anchored(let within, let edge):
+            request.edge = edge
+            request.offset = edge == .end ? within - height : within
+            // The row at the viewport's top is this child's: held as the
+            // scroll view asks, where it stays, and so is a row the app
+            // holds, if it is one of this child's.
+            if edge == .position { request.topRowHold = window.topRowHold }
+            request.holdsDesignatedRow = frame.heldRow != nil
+        }
+        if let seek {
+            request.seek = seek.request
+            request.linesAbove = seek.linesAbove
+            request.linesBelow = seek.linesBelow
+        }
+        return request
     }
 
     /// `context` with `request` in it for the pulled child at `identity`
@@ -532,5 +600,31 @@ private enum PulledPlace {
         let rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
         return frame.child(at: ordinal).render(
             width: width, height: max(context.availableHeight, window.viewportHeight * 4), context: rowContext)
+    }
+
+    /// What the column reports of the rows a scroll view settles on and
+    /// observes (`StackTargetLayout.swift`): its own children as the fill
+    /// placed them, for the visibility observers and, marked, for a behaviour
+    /// — the band's, which is all a windowed stack knows — and otherwise, for
+    /// a behaviour, the rows of the marked stack a child is: the anchored
+    /// child's, or the first drawn that has some.
+    private func reportPulledTargets(
+        _ drawn: [PulledPiece], anchored: Int, request: TargetSpanRequest?, asksChildren: Bool,
+        frame: PulledColumnFrame, into reply: ScrollContentReply, context: RenderContext
+    ) {
+        if asksChildren,
+            let rows = drawn.first(where: { $0.ordinal == anchored })?.targetRows
+                ?? drawn.first(where: { $0.targetRows != nil })?.targetRows
+        {
+            reply.targetLayoutRows = rows
+        }
+        guard let request else { return }
+        let spans: [TargetLayoutSpans.Span] = drawn.compactMap { piece in
+            guard !frame.child(at: piece.ordinal).isSpacer else { return nil }
+            let origin = piece.firstLine ?? piece.zero ?? piece.top
+            let end = piece.endLine ?? piece.zero.flatMap { zero in piece.end.map { zero + $0 } } ?? piece.top + piece.buffer.height
+            return end > origin ? .init(origin: origin, length: end - origin, ordinal: piece.ordinal) : nil
+        }
+        reply.deliverTargetRows(TargetLayoutSpans(placed: spans), for: request) { targetRowIDs(context: context) }
     }
 }

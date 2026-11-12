@@ -600,9 +600,10 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         let anchorMode = ScrollAnchorMode.effective(
             boundAnchor: context.environment.anchorPosition?.wrappedValue, declared: declaredMode)
         // A stack a column pulls (``ScrollContentWindow/isPulled``) holds no
-        // row of the scroll view's: that is the outermost column's to hold.
+        // row of the scroll view's unless the column hands it the held row,
+        // as the child the viewport's top lies in.
         let designatedKey =
-            window.isPulled
+            window.isPulled && !window.holdsDesignatedRow
             ? nil
             : applyDesignatedAnchor(frame: frame, state: state, window: window, context: context, mode: anchorMode)
 

@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A lazy stack under a title is settled on and held as one that is a scroll view's whole content.** In a scroll
+view whose `VStack` held a title over a long `LazyVStack` marked `.scrollTargetLayout()`,
+`.scrollTargetBehavior(.viewAligned)` stopped a wheel tick or a key inside a row and `.paging` cut rows at a page's
+edge, as if the stack were not marked; rows inserted above the ones on screen pushed them down; and a row held with
+`.anchorPosition(.row(id))` drifted with the rows around it. Each behaves now as for a lazy stack that is the scroll
+view's whole content. A row held in a stack other than the one at the top of the screen is not held yet.
+
 **The search field's ✗ stands one cell past the field, and only the ✗ empties it.** It stood three cells out, and a
 click on the two blank cells before it emptied the field too: a plain button kept two cells in front of its label for
 a focus bullet even under `.focusable(false)`, where it can never show one. A plain button there is now its label
