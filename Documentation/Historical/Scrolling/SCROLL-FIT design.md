@@ -533,6 +533,21 @@ line (a pulled column's search for the child the focus lies in, each frame a foc
 the likeliest cost; not profiled). RSS within 0.6 MB everywhere. `frame_parity.py`: 155 of 156
 cases draw alike, `app-shapes/timeline-rows` the one that differs between runs of one binary.
 
+**As the fifth lane measured it** (2026-11-12, `ab_bench.py`, release, cpu per frame, base
+ceeec40be against the lane's tip before its rebase onto P9, a701fa1a7, load 2.9): `app-shapes`
+−0.4%, `grouped-feed` +0.5%, `titled-lazy` −0.3%, `two-stacked-lazy` +0.8%, `headed-log` +0.2%,
+`megalist` +0.9%, `scrolleager` +0.3%, `scrollfollow` +0.5%, `glide` −0.8%, `dashboard` −0.6%,
+`session/editor` −0.2%, `session/log` +0.1%: indistinguishable; `boxed-lazy` +0.5% [+0.2,
++2.2] slower and `session/chat` −0.2% faster, both inside the owner's few-percent line. RSS within
+1 MB everywhere. `frame_parity.py`: 155 of 156 cases draw alike, `app-shapes/timeline-rows` the
+one that differs between runs of one binary. *The fourth lane's `titled-lazy` +1.9%:* profiled
+(Time Profiler, all processes, `--process Stress`, 8 s of `Stress --bench --scenario app-shapes
+--variant titled-lazy --cols 120 --rows 40` at ceeec40be, `analyze_timeprofile.py`): the pulled
+column is 24.3% of the frame inclusive (1,853 of 7,626 ms), and of it the search for the child the
+focus lies in, `pulledFocusNeighbours`, is 1 ms (0.0%) and `drawOffBand` 8 ms (0.1%). The
+suspected cost is not there, so there is no cheap remedy to make: nothing changed, and the lane's
+own A/B finds `titled-lazy` where the base has it.
+
 **As the third lane built it (2026-11-12): locate by route** (`StackNestedSeek.swift`,
 `StackPulledSeek.swift`, `ScrollKeyLocate.swift`). A seek whose key no row of the resolving
 container carries is searched for below its rows, level by level:
