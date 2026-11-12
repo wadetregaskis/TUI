@@ -568,7 +568,9 @@ estimates elsewhere, carried by dead reckoning.**
    the *total* (the thumb's length and "~N more below"), not the offset, and
    `onScrollGeometryChange` sees a `contentSize` change, not a `contentOffset` jump. This is the
    anchored window's `lastDerivedOffset`, at the scroll view.
-3. **A drag holds its mapping.** At the grab (`scrollbarDragGrab`), the total in use is frozen
+3. **A drag holds its mapping** (P2: `ScrollbarDragExtentHolding.scrollbarDragExtent`, set at the
+   grab and at a jump-click's implicit grab, read by every drag event, cleared at release). At
+   the grab (`scrollbarDragGrab`), the total in use is frozen
    for the drag's duration, so the thumb follows the pointer and the row under it does not
    oscillate as estimates refine. At release the thumb is re-derived once.
 4. **Totals are sticky.** A level's estimate changes only when it measures a row it had not

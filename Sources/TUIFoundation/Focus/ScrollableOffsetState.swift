@@ -288,13 +288,14 @@ public protocol ScrollableOffsetState: AnyObject {
 /// as the viewport *width* and `extent` as the content *width*, both in columns.
 /// Conforming gives the scrollbar renderer, the mouse interaction, and auto-repeat
 /// to this axis for free.
-public final class ScrollAxis: ScrollableOffsetState {
+public final class ScrollAxis: ScrollableOffsetState, ScrollbarDragExtentHolding {
     public var scrollOffset: Int = 0
     /// The viewport size along this axis (columns, for a horizontal axis).
     public var viewportHeight: Int = 0
     /// The content size along this axis (columns, for a horizontal axis).
     public var extent: Int = 0
     public var scrollbarDragGrab: Int?
+    package var scrollbarDragExtent: Int?
     public var scrollbarRepeat: ScrollbarRepeat?
     public var wheelEdgeHold = WheelEdgeHold()
     /// Overscroll excursion + allowance (``ScrollableOffsetState``).
@@ -957,4 +958,16 @@ extension Duration {
         let seconds = UInt64(components.seconds) &* 1_000_000_000
         return seconds &+ UInt64(components.attoseconds / 1_000_000_000)
     }
+}
+
+/// A scroll state that holds, while its scrollbar's thumb is dragged, the
+/// ``ScrollableOffsetState/extent`` the drag grabbed it at: the drag maps the
+/// pointer through it until release, so a total that an estimate refines
+/// under the drag (rows of varying height a pulled stack has not measured,
+/// SCROLL-FIT design 2b) does not move the row under the pointer back and
+/// forth. Apart from ``ScrollableOffsetState`` so that the public protocol
+/// gains no requirement for it.
+package protocol ScrollbarDragExtentHolding: AnyObject {
+    /// The extent the drag in progress grabbed the thumb at, or `nil`.
+    var scrollbarDragExtent: Int? { get set }
 }

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Dragging a scroll view's thumb no longer makes the rows under the pointer jump back and forth.** Where a scroll
+view's height is an estimate — a long lazy stack of rows of different heights — the estimate improved as the drag
+brought new rows into view, and each move of the pointer was read against the new one. A drag now reads every move
+against the height it started with, and the thumb settles to the improved one when you let go.
+
 **A scroll view's first frame no longer draws every row of a long lazy stack in it.** An app's first frame begins
 with a walk of the page that measures it, and a scroll view drew its content all the way down on that walk: a
 `LazyVStack` of 10,000 rows built every row twice before the first frame showed, and a long `List` drew 4,096 lines.

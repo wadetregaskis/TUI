@@ -36,7 +36,7 @@
 ///   nonisolated class conforms cleanly to the nonisolated
 ///   `Focusable` protocol without crossing an isolation
 ///   boundary.
-public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState {
+public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState, ScrollbarDragExtentHolding {
 
     /// The offset the reveal's last snap SETTLED on, or `nil` when no reveal
     /// pursuit is in flight.
@@ -184,6 +184,9 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
 
     /// Grab point within the thumb during a scrollbar drag (``ScrollableOffsetState``).
     public var scrollbarDragGrab: Int?
+
+    /// The extent a scrollbar drag grabbed the thumb at (``ScrollbarDragExtentHolding``).
+    package var scrollbarDragExtent: Int?
 
     /// Held arrow/track auto-repeat action (``ScrollableOffsetState``).
     public var scrollbarRepeat: ScrollbarRepeat?

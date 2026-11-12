@@ -235,6 +235,29 @@ struct ScrollbarInteractionTests {
         #expect(handler.scrollbarRepeat == nil, "release disarms the repeat")
     }
 
+    /// SCROLL-FIT 2b: an estimated total refines under a drag as rows of
+    /// varying height are measured, and the drag maps the pointer through the
+    /// total it grabbed the thumb at, so the row under the pointer does not
+    /// move back and forth. Released, the next drag takes the new total.
+    @Test("A thumb drag maps the pointer through the extent it grabbed at, until release")
+    func thumbDragHoldsItsMapping() {
+        let handler = ScrollViewHandler(focusID: "t")
+        handler.contentHeight = 100
+        handler.viewportHeight = 10
+        handler.scrollOffset = 0
+        let handle = Bar.verticalMouseHandler(
+            for: handler, length: 12, arrows: .none, proportional: true, behavior: .page)
+        _ = handle(event(0, 0))  // grab the thumb at its top cell
+        _ = handle(event(0, 5, .dragged))
+        let grabbedMapping = handler.scrollOffset
+        handler.contentHeight = 200  // the estimate refined under the drag
+        _ = handle(event(0, 6, .dragged))
+        _ = handle(event(0, 5, .dragged))
+        #expect(handler.scrollOffset == grabbedMapping, "back at cell 5: \(handler.scrollOffset), was \(grabbedMapping)")
+        _ = handle(event(0, 5, .released))
+        #expect(handler.scrollbarDragExtent == nil, "releasing ends the held mapping")
+    }
+
     @Test("Dragging the thumb moves the offset; release ends the drag")
     func thumbDrag() {
         let handler = ScrollViewHandler(focusID: "t")

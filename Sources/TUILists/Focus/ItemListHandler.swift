@@ -97,7 +97,9 @@ public enum SelectionMode: Sendable {
 /// that step C2 tried both ways, ten lost every check; ``reorder`` and
 /// ``outlineActivation`` kept theirs, in their accessors, which this module
 /// then called where it had read them in place, so they are stored.
-package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, ScrollableOffsetState {
+package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusable, ScrollableOffsetState,
+    ScrollbarDragExtentHolding
+{
     /// The unique identifier for this focusable element.
     package var focusID: String { get { _focusID } set { _focusID = newValue } }
 
@@ -1199,6 +1201,9 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
 
     /// Grab point within the thumb during a scrollbar drag (``ScrollableOffsetState``).
     package var scrollbarDragGrab: Int? { get { _scrollbarDragGrab } set { _scrollbarDragGrab = newValue } }
+
+    /// The extent a scrollbar drag grabbed the thumb at (`ScrollbarDragExtentHolding`).
+    package var scrollbarDragExtent: Int?
 
     /// ``scrollbarDragGrab``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").

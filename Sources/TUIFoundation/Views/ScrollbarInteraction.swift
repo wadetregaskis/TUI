@@ -280,7 +280,10 @@ extension ScrollbarRenderer {
             guard event.button == .left, state.isScrollEnabled else { return false }
             let perEnd = (length > arrowReserve(arrows) ? arrowReserve(arrows) : 0) / 2
             let trackLen = max(1, length - 2 * perEnd)
-            let extent = state.extent
+            // A drag maps the pointer through the extent it grabbed the thumb
+            // at, until release (``ScrollbarDragExtentHolding``).
+            let holder = state as? any ScrollbarDragExtentHolding
+            let extent = state.scrollbarDragGrab == nil ? state.extent : holder?.scrollbarDragExtent ?? state.extent
             let viewport = state.viewportHeight
 
             func jumpOrDrag(topCell: Int) {
@@ -332,6 +335,7 @@ extension ScrollbarRenderer {
                         // cursor), so the press turns into a drag and the thumb
                         // follows the mouse until release — per macOS.
                         state.scrollbarDragGrab = thumbCells / 2
+                        holder?.scrollbarDragExtent = extent
                     } else {
                         // Page towards the click now (a full viewport, as a single
                         // click always does), then auto-repeat the paging while the
@@ -347,6 +351,7 @@ extension ScrollbarRenderer {
                     }
                 case .thumb(let grab):
                     state.scrollbarDragGrab = grab
+                    holder?.scrollbarDragExtent = extent
                 case .outside:
                     return false
                 }
@@ -381,6 +386,7 @@ extension ScrollbarRenderer {
     private static func endHold(_ state: ScrollableOffsetState) {
         let settles = state.scrollbarDragGrab != nil || state.scrollbarRepeat?.stopAtOffset != nil
         state.scrollbarDragGrab = nil
+        (state as? any ScrollbarDragExtentHolding)?.scrollbarDragExtent = nil
         state.scrollbarRepeat = nil
         if settles { state.settleUserScroll() }
     }
