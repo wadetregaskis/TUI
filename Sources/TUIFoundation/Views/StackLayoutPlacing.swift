@@ -235,10 +235,12 @@
         var cursor: ViewIdentity? = context.identity
         while let node = cursor, node.depth > contentDepth {
             if node.isSiblingStep {
+                // A layout's filing first: it is drawn at the identity of
+                // whatever holds it, which may be an `if`'s.
                 guard let parent = node.parent,
-                    parent.holdsItsChildrenForAContainer
-                        || context.renderCache?.pullConsumers.layoutPlaces(parent)
-                            ?? parent.leafType.map({ $0 is any ScrollPlacing.Type }) ?? false
+                    context.renderCache?.pullConsumers.layoutPlaces(parent)
+                        ?? (parent.holdsItsChildrenForAContainer
+                            || parent.leafType.map({ $0 is any ScrollPlacing.Type }) == true)
                 else { return false }
             }
             cursor = node.parent

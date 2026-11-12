@@ -667,10 +667,12 @@ before P9).
   down to the lines it was given (`measuringHeight`), as an `HStack` clamps to its offer.
 - **Seeks and focus** go through the parallel shape's (`holder`, `place`); a seek aimed at a
   subview drawn whole that follows the lead lands by the layout's estimated place for it.
-- **Not pulled:** a lazy stack in an `if` among the subviews. Its node is a sibling step under the
+- ~~**Not pulled:** a lazy stack in an `if` among the subviews.~~ Its node is a sibling step under the
   branch's, which no container files or conforms for — the same rule for every container, not
   the layout's; found by a trace of the reach test, left to the lane that owns the column's
-  internals. Nor `List` or `Table`, which nothing pulls before P3; when they file themselves as
+  internals. *Pulled since the fifth P2 lane* (`isPulledWhereItStands` passes an `if`'s identity
+  through, after a layout's filing, since a layout is drawn at its holder's identity, which may be
+  an `if`'s: `PulledLayoutTests`' `flowIf`). Not `List` or `Table`, which nothing pulls before P3; when they file themselves as
   consumers, a layout hands them the request as it hands a stack.
 
 `PulledLayoutTests` twins a flow, a two-column layout and a flow spaced by a `LayoutValueKey` and

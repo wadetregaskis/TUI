@@ -12,6 +12,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUI
@@ -109,6 +110,9 @@ struct PulledLayoutTests {
         /// A flow of two lazy stacks, one below the other: the second's place
         /// is where the first ends, which only drawing the first says.
         case stackedTwo
+        /// A flow whose rows sit in an `if`: the `if`'s view is its child at
+        /// index 0, laid out among the layout's subviews.
+        case flowIf
 
         /// The shapes whose stack is pulled through the layout.
         static let pulled = allCases.filter { $0 != .stackedTwo }
@@ -162,8 +166,18 @@ struct PulledLayoutTests {
                 Text("mid")
                 rows("b", count, lazy: lazy, builds: builds)
             }
+        case .flowIf:
+            Flow {
+                Text("head")
+                if shows { rows("a", count, lazy: lazy, builds: builds) }
+                Text("tail")
+            }
         }
     }
+
+    /// What `flowIf`'s `if` tests, read at run time so the compiler keeps the
+    /// branch.
+    private static let shows = ProcessInfo.processInfo.environment["TUI_TEST_HIDES_STACK"] == nil
 
     private static func app(
         _ shape: Shape, rows count: Int, lazy: Bool, builds: Builds? = nil, height: Int = 12
@@ -324,8 +338,8 @@ struct PulledLayoutReachTests {
         }
     }
 
-    /// The rows, through an `AnyView` rather than an `if`: a lazy stack in a
-    /// branch is a child of the branch's, which no container pulls yet.
+    /// The rows, through an `AnyView` rather than an `if` (`flowIf` has the
+    /// `if`), so the twins differ only by the stack.
     private static func rows(_ count: Int, lazy: Bool, builds: Builds?) -> AnyView {
         if lazy {
             return AnyView(
