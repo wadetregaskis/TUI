@@ -282,6 +282,9 @@ enum AppShapeMatrix {
         variant("boxed-lazy", "a title over a GroupBox around a lazy stack of 100,000 entries, scrolled three lines a tick (SCROLL-FIT pull)") {
             AnyView(PulledPageApp(shape: .boxed, entries: $0.sized(100_000), seed: $0.seed))
         },
+        variant("layout-list", "a title over an app's own two-column Layout around a lazy stack of 10,000 entries, scrolled three lines a tick") {
+            AnyView(PulledPageApp(shape: .layout, entries: $0.sized(10_000), seed: $0.seed))
+        },
         driven("outline", "40 sections of 25 rows in one lazy stack, each row reading a counter of its own; one counter moves a frame") {
             OutlineApp.driven(sections: $0.sized(40), rows: 25, seed: $0.seed)
         },

@@ -3,9 +3,9 @@
 //
 //  The application shapes SCROLL-FIT's pull reaches (design P2): lazy stacks
 //  that are not their scroll view's direct content — under a title, two
-//  stacked, inside a `GroupBox` — scrolled a few lines every tick, so each
-//  frame walks the scroll position through the column that holds them and
-//  draws only the rows on screen.
+//  stacked, inside a `GroupBox`, inside an app's own `Layout` — scrolled a
+//  few lines every tick, so each frame walks the scroll position through the
+//  containers that hold them and draws only the rows on screen.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -20,6 +20,9 @@ enum PulledShape: Sendable {
     case twoStacked
     /// `VStack { title; GroupBox { LazyVStack } }`.
     case boxed
+    /// `VStack { title; TwoColumns { gutter; heading; LazyVStack; tail } }`,
+    /// an app's own two-column `Layout` (SCROLL-FIT design B-SCROLLFIT-13).
+    case layout
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -56,10 +59,58 @@ struct PulledPageApp: View {
                         Text(Synth.sentence(seed, words: 8)).bold()
                         GroupBox { PulledEntries(entries: entries, seed: seed, section: 0) }
                     }
+                case .layout:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        TwoColumns {
+                            Text(verbatim: "│\n│\n│").dim()
+                            Text(Synth.sentence(seed >> 3, words: 6)).bold()
+                            PulledEntries(entries: entries, seed: seed, section: 0)
+                            Text(Synth.sentence(seed >> 5, words: 4)).dim()
+                        }
+                    }
                 }
             }
             .scrollPosition(.constant(ScrollPosition(y: line)))
         }
+    }
+}
+
+/// An app's own `Layout`: the first subview in a gutter at its own width, the
+/// others top to bottom in the column a cell to its right, as a textbook
+/// conformance writes it (each subview measured in both passes).
+private struct TwoColumns: Layout {
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> ViewSize {
+        let width = proposal.width ?? 0
+        let (gutter, frames) = frames(width: width, subviews: subviews)
+        return ViewSize(width: width, height: max(gutter.height, frames.last.map { $0.y + $0.height } ?? 0))
+    }
+
+    func placeSubviews(in bounds: CellRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        guard let first = subviews.first else { return }
+        let (gutter, frames) = frames(width: bounds.width, subviews: subviews)
+        first.place(
+            at: CellPoint(x: bounds.x, y: bounds.y), proposal: ProposedViewSize(width: gutter.width, height: gutter.height))
+        let x = gutter.width + 1
+        for (subview, frame) in zip(subviews.dropFirst(), frames) {
+            subview.place(
+                at: CellPoint(x: bounds.x + x, y: bounds.y + frame.y),
+                proposal: ProposedViewSize(width: max(0, bounds.width - x), height: frame.height))
+        }
+    }
+
+    private func frames(width: Int, subviews: Subviews) -> (gutter: ViewSize, [(y: Int, height: Int)]) {
+        guard let first = subviews.first else { return (ViewSize(width: 0, height: 0), []) }
+        let gutter = first.sizeThatFits(.unspecified)
+        let column = max(0, width - gutter.width - 1)
+        var frames: [(y: Int, height: Int)] = []
+        var y = 0
+        for subview in subviews.dropFirst() {
+            let height = subview.sizeThatFits(ProposedViewSize(width: column, height: nil)).height
+            frames.append((y, height))
+            y += height
+        }
+        return (gutter, frames)
     }
 }
 
