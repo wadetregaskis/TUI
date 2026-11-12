@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**On a screen more than 4,096 columns wide, a press far from an open menu closes it.** The region behind an open
+menu that takes a press outside it reached 4,096 cells from the menu, so a press farther away left the menu open and
+reached the page under it. It now covers the screen.
+
 **An alert's long message and a text field's long prompt are no longer cut.** An alert read its message off a
 canvas 4,096 cells square, so a line past the 4,096th never reached the alert, though it scrolls long messages, and
 a paragraph wider than that was broken early; a `TextField` with `axis: .vertical` read its prompt the same way. A

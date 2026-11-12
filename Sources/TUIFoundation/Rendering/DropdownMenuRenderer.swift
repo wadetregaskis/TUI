@@ -308,10 +308,14 @@ package enum DropdownMenu {
     ///
     /// Inserted FIRST, so every region of the menu itself (rows, scrollbar) wins
     /// over it, while overlay regions composite after the page's, so it still
-    /// beats everything underneath. The generous bounds cover any screen
-    /// wherever the menu is anchored — region containment is pure arithmetic,
-    /// nothing clips it to the buffer. Wheel events fall through, so the page
-    /// can still scroll behind an open menu.
+    /// beats everything underneath. It reaches a screen's width and height
+    /// (``EnvironmentValues/terminalWidth``, ``EnvironmentValues/terminalHeight``)
+    /// out from the menu on every side, so it covers the whole screen wherever
+    /// on it the compositor places the menu — region containment is pure
+    /// arithmetic, nothing clips it to the buffer. A fixed 8,192 cells square
+    /// missed a press more than 4,096 columns from the menu on a screen wider
+    /// than that, which reached the page under the open menu. Wheel events fall
+    /// through, so the page can still scroll behind an open menu.
     ///
     /// Shared by every menu presentation: the `Picker` drop-down and the combo
     /// box get it from `popup(_:)` above, and `presentMenuPopover` calls it
@@ -383,9 +387,12 @@ package enum DropdownMenu {
             }
         }
         ownID.id = dismissID
+        let screenWidth = max(1, context.environment.terminalWidth)
+        let screenHeight = max(1, context.environment.terminalHeight)
         buffer.hitTestRegions.insert(
             HitTestRegion(
-                offsetX: -4096, offsetY: -4096, width: 8192, height: 8192, handlerID: dismissID),
+                offsetX: -screenWidth, offsetY: -screenHeight, width: 2 * screenWidth, height: 2 * screenHeight,
+                handlerID: dismissID),
             at: 0)
     }
 
