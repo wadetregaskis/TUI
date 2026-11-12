@@ -680,7 +680,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
             contentWidth: contentWidth, viewportHeight: contentViewportHeight, horizontal: wantsHorizontal,
             verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
             slide: contentSlide(handler: handler, viewportHeight: contentViewportHeight, context: context),
-            seek: pendingSeek, edgeInset: chrome.edgeInset, handler: handler, checkpoint: checkpoint,
+            seek: pendingSeek, edgeInset: chrome.edgeInset, handler: handler, contentAnchor: handler.contentAnchor,
+            checkpoint: checkpoint,
             context: context, settledExtents: settledExtents,
             topRowHold: topRowHold(handler: handler, glued: wasGluedToBottom, placed: requested || pendingSeek != nil, context: context))
         let (seekOffset, contentExtent) = (firstDrawing.seek?.offset, firstDrawing.extents)

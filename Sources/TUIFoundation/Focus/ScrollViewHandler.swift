@@ -105,6 +105,13 @@ public final class ScrollViewHandler: PersistedFocusable, ScrollableOffsetState 
     /// viewportHeight)`.
     public var scrollOffset: Int = 0
 
+    /// The scroll position as a place in the content: the row at the
+    /// viewport's top and the lines of it above the top, which a windowed
+    /// stack at the content's origin walks to ``scrollOffset`` and moves
+    /// (``ScrollContentAnchor``, SCROLL-FIT design B-SCROLLFIT-11). Handed down
+    /// in the request (``ScrollContentWindow/anchor``) on every render.
+    let contentAnchor = ScrollContentAnchor()
+
     /// One line per edge when the "N more" text indicators are what occupies
     /// the viewport's first and last line, `0` under a bar or hidden
     /// indicators. Published by the render, consumed by ``pageDistance``.

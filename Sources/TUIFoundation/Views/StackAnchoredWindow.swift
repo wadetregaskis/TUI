@@ -729,7 +729,10 @@ private final class AnchoredWindowFrame {
         childContext.leaveScrollOrigin()
         let width = context.availableWidth
         let frame = AnchoredWindowFrame(
-            children: children, spacing: spacing, state: state, anchor: state.anchor,
+            children: children, spacing: spacing, state: state,
+            // The scroll view's position, which this walk moves; its own only
+            // where a window came with none (a test injecting one).
+            anchor: window.anchor?.claimed(byColumn: context.identity, state: state) ?? state.ownAnchor,
             proposal: ProposedViewSize(width: width, height: nil), context: childContext)
 
         let declaredMode = context.environment.declaredAnchorModes.standing

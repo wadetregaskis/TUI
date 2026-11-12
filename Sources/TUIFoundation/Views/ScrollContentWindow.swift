@@ -79,6 +79,17 @@ struct ScrollContentWindow: Hashable {
     /// the stack emitting the classic full-height buffer.
     var reply: ScrollContentReply?
 
+    /// The scroll view's position as a place in its content
+    /// (``ScrollViewHandler/contentAnchor``), for the windowed stack at the
+    /// content's origin to walk and move on its anchored path. `nil` (tests,
+    /// direct injection) leaves the stack an anchor of its own.
+    ///
+    /// Not part of equality or hashing, as ``reply`` is not: one scroll view's
+    /// windows all carry the same anchor, and what it holds is state the stack
+    /// moves, not what the window describes. A memo keyed on the window would
+    /// otherwise see a change with every row scrolled.
+    var anchor: ScrollContentAnchor?
+
     /// One line of headroom per edge when the "N more above/below" indicators
     /// can replace the viewport's first/last line — the same reservation
     /// ``ScrollToRequest/topInset`` makes for seeks, carried on the window

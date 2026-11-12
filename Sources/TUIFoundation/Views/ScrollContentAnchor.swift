@@ -16,15 +16,28 @@ import TUICore
 /// above the viewport's top — with the dead reckoning that keeps the scroll
 /// view's offset in lines in step with it.
 ///
-/// Written by the column that draws the rows — a windowed lazy stack, on its
-/// anchored walk (`StackAnchoredWindow.swift`) — which is the only one that can
-/// measure a row; the absolute offset the scroll view keeps is the reading the
-/// anchor is walked to and derived against.
+/// The scroll view holds it (``ScrollViewHandler/contentAnchor``): the anchor
+/// is the scroll view's position, as SCROLL-FIT's pull needs it to be, and the
+/// absolute offset it keeps is the reading the anchor is walked to and derived
+/// against. The column that draws the rows writes it — a windowed lazy stack
+/// at the content's origin, on its anchored walk (`StackAnchoredWindow.swift`)
+/// — being the only one that can measure a row.
 ///
 /// A class, not a value: the scroll view hands it down to its content in the
 /// request (``ScrollContentWindow/anchor``), and the column writes it in place,
 /// as it answers in ``ScrollContentReply``.
 final class ScrollContentAnchor {
+    /// The column whose row the anchor names — the head of the route to it
+    /// (`ViewIdentity`; the row is the column's child at ``ordinal``, keyed
+    /// ``key``) — or `nil` before any column has claimed it.
+    private(set) var column: ViewIdentity?
+
+    /// The window state of the column that claimed it. Weak, and compared by
+    /// identity: a column whose state was let go and made afresh — not drawn
+    /// for a frame, so its `StateStorage` box was pruned — finds its anchor
+    /// gone, as it found it when the anchor lived in that box.
+    private weak var holder: StackWindowState?
+
     /// The row the viewport is anchored on, by its ordinal among the column's
     /// rows.
     var ordinal = 0
@@ -55,4 +68,27 @@ final class ScrollContentAnchor {
     var reportedTotal: Int?
 
     init() {}
+
+    /// This anchor, for the column at `column` whose window state is `state`
+    /// to read and move: as it left it, or — for a column that did not leave
+    /// it — afresh, as a new column's own anchor started (row 0, nothing
+    /// hidden, nothing derived or reported).
+    ///
+    /// Afresh for another column, so a scroll view whose content changes from
+    /// one lazy stack to another does not hand the second the first one's row;
+    /// and afresh for the same column drawn anew, so the scroll view's holding
+    /// it changes nothing the stack's holding it did (SCROLL-FIT P1 moved it
+    /// here with no output changed).
+    func claimed(byColumn column: ViewIdentity, state: StackWindowState) -> ScrollContentAnchor {
+        if holder !== state || self.column != column {
+            ordinal = 0
+            key = nil
+            within = 0
+            derivedOffset = 0
+            reportedTotal = nil
+            holder = state
+            self.column = column
+        }
+        return self
+    }
 }

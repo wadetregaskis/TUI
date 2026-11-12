@@ -246,11 +246,10 @@ final class StackWindowState {
 
         // MARK: Anchor (variable-height content, §5e/§6a)
 
-        /// The scroll position the anchored walk reads and moves: the row at the
-        /// viewport's top and the lines of it above the top, with the dead
-        /// reckoning that keeps the scroll view's offset in step with it
-        /// (``ScrollContentAnchor``).
-        let anchor = ScrollContentAnchor()
+        /// The scroll position the anchored walk reads and moves when no scroll
+        /// view hands it one — a window a test injects. Under a scroll view the
+        /// walk moves the scroll view's own (``ScrollContentWindow/anchor``).
+        let ownAnchor = ScrollContentAnchor()
 
         /// The row key a bound `.anchorPosition(.row(id))` last DESIGNATED, or
         /// `nil` when the anchor is the implicit top-visible row.

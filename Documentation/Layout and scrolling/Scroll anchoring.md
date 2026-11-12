@@ -460,9 +460,10 @@ last inconsistency: the anchored walk used to slam the row to the viewport
 and the §1.2 selection shadow-switch inherited that jump on every first
 arrow-key press.
 
-The fix generalised `anchorOffsetWithin` to **signed** — negative meaning the
+The fix generalised the anchor's `within` (`ScrollContentAnchor`, then the stack's
+`anchorOffsetWithin`) to **signed** — negative meaning the
 anchor sits that many lines *below* the viewport top, which is exactly the
-"anchor below the top" the invariant `anchorY = offset - anchorOffsetWithin`
+"anchor below the top" the invariant `anchorY = offset - within`
 could not previously express. Adoption walks real pitches from the old anchor to
 find the row's current line (bounded — a visible row is at most a viewport of
 rows away; farther is off-screen and revealed at the top edge — or, let go by a
@@ -840,7 +841,7 @@ With the hold, the anchored walk holds by key again: the rows on screen are laid
 out from the held row whatever the running pitch says, so a refined estimate
 moves the scrollbar, never the rows. The offset follows the held row by the rows
 the change put above it times the running pitch, so the scrollbar and "N more
-above" keep up — moving `lastDerivedOffset` with it, so the walk sees only a
+above" keep up — moving the anchor's `derivedOffset` with it, so the walk sees only a
 scroll made since the last frame — and when the held row is the first, the
 offset is exact: the lines of it above the viewport.
 

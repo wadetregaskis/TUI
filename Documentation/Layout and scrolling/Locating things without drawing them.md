@@ -1350,6 +1350,7 @@ answers:
 | §5i — the uniform fast path | `c3ecc31d` (2026-07-17) | `UniformSeekWindowTests` |
 | Stage 6 — `renderedContent` draws only the window | `1ca37d88` (2026-07-17) | `SlicedWindowTests` |
 | Stage 6b — …on BOTH axes, not just a vertical-only view | 2026-09-22 | `ScrollTwoAxisWindowTests` |
+| SCROLL-FIT P1 — the anchor held by the scroll view (`ScrollContentAnchor`), no output changed | 2026-11-11 | `ScrollContentAnchorTests`; `frame_parity.py` over every Stress scenario |
 
 Stage 6 needed no protocol change, so §10's falsification criterion held.
 One honest limit: `LayoutPlacing` has exactly one conformer, `_VStackCore`

@@ -356,6 +356,11 @@ extension _ScrollViewCore {
     /// - Parameter horizontalScrollOffset: The horizontal offset the drawing is
     ///   made at, which places the content for its readers (the vertical one
     ///   is `verticalScrollOffset`).
+    /// - Parameter contentAnchor: The scroll view's position as a place in its
+    ///   content (``ScrollViewHandler/contentAnchor``), which a windowed stack
+    ///   at the content's origin walks and moves. Required, not defaulted
+    ///   with `handler`: the redrawings pass no handler, and a drawing without
+    ///   the anchor would walk another.
     /// - Parameter slide: How far the window will be slid up over the
     ///   content past the offset — the overscroll excursion less the alignment
     ///   anchor's shift — which places the content for its readers too: `0`
@@ -364,8 +369,8 @@ extension _ScrollViewCore {
     func renderedContent(
         contentWidth: Int, viewportHeight: Int, horizontal: Bool,
         verticalScrollOffset: Int, horizontalScrollOffset: Int = 0, slide: Int = 0, seek: ScrollToRequest? = nil,
-        edgeInset: Int = 0, handler: ScrollViewHandler? = nil, checkpoint: RenderWalkCheckpoint? = nil,
-        context: RenderContext, settledExtents: (width: Int, height: Int)? = nil,
+        edgeInset: Int = 0, handler: ScrollViewHandler? = nil, contentAnchor: ScrollContentAnchor?,
+        checkpoint: RenderWalkCheckpoint? = nil, context: RenderContext, settledExtents: (width: Int, height: Int)? = nil,
         topRowHold: TopRowHold = .off, remeasured: Bool = false
     ) -> (
         buffer: FrameBuffer,
@@ -425,7 +430,13 @@ extension _ScrollViewCore {
         measureContext.environment.scrollContentWindow = ScrollContentWindow(
             offset: verticalScrollOffset, viewportHeight: viewportHeight,
             contentIdentity: measureContext.identity,
-            reply: contentReply, edgeInset: edgeInset,
+            reply: contentReply,
+            // The position the content's windowed stack walks from and moves,
+            // on every drawing, the frame's first and every redrawing: those
+            // pass no `handler`, and a drawing without the anchor walked one
+            // the stack keeps for windows that bring none.
+            anchor: contentAnchor,
+            edgeInset: edgeInset,
             // Only sample when someone is bound to hear it.
             reportsIDAt: context.isMeasuring
                 ? nil : pageScrollPosition(context.environment)?.anchor,
@@ -485,7 +496,7 @@ extension _ScrollViewCore {
                 horizontal: horizontal,
                 verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
                 horizontalScrollOffset: horizontalScrollOffset, slide: slide, edgeInset: edgeInset,
-                handler: handler, checkpoint: checkpoint, context: context,
+                handler: handler, contentAnchor: contentAnchor, checkpoint: checkpoint, context: context,
                 // The first drawing held what there was to hold; this one,
                 // at the offset that drawing settled on, only keeps track.
                 topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
@@ -521,7 +532,7 @@ extension _ScrollViewCore {
                     contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: horizontal,
                     verticalScrollOffset: contentReply.seekResolvedOffset ?? verticalScrollOffset,
                     horizontalScrollOffset: target, slide: slide, edgeInset: edgeInset,
-                    handler: handler, checkpoint: checkpoint, context: context, settledExtents: extents,
+                    handler: handler, contentAnchor: contentAnchor, checkpoint: checkpoint, context: context, settledExtents: extents,
                     topRowHold: topRowHold == .off ? .off : .tracking, remeasured: true)
                 redrawn.seek = redrawn.seek ?? contentReply.seekResolvedOffset.map { ($0, contentReply.resolvedOffsetIsHold) }
                 return redrawn

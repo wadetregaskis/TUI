@@ -191,6 +191,18 @@ struct ScrollContentAnchor: Equatable {
 }
 ```
 
+**As P1 built it** (`ScrollContentAnchor.swift`): a class, not this struct, because the request
+carries it down by reference and the column writes it in place, as `ScrollContentReply` travels
+back. `ScrollViewHandler.contentAnchor` holds it and `ScrollContentWindow.anchor` hands it down.
+It holds the row as its column's identity (`column`, the route's head) with the row's `ordinal`
+and `key`, the signed `within`, and the dead reckoning that was the stack's: `derivedOffset`
+(was `lastDerivedOffset`) and `reportedTotal` (was `lastReportedTotal`). A column claims it each
+frame (`claimed(byColumn:state:)`) and finds it afresh when it is another column, or the same
+column drawn anew after its window state was pruned, which is exactly when its own anchor used to
+start afresh, so the move changed no output. `subRow` (P4's `TextEditor`), `edge` (follow mode,
+still the scroll view's declared anchor and tail glue) and the multi-level `route` (P2's router)
+arrive with their first readers; with content at the origin only, the route is one level.
+
 `ScrollViewHandler.scrollOffset` stays, as the derived reading. Input keeps speaking in lines,
 as it does today. The wheel, the arrows, Page Down, a glide step and a short scrollbar drag each
 change the offset by a delta, and the delta is walked in row space from the anchor: one line up
@@ -356,8 +368,8 @@ one engine.**
   in Locating §6b: on a first render no content height has been recorded, so the scrollbar's
   first round climbs the ladder at the other width. Under the pull, the scroll view learns
   whether the content overflows from the fill itself (did it reach the content's end before the
-  viewport was full?), so the first frame needs no total. P1 pins the count at under 100 at
-  10,000 rows.
+  viewport was full?), so the first frame needs no total. P2 pins the count at under 100 at
+  10,000 rows (moved from P1, which changes no count the baseline pins: section 4).
 
 ### 1e. Focus: an unbuilt row stays reachable
 
@@ -588,7 +600,8 @@ way (the existing cap, rarely spent).
    (anchor, focus, request) and must equal a fresh render's.
 4. **P1 only: byte-identical frames.** P1 moves the anchor into the scroll view and changes no
    output. Every scroll test passes unchanged, and a parity harness renders the scroll suites'
-   scenes on the base and on the lane and compares every frame.
+   scenes on the base and on the lane and compares every frame: `Tools/Profiling/frame_parity.py`
+   over `Stress --bench --frame-checksums`, every scenario, variant and session.
 
 **The cost that must go: design D's.** `grouped-feed` was +706.8% (17.0 → 137.2 ms a frame) and
 +64 MB (RSS 20.1 → 84.2 MB) when D landed. Its rows built a write frame went from 4,093 to
