@@ -69,6 +69,11 @@ func placeLayer<Layer: View>(
     if baseBuffer.isEmpty, baseBuffer.overlays.isEmpty, baseBuffer.hitTestRegions.isEmpty {
         return .alone(TUIView.renderToBuffer(layer, context: overlayContext))
     }
+    if let placement = pulledLayerPlacement(
+        layer, in: baseBuffer, alignment: alignment, layerContext: overlayContext, context: context)
+    {
+        return placement
+    }
 
     // The overlay is laid out IN the base's frame, so it is offered the
     // size the base came back at rather than the whole space this modifier
@@ -168,6 +173,47 @@ func placeLayer<Layer: View>(
         }
     }
     return .placed(overlayBuffer, at: position)
+}
+
+/// `layer` placed over or under a base that drew only a band of itself — a
+/// pulled lazy stack in scroll content (SCROLL-FIT design 1b, the parallel
+/// shape's secondary) — or `nil` for any other base.
+///
+/// The layer is laid out against the whole content, as SwiftUI lays it out
+/// against the whole stack: offered the content's width and its (estimated)
+/// height, placed there by `alignment`, and only what of it the band holds is
+/// drawn, at its line in the band. So `.overlay(alignment: .bottom) { badge }`
+/// sits under the content's last row, not at the foot of every screen of it,
+/// and a layer the band misses draws nothing. A layer as tall as the content
+/// — a colour, a shape, anything that fills the space it is offered — is
+/// drawn the band's height, at its top: what it draws over the band is what
+/// it draws over any band of it, a fill being the same all down.
+@MainActor
+private func pulledLayerPlacement<Layer: View>(
+    _ layer: Layer, in baseBuffer: FrameBuffer, alignment: Alignment, layerContext: RenderContext,
+    context: RenderContext
+) -> LayerPlacement? {
+    guard !context.isMeasuring, baseBuffer.width > 0, baseBuffer.height > 0,
+        let window = context.environment.scrollContentWindow, window.isAtOrigin(context.identity),
+        let reply = window.reply, let origin = reply.sliceOriginY, let total = reply.sliceTotalHeight,
+        total > baseBuffer.height
+    else { return nil }
+    var framed = layerContext
+    framed.availableWidth = baseBuffer.width
+    framed.availableHeight = total
+    let size = measureChild(layer, proposal: ProposedViewSize(width: baseBuffer.width, height: total), context: framed)
+    let fills = size.height >= total
+    let height = fills ? baseBuffer.height : size.height
+    let top = fills ? 0 : alignment.vertical.childOffset(childHeight: size.height, in: total) - origin
+    guard top < baseBuffer.height, top + height > 0 else { return .baseOnly }
+    framed.availableHeight = height
+    let buffer = TUIView.renderToBuffer(layer, context: framed)
+    guard !buffer.isEmpty || !buffer.overlays.isEmpty || !buffer.hitTestRegions.isEmpty else { return .baseOnly }
+    let x = alignment.horizontal.childOffset(childWidth: buffer.width, in: baseBuffer.width)
+    // What of it lies above the band is cut here; what lies below, by the
+    // clamp to the base's box the composite makes.
+    guard top < 0 else { return .placed(buffer, at: (x, top)) }
+    return .placed(buffer.lines(in: -top..<buffer.height), at: (x, 0))
 }
 
 /// `composite` cut back to `baseBuffer`'s box.

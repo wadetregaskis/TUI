@@ -31,6 +31,10 @@ struct PulledContainersTests {
         /// whose badge a guide moves down: what the eager containers draw
         /// differently from their plain layout, which a pulled one must too.
         case hStackGuided, hStackZIndex, zStackGuided
+        /// An overlay and a background that are views placed at an edge, laid
+        /// out against the whole stack: the badge under its last row, the
+        /// mark beside its first.
+        case overlayView, backgroundView
 
         /// The shapes that pull: every one but `TabView`, whose strip the
         /// request is not yet moved below (SCROLL-FIT design, "Still to do").
@@ -69,6 +73,8 @@ struct PulledContainersTests {
         case .groupBox: GroupBox { rows() }
         case .background: rows().background(Color.blue)
         case .overlay: rows().overlay(alignment: .topTrailing) { Text("*") }
+        case .overlayView: rows().overlay(alignment: .bottomTrailing) { Text("e*\n n*\n d*") }
+        case .backgroundView: rows().background(alignment: .topTrailing) { Text("~t\n o\n p") }
         case .hStack:
             HStack(alignment: .top, spacing: 1) {
                 Text("|")

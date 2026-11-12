@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An overlay on a long lazy stack in a scroll view stands where its alignment puts it on the whole stack.**
+`.overlay(alignment: .bottom) { badge }` on a `LazyVStack` of thousands of rows drew the badge at the foot of every
+screenful as you scrolled: the overlay was laid out against the rows drawn, not the stack. It, and a background that
+is a view, are laid out against the whole stack now, as SwiftUI lays them out, and show only where that falls on
+screen. A colour or a shape that fills the stack is drawn as before.
+
 **Shift-Tab steps back to the control above a long lazy stack once it is scrolled out of sight.** In a scroll view
 whose `VStack` held a long `LazyVStack` under a button, scrolled a line or two down, Shift-Tab from the stack's first
 row skipped the button and went on to the control before the scroll view, and Tab from the button, once it had

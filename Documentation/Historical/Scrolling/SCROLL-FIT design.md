@@ -379,8 +379,15 @@ Still to do after the second lane:
   child. A relay below the strip alone (tried in the second lane) drew End right but not the rest:
   the tab view sizes its panel by every tab's measure, so its rows built still grew with the row
   count and its width and centring differed from the eager twin's. `NavigationStack` at its root,
-  `.background` and `.overlay` (with a style or a view: the twin comparison draws them alike)
-  already pull.
+  `.background` and `.overlay` already pull. *Fixed in the fourth lane:* a layer that is a view
+  placed at an edge (`.overlay(alignment: .bottomTrailing) { badge }`) was laid out against the
+  band, so it stood at the foot of every screen of the stack; it is laid out against the whole
+  content now, as SwiftUI lays it out against the whole stack — offered the content's width and
+  estimated height, placed there by its alignment, and drawn only where the band holds it
+  (`pulledLayerPlacement`). A layer as tall as the content (a colour, a shape) is drawn the
+  band's height: a fill draws the same over any band of it. `PulledContainersTests`' twins
+  `overlayView` and `backgroundView` compare it with the eager stack's at the top, paged and at
+  the end.
 - ~~**Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).**~~ Built in the third lane, below.
 - ~~**The focus reveal as an anchor (1e).**~~ Built in the fourth lane: a focus move to a
   control the content holds only off its band is a seek by the focus's route. Reveal used to move
