@@ -181,15 +181,16 @@ struct PulledColumnTests {
         #expect(app.screen.contains("a399"), "\(app.screen)")
     }
 
-    /// Each section is priced by a sample of its stack, never walked: 506 rows
-    /// a write frame at 40 sections, against 27,932 when nested stacks were
-    /// drawn whole (design D). The same at 320, to a sample of sixteen rows
-    /// (746 at both alone, 730 at 320 in a full run, after other suites in
-    /// the process): the outer stack answers the scroll view's natural-extent
-    /// ladder with its whole estimate, which the ladder steps past in one
-    /// rung. Capped at each rung, the taller estimate took a rung more and a
-    /// sample more (986 rows).
-    @Test("Lazy stacks in the rows of an outer one build the same sample a write frame at 40 and 320 sections")
+    /// Each section is priced by a sample of its stack, never walked: 506 or
+    /// 746 rows a write frame (a rung of the scroll view's natural-extent
+    /// ladder whose sample a pass's memo serves or not, by what ran before in
+    /// the process), against 27,932 when nested stacks were drawn whole
+    /// (design D). However tall: the outer stack answers the ladder with its
+    /// whole estimate, which the ladder steps past in one rung, so no more
+    /// than two rungs' samples at 320 sections or at 2,560. Capped at each
+    /// rung, a taller estimate took a rung more and a sample more a step of
+    /// eight: 986 rows at 320 sections.
+    @Test("Lazy stacks in the rows of an outer one build no more a write frame at 320 and 2,560 sections than two rungs' samples")
     func groupedSectionsBuildAScreenful() {
         func builtOnWrite(sections: Int) -> Int {
             let builds = Builds()
@@ -201,10 +202,10 @@ struct PulledColumnTests {
             #expect(app.screen.lines[0].hasPrefix("tick 1"), "precondition: the write landed: \(app.screen)")
             return builds.count
         }
-        let forty = builtOnWrite(sections: 40)
-        #expect(forty < 1_000, "a write frame built \(forty) rows")
-        let threeHundredTwenty = builtOnWrite(sections: 320)
-        #expect(abs(threeHundredTwenty - forty) <= 16, "320 sections: \(threeHundredTwenty), 40: \(forty)")
+        for sections in [40, 320, 2_560] {
+            let built = builtOnWrite(sections: sections)
+            #expect(built <= 760, "\(sections) sections: a write frame built \(built) rows")
+        }
     }
 }
 
