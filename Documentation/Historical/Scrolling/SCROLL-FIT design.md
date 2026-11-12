@@ -1,40 +1,51 @@
-# SCROLL-FIT: content-sized views in scroll content, and the window that makes them cheap
+# SCROLL-FIT: content-sized views in scroll content, built on the pull
 
 *The design for steps 2 and 3 of the owner's SCROLL-FIT ruling of 2026-11-11: how a scroll view
-lets content at any depth build only the rows it shows, and what changes when content-sized
-views stop filling or capping at the visible area. Written 2026-11-11 against `main` at
-59c9207dc, from step 1's measurements (`ScrollFitBaselineTests`, commit 1d8296c66; findings in
-`Documentation/Working notes/plan/SCROLL-FIT-baseline.md`). Ids: A-SCROLLFIT-1 to 3 (for the
-owner), B-SCROLLFIT-1 to 10 (decided here).*
+draws only the rows it shows wherever they sit in its content, and what changes when
+content-sized views stop filling or capping at the visible area. First written 2026-11-11
+against `main` at 59c9207dc around a relay of the scroll window (commit b5481ecf2), from step
+1's measurements (`ScrollFitBaselineTests`, commit 1d8296c66; findings in
+`Documentation/Working notes/plan/SCROLL-FIT-baseline.md`). Revised the same day around the
+pull (design C, NESTED-LAZY-PULL) after the owner's A-SCROLLFIT-3. Ids: A-SCROLLFIT-1 to 3
+(answered), A-SCROLLFIT-4 and 5 (for the owner), B-SCROLLFIT-1 to 18 (decided here; 1 and 4
+superseded by the pull, 2 renamed).*
 
 ## In short
 
-The scroll view already tells the content at its origin which lines are visible
-(`ScrollContentWindow`), and `Section`, `.padding` and the content margins relay that window to
-content they draw at their own identity (`ScrollWindowRelay`). This design passes the window on
-through every container that knows where it places a child: `VStack` and `HStack`, the bordered
-chrome, the wrappers, and a content-sized nested `ScrollView`. Each hands its child the window in
-the child's own coordinates and builds its own *band* (the visible slice of its lines) from what
-the children send back. `List`, `Table`, `TextEditor`, the lazy stacks and the grouped `Form` then
-build only the rows the window covers, plus the focused row and any pending targets, which are
-built outside the band.
+The scroll view keeps its position as an **anchor**: the identity of a row in its content,
+plus how many lines of that row are hidden above the viewport. To draw, it asks its content to
+fill the viewport outward from the anchor. Each container routes the request to the child the
+identity chain names, which costs O(1) a level and builds nothing. It lets that child fill
+first, then places its other children outward, up and then down, until the viewport is full.
+Each container answers only for its own children, so a lazy stack's total height, a footer
+below a million rows, or a section off screen is never measured.
 
-Rows that have not been built have heights that are either arithmetic (fixed pitch) or an
-estimate at the running pitch. The scroll view's existing top-row hold keeps the row on screen
-still while an estimate settles. So measuring is O(1) per container, and a frame costs
-O(visible) wherever the content sits.
+Containers implement one package protocol, `ScrollPlacing`, which refines the `LayoutPlacing`
+that ships. Single-child wrappers and an app's own views forward the request for free. Eager
+containers (`VStack`, `HStack`, `Grid`) build every child and paint only the rows the fill
+reaches. A view that does not conform is a leaf drawn whole, and the anchor inside it is a line
+offset.
 
-Step 3 then switches the defaults behind one flag:
+The SwiftUI APIs that speak in absolute lines (`ScrollPosition(y:)`, `onScrollGeometryChange`,
+the scrollbar thumb, "N more") read a derived offset. That offset is exact for fixed-pitch and
+eager content, and an estimate elsewhere, carried by dead reckoning so that it stays steady.
+Every other movement (the wheel, keys, Page Down, `scrollTo`, a focus jump) is exact, at a cost
+of O(visible).
 
-- content-sized views take their content's height;
-- fillers take their minimum;
-- `.fixedSize` climbs the measure ladder;
-- a tall table's header and horizontal bar are pinned like a section's header and footer;
-- the outer scroll view reveals a table's cursor, as it already does a list's.
+The relay version's other parts carry over:
 
-Seven lanes take about 9½ lane-days. Three questions for the owner remain: eager
-containers' off-screen rows, the vertical axis of a horizontal scroll view, and whether this
-replaces design C (the pull).
+- build only the visible rows in `List`, `Table`, `TextEditor`, the lazy stacks, and the
+  non-lazy containers A-SCROLLFIT-1 names;
+- content-sized defaults behind one switch;
+- a tall table's header and horizontal bar pinned to the visible area;
+- keyboard reveal through the outer scroll view;
+- `.fixedSize` on the measure ladder;
+- A-SCROLLFIT-2's horizontal case.
+
+Nine lanes take about 24½ lane-days (20 to 32), about five weeks of one landing stream.
+`NavigationSplitView`'s height (L0) runs separately and is left out. Two questions for the
+owner remain: how far a `scrollTo` searches for an id nested in rows never built, and how
+`FlowLayout` finds its line breaks.
 
 ## The problem
 
@@ -44,6 +55,17 @@ content's size by default. That axis is a `ScrollView`'s scroll axis, under `.fi
 popover that sizes to its content. Space-fillers take their minimum. `.frame(height:)`,
 `.frame(maxHeight:)` and `.containerRelativeFrame(.vertical)` stay available as opt-outs. Until
 this ships, TABLE-TALL's (a) holds (5cec75080: a table is capped at the visible height).
+
+**The answers that followed (same file).**
+
+- **A-SCROLLFIT-1, narrowed (a).** A container stays eager (builds every row, as SwiftUI's
+  does) only where SwiftUI has a lazy counterpart and is itself eager: `VStack`/`HStack` and
+  `Grid`. `GroupBox`, `DisclosureGroup`, `FlowLayout`, a `.columns` `Form` and a `Section`'s
+  content outside a `List` build only their visible rows past a threshold, accepting that an
+  off-screen row's `onAppear`/`.task` runs when it scrolls in.
+- **A-SCROLLFIT-2 (b).** `ScrollView(.horizontal)` proposes its own height. Tables and lists fit
+  it and scroll themselves; content still taller keeps today's vertical scrolling.
+- **A-SCROLLFIT-3 (c).** Build the pull, not the relay.
 
 **What step 1 measured** (60 × 24, debug; the table in the baseline report):
 
@@ -68,590 +90,695 @@ this ships, TABLE-TALL's (a) holds (5cec75080: a table is capped at the visible 
    It reads "filled the budget" as "greedy", so every view at 10,000 rows falls back to the space
    it is offered (23 lines), after building 4,153 table rows to show 20.
 5. **`NavigationSplitView` reports a height of one line**, flexible
-   (`_NavigationSplitViewCore.sizeThatFits`). So in a scroll view it is the viewport's height, and
-   under `.fixedSize` it is one line. That is a bug in its own right.
+   (`_NavigationSplitViewCore.sizeThatFits`). L0 fixes it separately.
 6. **`ScrollView(.horizontal)` also scrolls vertically.** `resolveScrollbars` and the render
    never check `axes.contains(.vertical)`, so its vertical axis is unbounded too.
 7. **The focus reveal at launch scrolls a title away** above a focused table or list as tall as
    the viewport. `FrameBuffer.revealTarget` reveals the whole control on arrival.
 
-Design C was the owner's answer to the same cost for lazy stacks nested in content. It is
-NESTED-LAZY-PULL, ruled for on 2026-09-26 ("land D first … then pursue C"), described in
-[Locating things without drawing them](<../../Layout and scrolling/Locating things without drawing them.md>) §5b and §6b,
-and it never started. That story is
-[Measuring a scroll view's content](<Measuring a scroll view's content - the overflow check, wide rows and nested lazy stacks.md>).
-This design delivers the same O(visible) by a different route. A-SCROLLFIT-3 asks whether it
-replaces design C.
+**A nested lazy stack today** is design D: it is drawn whole, its measure walking every row its
+budget reaches (`anchoredSizeThatFits`, told it is nested by `RenderContext.scrollContentOriginDepth`
+and `leaveScrollOrigin()`). That is correct, and its price was measured when it landed (series
+total, 49cbee2b3 to 8c3bc1e62, paired A/B, release, 2026-09-27): `grouped-feed` +706.8%, 17.0 →
+137.2 ms a frame and RSS 20.1 → 84.2 MB; `grouped-feed-uniform` +427.4%; `headed-log` +52.9%. The
+owner accepted it as the price of a correct drawing and ruled the pull as its follow-up ("land D
+first … then pursue C"). The story is
+[Measuring a scroll view's content](<Measuring a scroll view's content - the overflow check, wide rows and nested lazy stacks.md>);
+the design is [Locating things without drawing them](<../../Layout and scrolling/Locating things without drawing them.md>)
+§3 (anchors), §5b (one traversal, seekable), §6b (the scroll view pulls, the stacks answer) and §8
+(costs).
 
-## 1. Windowing anywhere in scroll content (step 2)
+## Superseded: the relay
 
-### 1a. What exists, and what each piece already does
+The first version of this document (b5481ecf2) passed the scroll view's window, a range of the
+content's lines, down through every container that places a child. Each container moved the
+window into the child's coordinates by the child's measured y (B-SCROLLFIT-1) and handed a
+still window to a child wholly off screen so its memo held (B-SCROLLFIT-2). A `scrollTo` named
+its holder so the relays built it (B-SCROLLFIT-4). It estimated about 9½ lane-days.
 
-| Piece | Where | What it does today | Reused for |
+The owner was told the pull is technically superior and more effort, and answered "If that's
+accurate, then do Pull" (A-SCROLLFIT-3, (c)). What the relay could not do, and the pull does:
+
+- **No total is needed to draw.** The relay placed a child by its y, which is the sum of every
+  sibling's height above it. So every consumer had to report a total, an estimate for variable
+  rows, and content *below* a variable list moved as that estimate settled. Under the pull, a
+  container visits only the children the fill reaches, and a total is asked for only by the
+  scrollbar and the absolute-offset readings.
+- **A far `scrollTo` or focus jump is exact at about constant cost.** The target becomes the
+  anchor, and the frame is filled around it. The relay had to turn the target into a content
+  offset through every level's estimated heights, then window back down to it.
+- **One engine.** The relay needed a band assembler and a still-window rule in every relaying
+  container. The pull has one outward walk, shared by every container, which answers only how
+  its own children are laid out.
+- **It is the design already ruled for** on 2026-09-26, and the anchored lazy stack, the anchor
+  ladder and the top-row hold that ship are its pieces.
+
+The caveats were stated and accepted. The scrollbar thumb and "N more" stay estimates for rows
+of varying height either way. A list inside an app's own `Layout` needs a placement protocol
+(B-SCROLLFIT-13).
+
+Kept from the relay, under the pull: the arithmetic of `ScrollWindowRelay` (it becomes the
+forward shape), the still window for subtrees off screen (now the off-band request), fixed pitch
+as arithmetic and variable pitch as an estimate (B-SCROLLFIT-3), and everything in step 3
+(B-SCROLLFIT-5 to 10).
+
+## 1. The pull (step 2)
+
+### 1a. What exists, and what each piece becomes
+
+| Piece | Where | What it does today | Under the pull |
 |---|---|---|---|
-| `ScrollContentWindow` | `TUIFoundation/Views/ScrollContentWindow.swift` | Carries the visible slice down: offset, viewport height, the addressee (`contentIdentity`), the lines drawn above and below the consumer (`linesAbove`/`linesBelow`), the pending seek, read-back sampling and the top-row hold. | The window, unchanged in kind. Its addressee becomes "the child this container handed it to". |
-| `ScrollContentReply` | same file | Sends the answer back up: the slice (`sliceOriginY`, `sliceTotalHeight`, `sliceTotalIsEstimate`, `sliceHoldsFirstRow`/`LastRow`), `drawnLines`, `seekResolvedOffset`, `measureWentStale`, target layouts and ids. | Every relaying container's answer. |
-| `ScrollWindowRelay` | `ScrollWindowRelay.swift` | For a view that draws N lines above its content and M below (`Section`, `.padding`, the margins), moves the window into the content's coordinates and moves the reply back (`beneath(linesAbove:linesBelow:reply:)`, `answer(contentBuffer:linesBelow:)`). | The single-child relay, as it is. The multi-child relay is new (1b). |
-| The uniform window | `StackUniformWindow.swift` | Treats a common row height as a hypothesis, seeded from row 0, checked against every row it measures, and dropped for good on the first row that differs. Placement is then arithmetic. | Fixed-pitch rows in `List` and `Table` (1c). |
-| The anchored window | `StackAnchoredWindow.swift`, `StackAnchoredMeasure.swift` | Variable rows past 256: the position is a persisted anchor (row plus lines hidden), the band fills outward from it, and the extents of rows never built are estimated at the running pitch. | Variable rows in `List`, `Table` and `TextEditor`, through one shared engine (1c). |
-| The top-row hold | `StackTopRowHold.swift`, `TopRowHold` | Moves the offset by however far the content above moved the row at the viewport's top. | Absorbing an estimate as it settles, at any depth (1c). |
-| Off-band rows | `StackOffBandRows.swift`, `StackFocusReach.swift` | Builds the focused row, its neighbours and a pending focus target outside the band, for their regions and ring places. Probes up to 64 rows for the next focusable row past rows that cannot take focus. Grafts regions without adding lines. | Focus through unbuilt rows at every level (1e). |
-| `targetOrdinal` / `ordinal(of:)` | `StackFocusReach.swift`, `StackLayoutPlacing.swift` | Finds which child holds a focus id or an identity, from the identity path, without building rows. | Finding the child that holds a focus or seek target (1e, 1f). |
-| `ChildViewCollection` | `TUIView/Rendering/ChildViewCollection.swift` | Gives O(1) `count`, plus `key(at:)`/`anyID(at:)` with no row built, and builds a row on subscript. `.varying` `ForEach` rows build every member to count them. | The lazy stacks' row source, as it is. |
-| `RowSource`, `ScrollRowWindow.resolve` | `TUILists/Views/_ListCore.swift`, `ScrollRowWindow.swift` | `List`'s O(1) count and lazy ids. Picks which rows to build from an offset, a height and a per-row height closure. `Table` calls the same resolver with `{ _ in 1 }` for single-line rows. | Unchanged. Fed the outer window instead of the view's own offset (1c). |
-| Pinned chrome | `ScrollPinnedChrome.swift`, `OverlayLayer.ScrollPin`, `PinnedChromeCover` | A section's header or footer copy rides as a layer to the nearest scroll view, which pins it to the viewport edge while the section is under it. Reveal keeps a focused row out from under it. | A table's header and horizontal bar (2c). |
-| The cursor marker | `_ListCore` and `Table` stamp a one-row `HitTestRegion` at the cursor's drawn line; `snapViewportToFocusedControl` reveals it | How the outer scroll view follows a list's cursor today. | Both containers' cursor reveal through the outer view (2d). |
-| `WindowedRowFade`, `WindowedRowRecord` | `TUIView/Animation/WindowedRowFade.swift` | Fades a new row in only if it was not drawn last frame *and* was not in the data. Rows reached by scrolling appear without a fade. | Unchanged, provided `isRow` stays a data question (1g). |
+| `LayoutPlacing` | `TUIView/Rendering/LayoutPlacing.swift` | §5b's seekable shape: `placementCount`, `placement(at:)`, `ordinal(of:)`, `uniformExtent`. One conformer, `_VStackCore` (`StackLayoutPlacing.swift`). | Refined by `ScrollPlacing` (1c). `placement(at:)`'s y is a prefix from child 0, so the pull never asks it of a child it does not visit. |
+| `ViewIdentity.childStep(below:)` | `TUICore/Rendering/ViewIdentity.swift` | Reads, without building anything, which child of a container leads to an identity: an index or a key. | How every level routes the anchor, a focus target and a located seek (1b). |
+| The anchored window | `StackAnchoredWindow.swift`, `StackAnchoredMeasure.swift`, `StackWindowState` | Variable rows past 256: the anchor (`anchorOrdinal`, `anchorKey`, `anchorOffsetWithin`), outward fill, rows never built estimated at the running pitch. Takes the scroll view's absolute offset and walks the *difference* in row space (`advanceAnchor(to:)`, `lastDerivedOffset`). | Lifted into the scroll view and generalised to any depth (1b, P1). The column shape of the engine *is* this walk. |
+| The anchor ladder | `StackWindowState`, §5f | A deleted anchor falls to its nearest surviving neighbour; a replaced list falls back to the remembered index. | Kept per level: the anchor remembers each placing level's key and ordinal. |
+| The uniform window | `StackUniformWindow.swift` | A common row height as a hypothesis, refuted for good on the first row that differs. | The column shape's fixed-pitch path, for `List` and `Table` too (1d). |
+| The top-row hold | `StackTopRowHold.swift`, `TopRowHold`, `ScrollWindowHold` | Moves the absolute offset by however far the content above moved the row at the top. | Intrinsic: the anchor *is* the held row. `ScrollWindowHold.offset` re-derives the anchor from the derived offset instead (2a, B-SCROLLFIT-16). |
+| `ScrollContentWindow`, `ScrollContentReply` | `ScrollContentWindow.swift` | The window down (offset, viewport, addressee, `linesAbove`/`linesBelow`, seek, read-back sampling, hold); the slice back (`sliceOriginY`, totals, `drawnLines`, `seekResolvedOffset`, `measureWentStale`). | Become the pull request and its reply (1b). The addressee and `isAtOrigin` go: every placing container reads the request. |
+| `ScrollWindowRelay` | `ScrollWindowRelay.swift` | For a view that draws N lines above its content and M below (`Section`, `.padding`, the margins), moves the window in and the reply out. | The forward shape, for every single-child view that draws lines around its content (1c). |
+| `consumableScrollWindow`, `scrollContentOriginDepth`, `leaveScrollOrigin()`, `anchoredSizeThatFits` | `VStack.swift`, `StackLayoutPlacing.swift`, `RenderContext`, `StackAnchoredMeasure.swift` | Window only the content's origin; mark the origin so a nested stack knows to measure every row it reaches (design D). | Deleted in P2, once every placing container reads the request: no origin is special, and a nested stack is pulled, not walked. The mark stays only if the overflow probe still reads it. |
+| Off-band rows | `StackOffBandRows.swift`, `StackFocusReach.swift` | Builds the focused row, its neighbours and a pending target outside the band; the 64-row continuation probe (`focusRingContinuations`). | The engine's off-band routes, at every level (1e). |
+| `ChildViewCollection` | `TUIView/Rendering/ChildViewCollection.swift` | O(1) `count`, `key(at:)`/`anyID(at:)` with no row built, a row built on subscript. | The children of every column, as it is. |
+| `RowSource`, `ScrollRowWindow`, `ScrollExtentEstimator` | `TUILists` | `List`'s O(1) count and lazy ids; which rows to build from an offset; its sample estimate. `Table` uses the resolver with one-line rows. | `List`'s and `Table`'s children and estimators under `ScrollPlacing` (P3, P4). |
+| Pinned chrome | `ScrollPinnedChrome.swift`, `OverlayLayer.ScrollPin`, `PinnedChromeCover` | A section's header or footer rides as a layer to the nearest scroll view, pinned while its section is under the viewport edge. | A table's header and horizontal bar (2c), unchanged. |
+| `WindowedRowFade`, `WindowedRowRecord` | `TUIView/Animation/WindowedRowFade.swift` | A row fades in only if it was not drawn last frame *and* was not in the data. | Unchanged for lazy containers; extended to the containers A-SCROLLFIT-1 windows (1g). |
+| `ScrollToRegistry` | `ScrollViewReader.swift` | Parks a request on every live scroll view; each resolves against its content (`locate(key:)`, `firstOrdinal(forKey:)`, `index(ofScrollKey:)`). | Each scroll view locates the key by routing (1f). |
 
-The new parts are four:
+### 1b. The anchor, and the frame filled from it
 
-- the multi-child relay (1b);
-- the still window for subtrees off screen (1b);
-- one anchored-row engine shared by every row container, where today only `_VStackCore` has it
-  (1c);
-- the seek holder (1f).
+**B-SCROLLFIT-11. The scroll view holds its position as an anchor; the absolute offset is a
+reading derived from it.**
 
-### 1b. The relay: every container that places a child hands it the window
+```swift
+/// ScrollViewHandler's position under the pull (P1). Package-internal:
+/// `ScrollPosition` and `ScrollAnchor<ID>` are already spent on SwiftUI's
+/// and TUI's public shapes (Locating §9).
+struct ScrollContentAnchor: Equatable {
+    /// The row the viewport is anchored on: the deepest placed child the
+    /// fill reached at the viewport's top (or bottom, under `edge`).
+    var row: ViewIdentity
+    /// A line-source leaf's own row below `row` (a `TextEditor`'s logical
+    /// line); `nil` elsewhere.
+    var subRow: Int?
+    /// Lines of the row hidden above the viewport's top (below its bottom
+    /// for `.bottom`).
+    var within: Int
+    /// Top is the default; bottom is follow mode (§5c's edge affinity).
+    var edge: VerticalEdge
+    /// Each placing level's key and ordinal on the way to `row`: the
+    /// ladder a deleted row or a replaced collection falls back on (§5f).
+    var route: [AnchorStep]
+}
+```
 
-**B-SCROLLFIT-1. The window is relayed and addressed child by child; it is not pulled.**
+`ScrollViewHandler.scrollOffset` stays, as the derived reading. Input keeps speaking in lines,
+as it does today. The wheel, the arrows, Page Down, a glide step and a short scrollbar drag each
+change the offset by a delta, and the delta is walked in row space from the anchor: one line up
+looks at one row. That is the trick the anchored stack already plays
+(`advanceAnchor(to:)`, `lastDerivedOffset`), lifted from one stack into the scroll view. A move
+of more than four screens (a long drag, `scrollTo(y:)`, End on unknown content) lands by
+estimate (2b). A `scrollTo`, a focus jump or a `.scrollPosition(id:)` names a row, and that row
+simply becomes the anchor.
 
-Today a stack takes the window only when its identity is a single-child descent from the
-addressee (`ScrollContentWindow.isAtOrigin`, `consumableScrollWindow`). On the measure side, the
-matching test is `RenderContext.scrollContentOriginDepth` with `leaveScrollOrigin()`. A stack
-below a title is one child among several, not at the origin, so it is drawn whole.
+**The fill.** To draw, the scroll view hands its content a **pull request**:
 
-The relay changes what "the origin" means. The window is **re-addressed** by every container that
-knows a child's position:
+- the anchor's route;
+- the lines to fill above the anchor line and below it, which is the viewport's height split at
+  the anchor;
+- the off-band routes: the focused control, a pending seek or focus target, and the margin rows
+  either side of the band.
 
-1. The container measures its children, as it already does to place them. Every window consumer
-   answers O(1) (1d), so this costs what measuring a column of plain views costs.
-2. To each child it hands the window **moved into the child's coordinates** and **addressed to
-   the child's identity**. This is `beneath(linesAbove: childY, linesBelow: containerHeight −
-   childY − childHeight, reply: childReply)` with `contentIdentity` set to the child, and on the
-   measure side the origin depth is set to the child's. The arithmetic is the relay's; what is new
-   is that there are several children, and that the addressee changes.
-3. It **assembles a band of its own**: the lines of its height that the window meets, plus one
-   line either side for the "N more" indicators. A child that answered with a slice (a consumer)
-   is placed by its `sliceOriginY`. A child that answered with a whole buffer (an eager view) is
-   clipped to the band. Regions outside the band are grafted at their places without adding lines,
-   using the off-band graft (`graftOffBandRow`). The container answers its own reply with
-   `sliceOriginY` (the band's top), `sliceTotalHeight` (its height, flagged as an estimate if any
-   child's was), `sliceHoldsFirstRow`/`LastRow`, and the relayed seek, hold, read-back and target
-   fields, as `ScrollWindowRelay.answer` already moves them.
+The request travels the way `ScrollContentWindow` does today: in the render context, with a
+reply back in the same call. Each placing container then does the same four steps:
 
-Shifting the window this way is the part design C's §5b said a push could not state. That
-argument assumed a parent had to know its children's heights *before* it could hand down a
-window. Here the parent knows them, because it has just measured its children, and the measures
-of the children that matter are O(1). Where a height is only an estimate, the top-row hold (1c)
-gives what the pull gave: content on screen never moves when an estimate refines off screen.
+1. **Route.** It reads which child leads to the anchor (`childStep(below:)`, then `ordinal(of:)`,
+   with no row built), and asks that child to fill with the rest of the route.
+2. **Fill outward.** From the child's reply (lines filled above and below the anchor line, and
+   whether it reached its own top or bottom), it fills upward with the children above, each from
+   its bottom edge, and downward with the children below, each from its top edge. It adds its
+   spacing and chrome between them, until both needs are met or it runs out of children.
+3. **Off band.** It draws the children that hold an off-band route and lie outside the band.
+   They are drawn for their regions and focus places (`graftOffBandRow`), without adding lines,
+   and every other child gets an off-band request that does not change while it stays off screen
+   (B-SCROLLFIT-2, kept). So its memo holds, and a consumer inside it draws only its own off-band
+   rows.
+4. **Reply.** It answers with its band, the lines it still owes above and below (so its parent
+   continues outward), whether it reached its top or bottom, and its *estimates* of its lines
+   above and below the band (1d).
 
-**Which containers relay** (each is a small conformance; anything not on the list keeps today's
-behaviour, and its children leave the origin and are drawn whole, which is correct and costs what
-it costs today):
+This is §6b's example made general. In `ScrollView { VStack { header; LazyVStack(1M); footer } }`
+anchored at row 517,203, the column routes to the lazy stack. The stack fills from row 517,203,
+and the header and the footer are never touched unless the fill reaches them.
 
-| Container | Lines around its children | Lane |
+**B-SCROLLFIT-12. One fill engine; a container answers only for its own children.** The outward
+walk is written once (P1), as the anchored window is today. A container supplies only its
+children, their extents, the lines around them, and a **shape**:
+
+| Shape | Who | What the engine does |
 |---|---|---|
-| `VStack` (the eager column, `_VStackCore` `.clip`) | each child at its laid-out y | L1 |
-| `HStack` | each child at its alignment's y; the band is the union | L1 |
-| `ContainerView` chrome (`GroupBox`, bordered and titled boxes, `Table`'s border) | title and border above, border below | L1 |
-| `DisclosureGroup` (expanded), `TabView` (tab bar), `NavigationStack` (title bar) | their label or bar lines above | L1 |
-| `.background`, `.overlay` | none, at the content's origin; the secondary is drawn at the *band's* size and offset, not the content's whole height | L1 |
-| `.border`, `.frame` with an alignment inside a taller frame | the border line, or the alignment offset | L1 |
-| a content-sized nested same-axis `ScrollView` | none: it is transparent along that axis (2a) | L6 |
-| `Section`, `.padding`, content margins | already relay | done |
+| **column** | `VStack`, `LazyVStack`, `List` rows, `Table` rows, `Form`, `GroupBox`/`DisclosureGroup`/`Section` content, `LazyVGrid` lines, `Grid` rows, `VSplitView` panes | the outward walk above |
+| **parallel** | `HStack`, `ZStack`, `.background`/`.overlay`, a `GridRow`, `LazyHStack` across the vertical axis, `HSplitView`, `NavigationSplitView` columns | Routes to the anchored child; every sibling is filled with the same need, moved by its alignment offset. Top alignment needs no height; centre and bottom need each sibling's extent, which is O(1) for a consumer and estimated for a lazy one. The band is the union. A secondary (`.background`) is drawn at the band's size and offset, not the content's height. |
+| **forward** | an app's view (`body`), every modifier, `AnyView`, `EquatableView`, `_MemoizedRow`, `if`/`else` branches, `ViewThatFits`' chosen variant, `.padding`, `.border`, `.frame`, the content margins, `TabView` (its selected tab, below the bar), `NavigationStack` (its top view, below the title bar), a `Section` outside a `List` (header and footer around its content), a content-sized nested `ScrollView` (2a) | Moves the request past the lines the view draws above its content and the reply back by them, which is `ScrollWindowRelay`'s arithmetic. A body step costs nothing, because it adds no lines. |
+| **lines** | `TextEditor`, and any leaf with rows of its own | A column whose children are not views: the anchor's `subRow` is the leaf's row |
+| **leaf** | `Text`, `Image`, controls, and every view that conforms to nothing | Measured and drawn whole, then clipped to the band; the anchor in it is a line (`within`). Cost: its own size, as today. |
 
-**B-SCROLLFIT-2. A subtree entirely off screen is handed a still window.**
+**What a container implements** (sketch; P1 settles the spellings):
 
-`ScrollContentWindow`'s equality includes the offset, so a child handed a moved window misses the
-render memo on every scroll step. That is fine for children on screen, which redraw anyway. A
-title or a whole table off screen should not pay it. So a child the window does not meet gets a
-canonical window, "entirely above" or "entirely below" (offset pinned to the child's height, or to
-the viewport height negated). That window does not change while the child stays off screen. A
-consumer handed one draws only its off-band rows (1e), which costs O(1), and an eager child keeps
-its memo.
+```swift
+@MainActor
+package protocol ScrollPlacing: LayoutPlacing {
+    /// How the engine walks this container's children along the scroll axis.
+    func pullShape(context: RenderContext) -> PullShape
+    /// The child at `ordinal`'s extent at `width`: exact once built and
+    /// measured this pass, else this container's own estimate (fixed pitch,
+    /// running pitch, or a sample). Never builds a row to answer.
+    func extent(at ordinal: Int, width: Int, context: RenderContext) -> PullExtent
+    /// Lines drawn before child `ordinal` (spacing; chrome above, for 0),
+    /// and after the last child.
+    func lines(before ordinal: Int, context: RenderContext) -> Int
+    func linesAfterLast(context: RenderContext) -> Int
+    /// `.eager`: every child exists every frame (built, `onAppear` at mount,
+    /// focus registered). `.windowed(threshold:)`: past `threshold` children,
+    /// only pulled children exist.
+    var existence: PullExistence { get }
+}
+```
 
-Handing such a child *no* window would not do: a 10,000-row table below the viewport would fall
-back to being drawn whole.
+Forwarders do not conform: the engine sees a single-child step and forwards. That is the common
+case, and an app's own views are always that case. The counts are Locating §8's, updated. About
+a dozen multi-child cores conform:
 
-**The band and the scroll view.** The scroll view already handles a sliced answer from its direct
-content (Stage 6: `sliceOriginY`, `coverSnappedViewport` from `drawnLines`). A relaying column at
-the origin gives that same answer, so nothing changes in `_ScrollViewCore` beyond what the
-`linesAbove`/`linesBelow` handling already does for a section.
+- `_VStackCore` and `_HStackCore`, which share an implementation;
+- `_ZStackCore`, `_ListCore`, `_SectionCore`, the table core, `_GridCore`, the lazy grids, the
+  `Form` styles;
+- `ContainerView` (`GroupBox`, `DisclosureGroup`) and the split views;
+- `_LayoutCore`, by an adapter (B-SCROLLFIT-13).
 
-The one subtle path is an offset moved *after* the render: the bottom re-glue, a focus snap, or a
-hold. A band drawn for the old offset does not cover the new one. That case is
-`ScrollContentReply.drawnLines` plus `coverSnappedViewport`, which re-draws the content at the
-settled offset. A relaying column reports its band as `drawnLines` in the same way.
+About seven single-content cores forward with chrome lines: `_TabViewCore`,
+`_NavigationStackCore`, `_ContainerViewCore`, and the padding, border, frame and margins.
 
-### 1c. Heights of rows not yet built
+**The identity chain is seekable through:**
 
-**B-SCROLLFIT-3. Fixed pitch is arithmetic; variable pitch is an estimate plus the hold, through
-one shared anchored-row engine.**
+| On the chain | Step | Routing cost |
+|---|---|---|
+| an app's view, a modifier, `Group`, `AnyView`, a branch | typed single-child, or `branch` | none: forward |
+| `ForEach` | keyed (`child(erasedType:key:)`), flattened into its parent's children | `ChildViewCollection.key(at:)` near the remembered ordinal (±64), then the data scan (Locating §12's identity tax), with an O(1) rung for `ForEach` over a `Range<Int>` keyed by `\.self` |
+| `VStack`, `HStack`, `LazyVStack`, `Grid`, `GroupBox`, `DisclosureGroup`, `Form`, `Section` | indexed or keyed | `ordinal(of:)`: O(1) by index, as for `ForEach` by key |
+| `List`, `Table` | the row's key in `RowSource` / the table's data | `index(ofScrollKey:)` / `firstIndex`, near the remembered index first |
+| `TabView`, `NavigationStack` | the selected tab / the top destination | forward. A route into an unselected tab or a popped view is not on screen and is dropped, as the ladder drops a deleted row. |
+| `TextEditor` | `subRow` | the logical line, then the wrapped line within it |
+
+**B-SCROLLFIT-13. A view that does not conform is drawn whole; an app's own `Layout` is
+adapted.** A multi-child core that does not conform is a leaf: it is measured, drawn whole and
+clipped, and a consumer inside it is drawn whole (today's cost). A debug counter records each
+such consumer, `ScrollPull.unplacedConsumers`, and tests assert it is zero for every framework
+container. Locating §8's "fail loudly" becomes a test failure, not a crash, by the owner's
+never-crash rule.
+
+An app's `Layout` runs through `_LayoutCore`. Its `placeSubviews` places every subview, which
+SwiftUI also does eagerly, so the adapter runs it once per frame per width, keeps the
+placements, and serves them as a parallel-or-column shape by their rects. A `List` inside an app
+`Layout` is then pulled like one in a `VStack`. Cost: the `placeSubviews` the render already
+pays. Price: about 1½ days (P9). `FlowLayout` is a `Layout` too, but A-SCROLLFIT-1 asks it to
+build only visible items, which an adapter cannot do; its own conformance is A-SCROLLFIT-5.
+
+**B-SCROLLFIT-14. Eager containers build every child and paint the band.** Under
+A-SCROLLFIT-1, a `VStack`, `HStack` or `Grid` keeps SwiftUI's existence: every child is built
+and measured, its `onAppear` runs at mount, and its focusables register. In TUI, `onAppear` and
+focus registration happen when a view renders (Locating §1 and §5g). So every child is rendered.
+Children outside the band are rendered with the off-band request, which does not change as the
+page scrolls, so they are memo hits. Only their lines are left out of the assembled band.
+
+This is today's cost for eager content, and no more. Decoupling registration and lifecycle from
+rendering, so that eager rows off screen are not even rendered, is Locating §5g's paint
+windowing. It would change no observable behaviour, but needs its own design, and is left for a
+future reader.
+
+### 1c. Containers with no lazy counterpart (A-SCROLLFIT-1)
+
+`GroupBox`, `DisclosureGroup`, a `.columns` `Form`, and a `Section`'s content outside a `List`
+take `existence: .windowed(threshold: 256)`. That is the lazy stack's `anchoredWindowThreshold`,
+so a small page behaves exactly as today. Past it they are columns whose children exist only
+while pulled, with the running-pitch estimate and the per-level ladder.
+
+`FlowLayout`'s rows are wrapped lines, and a line's first item depends on every item before it.
+How it finds them is A-SCROLLFIT-5.
+
+`TabView`, `NavigationStack` and `NavigationSplitView` only forward or run in parallel. Their
+content's own containers decide what is built.
+
+### 1d. Heights of rows not yet built
+
+**B-SCROLLFIT-3 (kept). Fixed pitch is arithmetic; variable pitch is an estimate, through the
+one engine.**
 
 - **Fixed one-line rows: exact, O(1).**
-  - A single-line `Table` already measures without building a row (`measuredSizeThatFits`: header
-    and column arithmetic, a stand-in content block of exactly `data.count` lines, and the real
-    chrome).
-  - A `List` whose rows are one line (plain `ForEach` of `Text`, the common case and the
-    baseline's) takes the uniform hypothesis as a lazy stack does. It is seeded from row 0,
-    checked against every row the band builds, and refuted the first time a row differs, once in
-    the view's life. Its total is then `count × pitch` plus section headers. A section's row count
-    comes from its own `ForEach`'s count, so the total is O(sections).
-  - Refuting the hypothesis drops the pass's measures and replans the frame
-    (`ScrollContentReply.measureWentStale`), as the stack's refuted hypothesis already does.
+  - A single-line `Table` already measures without building a row (`measuredSizeThatFits`).
+  - A `List` whose rows are one line takes the uniform hypothesis as a lazy stack does. It is
+    seeded from row 0, checked against every row the band builds, and refuted the first time a
+    row differs, once in the view's life (`ScrollContentReply.measureWentStale` replans the
+    frame).
+  - A section's row count comes from its own `ForEach`, so a sectioned list's total is
+    O(sections).
 - **Variable rows: an estimate.**
-  - Covers `List` rows of several lines, a multi-line `Table`, `TextEditor` lines that wrap, and a
-    grouped `Form`'s rows.
-  - Rows the band has built are measured exactly. Every row it has not built is estimated at the
-    running pitch (`ScrollExtentEstimator` is `List`'s today; the anchored window keeps its own).
-  - The total is flagged `sliceTotalIsEstimate`, so the indicators say "~N more below".
-  - Below it, the content's y is an estimate. Above the viewport, a refined estimate would move
-    the rows on screen, which is what the top-row hold is for. The consumer reports the row at the
-    viewport's top, and the next frame's hold moves the offset by however far that row moved.
-    That is exactly what the anchored lazy stack does, now reported through the relays, which
-    already carry `seekResolvedOffset` and `resolvedOffsetIsHold` up.
-- **One engine.** Today the anchored walk is `_VStackCore`'s alone (`AnchoredWindowFrame`,
-  `StackWindowState`). L3 extracts it behind a small row-source protocol: `count`,
-  `key(at:)`/`anyID(at:)`, `pitch(at:)` (measuring the row), and `draw(at:)`. The lazy stack,
-  `List` (over `RowSource`), `Table` (over its data and `layoutOf`) and `TextEditor` (over its
-  wrapped lines) each provide one. This follows the code-reuse rule; four hand-written anchor walks
-  would drift apart.
-- **`LazyVStack`'s first frame builds every row twice** (20,075 at 10,000). The cause has not been
-  traced. The likely one is in the Locating doc's §6b: on a view's first render no content height
-  has been recorded, so the scrollbar's first round climbs the ladder at the other width.
-  - L1 traces it and fixes it in a commit of its own.
-  - The rule after the fix is that a first frame builds O(visible) rows. The ladder's rungs are
-    served by the memo, because a windowed answer "claims a natural size" (the per-pass memo
-    serves it to every later ask at that width).
-
-### 1d. Measuring without building every row
-
-Under SCROLL-FIT a scroll view proposes no height along its axis, and the content answers its
-content height. Today's views answer `proposal.height ?? context.availableHeight`, which fills
-whatever rung they are offered. That pattern is what made the `List` 4,096 lines tall. The
-conversion (L4 and L6) is:
-
-- **A consumer answers a nil proposal from 1c** (O(1) or O(sections)), not from
-  `availableHeight`, and flags the answer as a natural size so the per-pass memo serves every rung
-  of the ladder.
-- **The overflow probe** (`RenderContext.asksOverflow`) is answered from the same number. The
-  column's early stop (`overflowProbeSizeThatFits`) then works unchanged above a table.
-- **A container's measure** sums its children's measures, as now. With every consumer at O(1),
-  `VStack { title; Table(10k); title; Table(10k) }` measures in O(children).
-- **What stays O(N), and is allowed to.** These are scans of the data that build no row, once per
-  user action and not per frame:
-  - `RowSource.index(ofScrollKey:)` (by `typeAt`) and `Table`'s `firstIndex` for a `scrollTo`;
-  - `index(of:near:)` for a selection set from outside (±64 rows first);
-  - type-select's scan (`resolvePendingTypeSelect`).
-
-  L2 checks that type-select reads `typeSelectText` without building a row. If it does build one,
-  that is per key press and capped at a scan, but it is to be measured.
+  - Covers `List` rows of several lines, a multi-line `Table`, `TextEditor` lines that wrap, a
+    grouped `Form`'s rows, and the containers of 1c.
+  - Rows the fill builds are measured exactly; every other row is priced at its container's
+    running pitch (`ScrollExtentEstimator` for `List` and `Table`, the anchored window's own
+    for the stacks).
+  - `.scrollExtentPrecision(.exact)` still makes a container measure every row, for an app that
+    wants exact readings and accepts Ω(rows) per change.
+- **Where an estimate is used.** Under the pull it never places anything on screen: the fill
+  places only from the anchor, by rows it has built. An estimate feeds only the readings in 2b:
+  the derived offset, the total, the thumb, "N more", and a far jump's landing row. That is the
+  difference from the relay, where an estimate above a list moved the content below it.
+- **`LazyVStack`'s first frame builds every row twice** (20,075 at 10,000). The likely cause is
+  in Locating §6b: on a first render no content height has been recorded, so the scrollbar's
+  first round climbs the ladder at the other width. Under the pull, the scroll view learns
+  whether the content overflows from the fill itself (did it reach the content's end before the
+  viewport was full?), so the first frame needs no total. P1 pins the count at under 100 at
+  10,000 rows.
 
 ### 1e. Focus: an unbuilt row stays reachable
 
-A `List` or `Table` registers *one* focusable, the container, and its cursor is an index
-(`ItemListHandler.focusedIndex`). So keyboard reach inside it never depends on which rows are
-built. What does depend on drawing:
-
-- **The container must register even when the window misses it.** A consumer handed a still
-  window (1b) still draws its off-band rows. For `List` and `Table` that means the cursor row: it
-  registers the container, stamps the cursor marker at the row's place outside the band, and draws
-  no lines. A container whose band is empty still registers.
-- **A relaying container treats a child holding the focus as off-band**, as the windowed stack
-  treats its focused row. It finds the child from the focus id's identity path (`targetOrdinal`,
-  `ordinal(of:)`: no row built) and hands it the window. That child, in turn, draws its focused row
-  off-band. Shift+Tab order is kept: a child above the band is drawn before the band
+- **The focused control is an off-band route.** Every placing container on its chain draws the
+  child that leads to it, outside the band if need be, as the windowed stack draws its focused
+  row today. Shift+Tab order is kept: a child above the band is drawn before the band
   (`drawOffBandRow`'s rule).
-- **Tab out of the band.** Under A-SCROLLFIT-1's recommended answer, eager children are drawn
-  whole and register as they do today. Only consumers draw a band, and each one's off-band rows
-  plus the 64-row continuation probe (`focusRingContinuations`) already find the next focusable
-  row.
-- **Focus at launch.** The first focusable row in ring order is the first one registered. With
-  every eager child drawn and every consumer registering, that does not change. See 2e for what
+- **`List` and `Table` register one focusable**, the container, and their cursor is an index
+  (`ItemListHandler.focusedIndex`). Off the band they draw only the cursor row's marker, at its
+  place, with no lines. A container whose band is empty still registers.
+- **Tab out of the band.** The container that holds the focus answers "next focusable after
+  ordinal k" by building rows outward, within the existing 64-row continuation probe
+  (`focusRingContinuations`), and escapes to its parent at its ends (Locating §5d). Eager
+  children are rendered and registered anyway (B-SCROLLFIT-14).
+- **Focus at launch.** The first focusable in ring order is the first registered, and with
+  eager children rendered and every consumer registering, that does not change. 2e covers what
   the reveal then does.
+- **Reveal.** When focus moves to a control that is not wholly visible, the control becomes the
+  anchor, with minimal movement, as `scrollTo(_:anchor: nil)` does. When it is visible, nothing
+  moves (Locating §5c). This is Locating's Stage 2 (the locate visitor), which never shipped; the
+  route makes it O(depth).
 
-### 1f. `scrollTo` of a row never built
+### 1f. `scrollTo` and focus jumps to a row never built
 
-**B-SCROLLFIT-4. A pending seek names its holder, so the relays build it.**
+**B-SCROLLFIT-15. A seek is located by routing, then becomes the anchor.**
 
-Today `ScrollToRegistry.scrollTo` parks the request on every live `ScrollToTarget`. An
-`ItemListHandler` resolves it into its *own* offset (`resolveScrollRequests`, `scroll(toRow:)`).
-The outer scroll view resolves keys only through stacks (`StackAnchoredWindow.locate(key:)`,
-`ChildViewCollection.firstOrdinal(forKey:)`). A content-sized list has no offset of its own to
-move, and its row may lie in a part of the tree no band reaches.
+1. `ScrollToRegistry.scrollTo` parks the request on every live scroll view, as today.
+2. The scroll view asks its content to locate the key. Each placing container checks its own
+   children's keys, by the data scan with the near-first search and the range rung (1b's
+   table), and descends into the children it already holds built (eager children, and pulled
+   ones). Nothing new is built. How far it goes into rows never built is A-SCROLLFIT-4.
+3. A hit returns the route. The scroll view sets the anchor to the target, with the request's
+   `UnitPoint` choosing the line (Locating §5c's alignment: `.top` puts the row's top at the
+   viewport's top, `.bottom` its bottom at the viewport's bottom, `nil` the minimal move), and
+   fills. The target lands exactly where asked, on the frame that carries the request, at
+   O(visible) plus the key scan.
+4. A miss falls back to today's paths. An unknown key does nothing, as in SwiftUI.
 
-So:
-
-1. At `scrollTo` time the registry asks each target whether it holds the key. That is the
-   existing data scan, with no rows built. The one that does stamps the request with its identity
-   (`ScrollToRequest.holder`).
-2. The scroll view's window carries the request, as `seek` does today. Every relaying container
-   draws the child that is an ancestor of the holder, off-band if need be, exactly as it draws the
-   child holding a pending focus target.
-3. The holder computes its row's y: exact for fixed pitch, from the anchor and pitch otherwise. It
-   answers `seekResolvedOffset` through `ScrollContentWindow.offset(realising:…)`, which already
-   respects the content's headroom and clamp. The relays add each level's y on the way up.
-4. A key that no live target holds falls back to today's path, the stacks' keys.
-5. An unknown key does nothing, as in SwiftUI.
-
-The holder's row lands with the request's anchor in the *outer* viewport. A framed table, which
-still scrolls itself, resolves into its own offset as now, and its outer scroll view reveals the
-cursor marker that results.
+A framed table, which still scrolls itself, resolves into its own offset as now, and the outer
+view reveals the cursor marker that results. A content-sized nested `ScrollView`'s
+`ScrollViewReader` seeks through the outer one (2a).
 
 ### 1g. Animations and transitions of windowed rows
 
-`WindowedRowFade` already separates "entered the band by scrolling" (no fade) from "inserted into
-the data" (fade). It does this with `WindowedRowRecord`'s last-drawn set and the `isRow` question
-about the data. Under the outer window a `List`'s or `Table`'s drawn set is its band, so nothing
-changes there, provided `isRow` stays a data question and is never "was it drawn".
+`WindowedRowFade` separates "entered the band by scrolling" (no fade) from "inserted into the
+data" (fade), using `WindowedRowRecord`'s last-drawn set and the `isRow` question about the data.
+For `List`, `Table` and the lazy stacks nothing changes, provided `isRow` stays a data question.
 
-Two new cases:
+The containers A-SCROLLFIT-1 windows are new to this. Their children's identities are already
+resolved, so the record is keyed by those, and a child present in the data last frame appears
+without a fade when it is first pulled in. Eager containers render every child (B-SCROLLFIT-14),
+so their transitions run as today. A row removed while off-band plays no removal, since nothing
+would see it, which matches the stack and `List` today.
 
-- **A relaying container's eager children** come in and out of its band, but under A-SCROLLFIT-1's
-  answer they are drawn whole every frame, so their insert and remove transitions run as now.
-- If the owner chooses (c) instead, an eager row drawn for the first time as it scrolls in would
-  look like an insertion. It would need the same record, keyed by the container's children (their
-  identities are already resolved), so that a child present last frame appears without a fade.
-
-A row removed while off-band plays no removal, since nothing would see it. That matches the stack
-and `List` today.
-
-## 2. Switching the defaults (step 3)
+## 2. The SwiftUI APIs, and switching the defaults (step 3)
 
 ### 2a. Per view, from the baseline table
 
 | View | Today (alone / under title / 2 stacked, 60 rows) | After |
 |---|---|---|
 | `Table` | capped at the viewport (24, scrolls itself) | its content: 63 at 60 rows, 10,003 at 10,000. Header and horizontal bar pinned (2c). The outer view reveals the cursor (2d). `scrollViewportCap` is deleted. |
-| `List` (plain, sectioned, outline) | 4,096 (the rung) | its content (≈62 at 60). Plain one-line rows are arithmetic; sections are O(sections); outline rows take the variable path, which also fixes "a wheel step rebuilds every drawn row" (4,094 at 10,000) because only the band is drawn |
+| `List` (plain, sectioned, outline) | 4,096 (the rung) | its content (≈62 at 60). Plain one-line rows are arithmetic; sections are O(sections); outline rows take the variable path, which also fixes "a wheel step rebuilds every drawn row" (4,094 at 10,000), because only the band is drawn |
 | `Form .grouped` | max(content, viewport), up to 4,096, then scrolls itself | its content (5 at 3 rows) |
-| `Form .columns`, `GroupBox`, `DisclosureGroup`, `TabView`, `NavigationStack`, `Grid`, `FlowLayout`, `LazyVStack` | already its content | unchanged in size. Consumers inside them window through the relay (L1). Eager rows per A-SCROLLFIT-1 |
-| `TextEditor` | max(content, viewport) up to 4,096, scrolls itself past that | its wrapped content (3 / 60 / 10,000). No bar of its own. It stamps a caret-line marker like the list's cursor marker, so the outer view follows the caret. Lines are windowed by the outer window |
-| `ScrollView`, same axis | max(content, viewport) up to 4,096, its own bar | its content, no bar, transparent: it relays the window and forwards seeks to the outer view. Its own offset stays 0. A `ScrollViewReader` inside it seeks through the outer view |
+| `Form .columns`, `GroupBox`, `DisclosureGroup`, `FlowLayout` | already its content; builds every row | unchanged in size; build only pulled rows past 256 (1c, P8) |
+| `TabView`, `NavigationStack`, `Grid`, `LazyVStack` | already its content | unchanged in size. Forwarded or pulled; `Grid` stays eager (B-SCROLLFIT-14); a `LazyVStack` anywhere is pulled (P2) |
+| `TextEditor` | max(content, viewport) up to 4,096, scrolls itself past that | its wrapped content (3 / 60 / 10,000). No bar of its own. It stamps a caret-line marker like the list's cursor marker, so the outer view follows the caret. A lines-shaped leaf. |
+| `ScrollView`, same axis | max(content, viewport) up to 4,096, its own bar | its content, no bar, forward-shaped: its own offset stays 0, and a `ScrollViewReader` inside it seeks through the outer view |
 | `ScrollView`, cross axis | as above | its content height; it still scrolls across |
-| `NavigationSplitView` | the viewport's height; 1 line under `.fixedSize` | the tallest column's content. Fixed first as a bug (L0) |
-| `HSplitView` | max(content, viewport) up to 4,096; rows past that unreachable | the tallest pane's content |
-| `VSplitView` | panes split, top pane cut even at 60 | the panes' content heights summed. When no pane is flexible and the height offered covers the sum, each pane gets its natural height. The likely cause is `resolvedSizes`' even split when `flexibleIndices.isEmpty`, inferred from the code and still to be reproduced. A pane the user resized keeps its size and scrolls itself |
+| `HSplitView` | max(content, viewport) up to 4,096; rows past that unreachable | the tallest pane's content; parallel-shaped |
+| `VSplitView` | panes split, top pane cut even at 60 | the panes' content heights summed. When no pane is flexible and the height offered covers the sum, each pane gets its natural height. The likely cause is `resolvedSizes`' even split when `flexibleIndices.isEmpty`, still to be reproduced. A pane the user resized keeps its size and scrolls itself. |
 | `Image.resizable()` | fills the viewport alone, 15 when stacked | its ideal: 15, its pixels at the width |
-| `Spacer`, `Color`, shapes, `GeometryReader`, `Text.frame(maxHeight: .infinity)` | fill or split the viewport; `GeometryReader` 4,096 | their minimum (B-SCROLLFIT-7): a `Spacer` its `minLength`, the others 0, a framed `Text` its text's height |
+| `Spacer`, `Color`, shapes, `GeometryReader`, `Text.frame(maxHeight: .infinity)` | fill or split the viewport; `GeometryReader` 4,096 | their minimum (B-SCROLLFIT-7) |
 | `Divider`, `scaledToFit` images | unchanged | unchanged |
-| `LazyHStack` | 1 line high; never windowed across | unchanged vertically. Windowing across is not part of this ruling (see "For a future reader") |
+| `LazyHStack` | 1 line high; never windowed across | unchanged vertically (parallel-shaped). Windowing across is outside this ruling. |
 
 **The scroll view's canvas.** The content is drawn at its measured height, not at
-`max(viewport, content)`. The canvas below short content is padded with blank lines, so
-flexible children no longer stretch to the viewport. `containerRelativeFrame(.vertical)` still
-reads the viewport (`containerSize(viewport:context:)`), so a table framed that way is as tall as
-the visible area and scrolls itself, which is TABLE-TALL's behaviour as an opt-in.
-
+`max(viewport, content)`, so flexible children no longer stretch to the viewport.
+`containerRelativeFrame(.vertical)` still reads the viewport, so a table framed that way is as
+tall as the visible area and scrolls itself, which is TABLE-TALL's behaviour as an opt-in.
 `.frame(maxHeight: h)` hands a table a height of min(content, h), and the table scrolls itself
-inside it. L6 tests that the frame makes the table's height explicit (`hasExplicitHeight`),
-because the table's flexibility follows from that.
+inside it. P7 tests that the frame makes the height explicit (`hasExplicitHeight`).
 
-### 2b. Greedy views declare it; `.fixedSize` climbs the ladder
+**A-SCROLLFIT-2, as ruled (b).** `ScrollView(.horizontal)` proposes its own height to its
+content, so a `Table` or `List` in it is framed to that height and scrolls itself, as in
+SwiftUI. Content still taller (eager content) keeps today's vertical scrolling, through the same
+anchor engine on the vertical axis, so nothing becomes unreachable. Column (v) of the baseline
+then reads `Table` 24 (its own bar), `List` 24 (its own bar), eager containers as now. One
+sentence in the deviations records it as an extension that no SwiftUI program can trip over.
 
-**B-SCROLLFIT-8.** Today a view is "greedy" on an axis when it reports at least the budget it was
-offered. `_FixedSizeView.idealExtent` reads `extent >= budget` that way after a single measure at
-`max(offered × 64, 4096)`, and the scroll view's ladder stops at its first rung on the same
-evidence (`guard extent >= budget, !fills` in `naturalExtent`). That confuses "fills what it is
-given" with "has more content than the budget".
+### 2b. The APIs that speak in absolute offsets, mapped onto anchors
 
-- **Fillers declare it.** Under a nil proposal on an axis, a filler answers its minimum (0, or a
-  `Spacer`'s `minLength`) and is flexible on that axis. `Color`, shapes and `Spacer` already
-  answer 0×0 flexible. `GeometryReader` (`_GeometryReaderCore`: `proposal.height ??
-  availableHeight`) and a `.frame(maxHeight: .infinity)` without a proposal change to match.
-  "Flexible with an extent of 0 or its minimum" is the declaration. No new type is needed:
-  `ViewSize.isHeightFlexible` already carries it, and `.flexibleHeight` builds it.
-- **Content-sized views answer content**, as 1d describes, and are flexible only where a height
-  was given (TABLE-IN-SCROLL-HEIGHT's rule, which every consumer takes).
-- **`.fixedSize` uses the ladder** (`naturalExtent(_:along:proposal:context:startingBudget:)`), as
-  the scroll view does, instead of its single measure. It stops when the extent comes in under the
-  rung, or when the view declared itself a filler, which keeps the offer exactly where it keeps it
-  today for fillers. With consumers at O(1), and their answers memoized as natural sizes, the rungs
-  cost nothing. A 10,000-row table under `.fixedSize` is then 10,003 lines and builds the rows on
-  screen, instead of 23 lines after building 4,153.
-- **What still climbs the ladder for real**: views not yet converted, an app's own `Layout`, and
-  views that measure by rendering. Their behaviour is unchanged. The ladder stays as the safety
-  net, and `isNaturalExtentBudget` stays for pictures.
+**B-SCROLLFIT-16. Moves are exact; absolute readings are exact where every extent is known and
+estimates elsewhere, carried by dead reckoning.**
 
-**B-SCROLLFIT-7. A filler's ideal along an unbounded axis is its minimum, 0 for `Color`, shapes
-and `GeometryReader`.**
+"Known" means: fixed pitch, eager content (measured anyway), or `.scrollExtentPrecision(.exact)`.
+"Estimated" means a variable-height lazy or windowed container lies above or below the viewport.
 
-This is the height counterpart of the ideal-width ask, under which a filler already answers 0
-(`fillingWidth`). SwiftUI answers 10 points (`replacingUnspecifiedDimensions`, measured
-2026-09-23), less than a line. One line was considered and declined because it would be the one
-place a filler invents a size, and an app that wants a `GeometryReader` in scroll content frames
-it in SwiftUI too. If the owner prefers a line, the change is one constant.
+| API | Under the pull | Exact? |
+|---|---|---|
+| `ScrollViewProxy.scrollTo(_:anchor:)`, `ScrollPosition.scrollTo(id:anchor:)`, `.scrollPosition(id:)` written | Located by route (1f); the target becomes the anchor at the asked alignment | **exact placement**, O(visible) plus the key scan |
+| `.scrollPosition(id:)` read back, `ScrollPosition.viewID` | The row the fill drew at the sample line (`sampleY`, unchanged) | **exact** |
+| `ScrollPosition.scrollTo(edge:)`, Home, End, `defaultScrollAnchor(.bottom)`, following the tail | Anchor = first row at the top, or last row with bottom affinity; filled outward, no total needed (Locating §6c) | **exact** |
+| The wheel, arrows, glide, Page Up/Down, `scrollTargetBehavior(.paging)` | A delta in lines, walked from the anchor | **exact** |
+| `scrollTargetBehavior(.viewAligned)` | Snaps to a drawn row's top | **exact** |
+| A focus jump, `focus(id:)`, Tab | Reveal: the control becomes the anchor if not visible (1e) | **exact** |
+| `ScrollPosition.scrollTo(y:)`, `scrollTo(x:y:)`, `scrollTo(point:)`, a long scrollbar drag, a track click | A line y from the content's top: each level turns it into (child, y′) by its children's extents, down the route. Under four screens from the current offset it is a walked delta, which is exact. | **exact** where extents are known; **estimated** landing row elsewhere |
+| `ScrollPosition.x`/`y`/`point` read | The request, kept until the user scrolls, as in SwiftUI | as asked |
+| `onScrollGeometryChange` `contentOffset.y` | The derived offset | **exact** where known; **estimated** elsewhere |
+| `onScrollGeometryChange` `contentSize.height` | The derived total: the lines above the band plus the band plus the lines below, each level's estimate summed | **exact** where known; **estimated** elsewhere |
+| `onScrollGeometryChange` `visibleRect`, `containerSize`, `contentInsets` | From the viewport | **exact** |
+| `GeometryReader` `frame(in: .scrollView)`, `onScrollVisibilityChange`, `scrollTransition` | A drawn view's place relative to the viewport, from the fill | **exact** |
+| `frame(in: .named(…))` of a space at the content's top | The derived offset plus the view's band y | **exact** where known; **estimated** elsewhere |
+| The scrollbar thumb | Derived offset over derived total | **exact** where known; **estimated** elsewhere |
+| "N more above/below" | Lines above / below the viewport | **exact** where known, or when the fill reached that end (0 below: no indicator); else **"~N"**, as `contentHeightIsEstimate` marks it today |
+| `ScrollWindowHold.offset` (TUI-specific) | The offset in lines is kept and the anchor re-derived from it: a delta walk, exact, unless rows above were never built | **exact** where known; **estimated** elsewhere |
+
+**How estimates stay steady** (the existing top-row hold, generalised):
+
+1. **Content on screen never moves for an estimate.** The fill places only from the anchor.
+2. **The derived offset moves only with the user's moves.** It is carried by dead reckoning: a
+   walked delta adds exactly the lines walked. It is re-derived from estimates only on a far
+   jump, and corrected at the edges: when the fill reaches the content's top, the offset is
+   exactly the lines it walked above the anchor. So an estimate that refines off screen changes
+   the *total* (the thumb's length and "~N more below"), not the offset, and
+   `onScrollGeometryChange` sees a `contentSize` change, not a `contentOffset` jump. This is the
+   anchored window's `lastDerivedOffset`, at the scroll view.
+3. **A drag holds its mapping.** At the grab (`scrollbarDragGrab`), the total in use is frozen
+   for the drag's duration, so the thumb follows the pointer and the row under it does not
+   oscillate as estimates refine. At release the thumb is re-derived once.
+4. **Totals are sticky.** A level's estimate changes only when it measures a row it had not
+   measured, never because the band moved, so scrolling back and forth over measured rows reads
+   the same numbers. That is `ScrollExtentEstimator`'s sample rule, applied at every level.
 
 ### 2c. A tall table's header and horizontal bar, pinned to the visible area
 
-**B-SCROLLFIT-9.** Pinned section chrome (`ScrollPinnedChrome.swift`) already does what this
-needs. A header layer carrying `OverlayLayer.ScrollPin` rides every combining operation to the
-nearest scroll view along its axis. That view places it at the viewport's top while the section's
-content is under it, and the content's end pushes it away. A footer stays at the bottom edge and
-never rises above its section's first row. The reveal keeps a focused row out from under either
-(`PinnedChromeCover`).
-
-- **The header.** A content-sized `Table` emits a copy of its header as a top-pinned layer. That
-  is the header line, its rule line, and the table's side borders on those lines, so the box
-  reads as closed. The table's top border is not pinned, just as a section's pinned header is
-  only the header. A second table's header pushes the first away. That is SwiftUI's
-  section-header rule, and it is what "two tables stacked" should look like.
-- **The horizontal bar** (`TableHorizontalWindow`, `drawHorizontalScrollbar`) becomes a
-  bottom-pinned layer, under the same rule. Regions on pinned layers are already placed where they
-  are drawn, so dragging the bar keeps working.
-- **The table's band**, not its whole height, is what it draws. The pinned layers are emitted
-  whenever any of its band is drawn, with `offsetY` at their natural place, possibly outside the
-  band. That is how a section header above a lazy stack's band reaches the scroll view today.
-
-The table keeps its own horizontal scrolling by whole columns (Left and Right), because the outer
-scroll view is vertical.
+**B-SCROLLFIT-9 (kept).** A content-sized `Table` emits a copy of its header (the header line, its
+rule, and the side borders on those lines) as a top-pinned `OverlayLayer.ScrollPin` layer, and
+its horizontal bar (`TableHorizontalWindow`, `drawHorizontalScrollbar`) as a bottom-pinned one.
+`PinnedChromeViewport.pinnedRow` places them while any of the table's rows are under the
+viewport edge. The next table's header pushes the first away, which is SwiftUI's section-header
+rule, and `PinnedChromeCover` keeps a focused row out from under either. The layers are emitted
+whenever any of the table's band is drawn, with `offsetY` at their natural place, possibly
+outside the band. That is how a section header above a lazy stack's band reaches the scroll view
+today. The table keeps its own horizontal scrolling by whole columns.
 
 ### 2d. Keyboard in a tall `List` or `Table`
 
 - **Arrows, Home and End, type-select (`r45`)** move the cursor index. The cursor row is drawn
   (in band or off-band, 1e) and stamped with the cursor marker, and `snapViewportToFocusedControl`
-  reveals it through the outer view. `List` does this today; `Table` does too, on a table that has
-  stopped scrolling itself. The baseline's "Table doesn't" most likely came from the cap (the table
-  scrolled its own rows and the page never moved), not from a missing marker (`Table.swift` stamps
-  it from `drawnBands`); L2 confirms it with the switch on.
-- **B-SCROLLFIT-5. Page Up and Page Down move by the outer viewport.**
-  - `ItemListHandler` pages by its own `viewportHeight`, which for a content-sized list is its
-    whole height, so Page Down would act as End. It pages instead by the window's
-    `viewportHeight`, less the pinned header's lines.
-  - When no window is handed, the list's own height is used, so a framed or free-standing list is
-    unchanged.
-  - The row landed on is revealed at the viewport's bottom (Page Down) or top (Page Up), as a list
-    scrolling itself places it.
-- **The wheel** over a content-sized table or list goes to the outer view. The inner one has
-  nothing to scroll, so edge-chaining never comes into it.
+  reveals it through the outer view. Under the pull that reveal is the anchor rule in 1e.
+- **Type-select** scans `typeSelectText` (`resolvePendingTypeSelect`); P3 checks that it builds
+  no row. If it does, that is per key press and capped at a scan, but it is to be measured.
+- **B-SCROLLFIT-5 (kept). Page Up and Page Down move by the outer viewport.** `ItemListHandler`
+  pages by the request's viewport less the pinned header's lines, not by its own height (which
+  for a content-sized list would make Page Down act as End). With no request, a framed or
+  free-standing list pages as today.
+- **Selection** is data: indexes and ids (`index(of:near:)`, ±64 first). Unchanged.
+- **The wheel** over a content-sized table or list goes to the outer view, which walks the
+  delta from its anchor.
 
 ### 2e. Focus at launch does not scroll a title away
 
-**B-SCROLLFIT-6. On arrival, the reveal of a control taller than the viewport reveals its cursor
-line, and does nothing if that line is already on screen.**
+**B-SCROLLFIT-6 (kept). On arrival, the reveal of a control taller than the viewport reveals its
+cursor line, and does nothing if that line is already on screen.** If the union of its regions
+fits in the viewport, the union is revealed (unchanged). Otherwise the smallest region (the
+cursor marker) is revealed, and only if it is not visible. At launch the first row sits under
+the title, on screen, so nothing moves.
 
-`FrameBuffer.revealTarget(focusID:wholeControl:)` reveals the union of the control's regions when
-focus arrives, and its smallest region when focus moves within it. For a control taller than the
-viewport the union cannot be revealed, and aligning its top moved the page past the title (by
-one line in the baseline). The rule becomes:
+### 2f. Greedy views declare it; `.fixedSize` climbs the ladder
 
-- if the union fits in the viewport, reveal the union (unchanged);
-- otherwise, reveal the smallest region (the cursor marker), and only if it is not already
-  visible.
+**B-SCROLLFIT-8 (kept).** "Filled the budget" no longer means greedy.
 
-That is the Locating doc's §5c rule, "reveal only when needed", applied to arrival. At launch the
-first row sits under the title, on screen, so nothing moves.
+- **Fillers declare it.** Under a nil proposal, a filler answers its minimum (0, or a `Spacer`'s
+  `minLength`) and is flexible (`ViewSize.isHeightFlexible`, `.flexibleHeight`).
+  `_GeometryReaderCore` and `.frame(maxHeight: .infinity)` change to match.
+- **Content-sized views answer content** from 1d, flagged as a natural size so that the per-pass
+  memo serves every rung of the ladder. They are flexible only where a height was given.
+- **`.fixedSize` uses the scroll view's ladder** (`naturalExtent(_:along:proposal:context:startingBudget:)`)
+  instead of one measure, and stops at a rung the extent comes in under, or at a declared filler.
+- **Outside a scroll view there is no viewport to pull against.** A variable-row consumer under
+  `.fixedSize` there must answer its exact height, which is Ω(rows) per change. That is correct:
+  it is drawn whole. Inside a scroll view, `.fixedSize` content is pulled like any other, so a
+  10,000-row table under it is 10,003 lines and builds the rows on screen, instead of 23 lines
+  after building 4,153.
 
-### 2f. `NavigationSplitView` and the split views
-
-These are fixed as part of the switch (2a), except `NavigationSplitView`'s one line under
-`.fixedSize`. That is a bug today, with or without the ruling, and L0 fixes it first, with a
-failing test:
-
-- under a nil proposal, `_NavigationSplitViewCore.sizeThatFits` answers the tallest column's
-  measure (sidebar, content, detail, each under a nil proposal) and stays flexible;
-- `combineColumns` pads to that height, not to `availableHeight`.
-
-### 2g. The horizontal scroll view's vertical axis
-
-The ruling names "a `ScrollView`'s scroll axis". `ScrollView(.horizontal)` here also scrolls
-vertically when its content is taller (finding 6). No comment or deviation entry calls that
-deliberate (C-SCROLL-1 describes SwiftUI, where a horizontal view cannot scroll down). This is a
-real choice for the owner: A-SCROLLFIT-2.
+**B-SCROLLFIT-7 (kept).** A filler's ideal along an unbounded axis is its minimum: 0 for `Color`,
+shapes and `GeometryReader`. This is the height counterpart of the ideal-width ask's 0 (SwiftUI
+answers 10 points, less than a line). One constant if the owner prefers a line.
 
 ## 3. Performance budget
 
-**What must be O(visible) per frame**, independent of the row count (rows *built*, meaning a row
-builder called, counted as `ScrollFitProbe.built` counts them):
+**What must be O(visible) per frame**, independent of the row count. Rows *built* means a row
+builder called, as `ScrollFitProbe.built` counts them.
 
-- the rows built for a first frame, an idle redraw, a wheel step, a cursor step, a Page Down, and
-  a `scrollTo` to a row never built;
-- every content-sized consumer's measure: O(1) for fixed pitch, O(sections) for sectioned lists,
-  O(rows built so far) in memory for the variable estimate's record and O(1) per frame;
-- a relaying container's measure and band: O(its children). Its eager children are drawn whole,
-  as today, under A-SCROLLFIT-1's (a).
+- The rows built for: a first frame, an idle redraw, a wheel step, a cursor step, a Page Down,
+  a `scrollTo` to a row never built, and a focus jump.
+- A placing container's work: O(the children the fill visits) plus its off-band routes.
+- Eager children (B-SCROLLFIT-14): built and rendered as today, as memo hits off band.
 
-The bound is "the band plus the off-band rows": the viewport's rows, one margin row each way, the
-focused row ±1, any pending focus or seek holder, and at most the 64-row focus continuation probe
-each way. The probe is the existing cap and is rarely spent.
+The bound is the band plus the off-band rows: the viewport's rows, a margin row each way, the
+focused row ±1, any pending focus or seek target, and at most the 64-row continuation probe each
+way (the existing cap, rarely spent).
 
-**Allowed to be O(N), not per frame:** data scans that build no row, at the user action that
-needs them (1d).
+**Allowed to be O(N), not per frame:**
+
+- data scans that build no row, at the user action that needs them (a key's ordinal, a
+  selection set from outside, type-select);
+- `.scrollExtentPrecision(.exact)`;
+- the two-axis view's whole-content width, which keeps its four rungs (Locating §12);
+- an eager container's existence.
 
 **Each lane's gate:**
 
-1. **Counts, deterministic.** For each new shape, `builtFirst` and `builtStep` at 1,000, 10,000
-   and 100,000 rows must be **equal** across the three sizes, which proves O(visible). They are
-   pinned in tests next to `ScrollFitBaselineTests`, and the 10,000-row tests there are updated on
-   purpose.
-2. **Time and memory.** `Stress --bench`, quiet box, A/B against the lane's base:
-   - first-frame ms, idle-redraw ms, scroll-step ms and peak RSS at 10,000 and 100,000;
-   - target: the content-sized table's scroll step and idle redraw within 2× of the capped table
-     TABLE-IN-SCROLL-HEIGHT measured (1.1 ms idle, 4.0 ms step at 10,000, debug, `TestApp` 60 ×
-     30), and flat from 10,000 to 100,000.
-3. **No regression** on the existing scenarios that cross these paths: `app-shapes` variants
-   `grouped-feed`, `grouped-feed-uniform`, `headed-log`, `sidebar` and `file-browser`; the table
-   scenarios (`TableGroups`, `WideTable`, `MultiLineTable`, `ChurningTable`); `MegaList`,
-   `ScrollEager` and `ScrollFollow`. The owner's tolerance applies: a few percent is fine, around
-   10% means optimise first.
-4. **`Stress --selfcheck` and the render-memo verifier** stay clean. A band is a function of state
-   (offset, anchor, focus) and must equal a fresh render's.
+1. **Counts, deterministic.** For each new shape, `builtFirst`, `builtStep` and `builtSeek` at
+   1,000, 10,000 and 100,000 rows must be **equal** across the three sizes, which proves
+   O(visible). They are pinned in tests next to `ScrollFitBaselineTests`.
+2. **Time and memory.** `Stress --bench`, quiet box, `Tools/Profiling/ab_bench.py` paired
+   against the lane's base, CPU per frame and peak RSS. The owner's tolerance applies: a few
+   percent is fine, around 10% means optimise first. The scenarios that cross these paths must
+   not regress:
+   - `app-shapes` (`headed-log`, `sidebar`, `file-browser`, `code-editor`,
+     `code-editor-tailing`);
+   - the table scenarios (`TableGroups`, `WideTable`, `MultiLineTable`, `ChurningTable`);
+   - `MegaList`, `ScrollEager` and `ScrollFollow`;
+   - the small eager pages (`Dashboard`, `session/editor`, `session/chat`): the pull sits under
+     every scroll view, and these are where its overhead would show.
+3. **`Stress --selfcheck` and the render-memo verifier** stay clean. A band is a function of state
+   (anchor, focus, request) and must equal a fresh render's.
+4. **P1 only: byte-identical frames.** P1 moves the anchor into the scroll view and changes no
+   output. Every scroll test passes unchanged, and a parity harness renders the scroll suites'
+   scenes on the base and on the lane and compares every frame.
+
+**The cost that must go: design D's.** `grouped-feed` was +706.8% (17.0 → 137.2 ms a frame) and
++64 MB (RSS 20.1 → 84.2 MB) when D landed. Its rows built a write frame went from 4,093 to
+27,932. After P2:
+
+- rows built a write frame O(visible), the same at 40 and 320 sections;
+- RSS back within 10% of D's base, about 20 MB;
+- the time A/B against `main` showing the cost gone, expected well past −80%.
+
+If it does not, P2 does not land.
 
 **Stress scenarios to add** (variants of a new `scroll-fit` scenario in `Sources/Stress/Scenarios/`,
-each with the page moving every tick unless noted):
+the page moving every tick unless noted; each lane adds the variants its code reaches and A/Bs
+them):
 
-| Variant | Shape |
-|---|---|
-| `two-tables` | `ScrollView { VStack { Text; Table(10k, 4 columns); Text; Table(10k) } }`, wheel steps through both |
-| `two-tables-keys` | the same, Down and Page Down driven in the second table every tick (cursor reveal through the outer view) |
-| `titled-list` | a title over a `List` of 10,000 one-line rows |
-| `titled-list-variable` | the same with rows of 1 to 3 lines (the estimate and the hold) |
-| `grouped-form` | `Form { … }.formStyle(.grouped)`, 40 sections of 250 rows |
-| `boxed-lazy` | `GroupBox { LazyVStack { ForEach(10k) } }` under a title (relay through chrome) |
-| `fixed-size-table` | `VStack { Text; Table(10k) }.fixedSize(horizontal: false, vertical: true)` in a scroll view (the ladder) |
-| `tall-editor` | a title over a `TextEditor` of 10,000 wrapped lines, typing in the middle |
-
-L1 adds the scenario with whatever variants its code reaches, and each later lane adds its own.
-The `grouped-feed` variants are the ones design D's cost (+707%) was measured on. The relay
-windows the nested stacks there too: each outer row in the band hands its nested stack the window.
-Its numbers are this design's first proof against design C's aim.
+| Variant | Shape | Lane |
+|---|---|---|
+| `lazy-million-seek` | `ScrollView { VStack { Text(header); LazyVStack { ForEach(0..<1_000_000) } } }`, a `scrollTo` alternating between rows near either end every tick (the range rung: O(1) locate) | P2 |
+| `lazy-million-seek-keyed` | the same over a million `Identifiable` structs (the locate is the data scan, once per call; the frame is O(visible)) | P2 |
+| `nested-seek` | an outer `LazyVStack` of 10,000 groups, each a heading over its own `LazyVStack` of 20 rows, a `scrollTo` of a row in a far group every tick (A-SCROLLFIT-4's search) | P2 |
+| `boxed-lazy` | `GroupBox { LazyVStack { ForEach(10k) } }` under a title (forward through chrome) | P2 |
+| `two-tables` | `ScrollView { VStack { Text; Table(10k, 4 columns); Text; Table(10k) } }`, wheel steps through both | P3 |
+| `two-tables-keys` | the same, Down and Page Down in the second table every tick (cursor reveal through the outer view) | P3 |
+| `titled-list` | a title over a `List` of 10,000 one-line rows | P3 |
+| `titled-list-variable` | the same with rows of 1 to 3 lines (the estimate, dead reckoning) | P4 |
+| `grouped-form` | `Form { … }.formStyle(.grouped)`, 40 sections of 250 rows | P4 |
+| `tall-editor` | a title over a `TextEditor` of 10,000 wrapped lines, typing in the middle | P4 |
+| `fixed-size-table` | `VStack { Text; Table(10k) }.fixedSize(horizontal: false, vertical: true)` in a scroll view (the ladder) | P5 |
+| `boxed-eager` | `GroupBox { ForEach(10k) { Text } }` and `DisclosureGroup` of the same (windowed past 256) | P8 |
+| `flow-10k` | `FlowLayout` of 10,000 tags under a title | P8 |
+| `layout-list` | a `List` of 10,000 rows inside an app's own two-column `Layout` | P9 |
 
 ## 4. Sequencing
 
-Each lane lands alone with the suite green.
+Each lane lands alone with the suite green. L0 (`NavigationSplitView`'s natural height) is
+already running separately.
 
-- **L2 to L5 build behind one internal switch** (B-SCROLLFIT-10): a package-level environment
-  value, `scrollFitsContent`, false by default and set by the lanes' tests. L6 flips it and
-  deletes it, so no compatibility spelling survives (the "no compat shims" rule).
-- **The docs go in the commit whose behaviour they describe** ("docs as you go"). The step-4
-  rewrite of deviation L19, the `Table`/`List`/`Form` articles and the compatibility guide is
-  L6's.
-- **Each lane changes `ScrollFitBaselineTable.swift`**, the 10,000-row tests and the keys test, row
-  by row on purpose, as the table below says.
+- **B-SCROLLFIT-10 (kept): P3 to P6 build behind one internal switch**, `scrollFitsContent`, a
+  package-level environment value, false by default and set by the lanes' tests. P7 flips it and
+  deletes it, so no compatibility spelling survives.
+- **B-SCROLLFIT-17. P1 is a pure move.** It lifts the anchored walk into the scroll view, with
+  input still in lines and output byte-identical (gate 4). That is the riskiest change: it is on
+  the path of every scroll view, through seek, reveal, hold, follow, glide, overscroll, the
+  position read-back, the designated anchor and the two-axis column seek. It lands first and
+  alone, as its own commit series, so that everything after it is additive.
+- **B-SCROLLFIT-18. A fast path only if the A/B asks for one.** If P1's or P2's A/B shows more
+  than about 10% on a page with nothing windowed below its origin, such content draws as today
+  (whole, then clipped), told apart by a "holds a windowing consumer" bit its measure raises.
+  That costs one bit in the measure answer, and is not built unless measured to be needed.
+- **The docs go in the commit whose behaviour they describe.** The step-4 rewrite (deviation
+  L19, the `Table`/`List`/`Form` articles, the compatibility guide) is P7's. Locating §6b's
+  "What ships" and §11 are updated by P2.
+- **Each lane changes `ScrollFitBaselineTable.swift`** and the 10,000-row tests on purpose, row
+  by row, as the table says.
 
 | Lane | What | Days | `ScrollFitBaselineTable.swift` and the 10,000-row tests |
 |---|---|---|---|
-| **L0** | `NavigationSplitView`'s natural height (2f), a bug fix | ½ | `navigationSplit fixedSize` rows go from 1 line to its columns' content height |
-| **L1** | The relay (1b) through `VStack`, `HStack`, the chrome, wrappers, `.background`/`.overlay`/`.border`/`.frame`. The still window. Bands from relaying containers. The lazy stack's first frame built once (1c, its own commit). The `scroll-fit` Stress scenario. A/B gated (every eager column in scroll content takes the new path) | 2 | No size changes. `tallLazyStackUnderTitle` goes from drawn whole to windowed (< 100 rows built). `tallLazyStackAlone`'s first frame goes from 20,075 to < 100. The `lazyVStack` and boxed rows' built counts drop |
-| **L2** | `List` and `Table`, fixed pitch, consume the window (1c, `ScrollRowWindow` fed the outer window); off-band cursor row and still-window registration (1e); Page Up/Down by the outer viewport (2d); seek holders (1f). Behind the switch | 1½ | None with the switch off. New tests with it on |
-| **L3** | The shared anchored-row engine (1c) extracted from `_VStackCore`; variable `List` rows, multi-line `Table`, `TextEditor` lines (with its caret marker), the grouped `Form`. Behind the switch. A/B gated (the lazy stack's anchored path moves into the shared engine) | 2 | None with the switch off |
-| **L4** | Nil-proposal answers (1d); fillers declare it (B-SCROLLFIT-7/8); `.fixedSize` on the ladder (2b) | 1 | `fixedSize` rows at 10,000 for views already content-sized: `Table` 23 → 10,003, `LazyVStack`/`Grid`/`GroupBox`/`DisclosureGroup`/`TabView`/`NavigationStack`/`.columns` `Form` 23 → their content. `tallTableFixedSize` goes from 4,153 rows built to < 100. Fillers' `fixedSize` rows unchanged (0) |
-| **L5** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1 | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |
-| **L6** | The switch: defaults flipped, the switch deleted, `scrollViewportCap` deleted, `TextEditor`/nested `ScrollView`/grouped `Form`/split views content-sized, fillers' minimum, the horizontal view per A-SCROLLFIT-2. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: deviation L19, the articles, CHANGELOG, compatibility guide | 1½ | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone` 24 → 0. Column (v) per A-SCROLLFIT-2. The `ownBar` column goes to `n` for every content-sized view |
-| *(L7)* | *Only if A-SCROLLFIT-1 is (c): eager containers window their rows past 256* | *2* | *built counts of `Grid`, `FlowLayout`, `.columns` `Form`* |
+| **P1** | `ScrollContentAnchor` in `ScrollViewHandler` (B-SCROLLFIT-11); the fill engine and `ScrollPlacing` (B-SCROLLFIT-12), with `_VStackCore`'s uniform and anchored windows as the column shape; the derived offset by dead reckoning; drags hold their mapping (2b); the first frame without a total (1d). Content at the origin only, which is today's coverage. Byte-identical; parity harness; A/B | 6 | No size changes. `tallLazyStackAlone`'s first frame 20,075 → < 100 rows built |
+| **P2** | Every placing container reads the request: the column through `VStack`; parallel through `HStack`/`ZStack`/`.background`/`.overlay`; forward through every wrapper, chrome, `TabView`, `NavigationStack`, `Section`; the off-band request; locate by route (B-SCROLLFIT-15); the focus reveal as an anchor (1e). Deletes design D's walk, `consumableScrollWindow`'s origin test and the origin mark. `scroll-fit` scenario; `grouped-feed` gate; A/B | 4 | No size changes. `tallLazyStackUnderTitle` drawn whole → pulled (< 100 rows built). `lazyVStack underTitle`/`twoStacked` built 54k/104k → < 100/< 200. The `groupBox`, `tabView` and `navigationStack` rows wrap an eager `VStack` and are unchanged |
+| **P3** | `List` and `Table` as column-shaped consumers, fixed pitch; off-band cursor row and registration; Page Up/Down by the outer viewport (B-SCROLLFIT-5); type-select checked. Behind the switch | 2½ | None with the switch off. New tests with it on |
+| **P4** | Variable rows on the engine: `List`, multi-line `Table`, `TextEditor` as a lines leaf with its caret marker, grouped `Form`. Behind the switch | 3 | None with the switch off |
+| **P5** | Nil-proposal answers; fillers declare (B-SCROLLFIT-7, 8); `.fixedSize` on the ladder (2f) | 1 | In the 10,000-row tests: `fixedSize` `Table` 23 → 10,003 and `tallTableFixedSize` 4,153 → < 100 rows built; already content-sized views under `fixedSize` at 10,000 go 23 → their content. The table's 3/60-row `fixedSize` rows unchanged |
+| **P6** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1½ | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |
+| **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
+| **P8** | A-SCROLLFIT-1's windowed containers (1c): `GroupBox`, `DisclosureGroup`, `.columns` `Form`, `Section` content outside `List`, `FlowLayout` per A-SCROLLFIT-5; the transition record for them (1g) | 3 | Sizes unchanged. Built counts of `formColumns` and `flowLayout` at 10,000 drop (`formColumns` < 100 a frame; `flowLayout` per A-SCROLLFIT-5). The baseline's `groupBox` and `disclosureGroup` wrap an eager `VStack` and stay as they are; new tests pin a `GroupBox` and a `DisclosureGroup` directly around a `ForEach` |
+| **P9** | The app-`Layout` adapter (B-SCROLLFIT-13) | 1½ | None (no app `Layout` in the baseline); a new `layout-list` test |
 
-**Total: 9½ lane-days** (L0–L6). L1 and L3 each owe an A/B. L1 is the riskiest: it is on the path
-of every eager column in scroll content, and its still-window and band logic has to keep the
-render memo's hit rate on pages that are not tall. If L1's A/B shows more than about 10% on the
-existing scenarios, the fallback is to relay only through columns that hold a consumer, where
-"holds a consumer" is a flag a consumer's measure raises. That costs one more bit in the measure
-answer.
+**Total: 24½ lane-days** (P1–P9), honestly 20 to 32. P1, P2, P4 and P8 each owe an A/B.
+
+The SCROLL-FIT defaults switch at P7, about 20 lane-days in. P8 and P9 only change what
+already-content-sized containers cost, so they follow the switch rather than hold it. P1 is the
+risk: if its parity harness finds the anchor cannot reproduce some path byte for byte, that path
+is the lane's to fix, not to fork. The earlier estimate for design C, "multi-week", stands.
 
 ## 5. Questions for the owner
 
 ### A-SCROLLFIT-1. Eager containers' rows off screen
 
-*`VStack`, `Grid`, `FlowLayout`, a `.columns` `Form`, and a `GroupBox` or `DisclosureGroup` around
-a `ForEach`, at thousands of rows in scroll content.*
-
-SwiftUI's eager containers build every row: that is why `LazyVStack`, `LazyVGrid`, `List` and
-`Form` exist. Today TUI does the same, at 3 to 9 builds a row a frame (10,000 rows: `Grid` 6 to
-14 s a case, `GroupBox` 60,000 builds; debug).
-
-- **(a) ★ Stay eager.** Every eager row is drawn every frame, as SwiftUI's are, with `onAppear`,
-  `.task` and transitions as today. A consumer *inside* an eager container (a `List` in a
-  `GroupBox`) still windows through the relay. **Price:** 0 days, but an eager container of
-  thousands of rows keeps today's cost, and the app's remedy is SwiftUI's: the lazy type. It is
-  also the simplest band, because eager children register their focusables and transitions as they
-  do today.
-- **(b) Measure every eager row, draw only the band.** **Price:** about 1 day. An off-screen
-  eager row's `onAppear`/`.task` runs when it scrolls in, a deviation from SwiftUI. The saving is
-  only the drawing; every row is still built to be measured, so expect at most a few-fold cut, to
-  be measured. The off-band focus probe and a presence record (1g) are needed for eager rows.
-- **(c) Window eager containers past 256 rows, as the lazy stack does** (L7). **Price:** about 2
-  days. O(visible) everywhere, but the same `onAppear` deviation, and an eager stack's height
-  becomes an estimate ("~N more") with the hold absorbing it.
+**Answered 2026-11-11: (a), narrowed.** A container stays eager (builds every row, as SwiftUI's
+does) only where SwiftUI has a lazy counterpart and is itself eager: `VStack`/`HStack` and
+`Grid`. `GroupBox`, `DisclosureGroup`, `FlowLayout`, a `.columns` `Form` and a `Section`'s
+content outside a `List` build only their visible rows past a threshold, as the lazy stack does.
+The owner: "(a), _only_ for types that have Lazy versions (e.g. VStack & HStack) and where
+SwiftUI behaves this way." Built as B-SCROLLFIT-14 and 1c (P8).
 
 ### A-SCROLLFIT-2. The vertical axis of `ScrollView(.horizontal)`
 
-TUI's horizontal scroll view also scrolls vertically, which SwiftUI's does not. Under the ruling
-its vertical axis is either bounded or not.
-
-- **(a) Parity.** It stops scrolling vertically and proposes its own height. A content-sized view
-  takes that height and scrolls itself (a 10,000-row table in a horizontal scroll view is the
-  view's height, with its own bar). **Price:** ½ day. Eager content taller than the view is cut
-  off and cannot be reached, as in SwiftUI. That is a loss on a short terminal.
-- **(b) ★ Bounded for sizing, scrollable when it overflows.** Content is proposed the view's
-  height, so content-sized views fit it and scroll themselves, as in SwiftUI. Eager content that
-  is still taller keeps today's vertical scrolling, so nothing becomes unreachable. **Price:** ½
-  day, and one sentence in the deviations (an extension SwiftUI lacks, which no SwiftUI program
-  can trip over). Column (v) of the baseline then reads: `Table` 24 (its own bar), `List` 24 (its
-  own bar), eager containers as now.
-- **(c) Unbounded, like a vertical scroll view.** Content-sized views take their full height and
-  the horizontal view scrolls them vertically. **Price:** 0 extra days, but `.horizontal` then
-  makes a two-axis view of any tall content. A wide table gets its rows scrolled by an outer view
-  the app declared horizontal, with the header pinned by a view it never asked to scroll that way.
+**Answered 2026-11-11: (b).** The view proposes its own height to its content, so tables and
+lists fit it and scroll themselves; content still taller keeps today's vertical scrolling. The
+alternatives were (a) parity, cutting tall content off on a short terminal, and (c) unbounded,
+making a two-axis view of anything tall. Built in P7 (2a).
 
 ### A-SCROLLFIT-3. Does the relay replace design C (NESTED-LAZY-PULL)?
 
-The owner ruled for design C on 2026-09-26 (the scroll view pulls placements outward from an
-anchor, and every container answers for its own children). It was estimated at several weeks and
-never started. The relay here reaches O(visible) for the same shapes, nested lazy stacks and
-`grouped-feed` included, in about 4 of its 9½ days (L1 plus L3).
+**Answered 2026-11-11: (c), build the pull instead of the relay.** The owner, told the pull is
+technically superior and more effort: "If that's accurate, then do Pull." This revision is the
+result; "Superseded: the relay" says what changed and why.
 
-- **(a) ★ The relay is design C's implementation.** The full pull is not built, and the
-  NESTED-LAZY-PULL item closes when L1's `grouped-feed` numbers show design D's cost gone.
-  **Price:** every consumer reports a total height. For variable rows that total is an estimate,
-  so the thumb and the "N more" counts are approximate ("~"), and content *below* a variable list
-  moves as its estimate settles (never content on screen, which the hold keeps still). An app's
-  own `Layout` does not relay (it measures and places by its own rules), so a consumer inside one
-  is drawn whole, as today.
-- **(b) Build the relay now and the pull later.** **Price:** the pull's weeks again, for exact
-  positions without any total ever computed (the Locating doc's §6b footer is "never touched"),
-  and relaying through app `Layout`s via an outward placement protocol.
-- **(c) Build the pull instead of the relay.** **Price:** weeks rather than days, before any
-  SCROLL-FIT default can switch. TABLE-TALL's cap holds until then.
+### A-SCROLLFIT-4. How far a `scrollTo` looks for an id inside rows never built
+
+*`proxy.scrollTo(messageID)` where messages sit in each day's `LazyVStack`, inside an outer
+`LazyVStack` of days, or behind an app view's `body` in a lazy row nobody has drawn.*
+
+A key a container's own `ForEach` names is found without building anything (1f). An id one
+lazy level deeper is behind rows that were never built, and only building them can show it.
+
+- **(a) Reach only what is named without building.** The keys of every placing container's own
+  children, through eager children and pulled rows. **Price:** 0 extra days, and today's reach
+  (when design D landed, a `scrollTo` into a nested stack did nothing either: `resolveEagerSeek`
+  matches only a stack's own children, 49cbee2b3). A nested id does nothing, silently.
+- **(b) ★ Search into unbuilt rows, outward from the anchor.** Build each lazy row's view value
+  and, where its content is behind a `body`, evaluate it for measuring only (no `onAppear`, no
+  focus registration), until the id is found. **Price:** about 1 day, in P2. A miss costs one
+  body evaluation per outer row, once per call: 40 days of messages is at most 40 evaluations, and
+  10,000 is 10,000, its time to be measured by the `nested-seek` scenario. Found ids land exactly.
+
+★ (b), because an id that silently does nothing looks like a bug to an app, and the cost is
+paid once per call, never per frame. A SwiftUI probe of the same shape is run first; if SwiftUI
+does not reach nested ids either, (b) is still an extension no SwiftUI program can trip over.
+
+### A-SCROLLFIT-5. Where `FlowLayout` breaks its lines
+
+*A `FlowLayout` of thousands of tags in scroll content, which A-SCROLLFIT-1 asks to build only
+the visible items.*
+
+Each line's first item depends on the widths of every item before it.
+
+- **(a) ★ Measure every item's width once per data change; build only the visible lines.** The
+  line starts are kept, as the two-axis view keeps its widest row. **Price:** about 1 day in P8.
+  A change of the data or the width measures every item (Ω(items), building each one's view to
+  measure it, with no `onAppear`); scrolling builds only the visible lines. Lines are always the
+  ones a top-down wrap makes.
+- **(b) Wrap outward from the anchor; estimate the line starts it has not walked.** **Price:**
+  about 2 days. O(visible) even on a change. But after a far jump, the lines above are made by
+  wrapping backward, and can differ from a top-down wrap: scrolled back to the top, the first
+  line may come out short, and the lines move once the walk meets the kept starts.
+
+★ (a): correctness before performance, and a flow of thousands of items is rare. The change's
+cost is one measure per item, not per frame.
 
 ## For a future reader
 
+- **Paint windowing for eager rows** (Locating §5g) is not done. Eager children off band are
+  rendered as memo hits so that `onAppear` and focus registration keep SwiftUI's timing
+  (B-SCROLLFIT-14). Separating those from rendering would let them be skipped, with no
+  observable change.
 - **`LazyHStack` never windows across.** It rebuilt 9,990 items per wheel step in the baseline.
-  The relay is axis-agnostic in shape (`columnSeek`/`columnReport` already travel across), so the
-  mirror is a lane of its own of about 2 days, outside this ruling.
-- **App `Layout`s do not relay.** A consumer inside one is drawn whole. If that becomes common, the
-  fix is a protocol that lets a `Layout` say where it placed each child, after `placeSubviews`, so
-  the relay can read the offsets. Until then it is the cost of today.
-- **The still window (B-SCROLLFIT-2) is what keeps the memo's hit rate.** A later change that
-  hands a moving window to children off screen would show as an idle-redraw regression on pages
-  that do not scroll.
+  The engine is axis-agnostic in shape (`columnSeek`/`columnReport` already travel across), so
+  the mirror is a lane of its own of about 2 days, outside this ruling.
+- **The off-band request (B-SCROLLFIT-2) is what keeps the memo's hit rate.** A later change
+  that hands a moving request to children off screen would show as an idle-redraw regression on
+  pages that do not scroll.
 - **`isRow` must stay a data question** (1g). Answered from drawing, every row scrolled into a
   band would fade in.
-- **The switch (B-SCROLLFIT-10) lives only from L2 to L6.** If L6 is delayed, the switch is not to
-  become public API. It is deleted, not deprecated.
+- **The switch (B-SCROLLFIT-10) lives only from P3 to P7.** If P7 is delayed, the switch is not
+  to become public API. It is deleted, not deprecated.
+- **Dead reckoning is the rule that keeps the readings steady** (2b). A change that re-derives
+  the offset from estimates every frame would make `onScrollGeometryChange` report motion nobody
+  made.
+- **Locating a key in opaque data stays Ω(N)** (Locating §12's identity tax), mitigated by the
+  near-first search and the range rung. An app-supplied index is the escape hatch if it ever
+  matters.
 
 ## The record
 
 ### B-SCROLLFIT-1. The window is relayed, addressed child by child
 
-See 1b. Chosen over the pull (A-SCROLLFIT-3 asks whether it replaces it) because each relaying
-container already measures its children to place them, and with consumers measured in O(1) that
-measure gives every child's y. The arithmetic is `ScrollContentWindow.beneath` and
-`ScrollWindowRelay.answer`, which ship.
+**Superseded by B-SCROLLFIT-11 and 12 (A-SCROLLFIT-3, (c)).** The relay moved the window into each
+child's coordinates by the child's measured y. That y is a prefix of every sibling's height, so
+every consumer had to report a total, and an estimate above moved the content below. The
+arithmetic it reused (`ScrollContentWindow.beneath`, `ScrollWindowRelay.answer`) survives as the
+forward shape. Full text in b5481ecf2.
 
 ### B-SCROLLFIT-2. A subtree entirely off screen is handed a still window
 
-See 1b. A canonical "above" or "below" window that does not move while the child stays off
-screen, so its memo holds. No window at all would make an off-screen consumer fall back to being
-drawn whole.
+Kept, renamed: the **off-band request**. A child the fill does not reach gets a request that does
+not change while it stays off screen, so its memo holds, and a consumer inside it draws only its
+off-band rows. Handing it no request would make such a consumer fall back to being drawn whole.
 
 ### B-SCROLLFIT-3. Fixed pitch is arithmetic; variable pitch is an estimate held at the top row
 
-See 1c. One anchored-row engine, extracted from `_VStackCore` and shared by the lazy stack,
-`List`, `Table` and `TextEditor`, rather than four.
+Kept (1d), with one change: under the pull an estimate never places anything on screen, only
+the readings in 2b. One engine, shared by the lazy stack, `List`, `Table`, `TextEditor` and the
+windowed containers.
 
 ### B-SCROLLFIT-4. A pending seek names its holder
 
-See 1f. The registry already asks every live target; the one holding the key stamps its identity
-on the request, and the relays draw that child as they draw a pending focus target.
+**Superseded by B-SCROLLFIT-15.** The holder was needed so that relays would build a row a band
+did not reach. Under the pull the located target becomes the anchor, and the fill builds it
+because it is there.
 
 ### B-SCROLLFIT-5. Page Up and Page Down move by the outer viewport
 
@@ -663,22 +790,62 @@ See 2e. Revealing the union aligned the control's top and scrolled away the titl
 
 ### B-SCROLLFIT-7. A filler's ideal along an unbounded axis is its minimum
 
-See 2b. 0 for `Color`, shapes and `GeometryReader`, and a `Spacer`'s `minLength`: the height
-counterpart of the ideal-width ask's 0. SwiftUI's 10 points (less than a line) was not rounded up
-to one line.
+See 2f. 0 for `Color`, shapes and `GeometryReader`, and a `Spacer`'s `minLength`. SwiftUI's 10
+points (less than a line) was not rounded up to one line.
 
 ### B-SCROLLFIT-8. Greedy views declare it; `.fixedSize` climbs the ladder
 
-See 2b. "Filled the budget" no longer means greedy. A filler says so with its flexibility at its
-minimum, and `.fixedSize` measures with the same ladder the scroll view uses.
+See 2f. A filler says so with its flexibility at its minimum, and `.fixedSize` measures with the
+ladder the scroll view uses.
 
 ### B-SCROLLFIT-9. A tall table's header and horizontal bar are pinned as a section's header and footer
 
-See 2c. Reuses `OverlayLayer.ScrollPin`, `PinnedChromeViewport.pinnedRow` and
-`PinnedChromeCover`. The header with its rule line and side borders is pinned; the table's top
-border is not.
+See 2c. Reuses `OverlayLayer.ScrollPin`, `PinnedChromeViewport.pinnedRow` and `PinnedChromeCover`.
 
 ### B-SCROLLFIT-10. Built behind an internal switch, flipped and deleted in one lane
 
-See 4. Lets L2 to L5 land alone with the suite green and the baseline unchanged. It is not public
-and does not outlive L6.
+See 4. P3 to P6 land with the baseline unchanged; P7 flips and deletes the switch.
+
+### B-SCROLLFIT-11. The scroll view holds an anchor; the absolute offset is derived
+
+See 1b. The anchor is the row's identity, a line-source leaf's row, the lines hidden, the edge
+affinity, and a per-level ladder. Input stays in lines and is walked as a delta, which is the
+anchored stack's `advanceAnchor(to:)` lifted to the scroll view, so the many paths that move an
+offset today keep working.
+
+### B-SCROLLFIT-12. One fill engine; containers answer for their own children
+
+See 1b. Five shapes (column, parallel, forward, lines, leaf) and one package protocol,
+`ScrollPlacing`, which refines `LayoutPlacing`. Chosen over per-container walks because four
+hand-written anchor walks would drift apart, which the code-reuse rule forbids.
+
+### B-SCROLLFIT-13. A non-conforming view is drawn whole; an app's `Layout` is adapted
+
+See 1b. Framework containers are tested to conform (`ScrollPull.unplacedConsumers` is zero). An
+app's `Layout` is served from its own `placeSubviews` (P9, about 1½ days), because it is eager
+in SwiftUI too and its placements are already paid for.
+
+### B-SCROLLFIT-14. Eager containers build and render every child; only the band is painted
+
+See 1b. SwiftUI's existence for `VStack`, `HStack` and `Grid` (A-SCROLLFIT-1), with off-band
+children rendered as memo hits so `onAppear` and focus registration keep their timing.
+
+### B-SCROLLFIT-15. A seek is located by routing and becomes the anchor
+
+See 1f. Keys are found by the data scan with no row built, near the remembered ordinal first,
+with an O(1) rung for integer ranges. How deep it searches is A-SCROLLFIT-4.
+
+### B-SCROLLFIT-16. Moves are exact; absolute readings are estimates only where extents are unknown
+
+See 2b. Readings are carried by dead reckoning, corrected at the edges, and held through a drag.
+`.scrollExtentPrecision(.exact)` remains the opt-in to exact readings everywhere.
+
+### B-SCROLLFIT-17. P1 moves the anchor into the scroll view with byte-identical output
+
+See 4. The riskiest change lands alone and changes nothing visible, gated by a frame-by-frame
+parity harness, so that every later lane is additive.
+
+### B-SCROLLFIT-18. A fast path for content with nothing windowed, only if measured to be needed
+
+See 4. One bit in the measure answer. Not built unless an A/B shows more than about 10% on pages
+the pull gains nothing on.
