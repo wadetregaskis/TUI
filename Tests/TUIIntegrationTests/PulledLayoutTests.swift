@@ -12,7 +12,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Foundation
 import Testing
 
 @testable import TUI
@@ -177,7 +176,7 @@ struct PulledLayoutTests {
 
     /// What `flowIf`'s `if` tests, read at run time so the compiler keeps the
     /// branch.
-    private static let shows = ProcessInfo.processInfo.environment["TUI_TEST_HIDES_STACK"] == nil
+    private static let shows = !CommandLine.arguments.isEmpty
 
     private static func app(
         _ shape: Shape, rows count: Int, lazy: Bool, builds: Builds? = nil, height: Int = 12

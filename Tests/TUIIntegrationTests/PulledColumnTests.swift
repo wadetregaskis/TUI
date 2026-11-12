@@ -10,7 +10,6 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-import Foundation
 import Testing
 
 @testable import TUI
@@ -33,7 +32,7 @@ struct PulledColumnTests {
 
     /// What the `if`s test, read at run time so the compiler keeps both
     /// branches.
-    private static let shows = ProcessInfo.processInfo.environment["TUI_TEST_HIDES_STACK"] == nil
+    private static let shows = !CommandLine.arguments.isEmpty
 
     private static func rows(_ prefix: String, _ count: Int, builds: Builds) -> some View {
         LazyVStack(alignment: .leading, spacing: 0) {
