@@ -424,7 +424,9 @@ container carries is searched for below its rows, level by level:
   its own offset, and every piece it placed, by where the row's answer put the viewport's top
   (`pulledPosition`). So each level resolves the seek among its own rows; a box relays it as it
   relays any request, and the parallel shape hands it to its lead and re-hands its other pulled
-  children their place below the container's new top.
+  children their place below the container's new top. *Not yet:* a key in a parallel
+  container's pulled child other than its lead (the tallest), two lazy stacks side by side, is
+  not found; the lead would have to be the child holding the key for that frame.
 - **A row drawn whole is aimed into.** The row is drawn once for the key's place alone, measuring
   and with no cache: the child the key names stamps two geometry markers on its drawing
   (`seekTargetTop`, `seekTargetEnd`), which every container moves with what it draws, so the
@@ -447,6 +449,17 @@ container carries is searched for below its rows, level by level:
 title, in the second of two stacks, in a box, beside a gutter and in the rows of an outer lazy
 stack (pulled, and of twenty rows drawn whole), each against the same rows drawn eagerly, and
 pins the rows a seek's frame builds under a title as the same at 1,000 and 10,000 rows.
+
+Measured (2026-11-12, `ab_bench.py`, release, cpu per frame, base 09da5c3cd against the third
+lane's locate and focus-ring commits, load 3 to 10): `app-shapes` −0.3%, `megalist`, `scrollfollow`,
+`glide`, `dashboard` and `session/editor` indistinguishable, `scrolleager` +1.7% [+0.5, +2.0],
+`session/chat` +0.4%, `session/log` −1.2%; the pulled variants `grouped-feed` +0.5% [+0.1, +2.3],
+`boxed-lazy` and `headed-log` indistinguishable, `titled-lazy` −0.9%, `two-stacked-lazy` −0.7%.
+RSS within 1 MB everywhere. What a frame with no seek pays is a render-cache test in
+`ChildView.render` and in `_VStackCore`'s measure and render, and a focus mark per pulled column
+and per scroll view drawn: under the owner's few-percent line. `frame_parity.py`: 155 of 156 cases
+draw alike, `app-shapes/timeline-rows` the one that differs between runs of one binary; `Stress
+--selfcheck` clean.
 
 Forwarders do not conform: the engine sees a single-child step and forwards. That is the common
 case, and an app's own views are always that case. The counts are Locating §8's, updated. About
