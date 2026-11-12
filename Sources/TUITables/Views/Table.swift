@@ -736,6 +736,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// them squeezed, and does not ask again.
     var squeezesColumns = false
 
+    /// Set on the copy a pulled table draws its band with
+    /// (``renderPulled(context:)``): the first row the band holds, which the
+    /// table draws from, with no indicators of its own, whatever it last
+    /// scrolled itself to.
+    var pulledOffset: Int?
+
     /// Every column the table shows, whichever are on screen: what the keys
     /// that reach beyond the window — the sort chords, type select, the column
     /// keys — choose among.
@@ -1016,6 +1022,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+        // A `scrollTo` searching the rows of a column above, under SCROLL-FIT's
+        // switch, asks only whether a row here carries its key.
+        if context.environment.scrollFitsContent, let search = ScrollKeyLocate.search(in: context),
+            !search.marksTarget
+        {
+            if data.contains(where: { identityKey($0.id) == search.key }) { search.found = true }
+            return .zero
+        }
         if isPrepared {
             return measuredSizeThatFits(proposal: proposal, context: context)
         }
@@ -1048,10 +1062,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         if let height = proposal.height {
             measureContext.availableHeight = height
         }
-        // In scroll content, never taller than the scroll view: measured
-        // within that, a table that measures by drawing draws no more rows
-        // than it will show (the ladder's first rung is 4,096 lines).
-        if let cap = scrollViewportCap(context) {
+        // Pulled (``renderPulled(context:)``), its rows' height, held: measured
+        // at that, its rows all fit, and it draws no bar of its own.
+        let pulled = pulledHeight(context: context)
+        if let pulled {
+            measureContext.availableHeight = pulled
+        } else if let cap = scrollViewportCap(context) {
+            // In scroll content, never taller than the scroll view: measured
+            // within that, a table that measures by drawing draws no more rows
+            // than it will show (the ladder's first rung is 4,096 lines).
             measureContext.availableHeight = min(measureContext.availableHeight, cap)
         }
 
@@ -1116,7 +1135,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // view's column were each dealt a third of their rows' total.
         let fillsWidth = columns.contains { $0.effectiveWidth.growsWithAvailableWidth }
         return ViewSize(
-            width: size.width, height: scrollViewportCap(context).map { min(size.height, $0) } ?? size.height,
+            width: size.width,
+            height: pulled ?? scrollViewportCap(context).map { min(size.height, $0) } ?? size.height,
             isWidthFlexible: fillsWidth, isHeightFlexible: context.hasExplicitHeight)
     }
 
@@ -1426,8 +1446,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // Pulled, a band of its lines (`renderPulled(context:)`), once prepared.
         let buffer = isPrepared
-            ? drawn(context: context)
+            ? renderPulled(context: context) ?? drawn(context: context)
             : observingBodyClosure(of: Self.self, context: context) { drawn(context: context) }
         return buffer.drawnDisabled(if: isDisabled(in: context))
     }
@@ -3153,8 +3174,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // …and neither does a table whose indicators are hidden. The bar path
         // passes `showsScrollbar: true` and composes its own rows, so this is
         // the "N more" answer for both.
-        let drawsText = drawsTextIndicators(
-            showsScrollbar, context, contentHeight: contentHeight)
+        let drawsText =
+            pulledOffset == nil && drawsTextIndicators(showsScrollbar, context, contentHeight: contentHeight)
         // `.visible` asks for the affordance, not for a hint that appears when it
         // has something to say — so the overflow test does not gate it.
         handler.alwaysReservesIndicatorLines =
@@ -3208,6 +3229,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             measuring: context.isMeasuring, overflowing: overflowing,
             drawsTextIndicators: handler.drawsScrollIndicators,
             firstRowHeight: 1)
+        if let pulledOffset {
+            // Where the band is; and the wheel passes on to the scroll view.
+            handler.scrollOffset = pulledOffset
+            handler.isScrollEnabled = false
+        }
         handler.reportScrollPosition(rowID: { AnyHashable(data[$0].id) }, context: context)
         bindSelection(handler, context: context)
         // Drawn over the rows for the pointer, the indicators reserve nothing
@@ -3233,7 +3259,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// request it parks placed against this frame's rows, found by their ids,
     /// before the offset settles.
     private func resolveScrollTo(_ handler: ItemListHandler<Value.ID>, rows: [Value], context: RenderContext) {
-        guard !context.isMeasuring else { return }
+        // Not a pulled table's: the scroll view around it finds the row, and
+        // hands the table the seek with its request.
+        guard !context.isMeasuring, pulledOffset == nil else { return }
         context.environment.scrollToRegistry?.register(
             handler: handler, identity: context.identity, renderCache: context.renderCache)
         // A glide in flight, then the request, then a bound position — each
@@ -5433,6 +5461,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// leaves (``horizontallyWindowed(_:)``).
     private func drawsVerticalScrollbar(rowArea: Int, gutter: Int, context: RenderContext) -> Bool {
         if let decided = horizontalWindow?.showsVerticalBar { return decided }
+        // Pulled, the scroll view around it shows where it is.
+        guard pulledOffset == nil else { return false }
         guard !data.isEmpty else { return false }
         let environment = context.environment
         return environment.verticalScrollIndicators(
@@ -7522,5 +7552,90 @@ extension _TableCore {
     /// sortable inside a disabled subtree. See ``_ListCore/isDisabled(in:)``.
     func isDisabled(in context: RenderContext) -> Bool {
         isDisabled || !context.environment.isEnabled
+    }
+}
+
+// MARK: - SCROLL-FIT's pull
+
+extension _TableCore {
+    /// A table's lines as SCROLL-FIT's pull reads them (design P3): the chrome
+    /// above its rows (a border, the header), its rows one line each, the
+    /// chrome below — or `nil` when it is drawn as before: the switch off,
+    /// outside scroll content, given a height, below a container that does
+    /// not pull, a style of the app's own, rows of several lines or in
+    /// sections (P4's), columns that do not fit across, or no rows.
+    private func pulledLines(context: RenderContext) -> (top: Int, count: Int, bottom: Int)? {
+        let environment = context.environment
+        guard environment.scrollFitsContent, context.scrollContentOriginDepth != 0, !context.hasExplicitHeight,
+            !data.isEmpty, !usesMultiLineLayout, horizontalWindow == nil, customStyle(environment) == nil,
+            context.isPulledWhereItStands
+        else { return nil }
+        let border = borderWidth(environment)
+        return (border + headerLines(environment), data.count, border)
+    }
+
+    /// The table's measure when it is pulled: its rows' height, filed as a
+    /// view that bands its own lines, so the column above hands it a request.
+    /// Withdrawn otherwise.
+    private func pulledHeight(context: RenderContext) -> Int? {
+        guard context.environment.scrollFitsContent else { return nil }
+        let lines = pulledLines(context: context)
+        context.notePulledBand(lines != nil)
+        return lines.map { $0.top + $0.count + $0.bottom }
+    }
+
+    /// The band of a pulled table (``pulledLines(context:)``): the lines a
+    /// request asks for, drawn as the table draws itself framed to the
+    /// band's rows from the first of them, cut to the band's lines and
+    /// answered back. With no request — the first frame's measuring walk —
+    /// the table's top, as far down as the walk goes and no further than a
+    /// viewport. `nil` when the table is not pulled.
+    private func renderPulled(context: RenderContext) -> FrameBuffer? {
+        guard let lines = pulledLines(context: context) else { return nil }
+        let total = lines.top + lines.count + lines.bottom
+        let request = context.pulledBandRequest()
+        let handler = existingHandler(context)
+        let band: PulledBand?
+        let lineRange: Range<Int>
+        if let request {
+            let resolved = request.band(total: total) { seek in
+                if seek.focusID != nil { return (lines.top + min(handler?.focusedIndex ?? 0, lines.count - 1), 1) }
+                return data.firstIndex { identityKey($0.id) == seek.key }.map { (lines.top + $0, 1) }
+            }
+            band = resolved
+            lineRange = resolved.lines
+        } else {
+            band = nil
+            let reach =
+                context.isMeasuring
+                ? context.availableHeight : context.environment.scrollViewportSize?.height ?? context.availableHeight
+            lineRange = 0..<max(1, min(total, reach))
+        }
+        // The rows the band holds, never none: a band of chrome alone draws
+        // the row next to it, which the cut then leaves out.
+        let first = min(max(lineRange.lowerBound - lines.top, 0), lines.count - 1)
+        let rows = first..<min(max(lineRange.upperBound - lines.top, first + 1), lines.count)
+        var table = self
+        table.pulledOffset = rows.lowerBound
+        var framed = context
+        framed.availableHeight = lines.top + rows.count + lines.bottom
+        let drawn = table.drawn(context: framed)
+        // The drawing's lines that hold the band's: its chrome above, its rows
+        // from the band's first, its chrome below.
+        func drawnLine(_ line: Int) -> Int {
+            if line < lines.top { return line }
+            if line < lines.top + lines.count { return line - rows.lowerBound }
+            return line - lines.count + rows.count
+        }
+        var buffer = drawn.lines(in: drawnLine(lineRange.lowerBound)..<(drawnLine(lineRange.upperBound - 1) + 1))
+        if let handler = existingHandler(context), !context.isMeasuring {
+            buffer.markPulledControl(
+                focusID: handler.focusID, band: lineRange, total: total, cursorLine: lines.top + handler.focusedIndex)
+            // Page Up and Page Down move by the scroll view's viewport, not
+            // the band's rows (B-SCROLLFIT-5).
+            if let request { handler.viewportHeight = max(1, request.viewportHeight) }
+        }
+        if let band { request?.answer(band) }
+        return buffer
     }
 }

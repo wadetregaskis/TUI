@@ -781,6 +781,57 @@ one engine.**
   rungs included, so the pin is under 150; a 10,000-row `List` under a title, which the same
   walk drew to its 4,095-line canvas, builds 12,300 rows on its first frame rather than 16,000+.
 
+**As P3 built it** (2026-11-12, `PulledBand.swift`, `_ListCore+Pulled.swift`, `Table.swift`'s
+"SCROLL-FIT's pull"). Behind the switch, `EnvironmentValues.scrollFitsContent` (package-internal,
+off by default, B-SCROLLFIT-10): with it off nothing reads any of this, and every frame is as
+before. With it on, a `List` or `Table` in scroll content, given no height, that a column pulls
+where it stands (`RenderContext.isPulledWhereItStands`, P2's reach test moved onto the context so
+a view outside the stacks' module can ask it) and whose rows are one line each, is a *band
+consumer*, filed `.bandsRows` as a windowed lazy stack is:
+
+- **Its height is arithmetic.** The chrome above the rows (a border, a borderless title, a
+  table's header), a line a row, the chrome below: the measure answers that total, held, and no
+  row is built. A list counts its rows from its `RowSource` (O(1) for a `ForEach`) and asks its
+  container what it keeps of a tall height for the chrome; a table's are its border and header
+  lines. Fixed pitch only: a table on its multi-line layout (lines above one, or sections), a
+  list whose rows are not all content (sections), an empty one, a custom table style or columns
+  that scroll sideways are drawn as before (P4's). A list's one-line rows are B-SCROLLFIT-3's
+  uniform hypothesis: taken until a band draws fewer rows than its lines (a row of two lines),
+  then refuted for good (`ListPulledPitch`, state index -83) and the scroll view told to measure
+  again (`measureWentStale`).
+- **The band is the view framed to its rows.** `PulledBandRequest` reads the request (its edge,
+  and a seek or a focus reveal placed by the rule every seek shares) as a band of the view's
+  lines; the view draws itself as it would framed to the rows that band holds — its own window
+  walk, cursor, selection, clicks and regions — from the band's first row, with no indicators of
+  its own and its own scrolling handed to the scroll view (`isScrollEnabled` off, so the wheel
+  chains out; `scrollTo` not registered with the reader), cuts the drawing to the band's lines
+  (`FrameBuffer.lines(in:)`, now package), and answers the band, the total, its ends and the
+  position. With no request — the first frame's measuring walk — it draws its top, no further than
+  the walk's lines or a viewport.
+- **Focus (1e).** The list or table registers its one focus stop whenever it is drawn, and a
+  column draws an eager column's children off the band, so Tab reaches it. Its whole-control
+  region reaches, for a reveal, every line outside the band (`revealOutsetTop`/`Bottom`), so
+  tabbing to it shows it as tabbing to it drawn whole does; its cursor row off the band is a
+  one-line region at its place (`FrameBuffer.markPulledControl`), so an arrow, Page Down, End or
+  type-select moving the cursor past the band has the scroll view reveal it.
+- **Page Up and Page Down (B-SCROLLFIT-5)** move the cursor by the request's viewport: the
+  handler's `viewportHeight` is set to it after the band is drawn. There is no pinned header yet
+  (P6), so nothing is taken off it.
+- **`scrollTo` (1f).** Measured for a key search (`ScrollKeyLocate`), a list or table says whether
+  a row carries the key (a scan of the keys, no row built); the column hands it the seek, and it
+  places the row's line by the request's anchor.
+- **Type-select** (`resolvePendingTypeSelect`) reads each row's `typeSelectText` from its content,
+  which builds the rows it scans from the cursor to its match: per key press, never per frame, as
+  2d allowed (`PulledListTests`: typing `r5000` over 10,000 rows builds about the 5,000 it scans).
+
+`PulledListTests` and `PulledTableTests` twin a list and a table of 300 rows under a title and a
+button against the same view drawn whole, framed to its full height with the switch off: at the
+top, five wheel steps and a burst, Tab onto it, fourteen cursor steps past the screen, End and
+Home draw alike. At 10,000 rows they pin the rows built a frame (first frame, three wheel steps,
+a `scrollTo`, two pages, End) under 100 and equal to 1,000's, and reach every row by the wheel and
+by Page Down (a page a screen: 834 pages), row 0, 517, 5,000 and 9,999 by `scrollTo`, and the
+button below and back by Tab.
+
 ### 1e. Focus: an unbuilt row stays reachable
 
 - **The focused control is an off-band route.** Every placing container on its chain draws the
@@ -1092,6 +1143,7 @@ already running separately.
 | **P2 as built** (2026-11-12) | The column through `VStack` and `LazyVStack` at any count (`StackPulledColumn.swift`); forward through bodies, modifiers, `Section`, `.padding` and the content margins (which relayed already); the off-band request; drags holding their mapping; the first frame without a total; `ScrollPlacing` (the marker the pulled column conforms to, read from the identity chain); design D's walk kept only below containers that do not pull. Moved to P3: the parallel shape (`HStack`, `ZStack`, `.background`/`.overlay`), forwarding through the bordered container (`GroupBox`, `.border()`), `TabView` and `NavigationStack`; locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4); the focus reveal as an anchor (1e); and in a pulled column, a held row, the top-row hold, target layout and departing-row transitions. See "As P2 built it" under 1b | 4 | `tallLazyStackAlone` 20,075 → 124 rows built on the first frame (< 150 pinned: the measure ladder's samples count); `tallLazyStackUnderTitle` 9 × 10,000 drawn whole → 59 × 26 pulled, 119 built; `tallListUnderTitle` 16,000+ → 12,300 (the first frame's measuring walk); 3- and 60-row rows unchanged |
 | **P2, fifth lane** (2026-11-12) | In a pulled column: target layout, the visibility observers' rows, the top-row hold and a held row in the anchored child; the write frame's ladder answered whole; a lazy stack in an `if` among a column's views; forward through `TabView` and a pushed `NavigationStack` screen (`PulledChromeRelay`). Left: a lazy stack in a `Grid` (tried, a band of the lattice drifts from what the cell draws: about a day), departing-row transitions in a pulled column, a held row outside the anchored child. See "Built in the fifth lane" under 1b | — | Rows built a write frame equal at 40 and 320 sections |
 | **P3** | `List` and `Table` as column-shaped consumers, fixed pitch; off-band cursor row and registration; Page Up/Down by the outer viewport (B-SCROLLFIT-5); type-select checked. Behind the switch. From P2: the parallel and remaining forward shapes, locate by route, the focus reveal as an anchor, and a pulled column's held row, top-row hold and target layout | 2½ + about 3 from P2 | None with the switch off. New tests with it on |
+| **P3 as built** (2026-11-12) | `List` and single-line `Table` as band consumers at a fixed pitch behind the switch: content-sized, a band of the view framed to its rows, the cursor row marked off the band, the whole-control reveal reaching every line, Page Up/Down by the outer viewport, `scrollTo` by a key search, type-select measured (see "As P3 built it" under 1d). Not taken from P2's list: a held row outside the anchored child and departing-row transitions in a pulled column, and a lazy stack in a `Grid` | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledListTests`, `PulledTableTests` with it on |
 | **P4** | Variable rows on the engine: `List`, multi-line `Table`, `TextEditor` as a lines leaf with its caret marker, grouped `Form`. Behind the switch | 3 | None with the switch off |
 | **P5** | Nil-proposal answers; fillers declare (B-SCROLLFIT-7, 8); `.fixedSize` on the ladder (2f) | 1 | In the 10,000-row tests: `fixedSize` `Table` 23 → 10,003 and `tallTableFixedSize` 4,153 → < 100 rows built; already content-sized views under `fixedSize` at 10,000 go 23 → their content. The table's 3/60-row `fixedSize` rows unchanged |
 | **P6** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1½ | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |
