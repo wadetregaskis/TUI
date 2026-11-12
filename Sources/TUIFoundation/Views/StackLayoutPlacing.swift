@@ -231,21 +231,7 @@
     /// of whatever holds it, so its filing (``PullConsumers/layoutPlaces(_:)``)
     /// answers for that step before any type does.
     func isPulledWhereItStands(context: RenderContext) -> Bool {
-        guard let contentDepth = context.scrollContentIdentityDepth else { return false }
-        var cursor: ViewIdentity? = context.identity
-        while let node = cursor, node.depth > contentDepth {
-            if node.isSiblingStep {
-                // A layout's filing first: it is drawn at the identity of
-                // whatever holds it, which may be an `if`'s.
-                guard let parent = node.parent,
-                    context.renderCache?.pullConsumers.layoutPlaces(parent)
-                        ?? (parent.holdsItsChildrenForAContainer
-                            || parent.leafType.map({ $0 is any ScrollPlacing.Type }) == true)
-                else { return false }
-            }
-            cursor = node.parent
-        }
-        return true
+        context.pullReachesIdentity()
     }
 
     private func scrollContentNesting(context: RenderContext) -> Bool {
@@ -257,6 +243,29 @@
 }
 
 extension _VStackCore: ScrollPlacing {}
+
+@MainActor extension RenderContext {
+    /// `_VStackCore.isPulledWhereItStands(context:)`, for any view at this
+    /// context's identity: a lazy stack, or a `List` or `Table` that draws a
+    /// band of its lines (``isPulledWhereItStands``).
+    func pullReachesIdentity() -> Bool {
+        guard let contentDepth = scrollContentIdentityDepth else { return false }
+        var cursor: ViewIdentity? = identity
+        while let node = cursor, node.depth > contentDepth {
+            if node.isSiblingStep {
+                // A layout's filing first: it is drawn at the identity of
+                // whatever holds it, which may be an `if`'s.
+                guard let parent = node.parent,
+                    renderCache?.pullConsumers.layoutPlaces(parent)
+                        ?? (parent.holdsItsChildrenForAContainer
+                            || parent.leafType.map({ $0 is any ScrollPlacing.Type }) == true)
+                else { return false }
+            }
+            cursor = node.parent
+        }
+        return true
+    }
+}
 
 /// What an `if` without an `else` is in a view builder: `Optional`, whose
 /// view is its child at index 0.
