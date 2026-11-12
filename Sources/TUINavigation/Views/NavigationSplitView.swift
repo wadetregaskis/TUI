@@ -293,7 +293,11 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         // Collapsed, one column shows.
         let minWidth = minimumColumnWidth * (isCollapsed(context) ? 1 : isThreeColumn ? 3 : 2)
-        return ViewSize(width: minWidth, height: 1, isWidthFlexible: true, isHeightFlexible: true)
+        // Offered a height, one line and flexible: it takes what it is given.
+        // Offered none (scroll content, `.fixedSize`), its tallest visible
+        // column's height, still flexible, as `HSplitView` answers.
+        let height = proposal.height == nil ? naturalHeight(context: context) : 1
+        return ViewSize(width: minWidth, height: height, isWidthFlexible: true, isHeightFlexible: true)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -500,14 +504,14 @@ extension _NavigationSplitViewCore {
     /// Resolves the effective visibility from the binding, else from what the
     /// split's own handles last wrote (see ``SplitViewToggleState/visibility``),
     /// else `.all`.
-    fileprivate func resolveVisibility(toggleState: SplitViewToggleState?) -> NavigationSplitViewVisibility {
+    func resolveVisibility(toggleState: SplitViewToggleState?) -> NavigationSplitViewVisibility {
         let value = columnVisibility?.wrappedValue ?? toggleState?.visibility ?? .all
         // Resolve .automatic to .all
         return value == .automatic ? .all : value
     }
 
     /// Calculates which columns should be visible based on visibility setting.
-    fileprivate func calculateVisibleColumns(visibility: NavigationSplitViewVisibility) -> [NavigationSplitViewColumn] {
+    func calculateVisibleColumns(visibility: NavigationSplitViewVisibility) -> [NavigationSplitViewColumn] {
         if isThreeColumn {
             switch visibility {
             case .all, .automatic:
@@ -538,7 +542,7 @@ extension _NavigationSplitViewCore {
     /// identities, not the parent's) and applied any width-reset token on a
     /// render pass (a changed `.navigationSplitViewColumnWidthReset(_:)` releases
     /// the user-pinned widths; a measure pass never mutates persisted state).
-    fileprivate func resolvePersistedWidths(context: RenderContext) -> SplitViewWidths {
+    func resolvePersistedWidths(context: RenderContext) -> SplitViewWidths {
         let stateStorage = context.stateStorage!
         let widths = stateStorage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: SplitViewStateIndex.widths),

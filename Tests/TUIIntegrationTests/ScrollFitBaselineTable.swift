@@ -168,13 +168,13 @@ enum ScrollFitBaseline {
         navigationSplitView  alone       3   60x24    -        Y   n
         navigationSplitView  underTitle  3   60x23    -        Y   n
         navigationSplitView  twoStacked  3   60x12    60x12    YY  n
-        navigationSplitView  fixedSize   3   60x1     -        n   n
+        navigationSplitView  fixedSize   3   60x3     -        Y   n
         navigationSplitView  horizontal  3   60x24    -        Y   n
-        navigationSplitView  alone       60  60x24    -        n   n
-        navigationSplitView  underTitle  60  60x23    -        n   n
-        navigationSplitView  twoStacked  60  60x12    60x12    nn  n
-        navigationSplitView  fixedSize   60  60x1     -        n   n
-        navigationSplitView  horizontal  60  60x24    -        n   n
+        navigationSplitView  alone       60  60x60    -        Y   n
+        navigationSplitView  underTitle  60  60x60    -        Y   n
+        navigationSplitView  twoStacked  60  60x60    60x60    YY  n
+        navigationSplitView  fixedSize   60  60x60    -        n   n
+        navigationSplitView  horizontal  60  60x60    -        Y   n
         hSplitView           alone       3   60x24    -        Y   n
         hSplitView           underTitle  3   60x23    -        Y   n
         hSplitView           twoStacked  3   60x12    60x12    YY  n

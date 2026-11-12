@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `NavigationSplitView` in a `ScrollView` or under `.fixedSize` is as tall as its tallest column.** Offered no
+height, it answered one line: in a scroll view it took the viewport's height, so the sidebar's rows past it could
+not be scrolled to, and under `.fixedSize(horizontal: false, vertical: true)` it was a single line. It now answers the
+height of its tallest visible column, as `HSplitView` does. Offered a height, it still takes all of it.
+
 **On a screen more than 4,096 columns wide, a press far from an open menu closes it.** The region behind an open
 menu that takes a press outside it reached 4,096 cells from the menu, so a press farther away left the menu open and
 reached the page under it. It now covers the screen.
