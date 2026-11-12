@@ -1371,3 +1371,25 @@ messages cite that path), and what cites it.
 - **Was:** written here.
 - **Cited by:** `Documentation/Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md` (FORM-SCROLL,
   LAZY-TAB); `Tests/TUIIntegrationTests/FormGroupedScrollTests.swift`.
+
+### Tables in a scroll view (1111T)
+
+- **Asks:** what height SwiftUI gives `Table`s of 2, 5 and 30 rows, each under a title, stacked in a `VStack` in a
+  vertical `ScrollView` with no frame (windows 400 points wide and 300, 600 and 1200 tall), and whether it draws rows
+  or stripes past a table's last row. For each table: the height it was laid out at (a `GeometryReader`), the
+  `NSTableView`'s rows and the height they need, its `NSScrollView`'s height, whether it draws alternating rows, and
+  the colours drawn down its first column below the last row. Then the same with `.scrollDisabled(true)`,
+  `.fixedSize(horizontal: false, vertical: true)`, `.frame(height: 150)`, `.frame(minHeight: 150)`,
+  `.alternatingRowBackgrounds(.disabled)` and the last two together; and a lone table's size under a `Layout`'s
+  proposals.
+- **Files:** `tables.swift` (`swiftc -parse-as-library`), `tables.out`.
+- **Answers:** with no frame every table is **0 points tall**, in every window, so none of it shows: its ideal
+  height is 0 (`.unspecified` gives 0 × 0, `400 × nil` gives 400 × 0), and neither `.scrollDisabled(true)` nor
+  `.fixedSize(horizontal: false, vertical: true)` changes that. `.frame(height: 150)` and `.frame(minHeight: 150)`
+  both give 150: the 30-row table then scrolls within it, and below the 2-row table's last row the stripes go on
+  (`fffeff f6f7f7 fffeff`), alternating rows being on by default; with them disabled the space is plain.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-11.
+- **Was:** written here.
+- **Cited by:** `Documentation/Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md`
+  (TABLE-IN-SCROLL-HEIGHT, TABLE-IN-SCROLL-BLANK); `Documentation/SwiftUI parity/Deliberate deviations from
+  SwiftUI.md` (L19); `Tests/TUITablesTests/TableInScrollViewHeightTests.swift`.

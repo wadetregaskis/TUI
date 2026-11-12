@@ -1,0 +1,73 @@
+plain, window 400 x 300
+  table 0: frame=0.0 rows=2x24.0+header 28.0 need=76.0 scroll=0.0 visible=0.0 document=63.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 1: frame=0.0 rows=5x24.0+header 28.0 need=148.0 scroll=0.0 visible=0.0 document=135.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 2: frame=0.0 rows=30x24.0+header 28.0 need=748.0 scroll=0.0 visible=0.0 document=735.0 scrolls=true alt=true style=2
+    last rows: off off; below: -
+plain, window 400 x 600
+  table 0: frame=0.0 rows=2x24.0+header 28.0 need=76.0 scroll=0.0 visible=0.0 document=63.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 1: frame=0.0 rows=5x24.0+header 28.0 need=148.0 scroll=0.0 visible=0.0 document=135.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 2: frame=0.0 rows=30x24.0+header 28.0 need=748.0 scroll=0.0 visible=0.0 document=735.0 scrolls=true alt=true style=2
+    last rows: off off; below: -
+plain, window 400 x 1200
+  table 0: frame=0.0 rows=2x24.0+header 28.0 need=76.0 scroll=0.0 visible=0.0 document=63.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 1: frame=0.0 rows=5x24.0+header 28.0 need=148.0 scroll=0.0 visible=0.0 document=135.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 2: frame=0.0 rows=30x24.0+header 28.0 need=748.0 scroll=0.0 visible=0.0 document=735.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+scrollDisabled, window 400 x 600
+  table 0: frame=0.0 rows=2x24.0+header 28.0 need=76.0 scroll=0.0 visible=0.0 document=63.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 1: frame=0.0 rows=5x24.0+header 28.0 need=148.0 scroll=0.0 visible=0.0 document=135.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 2: frame=0.0 rows=30x24.0+header 28.0 need=748.0 scroll=0.0 visible=0.0 document=735.0 scrolls=true alt=true style=2
+    last rows: off off; below: -
+fixedSizeVertical, window 400 x 600
+  table 0: frame=0.0 rows=2x24.0+header 28.0 need=76.0 scroll=0.0 visible=0.0 document=63.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 1: frame=0.0 rows=5x24.0+header 28.0 need=148.0 scroll=0.0 visible=0.0 document=135.0 scrolls=true alt=true style=2
+    last rows: 000000 000000; below: -
+  table 2: frame=0.0 rows=30x24.0+header 28.0 need=748.0 scroll=0.0 visible=0.0 document=735.0 scrolls=true alt=true style=2
+    last rows: off off; below: -
+frameHeight150, window 400 x 600
+  table 0: frame=150.0 rows=2x24.0+header 28.0 need=76.0 scroll=150.0 visible=150.0 document=122.0 scrolls=false alt=true style=2
+    last rows: fffeff f6f7f7; below: fffeff f6f7f7 fffeff
+  table 1: frame=150.0 rows=5x24.0+header 28.0 need=148.0 scroll=150.0 visible=150.0 document=135.0 scrolls=false alt=true style=2
+    last rows: f6f7f7 fffeff; below: -
+  table 2: frame=150.0 rows=30x24.0+header 28.0 need=748.0 scroll=150.0 visible=150.0 document=735.0 scrolls=true alt=true style=2
+    last rows: off off; below: -
+frameMinHeight150, window 400 x 600
+  table 0: frame=150.0 rows=2x24.0+header 28.0 need=76.0 scroll=150.0 visible=150.0 document=122.0 scrolls=false alt=true style=2
+    last rows: fffeff f6f7f7; below: fffeff f6f7f7 fffeff
+  table 1: frame=150.0 rows=5x24.0+header 28.0 need=148.0 scroll=150.0 visible=150.0 document=135.0 scrolls=false alt=true style=2
+    last rows: f6f7f7 fffeff; below: -
+  table 2: frame=150.0 rows=30x24.0+header 28.0 need=748.0 scroll=150.0 visible=150.0 document=735.0 scrolls=true alt=true style=2
+    last rows: off off; below: -
+alternatingDisabled, window 400 x 600
+  table 0: frame=0.0 rows=2x24.0+header 28.0 need=76.0 scroll=0.0 visible=0.0 document=63.0 scrolls=true alt=false style=2
+    last rows: 000000 000000; below: -
+  table 1: frame=0.0 rows=5x24.0+header 28.0 need=148.0 scroll=0.0 visible=0.0 document=135.0 scrolls=true alt=false style=2
+    last rows: 000000 000000; below: -
+  table 2: frame=0.0 rows=30x24.0+header 28.0 need=748.0 scroll=0.0 visible=0.0 document=735.0 scrolls=true alt=false style=2
+    last rows: off off; below: -
+frameHeight150AlternatingDisabled, window 400 x 600
+  table 0: frame=150.0 rows=2x24.0+header 28.0 need=76.0 scroll=150.0 visible=150.0 document=122.0 scrolls=false alt=false style=2
+    last rows: fffeff fffeff; below: fffeff fffeff fffeff
+  table 1: frame=150.0 rows=5x24.0+header 28.0 need=148.0 scroll=150.0 visible=150.0 document=135.0 scrolls=false alt=false style=2
+    last rows: fffeff fffeff; below: -
+  table 2: frame=150.0 rows=30x24.0+header 28.0 need=748.0 scroll=150.0 visible=150.0 document=735.0 scrolls=true alt=false style=2
+    last rows: off off; below: -
+Table of 2 under a Layout's proposals
+  proposal unspecified: 0.0 x 0.0
+  proposal zero: 0.0 x 0.0
+  proposal infinity: inf x inf
+  proposal 400 x nil: 400.0 x 0.0
+Table of 30 under a Layout's proposals
+  proposal unspecified: 0.0 x 0.0
+  proposal zero: 0.0 x 0.0
+  proposal infinity: inf x inf
+  proposal 400 x nil: 400.0 x 0.0
