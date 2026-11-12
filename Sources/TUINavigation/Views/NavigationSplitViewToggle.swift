@@ -228,17 +228,31 @@ extension _NavigationSplitViewCore {
         focusManager: FocusManager?, toggleState: SplitViewToggleState?
     ) -> (EdgeWiring?, RenderContext) {
         probeToggleRemoval(visibleColumns: visibleColumns, context: context, toggleState: toggleState)
-        // A bar's button for the sidebar stands in for the edge column.
-        guard showsToggle(context: context, toggleState: toggleState),
-            !(context.environment.windowChrome?.hasBarToggle(for: context.identity) ?? false),
-            visibleColumns.count < (isThreeColumn ? 3 : 2),
-            context.availableWidth > visibleColumns.count
+        guard hasEdgeColumn(visibleColumns: visibleColumns, context: context, toggleState: toggleState)
         else { return (nil, context) }
         let edge = wireEdge(context: context, focusManager: focusManager, toggleState: toggleState)
-        let columnsContext = context.withAvailableSize(
+        return (edge, columnsBesideEdge(context))
+    }
+
+    /// Whether the split draws the edge column (see
+    /// ``layOutEdge(visibleColumns:context:focusManager:toggleState:)``): it
+    /// shows its toggle, a leading column is hidden, and the columns would keep
+    /// a cell each beside it.
+    func hasEdgeColumn(
+        visibleColumns: [NavigationSplitViewColumn], context: RenderContext, toggleState: SplitViewToggleState?
+    ) -> Bool {
+        // A bar's button for the sidebar stands in for the edge column.
+        showsToggle(context: context, toggleState: toggleState)
+            && !(context.environment.windowChrome?.hasBarToggle(for: context.identity) ?? false)
+            && visibleColumns.count < (isThreeColumn ? 3 : 2)
+            && context.availableWidth > visibleColumns.count
+    }
+
+    /// The context the columns lay out in beside the edge column: one cell narrower.
+    func columnsBesideEdge(_ context: RenderContext) -> RenderContext {
+        context.withAvailableSize(
             width: RenderContext.extent(context.availableWidth, insideChrome: 1),
             height: context.availableHeight)
-        return (edge, columnsContext)
     }
 
     /// Whether the split shows its toggle handles: no `.toolbar(removing:
