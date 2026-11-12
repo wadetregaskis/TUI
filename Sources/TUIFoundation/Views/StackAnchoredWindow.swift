@@ -113,6 +113,9 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     var ladder: [String: Int] { state.rowOrdinalMemo }
 
     var estimatedPitch: Int { state.estimatedPitch(spacing: spacing) }
+
+    /// Every row priced at the running pitch, less the gap after the last.
+    var estimatedTotal: Int { children.count * estimatedPitch - spacing }
 }
 
 // MARK: - The anchored render
@@ -555,10 +558,15 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         let declaredMode = context.environment.declaredAnchorModes.standing
         let anchorMode = ScrollAnchorMode.effective(
             boundAnchor: context.environment.anchorPosition?.wrappedValue, declared: declaredMode)
-        let designatedKey = applyDesignatedAnchor(
-            frame: frame, state: state, window: window, context: context, mode: anchorMode)
+        // A stack a column pulls (``ScrollContentWindow/isPulled``) holds no
+        // row of the scroll view's: that is the outermost column's to hold.
+        let designatedKey =
+            window.isPulled
+            ? nil
+            : applyDesignatedAnchor(frame: frame, state: state, window: window, context: context, mode: anchorMode)
 
         var window = window
+        frame.enter(edgeOf: &window, estimatedEnd: frame.anchor.reportedTotal ?? frame.estimatedTotal)
         let topRowOffset = rebindingAnchor(
             frame: frame, state: state, window: &window, designatedKey: designatedKey)
 
@@ -606,6 +614,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             heldOffset = clampDesignatedHold(frame: frame, state: state, window: &window)
             frame.anchor.derivedOffset = window.offset
         }
+        if window.isPulled { window.reply?.pulledPosition = window.offset }
         var (placed, lastPlaced, bottomY) = frame.fill(window: window)
         // The rows the fill drew, before any focus target joins them.
         let drawn = ordinalSpan(of: placed.map(\.ordinal))
@@ -928,6 +937,55 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         let bottomPad =
             (seek.bottomInset > 0 && (target < count - 1 || window.linesBelow > 0)) ? 1 : 0
         return (max(-above, window.offset + y + rowHeight - window.viewportHeight + bottomPad), top)
+    }
+
+    /// `renderWindow`'s seek ladder: a pulled column's band; else, under a
+    /// request, uniform arithmetic, then for large variable-height content the
+    /// anchored walk (§5e); `nil` from all of them (no request, small N,
+    /// spacers, a first frame with no hypothesis) leaves the exact paths.
+    func renderWindowedLadder(context: RenderContext) -> FrameBuffer? {
+        // Checked BEFORE `renderWindow`'s eager resolve (which would build
+        // every row of a huge ForEach just to count spacers):
+        // uniform arithmetic first; for large variable-height content, the
+        // anchored walk (§5e); a nil from both (small N, spacers, a first
+        // frame with no hypothesis) falls through to the exact paths.
+        // A column holding a pulled child places its rows outward from its
+        // anchor (`StackPulledColumn.swift`), whatever their count.
+        if let pulled = renderPulledRows(context: context) { return pulled }
+        if var window = consumableScrollWindow(context: context), !context.isMeasuring {
+            let collection = resolveChildViewCollection(from: content, context: context)
+            if collection.isUniformlyKeyed {
+                // Both windowed paths refine the pitch this stack's measure
+                // estimates unmeasured rows at, so a measure the pass memoized
+                // before this render is no longer what a fresh one says. Moved
+                // is rare — the rounded average of the rows touched — and then
+                // the pass's sizes are dropped rather than served stale. So
+                // they are when the uniform hypothesis the measure answered
+                // from is refuted, once in the stack's life: the ScrollView
+                // measures again (``ScrollContentReply/measureWentStale``),
+                // and must not be handed the answer the render refuted.
+                let state = uniformWindowState(context: context)
+                let before = (state.measuredEstimate(spacing: spacing), state.broken)
+                defer {
+                    if (state.measuredEstimate(spacing: spacing), state.broken) != before {
+                        context.renderCache?.forgetPassMeasures()
+                        forgetKeptSizes(context: context)
+                    }
+                }
+                resolveUniformPullEdge(&window, count: collection.count, state: state)
+                if window.edge != .end,
+                    let fast = renderUniformWindowReporting(collection, window: window, context: context)
+                {
+                    return fast
+                }
+                if collection.count > Self.anchoredWindowThreshold,
+                    let anchored = renderAnchoredWindow(collection, window: window, context: context)
+                {
+                    return anchored
+                }
+            }
+        }
+        return nil
     }
 
     /// Memo hit, else one key scan (never builds a row view). Shared by the

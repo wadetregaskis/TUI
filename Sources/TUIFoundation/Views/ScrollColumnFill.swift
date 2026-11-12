@@ -48,6 +48,16 @@ protocol ScrollFillColumn: AnyObject {
 
     /// The position the walk reads and moves.
     var anchor: ScrollContentAnchor { get }
+
+    /// Whether a scroll of more than four screens is walked row by row as a
+    /// short one is, rather than landed by the estimated pitch: for a column
+    /// of few rows, whose walk is short and whose average pitch may describe
+    /// none of them. `false` unless a column says otherwise.
+    var walksJumps: Bool { get }
+}
+
+extension ScrollFillColumn {
+    var walksJumps: Bool { false }
 }
 
 extension ScrollFillColumn {
@@ -144,7 +154,7 @@ extension ScrollFillColumn {
             // never shown.
             let pastEnd = min(offset + viewportHeight - reported, linesBelow)
             (anchor, within) = tailAnchor(endingAt: viewportHeight - pastEnd)
-        } else if abs(delta) > viewportHeight * 4 {
+        } else if abs(delta) > viewportHeight * 4, !walksJumps {
             let estimate = estimatedPitch
             anchor = min(count - 1, max(0, offset / estimate))
             within = max(0, offset - anchor * estimate)
@@ -248,5 +258,52 @@ extension ScrollFillColumn {
             above -= 1
         }
         return (placed, last, y)
+    }
+
+    /// Places the anchor for a request that counts from this column's top or
+    /// end (``ScrollContentWindow/edge``) rather than its own position — a
+    /// column above has just moved its anchor in, or fills to this column from
+    /// the row above or below — and sets the position to match, so the walk
+    /// that follows moves from there and the request is the position's from
+    /// then on.
+    ///
+    /// From the top, the anchor is the first row with nothing hidden, at
+    /// position 0, and the walk to the offset is exact up to four screens in
+    /// (`advanceAnchor`). From the end, the rows are walked up from the last by
+    /// their exact pitches until they cover the lines between the viewport's
+    /// top and the column's end, and the position puts that end at
+    /// `estimatedEnd` — the column's own lines need not start at its first
+    /// row's top, but must hold every row the walk measured — or, when every
+    /// row fits below the viewport's top, puts the first row's top where the
+    /// rows end it.
+    func enter(edgeOf window: inout ScrollContentWindow, estimatedEnd: Int) {
+        switch window.edge {
+        case .position:
+            return
+        case .top:
+            anchor.ordinal = 0
+            anchor.key = key(at: 0)
+            anchor.within = 0
+            anchor.derivedOffset = 0
+        case .end:
+            let line = -window.offset
+            var ordinal = rowCount - 1
+            var covered = pitch(of: ordinal)
+            while covered < line, ordinal > 0 {
+                ordinal -= 1
+                covered += pitch(of: ordinal)
+            }
+            anchor.ordinal = ordinal
+            anchor.key = key(at: ordinal)
+            if ordinal == 0, covered <= line {
+                anchor.within = 0
+                window.offset = covered - line
+            } else {
+                anchor.within = covered - line
+                window.offset = max(estimatedEnd, covered) - line
+            }
+            anchor.derivedOffset = window.offset
+        }
+        window.edge = .position
     }
 }

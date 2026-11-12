@@ -503,16 +503,13 @@ struct NestedLazyStackReachTests {
         app.frame(atNanos: 0)
         app.frame(atNanos: Self.frame)
         let before = builds.count
-        let measuresBefore = app.renderCache.nestedStackWalks
         app.send(KeyEvent(key: .character("t")))
         app.frame(atNanos: 2 * Self.frame)
         let perFrame = builds.count - before
-        let measures = app.renderCache.nestedStackWalks - measuresBefore
         let rows = (0..<groups).reduce(0) { $0 + 300 + $1 }
         let screen = visible(app)
         #expect(screen.contains { $0.contains("tick 1") }, "precondition: the write landed: \(screen)")
         #expect(screen.contains { $0.contains("g0 r0") }, "precondition: the first group is drawn: \(screen)")
-        #expect(measures < 7 * groups, "the nested stacks were measured \(measures) times")
         #expect(perFrame < 6 * rows, "an invalidated frame built \(perFrame) rows of \(rows)")
     }
 
@@ -564,13 +561,14 @@ struct NestedLazyStackReachTests {
         #expect(cached.renderCache.renderMemoMismatches.isEmpty, "\(cached.renderCache.renderMemoMismatches)")
     }
 
-    @Test("A scroll view's ideal height is the height its nested lazy stack draws")
-    func idealHeightIsTheDrawnHeight() {
-        // SwiftUI: a scroll view's ideal size is its content's. Its content is
-        // asked under the same origin as every other ask the scroll view makes,
-        // so the stack gives the answer it draws to — 1 + 16 + 2 × 284 lines —
-        // and not the sixteen-row estimate (301), which is the answer the memo
-        // would also have kept for it.
+    @Test("A scroll view's ideal height is its nested lazy stack's estimate, as at the origin")
+    func idealHeightIsTheEstimate() {
+        // SwiftUI: a scroll view's ideal size is its content's. A nested stack
+        // is pulled (SCROLL-FIT) and drawn as a band from its own anchor, never
+        // into the height it answers, so it answers as the stack at the origin
+        // does: its sixteen-row estimate, 1 + 300 lines, and not the
+        // 1 + 16 + 2 × 284 a walk of every row found when it was drawn whole
+        // (design D, deleted).
         let tui = TUIContext()
         var environment = EnvironmentValues()
         environment.focusManager = FocusManager()
@@ -584,6 +582,6 @@ struct NestedLazyStackReachTests {
             ScrollView { NestedLazyContent(rows: 300, tallFirst: false) },
             proposal: ProposedViewSize(width: 30, height: nil), context: context)
         tui.stateStorage.endRenderPass()
-        #expect(size.height == 1 + 16 + 2 * 284)
+        #expect(size.height == 1 + 300)
     }
 }

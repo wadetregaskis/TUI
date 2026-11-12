@@ -27,7 +27,8 @@ struct ScrollContentWindow: Hashable {
             lhs.contentIdentity == rhs.contentIdentity, lhs.edgeInset == rhs.edgeInset,
             lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek, lhs.columnSeek == rhs.columnSeek,
             lhs.columnReport == rhs.columnReport,
-            lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow
+            lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow, lhs.edge == rhs.edge,
+            lhs.isPulled == rhs.isPulled
         else { return false }
         return lhs.reportsTargetLayout == rhs.reportsTargetLayout
             && lhs.reportsTargetVisibility == rhs.reportsTargetVisibility && lhs.topRowHold == rhs.topRowHold
@@ -44,6 +45,8 @@ struct ScrollContentWindow: Hashable {
         hasher.combine(columnReport)
         hasher.combine(linesAbove)
         hasher.combine(linesBelow)
+        hasher.combine(edge)
+        hasher.combine(isPulled)
         hasher.combine(reportsTargetLayout)
         hasher.combine(reportsTargetVisibility)
         hasher.combine(topRowHold)
@@ -177,6 +180,18 @@ struct ScrollContentWindow: Hashable {
         }
     }
 
+    /// What ``offset`` counts from, for a view pulled by a column above it
+    /// (SCROLL-FIT, `StackPulledColumn.swift`): its own position, its top, or
+    /// its end. A scroll view's window counts from the view's own position.
+    var edge = PullEdge.position
+
+    /// Whether a column above handed this window on (`StackPulledColumn.swift`)
+    /// rather than the scroll view: the view is pulled as one piece of the
+    /// content, so what the scroll view asks of its own content — a row held
+    /// by `.anchorPosition(.row(id))`, the row at the top held as rows change
+    /// above it — is the outer column's to answer, not this view's.
+    var isPulled = false
+
     /// The scroll content's lines above the stack that consumes this window,
     /// and below it: a `Section`'s header and footer, which the section draws
     /// around a lazy stack at its own identity, so the stack is still reached
@@ -287,6 +302,28 @@ struct ScrollContentWindow: Hashable {
         window.columnReport = report
         return window
     }
+}
+
+/// What a pulled view's ``ScrollContentWindow/offset`` counts from.
+///
+/// A column that places a pulled child outward from its anchor
+/// (`StackPulledColumn.swift`) knows where the child's top or end sits in the
+/// viewport, not where the child's own position is: the child keeps that by
+/// dead reckoning, in lines of its own that need not start at its first row's
+/// top, and the column knows the child's extent only as the child last reported
+/// it. So it says which: the child's position, carried on from the last frame
+/// (the column's anchor stayed in it), or its top or its end, placed exactly
+/// (the column's anchor has just moved into it, or the fill reaches it from
+/// the row above or below).
+enum PullEdge: UInt8, Sendable, Hashable {
+    /// The offset is the view's own position, moved by a scroll since it last
+    /// drew: what a scroll view hands its content.
+    case position
+    /// The offset counts from the view's top: line 0 is its first row's top.
+    case top
+    /// The offset counts from the view's end: line 0 is its last row's
+    /// bottom, and the viewport's top is `-offset` lines above it.
+    case end
 }
 
 /// What a windowed stack does about the row at the top of the viewport — see
@@ -428,6 +465,13 @@ final class ScrollContentReply: Hashable {
     /// draws once more (`renderedContent`).
     var measureWentStale = false
 
+    /// Where the viewport's top fell in the lines of a pulled view
+    /// (``ScrollContentWindow/isPulled``) once it had read its request: the
+    /// offset it drew at, in its own lines (``ScrollContentWindow/edge``
+    /// resolved). The column that pulled it places the band by it, and hands
+    /// it back as the view's position on the next frame.
+    var pulledPosition: Int?
+
     /// Moves the columns the content answered `leading` columns right, into
     /// the coordinates of a view that draws them past a leading inset (a
     /// padding, the content margins): the extents a behaviour and the
@@ -554,6 +598,7 @@ extension ScrollContentReply {
         targetIDs = other.targetIDs
         seekResolvedColumn = other.seekResolvedColumn
         measureWentStale = other.measureWentStale
+        pulledPosition = other.pulledPosition
     }
 
     /// Journals what a windowed stack has just said to its scroll view, for a memo

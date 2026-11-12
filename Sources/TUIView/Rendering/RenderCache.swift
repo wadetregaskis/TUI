@@ -461,17 +461,10 @@ import TUIStyling
         measureEntries.keys.filter { $0.viewType == key.viewType && $0.identityHash == key.identityHash }
     }
 
-    /// How many measures of a lazy stack NESTED in a scroll view's content —
-    /// below a header, or in a row of an outer lazy stack — have walked the
-    /// rows their budget reaches rather than estimating them, over every pass.
-    /// Only ever compared as a delta: a `ScrollView` reads it around the
-    /// measures that decide its scrollbars, to learn whether its content holds
-    /// such a stack, which decides the budget its scrollbar's first round asks
-    /// at (`resolveScrollbars`).
-    /// Counted on that walk's path only, which is Ω(rows) already, and only
-    /// once the walk has answered: a stack that falls back to the exact walk
-    /// is walked whole at any budget.
-    package var nestedStackWalks = 0
+    /// The views in scroll content that are pulled (SCROLL-FIT): kept across
+    /// passes, as each files itself from its own measure. See
+    /// ``PullConsumers``.
+    package var pullConsumers = PullConsumers()
 
     /// The width-traits generation this cache's contents were measured under.
     ///

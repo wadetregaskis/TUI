@@ -95,13 +95,18 @@ struct ScrollFitBaselineTests {
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 
-    /// Below a title it is not at the origin, so it consumes no window and is
-    /// drawn whole.
-    @Test("A 10,000-row LazyVStack under a title is drawn whole")
+    /// Below a title it is pulled by the column that holds it (SCROLL-FIT P2):
+    /// a wheel step builds a handful of rows, and its size, as
+    /// `onGeometryChange` reads it, is the band it draws, as at the origin.
+    /// The first frame still builds every row twice, as at the origin, on the measuring walk an app's
+    /// first frame begins with (design 1d). Before P2: drawn whole,
+    /// 9 × 10,000, 50,000+ rows built on the first frame.
+    @Test("A 10,000-row LazyVStack under a title is pulled: a wheel step builds a handful of rows")
     func tallLazyStackUnderTitle() {
         let result = tall(.lazyVStack, .underTitle)
-        #expect(result.sizeA == CellSize(width: 9, height: 10_000))
-        #expect(result.builtFirst >= 50_000, "built \(result.builtFirst)")
+        #expect(result.sizeA == CellSize(width: 59, height: 26))
+        #expect(result.builtFirst < 21_000, "built \(result.builtFirst)")
+        #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 
     /// Content-sized up to the ladder's first rung, then the height offered.

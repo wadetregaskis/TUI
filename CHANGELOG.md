@@ -15,6 +15,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A long `LazyVStack` anywhere in a scroll view's content draws only the rows on screen.** Under a title, beside
+another in one `VStack`, or in each row of an outer `LazyVStack`, a lazy stack of more than 256 rows was measured
+over every row and drawn whole, on every frame that changed anything: a feed of forty sections of 300 entries built
+27,932 rows a frame. The `VStack` or `LazyVStack` that holds one now places it outward from the scroll position, as
+a lazy stack that is the scroll view's whole content always was, so it builds about a screenful. Its height, and so
+the scrollbar, "~N more" and `onScrollGeometryChange`'s content size, is now an estimate for rows of varying height,
+as it already was for a lazy stack that is the whole content, and `onGeometryChange` on it reports the rows it draws.
+A lazy stack inside a `GroupBox`, a `.border()`, an `HStack` or another container is still drawn whole, as before.
+
 **A `NavigationSplitView` in a `ScrollView` or under `.fixedSize` is as tall as its tallest column.** Offered no
 height, it answered one line: in a scroll view it took the viewport's height, so the sidebar's rows past it could
 not be scrolled to, and under `.fixedSize(horizontal: false, vertical: true)` it was a single line. It now answers the

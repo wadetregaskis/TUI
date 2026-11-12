@@ -175,7 +175,7 @@ extension RenderContext {
     /// ``ScrollContentWindow/isAtOrigin(_:)``, which compares the lineage too.
     var mayConsumeScrollWindow: Bool {
         let origin = scrollContentOriginDepth
-        guard origin != 0, origin != Self.belowScrollContentOrigin else { return false }
+        guard origin != 0, !isBelowScrollContentOrigin else { return false }
         return identity.isDirectDescent(fromDepth: Int(origin) - 1)
     }
 

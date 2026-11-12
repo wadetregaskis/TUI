@@ -17,17 +17,21 @@ import TUICore
     /// the absolute total feeds only the scrollbar and the clip bound, both
     /// of which the design declares estimated (§3).
     ///
-    /// Honest, that is, for the stack whose render consumes the scroll window,
-    /// and for no other. One NESTED in a scroll view's content — below a
-    /// header, or in a row of an outer lazy stack — never gets the window
-    /// (`consumableScrollWindow`): it is drawn whole, by `renderWindow`'s
-    /// append-while-fits walk, into the height its parent gives it, and its
-    /// parent gives it the height measured here. The estimate was therefore its
-    /// drawn height, and rows past it were drawn nowhere: 300 rows priced at
-    /// the sixteen-row sample's one line each, of which all but sixteen were
-    /// two, ended the scroll view at row 157. So that stack is measured over
-    /// the rows its budget reaches instead (`reachedRows`) — exactly the rows
-    /// the walk would draw.
+    /// Honest wherever a request reaches the stack: at the scroll content's
+    /// origin, or nested in it under columns that pull it — below a header, or
+    /// in a row of an outer lazy stack (`StackPulledColumn.swift`) — where it is
+    /// drawn as a band from its own anchor, never into the height answered here.
+    ///
+    /// Not where none does: below a container that does not pull (a bordered
+    /// box, a row of an `HStack`, until SCROLL-FIT's later lanes reach them,
+    /// B-SCROLLFIT-13). There it is drawn whole, by `renderWindow`'s
+    /// append-while-fits walk, into the height its parent gives it, which is
+    /// the height measured here — so it is measured over the rows its budget
+    /// reaches instead (`reachedRows`): exactly the rows the walk draws. Priced
+    /// at the sample, 300 rows of which all but sixteen were two lines ended
+    /// the scroll view at row 157 (design D, which was every nested stack's
+    /// path until the pull: forty groups of 300 rows built 27,932 rows on a
+    /// frame after a write).
     func anchoredSizeThatFits(
         _ children: ChildViewCollection, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize? {
@@ -74,7 +78,7 @@ import TUICore
         // may not claim a natural size: in a view that scrolls both ways every
         // ask walked the stack again. The probe itself still asks, because its
         // budget can stop the walk short of rows the record has counted.
-        let isNested = isNestedInScrollContent(context: context)
+        let isNested = isNestedInScrollContent(context: context) && !isPulledWhereItStands(context: context)
         let ask =
             isNested && !context.asksIdealWidth
             ? .prefix
@@ -97,12 +101,6 @@ import TUICore
                     children, built: sampleChildren, proposal: sampleProposal,
                     heightLimit: heightLimit, context: measureContext)
             else { return nil }
-            // Tells the scroll view above that its content walks: see
-            // `RenderCache.nestedStackWalks`. Only once the walk has answered:
-            // a stack with a spacer falls back to the exact walk, which
-            // measures every row whatever budget it is offered, so a smaller
-            // budget would save it nothing.
-            context.renderCache?.nestedStackWalks &+= 1
             (counted, height) = (reached.counted, reached.height)
             // A whole-content width ask reads the budget to classify itself
             // (`contentWidthAsk`), so only the prefix answer may claim it —

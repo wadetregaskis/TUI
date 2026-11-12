@@ -261,6 +261,42 @@ extension ViewIdentity {
         return count
     }
 
+    /// The highest identity this one descends from by single-child steps
+    /// alone: itself, or the nearest ancestor reached by a sibling step — an
+    /// indexed or keyed descent, a child among others — or the root.
+    ///
+    /// So every identity ``isDirectDescent(from:)`` holds for lies on the chain
+    /// from this down to the identity it is asked of, and "is `X` a direct
+    /// descent of a container's child `C`" is, for a child reached by a
+    /// sibling step, `X.singleChildRoot == C`: one comparison, which a set
+    /// keyed by roots answers for many `X` at once (SCROLL-FIT's pulled
+    /// consumers, `PullConsumers`).
+    package var singleChildRoot: ViewIdentity {
+        var cursor = node
+        while let parent = cursor.parent {
+            switch cursor.step {
+            case .typed(_, let index):
+                guard index == nil else { return ViewIdentity(node: cursor) }
+            case .branch:
+                break
+            case .keyed, .raw:
+                return ViewIdentity(node: cursor)
+            }
+            cursor = parent
+        }
+        return ViewIdentity(node: cursor)
+    }
+
+    /// Whether this identity's own step is a sibling step: an indexed or keyed
+    /// descent, a child among others (see ``singleChildRoot``).
+    package var isSiblingStep: Bool {
+        switch node.step {
+        case .typed(_, let index): index != nil
+        case .branch: false
+        case .keyed, .raw: true
+        }
+    }
+
     /// The node at `ancestorDepth` on this chain, when every step below it
     /// down to this identity is a single-child descent; else `nil`.
     private func singleChildAncestor(atDepth ancestorDepth: Int) -> IdentityNode? {

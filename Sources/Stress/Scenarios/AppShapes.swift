@@ -273,6 +273,15 @@ enum AppShapeMatrix {
         variant("headed-log", "a header over a lazy stack of 2,000 one- and two-line entries in one scroll view; the page moves every tick") {
             AnyView(HeadedLogApp(entries: $0.sized(2_000), seed: $0.seed))
         },
+        variant("titled-lazy", "a title over a lazy stack of 100,000 one- and two-line entries, scrolled three lines a tick (SCROLL-FIT pull)") {
+            AnyView(PulledPageApp(shape: .titled, entries: $0.sized(100_000), seed: $0.seed))
+        },
+        variant("two-stacked-lazy", "two headed lazy stacks of 50,000 entries in one column, scrolled three lines a tick (SCROLL-FIT pull)") {
+            AnyView(PulledPageApp(shape: .twoStacked, entries: $0.sized(100_000), seed: $0.seed))
+        },
+        variant("boxed-lazy", "a title over a GroupBox around a lazy stack of 100,000 entries, scrolled three lines a tick (SCROLL-FIT pull)") {
+            AnyView(PulledPageApp(shape: .boxed, entries: $0.sized(100_000), seed: $0.seed))
+        },
         driven("outline", "40 sections of 25 rows in one lazy stack, each row reading a counter of its own; one counter moves a frame") {
             OutlineApp.driven(sections: $0.sized(40), rows: 25, seed: $0.seed)
         },

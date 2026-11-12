@@ -737,7 +737,20 @@ lazy stack's total height first. With pull, each level answers only for
 its own children, outward from an anchor it was handed, and unknown
 extents are never demanded.
 
-**What ships (2026-09-23).** The pull above is the design; what ships windows
+**What ships since SCROLL-FIT P2 (2026-11-12).** The pull, for columns: a
+`VStack` or `LazyVStack` that holds a pulled child — a windowed lazy stack, or
+another such column — places its children outward from an anchor of its own,
+as above, and hands each pulled child a request in the child's own lines
+(`StackPulledColumn.swift`, and the "As P2 built it" note under 1b of
+[the SCROLL-FIT design](<../Historical/Scrolling/SCROLL-FIT design.md>)). So the
+stack below the header here, two stacks one above the other, and stacks in the
+rows of an outer one each build only the rows on screen, and each is priced by
+its sample, never walked. A stack below any other container — a bordered box,
+an `HStack` — is still drawn whole as the next paragraph tells, until a later
+lane makes that container pull; which it is the stack reads from its identity
+(`isPulledWhereItStands`). What follows is the history up to P2.
+
+**What shipped (2026-09-23 to P2).** The pull above is the design; what shipped windowed
 only the scroll view's DIRECT content (`consumableScrollWindow`). A lazy stack
 below a header, as here, or in a row of an outer lazy stack, is drawn whole by
 the classic append-while-fits walk, into the height its parent gives it — the
@@ -1363,6 +1376,15 @@ and Stage 5's hoist of locate above `renderedContent`, which waits on it.
 question.
 
 ---
+
+
+**SCROLL-FIT P1 and P2 (2026-11-11, 2026-11-12).** The pull of §6b, for
+columns: P1 moved the anchored walk's position into the scroll view
+(`ScrollContentAnchor`) and the walk into `ScrollColumnFill.swift`; P2 pulled
+lazy stacks wherever columns hold them (`StackPulledColumn.swift`,
+`PulledColumnTests`), gave the first frame no total to build (a measuring walk
+draws down to the viewport's bottom only), and left design D's whole-stack walk
+only below containers that do not pull yet.
 
 ## 12. What this does not solve
 

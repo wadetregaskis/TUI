@@ -237,12 +237,15 @@ struct SlicedWindowTests {
             "the focused row's hit region is grafted into the band")
     }
 
-    @Test("A lazy stack below a header must NOT consume the window (identity gate)")
+    @Test("A lazy stack below a header is handed the window in its own lines, and reveals a far row with its neighbours")
     func nonDirectContentIsGated() {
-        // Pre-gate, the leaked window blanked rows against scroll-origin
-        // coordinates while the stack sat header-height lower — revealing a
-        // mid row showed misplaced blanks. With the gate the stack renders
-        // eagerly (exactly like main), and reveal shows the row correctly.
+        // Before the identity gate, the window leaked to the stack in the
+        // scroll origin's coordinates while it sat header-height lower, and
+        // revealing a mid row showed misplaced blanks. Then the gate drew the
+        // stack whole. Since SCROLL-FIT P2 the column above pulls it: it is
+        // handed a request of its own, in its own lines, and the column's walk
+        // across a jump this long measures its four rows rather than pricing
+        // them at their average, which put the jump into the second header.
         let view = ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 Text("header one")

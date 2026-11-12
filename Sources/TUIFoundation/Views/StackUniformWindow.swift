@@ -251,6 +251,17 @@ final class StackWindowState {
         /// walk moves the scroll view's own (``ScrollContentWindow/anchor``).
         let ownAnchor = ScrollContentAnchor()
 
+        /// A pulled column's anchored row, when that row is pulled too: which
+        /// row, and where its end fell in its own lines the last time it drew
+        /// (`StackPulledColumn.swift`). Its pitch for the walk across it, which
+        /// a measure knows only as an estimate in no particular lines.
+        var pulledAnchorRow: (ordinal: Int, key: String?, end: Int)?
+
+        /// The requests a pulled column handed its pulled children on the last
+        /// frame, by the child's identity: a child handed another this frame
+        /// has its memo entries dropped first (`StackPulledColumn.swift`).
+        var pulledRequests: [ViewIdentity: ScrollContentWindow] = [:]
+
         /// The row key a bound `.anchorPosition(.row(id))` last DESIGNATED, or
         /// `nil` when the anchor is the implicit top-visible row.
         ///

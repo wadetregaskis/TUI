@@ -314,10 +314,26 @@ public struct RenderContext {
     /// `GeometryPredictionTests.renderContextStride` pins the stride.
     @usableFromInline package var geometryOriginX: Int32 = Self.inactiveGeometryOrigin
 
-    /// `scrollContentOriginDepth` for a subtree inside scroll content but
-    /// below its origin, where nothing is the stack the window is consumed by.
-    /// No real depth: the scroll view marks none this deep.
-    package static let belowScrollContentOrigin = UInt16.max
+    /// The bit of `scrollContentOriginDepth` that marks a subtree inside
+    /// scroll content but below its origin, where nothing is the stack the
+    /// window is consumed by. The depth beside it is kept: a stack below the
+    /// origin still asks how it is reached from the content
+    /// (`_VStackCore.isPulledWhereItStands`). The scroll view marks no depth
+    /// that reaches this bit.
+    package static let belowScrollContentOriginFlag: UInt16 = 0x8000
+
+    /// Whether this context is below the scroll content's origin
+    /// (``belowScrollContentOriginFlag``).
+    package var isBelowScrollContentOrigin: Bool {
+        scrollContentOriginDepth & Self.belowScrollContentOriginFlag != 0
+    }
+
+    /// The depth of the scroll content's own identity, below the origin or
+    /// at it, or `nil` outside scroll content.
+    package var scrollContentIdentityDepth: Int? {
+        let depth = Int(scrollContentOriginDepth & ~Self.belowScrollContentOriginFlag)
+        return depth == 0 ? nil : depth - 1
+    }
 
     /// Whether the walk keeps EVERY section whole (``sectionWholeness``): a
     /// `List`'s, the section APIs' or a pinned lazy stack's.

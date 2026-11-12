@@ -156,7 +156,7 @@ as arithmetic and variable pitch as an estimate (B-SCROLLFIT-3), and everything 
 | The top-row hold | `StackTopRowHold.swift`, `TopRowHold`, `ScrollWindowHold` | Moves the absolute offset by however far the content above moved the row at the top. | Intrinsic: the anchor *is* the held row. `ScrollWindowHold.offset` re-derives the anchor from the derived offset instead (2a, B-SCROLLFIT-16). |
 | `ScrollContentWindow`, `ScrollContentReply` | `ScrollContentWindow.swift` | The window down (offset, viewport, addressee, `linesAbove`/`linesBelow`, seek, read-back sampling, hold); the slice back (`sliceOriginY`, totals, `drawnLines`, `seekResolvedOffset`, `measureWentStale`). | Become the pull request and its reply (1b). The addressee and `isAtOrigin` go: every placing container reads the request. |
 | `ScrollWindowRelay` | `ScrollWindowRelay.swift` | For a view that draws N lines above its content and M below (`Section`, `.padding`, the margins), moves the window in and the reply out. | The forward shape, for every single-child view that draws lines around its content (1c). |
-| `consumableScrollWindow`, `scrollContentOriginDepth`, `leaveScrollOrigin()`, `anchoredSizeThatFits` | `VStack.swift`, `StackLayoutPlacing.swift`, `RenderContext`, `StackAnchoredMeasure.swift` | Window only the content's origin; mark the origin so a nested stack knows to measure every row it reaches (design D). | Deleted in P2, once every placing container reads the request: no origin is special, and a nested stack is pulled, not walked. The mark stays only if the overflow probe still reads it. |
+| `consumableScrollWindow`, `scrollContentOriginDepth`, `leaveScrollOrigin()`, `anchoredSizeThatFits` | `VStack.swift`, `StackLayoutPlacing.swift`, `RenderContext`, `StackAnchoredMeasure.swift` | Window only the content's origin; mark the origin so a nested stack knows to measure every row it reaches (design D). | As P2 built it: no origin is special. Each column re-addresses the request to the child it hands it to (`contentIdentity`), so "at the origin" means "reached by single-child steps from the view the request was handed to". The mark stays, with the depth kept below the origin (`belowScrollContentOriginFlag`), for a stack to read whether columns lead to it (`isPulledWhereItStands`); design D's walk stays only for a stack below a container that does not pull yet (B-SCROLLFIT-13), and the scroll view's hint for it (`contentWalksNestedStacks`, `oneLinePast`) is deleted. |
 | Off-band rows | `StackOffBandRows.swift`, `StackFocusReach.swift` | Builds the focused row, its neighbours and a pending target outside the band; the 64-row continuation probe (`focusRingContinuations`). | The engine's off-band routes, at every level (1e). |
 | `ChildViewCollection` | `TUIView/Rendering/ChildViewCollection.swift` | O(1) `count`, `key(at:)`/`anyID(at:)` with no row built, a row built on subscript. | The children of every column, as it is. |
 | `RowSource`, `ScrollRowWindow`, `ScrollExtentEstimator` | `TUILists` | `List`'s O(1) count and lazy ids; which rows to build from an offset; its sample estimate. `Table` uses the resolver with one-line rows. | `List`'s and `Table`'s children and estimators under `ScrollPlacing` (P3, P4). |
@@ -286,6 +286,57 @@ caller while content is pulled at its origin only, so it arrives with its first 
 rather than as an unused protocol. The uniform window stays its own arithmetic until P3 needs
 fixed pitch for `List` and `Table`: it keeps no anchor, so P1 had nothing to move in it.
 
+**As P2 built it** (`StackPulledColumn.swift`, 2026-11-12). The route is held level by level,
+not as one array at the scroll view. A column that holds a pulled child (`VStack`,
+`LazyVStack`, at any row count) is a *pulled column*: it keeps its own anchor (the scroll view's
+`contentAnchor` at the content's origin, its window state's `ownAnchor` below it), walks the
+scroll delta through its children with the column engine (`advanceAnchor`), and fills outward
+from the anchored child. A pulled child is handed a request of its own, a `ScrollContentWindow`
+addressed to it (`contentIdentity`, so every level re-addresses as it hands on) and marked
+`isPulled`, whose `edge` says what its offset counts from:
+
+- `.position`, the child's own dead-reckoned position, when the anchor stayed in it: the
+  column hands back the position the child last answered (`ScrollContentReply.pulledPosition`),
+  moved by the delta, so the child walks the same delta in its own lines;
+- `.top`, its first row's top, when the fill reaches it from the row above or the anchor enters
+  it from above or by a jump;
+- `.end`, its last row's bottom, when the fill reaches it from below or the anchor enters it from
+  below; the child places its last rows from its end exactly (`enter(edgeOf:)`).
+
+The column places each child by what it drew (the band's origin, and whether it holds the
+child's first and last rows), not by a measured height: rows below a pulled child start where
+its band ends, rows above end where it starts. A pulled child's pitch for the walk across it is
+the end it last reported (`StackWindowState.pulledAnchorRow`), exact by the time the viewport
+nears it, because the band then holds its last row.
+
+Which children are pulled is filed by their own measures (`PullConsumers`, on the render cache):
+a lazy stack past the windowing threshold, or a column holding one. A column asks it of each
+child by one lookup (`ViewIdentity.singleChildRoot`). A stack is pulled only where every
+container between it and the scroll view that holds it among siblings is a column
+(`isPulledWhereItStands`, read from the identity chain, so a measure knows before any request
+arrives); below anything else it is still drawn whole and measured over the rows its budget
+reaches (design D's walk, kept as B-SCROLLFIT-13's fallback, now reached only there).
+
+`ScrollPlacing` is the marker those containers conform to: in P2, `_VStackCore` only.
+
+What P2 left to P3 (each recorded under 4):
+
+- **Parallel and forward shapes past `Section` and padding.** `HStack`, `ZStack`,
+  `.background`/`.overlay`, the bordered container (`GroupBox`, `.border()`), `TabView`,
+  `NavigationStack` and `Grid` do not pull yet; a lazy stack below one is drawn whole as before.
+  Bodies, modifiers and the views that already relayed the window (`Section`, `.padding`, the
+  content margins) forward it.
+- **Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).** A pulled column answers a `scrollTo`
+  of its own rows (by the running pitch); a key inside a pulled child is not searched, as under
+  design D.
+- **The focus reveal as an anchor (1e).** Reveal still moves the offset; the walk carries it.
+  A pulled column draws its children as it fills, anchored row first, so a focusable child above
+  its anchor registers after the rows below it.
+- **What the outermost stack did that a pulled column does not yet:** a row held by
+  `.anchorPosition(.row(id))`, the top-row hold, `scrollTargetLayout` and the visibility
+  observers' rows, and the eager stack's departing-row transitions. A pulled column takes over
+  only from a column that holds a pulled child, which before P2 drew that child whole.
+
 Forwarders do not conform: the engine sees a single-child step and forwards. That is the common
 case, and an app's own views are always that case. The counts are Locating §8's, updated. About
 a dozen multi-child cores conform:
@@ -380,6 +431,7 @@ one engine.**
   whether the content overflows from the fill itself (did it reach the content's end before the
   viewport was full?), so the first frame needs no total. P2 pins the count at under 100 at
   10,000 rows (moved from P1, which changes no count the baseline pins: section 4).
+
 
 ### 1e. Focus: an unbuilt row stays reachable
 
@@ -629,10 +681,11 @@ them):
 
 | Variant | Shape | Lane |
 |---|---|---|
-| `lazy-million-seek` | `ScrollView { VStack { Text(header); LazyVStack { ForEach(0..<1_000_000) } } }`, a `scrollTo` alternating between rows near either end every tick (the range rung: O(1) locate) | P2 |
+| `lazy-million-seek` | `ScrollView { VStack { Text(header); LazyVStack { ForEach(0..<1_000_000) } } }`, a `scrollTo` alternating between rows near either end every tick (the range rung: O(1) locate) | P3 (moved with locate by route) |
 | `lazy-million-seek-keyed` | the same over a million `Identifiable` structs (the locate is the data scan, once per call; the frame is O(visible)) | P2 |
-| `nested-seek` | an outer `LazyVStack` of 10,000 groups, each a heading over its own `LazyVStack` of 20 rows, a `scrollTo` of a row in a far group every tick (A-SCROLLFIT-4's search) | P2 |
-| `boxed-lazy` | `GroupBox { LazyVStack { ForEach(10k) } }` under a title (forward through chrome) | P2 |
+| `nested-seek` | an outer `LazyVStack` of 10,000 groups, each a heading over its own `LazyVStack` of 20 rows, a `scrollTo` of a row in a far group every tick (A-SCROLLFIT-4's search) | P3 (moved with locate by route) |
+| `boxed-lazy` | `GroupBox { LazyVStack { ForEach(10k) } }` under a title (forward through chrome) | P3 (moved with the bordered container) |
+| `app-shapes/titled-lazy`, `app-shapes/two-stacked-lazy` | a title over a `LazyVStack` of 100,000 one- and two-line entries, and two headed stacks of 50,000, scrolled three lines a tick through a `ScrollPosition` | P2, as built: variants of `app-shapes` beside `grouped-feed` rather than a new scenario, whose title and blurb would need translating into seven languages for a development tool's listing |
 | `two-tables` | `ScrollView { VStack { Text; Table(10k, 4 columns); Text; Table(10k) } }`, wheel steps through both | P3 |
 | `two-tables-keys` | the same, Down and Page Down in the second table every tick (cursor reveal through the outer view) | P3 |
 | `titled-list` | a title over a `List` of 10,000 one-line rows | P3 |
@@ -671,7 +724,8 @@ already running separately.
 |---|---|---|---|
 | **P1** | `ScrollContentAnchor` in `ScrollViewHandler` (B-SCROLLFIT-11); the fill engine (B-SCROLLFIT-12), with `_VStackCore`'s anchored window as the column shape; the derived offset by dead reckoning, held with the anchor. Content at the origin only, which is today's coverage. Byte-identical; parity harness (`frame_parity.py`); A/B. *Moved out on the way in (2026-11-11):* `ScrollPlacing` and the uniform window as fixed pitch (to P2 and P3, their first users, see 1b); drags holding their mapping (2b) and the first frame without a total (1d) to P2, since each changes what P1 must not: a drag over estimated rows draws other rows, and the first frame's rows built are a count `ScrollFitBaselineTests` pins | 6 | None. Sizes and built counts unchanged |
 | **P2** | Drags hold their mapping (2b) and the first frame without a total (1d), from P1. Every placing container reads the request: the column through `VStack`; parallel through `HStack`/`ZStack`/`.background`/`.overlay`; forward through every wrapper, chrome, `TabView`, `NavigationStack`, `Section`; the off-band request; locate by route (B-SCROLLFIT-15); the focus reveal as an anchor (1e). Deletes design D's walk, `consumableScrollWindow`'s origin test and the origin mark. `scroll-fit` scenario; `grouped-feed` gate; A/B | 4 | No size changes. `tallLazyStackAlone`'s first frame 20,075 → < 100 rows built (from P1). `tallLazyStackUnderTitle` drawn whole → pulled (< 100 rows built). `lazyVStack underTitle`/`twoStacked` built 54k/104k → < 100/< 200. The `groupBox`, `tabView` and `navigationStack` rows wrap an eager `VStack` and are unchanged |
-| **P3** | `List` and `Table` as column-shaped consumers, fixed pitch; off-band cursor row and registration; Page Up/Down by the outer viewport (B-SCROLLFIT-5); type-select checked. Behind the switch | 2½ | None with the switch off. New tests with it on |
+| **P2 as built** (2026-11-12) | The column through `VStack` and `LazyVStack` at any count (`StackPulledColumn.swift`); forward through bodies, modifiers, `Section`, `.padding` and the content margins (which relayed already); the off-band request; drags holding their mapping; the first frame without a total; `ScrollPlacing` (the marker the pulled column conforms to, read from the identity chain); design D's walk kept only below containers that do not pull. Moved to P3: the parallel shape (`HStack`, `ZStack`, `.background`/`.overlay`), forwarding through the bordered container (`GroupBox`, `.border()`), `TabView` and `NavigationStack`; locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4); the focus reveal as an anchor (1e); and in a pulled column, a held row, the top-row hold, target layout and departing-row transitions. See "As P2 built it" under 1b | 4 | `tallLazyStackAlone` 20,075 → 124 rows built on the first frame (< 150 pinned: the measure ladder's samples count); `tallLazyStackUnderTitle` 9 × 10,000 drawn whole → 59 × 26 pulled, 119 built; `tallListUnderTitle` 16,000+ → 12,300 (the first frame's measuring walk); 3- and 60-row rows unchanged |
+| **P3** | `List` and `Table` as column-shaped consumers, fixed pitch; off-band cursor row and registration; Page Up/Down by the outer viewport (B-SCROLLFIT-5); type-select checked. Behind the switch. From P2: the parallel and remaining forward shapes, locate by route, the focus reveal as an anchor, and a pulled column's held row, top-row hold and target layout | 2½ + about 3 from P2 | None with the switch off. New tests with it on |
 | **P4** | Variable rows on the engine: `List`, multi-line `Table`, `TextEditor` as a lines leaf with its caret marker, grouped `Form`. Behind the switch | 3 | None with the switch off |
 | **P5** | Nil-proposal answers; fillers declare (B-SCROLLFIT-7, 8); `.fixedSize` on the ladder (2f) | 1 | In the 10,000-row tests: `fixedSize` `Table` 23 → 10,003 and `tallTableFixedSize` 4,153 → < 100 rows built; already content-sized views under `fixedSize` at 10,000 go 23 → their content. The table's 3/60-row `fixedSize` rows unchanged |
 | **P6** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1½ | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |

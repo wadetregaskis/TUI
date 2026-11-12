@@ -214,12 +214,56 @@
     /// passed (`RenderContext.leaveScrollOrigin()`) is this, whatever steps
     /// lead here.
     func isNestedInScrollContent(context: RenderContext) -> Bool {
+        scrollContentNesting(context: context)
+    }
+
+    /// Whether a column pulls this stack wherever it stands in a scroll
+    /// view's content (`StackPulledColumn.swift`): every container between it
+    /// and the scroll view that holds it among siblings is a column — a
+    /// `VStack` or a `LazyVStack`, which place a pulled child outward from
+    /// their anchor — and single-child steps lead through everything else.
+    /// Read from the identity alone, so a measure knows it before any request
+    /// arrives. A stack below anything else — a bordered box, an `HStack`, a
+    /// `Grid` — is drawn whole, as a view that does not conform is
+    /// (B-SCROLLFIT-13), until a later lane makes that container pull too.
+    func isPulledWhereItStands(context: RenderContext) -> Bool {
+        guard let contentDepth = context.scrollContentIdentityDepth else { return false }
+        var cursor: ViewIdentity? = context.identity
+        while let node = cursor, node.depth > contentDepth {
+            if node.isSiblingStep {
+                guard let parent = node.parent, let type = parent.leafType, type is any ScrollPlacing.Type
+                else { return false }
+            }
+            cursor = node.parent
+        }
+        return true
+    }
+
+    private func scrollContentNesting(context: RenderContext) -> Bool {
         let origin = context.scrollContentOriginDepth
         guard origin > 0 else { return false }
-        guard origin != RenderContext.belowScrollContentOrigin else { return true }
+        guard !context.isBelowScrollContentOrigin else { return true }
         return !context.identity.isDirectDescent(fromDepth: Int(origin) - 1)
     }
 }
+
+/// A container that places its children against a scroll view's request,
+/// outward from an anchor, handing the request on to the children that are
+/// pulled (SCROLL-FIT design B-SCROLLFIT-12): `_VStackCore`'s pulled column
+/// (`StackPulledColumn.swift`) since P2, and the further containers the later
+/// lanes make pull. A stack is pulled only below containers that conform,
+/// which its measure reads by type from its identity
+/// (``_VStackCore/isPulledWhereItStands(context:)``); below any other it is
+/// drawn whole (B-SCROLLFIT-13).
+@MainActor
+protocol ScrollPlacing: LayoutPlacing {
+    /// The band `window` asks for, drawn outward from this container's
+    /// anchor, with `window`'s reply answered as a windowed stack's is; `nil`
+    /// when this container cannot, and draws itself whole.
+    func renderPulledColumn(window: ScrollContentWindow, context: RenderContext) -> FrameBuffer?
+}
+
+extension _VStackCore: ScrollPlacing {}
 
 // MARK: - LayoutPlacing
 

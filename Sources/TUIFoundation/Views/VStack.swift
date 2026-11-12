@@ -205,6 +205,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
                     isWidthFlexible: hasFlexibleWidth, isHeightFlexible: hasFlexibleHeight)
             }
         }
+        notePulled(bandsRows: false, children: { children.map { $0.identity(under: context) } }, context: context)
         // One gap per occupied row, not per child: PASS 3 of `renderClip`
         // appends a zero-height child through `FrameBuffer.appendVertically`'s
         // contributes-nothing branch, which charges none — so the old count made
@@ -314,12 +315,12 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         let collection = resolveChildViewCollection(from: content, context: measureContext)
         if collection.isUniformlyKeyed {
             if let fast = uniformSeekSizeThatFits(collection, proposal: proposal, context: context) {
-                return fast
+                return filingPulled(fast, collection, measureContext: measureContext, context: context)
             }
-            if collection.count > Self.anchoredWindowThreshold,
+            if collection.count > Self.anchoredWindowThreshold || pullsItsRows(context: context),
                 let anchored = anchoredSizeThatFits(collection, proposal: proposal, context: context)
             {
-                return anchored
+                return filingPulled(anchored, collection, measureContext: measureContext, context: context)
             }
         }
 
@@ -331,6 +332,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         let asksIdealWidth = proposal.width == nil && context.asksIdealWidth
         let slots = naturalRowSlots(
             width: asksIdealWidth ? nil : widthLimit, context: measureContext, keepsMeasuresLive: true)
+        notePulled(bandsRows: false, children: { slots.map { $0.child.identity(under: measureContext) } }, context: context)
 
         var widthFlexible = false
         var heightFlexible = false
@@ -463,6 +465,13 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     /// available height (clipping trailing rows at the cell), render, align, and
     /// clamp.
     @MainActor private func renderClip(context: RenderContext) -> FrameBuffer {
+        // A column holding a pulled child draws the band a request asks for,
+        // every child still drawn (`StackPulledColumn.swift`).
+        if let window = pulledColumnWindow(context: context),
+            let pulled = renderPulledColumn(window: window, context: context)
+        {
+            return pulled
+        }
         let window = resolveEagerSeek(context: context)
         // A view that has left takes no room, and is drawn where it was while
         // its removal plays (`StackGlide`).
@@ -611,39 +620,9 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     /// rendered nothing at all (issue #8).
     @MainActor private func renderWindow(context: RenderContext) -> FrameBuffer {
         // The seek ladder, checked BEFORE the eager resolve below (which
-        // would build every row of a huge ForEach just to count spacers):
-        // uniform arithmetic first; for large variable-height content, the
-        // anchored walk (§5e); a nil from both (small N, spacers, a first
-        // frame with no hypothesis) falls through to the exact paths.
-        if let window = consumableScrollWindow(context: context), !context.isMeasuring {
-            let collection = resolveChildViewCollection(from: content, context: context)
-            if collection.isUniformlyKeyed {
-                // Both windowed paths refine the pitch this stack's measure
-                // estimates unmeasured rows at, so a measure the pass memoized
-                // before this render is no longer what a fresh one says. Moved
-                // is rare — the rounded average of the rows touched — and then
-                // the pass's sizes are dropped rather than served stale. So
-                // they are when the uniform hypothesis the measure answered
-                // from is refuted, once in the stack's life: the ScrollView
-                // measures again (``ScrollContentReply/measureWentStale``),
-                // and must not be handed the answer the render refuted.
-                let state = uniformWindowState(context: context)
-                let before = (state.measuredEstimate(spacing: spacing), state.broken)
-                defer {
-                    if (state.measuredEstimate(spacing: spacing), state.broken) != before {
-                        context.renderCache?.forgetPassMeasures()
-                    }
-                }
-                if let fast = renderUniformWindowReporting(collection, window: window, context: context) {
-                    return fast
-                }
-                if collection.count > Self.anchoredWindowThreshold,
-                    let anchored = renderAnchoredWindow(collection, window: window, context: context)
-                {
-                    return anchored
-                }
-            }
-        }
+        // would build every row of a huge ForEach just to count spacers): see
+        // `renderWindowedLadder`.
+        if let windowed = renderWindowedLadder(context: context) { return windowed }
 
         let children = resolveChildViews(from: content, context: context)
         guard !children.isEmpty else { return FrameBuffer() }

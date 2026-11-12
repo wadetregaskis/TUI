@@ -126,7 +126,8 @@ extension _ScrollViewCore {
         // Depth plus one, so 0 can mean "no scroll content". A chain too deep
         // for two bytes is marked as none, which answers as the estimate did.
         let depth = contentContext.identity.depth + 1
-        contentContext.scrollContentOriginDepth = depth < Int(UInt16.max) ? UInt16(depth) : 0
+        contentContext.scrollContentOriginDepth =
+            depth < Int(RenderContext.belowScrollContentOriginFlag) ? UInt16(depth) : 0
         return contentContext
     }
 
@@ -195,11 +196,10 @@ extension _ScrollViewCore {
     /// Whether the content, laid out at `contentWidth` on the canvas
     /// ``contentExtents(contentWidth:viewportHeight:horizontal:context:)``
     /// measures a vertical view's content on, is taller than `viewportHeight` —
-    /// asked at the natural-extent ladder's first rung, and not climbed past it;
-    /// or, `oneLinePast`, one line past the viewport (below).
+    /// asked at the natural-extent ladder's first rung, and not climbed past it.
     ///
     /// The question the scrollbar's first round asks, and all it needs to: see
-    /// ``resolveScrollbars(viewportWidth:viewportHeight:horizontal:knownHorizontalBar:textLines:lastContentHeight:contentWalksNestedStacks:context:)``.
+    /// ``resolveScrollbars(viewportWidth:viewportHeight:horizontal:knownHorizontalBar:textLines:lastContentHeight:context:)``.
     /// The climb is what made the round dear. A lazy stack past the windowing
     /// threshold reports its estimate clamped to the budget it is offered, and a
     /// clamp says nothing about what lies past it, so the ladder climbs by eight
@@ -222,33 +222,6 @@ extension _ScrollViewCore {
     /// gives up is small for most content: an eager stack measures every row
     /// whatever it is offered, and a windowed one at the content's origin its
     /// sample.
-    ///
-    /// Not for a windowed stack NESTED below other content — under a header, or
-    /// in a row of an outer lazy stack. It measures every row its budget
-    /// reaches (`anchoredSizeThatFits`), so at the first rung it walks every row
-    /// it holds, at a width nothing is drawn at: a whole walk more a frame, and
-    /// for lazy stacks in the rows of an outer one, nearly half the frame (forty
-    /// groups of 300 rows: 27,122 rows built on the frame after a write, against
-    /// 14,662 one line past the viewport). So for content the view has seen
-    /// walk one (`ScrollViewHandler.contentWalksNestedStacks`) the caller asks
-    /// `oneLinePast` instead, and each nested walk stops a screenful in. A yes
-    /// there is the ladder's yes for content whose height does not shrink as its
-    /// budget grows — the assumption
-    /// ``contentOverflowsVertically(viewportHeight:reported:context:)``, the
-    /// ideal size's twin, already makes, with the same exception,
-    /// `ViewThatFits(in: .vertical)` — and a no is not trusted, as at the rung.
-    ///
-    /// The smaller budget brings back the two costs the rung avoids, neither
-    /// of which changes an answer. A tab view in such content files its size
-    /// at the smaller budget and asks for one frame more — once for each
-    /// viewport height the view is first laid out at, not once overall (a
-    /// probe: one subtree clear on the second frame at each new height, none
-    /// with the rung; switching tabs cost nothing more). And a
-    /// natural size the pass already holds for the content at this width can
-    /// serve the question only if it fits one line past the viewport, so
-    /// taller content is measured once more for it. The hint is never cleared
-    /// (see there), so content that has stopped walking a nested stack keeps
-    /// paying both, for no walk saved.
     ///
     /// ## An eager column stops a line past the viewport
     ///
@@ -274,17 +247,16 @@ extension _ScrollViewCore {
     /// on a frame whose content overflowed at the view's latest render and
     /// fits now, the only frames that ask `resolveScrollbars`'s first round
     /// and get a no.
-    /// Not with `oneLinePast`, whose rows are asked one line past the viewport
-    /// on purpose; nor for any other content, where something between the
-    /// probe and a column could read the width it stopped at.
+    /// Not for any other content, where something between the probe and a
+    /// column could read the width it stopped at.
     func contentOverflowsCanvas(
-        contentWidth: Int, viewportHeight: Int, oneLinePast: Bool = false, context: RenderContext
+        contentWidth: Int, viewportHeight: Int, context: RenderContext
     ) -> Bool {
         // The ladder's first rung, as `contentExtents` and then
         // `measureNaturalExtent` ask it of a vertical view's content: the same
         // canvas, no ideal-width mark, the width stated, the starting budget —
-        // or one line past the viewport, or, marked, one line past it for an
-        // eager column that asks its rows the rung (above). The stated width
+        // or, marked, one line past the viewport for an eager column that asks
+        // its rows the rung (above). The stated width
         // is the context's own but for a view no column wide, whose first
         // round still asks at one.
         var probe = contentCanvasContext(
@@ -292,13 +264,11 @@ extension _ScrollViewCore {
             context: context
         ).askingIdealWidth(false)
         probe.availableWidth = contentWidth
-        if !oneLinePast, viewportHeight >= 0, viewportHeight < Int.max, measuresAsEagerColumn(Content.self) {
+        if viewportHeight >= 0, viewportHeight < Int.max, measuresAsEagerColumn(Content.self) {
             probe = probe.askingOverflow()
             probe.availableHeight = viewportHeight + 1
         } else {
-            probe.availableHeight =
-                oneLinePast && viewportHeight < Int.max
-                ? viewportHeight + 1 : naturalExtentStartingBudget(forVisible: viewportHeight)
+            probe.availableHeight = naturalExtentStartingBudget(forVisible: viewportHeight)
         }
         return measureChild(
             content, proposal: ProposedViewSize(width: contentWidth, height: nil), context: probe
