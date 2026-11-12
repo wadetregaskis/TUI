@@ -23,6 +23,9 @@ enum PulledShape: Sendable {
     /// `VStack { title; TwoColumns { gutter; heading; LazyVStack; tail } }`,
     /// an app's own two-column `Layout` (SCROLL-FIT design B-SCROLLFIT-13).
     case layout
+    /// `VStack { title; List }` and `VStack { title; Table }` of one-line
+    /// rows, under SCROLL-FIT's switch (design P3).
+    case titledList, titledTable
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -69,9 +72,29 @@ struct PulledPageApp: View {
                             Text(Synth.sentence(seed >> 5, words: 4)).dim()
                         }
                     }
+                case .titledList:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        List {
+                            ForEach(0..<entries, id: \.self) { entry in
+                                Text(verbatim: Synth.sentence(mix(seed, entry), words: 5))
+                            }
+                        }
+                    }
+                case .titledTable:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        Table((0..<entries).map(PulledRow.init)) {
+                            TableColumn("#") { (row: PulledRow) in Text(verbatim: "\(row.id)") }
+                            TableColumn("Entry") { (row: PulledRow) in
+                                Text(verbatim: Synth.sentence(mix(seed, row.id), words: 4))
+                            }
+                        }
+                    }
                 }
             }
             .scrollPosition(.constant(ScrollPosition(y: line)))
+            .environment(\.scrollFitsContent, shape == .titledList || shape == .titledTable)
         }
     }
 }
@@ -112,6 +135,11 @@ private struct TwoColumns: Layout {
         }
         return (gutter, frames)
     }
+}
+
+/// A row of the pulled table: its number.
+private struct PulledRow: Identifiable {
+    let id: Int
 }
 
 /// A lazy stack of entries, about a third of them two lines.
