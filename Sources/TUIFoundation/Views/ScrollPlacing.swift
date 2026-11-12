@@ -17,7 +17,9 @@ import TUIView
 /// `StackPulledColumn.swift`), and the containers the later lanes make pull.
 ///
 /// A marker, read by type from the identity chain: a lazy stack is pulled only
-/// where every container that holds it among siblings conforms
+/// where every container that holds it among siblings conforms — or, for an
+/// app's `Layout`, which has no identity of its own, is filed as placing
+/// (`PullConsumers.noteLayout(_:places:)`) —
 /// (`_VStackCore.isPulledWhereItStands(context:)`), which its measure knows
 /// before any request arrives; below any other it is drawn whole
 /// (B-SCROLLFIT-13). Nothing is asked of a conformer through it — each shape
@@ -36,11 +38,13 @@ package protocol ScrollPlacing {}
     /// withdraws it: a column above hands such a container a request, which
     /// it hands on. Only in scroll content, where there is a request to pull
     /// by, and only once something is filed at all, which on most pages
-    /// nothing ever is.
-    func notePulledContainer(holding children: () -> [ViewIdentity]) {
-        guard scrollContentOriginDepth != 0, let cache = renderCache else { return }
+    /// nothing ever is. Says whether it filed it.
+    @discardableResult
+    func notePulledContainer(holding children: () -> [ViewIdentity]) -> Bool {
+        guard scrollContentOriginDepth != 0, let cache = renderCache else { return false }
         let holds = !cache.pullConsumers.isEmpty && children().contains { cache.pullConsumers.holdsConsumer(below: $0) }
         cache.pullConsumers.note(identity, as: holds ? .pullsChildren : nil)
+        return holds
     }
 
     /// This context with `request` in it for the pulled child at `identity`,

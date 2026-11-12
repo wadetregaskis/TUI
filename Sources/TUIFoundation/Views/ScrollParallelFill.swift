@@ -24,6 +24,12 @@ struct PulledParallelChild {
     let height: Int
     /// Whether a pulled view sits below it (`PullConsumers`).
     let isPulled: Bool
+    /// Whether it stands wholly below the tallest pulled child, placed there
+    /// from that child's estimated height by a container that knows no
+    /// better (an app's `Layout`, `LayoutCore+Pulled.swift`): drawn where the
+    /// tallest one's drawing ends instead, as a column places the child after
+    /// a pulled one.
+    var follows = false
 }
 
 /// What a parallel container remembers of its pulled children from one frame
@@ -173,6 +179,10 @@ enum PulledParallel {
         // put it.
         let leadZero = children[lead].y - (leading.holdsFirst ? leading.origin : 0)
         let position = leading.position + leadZero
+        // How far the lead's drawing ends from where its estimate put its end:
+        // what moves a child that follows it.
+        let leadEnd = leading.holdsLast ? leadZero + leading.origin + leading.buffer.height : leadZero + leading.total
+        let shift = leadEnd - (children[lead].y + children[lead].height)
         var top = leadZero + leading.origin
         var bottom = top + leading.buffer.height
         var total = leading.holdsLast ? bottom : leadZero + leading.total
@@ -183,8 +193,9 @@ enum PulledParallel {
                 tops[index] = zero + answer.origin
                 if index != lead { total = max(total, zero + answer.total) }
             } else if wholes[index] != nil {
-                tops[index] = children[index].y
-                total = max(total, children[index].y + children[index].height)
+                let y = children[index].y + (children[index].follows ? shift : 0)
+                tops[index] = y
+                total = max(total, y + children[index].height)
             }
         }
         if leading.holdsFirst { top = min(top, 0) }

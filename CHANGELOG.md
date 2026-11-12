@@ -15,6 +15,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A long lazy stack inside a `Layout` of your own in a scroll view draws only the rows on screen.** A `LazyVStack`
+of thousands of rows among the subviews of a layout an app writes (`MyColumns { header; LazyVStack { … }; footer }`)
+was drawn whole: a first frame built every row several times over (43,000 row builds for 10,000 rows), and a
+`scrollTo` into it built 118,000. It is now drawn from the placements the layout makes, as one in a `VStack` or an
+`HStack` is: a frame builds a screenful of rows, whatever their count, and the wheel, End, `scrollTo` and Tab reach
+every one. A layout that puts two such stacks one below the other still draws them whole, as does one whose stack
+sits in an `if`.
+
 **An overlay on a long lazy stack in a scroll view stands where its alignment puts it on the whole stack.**
 `.overlay(alignment: .bottom) { badge }` on a `LazyVStack` of thousands of rows drew the badge at the foot of every
 screenful as you scrolled: the overlay was laid out against the rows drawn, not the stack. It, and a background that

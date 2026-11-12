@@ -558,6 +558,63 @@ placements, and serves them as a parallel-or-column shape by their rects. A `Lis
 pays. Price: about 1½ days (P9). `FlowLayout` is a `Layout` too, but A-SCROLLFIT-1 asks it to
 build only visible items, which an adapter cannot do; its own conformance is A-SCROLLFIT-5.
 
+**As P9 built it** (`LayoutCore+Pulled.swift`, 2026-11-12). Not a column-or-parallel choice
+but both at once, by the rects. The render already runs `sizeThatFits` and `placeSubviews`; a
+layout filed as holding a pulled view hands the placements to the parallel shape
+(`PulledParallel.fill`, `ScrollParallelFill.swift`): each pulled subview is handed the request at
+its placed y, every other one is drawn whole at its own and cut to the band, and the whole is
+drawn through the eager path's glide and z-order (`composited`, `LayoutCore+Composite.swift`).
+A subview placed wholly below the tallest pulled one (the lead) *follows* it
+(`PulledParallelChild.follows`): it is moved by how far the lead's drawing ends from where its
+estimate put it, since the layout placed it from that estimate. So a top-to-bottom flow is
+served as a column for what comes after the stack, and a two-column layout as a parallel row.
+What the rects cannot serve is drawn whole: pulled subviews not beside the lead (two lazy
+stacks one below the other, whose places hang on each other's drawing) or a pulled subview
+placed twice. The measure decides it, so the first frame is right: a layout whose measure
+files it as holding a pulled view runs `placeSubviews` there too, and when the rects fail it
+files itself as drawn whole (`PullConsumers.noteLayout(_:places: false)`), drops its subtree's
+measures and measures again, its stacks now not pulled where they stand (design D's walk, as
+before P9).
+
+- **The layout has no identity of its own.** `_LayoutCore` is drawn at the identity of what holds
+  it (a branch, an `AnyView`, an app's `body`), so its type is often not on its subviews'
+  identity chain, which is how `isPulledWhereItStands` knows a `_VStackCore` row. Each layout in
+  scroll content files the identity it is drawn at before it measures its subviews
+  (`noteLayout(_:places: true)`), and that filing answers for the step before any type does.
+  `_LayoutCore: ScrollPlacing` answers where it has a node of its own. The registry is cleared
+  with the rest of `PullConsumers` past its capacity.
+- **A measuring render.** The first frame's measuring walk gives the scroll content only the
+  lines down to the viewport's bottom, and a lazy stack under a measure takes no request; the
+  eager layout drew each subview at its placed height regardless, so it built every row of the
+  stack's estimate. A layout holding a pulled view draws a pulled subview under a measure only
+  down to the lines it was given (`measuringHeight`), as an `HStack` clamps to its offer.
+- **Seeks and focus** go through the parallel shape's (`holder`, `place`); a seek aimed at a
+  subview drawn whole that follows the lead lands by the layout's estimated place for it.
+- **Not pulled:** a lazy stack in an `if` among the subviews. Its node is a sibling step under the
+  branch's, which no container files or conforms for — the same rule for every container, not
+  the layout's; found by a trace of the reach test, left to the lane that owns the column's
+  internals. Nor `List` or `Table`, which nothing pulls before P3; when they file themselves as
+  consumers, a layout hands them the request as it hands a stack.
+
+`PulledLayoutTests` twins a flow, a two-column layout and a flow spaced by a `LayoutValueKey` and
+the subviews' spacing (each around 300 rows of one and two lines) against the same layouts
+around an eager `VStack`, at the top, paged, wheeled, at the end, wheeled back and at Home, and a
+flow of two lazy stacks, drawn whole, the same way; pins the rows built a frame under 100 and
+equal at 1,000 and 10,000 rows (first frame, five pages, two wheel steps; End under 100), End at
+10,000 rows, and the wheel through all 10,000. `PulledLayoutReachTests` lands a `scrollTo` of row
+6,000 of 10,000 at the top building under 100 rows, runs Tab against the eager twin, and
+Shift-Tab from the footer to the last row. Before P9, the 10,000-row first frame built 43,081
+rows (flow) and 63,081 (two columns), and the seek 118,194.
+
+Measured (2026-11-12, `ab_bench.py`, release, cpu per frame, 10 reps, base 8eda5ac70, which is
+ceeec40be with the new variant, load 9 falling to 2.6): `app-shapes/layout-list` 167.8 → 0.79 ms
+a frame (−99.5%) and RSS 144.5 → 14.8 MB; `scrolleager` −0.7% [−2.4, −0.0]; `titled-lazy`,
+`boxed-lazy`, `grouped-feed`, `headed-log`, `two-stacked-lazy`, `sidebar`, `customlayout`,
+`megalist`, `scrollfollow`, `dashboard`, `grids` and the sessions `editor`, `chat` and `log`
+indistinguishable. `frame_parity.py`: 155 of 157 cases draw alike; `layout-list` differs (now
+pulled; not compared frame by frame beyond the twins, which leave out the scrollbar's column)
+and `timeline-rows` differs between runs of one binary.
+
 **B-SCROLLFIT-14. Eager containers build every child and paint the band.** Under
 A-SCROLLFIT-1, a `VStack`, `HStack` or `Grid` keeps SwiftUI's existence: every child is built
 and measured, its `onAppear` runs at mount, and its focusables register. In TUI, `onAppear` and
@@ -942,6 +999,7 @@ already running separately.
 | **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
 | **P8** | A-SCROLLFIT-1's windowed containers (1c): `GroupBox`, `DisclosureGroup`, `.columns` `Form`, `Section` content outside `List`, `FlowLayout` per A-SCROLLFIT-5; the transition record for them (1g) | 3 | Sizes unchanged. Built counts of `formColumns` and `flowLayout` at 10,000 drop (`formColumns` < 100 a frame; `flowLayout` per A-SCROLLFIT-5). The baseline's `groupBox` and `disclosureGroup` wrap an eager `VStack` and stay as they are; new tests pin a `GroupBox` and a `DisclosureGroup` directly around a `ForEach` |
 | **P9** | The app-`Layout` adapter (B-SCROLLFIT-13) | 1½ | None (no app `Layout` in the baseline); a new `layout-list` test |
+| **P9 as built** (2026-11-12) | The adapter, by rects: pulled subviews beside the lead in the parallel shape, subviews below it following its drawn end, everything else drawn whole (see "As P9 built it" under 1b); `app-shapes/layout-list` in Stress | ½ | None; `PulledLayoutTests` pins under 100 rows a frame at 10,000 rows in a layout (43,081 and 63,081 on the first frame before) |
 
 **Total: 24½ lane-days** (P1–P9), honestly 20 to 32. P1, P2, P4 and P8 each owe an A/B.
 

@@ -407,11 +407,24 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
     }
 
     @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        let context = publishingChildAxis(context)
-        let (subviews, _, _) = resolve(context: context)
+        let childContext = publishingChildAxis(context)
+        noteLayout(context: childContext)
+        let (subviews, placements, _) = resolve(context: childContext)
         var cache = freshCache(subviews)
-        return layout.sizeThatFits(
-            proposal: grounded(proposal, in: context), subviews: subviews, cache: &cache)
+        let groundedProposal = grounded(proposal, in: childContext)
+        let size = layout.sizeThatFits(proposal: groundedProposal, subviews: subviews, cache: &cache)
+        // A pulled view among the subviews makes this layout one a column
+        // hands a request to (`LayoutCore+Pulled.swift`), when its placements
+        // can serve it; when they cannot, it is measured again, its pulled
+        // views now drawn whole.
+        if childContext.notePulledContainer(holding: { subviews.children.map { $0.identity(under: childContext) } }),
+            !servesPull(
+                subviews: subviews, placements: placements, size: size, proposal: groundedProposal, cache: &cache,
+                context: childContext)
+        {
+            return sizeThatFits(proposal: proposal, context: context)
+        }
+        return size
     }
 
     /// Fills in an unconstrained proposal from what is actually on screen.
@@ -463,6 +476,14 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
         // `_GridCore`. Saying otherwise here is what hid a bug for a month.
         let gradientFrame = context.gradientContentFrame(
             width: bounds.width, height: bounds.height)
+        // Holding a pulled view, served by these placements
+        // (`LayoutCore+Pulled.swift`).
+        if let pulled = renderPulledLayout(
+            subviews: subviews, placements: placements, departing: departing, width: bounds.width,
+            gradientFrame: gradientFrame, context: context)
+        {
+            return pulled
+        }
         let entries = placements.entries
         let children = entries.map { subviews[$0.index].child }
         let pictures = entries.indices.map { index in
@@ -470,7 +491,8 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
             let childSize = children[index].measure(proposal: entry.proposal, context: context)
             return children[index].render(
                 width: entry.proposal.width ?? childSize.width,
-                height: entry.proposal.height ?? childSize.height,
+                height: measuringHeight(
+                    entry.proposal.height ?? childSize.height, of: children[index], at: entry.y, context: context),
                 context: context.placingChild(gradient: gradientFrame, x: entry.x, y: entry.y))
         }
         return composited(

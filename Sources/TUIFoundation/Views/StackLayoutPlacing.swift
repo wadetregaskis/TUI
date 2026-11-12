@@ -225,13 +225,19 @@
     /// Read from the identity alone, so a measure knows it before any request
     /// arrives. A stack below anything else — a bordered box, an `HStack`, a
     /// `Grid` — is drawn whole, as a view that does not conform is
-    /// (B-SCROLLFIT-13), until a later lane makes that container pull too.
+    /// (B-SCROLLFIT-13), until a later lane makes that container pull too;
+    /// and so is one below an app's `Layout` filed as drawn whole, whose
+    /// placements the adapter cannot serve. A layout is drawn at the identity
+    /// of whatever holds it, so its filing (``PullConsumers/layoutPlaces(_:)``)
+    /// answers for that step before any type does.
     func isPulledWhereItStands(context: RenderContext) -> Bool {
         guard let contentDepth = context.scrollContentIdentityDepth else { return false }
         var cursor: ViewIdentity? = context.identity
         while let node = cursor, node.depth > contentDepth {
             if node.isSiblingStep {
-                guard let parent = node.parent, let type = parent.leafType, type is any ScrollPlacing.Type
+                guard let parent = node.parent,
+                    context.renderCache?.pullConsumers.layoutPlaces(parent)
+                        ?? parent.leafType.map({ $0 is any ScrollPlacing.Type }) ?? false
                 else { return false }
             }
             cursor = node.parent

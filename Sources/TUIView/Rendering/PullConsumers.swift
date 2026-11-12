@@ -39,6 +39,10 @@ package struct PullConsumers {
     /// ``holdsConsumer(below:)`` asks, in one lookup, for a child reached by a
     /// sibling step.
     private var roots: [ViewIdentity: Int] = [:]
+    /// The app layouts in scroll content, by the identity each is drawn at:
+    /// `true` for one that places its subviews against a request, `false` for
+    /// one drawn whole (``noteLayout(_:places:)``).
+    private var layouts: [ViewIdentity: Bool] = [:]
 
     /// More than any page holds in view; past it the set starts over, and the
     /// views in it file themselves again as they are measured.
@@ -53,6 +57,7 @@ package struct PullConsumers {
             if kinds.count >= Self.capacity {
                 kinds.removeAll(keepingCapacity: true)
                 roots.removeAll(keepingCapacity: true)
+                layouts.removeAll(keepingCapacity: true)
             }
             if kinds.updateValue(kind, forKey: identity) == nil {
                 roots[identity.singleChildRoot, default: 0] += 1
@@ -61,6 +66,33 @@ package struct PullConsumers {
             let root = identity.singleChildRoot
             if let count = roots[root], count > 1 { roots[root] = count - 1 } else { roots[root] = nil }
         }
+    }
+
+    /// Files the app `Layout` drawn at `identity` (`_LayoutCore`, drawn at
+    /// the identity of whatever holds it): `places` when its subviews stand
+    /// against a request as a pulling container's do — filed by its measure,
+    /// before it measures them — or not, drawn whole: its placements put one
+    /// pulled view below another, so that where each stands hangs on how the
+    /// other is drawn. A lazy stack below it is then not pulled where it
+    /// stands (`isPulledWhereItStands`), and is drawn whole as it was before
+    /// the pull. Drawn whole is kept until the set starts over
+    /// (``capacity``), when the layout is asked again.
+    package mutating func noteLayout(_ identity: ViewIdentity, places: Bool) {
+        if places {
+            guard layouts[identity] == nil else { return }
+            if layouts.count >= Self.capacity { layouts.removeAll(keepingCapacity: true) }
+            layouts[identity] = true
+        } else {
+            layouts[identity] = false
+            note(identity, as: nil)
+        }
+    }
+
+    /// Whether the app layout drawn at `identity` places its subviews against
+    /// a request, `false` when it is drawn whole, `nil` when no layout is
+    /// filed there (``noteLayout(_:places:)``).
+    package func layoutPlaces(_ identity: ViewIdentity) -> Bool? {
+        layouts.isEmpty ? nil : layouts[identity]
     }
 
     /// Whether no view is filed: no page in this cache has pulled anything.
