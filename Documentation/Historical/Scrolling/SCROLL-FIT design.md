@@ -382,9 +382,19 @@ Still to do after the second lane:
   `.background` and `.overlay` (with a style or a view: the twin comparison draws them alike)
   already pull.
 - ~~**Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).**~~ Built in the third lane, below.
-- **The focus reveal as an anchor (1e).** Reveal still moves the offset, by the drawn region
-  (`snapViewportToFocusedControl`), and the walk carries it; a control off the band is grafted at
-  an estimate and pursued over frames. Not built in the third lane.
+- ~~**The focus reveal as an anchor (1e).**~~ Built in the fourth lane: a focus move to a
+  control the content holds only off its band is a seek by the focus's route. Reveal used to move
+  the offset by the drawn region (`snapViewportToFocusedControl`), and for a control off the band
+  — grafted at an estimate by the stack that draws it for its place in the focus ring — that
+  region was the estimate: the offset landed there, the walk crossed the jump by the running
+  pitch, and a pursuit closed in over the frames after. Now the scroll view, seeing the focus
+  just moved to a control whose region lies outside the band (`offBandRevealSeek`), draws its
+  content again with a `ScrollToRequest` whose `focusID` names the control; each container finds
+  the child the id's path leads to (`seekOrdinal`, `pulledChild(holding:)`,
+  `PulledParallel.holder`) instead of a key, hands the seek to it when it is pulled, and places
+  it as a minimal-movement `scrollTo` places a row when it is drawn whole or is a row of its own.
+  The snap then shows the control from the drawing that holds it, exactly. A control on the band
+  is revealed by its region as before: its place is drawn, not estimated.
   *Fixed in the fourth lane, a regression of the pull:* the edge rows of a pulled child next to the
   focus. Shift-Tab from a control below a pulled stack whose last rows are off screen (a button
   under a 300-row stack, focused, then Home) went to the band's last row, where the stack drawn

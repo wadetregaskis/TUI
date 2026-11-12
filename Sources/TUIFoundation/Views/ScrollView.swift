@@ -734,24 +734,27 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         // Mirrors _ListCore / Table.
         if !context.isMeasuring { handler.clampScrollOffset() }
 
+        // A seek's offset, or a designated row's, wins over the reveal; the
+        // top-row hold's moved with the content, and a focus move made in the
+        // same frame is revealed: suppressed, it stayed off screen.
+        let revealSuppressed = seekOffset != nil && firstDrawing.seek?.isHold != true
+        // A focus move to a control the content holds only off its band is
+        // revealed by setting the anchor: the content drawn again with a seek
+        // for it, before the snap below shows it from that drawing.
+        revealOffBandFocus(
+            handler: handler, drawing: &drawing, canvas: (contentWidth, contentViewportHeight, wantsHorizontal, chrome.edgeInset),
+            settledExtents: settledExtents, suppressed: revealSuppressed, checkpoint: checkpoint, context: context)
         // "Follow the focused control": snap the viewport to the focused
         // control when focus moved or it just consumed a key. A render-pass-
         // only side effect; the helper documents the full rationale and the
-        // measure-pass gate.
+        // measure-pass gate. The "N more" pair is drawn OVER the content, not
+        // merely drawn: reserved, the pair is outside the viewport this reveal
+        // reasons about, and treating the last content line as covered
+        // scrolled a control already on screen.
         let pursuitArmed = snapViewportToFocusedControl(
-            handler: handler,
-            fullBuffer: drawing.buffer,
-            viewportHeight: contentViewportHeight,
-            regionOriginY: drawing.slice?.originY ?? 0,
-            // Drawn OVER the content, not merely drawn. Reserved, the pair is
-            // outside the viewport this reveal reasons about, and treating the
-            // last content line as covered scrolled a control already on screen.
-            indicatorsActive: chrome.overwritesEdgeLines,
-            // A seek's offset, or a designated row's, wins over the reveal; the
-            // top-row hold's moved with the content, and a focus move made in
-            // the same frame is revealed: suppressed, it stayed off screen.
-            suppressed: seekOffset != nil && firstDrawing.seek?.isHold != true,
-            context: context)
+            handler: handler, fullBuffer: drawing.buffer, viewportHeight: contentViewportHeight,
+            regionOriginY: drawing.slice?.originY ?? 0, indicatorsActive: chrome.overwritesEdgeLines,
+            suppressed: revealSuppressed, context: context)
         coverSnappedViewport(
             handler: handler, drawing: &drawing, contentWidth: contentWidth, viewportHeight: contentViewportHeight,
             horizontal: wantsHorizontal, checkpoint: checkpoint, context: context)

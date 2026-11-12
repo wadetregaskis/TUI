@@ -55,7 +55,13 @@ enum PulledSeek {
         guard let seek = window.seek else { return nil }
         window.seek = nil
         let target: NestedSeekTarget
-        if let own = resolveOrdinal(forKey: seek.key, children: frame.children, state: frame.state) {
+        if let focusID = seek.focusID {
+            // A focus reveal: the child the focused control lies in, by its
+            // route; handed on when pulled, else shown whole.
+            guard let ordinal = pulledChild(holding: focusID, frame: frame, context: frame.context) else { return nil }
+            if frame.isPulled(ordinal) { return handPulledSeek(seek, to: ordinal, frame: frame, window: window) }
+            target = NestedSeekTarget(ordinal: ordinal, y: 0, height: frame.height(of: ordinal))
+        } else if let own = resolveOrdinal(forKey: seek.key, children: frame.children, state: frame.state) {
             target = NestedSeekTarget(ordinal: own, y: 0, height: frame.height(of: own))
         } else {
             guard

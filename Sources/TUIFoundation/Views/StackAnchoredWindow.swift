@@ -353,8 +353,9 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     ) -> Int? {
         guard let seek = window.seek else { return nil }
         window.seek = nil
-        guard let ordinal = resolveOrdinal(forKey: seek.key, children: children, state: state)
+        guard let ordinal = seekOrdinal(seek, children: children, state: state, context: frame.context)
         else {
+            guard seek.focusID == nil else { return nil }
             return resolveNestedAnchoredSeek(
                 seek, frame: frame, state: state, window: &window, anchorFollowsOffset: anchorFollowsOffset)
         }

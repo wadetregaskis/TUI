@@ -530,6 +530,15 @@ package struct ScrollToRequest: Sendable, Hashable {
     /// (0 = top, 0.5 = centre, 1 = bottom).
     package var anchor: UnitPoint?
 
+    /// A focus reveal's target (SCROLL-FIT design 1e), or `nil`: the control
+    /// the focus names, sought by its route — each container finds the child
+    /// the id's path leads to — rather than by a key. ``key`` is then the same
+    /// id, which no row carries. Made by the scroll view for a control it
+    /// holds only off its band, drawn at an estimated place
+    /// (`_ScrollViewCore.offBandRevealSeek`), so the control's row becomes the
+    /// anchor instead of the offset moving by the estimate.
+    package var focusID: String?
+
     /// One row of headroom per edge when the ScrollView's "N more
     /// above/below" indicators can replace the viewport's first/last line
     /// (drawn, and drawn OVER the content: not a scrollbar, and not the pair

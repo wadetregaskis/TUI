@@ -288,16 +288,26 @@ enum PulledParallel {
     static func place(
         of seek: ScrollToRequest, in child: ChildView, width: Int, height: Int, context: RenderContext
     ) -> (y: Int, height: Int) {
-        NestedSeek.place(of: seek.key, in: child, width: width, height: height, context: context) ?? (0, height)
+        // A focus reveal shows the child, and the snap the control in it.
+        guard seek.focusID == nil else { return (0, height) }
+        return NestedSeek.place(of: seek.key, in: child, width: width, height: height, context: context) ?? (0, height)
     }
 
-    /// The child of `count` below which a search finds `seek`'s key
-    /// (``NestedSeek/row(holding:count:child:width:context:)``), for
-    /// ``fill(window:children:state:context:holder:render:)`` to hand the seek.
+    /// The child of `count` that holds `seek`'s target, for
+    /// ``fill(window:children:state:context:holder:render:)`` to hand the seek:
+    /// the one the focused control's path leads to, for a focus reveal
+    /// (``ScrollToRequest/focusID``), else the one below which a search finds
+    /// its key (``NestedSeek/row(holding:count:child:width:context:)``).
     static func holder(
         of seek: ScrollToRequest, count: Int, child: (Int) -> ChildView, context: RenderContext
     ) -> Int? {
-        NestedSeek.row(holding: seek.key, count: count, child: child, width: context.availableWidth, context: context)
+        guard let focusID = seek.focusID else {
+            return NestedSeek.row(
+                holding: seek.key, count: count, child: child, width: context.availableWidth, context: context)
+        }
+        return (0..<count).first {
+            FocusManager.focusID(focusID, addressesSubtreeAt: child($0).identity(under: context).path)
+        }
     }
 
     /// A request for pulled `child`, its offset still to be placed.

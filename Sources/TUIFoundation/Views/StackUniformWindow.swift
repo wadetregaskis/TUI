@@ -804,11 +804,11 @@ final class StackWindowState {
         var window = window
         guard let seek = window.seek else { return (window, nil) }
         window.seek = nil
-        guard let ordinal = resolveOrdinal(forKey: seek.key, children: children, state: state)
+        guard let ordinal = seekOrdinal(seek, children: children, state: state, context: context)
         else {
             // The key below a row (`StackNestedSeek.swift`): aimed at its place
             // in the row, which the band then draws, and so verifies.
-            guard
+            guard seek.focusID == nil,
                 let target = NestedSeek.target(
                     holding: seek.key, count: children.count, child: { children[$0] },
                     width: proposal.width ?? context.availableWidth, rowHeight: { _ in extent }, context: context)

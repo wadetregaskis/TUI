@@ -879,7 +879,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             reply.seekResolvedOffset = window.offset(
                 realising: seek, targetY: slots[index].y, rowHeight: slots[index].height,
                 stackHeight: total)
-        } else if let target = NestedSeek.target(
+        } else if seek.focusID == nil, let target = NestedSeek.target(
             holding: seek.key, count: slots.count, child: { slots[$0].child }, width: context.availableWidth,
             rowHeight: { slots[$0].height }, context: childContext)
         {

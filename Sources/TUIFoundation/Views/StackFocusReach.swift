@@ -135,6 +135,18 @@ import TUIView
         return Set(stops).sorted()
     }
 
+    /// The row of this stack's a seek names: by its key, or — a focus reveal
+    /// (``ScrollToRequest/focusID``) — the row the focused control lies in,
+    /// by its route (``targetOrdinal(for:children:state:context:)``).
+    func seekOrdinal(
+        _ seek: ScrollToRequest, children: ChildViewCollection, state: StackWindowState, context: RenderContext
+    ) -> Int? {
+        guard let focusID = seek.focusID else {
+            return resolveOrdinal(forKey: seek.key, children: children, state: state)
+        }
+        return targetOrdinal(for: focusID, children: children, state: state, context: context)
+    }
+
     /// The ordinal of the row a focus ID addresses below this stack: memo
     /// hit, else one key scan (never builds a row view). Shared by the
     /// uniform and anchored paths (targets, seeks, and ring continuation).

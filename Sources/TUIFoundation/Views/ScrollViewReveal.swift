@@ -261,6 +261,74 @@ extension _ScrollViewCore {
         return false
     }
 
+    /// Reveals the focused control by setting the anchor (SCROLL-FIT design
+    /// 1e), when the focus has just moved to one the content holds only off
+    /// its band: the content drawn again with a seek for the control
+    /// (``offBandRevealSeek(handler:drawing:edgeInset:suppressed:context:)``),
+    /// the offset adopted from it, and `drawing` replaced by it.
+    ///
+    /// Moved by the region, the offset landed at the estimate and a pursuit
+    /// closed in over the frames after, the walk crossing a far jump by the
+    /// running pitch; sought, the control's row becomes the anchor, placed as
+    /// a minimal-movement `scrollTo` places a row, and the snap then shows the
+    /// control in it from the drawing that holds it.
+    func revealOffBandFocus(
+        handler: ScrollViewHandler, drawing: inout ScrollContentDrawing,
+        canvas: (contentWidth: Int, viewportHeight: Int, horizontal: Bool, edgeInset: Int),
+        settledExtents: (width: Int, height: Int)?, suppressed: Bool, checkpoint: RenderWalkCheckpoint?,
+        context: RenderContext
+    ) {
+        let (contentWidth, viewportHeight, horizontal, edgeInset) = canvas
+        guard
+            let reveal = offBandRevealSeek(
+                handler: handler, drawing: drawing, edgeInset: edgeInset, suppressed: suppressed, context: context)
+        else { return }
+        // The walk put back, so the rows drawn again take the first drawing's
+        // ids and places in the focus ring.
+        checkpoint?.rewind(context: context)
+        let sought = renderedContent(
+            contentWidth: contentWidth, viewportHeight: viewportHeight, horizontal: horizontal,
+            verticalScrollOffset: handler.scrollOffset, horizontalScrollOffset: handler.horizontal.scrollOffset,
+            slide: contentSlide(handler: handler, viewportHeight: viewportHeight, context: context),
+            seek: reveal, edgeInset: edgeInset, handler: handler, contentAnchor: handler.contentAnchor,
+            checkpoint: checkpoint, context: context, settledExtents: settledExtents,
+            topRowHold: redrawnTopRowHold(handler: handler, context: context))
+        drawing = ScrollContentDrawing(
+            buffer: sought.buffer, slice: sought.slice, drawnLines: sought.drawnLines, placement: sought.placement)
+        if let offset = sought.seek?.offset {
+            handler.stopGlide()
+            handler.jumpProgrammatically(to: offset)
+        }
+        recordContentHeight(of: drawing, handler: handler, contentWidth: contentWidth, placed: true, context: context)
+        handler.clampScrollOffset()
+    }
+
+    /// Whether the focus has just moved to a control the content drew only off
+    /// its band — a row a windowed or pulled stack draws for its place in the
+    /// focus ring, at an estimated place — and so the seek that reveals it by
+    /// its route (``ScrollToRequest/focusID``), or `nil`: the snap reveals a
+    /// control on the band by its drawn region, which is exact.
+    func offBandRevealSeek(
+        handler: ScrollViewHandler, drawing: ScrollContentDrawing, edgeInset: Int, suppressed: Bool,
+        context: RenderContext
+    ) -> ScrollToRequest? {
+        guard !context.isMeasuring, !suppressed, drawing.slice != nil, context.environment.revealTargetID == nil,
+            let focusID = context.environment.focusManager?.currentFocusedID,
+            let stateStorage = context.stateStorage
+        else { return nil }
+        let lastFocused: StateBox<LastFocusedIDBox> = stateStorage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.lastFocusedID),
+            default: LastFocusedIDBox())
+        guard focusID != lastFocused.value.value,
+            let region = drawing.buffer.revealTarget(focusID: focusID, wholeControl: true),
+            region.top + region.height <= 0 || region.top >= drawing.buffer.height
+        else { return nil }
+        var seek = ScrollToRequest(key: focusID, anchor: nil, focusID: focusID)
+        seek.topInset = edgeInset
+        seek.bottomInset = edgeInset
+        return seek
+    }
+
     /// Brings the columns of the control `focusedID` names into a view that scrolls across,
     /// by as little as shows them — or to their leading edge where they are
     /// wider than the view, as a control taller than the view shows its top.
