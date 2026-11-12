@@ -454,10 +454,6 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
             x: 0, y: 0, width: max(0, size.width), height: max(0, size.height))
         layout.placeSubviews(in: bounds, proposal: proposal, subviews: subviews, cache: &cache)
 
-        // A blank canvas at the size the layout reported, so an arrangement
-        // that leaves gaps keeps them — and so the measure it just gave its
-        // parent is the size it actually occupies.
-        var result = FrameBuffer(emptyWithWidth: bounds.width, height: bounds.height)
         // A `.gradientExtent(.subtree)` ramp spanning this layout: the bounds
         // are the rectangle it runs across and each entry is exactly where its
         // subview sits in it, both already worked out above. One answer here
@@ -477,37 +473,9 @@ nonisolated package struct _LayoutCore<L: Layout, Content: View>: View, Renderab
                 height: entry.proposal.height ?? childSize.height,
                 context: context.placingChild(gradient: gradientFrame, x: entry.x, y: entry.y))
         }
-        // While a subview is on its way to where the layout now places it
-        // under an animation, each is drawn where it is (`StackGlide`).
-        if let gliding = context.glidingStackBuffer(
-            children, buffers: pictures, at: entries.map { ChildPlacement(x: $0.x, y: $0.y) }, departing: departing,
-            width: bounds.width, height: bounds.height)
-        {
-            return gliding
-        }
-        // In ascending z-index, placement order within one, as SwiftUI draws a
-        // layout's subviews; the placement order alone where none has one.
-        var drawingOrder = Array(entries.indices)
-        if children.contains(where: { $0.zIndex != 0 }) {
-            drawingOrder.sort { (children[$0].zIndex, $0) < (children[$1].zIndex, $1) }
-        }
-        var showingThrough: [AnimatedCellRun] = []
-        for (entry, rendered) in drawingOrder.map({ (entries[$0], pictures[$0]) }) {
-            // In place: `composited` rebuilds every line of the canvas per
-            // call, so folding n children through it is n × canvas even though
-            // each child covers a couple of rows.
-            showingThrough += result.runsShowingThrough(rendered, at: (x: entry.x, y: entry.y))
-            result.compositeCarryingClaimsOverNothing(
-                with: rendered, at: (x: entry.x, y: entry.y), in: CompositeEnvironment(context.environment))
-        }
-        // An earlier subview's runs a later one shows the field of, whose frames turn
-        // it: punched under the later one, they ask for a render at their steps.
-        if !showingThrough.isEmpty {
-            context.requestWake(
-                token: "layout-base-run-\(context.identity.path)",
-                forNextStepOf: showingThrough.map { ($0.clock, $0.frameTicks) })
-        }
-        return result
+        return composited(
+            children, pictures: pictures, at: entries.map { ChildPlacement(x: $0.x, y: $0.y) }, departing: departing,
+            width: bounds.width, height: bounds.height, context: context)
     }
 }
 
