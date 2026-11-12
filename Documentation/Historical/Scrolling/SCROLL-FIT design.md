@@ -384,10 +384,19 @@ Still to do after the second lane:
 - ~~**Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).**~~ Built in the third lane, below.
 - **The focus reveal as an anchor (1e).** Reveal still moves the offset, by the drawn region
   (`snapViewportToFocusedControl`), and the walk carries it; a control off the band is grafted at
-  an estimate and pursued over frames. Not built in the third lane. Nor are the edge rows of a
-  pulled child next to the focus: Shift-Tab from a control below a pulled stack whose last rows
-  are off screen (a button under a 300-row stack, scrolled to its top) goes to the band's last
-  row, where the eager stack goes to its own last row, which a pulled stack never registers.
+  an estimate and pursued over frames. Not built in the third lane.
+  *Fixed in the fourth lane, a regression of the pull:* the edge rows of a pulled child next to the
+  focus. Shift-Tab from a control below a pulled stack whose last rows are off screen (a button
+  under a 300-row stack, focused, then Home) went to the band's last row, where the stack drawn
+  whole (as at 98447fc67, before the pull) went to its own last row, which a pulled stack never
+  registered; Tab from the control above, the page at its end, to the band's first. A pulled
+  column now tells the children beside the one the focus lies in which of their edges it stands
+  past (`ScrollContentWindow.focusBeyond`, `pulledFocusNeighbours`), and the column's own first
+  or last child when the column above told it; a lazy column draws such a child off its band if
+  the band misses it. A stack told so draws its focusable nearest that edge off its band, as it
+  draws the focused row's continuation (`focusRingStops`), and a box or a parallel container
+  hands the request on as it is. `PulledFocusTests` walks it for every shape against the eager
+  twin.
   *Built in the third lane:* the order of what does register. A pulled column draws its anchored
   row, then the rows below, then the rows above, nearest first, then its children off the band;
   so the controls above the anchor were filed in the focus ring after the ones below, and Tab

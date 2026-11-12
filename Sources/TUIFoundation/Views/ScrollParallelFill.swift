@@ -222,6 +222,7 @@ enum PulledParallel {
             offset: 0, viewportHeight: window.viewportHeight, contentIdentity: child.identity,
             reply: ScrollContentReply())
         request.isPulled = true
+        request.focusBeyond = window.focusBeyond
         return request
     }
 }

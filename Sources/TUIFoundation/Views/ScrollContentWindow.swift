@@ -28,7 +28,7 @@ struct ScrollContentWindow: Hashable {
             lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek, lhs.columnSeek == rhs.columnSeek,
             lhs.columnReport == rhs.columnReport,
             lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow, lhs.edge == rhs.edge,
-            lhs.isPulled == rhs.isPulled
+            lhs.isPulled == rhs.isPulled, lhs.focusBeyond == rhs.focusBeyond
         else { return false }
         return lhs.reportsTargetLayout == rhs.reportsTargetLayout
             && lhs.reportsTargetVisibility == rhs.reportsTargetVisibility && lhs.topRowHold == rhs.topRowHold
@@ -50,6 +50,7 @@ struct ScrollContentWindow: Hashable {
         hasher.combine(reportsTargetLayout)
         hasher.combine(reportsTargetVisibility)
         hasher.combine(topRowHold)
+        hasher.combine(focusBeyond)
     }
 
     /// The scroll offset in the coordinates of the stack that consumes this
@@ -191,6 +192,15 @@ struct ScrollContentWindow: Hashable {
     /// by `.anchorPosition(.row(id))`, the row at the top held as rows change
     /// above it — is the outer column's to answer, not this view's.
     var isPulled = false
+
+    /// The edge of a pulled view the focused control stands just past — the
+    /// control is the next one after the view's last, or the one before its
+    /// first — or `nil`. Set by the column above (`StackPulledColumn.swift`):
+    /// the view then draws its focusable nearest that edge off its band, so
+    /// that Shift-Tab from a button below a stack whose last rows are off
+    /// screen goes to the stack's last row, as it does when every row is drawn,
+    /// rather than to the last row on screen.
+    var focusBeyond: VerticalEdge?
 
     /// The scroll content's lines above the stack that consumes this window,
     /// and below it: a `Section`'s header and footer, which the section draws

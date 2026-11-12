@@ -229,6 +229,7 @@ private enum PulledPlace {
             ?? (stayed ? .position : frame.anchor.within * 2 < frame.height(of: anchored) ? .top : .end)
 
         frame.focusMark = context.environment.focusManager.map { ($0, $0.registrationMark()) }
+        frame.focusBeyond = pulledFocusNeighbours(frame: frame, beyond: window.focusBeyond, context: context)
         var drawn = fillPulled(
             frame: frame, window: window, anchoredEdge: edge, seek: seeking?.handed, width: width,
             context: childContext)
@@ -380,6 +381,7 @@ private enum PulledPlace {
             offset: 0, viewportHeight: window.viewportHeight,
             contentIdentity: child.identity(under: context), reply: ScrollContentReply())
         request.isPulled = true
+        request.focusBeyond = frame.focusBeyond[ordinal]
         switch place {
         case .top(let y):
             request.offset = viewportTop - y
@@ -481,7 +483,10 @@ private enum PulledPlace {
             ordinals = [focus?.currentFocusedID, focus?.pendingFocusID].compactMap {
                 targetOrdinal(for: $0, children: frame.children, state: frame.state, context: context)
             }
-            ordinals = Array(Set(ordinals)).filter { $0 < first.ordinal || $0 > last.ordinal }.sorted()
+            // And the children beside the focus, for the focusable nearest it.
+            ordinals = Array(Set(ordinals + frame.focusBeyond.keys)).filter {
+                $0 < first.ordinal || $0 > last.ordinal
+            }.sorted()
         }
         guard !ordinals.isEmpty else { return }
         let bandHeight = result.height
@@ -523,6 +528,7 @@ private enum PulledPlace {
             contentIdentity: frame.child(at: ordinal).identity(under: context), reply: ScrollContentReply())
         request.isPulled = true
         request.edge = .top
+        request.focusBeyond = frame.focusBeyond[ordinal]
         let rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
         return frame.child(at: ordinal).render(
             width: width, height: max(context.availableHeight, window.viewportHeight * 4), context: rowContext)

@@ -132,6 +132,35 @@ struct PulledFocusTests {
         #expect(walk(lazy: true) == walk(lazy: false), "\(shape)")
     }
 
+    /// Focus on the control below the stack, the page then taken back to its
+    /// top (Home leaves the focus where it is), so the stack's last rows are
+    /// off screen: Shift-Tab steps to the stack's last row, as it does in the
+    /// eager twin, not to the last row on screen. And the mirror: focus on the
+    /// control above, the page taken to its end, Tab steps to the first row.
+    /// Not `.sections`, which has no control below its stacks: Shift-Tab from
+    /// the scroll view there goes to the last row of the outer lazy stack's
+    /// rows built, and the sections off screen are not, as SwiftUI's are not.
+    @Test(
+        "From a control beside a stack scrolled off, Tab steps to the stack's nearest row",
+        arguments: [Shape.titled, .boxed, .hStack])
+    func tabIntoAStackScrolledOff(_ shape: Shape) {
+        func walk(lazy: Bool) -> [String] {
+            // Shift-Tab from no focus goes to the scroll view, then to the
+            // last control in it; Tab goes to the first.
+            let below = Self.app(shape, lazy: lazy)
+            var stops = Self.stops(below, .tab, modifiers: .shift, steps: 2)
+            _ = below.press(.home)
+            stops += Self.stops(below, .tab, modifiers: .shift, steps: 2)
+            let above = Self.app(shape, lazy: lazy)
+            stops += Self.stops(above, .tab, steps: 1)
+            _ = above.press(.end)
+            stops += Self.stops(above, .tab, steps: 2)
+            return stops
+        }
+        let lazy = walk(lazy: true)
+        #expect(lazy == walk(lazy: false), "\(shape)")
+    }
+
     @Test("Each control Tab lands on is on screen", arguments: Shape.allCases)
     func tabRevealsWhereItLands(_ shape: Shape) {
         let app = Self.app(shape, lazy: true)

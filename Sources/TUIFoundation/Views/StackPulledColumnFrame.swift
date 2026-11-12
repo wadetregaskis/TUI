@@ -34,6 +34,9 @@ final class PulledColumnFrame {
     private var pulledRows: [Int: Bool] = [:]
     private var built: [Int: ChildView] = [:]
     private(set) var sawSpacer = false
+    /// The children beside the focused control, by the edge of theirs it
+    /// stands past (``ScrollContentWindow/focusBeyond``).
+    var focusBeyond: [Int: VerticalEdge] = [:]
     /// The requests this frame handed its pulled children, by identity.
     var handed: [ViewIdentity: ScrollContentWindow] = [:]
     /// Where the focus ring stood when the fill began: what the rows above the

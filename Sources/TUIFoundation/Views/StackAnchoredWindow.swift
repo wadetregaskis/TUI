@@ -694,15 +694,17 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         // focusable row past a non-focusable run adjacent to focus must
         // render too, or Tab dead-ends at the run. Positioned like any
         // other off-window target: estimated y relative to the anchor.
+        // And the row a focused control just past an edge of this stack steps
+        // to (``ScrollContentWindow/focusBeyond``), the same way.
         let focusedOrdinal = targetOrdinal(
             for: context.environment.focusManager?.currentFocusedID,
             children: children, state: state, context: context)
-        if focusedOrdinal != nil {
+        if focusedOrdinal != nil || window.focusBeyond != nil {
             let anchorY = window.offset - frame.anchor.within
             let estimate = state.estimatedPitch(spacing: spacing)
             let covered = Set(placed.map(\.ordinal)).union(grafts.map(\.ordinal))
-            for stop in focusRingContinuations(
-                focusedOrdinal: focusedOrdinal, count: children.count,
+            for stop in focusRingStops(
+                focusedOrdinal: focusedOrdinal, beyond: window.focusBeyond, count: children.count,
                 child: { frame.child(at: $0) }, width: width,
                 viewportHeight: window.viewportHeight, context: childContext)
             where !covered.contains(stop) {

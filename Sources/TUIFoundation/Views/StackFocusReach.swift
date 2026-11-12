@@ -113,6 +113,28 @@ import TUIView
         return stops
     }
 
+    /// The rows the render sweep draws off the band for the focus ring, in
+    /// order: the focused row's continuations
+    /// (``focusRingContinuations(focusedOrdinal:count:child:width:viewportHeight:context:)``),
+    /// and the row a focused control just past this stack's `beyond` edge
+    /// steps to — its last focusable row past its end, its first before its
+    /// top (``ScrollContentWindow/focusBeyond``) — found by the same probe,
+    /// walked inward from one past that edge.
+    func focusRingStops(
+        focusedOrdinal: Int?, beyond: VerticalEdge?, count: Int, child: (Int) -> ChildView, width: Int,
+        viewportHeight: Int, context: RenderContext
+    ) -> [Int] {
+        var stops = focusRingContinuations(
+            focusedOrdinal: focusedOrdinal, count: count, child: child, width: width,
+            viewportHeight: viewportHeight, context: context)
+        if let beyond {
+            stops += focusRingContinuations(
+                focusedOrdinal: beyond == .top ? -1 : count, count: count, child: child, width: width,
+                viewportHeight: viewportHeight, context: context)
+        }
+        return Set(stops).sorted()
+    }
+
     /// The ordinal of the row a focus ID addresses below this stack: memo
     /// hit, else one key scan (never builds a row view). Shared by the
     /// uniform and anchored paths (targets, seeks, and ring continuation).
@@ -155,6 +177,49 @@ import TUIView
             member += 1
         }
         return ordinal
+    }
+}
+
+// MARK: - Beside the focus, in a pulled column
+
+@MainActor extension _VStackCore {
+    /// The children of a pulled column that stand beside the focused control,
+    /// by the edge of theirs it stands past (``ScrollContentWindow/focusBeyond``):
+    /// the children before and after the one it lies in, and the first or last
+    /// when the column itself stands beside it (`beyond`, from the column
+    /// above). Each draws its focusable nearest the focus, off its band if need
+    /// be, so Tab and Shift-Tab step into it as they would were it drawn whole.
+    func pulledFocusNeighbours(
+        frame: PulledColumnFrame, beyond: VerticalEdge?, context: RenderContext
+    ) -> [Int: VerticalEdge] {
+        var neighbours: [Int: VerticalEdge] = [:]
+        let count = frame.rowCount
+        switch beyond {
+        case .top: neighbours[0] = .top
+        case .bottom: neighbours[count - 1] = .bottom
+        case nil: break
+        }
+        guard let focusID = context.environment.focusManager?.currentFocusedID,
+            let focused = pulledChild(holding: focusID, frame: frame, context: context)
+        else { return neighbours }
+        if focused > 0 { neighbours[focused - 1] = .bottom }
+        if focused + 1 < count { neighbours[focused + 1] = .top }
+        return neighbours
+    }
+
+    /// The child of a pulled column the control `focusID` names lies in: found
+    /// by its key, or — a column of a few children not keyed, `VStack {
+    /// header; LazyVStack; footer }` — by its path. Past the windowing
+    /// threshold, unkeyed, it is not looked for.
+    func pulledChild(holding focusID: String, frame: PulledColumnFrame, context: RenderContext) -> Int? {
+        guard focusID.contains(context.identity.path) else { return nil }
+        if let ordinal = targetOrdinal(for: focusID, children: frame.children, state: frame.state, context: context) {
+            return ordinal
+        }
+        guard frame.rowCount <= Self.anchoredWindowThreshold else { return nil }
+        return (0..<frame.rowCount).first {
+            FocusManager.focusID(focusID, addressesSubtreeAt: frame.child(at: $0).identity(under: frame.context).path)
+        }
     }
 }
 

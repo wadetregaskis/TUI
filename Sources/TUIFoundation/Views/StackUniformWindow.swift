@@ -479,11 +479,11 @@ final class StackWindowState {
         // focused row (a disabled neighbour registers nothing and would end
         // the ring, trapping Tab inside the band) — probe for the nearest
         // focusable in each direction and render it too.
-        let continuations = focusRingContinuations(
+        let continuations = focusRingStops(
             focusedOrdinal: targetOrdinal(
                 for: context.environment.focusManager?.currentFocusedID,
                 children: children, state: state, context: context),
-            count: count, child: { children[$0] },
+            beyond: window.focusBeyond, count: count, child: { children[$0] },
             width: width, viewportHeight: window.viewportHeight, context: childContext)
         let offBand = Set(candidates.offBand)
             .union(continuations.filter { !candidates.band.contains($0) })
