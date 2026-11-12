@@ -27,6 +27,15 @@ reproduced, or both. Nothing committed may depend on it: a document links to a s
 into the working notes, and `Tools/validate-markdown-links.py` fails on a link into them, because
 nobody else has those files. What a reader needs from an investigation belongs in its summary.
 
+The working notes are culled once an investigation is recorded. The first cull, on 2026-11-12, took
+them from 11 GB to about 300 MB: build directories, binaries, traces, raw benchmark output and copied
+source trees went, because they can be rebuilt from the commits and the conclusions are in the
+summaries and commit messages. The finished folders' text (notes, small probes and scripts, short
+logs) went into one archive, `archive-2026-11-12.tar.xz` at the root of the working notes, under the
+same paths, so the folders the index below names are found there. What stayed in place is what a
+live script, brief or record still reads: `plan/`, the A/B scripts in `perf/`, `perf/results/plainmemo`,
+and the few files the decisions records cite.
+
 ## Index
 
 Each row names the working-notes folders that hold the investigation's raw material, for whoever has
