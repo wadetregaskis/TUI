@@ -327,7 +327,8 @@ struct RowKeys {
     /// was; nothing at all at the top, nor when the scroll view keeps its
     /// offset in lines.
     func rememberAnchoredTopRow(
-        state: StackWindowState, window: ScrollContentWindow, children: ChildViewCollection
+        state: StackWindowState, anchor: ScrollContentAnchor, window: ScrollContentWindow,
+        children: ChildViewCollection
     ) {
         guard window.topRowHold != .off else { return }
         guard window.offset > 0 else {
@@ -336,9 +337,9 @@ struct RowKeys {
         }
         let held = state.heldTopRow
         state.rememberTopRow(
-            atOrdinal: state.anchorOrdinal, y: window.offset - state.anchorOffsetWithin, top: window.offset,
+            atOrdinal: anchor.ordinal, y: window.offset - anchor.within, top: window.offset,
             in: RowKeys(count: children.count, key: { children.key(at: $0) }),
-            verified: held?.key == state.anchorKey && held?.ordinal == state.anchorOrdinal)
+            verified: held?.key == anchor.key && held?.ordinal == anchor.ordinal)
     }
 
     /// The slot whose row — or the spacing above it — holds line `y` of the

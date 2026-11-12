@@ -32,6 +32,8 @@ private final class AnchoredWindowFrame {
     let children: ChildViewCollection
     let spacing: Int
     let state: StackWindowState
+    /// The scroll position this walk reads and moves.
+    let anchor: ScrollContentAnchor
     let proposal: ProposedViewSize
     let context: RenderContext
 
@@ -41,12 +43,13 @@ private final class AnchoredWindowFrame {
     private var built: [Int: ChildView] = [:]
 
     init(
-        children: ChildViewCollection, spacing: Int, state: StackWindowState,
+        children: ChildViewCollection, spacing: Int, state: StackWindowState, anchor: ScrollContentAnchor,
         proposal: ProposedViewSize, context: RenderContext
     ) {
         self.children = children
         self.spacing = spacing
         self.state = state
+        self.anchor = anchor
         self.proposal = proposal
         self.context = context
     }
@@ -101,7 +104,7 @@ private final class AnchoredWindowFrame {
     /// are usually small), then everywhere (the documented Ω(n) id→ordinal
     /// cost, touching keys only). A key that left the data entirely falls
     /// to the LADDER: last frame's rendered rows, nearest survivor first,
-    /// preserving `anchorOffsetWithin`. A dead ladder (the list was
+    /// preserving the lines of it hidden (`within`). A dead ladder (the list was
     /// replaced) leaves the clamped index fallback — approximate, and
     /// correct at the ends (§5f).
     ///
@@ -114,13 +117,13 @@ private final class AnchoredWindowFrame {
     func rebindAnchor(holdsRow: Bool) {
         let count = children.count
         guard count > 0 else { return }
-        state.anchorOrdinal = min(max(0, state.anchorOrdinal), count - 1)
+        anchor.ordinal = min(max(0, anchor.ordinal), count - 1)
         guard holdsRow else { return }
-        guard let anchorKey = state.anchorKey else { return }
-        guard children.key(at: state.anchorOrdinal) != anchorKey else { return }
+        guard let anchorKey = anchor.key else { return }
+        guard children.key(at: anchor.ordinal) != anchorKey else { return }
 
         if let found = locate(key: anchorKey) {
-            state.anchorOrdinal = found
+            anchor.ordinal = found
             return
         }
         // Nearest first, and of the two equally near — the rows either side of
@@ -129,13 +132,13 @@ private final class AnchoredWindowFrame {
         // memo's order, which the process's hash seed sets, and which row took
         // the anchor, and so the frame, changed from one run to the next.
         let neighbours = state.rowOrdinalMemo.sorted {
-            let distances = (abs($0.value - state.anchorOrdinal), abs($1.value - state.anchorOrdinal))
+            let distances = (abs($0.value - anchor.ordinal), abs($1.value - anchor.ordinal))
             return distances.0 != distances.1 ? distances.0 < distances.1 : $0.value > $1.value
         }
         for (key, _) in neighbours where key != anchorKey {
             if let found = locate(key: key) {
-                state.anchorOrdinal = found
-                state.anchorKey = key
+                anchor.ordinal = found
+                anchor.key = key
                 return
             }
         }
@@ -145,7 +148,7 @@ private final class AnchoredWindowFrame {
     /// key scan. Never builds a row view.
     private func locate(key: String) -> Int? {
         let count = children.count
-        let origin = state.anchorOrdinal
+        let origin = anchor.ordinal
         for distance in 0...64 {
             for candidate in [origin - distance, origin + distance]
             where candidate >= 0 && candidate < count {
@@ -164,10 +167,10 @@ private final class AnchoredWindowFrame {
     /// content where this stack does not.
     func advanceAnchor(to offset: Int, viewportHeight: Int, linesBelow: Int) {
         let count = children.count
-        var anchor = min(state.anchorOrdinal, count - 1)
-        var within = state.anchorOffsetWithin
-        let delta = offset - state.lastDerivedOffset
-        if abs(delta) > viewportHeight * 4, let reported = state.lastReportedTotal,
+        var anchor = min(self.anchor.ordinal, count - 1)
+        var within = self.anchor.within
+        let delta = offset - self.anchor.derivedOffset
+        if abs(delta) > viewportHeight * 4, let reported = self.anchor.reportedTotal,
             offset + viewportHeight >= reported
         {
             // A jump to the very bottom of what this stack last reported — End,
@@ -228,9 +231,9 @@ private final class AnchoredWindowFrame {
             anchor = 0
             within = offset
         }
-        state.anchorOrdinal = anchor
-        state.anchorOffsetWithin = within
-        state.lastDerivedOffset = offset
+        self.anchor.ordinal = anchor
+        self.anchor.within = within
+        self.anchor.derivedOffset = offset
     }
 
     /// The anchor that puts the last row's bottom `line` lines below the
@@ -256,8 +259,8 @@ private final class AnchoredWindowFrame {
     /// reached and the y just below it (the estimated-suffix base).
     func fill(window: ScrollContentWindow) -> (placed: [(ordinal: Int, y: Int)], last: Int, bottomY: Int) {
         let count = children.count
-        let anchor = state.anchorOrdinal
-        let anchorY = window.offset - state.anchorOffsetWithin
+        let anchor = self.anchor.ordinal
+        let anchorY = window.offset - self.anchor.within
         var placed: [(ordinal: Int, y: Int)] = []
         var y = anchorY
         var ordinal = anchor
@@ -274,10 +277,10 @@ private final class AnchoredWindowFrame {
         let last = placed.last?.ordinal ?? anchor
         // Fill upward from the anchor, covering the viewport top plus one
         // margin row for scroll-up reveal. With the implicit top anchor
-        // (`anchorOffsetWithin >= 0`, so `anchorY <= offset`) the anchor is
+        // (`anchor.within >= 0`, so `anchorY <= offset`) the anchor is
         // already the top-visible row, and this places exactly ONE row — the
         // margin above it — as the single-margin version did. A DESIGNATED row
-        // held BELOW the top (`anchorOffsetWithin < 0`, `anchorY > offset`)
+        // held BELOW the top (`anchor.within < 0`, `anchorY > offset`)
         // also draws the now-visible rows between the top and the anchor.
         var upperY = anchorY
         var above = anchor - 1
@@ -356,12 +359,12 @@ private final class AnchoredWindowFrame {
             adoptDesignatedRow(
                 frame: frame, state: state, window: window, designated: designated, letGo: letGo)
         }
-        state.anchorKey = key
+        frame.anchor.key = key
         return key
     }
 
     /// Adopts a newly designated row: it becomes the anchor at the screen line
-    /// it currently occupies, encoded as a SIGNED `anchorOffsetWithin` —
+    /// it currently occupies, encoded as a SIGNED `within` —
     /// negative meaning the anchor sits that many lines BELOW the viewport top,
     /// which `fill` renders by walking upward from it. (The implicit top anchor
     /// keeps a non-negative `within`: cells hidden ABOVE the top.)
@@ -374,8 +377,8 @@ private final class AnchoredWindowFrame {
     ) {
         let line = adoptedHeldLine(
             frame: frame, state: state, window: window, designated: designated, letGo: letGo)
-        state.anchorOrdinal = designated
-        state.anchorOffsetWithin = -line
+        frame.anchor.ordinal = designated
+        frame.anchor.within = -line
     }
 
     /// The screen line the designated row occupies right now, so adoption holds
@@ -405,7 +408,7 @@ private final class AnchoredWindowFrame {
         frame: AnchoredWindowFrame, state: StackWindowState,
         window: ScrollContentWindow, designated: Int, letGo: Bool
     ) -> Int {
-        let anchor = min(max(0, state.anchorOrdinal), frame.children.count - 1)
+        let anchor = min(max(0, frame.anchor.ordinal), frame.children.count - 1)
         func lastLine() -> Int {
             let rowHeight =
                 frame.pitch(of: designated) - (designated < frame.children.count - 1 ? spacing : 0)
@@ -414,7 +417,7 @@ private final class AnchoredWindowFrame {
         guard abs(designated - anchor) <= window.viewportHeight + 2 else {
             return letGo && designated > anchor ? lastLine() : window.edgeInset
         }
-        var line = -state.anchorOffsetWithin
+        var line = -frame.anchor.within
         if designated >= anchor {
             for ordinal in anchor..<designated { line += frame.pitch(of: ordinal) }
         } else {
@@ -462,16 +465,16 @@ private final class AnchoredWindowFrame {
         frame: AnchoredWindowFrame, state: StackWindowState, window: inout ScrollContentWindow
     ) -> Int? {
         sinkDesignatedHold(frame: frame, state: state, window: window)
-        let heldLine = -state.anchorOffsetWithin
+        let heldLine = -frame.anchor.within
         var available = 0
-        var ordinal = state.anchorOrdinal - 1
+        var ordinal = frame.anchor.ordinal - 1
         while ordinal >= 0, available < heldLine {
             available += frame.pitch(of: ordinal)
             ordinal -= 1
         }
         if available < heldLine {
             let offset = max(available - heldLine, -window.linesAbove)
-            state.anchorOffsetWithin = offset - available
+            frame.anchor.within = offset - available
             guard offset != window.offset else { return nil }
             window.offset = offset
             return offset
@@ -500,14 +503,14 @@ private final class AnchoredWindowFrame {
     private func sinkDesignatedHold(
         frame: AnchoredWindowFrame, state: StackWindowState, window: ScrollContentWindow
     ) {
-        let needed = window.viewportHeight + state.anchorOffsetWithin
+        let needed = window.viewportHeight + frame.anchor.within
         var below = window.linesBelow
-        var ordinal = state.anchorOrdinal
+        var ordinal = frame.anchor.ordinal
         while ordinal < frame.children.count, below < needed {
             below += frame.pitch(of: ordinal)
             ordinal += 1
         }
-        if below < needed { state.anchorOffsetWithin = below - window.viewportHeight }
+        if below < needed { frame.anchor.within = below - window.viewportHeight }
     }
 
     /// Resolves a pending `scrollTo` against the anchored geometry: pins the
@@ -582,7 +585,7 @@ private final class AnchoredWindowFrame {
         //   under seven rows of ten lines was put on the bottom line, and
         //   under rows of five, on line 5, the offset unmoved.
         var request = seek
-        if request.anchor == nil { request.anchor = ordinal < state.anchorOrdinal ? .top : .bottom }
+        if request.anchor == nil { request.anchor = ordinal < frame.anchor.ordinal ? .top : .bottom }
         let newOffset = window.offset(
             realising: request, targetY: targetY, rowHeight: rowHeight,
             stackHeight: max(children.count * estimate, targetY + (children.count - ordinal) * estimate)
@@ -613,7 +616,7 @@ private final class AnchoredWindowFrame {
     ///
     /// The offset follows the row by the running pitch, so the scrollbar and
     /// "N more above" keep up with the rows the change put above it — exact
-    /// when it is the first row — and `lastDerivedOffset` is the remembered
+    /// when it is the first row — and the anchor's `derivedOffset` is the remembered
     /// top moved with it, so the walk sees only a scroll made since the last
     /// frame. Returns that offset, to report, or `nil`.
     private func rebindingAnchor(
@@ -627,17 +630,17 @@ private final class AnchoredWindowFrame {
             let place = state.heldTopRowPlace(in: RowKeys(count: children.count, key: { children.key(at: $0) }))
         else { return nil }
         let moved = place.ordinal - held.ordinal
-        state.anchorOrdinal = place.ordinal
-        state.anchorOffsetWithin = held.top - held.y
+        frame.anchor.ordinal = place.ordinal
+        frame.anchor.within = held.top - held.y
         let followed: Int
         if moved == 0 {
             followed = window.offset
         } else if place.ordinal == 0 {
-            followed = state.anchorOffsetWithin
+            followed = frame.anchor.within
         } else {
             followed = max(1, window.offset + moved * state.estimatedPitch(spacing: spacing))
         }
-        state.lastDerivedOffset = held.top + followed - window.offset
+        frame.anchor.derivedOffset = held.top + followed - window.offset
         guard followed != window.offset else { return nil }
         window.offset = followed
         return followed
@@ -669,16 +672,16 @@ private final class AnchoredWindowFrame {
         let within = max(0, offset - top)
         let pitch = frame.pitch(of: ordinal)
         if within >= pitch, ordinal < children.count - 1 {
-            state.anchorOrdinal = ordinal + 1
-            state.anchorKey = children.key(at: ordinal + 1)
-            state.anchorOffsetWithin = 0
-            state.lastDerivedOffset = top + pitch
+            frame.anchor.ordinal = ordinal + 1
+            frame.anchor.key = children.key(at: ordinal + 1)
+            frame.anchor.within = 0
+            frame.anchor.derivedOffset = top + pitch
             return
         }
-        state.anchorOrdinal = ordinal
-        state.anchorKey = children.key(at: ordinal)
-        state.anchorOffsetWithin = within
-        state.lastDerivedOffset = top + within
+        frame.anchor.ordinal = ordinal
+        frame.anchor.key = children.key(at: ordinal)
+        frame.anchor.within = within
+        frame.anchor.derivedOffset = top + within
     }
 
     /// Where a seek takes its target row's top to be: at the running pitch
@@ -726,7 +729,7 @@ private final class AnchoredWindowFrame {
         childContext.leaveScrollOrigin()
         let width = context.availableWidth
         let frame = AnchoredWindowFrame(
-            children: children, spacing: spacing, state: state,
+            children: children, spacing: spacing, state: state, anchor: state.anchor,
             proposal: ProposedViewSize(width: width, height: nil), context: childContext)
 
         let declaredMode = context.environment.declaredAnchorModes.standing
@@ -765,7 +768,7 @@ private final class AnchoredWindowFrame {
             frame.advanceAnchor(
                 to: window.offset, viewportHeight: window.viewportHeight,
                 linesBelow: window.linesBelow)
-            state.anchorKey = children.key(at: state.anchorOrdinal)
+            frame.anchor.key = children.key(at: frame.anchor.ordinal)
         } else {
             // A DESIGNATED row owns the anchor: the scroll position follows the
             // ROW, not the other way round. So neither walk the anchor by the
@@ -778,10 +781,10 @@ private final class AnchoredWindowFrame {
             // and the offset is the one that holds it, the row riding up only
             // past the content's top; while they fill its line, the offset
             // moves down when they would start above the stack's top.
-            // `lastDerivedOffset` is still synced so no phantom delta
+            // The anchor's `derivedOffset` is still synced so no phantom delta
             // accumulates if the designation is later cleared.
             heldOffset = clampDesignatedHold(frame: frame, state: state, window: &window)
-            state.lastDerivedOffset = window.offset
+            frame.anchor.derivedOffset = window.offset
         }
         var (placed, lastPlaced, bottomY) = frame.fill(window: window)
         // The rows the fill drew, before any focus target joins them.
@@ -796,7 +799,7 @@ private final class AnchoredWindowFrame {
         // full-height canvas.
         var grafts: [(ordinal: Int, y: Int)] = []
         if let focusManager = context.environment.focusManager {
-            let anchorY = window.offset - state.anchorOffsetWithin
+            let anchorY = window.offset - frame.anchor.within
             let estimate = state.estimatedPitch(spacing: spacing)
             let placedOrdinals = Set(placed.map(\.ordinal))
             for target in [focusManager.currentFocusedID, focusManager.pendingFocusID] {
@@ -810,7 +813,7 @@ private final class AnchoredWindowFrame {
                 // never rendered, never registered, and upward reveal never
                 // happened. At y 0 the region still tells the snap "scroll
                 // up", which is all convergence needs.
-                let estimatedY = anchorY + (ordinal - state.anchorOrdinal) * estimate
+                let estimatedY = anchorY + (ordinal - frame.anchor.ordinal) * estimate
                 if window.reply == nil {
                     placed.append((ordinal, max(0, estimatedY)))
                 } else {
@@ -826,7 +829,7 @@ private final class AnchoredWindowFrame {
             for: context.environment.focusManager?.currentFocusedID,
             children: children, state: state, context: context)
         if focusedOrdinal != nil {
-            let anchorY = window.offset - state.anchorOffsetWithin
+            let anchorY = window.offset - frame.anchor.within
             let estimate = state.estimatedPitch(spacing: spacing)
             let covered = Set(placed.map(\.ordinal)).union(grafts.map(\.ordinal))
             for stop in focusRingContinuations(
@@ -834,7 +837,7 @@ private final class AnchoredWindowFrame {
                 child: { frame.child(at: $0) }, width: width,
                 viewportHeight: window.viewportHeight, context: childContext)
             where !covered.contains(stop) {
-                let estimatedY = anchorY + (stop - state.anchorOrdinal) * estimate
+                let estimatedY = anchorY + (stop - frame.anchor.ordinal) * estimate
                 if window.reply == nil {
                     placed.append((stop, max(0, estimatedY)))
                 } else {
@@ -861,7 +864,7 @@ private final class AnchoredWindowFrame {
             recordDrawnRows(
                 band: drawn, all: placed.map(\.ordinal) + grafts.map(\.ordinal), of: children, state: state,
                 context: context)
-            rememberAnchoredTopRow(state: state, window: window, children: children)
+            rememberAnchoredTopRow(state: state, anchor: frame.anchor, window: window, children: children)
         }
         return buffer
     }
@@ -1019,7 +1022,7 @@ private final class AnchoredWindowFrame {
         let total =
             max(cursor, bottomY) + max(0, remaining) * estimate
             - (remaining > 0 ? spacing : 0)
-        state.lastReportedTotal = total
+        frame.anchor.reportedTotal = total
         if let reply = window.reply {
             reply.sliceOriginY = sliceOrigin
             reply.sliceTotalHeight = total
@@ -1056,9 +1059,9 @@ private final class AnchoredWindowFrame {
         target: Int, frame: AnchoredWindowFrame, state: StackWindowState,
         window: ScrollContentWindow, seek: ScrollToRequest, count: Int
     ) -> (offset: Int, targetTop: Int)? {
-        let anchor = state.anchorOrdinal
+        let anchor = frame.anchor.ordinal
         guard abs(target - anchor) <= window.viewportHeight * 2 + 4 else { return nil }
-        var y = -state.anchorOffsetWithin
+        var y = -frame.anchor.within
         if target >= anchor {
             for ordinal in anchor..<target { y += frame.pitch(of: ordinal) }
         } else {
@@ -1072,7 +1075,7 @@ private final class AnchoredWindowFrame {
         let above = window.linesAbove
         let topShown = (seek.topInset > 0 && window.offset + above > 0) ? 1 : 0
         var lastVisible = anchor
-        var walked = -state.anchorOffsetWithin
+        var walked = -frame.anchor.within
         while lastVisible < count - 1,
             walked + frame.pitch(of: lastVisible) < window.viewportHeight
         {

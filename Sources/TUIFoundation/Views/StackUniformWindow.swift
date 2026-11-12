@@ -246,25 +246,18 @@ final class StackWindowState {
 
         // MARK: Anchor (variable-height content, §5e/§6a)
 
-        /// The row the viewport is anchored on.
-        var anchorOrdinal = 0
-
-        /// The anchored row's stable `ForEach` key (§5f): the anchor names a
-        /// ROW, not a position. Data edits shift ordinals; each frame the
-        /// ordinal is re-bound to this key before scroll input applies, so
-        /// an insertion above the anchor moves nothing on screen (§6d) and a
-        /// deleted anchor falls to its nearest surviving neighbour.
-        var anchorKey: String?
-
-        /// How many cells of the anchor row sit above the viewport top.
-        var anchorOffsetWithin = 0
+        /// The scroll position the anchored walk reads and moves: the row at the
+        /// viewport's top and the lines of it above the top, with the dead
+        /// reckoning that keeps the scroll view's offset in step with it
+        /// (``ScrollContentAnchor``).
+        let anchor = ScrollContentAnchor()
 
         /// The row key a bound `.anchorPosition(.row(id))` last DESIGNATED, or
         /// `nil` when the anchor is the implicit top-visible row.
         ///
         /// Remembered so a designation is *adopted* once, when it changes: the
         /// key itself is re-asserted every frame (that is what holds the row),
-        /// but re-seeding ``anchorOffsetWithin`` every frame would drag the row
+        /// but re-seeding ``ScrollContentAnchor/within`` every frame would drag the row
         /// to the viewport top instead of leaving it where it sits.
         var designatedAnchorKey: String?
 
@@ -273,7 +266,7 @@ final class StackWindowState {
         /// thereafter. Used by the paths that place rows at ABSOLUTE content y
         /// (uniform arithmetic, exact walk), where holding a row means moving
         /// the offset under it; see `StackDesignatedAnchor.swift`. The anchored
-        /// walk holds its row through ``anchorOffsetWithin`` instead, being
+        /// walk holds its row through ``ScrollContentAnchor/within`` instead, being
         /// anchor-relative by construction.
         var anchorHeldScreenLine = 0
 
@@ -281,18 +274,6 @@ final class StackWindowState {
         /// whichever path, for ``ScrollWindowHold/topRow`` to hold on the next
         /// — see `StackTopRowHold.swift`. On the anchored walk it is the anchor.
         var heldTopRow: HeldTopRow?
-
-        /// The absolute offset the anchor was last derived against. Scroll
-        /// input arrives as a new absolute offset; the DIFFERENCE is walked
-        /// in row space (one line up looks at one row, §3), so estimates
-        /// never move what's on screen — only the scrollbar.
-        var lastDerivedOffset = 0
-
-        /// The content height the anchored path last reported
-        /// (``ScrollContentReply/sliceTotalHeight``) — the total the scroll
-        /// view's offset is clamped against, and so the one an offset at the
-        /// very bottom is measured from. `nil` before the first anchored render.
-        var lastReportedTotal: Int?
 
         /// Running average of measured row pitches (row + spacing), the
         /// extent estimate for rows never measured. Refined as rows are
