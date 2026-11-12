@@ -247,22 +247,6 @@
     }
 }
 
-/// A container that places its children against a scroll view's request,
-/// outward from an anchor, handing the request on to the children that are
-/// pulled (SCROLL-FIT design B-SCROLLFIT-12): `_VStackCore`'s pulled column
-/// (`StackPulledColumn.swift`) since P2, and the further containers the later
-/// lanes make pull. A stack is pulled only below containers that conform,
-/// which its measure reads by type from its identity
-/// (``_VStackCore/isPulledWhereItStands(context:)``); below any other it is
-/// drawn whole (B-SCROLLFIT-13).
-@MainActor
-protocol ScrollPlacing: LayoutPlacing {
-    /// The band `window` asks for, drawn outward from this container's
-    /// anchor, with `window`'s reply answered as a windowed stack's is; `nil`
-    /// when this container cannot, and draws itself whole.
-    func renderPulledColumn(window: ScrollContentWindow, context: RenderContext) -> FrameBuffer?
-}
-
 extension _VStackCore: ScrollPlacing {}
 
 // MARK: - LayoutPlacing
