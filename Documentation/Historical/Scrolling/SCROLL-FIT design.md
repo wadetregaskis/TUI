@@ -430,6 +430,32 @@ Still to do after the second lane:
   observers' rows, and the eager stack's departing-row transitions. A pulled column takes over
   only from a column that holds a pulled child, which before P2 drew that child whole.
 
+  *Still not built after the fourth lane,* which took the regressions, the reveal as an anchor
+  and the layer views over a band: these, the write frame's rows, and `TabView`, a pushed
+  `NavigationStack` screen and `Grid`. What it found on the way: a pulled column hands its
+  children requests that do not carry `reportsTargetLayout` or `reportsTargetVisibility`, so a
+  `scrollTargetLayout()` stack inside one reports no rows for a behaviour to settle on; the
+  rows would also have to be moved from the child's lines into the column's. Nor do they carry
+  `topRowHold`, and a stack handed one rebinds its anchor by ordinal, not key
+  (`rebindingAnchor`, `rebindAnchor(holdsRow: false)`), so rows inserted above a pulled
+  stack's anchor would, by a reading of the code (not tested), move its rows on screen where
+  the outermost stack holds them; a pulled column's own children are rebound by key. The write
+  frame over sections (506 rows built at 40, 986 at 320, `PulledColumnTests`) was not traced: the
+  natural-extent ladder steps past an answer above its rung in one step (`naturalExtent`'s
+  informed step), so the extra rung the second lane named needs an answer that grows between
+  two measures, which a sample measured at a taller rung could give; unmeasured, it is a
+  write frame's cost growing by about 480 rows per eightfold height, not per row.
+
+**As the fourth lane measured it** (2026-11-12, `ab_bench.py`, release, cpu per frame, base
+b52006fe7 against the lane's tip 7647fbbaa, a busy box, load 7.5): `app-shapes` +0.1%,
+`grouped-feed` +0.2%, `two-stacked-lazy` +0.5%, `headed-log` +0.3%, `megalist` −0.9%,
+`scrolleager` −0.9%, `glide` +0.3%, `dashboard` +1.5%, `session/editor` −0.5%, `session/chat`
++0.9%, `session/log` −0.2%: indistinguishable; `boxed-lazy` +0.4% [+0.1, +3.0], `titled-lazy`
++1.9% [+1.2, +3.0] and `scrollfollow` +0.7% [+0.1, +1.4] slower, under the owner's few-percent
+line (a pulled column's search for the child the focus lies in, each frame a focus exists, is
+the likeliest cost; not profiled). RSS within 0.6 MB everywhere. `frame_parity.py`: 155 of 156
+cases draw alike, `app-shapes/timeline-rows` the one that differs between runs of one binary.
+
 **As the third lane built it (2026-11-12): locate by route** (`StackNestedSeek.swift`,
 `StackPulledSeek.swift`, `ScrollKeyLocate.swift`). A seek whose key no row of the resolving
 container carries is searched for below its rows, level by level:
