@@ -129,8 +129,9 @@ extension ScrollFillColumn {
     /// Applies a scroll offset to the persisted anchor. A big jump seeks by
     /// estimate (O(1), approximate — what a scrollbar drag means); a small
     /// delta walks rows until it is consumed (one line up looks at one row).
-    /// Small is within four screens, or within ``scrollWalkableDelta`` lines
-    /// however short the screen: a burst of wheel ticks read in one frame —
+    /// Small is within four screens, or — but for a move to the very bottom,
+    /// placed from the last row up as any jump there is — within
+    /// ``scrollWalkableDelta`` lines however short the screen: a burst of wheel ticks read in one frame —
     /// sixty lines on a twelve-line screen — is a walked move, and placed by
     /// the running pitch it landed rows away from where the same ticks one at
     /// a time land. A pulled stack walks its column's delta in its own lines,
@@ -147,7 +148,10 @@ extension ScrollFillColumn {
         var within = self.anchor.within
         let delta = offset - self.anchor.derivedOffset
         let jumps = abs(delta) > max(viewportHeight * 4, scrollWalkableDelta)
-        if jumps, let reported = self.anchor.reportedTotal,
+        // The bottom from more than four screens off, as before the walk
+        // grew: an offset at the end is the estimated total's, which a walk
+        // of the delta would land by, short of or past the last row.
+        if abs(delta) > viewportHeight * 4, let reported = self.anchor.reportedTotal,
             offset + viewportHeight >= reported
         {
             // A jump to the very bottom of what this stack last reported — End,
