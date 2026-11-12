@@ -550,7 +550,7 @@ final class StackWindowState {
             if let key = children.key(at: ordinal) { memo[key] = ordinal }
         }
         state.rowOrdinalMemo = memo
-        window.reply?.reportResolvedOffset(resolved, isHold: resolvedIsHold)
+        window.reportResolvedOffset(resolved, isHold: resolvedIsHold)
         state.rememberTopRow(
             atLine: window.offset, of: totalHeight, hold: window.topRowHold, ordinal: { $0 / pitch }, in: topRows, verified: verified)
         return result
@@ -805,7 +805,27 @@ final class StackWindowState {
         guard let seek = window.seek else { return (window, nil) }
         window.seek = nil
         guard let ordinal = resolveOrdinal(forKey: seek.key, children: children, state: state)
-        else { return (window, nil) }
+        else {
+            // The key below a row (`StackNestedSeek.swift`): aimed at its place
+            // in the row, which the band then draws, and so verifies.
+            guard
+                let target = NestedSeek.target(
+                    holding: seek.key, count: children.count, child: { children[$0] },
+                    width: proposal.width ?? context.availableWidth, rowHeight: { _ in extent }, context: context)
+            else { return (window, nil) }
+            let targetY = target.ordinal * pitch + target.y
+            var request = seek
+            if request.anchor == nil {
+                let current = targetY - window.offset
+                let line = NestedSeek.line(
+                    for: seek, height: target.height, current: current, viewportHeight: window.viewportHeight)
+                guard line != current else { return (window, window.offset) }
+                request.anchor = current < line ? .top : .bottom
+            }
+            window.offset = window.offset(
+                realising: request, targetY: targetY, rowHeight: target.height, stackHeight: totalHeight)
+            return (window, window.offset)
+        }
         guard
             verifiedUniformRows(
                 [ordinal], children: children, extent: extent,

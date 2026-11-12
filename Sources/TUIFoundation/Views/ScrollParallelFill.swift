@@ -46,6 +46,8 @@ private struct PulledParallelAnswer {
     let position: Int
     let holdsFirst: Bool
     let holdsLast: Bool
+    /// Whether it resolved the seek it was handed.
+    var resolvedSeek = false
 }
 
 /// One child's part of a parallel container's band: what it draws there,
@@ -105,15 +107,30 @@ enum PulledParallel {
         var answers: [Int: PulledParallelAnswer] = [:]
         var wholes: [Int: FrameBuffer] = [:]
         let canvas = max(context.availableHeight, window.viewportHeight * 4)
+        /// Draws pulled child `index` handed `request`, answering into `answers`.
+        func drawPulled(_ index: Int, _ request: ScrollContentWindow) {
+            let child = children[index]
+            handed[child.identity] = request
+            let childContext = context.handingPulled(
+                request, to: child.identity, last: state.requests[child.identity])
+            let buffer = render(index, childContext, max(canvas, child.height))
+            guard let answer = request.reply, let origin = answer.sliceOriginY, let total = answer.sliceTotalHeight
+            else {
+                answers[index] = nil
+                wholes[index] = buffer
+                return
+            }
+            answers[index] = PulledParallelAnswer(
+                buffer: buffer, origin: origin, total: total, position: answer.pulledPosition ?? request.offset,
+                holdsFirst: answer.sliceHoldsFirstRow, holdsLast: answer.sliceHoldsLastRow,
+                resolvedSeek: request.seek != nil && answer.seekResolvedOffset != nil)
+        }
         for (index, child) in children.enumerated() {
             guard child.isPulled else {
                 wholes[index] = render(index, context, child.height)
                 continue
             }
-            var request = ScrollContentWindow(
-                offset: 0, viewportHeight: window.viewportHeight, contentIdentity: child.identity,
-                reply: ScrollContentReply())
-            request.isPulled = true
+            var request = pulledRequest(for: child, window: window)
             if let delta, let last = state.positions[child.identity] {
                 request.edge = .position
                 request.offset = last + delta
@@ -124,18 +141,8 @@ enum PulledParallel {
                 request.edge = .top
                 request.offset = window.offset - child.y
             }
-            handed[child.identity] = request
-            let childContext = context.handingPulled(
-                request, to: child.identity, last: state.requests[child.identity])
-            let buffer = render(index, childContext, max(canvas, child.height))
-            guard let answer = request.reply, let origin = answer.sliceOriginY, let total = answer.sliceTotalHeight
-            else {
-                wholes[index] = buffer
-                continue
-            }
-            answers[index] = PulledParallelAnswer(
-                buffer: buffer, origin: origin, total: total, position: answer.pulledPosition ?? request.offset,
-                holdsFirst: answer.sliceHoldsFirstRow, holdsLast: answer.sliceHoldsLastRow)
+            handSeek(of: window, to: &request, child: child, isLead: index == lead, rowHeight: rowHeight)
+            drawPulled(index, request)
         }
         guard let leading = answers[lead] else { return nil }
 
@@ -144,6 +151,19 @@ enum PulledParallel {
         // put it.
         let leadZero = children[lead].y - (leading.holdsFirst ? leading.origin : 0)
         let position = leading.position + leadZero
+        // A seek the lead resolved moved the container's lines under every
+        // other pulled child, each handed its place before the lead answered:
+        // handed it again, at its place below the container's new top.
+        if leading.resolvedSeek {
+            let others = children.indices.filter { $0 != lead && answers[$0] != nil }
+            others.forEach { index in
+                var request = pulledRequest(for: children[index], window: window)
+                request.edge = .top
+                request.offset = position - children[index].y
+                drawPulled(index, request)
+            }
+            reply.reportResolvedOffset(position, isHold: false)
+        }
         var top = leadZero + leading.origin
         var bottom = top + leading.buffer.height
         var total = leading.holdsLast ? bottom : leadZero + leading.total
@@ -181,5 +201,27 @@ enum PulledParallel {
         reply.pulledPosition = position
         ScrollContentReply.journal(from: context)
         return (pieces, bandHeight)
+    }
+
+    /// Hands `window`'s seek, if any, on in `request`: to the lead, the child
+    /// whose lines are the container's, with the content around it as the
+    /// container's — what the child's clamp and indicator headroom read.
+    private static func handSeek(
+        of window: ScrollContentWindow, to request: inout ScrollContentWindow, child: PulledParallelChild,
+        isLead: Bool, rowHeight: Int
+    ) {
+        guard isLead, let seek = window.seek else { return }
+        request.seek = seek
+        request.linesAbove = window.linesAbove + child.y
+        request.linesBelow = window.linesBelow + max(0, rowHeight - child.y - child.height)
+    }
+
+    /// A request for pulled `child`, its offset still to be placed.
+    private static func pulledRequest(for child: PulledParallelChild, window: ScrollContentWindow) -> ScrollContentWindow {
+        var request = ScrollContentWindow(
+            offset: 0, viewportHeight: window.viewportHeight, contentIdentity: child.identity,
+            reply: ScrollContentReply())
+        request.isPulled = true
+        return request
     }
 }

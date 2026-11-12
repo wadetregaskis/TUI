@@ -36,7 +36,6 @@ final class PulledColumnFrame {
     private(set) var sawSpacer = false
     /// The requests this frame handed its pulled children, by identity.
     var handed: [ViewIdentity: ScrollContentWindow] = [:]
-
     init(
         children: ChildViewCollection, spacing: Int, state: StackWindowState, anchor: ScrollContentAnchor,
         proposal: ProposedViewSize, context: RenderContext

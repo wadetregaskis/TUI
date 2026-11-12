@@ -835,7 +835,14 @@ public struct ChildView {
 
     /// Renders this child view with the given size allocation.
     public func render(width: Int, height: Int, context: RenderContext) -> FrameBuffer {
-        renderChild(view, width: width, height: height, context: childContext(context))
+        // A drawing made to place a `scrollTo` key marks the view the key
+        // names (`ScrollKeyLocate`); every other drawing pays one test.
+        if let search = ScrollKeyLocate.search(in: context), search.marksTarget, matchesSeekKey(search.key) {
+            var buffer = renderChild(view, width: width, height: height, context: childContext(context))
+            buffer.markSeekTarget()
+            return buffer
+        }
+        return renderChild(view, width: width, height: height, context: childContext(context))
     }
 
     /// The context to measure / render the child in: the identity resolved

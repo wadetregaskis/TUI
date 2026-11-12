@@ -325,6 +325,10 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     // MARK: Layout
 
     func sizeThatFits(proposal: ProposedViewSize, context given: RenderContext) -> ViewSize {
+        // A `scrollTo` searching an outer scroll view's content stops here: a
+        // key in this one's content is this one's to seek, and its registry
+        // entry already holds the request (`ScrollToRegistry.scrollTo`).
+        if let search = ScrollKeyLocate.search(in: given), !search.marksTarget { return .zero }
         let read = placingIndicators(hidingAutomaticIndicators(given))
         if let margined = margined(context: read) {
             return margined.sizeThatFits(proposal: proposal, context: read)

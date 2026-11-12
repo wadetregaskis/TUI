@@ -37,6 +37,18 @@ private struct PulledPiece {
     let position: Int?
     let end: Int?
     let zero: Int?
+    /// Whether a pulled child resolved the seek it was handed: its position
+    /// is where the seek put the viewport's top in its lines.
+    var resolvedSeek = false
+
+    /// The piece `delta` lines further down the column.
+    func shifted(by delta: Int) -> Self {
+        var piece = Self(
+            ordinal: ordinal, top: top + delta, buffer: buffer, firstLine: firstLine.map { $0 + delta },
+            endLine: endLine.map { $0 + delta }, position: position, end: end, zero: zero.map { $0 + delta })
+        piece.resolvedSeek = resolvedSeek
+        return piece
+    }
 }
 
 /// Where a child is to be drawn.
@@ -187,8 +199,19 @@ private enum PulledPlace {
         // places the anchor afresh, whatever this column remembers of it.
         let enteredAtAnEdge = window.edge != .position
         frame.enter(edgeOf: &window, estimatedEnd: frame.anchor.reportedTotal ?? frame.rowCount * frame.estimatedPitch)
-        let resolvedSeek = resolvePulledSeek(frame: frame, window: &window)
-        frame.advanceAnchor(to: window.offset, viewportHeight: window.viewportHeight, linesBelow: 0)
+        // A seek moves from the rows on screen, read from the anchor, so the
+        // anchor is walked to this frame's offset first, as the anchored
+        // window walks it (`renderAnchoredWindow`).
+        if window.seek != nil {
+            frame.advanceAnchor(to: window.offset, viewportHeight: window.viewportHeight, linesBelow: 0)
+        }
+        let seeking = resolvePulledSeek(frame: frame, window: &window, width: width)
+        // A row handed a seek keeps the anchor wherever the viewport's top is
+        // in it until it answers: the walk would move a place above its top
+        // onto the row above, which the seek never reaches.
+        if seeking?.handed == nil {
+            frame.advanceAnchor(to: window.offset, viewportHeight: window.viewportHeight, linesBelow: 0)
+        }
         frame.anchor.key = children.key(at: frame.anchor.ordinal)
         guard !frame.sawSpacer else { return nil }
 
@@ -200,13 +223,17 @@ private enum PulledPlace {
         let anchored = frame.anchor.ordinal
         let stayed =
             !enteredAtAnEdge && state.pulledAnchorRow?.ordinal == anchored && before.ordinal == anchored
-            && before.key == frame.anchor.key && resolvedSeek == nil
+            && before.key == frame.anchor.key && seeking == nil
         let edge: PullEdge =
-            stayed ? .position : frame.anchor.within * 2 < frame.height(of: anchored) ? .top : .end
+            seeking?.handedEdge
+            ?? (stayed ? .position : frame.anchor.within * 2 < frame.height(of: anchored) ? .top : .end)
 
-        let drawn = fillPulled(
-            frame: frame, window: window, anchoredEdge: edge, width: width, context: childContext)
-        guard !frame.sawSpacer, let first = drawn.first, let last = drawn.last else { return nil }
+        var drawn = fillPulled(
+            frame: frame, window: window, anchoredEdge: edge, seek: seeking?.handed, width: width,
+            context: childContext)
+        guard !frame.sawSpacer, !drawn.isEmpty else { return nil }
+        let resolvedSeek = settle(seeking, of: anchored, drawn: &drawn, window: &window)
+        guard let first = drawn.first, let last = drawn.last else { return nil }
 
         // The anchored row's place for the next frame: a pulled one's own
         // position and end, which the walk then moves from and across.
@@ -259,34 +286,27 @@ private enum PulledPlace {
         return result
     }
 
-    /// A pending `scrollTo` naming one of this column's own rows: the row
-    /// becomes the anchor, on the line the request's alignment puts it, and
-    /// the offset it was moved to — the rows above it priced at the running
-    /// pitch — is returned for the scroll view to adopt. `nil` when nothing
-    /// is sought or no row of this column holds the key.
-    private func resolvePulledSeek(frame: PulledColumnFrame, window: inout ScrollContentWindow) -> Int? {
-        guard let seek = window.seek else { return nil }
-        window.seek = nil
-        guard let ordinal = resolveOrdinal(forKey: seek.key, children: frame.children, state: frame.state)
-        else { return nil }
-        let rowHeight = frame.height(of: ordinal)
-        let line: Int
-        if let anchor = seek.anchor {
-            let slack = window.viewportHeight - seek.topInset - seek.bottomInset - rowHeight
-            line = seek.topInset + Int((Double(slack) * anchor.y).rounded())
-        } else {
-            line = ordinal < frame.anchor.ordinal
-                ? seek.topInset
-                : max(seek.topInset, window.viewportHeight - seek.bottomInset - rowHeight)
+    /// The offset this frame's seek moved the column to, for the scroll view
+    /// to adopt, or `nil`. A seek the anchored row resolved moved the
+    /// viewport's top in it from where it was handed to where the row answers:
+    /// the column's offset moves with it, and so does every piece, each placed
+    /// against that row, so the rows around it keep their places in the
+    /// column's lines.
+    private func settle(
+        _ seeking: PulledSeek?, of anchored: Int, drawn: inout [PulledPiece], window: inout ScrollContentWindow
+    ) -> Int? {
+        switch seeking {
+        case .moved(let offset): return offset
+        case .handed(_, let top, _):
+            guard let piece = drawn.first(where: { $0.ordinal == anchored }), piece.resolvedSeek,
+                let position = piece.position
+            else { return nil }
+            let delta = top + position - window.offset
+            window.offset += delta
+            drawn = drawn.map { $0.shifted(by: delta) }
+            return window.offset
+        case nil: return nil
         }
-        let top = ordinal * frame.estimatedPitch
-        frame.anchor.ordinal = ordinal
-        frame.anchor.key = frame.key(at: ordinal)
-        let offset = max(0, top - line)
-        frame.anchor.within = offset - top
-        frame.anchor.derivedOffset = offset
-        window.offset = offset
-        return offset
     }
 
     /// The fill: the anchored row, then outward — down from each row's end
@@ -294,14 +314,14 @@ private enum PulledPlace {
     /// row's top while the viewport's top lies above it, and one whole row
     /// past it as the margin a directional move steps into.
     private func fillPulled(
-        frame: PulledColumnFrame, window: ScrollContentWindow, anchoredEdge: PullEdge, width: Int,
-        context: RenderContext
+        frame: PulledColumnFrame, window: ScrollContentWindow, anchoredEdge: PullEdge, seek: HandedSeek?,
+        width: Int, context: RenderContext
     ) -> [PulledPiece] {
         let anchored = frame.anchor.ordinal
         let top = window.offset
         let bottom = top + window.viewportHeight
         let anchorPiece = drawPulledRow(
-            anchored, at: .anchored(within: frame.anchor.within, edge: anchoredEdge),
+            anchored, at: .anchored(within: frame.anchor.within, edge: anchoredEdge), seek: seek,
             frame: frame, window: window, width: width, context: context)
         var below: [PulledPiece] = []
         var nextTop = anchorPiece.endLine.map { $0 + frame.gap(after: anchored) }
@@ -334,8 +354,8 @@ private enum PulledPlace {
     /// Draws row `ordinal` at `place`: whole, or — when it is pulled — handed a
     /// request in its own lines, and placed by what it answers.
     private func drawPulledRow(
-        _ ordinal: Int, at place: PulledPlace, frame: PulledColumnFrame, window: ScrollContentWindow,
-        width: Int, context: RenderContext
+        _ ordinal: Int, at place: PulledPlace, seek: HandedSeek? = nil, frame: PulledColumnFrame,
+        window: ScrollContentWindow, width: Int, context: RenderContext
     ) -> PulledPiece {
         let child = frame.child(at: ordinal)
         let height = frame.height(of: ordinal)
@@ -368,6 +388,11 @@ private enum PulledPlace {
             request.edge = edge
             request.offset = edge == .end ? within - height : within
         }
+        if let seek {
+            request.seek = seek.request
+            request.linesAbove = seek.linesAbove
+            request.linesBelow = seek.linesBelow
+        }
         let rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
         let canvas = max(context.availableHeight, height, window.viewportHeight * 4)
         let buffer = child.render(width: width, height: canvas, context: rowContext)
@@ -394,11 +419,13 @@ private enum PulledPlace {
         case .anchored: zero = viewportTop - position
         }
         let pieceTop = zero + origin
-        return PulledPiece(
+        var piece = PulledPiece(
             ordinal: ordinal, top: pieceTop, buffer: buffer,
             firstLine: answer.sliceHoldsFirstRow ? pieceTop : nil,
             endLine: answer.sliceHoldsLastRow ? pieceTop + buffer.height : nil,
             position: position, end: end, zero: zero)
+        piece.resolvedSeek = seek != nil && answer.seekResolvedOffset != nil
+        return piece
     }
 
     /// `context` with `request` in it for the pulled child at `identity`

@@ -31,8 +31,11 @@ public struct ScrollViewProxy {
     /// element's — `proxy.scrollTo(item.id)` for a data-driven list, or the
     /// element value itself for `ForEach(0..<n, id: \.self)` — or the tag a
     /// ``View/id(_:)`` bound to one of the content stack's own children, the
-    /// spelling SwiftUI's own `ScrollViewReader` example is built out of. An
-    /// unknown id is a no-op, as in SwiftUI.
+    /// spelling SwiftUI's own `ScrollViewReader` example is built out of — at
+    /// any depth: a row of a lazy stack under a title, in a box or in the rows
+    /// of an outer lazy stack is found too, rows never built included, by
+    /// measuring the rows before it once per call. An unknown id is a no-op,
+    /// as in SwiftUI.
     ///
     /// - Parameters:
     ///   - id: The identity of the row to scroll to.

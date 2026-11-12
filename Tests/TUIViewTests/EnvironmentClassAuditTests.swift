@@ -47,6 +47,7 @@ struct EnvironmentClassAuditTests {
         "SearchSelectionBox": "provider-kept box, its binding refreshed every render; the field reads it where it draws",
         "ModifierKeyMonitor": "service: its state is read through the monitor's own invalidation",
         "ScrollToRegistry": "mailbox: scroll targets are registered into it",
+        "ScrollKeyLocate": "set only in a scrollTo search's own context, which has no render cache: nothing is cached under it",
         "TerminalImageStore": "mailbox: pictures are registered into it for the writer",
         "AppScopedObjects": "service: per-app objects an optional module keeps, made once and kept",
         "URLImageCache": "service: a load reads and fills it off the main actor; what is drawn comes from @State",

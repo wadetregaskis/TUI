@@ -124,6 +124,18 @@ public struct ChildViewCollection {
         return nil
     }
 
+    /// The first ordinal a `scrollTo` of `key` names (`ChildView.matchesSeekKey`):
+    /// a `ForEach` row's by its key, never building a row when the provider
+    /// supplies keys; any other child's by its `.id(_:)` too, which only a
+    /// built child can tell.
+    package func seekOrdinal(forKey key: String) -> Int? {
+        if keyAt != nil { return firstOrdinal(forKey: key) }
+        for ordinal in 0..<count where build(ordinal).matchesSeekKey(key) {
+            return ordinal
+        }
+        return nil
+    }
+
     /// The wrapped eager array, or `nil` for a lazy collection — for a
     /// question asked of each child that a lazy collection answers from its
     /// provider instead (``anyID(at:)``), and must not build every row for.

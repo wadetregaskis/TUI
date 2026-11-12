@@ -15,6 +15,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`scrollTo` finds a row inside a lazy stack that is not the scroll view's whole content.** `proxy.scrollTo(id)`
+and `ScrollPosition.scrollTo(id:)` looked for the id only among the rows of the stack that was the scroll view's
+content, so a row of a `LazyVStack` under a title, in the second of two stacks, in a `GroupBox` or beside a gutter
+in an `HStack`, or a message in each day's stack inside an outer stack of days, was silently not scrolled to. It is
+found now at any depth, rows never built included — the rows before it are measured to look, once per call, with
+no `onAppear` run and nothing drawn on screen — and lands where the anchor asks: `.top`, `.center`, `.bottom`, or, with none, as little movement as shows it.
+An eager `VStack`'s rows are searched the same way, and so is a `.id(_:)` on one of its own children.
+
 **Dragging a scroll view's thumb no longer makes the rows under the pointer jump back and forth.** Where a scroll
 view's height is an estimate — a long lazy stack of rows of different heights — the estimate improved as the drag
 brought new rows into view, and each move of the pointer was read against the new one. A drag now reads every move

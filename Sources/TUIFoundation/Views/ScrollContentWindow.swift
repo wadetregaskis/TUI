@@ -252,6 +252,16 @@ struct ScrollContentWindow: Hashable {
     /// Whether any of the scroll content lies below the viewport, for a stack
     /// whose own content ends at `stackBottom` (in its coordinates): its rows,
     /// or what is drawn below it (``linesBelow``).
+    /// Reports `offset`, when there is one, as the offset the stack rendered
+    /// at (``ScrollContentReply/reportResolvedOffset(_:isHold:)``) — and, for
+    /// a pulled stack, as where the viewport's top fell in it
+    /// (``ScrollContentReply/pulledPosition``), which a seek or a hold moved
+    /// after the stack's edge was read (`resolveUniformPullEdge`).
+    func reportResolvedOffset(_ offset: Int?, isHold: Bool) {
+        reply?.reportResolvedOffset(offset, isHold: isHold)
+        if isPulled, let offset { reply?.pulledPosition = offset }
+    }
+
     func hasContentBelow(stackBottom: Int) -> Bool {
         offset + viewportHeight < stackBottom + linesBelow
     }

@@ -354,7 +354,10 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         guard let seek = window.seek else { return nil }
         window.seek = nil
         guard let ordinal = resolveOrdinal(forKey: seek.key, children: children, state: state)
-        else { return nil }
+        else {
+            return resolveNestedAnchoredSeek(
+                seek, frame: frame, state: state, window: &window, anchorFollowsOffset: anchorFollowsOffset)
+        }
         // Nil anchor near the window resolves in WALKED row space: an
         // already-visible target moves NOTHING, a nearby one moves minimally.
         // The estimate path below judges visibility by estimate-space y against
@@ -414,6 +417,43 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         // (`clampDesignatedHold`), and the target stands at its top as before.
         anchorSeekTarget(
             ordinal, top: targetY, offset: anchorFollowsOffset ? newOffset : targetY, frame: frame,
+            state: state, children: children)
+        window.offset = newOffset
+        return newOffset
+    }
+
+    /// A seek whose key lies below one of this stack's rows, drawn whole
+    /// (`StackNestedSeek.swift`): aimed at the key's place in that row, the
+    /// row then anchored as a seek's own target is. A minimal-movement seek to
+    /// a place on screen moves nothing; off it, it moves to the edge it is
+    /// past, read from the anchor as the near seek reads it.
+    private func resolveNestedAnchoredSeek(
+        _ seek: ScrollToRequest, frame: AnchoredWindowFrame, state: StackWindowState,
+        window: inout ScrollContentWindow, anchorFollowsOffset: Bool
+    ) -> Int? {
+        let children = frame.children
+        guard
+            let target = NestedSeek.target(
+                holding: seek.key, count: children.count, child: frame.child(at:),
+                width: frame.proposal.width ?? frame.context.availableWidth,
+                rowHeight: { frame.pitch(of: $0) - ($0 < children.count - 1 ? spacing : 0) }, context: frame.context)
+        else { return nil }
+        let estimate = state.estimatedPitch(spacing: spacing)
+        let rowTop = seekTargetY(ordinal: target.ordinal, estimate: estimate, frame: frame, window: window)
+        let current = frame.viewportLine(ofRow: target.ordinal, viewportHeight: window.viewportHeight) + target.y
+        var request = seek
+        if request.anchor == nil {
+            let line = NestedSeek.line(
+                for: seek, height: target.height, current: current, viewportHeight: window.viewportHeight)
+            guard line != current else { return window.offset }
+            request.anchor = current < line ? .top : .bottom
+        }
+        let newOffset = window.offset(
+            realising: request, targetY: rowTop + target.y, rowHeight: target.height,
+            stackHeight: max(children.count * estimate, rowTop + (children.count - target.ordinal) * estimate)
+                - spacing)
+        anchorSeekTarget(
+            target.ordinal, top: rowTop, offset: anchorFollowsOffset ? newOffset : rowTop, frame: frame,
             state: state, children: children)
         window.offset = newOffset
         return newOffset
@@ -1003,6 +1043,6 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             while first > 0, children.key(at: first - 1) == key { first -= 1 }
             return first
         }
-        return children.firstOrdinal(forKey: key)
+        return children.seekOrdinal(forKey: key)
     }
 }

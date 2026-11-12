@@ -748,7 +748,12 @@ rows of an outer one each build only the rows on screen, and each is priced by
 its sample, never walked. A stack below any other container — a bordered box,
 an `HStack` — is still drawn whole as the next paragraph tells, until a later
 lane makes that container pull; which it is the stack reads from its identity
-(`isPulledWhereItStands`). What follows is the history up to P2.
+(`isPulledWhereItStands`). A `scrollTo` of a row inside any of them is located
+by route (`StackNestedSeek.swift`): the rows above the key's are measured for
+the search alone, a level deeper each round, and the row it is found in is
+handed the seek when it is pulled, or aimed into when it is drawn whole — that
+one row drawn once, off screen, for the key's line in it (the SCROLL-FIT design,
+"As the third lane built it"). What follows is the history up to P2.
 
 **What shipped (2026-09-23 to P2).** The pull above is the design; what shipped windowed
 only the scroll view's DIRECT content (`consumableScrollWindow`). A lazy stack

@@ -381,9 +381,7 @@ Still to do after the second lane:
   count and its width and centring differed from the eager twin's. `NavigationStack` at its root,
   `.background` and `.overlay` (with a style or a view: the twin comparison draws them alike)
   already pull.
-- **Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).** A pulled column answers a `scrollTo`
-  of its own rows (by the running pitch); a key inside a pulled child is not searched, as under
-  design D.
+- ~~**Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).**~~ Built in the third lane, below.
 - **The focus reveal as an anchor (1e).** Reveal still moves the offset; the walk carries it.
   A pulled column draws its children as it fills, anchored row first, so a focusable child above
   its anchor registers after the rows below it.
@@ -391,6 +389,50 @@ Still to do after the second lane:
   `.anchorPosition(.row(id))`, the top-row hold, `scrollTargetLayout` and the visibility
   observers' rows, and the eager stack's departing-row transitions. A pulled column takes over
   only from a column that holds a pulled child, which before P2 drew that child whole.
+
+**As the third lane built it (2026-11-12): locate by route** (`StackNestedSeek.swift`,
+`StackPulledSeek.swift`, `ScrollKeyLocate.swift`). A seek whose key no row of the resolving
+container carries is searched for below its rows, level by level:
+
+- **The search measures, never draws.** The container measures each row in a context with no
+  render cache (no memo read or kept, nothing filed as pulled), measuring (no `onAppear`, no
+  focus registration) and a `ScrollKeyLocate` in the environment. A `_VStackCore` measured so
+  looks for the key among its own rows by the data's keys, building none, and while the search
+  may go deeper measures its rows in turn; a nested `ScrollView` stops it, its own content
+  being its own seek's. Each round goes a level deeper, until the key is found or no stack the
+  round reached had rows left to look below (at most eight levels). A key one level down costs a
+  measure of each row before its own, twice; a miss costs a measure of every row on every level
+  there is, once per call, A-SCROLLFIT-4 (b)'s price.
+- **A pulled row is handed the seek.** The column anchors on it, at the viewport's place in it
+  (clamped to a screen off its near edge when it is far: a stack given an offset tens of
+  thousands of lines away placed no band), hands it the request with `linesAbove`/`linesBelow`
+  the column's estimates around it (what the row's clamp and indicator headroom read), and moves
+  its own offset, and every piece it placed, by where the row's answer put the viewport's top
+  (`pulledPosition`). So each level resolves the seek among its own rows; a box relays it as it
+  relays any request, and the parallel shape hands it to its lead and re-hands its other pulled
+  children their place below the container's new top.
+- **A row drawn whole is aimed into.** The row is drawn once for the key's place alone, measuring
+  and with no cache: the child the key names stamps two geometry markers on its drawing
+  (`seekTargetTop`, `seekTargetEnd`), which every container moves with what it draws, so the
+  row's drawing says where the key's view is in it and how tall, whatever lies between. The seek
+  then aims at that line of the row, in the pulled column, the anchored and the uniform windows,
+  and the eager stack alike. *Corrected:* 1f's "nothing new is built" is A-SCROLLFIT-4 (b)'s
+  search now, and a row drawn whole is a leaf (B-SCROLLFIT-13) whose inside the pull does not
+  see, so the key's line in it is read from the row's own drawing. That is not the disqualifier's
+  case: the row is drawn whole whenever any of it is on screen, and is drawn here once per call,
+  off screen, for its own size.
+- **Minimal movement** reads where the target is from the anchor: on screen, nothing moves (the
+  pulled column's own-row seek used to move it to an edge regardless); off it, to the edge it is
+  past. A pulled column's own row is placed from the rows above it summed where its walk measures
+  across a jump, rather than at the running pitch, which in a column of a title over a stack of
+  800 rows put the stack's top hundreds of lines low.
+- `ChildViewCollection.seekOrdinal(forKey:)` matches a `.id(_:)` on a column's own child too, as
+  the eager seek does, which a pulled column's seek did not.
+
+`PulledLocateTests` lands a row at `.top`, `.center`, `.bottom` and by minimal movement under a
+title, in the second of two stacks, in a box, beside a gutter and in the rows of an outer lazy
+stack (pulled, and of twenty rows drawn whole), each against the same rows drawn eagerly, and
+pins the rows a seek's frame builds under a title as the same at 1,000 and 10,000 rows.
 
 Forwarders do not conform: the engine sees a single-child step and forwards. That is the common
 case, and an app's own views are always that case. The counts are Locating §8's, updated. About

@@ -104,6 +104,12 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
 
     /// Measures the VStack without rendering.
     @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+        // A `scrollTo` searching below the rows of a stack above
+        // (`StackNestedSeek.swift`) asks this one only whether the key lies
+        // among or below its rows.
+        if let search = ScrollKeyLocate.search(in: context), !search.marksTarget {
+            return locateSizeThatFits(search, proposal: proposal, context: context)
+        }
         let context = context.publishingContainerAxis(.vertical, passesNoWidthOn: isStaticallyOneView(Content.self))
         switch overflow {
         case .clip: return clipSizeThatFits(proposal: proposal, context: context)
@@ -451,6 +457,12 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     }
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // A container measured by drawing it, under a search's measure, draws
+        // this stack only to search it (`StackNestedSeek.swift`).
+        if let search = ScrollKeyLocate.search(in: context), !search.marksTarget {
+            _ = locateSizeThatFits(search, proposal: ProposedViewSize(width: nil, height: nil), context: context)
+            return FrameBuffer()
+        }
         let context = context.publishingContainerAxis(.vertical, passesNoWidthOn: isStaticallyOneView(Content.self))
         switch overflow {
         case .clip: return renderClip(context: context)
@@ -862,12 +874,20 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         var childContext = context
         childContext.environment.scrollContentWindow = nil
         let slots = naturalRowSlots(width: context.availableWidth, context: childContext)
-        guard let index = slots.firstIndex(where: { $0.child.matchesSeekKey(seek.key) })
-        else { return window }
         let total = slots.last.map { $0.y + $0.height } ?? 0
-        reply.seekResolvedOffset = window.offset(
-            realising: seek, targetY: slots[index].y, rowHeight: slots[index].height,
-            stackHeight: total)
+        if let index = slots.firstIndex(where: { $0.child.matchesSeekKey(seek.key) }) {
+            reply.seekResolvedOffset = window.offset(
+                realising: seek, targetY: slots[index].y, rowHeight: slots[index].height,
+                stackHeight: total)
+        } else if let target = NestedSeek.target(
+            holding: seek.key, count: slots.count, child: { slots[$0].child }, width: context.availableWidth,
+            rowHeight: { slots[$0].height }, context: childContext)
+        {
+            // The key below a row (`StackNestedSeek.swift`), at its place there.
+            reply.seekResolvedOffset = window.offset(
+                realising: seek, targetY: slots[target.ordinal].y + target.y, rowHeight: target.height,
+                stackHeight: total)
+        }
         return window
     }
 
