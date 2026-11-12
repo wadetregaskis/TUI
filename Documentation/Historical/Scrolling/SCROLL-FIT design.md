@@ -319,13 +319,55 @@ reaches (design D's walk, kept as B-SCROLLFIT-13's fallback, now reached only th
 
 `ScrollPlacing` is the marker those containers conform to: in P2, `_VStackCore` only.
 
-What P2 left to P3 (each recorded under 4):
+*Corrected in P2's second lane (2026-11-12): `ScrollPlacing` refines nothing and asks for
+nothing.* The sketch above has it refine `LayoutPlacing` and answer the engine's questions; no
+caller reads a container through it, since each shape reads and answers the request in its own
+render, so it is a package marker (`ScrollPlacing.swift`), read by type from the identity chain,
+and a container that pulls need not be one a placement query can walk. The second lane added:
 
-- **Parallel and forward shapes past `Section` and padding.** `HStack`, `ZStack`,
-  `.background`/`.overlay`, the bordered container (`GroupBox`, `.border()`), `TabView`,
-  `NavigationStack` and `Grid` do not pull yet; a lazy stack below one is drawn whole as before.
-  Bodies, modifiers and the views that already relayed the window (`Section`, `.padding`, the
-  content margins) forward it.
+- **The forward shape through a box** (`ContainerViewCore+Pulled.swift`): `_ContainerViewCore`
+  (`GroupBox`, `.border()`, every titled or footed box) files itself pulled when its body holds a
+  pulled view, hands the body the request below its top line through `ScrollWindowRelay`,
+  re-addressed to the body (`addressing:`, since the body is a child among two), and keeps of
+  its own lines only those the band reaches (`FrameBuffer.lines(in:)`): the top line with the
+  body's first row, the footer and the bottom line with its last. Its width is the body's
+  measured width, not the band's, so it does not change as the page scrolls.
+- **The parallel shape** (`ScrollParallelFill.swift`): `_HStackCore` (both overflows, since a
+  type cannot say which it is) and `_ZStackCore` hand each pulled child the request moved by its
+  place in the container — from the container's top or end by the child's, or each child's own
+  position moved by the container's delta — draw every other child whole, and keep of each only
+  the band. The container's lines are its tallest pulled child's (the lead's), moved to the
+  lead's place; the band is the lead's, reaching the container's top or end when the lead's
+  holds its first or last row. A glide, a z-index and an explicit alignment guide are left out
+  of a pulled row's drawing.
+- **Two relay fixes the shapes needed.** A request counted from a view's end is counted from its
+  content's end, `linesBelow` further up (`ScrollContentWindow.beneath`, which subtracted
+  `linesAbove` whatever the edge), and a pulled content's position is answered back through the
+  relay in the view's lines (`pulledPosition`), so a column places the band by it.
+
+Measured (2026-11-12, `ab_bench.py`, release, cpu per frame, 10 reps, base 1391cf863, busy box,
+load 3.5): `app-shapes/boxed-lazy` (a title over a `GroupBox` around 100,000 entries) 687.2 →
+0.59 ms a frame (−99.9%) and RSS 1,010 → 14.7 MB; every other scroll scenario within the noise
+(`grouped-feed`, `headed-log`, `titled-lazy`, `two-stacked-lazy`, `sidebar`, `file-browser`,
+`scrollfollow`, `glide`, `megalist`, `scrolleager`, `dashboard`, `session/log`), `session/editor`
++1.4% and `session/chat` +0.3%. `frame_parity.py`: 154 of 156 cases draw alike; `boxed-lazy`
+differs (now pulled) and `timeline-rows` differs between runs of one binary.
+
+Still to do after the second lane:
+
+- **`TabView`, a pushed `NavigationStack` screen, `.background`/`.overlay` with a view, and
+  `Grid`.** A tab view's content is reached by single-child steps, so a lazy stack in it is
+  already pulled, but the request is not moved below the strip (the strip's lines and the
+  tallest tab's padding are not relayed): its rows are misplaced by the strip, and End does not
+  reach its last row (`PulledContainersTests`). A pushed screen sits below the bar as an indexed
+  child. An overlay or background laid out by a view is laid out against the band, not the
+  content (`.topTrailing` badges every band's top line); a shape style fills the band, which is
+  right. `NavigationStack` at its root and a shape-style background already pull.
+- **A pulled column inside a pulled column, entered from below, steps over the row below it.**
+  `GroupBox` is a column of its own (`VStack { label; Box { content } }`): in
+  `VStack { first; GroupBox { LazyVStack }; second; LazyVStack }`, scrolled up from the end, the
+  heading `second` never comes on screen (`PulledContainersTests`, a known issue there; the same
+  page with `.border()` in place of the `GroupBox` passes).
 - **Locate by route (B-SCROLLFIT-15, A-SCROLLFIT-4's (b)).** A pulled column answers a `scrollTo`
   of its own rows (by the running pitch); a key inside a pulled child is not searched, as under
   design D.
