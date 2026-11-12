@@ -35,6 +35,11 @@ struct TableHorizontalWindow: Equatable {
     /// Where each column the window may start at begins (``stops(of:spacing:viewport:)``).
     let stops: [Int]
 
+    /// Every column's width as the window lays them out, its own or not: what
+    /// the header publishes the columns off screen at, for a drag to lay them
+    /// out from.
+    let minimums: [Int]
+
     /// The width the scrollbar measures the columns as: theirs, and the blank
     /// past the last one that a window starting at the last stop shows.
     let extent: Int

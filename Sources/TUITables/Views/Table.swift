@@ -4068,7 +4068,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // Where the columns are on THIS frame, for a header drag that started
         // on an earlier one: a live reorder moves them under the pointer.
         if !context.isMeasuring {
-            publishHeaderColumns(ranges, to: state.handler)
+            if let horizontalWindow {
+                publishHeaderColumns(
+                    Self.placingEveryColumn(drawn: ranges, in: horizontalWindow, spacing: columnSpacing),
+                    of: allColumns, to: state.handler)
+            } else {
+                publishHeaderColumns(ranges, of: columns, to: state.handler)
+            }
             state.handler.headerColumnsWidest = max(1, state.rowContentWidth)
         }
         let gesture = _TableHeaderGesture(
@@ -4127,12 +4133,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
     }
 
-    /// Hands `handler` where this frame's header drew each column, out of
-    /// `ranges` (``ItemListHandler/headerColumns``) — unless it holds that
-    /// already, as it does on every frame the columns hold still: compared
-    /// where it would have been built again, on every frame of every table
-    /// with a header.
-    private func publishHeaderColumns(_ ranges: [(Int, Range<Int>)], to handler: ItemListHandler<Value.ID>) {
+    /// Hands `handler` where this frame's header put each column, out of
+    /// `ranges`, which index into `columns` (``ItemListHandler/headerColumns``)
+    /// — unless it holds that already, as it does on every frame the columns
+    /// hold still: compared where it would have been built again, on every
+    /// frame of every table with a header.
+    private func publishHeaderColumns(
+        _ ranges: [(Int, Range<Int>)], of columns: [_TableColumnSpec<Value>], to handler: ItemListHandler<Value.ID>
+    ) {
         let drawn = handler.headerColumns
         var position = 0
         var unchanged = true
@@ -4153,6 +4161,35 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             placed.append((columns[index].customizationID, columns[index].declarationIndex, x))
         }
         handler.headerColumns = placed
+    }
+
+    /// Where a table that scrolls sideways puts every one of its columns, as
+    /// `(index among them all, cells)`: the ones `drawn` (indexed among the
+    /// window's) where they were drawn, and the ones off screen where they
+    /// would be, at their widths in `window`, before and after — so a header
+    /// drag lays every column out from where it is, as on a table whose
+    /// columns fit (`liveHeaderColumns`), the window's first being no longer
+    /// the first.
+    private static func placingEveryColumn(
+        drawn: [(Int, Range<Int>)], in window: TableHorizontalWindow, spacing: Int
+    ) -> [(Int, Range<Int>)] {
+        let count = window.minimums.count
+        guard let firstDrawn = drawn.first?.1, let lastDrawn = drawn.last?.1, window.first < count else { return drawn }
+        var placed: [(Int, Range<Int>)] = []
+        placed.reserveCapacity(count)
+        var start = firstDrawn.lowerBound
+        for index in 0..<window.first { start -= window.minimums[index] + spacing }
+        for index in 0..<window.first {
+            placed.append((index, start..<(start + window.minimums[index])))
+            start += window.minimums[index] + spacing
+        }
+        for (index, x) in drawn where window.first + index < count { placed.append((window.first + index, x)) }
+        start = lastDrawn.upperBound + spacing
+        for index in min(count, window.first + drawn.count)..<count {
+            placed.append((index, start..<(start + window.minimums[index])))
+            start += window.minimums[index] + spacing
+        }
+        return placed
     }
 
     /// A press on a column's title: a click sorts by it, a drag moves it, a
@@ -4272,14 +4309,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// A width the user set is the width drawn — a resized column is laid out
     /// at it, fixed — and any other is the last frame's. A column shown since
     /// that frame has no width to go by and takes one cell until the next.
+    ///
+    /// Shifted by however far the window has scrolled sideways since that
+    /// frame (``TableHorizontalScroll/framedStart``), in a table that does.
     private func liveHeaderColumns(_ handler: ItemListHandler<Value.ID>) -> [(id: String?, x: Range<Int>)] {
         let drawn = handler.headerColumns
+        let shift = handler.horizontalScroll.map { $0.framedStart - $0.drawnStart } ?? 0
         guard let binding = columnCustomization, let first = drawn.first else {
-            return drawn.map { ($0.id, $0.x) }
+            return drawn.map { ($0.id, ($0.x.lowerBound + shift)..<($0.x.upperBound + shift)) }
         }
         let widths = Dictionary(drawn.map { ($0.declaration, $0.x.count) }, uniquingKeysWith: { first, _ in first })
         var laidOut: [(id: String?, x: Range<Int>)] = []
-        var x = first.x.lowerBound
+        var x = first.x.lowerBound + shift
         for column in binding.wrappedValue.shownColumns(declaredColumns) {
             let width = column.resizedWidth ?? widths[column.declarationIndex] ?? 1
             laidOut.append((column.customizationID, x..<(x + width)))
@@ -5187,7 +5228,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 first: first,
                 widths: TableHorizontalWindow.shownWidths(
                     from: first, of: minimums, spacing: columnSpacing, viewport: viewport),
-                stops: stops, extent: extent, viewport: viewport, showsVerticalBar: showsBar, barLines: barLines)
+                stops: stops, minimums: minimums, extent: extent, viewport: viewport, showsVerticalBar: showsBar,
+                barLines: barLines)
         }
         let showsBar: Bool
         if !barPossible {
@@ -5329,6 +5371,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         var scroll = handler.horizontalScroll ?? TableHorizontalScroll()
         scroll.stops = window.stops
         scroll.drawnStart = window.offset
+        scroll.framedStart = window.offset
         scroll.pendingReveal = nil
         scroll.axis.extent = window.extent
         scroll.axis.viewportHeight = window.viewport

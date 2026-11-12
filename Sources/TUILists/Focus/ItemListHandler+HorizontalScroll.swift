@@ -31,8 +31,16 @@ package struct TableHorizontalScroll {
     /// what tells the keys and the wheel there is nothing to scroll.
     package var stops: [Int] = []
 
-    /// The stop the last frame was drawn from.
+    /// The stop the window is at: the one the last frame was drawn from, or
+    /// one a key or the wheel has moved it to since, in the same batch of
+    /// input.
     package var drawnStart = 0
+
+    /// The stop the last frame was drawn from, which input does not move:
+    /// where the header's columns, as the frame published them
+    /// (`ItemListHandler.headerColumns`), were measured from. A header drag
+    /// later in the batch lays them out again from where the window is now.
+    package var framedStart = 0
 
     /// The column, by key, a keyboard sort just made primary: the next frame
     /// scrolls its header into sight, and forgets it.

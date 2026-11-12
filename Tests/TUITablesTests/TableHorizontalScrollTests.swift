@@ -11,6 +11,7 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import Testing
 
 @testable import TUIApp
@@ -71,6 +72,35 @@ private struct UnderAButton: View {
     }
 }
 
+/// What the customizable table records.
+@Observable
+@MainActor
+private final class Customized {
+    var customization = TableColumnCustomization<Reading>()
+
+    /// The columns' identifiers in the order the customization puts them.
+    var order: [String] { customization.currentOrder(declared: Self.declared) }
+
+    static let declared = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot"]
+}
+
+/// The six columns, each movable, bound to a customization.
+private struct CustomizedColumns: View {
+    let model: Customized
+    let rows = (1...3).map(Reading.init)
+
+    var body: some View {
+        Table(rows, columnCustomization: Bindable(model).customization) {
+            TableColumn("Alpha", value: \.alpha).customizationID("alpha")
+            TableColumn("Bravo", value: \.bravo).customizationID("bravo")
+            TableColumn("Charlie", value: \.charlie).customizationID("charlie")
+            TableColumn("Delta", value: \.delta).customizationID("delta")
+            TableColumn("Echo", value: \.echo).customizationID("echo")
+            TableColumn("Foxtrot", value: \.foxtrot).customizationID("foxtrot")
+        }
+    }
+}
+
 @MainActor
 private final class Harness {
     let app: TestApp
@@ -98,6 +128,23 @@ private final class Harness {
     }
 
     var lines: [String] { app.screen.lines }
+
+    /// The cell `text` starts at on line `y`.
+    func column(of text: String, on y: Int) -> Int? {
+        lines[y].range(of: text).map { lines[y].distance(from: lines[y].startIndex, to: $0.lowerBound) }
+    }
+
+    /// A left-button drag along line `y` from `from` to `to`, a cell at a
+    /// time, then the release there.
+    func drag(y: Int, from: Int, to: Int) {
+        send(MouseEvent(button: .left, phase: .pressed, x: from, y: y))
+        var x = from
+        while x != to {
+            x += to > from ? 1 : -1
+            send(MouseEvent(button: .left, phase: .dragged, x: x, y: y))
+        }
+        send(MouseEvent(button: .left, phase: .released, x: to, y: y))
+    }
 
     var screen: String { lines.joined(separator: "\n") }
 
@@ -283,6 +330,22 @@ struct TableHorizontalScrollTests {
         harness.send(MouseEvent(button: .left, phase: .pressed, x: 20 - 3, y: barY))
         harness.send(MouseEvent(button: .left, phase: .released, x: 20 - 3, y: barY))
         #expect(harness.header(showing: "Alpha") == nil, "its track pages the columns: \(harness.screen)")
+    }
+
+    @Test("A title dragged in a table scrolled sideways takes the place of the column it is dragged onto")
+    func dragAfterScrolling() throws {
+        let model = Customized()
+        let harness = Harness(CustomizedColumns(model: model), width: 20)
+        harness.key(KeyEvent(key: .tab))
+        harness.key(KeyEvent(key: .right))
+        harness.key(KeyEvent(key: .right))
+        let y = try #require(harness.lines.firstIndex { $0.contains("Charlie") }, "\(harness.screen)")
+        let charlie = try #require(harness.column(of: "Charlie", on: y), "\(harness.screen)")
+        let delta = try #require(harness.column(of: "Delta", on: y), "\(harness.screen)")
+        harness.drag(y: y, from: charlie + 1, to: delta + 2)
+        #expect(
+            model.order == ["alpha", "bravo", "delta", "charlie", "echo", "foxtrot"],
+            "\(model.order)\n\(harness.screen)")
     }
 
     @Test("A table that scrolls sideways measures as it draws")
