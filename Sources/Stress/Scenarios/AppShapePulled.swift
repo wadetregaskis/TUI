@@ -3,8 +3,10 @@
 //
 //  The application shapes SCROLL-FIT's pull reaches (design P2): lazy stacks
 //  that are not their scroll view's direct content — under a title, two
-//  stacked, inside a `GroupBox`, inside an app's own `Layout` — scrolled a
-//  few lines every tick, so each frame walks the scroll position through the
+//  stacked, inside a `GroupBox`, inside an app's own `Layout` — and the
+//  containers SCROLL-FIT P8 windows with no lazy stack in them (a `GroupBox`
+//  directly around its rows, a `FlowLayout` of tags), scrolled a few lines
+//  every tick, so each frame walks the scroll position through the
 //  containers that hold them and draws only the rows on screen.
 //
 //  Created by Wade Tregaskis
@@ -26,6 +28,12 @@ enum PulledShape: Sendable {
     /// `VStack { title; List }` and `VStack { title; Table }` of one-line
     /// rows, under SCROLL-FIT's switch (design P3).
     case titledList, titledTable
+    /// `VStack { title; GroupBox { ForEach } }`: a box with no lazy stack in
+    /// it, which builds only the rows on screen past 256 (design P8).
+    case boxedEager
+    /// `VStack { title; FlowLayout { ForEach } }`: a flow of tags, drawn as
+    /// a lazy stack of its lines past 256 (design P8, A-SCROLLFIT-5).
+    case flow
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -61,6 +69,24 @@ struct PulledPageApp: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(Synth.sentence(seed, words: 8)).bold()
                         GroupBox { PulledEntries(entries: entries, seed: seed, section: 0) }
+                    }
+                case .boxedEager:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        GroupBox {
+                            ForEach(0..<entries, id: \.self) { entry in
+                                PulledEntry(seed: seed, section: 0, entry: entry)
+                            }
+                        }
+                    }
+                case .flow:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        FlowLayout(spacing: 1) {
+                            ForEach(0..<entries, id: \.self) { entry in
+                                PulledTag(seed: seed, entry: entry)
+                            }
+                        }
                     }
                 case .layout:
                     VStack(alignment: .leading, spacing: 0) {
@@ -172,5 +198,16 @@ private struct PulledEntry: View, Equatable {
                 Text(Synth.sentence(h >> 8, words: 4)).dim()
             }
         }
+    }
+}
+
+/// One tag of a flow: a word and its number (`Equatable` so an unchanged tag
+/// keeps its measure from frame to frame, as an app's would).
+private struct PulledTag: View, Equatable {
+    let seed: UInt64
+    let entry: Int
+
+    var body: some View {
+        Text("\(Synth.slug(mix(seed, entry)))·\(entry)")
     }
 }

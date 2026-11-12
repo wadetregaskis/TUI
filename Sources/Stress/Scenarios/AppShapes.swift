@@ -282,6 +282,12 @@ enum AppShapeMatrix {
         variant("boxed-lazy", "a title over a GroupBox around a lazy stack of 100,000 entries, scrolled three lines a tick (SCROLL-FIT pull)") {
             AnyView(PulledPageApp(shape: .boxed, entries: $0.sized(100_000), seed: $0.seed))
         },
+        variant("boxed-eager", "a title over a GroupBox directly around 10,000 one- and two-line entries, scrolled three lines a tick (SCROLL-FIT P8)") {
+            AnyView(PulledPageApp(shape: .boxedEager, entries: $0.sized(10_000), seed: $0.seed))
+        },
+        variant("flow-10k", "a title over a FlowLayout of 10,000 tags, scrolled three lines a tick (SCROLL-FIT P8)") {
+            AnyView(PulledPageApp(shape: .flow, entries: $0.sized(10_000), seed: $0.seed))
+        },
         variant("layout-list", "a title over an app's own two-column Layout around a lazy stack of 10,000 entries, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .layout, entries: $0.sized(10_000), seed: $0.seed))
         },
