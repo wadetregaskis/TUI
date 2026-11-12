@@ -440,7 +440,7 @@ struct _ContainerViewCore<Content: View, Footer: View>: View, Renderable, Layout
         // Final guard: never exceed the space the container was given.
         var container = assembled.clamped(toWidth: context.availableWidth, height: context.availableHeight)
         if hasBorder, style.keepsSelectionInside { fileInterior(of: &container, context: context) }
-        if let relay { container = banded(container, body: bodyBuffer, relay: relay) }
+        if let relay { container = relay.banded(container, content: bodyBuffer) }
         return container
     }
 

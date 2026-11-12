@@ -45,13 +45,11 @@ extension _ContainerViewCore: ScrollPlacing {}
     ///
     /// A box whose body scrolls itself (a dialog's) holds its own scroll
     /// view, at which the content is pulled afresh.
-    func pulledRelay(body: RenderContext, footerHeight: Int, context: RenderContext) -> ScrollWindowRelay? {
-        guard !context.isMeasuring, !style.scrollsOverflowingBody,
-            context.renderCache?.pullConsumers.kind(of: context.identity) == .pullsChildren
-        else { return nil }
+    func pulledRelay(body: RenderContext, footerHeight: Int, context: RenderContext) -> PulledChromeRelay? {
+        guard !style.scrollsOverflowingBody else { return nil }
         let separator = footer != nil && footerHeight > 0 && style.showFooterSeparator ? 1 : 0
         let below = (style.hasBorder ? 1 : 0) + (footer != nil ? footerHeight + separator : 0)
-        return ScrollWindowRelay(
+        return PulledChromeRelay(
             context: context, linesAbove: pulledLinesAbove, linesBelow: { below }, addressing: body.identity)
     }
 
@@ -63,17 +61,5 @@ extension _ContainerViewCore: ScrollPlacing {}
             content.padding(padding), proposal: ProposedViewSize(width: innerWidth, height: body.availableHeight),
             context: body)
         return min(size.width, innerWidth)
-    }
-
-    /// `box`, this box drawn round `body`, the band its body answered
-    /// through `relay`, cut to the lines of the box the band holds: the top
-    /// line only with the body's first row, the footer and the bottom line
-    /// only with its last. The box's reply is answered on the way.
-    func banded(_ box: FrameBuffer, body: FrameBuffer, relay: ScrollWindowRelay) -> FrameBuffer {
-        let above = pulledLinesAbove
-        let placement = relay.answer(contentBuffer: body, linesBelow: max(0, box.height - above - body.height))
-        let top = placement.drawsAbove ? 0 : above
-        let bottom = placement.drawsBelow ? box.height : above + body.height
-        return box.lines(in: top..<bottom)
     }
 }
