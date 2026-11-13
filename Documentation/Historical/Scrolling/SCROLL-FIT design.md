@@ -738,6 +738,66 @@ How it finds them is A-SCROLLFIT-5.
 `TabView`, `NavigationStack` and `NavigationSplitView` only forward or run in parallel. Their
 content's own containers decide what is built.
 
+**As P8 built it** (2026-11-12, `ImplicitColumnWindowing.swift`, `FlowLayoutWindowing.swift`).
+No `existence` protocol: each of these containers draws its content as an implicit column, a
+`ForEach` with nothing to lay it out (`renderStackedVertically`), and that column is what windows.
+
+- **`GroupBox`, `DisclosureGroup`, a `Section` drawn as one view.** Each marks its content on the
+  identity chain: `windowingItsRows()` draws it one step down, typed with the marker view, and
+  `_SectionCore` is that step for its own; both conform to `WindowsItsImplicitColumn`. (First built
+  as a depth written into the environment, which cost `boxed-lazy` +4.9%: a copy of the
+  environment's dictionary on every measure and draw of a box's body.) A `ForEach` reached from
+  there by single-child steps, in scroll content, with
+  more than 256 elements (`anchoredWindowThreshold`) is drawn as a `LazyVStack` at its own identity
+  (`ForEach.windowedColumn`), so each row keeps the identity it has drawn whole and the box's
+  forward shape pulls it as it pulls a lazy stack. A `ForEach` inside a row, or one a stack in the
+  box lays out, is not the container's column and is built as before. The column fills the width
+  it is offered, as a lazy stack's band does (`windowedColumnSize`): a column drawn whole hugs its
+  widest row, which only every row measured can say, a sample's widest would cut a wider row
+  further down, and the widest drawn so far would widen the box as the page scrolls. So past 256
+  rows a box is as wide as its parent offers. Rows built (`WindowedContainersTests`, 30 × 12): a
+  page 12 to 30 in a box, 18 in a section, 76 to 94 in a disclosure group, the same at 2,000 and
+  10,000 rows; a first frame 96, 114 and 144. The disclosure group's extra is the focus
+  continuation probe (`focusRingStops`): its button holds the focus at launch, and the column
+  below it looks through up to 64 rows for the focusable nearest its top each frame.
+- **Not windowed:** a container's content of several views (`GroupBox { header; ForEach }`), whose
+  `TupleView` resolves its children eagerly, building every row to count them; the `.columns`
+  `Form`, whose label pillar and content width are read from every row on every frame, from an
+  extraction that builds each row (`extractFormElements`), so a band would save the drawing and
+  none of the building. Windowing it needs those two widths kept per data change, which the
+  extraction has no signal for: about a day.
+- **`FlowLayout`, A-SCROLLFIT-5 (a).** Past 256 items in scroll content, `_LayoutCore` breaks the
+  flow's lines from the top, as `placeSubviews` does, and draws them as the rows of a lazy stack
+  (`windowedFlow`, `_FlowLine`), each item at its identity under the flow, not its line, so a line
+  break that moves leaves its state and focus where they were. The items are measured for their
+  lines at one height whatever the pass (`flowItemMeasureHeight`), and the flow retains its
+  subtree's kept measures (`RenderCache.retainSubtree`; without it `removeInactive` pruned the
+  measures of the items off screen, and past about 2,000 items every step measured them all twice),
+  so a loop over equatable data keeps each item's measure from frame to frame and only a change of
+  the data or the width measures them again. A non-equatable loop builds every item each frame to
+  measure it, as before. A line on screen draws its items afresh each frame (about 150 a wheel step
+  at 60 × 24), where a lazy stack's rows come from the memo: not traced.
+- **Transitions (1g).** The windowed column and the flow's lines are a lazy stack's rows, so they
+  take its record (`WindowedRowFade`): a row scrolled in comes without a fade, a row an animated
+  change inserts fades in (`WindowedRowFadeTests`' boxed rows).
+- **Measured** (2026-11-12, `ab_bench.py`, release, cpu per frame, 10 reps, base 320320509, which
+  is c9f7d884b with the two new variants, tip 87c8504c5, load 5 after builds at 12 to 17):
+  `app-shapes/boxed-eager` (a title over a `GroupBox` directly around 10,000 entries) 88.7 → 0.55 ms
+  a frame (−99.4%) and RSS 94.8 → 14.6 MB; `app-shapes/flow-10k` (a title over a `FlowLayout` of
+  10,000 tags) 202.7 → 28.5 ms (−85.9%) and RSS 104.4 → 88.3 MB, the rest its measure of every item
+  through the memo each frame and its lines on screen drawn afresh; `grouped-feed` −0.5% and
+  `headed-log` −0.4% faster; `app-shapes`, `titled-lazy`, `layout-list`, `megalist`,
+  `scrolleager`, `scrollfollow`, `glide`, `dashboard`, `grids`, `customlayout` and the sessions
+  `editor`, `chat` and `log` indistinguishable; `boxed-lazy` +4.7% [+3.6, +5.7], fixed by the
+  marker on the identity chain (tip 99ccb7697, load 3.5: +1.2% [−0.3, +2.2], indistinguishable).
+  `frame_parity.py`: 157 of 159 cases draw alike, `flow-10k` among them; `boxed-eager` differs (now
+  windowed, and as wide as the page) and `timeline-rows` differs between runs of one binary.
+- **`Grid`: drawn whole.** A grid stays eager. A lazy stack in a cell, and a grid among a pulled
+  column's children, are drawn as their eager twins draw them at the top, paged, wheeled and at
+  the end (`PulledGridTests`); the stack in a cell is drawn whole, every row built (design D's
+  walk), as before. The fifth P2 lane's plan, placing a pulled cell's row by what the cell drew,
+  stays the next step (about a day): this lane spent its time on the containers above.
+
 ### 1d. Heights of rows not yet built
 
 **B-SCROLLFIT-3 (kept). Fixed pitch is arithmetic; variable pitch is an estimate, through the
@@ -1165,6 +1225,7 @@ already running separately.
 | **P6** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1½ | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |
 | **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
 | **P8** | A-SCROLLFIT-1's windowed containers (1c): `GroupBox`, `DisclosureGroup`, `.columns` `Form`, `Section` content outside `List`, `FlowLayout` per A-SCROLLFIT-5; the transition record for them (1g) | 3 | Sizes unchanged. Built counts of `formColumns` and `flowLayout` at 10,000 drop (`formColumns` < 100 a frame; `flowLayout` per A-SCROLLFIT-5). The baseline's `groupBox` and `disclosureGroup` wrap an eager `VStack` and stay as they are; new tests pin a `GroupBox` and a `DisclosureGroup` directly around a `ForEach` |
+| **P8 as built** (2026-11-12) | `GroupBox`, `DisclosureGroup` and a `Section` drawn as one view directly around a `ForEach` (the implicit column, windowed past 256 elements as a lazy stack at the loop's identity); `FlowLayout` per A-SCROLLFIT-5 (a) as a lazy stack of its lines; the transition record by the lazy stack's. Not built: the `.columns` `Form` (its pillar and widths read every row each frame), a container's content of several views, a pulled `Grid` (drawn whole, twins pass). See "As P8 built it" under 1c | ½ + flow ½ | None of the table's rows (each P8 container there is under the threshold or wraps an eager `VStack`); new `WindowedContainersTests` (a page under 100 rows built, equal at 2,000 and 10,000) and `tallFlowLayoutUnderTitle` |
 | **P9** | The app-`Layout` adapter (B-SCROLLFIT-13) | 1½ | None (no app `Layout` in the baseline); a new `layout-list` test |
 | **P9 as built** (2026-11-12) | The adapter, by rects: pulled subviews beside the lead in the parallel shape, subviews below it following its drawn end, everything else drawn whole (see "As P9 built it" under 1b); `app-shapes/layout-list` in Stress | ½ | None; `PulledLayoutTests` pins under 100 rows a frame at 10,000 rows in a layout (43,081 and 63,081 on the first frame before) |
 
