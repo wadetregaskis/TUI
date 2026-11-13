@@ -832,6 +832,22 @@ a `scrollTo`, two pages, End) under 100 and equal to 1,000's, and reach every ro
 by Page Down (a page a screen: 834 pages), row 0, 517, 5,000 and 9,999 by `scrollTo`, and the
 button below and back by Tab.
 
+Measured (2026-11-12, `ab_bench.py`, release, cpu per frame, 10 reps). The new variants, base
+7afe15716 (the variants with the switch, before the pull) against the P3 tip: `app-shapes/titled-list`
+33.8 ms → 0.48 ms a frame (−98.6%), RSS 61.2 → 15.4 MB; `app-shapes/titled-table` 327 → 365 µs
+(+12.2%), a different workload rather than a slowdown: at the base the table was capped at the
+viewport, so the page under its title could not scroll and its frames held still, where at the tip
+it scrolls through all 10,000 rows. Against c9f7d884b (P2's tip, switch off throughout):
+`grouped-feed`, `headed-log`, `megalist`, `scrolleager`, `scrollfollow`, `dashboard`, `table`,
+`table-multiline`, `table-churn`, `tables-vstack` and the sessions `editor`, `chat` and `log`
+indistinguishable, `tables-scroll` +0.4% [+0.0, +0.5]; the pulled lazy pages, re-run once the
+scenario wrote the switch only on its list and table pages (load 4.1), `titled-lazy` +1.9%
+[+1.1, +3.9], `two-stacked-lazy` +3.0% [+2.1, +3.8], `boxed-lazy` +1.6% [+0.8, +3.0]: under the
+owner's few-percent line, not profiled. RSS within 1 MB everywhere. `frame_parity.py` (switch off):
+156 of 157 cases draw alike, `app-shapes/timeline-rows` the one that differs between runs of one
+binary; its first run caught the walked-move change sending End from between four screens and 256
+lines off to the estimated total's offset (`session/log*`, fixed in cbcf91160).
+
 ### 1e. Focus: an unbuilt row stays reachable
 
 - **The focused control is an off-band route.** Every placing container on its chain draws the
