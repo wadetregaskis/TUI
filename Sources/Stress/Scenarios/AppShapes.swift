@@ -297,6 +297,15 @@ enum AppShapeMatrix {
         variant("titled-table", "a title over a two-column Table of 10,000 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .titledTable, entries: $0.sized(10_000), seed: $0.seed))
         },
+        variant("titled-list-variable", "a title over a List of 10,000 one- and two-line rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+            AnyView(PulledPageApp(shape: .titledListVariable, entries: $0.sized(10_000), seed: $0.seed))
+        },
+        variant("grouped-form", "a title over a grouped Form of 40 sections of 25 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+            AnyView(PulledPageApp(shape: .groupedForm, entries: $0.sized(1_000), seed: $0.seed))
+        },
+        variant("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs under SCROLL-FIT's switch, scrolled three lines a tick") {
+            AnyView(PulledEditorApp(lines: $0.sized(10_000), seed: $0.seed))
+        },
         driven("outline", "40 sections of 25 rows in one lazy stack, each row reading a counter of its own; one counter moves a frame") {
             OutlineApp.driven(sections: $0.sized(40), rows: 25, seed: $0.seed)
         },

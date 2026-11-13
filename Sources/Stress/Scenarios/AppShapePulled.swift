@@ -34,6 +34,10 @@ enum PulledShape: Sendable {
     /// `VStack { title; FlowLayout { ForEach } }`: a flow of tags, drawn as
     /// a lazy stack of its lines past 256 (design P8, A-SCROLLFIT-5).
     case flow
+    /// `VStack { title; List }` of one- and two-line rows, and `VStack {
+    /// title; Form }` of a grouped form, under SCROLL-FIT's switch (design
+    /// P4).
+    case titledListVariable, groupedForm
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -117,6 +121,33 @@ struct PulledPageApp: View {
                                 Text(verbatim: Synth.sentence(mix(seed, row.id), words: 4))
                             }
                         }
+                    }
+                    .environment(\.scrollFitsContent, true)
+                case .titledListVariable:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        List {
+                            ForEach(0..<entries, id: \.self) { entry in
+                                PulledEntry(seed: seed, section: 0, entry: entry)
+                            }
+                        }
+                    }
+                    .environment(\.scrollFitsContent, true)
+                case .groupedForm:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        Form {
+                            ForEach(0..<max(1, entries / 25), id: \.self) { section in
+                                Section(Synth.sentence(mix(seed, section), words: 3)) {
+                                    ForEach(0..<25, id: \.self) { row in
+                                        LabeledContent(
+                                            Synth.slug(mix(seed, section &* 31 &+ row)),
+                                            value: Synth.status(mix(seed, row)))
+                                    }
+                                }
+                            }
+                        }
+                        .formStyle(.grouped)
                     }
                     .environment(\.scrollFitsContent, true)
                 }
@@ -209,5 +240,36 @@ private struct PulledTag: View, Equatable {
 
     var body: some View {
         Text("\(Synth.slug(mix(seed, entry)))·\(entry)")
+    }
+}
+
+/// A title over a `TextEditor` of `lines` wrapped paragraphs under SCROLL-FIT's
+/// switch (design P4), the page moved three lines a tick: an editor as tall as
+/// its text, of which only the rows on screen are drawn.
+struct PulledEditorApp: View {
+    let lines: Int
+    let seed: UInt64
+    @State private var text: String
+    @Environment(StressClock.self) private var clock
+
+    init(lines: Int, seed: UInt64) {
+        self.lines = lines
+        self.seed = seed
+        _text = State(initialValue: (0..<lines).map { Synth.sentence(mix(seed, $0), words: 14) }.joined(separator: "\n"))
+    }
+
+    var body: some View {
+        let line = (clock.tick * 3) % max(1, lines / 2)
+        VStack(alignment: .leading, spacing: 0) {
+            Text(Lf("stress.scenario.app-shapes.heading", "pulled", lines)).bold()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    TextEditor(text: $text)
+                }
+                .environment(\.scrollFitsContent, true)
+            }
+            .scrollPosition(.constant(ScrollPosition(y: line)))
+        }
     }
 }
