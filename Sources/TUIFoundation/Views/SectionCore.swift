@@ -114,7 +114,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         if !(header is EmptyView) {
             note(measureChild(header, proposal: proposal, context: chromeContext(context, .sectionHeader)))
         }
-        if showsContent { note(measureChild(content, proposal: proposal, context: contentContext(context))) }
+        if showsContent { note(measureChild(content, proposal: proposal, context: context)) }
         if !(footer is EmptyView) {
             note(measureChild(footer, proposal: proposal, context: chromeContext(context, .sectionFooter)))
         }
@@ -187,7 +187,7 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
             linesBelow: { footerLinesBelowScrollContent(context: context) })
         let contentBuffer =
             showsContent
-            ? TUIView.renderToBuffer(content, context: contentContext(relay?.contentContext(context) ?? context))
+            ? TUIView.renderToBuffer(content, context: relay?.contentContext(context) ?? context)
             : FrameBuffer()
 
         let footerBuffer: FrameBuffer? =
@@ -229,13 +229,6 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
         // section is as translucent while being measured as while being drawn.
         buffer.opacityRegions = faded
         return buffer
-    }
-
-    /// The context the content is drawn in: outside a `List`, a column that
-    /// builds only the rows on screen past the lazy stack's threshold
-    /// (`ImplicitColumnWindowing.swift`); a list draws its rows itself.
-    private func contentContext(_ context: RenderContext) -> RenderContext {
-        context.environment.drawsListSectionChrome ? context : context.windowingImplicitColumn()
     }
 
     /// The footer's lines, for a lazy stack in the content that bands itself
@@ -405,3 +398,9 @@ extension _SectionCore {
         return layer
     }
 }
+
+/// Drawn as one view, a section's content is a column nothing lays out, which
+/// builds only the rows on screen past the lazy stack's threshold
+/// (`ImplicitColumnWindowing.swift`); not one a `List` draws as a row of its
+/// own (``EnvironmentValues/drawsListSectionChrome``).
+extension _SectionCore: WindowsItsImplicitColumn {}

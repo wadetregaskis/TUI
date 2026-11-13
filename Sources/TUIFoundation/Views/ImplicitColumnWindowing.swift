@@ -22,24 +22,12 @@
 import TUICore
 import TUIView
 
-/// EnvironmentKey for the depth of the identity whose content is a windowing
-/// container's column (``EnvironmentValues/implicitColumnWindowingDepth``).
-private struct ImplicitColumnWindowingDepthKey: EnvironmentKey {
-    static let defaultValue: Int? = nil
-}
-
-extension EnvironmentValues {
-    /// The depth of the identity a windowing container (`GroupBox`,
-    /// `DisclosureGroup`, a `Section` drawn as one view) handed its content
-    /// to, or `nil` outside one. Only a `ForEach` reached from there by
-    /// single-child steps is that container's column
-    /// (`ViewIdentity.isDirectDescent(fromDepth:)`): one inside a row of it,
-    /// or laid out by a stack in it, is not.
-    package var implicitColumnWindowingDepth: Int? {
-        get { self[ImplicitColumnWindowingDepthKey.self] }
-        set { self[ImplicitColumnWindowingDepthKey.self] = newValue }
-    }
-}
+/// A container whose content is a column nothing lays out, and that windows
+/// it (`GroupBox`, `DisclosureGroup`, a `Section` drawn as one view): a
+/// `ForEach` reached from the container's identity by single-child steps is
+/// its column. Read by type from the identity chain, so marking a container
+/// writes nothing into the environment its whole subtree would carry.
+package protocol WindowsItsImplicitColumn {}
 
 /// EnvironmentKey for ``EnvironmentValues/drawsContainerRowsWhole``.
 private struct DrawsContainerRowsWholeKey: EnvironmentKey {
@@ -56,22 +44,12 @@ extension EnvironmentValues {
     }
 }
 
-extension RenderContext {
-    /// This context with its identity marked as a windowing container's
-    /// content: a `ForEach` drawn on its own below it, by single-child steps,
-    /// windows its rows past the lazy stack's threshold.
-    package func windowingImplicitColumn() -> RenderContext {
-        var marked = self
-        marked.environment.implicitColumnWindowingDepth = identity.depth
-        return marked
-    }
-}
-
 /// Marks its content as a windowing container's column
-/// (``RenderContext/windowingImplicitColumn()``) and draws it at its own
-/// identity: no step of its own, so the content's state and focus places are
-/// where they were without it.
-nonisolated package struct _WindowingImplicitColumn<Content: View>: View, Renderable, Layoutable {
+/// (``WindowsItsImplicitColumn``): a step of its own type, which a `ForEach`
+/// below finds on its identity chain.
+nonisolated package struct _WindowingImplicitColumn<Content: View>: View, Renderable, Layoutable,
+    WindowsItsImplicitColumn
+{
     let content: Content
 
     package init(_ content: Content) { self.content = content }
@@ -81,11 +59,11 @@ nonisolated package struct _WindowingImplicitColumn<Content: View>: View, Render
     }
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIView.renderToBuffer(content, context: context.windowingImplicitColumn())
+        TUIView.renderToBuffer(content, context: context.withChildIdentity(type: Self.self))
     }
 
     @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context.windowingImplicitColumn())
+        measureChild(content, proposal: proposal, context: context.withChildIdentity(type: Self.self))
     }
 }
 
@@ -107,12 +85,27 @@ extension View {
     /// has. The stack is drawn at this loop's identity, its rows resolved from
     /// it there, so each row keeps the identity it has drawn whole.
     func windowedColumn(context: RenderContext) -> _VStackCore<Self>? {
-        guard context.scrollContentOriginDepth != 0, !context.environment.drawsContainerRowsWhole,
-            let depth = context.environment.implicitColumnWindowingDepth,
-            context.identity.isDirectDescent(fromDepth: depth),
-            data(in: context).count > _VStackCore<Self>.anchoredWindowThreshold
+        guard context.scrollContentOriginDepth != 0,
+            data(in: context).count > _VStackCore<Self>.anchoredWindowThreshold,
+            Self.isWindowingContainersColumn(context.identity), !context.environment.drawsContainerRowsWhole,
+            // A `List` draws a section it cannot read as rows as one view,
+            // and keeps its own rows.
+            !context.environment.drawsListSectionChrome
         else { return nil }
         return _VStackCore(alignment: .leading, spacing: 0, overflow: .window, content: self)
+    }
+
+    /// Whether a windowing container (``WindowsItsImplicitColumn``) stands on
+    /// `identity`'s chain, reached by single-child steps: one inside a row of
+    /// the column, or laid out by a stack in it, is not its column.
+    private static func isWindowingContainersColumn(_ identity: ViewIdentity) -> Bool {
+        var cursor: ViewIdentity? = identity
+        while let node = cursor {
+            if node.leafType.map({ $0 is any WindowsItsImplicitColumn.Type }) == true { return true }
+            if node.isSiblingStep { return false }
+            cursor = node.parent
+        }
+        return false
     }
 
     /// `column` drawn, or, for a measure that draws to find a size (a
