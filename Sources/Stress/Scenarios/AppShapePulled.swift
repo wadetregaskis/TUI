@@ -81,6 +81,7 @@ struct PulledPageApp: View {
                             }
                         }
                     }
+                    .environment(\.scrollFitsContent, true)
                 case .titledTable:
                     VStack(alignment: .leading, spacing: 0) {
                         Text(Synth.sentence(seed, words: 8)).bold()
@@ -91,10 +92,10 @@ struct PulledPageApp: View {
                             }
                         }
                     }
+                    .environment(\.scrollFitsContent, true)
                 }
             }
             .scrollPosition(.constant(ScrollPosition(y: line)))
-            .environment(\.scrollFitsContent, shape == .titledList || shape == .titledTable)
         }
     }
 }
