@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `ScrollPosition` bound with a new value scrolls, as SwiftUI's does.** A scroll view acted on a bound position
+only after a `scrollTo`, so `.scrollPosition(.constant(ScrollPosition(y: line)))`, a `Binding(get:set:)` that builds
+a position, or `position = ScrollPosition(y: line)` moved the view once and then never again, whatever `line` became.
+The bound value is now compared with the one last read: a different one is a request, an equal one handed over again
+leaves the user's scroll alone, and a `scrollTo` of the row already asked for still scrolls back to it.
+
 **In a `TestApp`, the wheel chains out of a nested list, table or scroll view on the test's clock.** A scroller
 holds wheel ticks at its edge for `.scrollChainingDelay` (two seconds by default) before passing them to the scroll
 view around it, and timed that on the real clock, which a `TestApp` does not drive: a test's wheel never left an

@@ -1,0 +1,6 @@
+ScrollPosition(y: 40) == ScrollPosition(y: 40): true
+after scrollTo(y: 40) of a copy, equal: false
+constant: start=0 ->40=40 ->80=80 ->40=40 user->10=10 same40=10
+getter: start=0 ->40=40 ->80=80 ->40=40 user->10=10 same40=10
+assign: start=0 ->40=40 ->80=80 ->40=40 user->10=10 same40=40
+scrollTo: start=0 ->40=40 ->80=80 ->40=40 user->10=10 same40=40

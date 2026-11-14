@@ -516,6 +516,24 @@ messages cite that path), and what cites it.
   `Documentation/Historical/Scrolling/README.md` (B-SCROLL-6);
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
+### Scroll position bound to a changing value
+
+- **Asks:** whether a `.scrollPosition` binding whose value changes scrolls the view when no `scrollTo` was called
+  (`changing.swift`, `changing.out`): a 20-point scroll view of 200 one-point rows, handed rows 0, 40, 80 and 40 by
+  `.scrollPosition(.constant(ScrollPosition(y: line)))` rebuilt in the body, by a `Binding(get:set:)` that builds
+  one, by assigning `ScrollPosition(y:)` to a held position, and by `scrollTo(y:)`; then the user scrolls to 10
+  (the live-scroll notifications around a move of the clip view) and the same value is handed over again.
+- **Answers:** every form scrolls to each new value. Two `ScrollPosition(y: 40)` compare equal, and a
+  `scrollTo(y: 40)` of a copy makes it unequal. After the user's scroll, the same value built afresh (`.constant`,
+  the getter) leaves the view where the user put it, and the same value assigned to the held position, or
+  `scrollTo(y:)` of it, scrolls back: the binding then holds the user's position, which differs. So SwiftUI
+  compares the bound value with the one it last read.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-14.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Views/ScrollPosition.swift`;
+  `Tests/TUIListsTests/ScrollPositionValueTests.swift`;
+  `Documentation/Historical/Scrolling/SCROLL-FIT design.md`.
+
 ### Ragged text in a larger frame
 
 - **Asks:** where SwiftUI draws the lines of a multi-line `Text` whose lines differ in width ("aaaa" over "bb")

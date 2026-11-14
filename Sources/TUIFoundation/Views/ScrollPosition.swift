@@ -116,7 +116,14 @@ public struct ScrollPosition: Equatable {
     /// Bumped by every `scrollTo`, so a scroll view can tell a fresh request
     /// from the same request still sitting there. Without it, asking twice for
     /// the same row after scrolling away by hand would be indistinguishable
-    /// from not asking at all.
+    /// from not asking at all. SwiftUI's position has the same property: a
+    /// `scrollTo` of a copy makes it unequal to the copy (measured,
+    /// `Tools/SwiftUIProbes/Scroll position bound to a changing value`).
+    ///
+    /// The token is half of what tells requests apart, not all of it: every
+    /// initializer starts it at 1, so two positions made with different
+    /// targets carry the same token, and only the target tells them apart
+    /// (``request``).
     var requestToken: Int = 0
 
     /// Whether the person using the app scrolled the view to where it is,
@@ -186,6 +193,21 @@ public struct ScrollPosition: Equatable {
         self.idType = Self.declared(type(of: id))
         self.target = .id(PositionID(id), anchor: anchor)
         self.requestToken = 1
+    }
+
+    /// What a scroll view compares to tell one request from another: the
+    /// target and the token, the parts of the value that ask for something.
+    /// SwiftUI compares the bound value with the one it last read, and a
+    /// different value scrolls — a `ScrollPosition(y: line)` built afresh with
+    /// a new `line`, as much as a `scrollTo` (measured). The reported row and
+    /// ``isPositionedByUser`` are left out: the scroll view writes them, and
+    /// the user's flag drops an edge or an offset from the target anyway.
+    var request: Request { Request(target: target, token: requestToken) }
+
+    /// See ``request``.
+    struct Request: Equatable {
+        let target: Target?
+        let token: Int
     }
 
     /// `nil` for SwiftUI's `Never` default, which names no ids at all.
@@ -286,41 +308,41 @@ extension ScrollPosition {
     ///   - anchor: Where the row lands — `nil` (the default) moves as little
     ///     as possible, and not at all if the row is already visible.
     public mutating func scrollTo(id: some Hashable & Sendable, anchor: UnitPoint? = nil) {
-        request(.id(PositionID(id), anchor: anchor))
+        ask(for: .id(PositionID(id), anchor: anchor))
     }
 
     /// Asks the scroll view to scroll to one end of its content: `.top` and
     /// `.bottom` on the vertical axis, `.leading` and `.trailing` on the
     /// horizontal one.
     public mutating func scrollTo(edge: Edge) {
-        request(.edge(edge))
+        ask(for: .edge(edge))
     }
 
     /// Asks the scroll view to scroll to `point`: `point.y` rows down and
     /// `point.x` columns across. Clamped to the content, as SwiftUI's is.
     public mutating func scrollTo(point: CellPoint) {
-        request(.offset(x: point.x, y: point.y))
+        ask(for: .offset(x: point.x, y: point.y))
     }
 
     /// Asks the scroll view to scroll `x` columns across, leaving the rows
     /// where they are. Clamped to the content.
     public mutating func scrollTo(x: Int) {
-        request(.offset(x: x, y: nil))
+        ask(for: .offset(x: x, y: nil))
     }
 
     /// Asks the scroll view to scroll `x` columns across and `y` rows down.
     /// Clamped to the content.
     public mutating func scrollTo(x: Int, y: Int) {
-        request(.offset(x: x, y: y))
+        ask(for: .offset(x: x, y: y))
     }
 
     /// Asks the scroll view to scroll `y` rows down from the top of the
     /// content, leaving the columns where they are. Clamped to the content.
     public mutating func scrollTo(y: Int) {
-        request(.offset(x: nil, y: y))
+        ask(for: .offset(x: nil, y: y))
     }
 
-    private mutating func request(_ target: Target) {
+    private mutating func ask(for target: Target) {
         self.target = target
         requestToken += 1
         isPositionedByUser = false
@@ -470,12 +492,17 @@ extension EnvironmentValues {
 // MARK: - What a scrollable does with the binding
 
 /// What a scrollable keeps, frame to frame, of the `.scrollPosition` bound
-/// above it: which request it acted on and which row it last reported — on
+/// above it: which request it last read and which row it last reported — on
 /// its handler, since the binding's box is rebuilt with every body.
 package struct ScrollPositionTracking {
-    /// The token of the request last acted on (`ScrollPosition.requestToken`),
-    /// `nil` before any.
-    var lastAppliedToken: Int?
+    /// The request last read from the binding (``ScrollPosition/request``),
+    /// acted on or found spent; `nil` before any. A request is fresh when the
+    /// binding holds a different one, as SwiftUI's is when the bound value
+    /// differs from the one it last read — so an equal position built afresh
+    /// every body does not undo the user's scroll, and one with a new offset
+    /// scrolls to it, where comparing the token alone ignored every position
+    /// but the first (all start at token 1).
+    var lastRequest: ScrollPosition.Request?
     /// The row last reported, or asked for by a plain `id:` binding.
     var lastReportedID: AnyHashable?
 
@@ -492,9 +519,10 @@ package enum ScrollPositionPlacement {
 @MainActor extension ScrollPositionBinding {
     /// The row this binding asks for on this frame, as a seek, or `nil`: none
     /// asked for, an edge or an offset asked for instead, or a request already
-    /// acted on — the token, or for the plain `id:` binding the value
-    /// differing from what was last reported, is what tells a fresh request
-    /// from the same one still sitting in the binding. Without that,
+    /// acted on — the request differing from the one last read
+    /// (``ScrollPositionTracking/lastRequest``), or for the plain `id:`
+    /// binding the value differing from what was last reported, is what tells
+    /// a fresh request from the same one still sitting in the binding. Without that,
     /// scrolling away by hand would be undone on the very next frame.
     ///
     /// A transaction's anchor (`Transaction.scrollTargetAnchor`) is preferred
@@ -509,9 +537,9 @@ package enum ScrollPositionPlacement {
         let isFresh =
             position.requestToken == 0
             ? tracking.lastReportedID != value
-            : tracking.lastAppliedToken != position.requestToken
+            : tracking.lastRequest != position.request
         guard isFresh else { return nil }
-        tracking.lastAppliedToken = position.requestToken
+        tracking.lastRequest = position.request
         tracking.lastReportedID = value
         let seekAnchor = position.requestToken == 0 ? transactionAnchor ?? anchor : anchor ?? transactionAnchor
         // The same stringification `ForEach` derives its keys with, so the
@@ -520,17 +548,27 @@ package enum ScrollPositionPlacement {
     }
 
     /// The edge or offset this binding asks for on this frame, once, or `nil`.
+    ///
+    /// A binding that holds no request is read too, and remembered: after the
+    /// user's scroll is written back the binding holds none, and an app that
+    /// then assigns the position it held before is asking again, as SwiftUI
+    /// reads it (measured). A `.constant` drops the write-back, still holds
+    /// the old request, and is not asking again.
     package func placementRequest(tracking: inout ScrollPositionTracking) -> ScrollPositionPlacement? {
         let position = binding.wrappedValue
-        guard let target = position.target,
-            tracking.lastAppliedToken != position.requestToken, position.requestToken > 0
-        else { return nil }
+        let request = position.request
+        guard tracking.lastRequest != request else { return nil }
+        guard let target = position.target else {
+            tracking.lastRequest = request
+            return nil
+        }
+        guard position.requestToken > 0 else { return nil }
         switch target {
         case .edge(let edge):
-            tracking.lastAppliedToken = position.requestToken
+            tracking.lastRequest = request
             return .edge(edge)
         case .offset(let x, let y):
-            tracking.lastAppliedToken = position.requestToken
+            tracking.lastRequest = request
             return .offset(x: x, y: y)
         case .id:
             return nil  // A row: see `rowRequest(tracking:transactionAnchor:)`.

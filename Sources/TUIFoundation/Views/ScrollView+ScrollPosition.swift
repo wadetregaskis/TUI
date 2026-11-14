@@ -17,9 +17,10 @@ extension _ScrollViewCore {
 
     /// The seek a bound ``ScrollPosition`` is asking for this frame, or `nil`.
     ///
-    /// Acted on once: the token (or, for the plain `id:` binding, the value
-    /// differing from what was last reported) is what distinguishes a fresh
-    /// request from the same one still sitting in the binding. Without that,
+    /// Acted on once: the request differing from the one last read (or, for
+    /// the plain `id:` binding, the value differing from what was last
+    /// reported) is what distinguishes a fresh request from the same one still
+    /// sitting in the binding. Without that,
     /// scrolling away by hand would be undone on the very next frame.
     func positionSeek(handler: ScrollViewHandler, context: RenderContext) -> ScrollToRequest? {
         pageScrollPosition(context.environment)?.rowRequest(

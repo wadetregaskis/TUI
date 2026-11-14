@@ -1,0 +1,139 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  ScrollPositionValueTests.swift
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUIApp
+@testable import TUICore
+@testable import TUIFoundation
+import TUILists
+@testable import TUITestSupport
+@testable import TUIView
+
+/// A bound `ScrollPosition` is a VALUE, and a different value is a request,
+/// as SwiftUI's is: `.scrollPosition(.constant(ScrollPosition(y: line)))`
+/// with `line` changing scrolls to each line, and an equal value handed over
+/// again does not undo the user's scroll (measured,
+/// `Tools/SwiftUIProbes/Scroll position bound to a changing value/changing.swift`).
+///
+/// Every `ScrollPosition(y:)` carries the same request token, so a scroll
+/// view that told one request from another by the token alone acted on the
+/// first and ignored every later one: a page bound this way never moved
+/// after its first frame.
+@MainActor
+@Suite("ScrollPosition compared by value")
+struct ScrollPositionValueTests {
+    private static let viewport = 6
+    private static let rowCount = 40
+
+    /// One frame, with the render-pass hooks the real loop drives.
+    @discardableResult
+    private func renderFrame<V: View>(
+        _ view: V, tuiContext: TUIContext, focusManager: FocusManager
+    ) -> [String] {
+        var environment = EnvironmentValues()
+        environment.focusManager = focusManager
+        environment.applyRuntimeServices(from: tuiContext)
+        let context = RenderContext(
+            availableWidth: 30, availableHeight: Self.viewport,
+            environment: environment, tuiContext: tuiContext)
+        tuiContext.preferences.beginRenderPass()
+        tuiContext.stateStorage.beginRenderPass()
+        tuiContext.renderCache.beginRenderPass()
+        focusManager.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        focusManager.endRenderPass()
+        tuiContext.stateStorage.endRenderPass()
+        tuiContext.renderCache.removeInactive()
+        return buffer.lines.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
+    }
+
+    /// The first row label each line draws, in order.
+    private func rows(_ lines: [String]) -> [String] {
+        lines.compactMap { line in line.range(of: #"row \d+"#, options: .regularExpression).map { String(line[$0]) } }
+    }
+
+    private func scrollView(_ position: Binding<ScrollPosition>) -> some View {
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                ForEach(0..<Self.rowCount, id: \.self) { Text("row \($0)") }
+            }
+        }
+        .scrollPosition(position)
+    }
+
+    private func list(_ position: Binding<ScrollPosition>) -> some View {
+        List(0..<Self.rowCount, id: \.self) { Text("row \($0)") }
+            .scrollPosition(position)
+    }
+
+    @Test("A position built afresh each frame scrolls a scroll view to each new offset")
+    func freshValueScrollsScrollView() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        for line in [0, 10, 20, 10] {
+            let frame = renderFrame(
+                scrollView(.constant(ScrollPosition(y: line))), tuiContext: tuiContext, focusManager: focusManager)
+            #expect(rows(frame).first == "row \(line)", "line \(line): \(frame)")
+        }
+    }
+
+    @Test("A position built afresh each frame scrolls a List to each new offset")
+    func freshValueScrollsList() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        for line in [0, 10, 20, 10] {
+            let frame = renderFrame(
+                list(.constant(ScrollPosition(y: line))), tuiContext: tuiContext, focusManager: focusManager)
+            #expect(rows(frame).first == "row \(line)", "line \(line): \(frame)")
+        }
+    }
+
+    @Test("An equal position built afresh does not undo the user's scroll")
+    func equalValueKeepsUserScroll() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        // A first frame measures the content an offset is clamped against.
+        renderFrame(scrollView(.constant(ScrollPosition(y: 0))), tuiContext: tuiContext, focusManager: focusManager)
+        let landed = renderFrame(
+            scrollView(.constant(ScrollPosition(y: 10))), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(rows(landed).first == "row 10", "\(landed)")
+
+        let handler = focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
+        #expect(handler != nil, "the ScrollView registered its handler")
+        handler?.userScrollFine(by: 3)
+        let again = renderFrame(
+            scrollView(.constant(ScrollPosition(y: 10))), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(rows(again).first == "row 13", "\(again)")
+    }
+
+    @Test("The same position assigned again after the user scrolled scrolls back")
+    func reassignedAfterUserScroll() {
+        let tuiContext = TUIContext()
+        let focusManager = FocusManager()
+        var position = ScrollPosition(y: 0)
+        let binding = Binding(get: { position }, set: { position = $0 })
+        renderFrame(scrollView(binding), tuiContext: tuiContext, focusManager: focusManager)
+        position = ScrollPosition(y: 10)
+        let landed = renderFrame(scrollView(binding), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(rows(landed).first == "row 10", "\(landed)")
+
+        let handler = focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
+        handler?.userScrollFine(by: 3)
+        let scrolled = renderFrame(scrollView(binding), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(rows(scrolled).first == "row 13", "\(scrolled)")
+        #expect(position.isPositionedByUser)
+        // The write-back changed the app's state, which draws a frame: the
+        // binding is read holding no request.
+        renderFrame(scrollView(binding), tuiContext: tuiContext, focusManager: focusManager)
+
+        // SwiftUI scrolls here: the binding now holds the user's position, and
+        // the app's new value differs from it.
+        position = ScrollPosition(y: 10)
+        let back = renderFrame(scrollView(binding), tuiContext: tuiContext, focusManager: focusManager)
+        #expect(rows(back).first == "row 10", "\(back)")
+    }
+}
