@@ -122,8 +122,6 @@ List.init(selection:content:) | init(selection: Binding<SelectionValue?>?, @View
 List.init(selection:content:) | init(selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer == EmptyView]
 List.init(selection:content:footer:) | init(selection: Binding<SelectionValue?>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
 List.init(selection:content:footer:) | init(selection: Binding<Set<SelectionValue>>?, @ViewBuilder content: () -> Content, @ViewBuilder footer: () -> Footer) [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
-List.listEmptyPlaceholder(_:) | func listEmptyPlaceholder(_ placeholderKey: LocalizedStringKey) -> List<SelectionValue, Content, Footer> [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
-List.listEmptyPlaceholder(_:) | func listEmptyPlaceholder<S>(_ placeholder: S) -> List<SelectionValue, Content, Footer> where S : StringProtocol [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
 List.listFooterSeparator(_:) | func listFooterSeparator(_ show: Bool = true) -> List<SelectionValue, Content, Footer> [extension where SelectionValue : Hashable, SelectionValue : Sendable, Content : View, Footer : View]
 ListRowSeparatorModifier._providesAlignmentGuide | @MainActor static var _providesAlignmentGuide: Bool { get } [extension where Content : View]
 ListRowSeparatorModifier.body | @MainActor var body: Never { get }
@@ -225,6 +223,8 @@ SurfaceListStyle.showsBorder | var showsBorder: Bool { get }
 View.alternatingRowBackgrounds(_:) | nonisolated func alternatingRowBackgrounds(_ behavior: AlternatingRowBackgroundBehavior = .enabled) -> some View
 View.contextMenu(forSelectionType:menu:primaryAction:) | nonisolated func contextMenu<I, M>(forSelectionType itemType: I.Type = I.self, @ViewBuilder menu: @escaping (Set<I>) -> M, primaryAction: ((Set<I>) -> Void)? = nil) -> some View where I : Hashable, M : View
 View.deleteDisabled(_:) | nonisolated func deleteDisabled(_ isDisabled: Bool = true) -> some View
+View.listEmptyPlaceholder(_:) | nonisolated func listEmptyPlaceholder(_ placeholderKey: LocalizedStringKey) -> some View
+View.listEmptyPlaceholder(_:) | nonisolated func listEmptyPlaceholder<S>(_ placeholder: S) -> some View where S : StringProtocol
 View.listItemTint(_:) | nonisolated func listItemTint(_ tint: Color?) -> some View
 View.listItemTint(_:) | nonisolated func listItemTint(_ tint: ListItemTint?) -> some View
 View.listRowBackground(_:) | nonisolated func listRowBackground(_ color: Color?) -> some View

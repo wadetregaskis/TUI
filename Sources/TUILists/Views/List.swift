@@ -136,9 +136,6 @@ nonisolated public struct List<SelectionValue: Hashable & Sendable, Content: Vie
     /// Whether the list is disabled.
     var isDisabled: Bool
 
-    /// The placeholder text shown when the list is empty.
-    var emptyPlaceholder: String
-
     /// Whether to show separator before footer.
     var showFooterSeparator: Bool
 
@@ -157,7 +154,6 @@ nonisolated public struct List<SelectionValue: Hashable & Sendable, Content: Vie
             selectionMode: selectionMode,
             focusID: focusID,
             isDisabled: isDisabled,
-            emptyPlaceholder: emptyPlaceholder,
             showFooterSeparator: showFooterSeparator
         )
         .disabled(isDisabled)
@@ -215,7 +211,6 @@ extension List {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = true
     }
 
@@ -237,7 +232,6 @@ extension List {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = true
     }
 }
@@ -281,7 +275,6 @@ extension List where Footer == EmptyView {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 
@@ -301,7 +294,6 @@ extension List where Footer == EmptyView {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 }
@@ -350,7 +342,6 @@ extension List {
         self.multiSelection = selection
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = true
     }
 
@@ -372,7 +363,6 @@ extension List {
         self.multiSelection = selection
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = true
     }
 }
@@ -416,7 +406,6 @@ extension List where Footer == EmptyView {
         self.multiSelection = selection
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 
@@ -436,7 +425,6 @@ extension List where Footer == EmptyView {
         self.multiSelection = selection
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 }
@@ -487,7 +475,6 @@ extension List {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = true
     }
 
@@ -508,7 +495,6 @@ extension List {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = true
     }
 }
@@ -544,7 +530,6 @@ extension List where Footer == EmptyView {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 
@@ -562,7 +547,6 @@ extension List where Footer == EmptyView {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 }
@@ -598,7 +582,6 @@ extension List where SelectionValue == Int, Footer == EmptyView {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 
@@ -613,7 +596,6 @@ extension List where SelectionValue == Int, Footer == EmptyView {
         self.multiSelection = nil
         self.focusID = nil
         self.isDisabled = false
-        self.emptyPlaceholder = ViewConstants.localizedEmptyListPlaceholder
         self.showFooterSeparator = false
     }
 }
@@ -916,39 +898,6 @@ extension List {
     public func focusID(_ id: String) -> List<SelectionValue, Content, Footer> {
         var copy = self
         copy.focusID = id
-        return copy
-    }
-
-    /// Sets the localized placeholder text displayed when the list has no items.
-    ///
-    /// A string **literal** binds here, so it is a lookup key — see
-    /// ``LocalizedStringKey``.
-    ///
-    /// - Parameter placeholderKey: The key for the text to show when empty.
-    /// - Returns: A list with the specified empty placeholder.
-    public func listEmptyPlaceholder(
-        _ placeholderKey: LocalizedStringKey
-    ) -> List<SelectionValue, Content, Footer> {
-        listEmptyPlaceholder(placeholderKey.localized)
-    }
-
-    /// Sets the empty placeholder text, displayed as written.
-    ///
-    /// Generic over `StringProtocol` rather than taking a concrete `String`,
-    /// which is what keeps a *literal* binding to the key overload above — see
-    /// ``LocalizedStringKey``.
-    ///
-    /// Text too long for the list's width wraps onto the rows below, as many as
-    /// the list has, the last ending in an ellipsis if even those are too few.
-    ///
-    /// - Parameter placeholder: The text to show when the list is empty.
-    /// - Returns: A list with the specified empty placeholder.
-    @_disfavoredOverload
-    public func listEmptyPlaceholder<S: StringProtocol>(
-        _ placeholder: S
-    ) -> List<SelectionValue, Content, Footer> {
-        var copy = self
-        copy.emptyPlaceholder = String(placeholder)
         return copy
     }
 

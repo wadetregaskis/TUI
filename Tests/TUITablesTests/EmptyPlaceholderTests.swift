@@ -112,4 +112,52 @@ struct EmptyPlaceholderTests {
         #expect(rows.count == 2, "\(drawn)")
         #expect(rows.last?.hasSuffix("…") == true, "\(rows)")
     }
+
+    // MARK: Modifiers anywhere in the chain
+
+    @Test("The placeholders are modifiers: after another modifier, and on a subtree holding both kinds")
+    func placeholdersReachASubtree() {
+        let drawn = lines(
+            VStack {
+                List { EmptyView() }
+                    .frame(height: 3)
+                Table([Row](), selection: .constant(String?.none)) {
+                    TableColumn("Name", value: \Row.name)
+                }
+                .tableStyle(.bordered)
+            }
+            .listEmptyPlaceholder("Nothing listed")
+            .tableEmptyPlaceholder("Nothing tabled"))
+        let text = drawn.map { String(paintedCells($0).map(\.glyph)) }.joined(separator: "\n")
+        #expect(text.contains("Nothing listed"), "\(text)")
+        #expect(text.contains("Nothing tabled"), "\(text)")
+        #expect(!text.contains("No items"), "\(text)")
+    }
+
+    @Test("The nearest placeholder wins, as the nearest environment value does")
+    func nearestPlaceholderWins() {
+        let drawn = lines(
+            List { EmptyView() }
+                .listEmptyPlaceholder("Inner")
+                .listEmptyPlaceholder("Outer"))
+        let text = drawn.map { String(paintedCells($0).map(\.glyph)) }.joined(separator: "\n")
+        #expect(text.contains("Inner"), "\(text)")
+        #expect(!text.contains("Outer"), "\(text)")
+    }
+
+    @Test("Column spacing is a modifier too, reaching a table below it")
+    func columnSpacingReachesASubtree() {
+        func drawn(_ spacing: Int?) -> String {
+            let table = Table([Row(id: "a", name: "alpha")], selection: .constant(String?.none)) {
+                TableColumn("Name", value: \Row.name).width(5)
+                TableColumn("Id", value: \Row.id).width(2)
+            }
+            .tableStyle(.bordered)
+            let view = VStack { table }
+            let drawnLines = spacing.map { lines(view.tableColumnSpacing($0)) } ?? lines(view)
+            return drawnLines.map { String(paintedCells($0).map(\.glyph)) }.first { $0.contains("alpha") } ?? ""
+        }
+        #expect(drawn(6).contains("alpha      a"), "\(drawn(6))")
+        #expect(drawn(nil).contains("alpha  a"), "the default stays 2: \(drawn(nil))")
+    }
 }

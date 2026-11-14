@@ -136,9 +136,6 @@ Table.init(selection:sortOrder:columns:rows:) | @MainActor init<Sort, Columns, R
 Table.init(selection:sortOrder:columns:rows:) | @MainActor init<Sort, Columns, Rows>(selection: Binding<Value.ID?>, sortOrder: Binding<[Sort]>, @TableColumnBuilder<Value, Sort> columns: () -> Columns, @TableRowBuilder<Value> rows: () -> Rows) where Value == Sort.Compared, Sort : SortComparator, Columns : TableColumnContent, Rows : TableRowContent, Sort.Compared == Columns.TableRowValue, Columns.TableRowValue == Rows.TableRowValue [extension where Value : Identifiable]
 Table.init(sortOrder:columns:rows:) | @MainActor init<Sort, Columns, Rows>(sortOrder: Binding<[Sort]>, @TableColumnBuilder<Value, Sort> columns: () -> Columns, @TableRowBuilder<Value> rows: () -> Rows) where Value == Sort.Compared, Sort : SortComparator, Columns : TableColumnContent, Rows : TableRowContent, Sort.Compared == Columns.TableRowValue, Columns.TableRowValue == Rows.TableRowValue [extension where Value : Identifiable]
 Table.onMove(_:) | @MainActor func onMove(_ action: @escaping (IndexSet, Int) -> Void) -> Table<Value> [extension where Value : Identifiable]
-Table.tableColumnSpacing(_:) | @MainActor func tableColumnSpacing(_ spacing: Int) -> Table<Value> [extension where Value : Identifiable]
-Table.tableEmptyPlaceholder(_:) | @MainActor func tableEmptyPlaceholder(_ placeholderKey: LocalizedStringKey) -> Table<Value> [extension where Value : Identifiable]
-Table.tableEmptyPlaceholder(_:) | @MainActor func tableEmptyPlaceholder<S>(_ placeholder: S) -> Table<Value> where S : StringProtocol [extension where Value : Identifiable]
 TableColumn | @MainActor struct TableColumn<RowValue, Sort, Content, Label> where RowValue : Identifiable, Sort : SortComparator, Content : View, Label : View
 TableColumn.TableColumnBody | typealias TableColumnBody = Never
 TableColumn.TableColumnSortComparator | typealias TableColumnSortComparator = Sort
@@ -331,6 +328,9 @@ TupleTableRowContent._appendRows(_:to:) | @MainActor static func _appendRows(_ c
 TupleTableRowContent.tableRowBody | @MainActor var tableRowBody: Never { get }
 TupleTableRowContent.value | @MainActor var value: T
 View.tableColumnHeaders(_:) | nonisolated func tableColumnHeaders(_ visibility: Visibility) -> some View
+View.tableColumnSpacing(_:) | nonisolated func tableColumnSpacing(_ spacing: Int) -> some View
+View.tableEmptyPlaceholder(_:) | nonisolated func tableEmptyPlaceholder(_ placeholderKey: LocalizedStringKey) -> some View
+View.tableEmptyPlaceholder(_:) | nonisolated func tableEmptyPlaceholder<S>(_ placeholder: S) -> some View where S : StringProtocol
 View.tableRowHeights(_:) | nonisolated func tableRowHeights(_ heights: TableRowHeights) -> some View
 View.tableStyle(_:) | nonisolated func tableStyle<S>(_ style: S) -> some View where S : TableStyle
 _ConditionalContent.TableColumnBody | typealias TableColumnBody = Never [extension where TrueContent : TableColumnContent, FalseContent : TableColumnContent, TrueContent.TableColumnSortComparator == FalseContent.TableColumnSortComparator, TrueContent.TableRowValue == FalseContent.TableRowValue]

@@ -586,7 +586,6 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     let selectionMode: SelectionMode
     let focusID: String?
     let isDisabled: Bool
-    let emptyPlaceholder: String
     let showFooterSeparator: Bool
 
     var body: Never {
@@ -1271,7 +1270,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     func emptyStateContent(height: Int, context: RenderContext) -> _ListContentView {
         // Spelled as a `Text` is (``RenderContext/spelled(_:)``): it is drawn
         // here, not by one.
-        let emptyPlaceholder = context.spelled(self.emptyPlaceholder)
+        // Set for a subtree by `View.listEmptyPlaceholder(_:)`; read here, as
+        // `List` is nonisolated and can hold no `@Environment` of its own.
+        let emptyPlaceholder = context.spelled(
+            context.environment.listEmptyPlaceholder ?? ViewConstants.localizedEmptyListPlaceholder)
         let placeholderWidth = emptyPlaceholder.strippedLength
         // +2 for the "─ … ─" border decorations around the title.
         let titleWidth = title.map { context.spelled($0).strippedLength + 2 } ?? 0

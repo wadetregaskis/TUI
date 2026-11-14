@@ -49,7 +49,6 @@ struct FilePanelListView: View {
                 Table(browser.rows, children: \.children, selection: selection, sortOrder: sortOrder) {
                     FilePanelColumns.fitting(width, browser: browser)
                 }
-                .tableEmptyPlaceholder(emptyText)
                 .onTableOutlineExpansionChange { url, open in
                     if open {
                         browser.openBranches.insert(url)
@@ -62,7 +61,6 @@ struct FilePanelListView: View {
                 Table(browser.rows, children: \.children, selection: singleSelection, sortOrder: sortOrder) {
                     FilePanelColumns.fitting(width, browser: browser)
                 }
-                .tableEmptyPlaceholder(emptyText)
                 .onTableOutlineExpansionChange { url, open in
                     if open {
                         browser.openBranches.insert(url)
@@ -75,6 +73,7 @@ struct FilePanelListView: View {
         }
         // Inset, not bordered: the panel's box is the table's border.
         .tableStyle(.inset)
+        .tableEmptyPlaceholder(emptyText)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 

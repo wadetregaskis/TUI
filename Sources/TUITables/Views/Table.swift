@@ -183,13 +183,13 @@ public struct Table<Value: Identifiable>: View {
     /// Whether the table is disabled.
     var isDisabled: Bool
 
-    /// The placeholder text shown when the table is empty, set by
-    /// `tableEmptyPlaceholder(_:)`.
-    var emptyPlaceholder: String = ViewConstants.localizedEmptyListPlaceholder
+    /// The text shown when the table is empty, set for a subtree by
+    /// `View.tableEmptyPlaceholder(_:)`; `nil` is the localized "No items".
+    @Environment(\.tableEmptyPlaceholder) private var emptyPlaceholder
 
-    /// The spacing between columns in characters, set by
-    /// ``tableColumnSpacing(_:)``.
-    var columnSpacing: Int = 2
+    /// The cells between columns, set for a subtree by
+    /// `View.tableColumnSpacing(_:)`.
+    @Environment(\.tableColumnSpacing) private var columnSpacing
 
     /// The action that reorders the data, set via ``onMove(_:)``. Present means
     /// the rows can be dragged into a new order.
@@ -239,7 +239,7 @@ public struct Table<Value: Identifiable>: View {
             selectionMode: selectionMode,
             focusID: focusID,
             isDisabled: isDisabled,
-            emptyPlaceholder: emptyPlaceholder,
+            emptyPlaceholder: emptyPlaceholder ?? ViewConstants.localizedEmptyListPlaceholder,
             columnSpacing: columnSpacing,
             moveAction: moveAction,
             dropInsertion: dropInsertion,
@@ -517,53 +517,6 @@ extension Table {
     public func focusID(_ id: String) -> Table {
         var copy = self
         copy.focusID = id
-        return copy
-    }
-
-    /// Sets the localized placeholder text displayed when the table has no
-    /// rows.
-    ///
-    /// A string **literal** binds here, so it is a lookup key — see
-    /// ``LocalizedStringKey``. The default is the localized "No items".
-    ///
-    /// - Parameter placeholderKey: The key for the text to show when empty.
-    /// - Returns: A table with the specified empty placeholder.
-    public func tableEmptyPlaceholder(_ placeholderKey: LocalizedStringKey) -> Table {
-        tableEmptyPlaceholder(placeholderKey.localized)
-    }
-
-    /// Sets the empty placeholder text, displayed as written.
-    ///
-    /// Generic over `StringProtocol` rather than taking a concrete `String`,
-    /// which is what keeps a *literal* binding to the key overload above — see
-    /// ``LocalizedStringKey``.
-    ///
-    /// Text too long for the table's width wraps onto the rows below, as many as
-    /// the table has, the last ending in an ellipsis if even those are too few.
-    ///
-    /// - Parameter placeholder: The text to show when the table is empty.
-    /// - Returns: A table with the specified empty placeholder.
-    @_disfavoredOverload
-    public func tableEmptyPlaceholder<S: StringProtocol>(_ placeholder: S) -> Table {
-        var copy = self
-        copy.emptyPlaceholder = String(placeholder)
-        return copy
-    }
-
-    /// Sets the number of cells between adjacent columns (default 2).
-    ///
-    /// Columns are separated by spaces, not rules, so this is the whole of the
-    /// gap. A negative spacing is treated as zero.
-    ///
-    /// - Parameter spacing: The gap between columns, in cells.
-    /// - Returns: A table with the specified column spacing.
-    public func tableColumnSpacing(_ spacing: Int) -> Table {
-        var copy = self
-        // Clamped: spacing reaches `String(repeating:count:)` in three
-        // places, which traps on a negative count. Clamp once here, at the
-        // boundary, so every use downstream is safe by construction rather
-        // than by remembering.
-        copy.columnSpacing = max(0, spacing.heldToStatedLength)
         return copy
     }
 

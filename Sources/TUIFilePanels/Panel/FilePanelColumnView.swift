@@ -217,15 +217,14 @@ struct FilePanelColumnView: View {
                 List(items(of: path), selection: multipleSelection(of: path, next: next)) { entry in
                     FilePanelColumns.nameCell(entry, browser: browser)
                 }
-                .listEmptyPlaceholder(emptyText(of: path))
             } else {
                 List(items(of: path), selection: singleSelection(of: path, next: next)) { entry in
                     FilePanelColumns.nameCell(entry, browser: browser)
                 }
-                .listEmptyPlaceholder(emptyText(of: path))
             }
         }
         .listStyle(.plain)
+        .listEmptyPlaceholder(emptyText(of: path))
         .modifier(RevealingFolderOnTheWay(target: next.flatMap { next in
             items(of: path).first { $0.url.standardizedFileURL.path == next }?.url
         }))

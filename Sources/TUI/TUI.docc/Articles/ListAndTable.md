@@ -832,15 +832,15 @@ List("Items", selection: $selected) {
     }
 }
 .focusID("my-list")                    // Explicit focus identifier
-.listEmptyPlaceholder("Nothing here")  // Custom empty state text
 .listFooterSeparator(false)            // Hide footer separator
+.listEmptyPlaceholder("Nothing here")  // Custom empty state text
 .disabled(isLoading)                   // Disable interaction
 ```
 
 | Modifier | Description |
 |----------|-------------|
 | `.focusID(_:)` | Sets a stable, explicit focus identifier |
-| `.listEmptyPlaceholder(_:)` | Text shown when the list has no items (default: "No items"), in the secondary ink where a row's text would start |
+| ``View/listEmptyPlaceholder(_:)-(LocalizedStringKey)`` | Text shown when a list has no items (default: "No items"), in the secondary ink where a row's text would start |
 | `.listFooterSeparator(_:)` | Controls the separator line before the footer |
 | `.disabled(_:)` | Prevents keyboard interaction |
 
@@ -848,9 +848,14 @@ A ``Table`` has its own:
 
 | Modifier | Description |
 |----------|-------------|
-| `.tableEmptyPlaceholder(_:)` | Text shown when the table has no rows |
-| `.tableColumnSpacing(_:)` | Cells between columns |
+| ``View/tableEmptyPlaceholder(_:)-(LocalizedStringKey)`` | Text shown when a table has no rows |
+| ``View/tableColumnSpacing(_:)`` | Cells between columns (default 2) |
 | ``View/tableRowHeights(_:)`` | Whether rows keep to one line or grow to their tallest cell (``TableRowHeights``) |
+
+The placeholders and the column spacing are view modifiers, like
+`.listStyle(_:)` and `.tableStyle(_:)`: they can come anywhere in a chain, and
+set on a container they reach every list or table inside it, the nearest one
+winning.
 
 ## Environment Propagation
 

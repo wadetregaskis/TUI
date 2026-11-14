@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`listEmptyPlaceholder(_:)`, `tableEmptyPlaceholder(_:)` and `tableColumnSpacing(_:)` are view modifiers.** They
+were methods of `List` and `Table`, so they had to come straight after the initializer, before any modifier:
+`.tableStyle(.bordered).tableEmptyPlaceholder("…")` did not compile. Now they can come anywhere in a chain and, set on
+a container, reach every list or table inside it, the nearest one winning. A call right after the initializer still
+compiles; one followed by a method of `List` or `Table` itself (`listFooterSeparator(_:)`, `focusID(_:)`) needs that
+method moved ahead of it.
+
 **The F1 list of shortcuts names a status-bar item's key as the bar draws it.** An item on `"x"` read `X Export` in
 the bar and `x Export` in the list. The list now writes a one-letter key in the bar's spelling, `X` by default and
 `x` under `.statusBarKeySpelling(.asTyped)`.
