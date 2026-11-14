@@ -110,6 +110,19 @@ extension RenderContext {
         scrollContentOriginDepth = 0
     }
 
+    /// This context marked as scroll content's origin
+    /// (`scrollContentOriginDepth`): the view at its identity is what a
+    /// scroll view's window addresses, and a view below that bands its rows
+    /// can tell so from its measure.
+    func markingScrollContentOrigin() -> RenderContext {
+        var marked = self
+        // Depth plus one, so 0 can mean "no scroll content". A chain too deep
+        // for two bytes is marked as none, which answers as the estimate did.
+        let depth = identity.depth + 1
+        marked.scrollContentOriginDepth = depth < Int(Self.belowScrollContentOriginFlag) ? UInt16(depth) : 0
+        return marked
+    }
+
     /// For a subtree drawn BELOW the scroll content's origin, inside the same
     /// canvas: the rows of a windowed stack, which consumes the window itself
     /// or draws them whole. The window is withheld, so nothing below bands

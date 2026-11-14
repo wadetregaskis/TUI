@@ -123,12 +123,7 @@ extension _ScrollViewCore {
         // drawn with blank rows, the long one cut (decisions
         // TABLE-IN-SCROLL-HEIGHT). A frame in the content gives one again.
         if axes.contains(.vertical), contentContext.hasExplicitHeight { contentContext.hasExplicitHeight = false }
-        // Depth plus one, so 0 can mean "no scroll content". A chain too deep
-        // for two bytes is marked as none, which answers as the estimate did.
-        let depth = contentContext.identity.depth + 1
-        contentContext.scrollContentOriginDepth =
-            depth < Int(RenderContext.belowScrollContentOriginFlag) ? UInt16(depth) : 0
-        return contentContext
+        return contentContext.markingScrollContentOrigin()
     }
 
     /// The content's natural extents at a candidate viewport, WITHOUT building a
