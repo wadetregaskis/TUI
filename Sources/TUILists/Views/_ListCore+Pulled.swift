@@ -53,6 +53,9 @@ final class ListPulledVariable {
     /// With no request, how far down the list the first frame's measuring
     /// walk draws.
     let reach: Int
+    /// Whether the list pins its section headers (decisions A45: every style
+    /// but `.sidebar`, and not while a row is held for a reorder).
+    let pinsHeaders: Bool
 
     /// The band, once placed (with a request).
     private(set) var result: PulledRowsBand?
@@ -61,21 +64,30 @@ final class ListPulledVariable {
     private(set) var clip = 0
     /// The lines of the framed drawing to keep.
     private(set) var drawnLines = 0..<1
+    /// The section header pinned over the band's top, drawn above its rows
+    /// (``PulledListHeader``).
+    private(set) var pinnedHeader: PulledListHeader?
 
-    init(request: PulledBandRequest?, lines: ListPulledLines, rows: PulledRows, cursorRow: Int, reach: Int) {
+    init(
+        request: PulledBandRequest?, lines: ListPulledLines, rows: PulledRows, cursorRow: Int, reach: Int,
+        pinsHeaders: Bool
+    ) {
         self.request = request
         self.lines = lines
         self.rows = rows
         self.cursorRow = cursorRow
         self.reach = reach
+        self.pinsHeaders = pinsHeaders
     }
 
     /// Places the band from the list's rows — `pitch(n)` the lines row `n`
-    /// draws, `key` and `ordinal` its scroll key both ways — and answers the
-    /// height to frame the list's drawing to.
+    /// draws, `key` and `ordinal` its scroll key both ways, `sections` the
+    /// header a row pins under (`RowSource.pinnedHeader(over:)`) and the row
+    /// a header's section ends at — and answers the height to frame the list's
+    /// drawing to.
     func resolve(
         width: Int, pitch: @escaping (Int) -> Int, key: @escaping (Int) -> String?,
-        ordinal: @escaping (String) -> Int?
+        ordinal: @escaping (String) -> Int?, sections: (header: (Int) -> Int?, end: (Int) -> Int)
     ) -> Int {
         rows.noteShape(width: width, count: lines.count)
         guard let request else {
@@ -93,7 +105,66 @@ final class ListPulledVariable {
         firstRow = band.firstRow
         clip = band.clip
         drawnLines = band.drawnLines
-        return band.frameHeight(top: lines.top, bottom: lines.bottom)
+        let height = band.frameHeight(top: lines.top, bottom: lines.bottom)
+        guard pinsHeaders, let header = sections.header(band.firstRow) else { return height }
+        // The header of the section the band opens in, drawn above its rows
+        // and taken off the drawing for the scroll view to pin.
+        let pinned = PulledListHeader(
+            band: band, header: header, lines: max(1, pitch(header)), sectionEnd: sections.end(header),
+            listLines: lines, viewportHeight: request.viewportHeight)
+        pinnedHeader = pinned
+        drawnLines = (drawnLines.lowerBound + pinned.lines)..<(drawnLines.upperBound + pinned.lines)
+        return height + pinned.lines
+    }
+}
+
+/// The section header pinned over a pulled list's rows (decisions A45, SCROLL-FIT
+/// P6b): the header of the section the band's first row is in, drawn above
+/// the rows as the list draws it and copied as a top scroll pin
+/// (``OverlayLayer/scrollPinned(_:at:edge:travel:isOpaque:)``), as a pulled
+/// table pins its header, so the scroll view draws it at the viewport's top
+/// while its section's rows are under it, the section's last row pushes it
+/// off, and a revealed row is kept clear of it (`PinnedChromeCover`).
+///
+/// A header the band opens in, its top lines scrolled off, is not pinned: it is
+/// drawn where it is, as a list scrolling itself draws one its window opens on.
+@MainActor
+struct PulledListHeader {
+    /// The header's row.
+    let index: Int
+    /// Its lines.
+    let lines: Int
+    /// Its top, in the band's lines: above the band.
+    let top: Int
+    /// How far it may travel down: its section's rows, up to the next header
+    /// or footer.
+    let travel: Int
+
+    init(
+        band: PulledRowsBand, header: Int, lines: Int, sectionEnd: Int, listLines: ListPulledLines, viewportHeight: Int
+    ) {
+        index = header
+        self.lines = lines
+        let headerTop = band.lines(ofRow: header, viewportHeight: viewportHeight).top
+        // The rows past the section, or the list's last line of rows.
+        let end =
+            sectionEnd < listLines.count
+            ? band.lines(ofRow: sectionEnd, viewportHeight: viewportHeight).top
+            : band.band.total - listLines.bottom
+        top = headerTop - band.band.lines.lowerBound
+        travel = max(0, end - headerTop - lines)
+    }
+
+    /// The layer the scroll view pins, copied from `drawing`, the list
+    /// framed to the band's rows with the header drawn above them, its chrome
+    /// `chromeTop` lines above the header.
+    ///
+    /// Opaque, as the header a list scrolling itself pins over its rows is
+    /// drawn in their place, its own fields and all.
+    func layer(of drawing: FrameBuffer, chromeTop: Int) -> OverlayLayer {
+        .scrollPinned(
+            drawing.copying(lines: chromeTop..<(chromeTop + lines)), at: top, edge: .top, travel: travel,
+            isOpaque: true)
     }
 }
 
@@ -305,10 +376,15 @@ extension _ListCore {
     ) -> (buffer: FrameBuffer, viewport: CellRect?) {
         let state = pulledStateCreating(context: context)
         let variable = ListPulledVariable(
-            request: request, lines: lines, rows: state.rows, cursorRow: handler?.focusedIndex ?? 0, reach: reach)
+            request: request, lines: lines, rows: state.rows, cursorRow: handler?.focusedIndex ?? 0, reach: reach,
+            pinsHeaders: Self.pinsSectionHeaders(context.environment.listStyle) && handler?.reorder?.active != true)
         let frame = renderFrame(context: context, pulled: ListPulledRows(offset: 0, variable: variable))
         let cut = variable.drawnLines.clamped(to: 0..<max(1, frame.buffer.height))
         var buffer = frame.buffer.lines(in: cut)
+        let pinned = variable.pinnedHeader
+        if let pinned, !context.isMeasuring {
+            buffer.overlays.append(pinned.layer(of: frame.buffer, chromeTop: lines.top))
+        }
         if let result = variable.result {
             if let handler = existingHandler(context: context), !context.isMeasuring {
                 let cursor = result.lines(
@@ -317,8 +393,9 @@ extension _ListCore {
                     focusID: handler.focusID, band: result.band.lines, total: result.band.total,
                     cursorLine: cursor.top, cursorHeight: cursor.height)
                 // Page Up and Page Down move by the scroll view's viewport,
-                // in the rows it shows (B-SCROLLFIT-5).
-                handler.viewportHeight = result.rowsOnScreen()
+                // in the rows it shows clear of the header pinned over it
+                // (B-SCROLLFIT-5).
+                handler.viewportHeight = result.rowsOnScreen(clearOf: (pinned?.lines ?? 0, 0))
             }
             request?.answer(result.band)
         }

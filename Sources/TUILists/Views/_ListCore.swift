@@ -302,6 +302,19 @@ final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeci
         return nearest.isHeader && nearest.index < index ? nearest.index : nil
     }
 
+    /// The row past the last of the section headed by the header at `index`:
+    /// the next header or footer, or the end of the rows. A binary search of
+    /// ``sectionChrome``, which asks no row anything.
+    func sectionEnd(after index: Int) -> Int {
+        var low = 0
+        var high = sectionChrome.count
+        while low < high {
+            let middle = (low + high) / 2
+            if sectionChrome[middle].index <= index { low = middle + 1 } else { high = middle }
+        }
+        return low < sectionChrome.count ? sectionChrome[low].index : count
+    }
+
     /// The fully-formed row at `index`, materialising (and memoising) its content
     /// box on first access. Reading the row's `.buffer` renders it once (cached).
     ///
@@ -907,8 +920,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// map to know how far down the rows start — and a consumer that re-derived
     /// "is there an indicator" from the offset was how the table put every row a
     /// line off its band.
+    ///
+    /// `headerAbove`: a pulled list's section header is drawn ahead of the
+    /// window covering none of its rows, for the scroll view to pin
+    /// (`_ListCore+Pulled.swift`), where a list scrolling itself draws it over
+    /// their top (``PinnedHeaderCover``).
     private typealias WindowOrigin = (
-        offset: Int, topClip: Int, reservesAbove: Bool, reservesBelow: Bool
+        offset: Int, topClip: Int, reservesAbove: Bool, reservesBelow: Bool, headerAbove: Bool
     )
 
     /// The list's frame, drawn as the owner of `.scrollView` for its rows, as
@@ -1022,7 +1040,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         if let variable = pulled?.variable {
             context.availableHeight = variable.resolve(
                 width: rowContext.availableWidth, pitch: { source.content(at: $0).buffer.height }, key: { source.scrollKey(at: $0) },
-                ordinal: { source.index(ofScrollKey: $0) })
+                ordinal: { source.index(ofScrollKey: $0) },
+                sections: (header: { source.pinnedHeader(over: $0) }, end: { source.sectionEnd(after: $0) }))
         }
 
         // Vertical chrome around the scrollable content, as the container that
@@ -1387,7 +1406,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // raw one puts every row a line off its band (exactly how the `Table`
         // broke before it did the same).
         let origin: WindowOrigin = (
-            window.range.lowerBound, window.topClip, window.reservesAbove, window.reservesBelow)
+            window.range.lowerBound, window.topClip, window.reservesAbove, window.reservesBelow,
+            pulled?.variable?.pinnedHeader != nil)
         // Materialised from the range the rule settled. `source.row(at:)` builds
         // and renders the content box on demand and MEMOISES it, so the rows the
         // walk already touched cost a dictionary hit here.
@@ -1412,14 +1432,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // chord on the cursor row (A53-KEYBOARD-DRAG).
         handler.offerRowDrags(editRestrictions.rowDrags, context: context)
         // After the viewport sync, which counts DATA rows: the header pinned over
-        // the window's top, ahead of its rows (see `pinningSectionHeader`). Not
-        // a pulled list's: its window's top is the band's, not the list's, and
-        // a header pinned to the scroll view is pinned chrome's (SCROLL-FIT P6).
+        // the window's top, ahead of its rows (see `pinningSectionHeader`).
         visibleRows = decorateForReorder(visibleRows, handler: handler, context: context, palette: palette)
-        if pulled == nil {
-            visibleRows = pinningSectionHeader(
-                over: visibleRows, source: source, origin: origin.offset, handler: handler, style: style)
-        }
+        visibleRows = pinningSectionHeader(
+            over: visibleRows, source: source, origin: origin.offset, handler: handler, style: style, pulled: pulled)
 
         let rowWidth = rowWidth(source: source, visibleRows: visibleRows, style: style, context: context)
 
@@ -1590,7 +1606,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         return PopulatedRenderState(
             handler: handler,
             focusID: persistedFocusID,
-            origin: (0, 0, false, false),
+            origin: (0, 0, false, false, false),
             visibleRowYRanges: [],
             visibleRows: [],
             dropInsertion: Self.dropInsertionAction(of: source)
@@ -2278,10 +2294,20 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// payloads land where it is drawn, and the lines it covers stop being the
     /// covered row's to click. Where it pins is ``pinnedHeader(over:source:handler:style:)``'s
     /// to say, which the reveal asks too.
+    ///
+    /// A pulled list's window opens where its band does, not at its own top,
+    /// and the header pinned to the scroll view is pinned chrome's: the header
+    /// its band placed (``PulledListHeader``), drawn ahead of the rows covering
+    /// none of them (`WindowOrigin.headerAbove`), for the scroll view to pin
+    /// (SCROLL-FIT P6b), or none.
     private func pinningSectionHeader(
         over rows: [(index: Int, row: SelectableListRow<SelectionValue>)], source: RowSource<SelectionValue>,
-        origin: Int, handler: ItemListHandler<SelectionValue>, style: any ListStyle
+        origin: Int, handler: ItemListHandler<SelectionValue>, style: any ListStyle, pulled: ListPulledRows?
     ) -> [(index: Int, row: SelectableListRow<SelectionValue>)] {
+        if let pulled {
+            guard let header = pulled.variable?.pinnedHeader else { return rows }
+            return [(index: header.index, row: source.row(at: header.index))] + rows
+        }
         guard let header = Self.pinnedHeader(over: origin, source: source, handler: handler, style: style)
         else { return rows }
         return [(index: header.index, row: source.row(at: header.index))] + rows
@@ -2408,7 +2434,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // reason every other consumer of the origin does. See
         // `RowSource.contentRowIndex(at:)`.
         var contentRowIndex = firstContentRowIndex
-        var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
+        var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first, coversRows: !origin.headerAbove)
         // The hairline the row drawn last leaves along the top of the next.
         var hairlineAbove: ListRowSeparatorLine?
         for (rowIndex, row) in visibleRows {
@@ -2749,7 +2775,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // see `composeRowLines`.
         var contentRowIndex = firstContentRowIndex
         // A pinned header and the lines it covers — see `composeRowLines`.
-        var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first)
+        var pin = PinnedHeaderCover(origin: origin.offset, first: visibleRows.first, coversRows: !origin.headerAbove)
         // The hairline the row drawn last leaves — see `composeRowLines`.
         var hairlineAbove: ListRowSeparatorLine?
         for (rowIndex, row) in visibleRows {
@@ -5537,6 +5563,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
 /// A header that ends in a rule is not followed by another: a row the cover
 /// (or the scroll) leaves only the rule of is covered whole, its rule too, or
 /// the list would draw the header's rule and then a row's, the line under it.
+///
+/// A pulled list's header covers nothing (`coversRows` false): drawn above
+/// the rows, it is copied and pinned by the scroll view around the list,
+/// which covers what it lands on (SCROLL-FIT P6b).
 struct PinnedHeaderCover {
     /// The pinned header's row index, when the first entry drawn is one.
     let pinned: Int?
@@ -5549,8 +5579,10 @@ struct PinnedHeaderCover {
     /// entry is `first`: a header with an index above the window's is the
     /// pinned one. Asked of its TYPE as well as its index — the reorder slot
     /// is drawn under a sentinel index below every row's.
-    init<SelectionValue: Hashable & Sendable>(origin: Int, first: (Int, SelectableListRow<SelectionValue>)?) {
-        if let first, first.0 < origin, case .header = first.1.type {
+    init<SelectionValue: Hashable & Sendable>(
+        origin: Int, first: (Int, SelectableListRow<SelectionValue>)?, coversRows: Bool = true
+    ) {
+        if coversRows, let first, first.0 < origin, case .header = first.1.type {
             pinned = first.0
         } else {
             pinned = nil

@@ -1332,6 +1332,27 @@ compare against `PulledTableTwin` too, their twins framed with the switch on (th
 framed table as it was, and the arrival rule is then the same on both sides); a row a key reveals
 upward lands a line lower than the twin's, under the header.
 
+**As P6b built them** (2026-11-14, `_ListCore+Pulled.swift`'s `PulledListHeader`). Behind the switch:
+
+- **A pulled `List` pins its section headers.** SwiftUI's rule is the list's own (decisions A45,
+  measured with `Tools/SwiftUIProbes/List pinned headers and row stripes/pin.swift`:
+  `NSTableView.floatsGroupRows` under every style but `.sidebar`), so the header of the section the
+  viewport's top lies in stays at the top while its rows are under it, its section's last row pushes
+  it off, and no footer pins. A pulled list draws a window from the band's first row, and its own pin
+  (over the window's top) would be the band's, so it is the scroll view's: the band's walk names the
+  header (`RowSource.pinnedHeader(over:)`), the list draws it above the band's rows covering none of
+  them (`PinnedHeaderCover`'s `coversRows`, `WindowOrigin.headerAbove`), and a copy of its lines is a
+  top scroll pin built as the table's header is (`OverlayLayer.scrollPinned`, opaque, as the header a
+  list scrolling itself pins is drawn in its rows' place), at the header's place in the band's lines,
+  free to travel its section's rows (to the next header or footer, `RowSource.sectionEnd(after:)`,
+  their lines read off the walk: exact near the band, priced at the running pitch past it). A header
+  the band opens in, its top lines scrolled off, is drawn where it is. The copy carries the header's
+  regions, so a click on it selects nothing under it; a revealed row is kept clear of it
+  (`PinnedChromeCover`), so Tab onto the list, which reveals its top, leaves it a line lower than the
+  same list drawn whole, which pins nothing — as a pulled table's row revealed upward is.
+- **A page leaves out the rows under the pinned header**, of a list as of a multi-line table
+  (`PulledRowsBand.rowsOnScreen(clearOf:)`).
+
 Found on the way: a pinned copy drawn over a cursor row reversed on the terminal's own ink (the
 focused row, `\e[7m`) lost its letters. A transparent overlay cell takes the field under it, and
 that field is the terminal's foreground, the ink the letters are drawn in, so they are drawn as

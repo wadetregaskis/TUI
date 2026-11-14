@@ -151,13 +151,37 @@ struct PulledVariableListTests {
         }
     }
 
+    /// The number of the row a screen line starts, if it starts one.
+    private static func row(of line: String) -> Int? {
+        guard let r = line.range(of: "r") else { return nil }
+        return Int(line[r.upperBound...].prefix { $0.isNumber })
+    }
+
+    /// Whether `pulled` is its twin's screen `whole` as the pulled list draws
+    /// it (SCROLL-FIT P6b): where the twin's top line is a row, the header of
+    /// that row's section drawn over it, pinned (decisions A45), and the rest
+    /// alike — or, once the scroll view has revealed something with a header
+    /// pinned over the top line, that screen a line lower: a revealed row is
+    /// kept clear of the pinned header (`PinnedChromeCover`), as a pulled
+    /// table's is (`PulledTableTwin`), and Tab onto the list, which reveals its
+    /// top, leaves it a line lower than the twin, which pins nothing.
+    private static func pinnedMatch(_ pulled: [String], _ whole: [String], sectioned: Bool) -> Bool {
+        guard sectioned else { return pulled == whole }
+        if pulled == whole || pulled.dropFirst().elementsEqual(whole.dropLast()) { return true }
+        guard let top = whole.first, let row = row(of: top), let first = pulled.first else { return false }
+        return first.contains("S\(row / 10)") && pulled.dropFirst() == whole.dropFirst()
+    }
+
     /// Walks the pulled page and its twin alike — the top, wheel steps one
     /// at a time and in a burst, Tab onto the list, the cursor down past the
-    /// screen, End and Home — and expects them to draw alike at every step.
+    /// screen, End and Home — and expects them to draw alike at every step,
+    /// but for a pinned section header (``pinnedMatch(_:_:sectioned:)``).
     private static func walkAlike(_ shape: Shape, _ count: Int, keys extra: [Key] = []) {
         let (pulled, whole) = twins(shape, count)
         func check(_ step: String) {
-            #expect(content(pulled) == content(whole), "\(step):\n\(pulled.screen)\n---\n\(whole.screen)")
+            #expect(
+                pinnedMatch(content(pulled), content(whole), sectioned: shape == .sectioned),
+                "\(step):\n\(pulled.screen)\n---\n\(whole.screen)")
         }
         check("top")
         for step in 1...4 {
@@ -204,9 +228,55 @@ struct PulledVariableListTests {
         Self.walkAlike(.multiLine, 300)
     }
 
-    @Test("Sections draw what the list drawn whole draws")
+    /// The header of the section the top line is a row of is pinned over
+    /// it, as a list drawn in its own height pins it (decisions A45, SCROLL-FIT
+    /// P6b): the twin, drawn whole, pins nothing.
+    @Test("Sections draw what the list drawn whole draws, the top line's section header pinned over it")
     func sectionsDrawWhatTheWholeListDraws() {
         Self.walkAlike(.sectioned, 300)
+    }
+
+    @Test("A section's header stays on the top line through its rows, and its last row pushes it off")
+    func sectionHeaderIsPushedOffByItsLastRow() {
+        let app = Self.app(.sectioned, 300)
+        var tops: [String] = []
+        for _ in 0..<12 {
+            app.scroll(.down, by: 1, at: CellPoint(x: 5, y: 5))
+            tops.append(app.screen.lines[0].trimmingCharacters(in: .whitespaces))
+        }
+        // Three lines a tick: the title, the button, S0 and its ten rows, S1…
+        // On every line the top shows, a header: its section's while its rows
+        // are under it, the next one's own line when it reaches the top.
+        #expect(tops.allSatisfy { $0.hasPrefix("S") }, "\(tops)")
+        #expect(tops.contains { $0.hasPrefix("S1") } && tops.contains { $0.hasPrefix("S2") }, "\(tops)")
+    }
+
+    /// The pinned copy carries the header's own regions: a click on it is the
+    /// header's, which selects nothing, not the row under it.
+    @Test("A click on the pinned section header selects no row under it")
+    func pinnedHeaderTakesTheClick() {
+        let app = Self.app(.sectioned, 300)
+        app.scroll(.down, by: 2, at: CellPoint(x: 5, y: 5))
+        #expect(app.screen.lines[0].contains("S0"), "\(app.screen)")
+        _ = app.press(.tab)
+        let before = app.screen.lines
+        app.click(at: CellPoint(x: 3, y: 0))
+        #expect(app.screen.lines[0].contains("S0"), "\(app.screen)")
+        #expect(app.screen.lines == before, "\(app.screen)")
+    }
+
+    @Test("Page Down in sections moves the cursor by the rows clear of the pinned header")
+    func pageDownInSectionsSkipsThePinnedHeader() {
+        let app = Self.app(.sectioned, 300)
+        _ = app.press(.tab)
+        _ = app.press(.down, times: 15)
+        let before = Self.rowsShown(app)
+        _ = app.press(.pageDown)
+        // The rows clear of the header, less the headers among them: what
+        // a page moves the cursor by (rows, a header among them).
+        let after = Self.rowsShown(app)
+        #expect(app.screen.lines[0].contains("S"), "\(app.screen)")
+        #expect((after.last ?? 0) - (before.last ?? 0) <= before.count, "\(before) -> \(after)\n\(app.screen)")
     }
 
     @Test("An outline draws what the list drawn whole draws, opened and closed by the keys")
