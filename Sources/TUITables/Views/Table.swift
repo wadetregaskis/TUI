@@ -7682,6 +7682,12 @@ extension _TableCore {
         table.pulledOffset = rows.lowerBound
         var framed = context
         framed.availableHeight = lines.top + rows.count + lines.bottom
+        // A handler a measure made keeps the height that measure was handed
+        // as its viewport until a frame draws (`resolveHandler`), and a
+        // measuring walk draws the rows it says: under `.fixedSize` at the
+        // window's root, the 4,093 rows of the ladder's first rung, for the
+        // 20 the walk keeps (SCROLL-FIT P5b). Never more than the band's.
+        if let handler, handler.viewportHeight > rows.count { handler.viewportHeight = rows.count }
         let drawn = table.drawn(context: framed)
         // The drawing's lines that hold the band's: its chrome above, its rows
         // from the band's first, its chrome below.

@@ -172,13 +172,72 @@ struct PulledFixedSizeTests {
 
     /// Off, the table was the screen's height left under the title after
     /// laying out the 4,096 rows of the first rung (`tallTableFixedSize`).
-    /// On, it is its rows' height, and with no viewport to pull against it is
-    /// drawn whole: every row built (design 2f).
-    @Test("Outside a scroll view a 10,000-row table under .fixedSize is its rows' height, drawn whole")
+    /// On, it is its rows' height (design 2f); the window shows its first 23
+    /// lines, and only the rows in them are built (P5b): drawn whole, it built
+    /// 24,093 rows on the first frame and 10,000 on each wheel step, which
+    /// moves nothing. A frame draws the rows on screen again, as any frame of
+    /// a table whose columns compute their values does (its rows are kept
+    /// across frames only where every column names a property), in a scroll
+    /// view too.
+    @Test("Outside a scroll view a 10,000-row table under .fixedSize is its rows' height, and builds the rows that show")
     func tallTableOutsideAScrollView() {
         let result = Self.fixedSize(.table, rows: 10_000)
         #expect(result.sizeA == CellSize(width: 60, height: 10_003), "\(result)")
-        #expect(result.builtFirst >= 10_000, "\(result)")
+        #expect(result.builtFirst < 100, "\(result)")
+        #expect(result.builtStep <= 23, "\(result)")
+    }
+
+    /// `VStack { title; table }.fixedSize(horizontal: false, vertical: true)`
+    /// as the window's root — or the twin: the same table framed to its full
+    /// height, given a height and so drawn whole.
+    private struct RootPage: View {
+        let rows: Int
+        var framed = false
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Text("title")
+                if framed { table.frame(height: rows + 3) } else { table }
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .environment(\.scrollFitsContent, true)
+        }
+
+        private var table: some View {
+            Table((0..<rows).map(Entry.init)) {
+                TableColumn("Row") { (entry: Entry) in Text(verbatim: "r\(entry.id)") }
+            }
+        }
+    }
+
+    /// What shows is the top of the table drawn whole, and stays so as the
+    /// cursor moves, though the window shows none of the rows it moves to.
+    @Test("Outside a scroll view the table shows what the same table drawn whole shows")
+    func showsTheWholeTablesTop() {
+        let pulled = TestApp(width: 30, height: 12) { RootPage(rows: 300) }
+        let whole = TestApp(width: 30, height: 12) { RootPage(rows: 300, framed: true) }
+        #expect(pulled.screen.lines == whole.screen.lines, "\(pulled.screen)\n---\n\(whole.screen)")
+        for step in 1...3 {
+            _ = pulled.press(.tab)
+            _ = whole.press(.tab)
+            _ = pulled.press(.down, times: 4)
+            _ = whole.press(.down, times: 4)
+            pulled.scroll(.down, by: 2, at: CellPoint(x: 5, y: 5))
+            whole.scroll(.down, by: 2, at: CellPoint(x: 5, y: 5))
+            #expect(pulled.screen.lines == whole.screen.lines, "step \(step):\n\(pulled.screen)\n---\n\(whole.screen)")
+        }
+    }
+
+    /// A frame shorter than the content draws it past its edges, offering it
+    /// its whole height (`ownSizePastOffer`), and places it by its alignment:
+    /// here its bottom, the table's last rows. All of it can show, so all of
+    /// it is drawn.
+    @Test("A frame that draws the content past its edges, by its bottom, shows the table's last rows")
+    func framePlacesItWhole() {
+        let app = TestApp(width: 30, height: 12) {
+            RootPage(rows: 300).frame(height: 12, alignment: .bottom)
+        }
+        #expect(app.screen.contains("r299"), "\(app.screen)")
     }
 
     @Test("A table of 3 or 60 rows under .fixedSize is as the baseline has it", arguments: [(3, 6), (60, 63)])
@@ -195,7 +254,9 @@ struct PulledFixedSizeTests {
     @Test(
         "Content-sized views under .fixedSize are their content's height at 10,000 rows",
         arguments: [
-            (ScrollFitSubject.lazyVStack, CellSize(width: 9, height: 10_000)),
+            // Pulled, from the window's top (P5b): its band drawn the width it
+            // is offered, as a pulled lazy stack's is in a scroll view.
+            (ScrollFitSubject.lazyVStack, CellSize(width: 60, height: 10_000)),
             (.groupBox, CellSize(width: 13, height: 10_003)),
             (.grid, CellSize(width: 14, height: 10_000)),
             (.tabView, CellSize(width: 9, height: 10_001)),

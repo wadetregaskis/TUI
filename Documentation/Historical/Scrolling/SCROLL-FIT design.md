@@ -1436,6 +1436,28 @@ differ, as at P4. `Stress --selfcheck` clean (139 cases, 26 sessions).
 **As P5b built it** (2026-11-14). Behind the switch; with it off nothing reads any of it
 (`ScrollFitBaselineTests` unchanged).
 
+- **Outside a scroll view, `.fixedSize` content taller than its offer draws only what shows**
+  (`FixedSizeModifier.swift`). Every line of a drawn view past the height it is offered is cut by the
+  clamp every buffer goes through (`renderResolved`), so its content's lines past that offer cannot
+  show. Where the content's ideal height is more than that, `.fixedSize` draws it as a scroll view
+  draws its own at the top: marked as scroll content's origin, measured there first, under a measure
+  generation of its own (so a view that bands its rows is filed as one, and the ideal-size ask, made
+  with no origin, is never served it nor serves it), handed a window over the offered lines at offset
+  0, and the drawing cut to them. Its size is still its content's. `tallTableFixedSize`'s table, the
+  window's root, is 60x10003 and builds 84 rows on its first frame (was 24,093) and 21 on a wheel
+  step (was 10,000): the rows on screen, drawn again as every frame of a table whose columns compute
+  their values draws them, in a scroll view too (rows are kept across frames only where every column
+  names a property). Not 0: that would take the table's own memo serving a frame nothing changed.
+- **What a frame draws past it is still drawn whole.** A frame, an overlay or a background that draws
+  `.fixedSize` content past its edges offers it its whole size and places it by its alignment, so any
+  of its lines may show. `TestApp`'s window is such a frame (`.frame(maxWidth: .infinity, maxHeight:
+  .infinity, alignment: .topLeading)`): a test whose root is statically `.fixedSize` sees it drawn
+  whole. An app's window, and a root behind `AnyView`, offer the window's height.
+- **A table's handler made by a measure kept that measure's height as its viewport** until a frame
+  drew (`resolveHandler`), and a measuring walk drew that many rows: the ladder's first rung's 4,093.
+  A pulled band caps it at the band's rows.
+- **A lazy stack pulled from there reports the width its band is drawn at** (60), not its rows' (9),
+  as a pulled lazy stack does in a scroll view (59x26 in the baseline): `PulledFixedSizeTests` says so.
 - **A pulled view's geometry is all of it** (`OnGeometryChangeModifier.swift`). `onGeometryChange` read
   the size off the drawing, so a pulled table or lazy stack reported the band on screen (59x24 for a
   60-row table under a title); under the switch it reads the height the band's reply says

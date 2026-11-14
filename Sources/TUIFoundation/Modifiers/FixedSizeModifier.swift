@@ -206,8 +206,62 @@ nonisolated struct _FixedSizeView<Content: View>: View {
         guard horizontal || vertical else { return TUIView.renderToBuffer(content, context: contentContext) }
         let ideal = idealExtents(width: context.availableWidth, height: context.availableHeight, context: context)
         if let width = ideal.width { contentContext.availableWidth = width }
-        if let height = ideal.height { contentContext.availableHeight = min(height, walkedLines(context) ?? height) }
+        if let height = ideal.height {
+            if let shown = shownLines(ofHeight: height, context: context) {
+                return renderShowing(shown, ofHeight: height, contentContext: contentContext)
+            }
+            contentContext.availableHeight = min(height, walkedLines(context) ?? height)
+        }
         return TUIView.renderToBuffer(content, context: contentContext)
+    }
+
+    /// The lines of content `height` lines tall that can show, under
+    /// SCROLL-FIT's switch outside a scroll view: the height this view is
+    /// offered, where its content is taller — every line past it is cut by the
+    /// clamp every drawn view's buffer goes through (`renderResolved`), at the
+    /// container's edge. `nil` where all of it can show: content no taller
+    /// than its offer; content a frame, an overlay or a background draws past
+    /// them, which offer it its whole size (`ownSizePastOffer`) and place it by
+    /// their alignment, so that any of its lines may show; and scroll content,
+    /// which a scroll view pulls (design 2f).
+    private func shownLines(ofHeight height: Int, context: RenderContext) -> Range<Int>? {
+        guard vertical, context.environment.scrollFitsContent, context.scrollContentOriginDepth == 0,
+            context.availableHeight > 0, height > context.availableHeight
+        else { return nil }
+        return 0..<context.availableHeight
+    }
+
+    /// Content `height` lines tall of which only `shown` can show
+    /// (``shownLines(ofHeight:context:)``), drawn as a scroll view draws its
+    /// content scrolled to them: a viewport over those lines, which the views
+    /// in it that band their rows (a `Table`, a lazy stack, and the columns
+    /// that hold them) answer by drawing only the rows in it, and the drawing
+    /// cut to them. Drawn whole, a 10,000-row table under a title as the
+    /// window's root built every row on every frame, 24,093 on the first and
+    /// 10,000 on each wheel step that moved nothing, for 23 of its lines to
+    /// show (SCROLL-FIT P5b).
+    ///
+    /// The content is measured here first, at the origin, so that a view that
+    /// bands its rows is filed as one before it draws (`notePulledBand`); under
+    /// a measure generation of its own, so that this view's ideal size, asked
+    /// with no origin, is never served for it, nor it for that. A measuring
+    /// walk (the first frame's) is given the lines down to the last that shows
+    /// to draw into, as a scroll view's is (``walkedLines(_:)``).
+    private func renderShowing(_ shown: Range<Int>, ofHeight height: Int, contentContext: RenderContext) -> FrameBuffer {
+        var origin = contentContext.markingScrollContentOrigin().invalidatingMeasureMemo()
+        origin.availableHeight = height
+        _ = measureChild(content, proposal: ProposedViewSize(width: origin.availableWidth, height: nil), context: origin)
+        let reply = ScrollContentReply()
+        if origin.isMeasuring {
+            origin.availableHeight = shown.upperBound
+        } else {
+            origin.environment.scrollContentWindow = ScrollContentWindow(
+                offset: shown.lowerBound, viewportHeight: shown.count, contentIdentity: origin.identity, reply: reply)
+        }
+        let drawn = TUIView.renderToBuffer(content, context: origin)
+        // The band the content drew, or all of it where nothing in it bands.
+        let top = reply.sliceOriginY ?? 0
+        return drawn.lines(in: (shown.lowerBound - top)..<(shown.upperBound - top))
     }
 
     /// The lines a scroll view's measuring walk gives its content to draw
