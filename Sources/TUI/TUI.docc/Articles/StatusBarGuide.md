@@ -112,11 +112,11 @@ Shortcut.range("1", "9")
 
 ### One-letter keys
 
-An item's `shortcut` string is the key it binds in the bar's own vocabulary, where the case is the Shift: `"n"` is n and `"N"` is Shift-N. The bar draws a one-letter key the way a macOS menu draws it, as every other key TUI names is drawn — `N new` for `"n"`, `⇧N new` for `"N"`, and `Y yes` — so the bar reads the same as `⌃Z undo` beside it. The string still binds the key and names the item. An app that prefers the TUI convention, in which lower case means no Shift, sets ``StatusBarKeySpelling/asTyped`` with ``View/statusBarKeySpelling(_:)``:
+An item's `shortcut` string is the key it binds in the bar's own vocabulary, where the case is the Shift: `"n"` is n and `"N"` is Shift-N. The bar draws a one-letter key the way a macOS menu draws it, as every other key TUI names is drawn — `N new` for `"n"`, `⇧N new` for `"N"`, and `Y yes` — so the bar reads the same as `⌃Z undo` beside it. The string still binds the key and names the item. An app that prefers the TUI convention, in which lower case means no Shift, sets ``KeyLetterCase/asTyped`` with ``View/keyLetterCase(_:)``:
 
 ```swift
 StatusBar()
-    .statusBarKeySpelling(.asTyped)   // n new, N new, y yes
+    .keyLetterCase(.asTyped)   // n new, N new, y yes
 ```
 
 A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way. The list of shortcuts on F1 names an item's key the way the bar draws it, in the spelling in force where the bar is.

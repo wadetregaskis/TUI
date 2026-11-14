@@ -920,6 +920,7 @@ EnvironmentValues.isLuminanceReduced | var isLuminanceReduced: Bool { get set }
 EnvironmentValues.isPresented | var isPresented: Bool { get set }
 EnvironmentValues.isScrollEnabled | var isScrollEnabled: Bool { get set }
 EnvironmentValues.isUserAuthenticationEnabled | var isUserAuthenticationEnabled: Bool { get }
+EnvironmentValues.keyLetterCase | var keyLetterCase: KeyLetterCase { get set }
 EnvironmentValues.keyNotation | var keyNotation: KeyNotation { get set }
 EnvironmentValues.keyboardShortcut | var keyboardShortcut: KeyboardShortcut? { get }
 EnvironmentValues.keyboardShortcutsMatchCommand | var keyboardShortcutsMatchCommand: Bool { get set }
@@ -977,7 +978,6 @@ EnvironmentValues.shiftStepMultiplier | var shiftStepMultiplier: Int { get set }
 EnvironmentValues.springLoadingBehavior | var springLoadingBehavior: SpringLoadingBehavior { get set }
 EnvironmentValues.springLoadingDelay | var springLoadingDelay: Duration { get set }
 EnvironmentValues.statusBar | var statusBar: StatusBarState? { get set }
-EnvironmentValues.statusBarKeySpelling | var statusBarKeySpelling: StatusBarKeySpelling { get set }
 EnvironmentValues.styleCascade | var styleCascade: StyleCascade { get set }
 EnvironmentValues.supportsMultipleWindows | var supportsMultipleWindows: Bool { get }
 EnvironmentValues.supportsRemoteScenes | var supportsRemoteScenes: Bool { get }
@@ -1723,6 +1723,10 @@ KeyEventModifier.renderToBuffer(context:) | @MainActor func renderToBuffer(conte
 KeyEventModifier.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 KeyEventModifier.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
 KeyEventModifier.wrappedContentContext(_:) | @MainActor func wrappedContentContext(_ context: RenderContext) -> RenderContext? [extension where Content : View]
+KeyLetterCase | enum KeyLetterCase
+KeyLetterCase.asTyped | case asTyped
+KeyLetterCase.capital | case capital
+KeyLetterCase.spelling(_:) | func spelling(_ shortcut: String) -> String
 KeyNotation | enum KeyNotation
 KeyNotation.spelledOut | case spelledOut
 KeyNotation.spelling(_:) | func spelling(_ text: String) -> String
@@ -3124,10 +3128,6 @@ StatusBarItemProtocol.order | var order: StatusBarItemOrder { get }
 StatusBarItemProtocol.order | var order: StatusBarItemOrder { get }
 StatusBarItemProtocol.shortcut | var shortcut: String { get }
 StatusBarItemProtocol.triggerKey | var triggerKey: Key? { get }
-StatusBarKeySpelling | enum StatusBarKeySpelling
-StatusBarKeySpelling.asTyped | case asTyped
-StatusBarKeySpelling.menu | case menu
-StatusBarKeySpelling.spelling(_:) | func spelling(_ shortcut: String) -> String
 StatusBarState | final class StatusBarState
 StatusBarState.activationLabelOverride | var activationLabelOverride: String?
 StatusBarState.alignment | var alignment: StatusBarAlignment
@@ -3935,6 +3935,7 @@ View.interactiveResizeTimeout(_:) | nonisolated func interactiveResizeTimeout(_ 
 View.italic(_:) | nonisolated func italic(_ enabled: Bool = true) -> some View
 View.itemProvider(_:) | nonisolated func itemProvider(_ action: (() -> NSItemProvider?)?) -> some View
 View.keepsStateWhileHidden(_:) | nonisolated func keepsStateWhileHidden(_ keeps: Bool = true) -> some View
+View.keyLetterCase(_:) | nonisolated func keyLetterCase(_ spelling: KeyLetterCase) -> some View
 View.keyboardShortcut(_:) | nonisolated func keyboardShortcut(_ shortcut: KeyboardShortcut) -> some View
 View.keyboardShortcut(_:) | nonisolated func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some View
 View.keyboardShortcut(_:modifiers:) | nonisolated func keyboardShortcut(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some View
@@ -4101,7 +4102,6 @@ View.simultaneousGesture(_:isEnabled:) | nonisolated func simultaneousGesture<T>
 View.simultaneousGesture(_:name:isEnabled:) | nonisolated func simultaneousGesture<T>(_ gesture: T, name: String, isEnabled: Bool = true) -> some View where T : Gesture
 View.springLoadingBehavior(_:) | nonisolated func springLoadingBehavior(_ behavior: SpringLoadingBehavior) -> some View
 View.springLoadingDelay(_:) | nonisolated func springLoadingDelay(_ delay: Duration) -> some View
-View.statusBarKeySpelling(_:) | nonisolated func statusBarKeySpelling(_ spelling: StatusBarKeySpelling) -> some View
 View.strikethrough(_:pattern:color:) | nonisolated func strikethrough(_ isActive: Bool = true, pattern: Text.LineStyle.Pattern = .solid, color: Color? = nil) -> some View
 View.style(_:_:) | nonisolated func style(_ scope: StyleScope, _ attributes: StyleAttributes) -> some View
 View.style(_:_:) | nonisolated func style(_ scope: StyleScope, _ build: (inout StyleAttributes) -> Void) -> some View

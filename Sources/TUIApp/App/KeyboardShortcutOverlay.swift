@@ -106,7 +106,7 @@ extension InputHandler {
         let bar = service.string(for: LocalizationKey.Menu.shortcutsStatusBar)
         // An item's one-letter key as the bar draws it (`K` or `k`), not as
         // its string is written, so the two name a key one way.
-        let spelling = statusBar.itemKeySpelling
+        let spelling = statusBar.itemKeyLetterCase
         for item in statusBar.currentItems {
             listing.add(ListedShortcut(key: spelling.spelling(item.shortcut), title: item.label), to: bar)
         }

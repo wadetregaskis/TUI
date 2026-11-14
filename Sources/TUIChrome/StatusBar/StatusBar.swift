@@ -235,7 +235,7 @@ private struct _AppStatusBarCore: View, Renderable {
         // keys still work (`StatusBarState.showsNoteInPlaceOfItems`). Whether
         // there are items for it to stand in for is what the next frame asks.
         let note = state.showsNoteInPlaceOfItems && state.hasItems
-        if !context.isMeasuring { state.recordLineDrawn(spelling: context.environment.statusBarKeySpelling) }
+        if !context.isMeasuring { state.recordLineDrawn(spelling: context.environment.keyLetterCase) }
         // And the core reads the same state for what it reads of its own —
         // the claimed Escape and Return labels, which item the pointer is over
         // — and writes the hover back to it.
@@ -311,7 +311,7 @@ private struct _StatusBarCore: View, Renderable {
         // "close menu" or similar while the underlying handler is unchanged.
         let escapeOverride = context.environment.statusBar?.escapeLabelOverride
         // How the keys are written: a one-letter key as a menu draws it or as
-        // typed (`StatusBarKeySpelling`), then their symbols, or their names
+        // typed (`KeyLetterCase`), then their symbols, or their names
         // where the user or the app asked for those (`KeyNotation`).
         let keys = KeyWriting(context.environment)
 
@@ -1011,14 +1011,14 @@ private struct _StatusBarCore: View, Renderable {
 // MARK: - Writing an item's key
 
 /// How the bar writes an item's key: a one-letter key in the
-/// ``StatusBarKeySpelling`` in force, then in the ``KeyNotation`` in force —
+/// ``KeyLetterCase`` in force, then in the ``KeyNotation`` in force —
 /// read once from the environment for the whole bar.
 private struct KeyWriting {
-    let spelling: StatusBarKeySpelling
+    let spelling: KeyLetterCase
     let notation: KeyNotation
 
     init(_ environment: EnvironmentValues) {
-        spelling = environment.statusBarKeySpelling
+        spelling = environment.keyLetterCase
         notation = environment.keyNotation
     }
 

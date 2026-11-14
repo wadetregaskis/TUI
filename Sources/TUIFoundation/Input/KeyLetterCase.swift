@@ -1,5 +1,5 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  StatusBarKeySpelling.swift
+//  KeyLetterCase.swift
 //
 //  How the status bar draws an item's key written as one letter: as a macOS
 //  menu draws a key equivalent (`Q`, `⇧N`), or as the item's string is typed
@@ -24,12 +24,12 @@
 ///
 /// ```swift
 /// StatusBar()
-///     .statusBarKeySpelling(.asTyped)   // `y yes`, `N new`
+///     .keyLetterCase(.asTyped)   // `y yes`, `N new`
 /// ```
-public enum StatusBarKeySpelling: Hashable, Sendable, CaseIterable {
+public enum KeyLetterCase: Hashable, Sendable, CaseIterable {
     /// As a macOS menu draws a key: a letter in upper case, and a capital as
     /// `⇧` and the letter — `Q`, `⇧N`. The default.
-    case menu
+    case capital
 
     /// As the item's string is typed, the TUI convention in which lower case
     /// means no Shift — `q`, `N`.
@@ -43,7 +43,7 @@ public enum StatusBarKeySpelling: Hashable, Sendable, CaseIterable {
     /// either spelling. A letter whose capital is not one character (`ß`) has
     /// no key cap of its own, and is drawn as written too.
     public func spelling(_ shortcut: String) -> String {
-        guard self == .menu, shortcut.count == 1, let letter = shortcut.first, letter.isLetter else {
+        guard self == .capital, shortcut.count == 1, let letter = shortcut.first, letter.isLetter else {
             return shortcut
         }
         if letter.isLowercase {
@@ -56,17 +56,17 @@ public enum StatusBarKeySpelling: Hashable, Sendable, CaseIterable {
 
 // MARK: - Environment
 
-/// `\.statusBarKeySpelling`'s key.
-private struct StatusBarKeySpellingKey: EnvironmentKey {
-    static let defaultValue = StatusBarKeySpelling.menu
+/// `\.keyLetterCase`'s key.
+private struct KeyLetterCaseKey: EnvironmentKey {
+    static let defaultValue = KeyLetterCase.capital
 }
 
 extension EnvironmentValues {
     /// How the status bar draws an item's one-letter key — see
-    /// ``StatusBarKeySpelling``. ``StatusBarKeySpelling/menu`` by default.
-    public var statusBarKeySpelling: StatusBarKeySpelling {
-        get { self[StatusBarKeySpellingKey.self] }
-        set { self[StatusBarKeySpellingKey.self] = newValue }
+    /// ``KeyLetterCase``. ``KeyLetterCase/capital`` by default.
+    public var keyLetterCase: KeyLetterCase {
+        get { self[KeyLetterCaseKey.self] }
+        set { self[KeyLetterCaseKey.self] = newValue }
     }
 }
 
@@ -75,11 +75,11 @@ extension View {
     /// as a macOS menu draws it (`Q`, `⇧N`, the default) or as the item's
     /// string is typed (`q`, `N`).
     ///
-    /// TUI-specific; see ``StatusBarKeySpelling``.
+    /// TUI-specific; see ``KeyLetterCase``.
     ///
     /// - Parameter spelling: The spelling.
     /// - Returns: A view whose status bar draws its items' keys in `spelling`.
-    nonisolated public func statusBarKeySpelling(_ spelling: StatusBarKeySpelling) -> some View {
-        environment(\.statusBarKeySpelling, spelling)
+    nonisolated public func keyLetterCase(_ spelling: KeyLetterCase) -> some View {
+        environment(\.keyLetterCase, spelling)
     }
 }

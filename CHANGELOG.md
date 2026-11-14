@@ -56,7 +56,7 @@ method moved ahead of it.
 
 **The F1 list of shortcuts names a status-bar item's key as the bar draws it.** An item on `"x"` read `X Export` in
 the bar and `x Export` in the list. The list now writes a one-letter key in the bar's spelling, `X` by default and
-`x` under `.statusBarKeySpelling(.asTyped)`.
+`x` under `.keyLetterCase(.asTyped)`.
 
 **A `ScrollPosition` bound with a new value scrolls, as SwiftUI's does.** A scroll view acted on a bound position
 only after a `scrollTo`, so `.scrollPosition(.constant(ScrollPosition(y: line)))`, a `Binding(get:set:)` that builds
@@ -1541,7 +1541,7 @@ All of these are pre-1.0 changes with no old spelling kept.
 - A paste of any size now arrives whole. The earlier 16 MiB limit is gone.
 - A popover attached with `.rect(.rect(_:))` that is wider than its rectangle starts where the rectangle starts, as a menu and a tooltip do, rather than centring on it: a link's destination popover inside a `Text` now lines up with the link as a `Link`'s does.
 - A link inside a `Text` (from Markdown or an attributed string) is a control, as a `Link` is: Tab reaches it, Return or a click opens it and shows its destination in a popover, and Shift+F10 or a right-click opens `Link`'s menu. A page with inline links gains a Tab stop per link. Not where `.linkDisplay` writes the URL out, in a disabled subtree, or in a list's row.
-- The status bar draws an item's one-letter key as a macOS menu draws it: `Q quit` for `"q"`, `⇧N` for an item on `"N"`, matching `⌃Z undo` beside it. The item's string still binds the key. `.statusBarKeySpelling(.asTyped)` draws the strings as typed, as before.
+- The status bar draws an item's one-letter key as a macOS menu draws it: `Q quit` for `"q"`, `⇧N` for an item on `"N"`, matching `⌃Z undo` beside it. The item's string still binds the key. `.keyLetterCase(.asTyped)` draws the strings as typed, as before.
 - ⌃Y redoes, the one redo key every terminal sends, except in a focused text field or editor, where it is still the yank. The status bar's and the menu bar's redo hint names ⌃Y, and another redo key while a text control has the focus.
 - While a `List`, a `Table`, an open `Picker` drop-down or an open menu has the keyboard, its type select takes every bare character, the first of a prefix included. TUI's `q`, `t`, `a` and help key, an app's bare `.keyboardShortcut`, a menu row's bare key equivalent and a status-bar item's bare key no longer fire there, and the status bar leaves those items out meanwhile. Before, the first character of a prefix gave way to such a binding. A modified key, an F-key or the menu bar still reaches its command.
 - Under the kitty keyboard protocol, a ⌘ chord the terminal lets through (kitty and Ghostty pass some) reaches `onKeyPress` with `.command` in its modifiers, where it was dropped. It reaches nothing that matches a bare key, so ⌘K types nothing into a field. A `.keyboardShortcut` written with ⌘ still fires on its `.commandKey(_:)` stand-in (Control by default), and on a real ⌘ as well only under the new `.keyboardShortcutsMatchCommand()`. `KeyEvent` has a `command` field.

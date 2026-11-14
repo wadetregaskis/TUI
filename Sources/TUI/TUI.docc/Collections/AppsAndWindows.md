@@ -132,7 +132,7 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``StatusBarItemBuilder``
 - ``StatusBarItemOrder``
 - ``StatusBarItemComposition``
-- ``StatusBarKeySpelling``
+- ``KeyLetterCase``
 - ``SystemStatusBarItem``
 
 ### Opening and Closing Things from Your Code

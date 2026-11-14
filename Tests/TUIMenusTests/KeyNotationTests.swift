@@ -137,11 +137,11 @@ struct KeyNotationTests {
                 StatusBarItem(shortcut: "1-9", label: "page"),
             ],
             style: .compact)
-        func drawn(_ notation: KeyNotation, _ spelling: StatusBarKeySpelling = .menu) -> String {
+        func drawn(_ notation: KeyNotation, _ spelling: KeyLetterCase = .capital) -> String {
             var context = RenderContext(availableWidth: 80, availableHeight: 4, tuiContext: TUIContext())
                 .isolatingRenderCache()
             context.environment.keyNotation = notation
-            context.environment.statusBarKeySpelling = spelling
+            context.environment.keyLetterCase = spelling
             return renderToBuffer(bar, context: context).lines.map(\.stripped).joined()
         }
         let symbols = drawn(.symbols)

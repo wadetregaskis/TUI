@@ -94,7 +94,7 @@ private struct AsTypedApp: App {
             Text("Main")
                 .statusBarItems([StatusBarItem(shortcut: "x", label: "Export") {}])
                 .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
-                .statusBarKeySpelling(.asTyped)
+                .keyLetterCase(.asTyped)
         }
     }
 }

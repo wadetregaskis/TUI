@@ -151,7 +151,7 @@ enum KeySymbols {
     ///
     /// This is the item's string, not what is drawn: the bar draws a
     /// one-letter key as a menu does by default (`U`, `⇧U`), its own items'
-    /// and these alike (``StatusBarKeySpelling``).
+    /// and these alike (``KeyLetterCase``).
     static func statusBarName(of shortcut: KeyboardShortcut) -> String? {
         guard case .key(let equivalent, let modifiers) = shortcut.trigger else { return nil }
         // `trigger` has folded a capital into Shift, so the letter is its
