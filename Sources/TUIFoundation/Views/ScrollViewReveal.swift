@@ -125,8 +125,9 @@ extension _ScrollViewCore {
 
         if shouldSnap, !suppressed,
            let focusedID = currentFocusedID,
-           let target = fullBuffer.revealTarget(
-               focusID: focusedID, wholeControl: focusJustChanged)
+           let target = revealTarget(
+               focusedID, in: fullBuffer, arriving: focusJustChanged, viewportHeight: viewportHeight,
+               context: context)
         {
             // Where it is drawn: a control in a pinned section header is at
             // the edge it is pinned to, not where the flow drew it. Anything
@@ -259,6 +260,28 @@ extension _ScrollViewCore {
         lastFocusedBox.value.value = currentFocusedID
         lastInteractionBox.value.value = currentInteractionGen
         return false
+    }
+
+    /// What the snap reveals of the control `focusedID` names: on arrival
+    /// (`arriving`, the focus just moved to it) the whole control, every
+    /// region carrying the id; otherwise the smallest, the part of it that is
+    /// active — see ``FrameBuffer/revealTarget(focusID:wholeControl:)``.
+    ///
+    /// Under SCROLL-FIT's switch, a control arrived at that is taller than the
+    /// viewport is revealed by its smallest region too, its cursor's line,
+    /// and so not moved at all when that line is on screen (B-SCROLLFIT-6,
+    /// design 2e). Revealed whole, it was top-aligned: a content-sized table
+    /// or list focused at launch scrolled the title above it out of sight, and
+    /// one tabbed to scrolled to its top, past the row its cursor is on. A
+    /// control that fits is still shown whole, border and header included.
+    private func revealTarget(
+        _ focusedID: String, in fullBuffer: FrameBuffer, arriving: Bool, viewportHeight: Int,
+        context: RenderContext
+    ) -> (top: Int, height: Int)? {
+        let target = fullBuffer.revealTarget(focusID: focusedID, wholeControl: arriving)
+        guard arriving, context.environment.scrollFitsContent, let target, target.height > viewportHeight
+        else { return target }
+        return fullBuffer.revealTarget(focusID: focusedID, wholeControl: false)
     }
 
     /// Reveals the focused control by setting the anchor (SCROLL-FIT design

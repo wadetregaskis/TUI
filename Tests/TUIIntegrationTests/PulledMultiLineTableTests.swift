@@ -35,7 +35,7 @@ private struct MultiLineTablePage: View {
     let builds: Builds?
     var target: Int = 0
     /// The twin's frame: the same table drawn whole, framed to its full
-    /// height, the switch off. `nil` for the pulled table.
+    /// height, which the switch leaves as it was. `nil` for the pulled table.
     var framed: Int?
 
     var body: some View {
@@ -54,7 +54,7 @@ private struct MultiLineTablePage: View {
             }
             .onKeyEvent(.character("j")) { proxy.scrollTo(target, anchor: .top) }
         }
-        .environment(\.scrollFitsContent, framed == nil)
+        .environment(\.scrollFitsContent, true)
     }
 
     var table: some View {

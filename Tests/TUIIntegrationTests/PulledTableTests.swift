@@ -43,8 +43,8 @@ private struct TablePage: View {
                         table
                     } else {
                         // The twin: the same table drawn whole, framed to its
-                        // full height (its rows, header and borders), the
-                        // switch off.
+                        // full height (its rows, header and borders), which
+                        // the switch leaves as it was.
                         table.frame(height: entries.count + 3)
                     }
                     Button("below") {}
@@ -52,7 +52,7 @@ private struct TablePage: View {
             }
             .onKeyEvent(.character("j")) { proxy.scrollTo(target, anchor: .top) }
         }
-        .environment(\.scrollFitsContent, pulled)
+        .environment(\.scrollFitsContent, true)
     }
 
     private var table: some View {
