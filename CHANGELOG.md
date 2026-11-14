@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A view reading a scroll view's bounds no longer draws the scroll view's content twice when the scroll view
+changes size.** A `GeometryReader` or an anchor asking `bounds(of:)` was told the scroll view's size as it was
+when the reader was last found, so a column made narrower or wider drew the content a second time to correct
+each such reader. It is told the size the scroll view has now; the Stress `geometry` page, which narrows every
+fifth frame, went from 0.54 corrections a frame to 0.01, and is 26% faster.
+
 **`listEmptyPlaceholder(_:)`, `tableEmptyPlaceholder(_:)` and `tableColumnSpacing(_:)` are view modifiers.** They
 were methods of `List` and `Table`, so they had to come straight after the initializer, before any modifier:
 `.tableStyle(.bordered).tableEmptyPlaceholder("…")` did not compile. Now they can come anywhere in a chain and, set on

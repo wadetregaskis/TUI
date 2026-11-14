@@ -223,11 +223,22 @@ package final class GeometryAsk {
             return GeometryObservation(origin: predicted, spaceSize: ownerSize, scrollAxis: ownerAxis)
         }
         guard let then = kept.predicted else { return kept.observation }
+        // The residual corrects the origin only. A scroll view's space is
+        // its viewport, which it knows exactly as it opens the frame, so the
+        // size is that one, not the size the space had when the view was
+        // last found: a window made a column narrower told every reader of
+        // `bounds(of:)` last frame's width, and the scroll view drew its
+        // content twice (Stress `geometry`, whose frame narrows every fifth
+        // tick and whose rows anchor their bounds: 161 of its 164
+        // corrections in 300 frames). A named space opens with the size it
+        // is offered, not the one it takes, so what was found is the better
+        // guess there.
+        let size: CellSize? = ownerAxis != nil ? ownerSize ?? kept.observation.spaceSize : kept.observation.spaceSize
         return GeometryObservation(
             origin: CellPoint(
                 x: predicted.x + kept.observation.origin.x - then.x,
                 y: predicted.y + kept.observation.origin.y - then.y),
-            spaceSize: kept.observation.spaceSize, scrollAxis: kept.observation.scrollAxis)
+            spaceSize: size, scrollAxis: kept.observation.scrollAxis)
     }
 
     /// Where the view expects to be found in `space` — what it would be told

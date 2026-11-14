@@ -1057,6 +1057,27 @@ Two things the corrected runs show that the idle ones could not, neither looked 
   runs `two-stacked-lazy` reached 61 MB, `boxed-lazy` 66 MB, `layout-list` 31 MB.
 - **`geometry`'s scroll view corrects a frame in two** while it scrolls (above).
 
+**Looked into (2026-11-14, the lane after).**
+
+- **`geometry`'s corrections were a bug, and not the scroll's.** Traced reader by reader over
+  300 frames (a debug print of each reader the scroll view found misled, now removed): 161 of
+  the 164 corrections were readers told the right ORIGIN — the carried-origin prediction (design
+  study A2, G4) was exact — and the wrong SPACE SIZE: every row's `anchorPreference(.bounds)` asks
+  `bounds(of:)`, which uses the size, and a reader with an answer kept from last frame was told
+  last frame's viewport (`GeometryAsk.predictedAnswer` took the kept observation's size), so the
+  frame narrowing every fifth tick (`.frame(width: 100 - (tick / 5) % 10)`) drew the content
+  twice to correct them. At rest that was those frames, 0.20 a frame (one in five); scrolling
+  made it 0.54 (more readers holding an answer from an earlier width — not traced further, as
+  the fix removes them all). The residual corrects the origin only now; under a scroll view the
+  size is the viewport it opens the frame with, exact, as a first-sight prediction's already was
+  (a named space opens with the size it is offered, not the one it takes, so there the size found
+  last frame stays the better guess — the first version took the owner's everywhere and failed
+  `CoordinateSpaceTests`' probe M1 case). 0.54 → 0.01
+  corrections a frame (the three left: the first scrolled frame, whose residual is from a
+  frame drawn at offset 0, and the frame the page wraps back to its top); 5,066 → 3,771 µs a
+  frame, −26.1% [−27.0, −23.8], frames identical (`frame_parity.py`, 120 frames). The rungs'
+  "zero corrections past a reader's first frame" holds again for this page.
+
 
 ### 1e. Focus: an unbuilt row stays reachable
 
