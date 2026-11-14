@@ -140,6 +140,24 @@ Type select takes every printable character but Space while the list or table
 has the focus, whether or not a row matches, so a bare-key status-bar item or
 shortcut doesn't hear one there; the row shortcuts are all Control chords.
 
+To put a command on a bare letter beside a list or table — `k` to kill, as
+`htop` has it — give the list or table an `onKeyPress` for it. It hears its key
+ahead of type select, as SwiftUI's does, and a letter it doesn't take still
+goes to type select. A status-bar item with no action shows the key:
+
+```swift
+Table(processes, selection: $selection) {
+    TableColumn("Name", value: \.name)
+}
+.onKeyPress("k") {
+    kill(selection)
+    return .handled
+}
+.statusBarItems {
+    StatusBarItem(shortcut: "k", label: "kill")   // the hint; the key is the onKeyPress's
+}
+```
+
 Hold Shift with Up/Down to move the cursor by several rows at once (clamping at
 the ends rather than wrapping). The step count is the `.shiftStepMultiplier(_:)`
 environment value (default 5).

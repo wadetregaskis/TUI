@@ -125,6 +125,23 @@ A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as
 
 The symbols are drawn in the terminal's font, and a font with no glyph for them draws a box. The bar follows ``EnvironmentValues/keyNotation``: when the user sets `TUI_KEY_SYMBOLS=0` or chooses View ▸ Spell Out Keys, or the app asks with ``Scene/keyNotation(_:)``, every key in the bar is written by name, `⌃Q` as `Ctrl-Q` and `⎋` as `Esc`. See ``KeyNotation``.
 
+### Bare letters beside a list or table
+
+While a list or table has the focus, its type select takes every printable character but Space, so an item with an action on a bare letter doesn't fire there, and the bar leaves it out. An item with no action stays, as a hint. To keep a command on a bare letter while a list or table has the focus, take the key with an `onKeyPress` on the list or table, which hears it ahead of type select, as SwiftUI's does, and keep the item as its hint:
+
+```swift
+Table(processes, selection: $selection) { … }
+    .onKeyPress("k") {
+        kill(selection)
+        return .handled
+    }
+    .statusBarItems {
+        StatusBarItem(shortcut: "k", label: "kill")   // no action: the hint
+    }
+```
+
+See <doc:ListAndTable> ("Keyboard Navigation").
+
 ## Context Stack
 
 Status bar items use a **context stack**. Context-specific items can temporarily replace global items, for example while a dialog is visible:
