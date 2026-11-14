@@ -31,6 +31,7 @@ place:
 | [Localization](<Localization/>) | Which language a key is read in. |
 | [Menus, toolbars and chrome](<Menus, toolbars and chrome/>) | Pop-up menus; the menu bar; toolbars and opt-in window chrome. |
 | [Module split, compile time and binary size](<Module split, compile time and binary size/>) | The module split; winning back its cost; per-module products; binary size; compile time and the test targets; the linker's RWX warning on Linux aarch64. |
+| [Performance](Performance/) | Stating performance cases as a table: counted in the gate, timed on demand. |
 | [Presentation and windows](<Presentation and windows/>) | Sheets and the page behind; windows; file panels; help and tooltips; compact adaptation; dialogs and pickers. |
 | [Reviews and audits](<Reviews and audits/>) | The first reviews of the codebase and its tests (May 2026); the review batches of 2026-08-20, 2026-09-09 and 2026-09-12; a review of 71 commits by another author (2026-11-07). |
 | [Scrolling](Scrolling/) | Holding the reader's place; paging and view-aligned scrolling; content past a scroll view's edge; scroll phases, animated scrolling, flash and bounce; scroll position and visibility; measuring a scroll view's content; the SCROLL-FIT design (content-sized views in scroll content). |
