@@ -409,8 +409,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         handler.anchorPositionBinding = pageAnchorPosition(context.environment)?.binding
         (handler.declaredAnchorMode, handler.declaredOpeningAnchorMode) =
             pageDeclaredAnchorModes(context.environment)
-        handler.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
-        handler.horizontal.wheelEdgeHold.delayNanos = context.environment.scrollChainingDelay.clampedNanoseconds
+        handler.wheelEdgeHold.adopt(context.environment)
+        handler.horizontal.wheelEdgeHold.adopt(context.environment)
         // One lookup a frame, and the motion rule only for a view that sets it.
         // A framework scroller's keys never glide: it takes none of the page's
         // scroll settings.

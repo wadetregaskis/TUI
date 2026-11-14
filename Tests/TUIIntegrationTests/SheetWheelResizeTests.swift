@@ -42,8 +42,8 @@ private struct WheelSheet: View {
             }
             // The wheel chains to the sheet the moment the content is at its
             // end, rather than after the grace a nested scroller holds blocked
-            // ticks for (two seconds of real time, which the test's clock does
-            // not drive).
+            // ticks for (two seconds, which the test would have to advance its
+            // clock through).
             .scrollChainingDelay(.zero)
         } else {
             Button("OK") { pressed?.count += 1 }

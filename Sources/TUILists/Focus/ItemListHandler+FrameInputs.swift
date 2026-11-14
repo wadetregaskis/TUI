@@ -94,8 +94,9 @@ extension ItemListHandler {
         // The nested-scroll grace period. `.scrollChainingDelay(_:)` documents
         // itself as reaching "List, Table, ScrollView, both axes" — and without
         // being captured here a single-line Table was the one scroller in that
-        // list that kept the 500 ms default whatever the app asked for.
-        wheelEdgeHold.delayNanos = environment.scrollChainingDelay.clampedNanoseconds
+        // list that kept the default whatever the app asked for. Timed on the
+        // clock ticks arrive on (`WheelEdgeHold.adopt(_:)`).
+        wheelEdgeHold.adopt(environment)
         // The page keys' glide (`scrollKeyboardAnimation(_:)`), for event time:
         // one lookup, and the motion rule only for a list that sets it.
         let keyAnimation = environment.scrollKeyboardAnimation

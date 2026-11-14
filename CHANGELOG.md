@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**In a `TestApp`, the wheel chains out of a nested list, table or scroll view on the test's clock.** A scroller
+holds wheel ticks at its edge for `.scrollChainingDelay` (two seconds by default) before passing them to the scroll
+view around it, and timed that on the real clock, which a `TestApp` does not drive: a test's wheel never left an
+inner list for the page around it, and `advance(by:)` did not help. The delay is now timed on the clock events
+arrive on, which is the test's in a `TestApp` and the real one in an app.
+
 **A long `GroupBox`, `DisclosureGroup`, `Section` or `FlowLayout` in a scroll view builds only the rows on
 screen.** A `GroupBox { ForEach(items) { … } }` of thousands of rows, an expanded `DisclosureGroup` of them, a
 `Section` drawn on its own or a `FlowLayout` of thousands of tags built every row on every frame, as eager containers

@@ -375,7 +375,8 @@ public struct WheelEdgeHold {
     /// behaviour). Synced from the environment by the owning view each frame.
     package var delayNanos: UInt64 = ScrollChainingDelayKey.defaultValue.clampedNanoseconds
 
-    /// Monotonic clock, injectable for tests.
+    /// Monotonic clock, injectable for tests. The owning view sets it each
+    /// frame to the clock wheel ticks arrive on (``adopt(_:)``).
     var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     /// A hold that has not yet seen a blocked tick, with the default grace.
@@ -384,6 +385,18 @@ public struct WheelEdgeHold {
     /// ``View/scrollChainingDelay(_:)`` on every frame, so this initial value
     /// only governs a scroller rendered before any environment reaches it.
     public init() {}
+
+    /// Takes this frame's grace period from ``View/scrollChainingDelay(_:)``,
+    /// and the clock to time it on from the app's mouse event dispatcher: the
+    /// clock a tick's arrival is read on. In a running app that is the
+    /// monotonic clock this starts with; in a `TestApp` it is the test's own,
+    /// which moves only when the test says. Timed on the real clock instead, a
+    /// test could not chain the wheel out of a list at all, two seconds never
+    /// passing between its ticks, and advancing its clock changed nothing.
+    package mutating func adopt(_ environment: EnvironmentValues) {
+        delayNanos = environment.scrollChainingDelay.clampedNanoseconds
+        if let dispatcher = environment.mouseEventDispatcher { nowNanos = dispatcher.nowNanos }
+    }
 }
 
 // MARK: - Default arithmetic
