@@ -145,16 +145,16 @@ enum ScrollFitBaseline {
         lazyHStack           twoStacked  60  60x1     60x1     nn  n
         lazyHStack           fixedSize   60  60x1     -        n   n
         lazyHStack           horizontal  60  410x1    -        n   n
-        tabView              alone       3   10x4     -        Y   n
-        tabView              underTitle  3   10x4     -        Y   n
-        tabView              twoStacked  3   10x4     10x4     YY  n
-        tabView              fixedSize   3   10x4     -        Y   n
-        tabView              horizontal  3   10x4     -        Y   n
-        tabView              alone       60  10x61    -        Y   n
-        tabView              underTitle  60  10x61    -        Y   n
-        tabView              twoStacked  60  10x61    10x61    YY  n
-        tabView              fixedSize   60  10x61    -        n   n
-        tabView              horizontal  60  10x61    -        Y   n
+        tabView              alone       3   7x4      -        Y   n
+        tabView              underTitle  3   7x4      -        Y   n
+        tabView              twoStacked  3   7x4      7x4      YY  n
+        tabView              fixedSize   3   7x4      -        Y   n
+        tabView              horizontal  3   7x4      -        Y   n
+        tabView              alone       60  7x61     -        Y   n
+        tabView              underTitle  60  7x61     -        Y   n
+        tabView              twoStacked  60  7x61     7x61     YY  n
+        tabView              fixedSize   60  7x61     -        n   n
+        tabView              horizontal  60  7x61     -        Y   n
         navigationStack      alone       3   5x3      -        Y   n
         navigationStack      underTitle  3   5x3      -        Y   n
         navigationStack      twoStacked  3   5x3      5x3      YY  n

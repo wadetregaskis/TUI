@@ -129,7 +129,9 @@ enum ScrollFitCatalogue {
         case .lazyHStack:
             return AnyView(LazyHStack(spacing: 1) { ForEach(data) { row($0) } })
         case .tabView:
-            return AnyView(TabView { Tab("One", systemImage: "a.circle") { column } })
+            // Omit systemImage so the strip width doesn't depend on whether
+            // the host has the SF Symbols font installed (SFSymbol.canRender).
+            return AnyView(TabView(selection: .constant(0)) { Tab("One", value: 0) { column } })
         case .navigationStack:
             return AnyView(NavigationStack { column })
         case .navigationSplitView:
