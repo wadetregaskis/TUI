@@ -1059,6 +1059,30 @@ Two things the corrected runs show that the idle ones could not, neither looked 
 
 **Looked into (2026-11-14, the lane after).**
 
+- **The memory was the `if` records of the rows scrolled past.** `Stress --bench --cache-sizes N`
+  (new) named the one table that grew, `state.optionalPresence`, by about 2.25 records a frame —
+  one per row passed, each row of the pulled pages holding an `if` for its second line — and
+  `heap` on a running bench named what they held: 500,516 `IdentityNode`s, 40 MB of a 60 MB heap
+  after 20 seconds. A record keeps what its `if` last drew and where, and a windowed-out row's
+  were kept with its state (`retainSubtree`), the picture and the identity of every view down to
+  the `if` with them. Only one of a record's jobs survives a pass unseen — dropping the held
+  view's state when the row comes back empty; an arrival or a departure is never played from a
+  frame nobody saw (`wasOnScreenLastPass`) — so the sweep, which already ran when the table
+  doubled, now drops a windowed-out row's record unless its `if` holds a view with state below it
+  (found by climbing each stored value's identity once), and keeps that one without its picture.
+  Dropping only the pictures was tried first: 98 → 92 MB, the identities being the bulk.
+  `titled-lazy`, RSS peak at 2,000, 8,000 and 16,000 frames: 26.5, 55.5, 96.1 → 20.1, 21.6,
+  22.8 MB (records 4,494, 17,983, 36,061 → 74, 43, 78; what still grows, 0.08 KB a line, not
+  found); cpu a frame flat at 755 to 766 µs, where the base's rose under load in the earlier run.
+  At 8,000 frames: `two-stacked-lazy` 56.5 → 21.1 MB, `boxed-lazy` 63.7 → 23.1, `layout-list`
+  31.6 → 21.9, `titled-list-variable` 31.2 → 22.4. A/B (load 3.2): the five pulled pages
+  indistinguishable in cpu, their A/B RSS 49.4 → 21.0, 40.3 → 21.8, 42.0 → 22.2, 30.1 → 21.4,
+  30.1 → 22.6 MB; frames identical on 12 scenarios. That A/B also had `menus` +7.9% [+6.4, +9.6]
+  (twice on its own, +6.3 and +9.1%) and `dashboard` +2.1%, neither of which runs this code
+  (`menus` holds 18 records every frame, under the sweep's floor of 64). It was the tip binary, an
+  incremental release build in the lane's worktree: the same commits built clean
+  (`perf/build_v.sh`) put `menus` at +0.9% and −2.4% before this commit and +0.5% and +1.3% across
+  it, all indistinguishable.
 - **`geometry`'s corrections were a bug, and not the scroll's.** Traced reader by reader over
   300 frames (a debug print of each reader the scroll view found misled, now removed): 161 of
   the 164 corrections were readers told the right ORIGIN — the carried-origin prediction (design

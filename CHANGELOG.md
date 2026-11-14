@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A long lazy stack, `List` or `Table` no longer holds on to every row's `if` once it has scrolled past it.**
+Each `if` keeps a record of what it last held, and a row scrolled out of view kept its records — the picture its
+view last drew and the identity of every view down to it — for as long as the container lived: a lazy stack of
+100,000 rows with an `if` in each grew by about 1.7 KB a line scrolled, 96 MB after 48,000 lines. A scrolled-away
+row's record now goes, unless the view its `if` held has state to drop should the row come back without it; the
+same page stays at 23 MB. Rows keep their `@State` as before.
+
 **A `ScrollPosition`'s first value places a scroll view or a `List` as it appears, as SwiftUI's does.** A
 scroll view drawn with no layout pass before it clamped the offset against a height of 0 and opened at the top,
 and a `List` or `Table` opened where it was asked to but went back to its cursor's row the moment the focus first

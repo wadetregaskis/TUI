@@ -234,6 +234,17 @@ extension PlacementStore {
         servedRoots.append(root)
     }
 
+    /// Whether a view stands in a subtree a memo served this pass, as an
+    /// answer to ask of many: on screen as it last drew, though nothing in it
+    /// rendered. For the end of a pass, which ``wasServedLastPass(_:)`` is
+    /// not (it asks of the pass before).
+    package func servedThisPass() -> (ViewIdentity) -> Bool {
+        let roots = servedRoots
+        guard !roots.isEmpty else { return { _ in false } }
+        var index = RetainedSubtreeIndex(roots: roots)
+        return { index.retains($0) || roots.contains($0) }
+    }
+
     /// Once the table has outgrown ``pruneThreshold``, forgets the
     /// containers that neither rendered this pass nor stand in a subtree a
     /// memo served, and sets the next threshold from what is left.

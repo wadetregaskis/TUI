@@ -169,7 +169,7 @@ import TUICore
     /// Unlike `values` (which stores `StateBox` objects that trigger re-renders),
     /// tracked values are plain values used only for change detection. Writing to
     /// them does not trigger a re-render.
-    private var trackedValues: [StateKey: Any] = [:]
+    private(set) var trackedValues: [StateKey: Any] = [:]
 
     /// Per-identity counters for `onChange(of:)` index assignment.
     ///
@@ -874,12 +874,10 @@ extension StateStorage {
         }
         if optionalPresence.count > 2 * optionalRecordsAfterSweep + 64 {
             // By the pass that last wrote each record, which an `if` stamps
-            // rather than marking itself active (`presentOptional`).
-            var stale: [ViewIdentity] = []
-            for (identity, record) in optionalPresence where record.pass != currentPass && !retained.retains(identity) {
-                stale.append(identity)
-            }
-            for identity in stale { optionalPresence.removeValue(forKey: identity) }
+            // rather than marking itself active (`presentOptional`); and the
+            // records of rows a window left out, which a retained subtree
+            // kept, go too unless they hold the way to drop state.
+            sweepOptionalRecords(retained: &retained)
             optionalRecordsAfterSweep = optionalPresence.count
         }
         animations.endRenderPass()

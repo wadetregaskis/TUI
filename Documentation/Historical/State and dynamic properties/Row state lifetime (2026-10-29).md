@@ -114,3 +114,11 @@ an app sees state behave.
 - If row-state growth matters again, it is state other than pixels that
   remains: glyph conversions (a few kilobytes a picture), and whatever an app
   keeps in its rows' `@State`. SwiftUI keeps the same.
+- **The framework's own records are not row state.** An `if`'s record
+  (`OptionalPresence`: the picture its view last drew, and the identity of
+  every view down to it) was kept with a windowed-out row like its state, and
+  a lazy stack of 100,000 rows with an `if` in each grew by about 1.7 KB a
+  line scrolled (2026-11-14, SCROLL-FIT design, "Looked into"). The sweep of
+  those records now drops a windowed-out row's, unless the view its `if`
+  held has state that the row coming back empty must drop
+  (`StateStorage+OptionalRecords.swift`).
