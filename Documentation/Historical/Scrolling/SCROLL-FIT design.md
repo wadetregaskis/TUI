@@ -1003,7 +1003,59 @@ Traced afterwards (2026-11-14), with every frame of both builds dumped:
   `.scrollPosition(.constant(ScrollPosition(y: line)))` builds a fresh position each frame, each
   with the same request token (1), and the scroll view applies a request only when the token
   changes, so after the first frame it never moves. The A/B numbers above for these pages measure
-  the top frame redrawn, not three lines a tick.
+  the top frame redrawn, not three lines a tick. Fixed in the library (461d13e84): SwiftUI
+  scrolls to each new value bound that way (measured, `Tools/SwiftUIProbes/Scroll position bound
+  to a changing value`), so the scroll view now compares the bound request by value. Stress now
+  fails a scrolling variant whose frames do not move, in `--selfcheck` and `--bench` (0c5031afc).
+
+**Corrected measurements** (2026-11-14, `ab_bench.py`, release, cpu per frame, 10 reps, the pages
+scrolling three lines a tick). Every A/B recorded above for the pulled pages — P2's, P3's, P4's,
+P8's and P9's, the headline numbers and the "indistinguishable" checks alike, and every earlier
+`geometry` number — timed a page that stood still: the tip's side was its top frame redrawn,
+which the memos serve. The base's side drew every row whatever the offset, so the bases' numbers
+hold roughly; the tips' were too low by up to 4.6 times.
+
+Against the code before P2 (98447fc67, with today's pulled pages, the switch lines dropped since
+the switch did not exist, and the fix; tip 0c5031afc; load 3.9):
+
+| Page | Recorded (idle tip) | Corrected base → tip | RSS |
+|---|---|---|---|
+| `titled-lazy` | 0.27 ms (idle at a58bb6549; P2 to P4 checked it only for change) | 2,513 ms → 0.81 ms (−100.0%) | 1,063 → 14.9 MB |
+| `two-stacked-lazy` | 0.45 ms (idle at a58bb6549; likewise) | 2,749 ms → 0.90 ms (−100.0%) | 1,101 → 15.0 MB |
+| `boxed-lazy` | 687.2 → 0.59 ms (P2, base 1391cf863) | 2,577 ms → 1.19 ms (−100.0%) | 1,103 → 15.5 MB |
+| `boxed-eager` | 88.7 → 0.55 ms (P8) | 273.9 ms → 1.03 ms (−99.6%) | 99.3 → 15.4 MB |
+| `flow-10k` | 202.7 → 28.5 ms (P8) | 354.0 → 27.8 ms (−92.2%) | 118.8 → 84.8 MB |
+| `layout-list` | 167.8 → 0.79 ms (P9) | 227.9 ms → 1.40 ms (−99.4%) | 165.4 → 15.6 MB |
+| `titled-list` | 33.8 → 0.48 ms (P3) | 45.9 ms → 0.61 ms (−98.7%) | 62.4 → 15.6 MB |
+| `titled-table` | 327 → 365 µs, +12.2% (P3) | 317 → 377 µs, +18.4% [+17.2, +19.6] | 17.9 → 18.5 MB |
+| `titled-list-variable` | 23.8 → 0.39 ms (P4) | 65.3 ms → 1.79 ms (−97.3%) | 53.5 → 16.7 MB |
+| `grouped-form` | 343 → 296 ms, −14.1% (P4 fix) | 344 → 296 ms, −13.7% [−14.4, −13.3] | 101.8 → 72.8 MB |
+| `titled-editor` | 37.7 → 0.53 ms (P4) | 39.1 ms → 0.53 ms (−98.6%) | 69.4 → 67.9 MB |
+
+(RSS here is after the A/B's 50 to 117 frames a run; see below for longer runs.) The pull's
+verdicts stand: every page but `titled-table`, whose base could not scroll (the table capped at
+the viewport, as P3 noted), is 92 to 100% faster. What changes is the tip's cost, which is what the
+lanes' few-percent checks were guarding.
+
+The same code standing still and scrolling (a58bb6549, the tip as recorded, against 0c5031afc;
+load 2.4), which is what each recorded tip number left out: `titled-lazy` 271 → 807 µs (+198%),
+`two-stacked-lazy` 451 → 844 µs (+87%), `boxed-lazy` 552 → 1,156 µs (+110%), `boxed-eager` 489 →
+977 µs (+99%), `layout-list` 741 → 1,363 µs (+85%), `titled-list` 448 → 561 µs (+26%),
+`titled-list-variable` 379 → 840 µs (+121%), `titled-table` +3.3%, `flow-10k` −10.1%;
+`grouped-form` and `titled-editor` indistinguishable (the form's rows are eager either way; the
+editor costs the same at rest). `geometry`, whose page binds the same constant position and so
+never scrolled either, 3.61 → 5.34 ms (+47%), and its scroll-view geometry corrections, which its
+acceptance metric wants at zero past a reader's first frame, rise from 0.20 to 0.54 a frame once
+it scrolls (300 frames; "still wrong after one" stays 0).
+
+Two things the corrected runs show that the idle ones could not, neither looked into yet:
+
+- **A pulled page's memory grows with the rows it has scrolled past.** `titled-lazy` at the tip,
+  `--bench` of 2,000, 8,000 and 16,000 frames (6,000 to 48,000 lines scrolled): RSS peak 28.2,
+  57.9 and 98.8 MB, about 1.7 KB a line, and cpu a frame 742, 801 and 894 µs. The render cache's
+  prune is flat (about 30 entries a frame), so what grows is held elsewhere. In the A/B's long
+  runs `two-stacked-lazy` reached 61 MB, `boxed-lazy` 66 MB, `layout-list` 31 MB.
+- **`geometry`'s scroll view corrects a frame in two** while it scrolls (above).
 
 
 ### 1e. Focus: an unbuilt row stays reachable
