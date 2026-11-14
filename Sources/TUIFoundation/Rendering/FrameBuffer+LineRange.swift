@@ -36,4 +36,27 @@ extension FrameBuffer {
         if !overlays.isEmpty { part.overlays = shiftedOverlays(byX: 0, y: dy) }
         return part
     }
+
+    /// Lines `rows` of this buffer as a buffer of their own, with only what
+    /// rides on them — the hit regions, runs and claims cut to them — moved up
+    /// with them: ``lines(in:)`` without the regions of the lines left out and
+    /// the floating layers, and without a crop of every line, for a copy of a
+    /// few lines drawn elsewhere: a table's header pinned to the scroll view's
+    /// edge, taken from the table every frame it is pinned.
+    package func copying(lines rows: Range<Int>) -> FrameBuffer {
+        let kept = rows.clamped(to: 0..<height)
+        var part = FrameBuffer(lines: Array(lines[kept]))
+        let dy = -kept.lowerBound
+        let columns = 0..<width
+        part.hitTestRegions = hitTestRegions.compactMap {
+            $0.clipped(toColumns: Int.min..<Int.max, rows: kept)?.shifted(byX: 0, y: dy)
+        }
+        part.animatedCells = animatedCells.compactMap { run in
+            kept.contains(run.offsetY) ? run.shifted(byX: 0, y: dy) : nil
+        }
+        part.opacityRegions = opacityRegions.compactMap {
+            $0.clipped(toColumns: columns, rows: kept)?.shifted(byX: 0, y: dy)
+        }
+        return part
+    }
 }

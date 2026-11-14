@@ -924,9 +924,13 @@ extension FrameBuffer {
     }
 
     /// ``composite(with:at:)`` with the RGB the terminal reported for its own
-    /// foreground, where the caller knows one — see
-    /// ``composited(with:at:overlayIsPainted:terminalForeground:)``.
-    package mutating func composite(with overlay: Self, at position: (x: Int, y: Int), terminalForeground: () -> SGRState.Colour?) {
+    /// foreground, where the caller knows one, and for an overlay that already
+    /// states every field it needs (`overlayIsPainted`, drawn over nothing of
+    /// the base's) — see ``composited(with:at:overlayIsPainted:terminalForeground:)``.
+    package mutating func composite(
+        with overlay: Self, at position: (x: Int, y: Int), overlayIsPainted: Bool = false,
+        terminalForeground: () -> SGRState.Colour?
+    ) {
         guard !overlay.isEmpty else {
             // No visible cells, but nested layers and hit regions still lift.
             guard !overlay.overlays.isEmpty || !overlay.hitTestRegions.isEmpty
@@ -942,7 +946,8 @@ extension FrameBuffer {
         }
         guard linesAreUniformWidth else {
             self = composited(
-                with: overlay, at: position, overlayIsPainted: false, terminalForeground: terminalForeground)
+                with: overlay, at: position, overlayIsPainted: overlayIsPainted,
+                terminalForeground: terminalForeground)
             return
         }
 
@@ -982,6 +987,7 @@ extension FrameBuffer {
                 base: storage[row].padToVisibleWidth(resultWidth),
                 overlay: overlayLine,
                 atColumn: position.x,
+                overlayIsPainted: overlayIsPainted,
                 terminalForeground: terminalForeground)
             storage[row] = inserted.line
             fields?[overlayRow] = inserted.fields

@@ -1085,11 +1085,16 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             var size = laidOut.table.measuredSizeThatFits(
                 proposal: ProposedViewSize(width: proposal.width, height: proposal.height.map { $0 - barLines }),
                 context: laidOut.context)
-            // Pulled, its rows' height and the bar's line under them — and
-            // filed again as a view that bands its rows, which the window's
-            // measure, not itself pulled, withdrew.
-            if pulled != nil { context.notePulledBand(true) }
-            size.height = pulled ?? size.height + barLines
+            // Pulled, its rows' height and the bar's line under them
+            // (`pulledBarLines`, which its lines leave out when measured) —
+            // and filed again as a view that bands its rows, which the
+            // window's measure, not itself pulled, withdrew.
+            if let pulled {
+                context.notePulledBand(true)
+                size.height = pulled + (measureContext.environment.showsHorizontalScrollbar(overflowing: true) ? 1 : 0)
+            } else {
+                size.height += barLines
+            }
             return size
         }
 
@@ -7563,11 +7568,16 @@ extension _TableCore {
     /// content, given a height, below a container that does not pull, a style
     /// of the app's own, rows of varying height whose columns do not fit
     /// across, or no rows.
-    private func pulledLines(context: RenderContext) -> PulledTableLines? {
+    ///
+    /// `measuringBar` leaves the bar's line out of a single-line table's lines
+    /// for its measure to add (`measuredSizeThatFits`), which finds whether
+    /// the columns fit as it measures them: asked here too, every rung of the
+    /// scroll view's measuring ladder laid them out again.
+    private func pulledLines(context: RenderContext, measuringBar: Bool = false) -> PulledTableLines? {
         let environment = context.environment
         guard environment.scrollFitsContent, context.scrollContentOriginDepth != 0, !context.hasExplicitHeight,
             !data.isEmpty, horizontalWindow == nil, customStyle(environment) == nil,
-            context.isPulledWhereItStands, let bar = pulledBarLines(context)
+            context.isPulledWhereItStands, let bar = measuringBar ? 0 : pulledBarLines(context)
         else { return nil }
         let border = borderWidth(environment)
         return PulledTableLines(
@@ -7603,7 +7613,7 @@ extension _TableCore {
     /// measuring ladder sampled them again: more rows, more rungs, more built).
     private func pulledHeight(context: RenderContext) -> Int? {
         guard context.environment.scrollFitsContent else { return nil }
-        let lines = pulledLines(context: context)
+        let lines = pulledLines(context: context, measuringBar: !usesMultiLineLayout)
         context.notePulledBand(lines != nil)
         guard let lines else { return nil }
         guard usesMultiLineLayout else { return lines.top + lines.count + lines.bottom }
@@ -7683,7 +7693,7 @@ extension _TableCore {
         var buffer = drawn.lines(in: drawnLine(lineRange.lowerBound)..<(drawnLine(lineRange.upperBound - 1) + 1))
         if request != nil, !context.isMeasuring {
             buffer.overlays += pinnedChrome(
-                of: drawn, lines: lines, rowLines: lines.count, drawnRowLines: rows.count, bandTop: lineRange.lowerBound)
+                of: drawn, lines: lines, rowLines: lines.count, drawnRowLines: rows.count, bandLines: lineRange)
         }
         if let handler = existingHandler(context), !context.isMeasuring {
             buffer.markPulledControl(
@@ -7741,7 +7751,7 @@ extension _TableCore {
             if !context.isMeasuring {
                 buffer.overlays += pinnedChrome(
                     of: drawn, lines: lines, rowLines: placed.band.total - lines.top - lines.bottom,
-                    drawnRowLines: placed.rowLines, bandTop: placed.band.lines.lowerBound)
+                    drawnRowLines: placed.rowLines, bandLines: placed.band.lines)
             }
             if let handler = existingHandler(context), !context.isMeasuring {
                 let cursor = placed.lines(
@@ -7797,8 +7807,11 @@ extension _TableCore {
     /// 2c, B-SCROLLFIT-9): a copy of each, taken from `drawn` — the table
     /// framed to the band's rows, `drawnRowLines` lines of them — as a section
     /// pins its header and footer (``OverlayLayer/scrollPinned(_:at:edge:travel:)``),
-    /// at its place in the band's lines, whose first is the table's line
-    /// `bandTop`: above the band or below it, where the band leaves it out.
+    /// at its place in the band's lines, `bandLines` of the table's: above the
+    /// band or below it, where the band leaves it out. Only where the scroll
+    /// view could pin it: a header at or above the band's first line (where an
+    /// "N more above" line covers the first), a bar at or below its last; a
+    /// copy is taken every frame one is pinned.
     ///
     /// The header is the header's lines and the side borders on them, not the
     /// top border; the bar is its line and the side borders on it. Each may
@@ -7806,30 +7819,23 @@ extension _TableCore {
     /// the last row and the bar stops at the first, and a table below takes
     /// the edge over, as a section's header does.
     private func pinnedChrome(
-        of drawn: FrameBuffer, lines: PulledTableLines, rowLines: Int, drawnRowLines: Int, bandTop: Int
+        of drawn: FrameBuffer, lines: PulledTableLines, rowLines: Int, drawnRowLines: Int, bandLines: Range<Int>
     ) -> [OverlayLayer] {
-        // The lines, and what rides on them: the header's sort regions, the
-        // bar's. Not the regions `lines(in:)` carries outside them, which the
-        // band holds already.
-        func copy(_ rows: Range<Int>) -> FrameBuffer {
-            var chrome = drawn.lines(in: rows)
-            let height = chrome.height
-            chrome.hitTestRegions.removeAll { $0.offsetY < 0 || $0.offsetY + $0.height > height }
-            return chrome
-        }
         var pins: [OverlayLayer] = []
         let headerTop = lines.top - lines.header
-        if lines.header > 0 {
+        if lines.header > 0, headerTop <= bandLines.lowerBound {
             pins.append(
                 .scrollPinned(
-                    copy(headerTop..<lines.top), at: headerTop - bandTop, edge: .top, travel: rowLines, isOpaque: true))
+                    drawn.copying(lines: headerTop..<lines.top), at: headerTop - bandLines.lowerBound, edge: .top,
+                    travel: rowLines, isOpaque: true))
         }
-        if lines.bar > 0 {
+        let barTop = lines.top + rowLines
+        if lines.bar > 0, barTop + lines.bar >= bandLines.upperBound {
             let drawnBar = lines.top + drawnRowLines
             pins.append(
                 .scrollPinned(
-                    copy(drawnBar..<(drawnBar + lines.bar)), at: lines.top + rowLines - bandTop, edge: .bottom,
-                    travel: rowLines, isOpaque: true))
+                    drawn.copying(lines: drawnBar..<(drawnBar + lines.bar)), at: barTop - bandLines.lowerBound,
+                    edge: .bottom, travel: rowLines, isOpaque: true))
         }
         return pins
     }

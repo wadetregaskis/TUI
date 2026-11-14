@@ -234,11 +234,9 @@ extension FrameBuffer {
         // An opaque one (a table's header and bar) its fields too: drawn over
         // the row beneath's, a cursor row reversed on the terminal's own ink
         // took the header's letters into its field, and they vanished.
-        if layer.isOpaque {
-            self = composited(with: drawn, at: (x: placement.column, y: placement.row), overlayIsPainted: true)
-        } else {
-            composite(with: drawn, at: (x: placement.column, y: placement.row))
-        }
+        composite(
+            with: drawn, at: (x: placement.column, y: placement.row), overlayIsPainted: layer.isOpaque,
+            terminalForeground: { nil })
     }
 
     /// Whether `region` lies entirely inside `columns` × `rows`.
