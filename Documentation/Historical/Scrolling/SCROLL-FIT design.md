@@ -1433,6 +1433,16 @@ few-percent line. RSS within 1.2 MB everywhere. `frame_parity.py`: 163 of 165 ca
 `app-shapes/grouped-form`'s flake (4 frames of 120) and `app-shapes/timeline-rows` the two that
 differ, as at P4. `Stress --selfcheck` clean (139 cases, 26 sessions).
 
+**As P5b built it** (2026-11-14). Behind the switch; with it off nothing reads any of it
+(`ScrollFitBaselineTests` unchanged).
+
+- **A pulled view's geometry is all of it** (`OnGeometryChangeModifier.swift`). `onGeometryChange` read
+  the size off the drawing, so a pulled table or lazy stack reported the band on screen (59x24 for a
+  60-row table under a title); under the switch it reads the height the band's reply says
+  (`sliceTotalHeight`), as SwiftUI reports the frame of a view part of which is scrolled off: 59x63.
+  The width is still the drawing's. With the switch off the baseline's band sizes stand
+  (`tallLazyStackAlone` 59x26).
+
 ## 3. Performance budget
 
 **What must be O(visible) per frame**, independent of the row count. Rows *built* means a row

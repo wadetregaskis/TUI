@@ -202,4 +202,15 @@ struct PulledTableTests {
         _ = app.press(.end)
         #expect(app.screen.contains("r9999"), "\(app.screen)")
     }
+
+    /// `onGeometryChange` reports the view's size, all of it, as SwiftUI's
+    /// does for a view part of which is scrolled off: read off the band it
+    /// drew, a pulled table under a title reported the 24 lines on screen.
+    @Test("onGeometryChange reports a pulled table's whole height, and a lazy stack's", arguments: [60, 10_000])
+    func geometryReportsTheWholeHeight(_ rows: Int) {
+        let table = ScrollFitMeasure.measure(.table, .underTitle, rows: rows, walk: false, fitsContent: true)
+        #expect(table.sizeA?.height == rows + 3, "\(table)")
+        let stack = ScrollFitMeasure.measure(.lazyVStack, .underTitle, rows: rows, walk: false, fitsContent: true)
+        #expect(stack.sizeA?.height == rows, "\(stack)")
+    }
 }

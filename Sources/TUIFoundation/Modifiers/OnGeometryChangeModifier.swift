@@ -132,12 +132,13 @@ nonisolated struct OnGeometryChangeModifier<Content: View, T: Equatable>: View {
         storage.markActive(context.identity)
         // The view's OWN size — what its content actually came out at, not what
         // was offered. That is the whole difference from `GeometryReader`.
-        let value = transform(GeometryProxy(width: buffer.width, height: buffer.height, ask: ask))
+        let size = Self.ownSize(of: buffer, context: context)
+        let value = transform(GeometryProxy(width: size.width, height: size.height, ask: ask))
 
         // A transform that asked about another space is asked again once the
         // frame is done, with where that space's owner found the view.
         if let ask {
-            ask.finishRecording(size: buffer.cellSize)
+            ask.finishRecording(size: size)
             if !ask.wanted.isEmpty, let geometry = context.geometryCoordinator {
                 let (transform, action) = (self.transform, self.action)
                 geometry.registerReporter(ask) { proxy in
@@ -149,6 +150,22 @@ nonisolated struct OnGeometryChangeModifier<Content: View, T: Equatable>: View {
         }
         Self.report(value, at: key, in: storage, action: action)
         return buffer
+    }
+
+    /// The size the view came out at: its drawing's — or, under SCROLL-FIT's
+    /// switch, the whole height of content a scroll view or a column pulls,
+    /// which draws only the band of its lines on screen and says how tall it is
+    /// in its reply (`PulledBandRequest.answer`, `sliceTotalHeight`), as SwiftUI
+    /// reports the frame of a view part of which is scrolled off. Read off the
+    /// drawing, a table of 10,000 rows under a title reported the 24 lines on
+    /// screen. With the switch off a pulled lazy stack still reports its band,
+    /// as the baseline records (`ScrollFitBaselineTests`); P7 deletes the
+    /// switch.
+    private static func ownSize(of buffer: FrameBuffer, context: RenderContext) -> CellSize {
+        guard context.environment.scrollFitsContent, let window = context.environment.scrollContentWindow,
+            window.isAtOrigin(context.identity), let total = window.reply?.sliceTotalHeight
+        else { return buffer.cellSize }
+        return CellSize(width: buffer.width, height: total)
     }
 
     /// Calls `action` when `value` differs from the one last reported at
