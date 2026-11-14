@@ -908,6 +908,82 @@ owner's few-percent line, not profiled. RSS within 1 MB everywhere. `frame_parit
 binary; its first run caught the walked-move change sending End from between four screens and 256
 lines off to the estimated total's offset (`session/log*`, fixed in cbcf91160).
 
+**As P4 built it** (2026-11-12, `PulledRowBand.swift`, `_ListCore+Pulled.swift`, `Table.swift`'s
+"SCROLL-FIT's pull", `TextEditor+Pulled.swift`, `FormScroller.swift`). Behind the same switch, and
+with it off nothing reads any of it:
+
+- **Rows of varying height walk the engine.** A view whose rows are not all a line hands the
+  column engine (`ScrollFillColumn`, P1's walk) its rows through `PulledRowColumn`: their count,
+  each one's pitch measured when the walk first reaches it, their keys. It keeps `PulledRows`
+  in its state: its own `ScrollContentAnchor` (in the rows' lines, its chrome not counted), a
+  bounded sample of the pitches measured (the running estimate, taken afresh when the width or
+  the row count changes) and the rows it drew last (the ladder). A request counted from the
+  view's top or end places the anchor there (`enter(edgeOf:)`); one counted from its own
+  position walks the delta (`advanceAnchor`). A seek makes its row the anchor, placed by the rule
+  every seek shares, the target's line read from the anchor by exact pitches within four screens
+  and priced past that. The fill goes from the anchor down to the viewport's bottom and no
+  further (P3's band is the viewport's lines, not the stack's margin rows), and the view draws
+  itself framed to those rows from the first, its top line clipped (`scrollTopClipLines`), cut to
+  the band. Where the band holds the first row the view's lines are re-based so its top is line
+  0, the position moving with them (`pulledPosition`, or a hold reported to a scroll view whose
+  content the view is); where it holds the last, the total is exact; elsewhere it is the walk's
+  lines plus the rest at the running pitch (`sliceTotalIsEstimate`). The cursor row off the band
+  is marked at its line read the same way: exact near the band, so an arrow past it is revealed
+  exactly; priced far off it, so a reveal there lands by the pursuit. Page Up and Page Down step
+  the cursor by the rows the viewport shows (`rowsOnScreen`), as a list drawn whole steps by the
+  rows it shows: by the viewport's lines, as P3's one-line rows do, a page of two-line rows
+  stepped over half of them.
+- **`List`.** Rows found taller than a line (B-SCROLLFIT-3's hypothesis refuted, as in P3) or not
+  all content (sections, whose headers and footers are rows) are walked; an outline's rows are one
+  line and stay counted. The rows' pitches are the heights the list draws them at: the band is
+  placed inside the list's frame once its rows are extracted at their width
+  (`ListPulledVariable`), and the frame is then framed to the band's rows. The measure is the
+  last band's total, or before any band a line a row, building none. A section header is
+  not pinned over a pulled list's rows: its window's top is the band's, and a header pinned to
+  the scroll view is pinned chrome's (P6). An empty list is its placeholder's height, drawn
+  whole.
+- **`Table`** of multi-line rows (a column's `lineLimit` above one, or sections): the same walk,
+  each row's pitch its wrapped cells and the section headers it carries
+  (`entryHeight`), at the columns the table lays out with no bar (`pulledColumns`); its measure
+  no longer sums every row (`analyticMultiLineSize`) when pulled.
+- **`TextEditor`** is a lines leaf: its rows are its own and laid out already (the layout keeps
+  them at each width), so its height is exact and its band is P3's arithmetic. It draws from the
+  band's first row (`pulledTop`) with no bar of its own, takes no wheel tick, follows the caret
+  across but not down, and marks the caret's row: the scroll view keeps the caret in sight as it
+  moves and as text is typed. A design `subRow` was not needed: the editor's rows are its anchor's
+  rows, one line each. The editor sits inside its editing menu, a `ContextMenuModifier`, whose
+  content is a child at index 0, a sibling step: the modifier now forwards (`PulledChromeRelay`
+  with no lines of its own, `ScrollPlacing`), and a pulled editor it measures by drawing answers a
+  footprint of its rows' height.
+- **A grouped `Form`** in a vertical scroll view's content is no scroll view of its own
+  (`fitsVerticalScrollContent`, written by the scroll view for its content with the switch on):
+  its sections' height, eager content the scroll view scrolls and reveals into. The scroll
+  modifiers written on such a form have no scroll view of its own to answer them.
+- **Type-select** still builds the rows it scans. A row's type-select text is its stated
+  equivalent or its first line of text, both read from its view; the data does not hold it, so
+  there is nothing to search without building the row. Per key press, never per frame.
+
+`PulledVariableListTests` twins rows of one to three lines, sections and an outline,
+`PulledMultiLineTableTests` a table of one- to three-line rows, `PulledTextEditorTests` an editor
+wrapped and not, and `PulledFormTests` a grouped form, each against the same view drawn whole
+framed to its full height (top, wheel steps and a burst, wheel up, Tab, cursor steps, End, Home);
+at 10,000 rows the rows (or cells) built a frame are under 100 and equal to 1,000's, and every row
+is reached by the wheel, Page Down, `scrollTo` and Tab.
+
+Measured (2026-11-14, `ab_bench.py`, release, cpu per frame, base af107bd7a — main with the new
+variants — against the P4 tip 2827579fe): `app-shapes/titled-list-variable` 23.8 ms → 0.39 ms a
+frame (−98.4%) and RSS 53.6 → 15.4 MB; `app-shapes/titled-editor` 37.7 ms → 0.53 ms (−98.6%), RSS
+68.2 → 73.2 MB; `app-shapes/grouped-form` indistinguishable (its rows are eager either way:
+336 ms a frame for 1,000 rows, the form's own scroll view or the page's). `app-shapes/code-editor`
+−0.7% [−1.9, −0.0]; `titled-list`, `titled-table`, `titled-lazy`, `boxed-lazy`, `headed-log`,
+`sidebar`, `grouped-feed`, `megalist`, `scrolleager`, `scrollfollow`, `dashboard`, `table`,
+`table-multiline`, `tables-scroll` and the sessions `editor`, `chat` and `log` indistinguishable.
+`frame_parity.py`: 160 of 162 cases draw alike, `titled-list-variable` and `titled-editor` among
+them (the pulled band draws what the view drawn whole drew); `app-shapes/grouped-form` differs in
+one frame of 120 (frame 76; the form no longer scrolls itself under the switch — not traced), and
+`app-shapes/timeline-rows` differs between runs of one binary.
+
+
 ### 1e. Focus: an unbuilt row stays reachable
 
 - **The focused control is an off-band route.** Every placing container on its chain draws the
@@ -1181,9 +1257,9 @@ them):
 | `two-tables` | `ScrollView { VStack { Text; Table(10k, 4 columns); Text; Table(10k) } }`, wheel steps through both | P3 |
 | `two-tables-keys` | the same, Down and Page Down in the second table every tick (cursor reveal through the outer view) | P3 |
 | `titled-list` | a title over a `List` of 10,000 one-line rows | P3 |
-| `titled-list-variable` | the same with rows of 1 to 3 lines (the estimate, dead reckoning) | P4 |
-| `grouped-form` | `Form { … }.formStyle(.grouped)`, 40 sections of 250 rows | P4 |
-| `tall-editor` | a title over a `TextEditor` of 10,000 wrapped lines, typing in the middle | P4 |
+| `titled-list-variable` | the same with rows of 1 to 3 lines (the estimate, dead reckoning) | P4, as built: one- and two-line rows, a variant of `app-shapes` |
+| `grouped-form` | `Form { … }.formStyle(.grouped)`, 40 sections of 250 rows | P4, as built: 40 sections of 25 rows, a variant of `app-shapes` (its rows are eager, every one built each frame either way) |
+| `tall-editor` | a title over a `TextEditor` of 10,000 wrapped lines, typing in the middle | P4, as built: `app-shapes/titled-editor`, scrolled rather than typed in |
 | `fixed-size-table` | `VStack { Text; Table(10k) }.fixedSize(horizontal: false, vertical: true)` in a scroll view (the ladder) | P5 |
 | `boxed-eager` | `GroupBox { ForEach(10k) { Text } }` and `DisclosureGroup` of the same (windowed past 256) | P8 |
 | `flow-10k` | `FlowLayout` of 10,000 tags under a title | P8 |
@@ -1221,6 +1297,7 @@ already running separately.
 | **P3** | `List` and `Table` as column-shaped consumers, fixed pitch; off-band cursor row and registration; Page Up/Down by the outer viewport (B-SCROLLFIT-5); type-select checked. Behind the switch. From P2: the parallel and remaining forward shapes, locate by route, the focus reveal as an anchor, and a pulled column's held row, top-row hold and target layout | 2½ + about 3 from P2 | None with the switch off. New tests with it on |
 | **P3 as built** (2026-11-12) | `List` and single-line `Table` as band consumers at a fixed pitch behind the switch: content-sized, a band of the view framed to its rows, the cursor row marked off the band, the whole-control reveal reaching every line, Page Up/Down by the outer viewport, `scrollTo` by a key search, type-select measured (see "As P3 built it" under 1d). Not taken from P2's list: a held row outside the anchored child and departing-row transitions in a pulled column, and a lazy stack in a `Grid` | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledListTests`, `PulledTableTests` with it on |
 | **P4** | Variable rows on the engine: `List`, multi-line `Table`, `TextEditor` as a lines leaf with its caret marker, grouped `Form`. Behind the switch | 3 | None with the switch off |
+| **P4 as built** (2026-11-12) | `List` of rows of varying height (several lines, sections) and a multi-line `Table` walked by the engine (`PulledRowBand.swift`), the rows not yet built priced at the running pitch; an empty list its placeholder's height; `TextEditor` a lines leaf marking its caret's row; a grouped `Form` in scroll content no scroll view of its own (see "As P4 built it" under 1d). Not done: type-select without building rows (a row's text is its view's), a section header pinned over a pulled list (P6) | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledVariableListTests`, `PulledMultiLineTableTests`, `PulledTextEditorTests`, `PulledFormTests` with it on |
 | **P5** | Nil-proposal answers; fillers declare (B-SCROLLFIT-7, 8); `.fixedSize` on the ladder (2f) | 1 | In the 10,000-row tests: `fixedSize` `Table` 23 → 10,003 and `tallTableFixedSize` 4,153 → < 100 rows built; already content-sized views under `fixedSize` at 10,000 go 23 → their content. The table's 3/60-row `fixedSize` rows unchanged |
 | **P6** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1½ | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |
 | **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
