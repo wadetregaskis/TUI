@@ -971,6 +971,7 @@ EnvironmentValues.scrollbarProportionalThumb | var scrollbarProportionalThumb: B
 EnvironmentValues.scrollbarSpacing | var scrollbarSpacing: Int? { get set }
 EnvironmentValues.scrollbarWidth | var scrollbarWidth: Int { get set }
 EnvironmentValues.selectionEmphasis | var selectionEmphasis: SelectionEmphasisClock { get }
+EnvironmentValues.selectionFollowsCursor | var selectionFollowsCursor: Bool { get set }
 EnvironmentValues.selectionIndicatorStyle | var selectionIndicatorStyle: TextCursorStyle.Animation { get set }
 EnvironmentValues.shiftStepMultiplier | var shiftStepMultiplier: Int { get set }
 EnvironmentValues.springLoadingBehavior | var springLoadingBehavior: SpringLoadingBehavior { get set }
@@ -4087,6 +4088,7 @@ View.scrollbarClickBehavior(_:) | nonisolated func scrollbarClickBehavior(_ beha
 View.scrollbarProportionalThumb(_:) | nonisolated func scrollbarProportionalThumb(_ proportional: Bool) -> some View
 View.scrollbarSpacing(_:) | nonisolated func scrollbarSpacing(_ cells: Int) -> some View
 View.scrollbarWidth(_:) | nonisolated func scrollbarWidth(_ cells: Int) -> some View
+View.selectionFollowsCursor(_:) | nonisolated func selectionFollowsCursor(_ follows: Bool = true) -> some View
 View.selectionIndicatorStyle(_:) | nonisolated func selectionIndicatorStyle(_ animation: TextCursorStyle.Animation) -> some View
 View.sensoryFeedback(_:trigger:) | nonisolated func sensoryFeedback<T>(_ feedback: SensoryFeedback, trigger: T) -> some View where T : Equatable
 View.sensoryFeedback(_:trigger:condition:) | nonisolated func sensoryFeedback<T>(_ feedback: SensoryFeedback, trigger: T, condition: @escaping (T, T) -> Bool) -> some View where T : Equatable

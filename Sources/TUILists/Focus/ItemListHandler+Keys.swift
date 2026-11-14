@@ -66,7 +66,9 @@ extension ItemListHandler {
         // the one this file can afford, since the six of them are half this
         // switch's branches and none of them consults anything the branches
         // below do.
+        let cursor = focusedIndex
         if let handled = handleCursorMovementKey(event) {
+            followCursor(from: cursor)
             return handled
         }
 
@@ -90,6 +92,8 @@ extension ItemListHandler {
         // reaches a tree's too (decisions TABLE-HSCROLL).
         case .right, .left:
             if event.shift, horizontalScroll?.scrolls == true { return stepColumnsSideways(event) }
+            // Left out of a subtree moves the cursor to the parent.
+            defer { followCursor(from: cursor) }
             return handleDisclosureKey(event) || stepColumnsSideways(event)
 
         case .delete, .backspace:

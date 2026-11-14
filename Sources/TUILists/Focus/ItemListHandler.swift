@@ -154,6 +154,11 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// moves one. See ``View/shiftStepMultiplier(_:)``.
     var shiftStepMultiplier: Int = 5
 
+    /// Whether a key that moves the cursor selects the row it lands on
+    /// (``View/selectionFollowsCursor(_:)``). Set from the environment during
+    /// render, for event time; see ``followCursor(from:)``.
+    var selectionFollowsCursor = false
+
     /// What the scrollbar extent estimator worked out about these rows' heights,
     /// carried across frames while `signature` — a hash of everything that
     /// shapes row heights (row count, widths/limits, precision) — holds, and

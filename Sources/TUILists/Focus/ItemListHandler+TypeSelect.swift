@@ -54,7 +54,9 @@ extension ItemListHandler {
         guard !measuring, let prefix = pendingTypeSelect else { return }
         pendingTypeSelect = nil
         guard let match = typeSelectMatch(prefix, text: text) else { return }
+        let cursor = focusedIndex
         focusedIndex = match
         ensureFocusedItemVisible()
+        followCursor(from: cursor)
     }
 }

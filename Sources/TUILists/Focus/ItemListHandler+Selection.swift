@@ -42,6 +42,35 @@ extension ItemListHandler {
         followRowLink(at: focusedIndex)
     }
 
+    /// `.selectionFollowsCursor()`: after a key moved the cursor off
+    /// `previous`, selects the row it landed on, as a macOS list does — the
+    /// whole selection for a single one, that row alone (and the anchor a
+    /// Shift-extension pivots on) for a multiple one. The one place every
+    /// list, table and tree acts on the setting, called after each key that
+    /// moves the cursor and nothing else: the arrows, Home and End, the paging
+    /// keys, type select and a tree's Left to the parent. Not the keys that
+    /// extend a selection (they select a span themselves), carry a held row,
+    /// or delete one.
+    ///
+    /// Nothing where the cursor did not move, so a Space that cleared the
+    /// selection is not undone by an arrow pressed against the end; nor in the
+    /// column of a collapsed split view, where choosing a row goes to the next
+    /// column and the keys browse. A row's `NavigationLink` is not followed:
+    /// moving through a list in a stack does not push each row.
+    func followCursor(from previous: Int) {
+        guard selectionFollowsCursor, focusedIndex != previous, compactColumnAdvance == nil,
+            let id = id(at: focusedIndex), !selectionDisabledRows.contains(focusedIndex)
+        else { return }
+        switch selectionMode {
+        case .single:
+            singleSelection?.wrappedValue = id
+        case .multi:
+            multiSelection?.wrappedValue = [id]
+            selectionAnchor = focusedIndex
+        }
+        anchorOnSelection(at: focusedIndex)
+    }
+
     /// Follows the `NavigationLink` in the row at `index`, if it holds one,
     /// when choosing the row was a choice of it: always in a list with no
     /// selection, and in one with a selection only when the row is now selected

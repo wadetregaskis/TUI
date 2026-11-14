@@ -477,6 +477,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         handler.canBeFocused = !isDisabled
         handler.edgeBehavior = context.environment.radioButtonGroupEdgeBehavior
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
+        handler.selectionFollowsCursor = context.environment.selectionFollowsCursor
         handler.followSelection()
     }
 
@@ -997,6 +998,11 @@ final class RadioButtonGroupHandler: PersistedFocusable {
     /// where the terminal keeps it — Home/End/Page always work regardless.)
     var shiftStepMultiplier: Int = 5
 
+    /// Whether a key that moves the cursor chooses the option it lands on
+    /// (``View/selectionFollowsCursor(_:)``). Synced from the environment
+    /// during render, for event time.
+    var selectionFollowsCursor = false
+
     /// The currently focused item index within the group.
     /// Persisted across renders to maintain focus position.
     var focusedIndex: Int = 0
@@ -1075,6 +1081,19 @@ extension RadioButtonGroupHandler {
 
         // Clamp focusedIndex to valid range in case items changed
         focusedIndex = min(focusedIndex, itemValues.count - 1)
+
+        // `.selectionFollowsCursor()`: every key here that moves the cursor
+        // moves it to an option that can be chosen, so the option it lands on
+        // is chosen, as a macOS radio group's arrows choose. Space and Return
+        // leave the cursor where it is.
+        let cursor = focusedIndex
+        defer {
+            if selectionFollowsCursor, focusedIndex != cursor, itemValues.indices.contains(focusedIndex),
+                !disabledIndices.contains(focusedIndex)
+            {
+                selection.wrappedValue = itemValues[focusedIndex]
+            }
+        }
 
         // Home/End/Page and a Shift-accelerated on-axis arrow jump to a clamped
         // destination within the group (shared with the other option lists —

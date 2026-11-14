@@ -34,7 +34,6 @@ From the first app built on TUI, tuitop; each question in full, with its prices,
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| APPFB-1 | Should the arrows move a single selection, as SwiftUI's do on macOS (V2, B77-SELECT and B76-SELECT keep a cursor apart)? | (b): a single selection is the cursor; a multiple selection keeps Space | The arrows move a cursor; Space or Return selects |
 | APPFB-4 | Should a bare letter's key be drawn as typed by default (`k signal`), a capital only beside a modifier (`⇧K`, `⌃S`), in the bar, the F1 list and a menu's shortcut column (B-KS-1 chose the menu's `K`)? | (b): as typed, Shift always `⇧` | `K signal`; `.statusBarKeySpelling(.asTyped)` draws `k` |
 
 ### Open on 2026-11-09

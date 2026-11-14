@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`.selectionFollowsCursor()` makes the keys select as they move, as on macOS.** A list's or table's arrows move a
+cursor apart from the selection, Space or Return selecting, which is still the default. Set on a view, the modifier
+makes every key that moves the cursor of a list, table, tree table, radio group or segmented picker below it select
+the row or option it lands on: the arrows, Home and End, the paging keys, type select and a tree's Left onto a
+parent. With a `Set` selection that row alone is selected; Shift with an arrow and Space still build a larger one.
+
 **A grouped `Form` no longer draws its sections at their narrowest width for a frame, now and then.** A stack's
 children are worked out once a frame, and the record of them was looked up by its content's value, which reads the
 addresses that value holds. A form builds its rows once to measure them and again to draw them, and when the second

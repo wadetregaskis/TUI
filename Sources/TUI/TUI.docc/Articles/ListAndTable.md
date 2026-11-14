@@ -22,7 +22,7 @@ Both components share the same keyboard navigation and selection infrastructure,
 
 ### Basic Usage
 
-The selection is the id of the selected row: here each row's id is its string (`id: \.self`), so `selectedID` is a `String?`, `nil` when nothing is selected. A `Set<String>` instead lets people select several rows (see Multi-Selection below). The arrow keys move the list's cursor, and Space or Return selects the row under it.
+The selection is the id of the selected row: here each row's id is its string (`id: \.self`), so `selectedID` is a `String?`, `nil` when nothing is selected. A `Set<String>` instead lets people select several rows (see Multi-Selection below). The arrow keys move the list's cursor, and Space or Return selects the row under it; `.selectionFollowsCursor()` makes the arrows select as they move, as on macOS (see Keyboard Navigation below).
 
 ```swift
 struct ContentView: View {
@@ -157,6 +157,30 @@ Table(processes, selection: $selection) {
     StatusBarItem(shortcut: "k", label: "kill")   // the hint; the key is the onKeyPress's
 }
 ```
+
+### Selection that follows the cursor
+
+The cursor is apart from the selection by default, so the keys browse a list
+without changing what is selected. Where the selection should follow the keys
+instead, as it does on macOS — a list of processes whose selected row's
+details show beside it — add `.selectionFollowsCursor()`:
+
+```swift
+Table(processes, selection: $selection) {
+    TableColumn("Name", value: \.name)
+}
+.selectionFollowsCursor()
+```
+
+Every key that moves the cursor then selects the row it lands on: the arrows,
+Home and End, the paging keys, type select, and a tree's Left onto a branch's
+parent. With a `Set` selection such a key selects that row alone; Shift with an
+arrow, extend mode and ⌃A still build a larger selection, and Space still
+toggles the cursor's row. It is an environment value, so it reaches every list,
+table, radio group and segmented picker below it, and `.selectionFollowsCursor(false)`
+keeps one control's cursor apart inside it. In the column of a collapsed split
+view the keys still only move the cursor, since choosing a row there goes to the
+next column.
 
 Hold Shift with Up/Down to move the cursor by several rows at once (clamping at
 the ends rather than wrapping). The step count is the `.shiftStepMultiplier(_:)`
@@ -842,6 +866,7 @@ List("Items", selection: $selected) {
 | `.focusID(_:)` | Sets a stable, explicit focus identifier |
 | ``View/listEmptyPlaceholder(_:)-(LocalizedStringKey)`` | Text shown when a list has no items (default: "No items"), in the secondary ink where a row's text would start |
 | `.listFooterSeparator(_:)` | Controls the separator line before the footer |
+| ``View/selectionFollowsCursor(_:)`` | A key that moves the cursor selects the row it lands on, as on macOS (lists and tables alike) |
 | `.disabled(_:)` | Prevents keyboard interaction |
 
 A ``Table`` has its own:

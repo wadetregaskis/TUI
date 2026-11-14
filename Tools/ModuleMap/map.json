@@ -304,6 +304,7 @@
   "TUIFoundation/Environment/RequestAttentionAction.swift": "TUIFoundation",
   "TUIFoundation/Environment/SceneDisplayOptions.swift": "TUIFoundation",
   "TUIFoundation/Environment/ScenePhaseEnvironment.swift": "TUIFoundation",
+  "TUIFoundation/Environment/SelectionFollowsCursor.swift": "TUIFoundation",
   "TUIFoundation/Environment/ServiceEnvironment.swift": "TUIFoundation",
   "TUIFoundation/Environment/ShiftStepMultiplier.swift": "TUIFoundation",
   "TUIFoundation/Environment/StyleEnvironment.swift": "TUIFoundation",

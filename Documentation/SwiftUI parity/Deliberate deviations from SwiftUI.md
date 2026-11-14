@@ -2231,9 +2231,15 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   type select moves the cursor; background prominence is raised for the cursor
   row (when it is selected) where SwiftUI raises every selected row; a sidebar
   tab view chooses a tab on Return, where a macOS sidebar selects as the cursor
-  moves.
-- **Why:** not recorded. Space toggling at the cursor is how the keyboard
+  moves. `.selectionFollowsCursor()` (TUI's) gives macOS's behaviour where an
+  app wants it: a key that moves the cursor of a list, table, radio group or
+  segmented picker below it selects what it lands on.
+- **Why:** not recorded at first. Space toggling at the cursor is how the keyboard
   builds a selection ([§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>)).
+  The owner, APPFB-1 (2026-11-14): it is use-case dependent, some places needing
+  the selection to follow the cursor and others where it "is definitely not
+  desirable", so both are supported, with the default kept and one modifier,
+  through one code path, for the other.
 - **Decided:** [B-D4T-1](<../Historical/Lists, tables and tabs/Acting on rows - the primary action, context menus and section actions.md#b-d4t-1-returns-primary-action-acts-on-the-cursor-rows-set-not-on-the-selection-as-such>), [B73](<../Historical/Lists, tables and tabs/Badges and the prominence of a row.md#b73-background-prominence-raised-on-the-rows-a-list-builds-itself>), [B76](<../Historical/Lists, tables and tabs/Tab views - labels, sidebars, customization and minimizing.md#b76-the-sidebar-style-a-list-beside-the-content-chosen-with-return>),
   [B77](<../Historical/Lists, tables and tabs/Moving through a list - type select, Home and End.md#b77-type-select-moves-the-cursor-and-a-prefixs-first-character-gives-way-to-bare-key-bindings>). **Lane.**
 
