@@ -618,6 +618,9 @@ private enum StateIndex {
     /// A `Table(_:children:)`'s outline, kept while its roots and open
     /// branches are the same (``_TableOutlineCache``).
     static let outlineCache = 5
+    /// What a pulled table of multi-line rows keeps between frames: the
+    /// anchor its rows are walked from (``PulledRows``, SCROLL-FIT P4).
+    static let pulledRows = 6
 }
 
 /// What the plain layout's width pass throws when the columns' minimum widths
@@ -741,6 +744,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// table draws from, with no indicators of its own, whatever it last
     /// scrolled itself to.
     var pulledOffset: Int?
+    /// The lines of ``pulledOffset``'s row above the band, for a pulled table
+    /// of multi-line rows (`renderPulledVariable(lines:context:)`).
+    var pulledClip = 0
 
     /// Every column the table shows, whichever are on screen: what the keys
     /// that reach beyond the window — the sort chords, type select, the column
@@ -1064,9 +1070,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         // Pulled (``renderPulled(context:)``), its rows' height, held: measured
         // at that, its rows all fit, and it draws no bar of its own.
-        let pulled = pulledHeight(context: context)
+        let pulled = pulledHeight(context: measureContext)
         if let pulled {
             measureContext.availableHeight = pulled
+            // Rows of varying height: as wide as its columns, measured
+            // without a row, where the analytic measure would sum every row.
+            if usesMultiLineLayout, let width = pulledWidth(context: measureContext) {
+                return ViewSize(
+                    width: width, height: pulled,
+                    isWidthFlexible: columns.contains { $0.effectiveWidth.growsWithAvailableWidth },
+                    isHeightFlexible: false)
+            }
         } else if let cap = scrollViewportCap(context) {
             // In scroll content, never taller than the scroll view: measured
             // within that, a table that measures by drawing draws no more rows
@@ -2090,6 +2104,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             measuring: context.isMeasuring, overflowing: furthest > 0,
             drawsTextIndicators: handler.drawsScrollIndicators,
             firstRowHeight: heightOf(0))
+        pinPulled(handler)
         handler.reportScrollPosition(rowID: { AnyHashable(data[$0].id) }, context: context)
         bindSelection(handler, context: context)
 
@@ -2560,10 +2575,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // `rowArea` budgets the rows; `contentHeight` decides whether the
         // indicators fit at all. See ``drawsTextIndicators(_:_:contentHeight:)``
         // for why the two must not be conflated here.
-        let draws = drawsTextIndicators(showsScrollbar, context, contentHeight: contentHeight)
-        let furthest = maxScrollOffset(
-            count: data.count, contentHeight: rowArea,
-            drawsTextIndicators: draws, height: heightOf)
+        // Pulled, nothing of its own to scroll or announce: the scroll view
+        // around it does, and the rows at its end are not walked.
+        let draws = pulledOffset == nil && drawsTextIndicators(showsScrollbar, context, contentHeight: contentHeight)
+        let furthest =
+            pulledOffset != nil
+            ? 0
+            : maxScrollOffset(
+                count: data.count, contentHeight: rowArea,
+                drawsTextIndicators: draws, height: heightOf)
         handler.showsScrollbar = showsScrollbar
         // Not `!showsScrollbar`: a table whose indicators are hidden draws
         // neither, and the "N more" arithmetic must know that.
@@ -3229,11 +3249,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             measuring: context.isMeasuring, overflowing: overflowing,
             drawsTextIndicators: handler.drawsScrollIndicators,
             firstRowHeight: 1)
-        if let pulledOffset {
-            // Where the band is; and the wheel passes on to the scroll view.
-            handler.scrollOffset = pulledOffset
-            handler.isScrollEnabled = false
-        }
+        pinPulled(handler)
         handler.reportScrollPosition(rowID: { AnyHashable(data[$0].id) }, context: context)
         bindSelection(handler, context: context)
         // Drawn over the rows for the pointer, the indicators reserve nothing
@@ -7558,16 +7574,17 @@ extension _TableCore {
 // MARK: - SCROLL-FIT's pull
 
 extension _TableCore {
-    /// A table's lines as SCROLL-FIT's pull reads them (design P3): the chrome
-    /// above its rows (a border, the header), its rows one line each, the
-    /// chrome below — or `nil` when it is drawn as before: the switch off,
-    /// outside scroll content, given a height, below a container that does
-    /// not pull, a style of the app's own, rows of several lines or in
-    /// sections (P4's), columns that do not fit across, or no rows.
+    /// A table's lines as SCROLL-FIT's pull reads them (designs P3 and P4):
+    /// the chrome above its rows (a border, the header), its rows — one line
+    /// each, or of varying height on the multi-line layout (lines above one,
+    /// or sections) — and the chrome below; or `nil` when it is drawn as
+    /// before: the switch off, outside scroll content, given a height, below a
+    /// container that does not pull, a style of the app's own, columns that do
+    /// not fit across, or no rows.
     private func pulledLines(context: RenderContext) -> (top: Int, count: Int, bottom: Int)? {
         let environment = context.environment
         guard environment.scrollFitsContent, context.scrollContentOriginDepth != 0, !context.hasExplicitHeight,
-            !data.isEmpty, !usesMultiLineLayout, horizontalWindow == nil, customStyle(environment) == nil,
+            !data.isEmpty, horizontalWindow == nil, customStyle(environment) == nil,
             context.isPulledWhereItStands
         else { return nil }
         let border = borderWidth(environment)
@@ -7576,12 +7593,37 @@ extension _TableCore {
 
     /// The table's measure when it is pulled: its rows' height, filed as a
     /// view that bands its own lines, so the column above hands it a request.
-    /// Withdrawn otherwise.
+    /// Withdrawn otherwise. Rows of varying height are priced at the running
+    /// pitch of those measured, and before any is drawn at a line each,
+    /// building none (sampled in the measure, each rung of the scroll view's
+    /// measuring ladder sampled them again: more rows, more rungs, more built).
     private func pulledHeight(context: RenderContext) -> Int? {
         guard context.environment.scrollFitsContent else { return nil }
         let lines = pulledLines(context: context)
         context.notePulledBand(lines != nil)
-        return lines.map { $0.top + $0.count + $0.bottom }
+        guard let lines else { return nil }
+        guard usesMultiLineLayout else { return lines.top + lines.count + lines.bottom }
+        // Read, never made, by a measure.
+        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.pulledRows)
+        let kept: StateBox<PulledRows>? = context.stateStorage?.existingStorage(for: key)
+        guard let rows = kept?.value, rows.hasSamples || rows.reportedRowsHeight != nil else {
+            return lines.top + lines.count + lines.bottom
+        }
+        return lines.top + rows.estimatedRowsHeight(count: lines.count) + lines.bottom
+    }
+
+    /// A pulled table of multi-line rows' width: its columns' laid out with no
+    /// bar, around its chrome — measured without a row.
+    private func pulledWidth(context: RenderContext) -> Int? {
+        guard let columns = pulledColumns(context: context) else { return nil }
+        let contentWidth = tableContentWidth(columns.widths, within: columns.innerWidth, gutter: columns.gutter)
+        let headerLine = renderHeader(
+            columnWidths: columns.widths, gutter: columns.gutter, palette: columns.context.environment.palette,
+            context: columns.context
+        ).text
+        return analyticSize(
+            headerLine: headerLine, content: (contentWidth, 1), showsBar: false, context: columns.context
+        ).width
     }
 
     /// The band of a pulled table (``pulledLines(context:)``): the lines a
@@ -7592,6 +7634,7 @@ extension _TableCore {
     /// viewport. `nil` when the table is not pulled.
     private func renderPulled(context: RenderContext) -> FrameBuffer? {
         guard let lines = pulledLines(context: context) else { return nil }
+        if usesMultiLineLayout { return renderPulledVariable(lines: lines, context: context) }
         let total = lines.top + lines.count + lines.bottom
         let request = context.pulledBandRequest()
         let handler = existingHandler(context)
@@ -7637,5 +7680,96 @@ extension _TableCore {
         }
         if let band { request?.answer(band) }
         return buffer
+    }
+
+    /// A pulled table of multi-line rows (design P4): the band its rows of
+    /// varying height make for the request, walked from the table's anchor
+    /// (`PulledRowBand.swift`), drawn as the table draws itself framed to
+    /// those rows from the first, its top clipped, and cut to the band.
+    private func renderPulledVariable(lines: (top: Int, count: Int, bottom: Int), context: RenderContext) -> FrameBuffer? {
+        guard let columns = pulledColumns(context: context) else { return nil }
+        let rows = pulledRows(context: context)
+        rows.noteShape(width: context.availableWidth, count: lines.count)
+        let request = context.pulledBandRequest()
+        let handler = existingHandler(context)
+        let height = { (index: Int) in
+            entryHeight(index, columnWidths: columns.widths, context: columns.context, headers: columns.headers)
+        }
+        var table = self
+        var framed = context
+        let cut: Range<Int>
+        var placed: PulledRowsBand?
+        if let request {
+            let cursor = min(handler?.focusedIndex ?? 0, lines.count - 1)
+            let band = request.band(
+                of: rows, count: lines.count, top: lines.top, bottom: lines.bottom, pitch: height,
+                key: { identityKey(data[$0].id) }, ordinal: { key in data.firstIndex { identityKey($0.id) == key } },
+                seekRow: { seek in seek.focusID != nil ? cursor : data.firstIndex { identityKey($0.id) == seek.key } })
+            table.pulledOffset = band.firstRow
+            table.pulledClip = band.clip
+            framed.availableHeight = band.frameHeight(top: lines.top, bottom: lines.bottom)
+            cut = band.drawnLines
+            placed = band
+        } else {
+            let reach =
+                context.isMeasuring
+                ? context.availableHeight : context.environment.scrollViewportSize?.height ?? context.availableHeight
+            let top = rows.top(count: lines.count, top: lines.top, bottom: lines.bottom, reach: reach, pitch: height)
+            table.pulledOffset = 0
+            framed.availableHeight = lines.top + top.rowLines + lines.bottom
+            cut = 0..<top.lines
+        }
+        let drawn = table.drawn(context: framed)
+        var buffer = drawn.lines(in: cut.clamped(to: 0..<max(1, drawn.height)))
+        if let placed, let request {
+            if let handler = existingHandler(context), !context.isMeasuring {
+                let cursor = placed.lines(
+                    ofRow: min(handler.focusedIndex, lines.count - 1), viewportHeight: request.viewportHeight)
+                buffer.markPulledControl(
+                    focusID: handler.focusID, band: placed.band.lines, total: placed.band.total,
+                    cursorLine: cursor.top, cursorHeight: cursor.height)
+                // Page Up and Page Down move by the scroll view's viewport,
+                // in the rows it shows (B-SCROLLFIT-5).
+                handler.viewportHeight = placed.rowsOnScreen
+            }
+            request.answer(placed.band)
+        }
+        return buffer
+    }
+
+    /// The columns a pulled table of multi-line rows lays its rows out at:
+    /// the whole width, as it draws no bar, worked out as `drawn(context:)`
+    /// works them out — and the context its rows are measured in, and the
+    /// lines its section headers take. `nil` where the columns do not fit.
+    private func pulledColumns(
+        context: RenderContext
+    ) -> (widths: [Int], headers: [Int], innerWidth: Int, gutter: Int, context: RenderContext)? {
+        var context = RowSelectionIndicator.resolvingForTable(context)
+        Self.claimCellText(in: &context)
+        context = Self.placingScrollIndicators(context, focusID: focusID)
+        let gutter = selectionGutter(context.environment)
+        let inner = innerWidth(context.availableWidth, context.environment, showsBar: false)
+        let columnsWidth = max(1, inner - context.environment.rowScrollbarSpacing(showsBar: false))
+        guard
+            let widths = try? plainColumnWidths(
+                availableWidth: columnsWidth, spacing: columnSpacing, gutter: gutter, context: context)
+        else { return nil }
+        return (widths, sectionHeaderHeights(columnWidths: widths, context: context), inner, gutter, context)
+    }
+
+    /// Puts a pulled table's handler where the band is (``pulledOffset``, its
+    /// first row's top clipped by ``pulledClip``), whatever it last scrolled
+    /// itself to; and passes the wheel on to the scroll view.
+    private func pinPulled(_ handler: ItemListHandler<Value.ID>) {
+        guard let pulledOffset else { return }
+        handler.scrollOffset = pulledOffset
+        handler.scrollTopClipLines = pulledClip
+        handler.isScrollEnabled = false
+    }
+
+    /// What a pulled table of multi-line rows keeps between frames.
+    private func pulledRows(context: RenderContext) -> PulledRows {
+        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.pulledRows)
+        return context.stateStorage!.storage(for: key, default: PulledRows()).value
     }
 }
