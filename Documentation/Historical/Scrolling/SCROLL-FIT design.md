@@ -980,8 +980,30 @@ frame (−98.4%) and RSS 53.6 → 15.4 MB; `app-shapes/titled-editor` 37.7 ms �
 `table-multiline`, `tables-scroll` and the sessions `editor`, `chat` and `log` indistinguishable.
 `frame_parity.py`: 160 of 162 cases draw alike, `titled-list-variable` and `titled-editor` among
 them (the pulled band draws what the view drawn whole drew); `app-shapes/grouped-form` differs in
-one frame of 120 (frame 76; the form no longer scrolls itself under the switch — not traced), and
-`app-shapes/timeline-rows` differs between runs of one binary.
+one frame of 120, and `app-shapes/timeline-rows` differs between runs of one binary.
+
+Traced afterwards (2026-11-14), with every frame of both builds dumped:
+
+- **The grouped-form frame is a flake both builds draw.** Now and then one frame draws each
+  section's card at its ideal width (30 columns) rather than the page's; which frame, if any,
+  changes from run to run of one binary (five runs each: the base drew one such frame, the tip
+  two; frames 9, 24, 28, 35, 59, 76 and 119 seen). It is not the new path's: the base draws it
+  with the form's own scroll view, and the form drawn without one draws it too. Not root-caused:
+  it happens with `TUI_VERIFY_MEASURE_MEMO` set as well.
+- **The page's form was not pulled.** The scroll view marked its content for the form only under
+  its own switch, and the Stress pages turn the switch on inside the content, so the form stayed a
+  scroll view of the viewport's height. Fixed: the mark is written whatever the scroll view's
+  switch and the form reads the switch where it stands (`PulledFormTests` "The switch written on
+  the scroll view's content…"). `grouped-form` against P4's tip: −14.1% cpu a frame
+  [−15.1, −13.8] (343 → 296 ms), RSS 105 → 79 MB; `titled-lazy`, `boxed-lazy`, `titled-list`,
+  `megalist`, `dashboard`, `tables-scroll` indistinguishable, `scrolleager` +0.9% [+0.2, +2.0].
+  Parity against the P4 base after the fix: still 160 of 162 (the flake, and `timeline-rows`).
+- **The pulled pages do not scroll in `--bench`.** Every frame of `titled-list-variable`,
+  `titled-lazy` and `grouped-form` (the three dumped) is the page's top:
+  `.scrollPosition(.constant(ScrollPosition(y: line)))` builds a fresh position each frame, each
+  with the same request token (1), and the scroll view applies a request only when the token
+  changes, so after the first frame it never moves. The A/B numbers above for these pages measure
+  the top frame redrawn, not three lines a tick.
 
 
 ### 1e. Focus: an unbuilt row stays reachable
