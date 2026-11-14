@@ -146,6 +146,15 @@ swift run Stress -- --bench --scenario table-api --variant width-fit
 config selects, so the whole space is smoke-tested (and, with
 `TUI_VERIFY_RENDER_MEMO=1`, memo-verified) on every run.
 
+A variant whose page moves every tick says so (`ScenarioVariant.scrolls`, the
+pulled pages of `app-shapes`), and both runs fail it when its frames do not
+move: `--selfcheck` draws it at a second tick and wants a different frame, and
+`--bench` wants some frame to differ from its first. Its timings are a
+scrolling page's only if it scrolled. Those pages bound a `ScrollPosition`
+rebuilt each frame that the scroll view acted on only once, and from P2 to P4
+of SCROLL-FIT `--bench` timed their top frame redrawn (corrected in
+`Documentation/Historical/Scrolling/SCROLL-FIT design.md`).
+
 `controls` is the narrowest kind: one control per variant, so a change to that
 control's per-render cost reads in its variant and is not diluted by a page
 around it. Its rows fold the harness tick into their content so no memo serves

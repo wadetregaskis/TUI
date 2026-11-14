@@ -34,6 +34,11 @@ struct ScenarioVariant: Sendable {
     /// A driven variant's view and the write it wants made before each frame
     /// (see ``DrivenScenario``); `nil` for a variant that is only a view.
     var drive: (@MainActor (StressConfig) -> DrivenScenario)?
+    /// Whether the page moves every tick, so that two ticks draw different
+    /// frames: `--selfcheck` and `--bench` fail it when they do not, which is
+    /// how a page that silently stopped scrolling is caught (SCROLL-FIT's
+    /// pulled pages timed their top frame redrawn for three lanes).
+    var scrolls = false
 }
 
 /// The matrix scenarios, by scenario id.

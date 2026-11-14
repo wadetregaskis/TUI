@@ -189,6 +189,8 @@ enum Headless {
         let make: @MainActor () -> AnyView
         /// A driven case's view and its write (see ``DrivenScenario``).
         var drive: (@MainActor () -> DrivenScenario?)?
+        /// Whether its page moves every tick (``ScenarioVariant/scrolls``).
+        var scrolls = false
     }
 
     /// `scenario`'s driven form under `config`, deferred, when it has one.
@@ -214,7 +216,7 @@ enum Headless {
                 scoped.variant = variant.id
                 return SelfcheckCase(
                     id: "\(scenario.id)/\(variant.id)", title: variant.summary, make: { scenario.make(scoped) },
-                    drive: driving(scenario, scoped))
+                    drive: driving(scenario, scoped), scrolls: variant.scrolls)
             }
         }
     }
@@ -256,13 +258,15 @@ enum Headless {
             context.environment.stateStorage?.endRenderPass()
             let staleServes = context.environment.renderCache?.renderMemoMismatches ?? []
             let trimmed = StackGuard.truncationCount - trimmedBefore
+            let stood = scenario.scrolls && !movesOnTick(
+                view, from: buffer, clock: clock, context: context, channels: channels)
             // Dimensions alone are too weak a check: a frame of the right size
             // holding nothing passes it, and so does one the stack guard cut
             // short, which draws a notice. Require visible content, and a whole
             // tree.
             let ok =
                 buffer.width > 0 && buffer.height > 0 && !isBlank(buffer) && trimmed == 0
-                && staleServes.isEmpty
+                && staleServes.isEmpty && !stood
             if !ok { failures += 1 }
             // Padded, never TRUNCATED: `padding(toLength:)` cuts a longer
             // string, which silently turned `size-wrapped-1000` into
@@ -277,7 +281,8 @@ enum Headless {
                 : (isBlank(buffer)
                     ? "  (blank)"
                     : (staleServes.isEmpty
-                        ? "" : "  (STALE MEMO: \(staleServes.count))"))
+                        ? (stood ? "  (a scrolling page drew the same frame at the next tick)" : "")
+                        : "  (STALE MEMO: \(staleServes.count))"))
             print("  \(ok ? "ok  " : "FAIL") \(id) \(buffer.width)x\(buffer.height)"
                 + "  \(scenario.title)\(why)")
             for line in staleServes.prefix(3) { print("      \(line)") }
@@ -311,6 +316,26 @@ enum Headless {
                     + "and every session verified (\(Sessions.all.count))"
                 : "selfcheck: \(failures) FAILED")
         return failures
+    }
+
+    /// Whether `view`, drawn `first` at tick 0, draws something else at tick
+    /// 1: what a page that scrolls every tick must do, or its `--bench`
+    /// timings are its first frame redrawn. The clock is put back.
+    @MainActor
+    private static func movesOnTick(
+        _ view: AnyView, from first: FrameBuffer, clock: StressClock, context: RenderContext,
+        channels: HeadlessInputChannels
+    ) -> Bool {
+        context.environment.renderCache?.removeInactive()
+        clock.tick = 1
+        defer { clock.tick = 0 }
+        channels.beginWalk()
+        context.environment.stateStorage?.beginRenderPass()
+        context.environment.renderCache?.beginRenderPass()
+        stampFrameDate(context)
+        let next = renderFrame(view, context: context, channels: channels, cols: 120, rows: 40)
+        context.environment.stateStorage?.endRenderPass()
+        return contentChecksum(next) != contentChecksum(first)
     }
 
     /// One frame of `view`: the walk, the scene root's geometry correction,
@@ -472,7 +497,7 @@ enum Headless {
         stampFrameDate(warm)
         _ = renderToBuffer(view, context: warm)
 
-        var checksum = 0
+        var tally = FrameTally()
         var blankFrames = 0
         let trimmedBefore = StackGuard.truncationCount
         // Accumulate only the render itself. Checking the frame is this
@@ -548,7 +573,7 @@ enum Headless {
             }
             memoCounts.add(from: countsBefore, to: MemoCounts(warm.renderCache))
             let frameChecksum = contentChecksum(buffer)
-            checksum = checksum &+ frameChecksum
+            tally.add(frameChecksum)
             // Each frame's own, for `Tools/Profiling/frame_parity.py`: two builds
             // that must draw alike are compared frame by frame, and the sum above
             // can say only that some frame differs.
@@ -563,7 +588,7 @@ enum Headless {
             + "iters=\(iterations) cold=\(cold)")
         print(
             "  total=\((totalMs).formatted(.fixed(1)))ms  per-frame=\((perFrameUs).formatted(.fixed(1)))µs  "
-                + "(\((1_000_000 / max(0.001, perFrameUs)).formatted(.fixed(0))) fps-equiv)  checksum=\(checksum)")
+                + "(\((1_000_000 / max(0.001, perFrameUs)).formatted(.fixed(0))) fps-equiv)  checksum=\(tally.checksum)")
         if cpuMeasured {
             let cpuPerFrameUs = Double(cpuNs) / 1_000 / Double(max(1, iterations))
             let ofWall: Double = perFrameUs > 0 ? cpuPerFrameUs / perFrameUs * 100 : 0
@@ -613,7 +638,36 @@ enum Headless {
                 + "short, so this is not a profile of \(id) at scale \(config.scale). "
                 + "Raise the stack (ulimit -s) or lower --scale.")
         }
-        return blankFrames > 0 || trimmed > 0 ? 1 : 0
+        // First, so it is asked (and prints) whatever else failed.
+        return stoodStill(id, config: config, frames: iterations, tally: tally) || blankFrames > 0 || trimmed > 0 ? 1 : 0
+    }
+
+    /// What `--bench` keeps of its frames' checksums: their sum, printed so
+    /// the optimiser cannot elide the loop, and whether any differed from the
+    /// first.
+    struct FrameTally {
+        private(set) var checksum = 0
+        private(set) var moved = false
+        private var first: Int?
+
+        mutating func add(_ frame: Int) {
+            checksum = checksum &+ frame
+            if let first { moved = moved || frame != first } else { first = frame }
+        }
+    }
+
+    /// Whether `id` scrolls every tick (``ScenarioVariant/scrolls``) and yet
+    /// drew one frame throughout, printing why that fails the run: its timing
+    /// is its first frame redrawn. SCROLL-FIT's pulled pages did so, unnoticed,
+    /// for three lanes (a bound `ScrollPosition` acted on once).
+    @MainActor
+    private static func stoodStill(_ id: String, config: StressConfig, frames: Int, tally: FrameTally) -> Bool {
+        guard frames > 1, !tally.moved, !ScenarioVariants.variants(of: id).isEmpty,
+            ScenarioVariants.resolve(config, in: id)?.scrolls == true
+        else { return false }
+        print("  FAIL: every frame drew the same page — \(id) scrolls every tick, so the timing above "
+            + "measures its first frame redrawn, not scrolling")
+        return true
     }
 }
 

@@ -207,6 +207,13 @@ enum AppShapeMatrix {
         ScenarioVariant(id: id, summary: summary, axis: "app", make: make)
     }
 
+    /// A variant whose page moves every tick (``ScenarioVariant/scrolls``).
+    private static func scrolling(
+        _ id: String, _ summary: String, _ make: @escaping @MainActor (StressConfig) -> AnyView
+    ) -> ScenarioVariant {
+        ScenarioVariant(id: id, summary: summary, axis: "app", make: make, scrolls: true)
+    }
+
     /// A driven variant: the view over a model the bench writes between
     /// frames. `make` builds the same view with nothing moving it.
     private static func driven(
@@ -273,37 +280,37 @@ enum AppShapeMatrix {
         variant("headed-log", "a header over a lazy stack of 2,000 one- and two-line entries in one scroll view; the page moves every tick") {
             AnyView(HeadedLogApp(entries: $0.sized(2_000), seed: $0.seed))
         },
-        variant("titled-lazy", "a title over a lazy stack of 100,000 one- and two-line entries, scrolled three lines a tick (SCROLL-FIT pull)") {
+        scrolling("titled-lazy", "a title over a lazy stack of 100,000 one- and two-line entries, scrolled three lines a tick (SCROLL-FIT pull)") {
             AnyView(PulledPageApp(shape: .titled, entries: $0.sized(100_000), seed: $0.seed))
         },
-        variant("two-stacked-lazy", "two headed lazy stacks of 50,000 entries in one column, scrolled three lines a tick (SCROLL-FIT pull)") {
+        scrolling("two-stacked-lazy", "two headed lazy stacks of 50,000 entries in one column, scrolled three lines a tick (SCROLL-FIT pull)") {
             AnyView(PulledPageApp(shape: .twoStacked, entries: $0.sized(100_000), seed: $0.seed))
         },
-        variant("boxed-lazy", "a title over a GroupBox around a lazy stack of 100,000 entries, scrolled three lines a tick (SCROLL-FIT pull)") {
+        scrolling("boxed-lazy", "a title over a GroupBox around a lazy stack of 100,000 entries, scrolled three lines a tick (SCROLL-FIT pull)") {
             AnyView(PulledPageApp(shape: .boxed, entries: $0.sized(100_000), seed: $0.seed))
         },
-        variant("boxed-eager", "a title over a GroupBox directly around 10,000 one- and two-line entries, scrolled three lines a tick (SCROLL-FIT P8)") {
+        scrolling("boxed-eager", "a title over a GroupBox directly around 10,000 one- and two-line entries, scrolled three lines a tick (SCROLL-FIT P8)") {
             AnyView(PulledPageApp(shape: .boxedEager, entries: $0.sized(10_000), seed: $0.seed))
         },
-        variant("flow-10k", "a title over a FlowLayout of 10,000 tags, scrolled three lines a tick (SCROLL-FIT P8)") {
+        scrolling("flow-10k", "a title over a FlowLayout of 10,000 tags, scrolled three lines a tick (SCROLL-FIT P8)") {
             AnyView(PulledPageApp(shape: .flow, entries: $0.sized(10_000), seed: $0.seed))
         },
-        variant("layout-list", "a title over an app's own two-column Layout around a lazy stack of 10,000 entries, scrolled three lines a tick") {
+        scrolling("layout-list", "a title over an app's own two-column Layout around a lazy stack of 10,000 entries, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .layout, entries: $0.sized(10_000), seed: $0.seed))
         },
-        variant("titled-list", "a title over a List of 10,000 one-line rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-list", "a title over a List of 10,000 one-line rows under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .titledList, entries: $0.sized(10_000), seed: $0.seed))
         },
-        variant("titled-table", "a title over a two-column Table of 10,000 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-table", "a title over a two-column Table of 10,000 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .titledTable, entries: $0.sized(10_000), seed: $0.seed))
         },
-        variant("titled-list-variable", "a title over a List of 10,000 one- and two-line rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-list-variable", "a title over a List of 10,000 one- and two-line rows under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .titledListVariable, entries: $0.sized(10_000), seed: $0.seed))
         },
-        variant("grouped-form", "a title over a grouped Form of 40 sections of 25 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("grouped-form", "a title over a grouped Form of 40 sections of 25 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .groupedForm, entries: $0.sized(1_000), seed: $0.seed))
         },
-        variant("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledEditorApp(lines: $0.sized(10_000), seed: $0.seed))
         },
         driven("outline", "40 sections of 25 rows in one lazy stack, each row reading a counter of its own; one counter moves a frame") {
