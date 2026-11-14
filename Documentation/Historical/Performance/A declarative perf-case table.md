@@ -335,6 +335,10 @@ About 8 to 9.5 lane-days in all, roughly two weeks of one stream.
 
 ### A-PERFCASE-1. Exact counts, or bounds?
 
+**Owner, 2026-11-14: exact, and improvements are, of course, not failures.** Exact counts catch
+flakiness and quantify improvements as well as regressions. So a rise fails, a fall passes and is
+reported until re-recorded, and a case counted twice must agree (B-PERFCASE-4).
+
 Recommended: exact recorded counts for `built`, `bodies`, `cells` and `bytes`, failing in both
 directions, with 1% on the memo counts. The alternative is upper bounds (`built < 100`), which
 never need re-recording but let a count drift up to its bound unseen, and say nothing when a
@@ -344,11 +348,15 @@ one generated file.
 
 ### A-PERFCASE-2. Does the check run in `Stress` or in a test target?
 
+**Owner, 2026-11-14: in `Stress` (as recommended).**
+
 Recommended: in `Stress`, as `--check-counts` (B-PERFCASE-3). It needs no new target and no
 compile-time cost outside `Stress`. A test target gives per-case reporting and parallel runs, in
 exchange for a library target shared with `Stress`.
 
 ### A-PERFCASE-3. Keep a timing trend?
+
+**Owner, 2026-11-14: yes (as recommended).**
 
 Recommended: yes, as a CSV in the working notes, appended by any `ab_bench.py --cases timed` run
 on the owner's machine. It costs nothing to the repository, and it shows drift that no single A/B
@@ -357,7 +365,7 @@ suspected.
 
 ## Where it stands
 
-Proposed 2026-11-14. Nothing is built. The three questions are for the owner. B-PERFCASE-1 to 7
+Proposed 2026-11-14; the owner answered A-PERFCASE-1 to 3 the same day. Nothing is built yet. B-PERFCASE-1 to 7
 are decided here and stand unless the owner's answers change them.
 
 ## For a future reader
@@ -396,8 +404,12 @@ binary as they read scenarios now. (Subject to A-PERFCASE-2.)
 
 ### B-PERFCASE-4. Counts are recorded, re-recorded on purpose, and explained in the commit
 
-The recorded file is the expectation. Any move fails, a fall included. `TUI_RECORD_PERF_COUNTS=1`
-re-records it, and the commit says why. (Subject to A-PERFCASE-1.)
+The recorded file is the expectation, exact (A-PERFCASE-1). A rise fails. A fall is an
+improvement and passes, but `--check-counts` prints it with both numbers (`IMPROVED tall-table
+built 4,153 → 20`) on every run until it is re-recorded, so an improvement is quantified rather
+than lost. `TUI_RECORD_PERF_COUNTS=1` re-records, and the commit says why. Every case is counted
+twice in one run and fails if the two differ: a count is deterministic, so a difference is
+flakiness, which exact counts exist to catch.
 
 ### B-PERFCASE-5. Case ids and descriptions are English only
 
