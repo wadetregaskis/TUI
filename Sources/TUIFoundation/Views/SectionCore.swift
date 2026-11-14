@@ -360,42 +360,18 @@ extension _SectionCore {
             let contentEnd = contentStart + extent(content)
             if pins.headers, extent(header) > 0 {
                 section.overlays.append(
-                    Self.pinnedLayer(
-                        header, at: 0, vertical: vertical, edge: vertical ? .top : .leading,
+                    OverlayLayer.scrollPinned(
+                        header, at: 0, edge: vertical ? .top : .leading,
                         travel: contentEnd - extent(header)))
             }
             if pins.footers, extent(footer) > 0 {
                 section.overlays.append(
-                    Self.pinnedLayer(
-                        footer, at: footerStart, vertical: vertical, edge: vertical ? .bottom : .trailing,
+                    OverlayLayer.scrollPinned(
+                        footer, at: footerStart, edge: vertical ? .bottom : .trailing,
                         travel: footerStart - contentStart))
             }
         }
         return section
-    }
-
-    /// A layer pinning `chrome` — a header or a footer, drawn where the flow
-    /// draws it, `offset` along the stack's axis — to an edge of the scroll
-    /// view it is in (`OverlayLayer.scrollPin`), free to travel `travel` rows
-    /// (or columns) toward the far end of its section: until a header's far
-    /// edge meets the content's last row, or a footer's near edge the
-    /// content's first, which is SwiftUI's rule (measured on macOS 15.8, on
-    /// both axes).
-    ///
-    /// Padded to the chrome block's width, which every part is aligned across,
-    /// so a pinned header covers every cell of the rows it lands on. Without
-    /// its presentations: those ride on the chrome the flow draws, and the
-    /// scroll view moves them with it.
-    private static func pinnedLayer(
-        _ chrome: FrameBuffer, at offset: Int, vertical: Bool, edge: OverlayLayer.ScrollPin.Edge,
-        travel: Int
-    ) -> OverlayLayer {
-        var copy = chrome.replacingLines(chrome.lines.map { $0.padToVisibleWidth(chrome.width) })
-        copy.overlays = []
-        var layer = OverlayLayer(
-            offsetX: vertical ? 0 : offset, offsetY: vertical ? offset : 0, content: copy, isOpaque: false)
-        layer.scrollPin = OverlayLayer.ScrollPin(edge: edge, travel: travel)
-        return layer
     }
 }
 

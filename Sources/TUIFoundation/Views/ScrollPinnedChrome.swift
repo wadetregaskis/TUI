@@ -96,6 +96,32 @@ struct PinnedChromeHorizontalViewport {
     }
 }
 
+extension OverlayLayer {
+    /// A layer pinning `chrome` — a header or a footer, drawn where the flow
+    /// draws it, `offset` along its edge's axis — to that edge of the scroll
+    /// view it is in (``OverlayLayer/scrollPin``), free to travel `travel` rows
+    /// (or columns) toward the far end of what it heads: until a header's far
+    /// edge meets the content's last row, or a footer's near edge the
+    /// content's first, which is SwiftUI's rule for a section (measured on
+    /// macOS 15.8, on both axes).
+    ///
+    /// Padded to the chrome block's width, which every part is aligned across,
+    /// so a pinned header covers every cell of the rows it lands on. Without
+    /// its presentations: those ride on the chrome the flow draws, and the
+    /// scroll view moves them with it.
+    package static func scrollPinned(
+        _ chrome: FrameBuffer, at offset: Int, edge: ScrollPin.Edge, travel: Int
+    ) -> OverlayLayer {
+        let vertical = !edge.isHorizontal
+        var copy = chrome.replacingLines(chrome.lines.map { $0.padToVisibleWidth(chrome.width) })
+        copy.overlays = []
+        var layer = OverlayLayer(
+            offsetX: vertical ? 0 : offset, offsetY: vertical ? offset : 0, content: copy, isOpaque: false)
+        layer.scrollPin = ScrollPin(edge: edge, travel: travel)
+        return layer
+    }
+}
+
 /// A pinned layer, and the buffer position a viewport draws it at instead of
 /// where the flow drew it.
 struct PinnedChromePlacement {
