@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**The F1 list of shortcuts names a status-bar item's key as the bar draws it.** An item on `"x"` read `X Export` in
+the bar and `x Export` in the list. The list now writes a one-letter key in the bar's spelling, `X` by default and
+`x` under `.statusBarKeySpelling(.asTyped)`.
+
 **A `ScrollPosition` bound with a new value scrolls, as SwiftUI's does.** A scroll view acted on a bound position
 only after a `scrollTo`, so `.scrollPosition(.constant(ScrollPosition(y: line)))`, a `Binding(get:set:)` that builds
 a position, or `position = ScrollPosition(y: line)` moved the view once and then never again, whatever `line` became.

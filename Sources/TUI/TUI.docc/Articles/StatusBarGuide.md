@@ -119,7 +119,7 @@ StatusBar()
     .statusBarKeySpelling(.asTyped)   // n new, N new, y yes
 ```
 
-A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way.
+A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way. The list of shortcuts on F1 names an item's key the way the bar draws it, in the spelling in force where the bar is.
 
 ### Keys written by name
 

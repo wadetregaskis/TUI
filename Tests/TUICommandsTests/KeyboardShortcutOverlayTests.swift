@@ -86,6 +86,19 @@ private struct BareWindowsApp: App {
     }
 }
 
+/// A page whose status bar draws its one-letter keys as typed.
+private struct AsTypedApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Text("Main")
+                .statusBarItems([StatusBarItem(shortcut: "x", label: "Export") {}])
+                .toolbar { ToolbarItem(placement: .bottomBar) { StatusBar() } }
+                .statusBarKeySpelling(.asTyped)
+        }
+    }
+}
+
 /// A plain page with no menu bar.
 private struct PlainApp: App {
     init() {}
@@ -274,6 +287,26 @@ struct KeyboardShortcutOverlayTests {
         #expect(row("Keyboard Shortcuts", in: app) != nil)
         let quits = app.screen.text.split(separator: "\n").filter { $0.contains("⌃Q") }
         #expect(quits.count == 1, "\(quits)")
+    }
+
+    @Test("A status-bar item's one-letter key is listed as a bar draws it by default, in capitals")
+    func barItemsSpelledAsTheBar() throws {
+        let app = launched(FullApp())
+        press(f1, in: app)
+        let listed = try #require(row("Export", in: app))
+        #expect(listed.contains("X  Export"), "listed: \(listed)")
+        #expect(!listed.contains("x  Export"), "listed: \(listed)")
+    }
+
+    @Test("Under the as-typed spelling, the list writes the item's key as typed too")
+    func barItemsAsTyped() throws {
+        let app = launched(AsTypedApp())
+        let bar = try #require(row("Export", in: app))
+        #expect(bar.contains("x Export"), "the bar: \(bar)")
+        press(f1, in: app)
+        let listed = try #require(row("Export", in: app))
+        #expect(listed.contains("x  Export"), "listed: \(listed)")
+        #expect(!listed.contains("X  Export"), "listed: \(listed)")
     }
 
     @Test("A scene's key is listed under the menu item that shows it, and without a menu bar on the screen's")

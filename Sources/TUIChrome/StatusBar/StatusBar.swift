@@ -235,7 +235,7 @@ private struct _AppStatusBarCore: View, Renderable {
         // keys still work (`StatusBarState.showsNoteInPlaceOfItems`). Whether
         // there are items for it to stand in for is what the next frame asks.
         let note = state.showsNoteInPlaceOfItems && state.hasItems
-        if state.hasItems, !context.isMeasuring { state.lineShowsItems = true }
+        if !context.isMeasuring { state.recordLineDrawn(spelling: context.environment.statusBarKeySpelling) }
         // And the core reads the same state for what it reads of its own —
         // the claimed Escape and Return labels, which item the pointer is over
         // — and writes the hover back to it.

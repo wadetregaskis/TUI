@@ -634,6 +634,28 @@ public final class StatusBarState {
     /// ``lineShowsItems``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _lineShowsItems = false
+
+    /// How the app's line of key hints last drew an item's one-letter key
+    /// (``StatusBarKeySpelling``, read from the environment where the line is
+    /// drawn), so the F1 list of shortcuts names an item's key as the bar
+    /// beside it does. Recorded by the line as it draws.
+    package var itemKeySpelling: StatusBarKeySpelling {
+        get { _itemKeySpelling }
+        set { _itemKeySpelling = newValue }
+    }
+
+    /// ``itemKeySpelling``'s storage: private, under the `package` accessor
+    /// (CONTRIBUTING.md, "Crossing a module boundary").
+    private var _itemKeySpelling = StatusBarKeySpelling.menu
+
+    /// Records what the app's line of key hints drew this frame: a row of
+    /// items, if there are any (``lineShowsItems``), and its items' keys in
+    /// `spelling` (``itemKeySpelling``). Called by the line as it draws, not
+    /// as it is measured.
+    package func recordLineDrawn(spelling: StatusBarKeySpelling) {
+        if hasItems { lineShowsItems = true }
+        itemKeySpelling = spelling
+    }
 }
 
 // MARK: - Public API
