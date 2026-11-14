@@ -29,7 +29,8 @@ private struct Entry: Identifiable {
 
 /// A title and a table under `.fixedSize(horizontal: false, vertical: true)`
 /// in a scroll view, a button below them, the switch on — or the twin: the
-/// same table drawn whole, framed to its full height, the switch off.
+/// same table drawn whole, framed to its full height, which the switch leaves
+/// as it was.
 private struct FixedSizeTablePage: View {
     let entries: [Entry]
     let probe: FixedSizeProbe
@@ -48,7 +49,7 @@ private struct FixedSizeTablePage: View {
         }
         .onScrollGeometryChange(
             for: Int.self, of: { $0.contentSize.height }, action: { _, height in probe.contentHeight = height })
-        .environment(\.scrollFitsContent, pulled)
+        .environment(\.scrollFitsContent, true)
     }
 
     private var table: some View {
@@ -78,12 +79,17 @@ struct PulledFixedSizeTests {
 
     // MARK: - In scroll content
 
+    /// Its header pinned over the top line while its rows are under it
+    /// (SCROLL-FIT P6, `PulledTableTwin`).
     @Test("The table draws what the same table drawn whole draws: top, wheeled, cursor moved, at the end and home")
     func drawsWhatTheWholeTableDraws() {
         let pulled = Self.app(300)
         let whole = Self.app(300, pulled: false)
+        let header = Self.content(pulled)[2]
         func check(_ step: String) {
-            #expect(Self.content(pulled) == Self.content(whole), "\(step):\n\(pulled.screen)\n---\n\(whole.screen)")
+            #expect(
+                PulledTableTwin.matches(Self.content(pulled), Self.content(whole), header: header),
+                "\(step):\n\(pulled.screen)\n---\n\(whole.screen)")
         }
         check("top")
         for step in 1...4 {

@@ -109,14 +109,19 @@ extension OverlayLayer {
     /// so a pinned header covers every cell of the rows it lands on. Without
     /// its presentations: those ride on the chrome the flow draws, and the
     /// scroll view moves them with it.
+    ///
+    /// Not `isOpaque` by default: a section's header is transparent in
+    /// SwiftUI, so a row's field shows through its blank cells. An opaque one
+    /// — a table's header, which SwiftUI draws as a view of its own over the
+    /// rows — keeps its own fields wherever it is pinned.
     package static func scrollPinned(
-        _ chrome: FrameBuffer, at offset: Int, edge: ScrollPin.Edge, travel: Int
+        _ chrome: FrameBuffer, at offset: Int, edge: ScrollPin.Edge, travel: Int, isOpaque: Bool = false
     ) -> OverlayLayer {
         let vertical = !edge.isHorizontal
         var copy = chrome.replacingLines(chrome.lines.map { $0.padToVisibleWidth(chrome.width) })
         copy.overlays = []
         var layer = OverlayLayer(
-            offsetX: vertical ? 0 : offset, offsetY: vertical ? offset : 0, content: copy, isOpaque: false)
+            offsetX: vertical ? 0 : offset, offsetY: vertical ? offset : 0, content: copy, isOpaque: isOpaque)
         layer.scrollPin = ScrollPin(edge: edge, travel: travel)
         return layer
     }
@@ -226,7 +231,14 @@ extension FrameBuffer {
         var drawn = content
         drawn.overlays = []
         // Covers the glyphs, runs and fades it lands on, and brings its own.
-        composite(with: drawn, at: (x: placement.column, y: placement.row))
+        // An opaque one (a table's header and bar) its fields too: drawn over
+        // the row beneath's, a cursor row reversed on the terminal's own ink
+        // took the header's letters into its field, and they vanished.
+        if layer.isOpaque {
+            self = composited(with: drawn, at: (x: placement.column, y: placement.row), overlayIsPainted: true)
+        } else {
+            composite(with: drawn, at: (x: placement.column, y: placement.row))
+        }
     }
 
     /// Whether `region` lies entirely inside `columns` × `rows`.

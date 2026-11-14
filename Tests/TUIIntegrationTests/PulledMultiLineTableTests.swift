@@ -100,12 +100,17 @@ struct PulledMultiLineTableTests {
         }
     }
 
+    /// Its header pinned over the top line while its rows are under it
+    /// (SCROLL-FIT P6, `PulledTableTwin`).
     @Test("The table draws what the same table drawn whole draws: top, wheeled, cursor moved, at the end and home")
     func drawsWhatTheWholeTableDraws() {
         let pulled = Self.app(300)
         let whole = Self.app(300, framed: Self.wholeHeight(300))
+        let header = Self.content(pulled)[3]
         func check(_ step: String) {
-            #expect(Self.content(pulled) == Self.content(whole), "\(step):\n\(pulled.screen)\n---\n\(whole.screen)")
+            #expect(
+                PulledTableTwin.matches(Self.content(pulled), Self.content(whole), header: header),
+                "\(step):\n\(pulled.screen)\n---\n\(whole.screen)")
         }
         check("top")
         for step in 1...4 {

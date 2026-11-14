@@ -1085,7 +1085,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             var size = laidOut.table.measuredSizeThatFits(
                 proposal: ProposedViewSize(width: proposal.width, height: proposal.height.map { $0 - barLines }),
                 context: laidOut.context)
-            size.height += barLines
+            // Pulled, its rows' height and the bar's line under them — and
+            // filed again as a view that bands its rows, which the window's
+            // measure, not itself pulled, withdrew.
+            if pulled != nil { context.notePulledBand(true) }
+            size.height = pulled ?? size.height + barLines
             return size
         }
 
@@ -5230,7 +5234,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         let environment = context.environment
         let gutter = selectionGutter(environment)
         let wide = columnsWidth(context.availableWidth, environment, showsBar: false)
-        let barPossible = !data.isEmpty && environment.verticalScrollIndicators(overflowing: true).bar
+        // Pulled (``pulledOffset``), the scroll view around it shows where it
+        // is: no vertical bar of its own, and its columns the whole width.
+        let barPossible =
+            pulledOffset == nil && !data.isEmpty && environment.verticalScrollIndicators(overflowing: true).bar
         let narrow = barPossible ? columnsWidth(context.availableWidth, environment, showsBar: true) : wide
         let wideMinimums = minimumColumnWidths(columnsWidth: wide, gutter: gutter, context: context)
 
@@ -7526,22 +7533,66 @@ extension _TableCore {
 
 // MARK: - SCROLL-FIT's pull
 
+/// A pulled table's lines (``_TableCore/pulledLines(context:)``): the chrome
+/// above its rows, their count, and the chrome below them.
+struct PulledTableLines {
+    /// The lines above the rows: the top border and the header.
+    let top: Int
+    /// The rows.
+    let count: Int
+    /// The lines below the rows: the horizontal scrollbar's and the bottom
+    /// border.
+    let bottom: Int
+    /// The header's lines, the last of ``top``'s.
+    let header: Int
+    /// The horizontal scrollbar's lines, the first of ``bottom``'s.
+    let bar: Int
+
+    /// The lines pinned over the scroll view's viewport while the rows are
+    /// under its edges, which a page key does not count.
+    var pinned: Int { header + bar }
+}
+
 extension _TableCore {
-    /// A table's lines as SCROLL-FIT's pull reads them (designs P3 and P4):
-    /// the chrome above its rows (a border, the header), its rows — one line
-    /// each, or of varying height on the multi-line layout (lines above one,
-    /// or sections) — and the chrome below; or `nil` when it is drawn as
-    /// before: the switch off, outside scroll content, given a height, below a
-    /// container that does not pull, a style of the app's own, columns that do
-    /// not fit across, or no rows.
-    private func pulledLines(context: RenderContext) -> (top: Int, count: Int, bottom: Int)? {
+    /// A table's lines as SCROLL-FIT's pull reads them (designs P3, P4 and
+    /// P6): the chrome above its rows (a border, the header), its rows — one
+    /// line each, or of varying height on the multi-line layout (lines above
+    /// one, or sections) — and the chrome below (the horizontal scrollbar's
+    /// line, `bar`, where its columns do not fit across, and a border); or
+    /// `nil` when it is drawn as before: the switch off, outside scroll
+    /// content, given a height, below a container that does not pull, a style
+    /// of the app's own, rows of varying height whose columns do not fit
+    /// across, or no rows.
+    private func pulledLines(context: RenderContext) -> PulledTableLines? {
         let environment = context.environment
         guard environment.scrollFitsContent, context.scrollContentOriginDepth != 0, !context.hasExplicitHeight,
             !data.isEmpty, horizontalWindow == nil, customStyle(environment) == nil,
-            context.isPulledWhereItStands
+            context.isPulledWhereItStands, let bar = pulledBarLines(context)
         else { return nil }
         let border = borderWidth(environment)
-        return (border + headerLines(environment), data.count, border)
+        return PulledTableLines(
+            top: border + headerLines(environment), count: data.count, bottom: bar + border, header: headerLines(environment),
+            bar: bar)
+    }
+
+    /// The line a pulled table keeps under its rows for its horizontal
+    /// scrollbar: one where its columns do not fit across and the bar takes a
+    /// line of its own (``horizontallyWindowed(_:)``), none where they fit.
+    /// `nil` for rows of varying height whose columns do not fit, which are
+    /// drawn as before.
+    private func pulledBarLines(_ context: RenderContext) -> Int? {
+        guard columns.count > 1 else { return 0 }
+        var context = RowSelectionIndicator.resolvingForTable(context)
+        Self.claimCellText(in: &context)
+        context = Self.placingScrollIndicators(context, focusID: focusID)
+        let environment = context.environment
+        let fits =
+            (try? plainColumnWidths(
+                availableWidth: columnsWidth(context.availableWidth, environment, showsBar: false),
+                spacing: columnSpacing, gutter: selectionGutter(environment), context: context)) != nil
+        if fits { return 0 }
+        if usesMultiLineLayout { return nil }
+        return environment.showsHorizontalScrollbar(overflowing: true) ? 1 : 0
     }
 
     /// The table's measure when it is pulled: its rows' height, filed as a
@@ -7594,9 +7645,15 @@ extension _TableCore {
         let band: PulledBand?
         let lineRange: Range<Int>
         if let request {
+            // A row sought is placed clear of the header and the bar pinned
+            // over the viewport's edges, as SwiftUI's table, whose header is
+            // outside the rows it scrolls, shows it.
+            let sought = { (row: Int) -> (y: Int, height: Int) in
+                (lines.top + row - lines.header, lines.header + 1 + lines.bar)
+            }
             let resolved = request.band(total: total) { seek in
-                if seek.focusID != nil { return (lines.top + min(handler?.focusedIndex ?? 0, lines.count - 1), 1) }
-                return data.firstIndex { identityKey($0.id) == seek.key }.map { (lines.top + $0, 1) }
+                if seek.focusID != nil { return sought(min(handler?.focusedIndex ?? 0, lines.count - 1)) }
+                return data.firstIndex { identityKey($0.id) == seek.key }.map(sought)
             }
             band = resolved
             lineRange = resolved.lines
@@ -7624,12 +7681,17 @@ extension _TableCore {
             return line - lines.count + rows.count
         }
         var buffer = drawn.lines(in: drawnLine(lineRange.lowerBound)..<(drawnLine(lineRange.upperBound - 1) + 1))
+        if request != nil, !context.isMeasuring {
+            buffer.overlays += pinnedChrome(
+                of: drawn, lines: lines, rowLines: lines.count, drawnRowLines: rows.count, bandTop: lineRange.lowerBound)
+        }
         if let handler = existingHandler(context), !context.isMeasuring {
             buffer.markPulledControl(
                 focusID: handler.focusID, band: lineRange, total: total, cursorLine: lines.top + handler.focusedIndex)
             // Page Up and Page Down move by the scroll view's viewport, not
-            // the band's rows (B-SCROLLFIT-5).
-            if let request { handler.viewportHeight = max(1, request.viewportHeight) }
+            // the band's rows (B-SCROLLFIT-5), less the header and bar pinned
+            // over it.
+            if let request { handler.viewportHeight = max(1, request.viewportHeight - lines.pinned) }
         }
         if let band { request?.answer(band) }
         return buffer
@@ -7639,7 +7701,7 @@ extension _TableCore {
     /// varying height make for the request, walked from the table's anchor
     /// (`PulledRowBand.swift`), drawn as the table draws itself framed to
     /// those rows from the first, its top clipped, and cut to the band.
-    private func renderPulledVariable(lines: (top: Int, count: Int, bottom: Int), context: RenderContext) -> FrameBuffer? {
+    private func renderPulledVariable(lines: PulledTableLines, context: RenderContext) -> FrameBuffer? {
         guard let columns = pulledColumns(context: context) else { return nil }
         let rows = pulledRows(context: context)
         rows.noteShape(width: context.availableWidth, count: lines.count)
@@ -7657,7 +7719,8 @@ extension _TableCore {
             let band = request.band(
                 of: rows, count: lines.count, top: lines.top, bottom: lines.bottom, pitch: height,
                 key: { identityKey(data[$0].id) }, ordinal: { key in data.firstIndex { identityKey($0.id) == key } },
-                seekRow: { seek in seek.focusID != nil ? cursor : data.firstIndex { identityKey($0.id) == seek.key } })
+                seekRow: { seek in seek.focusID != nil ? cursor : data.firstIndex { identityKey($0.id) == seek.key } },
+                seekChrome: (lines.header, lines.bar))
             table.pulledOffset = band.firstRow
             table.pulledClip = band.clip
             framed.availableHeight = band.frameHeight(top: lines.top, bottom: lines.bottom)
@@ -7675,12 +7738,21 @@ extension _TableCore {
         let drawn = table.drawn(context: framed)
         var buffer = drawn.lines(in: cut.clamped(to: 0..<max(1, drawn.height)))
         if let placed, let request {
+            if !context.isMeasuring {
+                buffer.overlays += pinnedChrome(
+                    of: drawn, lines: lines, rowLines: placed.band.total - lines.top - lines.bottom,
+                    drawnRowLines: placed.rowLines, bandTop: placed.band.lines.lowerBound)
+            }
             if let handler = existingHandler(context), !context.isMeasuring {
                 let cursor = placed.lines(
                     ofRow: min(handler.focusedIndex, lines.count - 1), viewportHeight: request.viewportHeight)
+                // Never above the rows, where a row priced short of its place
+                // would land on the header: a reveal reads a region there as
+                // the pinned header's, drawn at the viewport's top, and
+                // leaves it.
                 buffer.markPulledControl(
                     focusID: handler.focusID, band: placed.band.lines, total: placed.band.total,
-                    cursorLine: cursor.top, cursorHeight: cursor.height)
+                    cursorLine: max(lines.top, cursor.top), cursorHeight: cursor.height)
                 // Page Up and Page Down move by the scroll view's viewport,
                 // in the rows it shows (B-SCROLLFIT-5).
                 handler.viewportHeight = placed.rowsOnScreen
@@ -7718,6 +7790,48 @@ extension _TableCore {
         handler.scrollOffset = pulledOffset
         handler.scrollTopClipLines = pulledClip
         handler.isScrollEnabled = false
+    }
+
+    /// A pulled table's header and horizontal scrollbar, pinned to the scroll
+    /// view's top and bottom edges while its rows are under them (SCROLL-FIT
+    /// 2c, B-SCROLLFIT-9): a copy of each, taken from `drawn` — the table
+    /// framed to the band's rows, `drawnRowLines` lines of them — as a section
+    /// pins its header and footer (``OverlayLayer/scrollPinned(_:at:edge:travel:)``),
+    /// at its place in the band's lines, whose first is the table's line
+    /// `bandTop`: above the band or below it, where the band leaves it out.
+    ///
+    /// The header is the header's lines and the side borders on them, not the
+    /// top border; the bar is its line and the side borders on it. Each may
+    /// travel the rows' height (`rowLines`), so the header is pushed off by
+    /// the last row and the bar stops at the first, and a table below takes
+    /// the edge over, as a section's header does.
+    private func pinnedChrome(
+        of drawn: FrameBuffer, lines: PulledTableLines, rowLines: Int, drawnRowLines: Int, bandTop: Int
+    ) -> [OverlayLayer] {
+        // The lines, and what rides on them: the header's sort regions, the
+        // bar's. Not the regions `lines(in:)` carries outside them, which the
+        // band holds already.
+        func copy(_ rows: Range<Int>) -> FrameBuffer {
+            var chrome = drawn.lines(in: rows)
+            let height = chrome.height
+            chrome.hitTestRegions.removeAll { $0.offsetY < 0 || $0.offsetY + $0.height > height }
+            return chrome
+        }
+        var pins: [OverlayLayer] = []
+        let headerTop = lines.top - lines.header
+        if lines.header > 0 {
+            pins.append(
+                .scrollPinned(
+                    copy(headerTop..<lines.top), at: headerTop - bandTop, edge: .top, travel: rowLines, isOpaque: true))
+        }
+        if lines.bar > 0 {
+            let drawnBar = lines.top + drawnRowLines
+            pins.append(
+                .scrollPinned(
+                    copy(drawnBar..<(drawnBar + lines.bar)), at: lines.top + rowLines - bandTop, edge: .bottom,
+                    travel: rowLines, isOpaque: true))
+        }
+        return pins
     }
 
     /// What a pulled table of multi-line rows keeps between frames.

@@ -210,7 +210,10 @@ extension PulledBandRequest {
     /// of the rows the walk reaches, at most once a frame), keyed by
     /// `key` and found by key with `ordinal`; `seekRow` names the row a
     /// `scrollTo` key or a focus reveal names, `nil` for a key the view does
-    /// not hold.
+    /// not hold, and a seek places it with `seekChrome`'s lines above and
+    /// below it — what the view pins over the viewport's edges while its rows
+    /// are under them (a table's header and horizontal bar), which a row
+    /// sought is kept clear of.
     ///
     /// The viewport's top is walked from the anchor `rows` keeps
     /// (``ScrollFillColumn/advanceAnchor(to:viewportHeight:linesBelow:)``): a
@@ -225,7 +228,7 @@ extension PulledBandRequest {
     package func band(
         of rows: PulledRows, count: Int, top: Int, bottom: Int,
         pitch: @escaping (Int) -> Int, key: @escaping (Int) -> String?, ordinal: @escaping (String) -> Int?,
-        seekRow: (ScrollToRequest) -> Int?
+        seekRow: (ScrollToRequest) -> Int?, seekChrome: (above: Int, below: Int) = (0, 0)
     ) -> PulledRowsBand {
         let column = PulledRowColumn(rows: rows, count: count, pitch: pitch, key: key, ordinal: ordinal)
         let viewport = max(1, window.viewportHeight)
@@ -253,7 +256,8 @@ extension PulledBandRequest {
             var placed = window
             placed.offset = rowsWindow.offset + top
             let position = placed.offset(
-                realising: seek, targetY: targetTop + top, rowHeight: column.pitch(of: target),
+                realising: seek, targetY: targetTop + top - seekChrome.above,
+                rowHeight: seekChrome.above + column.pitch(of: target) + seekChrome.below,
                 stackHeight: top + bottom
                     + max(rows.estimatedRowsHeight(count: count), targetTop + (count - target) * estimate))
             anchor.ordinal = target
