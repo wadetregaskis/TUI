@@ -85,7 +85,11 @@ struct ShortcutOverlayColumnsTests {
 
 // MARK: - On the Screen
 
-/// Four menus of five commands each, and a page of four.
+/// Four menus of five commands each, and a page of four. The app names
+/// itself (`aboutPanel`), or its app menu takes the test runner's process
+/// name (`TUICommandsTests-test-runner` on Linux with Swift 6.4, too wide
+/// for two columns in 80 columns; `xctest` elsewhere, narrow enough for six
+/// columns in 200 without splitting).
 private struct MenusApp: App {
     init() {}
     var body: some Scene {
@@ -102,6 +106,7 @@ private struct MenusApp: App {
             CommandMenu("Charlie") { Self.commands("oprtu") }
             CommandMenu("Delta") { Self.commands("vwxyz") }
         }
+        .aboutPanel(applicationName: "Demo Shortcut Showcase")
     }
 
     @ViewBuilder private static func commands(_ letters: String) -> some View {
@@ -124,10 +129,14 @@ struct KeyboardShortcutOverlayScreenTests {
         return app
     }
 
-    /// The rows two or more of the sections' headings start on together.
+    /// The rows of the dialog where two or more of the sections' headings
+    /// start together (excluding the menu bar row behind it, which carries
+    /// the menu names `Alpha`, `Bravo`, …).
     private func rowsWithSeveralHeadings(_ app: TestApp) -> Int {
-        app.screen.lines.filter { line in headings.filter { line.contains($0 + " ") || line.hasSuffix($0) }.count > 1 }
-            .count
+        app.screen.lines.filter { line in
+            line.contains("│") && headings.filter { line.contains($0 + " ") || line.hasSuffix($0) }.count > 1
+        }
+        .count
     }
 
     private func everyCommandShows(_ app: TestApp) -> Bool {
