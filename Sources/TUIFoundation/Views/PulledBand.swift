@@ -23,8 +23,8 @@ import TUIView
 /// total with ``band(total:seekLine:)`` and answered with ``answer(_:)``.
 @MainActor
 package struct PulledBandRequest {
-    fileprivate let window: ScrollContentWindow
-    fileprivate let context: RenderContext
+    let window: ScrollContentWindow
+    let context: RenderContext
 
     /// The scroll view's viewport, in lines: what a page key moves by in a
     /// view that does not scroll itself (B-SCROLLFIT-5).
@@ -76,7 +76,7 @@ package struct PulledBandRequest {
         guard let reply = window.reply else { return }
         reply.sliceOriginY = band.lines.lowerBound
         reply.sliceTotalHeight = band.total
-        reply.sliceTotalIsEstimate = false
+        reply.sliceTotalIsEstimate = band.totalIsEstimate
         reply.sliceHoldsFirstRow = band.lines.lowerBound == 0
         reply.sliceHoldsLastRow = band.lines.upperBound == band.total
         if band.resolvedSeek {
@@ -106,6 +106,9 @@ package struct PulledBand: Sendable, Equatable {
     package let total: Int
     /// Whether a seek moved ``position``.
     package let resolvedSeek: Bool
+    /// Whether ``total`` prices rows never built at a running pitch
+    /// (`PulledRowBand.swift`), rather than knowing every line.
+    package var totalIsEstimate = false
 }
 
 @MainActor extension RenderContext {
@@ -150,7 +153,14 @@ extension FrameBuffer {
     /// whole-control region's handler, at the front of the regions, where a
     /// click never reaches it before that one — and no line of the band
     /// holds it.
-    package mutating func markPulledControl(focusID: String, band: Range<Int>, total: Int, cursorLine: Int?) {
+    ///
+    /// A cursor row `cursorHeight` lines tall that the band holds only in
+    /// part (rows of varying height, `PulledRowBand.swift`) is marked whole:
+    /// the regions of it the band's cut cropped grow back to the whole row,
+    /// as it is drawn whole, so that the reveal shows all of it.
+    package mutating func markPulledControl(
+        focusID: String, band: Range<Int>, total: Int, cursorLine: Int?, cursorHeight: Int = 1
+    ) {
         let carrying = hitTestRegions.indices.filter {
             hitTestRegions[$0].focusID == focusID && !hitTestRegions[$0].isGeometryMarker
         }
@@ -160,10 +170,27 @@ extension FrameBuffer {
         region.revealOutsetBottom = max(
             region.revealOutsetBottom, total - band.lowerBound - region.offsetY - region.height)
         hitTestRegions[whole] = region
-        guard let cursorLine, cursorLine >= 0, cursorLine < total, !band.contains(cursorLine) else { return }
+        guard let cursorLine, cursorLine >= 0, cursorLine < total else { return }
+        let row = cursorLine..<min(total, cursorLine + max(1, cursorHeight))
+        guard row.clamped(to: band) != row else { return }
+        let rowTop = row.lowerBound - band.lowerBound
+        var grown = false
+        for index in carrying where index != whole {
+            let part = hitTestRegions[index]
+            guard part.offsetY >= rowTop, part.offsetY + part.height <= rowTop + row.count, part.height < row.count
+            else { continue }
+            // The cursor row's own region, which only a reveal reads (a list
+            // and a table put it ahead of their regions, where no click
+            // reaches it first).
+            hitTestRegions[index] = HitTestRegion(
+                offsetX: part.offsetX, offsetY: rowTop, width: part.width, height: row.count,
+                handlerID: part.handlerID, focusID: focusID)
+            grown = true
+        }
+        guard !grown else { return }
         hitTestRegions.insert(
             HitTestRegion(
-                offsetX: 0, offsetY: cursorLine - band.lowerBound, width: width, height: 1,
+                offsetX: 0, offsetY: rowTop, width: width, height: row.count,
                 handlerID: region.handlerID, focusID: focusID),
             at: 0)
     }
