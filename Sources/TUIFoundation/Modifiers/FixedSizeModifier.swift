@@ -138,8 +138,8 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// laying out the 4,096 rows the rung reached. The climb stops at a rung
     /// the content comes in under, or at one it fills while saying it is
     /// flexible, which has no ideal height: a `List` drawn as before says so.
-    /// A filler answers its minimum offered no height (a `Spacer`, a `Color`),
-    /// which is its ideal there (B-SCROLLFIT-7). Content taller than the
+    /// A filler answers its minimum offered no height (a `Spacer`, a `Color`,
+    /// a `GeometryReader`), which is its ideal there (B-SCROLLFIT-7). Content taller than the
     /// screen is laid out whole outside a scroll view, which has no viewport
     /// to pull against; in scroll content it is pulled, and only the rows on
     /// screen are drawn.

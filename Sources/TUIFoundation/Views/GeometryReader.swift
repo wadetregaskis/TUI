@@ -307,10 +307,21 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
     /// The content is *not* measured. Measuring it would mean building it, which
     /// needs a proxy, which needs the size this call is computing — the
     /// circularity SwiftUI resolves the same way, by making the reader greedy.
+    ///
+    /// Asked how tall it would be with nothing to stop it — no height
+    /// proposed, and offered the natural-extent ladder's budget (a scroll
+    /// view's content, `.fixedSize`) — it is, under SCROLL-FIT's switch
+    /// (``EnvironmentValues/scrollFitsContent``), its minimum: none, and
+    /// flexible, as a `Color` is (design B-SCROLLFIT-7, -8). Taking the
+    /// budget, it was 4,096 blank lines in a scroll view, and under `.fixedSize`
+    /// the height left on the screen.
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        ViewSize(
+        let fillsNothing =
+            proposal.height == nil && context.environment.scrollFitsContent
+            && isNaturalExtentBudget(context.availableHeight)
+        return ViewSize(
             width: context.fillingWidth(proposal: proposal),
-            height: proposal.height ?? context.availableHeight,
+            height: fillsNothing ? 0 : proposal.height ?? context.availableHeight,
             isWidthFlexible: true,
             isHeightFlexible: true)
     }

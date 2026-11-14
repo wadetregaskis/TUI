@@ -205,4 +205,47 @@ struct PulledFixedSizeTests {
     func listHasNoIdealHeight(_ rows: Int) {
         #expect(Self.fixedSize(.listPlain, rows: rows).sizeA == CellSize(width: 60, height: 23))
     }
+
+    // MARK: - Fillers (B-SCROLLFIT-7)
+
+    /// Off, a `GeometryReader` took the ladder's rung: 4,096 blank lines in a
+    /// scroll view, and under `.fixedSize` the screen's height left under the
+    /// title. On, offered no height it is its minimum, as a `Color` is, so it
+    /// comes out as tall as a `Color` does wherever the baseline puts one
+    /// (the screen's height alone in a scroll view, which draws its content
+    /// no shorter than its viewport until P7).
+    @Test(
+        "A GeometryReader offered no height is its minimum, as a Color is",
+        arguments: [ScrollFitSituation.alone, .underTitle, .twoStacked, .fixedSize, .horizontal])
+    func geometryReaderIsItsMinimum(_ situation: ScrollFitSituation) {
+        let reader = ScrollFitMeasure.measure(.geometryReader, situation, rows: 3, walk: false, fitsContent: true)
+        let color = ScrollFitMeasure.measure(.color, situation, rows: 3, walk: false, fitsContent: true)
+        // Heights: a reader fills the width it is laid out at, where a
+        // `Color` in a column fixed to its ideal width is none wide.
+        #expect(reader.sizeA?.height == color.sizeA?.height, "\(reader) against \(color)")
+        #expect(reader.sizeB?.height == color.sizeB?.height, "\(reader) against \(color)")
+    }
+
+    @Test("Under .fixedSize a GeometryReader is no lines tall, and a frame filling its height is its content's")
+    func fillersUnderFixedSize() {
+        #expect(Self.fixedSize(.geometryReader, rows: 3).sizeA == CellSize(width: 60, height: 0))
+        #expect(Self.fixedSize(.maxHeightText, rows: 3).sizeA == CellSize(width: 4, height: 1))
+    }
+
+    /// Given a height, it fills it as before: the minimum is only the answer
+    /// to "how tall with nothing to stop it".
+    @Test("Given a height, a GeometryReader fills it")
+    func geometryReaderFillsAHeight() {
+        var size: CellSize?
+        let app = TestApp(width: 30, height: 10) {
+            VStack(spacing: 0) {
+                Text("title")
+                GeometryReader { proxy in Text(verbatim: "\(proxy.size.height)") }
+                    .onGeometryChange(for: CellSize.self, of: { $0.size }, action: { size = $0 })
+            }
+            .environment(\.scrollFitsContent, true)
+        }
+        _ = app.screen
+        #expect(size == CellSize(width: 30, height: 9), "\(String(describing: size))")
+    }
 }
