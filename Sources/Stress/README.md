@@ -66,6 +66,9 @@ session's, each step's screen). `Tools/Profiling/frame_parity.py OLD NEW` runs
 two builds over the same scenarios with it and names the first frame that
 differs: the oracle for a change that must draw exactly what it drew before,
 as SCROLL-FIT's P1 must (`Documentation/Historical/Scrolling/SCROLL-FIT design.md`).
+With it the frames read a fixed clock, a sixtieth of a second a tick, rather
+than the wall clock, so a scenario that shows the time (`timeline-rows`) draws
+the same frames on every run; the timings are the wall clock's either way.
 
 `--stripes` prices the stripe a `Table` draws by default (and a `List` under
 `.alternatingRowBackgrounds()`) on ONE build: runs of the same binary under

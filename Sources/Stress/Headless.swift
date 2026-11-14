@@ -167,9 +167,25 @@ enum Headless {
     /// unstamped, it read `Date()` in the measure and again in the render, and
     /// a walk that began just short of an entry boundary laid out one entry and
     /// drew the next (`RenderCache.frameDate`).
+    ///
+    /// `date` is the wall clock's unless given: `--frame-checksums` gives the
+    /// date of ``checksumDate(tick:)``.
     @MainActor
-    private static func stampFrameDate(_ context: RenderContext) {
-        context.environment.renderCache?.frameDate = Date()
+    private static func stampFrameDate(_ context: RenderContext, date: Date? = nil) {
+        context.environment.renderCache?.frameDate = date ?? Date()
+    }
+
+    /// The date `--bench --frame-checksums` stamps on frame `tick`: a fixed
+    /// date, moved on a 1/60 s frame a tick, as the run loop's animation clock
+    /// is (``DrivenScenario/runsAnimationClock``). The wall clock's date made a
+    /// scenario that shows the time draw different frames on every run —
+    /// `app-shapes/timeline-rows`, whose `TimelineView`s draw a glyph for each
+    /// eighth of a second, differed in all 60 frames between two runs of one
+    /// binary — so `frame_parity.py` could not tell a change that drew
+    /// differently from the clock moving on. The timings stay on the wall
+    /// clock: without `--frame-checksums` nothing changes.
+    private static func checksumDate(tick: Int) -> Date {
+        Date(timeIntervalSinceReferenceDate: 800_000_000 + Double(tick) / 60)
     }
 
     /// The type the bench's identity tree is rooted at — a stand-in for the
@@ -495,7 +511,7 @@ enum Headless {
         let channels = HeadlessInputChannels()
         let valueHashPlans = ValueHashPlans.tui()
         var warm = makeContext(cols: cols, rows: rows, channels: channels, valueHashPlans: valueHashPlans)
-        stampFrameDate(warm)
+        stampFrameDate(warm, date: frameChecksums ? checksumDate(tick: 0) : nil)
         _ = renderToBuffer(view, context: warm)
 
         var tally = FrameTally()
@@ -563,7 +579,7 @@ enum Headless {
             channels.beginWalk()
             warm.stateStorage?.beginRenderPass()
             warm.renderCache?.beginRenderPass()
-            stampFrameDate(warm)
+            stampFrameDate(warm, date: frameChecksums ? checksumDate(tick: clock.tick) : nil)
             let buffer = renderFrame(view, context: warm, channels: channels, cols: cols, rows: rows)
             warm.stateStorage?.endRenderPass()
             warm.renderCache?.removeInactive()
