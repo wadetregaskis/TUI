@@ -35,6 +35,7 @@ From the first app built on TUI, tuitop; each question in full, with its prices,
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
 | APPFB-1 | Should the arrows move a single selection, as SwiftUI's do on macOS (V2, B77-SELECT and B76-SELECT keep a cursor apart)? | (b): a single selection is the cursor; a multiple selection keeps Space | The arrows move a cursor; Space or Return selects |
+| APPFB-2 | A TUI-only modifier opening a `Table(_:children:)`'s branches at first, beside SwiftUI's route (a recursive `DisclosureTableRow(_:isExpanded:)`, which works and is now documented)? | (a): nothing more | Trees open at first are written SwiftUI's way |
 
 ### Open on 2026-11-09
 

@@ -370,6 +370,46 @@ Table(of: File.self) {
 }
 ```
 
+#### A tree that starts open
+
+`Table(_:children:)` and `OutlineGroup` start with every branch closed, as
+SwiftUI's do, and take no expansion of their own. For a tree that starts open —
+a process tree, say — write the rows as SwiftUI does: a `TableRowContent` of
+your own that names itself for each branch's children, each branch a
+`DisclosureTableRow` bound to an expansion you keep. Here the app keeps the
+branches the user has closed, so every other one is open:
+
+```swift
+struct ProcessRows: TableRowContent {
+    let processes: [Process]
+    @Binding var closed: Set<Process.ID>
+
+    var tableRowBody: some TableRowContent<Process> {
+        ForEach(processes) { process in
+            if let children = process.children {
+                DisclosureTableRow(process, isExpanded: Binding(
+                    get: { !closed.contains(process.id) },
+                    set: { open in if open { closed.remove(process.id) } else { closed.insert(process.id) } }
+                )) {
+                    ProcessRows(processes: children, closed: $closed)
+                }
+            } else {
+                TableRow(process)
+            }
+        }
+    }
+}
+
+Table(of: Process.self) {
+    TableColumn("Name", value: \.name)
+} rows: {
+    ProcessRows(processes: roots, closed: $closed)
+}
+```
+
+Right, Left and a click on a triangle write the binding, so the set is always
+what the user sees, ready to save.
+
 ### Rows That Cannot Be Selected
 
 `.selectionDisabled(_:)` on a row — or on a `ForEach` of rows, or any other
