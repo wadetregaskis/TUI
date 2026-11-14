@@ -1,0 +1,208 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  PulledFixedSizeTests.swift
+//
+//  SCROLL-FIT P5 (design 2f, B-SCROLLFIT-8): with the switch on
+//  (`EnvironmentValues.scrollFitsContent`), `.fixedSize` measures its content
+//  down the scroll view's ladder rather than once at the ladder's first rung,
+//  so content taller than that rung is its own height rather than the height
+//  it is offered. In scroll content such a table is pulled — only the rows on
+//  screen are built — and draws what the same table drawn whole draws; outside
+//  a scroll view there is no viewport to pull against, and it is drawn whole.
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Testing
+
+@testable import TUI
+import TUITesting
+
+/// Counts cells built, and keeps the content height the scroll view reports.
+@MainActor private final class FixedSizeProbe {
+    var built = 0
+    var contentHeight = 0
+}
+
+private struct Entry: Identifiable {
+    let id: Int
+}
+
+/// A title and a table under `.fixedSize(horizontal: false, vertical: true)`
+/// in a scroll view, a button below them, the switch on — or the twin: the
+/// same table drawn whole, framed to its full height, the switch off.
+private struct FixedSizeTablePage: View {
+    let entries: [Entry]
+    let probe: FixedSizeProbe
+    var pulled = true
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 0) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("title")
+                    if pulled { table } else { table.frame(height: entries.count + 3) }
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                Button("below") {}
+            }
+        }
+        .onScrollGeometryChange(
+            for: Int.self, of: { $0.contentSize.height }, action: { _, height in probe.contentHeight = height })
+        .environment(\.scrollFitsContent, pulled)
+    }
+
+    private var table: some View {
+        Table(entries) {
+            TableColumn("Row") { (entry: Entry) in
+                probe.built += 1
+                return Text(verbatim: "r\(entry.id)")
+            }
+        }
+    }
+}
+
+@MainActor
+@Suite("SCROLL-FIT P5: .fixedSize climbs the ladder; in scroll content its table is pulled")
+struct PulledFixedSizeTests {
+    private static func app(_ count: Int, probe: FixedSizeProbe = FixedSizeProbe(), pulled: Bool = true) -> TestApp {
+        TestApp(width: 30, height: 12) {
+            FixedSizeTablePage(entries: (0..<count).map(Entry.init), probe: probe, pulled: pulled)
+                .environment(\.scrollChainingDelay, .zero)
+        }
+    }
+
+    /// The screen's lines without the scroll view's bar.
+    private static func content(_ app: TestApp) -> [String] {
+        app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(28)) }
+    }
+
+    // MARK: - In scroll content
+
+    @Test("The table draws what the same table drawn whole draws: top, wheeled, cursor moved, at the end and home")
+    func drawsWhatTheWholeTableDraws() {
+        let pulled = Self.app(300)
+        let whole = Self.app(300, pulled: false)
+        func check(_ step: String) {
+            #expect(Self.content(pulled) == Self.content(whole), "\(step):\n\(pulled.screen)\n---\n\(whole.screen)")
+        }
+        check("top")
+        for step in 1...4 {
+            pulled.scroll(.down, by: 2, at: CellPoint(x: 5, y: 5))
+            whole.scroll(.down, by: 2, at: CellPoint(x: 5, y: 5))
+            check("wheel \(step)")
+        }
+        pulled.scroll(.down, by: 30, at: CellPoint(x: 5, y: 5))
+        whole.scroll(.down, by: 30, at: CellPoint(x: 5, y: 5))
+        check("wheel burst")
+        _ = pulled.press(.tab)
+        _ = whole.press(.tab)
+        check("tab")
+        for step in 1...14 {
+            _ = pulled.press(.down)
+            _ = whole.press(.down)
+            check("down \(step)")
+        }
+        _ = pulled.press(.end)
+        _ = whole.press(.end)
+        check("end")
+        _ = pulled.press(.home)
+        _ = whole.press(.home)
+        check("home")
+    }
+
+    /// The cells built on the first frame, three wheel steps, two cursor
+    /// pages and End.
+    private static func builtPerStep(rows: Int) -> (built: [Int], contentHeight: Int) {
+        let probe = FixedSizeProbe()
+        let app = app(rows, probe: probe)
+        _ = app.screen
+        var counts = [probe.built]
+        func step(_ action: () -> Void) {
+            probe.built = 0
+            action()
+            counts.append(probe.built)
+        }
+        for _ in 0..<3 { step { app.scroll(.down, by: 3, at: CellPoint(x: 5, y: 5)) } }
+        _ = app.press(.tab)
+        for _ in 0..<2 { step { _ = app.press(.pageDown) } }
+        step { _ = app.press(.end) }
+        return (counts, probe.contentHeight)
+    }
+
+    /// The content is the title, the table's rows, header and borders, and
+    /// the button: 10,005 lines at 10,000 rows, as many as there are.
+    @Test("At 10,000 rows the table is its rows' height, and the rows built a frame are under 100, as at 1,000")
+    func tallTableIsItsRowsHeight() {
+        let small = Self.builtPerStep(rows: 1_000)
+        #expect(small.built.allSatisfy { $0 < 100 }, "\(small.built)")
+        let tall = Self.builtPerStep(rows: 10_000)
+        #expect(tall.built == small.built)
+        #expect(tall.contentHeight == 10_005, "\(tall.contentHeight)")
+    }
+
+    /// Past the first rung `.fixedSize` measured at (64 screens of the 4,096
+    /// lines it was offered there: 262,144), its content was the height it was
+    /// offered, and the rows past it out of reach.
+    @Test("At 300,000 rows, past the ladder's first rung, the table is its rows' height and End reaches the last")
+    func tableTallerThanTheFirstRung() {
+        let probe = FixedSizeProbe()
+        let app = Self.app(300_000, probe: probe)
+        _ = app.screen
+        #expect(probe.contentHeight == 300_005, "\(probe.contentHeight)")
+        _ = app.press(.tab)
+        probe.built = 0
+        _ = app.press(.end)
+        #expect(app.screen.contains("r299999"), "\(app.screen)")
+        #expect(probe.built < 100, "built \(probe.built)")
+    }
+
+    // MARK: - Outside a scroll view (the baseline's `.fixedSize` situation)
+
+    private static func fixedSize(
+        _ subject: ScrollFitSubject, rows: Int, situation: ScrollFitSituation = .fixedSize
+    ) -> ScrollFitResult {
+        ScrollFitMeasure.measure(subject, situation, rows: rows, walk: false, fitsContent: true)
+    }
+
+    /// Off, the table was the screen's height left under the title after
+    /// laying out the 4,096 rows of the first rung (`tallTableFixedSize`).
+    /// On, it is its rows' height, and with no viewport to pull against it is
+    /// drawn whole: every row built (design 2f).
+    @Test("Outside a scroll view a 10,000-row table under .fixedSize is its rows' height, drawn whole")
+    func tallTableOutsideAScrollView() {
+        let result = Self.fixedSize(.table, rows: 10_000)
+        #expect(result.sizeA == CellSize(width: 60, height: 10_003), "\(result)")
+        #expect(result.builtFirst >= 10_000, "\(result)")
+    }
+
+    @Test("A table of 3 or 60 rows under .fixedSize is as the baseline has it", arguments: [(3, 6), (60, 63)])
+    func shortTablesUnchanged(_ rows: Int, _ height: Int) {
+        #expect(Self.fixedSize(.table, rows: rows).sizeA == CellSize(width: 60, height: height))
+    }
+
+    /// The views the baseline found already content-sized under `.fixedSize`
+    /// (60 rows: 60 lines and their chrome) were the screen's height at 10,000.
+    /// Not among them: the views that answer the height they are offered, up
+    /// to their content, and say they are flexible — `TextEditor`, a nested
+    /// `ScrollView`, a grouped `Form`, the split views — which are content-sized
+    /// when the switch flips (design P7), and keep the screen's height here.
+    @Test(
+        "Content-sized views under .fixedSize are their content's height at 10,000 rows",
+        arguments: [
+            (ScrollFitSubject.lazyVStack, CellSize(width: 9, height: 10_000)),
+            (.groupBox, CellSize(width: 13, height: 10_003)),
+            (.grid, CellSize(width: 14, height: 10_000)),
+            (.tabView, CellSize(width: 9, height: 10_001)),
+            (.flowLayout, CellSize(width: 60, height: 1_641)),
+        ])
+    func contentSizedViewsAreTheirContent(_ subject: ScrollFitSubject, _ size: CellSize) {
+        #expect(Self.fixedSize(subject, rows: 10_000).sizeA == size)
+    }
+
+    /// A `List` has no ideal height: it says it fills what it is offered, so
+    /// the ladder stops at its first rung and it keeps the screen's height.
+    @Test("A List under .fixedSize keeps the height it is offered, at 60 and 10,000 rows", arguments: [60, 10_000])
+    func listHasNoIdealHeight(_ rows: Int) {
+        #expect(Self.fixedSize(.listPlain, rows: rows).sizeA == CellSize(width: 60, height: 23))
+    }
+}

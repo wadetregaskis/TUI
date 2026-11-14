@@ -125,10 +125,24 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// took all of that, or answered a flexible nothing — a view that fills what
     /// it is offered has no ideal size.
     ///
-    /// One measure, not the scroll view's ladder, which grows the offer while
-    /// the content keeps reaching it: a row that took the width it was offered
-    /// without calling itself flexible (a `List` nested in a hugging `List`)
-    /// climbed it to the edge of `Int`, the content laid out at every rung.
+    /// One measure across, not the scroll view's ladder, which grows the offer
+    /// while the content keeps reaching it: a row that took the width it was
+    /// offered without calling itself flexible (a `List` nested in a hugging
+    /// `List`) climbed it to the edge of `Int`, the content laid out at every
+    /// rung.
+    ///
+    /// Down, under SCROLL-FIT's switch (``EnvironmentValues/scrollFitsContent``,
+    /// design 2f, B-SCROLLFIT-8), the scroll view's ladder: content taller than
+    /// the first rung is its own height, not the height it is offered — a
+    /// 10,000-row table under a title was 23 lines on a 24-line screen, after
+    /// laying out the 4,096 rows the rung reached. The climb stops at a rung
+    /// the content comes in under, or at one it fills while saying it is
+    /// flexible, which has no ideal height: a `List` drawn as before says so.
+    /// A filler answers its minimum offered no height (a `Spacer`, a `Color`),
+    /// which is its ideal there (B-SCROLLFIT-7). Content taller than the
+    /// screen is laid out whole outside a scroll view, which has no viewport
+    /// to pull against; in scroll content it is pulled, and only the rows on
+    /// screen are drawn.
     @MainActor private func idealExtent(
         along axis: Axis, proposal: ProposedViewSize, offered: Int, context: RenderContext
     ) -> ViewSize? {
@@ -136,11 +150,23 @@ nonisolated struct _FixedSizeView<Content: View>: View {
         var probe = context.askingIdealWidth(axis == .horizontal)
         probe.environment.fixedSizeWidth = false
         probe.environment.offeredNoWidth = false
+        let size: ViewSize
         switch axis {
-        case .horizontal: probe.availableWidth = budget
-        case .vertical: probe.availableHeight = budget
+        case .horizontal:
+            probe.availableWidth = budget
+            size = measureChild(content, proposal: proposal, context: probe)
+        case .vertical where context.environment.scrollFitsContent:
+            // A filler's minimum is its ideal here (B-SCROLLFIT-7): a flexible
+            // nothing is a `Color`'s 0, not the ideal-width ask's "none". Given
+            // no height, as the content is laid out (``flagged(_:)``).
+            probe.hasExplicitHeight = false
+            let answer = naturalExtent(
+                content, along: .vertical, proposal: proposal, context: probe, startingBudget: budget)
+            return answer.fillsBudget ? nil : answer.size
+        case .vertical:
+            probe.availableHeight = budget
+            size = measureChild(content, proposal: proposal, context: probe)
         }
-        let size = measureChild(content, proposal: proposal, context: probe)
         let extent = axis == .horizontal ? size.width : size.height
         let isFlexible = axis == .horizontal ? size.isWidthFlexible : size.isHeightFlexible
         // A flexible nothing is how a greedy view answers the ideal-width ask
@@ -155,12 +181,21 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// fixed, cleared where it is not — and with it whether the content was
     /// offered no width (``EnvironmentValues/offeredNoWidth``), which a frame
     /// with an ideal width reads.
+    ///
+    /// Fixed down, under SCROLL-FIT's switch, the content is given no height,
+    /// as a vertical scroll view's content is not (`hasExplicitHeight`
+    /// cleared): a `Table` given a height takes it and scrolls itself, so in a
+    /// window it said it filled the screen, and had no ideal height to climb
+    /// the ladder to.
     @MainActor fileprivate func flagged(_ context: RenderContext) -> RenderContext {
         let environment = context.environment
-        guard environment.fixedSizeWidth != horizontal || environment.offeredNoWidth != horizontal else { return context }
+        let unbounded = vertical && context.hasExplicitHeight && environment.scrollFitsContent
+        guard environment.fixedSizeWidth != horizontal || environment.offeredNoWidth != horizontal || unbounded
+        else { return context }
         var flagged = context
         flagged.environment.fixedSizeWidth = horizontal
         flagged.environment.offeredNoWidth = horizontal
+        if unbounded { flagged.hasExplicitHeight = false }
         return flagged
     }
 }
@@ -171,8 +206,23 @@ nonisolated struct _FixedSizeView<Content: View>: View {
         guard horizontal || vertical else { return TUIView.renderToBuffer(content, context: contentContext) }
         let ideal = idealExtents(width: context.availableWidth, height: context.availableHeight, context: context)
         if let width = ideal.width { contentContext.availableWidth = width }
-        if let height = ideal.height { contentContext.availableHeight = height }
+        if let height = ideal.height { contentContext.availableHeight = min(height, walkedLines(context) ?? height) }
         return TUIView.renderToBuffer(content, context: contentContext)
+    }
+
+    /// The lines a scroll view's measuring walk gives its content to draw
+    /// into, under SCROLL-FIT's switch: down to the viewport's bottom, the
+    /// rest thrown away (`_ScrollViewCore.renderedContent`'s `drawsPrefixOnly`,
+    /// design 1d). Laid out at its ideal height there, content taller than the
+    /// screen drew every line of it — a pulled table, with no request to band
+    /// itself by, every row: 10,039 of 10,000 rows built on the first frame,
+    /// where it built 47 in the same page without `.fixedSize`. `nil` anywhere
+    /// else, where the content is drawn at its ideal height.
+    private func walkedLines(_ context: RenderContext) -> Int? {
+        guard vertical, context.isMeasuring, context.scrollContentOriginDepth != 0,
+            context.environment.scrollFitsContent
+        else { return nil }
+        return context.availableHeight
     }
 }
 
