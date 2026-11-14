@@ -1248,6 +1248,57 @@ the title, on screen, so nothing moves.
 shapes and `GeometryReader`. This is the height counterpart of the ideal-width ask's 0 (SwiftUI
 answers 10 points, less than a line). One constant if the owner prefers a line.
 
+**As P5 built it** (2026-11-14, `FixedSizeModifier.swift`, `GeometryReader.swift`). Behind the
+switch; with it off nothing reads any of it (`ScrollFitBaselineTests` unchanged).
+
+- **`.fixedSize` climbs the ladder down, not across.** Its vertical ideal is `naturalExtent` from
+  the first rung it measured at before (64 times what it is offered, at least 4,096 lines); it
+  stops under a rung, or at one the content fills while flexible, which has no ideal height and
+  keeps what it is offered, as before. A flexible minimum is an ideal there (B-SCROLLFIT-7), so a
+  lone `Color` fixed down is 0. Across it still measures once: the horizontal hazard its comment
+  records (a row that takes any width without calling itself flexible climbs to the edge of
+  `Int`) is unchanged.
+- **The content is given no height.** In a window the root says it has one (`hasExplicitHeight`),
+  and a `Table` given a height is flexible: it filled the rung and had no ideal to climb to. Fixed
+  down, the content is told it has none, as a vertical scroll view's content is.
+- **A scroll view's measuring walk is not undone.** The walk gives its content only the lines down
+  to the viewport's bottom (`drawsPrefixOnly`, 1d); `.fixedSize` laid its content out at its
+  ideal height, so a pulled table with no request drew every row: 10,039 of 10,000 built on the
+  first frame against 47 for the same page without `.fixedSize`. While measuring in scroll
+  content its content is drawn no taller than the walk's lines. Before P5 the walk's small offer
+  made `.fixedSize` give up on content past its rung, which hid this.
+- **"Nil-proposal answers" took one view.** `GeometryReader` asked how tall it would be with
+  nothing to stop it (no height proposed, a natural-extent budget offered) answers 0, flexible,
+  as `Color` and the shapes already did. `.frame(maxHeight: .infinity)` already answered its
+  content's height offered none (4x1 under `.fixedSize`), and `Spacer` its `minLength`. The
+  content-sized views that answer the height they are offered, flexibly — `TextEditor` outside
+  the pull, a nested `ScrollView`, a grouped `Form`, the split views, `List` drawn as before —
+  still do: making them answer content is P7's row, and here they keep the height offered.
+
+The done-criteria read the baseline's `fixedSize` situation, which is outside a scroll view
+(`VStack { title; view }.fixedSize(...)` as the window's root). There 2f's own rule holds: there
+is no viewport to pull against and the content is drawn whole, so `tallTableFixedSize`'s table is
+60x10003 (was 60x23) and builds 24,093 rows on its first frame (was 4,153) and 10,000 a wheel step
+(was 20). The "< 100 rows built" is met where 2f puts it, in scroll content: there the table was
+already pulled before P5 (`.fixedSize` offered a scroll view's rung measured at 262,144 lines),
+and P5 adds content past that rung — a 300,000-row table is 300,005 lines of content rather than
+the 4,096 it was offered, and End reaches its last row building under 100. Already content-sized
+views at 10,000 rows outside a scroll view go 23 → their content: `lazyVStack` 9x10000, `groupBox`
+13x10003, `disclosureGroup` 13x10001, `grid` 14x10000, `tabView` 9x10001, `navigationStack`
+9x10000, `formColumns` 9x10000, `flowLayout` 60x1641. The 3- and 60-row tables are unchanged.
+
+Measured (2026-11-14, `ab_bench.py`, release, cpu per frame, 10 reps, base 01f471736 — main
+43c8a6a89, with the pages scrolling, plus the new `app-shapes/fixed-size-table` — against the P5 tip
+e58286bce; load 10.9 at the start, 2.8 at the end): `fixed-size-table` 445.2 → 445.8 µs,
+indistinguishable, and it draws alike (the table was pulled at the base already, 1d's walk not
+undone at the tip). `titled-table`, `titled-list`, `titled-lazy`, `boxed-lazy`, `headed-log`,
+`grouped-feed`, `titled-editor`, `grouped-form`, `megalist`, `scrolleager`, `scrollfollow`,
+`dashboard`, `tables-scroll` and the sessions `editor`, `chat` and `log` indistinguishable; `table`
++1.2% [+1.2, +3.0] (8.3 µs a frame) and `geometry` +0.7% [+0.1, +1.5], under the owner's
+few-percent line. RSS within 1.2 MB everywhere. `frame_parity.py`: 163 of 165 cases draw alike,
+`app-shapes/grouped-form`'s flake (4 frames of 120) and `app-shapes/timeline-rows` the two that
+differ, as at P4. `Stress --selfcheck` clean (139 cases, 26 sessions).
+
 ## 3. Performance budget
 
 **What must be O(visible) per frame**, independent of the row count. Rows *built* means a row
@@ -1373,6 +1424,7 @@ already running separately.
 | **P4** | Variable rows on the engine: `List`, multi-line `Table`, `TextEditor` as a lines leaf with its caret marker, grouped `Form`. Behind the switch | 3 | None with the switch off |
 | **P4 as built** (2026-11-12) | `List` of rows of varying height (several lines, sections) and a multi-line `Table` walked by the engine (`PulledRowBand.swift`), the rows not yet built priced at the running pitch; an empty list its placeholder's height; `TextEditor` a lines leaf marking its caret's row; a grouped `Form` in scroll content no scroll view of its own (see "As P4 built it" under 1d). Not done: type-select without building rows (a row's text is its view's), a section header pinned over a pulled list (P6) | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledVariableListTests`, `PulledMultiLineTableTests`, `PulledTextEditorTests`, `PulledFormTests` with it on |
 | **P5** | Nil-proposal answers; fillers declare (B-SCROLLFIT-7, 8); `.fixedSize` on the ladder (2f) | 1 | In the 10,000-row tests: `fixedSize` `Table` 23 → 10,003 and `tallTableFixedSize` 4,153 → < 100 rows built; already content-sized views under `fixedSize` at 10,000 go 23 → their content. The table's 3/60-row `fixedSize` rows unchanged |
+| **P5 as built** (2026-11-14) | `.fixedSize` down the ladder, its content given no height and, in a scroll view's measuring walk, no more lines than the walk's; `GeometryReader` its minimum offered no height. The content-sized views that answer their offer flexibly stay P7's (see "As P5 built it" under 2f). Outside a scroll view the content is drawn whole, as 2f rules: the "< 100 rows built" holds in scroll content, where the table was already pulled below the first rung | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledFixedSizeTests` with it on: outside a scroll view the 10,000-row table 60x23 → 60x10003, 4,153 → 24,093 rows built (drawn whole); in scroll content 10,005 lines of content, under 100 built a frame and equal to 1,000's, 300,000 rows past the first rung reached; content-sized views 23 → their content; `GeometryReader` as tall as a `Color` in every situation |
 | **P6** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1½ | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |
 | **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
 | **P8** | A-SCROLLFIT-1's windowed containers (1c): `GroupBox`, `DisclosureGroup`, `.columns` `Form`, `Section` content outside `List`, `FlowLayout` per A-SCROLLFIT-5; the transition record for them (1g) | 3 | Sizes unchanged. Built counts of `formColumns` and `flowLayout` at 10,000 drop (`formColumns` < 100 a frame; `flowLayout` per A-SCROLLFIT-5). The baseline's `groupBox` and `disclosureGroup` wrap an eager `VStack` and stay as they are; new tests pin a `GroupBox` and a `DisclosureGroup` directly around a `ForEach` |
