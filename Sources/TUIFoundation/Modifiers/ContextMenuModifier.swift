@@ -71,6 +71,12 @@ nonisolated package struct ContextMenuModifier<Content: View, MenuItems: View>: 
     }
 }
 
+/// A pulled view in the content is pulled where it stands through this
+/// modifier (SCROLL-FIT's forward shape): its content is a child at index 0,
+/// a sibling step, which a column's reach test passes only for a container
+/// that pulls (`RenderContext.isPulledWhereItStands`).
+extension ContextMenuModifier: ScrollPlacing {}
+
 /// A context menu written on a form row is the menu of the row the form lays
 /// out, which keeps its place, as SwiftUI's form keeps it (measured,
 /// `Tools/SwiftUIProbes/Form rows`).
@@ -102,10 +108,26 @@ private enum StateIndex {
 
 @MainActor extension ContextMenuModifier: Renderable {
     package func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let sectionID = "contextmenu-\(context.identity.path)"
         // Its own child identity, so the content's / menu's @State never collides
         // with this modifier's state slot (mirrors AlertPresentationModifier).
         let contentContext = context.withChildIdentity(type: Content.self, index: 0)
+        // SCROLL-FIT's forward shape: a pulled view in the content — a
+        // `TextEditor`, whose editing menu this is — is handed the scroll
+        // view's request through this modifier, which draws no lines of its
+        // own (`PulledChromeRelay`), and the modifier is filed as holding
+        // one once the content is drawn, which files it.
+        defer { context.notePulledContainer(holding: { [contentContext.identity] }) }
+        guard
+            let relay = PulledChromeRelay(
+                context: context, linesAbove: 0, linesBelow: { 0 }, addressing: contentContext.identity)
+        else { return drawn(context: context, contentContext: contentContext) }
+        let buffer = drawn(context: context, contentContext: relay.contentContext(contentContext))
+        return relay.banded(buffer, content: buffer)
+    }
+
+    /// The content, with the menu's trigger, or under the open menu.
+    private func drawn(context: RenderContext, contentContext: RenderContext) -> FrameBuffer {
+        let sectionID = "contextmenu-\(context.identity.path)"
 
         // In a row of a list or table with a selection menu, that menu answers
         // every secondary click — as on macOS — so this one adds nothing: no

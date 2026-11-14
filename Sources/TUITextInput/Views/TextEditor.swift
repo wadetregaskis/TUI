@@ -349,8 +349,16 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// The find bar's matches, as character offsets in order, which the rows
     /// tint: none while the bar is down.
     var findMatches: [Range<Int>] = []
+    /// Set on the copy a pulled editor draws its band with
+    /// (`TextEditor+Pulled.swift`): the first row the band holds, which the
+    /// editor draws from, with no bar and no wheel of its own, whatever it
+    /// last scrolled itself to.
+    var pulledTop: Int?
 
     private typealias StateIndex = TextEditorStateIndex
+
+    /// The handler's slot, for the pull (`TextEditor+Pulled.swift`).
+    static var handlerStateIndex: Int { StateIndex.handler }
 
     var body: Never {
         fatalError("_TextEditorCore renders via Renderable")
@@ -368,11 +376,17 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             context.environment.textEditorWrapsLines && width > 0
                 ? layout.wrapped(width: width, tabWidth: context.environment.tabWidth).rowCount
                 : layout.lines.count)
+        // Pulled, its rows' height, held (`TextEditor+Pulled.swift`).
+        if notePulled(context: context) {
+            return ViewSize(width: width, height: contentHeight, isWidthFlexible: true, isHeightFlexible: false)
+        }
         let height = proposal.height ?? min(contentHeight, max(1, context.availableHeight))
         return ViewSize(width: width, height: height, isWidthFlexible: true, isHeightFlexible: true)
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        // Pulled, a band of its rows (`TextEditor+Pulled.swift`).
+        if pulledTop == nil, let band = renderPulled(context: context) { return band }
         // Under `.scrollIndicatorPlacement(.overContent)`, the bar is beside
         // the text while the editor holds the focus: decided before the text is
         // wrapped, so the frame the focus arrives on wraps it narrower.
@@ -598,7 +612,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// bar takes the last column, the bar's extent and offset (in lines, or in
     /// rows where the editor wraps), the caret's column in its line or row, and
     /// the rows themselves where it wraps.
-    private struct Window {
+    struct Window {
         let contentWidth: Int
         let hasVerticalOverflow: Bool
         let extent: Int
@@ -622,6 +636,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         _ handler: TextEditorHandler, lines: [[Character]], width: Int, height: Int, tabWidth: TabWidth,
         wraps: Bool, follows: Bool, barWidth: Int
     ) -> Window {
+        if let pulledTop {
+            return pulledWindow(
+                handler, top: pulledTop, lines: lines, width: width, height: height, tabWidth: tabWidth, wraps: wraps,
+                follows: follows)
+        }
         guard wraps else {
             if follows { handler.wrapWidth = nil }
             let overflows = lines.count > height
@@ -682,7 +701,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// `Binding(get:)` over a loop's element — measured last frame's document:
     /// switching `selected` from a one-line note to a six-line one sized the
     /// editor one row and drew six lines into it.
-    private func layout(context: RenderContext) -> EditorLayout {
+    func layout(context: RenderContext) -> EditorLayout {
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
         let box: StateBox<TextEditorHandler>? = context.stateStorage?.existingStorage(for: key)
         let current = text.wrappedValue
@@ -706,7 +725,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// Horizontal scrolling is in display columns (`cursorDisplayColumn` —
     /// the caret's on-screen cell, which runs ahead of the character index
     /// on tab-bearing lines).
-    private func followCursor(
+    func followCursor(
         _ handler: TextEditorHandler, cursorDisplayColumn: Int, caretCells: Int = 1,
         lineCount: Int, width: Int, height: Int
     ) {
@@ -807,7 +826,10 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 }
                 return true
             // The wheel scrolls the text and leaves the caret, as an
-            // NSTextView's does; a tick it cannot take goes on outward.
+            // NSTextView's does; a tick it cannot take goes on outward. A
+            // pulled editor's every tick does: the scroll view scrolls it.
+            case .scrolled where pulledTop != nil:
+                return false
             case .scrolled where event.button == .scrollUp:
                 return handler.scrollByWheel(-ViewConstants.mouseWheelScrollLines, height: height)
             case .scrolled where event.button == .scrollDown:
