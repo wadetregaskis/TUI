@@ -318,7 +318,7 @@ extension _ListCore {
                     cursorLine: cursor.top, cursorHeight: cursor.height)
                 // Page Up and Page Down move by the scroll view's viewport,
                 // in the rows it shows (B-SCROLLFIT-5).
-                handler.viewportHeight = result.rowsOnScreen
+                handler.viewportHeight = result.rowsOnScreen()
             }
             request?.answer(result.band)
         }

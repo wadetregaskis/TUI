@@ -180,6 +180,47 @@ struct PulledMultiLineTableTests {
         #expect(app.screen.contains("below"))
     }
 
+    /// The row numbers on screen and the line each one starts on.
+    private static func rowTops(_ app: TestApp) -> [(row: Int, line: Int)] {
+        app.screen.lines.enumerated().compactMap { line, text in
+            guard let r = text.range(of: "r"), let row = Int(text[r.upperBound...].prefix { $0.isNumber }) else {
+                return nil
+            }
+            return (row, line)
+        }
+    }
+
+    /// A page moves the cursor by the rows the viewport shows clear of the
+    /// header pinned over its top line, as a table of one-line rows pages by
+    /// the viewport less it (B-SCROLLFIT-5, SCROLL-FIT P6): a row only under
+    /// the header is not one the page shows. Row `n` is `n % 3 + 1` lines.
+    @Test("Page Down moves the cursor by the rows on screen clear of the pinned header")
+    func pageDownSkipsThePinnedHeader() {
+        let app = Self.app(300)
+        _ = app.press(.tab)
+        _ = app.press(.down, times: 20)
+        let height = { (row: Int) in row % 3 + 1 }
+        for page in 1...8 {
+            #expect(app.screen.lines[0].contains("Row"), "page \(page), the header pinned:\n\(app.screen)")
+            // The cursor: revealed whole at the bottom, the last row on screen.
+            guard let cursor = Self.rowTops(app).last else {
+                Issue.record("no row on screen:\n\(app.screen)")
+                return
+            }
+            // The rows with a line on screen below the header's.
+            var shown = 1
+            var top = cursor.line
+            var row = cursor.row
+            while row > 0, top > 1 {
+                row -= 1
+                top -= height(row)
+                shown += 1
+            }
+            _ = app.press(.pageDown)
+            #expect(Self.rowTops(app).last?.row == cursor.row + shown, "page \(page):\n\(app.screen)")
+        }
+    }
+
     @Test("scrollTo lands a row never built at the top, at 10,000 multi-line rows", arguments: [517, 5_000, 9_999])
     func scrollToLandsARow(_ target: Int) {
         let app = Self.app(10_000, target: target)

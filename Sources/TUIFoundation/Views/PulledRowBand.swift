@@ -175,11 +175,27 @@ package struct PulledRowsBand {
     fileprivate let rows: Range<Int>
     fileprivate let firstRowTop: Int
     fileprivate let column: PulledRowColumn
+    /// The viewport's height, which the rows were filled down to.
+    fileprivate let viewportHeight: Int
 
-    /// How many rows the viewport shows, whole or in part: what a page key
-    /// steps the cursor by in a view whose rows vary in height, as a list
-    /// drawn whole steps by the rows it shows (B-SCROLLFIT-5).
-    package var rowsOnScreen: Int { max(1, rows.count) }
+    /// How many rows the viewport shows, whole or in part, clear of the
+    /// `pinned` lines over its top and bottom edges (a table's header and
+    /// horizontal bar): what a page key steps the cursor by in a view whose
+    /// rows vary in height, as a list drawn whole steps by the rows it shows
+    /// (B-SCROLLFIT-5). A row only under the pinned lines is not shown, as a
+    /// table of one-line rows pages by the viewport less them. Rows that start
+    /// below the pinned top lines anyway — the view's top on screen — are
+    /// counted as they are.
+    package func rowsOnScreen(clearOf pinned: (top: Int, bottom: Int) = (0, 0)) -> Int {
+        var top = firstRowTop - band.position
+        var count = 0
+        for row in rows {
+            let height = column.pitch(of: row)
+            if top + height > pinned.top, top < viewportHeight - pinned.bottom { count += 1 }
+            top += height
+        }
+        return max(1, count)
+    }
 
     /// The height of the framed drawing, given the view's chrome.
     package func frameHeight(top: Int, bottom: Int) -> Int { top + rowLines + bottom }
@@ -372,7 +388,7 @@ extension PulledBandRequest {
         }
         return PulledRowsBand(
             band: band, firstRow: drawFirst, clip: clip, rowLines: rowLines, drawnLines: drawnLines,
-            rows: first..<end, firstRowTop: firstTop + position, column: column)
+            rows: first..<end, firstRowTop: firstTop + position, column: column, viewportHeight: viewport)
     }
 }
 

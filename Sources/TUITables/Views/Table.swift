@@ -7764,8 +7764,9 @@ extension _TableCore {
                     focusID: handler.focusID, band: placed.band.lines, total: placed.band.total,
                     cursorLine: max(lines.top, cursor.top), cursorHeight: cursor.height)
                 // Page Up and Page Down move by the scroll view's viewport,
-                // in the rows it shows (B-SCROLLFIT-5).
-                handler.viewportHeight = placed.rowsOnScreen
+                // in the rows it shows clear of the header and the bar pinned
+                // over it (B-SCROLLFIT-5).
+                handler.viewportHeight = placed.rowsOnScreen(clearOf: (lines.header, lines.bar))
             }
             request.answer(placed.band)
         }

@@ -1312,7 +1312,8 @@ the title, on screen, so nothing moves.
   as SwiftUI's table, whose header sits outside the rows it scrolls, shows a row sought to the
   top. A lazy stack's section header still covers a row sought under it, as SwiftUI's does.
 - **Page Up and Page Down** move by the viewport less the header and bar lines (B-SCROLLFIT-5).
-  A multi-line table pages by the rows on screen, as P4 built it, the pinned lines not taken off.
+  A multi-line table pages by the rows on screen, as P4 built it, the rows only under the pinned
+  lines not counted (P6b, `PulledRowsBand.rowsOnScreen(clearOf:)`).
 - **The arrival reveal (2e)** is the scroll view's, read from the switch where the scroll view
   stands: on arrival, a control whose regions' union is taller than the viewport is revealed by
   its smallest region, the cursor's row, so not at all when that row shows
