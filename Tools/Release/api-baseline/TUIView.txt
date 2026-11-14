@@ -513,7 +513,7 @@ RenderCache.rowWork | var rowWork: RenderCache.RowWork
 RenderCache.sizeClearGeneration | var sizeClearGeneration: Int { get }
 RenderCache.stats | var stats: RenderCache.Stats { get }
 RenderCache.store(identity:view:buffer:contextWidth:contextHeight:gradientFrame:surfaceBackground:) | func store<V>(identity: ViewIdentity, view: V, buffer: FrameBuffer, contextWidth: Int, contextHeight: Int, gradientFrame: GradientFrame? = nil, surfaceBackground: Color? = nil) where V : Equatable
-RenderCache.storeChildViews(key:children:) | func storeChildViews(key: RenderCache.ChildViewsKey, children: [ChildView])
+RenderCache.storeChildViews(key:children:resolvedFrom:) | func storeChildViews(key: RenderCache.ChildViewsKey, children: [ChildView], resolvedFrom content: Any)
 RenderCache.storeMeasure(key:proposalWidthWasSpecified:proposalHeight:availableHeight:size:) | func storeMeasure(key: RenderCache.MeasureKey, proposalWidthWasSpecified: Bool, proposalHeight: Int?, availableHeight: Int, size: ViewSize)
 RenderCache.storeSize(key:identity:view:size:lapsingAt:) | func storeSize<V>(key: RenderCache.SizeKey, identity: ViewIdentity, view: V, size: ViewSize, lapsingAt: Date? = nil) where V : Equatable
 RenderCache.verifiesMeasureMemo | @MainActor static var verifiesMeasureMemo: Bool

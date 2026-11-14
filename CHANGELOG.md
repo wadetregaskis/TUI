@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A grouped `Form` no longer draws its sections at their narrowest width for a frame, now and then.** A stack's
+children are worked out once a frame, and the record of them was looked up by its content's value, which reads the
+addresses that value holds. A form builds its rows once to measure them and again to draw them, and when the second
+build was handed the memory the first had just given back, the drawing used the measured rows, laid out at their
+ideal width rather than the page's. Which memory came back varied from run to run, so the frame it hit did too. The
+record now keeps the content it was made from until the frame ends.
+
 **A long lazy stack, `List` or `Table` no longer holds on to every row's `if` once it has scrolled past it.**
 Each `if` keeps a record of what it last held, and a row scrolled out of view kept its records — the picture its
 view last drew and the identity of every view down to it — for as long as the container lived: a lazy stack of

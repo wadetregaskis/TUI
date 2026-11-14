@@ -327,7 +327,7 @@ import TUIStyling
 
     /// This pass's resolved children, per stack — scratch, like
     /// ``measureEntries``; emptied by ``beginRenderPass()``.
-    private var childViewEntries: [ChildViewsKey: [ChildView]] = [:]
+    private var childViewEntries: [ChildViewsKey: ChildViewsEntry] = [:]
 
     /// How many entries the private tables hold: ``entryCounts``'s share of them.
     var privateEntryCounts: [(name: String, count: Int)] { [
@@ -1227,17 +1227,19 @@ extension RenderCache {
     /// The children a stack resolved earlier this pass for the same content
     /// value, or `nil`. See `resolveChildViews(from:context:)`.
     public func lookupChildViews(key: ChildViewsKey) -> [ChildView]? {
-        guard let children = childViewEntries[key] else {
+        guard let entry = childViewEntries[key] else {
             childViewsMemoTotals.misses += 1
             return nil
         }
         childViewsMemoTotals.hits += 1
-        return children
+        return entry.children
     }
 
-    /// Remembers a stack's resolved children for the rest of the pass.
-    public func storeChildViews(key: ChildViewsKey, children: [ChildView]) {
-        childViewEntries[key] = children
+    /// Remembers a stack's resolved children for the rest of the pass, and
+    /// keeps the content value `key` was made from alive with them (see
+    /// `ChildViewsEntry`).
+    public func storeChildViews(key: ChildViewsKey, children: [ChildView], resolvedFrom content: Any) {
+        childViewEntries[key] = ChildViewsEntry(children: children, content: content)
     }
 
     /// Marks an identity as active during the current render pass.

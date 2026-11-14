@@ -1224,6 +1224,6 @@ package func resolveChildViews<V: View>(
     let children = provider.childViews(context: context).map {
         $0.resolvingIdentity(under: context.identity)
     }
-    cache.storeChildViews(key: key, children: children)
+    cache.storeChildViews(key: key, children: children, resolvedFrom: content)
     return children
 }

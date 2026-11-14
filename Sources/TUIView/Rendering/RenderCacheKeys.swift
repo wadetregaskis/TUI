@@ -292,7 +292,10 @@ extension RenderCache {
     /// `resolveChildViews(from:context:)`. The identity's hash plus the
     /// content's type and value hash, like ``MeasureKey`` without a proposal:
     /// which children a content value has does not depend on the space it is
-    /// offered.
+    /// offered. Unlike a measure entry, an entry keeps the content value it was
+    /// made from alive for the pass, so an address its value hash read cannot
+    /// be handed to another content value while the entry stands (see
+    /// `RenderCache.ChildViewsEntry`).
     public struct ChildViewsKey: Hashable {
         /// The identity's structural hash, not the identity — the trade
         /// ``RenderCache/MeasureKey`` documents, made here with the stronger of
@@ -379,5 +382,27 @@ extension RenderCache {
             folded = mixHashWord(folded, UInt64(bitPattern: Int64(depth)))
             hasher.combine(finalizeHashWord(folded))
         }
+    }
+
+    /// A stack's resolved children, and the content value they were resolved
+    /// from: what ``ChildViewsKey`` names in the pass's table.
+    ///
+    /// The content is kept, alive, for as long as the entry: the key's value
+    /// hash reads the addresses the value holds — an array's buffer, a
+    /// closure's context, a class instance — and an address names a value
+    /// only while that value lives. Freed during the pass, it could be handed
+    /// straight back to a different value at the same identity, which then
+    /// had the first one's key and was served its children. A grouped `Form`
+    /// met it: it composes its column for its measure and again for its
+    /// render, each a `ForEach` over a fresh array of its sections whose
+    /// closure holds the width they are laid out at, and when the render's
+    /// array and closure came back at the addresses the measure's had just
+    /// freed, its sections drew at their ideal width rather than the page's.
+    /// Which address the allocator hands back varies from run to run, so
+    /// `frame_parity.py` found a frame or two in sixty of Stress
+    /// `app-shapes/grouped-form` differing between two runs of one binary.
+    struct ChildViewsEntry {
+        let children: [ChildView]
+        let content: Any
     }
 }
