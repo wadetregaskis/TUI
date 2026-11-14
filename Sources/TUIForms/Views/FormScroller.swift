@@ -23,12 +23,21 @@ import TUIFoundation
 /// A columns form is not one: Apple's `FormStyle.columns` is "a non-scrolling
 /// form style", and the probe found no scroll view in it. Nor is a form of a
 /// style of the app's own, which draws what its `makeBody` draws.
+///
+/// Under SCROLL-FIT's switch (design P4), a grouped form in a vertical scroll
+/// view's content is no scroll view of its own: it is its sections' height,
+/// and the scroll view around it scrolls it, reveals the control Tab reaches
+/// and draws only its lines on screen. The scroll modifiers written on the
+/// form then have no scroll view of its own to answer them.
 struct _FormScroller<Content: View>: View {
     let content: Content
     @Environment(\.formStyle) private var style
+    @Environment(\.fitsVerticalScrollContent) private var fitsScrollContent
 
     var body: some View {
-        if style is GroupedFormStyle {
+        if style is GroupedFormStyle, fitsScrollContent {
+            content.transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
+        } else if style is GroupedFormStyle {
             ScrollView {
                 content.transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
             }

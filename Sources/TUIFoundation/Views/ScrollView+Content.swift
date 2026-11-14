@@ -300,6 +300,12 @@ extension _ScrollViewCore {
         if canvas.environment.asksWholeContentWidth != horizontal {
             canvas.environment.asksWholeContentWidth = horizontal
         }
+        // Under SCROLL-FIT's switch, whether a view in here that would scroll
+        // itself leaves that to this one (a grouped `Form`). Written only with
+        // the switch on, so with it off nothing changes.
+        if canvas.environment.scrollFitsContent {
+            canvas.environment.fitsVerticalScrollContent = axes.contains(.vertical)
+        }
         return canvas
     }
 
