@@ -1227,6 +1227,81 @@ fits in the viewport, the union is revealed (unchanged). Otherwise the smallest 
 cursor marker) is revealed, and only if it is not visible. At launch the first row sits under
 the title, on screen, so nothing moves.
 
+**As P6 built them** (2026-11-14, `Table.swift`'s "SCROLL-FIT's pull", `ScrollPinnedChrome.swift`,
+`ScrollViewReveal.swift`). Behind the switch; with it off nothing reads any of this:
+
+- **The header and the bar are pinned.** A pulled table (one-line rows or multi-line) adds to its
+  band a copy of its header lines with the side borders on them (`pinnedChrome`), at the header's
+  place in the band's lines, above the band when the band leaves it out, as a top
+  `OverlayLayer.ScrollPin` free to travel the rows' height; and where its columns do not fit
+  across, a copy of its horizontal bar's line as a bottom pin, travelling up to its first row.
+  `OverlayLayer.scrollPinned`, which a pinned section's header and footer were built by
+  (`_SectionCore.pinnedLayer`), is shared. The scroll view places them as it places a section's
+  (`PinnedChromeViewport.pinnedRow`), so the next table's header takes the edge over, and
+  `PinnedChromeCover` keeps a revealed row clear of both. The copies carry their own regions: a
+  click on the pinned header reaches the header, not the row under it, and the pinned bar's
+  arrows scroll the columns. The top border is not pinned (the design's "header line, its rule
+  and the side borders"; the table draws no rule under its header).
+- **Columns that scroll sideways are pulled now** (P3 drew them as before). Their band is framed
+  with the bar's line under the rows (`PulledTableLines.bar`, counted in the chrome below), the
+  window of columns draws no vertical bar of its own when pulled (`horizontallyWindowed`), and
+  the measure answers the pulled height and files the table again as a view that bands its rows:
+  the window's measure, itself not pulled, had withdrawn it, so no column handed it a request and
+  it drew its first screen at the viewport's height. A multi-line table whose columns do not fit
+  is still drawn as before.
+- **A row sought is kept clear of the pinned chrome.** A `scrollTo` or a focus seek places the
+  row with the header's lines above it and the bar's below (`seekChrome` on the variable path),
+  as SwiftUI's table, whose header sits outside the rows it scrolls, shows a row sought to the
+  top. A lazy stack's section header still covers a row sought under it, as SwiftUI's does.
+- **Page Up and Page Down** move by the viewport less the header and bar lines (B-SCROLLFIT-5).
+  A multi-line table pages by the rows on screen, as P4 built it, the pinned lines not taken off.
+- **The arrival reveal (2e)** is the scroll view's, read from the switch where the scroll view
+  stands: on arrival, a control whose regions' union is taller than the viewport is revealed by
+  its smallest region, the cursor's row, so not at all when that row shows
+  (`_ScrollViewCore.revealTarget`). The keys test: a 60-row table under a title, focused at launch,
+  leaves the title on line 0; tabbing to a tall table below the fold brings its first row up to
+  the last line rather than its top to the first.
+
+`PulledTableChromeTests` twins the pulled table, with columns that fit and with columns that
+scroll sideways, against the same table drawn whole, framed to its full height: wheeled a tick at
+a time from the top to past the end, each screen is its twin's with the header over the top line
+exactly when that line is one of the table's rows and the bar over the last on the same condition
+(`PulledTableTwin`). It also pins the keys test, the pinned chrome's clicks and two tables'
+headers handing over; `PulledArrivalRevealTests` the arrival at launch, below the fold, and of a
+table that fits. `PulledTableTests`, `PulledMultiLineTableTests` and `PulledFixedSizeTests` now
+compare against `PulledTableTwin` too, their twins framed with the switch on (the switch leaves a
+framed table as it was, and the arrival rule is then the same on both sides); a row a key reveals
+upward lands a line lower than the twin's, under the header.
+
+Found on the way: a pinned copy drawn over a cursor row reversed on the terminal's own ink (the
+focused row, `\e[7m`) lost its letters. A transparent overlay cell takes the field under it, and
+that field is the terminal's foreground, the ink the letters are drawn in, so they are drawn as
+blanks (`String.paintedOver(fieldsReversing:)`, as designed for transparent overlays). A table's
+pinned chrome is opaque (`OverlayLayer.isOpaque`, composited painted), as SwiftUI's table header
+is; a section's stays transparent.
+
+Measured (2026-11-14, `ab_bench.py`, release, cpu per frame, 10 reps, base d3548ddf5 — main with
+P5 — against the lane). As first built (3866a5bb9), `app-shapes/titled-table` 370.6 → 439.9 µs
+(+19.2% [+16.8, +20.0]) and `app-shapes/fixed-size-table` 436.9 → 516.5 µs (+18.1%): the Time
+Profiler put it in the pinning (`resolvingScrollPins` 8.9% inclusive, `move(pinned:)` drawing the
+opaque copy through the copying composite, which measures every line of the content), the header's
+copy cut by `lines(in:)` (3.2%) and `pulledBarLines` laying the columns out at every rung of the
+measuring ladder (2.2%). The lane's last commit composites in place (`overlayIsPainted` on the
+in-place composite), copies only the lines and what rides on them (`FrameBuffer.copying(lines:)`),
+and only where the scroll view could pin them, and leaves the bar's line to the measure's own
+overflow path: against the first build −9.8% and −11.7%, against the base `titled-table` 366.5 →
+383.9 µs (+4.6% [+4.3, +6.9]) and `fixed-size-table` 448.9 → 464.9 µs (+4.7% [+0.1, +8.7]), the
+header drawn again at the top of every frame that scrolls past it, under the owner's
+few-percent line. `titled-list`, `titled-list-variable`, `titled-lazy`, `boxed-lazy`,
+`headed-log`, `grouped-feed`, `titled-editor`, `grouped-form`, `megalist`, `scrolleager`,
+`scrollfollow`, `dashboard`, `table`, `table-multiline`, `table-churn`, `tables-scroll`,
+`tables-vstack`, `geometry` and the sessions `editor`, `chat` and `log` indistinguishable (load
+2.5 to 5.4). RSS within 1 MB everywhere. `frame_parity.py` against the base: 161 of 165 cases
+draw alike; `titled-table` and `fixed-size-table` differ from frame 0, as they should (the title
+stays at launch, the header is pinned), and `grouped-form` and `timeline-rows` differ between runs
+of one binary. Between the two builds of the lane, 163 of 165 alike, the two table pages among
+them. `Stress --selfcheck` clean.
+
 ### 2f. Greedy views declare it; `.fixedSize` climbs the ladder
 
 **B-SCROLLFIT-8 (kept).** "Filled the budget" no longer means greedy.
@@ -1426,6 +1501,7 @@ already running separately.
 | **P5** | Nil-proposal answers; fillers declare (B-SCROLLFIT-7, 8); `.fixedSize` on the ladder (2f) | 1 | In the 10,000-row tests: `fixedSize` `Table` 23 → 10,003 and `tallTableFixedSize` 4,153 → < 100 rows built; already content-sized views under `fixedSize` at 10,000 go 23 → their content. The table's 3/60-row `fixedSize` rows unchanged |
 | **P5 as built** (2026-11-14) | `.fixedSize` down the ladder, its content given no height and, in a scroll view's measuring walk, no more lines than the walk's; `GeometryReader` its minimum offered no height. The content-sized views that answer their offer flexibly stay P7's (see "As P5 built it" under 2f). Outside a scroll view the content is drawn whole, as 2f rules: the "< 100 rows built" holds in scroll content, where the table was already pulled below the first rung | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledFixedSizeTests` with it on: outside a scroll view the 10,000-row table 60x23 → 60x10003, 4,153 → 24,093 rows built (drawn whole); in scroll content 10,005 lines of content, under 100 built a frame and equal to 1,000's, 300,000 rows past the first rung reached; content-sized views 23 → their content; `GeometryReader` as tall as a `Color` in every situation |
 | **P6** | The table's pinned header and bar (2c); the arrival reveal (2e) | 1½ | The keys test: the title stays on screen at launch. Pinned-chrome tests with the switch on |
+| **P6 as built** (2026-11-14) | A pulled table's header and horizontal bar as opaque scroll pins; columns that scroll sideways pulled; a row sought placed clear of them; pages less the pinned lines; the arrival reveal by the cursor's row for a control taller than the viewport (see "As P6 built them" under 2e). Not done: a section header pinned over a pulled `List` (P4 left it here; it is a list's own pinned header, A45, not the table's, and needs its section's extent read off the walk), the pinned lines taken off a multi-line table's page | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledTableChromeTests` and `PulledArrivalRevealTests` with it on |
 | **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
 | **P8** | A-SCROLLFIT-1's windowed containers (1c): `GroupBox`, `DisclosureGroup`, `.columns` `Form`, `Section` content outside `List`, `FlowLayout` per A-SCROLLFIT-5; the transition record for them (1g) | 3 | Sizes unchanged. Built counts of `formColumns` and `flowLayout` at 10,000 drop (`formColumns` < 100 a frame; `flowLayout` per A-SCROLLFIT-5). The baseline's `groupBox` and `disclosureGroup` wrap an eager `VStack` and stay as they are; new tests pin a `GroupBox` and a `DisclosureGroup` directly around a `ForEach` |
 | **P8 as built** (2026-11-12) | `GroupBox`, `DisclosureGroup` and a `Section` drawn as one view directly around a `ForEach` (the implicit column, windowed past 256 elements as a lazy stack at the loop's identity); `FlowLayout` per A-SCROLLFIT-5 (a) as a lazy stack of its lines; the transition record by the lazy stack's. Not built: the `.columns` `Form` (its pillar and widths read every row each frame), a container's content of several views, a pulled `Grid` (drawn whole, twins pass). See "As P8 built it" under 1c | ½ + flow ½ | None of the table's rows (each P8 container there is under the threshold or wraps an eager `VStack`); new `WindowedContainersTests` (a page under 100 rows built, equal at 2,000 and 10,000) and `tallFlowLayoutUnderTitle` |
