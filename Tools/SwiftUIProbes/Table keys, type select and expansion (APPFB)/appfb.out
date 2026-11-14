@@ -1,0 +1,10 @@
+macOS Version 15.8.3 (Build 24H241)
+key window: false, first responder: SwiftUIOutlineTableView
+start: selection alpha
+down: selection bravo
+k (button has .keyboardShortcut("k", modifiers: [])): selection bravo [button k FIRED, (taken as a key equivalent)]
+t (table has .onKeyPress("t")): selection bravo [onKeyPress t RAN]
+z (no binding): selection zulu
+Table(_:children:) rows at first: 2 of 8: depths 0 0
+recursive DisclosureTableRow(isExpanded: true) rows at first: 5 of 8: depths 0 1 1 0 1
+... two seconds later: 5 of 8: depths 0 1 1 0 1

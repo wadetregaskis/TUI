@@ -27,6 +27,15 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Decisions waiting on you
 
+### Open on 2026-11-14
+
+From the first app built on TUI, tuitop; each question in full, with its prices, under
+[App feedback, 2026-11-14](<Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#app-feedback-2026-11-14>).
+
+| Id | Question | Recommended | If you don't answer |
+|---|---|---|---|
+| APPFB-1 | Should the arrows move a single selection, as SwiftUI's do on macOS (V2, B77-SELECT and B76-SELECT keep a cursor apart)? | (b): a single selection is the cursor; a multiple selection keeps Space | The arrows move a cursor; Space or Return selects |
+
 ### Open on 2026-11-09
 
 | Id | Question | Recommended | If you don't answer |

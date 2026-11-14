@@ -1411,3 +1411,25 @@ messages cite that path), and what cites it.
 - **Cited by:** `Documentation/Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md`
   (TABLE-IN-SCROLL-HEIGHT, TABLE-IN-SCROLL-BLANK); `Documentation/SwiftUI parity/Deliberate deviations from
   SwiftUI.md` (L19); `Tests/TUITablesTests/TableInScrollViewHeightTests.swift`.
+
+### Table keys, type select and expansion (APPFB)
+
+- **Asks:** what a focused single-selection `Table` does with the keys an app's commands also want, and how its tree
+  rows start, for the first app built on TUI (tuitop's feedback, 2026-11-14). A table of five rows, with a
+  `Button`'s `.keyboardShortcut("k", modifiers: [])` beside it and `.onKeyPress("t")` on it, is sent Down, `k`, `t`
+  and `z`, a second apart, and the selection and which handler ran are printed after each. Then the rows drawn at
+  first by `Table(_:children:)` over a tree of eight rows, and by the same tree written as a custom
+  `TableRowContent` that recurses through `DisclosureTableRow(_:isExpanded: .constant(true))`. A process started
+  from a shell is not let take the key window there, so the keys take AppKit's route for a key window by hand
+  (`NSWindow.performKeyEquivalent`, the main menu's, then `NSWindow.sendEvent` to the first responder, the table).
+- **Files:** `appfb.swift` (`swiftc -parse-as-library`), `appfb.out`.
+- **Answers:** Down moves the **selection** (alpha to bravo). The bare-`k` shortcut **fires** as a key equivalent,
+  ahead of type select (the selection stays on bravo, not kilo). The table's `onKeyPress("t")` **runs** ahead of
+  type select (the selection stays on bravo). An unbound `z` type-selects zulu. `Table(_:children:)` draws only its
+  2 roots. The recursive `DisclosureTableRow` bound to `true` draws 5 of the 8 rows: every first-level branch open
+  and the one second-level branch closed, with AppKit's "reentrant operation in its NSTableView delegate" warning.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-14.
+- **Was:** written here.
+- **Cited by:** `Documentation/Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md`
+  (APPFB-1 to APPFB-4); `Tests/TUITablesTests/TreeOpenAtFirstTests.swift`,
+  `Tests/TUITablesTests/TypeSelectGivesWayToOnKeyPressTests.swift`.
