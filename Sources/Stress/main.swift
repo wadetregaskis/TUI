@@ -22,7 +22,7 @@
 //    TUI_STRESS_SCALE    | --scale <n>        size multiplier (1 is already heavy)
 //    TUI_STRESS_SEED     | --seed <n>         synthetic-data seed
 //    TUI_STRESS_AUTOPILOT| --autopilot        self-drive continuous re-renders
-//    --bench options: --iterations <n> --cols <c> --rows <r> --cold --frame-checksums
+//    --bench options: --iterations <n> --cols <c> --rows <r> --cold --frame-checksums --cache-sizes <n>
 //    TUI_STRESS_STRIPES  | --stripes <b>      --bench under .alternatingRowBackgrounds(<b>): automatic, enabled, disabled
 //                                                (a scenario only: any other run, or another value, stops)
 //    TUI_HAIRLINES=1                          --bench as if the terminal drew hairline list separators
@@ -70,6 +70,7 @@ let usageText = """
     Self-check:   Stress --selfcheck [--scale N]
     Benchmark:    Stress --bench --scenario <id> [--variant V] [--iterations N] [--cols C] [--rows R] [--cold] [--stripes automatic|enabled|disabled]
                   [--frame-checksums]  (each frame's checksum, for Tools/Profiling/frame_parity.py)
+                  [--cache-sizes N]  (every cache's entry count, every N frames)
     Variants:     Stress --variants
     Sessions:     Stress --sessions
     Session:      Stress --session <id> [--steps N] [--verify] [--resize-every N] [--cols C] [--rows R] [--show]
@@ -192,7 +193,8 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
         }
         return Headless.bench(
             id, config: config, iterations: iterations, cols: cols, rows: rows, cold: cold,
-            census: rawArgs.contains("--census"), frameChecksums: rawArgs.contains("--frame-checksums"))
+            census: rawArgs.contains("--census"), frameChecksums: rawArgs.contains("--frame-checksums"),
+            cacheSizesEvery: flagValue("--cache-sizes").flatMap(Int.init) ?? 0)
     }
     exit(Int32(code))
 } else {

@@ -480,7 +480,8 @@ enum Headless {
         rows: Int,
         cold: Bool,
         census countsObservation: Bool = false,
-        frameChecksums: Bool = false
+        frameChecksums: Bool = false,
+        cacheSizesEvery: Int = 0
     ) -> Int {
         guard let scenario = Scenarios.byID(id) else {
             print("bench: unknown scenario '\(id)'. Known: \(Scenarios.all.map(\.id).joined(separator: ", "))")
@@ -576,8 +577,8 @@ enum Headless {
             tally.add(frameChecksum)
             // Each frame's own, for `Tools/Profiling/frame_parity.py`: two builds
             // that must draw alike are compared frame by frame, and the sum above
-            // can say only that some frame differs.
-            if frameChecksums { print("frame \(iteration) checksum=\(frameChecksum)") }
+            // can say only that some frame differs. And the tables, every so often.
+            printAfterFrame(iteration, checksum: frameChecksums ? frameChecksum : nil, warm, cacheSizesEvery)
             if isBlank(buffer) { blankFrames += 1 }
         }
         let trimmed = StackGuard.truncationCount - trimmedBefore

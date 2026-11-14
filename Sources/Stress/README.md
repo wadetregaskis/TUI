@@ -412,7 +412,11 @@ instance's caches and tables holds — the render cache's, the state storage's,
 the lifecycle manager's (`HeadlessApp.cacheEntryCounts`) — as one line,
 `cache-sizes step=… render.entries=… state.values=…`, as the run goes.
 `Tools/Profiling/cache_growth.py` plays a long session with it and names the
-tables that keep growing (see `Tools/Profiling/README.md`).
+tables that keep growing (see `Tools/Profiling/README.md`). `--bench --scenario
+<id> --cache-sizes N` prints the same line every N frames for the bench's own
+context, so a page whose `rss-peak` climbs with the frame count says which
+table holds it (it named the `if` records of the rows a lazy stack scrolled
+past, 2026-11-14).
 
 ## Profiling
 
