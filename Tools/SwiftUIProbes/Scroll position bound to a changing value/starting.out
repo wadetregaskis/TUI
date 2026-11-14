@@ -1,0 +1,19 @@
+eager constant: start=10  binding: -
+eager state: start=10  binding: point=nil id=nil edge=nil byUser=false
+eager scrolled: start=10  binding: point=nil id=nil edge=nil byUser=false
+eager id: start=0  binding: point=nil id=30 edge=nil byUser=false
+eager target: start=0  binding: point=nil id=30 edge=nil byUser=false
+eager bottom: start=180  binding: point=nil id=nil edge=bottom byUser=false
+eager past: start=180  binding: point=nil id=nil edge=nil byUser=false
+lazy  constant: start=10  binding: -
+lazy  state: start=10  binding: point=nil id=nil edge=nil byUser=false
+lazy  scrolled: start=10  binding: point=nil id=nil edge=nil byUser=false
+lazy  id: start=0  binding: point=nil id=30 edge=nil byUser=false
+lazy  target: start=30  binding: point=nil id=30 edge=nil byUser=false
+lazy  bottom: start=180  binding: point=nil id=nil edge=bottom byUser=false
+lazy  past: start=180  binding: point=nil id=nil edge=nil byUser=false
+list  state: start=0  binding: point=nil id=nil edge=nil byUser=false  then y: 40 -> 0, scrollTo(id: 100) -> 0
+list  scrolled: start=0  binding: point=nil id=nil edge=nil byUser=false
+list  id: start=0  binding: point=nil id=30 edge=nil byUser=false
+list  bottom: start=0  binding: point=nil id=nil edge=bottom byUser=false
+list  past: start=0  binding: point=nil id=nil edge=nil byUser=false

@@ -136,4 +136,68 @@ struct ScrollPositionValueTests {
         let back = renderFrame(scrollView(binding), tuiContext: tuiContext, focusManager: focusManager)
         #expect(rows(back).first == "row 10", "\(back)")
     }
+
+    /// A first value places the view on its first frame, as SwiftUI's does
+    /// (measured, `Tools/SwiftUIProbes/Scroll position bound to a changing
+    /// value/starting.swift`): an offset, an offset asked for by `scrollTo`,
+    /// an edge, and an offset past the end, which lands on the last offset.
+    /// Rendered with no layout pass before it, as the opening frame of a view
+    /// drawn directly is: the offset was clamped against an extent of 0, and
+    /// the view opened at the top. (SwiftUI's macOS `List` follows no bound
+    /// position at all, measured in the same probe; TUI's follows one as its
+    /// scroll view does.)
+    @Test(
+        "A starting position places the view on its first frame",
+        arguments: ["y: 10", "scrollTo(y: 10)", "edge: .bottom", "y: 500"])
+    func startingPosition(name: String) {
+        // At the end, the last row is on screen; a `List` gives a line to its
+        // "more above" indicator, so its first row there is not a scroll view's.
+        let atEnd = name.hasPrefix("edge") || name == "y: 500"
+        func placed(_ shown: [String]) -> Bool {
+            atEnd ? shown.last == "row 39" && !shown.contains("row 0") : shown.first == "row 10"
+        }
+        for kind in ["ScrollView", "List"] {
+            let tuiContext = TUIContext()
+            let focusManager = FocusManager()
+            var position = Self.position(named: name)
+            let binding = Binding(get: { position }, set: { position = $0 })
+            let view = kind == "List" ? AnyView(list(binding)) : AnyView(scrollView(binding))
+            let frame = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+            #expect(placed(rows(frame)), "\(kind) \(name): \(frame)")
+            // And it stays there: the request is spent, not read again.
+            let next = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+            #expect(placed(rows(next)), "\(kind) \(name), second frame: \(next)")
+        }
+    }
+
+    @Test("A starting constant position places the view on its first frame")
+    func startingConstant() {
+        let frame = renderFrame(
+            scrollView(.constant(ScrollPosition(y: 10))), tuiContext: TUIContext(), focusManager: FocusManager())
+        #expect(rows(frame).first == "row 10", "\(frame)")
+    }
+
+    @Test("A starting x places a sideways scroll view on its first frame")
+    func startingColumn() {
+        let line = (0..<60).map { String($0 % 10) }.joined()
+        let view = ScrollView(.horizontal) { Text(line) }
+            .scrollIndicators(.hidden)
+            .scrollPosition(.constant(ScrollPosition(x: 13)))
+        let frame = renderFrame(view, tuiContext: TUIContext(), focusManager: FocusManager())
+        #expect(frame.first?.hasPrefix("3456789012") == true, "\(frame)")
+    }
+
+    /// The starting position `name` spells: `ScrollPosition` is not
+    /// `Sendable`, so ``startingPosition(name:)``'s arguments name it.
+    private static func position(named name: String) -> ScrollPosition {
+        switch name {
+        case "scrollTo(y: 10)":
+            var position = ScrollPosition()
+            position.scrollTo(y: 10)
+            return position
+        case "edge: .bottom": return ScrollPosition(edge: .bottom)
+        case "y: 500": return ScrollPosition(y: 500)
+        default: return ScrollPosition(y: 10)
+        }
+    }
 }

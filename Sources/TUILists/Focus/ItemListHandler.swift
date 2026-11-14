@@ -547,6 +547,13 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// it acted on and the row it last reported (``applyScrollPosition(rowIndex:context:)``).
     var positionTracking = ScrollPositionTracking()
 
+    /// Where the cursor was when an app's request last placed the list — a
+    /// `scrollTo`, a bound `.scrollPosition` — while nothing has moved it
+    /// since, the cursor or the user's scroll: the focus arriving then leaves
+    /// the list where the app put it (``onFocusReceived()``), as a placement
+    /// leaves the cursor where it was (``scroll(toRow:anchor:)``).
+    var cursorAtProgrammaticPlacement: Int?
+
     /// Whether the user has scrolled the list since its last render — the
     /// wheel, the keys, the scrollbar — for a bound `.scrollPosition` to be
     /// told so (``reportScrollPosition(rowID:context:)``).
@@ -2018,8 +2025,14 @@ extension ItemListHandler {
         // the comment above actually cares.
     }
 
+    /// Reveals the cursor as the focus arrives — unless an app's request
+    /// placed the list and nothing has moved it since
+    /// (``cursorAtProgrammaticPlacement``): a `.scrollPosition` the list
+    /// opens at, or a `scrollTo` made before the user reaches the list, would
+    /// otherwise be undone by the focus arriving, the cursor still on the row
+    /// it started on (an app that opened on row 10 of a list showed row 0).
     package func onFocusReceived() {
-        // Ensure the focused item is visible when focus is received
+        guard cursorAtProgrammaticPlacement != focusedIndex else { return }
         ensureFocusedItemVisible()
     }
 }

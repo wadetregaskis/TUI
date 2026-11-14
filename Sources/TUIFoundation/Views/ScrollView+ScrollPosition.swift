@@ -71,15 +71,30 @@ extension _ScrollViewCore {
                     viewport: viewport, context: context)
             }
         case .offset(let x, let y):
+            // On the opening frame nothing may have been measured to clamp
+            // against (a view rendered with no layout pass before it knows an
+            // extent of 0, and clamped every offset to the top), so the offset
+            // is placed as asked and the render clamps it once the content's
+            // extent is known: the first value places the view as it appears, as
+            // SwiftUI's does (measured, `Tools/SwiftUIProbes/Scroll position
+            // bound to a changing value/starting.swift`).
             if let y {
-                moveProgrammatically(
-                    handler: handler, to: max(0, min(y, handler.maxOffset)), landing: .offset(y), viewport: viewport,
-                    context: context)
+                if handler.hasOpened {
+                    moveProgrammatically(
+                        handler: handler, to: max(0, min(y, handler.maxOffset)), landing: .offset(y),
+                        viewport: viewport, context: context)
+                } else {
+                    handler.jumpProgrammatically(to: max(0, y))
+                }
             }
             if let x {
-                moveProgrammatically(
-                    handler: handler, horizontally: true, to: max(0, min(x, handler.horizontal.maxOffset)),
-                    landing: .offset(x), viewport: viewport, context: context)
+                if handler.hasOpened {
+                    moveProgrammatically(
+                        handler: handler, horizontally: true, to: max(0, min(x, handler.horizontal.maxOffset)),
+                        landing: .offset(x), viewport: viewport, context: context)
+                } else {
+                    handler.horizontal.scrollOffset = max(0, x)
+                }
             }
         }
         return true

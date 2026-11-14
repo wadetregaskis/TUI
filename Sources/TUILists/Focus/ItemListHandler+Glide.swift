@@ -70,6 +70,7 @@ extension ItemListHandler {
     func placeProgrammatically(landing: ScrollGlide.Landing, context: RenderContext, _ place: () -> Void) {
         let start = (row: scrollOffset, subRowLines: scrollTopClipLines)
         place()
+        cursorAtProgrammaticPlacement = focusedIndex
         let target = scrollOffset
         guard let animation = context.scrollGlideAnimation, target != start.row else {
             stopGlide()

@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `ScrollPosition`'s first value places a scroll view or a `List` as it appears, as SwiftUI's does.** A
+scroll view drawn with no layout pass before it clamped the offset against a height of 0 and opened at the top,
+and a `List` or `Table` opened where it was asked to but went back to its cursor's row the moment the focus first
+reached it. A list placed by `.scrollPosition` or `scrollTo` now stays there when the focus arrives, until the
+cursor or the user's scroll moves it.
+
 **A view reading a scroll view's bounds no longer draws the scroll view's content twice when the scroll view
 changes size.** A `GeometryReader` or an anchor asking `bounds(of:)` was told the scroll view's size as it was
 when the reader was last found, so a column made narrower or wider drew the content a second time to correct

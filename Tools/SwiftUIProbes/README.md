@@ -528,11 +528,22 @@ messages cite that path), and what cites it.
   the getter) leaves the view where the user put it, and the same value assigned to the held position, or
   `scrollTo(y:)` of it, scrolls back: the binding then holds the user's position, which differs. So SwiftUI
   compares the bound value with the one it last read.
+- **Asks also:** whether the binding's FIRST value places the view as it appears (`starting.swift`,
+  `starting.out`): the same scroll view, eager and lazy, bound to `.constant(ScrollPosition(y: 10))`, to held
+  positions `ScrollPosition(y: 10)`, `scrollTo(y: 10)` of an empty one, `ScrollPosition(id: 30)` (with and without
+  `.scrollTargetLayout()`), `ScrollPosition(edge: .bottom)` and `ScrollPosition(y: 500)`, past the end; and a `List`
+  of the same rows bound to the held positions, then handed new ones.
+- **Answers also:** it does. The view opens at 10 for every offset form, at the bottom (180) for the edge, and at
+  the last offset (180) for an offset past the end; a position by id opens on its row only in a lazy stack marked
+  `.scrollTargetLayout()` (an eager stack, or no mark, opens at 0). The binding keeps the value it was given. A
+  `List` (macOS's, a table view) follows no bound position, first or later: its clip view stays at 0 for every one.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-14.
 - **Was:** written here.
 - **Cited by:** `Sources/TUIFoundation/Views/ScrollPosition.swift`;
-  `Tests/TUIListsTests/ScrollPositionValueTests.swift`;
-  `Documentation/Historical/Scrolling/SCROLL-FIT design.md`.
+  `Sources/TUIFoundation/Views/ScrollView+ScrollPosition.swift`;
+  `Tests/TUIListsTests/ScrollPositionValueTests.swift`; `Tests/TUIIntegrationTests/ScrollPositionStartTests.swift`;
+  `Documentation/Historical/Scrolling/SCROLL-FIT design.md`;
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
 
 ### Ragged text in a larger frame
 

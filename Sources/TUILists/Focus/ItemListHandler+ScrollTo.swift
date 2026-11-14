@@ -64,6 +64,7 @@ extension ItemListHandler {
     /// programmatic glide where it stands, as a `ScrollView`'s does.
     package func noteUserScroll() {
         userScrolledSinceRender = true
+        cursorAtProgrammaticPlacement = nil
         glide = nil
         phase = .interacting
         lastUserScrollNanos = phaseNow()

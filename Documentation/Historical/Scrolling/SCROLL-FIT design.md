@@ -1077,6 +1077,19 @@ Two things the corrected runs show that the idle ones could not, neither looked 
   frame drawn at offset 0, and the frame the page wraps back to its top); 5,066 → 3,771 µs a
   frame, −26.1% [−27.0, −23.8], frames identical (`frame_parity.py`, 120 frames). The rungs'
   "zero corrections past a reader's first frame" holds again for this page.
+- **A starting `ScrollPosition` did not apply.** SwiftUI places a scroll view at its binding's
+  first value as it appears — an offset, `scrollTo(y:)`, an edge, an offset past the end landing
+  on the last (`Tools/SwiftUIProbes/Scroll position bound to a changing value/starting.swift`);
+  its macOS `List` follows no bound position at all. Two causes here. A `ScrollView` clamped the
+  offset against the extent the last frame measured, 0 on a view drawn with no layout pass ahead
+  of it (a test, a `--bench` context), and spent the request at the top; on its opening frame the
+  offset is now placed as asked and the render clamps it. In an app the scroll view had its
+  height from the first frame's layout and was right; a `List` was not: it placed the row, and
+  the focus arriving after the first frame revealed the cursor, still on row 0
+  (`ItemListHandler.onFocusReceived`). A list an app's request placed now stays there when the
+  focus arrives, until the cursor or the user's scroll moves it — the rule a `scrollTo` already
+  kept for the cursor (`scroll(toRow:anchor:)` moves neither the focus nor the selection). The
+  pulled pages start at 0, so their frames do not change.
 
 
 ### 1e. Focus: an unbuilt row stays reachable
