@@ -18,9 +18,16 @@ import Testing
 
 @testable import TUI
 import TUITesting
+@testable import TUITestSupport
 
+/// At 24-bit colour, as the table was recorded: without colour a scrollbar's
+/// thumb is a glyph across whole cells rather than a fill with an eighth-cell
+/// edge, so the screen's text holds still for more lines of the wheel, and the
+/// walk stops at two unchanged screens before it reaches a two-stacked list's
+/// last row. `swift test` sets `NO_COLOR` whenever its output is not a
+/// terminal, which failed six `List` rows' reach there every time.
 @MainActor
-@Suite("SCROLL-FIT baseline: what content-sized views get along an unbounded axis today")
+@Suite("SCROLL-FIT baseline: what content-sized views get along an unbounded axis today", .drawsInTruecolor)
 struct ScrollFitBaselineTests {
     // MARK: - The table, at 3 and 60 rows
 

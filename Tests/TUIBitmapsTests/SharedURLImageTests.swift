@@ -27,29 +27,8 @@ import Testing
 // The server is a BSD socket (see `LocalHTTPServer`).
 #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
 
-/// Draws every test of a suite at 24-bit colour, whatever the process's
-/// environment asks for.
-///
-/// These tests find a picture by its colour (`255;0;0`), and the depth the
-/// process detects follows the environment — including `NO_COLOR`, which
-/// `swift test` itself sets whenever its output is not a terminal. Run that way
-/// (piped, or from a script), every picture drew as uncoloured spaces and all
-/// five tests failed, although every load had landed; under the parallel
-/// runner, which does not set it, they passed. The pin is task-local
-/// (`ColorDepth.withCurrent`), so no other test sees it.
-private struct DrawsInTruecolor: SuiteTrait, TestTrait, TestScoping {
-    /// Every test, not only the suite: see `RendersEnglishUI`.
-    func scopeProvider(for test: Test, testCase: Test.Case?) -> Self? { self }
-
-    func provideScope(
-        for test: Test, testCase: Test.Case?, performing function: @Sendable () async throws -> Void
-    ) async throws {
-        try await ColorDepth.withCurrent(.truecolor) { try await function() }
-    }
-}
-
 @MainActor
-@Suite("Views whose pictures land together", DrawsInTruecolor())
+@Suite("Views whose pictures land together", .drawsInTruecolor)
 struct SharedURLImageTests {
     /// A server of one red picture, 8 × 8, holding its responses until
     /// `requests` have arrived, so that the loads land together.

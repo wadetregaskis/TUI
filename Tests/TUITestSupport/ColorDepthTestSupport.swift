@@ -8,6 +8,7 @@
 #if TUI_TEST_SUPPORT && canImport(Testing)
 
 import Foundation
+import Testing
 
 import TUIStyling
 
@@ -31,6 +32,34 @@ import TUIStyling
 @discardableResult
 func withColorDepth<T>(_ depth: ColorDepth, _ body: () throws -> T) rethrows -> T {
     try ColorDepth.withCurrent(depth, operation: body)
+}
+
+/// Draws every test of a suite at 24-bit colour, whatever the process's
+/// environment asks for: `.drawsInTruecolor` on the suite.
+///
+/// The depth the process detects follows the environment, `NO_COLOR` among
+/// it, which `swift test` itself sets whenever its output is not a terminal
+/// (piped, or from a script); the project's runner, `parallel_test.py`, does
+/// not. A suite whose assertions depend on what colour lets the screen show —
+/// a picture found by its colour, or a scrollbar thumb, drawn as a glyph
+/// without colour where it is a fill with it — passed under the runner and
+/// failed under `swift test`, the same way every time. The pin is task-local
+/// (`ColorDepth.withCurrent`), so no other test sees it.
+struct DrawsInTruecolor: SuiteTrait, TestTrait, TestScoping {
+    /// Every test, not only the suite: see `RendersEnglishUI`.
+    func scopeProvider(for test: Test, testCase: Test.Case?) -> Self? { self }
+
+    func provideScope(
+        for test: Test, testCase: Test.Case?, performing function: @Sendable () async throws -> Void
+    ) async throws {
+        try await ColorDepth.withCurrent(.truecolor) { try await function() }
+    }
+}
+
+extension Trait where Self == DrawsInTruecolor {
+    /// This suite's assertions depend on colour; draw at 24-bit whatever the
+    /// environment says.
+    static var drawsInTruecolor: Self { Self() }
 }
 
 #endif
