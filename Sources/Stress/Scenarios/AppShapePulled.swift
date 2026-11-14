@@ -38,6 +38,10 @@ enum PulledShape: Sendable {
     /// title; Form }` of a grouped form, under SCROLL-FIT's switch (design
     /// P4).
     case titledListVariable, groupedForm
+    /// `VStack { title; Table }.fixedSize(horizontal: false, vertical: true)`
+    /// of one-line rows, under SCROLL-FIT's switch: `.fixedSize` in scroll
+    /// content, measured up the ladder (design P5).
+    case fixedSizeTable
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -149,6 +153,18 @@ struct PulledPageApp: View {
                         }
                         .formStyle(.grouped)
                     }
+                    .environment(\.scrollFitsContent, true)
+                case .fixedSizeTable:
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                        Table((0..<entries).map(PulledRow.init)) {
+                            TableColumn("#") { (row: PulledRow) in Text(verbatim: "\(row.id)") }
+                            TableColumn("Entry") { (row: PulledRow) in
+                                Text(verbatim: Synth.sentence(mix(seed, row.id), words: 4))
+                            }
+                        }
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
                     .environment(\.scrollFitsContent, true)
                 }
             }

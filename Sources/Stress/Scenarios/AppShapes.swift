@@ -310,6 +310,9 @@ enum AppShapeMatrix {
         scrolling("grouped-form", "a title over a grouped Form of 40 sections of 25 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .groupedForm, entries: $0.sized(1_000), seed: $0.seed))
         },
+        scrolling("fixed-size-table", "a title over a Table of 10,000 rows, both fixed vertically, under SCROLL-FIT's switch, scrolled three lines a tick") {
+            AnyView(PulledPageApp(shape: .fixedSizeTable, entries: $0.sized(10_000), seed: $0.seed))
+        },
         scrolling("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs under SCROLL-FIT's switch, scrolled three lines a tick") {
             AnyView(PulledEditorApp(lines: $0.sized(10_000), seed: $0.seed))
         },
