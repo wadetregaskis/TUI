@@ -59,10 +59,12 @@
             }
             #if canImport(Darwin)
                 var attributes: posix_spawnattr_t?
-            #else
-                // A struct of pointers in Glibc and Musl, so its zeroed value is
-                // made unsafely; `posix_spawnattr_init` fills it in.
+            #elseif canImport(Musl)
+                // A struct of pointers in Musl, so its zeroed value is made
+                // unsafely; `posix_spawnattr_init` fills it in.
                 var attributes = unsafe posix_spawnattr_t()
+            #else
+                var attributes = posix_spawnattr_t()
             #endif
             unsafe posix_spawnattr_init(&attributes)
             defer { unsafe posix_spawnattr_destroy(&attributes) }
