@@ -213,11 +213,12 @@ extension EnvironmentValues {
         set { self[ScrollFitsContentKey.self] = newValue }
     }
 
-    /// Whether this is a vertical scroll view's content under SCROLL-FIT's
-    /// switch, where a view that would scroll itself takes its content's
-    /// height instead and leaves the scrolling to that scroll view: a grouped
-    /// `Form` (design P4). Written by the scroll view for its content, only
-    /// with the switch on.
+    /// Whether this is a vertical scroll view's content, where a view that
+    /// would scroll itself takes its content's height instead and leaves the
+    /// scrolling to that scroll view under SCROLL-FIT's switch: a grouped
+    /// `Form` (design P4), which reads the switch where it stands. Written by
+    /// the scroll view for its content whatever its own switch, since an app
+    /// may turn the switch on inside the content.
     package var fitsVerticalScrollContent: Bool {
         get { self[FitsVerticalScrollContentKey.self] }
         set { self[FitsVerticalScrollContentKey.self] = newValue }

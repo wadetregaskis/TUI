@@ -33,9 +33,12 @@ struct _FormScroller<Content: View>: View {
     let content: Content
     @Environment(\.formStyle) private var style
     @Environment(\.fitsVerticalScrollContent) private var fitsScrollContent
+    /// The switch where the form stands, which may be turned on inside the
+    /// scroll view's content rather than on the scroll view.
+    @Environment(\.scrollFitsContent) private var scrollFitsContent
 
     var body: some View {
-        if style is GroupedFormStyle, fitsScrollContent {
+        if style is GroupedFormStyle, fitsScrollContent, scrollFitsContent {
             content.transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
         } else if style is GroupedFormStyle {
             ScrollView {

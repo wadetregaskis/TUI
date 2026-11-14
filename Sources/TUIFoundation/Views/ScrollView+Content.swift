@@ -300,11 +300,15 @@ extension _ScrollViewCore {
         if canvas.environment.asksWholeContentWidth != horizontal {
             canvas.environment.asksWholeContentWidth = horizontal
         }
-        // Under SCROLL-FIT's switch, whether a view in here that would scroll
-        // itself leaves that to this one (a grouped `Form`). Written only with
-        // the switch on, so with it off nothing changes.
-        if canvas.environment.scrollFitsContent {
-            canvas.environment.fitsVerticalScrollContent = axes.contains(.vertical)
+        // Whether a view in here that would scroll itself may leave that to
+        // this one (a grouped `Form`), which it does only under SCROLL-FIT's
+        // switch as it reads the switch where it stands. Not this scroll
+        // view's switch: an app may turn it on in the content, as the Stress
+        // pages do, and a mark written only under this one's never reached
+        // their form. Written only when it differs, as above.
+        let vertical = axes.contains(.vertical)
+        if canvas.environment.fitsVerticalScrollContent != vertical {
+            canvas.environment.fitsVerticalScrollContent = vertical
         }
         return canvas
     }

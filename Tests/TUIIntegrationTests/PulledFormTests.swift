@@ -22,6 +22,9 @@ private struct FormPage: View {
     /// The twin's frame: the same form drawn whole, framed to its full
     /// height, the switch off. `nil` for the content-sized form.
     var framed: Int?
+    /// The switch written on the scroll view's content rather than on the
+    /// scroll view, as an app that turns it on for one page does.
+    var switchOnContent = false
 
     var body: some View {
         ScrollView {
@@ -34,8 +37,9 @@ private struct FormPage: View {
                 }
                 Button("below") {}
             }
+            .transformEnvironment(\.scrollFitsContent) { if switchOnContent { $0 = framed == nil } }
         }
-        .environment(\.scrollFitsContent, framed == nil)
+        .environment(\.scrollFitsContent, framed == nil && !switchOnContent)
     }
 
     var form: some View {
@@ -79,6 +83,15 @@ struct PulledFormTests {
         let below = app.screen.lines.firstIndex { $0.contains("below") }
         #expect(below == 1 + height, "\(app.screen)")
         #expect(Self.content(app) == Self.content(Self.app(1, framed: height)), "\(app.screen)")
+    }
+
+    @Test("The switch written on the scroll view's content sizes the form as the switch on the scroll view does")
+    func switchOnTheContentSizesTheForm() {
+        let height = Self.wholeHeight(1)
+        let app = TestApp(width: 30, height: 12) { FormPage(sections: 1, switchOnContent: true) }
+        let below = app.screen.lines.firstIndex { $0.contains("below") }
+        #expect(below == 1 + height, "\(app.screen)")
+        #expect(Self.content(app) == Self.content(Self.app(1)), "\(app.screen)")
     }
 
     @Test("A tall form draws what the form drawn whole draws as the scroll view moves over it")
