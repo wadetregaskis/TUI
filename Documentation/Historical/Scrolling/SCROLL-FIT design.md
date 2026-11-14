@@ -1352,6 +1352,18 @@ upward lands a line lower than the twin's, under the header.
   same list drawn whole, which pins nothing — as a pulled table's row revealed upward is.
 - **A page leaves out the rows under the pinned header**, of a list as of a multi-line table
   (`PulledRowsBand.rowsOnScreen(clearOf:)`).
+- **The pinned header costs less.** The Time Profiler on `app-shapes/titled-table` (attached to
+  `Stress --bench`, 8 s, at P6) put what pinning added in the composite of the opaque copy over the
+  row under it: `resolvingScrollPins` 3.5% inclusive, `move(pinned:)` 3.4%, of which
+  `composite(with:at:)` 3.0%, nearly all of it the split of the row around the copy
+  (`ansiOverlaySplit`, the stripped lengths, the scalar widths) — not the header's drawing, which the
+  table draws in every band anyway, nor its copy (`scrollPinned` 0.2%). A painted overlay as wide
+  as the canvas from its first column covers its rows whole, so the in-place composite now writes
+  each row as the overlay between two resets where the row ends plain (a reset last, no link), and
+  splits only the rest: `resolvingScrollPins` 0.7%, `move(pinned:)` 0.4%. The bytes differ from the
+  split's (which keeps the row's escapes before its first cell and after its last), the cells do
+  not (`PaintedRowOverlayTests`, against the copying composite); `frame_parity.py` reports the two
+  pulled-table pages different for that, every other case alike.
 
 Found on the way: a pinned copy drawn over a cursor row reversed on the terminal's own ink (the
 focused row, `\e[7m`) lost its letters. A transparent overlay cell takes the field under it, and

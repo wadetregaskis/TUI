@@ -978,11 +978,24 @@ extension FrameBuffer {
         // As in the copying twin: the fields each overlay row was painted over.
         var fields =
             overlay.animatedCells.isEmpty ? nil : [FieldsUnderOverlay](repeating: .none, count: overlay.lines.count)
+        // A painted overlay as wide as the canvas from its first column covers
+        // each of its rows whole: nothing of the base shows on them, so the base
+        // need not be split around it — the split reads every cell of the row —
+        // and the row is the overlay, between the resets an insertion puts round
+        // it (``endsPlain(_:)``). A table's header pinned to a scroll view's top
+        // is one, drawn over a row of its own on every frame that scrolls past
+        // it (SCROLL-FIT P6b), and the split was most of what pinning it cost.
+        let coversRows = overlayIsPainted && position.x == 0 && fields == nil && overlay.linesAreUniformWidth
+            && overlay.width >= resultWidth
         for overlayRow in overlay.lines.indices {
             let row = position.y + overlayRow
             guard row >= 0, row < storage.count else { continue }
             let overlayLine = overlay.lines[overlayRow]
             guard !overlayLine.isEmpty else { continue }
+            if coversRows, Self.endsPlain(storage[row]) {
+                storage[row] = Self.ansiReset + overlayLine + Self.ansiReset
+                continue
+            }
             let inserted = Self.insertOverlay(
                 base: storage[row].padToVisibleWidth(resultWidth),
                 overlay: overlayLine,
@@ -1400,6 +1413,22 @@ extension FrameBuffer {
     ///   and the fields the overlay's bare cells were painted over there, column by
     ///   column (`ANSIOverlaySplit.fieldsUnderOverlay`) — which the overlay's runs
     ///   record as their ground (``AnimatedCellRun/ground``).
+    /// Whether `line` ends in no style and no hyperlink: a reset last, and no
+    /// OSC escape (a link's) anywhere. An insertion that covers such a line
+    /// whole restores nothing after the overlay — the style the split nets at
+    /// its end is the default, and no link reopens — so it is the overlay
+    /// between two resets, and the split need not be made to find that out.
+    /// A byte scan, which reads no cell's width.
+    private static func endsPlain(_ line: String) -> Bool {
+        guard line.hasSuffix(ansiReset) else { return false }
+        var afterEscape = false
+        for byte in line.utf8 {
+            if afterEscape, byte == 0x5D { return false }
+            afterEscape = byte == 0x1B
+        }
+        return true
+    }
+
     fileprivate static func insertOverlay(
         base: String,
         overlay: String,
