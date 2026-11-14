@@ -951,10 +951,13 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Under `.scrollIndicatorPlacement(.overContent)`, the list's indicators
         // go beside the rows while it holds the focus: decided here, before
         // the rows are laid out, and given back to the rows (`rowContext`).
-        let (context, surface) = CollectionSurface.drawing(
+        let (drawingContext, surface) = CollectionSurface.drawing(
             context.drawingListSectionChrome().placingScrollIndicators(
                 explicitFocusID: focusID, focusIDIndex: StateIndex.focusID),
             when: context.environment.listStyle is SurfaceListStyle)
+        // Framed below to the rows a pulled list of rows of varying height
+        // draws, once they are at hand (`_ListCore+Pulled.swift`).
+        var context = drawingContext
         let style = context.environment.listStyle
         let stateStorage = context.stateStorage!
         // Started as the rows are extracted (`armSelectionGathering`), ended
@@ -1014,6 +1017,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         let source = extractRowsAfterOwnPlace(
             rowContext: rowContext, editRestrictions: editRestrictions, stateStorage: stateStorage, context: context)
         settleRowRamp(source, context: rowContext)
+        // A pulled list of rows of varying height places its band now that its
+        // rows are at hand, at the width they are drawn at, and is framed to
+        // the rows the band holds.
+        if let variable = pulled?.variable {
+            context.availableHeight = variable.resolve(
+                width: rowContext.availableWidth, pitch: { source.content(at: $0).buffer.height }, key: { source.scrollKey(at: $0) },
+                ordinal: { source.index(ofScrollKey: $0) })
+        }
 
         // Vertical chrome around the scrollable content, as the container that
         // draws it charges for it — ASKED of the container (`containerBodyHeight`),
@@ -1257,7 +1268,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// ellipsis if even those are too few: a placeholder can say why a list is
     /// empty (a file panel's "The folder … can't be opened." and the file
     /// system's reason), and cut to one row it lost the why.
-    private func emptyStateContent(height: Int, context: RenderContext) -> _ListContentView {
+    func emptyStateContent(height: Int, context: RenderContext) -> _ListContentView {
         // Spelled as a `Text` is (``RenderContext/spelled(_:)``): it is drawn
         // here, not by one.
         let emptyPlaceholder = context.spelled(self.emptyPlaceholder)
@@ -1399,10 +1410,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // chord on the cursor row (A53-KEYBOARD-DRAG).
         handler.offerRowDrags(editRestrictions.rowDrags, context: context)
         // After the viewport sync, which counts DATA rows: the header pinned over
-        // the window's top, ahead of its rows (see `pinningSectionHeader`).
-        visibleRows = pinningSectionHeader(
-            over: decorateForReorder(visibleRows, handler: handler, context: context, palette: palette),
-            source: source, origin: origin.offset, handler: handler, style: style)
+        // the window's top, ahead of its rows (see `pinningSectionHeader`). Not
+        // a pulled list's: its window's top is the band's, not the list's, and
+        // a header pinned to the scroll view is pinned chrome's (SCROLL-FIT P6).
+        visibleRows = decorateForReorder(visibleRows, handler: handler, context: context, palette: palette)
+        if pulled == nil {
+            visibleRows = pinningSectionHeader(
+                over: visibleRows, source: source, origin: origin.offset, handler: handler, style: style)
+        }
 
         let rowWidth = rowWidth(source: source, visibleRows: visibleRows, style: style, context: context)
 
@@ -2035,10 +2050,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // cursor below (`ItemListHandler.pinnedSectionHeader`) — by the rule the
         // draw pins by, asked when the key arrives. Every frame, nil included —
         // the handler persists across a style change. Weak, as the handler holds
-        // the closure.
+        // the closure. None over a pulled list's rows, which pin none.
         let pinStyle = context.environment.listStyle
         handler.pinnedSectionHeader =
-            Self.pinsSectionHeaders(pinStyle)
+            pulled == nil && Self.pinsSectionHeaders(pinStyle)
             ? { [weak handler] index in
                 handler.flatMap { Self.pinnedHeader(over: index, source: source, handler: $0, style: pinStyle) }
             }
