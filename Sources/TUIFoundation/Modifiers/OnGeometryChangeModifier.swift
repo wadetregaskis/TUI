@@ -152,17 +152,15 @@ nonisolated struct OnGeometryChangeModifier<Content: View, T: Equatable>: View {
         return buffer
     }
 
-    /// The size the view came out at: its drawing's — or, under SCROLL-FIT's
-    /// switch, the whole height of content a scroll view or a column pulls,
-    /// which draws only the band of its lines on screen and says how tall it is
-    /// in its reply (`PulledBandRequest.answer`, `sliceTotalHeight`), as SwiftUI
+    /// The size the view came out at: its drawing's — or the whole height of
+    /// content a scroll view or a column pulls (SCROLL-FIT P5b), which draws
+    /// only the band of its lines on screen and says how tall it is in its
+    /// reply (`PulledBandRequest.answer`, `sliceTotalHeight`), as SwiftUI
     /// reports the frame of a view part of which is scrolled off. Read off the
     /// drawing, a table of 10,000 rows under a title reported the 24 lines on
-    /// screen. With the switch off a pulled lazy stack still reports its band,
-    /// as the baseline records (`ScrollFitBaselineTests`); P7 deletes the
-    /// switch.
+    /// screen, and a pulled lazy stack its band.
     private static func ownSize(of buffer: FrameBuffer, context: RenderContext) -> CellSize {
-        guard context.environment.scrollFitsContent, let window = context.environment.scrollContentWindow,
+        guard let window = context.environment.scrollContentWindow,
             window.isAtOrigin(context.identity), let total = window.reply?.sliceTotalHeight
         else { return buffer.cellSize }
         return CellSize(width: buffer.width, height: total)

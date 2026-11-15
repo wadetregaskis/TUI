@@ -118,27 +118,36 @@ struct ScrollViewRenderTests {
         #expect(count > 0 && count < 20, "overflow count is the real remainder, not the measure canvas: \(indicator)")
     }
 
-    @Test("A middle Spacer spreads content to the viewport edges without forcing scroll")
+    /// `VStack { Text; Spacer; Text }` shorter than the viewport: the content
+    /// is its own height (SCROLL-FIT P7), so the Spacer takes its minimum and
+    /// the texts stand together, as in SwiftUI, rather than spreading to the
+    /// viewport's edges (as before P7) or pushing the second text thousands of
+    /// lines down (the bug before that). Framed to the viewport
+    /// (`.containerRelativeFrame(.vertical)`), it spreads them to its edges,
+    /// still with no overflow.
+    @Test("A middle Spacer takes its minimum, and spreads content to the viewport edges when framed to it")
     func middleSpacerSpreads() {
-        // `VStack { Text; Spacer; Text }` shorter than the viewport: the Spacer
-        // fills only to the viewport, putting the two texts at the top and bottom
-        // with no overflow — rather than collapsing (SwiftUI) or pushing the second
-        // text thousands of lines down (the pre-fix bug).
-        let buffer = renderToBuffer(
-            ScrollView {
-                VStack(alignment: .leading) {
-                    Text("top")
-                    Spacer()
-                    Text("bottom")
-                }
-            },
-            context: textCtx(width: 20, height: 8)
-        )
-        let lines = buffer.lines.map { $0.stripped }
-        #expect(lines.count == 8, "fills the viewport: \(lines)")
-        #expect(lines.first?.contains("top") == true, "first line is 'top': \(lines)")
-        #expect(lines.last?.contains("bottom") == true, "last line is 'bottom': \(lines)")
-        #expect(!lines.joined().contains("more lines below"), "fits — no overflow: \(lines)")
+        func lines(framed: Bool) -> [String] {
+            let stack = VStack(alignment: .leading) {
+                Text("top")
+                Spacer()
+                Text("bottom")
+            }
+            let buffer = renderToBuffer(
+                ScrollView {
+                    if framed { stack.containerRelativeFrame(.vertical) } else { stack }
+                },
+                context: textCtx(width: 20, height: 8)
+            )
+            return buffer.lines.map { $0.stripped }
+        }
+        let unframed = lines(framed: false)
+        #expect(unframed.firstIndex { $0.contains("bottom") } == 1, "right under the first: \(unframed)")
+        let framed = lines(framed: true)
+        #expect(framed.count == 8, "fills the viewport: \(framed)")
+        #expect(framed.first?.contains("top") == true, "first line is 'top': \(framed)")
+        #expect(framed.last?.contains("bottom") == true, "last line is 'bottom': \(framed)")
+        #expect(!framed.joined().contains("more lines below"), "fits — no overflow: \(framed)")
     }
 
     // MARK: - Overflowing content (bottom indicator)

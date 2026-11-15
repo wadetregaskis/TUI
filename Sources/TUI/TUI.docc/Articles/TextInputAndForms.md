@@ -77,7 +77,7 @@ SecureField("Password", text: $password)
 
 ## Several lines of text
 
-A ``TextEditor`` is for longer text. It takes up the space you give it, wraps long lines, and scrolls by itself. Return starts a new line, and Tab moves to the next control.
+A ``TextEditor`` is for longer text. It takes up the space you give it, wraps long lines, and scrolls by itself; in a vertical ``ScrollView``, which gives it no height, it is as tall as its text and the scroll view scrolls it, keeping the caret in sight. Return starts a new line, and Tab moves to the next control.
 
 ```swift
 TextEditor(text: $notes)
@@ -131,7 +131,7 @@ Password ▐                                     ▌
 
 The fields have an empty title because the `LabeledContent` names them. A toggle and a button carry their own labels, so they don't need one. A `Picker`, `Slider`, `Stepper` or `DatePicker` written directly in a form puts its own title in the label column.
 
-For the look of a grouped settings screen, with a border around each section, add `.formStyle(.grouped)`. A grouped form is a scroll view, as SwiftUI's is: it fills the space it's given, and when its sections are taller than that, the wheel and Page Up and Page Down scroll it, and Tab scrolls the control it moves to into view. The default columns form doesn't scroll, as SwiftUI's doesn't, so put a tall one in a `ScrollView`.
+For the look of a grouped settings screen, with a border around each section, add `.formStyle(.grouped)`. A grouped form is a scroll view, as SwiftUI's is: it fills the space it's given, and when its sections are taller than that, the wheel and Page Up and Page Down scroll it, and Tab scrolls the control it moves to into view. In a vertical `ScrollView` a grouped form is as tall as its sections instead, and the scroll view around it scrolls it. The default columns form doesn't scroll, as SwiftUI's doesn't, so put a tall one in a `ScrollView`.
 
 ## Checking what people type
 

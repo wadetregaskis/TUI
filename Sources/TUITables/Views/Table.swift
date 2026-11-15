@@ -981,9 +981,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// render exactly (`isMeasuring`, cleared `hasExplicitWidth`, proposed size),
     /// so the reported size is identical to what the fallback produced.
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        // A `scrollTo` searching the rows of a column above, under SCROLL-FIT's
-        // switch, asks only whether a row here carries its key.
-        if context.environment.scrollFitsContent, let search = ScrollKeyLocate.search(in: context),
+        // A `scrollTo` searching the rows of a column above (SCROLL-FIT)
+        // asks only whether a row here carries its key.
+        if let search = ScrollKeyLocate.search(in: context),
             !search.marksTarget
         {
             if data.contains(where: { identityKey($0.id) == search.key }) { search.found = true }
@@ -1034,11 +1034,6 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     isWidthFlexible: columns.contains { $0.effectiveWidth.growsWithAvailableWidth },
                     isHeightFlexible: false)
             }
-        } else if let cap = scrollViewportCap(context) {
-            // In scroll content, never taller than the scroll view: measured
-            // within that, a table that measures by drawing draws no more rows
-            // than it will show (the ladder's first rung is 4,096 lines).
-            measureContext.availableHeight = min(measureContext.availableHeight, cap)
         }
 
         // A table's dimensions are arithmetic, not something to be discovered
@@ -1109,29 +1104,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // so it is its rows' height, and a column keeps that whole (decisions
         // TABLE-IN-SCROLL-HEIGHT). Flexible there, three tables in a scroll
         // view's column were each dealt a third of their rows' total.
+        //
+        // In scroll content it was capped at the scroll view's viewport until
+        // SCROLL-FIT P7 (TABLE-IN-SCROLL-HEIGHT's `scrollViewportCap`), so that
+        // a tall table scrolled its own rows and built only those on screen;
+        // it is now its rows' height, and pulled where a column pulls it
+        // (``pulledHeight(context:)``), which builds only the rows on screen.
+        // Where nothing pulls it (below a container that draws its children
+        // whole) it is drawn whole, as the design rules for such a leaf.
         let fillsWidth = columns.contains { $0.effectiveWidth.growsWithAvailableWidth }
         return ViewSize(
-            width: size.width,
-            height: pulled ?? scrollViewportCap(context).map { min(size.height, $0) } ?? size.height,
+            width: size.width, height: pulled ?? size.height,
             isWidthFlexible: fillsWidth, isHeightFlexible: context.hasExplicitHeight)
-    }
-
-    /// In scroll content with no height given, the height of the scroll view
-    /// showing the table, which is as tall as it gets there: a taller table
-    /// scrolls its rows within that and builds only those on screen; `nil`
-    /// anywhere else. Drawn whole, a table of
-    /// 10,000 rows built every row on every frame, an idle redraw 70 ms
-    /// where it had been 44 and a scroll step 144 ms where it had been 89, and
-    /// at 100,000 rows 927 ms and 2.3 s (debug build, `TestApp`).
-    ///
-    /// The viewport is read only in scroll content (`scrollContentOriginDepth`
-    /// is set there and nowhere else), since its getter tells the memos above
-    /// not to keep what read it.
-    private func scrollViewportCap(_ context: RenderContext) -> Int? {
-        guard !context.hasExplicitHeight, context.scrollContentOriginDepth != 0,
-            let viewport = context.environment.scrollViewportSize?.height
-        else { return nil }
-        return max(1, viewport)
     }
 
     /// The single-line table's rendered size, computed without building its
@@ -7578,7 +7562,7 @@ extension _TableCore {
     /// line each, or of varying height on the multi-line layout (lines above
     /// one, or sections) — and the chrome below (the horizontal scrollbar's
     /// line, `bar`, where its columns do not fit across, and a border); or
-    /// `nil` when it is drawn as before: the switch off, outside scroll
+    /// `nil` when it is drawn as before: outside scroll
     /// content, given a height, below a container that does not pull, a style
     /// of the app's own, rows of varying height whose columns do not fit
     /// across, or no rows.
@@ -7589,7 +7573,7 @@ extension _TableCore {
     /// scroll view's measuring ladder laid them out again.
     private func pulledLines(context: RenderContext, measuringBar: Bool = false) -> PulledTableLines? {
         let environment = context.environment
-        guard environment.scrollFitsContent, context.scrollContentOriginDepth != 0, !context.hasExplicitHeight,
+        guard context.scrollContentOriginDepth != 0, !context.hasExplicitHeight,
             !data.isEmpty, horizontalWindow == nil, customStyle(environment) == nil,
             context.isPulledWhereItStands, let bar = measuringBar ? 0 : pulledBarLines(context)
         else { return nil }
@@ -7626,7 +7610,6 @@ extension _TableCore {
     /// building none (sampled in the measure, each rung of the scroll view's
     /// measuring ladder sampled them again: more rows, more rungs, more built).
     private func pulledHeight(context: RenderContext) -> Int? {
-        guard context.environment.scrollFitsContent else { return nil }
         let lines = pulledLines(context: context, measuringBar: !usesMultiLineLayout)
         context.notePulledBand(lines != nil)
         guard let lines else { return nil }

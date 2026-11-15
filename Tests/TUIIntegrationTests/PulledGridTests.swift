@@ -53,7 +53,7 @@ struct PulledGridTests {
     }
 
     private static func app(
-        _ shape: Shape, lazy: Bool, rows count: Int = 300, builds: GridBuilds = GridBuilds(), fitsContent: Bool = false
+        _ shape: Shape, lazy: Bool, rows count: Int = 300, builds: GridBuilds = GridBuilds()
     ) -> TestApp {
         TestApp(width: 30, height: 12) {
             ScrollView {
@@ -81,7 +81,6 @@ struct PulledGridTests {
                     Text("footer")
                 }
             }
-            .environment(\.scrollFitsContent, fitsContent)
         }
     }
 
@@ -91,13 +90,11 @@ struct PulledGridTests {
         app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) }
     }
 
-    /// With SCROLL-FIT's switch on too (`scrollFitsContent`), as P7 makes
-    /// the default.
     @Test("Drawn as the same rows drawn eagerly, at the top, paged, wheeled and at the end",
-          arguments: Shape.allCases, [false, true])
-    func drawsWhatTheEagerOneDraws(_ shape: Shape, fitsContent: Bool) {
-        let lazy = Self.app(shape, lazy: true, fitsContent: fitsContent)
-        let eager = Self.app(shape, lazy: false, fitsContent: fitsContent)
+          arguments: Shape.allCases)
+    func drawsWhatTheEagerOneDraws(_ shape: Shape) {
+        let lazy = Self.app(shape, lazy: true)
+        let eager = Self.app(shape, lazy: false)
         func check(_ step: String) {
             #expect(Self.content(lazy) == Self.content(eager), "\(shape) \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
         }
@@ -121,9 +118,9 @@ struct PulledGridTests {
     }
 
     /// The rows built on the first frame and on each of five page-downs.
-    private static func builtPerStep(_ shape: Shape, rows: Int, fitsContent: Bool) -> [Int] {
+    private static func builtPerStep(_ shape: Shape, rows: Int) -> [Int] {
         let builds = GridBuilds()
-        let app = app(shape, lazy: true, rows: rows, builds: builds, fitsContent: fitsContent)
+        let app = app(shape, lazy: true, rows: rows, builds: builds)
         _ = app.screen
         var counts = [builds.count]
         for _ in 0..<5 {
@@ -139,11 +136,10 @@ struct PulledGridTests {
     /// against a lazy stack alone's 124), a page fewer than 100 rows, each
     /// the same around 2,000 rows as around 10,000. (Before, drawn whole in its cell: 64,119 rows on the first
     /// frame at 10,000.)
-    @Test("A lazy stack in a cell builds the same few rows a page around 2,000 rows as around 10,000",
-          arguments: [false, true])
-    func stackInCellBuildsOnlyTheRowsOnScreen(fitsContent: Bool) {
-        let tenThousand = Self.builtPerStep(.stackInCell, rows: 10_000, fitsContent: fitsContent)
-        let twoThousand = Self.builtPerStep(.stackInCell, rows: 2_000, fitsContent: fitsContent)
+    @Test("A lazy stack in a cell builds the same few rows a page around 2,000 rows as around 10,000")
+    func stackInCellBuildsOnlyTheRowsOnScreen() {
+        let tenThousand = Self.builtPerStep(.stackInCell, rows: 10_000)
+        let twoThousand = Self.builtPerStep(.stackInCell, rows: 2_000)
         #expect(tenThousand.dropFirst().allSatisfy { $0 < 100 }, "\(tenThousand)")
         #expect(tenThousand.dropFirst() == twoThousand.dropFirst(), "\(twoThousand) \(tenThousand)")
         #expect(tenThousand[0] < 250 && tenThousand[0] == twoThousand[0], "\(twoThousand) \(tenThousand)")

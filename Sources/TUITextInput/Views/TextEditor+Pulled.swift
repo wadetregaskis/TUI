@@ -2,8 +2,8 @@
 //  TextEditor+Pulled.swift
 //
 //  SCROLL-FIT's pull (design P4), for a `TextEditor` in a scroll view's
-//  content: with the switch on (`EnvironmentValues.scrollFitsContent`), an
-//  editor that a column pulls where it stands is its text's height — its
+//  content: an editor that a column pulls where it stands is its text's
+//  height — its
 //  rows at the width it is given, wrapped or not — and draws only the rows
 //  the scroll view shows. It is a lines leaf (B-SCROLLFIT-12): its rows are
 //  its own, laid out already (the layout keeps them at each width), so where
@@ -20,7 +20,7 @@ import TUIFoundation
 
 extension _TextEditorCore {
     /// The editor's rows when a column pulls it, at `width`, or `nil` when it
-    /// is drawn as before: the switch off, outside scroll content, given a
+    /// is drawn as before: outside scroll content, given a
     /// height, or below a container that does not pull.
     private func pulledRowCount(width: Int, context: RenderContext) -> Int? {
         guard isPulled(context: context) else { return nil }
@@ -36,7 +36,6 @@ extension _TextEditorCore {
     /// rows if so — so the column above hands it a request — and withdrawing
     /// it if not. Its measure is then its rows' height.
     func notePulled(context: RenderContext) -> Bool {
-        guard context.environment.scrollFitsContent else { return false }
         let pulled = isPulled(context: context)
         context.notePulledBand(pulled)
         return pulled
@@ -50,14 +49,14 @@ extension _TextEditorCore {
     /// offered, whichever was less: 4,096 lines in a scroll view, 23 under
     /// `.fixedSize` on a 24-line screen (SCROLL-FIT P7).
     func answersNaturalHeight(proposal: ProposedViewSize, context: RenderContext) -> Bool {
-        context.environment.scrollFitsContent && proposal.height == nil && !context.hasExplicitHeight
+        proposal.height == nil && !context.hasExplicitHeight
             && isNaturalExtentBudget(context.availableHeight)
     }
 
-    /// Whether a column pulls the editor (the switch on, in scroll content,
+    /// Whether a column pulls the editor (in scroll content,
     /// given no height, every container above it a column).
     private func isPulled(context: RenderContext) -> Bool {
-        context.environment.scrollFitsContent && context.scrollContentOriginDepth != 0
+        context.scrollContentOriginDepth != 0
             && !context.hasExplicitHeight && context.isPulledWhereItStands
     }
 

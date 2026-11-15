@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledTextEditorTests.swift
 //
-//  SCROLL-FIT's pull (design P4) for `TextEditor`: with the switch on
-//  (`EnvironmentValues.scrollFitsContent`), an editor under a title in a
+//  SCROLL-FIT's pull (design P4) for `TextEditor`:
+//  an editor under a title in a
 //  scroll view is its text's height — its rows, wrapped or not — and draws
 //  only the rows on screen; the scroll view keeps the caret in sight as it
 //  moves and as text is typed. Its drawing is the same editor drawn whole,
@@ -20,7 +20,7 @@ import TUITesting
 private struct EditorPage: View {
     @State private var text: String
     /// The twin's frame: the same editor drawn whole, framed to its full
-    /// height, the switch off. `nil` for the pulled editor.
+    /// height. `nil` for the pulled editor.
     let framed: Int?
 
     init(text: String, framed: Int?) {
@@ -41,7 +41,6 @@ private struct EditorPage: View {
                 Button("below") {}
             }
         }
-        .environment(\.scrollFitsContent, framed == nil)
     }
 }
 

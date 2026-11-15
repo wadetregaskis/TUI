@@ -25,10 +25,8 @@ private struct Server: Identifiable, Sendable {
 private func servers(_ range: ClosedRange<Int>) -> [Server] { range.map(Server.init) }
 
 /// A report of three tables, 2, 5 and 30 rows, each under a heading, and a
-/// footer below them; with SCROLL-FIT's switch on (`fits`), or off.
+/// footer below them.
 private struct ReportPage: View {
-    let fits: Bool
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
@@ -42,14 +40,11 @@ private struct ReportPage: View {
                 Text("End of report")
             }
         }
-        .environment(\.scrollFitsContent, fits)
     }
 }
 
 /// Two plain lists of 3 and 25 rows in one ScrollView.
 private struct TwoListsPage: View {
-    let fits: Bool
-
     var body: some View {
         ScrollView {
             VStack(alignment: .leading) {
@@ -60,7 +55,6 @@ private struct TwoListsPage: View {
                 Button("Refresh") {}
             }
         }
-        .environment(\.scrollFitsContent, fits)
     }
 }
 
@@ -85,9 +79,9 @@ private struct LazySectionsPage: View {
 @Suite("Real world: tables and lists of different lengths in one ScrollView")
 struct ScrollingTablesScreens {
     @Test("A report of three unequal tables: rows contiguous, the last row and the footer reachable",
-          arguments: TerminalSize.all, [false, true])
-    func reportOfThreeTables(size: TerminalSize, fits: Bool) {
-        let app = TestApp(width: size.width, height: size.height) { ReportPage(fits: fits) }
+          arguments: TerminalSize.all)
+    func reportOfThreeTables(size: TerminalSize) {
+        let app = TestApp(width: size.width, height: size.height) { ReportPage() }
         LayoutSanity.check(app, "launch")
         LayoutSanity.expectContiguous(app, ["srv-1", "srv-2"], "the table of 2")
         LayoutSanity.reach("srv-105", in: app, by: .wheelDown(over: nil))
@@ -97,9 +91,9 @@ struct ScrollingTablesScreens {
     }
 
     @Test("A report of three unequal tables: Tab to the last, End, then Page Down shows the footer",
-          arguments: TerminalSize.all, [false, true])
-    func reportByKeys(size: TerminalSize, fits: Bool) {
-        let app = TestApp(width: size.width, height: size.height) { ReportPage(fits: fits) }
+          arguments: TerminalSize.all)
+    func reportByKeys(size: TerminalSize) {
+        let app = TestApp(width: size.width, height: size.height) { ReportPage() }
         for step in 0..<2 {
             app.press(.tab)
             LayoutSanity.check(app, "Tab ×\(step + 1)")
@@ -112,8 +106,8 @@ struct ScrollingTablesScreens {
         }
         // The table at its last row keeps Page Down, so the footer under it,
         // which takes no focus, is out of the keyboard's reach: the wheel
-        // alone shows it. Either way round SCROLL-FIT's switch (B-SCROLLFIT-5
-        // pages by the outer viewport, but not past a table at its end).
+        // alone shows it (SCROLL-FIT's B-SCROLLFIT-5 pages by the outer
+        // viewport, but not past a table at its end).
         withKnownIssue("Page Down at a table's last row does not page the scroll view to the footer below") {
             LayoutSanity.reach("End of report", in: app, by: .pageDown, limit: 3)
         } when: {
@@ -121,23 +115,18 @@ struct ScrollingTablesScreens {
         }
     }
 
-    /// With SCROLL-FIT's switch off, a `List` in scroll content still fills
-    /// the unbounded height it is offered, up to 4,096 rows, blank under its
-    /// last (`ScrollFitBaselineTests`, `listPlain`): the interim SCROLL-FIT's
-    /// P7 ends by turning the switch on. A known issue until then.
+    /// Until SCROLL-FIT's P7 a `List` in scroll content filled the unbounded
+    /// height it was offered, up to 4,096 rows, blank under its last: a known
+    /// issue here until then.
     @Test("Two lists of 3 and 25: no filler under either, the Refresh button reachable by Tab",
-          arguments: TerminalSize.all, [false, true])
-    func twoLists(size: TerminalSize, fits: Bool) {
-        let app = TestApp(width: size.width, height: size.height) { TwoListsPage(fits: fits) }
+          arguments: TerminalSize.all)
+    func twoLists(size: TerminalSize) {
+        let app = TestApp(width: size.width, height: size.height) { TwoListsPage() }
         LayoutSanity.check(app, "launch")
-        withKnownIssue("a List in scroll content fills 4,096 rows until SCROLL-FIT's P7") {
-            LayoutSanity.expectNoBlankRows(app, from: "srv-1", to: "All servers", "the short list")
-            LayoutSanity.reach("srv-325", in: app, by: .wheelDown(over: nil), limit: 80)
-            LayoutSanity.reach("Refresh", in: app, by: .wheelDown(over: nil), limit: 20)
-        } when: {
-            !fits
-        }
-        let tabbed = TestApp(width: size.width, height: size.height) { TwoListsPage(fits: fits) }
+        LayoutSanity.expectNoBlankRows(app, from: "srv-1", to: "All servers", "the short list")
+        LayoutSanity.reach("srv-325", in: app, by: .wheelDown(over: nil), limit: 80)
+        LayoutSanity.reach("Refresh", in: app, by: .wheelDown(over: nil), limit: 20)
+        let tabbed = TestApp(width: size.width, height: size.height) { TwoListsPage() }
         for step in 0..<4 where !(tabbed.focusedID ?? "").hasPrefix("button") {
             tabbed.press(.tab)
             LayoutSanity.check(tabbed, "Tab ×\(step + 1)")

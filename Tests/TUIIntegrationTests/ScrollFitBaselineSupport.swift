@@ -199,15 +199,12 @@ struct ScrollFitResult: CustomStringConvertible {
 enum ScrollFitMeasure {
     static func measure(
         _ subject: ScrollFitSubject, _ situation: ScrollFitSituation, rows: Int,
-        width: Int = 60, height: Int = 24, walk: Bool = true, burst: Int = 5, fitsContent: Bool = false
+        width: Int = 60, height: Int = 24, walk: Bool = true, burst: Int = 5
     ) -> ScrollFitResult {
         let probe = ScrollFitProbe()
         let app = TestApp(width: width, height: height) {
-            let root = ScrollFitCatalogue.root(subject, situation, rows: rows, probe: probe)
+            ScrollFitCatalogue.root(subject, situation, rows: rows, probe: probe)
                 .environment(\.scrollChainingDelay, .zero)
-            // The switch written only where it is on, so the baseline's views
-            // are the ones it measured.
-            if fitsContent { root.environment(\.scrollFitsContent, true) } else { root }
         }
         let first = app.screen
         let builtFirst = probe.built

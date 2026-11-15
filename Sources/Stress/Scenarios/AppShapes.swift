@@ -298,22 +298,22 @@ enum AppShapeMatrix {
         scrolling("layout-list", "a title over an app's own two-column Layout around a lazy stack of 10,000 entries, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .layout, entries: $0.sized(10_000), seed: $0.seed))
         },
-        scrolling("titled-list", "a title over a List of 10,000 one-line rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-list", "a title over a List of 10,000 one-line rows, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .titledList, entries: $0.sized(10_000), seed: $0.seed))
         },
-        scrolling("titled-table", "a title over a two-column Table of 10,000 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-table", "a title over a two-column Table of 10,000 rows, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .titledTable, entries: $0.sized(10_000), seed: $0.seed))
         },
-        scrolling("titled-list-variable", "a title over a List of 10,000 one- and two-line rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-list-variable", "a title over a List of 10,000 one- and two-line rows, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .titledListVariable, entries: $0.sized(10_000), seed: $0.seed))
         },
-        scrolling("grouped-form", "a title over a grouped Form of 40 sections of 25 rows under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("grouped-form", "a title over a grouped Form of 40 sections of 25 rows, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .groupedForm, entries: $0.sized(1_000), seed: $0.seed))
         },
-        scrolling("fixed-size-table", "a title over a Table of 10,000 rows, both fixed vertically, under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("fixed-size-table", "a title over a Table of 10,000 rows, both fixed vertically,, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .fixedSizeTable, entries: $0.sized(10_000), seed: $0.seed))
         },
-        scrolling("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs under SCROLL-FIT's switch, scrolled three lines a tick") {
+        scrolling("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs, scrolled three lines a tick") {
             AnyView(PulledEditorApp(lines: $0.sized(10_000), seed: $0.seed))
         },
         driven("outline", "40 sections of 25 rows in one lazy stack, each row reading a counter of its own; one counter moves a frame") {

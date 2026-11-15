@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledArrivalRevealTests.swift
 //
-//  SCROLL-FIT P6, design 2e (B-SCROLLFIT-6): with the switch on
-//  (`EnvironmentValues.scrollFitsContent`), a control the focus arrives at
+//  SCROLL-FIT P6, design 2e (B-SCROLLFIT-6):
+//  a control the focus arrives at
 //  that is taller than the scroll view's viewport — a pulled table as tall as
 //  its rows — is revealed by its cursor's row, and not moved at all when that
 //  row shows: focused at launch under a title, the title stays on screen;
@@ -22,7 +22,7 @@ private struct Item: Identifiable {
 }
 
 /// `lead` lines (a button first, when `button`), then a table of `rows` rows,
-/// in a scroll view with the switch on.
+/// in a scroll view.
 private struct ArrivalPage: View {
     let lead: Int
     let rows: Int
@@ -42,7 +42,6 @@ private struct ArrivalPage: View {
                 }
             }
         }
-        .environment(\.scrollFitsContent, true)
     }
 }
 

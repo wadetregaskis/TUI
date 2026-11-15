@@ -99,11 +99,12 @@ struct TableInScrollViewHeightTests {
 
     /// Drawn whole, a table of 10,000 rows built every row on every frame: an
     /// idle redraw took 70 ms where it had taken 44 (debug build), and at
-    /// 100,000 rows 927 ms, a scroll step 2.3 s. Never taller than the scroll
-    /// view showing it, it scrolls its rows within itself and builds only the
-    /// ones on screen.
-    @Test("A table taller than its scroll view is the scroll view's height and builds only the rows it shows")
-    func tallTableIsTheViewportsHeight() throws {
+    /// 100,000 rows 927 ms, a scroll step 2.3 s. Capped at the scroll view's
+    /// height until SCROLL-FIT P7 (TABLE-IN-SCROLL-HEIGHT), it scrolled its own
+    /// rows; it is its rows' height now, and the scroll view, pulling it,
+    /// builds only the rows on screen.
+    @Test("A table taller than its scroll view is its rows' height and builds only the rows it shows")
+    func tallTableIsItsRowsHeight() throws {
         let rows = (1...10_000).map(Entry.init)
         let built = BuiltCells()
         let title = PageTitle()
@@ -130,11 +131,14 @@ struct TableInScrollViewHeightTests {
         app.scroll(.down, by: 1, at: CellPoint(x: 2, y: 0))
         app.advance(by: .milliseconds(17))
         #expect(built.count < 200, "a scroll step built \(built.count) cells for 24 lines")
-        // The page scrolls one line, past the title: the table's box is the
-        // whole screen, 24 lines, not 10,003.
+        // The page scrolls one line, past the title, into the table's rows:
+        // its header pinned to the top, no bottom border on screen, the last
+        // row reached by End.
         let scrolled = app.screen
-        #expect(scrolled.lines.first?.contains("╭") == true, "\(scrolled)")
-        #expect(scrolled.lines.last?.contains("╰") == true, "\(scrolled)")
+        #expect(scrolled.lines.first?.contains("Name") == true, "\(scrolled)")
+        #expect(scrolled.lines.last?.contains("╰") == false, "\(scrolled)")
+        _ = app.press(.end)
+        #expect(app.screen.contains("Row 10000"), "\(app.screen)")
     }
 
     /// A frame still gives a table its height, and the table fills it, as it

@@ -25,10 +25,10 @@ import TUIView
 
 extension _ScrollViewCore {
     /// The context this scroll view's content is drawn in when the scroll
-    /// view forwards it to the scroll view around it (the file header): under
-    /// SCROLL-FIT's switch, a vertical, not horizontal, scroll view of the
-    /// app's own in a vertical scroll view's content, given no height. `nil`
-    /// anywhere else, where it is a scroll view.
+    /// view forwards it to the scroll view around it (the file header): a
+    /// vertical, not horizontal, scroll view of the app's own in a vertical
+    /// scroll view's content, given no height. `nil` anywhere else, where it
+    /// is a scroll view.
     ///
     /// The content keeps the identity it has in a scroll view of its own (its
     /// child step under this view), and takes what a scroll view's content
@@ -37,7 +37,7 @@ extension _ScrollViewCore {
     /// (``contentContext(_:)``), and the outer scroll view's request passes
     /// through, a single-child step needing no relay.
     func forwardedContentContext(_ context: RenderContext) -> RenderContext? {
-        guard axes == .vertical, !isChrome, context.environment.scrollFitsContent,
+        guard axes == .vertical, !isChrome,
             context.scrollContentOriginDepth != 0, context.environment.fitsVerticalScrollContent,
             !context.hasExplicitHeight
         else { return nil }
@@ -75,7 +75,7 @@ extension _ScrollViewCore {
     /// in a scroll view, and under `.fixedSize` the height it was offered.
     /// `nil` anywhere else.
     func naturalHeight(proposal: ProposedViewSize, ideal: (width: Int, height: Int)?, context: RenderContext) -> Int? {
-        guard context.environment.scrollFitsContent, proposal.height == nil, !context.hasExplicitHeight,
+        guard !isChrome, proposal.height == nil, !context.hasExplicitHeight,
             isNaturalExtentBudget(context.availableHeight), let ideal
         else { return nil }
         return ideal.height

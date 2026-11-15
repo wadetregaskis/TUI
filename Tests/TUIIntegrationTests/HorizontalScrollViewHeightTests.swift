@@ -23,7 +23,7 @@ import TUITesting
 @Suite("SCROLL-FIT A-SCROLLFIT-2: a horizontal ScrollView proposes its own height", .drawsInTruecolor)
 struct HorizontalScrollViewHeightTests {
     private static func measure(_ subject: ScrollFitSubject, rows: Int, walk: Bool = false) -> ScrollFitResult {
-        ScrollFitMeasure.measure(subject, .horizontal, rows: rows, walk: walk, fitsContent: true)
+        ScrollFitMeasure.measure(subject, .horizontal, rows: rows, walk: walk)
     }
 
     @Test(

@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledMultiLineTableTests.swift
 //
-//  SCROLL-FIT's pull (design P4) for a `Table` of multi-line rows: with the
-//  switch on (`EnvironmentValues.scrollFitsContent`), a table whose rows wrap
+//  SCROLL-FIT's pull (design P4) for a `Table` of multi-line rows:
+//  a table whose rows wrap
 //  to one to three lines, under a title in a scroll view, is its content's
 //  height — estimated for the rows not yet built — and draws only the lines
 //  on screen, whatever its row count; every row is still reached. Its
@@ -35,7 +35,7 @@ private struct MultiLineTablePage: View {
     let builds: Builds?
     var target: Int = 0
     /// The twin's frame: the same table drawn whole, framed to its full
-    /// height, which the switch leaves as it was. `nil` for the pulled table.
+    /// height. `nil` for the pulled table.
     var framed: Int?
 
     var body: some View {
@@ -54,7 +54,6 @@ private struct MultiLineTablePage: View {
             }
             .onKeyEvent(.character("j")) { proxy.scrollTo(target, anchor: .top) }
         }
-        .environment(\.scrollFitsContent, true)
     }
 
     var table: some View {

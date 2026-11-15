@@ -267,7 +267,7 @@ extension _ScrollViewCore {
     /// region carrying the id; otherwise the smallest, the part of it that is
     /// active — see ``FrameBuffer/revealTarget(focusID:wholeControl:)``.
     ///
-    /// Under SCROLL-FIT's switch, a control arrived at that is taller than the
+    /// A control arrived at that is taller than the
     /// viewport is revealed by its smallest region too, its cursor's line,
     /// and so not moved at all when that line is on screen (B-SCROLLFIT-6,
     /// design 2e). Revealed whole, it was top-aligned: a content-sized table
@@ -279,7 +279,7 @@ extension _ScrollViewCore {
         context: RenderContext
     ) -> (top: Int, height: Int)? {
         let target = fullBuffer.revealTarget(focusID: focusedID, wholeControl: arriving)
-        guard arriving, context.environment.scrollFitsContent, let target, target.height > viewportHeight
+        guard arriving, let target, target.height > viewportHeight
         else { return target }
         return fullBuffer.revealTarget(focusID: focusedID, wholeControl: false)
     }

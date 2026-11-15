@@ -23,7 +23,7 @@ struct ScrollCanvasFitsContentTests {
     private static func app(@ViewBuilder _ content: () -> some View) -> TestApp {
         let content = content()
         return TestApp(width: 30, height: 12) {
-            ScrollView { content }.environment(\.scrollFitsContent, true)
+            ScrollView { content }
         }
     }
 
@@ -77,7 +77,7 @@ struct ScrollCanvasFitsContentTests {
     @Test("A resizable image alone is its ideal height, not the viewport's")
     func resizableImageIsItsIdealHeight() throws {
         let picture = try #require(ScrollFitCatalogue.picture)
-        let result = ScrollFitMeasure.measure(.imageResizable, .alone, rows: 3, walk: false, fitsContent: true)
+        let result = ScrollFitMeasure.measure(.imageResizable, .alone, rows: 3, walk: false)
         #expect(result.sizeA == CellSize(width: 60, height: 15), "\(result) \(picture.path)")
     }
 }

@@ -498,7 +498,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** lane, 2026-10-28 ([A-LAYOUT-1](<../Historical/Layout and geometry/Sharing space - overfull columns and ideal sizes.md#a-layout-1-a-column-shares-an-overfull-height-its-childrens-minimums-answered-cheaply>)
   is about an overfull column). **Lane.**
 
-### L19. In a vertical scroll view, a `Table` is its rows' height, up to the scroll view's
+### L19. In a vertical scroll view, a content-sized view is its content's height, and only what shows is built
 
 - **SwiftUI:** a `Table` in a vertical `ScrollView` with no frame is 0 points
   tall and shows nothing: its ideal height is 0, and a scroll view offers its
@@ -506,24 +506,40 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   false, vertical: true)` leave it at 0; a `.frame(height:)` or
   `.frame(minHeight:)` gives it that height, and past its last row it draws
   empty rows, striped where rows alternate (measured 2026-11-11, macOS 15.8.3,
-  `Tools/SwiftUIProbes/Tables in a scroll view (1111T)/tables.out`).
-- **TUI:** it is its rows' height, its header and border with them, and a
-  column of several keeps each whole: the scroll view gives its content no
-  height to fill (`hasExplicitHeight` cleared,
-  `_ScrollViewCore.contentContext(_:)`), and a table given none reports its
-  height fixed. It is never taller than the scroll view showing it: a taller
-  one is that tall and scrolls its rows within it, so it builds only the rows
-  on screen. A frame gives a height, as in SwiftUI, and the table fills it
-  (`TableInScrollViewHeightTests`).
+  `Tools/SwiftUIProbes/Tables in a scroll view (1111T)/tables.out`). A `List`
+  there is likewise its ideal height, not its content's.
+- **TUI:** along an axis its parent leaves unbounded — a vertical scroll
+  view's, `.fixedSize`'s — a view whose size depends on its content takes its
+  content's size: a `Table` and a `List` their rows', header and border with
+  them; a `TextEditor` its text's; a grouped `Form` its sections'; a nested
+  vertical `ScrollView` its content's, scrolling nothing of its own; the split
+  views their panes'. The scroll view around them scrolls them and builds only
+  the rows on screen, wherever they stand in its content (SCROLL-FIT's pull):
+  a 10,000-row table under a title builds a screenful a frame, its header and
+  horizontal bar pinned to the viewport's edges while its rows are under them,
+  and its cursor revealed through the outer view. A frame gives a height, as
+  in SwiftUI, and the view fills it and scrolls itself; so does
+  `.containerRelativeFrame(.vertical)`, the viewport's height. Fillers
+  (`Color`, shapes, `GeometryReader`, `.frame(maxHeight: .infinity)`) take
+  their minimum there, as SwiftUI's do. `ScrollView(.horizontal)` proposes its
+  own height to its content, so a table or list in it that takes what it is
+  offered is that tall and scrolls its rows, as in SwiftUI; content taller
+  than it (eager stacks) still scrolls down, which SwiftUI would cut off on a
+  short terminal (A-SCROLLFIT-2 (b)): an extension no SwiftUI program can trip
+  over.
 - **Why:** SwiftUI's zero hides the table, so no SwiftUI program relies on it:
-  one that works frames its tables, and that works the same here. Before, a
-  table's height was flexible here too, and a column of tables of 2, 5 and 30
-  rows dealt each a third of their rows' total, padding the short ones with
-  blank rows and cutting the long one. The cap because a table drawn whole
-  builds every row on every frame: 10,000 rows took an idle redraw from 44 to
-  70 ms, and 100,000 to 927 ms (debug build).
-- **Decided:** [TABLE-IN-SCROLL-HEIGHT](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-morning-page-answered-2026-11-11>),
-  in the lane, 2026-11-11. **Lane.**
+  one that works frames its tables, and that works the same here. The owner's
+  SCROLL-FIT ruling (2026-11-08) asks for the content's size instead. Before
+  it, a table was capped at the scroll view's height and scrolled its own rows
+  (TABLE-IN-SCROLL-HEIGHT, which hid the page's title above it from the
+  keyboard), and a list took 4,096 lines, thousands of them blank; drawn whole,
+  a 10,000-row table built every row on every frame (an idle redraw 44 → 70 ms,
+  debug), which the pull makes O(visible).
+- **Decided:** [SCROLL-FIT](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md>)
+  and A-SCROLLFIT-1 to 3; built in [the SCROLL-FIT design](<../Historical/Scrolling/SCROLL-FIT design.md>)'s
+  lanes P1–P9, turned on in P7 (2026-11-14). It replaces
+  [TABLE-IN-SCROLL-HEIGHT](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-morning-page-answered-2026-11-11>)
+  (2026-11-11). **Owner.**
 
 ## State and data flow
 

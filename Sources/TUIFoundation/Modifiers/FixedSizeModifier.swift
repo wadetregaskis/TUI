@@ -131,8 +131,8 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// `List`) climbed it to the edge of `Int`, the content laid out at every
     /// rung.
     ///
-    /// Down, under SCROLL-FIT's switch (``EnvironmentValues/scrollFitsContent``,
-    /// design 2f, B-SCROLLFIT-8), the scroll view's ladder: content taller than
+    /// Down (SCROLL-FIT, design 2f, B-SCROLLFIT-8), the scroll view's ladder:
+    /// content taller than
     /// the first rung is its own height, not the height it is offered — a
     /// 10,000-row table under a title was 23 lines on a 24-line screen, after
     /// laying out the 4,096 rows the rung reached. The climb stops at a rung
@@ -155,7 +155,7 @@ nonisolated struct _FixedSizeView<Content: View>: View {
         case .horizontal:
             probe.availableWidth = budget
             size = measureChild(content, proposal: proposal, context: probe)
-        case .vertical where context.environment.scrollFitsContent:
+        case .vertical:
             // A filler's minimum is its ideal here (B-SCROLLFIT-7): a flexible
             // nothing is a `Color`'s 0, not the ideal-width ask's "none". Given
             // no height, as the content is laid out (``flagged(_:)``).
@@ -163,9 +163,6 @@ nonisolated struct _FixedSizeView<Content: View>: View {
             let answer = naturalExtent(
                 content, along: .vertical, proposal: proposal, context: probe, startingBudget: budget)
             return answer.fillsBudget ? nil : answer.size
-        case .vertical:
-            probe.availableHeight = budget
-            size = measureChild(content, proposal: proposal, context: probe)
         }
         let extent = axis == .horizontal ? size.width : size.height
         let isFlexible = axis == .horizontal ? size.isWidthFlexible : size.isHeightFlexible
@@ -182,14 +179,13 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// offered no width (``EnvironmentValues/offeredNoWidth``), which a frame
     /// with an ideal width reads.
     ///
-    /// Fixed down, under SCROLL-FIT's switch, the content is given no height,
-    /// as a vertical scroll view's content is not (`hasExplicitHeight`
-    /// cleared): a `Table` given a height takes it and scrolls itself, so in a
-    /// window it said it filled the screen, and had no ideal height to climb
-    /// the ladder to.
+    /// Fixed down, the content is given no height, as a vertical scroll
+    /// view's content is not (`hasExplicitHeight` cleared): a `Table` given a
+    /// height takes it and scrolls itself, so in a window it said it filled
+    /// the screen, and had no ideal height to climb the ladder to.
     @MainActor fileprivate func flagged(_ context: RenderContext) -> RenderContext {
         let environment = context.environment
-        let unbounded = vertical && context.hasExplicitHeight && environment.scrollFitsContent
+        let unbounded = vertical && context.hasExplicitHeight
         guard environment.fixedSizeWidth != horizontal || environment.offeredNoWidth != horizontal || unbounded
         else { return context }
         var flagged = context
@@ -215,8 +211,8 @@ nonisolated struct _FixedSizeView<Content: View>: View {
         return TUIView.renderToBuffer(content, context: contentContext)
     }
 
-    /// The lines of content `height` lines tall that can show, under
-    /// SCROLL-FIT's switch outside a scroll view: the height this view is
+    /// The lines of content `height` lines tall that can show outside a
+    /// scroll view (SCROLL-FIT P5b): the height this view is
     /// offered, where its content is taller — every line past it is cut by the
     /// clamp every drawn view's buffer goes through (`renderResolved`), at the
     /// container's edge. `nil` where all of it can show: content no taller
@@ -225,7 +221,7 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// their alignment, so that any of its lines may show; and scroll content,
     /// which a scroll view pulls (design 2f).
     private func shownLines(ofHeight height: Int, context: RenderContext) -> Range<Int>? {
-        guard vertical, context.environment.scrollFitsContent, context.scrollContentOriginDepth == 0,
+        guard vertical, context.scrollContentOriginDepth == 0,
             context.availableHeight > 0, height > context.availableHeight
         else { return nil }
         return 0..<context.availableHeight
@@ -265,7 +261,7 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     }
 
     /// The lines a scroll view's measuring walk gives its content to draw
-    /// into, under SCROLL-FIT's switch: down to the viewport's bottom, the
+    /// into: down to the viewport's bottom, the
     /// rest thrown away (`_ScrollViewCore.renderedContent`'s `drawsPrefixOnly`,
     /// design 1d). Laid out at its ideal height there, content taller than the
     /// screen drew every line of it — a pulled table, with no request to band
@@ -273,9 +269,7 @@ nonisolated struct _FixedSizeView<Content: View>: View {
     /// where it built 47 in the same page without `.fixedSize`. `nil` anywhere
     /// else, where the content is drawn at its ideal height.
     private func walkedLines(_ context: RenderContext) -> Int? {
-        guard vertical, context.isMeasuring, context.scrollContentOriginDepth != 0,
-            context.environment.scrollFitsContent
-        else { return nil }
+        guard vertical, context.isMeasuring, context.scrollContentOriginDepth != 0 else { return nil }
         return context.availableHeight
     }
 }

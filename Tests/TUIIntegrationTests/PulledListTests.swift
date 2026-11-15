@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledListTests.swift
 //
-//  SCROLL-FIT's pull (design P3) for `List`: with the switch on
-//  (`EnvironmentValues.scrollFitsContent`), a list of one-line rows under a
+//  SCROLL-FIT's pull (design P3) for `List`:
+//  a list of one-line rows under a
 //  title in a scroll view is its content's height and draws only the lines
 //  on screen — whatever its row count — and every row is still reached: by
 //  the wheel, by the keys, by `scrollTo` and by Tab. Its drawing is the same
@@ -21,8 +21,8 @@ import TUITesting
     var count = 0
 }
 
-/// A title, a button, a list and a button below it in a scroll view, the
-/// switch on, and `j` scrolling the reader's proxy to `target`.
+/// A title, a button, a list and a button below it in a scroll view,
+/// and `j` scrolling the reader's proxy to `target`.
 private struct ListPage: View {
     let count: Int
     let builds: Builds?
@@ -39,7 +39,7 @@ private struct ListPage: View {
                         list
                     } else {
                         // The twin: the same list drawn whole, framed to its
-                        // full height (a line a row), the switch off.
+                        // full height (a line a row).
                         list.frame(height: count)
                     }
                     Button("below") {}
@@ -47,7 +47,6 @@ private struct ListPage: View {
             }
             .onKeyEvent(.character("j")) { proxy.scrollTo(target, anchor: .top) }
         }
-        .environment(\.scrollFitsContent, pulled)
     }
 
     private var list: some View {
@@ -209,24 +208,5 @@ struct PulledListTests {
         _ = app.press(.tab, modifiers: .shift)  // back to the list
         _ = app.press(.end)
         #expect(app.screen.contains("r9999"), "\(app.screen)")
-    }
-
-    @Test("With the switch off the list is drawn as before: the measure ladder's height, scrolling itself")
-    func switchOffChangesNothing() {
-        let off = TestApp(width: 30, height: 12) {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("title")
-                    List { ForEach(0..<300, id: \.self) { Text("r\($0)") } }
-                }
-            }
-        }
-        let builds = Builds()
-        let on = Self.app(300, builds: builds)
-        _ = on.screen
-        // Off, the list fills the first rung of the measure ladder and draws
-        // its own scrollbar; on, it is its rows' height and draws none.
-        #expect(off.screen != on.screen)
-        #expect(builds.count < 100)
     }
 }

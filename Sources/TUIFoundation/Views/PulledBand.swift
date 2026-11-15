@@ -196,29 +196,17 @@ extension FrameBuffer {
     }
 }
 
-// MARK: - The switch
-
-private struct ScrollFitsContentKey: EnvironmentKey {
-    static var defaultValue: Bool { false }
-}
+// MARK: - Vertical scroll content
 
 extension EnvironmentValues {
-    /// SCROLL-FIT's switch (B-SCROLLFIT-10): whether `List` and `Table` in a
-    /// scroll view's content take their content's height and draw only the
-    /// lines on screen, pulled as a lazy stack is. Off by default until P7
-    /// turns it on and deletes it, so no compatibility spelling survives; set
-    /// by the lanes' tests. Package-internal on purpose: it is not public API.
-    package var scrollFitsContent: Bool {
-        get { self[ScrollFitsContentKey.self] }
-        set { self[ScrollFitsContentKey.self] = newValue }
-    }
-
     /// Whether this is a vertical scroll view's content, where a view that
     /// would scroll itself takes its content's height instead and leaves the
-    /// scrolling to that scroll view under SCROLL-FIT's switch: a grouped
-    /// `Form` (design P4), which reads the switch where it stands. Written by
-    /// the scroll view for its content whatever its own switch, since an app
-    /// may turn the switch on inside the content.
+    /// scrolling to that scroll view: a grouped `Form` (design P4) and a
+    /// vertical `ScrollView` (P7). Written by the scroll view for its content.
+    ///
+    /// SCROLL-FIT's switch (`scrollFitsContent`, B-SCROLLFIT-10), behind
+    /// which P3 to P7 built the pull, was turned on and deleted in P7, as the
+    /// design rules ("deleted, not deprecated"): no escape hatch survives.
     package var fitsVerticalScrollContent: Bool {
         get { self[FitsVerticalScrollContentKey.self] }
         set { self[FitsVerticalScrollContentKey.self] = newValue }

@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledTableTests.swift
 //
-//  SCROLL-FIT's pull (design P3) for `Table`: with the switch on
-//  (`EnvironmentValues.scrollFitsContent`), a table of one-line rows under a
+//  SCROLL-FIT's pull (design P3) for `Table`:
+//  a table of one-line rows under a
 //  title in a scroll view is its content's height and draws only the lines
 //  on screen — whatever its row count — and every row is still reached: by
 //  the wheel, by the keys, by `scrollTo` and by Tab. Its drawing is the same
@@ -25,8 +25,8 @@ private struct Entry: Identifiable {
     let id: Int
 }
 
-/// A title, a button, a table and a button below it in a scroll view, the
-/// switch on, and `j` scrolling the reader's proxy to `target`.
+/// A title, a button, a table and a button below it in a scroll view,
+/// and `j` scrolling the reader's proxy to `target`.
 private struct TablePage: View {
     let entries: [Entry]
     let builds: Builds?
@@ -43,8 +43,8 @@ private struct TablePage: View {
                         table
                     } else {
                         // The twin: the same table drawn whole, framed to its
-                        // full height (its rows, header and borders), which
-                        // the switch leaves as it was.
+                        // full height (its rows, header and borders).
+                        // (Drawn whole: a frame gives it a height.)
                         table.frame(height: entries.count + 3)
                     }
                     Button("below") {}
@@ -52,7 +52,6 @@ private struct TablePage: View {
             }
             .onKeyEvent(.character("j")) { proxy.scrollTo(target, anchor: .top) }
         }
-        .environment(\.scrollFitsContent, true)
     }
 
     private var table: some View {
@@ -208,9 +207,9 @@ struct PulledTableTests {
     /// drew, a pulled table under a title reported the 24 lines on screen.
     @Test("onGeometryChange reports a pulled table's whole height, and a lazy stack's", arguments: [60, 10_000])
     func geometryReportsTheWholeHeight(_ rows: Int) {
-        let table = ScrollFitMeasure.measure(.table, .underTitle, rows: rows, walk: false, fitsContent: true)
+        let table = ScrollFitMeasure.measure(.table, .underTitle, rows: rows, walk: false)
         #expect(table.sizeA?.height == rows + 3, "\(table)")
-        let stack = ScrollFitMeasure.measure(.lazyVStack, .underTitle, rows: rows, walk: false, fitsContent: true)
+        let stack = ScrollFitMeasure.measure(.lazyVStack, .underTitle, rows: rows, walk: false)
         #expect(stack.sizeA?.height == rows, "\(stack)")
     }
 }

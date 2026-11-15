@@ -1,9 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledFormTests.swift
 //
-//  SCROLL-FIT (design P4) for a grouped `Form`: with the switch on
-//  (`EnvironmentValues.scrollFitsContent`), a grouped form in a scroll view's
-//  content is no scroll view of its own but its sections' height, and the
+//  SCROLL-FIT (design P4) for a grouped `Form`: a grouped form in a scroll
+//  view's content is no scroll view of its own but its sections' height, and the
 //  scroll view around it scrolls it and reveals the control Tab reaches. Its
 //  drawing is the same form drawn whole, framed to its full height.
 //
@@ -20,11 +19,8 @@ import TUITesting
 private struct FormPage: View {
     let sections: Int
     /// The twin's frame: the same form drawn whole, framed to its full
-    /// height, the switch off. `nil` for the content-sized form.
+    /// height. `nil` for the content-sized form.
     var framed: Int?
-    /// The switch written on the scroll view's content rather than on the
-    /// scroll view, as an app that turns it on for one page does.
-    var switchOnContent = false
 
     var body: some View {
         ScrollView {
@@ -37,9 +33,7 @@ private struct FormPage: View {
                 }
                 Button("below") {}
             }
-            .transformEnvironment(\.scrollFitsContent) { if switchOnContent { $0 = framed == nil } }
         }
-        .environment(\.scrollFitsContent, framed == nil && !switchOnContent)
     }
 
     var form: some View {
@@ -85,15 +79,6 @@ struct PulledFormTests {
         #expect(Self.content(app) == Self.content(Self.app(1, framed: height)), "\(app.screen)")
     }
 
-    @Test("The switch written on the scroll view's content sizes the form as the switch on the scroll view does")
-    func switchOnTheContentSizesTheForm() {
-        let height = Self.wholeHeight(1)
-        let app = TestApp(width: 30, height: 12) { FormPage(sections: 1, switchOnContent: true) }
-        let below = app.screen.lines.firstIndex { $0.contains("below") }
-        #expect(below == 1 + height, "\(app.screen)")
-        #expect(Self.content(app) == Self.content(Self.app(1)), "\(app.screen)")
-    }
-
     /// As the scroll view it would be lays its sections out: as wide as it
     /// is offered, at the leading edge. Hugging them, it stood centred in a
     /// column under a wider title.
@@ -106,7 +91,6 @@ struct PulledFormTests {
                     Form { Text("row") }.formStyle(.grouped)
                 }
             }
-            .environment(\.scrollFitsContent, true)
         }
         let row = app.screen.lines.first { $0.contains("row") }
         #expect(row?.hasPrefix("row") == true, "\(app.screen)")

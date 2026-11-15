@@ -16,9 +16,11 @@ import TUIImage
 
 /// Under `.scrollIndicators(.visible, axes: .vertical)` +
 /// `.scrollIndicatorStyle(.text)`, placed `.besideContent`, a `ScrollView`
-/// reserves the "N more" pair OUTSIDE its content window, two lines shorter than the viewport. Content that
-/// fills whatever it is given — a `Spacer`, a `.frame(maxHeight: .infinity)` —
-/// must fill that window, and not the viewport; and content sized FROM the
+/// reserves the "N more" pair OUTSIDE its content window, two lines shorter than the viewport. Content
+/// framed to its container (`.containerRelativeFrame(.vertical)`), in which a
+/// `Spacer` or a `.frame(maxHeight: .infinity)` fills what it is given, must
+/// fill that window, and not the viewport (unframed, a filler takes its
+/// minimum in a scroll view since SCROLL-FIT P7); and content sized FROM the
 /// window — an image fitted to it — must be measured at it.
 ///
 /// Neither held when the scroll view also scrolled horizontally with an
@@ -88,7 +90,8 @@ struct ScrollViewReservedIndicatorCanvasTests {
                     Text("top")
                     Spacer()
                     Text("bottom")
-                }),
+                }
+                .containerRelativeFrame(.vertical)),
             height: 8)
         try #require(drawn.count == 8, "\(drawn)")
         #expect(drawn[1] == "top", "the first content line: \(drawn)")
@@ -99,7 +102,7 @@ struct ScrollViewReservedIndicatorCanvasTests {
     @Test("A frame with an unbounded height fills the content window, not the viewport")
     func infiniteFrameFillsTheWindow() throws {
         let drawn = settledLines(
-            twoAxis(Text("floor").frame(maxHeight: .infinity, alignment: .bottom)),
+            twoAxis(Text("floor").frame(maxHeight: .infinity, alignment: .bottom).containerRelativeFrame(.vertical)),
             height: 8)
         try #require(drawn.count == 8, "\(drawn)")
         #expect(drawn[6] == "floor", "bottom-aligned on the last content line: \(drawn)")
@@ -120,37 +123,13 @@ struct ScrollViewReservedIndicatorCanvasTests {
         #expect(count(in: drawn.last, arrow: "▼") == 0, "nothing below the image: \(drawn)")
     }
 
-    /// With the horizontal bar taking a row as well: the reservation's height
-    /// follows the bar, round by round, so the measure that added the bar and
-    /// the one after it must both be taken at what is left.
-    @Test("Under a horizontal bar too, a Spacer fills the window both leave")
-    func spacerFillsTheWindowUnderAHorizontalBar() throws {
-        // Nine lines: "▲ …", six content lines, "▼ …", the horizontal bar.
-        let drawn = settledLines(
-            twoAxis(
-                VStack(alignment: .leading, spacing: 0) {
-                    Text(String(repeating: "w", count: 50))
-                    Spacer()
-                    Text("bottom")
-                }),
-            height: 9)
-        try #require(drawn.count == 9, "\(drawn)")
-        #expect(count(in: drawn[7], arrow: "▼") == 0, "nothing to scroll to: \(drawn)")
-        #expect(drawn[6] == "bottom", "the last content line, above ▼ and the bar: \(drawn)")
-    }
-
-    /// Too short for the indicator lines, they are not drawn, and nothing is
-    /// reserved for them: the probe must measure at the whole height left
-    /// above the bar, or bottom-aligned content lands a line too high.
-    /// (A probe that ignored the floor passed every other test here.)
-    @Test("Too short to draw the indicator lines, the content keeps the whole height")
-    func noReservationUnderTheFloor() throws {
-        let drawn = settledLines(
-            twoAxis(Text(String(repeating: "w", count: 50)).frame(maxHeight: .infinity, alignment: .bottom)),
-            height: 3)
-        try #require(drawn.count == 3, "\(drawn)")
-        #expect(drawn[1].hasPrefix("www"), "bottom-aligned on the line above the bar: \(drawn)")
-    }
+    // The two cases under an `.automatic` horizontal bar — a `Spacer`, and a
+    // bottom-aligned frame too short for the pair — went with SCROLL-FIT P7:
+    // a filler no longer fills a scroll view's content, and framed to its
+    // container it fills the container, which is the viewport less the pair
+    // whether such a bar comes or not (decisions SCROLL B-SCROLL-2). The
+    // measure before the reservation they guarded is the loaded picture's
+    // below.
 
     // MARK: A loaded picture
 

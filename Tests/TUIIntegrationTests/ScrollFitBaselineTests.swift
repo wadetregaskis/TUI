@@ -1,15 +1,15 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  ScrollFitBaselineTests.swift
 //
-//  A characterization, not a specification: what content-sized views and
-//  space-fillers get today along an axis their parent leaves unbounded (a
-//  `ScrollView`'s, `.fixedSize`'s), before the owner's SCROLL-FIT ruling
-//  (2026-11-11) changes it. Step 1 of that ruling: the lanes that build it
-//  (windowing anywhere in scroll content; content-sized defaults with a
-//  pinned header, a pinned horizontal bar and keyboard reveal) update these
-//  expectations on purpose, so each change they make shows here as a row
-//  they edited. The findings are written up in
-//  `Documentation/Working notes/plan/SCROLL-FIT-baseline.md`.
+//  A characterization: what content-sized views and space-fillers get
+//  along an axis their parent leaves unbounded (a `ScrollView`'s,
+//  `.fixedSize`'s). Recorded as step 1 of the owner's SCROLL-FIT ruling
+//  (2026-11-11), before it changed anything; the lanes that built it
+//  updated these expectations on purpose, so each change shows as a row or a
+//  test they edited, and P7, which turned SCROLL-FIT on, moved them to what
+//  the ruling asks: content-sized views their content's height, fillers
+//  their minimum. They stay as the pins of that behaviour. The step-1
+//  findings are in `Documentation/Working notes/plan/SCROLL-FIT-baseline.md`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -27,7 +27,7 @@ import TUITesting
 /// last row. `swift test` sets `NO_COLOR` whenever its output is not a
 /// terminal, which failed six `List` rows' reach there every time.
 @MainActor
-@Suite("SCROLL-FIT baseline: what content-sized views get along an unbounded axis today", .drawsInTruecolor)
+@Suite("SCROLL-FIT baseline: what content-sized views get along an unbounded axis", .drawsInTruecolor)
 struct ScrollFitBaselineTests {
     // MARK: - The table, at 3 and 60 rows
 
@@ -52,45 +52,50 @@ struct ScrollFitBaselineTests {
         ScrollFitMeasure.measure(subject, situation, rows: 10_000, walk: false)
     }
 
-    /// Capped at the scroll view's height since TABLE-IN-SCROLL-HEIGHT, a
-    /// tall table scrolls its own rows and builds only those it shows.
-    @Test("A 10,000-row table under a title is the viewport's height and builds only its visible rows")
+    /// Its rows' height since SCROLL-FIT P7, and pulled: it builds only the
+    /// rows on screen and draws no bar of its own. (Capped at the scroll
+    /// view's height by TABLE-IN-SCROLL-HEIGHT until P7: 59x24, scrolling its
+    /// own rows, the page's title and what follows out of the keyboard's
+    /// reach.)
+    @Test("A 10,000-row table under a title is its rows' height and builds only the rows on screen")
     func tallTableUnderTitle() {
         let result = tall(.table, .underTitle)
-        #expect(result.sizeA == CellSize(width: 59, height: 24))
-        #expect(result.builtFirst < 300, "built \(result.builtFirst)")
-        #expect(result.innerIndicator)
+        #expect(result.sizeA == CellSize(width: 59, height: 10_003))
+        #expect(result.builtFirst < 150, "built \(result.builtFirst)")
+        #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
+        #expect(!result.innerIndicator)
     }
 
-    /// `.fixedSize` makes no cap: the table measures its rows, up to the
-    /// measure ladder's first rung (4,096 lines), and then takes the height
-    /// left, so it builds thousands of rows to draw 20.
-    @Test("A 10,000-row table under .fixedSize builds the ladder's first rung to show the screen's height")
+    /// `.fixedSize` climbs the ladder (P5) and, at the window's root, draws
+    /// only the lines its offer holds (P5b). (Before: 60x23, after building
+    /// 4,153 rows to draw 20.)
+    @Test("A 10,000-row table under .fixedSize is its rows' height and builds only the rows that show")
     func tallTableFixedSize() {
         let result = tall(.table, .fixedSize)
-        #expect(result.sizeA == CellSize(width: 60, height: 23))
-        #expect(result.builtFirst > 4_000, "built \(result.builtFirst)")
+        #expect(result.sizeA == CellSize(width: 60, height: 10_003))
+        #expect(result.builtFirst < 150, "built \(result.builtFirst)")
     }
 
-    /// The cap reads a vertical scroll view's viewport; `ScrollView(.horizontal)`,
-    /// which still scrolls vertically here, gives the table none.
-    @Test("A 10,000-row table in a horizontal ScrollView is 4,096 lines and builds them all")
+    /// `ScrollView(.horizontal)` proposes its own height (A-SCROLLFIT-2): the
+    /// table is framed to it and scrolls its own rows. (Before: 4,096 lines,
+    /// 16,372 rows built on the first frame and 4,093 a wheel step.) The
+    /// first frame still builds the rung's rows: `HorizontalScrollViewHeightTests`.
+    @Test("A 10,000-row table in a horizontal ScrollView is the view's height and scrolls its own rows")
     func tallTableHorizontal() {
         let result = tall(.table, .horizontal)
-        #expect(result.sizeA == CellSize(width: 59, height: 4_096))
-        #expect(result.builtFirst > 16_000, "built \(result.builtFirst)")
+        #expect(result.sizeA?.height == 24)
+        #expect(result.innerIndicator)
+        #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 
-    /// A `List` takes the height it is offered, and a scroll view's content
-    /// is offered the ladder's first rung: 4,096 lines, whatever its rows.
-    /// The first frame's measuring walk draws only down to the viewport's
-    /// bottom since SCROLL-FIT P2 (design 1d), so the frame builds its rows
-    /// three times rather than four.
-    @Test("A 10,000-row List under a title is 4,095 lines and builds that many rows on the first frame")
+    /// Its content's height, pulled (P3). (Before P7: the 4,095 lines the
+    /// measure ladder's first rung offered, some 4,000 of them blank, and
+    /// 12,000 rows built on the first frame.)
+    @Test("A 10,000-row List under a title is its rows' height and builds only the rows on screen")
     func tallListUnderTitle() {
         let result = tall(.listPlain, .underTitle)
-        #expect(result.sizeA == CellSize(width: 59, height: 4_095))
-        #expect(result.builtFirst > 12_000, "built \(result.builtFirst)")
+        #expect(result.sizeA == CellSize(width: 59, height: 10_002))
+        #expect(result.builtFirst < 150, "built \(result.builtFirst)")
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
 
@@ -99,13 +104,13 @@ struct ScrollFitBaselineTests {
     /// frame needs no total — the measuring walk that frame begins with draws
     /// down to the viewport's bottom only (design 1d). So the first frame and a
     /// wheel step each build about a screenful, alone or under a title. Its
-    /// size, as `onGeometryChange` reads it, is the band it draws, at the
-    /// origin and below a title alike. (Before P2: alone, 20,075 rows built on
-    /// the first frame; under a title, drawn whole, 9 × 10,000 and 50,000+.)
+    /// size, as `onGeometryChange` reads it, is its whole height (P5b; its
+    /// band, 59x26, before P7). (Before P2: alone, 20,075 rows built on the
+    /// first frame; under a title, drawn whole, 9 × 10,000 and 50,000+.)
     @Test("A 10,000-row LazyVStack at the scroll content's origin builds a screenful on its first frame and a step")
     func tallLazyStackAlone() {
         let result = tall(.lazyVStack, .alone)
-        #expect(result.sizeA == CellSize(width: 59, height: 26))
+        #expect(result.sizeA == CellSize(width: 59, height: 10_000))
         #expect(result.builtFirst < 150, "built \(result.builtFirst)")
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
@@ -113,7 +118,7 @@ struct ScrollFitBaselineTests {
     @Test("A 10,000-row LazyVStack under a title is pulled: a screenful on its first frame and a step")
     func tallLazyStackUnderTitle() {
         let result = tall(.lazyVStack, .underTitle)
-        #expect(result.sizeA == CellSize(width: 59, height: 26))
+        #expect(result.sizeA == CellSize(width: 59, height: 10_000))
         #expect(result.builtFirst < 150, "built \(result.builtFirst)")
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
     }
@@ -133,10 +138,11 @@ struct ScrollFitBaselineTests {
         #expect(result.builtFirst < 40_000, "built \(result.builtFirst)")
     }
 
-    /// Content-sized up to the ladder's first rung, then the height offered.
-    @Test("A 10,000-line TextEditor under a title is 4,095 lines")
+    /// Its text's height, pulled (P4). (Before P7: content-sized up to the
+    /// ladder's first rung, 4,095 lines, then scrolling itself.)
+    @Test("A 10,000-line TextEditor under a title is its text's height")
     func tallTextEditorUnderTitle() {
-        #expect(tall(.textEditor, .underTitle).sizeA == CellSize(width: 59, height: 4_095))
+        #expect(tall(.textEditor, .underTitle).sizeA == CellSize(width: 59, height: 10_000))
     }
 
     // MARK: - Keys in a tall Table and List under a title
@@ -164,53 +170,48 @@ struct ScrollFitBaselineTests {
         }
     }
 
-    /// The table, focused at launch, is revealed: the page scrolls one line,
-    /// past the title. It is the screen's height, its header on line 1 and its
-    /// horizontal bar on line 22, and the keys move its cursor through its own
-    /// rows; the page never moves, so the title and the line after the table
-    /// stay out of sight.
-    @Test("Keys in a tall Table under a title scroll the table's rows; its header and bar stay put")
+    /// The table, focused at launch, is its rows' height and the page's to
+    /// scroll (P7): the title stays on line 0 (the arrival reveal, P6), the
+    /// keys move its cursor and the page follows it, its header pinned over
+    /// the viewport's top while its rows are under it. (Before P7 the table
+    /// was the screen's height and the reveal scrolled the title away; the
+    /// keys moved its rows inside it, and the page never moved.)
+    @Test("Keys in a tall Table under a title move the page to the cursor; its header stays pinned")
     func keysInTallTable() {
         let app = tallUnderTitle(table: true, selection: ScrollFitSelection())
-        func pinned(_ step: String) {
-            let lines = app.screen.lines
-            #expect(lines[0].contains("╭") && lines[1].contains("Name"), "\(step):\n\(app.screen)")
-            #expect(lines[22].contains("◀") && lines[23].contains("╰"), "\(step):\n\(app.screen)")
-            #expect(!app.screen.contains("title") && !app.screen.contains("after"), "\(step):\n\(app.screen)")
-        }
         #expect(app.focusedID?.hasPrefix("table-") == true)
-        pinned("first frame")
+        #expect(app.screen.lines[0].contains("title"), "first frame:\n\(app.screen)")
+        func pinned(_ step: String, shows row: String) {
+            #expect(app.screen.contains(row), "\(step):\n\(app.screen)")
+            #expect(app.screen.lines[0].contains("Name"), "\(step): the header pinned\n\(app.screen)")
+        }
         _ = app.press(.down, times: 31)
-        pinned("down 31")
-        #expect(app.screen.lines[21].contains("r32"), "\(app.screen)")
+        pinned("down 31", shows: "r32")
         _ = app.press(.pageDown)
-        pinned("page down")
-        #expect(app.screen.lines[21].contains("r52"), "\(app.screen)")
+        pinned("page down", shows: "r52")
         _ = app.press(.end)
-        pinned("end")
-        #expect(app.screen.lines[21].contains("r60"), "\(app.screen)")
+        pinned("end", shows: "r60")
         _ = app.press(.home)
         app.type("r45")
-        pinned("type-select r45")
-        #expect(app.screen.lines[21].contains("r45"), "\(app.screen)")
+        pinned("type-select r45", shows: "r45")
     }
 
-    /// The list is 4,095 lines (see `tallListUnderTitle`): the outer page
-    /// scrolls to keep its cursor on screen, and past its last row are some
-    /// four thousand blank lines the wheel reaches.
-    @Test("Keys in a tall List under a title move the page to the cursor; blank lines follow its rows")
+    /// The list is its rows' height (P7), the page following its cursor; past
+    /// its last row the wheel reaches the line after it, not the four
+    /// thousand blank lines it was offered before.
+    @Test("Keys in a tall List under a title move the page to the cursor; the line after it follows its rows")
     func keysInTallList() {
         let app = tallUnderTitle(table: false, selection: ScrollFitSelection())
         #expect(app.focusedID?.hasPrefix("list-") == true)
-        #expect(app.screen.lines[0].contains("╭") && !app.screen.contains("title"), "\(app.screen)")
+        #expect(app.screen.lines[0].contains("title"), "\(app.screen)")
         _ = app.press(.down, times: 31)
-        #expect(app.screen.lines[23].contains("r32"), "\(app.screen)")
+        #expect(app.screen.contains("r32"), "\(app.screen)")
         _ = app.press(.end)
-        #expect(app.screen.lines[23].contains("r60"), "\(app.screen)")
+        #expect(app.screen.contains("r60"), "\(app.screen)")
         _ = app.press(.home)
         app.type("r45")
-        #expect(app.screen.lines[23].contains("r45"), "\(app.screen)")
+        #expect(app.screen.contains("r45"), "\(app.screen)")
         app.scroll(.down, by: 200, at: CellPoint(x: 30, y: 12))
-        #expect(app.screen.lines.allSatisfy { !$0.contains { $0.isNumber } }, "\(app.screen)")
+        #expect(app.screen.contains("after") && app.screen.contains("r60"), "\(app.screen)")
     }
 }

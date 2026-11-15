@@ -32,7 +32,7 @@ struct WindowedFormColumnsTests {
     /// A form of `count` labelled rows under a title and over a footer in
     /// scroll content; drawn `whole`, every row built each frame, as before.
     private static func app(
-        rows count: Int, builds: FormBuilds, whole: Bool = false, fitsContent: Bool = false
+        rows count: Int, builds: FormBuilds, whole: Bool = false
     ) -> TestApp {
         TestApp(width: 40, height: 12) {
             ScrollView {
@@ -49,7 +49,6 @@ struct WindowedFormColumnsTests {
                 }
             }
             .environment(\.drawsContainerRowsWhole, whole)
-            .environment(\.scrollFitsContent, fitsContent)
         }
     }
 
@@ -59,11 +58,10 @@ struct WindowedFormColumnsTests {
         app.screen.lines.map { String(($0 + String(repeating: " ", count: 40)).prefix(39)) }
     }
 
-    @Test("A windowed form draws what the form drawn whole draws, at the top, paged, wheeled and at the end",
-          arguments: [false, true])
-    func drawsWhatTheEagerOneDraws(fitsContent: Bool) {
-        let lazy = Self.app(rows: 300, builds: FormBuilds(), fitsContent: fitsContent)
-        let eager = Self.app(rows: 300, builds: FormBuilds(), whole: true, fitsContent: fitsContent)
+    @Test("A windowed form draws what the form drawn whole draws, at the top, paged, wheeled and at the end")
+    func drawsWhatTheEagerOneDraws() {
+        let lazy = Self.app(rows: 300, builds: FormBuilds())
+        let eager = Self.app(rows: 300, builds: FormBuilds(), whole: true)
         func check(_ step: String) {
             #expect(Self.content(lazy) == Self.content(eager), "\(step):\n\(lazy.screen)\n---\n\(eager.screen)")
         }
@@ -87,9 +85,9 @@ struct WindowedFormColumnsTests {
     }
 
     /// The rows built on the first frame and on each of five page-downs.
-    private static func builtPerStep(rows: Int, fitsContent: Bool) -> [Int] {
+    private static func builtPerStep(rows: Int) -> [Int] {
         let builds = FormBuilds()
-        let app = app(rows: rows, builds: builds, fitsContent: fitsContent)
+        let app = app(rows: rows, builds: builds)
         _ = app.screen
         var counts = [builds.count]
         for _ in 0..<5 {
@@ -105,11 +103,10 @@ struct WindowedFormColumnsTests {
     /// 10,000: two widths); a page builds fewer than 100 rows, the same
     /// around 2,000 rows as around 10,000. (Before, every row several times
     /// a frame: 50,000 a page at 10,000.)
-    @Test("Around 10,000 rows, a page builds fewer than 100 rows, the same as around 2,000",
-          arguments: [false, true])
-    func builtRowsIndependentOfRowCount(fitsContent: Bool) {
-        let tenThousand = Self.builtPerStep(rows: 10_000, fitsContent: fitsContent)
-        let twoThousand = Self.builtPerStep(rows: 2_000, fitsContent: fitsContent)
+    @Test("Around 10,000 rows, a page builds fewer than 100 rows, the same as around 2,000")
+    func builtRowsIndependentOfRowCount() {
+        let tenThousand = Self.builtPerStep(rows: 10_000)
+        let twoThousand = Self.builtPerStep(rows: 2_000)
         #expect(tenThousand.dropFirst().allSatisfy { $0 < 100 }, "\(tenThousand)")
         #expect(tenThousand.dropFirst() == twoThousand.dropFirst(), "\(twoThousand) \(tenThousand)")
         #expect(tenThousand[0] < 3 * 10_000, "\(tenThousand)")

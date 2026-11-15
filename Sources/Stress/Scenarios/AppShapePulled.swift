@@ -26,7 +26,7 @@ enum PulledShape: Sendable {
     /// an app's own two-column `Layout` (SCROLL-FIT design B-SCROLLFIT-13).
     case layout
     /// `VStack { title; List }` and `VStack { title; Table }` of one-line
-    /// rows, under SCROLL-FIT's switch (design P3).
+    /// rows, pulled (SCROLL-FIT design P3).
     case titledList, titledTable
     /// `VStack { title; GroupBox { ForEach } }`: a box with no lazy stack in
     /// it, which builds only the rows on screen past 256 (design P8).
@@ -35,11 +35,11 @@ enum PulledShape: Sendable {
     /// a lazy stack of its lines past 256 (design P8, A-SCROLLFIT-5).
     case flow
     /// `VStack { title; List }` of one- and two-line rows, and `VStack {
-    /// title; Form }` of a grouped form, under SCROLL-FIT's switch (design
+    /// title; Form }` of a grouped form, pulled (SCROLL-FIT design
     /// P4).
     case titledListVariable, groupedForm
     /// `VStack { title; Table }.fixedSize(horizontal: false, vertical: true)`
-    /// of one-line rows, under SCROLL-FIT's switch: `.fixedSize` in scroll
+    /// of one-line rows: `.fixedSize` in scroll
     /// content, measured up the ladder (design P5).
     case fixedSizeTable
 }
@@ -142,7 +142,6 @@ struct PulledPageApp: View {
                         }
                     }
                 }
-                .environment(\.scrollFitsContent, true)
             )
         case .titledTable:
             AnyView(
@@ -155,7 +154,6 @@ struct PulledPageApp: View {
                         }
                     }
                 }
-                .environment(\.scrollFitsContent, true)
             )
         case .titledListVariable:
             AnyView(
@@ -167,7 +165,6 @@ struct PulledPageApp: View {
                         }
                     }
                 }
-                .environment(\.scrollFitsContent, true)
             )
         case .groupedForm:
             AnyView(
@@ -186,7 +183,6 @@ struct PulledPageApp: View {
                     }
                     .formStyle(.grouped)
                 }
-                .environment(\.scrollFitsContent, true)
             )
         case .fixedSizeTable:
             AnyView(
@@ -200,7 +196,6 @@ struct PulledPageApp: View {
                     }
                 }
                 .fixedSize(horizontal: false, vertical: true)
-                .environment(\.scrollFitsContent, true)
             )
         }
     }
@@ -292,8 +287,8 @@ private struct PulledTag: View, Equatable {
     }
 }
 
-/// A title over a `TextEditor` of `lines` wrapped paragraphs under SCROLL-FIT's
-/// switch (design P4), the page moved three lines a tick: an editor as tall as
+/// A title over a `TextEditor` of `lines` wrapped paragraphs, pulled (SCROLL-FIT
+/// design P4), the page moved three lines a tick: an editor as tall as
 /// its text, of which only the rows on screen are drawn.
 struct PulledEditorApp: View {
     let lines: Int
@@ -316,7 +311,6 @@ struct PulledEditorApp: View {
                     Text(Synth.sentence(seed, words: 8)).bold()
                     TextEditor(text: $text)
                 }
-                .environment(\.scrollFitsContent, true)
             }
             .scrollPosition(.constant(ScrollPosition(y: line)))
         }

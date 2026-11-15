@@ -357,12 +357,14 @@ A table takes the height it is given and scrolls the rows that do not fit: the
 window's, a frame's, a sheet's. Two tables in a `VStack` share the stack's
 height, as two lists do.
 
-In a vertical ``ScrollView``, which gives its content no height, a table with
-no frame is as tall as its rows, its header and border with them, up to the
-scroll view's own height, so several tables can be stacked in one page that
-scrolls past them all. A table taller than the scroll view is that tall and
-scrolls its rows within it, so however many rows it has, it builds only those
-on screen:
+In a vertical ``ScrollView``, which gives its content no height, a table or a
+list with no frame is as tall as its rows, its header and border with them, so
+several can be stacked in one page that scrolls past them all. The scroll view
+scrolls them, and however many rows they have, only those on screen are
+built. A table's header and horizontal scroll bar stay at the top and bottom
+of the scroll view while its rows are under them, a list's section headers
+stay at the top, and the keys that move a table's or list's cursor scroll the
+page to keep it in sight:
 
 ```swift
 ScrollView {
@@ -381,7 +383,10 @@ ScrollView {
 SwiftUI draws such a table 0 points tall, so a SwiftUI app shares that code
 only with a height on each table: `.frame(height:)` works the same in both,
 and a table framed taller than its rows draws empty rows below them, as
-SwiftUI's does.
+SwiftUI's does. A framed table or list scrolls its own rows inside the frame;
+so does one given `.containerRelativeFrame(.vertical)`, the scroll view's
+height. In a `ScrollView(.horizontal)`, which gives its content its own
+height, a long table or list is that tall and scrolls its own rows.
 
 ### Column Alignment
 

@@ -282,10 +282,10 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
     }
 
     /// Whether the split is asked how tall it would be with nothing to stop
-    /// it, under SCROLL-FIT's switch: no height proposed, offered the
+    /// it (SCROLL-FIT): no height proposed, offered the
     /// natural-extent ladder's budget, given none.
     private func fitsContentHeight(proposal: ProposedViewSize, context: RenderContext) -> Bool {
-        context.environment.scrollFitsContent && proposal.height == nil && !context.hasExplicitHeight
+        proposal.height == nil && !context.hasExplicitHeight
             && isNaturalExtentBudget(context.availableHeight)
     }
 
@@ -370,7 +370,7 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         // the first frame's measuring walk lays the split out in the lines
         // down to the viewport's bottom, and the sizes it left, scaled up, cut
         // the top pane.
-        let fitsContent = axis == .vertical && !context.hasExplicitHeight && context.environment.scrollFitsContent
+        let fitsContent = axis == .vertical && !context.hasExplicitHeight
         if stored.count == count, stored.allSatisfy({ $0 >= 1 }),
             !fitsContent || stored != panes.resolved || panes.reference != nil
         {
@@ -400,12 +400,11 @@ private struct _SplitViewCore<Content: View>: View, Renderable, Layoutable {
         // The panes that fill give and take first, then the rest; each from
         // the last.
         let order = flexibleIndices.reversed() + fills.indices.reversed().filter { !fills[$0] }
-        // Given no height down a vertical split (scroll content, `.fixedSize`,
-        // where it is its panes' height: ``sizeThatFits``), each pane at its
-        // own, the rest to the last: split evenly, a top pane taller than half
-        // the panes was cut.
-        if flexibleIndices.isEmpty, fixed <= available, fitsContent {
-            sizes[count - 1] += available - fixed
+        // Given exactly its panes' height — as scroll content and `.fixedSize`
+        // give it, where that is its height (``sizeThatFits``) — each pane at
+        // its own: split evenly, a top pane taller than half the panes was cut.
+        // Given more, with no pane to fill it, still the even split.
+        if flexibleIndices.isEmpty, fixed == available {
             return Self.fitted(sizes, within: bounds, total: available, givingFirst: order)
         }
         if fixed > available || flexibleIndices.isEmpty {

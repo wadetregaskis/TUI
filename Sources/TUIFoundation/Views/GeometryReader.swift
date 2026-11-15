@@ -310,15 +310,12 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
     ///
     /// Asked how tall it would be with nothing to stop it — no height
     /// proposed, and offered the natural-extent ladder's budget (a scroll
-    /// view's content, `.fixedSize`) — it is, under SCROLL-FIT's switch
-    /// (``EnvironmentValues/scrollFitsContent``), its minimum: none, and
-    /// flexible, as a `Color` is (design B-SCROLLFIT-7, -8). Taking the
+    /// view's content, `.fixedSize`) — it is its minimum: none, and flexible,
+    /// as a `Color` is (SCROLL-FIT, design B-SCROLLFIT-7, -8). Taking the
     /// budget, it was 4,096 blank lines in a scroll view, and under `.fixedSize`
     /// the height left on the screen.
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        let fillsNothing =
-            proposal.height == nil && context.environment.scrollFitsContent
-            && isNaturalExtentBudget(context.availableHeight)
+        let fillsNothing = proposal.height == nil && isNaturalExtentBudget(context.availableHeight)
         return ViewSize(
             width: context.fillingWidth(proposal: proposal),
             height: fillsNothing ? 0 : proposal.height ?? context.availableHeight,

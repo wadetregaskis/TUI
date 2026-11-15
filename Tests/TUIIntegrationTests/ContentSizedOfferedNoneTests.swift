@@ -26,7 +26,7 @@ struct ContentSizedOfferedNoneTests {
     private static func measure(_ subject: ScrollFitSubject, _ situation: ScrollFitSituation, rows: Int)
         -> ScrollFitResult
     {
-        ScrollFitMeasure.measure(subject, situation, rows: rows, walk: false, fitsContent: true)
+        ScrollFitMeasure.measure(subject, situation, rows: rows, walk: false)
     }
 
     // MARK: - Under .fixedSize, outside a scroll view
@@ -57,7 +57,6 @@ struct ContentSizedOfferedNoneTests {
                     }
                 }
                 .fixedSize(horizontal: false, vertical: true)
-                .environment(\.scrollFitsContent, true)
             }
         }
         let pulled = page(framed: false)
@@ -95,7 +94,7 @@ struct ContentSizedOfferedNoneTests {
     @Test("Every row of a split view's pane is reached by the wheel, and a vertical split cuts no pane")
     func splitViewsRowsAreReached() {
         for subject in [ScrollFitSubject.hSplitView, .vSplitView] {
-            let result = ScrollFitMeasure.measure(subject, .underTitle, rows: 60, fitsContent: true)
+            let result = ScrollFitMeasure.measure(subject, .underTitle, rows: 60)
             #expect(result.reachedA, "\(subject) \(result)")
         }
         // The vertical split's top pane whole: its last row right above the
@@ -107,7 +106,6 @@ struct ContentSizedOfferedNoneTests {
                     Text("bottom")
                 }
             }
-            .environment(\.scrollFitsContent, true)
         }
         app.scroll(.down, by: 30, at: CellPoint(x: 5, y: 5))
         let lines = app.screen.lines

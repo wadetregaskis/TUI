@@ -92,7 +92,7 @@ struct WindowedContainersTests {
     /// drawn `whole`, every row built, as before SCROLL-FIT P8: the twin the
     /// windowed drawing must match.
     private static func app(
-        _ shape: Shape, rows count: Int, builds: Builds, whole: Bool = false, fitsContent: Bool = false
+        _ shape: Shape, rows count: Int, builds: Builds, whole: Bool = false
     ) -> TestApp {
         TestApp(width: 30, height: 12) {
             ScrollView {
@@ -116,7 +116,6 @@ struct WindowedContainersTests {
                 }
             }
             .environment(\.drawsContainerRowsWhole, whole)
-            .environment(\.scrollFitsContent, fitsContent)
         }
     }
 
@@ -126,13 +125,11 @@ struct WindowedContainersTests {
         app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) }
     }
 
-    /// With SCROLL-FIT's switch on too (`scrollFitsContent`), as P7 makes
-    /// the default.
     @Test("A windowed container draws what the eager one draws, at the top, paged, wheeled and at the end",
-          arguments: Shape.allCases, [false, true])
-    func drawsWhatTheEagerOneDraws(_ shape: Shape, fitsContent: Bool) {
-        let lazy = Self.app(shape, rows: 300, builds: Builds(), fitsContent: fitsContent)
-        let eager = Self.app(shape, rows: 300, builds: Builds(), whole: true, fitsContent: fitsContent)
+          arguments: Shape.allCases)
+    func drawsWhatTheEagerOneDraws(_ shape: Shape) {
+        let lazy = Self.app(shape, rows: 300, builds: Builds())
+        let eager = Self.app(shape, rows: 300, builds: Builds(), whole: true)
         func check(_ step: String) {
             #expect(Self.content(lazy) == Self.content(eager), "\(shape) \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
         }
@@ -161,9 +158,9 @@ struct WindowedContainersTests {
     }
 
     /// The rows built on the first frame and on each of five page-downs.
-    private static func builtPerStep(_ shape: Shape, rows: Int, fitsContent: Bool) -> [Int] {
+    private static func builtPerStep(_ shape: Shape, rows: Int) -> [Int] {
         let builds = Builds()
-        let app = app(shape, rows: rows, builds: builds, fitsContent: fitsContent)
+        let app = app(shape, rows: rows, builds: builds)
         _ = app.screen
         var counts = [builds.count]
         for _ in 0..<5 {
@@ -183,10 +180,10 @@ struct WindowedContainersTests {
     /// to break its lines (A-SCROLLFIT-5 (a)); its steps measure none again.
     /// (Before P8, every row on every frame: 10,000 a step.)
     @Test("Around 10,000 rows, a page builds fewer than 100 rows, the same as around 2,000",
-          arguments: Shape.allCases, [false, true])
-    func builtRowsIndependentOfRowCount(_ shape: Shape, fitsContent: Bool) {
-        let tenThousand = Self.builtPerStep(shape, rows: 10_000, fitsContent: fitsContent)
-        let twoThousand = Self.builtPerStep(shape, rows: 2_000, fitsContent: fitsContent)
+          arguments: Shape.allCases)
+    func builtRowsIndependentOfRowCount(_ shape: Shape) {
+        let tenThousand = Self.builtPerStep(shape, rows: 10_000)
+        let twoThousand = Self.builtPerStep(shape, rows: 2_000)
         #expect(tenThousand.dropFirst().allSatisfy { $0 < 100 }, "\(shape): \(tenThousand)")
         #expect(tenThousand.dropFirst() == twoThousand.dropFirst(), "\(shape): \(twoThousand) \(tenThousand)")
         if shape == .flow {

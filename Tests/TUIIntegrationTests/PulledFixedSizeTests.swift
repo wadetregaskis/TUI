@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledFixedSizeTests.swift
 //
-//  SCROLL-FIT P5 (design 2f, B-SCROLLFIT-8): with the switch on
-//  (`EnvironmentValues.scrollFitsContent`), `.fixedSize` measures its content
+//  SCROLL-FIT P5 (design 2f, B-SCROLLFIT-8):
+//  `.fixedSize` measures its content
 //  down the scroll view's ladder rather than once at the ladder's first rung,
 //  so content taller than that rung is its own height rather than the height
 //  it is offered. In scroll content such a table is pulled — only the rows on
@@ -28,9 +28,8 @@ private struct Entry: Identifiable {
 }
 
 /// A title and a table under `.fixedSize(horizontal: false, vertical: true)`
-/// in a scroll view, a button below them, the switch on — or the twin: the
-/// same table drawn whole, framed to its full height, which the switch leaves
-/// as it was.
+/// in a scroll view, a button below them — or the twin: the
+/// same table drawn whole, framed to its full height.
 private struct FixedSizeTablePage: View {
     let entries: [Entry]
     let probe: FixedSizeProbe
@@ -49,7 +48,6 @@ private struct FixedSizeTablePage: View {
         }
         .onScrollGeometryChange(
             for: Int.self, of: { $0.contentSize.height }, action: { _, height in probe.contentHeight = height })
-        .environment(\.scrollFitsContent, true)
     }
 
     private var table: some View {
@@ -167,7 +165,7 @@ struct PulledFixedSizeTests {
     private static func fixedSize(
         _ subject: ScrollFitSubject, rows: Int, situation: ScrollFitSituation = .fixedSize
     ) -> ScrollFitResult {
-        ScrollFitMeasure.measure(subject, situation, rows: rows, walk: false, fitsContent: true)
+        ScrollFitMeasure.measure(subject, situation, rows: rows, walk: false)
     }
 
     /// Off, the table was the screen's height left under the title after
@@ -200,7 +198,6 @@ struct PulledFixedSizeTests {
                 if framed { table.frame(height: rows + 3) } else { table }
             }
             .fixedSize(horizontal: false, vertical: true)
-            .environment(\.scrollFitsContent, true)
         }
 
         private var table: some View {
@@ -250,7 +247,7 @@ struct PulledFixedSizeTests {
     /// Not among them: the views that answer the height they are offered, up
     /// to their content, and say they are flexible — `TextEditor`, a nested
     /// `ScrollView`, a grouped `Form`, the split views — which are content-sized
-    /// when the switch flips (design P7), and keep the screen's height here.
+    /// since P7 (`ContentSizedOfferedNoneTests`).
     @Test(
         "Content-sized views under .fixedSize are their content's height at 10,000 rows",
         arguments: [
@@ -286,8 +283,8 @@ struct PulledFixedSizeTests {
         "A GeometryReader offered no height is its minimum, as a Color is",
         arguments: [ScrollFitSituation.alone, .underTitle, .twoStacked, .fixedSize, .horizontal])
     func geometryReaderIsItsMinimum(_ situation: ScrollFitSituation) {
-        let reader = ScrollFitMeasure.measure(.geometryReader, situation, rows: 3, walk: false, fitsContent: true)
-        let color = ScrollFitMeasure.measure(.color, situation, rows: 3, walk: false, fitsContent: true)
+        let reader = ScrollFitMeasure.measure(.geometryReader, situation, rows: 3, walk: false)
+        let color = ScrollFitMeasure.measure(.color, situation, rows: 3, walk: false)
         // Heights: a reader fills the width it is laid out at, where a
         // `Color` in a column fixed to its ideal width is none wide.
         #expect(reader.sizeA?.height == color.sizeA?.height, "\(reader) against \(color)")
@@ -311,7 +308,6 @@ struct PulledFixedSizeTests {
                 GeometryReader { proxy in Text(verbatim: "\(proxy.size.height)") }
                     .onGeometryChange(for: CellSize.self, of: { $0.size }, action: { size = $0 })
             }
-            .environment(\.scrollFitsContent, true)
         }
         _ = app.screen
         #expect(size == CellSize(width: 30, height: 9), "\(String(describing: size))")

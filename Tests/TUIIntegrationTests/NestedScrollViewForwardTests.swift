@@ -36,7 +36,6 @@ private struct NestedPage: View {
                 Text("below")
             }
         }
-        .environment(\.scrollFitsContent, true)
     }
 
     @ViewBuilder private var column: some View {

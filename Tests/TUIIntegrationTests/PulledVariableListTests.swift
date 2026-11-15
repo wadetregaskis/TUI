@@ -2,8 +2,8 @@
 //  PulledVariableListTests.swift
 //
 //  SCROLL-FIT's pull (design P4) for a `List` whose rows are not all one
-//  line: rows of several lines, sections, an outline, and an empty list. With
-//  the switch on (`EnvironmentValues.scrollFitsContent`) such a list under a
+//  line: rows of several lines, sections, an outline, and an empty list.
+//  Such a list under a
 //  title in a scroll view is its content's height — estimated for the rows
 //  not yet built — and draws only the lines on screen, whatever its row
 //  count; every row is still reached by the wheel, the keys, `scrollTo` and
@@ -39,15 +39,15 @@ private struct Node: Identifiable, Hashable {
     var children: [Self]?
 }
 
-/// A title, a button, a list and a button below it in a scroll view, the
-/// switch on, and `j` scrolling the reader's proxy to `target`.
+/// A title, a button, a list and a button below it in a scroll view,
+/// and `j` scrolling the reader's proxy to `target`.
 private struct VariableListPage: View {
     let shape: Shape
     let count: Int
     let builds: Builds?
     var target: Int = 0
     /// The twin's frame: the same list drawn whole, framed to its full
-    /// height, the switch off. `nil` for the pulled list.
+    /// height. `nil` for the pulled list.
     var framed: Int?
 
     var body: some View {
@@ -66,7 +66,6 @@ private struct VariableListPage: View {
             }
             .onKeyEvent(.character("j")) { proxy.scrollTo(target, anchor: .top) }
         }
-        .environment(\.scrollFitsContent, framed == nil)
     }
 
     /// Borderless, so the twin's frame is the rows' lines alone.

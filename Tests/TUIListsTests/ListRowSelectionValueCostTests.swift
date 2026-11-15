@@ -133,8 +133,10 @@ struct ListRowSelectionValueCostTests {
 
     // MARK: - The hug walk
 
-    /// A hugging list — `.fixedSize(horizontal:)`, or a `NavigationSplitView`'s
-    /// sidebar — walks EVERY row for its width on each frame the size memo
+    /// A hugging list — `.fixedSize(horizontal: true, vertical: false)`, or a
+    /// `NavigationSplitView`'s sidebar (fixed down too, a list is its rows'
+    /// height since SCROLL-FIT P7, which these tests leave out)
+    /// — walks EVERY row for its width on each frame the size memo
     /// cannot answer: the first, and every one after the data changes. The
     /// walk asked each row for its selection value too, and a tagged row can
     /// only answer that by being built: 300 builds for nothing the width looks
@@ -151,12 +153,12 @@ struct ListRowSelectionValueCostTests {
                     List(selection: .constant(Pick?.none)) {
                         ForEach(projects) { Self.taggedRow($0) }
                     }
-                    .fixedSize(horizontal: true))
+                    .fixedSize(horizontal: true, vertical: false))
                 : frames.frame(
                     List(selection: .constant(Int?.none)) {
                         ForEach(projects) { Self.untaggedRow($0) }
                     }
-                    .fixedSize(horizontal: true))
+                    .fixedSize(horizontal: true, vertical: false))
             return (cost.builds, cost.drawn)
         }
         let tagged = coldBuilds(tagged: true)
@@ -200,7 +202,7 @@ struct ListRowSelectionValueCostTests {
                 // what a `NavigationSplitView` does to its sidebar. A filling
                 // list answers that measure without building a row.
                 return hugging
-                    ? AnyView(HStack(spacing: 0) { list.fixedSize(horizontal: true) })
+                    ? AnyView(HStack(spacing: 0) { list.fixedSize(horizontal: true, vertical: false) })
                     : AnyView(HStack(spacing: 0) { list })
             }
             return frames.steadyFrame(list()).builds

@@ -631,9 +631,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// splits the column evenly. Hugging content is opt-in via
     /// `.fixedSize(horizontal:)`, which proposes an unbounded width.
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        // A `scrollTo` searching the rows of a column above, under SCROLL-FIT's
-        // switch, asks only whether a row here carries its key.
-        if context.environment.scrollFitsContent, let search = ScrollKeyLocate.search(in: context),
+        // A `scrollTo` searching the rows of a column above (SCROLL-FIT)
+        // asks only whether a row here carries its key.
+        if let search = ScrollKeyLocate.search(in: context),
             !search.marksTarget
         {
             answerSearch(search, context: context)

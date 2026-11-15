@@ -2,8 +2,8 @@
 //  _ListCore+Pulled.swift
 //
 //  SCROLL-FIT's pull (designs P3 and P4), for a `List` in a scroll view's
-//  content: with the switch on (`EnvironmentValues.scrollFitsContent`), a list
-//  that a column pulls where it stands is its content's height, as the
+//  content: a list that a column pulls where it stands is its content's
+//  height, as the
 //  owner's SCROLL-FIT ruling has it, and draws only the lines the scroll view
 //  shows. Rows of one line each are placed by arithmetic (P3); rows of several
 //  lines, or in sections, are walked from an anchor by the fill engine, the
@@ -224,10 +224,10 @@ final class ListPulledPitch {
 
 extension _ListCore {
     /// The list's lines when a column pulls it (the file header), or `nil`
-    /// when it is drawn as before: the switch off, outside scroll content,
+    /// when it is drawn as before: outside scroll content,
     /// given a height, or below a container that does not pull.
     func pulledLines(context: RenderContext) -> ListPulledLines? {
-        guard context.environment.scrollFitsContent, context.scrollContentOriginDepth != 0,
+        guard context.scrollContentOriginDepth != 0,
             !context.hasExplicitHeight, context.isPulledWhereItStands
         else { return nil }
         return contentLines(context: context)
@@ -287,7 +287,6 @@ extension _ListCore {
     /// first band's answer corrects it. An empty list is its placeholder's
     /// lines, drawn whole.
     func pulledHeight(context: RenderContext) -> Int? {
-        guard context.environment.scrollFitsContent else { return nil }
         let lines = pulledLines(context: context)
         context.notePulledBand(lines.map { !$0.isEmpty } ?? false)
         guard let lines else { return nil }
@@ -312,7 +311,7 @@ extension _ListCore {
     /// baseline's `listPlain fixedSize`). `nil` anywhere else. Not filed as a
     /// band: with no viewport to pull against it is drawn whole (design 2f).
     func naturalHeight(proposal: ProposedViewSize, context: RenderContext) -> Int? {
-        guard context.environment.scrollFitsContent, proposal.height == nil, !context.hasExplicitHeight,
+        guard proposal.height == nil, !context.hasExplicitHeight,
             isNaturalExtentBudget(context.availableHeight)
         else { return nil }
         let lines = contentLines(context: context)
@@ -330,7 +329,6 @@ extension _ListCore {
     /// on: the key is found when one of its rows carries it, by a scan of the
     /// keys, so a column hands it the seek.
     func answerSearch(_ search: ScrollKeyLocate, context: RenderContext) {
-        guard context.environment.scrollFitsContent else { return }
         if extractRows(from: content, context: context).index(ofScrollKey: search.key) != nil {
             search.found = true
         }

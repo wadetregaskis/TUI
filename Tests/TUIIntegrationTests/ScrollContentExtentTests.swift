@@ -156,15 +156,18 @@ struct ScrollContentExtentTests {
         // viewport is the honest value. (If this ever regresses it hangs rather
         // than fails, which is why the assertion is on the rung reached.)
         //
-        // A `List` is the real shape of that — it fills its viewport by
-        // construction. `.frame(maxHeight: .infinity)` is NOT, any more: under an
-        // unspecified height proposal it reports its content's height (see
-        // `infiniteFrameDoesNotInventScrollableEmptiness`), which ends the ladder
-        // by the ordinary under-budget rule instead.
+        // A `List` given a height (a window's, a frame's) is the real shape of
+        // that — it fills what it is given by construction; given none, it is
+        // its rows' height since SCROLL-FIT P7, which ends the ladder by the
+        // ordinary under-budget rule. So is `.frame(maxHeight: .infinity)`: under
+        // an unspecified height proposal it reports its content's height (see
+        // `infiniteFrameDoesNotInventScrollableEmptiness`).
+        var given = context()
+        given.hasExplicitHeight = true
         let size = measureNaturalExtent(
             List { ForEach(0..<3, id: \.self) { Text(verbatim: "row \($0)") } }, along: .vertical,
             proposal: ProposedViewSize(width: 40, height: nil),
-            context: context(), startingBudget: 4_096)
+            context: given, startingBudget: 4_096)
         #expect(size.height == 4_096, "stopped at the first rung: \(size.height)")
         #expect(size.isHeightFlexible, "…because the content said it fills what it is given")
     }

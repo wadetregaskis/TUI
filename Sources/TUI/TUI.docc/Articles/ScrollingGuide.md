@@ -64,6 +64,8 @@ ScrollView {
 
 If people will select rows or act on them, use a ``List`` instead, which is built for that. See <doc:ListAndTable>.
 
+The content is as tall as it is, not as tall as the scroll view: a ``List``, a ``Table``, a ``TextEditor``, a grouped ``Form`` or a ``ScrollView`` inside takes its content's height, and the outer scroll view scrolls it, drawing only what shows wherever it stands, under a title or between other views. A ``Spacer``, a ``Color`` or a ``GeometryReader`` in the content takes its least height there, as in SwiftUI, so short content no longer spreads down the screen; give a view `.containerRelativeFrame(.vertical)` to make it the scroll view's height, or a `.frame(height:)` to give it one.
+
 ## Jumping to a place from code
 
 Wrap the scroll view in a ``ScrollViewReader`` to get a proxy that can scroll to any row by its id:

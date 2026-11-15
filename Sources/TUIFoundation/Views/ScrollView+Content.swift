@@ -130,7 +130,7 @@ extension _ScrollViewCore {
     /// buffer — the same measures `renderedContent` uses to size its render, so the
     /// scrollbar-reservation decision matches what will actually be drawn.
     ///
-    /// `height` is the rendered buffer's height (``canvasHeight(natural:viewportHeight:_:)``):
+    /// `height` is the rendered buffer's height (``canvasHeight(natural:viewportHeight:)``):
     /// the natural height comes from ``measureNaturalExtent`` — a
     /// stack's measure clamps its report to `availableHeight`, so any FIXED budget
     /// is a ceiling on how tall content can be, and the ladder grows the budget
@@ -174,11 +174,11 @@ extension _ScrollViewCore {
             proposal: ProposedViewSize(width: renderWidth, height: nil),
             context: measureContext,
             startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight))
-        return (width: renderWidth, height: canvasHeight(natural: natural, viewportHeight: viewportHeight, context))
+        return (width: renderWidth, height: canvasHeight(natural: natural, viewportHeight: viewportHeight))
     }
 
-    /// The height the content is drawn at, under SCROLL-FIT's switch (design
-    /// 2a, "the scroll view's canvas"):
+    /// The height the content is drawn at (SCROLL-FIT, design 2a, "the scroll
+    /// view's canvas"):
     ///
     /// - Down the axis this view scrolls, the content's natural height: a
     ///   flexible view in it (a `Color`, a `Spacer`, a split view's panes)
@@ -193,9 +193,8 @@ extension _ScrollViewCore {
     ///   measuring ladder's budget was drawn at it: a 10,000-row table 4,096
     ///   lines tall, every one of its rows built each frame.
     ///
-    /// Before, at least the viewport's whatever the axis.
-    func canvasHeight(natural: NaturalExtentAnswer, viewportHeight: Int, _ context: RenderContext) -> Int {
-        guard context.environment.scrollFitsContent else { return max(viewportHeight, natural.size.height) }
+    /// Before SCROLL-FIT, at least the viewport's whatever the axis.
+    func canvasHeight(natural: NaturalExtentAnswer, viewportHeight: Int) -> Int {
         guard axes.contains(.vertical) else {
             return natural.fillsBudget ? viewportHeight : max(viewportHeight, natural.size.height)
         }
@@ -321,12 +320,9 @@ extension _ScrollViewCore {
             canvas.environment.asksWholeContentWidth = horizontal
         }
         // Whether a view in here that would scroll itself may leave that to
-        // this one (a grouped `Form`), which it does only under SCROLL-FIT's
-        // switch as it reads the switch where it stands. Not this scroll
-        // view's switch: an app may turn it on in the content, as the Stress
-        // pages do, and a mark written only under this one's never reached
-        // their form. Written only when it differs, as above.
-        let vertical = axes.contains(.vertical)
+        // this one: a grouped `Form`, a vertical `ScrollView` (SCROLL-FIT).
+        // Written only when it differs, as above.
+        let vertical = axes.contains(.vertical) && !isChrome
         if canvas.environment.fitsVerticalScrollContent != vertical {
             canvas.environment.fitsVerticalScrollContent = vertical
         }

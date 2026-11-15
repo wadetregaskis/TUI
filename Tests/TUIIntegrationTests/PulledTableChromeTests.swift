@@ -1,8 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  PulledTableChromeTests.swift
 //
-//  SCROLL-FIT P6 for `Table`: with the switch on
-//  (`EnvironmentValues.scrollFitsContent`), a table pulled in a scroll view's
+//  SCROLL-FIT P6 for `Table`:
+//  a table pulled in a scroll view's
 //  content — as tall as its rows — keeps its header at the viewport's top
 //  edge and its horizontal scrollbar at the bottom edge while its rows are
 //  under them, as a section's pinned header and footer (design 2c,
@@ -32,7 +32,7 @@ private struct Item: Identifiable {
     var value: Int?
 }
 
-/// A title, a table and a line after it in a scroll view, the switch on. Four
+/// A title, a table and a line after it in a scroll view. Four
 /// columns of twenty cells (`wide`) do not fit across sixty, and scroll
 /// sideways under a bar of their own; two do.
 private struct TitledTablePage: View {
@@ -54,7 +54,6 @@ private struct TitledTablePage: View {
                 Text("after")
             }
         }
-        .environment(\.scrollFitsContent, true)
     }
 
     private var binding: Binding<Int?> {
@@ -195,7 +194,6 @@ struct PulledTableChromeTests {
                     }
                 }
             }
-            .environment(\.scrollFitsContent, true)
         }
         var seen: [String] = []
         for _ in 0..<30 {

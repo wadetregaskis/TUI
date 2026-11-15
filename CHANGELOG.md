@@ -15,6 +15,32 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+### Scroll views and lists build only what shows
+
+**A view in a scroll view is its content's height, and only the rows on screen are built, wherever they stand.** A
+`List`, `Table`, `TextEditor`, grouped `Form`, a `ScrollView` nested in another, or a split view in a vertical
+`ScrollView` with no frame is now as tall as its content, and the outer scroll view scrolls it, building only the rows
+in view: a 10,000-row table or list under a title builds a screenful a frame where it built thousands, as a
+`LazyVStack`, a long `GroupBox` or a `FlowLayout` already did anywhere in the content (below). What changes for an
+app:
+
+- A `Table` in a scroll view was capped at the scroll view's height and scrolled its own rows; it is now its rows'
+  height, its header and horizontal scroll bar pinned to the top and bottom of the scroll view while its rows are under
+  them, and its arrow keys, Page Up and Page Down, End and type select scroll the page. A `List` was 4,096 lines tall,
+  most of them blank under its rows; it is its rows' height, its section headers pinned. Focused at launch, neither
+  scrolls the title above it out of sight any more.
+- A `Spacer`, `Color`, shape, `GeometryReader` or `.frame(maxHeight: .infinity)` in a vertical scroll view's content
+  takes its least height there, as in SwiftUI, rather than stretching the content to the scroll view's height, so short
+  content no longer spreads down the screen. Use `.containerRelativeFrame(.vertical)` for a view that should be as
+  tall as the scroll view.
+- A vertical `ScrollView` inside another draws no scroll bar of its own and scrolls nothing: the outer one scrolls its
+  content. A `VSplitView` lays each pane out at its own height rather than cutting the first.
+- `.fixedSize(horizontal: false, vertical: true)` makes a `List`, `TextEditor`, `ScrollView` or split view its
+  content's height too, where it kept the height it was offered.
+- `ScrollView(.horizontal)` gives its content its own height, so a long table or list in it is that tall and scrolls
+  its own rows, where it was 4,096 lines tall. Taller content of other kinds still scrolls down.
+- A frame still gives any of these a height, as in SwiftUI, and the view then scrolls its own rows inside it.
+
 **A `NavigationSplitView` too narrow for its columns collapses into a stack.** Each column is at least 10 cells
 wide, so three columns in a 20-cell terminal drew 32 wide: the detail and a divider lay past the screen's edge, and Tab
 still focused that divider. A split whose width has no room for its visible columns side by side (three under 32 cells,
