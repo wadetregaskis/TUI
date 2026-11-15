@@ -124,16 +124,29 @@ extension Optional: IfContent where Wrapped: View {}
 /// A view that is, or holds as an `if` does, a loop: counted without
 /// building a row.
 @MainActor
-private protocol CountedLoop {
+protocol CountedLoop {
     func liveElementCount(in context: RenderContext) -> Int
 }
 
 @MainActor extension ForEach: CountedLoop where Content: View {
-    fileprivate func liveElementCount(in context: RenderContext) -> Int { data(in: context).count }
+    func liveElementCount(in context: RenderContext) -> Int { data(in: context).count }
+}
+
+/// Whether `content`, a section's, is a loop (written bare or in an `if`)
+/// that a lazy stack's own section draws as a lazy stack of its own, in
+/// scroll content: one past the lazy stack's threshold, as a windowing
+/// container's column is (``ForEach/windowedColumn(context:)``). Counted
+/// without building a row.
+@MainActor
+func sectionContentLoopWindows<Content: View>(_ content: Content, in context: RenderContext) -> Bool {
+    guard context.scrollContentOriginDepth != 0, let loop = content as? any CountedLoop,
+        !context.environment.drawsContainerRowsWhole, !context.environment.drawsListSectionChrome
+    else { return false }
+    return loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
 }
 
 @MainActor extension ConditionalView: CountedLoop {
-    fileprivate func liveElementCount(in context: RenderContext) -> Int {
+    func liveElementCount(in context: RenderContext) -> Int {
         switch self {
         case .trueContent(let content): (content as? any CountedLoop)?.liveElementCount(in: context) ?? 0
         case .falseContent(let content): (content as? any CountedLoop)?.liveElementCount(in: context) ?? 0
@@ -142,7 +155,7 @@ private protocol CountedLoop {
 }
 
 @MainActor extension Optional: CountedLoop where Wrapped: View {
-    fileprivate func liveElementCount(in context: RenderContext) -> Int {
+    func liveElementCount(in context: RenderContext) -> Int {
         guard case .some(let view) = self, let loop = view as? any CountedLoop else { return 0 }
         return loop.liveElementCount(in: context)
     }

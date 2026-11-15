@@ -80,9 +80,12 @@ struct PinnedSectionScope: Equatable {
     /// Whether the sections' footers are pinned.
     var pinsFooters: Bool
 
-    /// Whether a section at `identity` is one of the stack's own.
+    /// Whether a section at `identity` is one of the stack's own: one sibling
+    /// step below it, or none, the stack's whole content (`LazyVStack(pinnedViews:
+    /// .sectionHeaders) { Section … }`, whose header did not pin).
     func owns(sectionAt identity: ViewIdentity) -> Bool {
-        identity.siblingSteps(belowDepth: Int(stackDepth)) == 1
+        guard let steps = identity.siblingSteps(belowDepth: Int(stackDepth)) else { return false }
+        return steps <= 1
     }
 
     /// Which sections the stack's walks keep whole: every one of its own

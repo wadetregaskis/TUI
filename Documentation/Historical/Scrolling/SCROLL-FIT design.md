@@ -1466,6 +1466,34 @@ three runs of either binary (2,242–2,434 against 2,274–2,594 stores; 1,934�
 learner above. The full suite passes (`parallel_test.py`, 15,767 tests), `Stress --selfcheck` is clean (139 cases, 38
 scenarios, 26 sessions), and `api_baseline.py --check` matches (9,578 declarations).
 
+**The sections' follow-ups** (2026-11-15, S8 and S7 of the follow-ups' follow-ups' *Left*), one commit each:
+
+- **A lazy stack of a few long sections builds only what shows** (`SectionCore+PulledParts.swift`). The cause, two
+  ways round: unpinned, a section written in the stack's content is its parts there (B16), so the loop in it resolved
+  as the stack's children, every row built for each measure on the first frame (one `Section` of 10,000 rows 30,035,
+  two 60,035, a title and one 30,032); pinned, the stack keeps its own sections whole and each laid its parts out whole
+  (`renderStacked`), every row measured and drawn (two 110,000, a title and one 60,000). One of a lazy stack's own
+  sections whose content is a loop past 256 elements in scroll content (`sectionContentLoopWindows`) is now drawn as a
+  column of its parts at P8's step (`_ImplicitColumnOfSeveral`), the loop a lazy stack of its own at the stack's
+  alignment and spacing, pulled, as `LazyVStack { header; ForEach }` is; unpinned, such a section is kept whole for it
+  (`Section.staysWhole(in:)` under `SectionWholeness.loopRows`), so it lays its parts out as the stack would, with
+  B-D1S-1's deviations. Pinned, the column's header and footer are copied as pins at their places in the band
+  (`renderPulledParts`): the header at the section's line 0, the footer at its end, both read from the band's
+  `sliceOriginY` and `sliceTotalHeight`; one the band leaves out is drawn for its pin as a measure draws it, so a
+  control in it joins the focus ring once, through the column's off-band drawing. And a stack's whole content is its
+  own section (`PinnedSectionScope.owns`, no sibling step as well as one): `LazyVStack(pinnedViews: .sectionHeaders) {
+  Section … }` did not pin its header. First frame now 52 (one, either way), 100 (two) and 49 (a title and one) rows,
+  26 a page, the same at 1,000 rows; the drawing matches an eager `VStack`'s at the top, 30 pages down (across the two
+  sections' boundary at spacing 0), at the end and paged up from it, at leading and trailing alignment and spacing 0 and 1, and
+  pinned, the header of the section under the top edge on the first line, a pinned footer on the last
+  (`SectionedLazyStackFirstFrameTests`). The parts' identities are the column's, so a loop growing past the threshold
+  starts its rows' state afresh, once. *Found, not fixed:* a lazy stack of two pulled children with spacing pages up
+  from its end 140 rows too far (two sections of 280 rows at spacing 1, and as much for two `VStack { header;
+  LazyVStack(spacing: 1) }`, so not the sections'); an eager `VStack` of the same pages right; the twin marks it a known
+  issue. *Left:* a pinned stack whose own section holds an explicit `LazyVStack` of 10,000 rows builds 44,110 rows on
+  its first frame (98,749 before, then 18,218 a page, now none): the section lays its parts out whole, and the column
+  path takes only a loop.
+
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
 their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split

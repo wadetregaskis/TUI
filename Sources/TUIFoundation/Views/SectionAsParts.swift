@@ -38,8 +38,18 @@ import TUIView
             + sectionPartChildren(footer, part: 2, in: context)
     }
 
+    /// Whole in a walk that keeps sections whole, and in an unpinned lazy
+    /// stack's walk (`SectionWholeness.loopRows`) when its content is a loop
+    /// past the lazy stack's threshold in scroll content: taken apart, the
+    /// loop's rows were the stack's children, every one built for each
+    /// measure of the stack on the first frame (30,035 for one section of
+    /// 10,000 rows); kept whole, the section draws its parts as the stack
+    /// would and its loop as a lazy stack of its own, pulled
+    /// (`_SectionCore.pulledPartsColumn`).
     public func staysWhole(in context: RenderContext) -> Bool {
         sectionStaysWhole(in: context)
+            || (context.sectionWholeness == .loopRows && showsContent
+                && sectionContentLoopWindows(content, in: context))
     }
 }
 

@@ -101,8 +101,11 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     /// the section width-flexible to its parent.
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let stack = pinningStack(context) {
-            return stackedSize(
-                layout: stack.layout, proposal: proposal, context: drawingContext(context))
+            let drawing = drawingContext(context)
+            if let pulled = pulledPartsColumn(layout: stack.layout, context: drawing) {
+                return measureChild(pulled.column, proposal: proposal, context: pulled.context)
+            }
+            return stackedSize(layout: stack.layout, proposal: proposal, context: drawing)
         }
         let size = measureFixedByRendering(self, proposal: proposal, context: context)
         var widthFlexible = false
@@ -126,7 +129,12 @@ struct _SectionCore<Parent: View, Content: View, Footer: View>: View, Renderable
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
         let stack = pinningStack(context)
         let context = drawingContext(context)
-        if let stack { return renderStacked(layout: stack.layout, pins: stack.pins, context: context) }
+        if let stack {
+            if let pulled = pulledPartsColumn(layout: stack.layout, context: context) {
+                return renderPulledParts(pulled, layout: stack.layout, pins: stack.pins, context: context)
+            }
+            return renderStacked(layout: stack.layout, pins: stack.pins, context: context)
+        }
 
         var lines: [String] = []
         // A `Section` assembles its lines by hand rather than compositing, so
