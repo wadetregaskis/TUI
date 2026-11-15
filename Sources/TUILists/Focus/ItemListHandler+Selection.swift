@@ -63,9 +63,9 @@ extension ItemListHandler {
         else { return }
         switch selectionMode {
         case .single:
-            singleSelection?.wrappedValue = id
+            writeSingleSelection(id)
         case .multi:
-            multiSelection?.wrappedValue = [id]
+            writeMultiSelection([id])
             selectionAnchor = focusedIndex
         }
         anchorOnSelection(at: focusedIndex)
@@ -169,7 +169,7 @@ extension ItemListHandler {
         for row in min(anchorRow, cursorRow)...max(anchorRow, cursorRow) where isSelectableRow(row) {
             if let id = id(at: row) { span.insert(id) }
         }
-        multiSelection?.wrappedValue = span
+        writeMultiSelection(span)
     }
 
     /// Whether a bulk gesture — a span, select-all — may take `row`: every
@@ -196,7 +196,7 @@ extension ItemListHandler {
                 if let id = id(at: row) { all.insert(id) }
             }
         }
-        multiSelection?.wrappedValue = all
+        writeMultiSelection(all)
     }
 
     /// Applies macOS mouse-selection semantics for a click on `index`:
@@ -255,7 +255,7 @@ extension ItemListHandler {
             return
         }
 
-        multiSelection?.wrappedValue = [clickedID]
+        writeMultiSelection([clickedID])
         selectionAnchor = index
         followRowLink(at: index)
     }
@@ -292,11 +292,7 @@ extension ItemListHandler {
             // `handleClickSelection`, which assigns `[clickedID]` — because
             // there the standing-in modifiers (ctrl, option) do reach us, so
             // the macOS rule is reproducible in full and is what we follow.
-            if singleSelection?.wrappedValue == itemID {
-                singleSelection?.wrappedValue = nil
-            } else {
-                singleSelection?.wrappedValue = itemID
-            }
+            writeSingleSelection(singleSelection?.wrappedValue == itemID ? nil : itemID)
 
         case .multi:
             // Multi-selection: toggle this item in the set. A toggle moves
@@ -308,7 +304,7 @@ extension ItemListHandler {
                 } else {
                     current.insert(itemID)
                 }
-                multiSelection?.wrappedValue = current
+                writeMultiSelection(current)
             }
             selectionAnchor = focusedIndex
         }
@@ -322,11 +318,11 @@ extension ItemListHandler {
     private func chooseRow(_ itemID: SelectionValue) -> Bool {
         switch selectionMode {
         case .single:
-            guard let singleSelection else { return false }
-            singleSelection.wrappedValue = itemID
+            guard singleSelection != nil else { return false }
+            writeSingleSelection(itemID)
         case .multi:
-            guard let multiSelection else { return false }
-            multiSelection.wrappedValue = [itemID]
+            guard multiSelection != nil else { return false }
+            writeMultiSelection([itemID])
             selectionAnchor = focusedIndex
         }
         return true

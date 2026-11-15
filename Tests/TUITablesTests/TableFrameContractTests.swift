@@ -147,6 +147,10 @@ struct TableFrameContractTests {
     /// selected background, the other lost them — so a memo keyed on the row
     /// value alone would serve both of them stale and the selection would
     /// simply not move on screen.
+    ///
+    /// The selection starts on the cursor's row, the first: the cursor follows
+    /// a selection the app writes, so starting anywhere else would move a
+    /// third row, the one the cursor leaves.
     @Test("Moving the selection changes two rows and no others")
     func movingTheSelectionChangesTwoRows() {
         let harness = TableMatrixHarness(
@@ -156,7 +160,7 @@ struct TableFrameContractTests {
                     TableMatrixColumn(title: "ID", width: .fixed(6), cost: .cheap),
                     TableMatrixColumn(title: "Value", width: .fixed(18), cost: .formatted),
                 ],
-                selection: .single(1)))
+                selection: .single(0)))
         harness.settle()
         let before = harness.frame()
 

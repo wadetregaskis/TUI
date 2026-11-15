@@ -199,6 +199,13 @@ keeps one control's cursor apart inside it. In the column of a collapsed split
 view the keys still only move the cursor, since choosing a row there goes to the
 next column.
 
+The other way round, a selection the app writes — a Find selecting a match, a
+Duplicate selecting the copy — moves the cursor onto the selected row, with the
+modifier or without it, so the next arrow goes on from there, as on macOS. With a
+`Set` selection the cursor goes to its first selected row, unless it is on a
+selected row already. The row is not scrolled into view; `ScrollViewReader`'s
+`scrollTo` does that.
+
 Hold Shift with Up/Down to move the cursor by several rows at once (clamping at
 the ends rather than wrapping). The step count is the `.shiftStepMultiplier(_:)`
 environment value (default 5).

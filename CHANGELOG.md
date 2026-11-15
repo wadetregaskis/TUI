@@ -50,6 +50,13 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**A selection the app writes moves a list's or table's cursor onto it.** An app that selected a row itself — a
+Duplicate selecting the copy, a Find selecting a match — left the cursor where it was, so the next arrow went on from
+the old row (and, under `.selectionFollowsCursor()`, selected the row after it). The cursor now moves to the selected
+row (for a `Set`, its first selected row, unless the cursor is on a selected row already), with or without the
+modifier, as on macOS, where the next arrow goes on from the selection whoever wrote it. The list's own keys and clicks
+are unchanged, and the row is not scrolled to: `scrollTo` does that.
+
 **A `Divider` in a table's or list's row menu no longer stretches the menu across the screen, and its `Section`s
 draw a rule between them.** The row menus — `contextMenu(forSelectionType:menu:primaryAction:)`, a `TableRow`'s
 `.contextMenu`, a table's column menu — drew their items as one view, so a `Divider` among them was measured as wide

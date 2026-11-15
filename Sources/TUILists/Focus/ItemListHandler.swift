@@ -1652,6 +1652,11 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     var anchorRowID: SelectionValue?
     var anchorRowOrdinal: Int?
 
+    /// The selection as the list last saw it — drawn, or written by its own
+    /// keys and clicks — or `nil` before the first frame: what
+    /// ``followWrittenSelection()`` tells a selection the app wrote by.
+    var seenSelection: SeenSelection?
+
     /// Whether this list holds the focus, as of the last render.
     ///
     /// Set by the owning view alongside the rest of the per-frame wiring. The

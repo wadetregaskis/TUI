@@ -317,7 +317,7 @@ extension ItemListHandler {
             return true
         }
         if let selection = multiSelection?.wrappedValue, !selection.isEmpty {
-            multiSelection?.wrappedValue = []
+            writeMultiSelection([])
             selectionAnchor = nil
             return true
         }

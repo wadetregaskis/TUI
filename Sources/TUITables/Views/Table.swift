@@ -3253,6 +3253,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         handler.multiSelection = multiSelection
         handler.compactColumnAdvance = context.environment.compactColumnAdvance
         handler.rowForwardAction = context.environment.listRowForwardAction
+        // Once the binding and the rows' ids are this frame's.
+        if !context.isMeasuring { handler.followWrittenSelection() }
     }
 
     /// `ScrollViewProxy.scrollTo` reaching the table, as it reaches a `List`:

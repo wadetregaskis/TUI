@@ -2143,6 +2143,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         handler.reportScrollPosition(rowID: { source.scrollID(at: $0) }, context: context)
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
+        // Once the binding and the rows' ids are this frame's, as `Table`'s.
+        if !context.isMeasuring { handler.followWrittenSelection() }
         handler.compactColumnAdvance = context.environment.compactColumnAdvance
         handler.rowForwardAction = context.environment.listRowForwardAction
         // A hierarchical list's rows come from an `OutlineGroup`, which is what
