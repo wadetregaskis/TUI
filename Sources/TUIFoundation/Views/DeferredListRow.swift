@@ -50,6 +50,9 @@ package func deferredListRow(
             return (buffer, extractRowBadge(from: child.wrappedView))
         })
     box.typeSelectProbe = typeSelectProbe(statedBy: child.wrappedView) {
+        if let plain = LazyListRowContent.typeSelectText(ofPlainText: child.wrappedView, context: context) {
+            return plain
+        }
         var probe = context
         probe.isMeasuring = true
         return LazyListRowContent.typeSelectText(

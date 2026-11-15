@@ -479,11 +479,13 @@ extension ListRowsPassThrough {
                 return (buffer, extractListRowBadge(from: view))
             })
         // The row's type-select text, asked only when the user types to find a
-        // row: its stated equivalent, else its first line drawn as a measure,
-        // which registers nothing — the row may be far out of sight.
+        // row: its stated equivalent, else a plain `Text`'s own words, else its
+        // first line drawn as a measure, which registers nothing — the row may
+        // be far out of sight.
         box.typeSelectProbe = { [content] in
             let view = content(element)
             if let stated = statedTypeSelectEquivalent(of: view), let stated { return stated }
+            if let plain = LazyListRowContent.typeSelectText(ofPlainText: view, context: rowContext) { return plain }
             var probe = rowContext
             probe.isMeasuring = true
             return TUIView.renderToBuffer(view, context: probe).lines.first.map {

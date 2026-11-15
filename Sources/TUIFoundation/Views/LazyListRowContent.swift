@@ -270,6 +270,26 @@ package final class LazyListRowContent {
         buffer.lines.first.map { $0.stripped.trimmingCharacters(in: .whitespaces) }
     }
 
+    /// The text a typed prefix matches `row` by when the row is a plain `Text` —
+    /// no style, styled runs or localization of its own, and nothing redacted —
+    /// read off the text rather than drawn as a measure, as a table's plain
+    /// `Text` cell is read: its first line, spelled as `context` spells, without
+    /// the spaces around it. `nil` for any other row, which is drawn to be read.
+    ///
+    /// Type select asks every row it scans, from the cursor to its match, and on
+    /// a 10,000-row list a prefix no row starts with scans them all: drawing each
+    /// `Text` row as a measure was about two thirds of the cost of the key press.
+    @MainActor
+    package static func typeSelectText(ofPlainText row: any View, context: RenderContext) -> String? {
+        guard let text = row as? Text, text.isUnstyled, text.localization == nil,
+            context.environment.effectiveRedactionReasons.isEmpty
+        else { return nil }
+        let spelled = TextTransliteration.spelled(
+            text.content, as: context.textSpelling, keepingEscapes: context.environment.textKeepsEscapeSequences)
+        let line = spelled.firstIndex(where: \.isNewline).map { spelled[..<$0] } ?? spelled[...]
+        return line.trimmingCharacters(in: .whitespaces)
+    }
+
     /// Defers rendering until the buffer (or badge) is first read.
     package init(
         identity: ViewIdentity? = nil,
