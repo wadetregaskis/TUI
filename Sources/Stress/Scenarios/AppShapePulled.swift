@@ -60,115 +60,148 @@ struct PulledPageApp: View {
         VStack(alignment: .leading, spacing: 0) {
             Text(Lf("stress.scenario.app-shapes.heading", "pulled", entries)).bold()
             ScrollView {
-                switch shape {
-                case .titled:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        PulledEntries(entries: entries, seed: seed, section: 0)
+                content
+            }
+            .scrollPosition(.constant(ScrollPosition(y: line)))
+        }
+    }
+
+    /// The page's content, erased: every shape at one depth. Not a view
+    /// builder's `switch`, which nests its cases' conditionals deeper as
+    /// cases are added and so lengthens the identity chain of every row of
+    /// every page: the two shapes P3 added made the lazy pages 1.2 to 2.5%
+    /// slower with nothing on their path changed, and erasing the eleven
+    /// made them 2.5 to 3.6% faster (SCROLL-FIT design, "P8 leftovers as
+    /// built").
+    private var content: AnyView {
+        switch shape {
+        case .titled:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    PulledEntries(entries: entries, seed: seed, section: 0)
+                }
+            )
+        case .twoStacked:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 6)).bold()
+                    PulledEntries(entries: entries / 2, seed: seed, section: 0)
+                    Text(Synth.sentence(seed >> 3, words: 6)).bold()
+                    PulledEntries(entries: entries / 2, seed: seed, section: 1)
+                }
+            )
+        case .boxed:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    GroupBox { PulledEntries(entries: entries, seed: seed, section: 0) }
+                }
+            )
+        case .boxedEager:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    GroupBox {
+                        ForEach(0..<entries, id: \.self) { entry in
+                            PulledEntry(seed: seed, section: 0, entry: entry)
+                        }
                     }
-                case .twoStacked:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 6)).bold()
-                        PulledEntries(entries: entries / 2, seed: seed, section: 0)
+                }
+            )
+        case .flow:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    FlowLayout(spacing: 1) {
+                        ForEach(0..<entries, id: \.self) { entry in
+                            PulledTag(seed: seed, entry: entry)
+                        }
+                    }
+                }
+            )
+        case .layout:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    TwoColumns {
+                        Text(verbatim: "│\n│\n│").dim()
                         Text(Synth.sentence(seed >> 3, words: 6)).bold()
-                        PulledEntries(entries: entries / 2, seed: seed, section: 1)
+                        PulledEntries(entries: entries, seed: seed, section: 0)
+                        Text(Synth.sentence(seed >> 5, words: 4)).dim()
                     }
-                case .boxed:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        GroupBox { PulledEntries(entries: entries, seed: seed, section: 0) }
-                    }
-                case .boxedEager:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        GroupBox {
-                            ForEach(0..<entries, id: \.self) { entry in
-                                PulledEntry(seed: seed, section: 0, entry: entry)
-                            }
+                }
+            )
+        case .titledList:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    List {
+                        ForEach(0..<entries, id: \.self) { entry in
+                            Text(verbatim: Synth.sentence(mix(seed, entry), words: 5))
                         }
                     }
-                case .flow:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        FlowLayout(spacing: 1) {
-                            ForEach(0..<entries, id: \.self) { entry in
-                                PulledTag(seed: seed, entry: entry)
-                            }
+                }
+                .environment(\.scrollFitsContent, true)
+            )
+        case .titledTable:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    Table((0..<entries).map(PulledRow.init)) {
+                        TableColumn("#") { (row: PulledRow) in Text(verbatim: "\(row.id)") }
+                        TableColumn("Entry") { (row: PulledRow) in
+                            Text(verbatim: Synth.sentence(mix(seed, row.id), words: 4))
                         }
                     }
-                case .layout:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        TwoColumns {
-                            Text(verbatim: "│\n│\n│").dim()
-                            Text(Synth.sentence(seed >> 3, words: 6)).bold()
-                            PulledEntries(entries: entries, seed: seed, section: 0)
-                            Text(Synth.sentence(seed >> 5, words: 4)).dim()
+                }
+                .environment(\.scrollFitsContent, true)
+            )
+        case .titledListVariable:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    List {
+                        ForEach(0..<entries, id: \.self) { entry in
+                            PulledEntry(seed: seed, section: 0, entry: entry)
                         }
                     }
-                case .titledList:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        List {
-                            ForEach(0..<entries, id: \.self) { entry in
-                                Text(verbatim: Synth.sentence(mix(seed, entry), words: 5))
-                            }
-                        }
-                    }
-                    .environment(\.scrollFitsContent, true)
-                case .titledTable:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        Table((0..<entries).map(PulledRow.init)) {
-                            TableColumn("#") { (row: PulledRow) in Text(verbatim: "\(row.id)") }
-                            TableColumn("Entry") { (row: PulledRow) in
-                                Text(verbatim: Synth.sentence(mix(seed, row.id), words: 4))
-                            }
-                        }
-                    }
-                    .environment(\.scrollFitsContent, true)
-                case .titledListVariable:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        List {
-                            ForEach(0..<entries, id: \.self) { entry in
-                                PulledEntry(seed: seed, section: 0, entry: entry)
-                            }
-                        }
-                    }
-                    .environment(\.scrollFitsContent, true)
-                case .groupedForm:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        Form {
-                            ForEach(0..<max(1, entries / 25), id: \.self) { section in
-                                Section(Synth.sentence(mix(seed, section), words: 3)) {
-                                    ForEach(0..<25, id: \.self) { row in
-                                        LabeledContent(
-                                            Synth.slug(mix(seed, section &* 31 &+ row)),
-                                            value: Synth.status(mix(seed, row)))
-                                    }
+                }
+                .environment(\.scrollFitsContent, true)
+            )
+        case .groupedForm:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    Form {
+                        ForEach(0..<max(1, entries / 25), id: \.self) { section in
+                            Section(Synth.sentence(mix(seed, section), words: 3)) {
+                                ForEach(0..<25, id: \.self) { row in
+                                    LabeledContent(
+                                        Synth.slug(mix(seed, section &* 31 &+ row)),
+                                        value: Synth.status(mix(seed, row)))
                                 }
                             }
                         }
-                        .formStyle(.grouped)
                     }
-                    .environment(\.scrollFitsContent, true)
-                case .fixedSizeTable:
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(Synth.sentence(seed, words: 8)).bold()
-                        Table((0..<entries).map(PulledRow.init)) {
-                            TableColumn("#") { (row: PulledRow) in Text(verbatim: "\(row.id)") }
-                            TableColumn("Entry") { (row: PulledRow) in
-                                Text(verbatim: Synth.sentence(mix(seed, row.id), words: 4))
-                            }
+                    .formStyle(.grouped)
+                }
+                .environment(\.scrollFitsContent, true)
+            )
+        case .fixedSizeTable:
+            AnyView(
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(Synth.sentence(seed, words: 8)).bold()
+                    Table((0..<entries).map(PulledRow.init)) {
+                        TableColumn("#") { (row: PulledRow) in Text(verbatim: "\(row.id)") }
+                        TableColumn("Entry") { (row: PulledRow) in
+                            Text(verbatim: Synth.sentence(mix(seed, row.id), words: 4))
                         }
                     }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .environment(\.scrollFitsContent, true)
                 }
-            }
-            .scrollPosition(.constant(ScrollPosition(y: line)))
+                .fixedSize(horizontal: false, vertical: true)
+                .environment(\.scrollFitsContent, true)
+            )
         }
     }
 }

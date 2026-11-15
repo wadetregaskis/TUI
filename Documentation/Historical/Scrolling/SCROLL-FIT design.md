@@ -843,6 +843,27 @@ failed before:
   stands still extract every row. `WindowedFormColumnsTests`: the twin matches with the switch
   off and on, the column follows a change of the data, and a page builds 26 rows at 2,000 and
   10,000 (the first frame 20,177 at 10,000, every row read at two widths).
+- **The nested-stack pages' +1.6–3.0%** (P3's A/B: `titled-lazy`, `two-stacked-lazy`,
+  `boxed-lazy` against P2's tip c9f7d884b). Not the pull. Bisected with `ab_bench.py` (release,
+  cpu per frame, 10 reps, `slot.py --exclusive`): c9f7d884b → ba1ea499b (`.focusable(false)`'s
+  bullet) −0.3% and −1.2%, → cbce33b63 (the walkable delta) −1.0% and +0.4%, → c1e6beb77 (the
+  pull test as a `RenderContext` function) −1.0% and +0.1%, all indistinguishable or faster; then
+  c1e6beb77 → 353baee99 +2.5% [+1.3, +3.7], +1.8% [+0.7, +4.5] and +1.2% [+0.3, +2.6], a range
+  whose only change on these pages' path is the Stress page itself: P3 added the `titled-list` and
+  `titled-table` cases to `PulledPageApp`'s `switch`, and a view builder nests a switch's
+  conditionals deeper as cases are added, so every row of every variant sat one conditional
+  deeper. The profile agrees (Time Profiler, 8 s of `two-stacked-lazy` at 9db53e79a,
+  `analyze_timeprofile.py --process Stress`): `ConditionalView.renderToBuffer` 66.5% inclusive,
+  `IdentityNode.structurallyEqual` 1.5% self. The remedy is the benchmark's: the page's content is
+  an `AnyView` built by a plain `switch`, every shape at one depth (`structurallyEqual` 1.1% self,
+  no `ConditionalView` on the stack), so a shape added to the catalogue no longer taxes the rest.
+  Against 9db53e79a: `two-stacked-lazy` −2.5% [−3.6, −0.4], `boxed-lazy` −3.0% [−3.7, −0.3],
+  `titled-list` −3.6% [−5.1, −2.2], `titled-lazy` −3.8% (indistinguishable on a busy box, load
+  5.2). Not a framework change, so nothing on an app's path moved: deep conditionals cost an
+  app what they cost the page. On the way: 9db53e79a draws `titled-lazy` at 787 µs a frame
+  against P3's 269 µs, most likely because P3's page did not move: the harness composed no rows a
+  frame there and 32 at 9db53e79a, and 989c60504 since made a `ScrollPosition` bound with a new
+  value scroll (not traced).
 
 ### 1d. Heights of rows not yet built
 
