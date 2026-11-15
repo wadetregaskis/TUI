@@ -1394,6 +1394,21 @@ through `LayoutPull` as `Grid` does (about half a day). A grouped `Form`'s rows 
   at the top, three pages down and at the end (`HeadedLazyStackFirstFrameTests`). As with a `GroupBox`, the rows'
   identities are the column's, so a loop growing past the threshold starts its rows' state afresh, once.
 
+Measured for the four (2026-11-15, `ab_bench.py`, release, cpu per frame, 10 reps, `slot.py --exclusive`, main
+d9a562b30 against the follow-ups' tip cfdb1a218, load 3.9 → 2.6): `app-shapes/headed-log` +3.3% [+2.4, +11.7],
+`scrollfollow` +1.3% [+0.4, +2.0], `churn` +1.1% [+0.1, +2.9], `app-shapes/boxed-eager` +0.9% [+0.2, +2.3] and
+`session/editor` +0.8% [+0.3, +2.5] slower, inside the owner's few-percent line and not profiled (each scroll view's
+content now carries its registry, a state lookup and an environment write a measure, and each lazy stack in scroll
+content asks whether its content is a tuple); `tables-scroll`, `dashboard`, `grids`, `megalist`, `scrolleager`,
+`glide`, `table`, `app-shapes/titled-lazy`, `titled-table`, `titled-list`, `grouped-feed` and `session/log`
+indistinguishable; RSS within 1.4 MB. `ab_counters.py` (every scenario and session): no bench checksum differs, so
+every scenario draws as before; 36 of 62 moved no count past 1%, and of the rest the moves are memo traffic, not
+traced: `session/log` composes half the memoized rows (1,526 → 765) and `dashboard` and `grids` store about 16% fewer
+value memos, while `tables-scroll` stores 25 → 38 over its run (0.9 → 1.2 rows composed a frame). `Stress --selfcheck`
+clean (139 cases, 38 scenarios, 26 sessions); the full suite passes (`parallel_test.py`, 15,763 tests; one clipboard
+test, `SystemClipboardTests/largeReadSucceeds`, failed under load 79 and passes alone); `api_baseline.py --check`
+matches (9,578 declarations) once `ScrollViewReader.body` is a `@ViewBuilder` again (0cfb3cdd1).
+
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
 their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split
