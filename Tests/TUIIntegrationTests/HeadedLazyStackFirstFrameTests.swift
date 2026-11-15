@@ -3,11 +3,14 @@
 //
 //  A lazy stack whose content is a header and a loop, `LazyVStack { header;
 //  ForEach(0..<n) }`, in a scroll view builds only the rows on screen on its
-//  first frame, as it does on every frame after.
+//  first frame, as it does on every frame after, and so does one that pins its
+//  sections' headers or footers, the section under the edge keeping its own
+//  pinned there.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUI
@@ -94,6 +97,86 @@ struct HeadedLazyStackFirstFrameTests {
         }
         for app in [lazy, whole] { _ = app.press(.end) }
         check("end")
+    }
+
+    /// A lazy stack of a title and a loop of 300 sections of 30 rows each,
+    /// pinning its sections' headers or footers, or (`pins` off) neither.
+    private static func sectioned(footers: Bool, pins: Bool, builds: Builds) -> TestApp {
+        let pinned: PinnedScrollableViews = !pins ? [] : footers ? .sectionFooters : .sectionHeaders
+        return TestApp(width: 30, height: 12) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: pinned) {
+                    Text("title")
+                    ForEach(0..<300, id: \.self) { section in
+                        Section {
+                            ForEach(0..<30, id: \.self) { row in
+                                builds.count += 1
+                                return Text(verbatim: "s\(section) r\(row)")
+                            }
+                        } header: {
+                            if !footers { Text(verbatim: "Header \(section)") }
+                        } footer: {
+                            if footers { Text(verbatim: "Footer \(section)") }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test("Pinning its sections' headers or footers, it builds what it builds pinning none, its own pinned at the edge",
+          arguments: [false, true])
+    func pinnedSections(_ footers: Bool) {
+        let builds = Builds()
+        let unpinnedBuilds = Builds()
+        let app = Self.sectioned(footers: footers, pins: true, builds: builds)
+        let unpinned = Self.sectioned(footers: footers, pins: false, builds: unpinnedBuilds)
+        #expect(app.screen.lines.first?.hasPrefix("title") == true, "\(app.screen)")
+        _ = unpinned.screen
+        // Drawn pinning nothing, a lazy stack of sections builds the sections
+        // it samples whole (2,700 rows here); pinning, it built every row of
+        // every section, each three times (63,300).
+        #expect(builds.count == unpinnedBuilds.count, "first frame: \(builds.count) \(unpinnedBuilds.count)")
+        for page in 1...4 {
+            builds.count = 0
+            unpinnedBuilds.count = 0
+            _ = app.press(.pageDown)
+            _ = unpinned.press(.pageDown)
+            #expect(builds.count == unpinnedBuilds.count, "page \(page): \(builds.count) \(unpinnedBuilds.count)")
+            let lines = app.screen.lines.map { $0.trimmingCharacters(in: .whitespaces) }
+            // The section of the row beside the pinned line, and the pinned
+            // line's own.
+            let edge = footers ? lines.last ?? "" : lines.first ?? ""
+            let beside = footers
+                ? lines.dropLast().last { $0.hasPrefix("s") } : lines.dropFirst().first { $0.hasPrefix("s") }
+            let section = beside.flatMap { $0.dropFirst().split(separator: " ").first }.map(String.init)
+            #expect(
+                section != nil && edge.hasPrefix((footers ? "Footer " : "Header ") + (section ?? "?")),
+                "page \(page):\n\(app.screen)")
+        }
+    }
+
+    @Test("Pinning its sections, a lazy stack of a header and a loop of rows builds only what shows")
+    func pinnedHeaderAndLoop() {
+        let builds = Builds()
+        let app = TestApp(width: 30, height: 12) {
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders, .sectionFooters]) {
+                    Text("header")
+                    ForEach(0..<10_000, id: \.self) { index in
+                        builds.count += 1
+                        return Text(verbatim: "r\(index)")
+                    }
+                }
+            }
+        }
+        #expect(app.screen.lines.first?.hasPrefix("header") == true, "\(app.screen)")
+        // 30,035 before: the loop resolved whole, each row built for each
+        // measure of the stack.
+        #expect(builds.count < 150, "first frame: \(builds.count)")
+        builds.count = 0
+        _ = app.press(.pageDown)
+        #expect(builds.count < 150, "a page: \(builds.count)")
     }
 
     @Test("The header is on the first line, and End reaches the last row")

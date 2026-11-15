@@ -45,7 +45,7 @@ app:
   Taller content of other kinds still scrolls down.
 - A frame still gives any of these a height, as in SwiftUI, and the view then scrolls its own rows inside it.
 - A `LazyVStack` of a header and a long `ForEach` builds only the rows on screen from its first frame, where that frame
-  built every row, more than once.
+  built every row, more than once, and so does one that pins its sections' headers or footers (`pinnedViews:`).
 
 **A `ScrollViewReader` inside a scroll view's content scrolls that scroll view.** `ScrollView { ScrollViewReader {
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll

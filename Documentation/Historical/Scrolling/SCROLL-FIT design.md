@@ -1422,6 +1422,20 @@ matches (9,578 declarations) once `ScrollViewReader.body` is a `@ViewBuilder` ag
   included. A seek routes to the list, which answers with its cursor's row. The same failure on main d9a562b30,
   where the wheel was the only way past (the page key change only made it reachable by keys; the reveal path is
   untouched by it). `PulledListPageOnTests` (paged and wheeled, a table and a list; both failed before).
+- **A pinning `LazyVStack { header; ForEach }` pulls as one pinning nothing does** (`ImplicitColumnWindowing.swift`).
+  The previous follow-up drew such a stack as a column of several only where it pinned no sections, so
+  `LazyVStack(pinnedViews: .sectionHeaders) { title; ForEach(groups) { Section … } }` still resolved its loop whole: a
+  title and 300 sections of 30 rows built 63,300 rows on the first frame, a title and 10,000 rows 30,035. The loop's
+  lazy stack now takes the stack's pins with its alignment and spacing (`ImplicitColumnRowLayout.pinnedViews`), so the
+  sections the loop makes pin there: a section pins within its own lines, the same lines in either drawing. Not where
+  a view beside the loop may be a section (`mayHandOver(.section, _:)`): the column is an eager stack and would not
+  pin it, so that stack draws as before. Now 52 rows on the first frame for the title and 10,000 rows, and for the
+  sections exactly what the same stack pinning nothing builds (2,700, then 210 a page), the header or footer of the
+  section under the edge pinned there (`HeadedLazyStackFirstFrameTests`; both failed before). *Left:* that 2,700 is a
+  lazy stack of sections building each section it samples whole, pinned or not (1,800 with no title); and a lazy
+  stack of a few sections, or of fewer loop elements than its threshold (256) whatever their rows, is drawn whole: one
+  `Section` of 10,000 rows unpinned 30,035 (pinned, 68), two such sections 30,035 unpinned and 55,000 pinned, a
+  `ForEach` of 100 sections of 100 rows 31,200 either way. Not traced.
 
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →

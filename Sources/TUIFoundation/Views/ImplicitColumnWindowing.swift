@@ -150,20 +150,27 @@ private protocol CountedLoop {
 
 @MainActor extension TupleView: ImplicitColumnMembers {
     package func columnOfSeveral(in context: RenderContext) -> (any View)? {
-        columnOfSeveral(alignment: .leading, spacing: 0, in: context)
+        columnOfSeveral(alignment: .leading, spacing: 0, pinning: false, in: context)
     }
 
     /// These views as a column laid out at `alignment` and `spacing`, when
-    /// one is a loop past the lazy stack's threshold; `nil` otherwise.
-    package func columnOfSeveral(alignment: HorizontalAlignment, spacing: Int, in context: RenderContext) -> (any View)? {
+    /// one is a loop past the lazy stack's threshold; `nil` otherwise, and,
+    /// `pinning` (the loop's lazy stack pins its sections), `nil` too when a
+    /// view beside the loop may be a section, which the column would not pin.
+    package func columnOfSeveral(
+        alignment: HorizontalAlignment, spacing: Int, pinning: Bool, in context: RenderContext
+    ) -> (any View)? {
+        var foundLoop = false
         for child in repeat each children {
-            if let loop = child as? any CountedLoop,
+            if !foundLoop, let loop = child as? any CountedLoop,
                 loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
             {
-                return _VStackCore(alignment: alignment, spacing: spacing, overflow: .clip, content: self)
+                foundLoop = true
+            } else if pinning, TUIFoundation.mayHandOver(.section, type(of: child)) {
+                return nil
             }
         }
-        return nil
+        return foundLoop ? _VStackCore(alignment: alignment, spacing: spacing, overflow: .clip, content: self) : nil
     }
 }
 
@@ -174,20 +181,24 @@ private protocol CountedLoop {
 /// tuple.
 @MainActor
 package protocol LazyColumnMembers {
-    /// See ``TupleView/columnOfSeveral(alignment:spacing:in:)``.
-    func columnOfSeveral(alignment: HorizontalAlignment, spacing: Int, in context: RenderContext) -> (any View)?
+    /// See ``TupleView/columnOfSeveral(alignment:spacing:pinning:in:)``.
+    func columnOfSeveral(
+        alignment: HorizontalAlignment, spacing: Int, pinning: Bool, in context: RenderContext
+    ) -> (any View)?
 }
 
 extension TupleView: LazyColumnMembers {}
 
 /// The alignment and spacing a loop drawn as a column of several's lazy stack
-/// lays its rows out at: those of the lazy stack the column stands in for
+/// lays its rows out at, and the sections' headers and footers it pins: those
+/// of the lazy stack the column stands in for
 /// (``_VStackCore/lazyColumnOfSeveral(context:)``). A windowing container's
 /// column (a `GroupBox`'s) states none, and its rows are leading, with no
-/// spacing, as its content drawn whole stacks them.
+/// spacing and nothing pinned, as its content drawn whole stacks them.
 package struct ImplicitColumnRowLayout: Equatable, Sendable {
     let alignment: HorizontalAlignment
     let spacing: Int
+    var pinnedViews: PinnedScrollableViews = []
 }
 
 /// EnvironmentKey for ``EnvironmentValues/implicitColumnRowLayout``.
@@ -228,20 +239,33 @@ extension _VStackCore {
     /// Taken apart into one column of rows, the tuple resolved its loop
     /// eagerly, building every row on the first frame for each measure of it
     /// (30,035 at 10,000 rows, 30 × 12; the row memo then served every row
-    /// after it, still walked). Not for a stack that pins its sections, which
-    /// pins only its own.
+    /// after it, still walked).
+    ///
+    /// A stack that pins its sections' headers or footers (`pinnedViews:`)
+    /// hands its pins to the loop's lazy stack, so the sections a loop makes
+    /// pin there as they pinned in it: a section is pinned within its own
+    /// lines, which are the same lines in either. Not where a view beside the
+    /// loop may be a section (``mayHandOver(_:_:)``): the column, an eager
+    /// stack, would not pin it, and the stack draws as before (63,300 rows on
+    /// the first frame for a title and 300 sections of 30, where a pinning
+    /// stack of a title and a loop now builds a screenful).
     ///
     /// The rows' identities are the column's, not those the rows had taken
     /// apart, so a loop growing past the threshold starts its rows' state
     /// afresh, once, as a `GroupBox`'s does.
     @MainActor func lazyColumnOfSeveral(context: RenderContext) -> (column: any View, context: RenderContext)? {
-        guard overflow == .window, !pinsSectionHeaders, !pinsSectionFooters, context.scrollContentOriginDepth != 0,
+        let pins = pinsSectionHeaders || pinsSectionFooters
+        guard overflow == .window, context.scrollContentOriginDepth != 0,
             let members = content as? any LazyColumnMembers,
             !context.environment.drawsContainerRowsWhole, !context.environment.drawsListSectionChrome,
-            let column = members.columnOfSeveral(alignment: alignment, spacing: spacing, in: context)
+            let column = members.columnOfSeveral(alignment: alignment, spacing: spacing, pinning: pins, in: context)
         else { return nil }
         var columnContext = context.withChildIdentity(type: _ImplicitColumnOfSeveral.self)
-        columnContext.environment.implicitColumnRowLayout = ImplicitColumnRowLayout(alignment: alignment, spacing: spacing)
+        var pinned: PinnedScrollableViews = []
+        if pinsSectionHeaders { pinned.insert(.sectionHeaders) }
+        if pinsSectionFooters { pinned.insert(.sectionFooters) }
+        columnContext.environment.implicitColumnRowLayout = ImplicitColumnRowLayout(
+            alignment: alignment, spacing: spacing, pinnedViews: pinned)
         return (column, columnContext)
     }
 }
@@ -289,11 +313,12 @@ extension View {
             // and keeps its own rows.
             !context.environment.drawsListSectionChrome
         else { return nil }
-        // The lazy stack's own alignment and spacing, where the column of
-        // several stands in for one (`_VStackCore.lazyColumnOfSeveral`).
+        // The lazy stack's own alignment, spacing and pins, where the column
+        // of several stands in for one (`_VStackCore.lazyColumnOfSeveral`).
         let layout = context.environment.implicitColumnRowLayout
         return _VStackCore(
-            alignment: layout?.alignment ?? .leading, spacing: layout?.spacing ?? 0, overflow: .window, content: self)
+            alignment: layout?.alignment ?? .leading, spacing: layout?.spacing ?? 0, overflow: .window,
+            pinnedViews: layout?.pinnedViews ?? [], content: self)
     }
 
     /// Whether a windowing container (``WindowsItsImplicitColumn``) stands on
