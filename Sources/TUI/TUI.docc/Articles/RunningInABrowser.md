@@ -76,7 +76,7 @@ in a terminal, except for what a WebAssembly program in a browser can't do:
 | Terminal graphics | xterm.js draws no pictures in pixels, so pictures are drawn in characters. |
 | Some characters | Emoji newer than Unicode 15 and SF Symbols take a width the terminal doesn't agree with, and the rest of their row shifts. |
 
-Two things about the platform reach your code:
+Three things about the platform reach your code:
 
 - **`Int` is 32 bits.** An arithmetic overflow that can't happen on a 64-bit machine traps here. Seconds since 2001
   times a frame rate, for example, doesn't fit. Use `Int64` or `Double` where a value can grow that large.
@@ -88,6 +88,14 @@ Two things about the platform reach your code:
   `Tools/Web/wasm-stack-toolset.json` does. A small stack matters more here than natively: there is no
   guard page below it, so recursion TUI doesn't guard, such as releasing a very long chain of views, writes over the
   program's memory instead of crashing.
+- **Outside this page, a pending `Task.sleep` holds up everything else.** On Swift 6.4.2 and earlier, the runtime's
+  single-threaded executor waits for its next timer even when work is ready, so while any task sleeps, the rest of
+  the program, drawing included, moves only when that sleep ends: a 500 ms sleep anywhere held one app to three
+  frames a second. The fix is in Swift's main branch ([swiftlang/swift#93586](https://github.com/swiftlang/swift/pull/93586)),
+  for the first release after 6.4. TUI can't get round it from inside the program, because what is ready is what the
+  executor isn't looking at. This page's host can, and does: it ends any wait with nothing to read after 2 ms. If you
+  run your app under another WASI host, such as `wasmtime`, build it with a Swift that has the fix, or keep long
+  sleeps out of it.
 
 ## Publishing on GitHub Pages
 

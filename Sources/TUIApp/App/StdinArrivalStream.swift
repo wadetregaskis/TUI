@@ -369,7 +369,10 @@ import WASILibc
 /// second. Nothing here can get round that, since whatever is ready to run is
 /// what the executor is not looking at. The browser's host does: it ends any sleep
 /// without a descriptor after 2 ms (`Tools/Web/site/wasi.js`), and the executor
-/// goes round again. A host without that gets the stalls.
+/// goes round again. A host without that gets the stalls. Fixed upstream for
+/// releases after 6.4 (swiftlang/swift#93586, 2026-11-03; not on 6.4.x); the
+/// cut in `wasi.js` stays for the toolchains before it. Users are told in
+/// `RunningInABrowser.md`.
 @MainActor
 final class StdinArrivalNotifier {
 

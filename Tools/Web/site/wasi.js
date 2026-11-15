@@ -278,7 +278,8 @@ export class BrowserWASI {
         } else if (timeoutMs !== null && timeoutMs > 0) {
           // A pure sleep, which is the Swift executor waiting for its next
           // timer: it does so with jobs ready to run as well, and they wait with
-          // it (`StdinArrivalNotifier` has the story). So no longer than this,
+          // it (`StdinArrivalNotifier` has the story; fixed in Swift after 6.4,
+          // swiftlang/swift#93586). So no longer than this,
           // and it goes round again. And after flushing, for the reason
           // `waitForInput` gives.
           self.beforeBlock();
