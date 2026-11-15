@@ -112,4 +112,15 @@ struct TestAppUndoManagerTests {
         #expect(tally.total == 0, "the first ⌃Z undid the app's step, not the closed field's typing")
         #expect(!app.undoManager.canUndo)
     }
+
+    @Test("An undo made on the undo manager outside a key press shows on the screen, as a running app draws it")
+    func undoOutsideAKeyIsDrawn() {
+        let tally = Tally()
+        let app = TestApp(width: 30, height: 6) { Adder(tally: tally) }
+        app.press(.space)
+        #expect(app.screen.contains("Total: 1"))
+        app.undoManager.undo()
+        #expect(tally.total == 0)
+        #expect(app.screen.contains("Total: 0"), "\(app.screen)")
+    }
 }

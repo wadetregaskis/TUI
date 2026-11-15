@@ -133,8 +133,15 @@ public final class TestApp {
     // MARK: - Reading
 
     /// What is on the screen now.
+    ///
+    /// A frame the app has asked for since the last one is drawn first, as a
+    /// running app's loop would have drawn it by the time anyone looked: what
+    /// a test changes outside a key press or a click, such as an undo through
+    /// ``undoManager`` or a write to an `@Observable` model a view read, shows
+    /// here as it would on a terminal.
     public var screen: TestScreen {
         start()
+        drawAskedFrames()
         if let screenCache, screenCache.frame == headless.framesDrawn { return screenCache.screen }
         let screen = TestScreen(styledLines: headless.screen)
         screenCache = (headless.framesDrawn, screen)
@@ -148,6 +155,7 @@ public final class TestApp {
     /// for comparing against an earlier reading and little else.
     public var focusedID: String? {
         start()
+        drawAskedFrames()
         return headless.focusedID
     }
 
@@ -173,6 +181,9 @@ public final class TestApp {
     /// app.press(.character("k"), modifiers: .control)
     /// #expect(app.undoManager.canUndo)
     /// ```
+    ///
+    /// An undo or redo through it draws as one by key does: what it changes
+    /// shows on the next read of the ``screen``, as a running app draws it.
     public let undoManager: UndoManager
 
     /// The title the app has given the terminal's window, or `nil` while it
@@ -185,6 +196,7 @@ public final class TestApp {
     /// or tab.
     public var windowTitle: String? {
         start()
+        drawAskedFrames()
         return headless.terminalWindowTitle
     }
 
@@ -313,6 +325,21 @@ public final class TestApp {
     package func start() {
         if headless.framesDrawn == 0 { drawFrames() }
     }
+
+    /// Draws the frames the app has asked for since the last one, if it has
+    /// asked for any: what a running app's loop does whenever the app asks,
+    /// so what the test reads is what a terminal would show. Without it, a
+    /// change made between events — an undo the test made through
+    /// ``undoManager``, say — stayed off the screen until the next input.
+    private func drawAskedFrames() {
+        if drawsAskedFramesOnRead, headless.takeFrameRequest() { drawFrames() }
+    }
+
+    /// Whether reading the screen draws the frames the app has asked for
+    /// first (``drawAskedFrames()``). The framework's own tests that draw
+    /// each frame by hand, at an instant of their choosing, and ask whether
+    /// the app wanted another, turn it off: they read what they drew.
+    package var drawsAskedFramesOnRead = true
 
     /// Draws the frames a change causes, at the clock's present reading, or at
     /// `nanos`: one, and more for as long as a frame asks for another, as a

@@ -22,24 +22,40 @@ import TUITesting
 extension TestApp {
     /// Draws exactly one frame at `nanos`, and nothing more: a test of what
     /// one frame does, where ``TestApp/advance(by:)`` draws what the app asks.
+    ///
+    /// From then on, reading the screen draws nothing either: the test reads
+    /// the frames it drew (``TestApp/drawsAskedFramesOnRead``).
     func frame(atNanos nanos: Int64, date: Date = FrameClock.nowDate) {
+        drawsAskedFramesOnRead = false
         headless.frame(atNanos: nanos, date: date)
     }
 
-    /// Delivers a key and draws nothing, for a test of what the next frame shows.
+    /// Delivers a key and draws nothing, for a test of what the next frame
+    /// shows; nor does reading the screen after it.
     /// - Returns: Whether something took it.
     @discardableResult
-    func send(_ event: KeyEvent) -> Bool { headless.send(event) }
+    func send(_ event: KeyEvent) -> Bool {
+        drawsAskedFramesOnRead = false
+        return headless.send(event)
+    }
 
-    /// Delivers a mouse event and draws nothing.
+    /// Delivers a mouse event and draws nothing, nor does reading the screen
+    /// after it.
     /// - Returns: Whether something took it.
     @discardableResult
-    func send(_ event: MouseEvent) -> Bool { headless.send(event) }
+    func send(_ event: MouseEvent) -> Bool {
+        drawsAskedFramesOnRead = false
+        return headless.send(event)
+    }
 
-    /// Reports the modifier keys held on their own, and draws nothing.
+    /// Reports the modifier keys held on their own, and draws nothing, nor
+    /// does reading the screen after it.
     /// - Returns: Whether the screen needs a frame to show the change.
     @discardableResult
-    func send(_ modifiers: ModifierKeyState) -> Bool { headless.send(modifiers) }
+    func send(_ modifiers: ModifierKeyState) -> Bool {
+        drawsAskedFramesOnRead = false
+        return headless.send(modifiers)
+    }
 
     var framesAsked: Int { headless.framesAsked }
     var quitsRequested: Int { headless.quitsRequested }

@@ -58,6 +58,11 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**A `TestApp` draws a change made outside a key press before a test reads the screen.** An undo made through
+`app.undoManager.undo()`, or a write to an `@Observable` model a view read, asked for a frame that no one drew until
+the next key, click or `advance(by:)`, so the test read the screen as it was before the change. `screen`, `focusedID`
+and `windowTitle` now draw the frames the app has asked for first, as a running app's loop would have by then.
+
 **A text field that leaves the screen takes its typing out of the undo history in the same frame.** A row's edit field
 closed by Escape left its typing in the app's undo manager until another frame was drawn, which in an app with
 nothing animating, or in a `TestApp`, waited for the next input: the status bar went on offering "undo", and the first
