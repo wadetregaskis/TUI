@@ -324,6 +324,7 @@ enum Sessions {
             MenusSession.descriptor,
             ThemesSession.descriptor,
             GlidesSession.descriptor,
+            BigTextSession.descriptor,
         ]
 
     @MainActor
