@@ -50,6 +50,14 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**`\.copyToClipboard` puts text on the clipboard from an app's own command.** Read it with
+`@Environment(\.copyToClipboard)` and call it, `copyToClipboard(path)`, in a menu item's or a button's action: the text
+goes where every copy in the app goes — by OSC 52 to the terminal's clipboard, which is the clipboard of the machine the
+user is at, over ssh too, or to this machine's where the terminal is on it — and the status bar says what became of it.
+SwiftUI has no such action; its apps write `NSPasteboard` or `UIPasteboard`, which in a terminal app is the wrong
+machine's clipboard over ssh and does not exist on Linux. A `TestApp`'s new `clipboard` is the text the app last
+copied, for a test to read.
+
 **A selection the app writes moves a list's or table's cursor onto it.** An app that selected a row itself — a
 Duplicate selecting the copy, a Find selecting a match — left the cursor where it was, so the next arrow went on from
 the old row (and, under `.selectionFollowsCursor()`, selected the row after it). The cursor now moves to the selected

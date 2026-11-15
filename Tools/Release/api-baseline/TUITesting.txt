@@ -9,6 +9,7 @@ TestApp.ScrollDirection.up | case up
 TestApp.advance(by:) | @MainActor func advance(by duration: Duration)
 TestApp.click(_:button:modifiers:) | @MainActor func click(_ text: String, button: MouseButton = .left, modifiers: EventModifiers = []) throws
 TestApp.click(at:button:modifiers:) | @MainActor func click(at point: CellPoint, button: MouseButton = .left, modifiers: EventModifiers = [])
+TestApp.clipboard | @MainActor var clipboard: String? { get }
 TestApp.date | @MainActor var date: Date { get set }
 TestApp.drag(from:to:modifiers:) | @MainActor func drag(from start: CellPoint, to end: CellPoint, modifiers: EventModifiers = [])
 TestApp.drag(from:to:modifiers:) | @MainActor func drag(from start: String, to end: String, modifiers: EventModifiers = []) throws

@@ -148,6 +148,17 @@ public final class TestApp {
         return headless.focusedID
     }
 
+    /// The text the app last put on the clipboard, or `nil` before it has
+    /// copied anything.
+    ///
+    /// Every copy the app makes lands here: a text field's ⌃C, a `.copyable`
+    /// view's, a menu item that calls `\.copyToClipboard`. Nothing reaches the
+    /// clipboard of the machine the test runs on, nor a terminal.
+    public var clipboard: String? {
+        start()
+        return headless.lastCopiedText
+    }
+
     /// Whether the app has asked to quit, by its quit key, its Quit menu item
     /// or its last window closing.
     ///

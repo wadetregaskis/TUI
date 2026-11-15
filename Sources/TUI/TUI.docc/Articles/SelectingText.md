@@ -104,6 +104,27 @@ Text(result.summary)
     .copyable([result.summary])
 ```
 
+A command of the app's own that copies something — a menu's Copy Path — calls the
+``EnvironmentValues/copyToClipboard`` action, which sends its text the same way:
+
+```swift
+struct NodeCommands: Commands {
+    @Environment(\.copyToClipboard) private var copyToClipboard
+    @FocusedValue(\.nodePath) private var path
+
+    var body: some Commands {
+        CommandMenu("Node") {
+            Button("Copy Path") { if let path { copyToClipboard(path) } }
+                .disabled(path == nil)
+        }
+    }
+}
+```
+
+SwiftUI has no such action: a SwiftUI app writes `NSPasteboard`, which in a terminal
+app is the clipboard of the machine the app runs on, the wrong one over ssh, and
+which Linux does not have.
+
 ## Choosing Where It Applies
 
 `textSelection(_:)` says where the selection applies. With no modifier it is

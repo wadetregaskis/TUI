@@ -538,6 +538,8 @@ CoordinateSpaceProtocol.local | static var local: LocalCoordinateSpace { get } [
 CoordinateSpaceProtocol.named(_:) | static func named(_ name: some Hashable) -> NamedCoordinateSpace [extension where Self == NamedCoordinateSpace]
 CoordinateSpaceProtocol.scrollView | static var scrollView: NamedCoordinateSpace { get } [extension where Self == NamedCoordinateSpace]
 CoordinateSpaceProtocol.scrollView(axis:) | static func scrollView(axis: Axis) -> Self [extension where Self == NamedCoordinateSpace]
+CopyToClipboardAction | struct CopyToClipboardAction
+CopyToClipboardAction.callAsFunction(_:) | func callAsFunction(_ text: String)
 DefaultButtonLabel | nonisolated struct DefaultButtonLabel
 DefaultButtonLabel.body | @MainActor var body: some View { get }
 DefaultButtonStyle | struct DefaultButtonStyle
@@ -889,6 +891,7 @@ EnvironmentValues.controlKind | var controlKind: ControlKind? { get set }
 EnvironmentValues.controlSize | var controlSize: ControlSize { get set }
 EnvironmentValues.controlStyle | var controlStyle: ControlStyle { get set }
 EnvironmentValues.controlStyleManager | var controlStyleManager: ThemeManager? { get set }
+EnvironmentValues.copyToClipboard | var copyToClipboard: CopyToClipboardAction { get }
 EnvironmentValues.defaultScrollAnchor | var defaultScrollAnchor: UnitPoint? { get set }
 EnvironmentValues.dialogPreferredWidth | var dialogPreferredWidth: Int { get set }
 EnvironmentValues.dismiss | var dismiss: DismissAction { get set }

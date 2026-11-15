@@ -442,6 +442,10 @@ package final class ClipboardWriter {
         return nil
     }
 
+    /// The text of the latest copy this app made, whatever became of it, with
+    /// no note posted: what a `TestApp` shows a test as its clipboard.
+    package var lastCopiedText: String? { lastCopy }
+
     /// The OSC 52 writes owed to the terminal, oldest first, and forgets them.
     package func takePendingSequences() -> String {
         guard !pending.isEmpty else { return "" }

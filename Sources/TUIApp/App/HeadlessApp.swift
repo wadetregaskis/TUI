@@ -421,6 +421,10 @@ package final class HeadlessApp {
     /// what their effects wrote before they were written (`FrameSettling`).
     package var effectSettling: EffectStage.Settling { tuiContext.stateStorage.effectStage.settling }
 
+    /// The text of the latest copy the app made — a control's, a
+    /// `.copyable`'s, a `\.copyToClipboard` call's — whatever became of it.
+    package var lastCopiedText: String? { tuiContext.clipboardWriter.lastCopiedText }
+
     /// The app's runtime services — for a test that hands it a clipboard
     /// writer of its own, or reads its screen selection.
     var services: TUIContext { tuiContext }

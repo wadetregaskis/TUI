@@ -98,6 +98,14 @@ Button("Add") { count += 1 }.focusID("add")
 #expect(app.focusedID == "add")
 ```
 
+A copy the app makes — a text field's ⌃C, a `.copyable` view's, a command that calls `\.copyToClipboard` — goes to
+no real clipboard. ``TestApp/clipboard`` is the text it last copied:
+
+```swift
+app.press(.character("c"), modifiers: .control)
+#expect(app.clipboard == "Hello")
+```
+
 ### Pressing keys and typing
 
 ```swift
