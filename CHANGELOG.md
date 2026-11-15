@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` and `TUI_GRAPHICS_PLAYBACK` are supported options, no longer
+experiments.** Arrows that go to the nearest control on screen, the terminal's text cursor on the focused control, and
+animated pictures the terminal plays by itself keep their defaults and do what they did, but they now fall under the
+API stability promise, as the rest of the end-user variables do, rather than being free to change or go in any
+release. `TUI_PLAIN_TEXT=transliterate` and the held-press widening of a text selection stay experiments.
+
 ### Scroll views and lists build only what shows
 
 **A view in a scroll view is its content's height, and only the rows on screen are built, wherever they stand.** A

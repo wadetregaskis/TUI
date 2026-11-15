@@ -5,6 +5,10 @@ Status, 2026-11-08: **an experiment, off by default**, on with `TUI_ARROW_FOCUS=
 compared with having one. The design was settled on the 2026-11-07 morning page. Since 2026-11-08 the arrows reach
 controls scrolled out of sight too ([Controls out of sight](#controls-out-of-sight)).
 
+**Promoted, 2026-11-15:** the owner made `TUI_ARROW_FOCUS` a supported option, no longer an experiment, so it falls
+under the [API stability policy](<../API stability policy.md>) (decision 5). It stays off by default and behaves as
+below.
+
 ## How to try it
 
 ```sh
@@ -37,7 +41,7 @@ first. Like today's arrows it never leaves the active section, so a sheet, an al
 then ↑ need not return where you started; SwiftTUI and tvOS don't promise that either.
 
 **Frames** come from what the frame already records: every hit-test region a focusable control draws carries its focus
-id (`HitTestRegion.focusID`, which `ScrollView`'s reveal and the cursor-follows-focus experiment read too). The render
+id (`HitTestRegion.focusID`, which `ScrollView`'s reveal and the text cursor that follows the focus read too). The render
 loop hands the frame's region array to the focus manager, only in geometric mode. A control drawn in pieces is the
 smallest rectangle holding them. A control a scroll view has clipped is where its corners say (below). A control with
 no region this frame (a custom `Focusable` that draws none, one cut by a clip that isn't a scroll view's, a lazy row not

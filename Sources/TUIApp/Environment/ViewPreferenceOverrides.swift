@@ -41,8 +41,8 @@ package enum ViewPreference: CaseIterable, Hashable, Sendable {
     case focusFollowsPointer
     /// ``EnvironmentValues/arrowFocus`` at ``ArrowFocus/geometric``: an arrow
     /// a control leaves unused goes to the nearest control that way, rather
-    /// than the next in Tab order (`TUI_ARROW_FOCUS=geometric`). An
-    /// experiment, off unless the user turns it on.
+    /// than the next in Tab order (`TUI_ARROW_FOCUS=geometric`). Off unless
+    /// the user turns it on.
     case arrowsFollowLayout
 
     /// Whether the preference is on in `environment`: what the View menu

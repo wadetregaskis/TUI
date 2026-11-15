@@ -3,9 +3,9 @@
 //
 //  Arrow keys that move the focus to the nearest control in their direction,
 //  on screen or scrolled out of sight, rather than to the next or previous in
-//  Tab order: an experiment,
-//  on with `TUI_ARROW_FOCUS=geometric`, or for the rest of the run with the
-//  View menu's or the settings panel's Arrows Follow Layout. See `Documentation/Input and focus/
+//  Tab order: off by default, on with `TUI_ARROW_FOCUS=geometric`, or for the
+//  rest of the run with the View menu's or the settings panel's Arrows Follow
+//  Layout. See `Documentation/Input and focus/
 //  Geometric arrow focus.md` for the design and what keeping both modes costs.
 //
 //  Created by Wade Tregaskis

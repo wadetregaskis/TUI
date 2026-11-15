@@ -78,8 +78,8 @@ public enum TUIEnvironmentVariables {
             writing it before the command, as in `NO_COLOR=1 myapp`, or for every run by exporting it from \
             your shell's profile. An empty value counts as unset, and a value that isn't listed is ignored. \
             A setting the program makes itself, such as from a command-line flag, usually wins, but it \
-            can't undo what you ask for so that you can use it, such as less motion. Those marked as an \
-            experiment may change. The ones your terminal, tmux or ssh sets for you come last.
+            can't undo what you ask for so that you can use it, such as less motion. The ones your terminal, \
+            tmux or ssh sets for you come last.
             """
         case .developer:
             """

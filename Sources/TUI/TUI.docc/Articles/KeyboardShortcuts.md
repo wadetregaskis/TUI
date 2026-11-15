@@ -413,7 +413,7 @@ The focused control is offered every key first. Whatever it doesn't use, these m
 | Down / Right | Move to next element in section (fallback) |
 | F6 | Move to the newest toast with a button, then to older ones, then back (see <doc:Presentation#Notifications>) |
 
-With `TUI_ARROW_FOCUS=geometric`, or Arrows Follow Layout in the settings panel (F2) or the View menu, an experiment, an arrow moves instead to the nearest control on screen in its direction, and in Tab order only where there is none; Tab is unchanged, and the arrows stay inside the active focus section either way (see <doc:EnvironmentVariables>).
+With `TUI_ARROW_FOCUS=geometric`, or Arrows Follow Layout in the settings panel (F2) or the View menu, an arrow moves instead to the nearest control on screen in its direction, and in Tab order only where there is none; Tab is unchanged, and the arrows stay inside the active focus section either way (see <doc:EnvironmentVariables>).
 
 A focused `.draggable` view can be carried from the keyboard: ⌃R picks it up, Tab and the arrows move to a destination, Return drops it, and Escape or ⌃R again puts it back. See <doc:DragAndDrop>.
 

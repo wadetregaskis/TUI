@@ -5,6 +5,10 @@ is not finished, and nobody has seen it in a real terminal yet: screen capture o
 (see `Terminal compatibility survey.md`, "What a reversed cell paints"). The question it answers is §25 of
 [the SwiftTUI comparison's feature answers](<../Historical/SwiftTUI comparison, 2026-11/Answers, features.md>).
 
+**Promoted, 2026-11-15:** the owner made `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` a supported option, no longer an
+experiment, so it falls under the [API stability policy](<../API stability policy.md>) (decision 5). It stays off by
+default and behaves as below.
+
 ## How to try it
 
 ```sh

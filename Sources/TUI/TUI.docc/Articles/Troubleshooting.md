@@ -229,7 +229,7 @@ On macOS, the notifications `osascript` posts are Script Editor's, so they show 
 
 **Down moves the keyboard to a control that isn't the one below.**
 
-Arrow keys that a control doesn't use itself move the keyboard in Tab order, to the next or previous control, not to the nearest one on screen. To try arrows that go by the screen, set `TUI_ARROW_FOCUS=geometric`, or turn on Arrows Follow Layout in the settings panel (F2) or the View menu. It's an experiment. <doc:FocusSystem> says how sections group controls.
+Arrow keys that a control doesn't use itself move the keyboard in Tab order, to the next or previous control, not to the nearest one on screen. For arrows that go by the screen, set `TUI_ARROW_FOCUS=geometric`, or turn on Arrows Follow Layout in the settings panel (F2) or the View menu. <doc:FocusSystem> says how sections group controls.
 
 ## Too much moves on screen
 

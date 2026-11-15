@@ -4982,8 +4982,9 @@ found the first, and full-screen capture went unapproved. So playback was left o
 the start: every panel as it should be. A white; B and C cycling red, green, white, yellow;
 D one pass, ending and staying on yellow; E held; F never both blocks; G the red block
 steady and the white one blinking, both on frame 2, as `c=1` composing asks; H a bar moving.
-The replies matched 2026-11-02's (`data/ghostty-1.4.0-animation.json`). Whether
-`TUI_GRAPHICS_PLAYBACK` goes on is the owner's, among the experiments (EXPERIMENTS, 2026-11-09).
+The replies matched 2026-11-02's (`data/ghostty-1.4.0-animation.json`). On 2026-11-15 the
+owner promoted `TUI_GRAPHICS_PLAYBACK` from an experiment to a supported option, off by default
+as before (EXPERIMENTS).
 
 **What it rounds to, read and not measured.** Both keep whole milliseconds (`z`), so a
 file's delay survives as it is. Neither rounds to a grid. Each advances at most one
@@ -5040,7 +5041,7 @@ recipe and no cause; the draft report and its tools are in `Documentation/Workin
 (git-ignored), for the owner to post.
 
 What TUI does with it: nothing yet. Playback stays off unless `TUI_GRAPHICS_PLAYBACK=1`
-(`playbackTrustsHandshake`), and whether it ever goes on is the owner's, among the experiments.
+(`playbackTrustsHandshake`), a supported option since 2026-11-15, off by default.
 
 ### Windows Terminal and Sixel — read 2026-11-02, not measured
 

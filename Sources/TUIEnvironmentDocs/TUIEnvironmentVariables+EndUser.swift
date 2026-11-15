@@ -98,7 +98,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_ARROW_FOCUS", .endUser, .keyboardAndMouse,
             values: "`geometric` or `tab`",
-            effect: "An experiment. `geometric`: when the control your keys act on doesn't use an arrow key itself, the arrow moves to the nearest control in that direction, scrolling to it if it's out of sight, so Down goes to the button below. At the edge it stays put instead of wrapping around. Tab and Shift-Tab are unchanged. `tab`: the arrows go in the same order as Tab, even where you've kept Arrows Follow Layout on in the settings panel. Unset, what you've kept there decides, else the order of Tab. \(viewMenu)"),
+            effect: "`geometric`: when the control your keys act on doesn't use an arrow key itself, the arrow moves to the nearest control in that direction, scrolling to it if it's out of sight, so Down goes to the button below. At the edge it stays put instead of wrapping around. Tab and Shift-Tab are unchanged. `tab`: the arrows go in the same order as Tab, even where you've kept Arrows Follow Layout on in the settings panel. Unset, what you've kept there decides, else the order of Tab. \(viewMenu)"),
         TUIEnvironmentVariable(
             "TUI_FOCUS_FOLLOWS_POINTER", .endUser, .keyboardAndMouse,
             values: "`1` or `0`",
@@ -107,7 +107,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_TEXT_CURSOR_FOLLOWS_FOCUS", .endUser, .keyboardAndMouse,
             values: "`1`, `show` or `hidden`",
-            effect: "An experiment, for a screen reader, a braille display or a magnifier that follows the terminal's text cursor: the text cursor (not the mouse pointer, which `TUI_FOCUS_FOLLOWS_POINTER` is about) moves to the control your keys act on after each change. `1` or `show` shows it there, and `hidden` moves it there but keeps it hidden. Unset, the cursor is hidden except in a text field you're typing in."),
+            effect: "For a screen reader, a braille display or a magnifier that follows the terminal's text cursor: the text cursor (not the mouse pointer, which `TUI_FOCUS_FOLLOWS_POINTER` is about) moves to the control your keys act on after each change. `1` or `show` shows it there, and `hidden` moves it there but keeps it hidden. Unset, the cursor is hidden except in a text field you're typing in."),
         TUIEnvironmentVariable(
             "TUI_SPRING_LOADING_DELAY", .endUser, .keyboardAndMouse,
             values: "Seconds, such as `0.3` or `1`",
@@ -245,7 +245,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_GRAPHICS_PLAYBACK", .endUser, .terminal,
             values: "`0` or `1`",
-            effect: "An experiment. `1` hands an animated picture to the terminal to play by itself after it's been sent once, which saves sending each frame. It works only on a terminal that plays Kitty animations: on any other, the picture stops at its first frame. Off unless it's `1`.",
+            effect: "`1` hands an animated picture to the terminal to play by itself after it's been sent once, which saves sending each frame. It works only on a terminal that plays Kitty animations: on any other, the picture stops at its first frame. Off unless it's `1`.",
             code: .overrides("`TerminalClient.graphicsPlaybackSupport`."),
             reading: .eachUse),
         TUIEnvironmentVariable(

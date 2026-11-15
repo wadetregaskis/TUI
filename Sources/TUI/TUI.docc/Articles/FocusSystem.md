@@ -19,7 +19,7 @@ These keys move the focus, once the focused control has let them go:
 
 With `TUI_ARROW_FOCUS=geometric` (<doc:EnvironmentVariables>), or Arrows
 Follow Layout in the settings panel (F2) or the View menu, which wins until the
-app quits, an experiment for trying out, an arrow moves the focus to the nearest control on screen in its
+app quits, an arrow moves the focus to the nearest control on screen in its
 direction instead, so Down goes to the button below rather than the next one in
 Tab order; where there is none it falls back to Tab order. Tab is unchanged, and
 the arrows still stay inside the active focus section.

@@ -101,8 +101,8 @@ internal final class RenderLoop<A: App> {
     var parkedCursor: CellPoint?
 
     /// Whether the terminal's own cursor follows the focus, and is shown
-    /// there, or `nil`: the proof of concept `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns
-    /// on, which the app runner reads (`RenderLoop+Cursor.swift`). `nil` in
+    /// there, or `nil`: what `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns on, which
+    /// the app runner reads (`RenderLoop+Cursor.swift`). `nil` in
     /// every other loop unless a test says otherwise.
     var textCursorFollowsFocus: TextCursorFollowsFocus?
 

@@ -253,7 +253,7 @@ struct MenuBarViewPreferencesTests {
     @Test("Arrows Follow Layout is off by default, and turns the geometric arrows on and off for the run")
     mutating func arrowsFollowLayout() {
         let app = launched(ArrowsApp())
-        #expect(app.arrowFocus == .tabOrder, "the experiment stays off unless asked for")
+        #expect(app.arrowFocus == .tabOrder, "geometric arrows stay off unless asked for")
         if app.focusedID == nil {
             app.send(KeyEvent(key: .tab))
             frame(app)

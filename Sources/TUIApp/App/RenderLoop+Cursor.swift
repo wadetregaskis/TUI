@@ -4,8 +4,8 @@
 //  Where a frame leaves the terminal's hidden cursor: on the focused text
 //  control's insertion point, so that what an input method composes there —
 //  Apple Terminal's pending accent after ⌥E — appears on the caret. And, in
-//  the proof of concept `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns on, on any focused
-//  control, shown or not (`Documentation/Input and focus/Text cursor follows focus
+//  what `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns on, on any focused control, shown
+//  or not (`Documentation/Input and focus/Text cursor follows focus
 //  (proof of concept).md`).
 //
 //  Created by Wade Tregaskis
@@ -14,8 +14,7 @@
 import TUIFoundation
 
 /// Whether the terminal's own text cursor (not the mouse pointer) follows the
-/// focus: the proof of concept `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns on, off
-/// by default.
+/// focus: what `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` turns on, off by default.
 enum TextCursorFollowsFocus: Equatable {
     /// On the focused control, and shown: `1` or `show`.
     case shown

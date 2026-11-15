@@ -325,7 +325,7 @@ struct SettingsPanelTests {
             #expect(view.contains(title), "\(title): \(view)")
         }
         #expect(!view.contains("Reduce Motion"), "\(view)")
-        #expect(app.arrowFocus == .tabOrder, "the experiment is off unless asked for")
+        #expect(app.arrowFocus == .tabOrder, "geometric arrows are off unless asked for")
         try app.click("Arrows Follow Layout")
         frame(app)
         #expect(app.arrowFocus == .geometric, "\(screen(app))")
