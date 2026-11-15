@@ -60,12 +60,11 @@ final class _PickerMenuHandler: PersistedFocusable {
     /// What has been typed to find an option, while the drop-down is open.
     private var typeSelected = TypeSelectBuffer()
 
-    /// Whether a typed character finds an option
-    /// (``EnvironmentValues/isTypeSelectEnabled``). Synced from the
-    /// environment during render, for event time.
-    var isTypeSelectEnabled: Bool {
-        get { typeSelected.isEnabled }
-        set { typeSelected.isEnabled = newValue }
+    /// Takes, during render, for event time, whether a typed character finds
+    /// an option (``EnvironmentValues/isTypeSelectEnabled``) and the clock a
+    /// pause between two is measured on (`TypeSelectBuffer.sync(with:)`).
+    func syncTypeSelect(with environment: EnvironmentValues) {
+        typeSelected.sync(with: environment)
     }
 
     /// The drop-down's vertical scroll, when the option list is taller than the

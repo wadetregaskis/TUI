@@ -185,6 +185,17 @@ extension EnvironmentValues {
         set { self[SynthesizeKeyEventKey.self] = newValue }
     }
 
+    /// The clock input arrives on, in nanoseconds: the mouse dispatcher's
+    /// (``MouseEventDispatcher/nowNanos``), which a running app reads off the
+    /// monotonic clock and a `HeadlessApp` runs on its caller's time — for a
+    /// pause measured between two events, as type select's is
+    /// (``TypeSelectBuffer``). `nil` where no dispatcher reached the
+    /// environment: the reader's own clock then.
+    package var eventClock: (() -> UInt64)? {
+        guard let dispatcher = mouseEventDispatcher else { return nil }
+        return { [weak dispatcher] in dispatcher?.nowNanos() ?? 0 }
+    }
+
     /// Mouse event handler registration and dispatch.
     @inlinable
     package var mouseEventDispatcher: MouseEventDispatcher? {

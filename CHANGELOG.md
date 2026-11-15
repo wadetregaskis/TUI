@@ -50,6 +50,11 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**Type select's pause runs on a `TestApp`'s clock.** The second's pause after which a typed character starts a new
+prefix was measured on the machine's clock, which `advance(by:)` does not move, so two type selects in a test ran
+together ("t", then "s", was "ts"). It is measured on the clock input arrives on, which in a `TestApp` is the one the
+test moves; a running app's is the machine's, as before.
+
 **A `TestApp` has an undo manager, as a running app does.** `@Environment(\.undoManager)` read `nil` in a test, so an
 app's undo could not be tested through its keys or its status-bar items. A `TestApp` now makes one as a running app
 does: a view reads it, ⌃Z undoes through it, the status bar shows its undo and redo items, and a test reads it as

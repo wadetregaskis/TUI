@@ -56,11 +56,20 @@ package struct TypeSelectBuffer {
     /// The characters typed so far.
     package private(set) var prefix = ""
 
-    /// When the last of them came.
-    private var lastKey: ContinuousClock.Instant?
+    /// When the last of them came, on ``clock``.
+    private var lastKey: UInt64?
 
-    /// How long a pause starts a new prefix.
-    package static var timeout: Duration { .seconds(1) }
+    /// How long a pause starts a new prefix — a second — in the nanoseconds
+    /// ``clock`` reads.
+    private static let timeoutNanos: UInt64 = 1_000_000_000
+
+    /// The clock the pause is measured on, in nanoseconds: the one input
+    /// arrives on (``EnvironmentValues/eventClock``), set where the control
+    /// is drawn (``sync(with:)``). In a running app that is the monotonic
+    /// clock; a `TestApp`'s moves only as the test moves it, so a test's
+    /// `advance(by:)` between two characters is the pause that parts them.
+    /// It read the machine's clock until then, which a test could not move.
+    private var clock: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     /// Whether type select is on where the control is drawn
     /// (``EnvironmentValues/isTypeSelectEnabled``, `.typeSelectDisabled(_:)`):
@@ -73,6 +82,13 @@ package struct TypeSelectBuffer {
     }
 
     package init() {}
+
+    /// Takes what the environment where the control is drawn says of type
+    /// select: whether it is on, and the clock a pause is measured on.
+    package mutating func sync(with environment: EnvironmentValues) {
+        isEnabled = environment.isTypeSelectEnabled
+        clock = environment.eventClock ?? { MonotonicClock.nowNanoseconds }
+    }
 
     /// Forgets what was typed: the next character starts a new prefix.
     package mutating func reset() {
@@ -99,8 +115,8 @@ package struct TypeSelectBuffer {
     /// - Returns: Whether the key was taken.
     package mutating func take(_ event: KeyEvent) -> Bool {
         guard isEnabled, Self.takes(event), case .character(let character) = event.key else { return false }
-        let now = ContinuousClock.now
-        if let lastKey, now - lastKey > Self.timeout { prefix = "" }
+        let now = clock()
+        if let lastKey, now &- lastKey > Self.timeoutNanos { prefix = "" }
         lastKey = now
         prefix.append(character)
         return true

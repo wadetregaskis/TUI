@@ -336,12 +336,12 @@ package final class MenuPopupController {
     /// one the keys are in.
     private var typeSelected = TypeSelectBuffer()
 
-    /// Whether a typed character finds a row
-    /// (``EnvironmentValues/isTypeSelectEnabled``), set where the menu is
-    /// presented, for event time.
-    var isTypeSelectEnabled: Bool {
-        get { typeSelected.isEnabled }
-        set { typeSelected.isEnabled = newValue }
+    /// Takes, where the menu is presented, for event time, whether a typed
+    /// character finds a row (``EnvironmentValues/isTypeSelectEnabled``) and
+    /// the clock a pause between two is measured on
+    /// (``TypeSelectBuffer/sync(with:)``).
+    func syncTypeSelect(with environment: EnvironmentValues) {
+        typeSelected.sync(with: environment)
     }
 
     /// The menu the prefix was typed in: one typed in another — the keys gone

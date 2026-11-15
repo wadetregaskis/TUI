@@ -190,7 +190,8 @@ app.advance(by: .milliseconds(500))    // Finished.
 
 ``TestApp/advance(by:)`` draws every frame the app asks for on the way, as a running app would, and takes no real time
 beyond drawing them. A second of animation is sixty frames; an hour with nothing animating is one. Animations and
-transitions move on this clock, as do a `TimelineView`, a long press, a tooltip's delay and a blinking cursor.
+transitions move on this clock, as do a `TimelineView`, a long press, a tooltip's delay, a blinking cursor and the
+pause after which type select starts a new prefix.
 
 A `TimelineView` shows ``TestApp/date``, which you can set for a test of a particular day. ``TestApp/elapsed`` is how
 much time has passed.

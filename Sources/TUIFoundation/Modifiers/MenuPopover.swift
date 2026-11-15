@@ -294,7 +294,7 @@ package func presentMenuPopover<Items: View>(
     // focused list is asked, after the handler below declines it. Where
     // `.typeSelectDisabled()` turned it off, the controller takes nothing,
     // and a typed character goes on — to a row's bare key equivalent, say.
-    controller.isTypeSelectEnabled = context.environment.isTypeSelectEnabled
+    controller.syncTypeSelect(with: context.environment)
     context.environment.keyEventDispatcher!.setTypeSelectTarget(
         TypeSelectTarget(typeSelect: { controller.typeSelect($0) }),
         sectionID: sectionID)
