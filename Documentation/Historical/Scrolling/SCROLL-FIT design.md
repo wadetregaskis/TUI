@@ -1436,6 +1436,17 @@ matches (9,578 declarations) once `ScrollViewReader.body` is a `@ViewBuilder` ag
   stack of a few sections, or of fewer loop elements than its threshold (256) whatever their rows, is drawn whole: one
   `Section` of 10,000 rows unpinned 30,035 (pinned, 68), two such sections 30,035 unpinned and 55,000 pinned, a
   `ForEach` of 100 sections of 100 rows 31,200 either way. Not traced.
+- **Why a horizontal view's 10,000-row table builds its band four times on its first frame** (traced, not changed).
+  Not measures: every one of the 84 builds is a drawing of the table, through `_ScrollViewCore.renderToBuffer`'s
+  first drawing, once a pass, 21 rows each. The four passes are `TestApp`'s launch, and a vertical scroll view's
+  table under a title does the same (84): the first frame's measuring walk, which draws the content to measure it
+  (no bar yet, `isMeasuring`); the launch frame; a second frame, asked by
+  `RenderContext.settleScrollIndicatorPlacement(focusID:)` as the table takes the focus and its bar moves beside its
+  rows; and a third, asked by the focus manager's `onFocusChange` during the second. Each frame builds the band
+  again because a table whose columns compute their values draws its rows on screen every frame (left in P5b/P6b).
+  So there is nothing for the table or the measure protocol to drop: what would cut it is serving a table's unchanged
+  rows across frames, and a launch that settles the focus in fewer frames, both general and not the horizontal
+  view's.
 
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
