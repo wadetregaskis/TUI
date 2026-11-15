@@ -108,21 +108,15 @@ struct TextUndoManagerTests {
         var on = true
     }
 
-    @Test("A control that leaves the screen takes its steps out of the app's history", arguments: [false, true])
-    func removedControlForgetsItsSteps(editor: Bool) {
+    @Test("A field that leaves the screen takes its steps out of the app's history")
+    func removedFieldForgetsItsSteps() {
         let manager = makeManager()
         let box = TextBox()
         let shown = Flag()
         let harness = InputChainHarness(undoManager: manager)
         let page = {
             VStack {
-                if shown.on {
-                    if editor {
-                        TextEditor(text: Binding(get: { box.value }, set: { box.value = $0 }))
-                    } else {
-                        self.field(box)
-                    }
-                }
+                if shown.on { self.field(box) }
                 Button("Other") {}
             }
         }
@@ -134,6 +128,82 @@ struct TextUndoManagerTests {
         #expect(!manager.canUndo && !manager.canRedo, "no step left whose control the frame stopped drawing")
         harness.play([Self.undoKey, Self.redoKey], page)
         #expect(box.value == "ba")
+    }
+
+    /// An editor shown while `shown` is on, over `box`, and a button.
+    private struct EditorPage: View {
+        let box: TextBox
+        let shown: Flag
+
+        var body: some View {
+            VStack {
+                if shown.on { TextEditor(text: Binding(get: { box.value }, set: { box.value = $0 })) }
+                Button("Other") {}
+            }
+        }
+    }
+
+    /// As SwiftUI's editor's steps stay in the window's undo manager after it
+    /// leaves the window, and restore the bound text (measured,
+    /// `Tools/SwiftUIProbes/TextEditor undo after it leaves (FB4)/`).
+    @Test("An editor that leaves the screen leaves its steps, which restore the text through the binding")
+    func removedEditorKeepsItsSteps() {
+        let manager = makeManager()
+        let box = TextBox()
+        let shown = Flag()
+        let harness = InputChainHarness(undoManager: manager)
+        let page = { EditorPage(box: box, shown: shown) }
+        harness.play(typedApart("abc") + [Self.undoKey], page)
+        #expect(box.value == "ba")
+        shown.on = false
+        harness.frame(page())
+        #expect(manager.canUndo && manager.canRedo, "the steps outlive the editor")
+        harness.play([Self.undoKey], page)
+        #expect(box.value == "a")
+        harness.play([Self.undoKey], page)
+        #expect(box.value.isEmpty)
+        #expect(!manager.canUndo)
+        // Ctrl-Y, the app's redo where no text control has the focus.
+        let redo = KeyEvent(key: .character("y"), ctrl: true)
+        harness.play([redo, redo, redo], page)
+        #expect(box.value == "cba", "and redo, as far as the typing went")
+    }
+
+    @Test("An editor off the screen leaves the history once the app replaces its text")
+    func removedEditorForgetsReplacedText() {
+        let manager = makeManager()
+        let box = TextBox()
+        let shown = Flag()
+        let harness = InputChainHarness(undoManager: manager)
+        let page = { EditorPage(box: box, shown: shown) }
+        harness.play(typedApart("ab"), page)
+        shown.on = false
+        harness.frame(page())
+        #expect(manager.canUndo)
+        box.value = "loaded"
+        harness.frame(page())
+        #expect(!manager.canUndo, "no step left that would find its text gone")
+        harness.play([Self.undoKey], page)
+        #expect(box.value == "loaded")
+    }
+
+    @Test("An editor shown again undoes its own typing, then the one that left before it")
+    func editorShownAgainStacksOnTheDeparted() {
+        let manager = makeManager()
+        let box = TextBox()
+        let shown = Flag()
+        let harness = InputChainHarness(undoManager: manager)
+        let page = { EditorPage(box: box, shown: shown) }
+        harness.play(typedApart("ab"), page)
+        shown.on = false
+        harness.frame(page())
+        shown.on = true
+        harness.play([KeyEvent(key: .tab, shift: true)] + typedApart("c"), page)
+        #expect(box.value == "cba")
+        harness.play([Self.undoKey], page)
+        #expect(box.value == "ba", "the new editor's typing first")
+        harness.play([Self.undoKey, Self.undoKey], page)
+        #expect(box.value.isEmpty, "then the departed one's")
     }
 
     /// Holds the only reference to a field's handler, for another thread to

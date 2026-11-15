@@ -289,6 +289,13 @@ struct TextUndoHistory<Caret: Equatable> {
         return dropped
     }
 
+    /// The mark of the newest state undo would take back, and of the newest
+    /// redo would bring back: the steps the app's undo manager would run
+    /// next, if they are the newest there.
+    var newestMarks: (undo: TextUndoMark?, redo: TextUndoMark?) {
+        (states.last?.mark, redoStates.last?.mark)
+    }
+
     /// Every mark the history still holds, undo and redo, and those let go of
     /// and not yet taken: what a control going away takes out of the app's
     /// undo manager.

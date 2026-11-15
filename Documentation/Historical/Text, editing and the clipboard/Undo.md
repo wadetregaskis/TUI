@@ -85,7 +85,7 @@ day; nothing in the SwiftUI surface needs them.
 If swift-corelibs-foundation ever ships an `UndoManager`, the two would clash
 on Linux; the declaration's `#if` would then need a version condition.
 
-### B-D1K-6. A text control's undo steps are per event, they last as long as the control, and a secure field has none
+### B-D1K-6. A text control's undo steps are per event, they last as long as the control (an editor's longer), and a secure field has none
 
 *`TextField`, `TextEditor`, `SecureField`, `EnvironmentValues.undoManager`*
 
@@ -132,6 +132,37 @@ nothing and keeps the private Ctrl-Z it had: a password's keystrokes in the
 app's history would be undoable from anywhere, which is not a thing a
 secure field should offer (AppKit's secure text field is believed to keep
 its typing out of the window's undo too; not measured).
+
+**An editor's steps outlive it** (2026-11-15, tuitree's M4 feedback, item 2).
+A `TextEditor` whose binding outlives it — the source pane of a split view,
+hidden and shown — took its typing out of the app's history as it left the
+screen, and with it the undo of everything the app had made of that text.
+**Measured** on macOS 15.8.3 (`Tools/SwiftUIProbes/TextEditor undo after it
+leaves (FB4)/`): a SwiftUI `TextEditor` behind an `if`, typed into and then
+taken off the screen, leaves its steps in the window's undo manager; undo
+puts the bound text back as it was before the typing, with no editor, and
+redo puts the typing back. A plain `NSTextView` removed from its window keeps
+its steps too, and the steps keep the view alive after its last other
+reference goes. A `TextField` could not be measured that way: typing through
+its field editor in the probe registered no step at all.
+
+**Shipped:** an editor's steps keep it (`AppUndoableText.stepsKeepControl`),
+as the `NSTextView`'s keep it, and stay when it leaves the screen; an undo
+then writes the text back through the binding, and nothing of the caret,
+which is not drawn. It lets go of its layout as it leaves. As each frame
+ends it is asked (`OffScreenUndoKeeping`, from `DepartedUndoSteps.takeOut()`)
+whether the newest undo or redo the manager would run is one of its own and
+would find the text replaced since it last wrote it — the app loaded another
+text — and then it forgets its history and its steps leave, as they would at
+its render on the screen. An older step's text may come back, the steps
+registered since undone, so only the next one is judged. **Not matched:** the
+app replacing the text under SwiftUI's editor leaves its steps, and an undo
+then takes the typed range out of whatever text is there now (`"xyz"` became
+`"x"` in the probe); TUI forgets them instead, as it always has for an editor
+on the screen. An editor shown again is a new one, with a history of its own,
+and the departed one's steps stay beneath its: undoing the new typing brings
+back the text the departed one left, whose steps then take that back, as in
+SwiftUI.
 
 **The fuller version** coalesces a typing run into one step, as the macOS text
 system does: consecutive insertions with no caret move or pause between them

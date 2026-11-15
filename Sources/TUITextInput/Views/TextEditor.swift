@@ -433,6 +433,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // text the app has replaced since, taken out of it.
         handler.undoManager = context.environment.undoManager
         handler.departedUndoSteps = context.environment.departedUndoSteps
+        handler.isOffScreen = false
         if !context.isMeasuring {
             handler.forgetHistoryIfReplaced()
             // The first render pass is when the editor appeared, where a flash

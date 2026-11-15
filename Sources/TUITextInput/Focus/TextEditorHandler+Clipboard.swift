@@ -160,9 +160,12 @@ extension TextEditorHandler {
         if let undoManager { TextUndoBridge.forget(dropped, on: undoManager) }
     }
 
-    /// Restores `state`, as an undo or a redo does.
+    /// Restores `state`, as an undo or a redo does: the text alone, off the
+    /// screen, where no caret is drawn and laying the text out would cost the
+    /// whole document.
     private func restore(_ state: (text: String, caret: TextEditorPosition)) {
         write(state.text)
+        guard !isOffScreen else { return }
         selectionAnchor = nil
         cursor = state.caret
         clampCursor()
@@ -173,6 +176,10 @@ extension TextEditorHandler {
 // MARK: - AppUndoableText
 
 extension TextEditorHandler: AppUndoableText {
+    /// An editor's steps keep it, so they outlive it on the screen
+    /// (``storageDidDrop()``).
+    var stepsKeepControl: Bool { true }
+
     func undoOwnStep(mark: TextUndoMark?) -> Bool {
         // Runs inside the undo manager's own undo, so a replaced text forgets
         // the history here without touching the manager (see
@@ -189,6 +196,30 @@ extension TextEditorHandler: AppUndoableText {
         guard let next = undoHistory.redo(from: (text.wrappedValue, cursor), mark: mark) else { return false }
         restore(next)
         return true
+    }
+}
+
+// MARK: - Off the screen
+
+extension TextEditorHandler: OffScreenUndoKeeping {
+    /// Forgets the history, and takes its steps out of the app's undo manager,
+    /// where the newest of them — the next undo or redo — would find the text
+    /// replaced since the editor last wrote it: the app loaded another text
+    /// into the binding. Not otherwise: an older step's text may come back, the
+    /// steps registered since undone. So the manager offers no step that does
+    /// nothing, as it does not for an editor on the screen
+    /// (``forgetHistoryIfReplaced()``).
+    ///
+    /// - Returns: Whether it has steps to keep: none once it has forgotten them,
+    ///   or is drawn again.
+    func keepsStepsOffScreen() -> Bool {
+        guard isOffScreen, let undoManager else { return false }
+        let (undo, redo) = undoHistory.newestMarks
+        let isNext =
+            undo.map { TextUndoBridge.isNewestStep($0, on: undoManager) } == true
+            || redo.map { TextUndoBridge.isNewestRedo($0, on: undoManager) } == true
+        if isNext, undoHistory.forgetIfReplaced(current: text.wrappedValue) { forgetDroppedSteps() }
+        return !undoHistory.allMarks.isEmpty
     }
 }
 

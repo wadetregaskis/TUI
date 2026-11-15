@@ -902,7 +902,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   no notifications.
 - **Why:** a terminal app that raised would die holding the terminal in raw
   mode. Ctrl-Z is the key a terminal user reaches for.
-- **Decided:** [B-D1K-5](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-5-undomanager-on-linux-is-tuis-own-without-notifications-or-selectors>), [B-D1K-6](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-6-a-text-controls-undo-steps-are-per-event-they-last-as-long-as-the-control-and-a-secure-field-has-none>),
+- **Decided:** [B-D1K-5](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-5-undomanager-on-linux-is-tuis-own-without-notifications-or-selectors>), [B-D1K-6](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-6-a-text-controls-undo-steps-are-per-event-they-last-as-long-as-the-control-an-editors-longer-and-a-secure-field-has-none>),
   [B-D1K-7](<../Historical/Text, editing and the clipboard/Undo.md#b-d1k-7-the-undo-and-redo-keys-are-data-ctrl-z-among-them-redos-reach-only-some-terminals-and-the-status-bar-is-the-route-everywhere>). **Owner** for Ctrl-Z (2026-10-04); **Lane** for the
   rest.
 

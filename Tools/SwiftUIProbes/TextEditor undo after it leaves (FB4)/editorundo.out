@@ -1,0 +1,22 @@
+swiftui: typed bc -> text "abc"; window manager is \.undoManager: true; canUndo true
+  hidden -> editor in window: false; canUndo true
+  undo -> text "a"; canUndo false; canRedo true
+  redo -> text "abc"
+swiftui (shown again): typed bc -> text "abc"; window manager is \.undoManager: true; canUndo true
+  hidden -> editor in window: false; canUndo true
+  shown again -> canUndo true
+  undo -> text "a"; canUndo false; canRedo true
+  redo -> text "abc"
+swiftui, the app replacing the text instead of hiding the editor:
+swiftui: typed bc -> text "abc"; window manager is \.undoManager: true; canUndo true
+  app replaced the text -> editor shows "xyz"; canUndo true
+  undo -> text "x"; canUndo false; canRedo true
+  redo -> text "xyz"
+swiftui TextField: typed bc -> text "abc"; window manager is \.undoManager: true; canUndo false
+  hidden -> editor in window: false; canUndo false
+appkit: typed bc -> "abc"; canUndo true
+  removed -> view alive true; canUndo true
+  undo -> view text "a"; canRedo true
+appkit (released): typed bc -> "abc"; canUndo true
+  removed -> view alive true; canUndo true
+  undo -> view text "a"; canRedo true

@@ -35,6 +35,27 @@ package protocol AppUndoableText: AnyObject {
     func undoOwnStep(mark: TextUndoMark?) -> Bool
     /// Takes the undone step `mark` forward again, as ``undoOwnStep(mark:)``.
     func redoOwnStep(mark: TextUndoMark?) -> Bool
+    /// Whether the control's steps hold it, so they outlive its view, as an
+    /// `NSTextView`'s steps outlive its place in the window (``TextUndoStep``);
+    /// `false`, the default, holds it weakly.
+    var stepsKeepControl: Bool { get }
+}
+
+extension AppUndoableText {
+    package var stepsKeepControl: Bool { false }
+}
+
+/// A text control whose steps outlive its view (``AppUndoableText/stepsKeepControl``),
+/// while it is off the screen and its steps are in the app's undo manager:
+/// asked as each frame ends whether they still mean something
+/// (``DepartedUndoSteps/takeOut()``).
+@MainActor
+package protocol OffScreenUndoKeeping: AnyObject {
+    /// Takes the control's steps out of the app's undo manager if the newest
+    /// of them would find its text replaced since it last wrote it — as one
+    /// on the screen does at its render — and answers whether it still has
+    /// steps there to keep.
+    func keepsStepsOffScreen() -> Bool
 }
 
 /// How a text control's own history and the app's undo manager stay one
@@ -55,7 +76,10 @@ package protocol AppUndoableText: AnyObject {
 /// lets go of — past its limit, forgotten when the app replaced the text, a
 /// redo a new edit discarded — takes its step out with it
 /// (``forget(_:on:)``), and so does every state of a control that goes away,
-/// at the end of the frame that stopped drawing it (``DepartedUndoSteps``).
+/// at the end of the frame that stopped drawing it (``DepartedUndoSteps``) —
+/// but a `TextEditor`'s, whose steps keep it (``AppUndoableText/stepsKeepControl``),
+/// and stay while its text is the one it left, as SwiftUI's editor's do
+/// (measured, `Tools/SwiftUIProbes/TextEditor undo after it leaves (FB4)/`).
 /// A replacement is seen where the control renders, which it does in the
 /// frame that draws the new text, ahead of the status bar and the next key.
 /// The one undo that can find nothing is one in the same burst of input as
@@ -63,8 +87,9 @@ package protocol AppUndoableText: AnyObject {
 /// inside the manager's undo, which is spent, and the rest of its steps leave
 /// at the frame (taken out from inside the undo, they would leave
 /// `NSUndoManager` an emptied step it never drops — measured on macOS 15). A
-/// step holds its control weakly, so it can neither keep one alive nor reach
-/// one that is gone.
+/// field's step holds it weakly, so it can neither keep one alive nor reach
+/// one that is gone; an editor's holds it, so it can restore the text through
+/// the binding after the editor has left the screen.
 ///
 /// The undo manager, the controls and everything here are isolated to the main
 /// actor.
@@ -88,6 +113,7 @@ package enum TextUndoBridge {
         // The mark is captured as well as passed: the manager keeps its target
         // unowned, and the step is what keeps the mark alive.
         let step = TextUndoStep(control: control, manager: manager, undoing: undoing)
+        if control.stepsKeepControl { step.kept = control }
         manager.registerUndo(withTarget: mark) { [step, mark] _ in
             // The manager runs its steps on the main actor. The macOS 26 SDK's
             // handler says so; the macOS 15 SDK's (the Command Line Tools')
@@ -124,6 +150,12 @@ package enum TextUndoBridge {
     /// not end the run.
     package static func isNewestStep(_ mark: TextUndoMark, on manager: UndoManager) -> Bool {
         manager.undoActionUserInfoValue(forKey: UndoManager.UserInfoKey(markKey)) as AnyObject? === mark
+    }
+
+    /// Whether the step registered against `mark` is the newest redo in
+    /// `manager`: the one its redo would bring back.
+    package static func isNewestRedo(_ mark: TextUndoMark, on manager: UndoManager) -> Bool {
+        manager.redoActionUserInfoValue(forKey: UndoManager.UserInfoKey(markKey)) as AnyObject? === mark
     }
 
     /// Takes the steps registered against `marks` out of `manager`, at once.
@@ -167,6 +199,23 @@ package final class DepartedUndoSteps {
     /// steps are registered with, which is touched only in ``takeOut()``.
     private var pending: [(marks: [TextUndoMark], manager: UndoManager)] = []
 
+    /// The controls off the screen whose steps stay (``keep(_:)``), held
+    /// weakly: their steps hold them, and once the manager lets go of those
+    /// steps there is nothing to keep.
+    private var offScreen: [WeakOffScreen] = []
+
+    /// A control off the screen, held weakly.
+    private struct WeakOffScreen {
+        weak var control: (any OffScreenUndoKeeping)?
+    }
+
+    /// Notes `control`, which has left the screen with its steps in the app's
+    /// undo manager, to be asked as each frame ends whether they still mean
+    /// something (``OffScreenUndoKeeping/keepsStepsOffScreen()``).
+    package func keep(_ control: any OffScreenUndoKeeping) {
+        offScreen.append(WeakOffScreen(control: control))
+    }
+
     /// Leaves `marks`, a control's that is going away, to be taken out of
     /// `manager` at the next end or start of a frame.
     package func add(_ marks: [TextUndoMark], from manager: UndoManager) {
@@ -181,10 +230,19 @@ package final class DepartedUndoSteps {
     ///
     /// - Returns: Whether there were any, so a frame that has already drawn its
     ///   status bar can ask for another that does not offer them.
+    ///
+    /// And asks each control off the screen whose steps stay whether they
+    /// still mean something, letting go of those that answer no.
     @MainActor
     @discardableResult
     package func takeOut() -> Bool {
-        guard !pending.isEmpty else { return false }
+        var changed = false
+        if !offScreen.isEmpty {
+            let count = offScreen.count
+            offScreen.removeAll { $0.control?.keepsStepsOffScreen() != true }
+            changed = offScreen.count != count
+        }
+        guard !pending.isEmpty else { return changed }
         let taken = pending
         pending = []
         for (marks, manager) in taken {
@@ -196,10 +254,14 @@ package final class DepartedUndoSteps {
 
 /// One step a text control registered with the undo manager: the control,
 /// held weakly so a step can neither keep one alive nor reach one that is
-/// gone, the manager its inverse goes back to, and which way it moves.
+/// gone — and also strongly, for one whose steps keep it
+/// (``AppUndoableText/stepsKeepControl``) — the manager its inverse goes back
+/// to, and which way it moves.
 @MainActor
 private final class TextUndoStep {
     weak var control: (any AppUndoableText)?
+    /// The control, held, where its steps keep it.
+    var kept: (any AppUndoableText)?
     let manager: UndoManager
     let undoing: Bool
 

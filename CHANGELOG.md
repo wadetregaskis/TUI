@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `TextEditor`'s typing can be undone after the editor leaves the screen.** Its steps stayed in the app's undo
+manager only while it was drawn: a pane hidden in a split view took them with it, though its binding, and the text,
+lived on. They now stay, and undo and redo restore the text through the binding, as SwiftUI's editor's steps stay in
+the window's undo manager after it leaves the window. They leave when the app replaces the text and the next undo or
+redo would find it gone, as an editor's on the screen do. A `TextField`'s still leave with it.
+
 **A document a `DocumentGroup` opens after launch starts with the focus where a new window's content does.** Opened
 through `openDocument(at:)` or Open…, its content replaced the last document's, and the focus walked from the last
 document's focused control to the first control of the new content: its `.searchable`'s field, so the keys the table

@@ -205,11 +205,15 @@ final class TextEditorHandler: PersistedFocusable {
         self.clipboard = clipboard
     }
 
-    /// An editor that goes away takes its steps out of the app's undo manager,
-    /// which would otherwise offer undos that change nothing anyone can see —
-    /// at the start of the next frame, as a field's do (``DepartedUndoSteps``);
-    /// one that leaves the screen, at the end of the frame that stopped
-    /// drawing it, as a field's do (``storageDidDrop()``).
+    /// Whether the editor has left the screen with its steps in the app's
+    /// undo manager, which keep it (``storageDidDrop()``): an undo then
+    /// restores the text through the binding, and nothing of the caret.
+    var isOffScreen = false
+
+    /// An editor that goes away takes what steps it has left out of the app's
+    /// undo manager — none, while they keep it alive
+    /// (``AppUndoableText/stepsKeepControl``) — at the start of the next frame,
+    /// as a field's do (``DepartedUndoSteps``).
     deinit {
         if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
     }
@@ -217,7 +221,7 @@ final class TextEditorHandler: PersistedFocusable {
     // MARK: - Line access
 
     /// The document laid out, for the text it was laid out from.
-    private var cachedLayout: EditorLayout?
+    var cachedLayout: EditorLayout?
 
     /// The glyph the editor draws for every character while its text is
     /// hidden — redacted, or privacy-sensitive under privacy redaction — and
@@ -234,7 +238,7 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// The hidden text laid out as it is drawn, for the text and glyph it was
     /// made from (``displayLayout(of:)``).
-    private var cachedDisplayLayout: (text: String, glyph: Character, layout: EditorLayout)?
+    var cachedDisplayLayout: (text: String, glyph: Character, layout: EditorLayout)?
 
     /// The layout of the text the binding holds now: the one kept, while the
     /// text is the one it was made from, and a new one otherwise.
@@ -990,9 +994,22 @@ extension TextEditorHandler: ScrollIndicatorPointerTracking {}
 // MARK: - Leaving the screen
 
 extension TextEditorHandler: StateStorageDeparting {
-    /// The editor is no longer drawn: its steps leave the app's undo manager at
-    /// the end of this frame, as a field's do (`TextFieldHandler`).
+    /// The editor is no longer drawn, and its steps stay in the app's undo
+    /// manager, keeping it, so an undo restores the text through the binding,
+    /// which may well outlive the editor — a pane hidden in a split view — as
+    /// SwiftUI's `TextEditor`'s steps stay in the window's undo manager after
+    /// it leaves the window, and restore the text it was bound to (measured on
+    /// macOS 15.8, `Tools/SwiftUIProbes/TextEditor undo after it leaves (FB4)/`;
+    /// tuitree's M4 feedback, item 2). It lets go of the layout, which only a
+    /// drawn editor reads, and is asked as each frame ends whether its steps
+    /// still mean something (``keepsStepsOffScreen()``).
+    ///
+    /// A field's steps leave with it (`TextFieldHandler`).
     func storageDidDrop() {
-        if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
+        isOffScreen = true
+        cachedLayout = nil
+        cachedDisplayLayout = nil
+        guard undoManager != nil, !undoHistory.allMarks.isEmpty else { return }
+        departedUndoSteps?.keep(self)
     }
 }
