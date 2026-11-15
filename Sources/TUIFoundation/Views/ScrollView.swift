@@ -325,6 +325,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     // MARK: Layout
 
     func sizeThatFits(proposal: ProposedViewSize, context given: RenderContext) -> ViewSize {
+        // In a vertical scroll view's content, its content in its place
+        // (`ScrollView+Nested.swift`): a search goes on into it.
+        if let forwarded = forwardedSize(proposal: proposal, context: given) { return forwarded }
         // A `scrollTo` searching an outer scroll view's content stops here: a
         // key in this one's content is this one's to seek, and its registry
         // entry already holds the request (`ScrollToRegistry.scrollTo`).
@@ -591,7 +594,9 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
     }
 
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if let margined = margined(context: context) { return margined.renderToBuffer(context: context) }
+        // Forwarded to the scroll view around it (`ScrollView+Nested.swift`),
+        // or drawn inside its content margins by a copy of itself.
+        if let drawn = forwardedDrawing(context) ?? marginedDrawing(context) { return drawn }
         // The viewport is its content's `containerRelativeFrame` container, and
         // the context this view reads (`hidingAutomaticIndicators(_:)`).
         let (context, viewportWidth, viewportHeight, textLines, knownHorizontalBar) = viewport(context)

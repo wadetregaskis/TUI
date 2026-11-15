@@ -215,6 +215,12 @@ extension _ScrollViewCore {
             hidesAutomaticIndicators: hidesAutomaticIndicators)
     }
 
+    /// This view drawn by its margined copy (``margined(context:)``), or
+    /// `nil` when it has no margins and draws itself.
+    func marginedDrawing(_ context: RenderContext) -> FrameBuffer? {
+        margined(context: context)?.renderToBuffer(context: context)
+    }
+
     /// The margins around this view's scroll indicators — `.scrollIndicators`
     /// and the indicator half of `.automatic` (see ``ContentMargins``). Zero
     /// for almost every view, which pays one test for it.
