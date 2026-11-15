@@ -85,10 +85,15 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     /// whose four-byte alignment would leave a gap after a content of odd size.
     let pinsSectionHeaders: Bool
     let pinsSectionFooters: Bool
+    /// Whether this lazy stack prices its rows by a sample and bands them
+    /// however few there are, as one past the threshold does
+    /// (``estimatesRows(count:context:)``): a section's loop in a lazy stack
+    /// whose sections' rows together pass it (`ForEach.windowedColumn`).
+    let estimatesWhateverItsCount: Bool
 
     package init(
         alignment: HorizontalAlignment, spacing: Int, overflow: StackOverflow,
-        pinnedViews: PinnedScrollableViews = [], content: Content
+        pinnedViews: PinnedScrollableViews = [], estimatesWhateverItsCount: Bool = false, content: Content
     ) {
         self.alignment = alignment
         self.spacing = spacing
@@ -96,6 +101,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         self.overflow = overflow
         self.pinsSectionHeaders = pinnedViews.contains(.sectionHeaders)
         self.pinsSectionFooters = pinnedViews.contains(.sectionFooters)
+        self.estimatesWhateverItsCount = estimatesWhateverItsCount
     }
 
     @MainActor package var body: Never {
@@ -328,7 +334,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             if let fast = uniformSeekSizeThatFits(collection, proposal: proposal, context: context) {
                 return filingPulled(fast, collection, measureContext: measureContext, context: context)
             }
-            if collection.count > Self.anchoredWindowThreshold || pullsItsRows(context: context),
+            if estimatesRows(count: collection.count, context: context) || pullsItsRows(context: context),
                 let anchored = anchoredSizeThatFits(collection, proposal: proposal, context: context)
             {
                 return filingPulled(anchored, collection, measureContext: measureContext, context: context)

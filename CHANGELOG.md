@@ -56,6 +56,9 @@ app:
 - A `LazyVStack` of a few `Section`s with long loops, `LazyVStack { Section { ForEach(0..<10_000) { … } } }`, builds
   only the rows on screen too, pinning its sections' headers or footers or not, where its first frame built every row
   of every section, more than once. A pinning stack whose only content is a section now pins that section's header.
+  So does a `LazyVStack` of a loop of a few hundred sections or fewer, `ForEach(groups) { Section { ForEach(items) {
+  … } } }`, whose first frame built every row of every section however many there were: it now builds a sample of
+  the sections and the rows on screen.
 
 **A `ScrollViewReader` inside a scroll view's content scrolls that scroll view.** `ScrollView { ScrollViewReader {
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll

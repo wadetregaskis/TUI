@@ -133,6 +133,17 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     /// seed from the same count, so the two paths answer alike.
     static var anchoredWidthSampleCount: Int { 16 }
 
+    /// Whether this stack prices its rows by a sample — the anchored estimate
+    /// and window — rather than measuring each: past the threshold; a
+    /// section's loop its stack says to (``estimatesWhateverItsCount``); or a
+    /// stack whose sections' loops together pass the threshold, however few
+    /// sections (``PinnedSectionScope/windowsSectionLoops``), as their rows
+    /// would taken apart. `context` is this stack's own, scoped.
+    func estimatesRows(count: Int, context: RenderContext) -> Bool {
+        count > Self.anchoredWindowThreshold || estimatesWhateverItsCount
+            || context.environment.pinnedSectionScope?.windowsSectionLoops(of: context.identity) == true
+    }
+
     /// Applies a DESIGNATED row anchor (`.anchorPosition(.row(id))`), which
     /// replaces the implicit top-visible anchor, and returns its key (or `nil`
     /// when no designation is in force).
@@ -1025,7 +1036,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
                 {
                     return fast
                 }
-                if collection.count > Self.anchoredWindowThreshold,
+                if estimatesRows(count: collection.count, context: context),
                     let anchored = renderAnchoredWindow(collection, window: window, context: context)
                 {
                     return anchored

@@ -135,14 +135,83 @@ protocol CountedLoop {
 /// Whether `content`, a section's, is a loop (written bare or in an `if`)
 /// that a lazy stack's own section draws as a lazy stack of its own, in
 /// scroll content: one past the lazy stack's threshold, as a windowing
-/// container's column is (``ForEach/windowedColumn(context:)``). Counted
-/// without building a row.
+/// container's column is (``ForEach/windowedColumn(context:)``), or any,
+/// `whateverItsCount`, in a stack whose sections' loops together pass it
+/// (``PinnedSectionScope/windowsSectionLoops``). Counted without building a
+/// row.
 @MainActor
-func sectionContentLoopWindows<Content: View>(_ content: Content, in context: RenderContext) -> Bool {
+func sectionContentLoopWindows<Content: View>(
+    _ content: Content, whateverItsCount: Bool, in context: RenderContext
+) -> Bool {
     guard context.scrollContentOriginDepth != 0, let loop = content as? any CountedLoop,
         !context.environment.drawsContainerRowsWhole, !context.environment.drawsListSectionChrome
     else { return false }
-    return loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
+    return whateverItsCount || loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
+}
+
+// MARK: - The rows a stack's sections' loops make
+
+/// Views that may be or make sections: the rows they hand a lazy stack,
+/// each section's loop counted by its elements, so a stack of a few sections
+/// can tell whether their rows together pass its threshold
+/// (``PinnedSectionScope/windowsSectionLoops``) without building a row.
+@MainActor
+protocol SectionLoopRowsCounting {
+    /// The rows, counting a section as its loop's elements and one more, and
+    /// any other view as one — stopping once past `limit` — or `nil` when no
+    /// section with a loop is among them.
+    func sectionLoopRows(upTo limit: Int, in context: RenderContext) -> Int?
+}
+
+@MainActor extension Section: SectionLoopRowsCounting where Parent: View, Content: View, Footer: View {
+    func sectionLoopRows(upTo limit: Int, in context: RenderContext) -> Int? {
+        guard showsContent, let loop = content as? any CountedLoop else { return nil }
+        return 1 + loop.liveElementCount(in: context)
+    }
+}
+
+@MainActor extension ForEach: SectionLoopRowsCounting where Content: View {
+    /// A loop of sections: each element's section built, its rows counted —
+    /// a section value, not one of its rows. Of anything else, `nil`, with
+    /// nothing built; and of more sections than `limit`, which a lazy stack
+    /// windows by their count, sampling each section it measures whole (the
+    /// SCROLL-FIT design's S7 record says why that stays).
+    func sectionLoopRows(upTo limit: Int, in context: RenderContext) -> Int? {
+        guard Content.self is any SectionLoopRowsCounting.Type else { return nil }
+        let data = data(in: context)
+        guard data.count <= limit else { return nil }
+        var total = 0
+        var sawSection = false
+        for element in data {
+            guard let rows = (content(element) as? any SectionLoopRowsCounting)?.sectionLoopRows(
+                upTo: limit - total, in: context)
+            else {
+                total += 1
+                continue
+            }
+            sawSection = true
+            total += rows
+            if total > limit { break }
+        }
+        return sawSection ? total : nil
+    }
+}
+
+@MainActor extension TupleView: SectionLoopRowsCounting {
+    func sectionLoopRows(upTo limit: Int, in context: RenderContext) -> Int? {
+        var total = 0
+        var sawSection = false
+        for child in repeat each children {
+            guard total <= limit else { break }
+            if let rows = (child as? any SectionLoopRowsCounting)?.sectionLoopRows(upTo: limit - total, in: context) {
+                sawSection = true
+                total += rows
+            } else {
+                total += 1
+            }
+        }
+        return sawSection ? total : nil
+    }
 }
 
 @MainActor extension ConditionalView: CountedLoop {
@@ -163,23 +232,28 @@ func sectionContentLoopWindows<Content: View>(_ content: Content, in context: Re
 
 @MainActor extension TupleView: ImplicitColumnMembers {
     package func columnOfSeveral(in context: RenderContext) -> (any View)? {
-        columnOfSeveral(alignment: .leading, spacing: 0, pinning: false, in: context)
+        columnOfSeveral(alignment: .leading, spacing: 0, pinning: false, sectionLoops: false, in: context)
     }
 
     /// These views as a column laid out at `alignment` and `spacing`, when
-    /// one is a loop past the lazy stack's threshold; `nil` otherwise, and,
-    /// `pinning` (the loop's lazy stack pins its sections), `nil` too when a
-    /// view beside the loop may be a section, which the column would not pin.
+    /// one is a loop past the lazy stack's threshold, or, `sectionLoops` (the
+    /// stack's sections' loops together pass it,
+    /// ``PinnedSectionScope/windowsSectionLoops``), a loop of sections however
+    /// few; `nil` otherwise, and, `pinning` (the loop's lazy stack pins its
+    /// sections) or `sectionLoops`, `nil` too when a view beside the loop may
+    /// be a section, which the column would neither pin nor keep whole.
     package func columnOfSeveral(
-        alignment: HorizontalAlignment, spacing: Int, pinning: Bool, in context: RenderContext
+        alignment: HorizontalAlignment, spacing: Int, pinning: Bool, sectionLoops: Bool, in context: RenderContext
     ) -> (any View)? {
         var foundLoop = false
         for child in repeat each children {
             if !foundLoop, let loop = child as? any CountedLoop,
                 loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
+                    || (sectionLoops && (child as? any SectionLoopRowsCounting)?.sectionLoopRows(
+                        upTo: _VStackCore<EmptyView>.anchoredWindowThreshold, in: context) != nil)
             {
                 foundLoop = true
-            } else if pinning, TUIFoundation.mayHandOver(.section, type(of: child)) {
+            } else if pinning || sectionLoops, TUIFoundation.mayHandOver(.section, type(of: child)) {
                 return nil
             }
         }
@@ -194,9 +268,9 @@ func sectionContentLoopWindows<Content: View>(_ content: Content, in context: Re
 /// tuple.
 @MainActor
 package protocol LazyColumnMembers {
-    /// See ``TupleView/columnOfSeveral(alignment:spacing:pinning:in:)``.
+    /// See ``TupleView/columnOfSeveral(alignment:spacing:pinning:sectionLoops:in:)``.
     func columnOfSeveral(
-        alignment: HorizontalAlignment, spacing: Int, pinning: Bool, in context: RenderContext
+        alignment: HorizontalAlignment, spacing: Int, pinning: Bool, sectionLoops: Bool, in context: RenderContext
     ) -> (any View)?
 }
 
@@ -212,6 +286,10 @@ package struct ImplicitColumnRowLayout: Equatable, Sendable {
     let alignment: HorizontalAlignment
     let spacing: Int
     var pinnedViews: PinnedScrollableViews = []
+    /// Whether the loop is drawn as a lazy stack however few its elements:
+    /// a section's, in a lazy stack whose sections' loops together pass the
+    /// threshold (``PinnedSectionScope/windowsSectionLoops``).
+    var windowsAnyCount = false
 }
 
 /// EnvironmentKey for ``EnvironmentValues/implicitColumnRowLayout``.
@@ -270,15 +348,23 @@ extension _VStackCore {
         let pins = pinsSectionHeaders || pinsSectionFooters
         guard overflow == .window, context.scrollContentOriginDepth != 0,
             let members = content as? any LazyColumnMembers,
-            !context.environment.drawsContainerRowsWhole, !context.environment.drawsListSectionChrome,
-            let column = members.columnOfSeveral(alignment: alignment, spacing: spacing, pinning: pins, in: context)
+            !context.environment.drawsContainerRowsWhole, !context.environment.drawsListSectionChrome
+        else { return nil }
+        // A title over a loop of a few long sections, `LazyVStack { title;
+        // ForEach(groups) { Section … } }`: the loop drawn as a lazy stack of
+        // its own however few its sections, each drawing its loop so
+        // (``PinnedSectionScope/windowsSectionLoops``).
+        let sectionLoops = contentMayHoldSections && sectionLoopsPassThreshold(context)
+        guard
+            let column = members.columnOfSeveral(
+                alignment: alignment, spacing: spacing, pinning: pins, sectionLoops: sectionLoops, in: context)
         else { return nil }
         var columnContext = context.withChildIdentity(type: _ImplicitColumnOfSeveral.self)
         var pinned: PinnedScrollableViews = []
         if pinsSectionHeaders { pinned.insert(.sectionHeaders) }
         if pinsSectionFooters { pinned.insert(.sectionFooters) }
         columnContext.environment.implicitColumnRowLayout = ImplicitColumnRowLayout(
-            alignment: alignment, spacing: spacing, pinnedViews: pinned)
+            alignment: alignment, spacing: spacing, pinnedViews: pinned, windowsAnyCount: sectionLoops)
         return (column, columnContext)
     }
 }
@@ -320,7 +406,8 @@ extension View {
     /// it there, so each row keeps the identity it has drawn whole.
     func windowedColumn(context: RenderContext) -> _VStackCore<Self>? {
         guard context.scrollContentOriginDepth != 0,
-            data(in: context).count > _VStackCore<Self>.anchoredWindowThreshold,
+            context.environment.implicitColumnRowLayout?.windowsAnyCount == true
+                || data(in: context).count > _VStackCore<Self>.anchoredWindowThreshold,
             Self.isWindowingContainersColumn(context.identity), !context.environment.drawsContainerRowsWhole,
             // A `List` draws a section it cannot read as rows as one view,
             // and keeps its own rows.
@@ -331,7 +418,8 @@ extension View {
         let layout = context.environment.implicitColumnRowLayout
         return _VStackCore(
             alignment: layout?.alignment ?? .leading, spacing: layout?.spacing ?? 0, overflow: .window,
-            pinnedViews: layout?.pinnedViews ?? [], content: self)
+            pinnedViews: layout?.pinnedViews ?? [], estimatesWhateverItsCount: layout?.windowsAnyCount ?? false,
+            content: self)
     }
 
     /// Whether a windowing container (``WindowsItsImplicitColumn``) stands on
@@ -387,11 +475,26 @@ extension View {
     /// would build every row that fits the height it is offered, which for a
     /// measure is all of them.
     func renderWindowed(_ column: _VStackCore<Self>, context: RenderContext) -> FrameBuffer {
+        Self.fileWindowedColumn(context: context)
         guard context.isMeasuring else { return column.renderToBuffer(context: context) }
         let size = windowedColumnSize(
             column.sizeThatFits(proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context),
             proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context)
         return FrameBuffer(emptyWithWidth: size.width, height: min(size.height, max(0, context.availableHeight)))
+    }
+
+    /// Files the lazy stack drawn at this loop's identity as one that places
+    /// its rows against a request (``PullConsumers/noteLayout(_:places:)``),
+    /// before they are measured: they are siblings at the loop's identity,
+    /// whose type is no pulling container's, so a lazy stack in a row — a
+    /// section's loop, its section drawn as a column of its parts — is
+    /// pulled where it stands (`isPulledWhereItStands`) as a row of a lazy
+    /// stack written out is. Unfiled, the rows were drawn whole, every row of
+    /// each section in the band built (210 a page for a title over 300
+    /// sections of 30).
+    static func fileWindowedColumn(context: RenderContext) {
+        guard context.scrollContentOriginDepth != 0 else { return }
+        context.renderCache?.pullConsumers.noteLayout(context.identity, places: true)
     }
 
     /// The windowed column's `size` as the column draws it: the width it is

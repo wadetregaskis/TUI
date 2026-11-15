@@ -30,11 +30,16 @@ extension _SectionCore {
     /// The parts' identities are the column's, not those the section laid
     /// out whole gives them, so a loop growing past the threshold starts its
     /// rows' state afresh, once, as a `GroupBox`'s does.
+    ///
+    /// `windowsLoop`: the stack's sections' loops together pass its
+    /// threshold (``PinnedSectionScope/windowsSectionLoops``), so this one's
+    /// is drawn so however few its elements, and the lazy stack estimates its
+    /// rows from a sample as one past the threshold does.
     func pulledPartsColumn(
-        layout: PinnedSectionLayout, context: RenderContext
+        layout: PinnedSectionLayout, windowsLoop: Bool, context: RenderContext
     ) -> (column: _VStackCore<Section<Parent, Content, Footer>>, context: RenderContext)? {
         guard layout.axis == .vertical, isExpanded?.wrappedValue ?? true,
-            sectionContentLoopWindows(content, in: context)
+            sectionContentLoopWindows(content, whateverItsCount: windowsLoop, in: context)
         else { return nil }
         let alignment = layout.alignment.horizontal
         let column = _VStackCore(
@@ -42,7 +47,7 @@ extension _SectionCore {
             content: Section(header: header, content: content, footer: footer, isExpanded: isExpanded))
         var columnContext = context.withChildIdentity(type: _ImplicitColumnOfSeveral.self)
         columnContext.environment.implicitColumnRowLayout = ImplicitColumnRowLayout(
-            alignment: alignment, spacing: layout.spacing)
+            alignment: alignment, spacing: layout.spacing, windowsAnyCount: windowsLoop)
         return (column, columnContext)
     }
 

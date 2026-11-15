@@ -1493,6 +1493,24 @@ scenarios, 26 sessions), and `api_baseline.py --check` matches (9,578 declaratio
   issue. *Left:* a pinned stack whose own section holds an explicit `LazyVStack` of 10,000 rows builds 44,110 rows on
   its first frame (98,749 before, then 18,218 a page, now none): the section lays its parts out whole, and the column
   path takes only a loop.
+- **A lazy stack of a loop of sections whose rows together pass the threshold builds only what it samples and shows**
+  (`PinnedSectionScope.windowsSectionLoops`, `SectionLoopRowsCounting`). `ForEach(0..<100) { Section { ForEach(0..<100)
+  } }` is 10,100 rows, but neither loop passes 256, so the stack measured every section exactly and each section every
+  row: 31,200 rows on the first frame, pinned or not. A lazy stack of no more than 256 children now counts its sections'
+  rows without building one (each element's `Section` value built, its loop counted, stopping past 256) and, past the
+  threshold, prices its rows by a sample (`estimatesRows(count:context:)`, at the three places that read the
+  threshold and the uniform seek's seed); each of its own sections then draws its loop as a lazy stack whatever its
+  count (`ImplicitColumnRowLayout.windowsAnyCount`, `_VStackCore.estimatesWhateverItsCount`), so the section is a
+  pulled column as above and its loop is estimated from sixteen rows. A title over such a loop takes P8's column of
+  several (`TupleView.columnOfSeveral(…sectionLoops:…)`), the loop a lazy stack that estimates whatever its count. And
+  the lazy stack a loop is drawn as (`ForEach.windowedColumn`) files itself as placing its rows
+  (`ForEach.fileWindowedColumn`, as a layout files, `PullConsumers.noteLayout`): its rows are siblings at the loop's
+  identity, whose type is no pulling container's, so a lazy stack in one of them was not pulled where it stood. First
+  frame now 820 to 2,017 rows (the stack's sample of sixteen sections, each sampling sixteen rows, over the first
+  frame's measures; the same order at 200 sections or 200 rows), 26 a page; the drawing matches an eager `VStack`'s
+  at the top, twelve pages down, at the end and paged up from it, with and without a title, pinned or not
+  (`SectionedLoopFirstFrameTests`). At spacing 1 the page up from the end lands at the last section's top: the found
+  issue above, marked known there.
 
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →

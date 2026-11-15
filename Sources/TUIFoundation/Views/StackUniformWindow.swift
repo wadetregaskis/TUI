@@ -742,7 +742,7 @@ final class StackWindowState {
         guard !state.rowWidths.isSeeded else { return }
         var measureContext = context
         measureContext.isMeasuring = true
-        for ordinal in 0..<Self.seededRowCount(children.count) {
+        for ordinal in 0..<seededRowCount(children.count, context: context) {
             let child = children[ordinal]
             let size = child.measure(proposal: proposal, context: measureContext)
             // Measured but not drawn — keep the memo entry past the pass GC.
@@ -756,8 +756,8 @@ final class StackWindowState {
     /// measures. The exact walk measures every row it can reach; the anchored
     /// estimate samples sixteen. Mirror whichever would have answered, so the
     /// seek reproduces it rather than a third heuristic.
-    static func seededRowCount(_ count: Int) -> Int {
-        max(0, count > anchoredWindowThreshold ? min(count, anchoredWidthSampleCount) : count)
+    func seededRowCount(_ count: Int, context: RenderContext) -> Int {
+        max(0, estimatesRows(count: count, context: context) ? min(count, Self.anchoredWidthSampleCount) : count)
     }
 
     /// The id of the row under the sample line, when one was asked for.

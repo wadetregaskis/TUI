@@ -223,6 +223,7 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let column = windowedColumn(context: context) {
             let rows = context.leavingImplicitColumnRowLayout()
+            Self.fileWindowedColumn(context: rows)
             return windowedColumnSize(column.sizeThatFits(proposal: proposal, context: rows), proposal: proposal, context: rows)
         }
         return measureStackedVertically(childViews(context: context), proposal: proposal, context: context)

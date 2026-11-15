@@ -49,7 +49,9 @@ import TUIView
     public func staysWhole(in context: RenderContext) -> Bool {
         sectionStaysWhole(in: context)
             || (context.sectionWholeness == .loopRows && showsContent
-                && sectionContentLoopWindows(content, in: context))
+                && sectionContentLoopWindows(
+                    content, whateverItsCount: context.environment.pinnedSectionScope?.windowsSectionLoops == true,
+                    in: context))
     }
 }
 

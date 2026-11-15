@@ -104,7 +104,7 @@ import TUICore
 
         if isSettled { return (widthLimit, !asksIdealWidth) }
         if let first = records.firstFiller(before: walked) {
-            let seeded = max(first, min(walked, Self.seededRowCount(children.count)))
+            let seeded = max(first, min(walked, seededRowCount(children.count, context: context)))
             for ordinal in first..<seeded where counts(ordinal) {
                 return (widthLimit, !asksIdealWidth)
             }

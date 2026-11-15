@@ -127,7 +127,7 @@ private enum PulledPlace {
     func filingPulled(
         _ size: ViewSize, _ collection: ChildViewCollection, measureContext: RenderContext, context: RenderContext
     ) -> ViewSize {
-        guard collection.count > Self.anchoredWindowThreshold else {
+        guard estimatesRows(count: collection.count, context: context) else {
             if !pullsItsRows(context: context) { notePulled(bandsRows: false, children: { [] }, context: context) }
             return size
         }

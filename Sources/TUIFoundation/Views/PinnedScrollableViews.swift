@@ -80,6 +80,20 @@ struct PinnedSectionScope: Equatable {
     /// Whether the sections' footers are pinned.
     var pinsFooters: Bool
 
+    /// Whether the stack's sections' loops together pass its threshold, so
+    /// the stack prices its rows by a sample and each own section draws its
+    /// loop as a lazy stack of its own, however few its elements
+    /// (`_SectionCore.pulledPartsColumn`): a few sections of a few hundred
+    /// rows are as many rows as one loop past the threshold, and measured
+    /// whole, every one was built for each measure of the stack.
+    var windowsSectionLoops = false
+
+    /// Whether this scope is the stack's at `identity` and windows its
+    /// sections' loops — asked by the stack itself.
+    func windowsSectionLoops(of identity: ViewIdentity) -> Bool {
+        windowsSectionLoops && Int(stackDepth) == identity.depth
+    }
+
     /// Whether a section at `identity` is one of the stack's own: one sibling
     /// step below it, or none, the stack's whole content (`LazyVStack(pinnedViews:
     /// .sectionHeaders) { Section … }`, whose header did not pin).
@@ -192,6 +206,10 @@ protocol PinningStackCore {
     /// is nearly every lazy stack, keeps no section scope and pays nothing
     /// for it.
     var contentMayHoldSections: Bool { get }
+
+    /// Whether the stack's sections' loops together pass its threshold
+    /// (``PinnedSectionScope/windowsSectionLoops``).
+    func sectionLoopsPassThreshold(_ context: RenderContext) -> Bool
 }
 
 extension PinningStackCore {
@@ -280,12 +298,27 @@ extension PinningStackCore {
         guard pinsSectionHeaders || pinsSectionFooters || contentMayHoldSections else { return nil }
         return PinnedSectionScope(
             stackDepth: Int32(clamping: context.identity.depth),
-            pinsHeaders: pinsSectionHeaders, pinsFooters: pinsSectionFooters)
+            pinsHeaders: pinsSectionHeaders, pinsFooters: pinsSectionFooters,
+            windowsSectionLoops: contentMayHoldSections && sectionLoopsPassThreshold(context))
     }
 }
 
 @MainActor extension _VStackCore: PinningStackCore {
     var contentMayHoldSections: Bool { mayHandOver(.section, in: content) }
+
+    /// A lazy stack's, in scroll content, of no more children than its
+    /// threshold, which a stack of more windows anyway: each section's loop
+    /// counted by its elements (``SectionLoopRowsCounting``), a section value
+    /// built for each element of a loop of them and no row, stopping once
+    /// past the threshold.
+    func sectionLoopsPassThreshold(_ context: RenderContext) -> Bool {
+        guard overflow == .window, context.scrollContentOriginDepth != 0,
+            !context.environment.drawsContainerRowsWhole, !context.environment.drawsListSectionChrome,
+            let counting = content as? any SectionLoopRowsCounting
+        else { return false }
+        let threshold = Self.anchoredWindowThreshold
+        return (counting.sectionLoopRows(upTo: threshold, in: context) ?? 0) > threshold
+    }
 
     /// A column: its sections lay out downward, aligned across by its
     /// alignment.
@@ -298,6 +331,9 @@ extension PinningStackCore {
 
 @MainActor extension _HStackCore: PinningStackCore {
     var contentMayHoldSections: Bool { mayHandOver(.section, in: content) }
+
+    /// A row's sections lay out along it, and are not windowed.
+    func sectionLoopsPassThreshold(_ context: RenderContext) -> Bool { false }
 
     /// A row: its sections lay out along it, aligned up and down by its
     /// alignment.
