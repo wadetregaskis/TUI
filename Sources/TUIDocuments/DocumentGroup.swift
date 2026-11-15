@@ -82,7 +82,9 @@ import TUIFoundation
 /// versions, and a terminal app has none. File has no Close, which would leave
 /// a window with nothing in it, nor Duplicate, Rename, Move To or Revert To,
 /// which are AppKit's document browser. An edit undone leaves the document
-/// edited.
+/// edited. Each document starts with nothing to undo: New and Open empty the
+/// app's undo manager (``EnvironmentValues/undoManager``), as a new document's
+/// window has an undo manager of its own on macOS.
 ///
 /// Available everywhere the framework's file panels are; on Linux the
 /// `FileWrapper` it reads and writes through is TUI's.

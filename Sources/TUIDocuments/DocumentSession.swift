@@ -74,6 +74,10 @@ final class DocumentSession {
     /// replaced, is known for one a snapshot since has already seen.
     @ObservationIgnored private var watchNumber = 0
 
+    /// The app's undo manager, as the window last read it from
+    /// `\.undoManager`: what a replacement of the document empties.
+    @ObservationIgnored weak var undoManager: UndoManager?
+
     /// Something to do once unsaved changes are dealt with, and what to do if
     /// they are not.
     struct PendingWork {
@@ -293,6 +297,11 @@ final class DocumentSession {
         isEdited = false
         isFileWritable = url.map { FileManager.default.isWritableFile(atPath: $0.path) } ?? true
         documentNumber += 1
+        // Nothing of the last document's to undo or redo, as in SwiftUI, where
+        // each document's window has an undo manager of its own. Here the
+        // window, and so the manager, stays: a step the app registered against
+        // the last document's binding, undone, wrote into this one.
+        undoManager?.removeAllActions()
         watch()
     }
 

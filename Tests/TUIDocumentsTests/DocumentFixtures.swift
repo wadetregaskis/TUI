@@ -37,12 +37,16 @@ final class DocumentProbe: @unchecked Sendable {
     var hadExistingFile: Bool?
     /// How many documents `newDocument` has made.
     var made = 0
+    /// Whether the app's undo manager had a step to undo when the page's
+    /// Revert button was clicked; `nil` before it was, or with no manager.
+    var couldUndo: Bool?
 
     func reset() {
         url = nil
         thrown = nil
         hadExistingFile = nil
         made = 0
+        couldUndo = nil
     }
 }
 
@@ -122,6 +126,7 @@ struct NotePage: View {
     @Environment(\.newDocument) private var newDocument
     @Environment(\.dismiss) private var dismiss
     @Environment(\.documentConfiguration) private var configuration
+    @Environment(\.undoManager) private var undoManager
 
     var body: some View {
         VStack {
@@ -140,7 +145,24 @@ struct NotePage: View {
             }
             Button("preset") { newDocument(Note(text: "preset")) }
             Button("leave") { dismiss() }
+            Button("record") { recordUndoableChange() }
+            Button("revert") {
+                DocumentProbe.shared.couldUndo = undoManager?.canUndo
+                if undoManager?.canUndo == true { undoManager?.undo() }
+            }
         }
+    }
+
+    /// What an app's own undoable edit is: the change, and its inverse
+    /// registered against the document's binding.
+    private func recordUndoableChange() {
+        guard let undoManager else { return }
+        // Each registration its own group, so the step is whole without a run
+        // loop turning to end the event's group, which a test has none of.
+        undoManager.groupsByEvent = false
+        let old = file.document.text
+        file.document.text += "!"
+        undoManager.registerRestoring(file.$document.text, to: old)
     }
 }
 

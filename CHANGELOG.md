@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `DocumentGroup`'s New and Open leave nothing of the last document to undo.** The app's undo manager kept the
+replaced document's steps, so an undo after New or Open could write the old document's text into the new one, through
+the binding a step was registered against, and mark it edited. Replacing the document now empties the undo manager, as
+a new document's window starts with an undo manager of its own in SwiftUI.
+
 **`TestApp` draws in the same colours wherever its tests run.** It drew in the colours its environment said the
 terminal had, as a running app does, and `swift test` sets `NO_COLOR` whenever its output isn't a terminal, so a test
 of `styledLines` could pass in a terminal and fail down a pipe or on CI; `TERM` and `COLORTERM` differ between

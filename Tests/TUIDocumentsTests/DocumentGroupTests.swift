@@ -31,8 +31,9 @@ struct DocumentSceneTests {
     }
 
     /// The app, drawn, with `url` opened through `openDocument` if it is given.
-    private func launched(opening url: URL? = nil) async -> TestApp {
+    private func launched(opening url: URL? = nil, undoing: Bool = false) async -> TestApp {
         let app = TestApp(NotesApp(), width: 90, height: 28)
+        if undoing { app.headless.adoptUndoManager() }
         app.advance(by: .zero)
         await app.see("text=new")
         if let url { await load(url, in: app) }
@@ -308,6 +309,56 @@ struct DocumentSceneTests {
         try await app.wait(until: { DocumentProbe.shared.thrown != nil })
         #expect(app.text.contains("text=one"))
         #expect(app.text.contains("file=a.txt"))
+    }
+
+    // MARK: - Undo
+
+    /// Whether a row of the screen reads `text` and nothing else.
+    private func shows(_ text: String, in app: TestApp) -> Bool {
+        app.screen.lines.contains { $0.trimmingCharacters(in: .whitespaces) == text }
+    }
+
+    @Test("An undoable edit undoes within its document")
+    func undoesWithin() async throws {
+        let app = await launched(undoing: true)
+        app.tap("record")
+        await app.see("text=new!")
+        app.tap("revert")
+        try await app.wait(until: { shows("text=new", in: app) })
+        #expect(DocumentProbe.shared.couldUndo == true)
+    }
+
+    @Test("New leaves nothing of the last document to undo, as a new window's own undo manager would")
+    func newClearsUndo() async throws {
+        let app = await launched(undoing: true)
+        app.tap("record")
+        await app.see("text=new!")
+        app.command("n")
+        await app.see("Do you want to save")
+        app.tap("Don’t Save")
+        try await app.wait(until: { DocumentProbe.shared.made == 2 && shows("text=new", in: app) })
+        app.tap("revert")
+        app.advance(by: .zero)
+        #expect(DocumentProbe.shared.couldUndo == false, "the first document's step outlived it")
+        #expect(!app.saysEdited, "an undo wrote the first document's text into the second")
+    }
+
+    @Test("Open leaves nothing of the last document to undo")
+    func openClearsUndo() async throws {
+        let folder = try DocumentFolder()
+        let app = await launched(undoing: true)
+        app.tap("record")
+        await app.see("text=new!")
+        DocumentProbe.shared.url = try folder.write("two", "b.txt")
+        app.tap("load")
+        await app.see("Do you want to save")
+        app.tap("Don’t Save")
+        await app.see("file=b.txt")
+        app.tap("revert")
+        app.advance(by: .zero)
+        #expect(DocumentProbe.shared.couldUndo == false, "the first document's step outlived it")
+        #expect(shows("text=two", in: app), "\(app.text)")
+        #expect(!app.saysEdited)
     }
 
     // MARK: - Leaving

@@ -48,8 +48,13 @@ struct DocumentWindow<Content: View>: View {
     /// What `dismiss()` means outside the window: quitting.
     @Environment(\.dismiss) private var outerDismiss
 
+    /// The app's undo manager, which the session empties when the document is
+    /// replaced.
+    @Environment(\.undoManager) private var undoManager
+
     var body: some View {
         let session = keeper.session { DocumentSession(store: makeStore(), isViewer: isViewer) }
+        session.undoManager = undoManager
         // The quit key's question goes outside the dialog's presenter, which
         // draws what it covers as an inert backdrop: registered from in there, a
         // quit key that works under a dialog would lose the question while it
