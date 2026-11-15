@@ -1096,7 +1096,21 @@ protocol DroppableBox: AnyObject {
 extension StateBox: DroppableBox {
     func markDropped() {
         wasDropped = true
+        (stored as? any StateStorageDeparting)?.storageDidDrop()
     }
+}
+
+/// An object a view keeps in ``StateStorage`` that has something to do as the
+/// storage lets go of it: when its view is no longer drawn, at the end of the
+/// frame that stopped drawing it, rather than whenever its last reference
+/// goes, which may be frames later and promises no isolation.
+///
+/// A text control's handler is one: its typing leaves the app's undo manager
+/// with it (`DepartedUndoSteps`).
+package protocol StateStorageDeparting: AnyObject {
+    /// The storage has let go of the box holding this object, and the view
+    /// it was kept for makes a new one if it is drawn again.
+    func storageDidDrop()
 }
 
 /// A box that counts its writes, whatever its value's type: a `StateBox`.

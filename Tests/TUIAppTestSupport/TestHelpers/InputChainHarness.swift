@@ -184,6 +184,9 @@ final class InputChainHarness {
         // this frame have gone, and their `onDisappear` runs.
         tui.lifecycle.endRenderPass()
         tui.stateStorage.endRenderPass()
+        // And as it takes out the undo steps of the text controls the storage
+        // just let go of.
+        tui.departedUndoSteps.takeOut()
         tui.renderCache.removeInactive()
         return buffer
     }

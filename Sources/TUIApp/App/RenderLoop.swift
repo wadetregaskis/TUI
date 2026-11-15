@@ -1446,6 +1446,12 @@ extension RenderLoop {
     fileprivate func endRenderPass() {
         tuiContext.lifecycle.endRenderPass()
         tuiContext.stateStorage.endRenderPass()
+        // A text control this frame stopped drawing left its undo steps as the
+        // state storage let go of it: out of the app's manager now, before the
+        // next key, whose ⌃Z would otherwise undo typing nobody can see. The
+        // status bar this frame drew still offers them, so a frame that does
+        // not, which nothing else may ask for.
+        if tuiContext.departedUndoSteps.takeOut() { tuiContext.appState.setNeedsRender() }
         tuiContext.renderCache.removeInactive()
         // No draw outside the walks should stop where they stopped.
         StackGuard.endWalk()

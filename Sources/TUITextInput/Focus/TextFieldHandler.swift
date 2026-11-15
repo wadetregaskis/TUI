@@ -340,12 +340,27 @@ final class TextFieldHandler: PersistedFocusable {
         self.selectionAnchor = nil
     }
 
-    /// A field that leaves the screen takes its steps out of the app's undo
-    /// manager, which would otherwise offer undos that change nothing anyone
-    /// can see — at the start of the next frame, because a deinitialiser
-    /// promises no isolation and the manager is the main actor's
-    /// (``DepartedUndoSteps``).
+    /// A field that goes away takes its steps out of the app's undo manager,
+    /// which would otherwise offer undos that change nothing anyone can see —
+    /// at the start of the next frame, because a deinitialiser promises no
+    /// isolation and the manager is the main actor's (``DepartedUndoSteps``).
+    /// A field that leaves the screen has done so already, at the end of the
+    /// frame that stopped drawing it (``storageDidDrop()``), and this takes
+    /// out nothing more; this is for a handler no view kept.
     deinit {
+        if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
+    }
+}
+
+// MARK: - Leaving the screen
+
+extension TextFieldHandler: StateStorageDeparting {
+    /// The field is no longer drawn: its steps leave the app's undo manager at
+    /// the end of this frame, before the next key, so a row's edit field closed
+    /// by Escape leaves the next ⌃Z to undo the app's last step. Left to the
+    /// deinitialiser, they stayed until the frame after, which only something
+    /// else's change would draw.
+    func storageDidDrop() {
         if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
     }
 }

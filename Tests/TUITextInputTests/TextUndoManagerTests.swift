@@ -131,8 +131,7 @@ struct TextUndoManagerTests {
         #expect(manager.canUndo && manager.canRedo)
         shown.on = false
         harness.frame(page())
-        harness.frame(page())
-        #expect(!manager.canUndo && !manager.canRedo, "no step left whose control is gone")
+        #expect(!manager.canUndo && !manager.canRedo, "no step left whose control the frame stopped drawing")
         harness.play([Self.undoKey, Self.redoKey], page)
         #expect(box.value == "ba")
     }

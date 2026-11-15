@@ -205,10 +205,11 @@ final class TextEditorHandler: PersistedFocusable {
         self.clipboard = clipboard
     }
 
-    /// An editor that leaves the screen takes its steps out of the app's undo
-    /// manager, which would otherwise offer undos that change nothing anyone
-    /// can see — at the start of the next frame, as a field's do
-    /// (``DepartedUndoSteps``).
+    /// An editor that goes away takes its steps out of the app's undo manager,
+    /// which would otherwise offer undos that change nothing anyone can see —
+    /// at the start of the next frame, as a field's do (``DepartedUndoSteps``);
+    /// one that leaves the screen, at the end of the frame that stopped
+    /// drawing it, as a field's do (``storageDidDrop()``).
     deinit {
         if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
     }
@@ -985,3 +986,13 @@ final class TextEditorHandler: PersistedFocusable {
 
 // Its bar drawn over the text follows the pointer — see the protocol.
 extension TextEditorHandler: ScrollIndicatorPointerTracking {}
+
+// MARK: - Leaving the screen
+
+extension TextEditorHandler: StateStorageDeparting {
+    /// The editor is no longer drawn: its steps leave the app's undo manager at
+    /// the end of this frame, as a field's do (`TextFieldHandler`).
+    func storageDidDrop() {
+        if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
+    }
+}

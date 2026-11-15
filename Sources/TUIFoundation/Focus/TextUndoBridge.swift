@@ -55,7 +55,7 @@ package protocol AppUndoableText: AnyObject {
 /// lets go of — past its limit, forgotten when the app replaced the text, a
 /// redo a new edit discarded — takes its step out with it
 /// (``forget(_:on:)``), and so does every state of a control that goes away,
-/// at the start of the next frame (``DepartedUndoSteps``).
+/// at the end of the frame that stopped drawing it (``DepartedUndoSteps``).
 /// A replacement is seen where the control renders, which it does in the
 /// frame that draws the new text, ahead of the status bar and the next key.
 /// The one undo that can find nothing is one in the same burst of input as
@@ -143,17 +143,22 @@ package enum TextUndoBridge {
 /// The undo steps of text controls that have gone away, waiting to be taken
 /// out of the app's undo manager.
 ///
-/// A control takes its steps out of the manager when it goes away, and it goes
-/// away wherever its last reference is let go of. That is the main actor in
-/// practice — the start of the frame after the one that stopped drawing it,
-/// when the focus manager lets go of the last frame's controls — but a
-/// deinitialiser promises no isolation, and the manager is isolated to the
-/// main actor. So the control does not touch the manager there: it leaves its
-/// marks here (``add(_:from:)``), and every frame takes them out
-/// (``takeOut()``) as it begins, after last frame's controls are let go of and
-/// before the status bar is sized, so that frame's bar does not offer them. A
-/// control let go of later in a frame has its steps taken out at the next.
+/// A control takes its steps out of the manager when it goes away. One that
+/// leaves the screen goes as the frame that stopped drawing it ends, when the
+/// state storage lets go of it (`StateStorageDeparting`); that is not where its
+/// last reference goes — the focus manager keeps last frame's controls until
+/// the next frame begins — and a control no view kept goes wherever that is,
+/// in a deinitialiser that promises no isolation. The manager is isolated to
+/// the main actor, so neither touches it there: a control leaves its marks
+/// here (``add(_:from:)``), and the run loop takes them out (``takeOut()``)
+/// as each frame ends, after the state storage has let go of last frame's
+/// controls, and as each frame begins, after the focus manager has, before
+/// the status bar is sized, so that frame's bar does not offer them.
 /// One per app, on its `TUIContext`.
+///
+/// At the end of the frame, not the next one's start, so the next key's ⌃Z
+/// undoes the app's last step: a row's edit field closed by Escape left its
+/// typing in the manager until something else drew a frame.
 ///
 /// Not `Sendable`, like the controls that leave their steps here: the compiler
 /// keeps them all on the render path, wherever a deinitialiser happens to run.
@@ -163,7 +168,7 @@ package final class DepartedUndoSteps {
     private var pending: [(marks: [TextUndoMark], manager: UndoManager)] = []
 
     /// Leaves `marks`, a control's that is going away, to be taken out of
-    /// `manager` at the start of the next frame.
+    /// `manager` at the next end or start of a frame.
     package func add(_ marks: [TextUndoMark], from manager: UndoManager) {
         guard !marks.isEmpty else { return }
         pending.append((marks, manager))
@@ -173,14 +178,19 @@ package final class DepartedUndoSteps {
     ///
     /// A copy, so that whatever letting go of a step frees can leave steps here
     /// itself.
+    ///
+    /// - Returns: Whether there were any, so a frame that has already drawn its
+    ///   status bar can ask for another that does not offer them.
     @MainActor
-    package func takeOut() {
-        guard !pending.isEmpty else { return }
+    @discardableResult
+    package func takeOut() -> Bool {
+        guard !pending.isEmpty else { return false }
         let taken = pending
         pending = []
         for (marks, manager) in taken {
             TextUndoBridge.removeActions(of: marks, from: manager)
         }
+        return true
     }
 }
 

@@ -58,6 +58,12 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**A text field that leaves the screen takes its typing out of the undo history in the same frame.** A row's edit field
+closed by Escape left its typing in the app's undo manager until another frame was drawn, which in an app with
+nothing animating, or in a `TestApp`, waited for the next input: the status bar went on offering "undo", and the first
+⌃Z undid typing nobody could see rather than the app's last step. The steps of a `TextField` or `TextEditor` the frame
+stopped drawing now leave as that frame ends, and the frame after it shows the bar without them.
+
 **TUI builds without warnings against the macOS 15 SDK.** A swift.org toolchain on a Mac with only the Command Line
 Tools builds against that SDK, and there TUI gave three warnings in every build of a package that depends on it: two
 "no unsafe operations occur within 'unsafe' expression" and a "capture of non-Sendable type 'T.Type'" from
