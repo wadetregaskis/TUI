@@ -94,6 +94,24 @@ struct PulledFormTests {
         #expect(Self.content(app) == Self.content(Self.app(1)), "\(app.screen)")
     }
 
+    /// As the scroll view it would be lays its sections out: as wide as it
+    /// is offered, at the leading edge. Hugging them, it stood centred in a
+    /// column under a wider title.
+    @Test("A form in a column under a wider title stands at the column's leading edge")
+    func formStandsAtTheLeadingEdge() {
+        let app = TestApp(width: 30, height: 12) {
+            ScrollView {
+                VStack {
+                    Text("a title wider than the form")
+                    Form { Text("row") }.formStyle(.grouped)
+                }
+            }
+            .environment(\.scrollFitsContent, true)
+        }
+        let row = app.screen.lines.first { $0.contains("row") }
+        #expect(row?.hasPrefix("row") == true, "\(app.screen)")
+    }
+
     @Test("A tall form draws what the form drawn whole draws as the scroll view moves over it")
     func tallFormDrawsWhatTheWholeFormDraws() {
         let pulled = Self.app(20)

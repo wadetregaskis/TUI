@@ -39,7 +39,11 @@ struct _FormScroller<Content: View>: View {
 
     var body: some View {
         if style is GroupedFormStyle, fitsScrollContent, scrollFitsContent {
+            // As wide as it is offered, its sections at the leading edge, as
+            // the scroll view it would be lays them out: hugging them, it
+            // stood centred in a column, and was as narrow as its widest row.
             content.transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
+                .frame(maxWidth: .infinity, alignment: .leading)
         } else if style is GroupedFormStyle {
             ScrollView {
                 content.transformEnvironment(\.contentMargins) { $0 = ContentMargins() }
