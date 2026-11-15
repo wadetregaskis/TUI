@@ -277,6 +277,10 @@ public final class FocusManager {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _isBackdrop = false
 
+    /// Whether this pass's end chooses a dropped focus as for a window's first
+    /// content rather than walking to its neighbour (``chooseFocusAfresh()``).
+    var choosesFocusAfresh = false
+
     /// For each section that was activated *over* another, the section to revert
     /// to when it is deactivated (e.g. a modal section reverts to the page's).
     ///
@@ -1529,11 +1533,14 @@ extension FocusManager {
         if let focusID = focusedID, let section = activeSection {
             let focused = section.focusables.first { $0.focusID == focusID }
             if focused == nil || focused?.canBeFocused == false {
-                recovery = recoveryTarget(after: focusID)
+                // New content in a window's place chooses as a window's first
+                // content does, below (``chooseFocusAfresh()``).
+                recovery = choosesFocusAfresh ? nil : recoveryTarget(after: focusID)
                 notifyFocusLost()
                 self.focusedID = nil
             }
         }
+        choosesFocusAfresh = false
 
         // `.defaultFocus` overrides the automatic first-focusable choice for the
         // INITIAL focus — applied here, after this pass's `.focused` bindings

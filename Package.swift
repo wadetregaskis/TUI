@@ -905,7 +905,8 @@ let package = Package(
             name: "TUIDocumentsTests",
             dependencies: [
                 "TUIApp", "TUIAppTestSupport", "TUICommands", "TUICore", "TUIDocuments", "TUIFilePanels",
-                "TUIFoundation", "TUIPresentation", "TUITestSupport", "TUITesting", "TUIView",
+                "TUIFoundation", "TUIPresentation", "TUISearch", "TUITestSupport", "TUITesting", "TUITextInput",
+                "TUIView",
             ],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),

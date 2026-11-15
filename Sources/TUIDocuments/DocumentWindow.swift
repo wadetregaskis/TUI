@@ -27,6 +27,11 @@ final class DocumentWindowKeeper {
     /// frame, as `PendingDismissal`'s is.
     private(set) lazy var contentDismissal = DismissAction.Box()
 
+    /// The document whose content the focus manager has been told is new
+    /// (`DocumentWindow.chooseFocus(for:)`); the first, drawn at launch, as
+    /// a window's first content, needs no telling.
+    var focusChosenForDocument = 0
+
     /// The session, made with `make` the first time.
     func session(make: () -> DocumentSession) -> DocumentSession {
         if let session { return session }
@@ -52,9 +57,13 @@ struct DocumentWindow<Content: View>: View {
     /// replaced.
     @Environment(\.undoManager) private var undoManager
 
+    /// The focus manager, told when a document replaces the last one.
+    @Environment(\.focusManager) private var focusManager
+
     var body: some View {
         let session = keeper.session { DocumentSession(store: makeStore(), isViewer: isViewer) }
         session.undoManager = undoManager
+        chooseFocus(for: session)
         // The quit key's question goes outside the dialog's presenter, which
         // draws what it covers as an inert backdrop: registered from in there, a
         // quit key that works under a dialog would lose the question while it
@@ -86,6 +95,23 @@ struct DocumentWindow<Content: View>: View {
             .askingBeforeDismissal(when: session.isEdited) { proceed in
                 session.pastChanges(DocumentSession.PendingWork(run: proceed))
             }
+    }
+
+    /// Tells the focus manager that the content drawn this pass is a new
+    /// document's, if it is: its focus starts where a window's first content's
+    /// does — its `.defaultFocus`, else its first control, never a
+    /// `.searchable`'s field when it has another — as each document's window
+    /// opens on macOS, rather than on the neighbour of the last document's
+    /// focused control, which is the new content's first control, its search
+    /// field (tuitree's M4 feedback, item 1).
+    ///
+    /// Told once a document; again while only a backdrop's throwaway manager
+    /// has heard, as under the open panel.
+    private func chooseFocus(for session: DocumentSession) {
+        guard session.documentNumber != keeper.focusChosenForDocument,
+            focusManager?.chooseFocusAfresh() == true
+        else { return }
+        keeper.focusChosenForDocument = session.documentNumber
     }
 
     /// What is drawn beneath the panels: the app's content, once there is a

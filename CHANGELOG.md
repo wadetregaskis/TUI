@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A document a `DocumentGroup` opens after launch starts with the focus where a new window's content does.** Opened
+through `openDocument(at:)` or Open…, its content replaced the last document's, and the focus walked from the last
+document's focused control to the first control of the new content: its `.searchable`'s field, so the keys the table
+answers typed into Find. It now starts on the content's `.defaultFocus`, else its first control, never a search field
+while there is another, as each document's window opens on macOS.
+
 **`TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` and `TUI_GRAPHICS_PLAYBACK` are supported options, no longer
 experiments.** Arrows that go to the nearest control on screen, the terminal's text cursor on the focused control, and
 animated pictures the terminal plays by itself keep their defaults and do what they did, but they now fall under the

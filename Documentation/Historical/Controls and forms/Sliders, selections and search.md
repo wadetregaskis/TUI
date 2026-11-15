@@ -140,6 +140,21 @@ does nothing until ⌃F or Tab, so the field takes the focus there, as every
 searchable did before. A SwiftUI program behaves no differently for it: only
 the keys that would have done nothing reach the field.
 
+**A document opened after launch** (2026-11-15, tuitree's M4 feedback, item
+1): a `DocumentGroup` draws a document opened through `openDocument(at:)` or
+Open… in its window in place of the last one, under a new identity, so every
+control of the last one leaves the screen in the frame that draws it. The
+focused one's focus went to its neighbour (`FocusManager.recoveryTarget(after:)`),
+found where it stood among last frame's controls: with none of them left, that
+is the top of the new content, its search field. On macOS each document is a
+window of its own, which opens as any window does, on its `List` or `Table`.
+So `DocumentWindow` now tells the focus manager when a document replaces the
+last one (`FocusManager.chooseFocusAfresh()`), and the end of that frame
+chooses a dropped focus as for a window's first content — the content's
+`.defaultFocus`, else its first control that takes the focus by itself — and
+not by the neighbour walk. A focus outside the content (none, today) is left
+alone, as is any later frame's.
+
 **Escape** (the same probe, the same day): in macOS's search field, with text
 or empty, Escape empties it, ends the search (`isSearching` false) and takes
 the focus out of it, to no view. TUI's field did nothing with it. It now ends
