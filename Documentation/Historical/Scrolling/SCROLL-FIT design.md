@@ -1409,6 +1409,20 @@ clean (139 cases, 38 scenarios, 26 sessions); the full suite passes (`parallel_t
 test, `SystemClipboardTests/largeReadSucceeds`, failed under load 79 and passes alone); `api_baseline.py --check`
 matches (9,578 declarations) once `ScrollViewReader.body` is a `@ViewBuilder` again (0cfb3cdd1).
 
+**The follow-ups' follow-ups** (2026-11-15), one commit each:
+
+- **Home and End on a list the page has gone past bring its row back** (`ScrollViewReveal.swift`). Paged past a
+  pulled `List` or `Table` (Page Down on its last row, since the follow-up above) or scrolled past it by the wheel,
+  Home showed the text below the list, not row 1. The list is then off the band, drawn by the column only for its
+  place in the focus ring (`drawOffBandChild`, a still request whose band is its first line) and placed at an
+  estimate: a child above the band at the column's running pitch, a line for a list of forty. Home moved the cursor
+  and the key's snap read the cursor's region at that estimate. Off-band focus was revealed by a seek only when the
+  focus had just moved; now also when the focused control has just taken a key, and the test is what the control
+  drew, not its reveal outsets, which `markPulledControl` stretches over every line of a pulled control, the band's
+  included. A seek routes to the list, which answers with its cursor's row. The same failure on main d9a562b30,
+  where the wheel was the only way past (the page key change only made it reachable by keys; the reveal path is
+  untouched by it). `PulledListPageOnTests` (paged and wheeled, a table and a list; both failed before).
+
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
 their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split

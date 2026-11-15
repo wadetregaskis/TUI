@@ -286,7 +286,8 @@ extension _ScrollViewCore {
 
     /// Reveals the focused control by setting the anchor (SCROLL-FIT design
     /// 1e), when the focus has just moved to one the content holds only off
-    /// its band: the content drawn again with a seek for the control
+    /// its band, or one held only off its band has just taken a key: the
+    /// content drawn again with a seek for the control
     /// (``offBandRevealSeek(handler:drawing:edgeInset:suppressed:context:)``),
     /// the offset adopted from it, and `drawing` replaced by it.
     ///
@@ -328,23 +329,41 @@ extension _ScrollViewCore {
 
     /// Whether the focus has just moved to a control the content drew only off
     /// its band — a row a windowed or pulled stack draws for its place in the
-    /// focus ring, at an estimated place — and so the seek that reveals it by
-    /// its route (``ScrollToRequest/focusID``), or `nil`: the snap reveals a
-    /// control on the band by its drawn region, which is exact.
+    /// focus ring, at an estimated place — or such a control has just taken a
+    /// key, and so the seek that reveals it by its route
+    /// (``ScrollToRequest/focusID``), or `nil`: the snap reveals a control on
+    /// the band by its drawn region, which is exact.
+    ///
+    /// The key matters for a pulled `List` or `Table` the page has gone past:
+    /// Home moves its cursor to its first row, and the snap, reading the
+    /// regions it drew off the band at their estimated place (the column
+    /// prices a child above the band at its pitch, one line for a list of
+    /// forty), scrolled to the text below the list rather than to the row. A
+    /// seek routes to the list, which answers with its cursor's row.
     func offBandRevealSeek(
         handler: ScrollViewHandler, drawing: ScrollContentDrawing, edgeInset: Int, suppressed: Bool,
         context: RenderContext
     ) -> ScrollToRequest? {
         guard !context.isMeasuring, !suppressed, drawing.slice != nil, context.environment.revealTargetID == nil,
-            let focusID = context.environment.focusManager?.currentFocusedID,
+            let focusManager = context.environment.focusManager,
+            let focusID = focusManager.currentFocusedID,
             let stateStorage = context.stateStorage
         else { return nil }
         let lastFocused: StateBox<LastFocusedIDBox> = stateStorage.storage(
             for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.lastFocusedID),
             default: LastFocusedIDBox())
-        guard focusID != lastFocused.value.value,
-            let region = drawing.buffer.revealTarget(focusID: focusID, wholeControl: true),
-            region.top + region.height <= 0 || region.top >= drawing.buffer.height
+        let lastInteraction: StateBox<LastInteractionGenBox> = stateStorage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.lastInteractionGen),
+            default: LastInteractionGenBox())
+        guard focusID != lastFocused.value.value
+            || focusManager.focusedInteractionGeneration != lastInteraction.value.value
+        else { return nil }
+        // Off the band by what it drew, not by its reveal outsets: a pulled
+        // control drawn off the band (`markPulledControl`) reaches every line
+        // of itself with them, the band's included.
+        let height = drawing.buffer.height
+        let drawn = drawing.buffer.hitTestRegions.filter { $0.focusID == focusID && !$0.isGeometryMarker }
+        guard !drawn.isEmpty, drawn.allSatisfy({ $0.offsetY + $0.height <= 0 || $0.offsetY >= height })
         else { return nil }
         var seek = ScrollToRequest(key: focusID, anchor: nil, focusID: focusID)
         seek.topInset = edgeInset

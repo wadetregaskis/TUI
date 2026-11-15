@@ -6,7 +6,9 @@
 //  go, pages the scroll view on to the text below it, and Page Up on its
 //  first row back to the text above, as Page Down does over a focused button
 //  in a page. Before, the list took the key and moved nothing, so text below
-//  it that nothing could focus was out of reach of the keys.
+//  it that nothing could focus was out of reach of the keys. Home and End,
+//  pressed once the page has gone past the list, bring its first row or its
+//  last back into view.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -64,5 +66,39 @@ struct PulledListPageOnTests {
         #expect(app.screen.contains("after 8"), "page down on the last row:\n\(app.screen)")
         _ = app.press(.pageDown, times: 5)
         #expect(app.screen.contains("after 39"), "paged to the end:\n\(app.screen)")
+    }
+
+    @Test("Home and End on a list paged out of sight bring its first row and its last back into view",
+          arguments: [true, false])
+    func homeAndEndComeBack(_ table: Bool) {
+        let app = TestApp(width: 30, height: 12) { PageOnPage(table: table) }
+        _ = app.press(.end)
+        _ = app.press(.pageDown, times: 6)
+        #expect(app.screen.contains("after 39"), "paged past the list:\n\(app.screen)")
+        _ = app.press(.home)
+        #expect(shows("r1", app), "home, paged past the list:\n\(app.screen)")
+        _ = app.press(.pageUp, times: 6)
+        #expect(app.screen.lines.first?.hasPrefix("before 0") == true, "paged above the list:\n\(app.screen)")
+        _ = app.press(.end)
+        #expect(shows("r40", app), "end, paged above the list:\n\(app.screen)")
+    }
+
+    @Test("Home and End on a list the wheel has scrolled out of sight bring it back", arguments: [true, false])
+    func homeAndEndAfterTheWheel(_ table: Bool) {
+        let app = TestApp(width: 30, height: 12) { PageOnPage(table: table) }
+        app.scroll(.down, by: 40, at: CellPoint(x: 5, y: 5))
+        #expect(app.screen.contains("after 39"), "wheeled past the list:\n\(app.screen)")
+        _ = app.press(.home)
+        #expect(shows("r1", app), "home, wheeled past the list:\n\(app.screen)")
+        app.scroll(.up, by: 40, at: CellPoint(x: 5, y: 5))
+        #expect(app.screen.lines.first?.hasPrefix("before 0") == true, "wheeled above the list:\n\(app.screen)")
+        _ = app.press(.end)
+        #expect(shows("r40", app), "end, wheeled above the list:\n\(app.screen)")
+    }
+
+    /// Whether a line of the screen holds `row` as a word of its own ("r1",
+    /// not the "r1" of "r12").
+    private func shows(_ row: String, _ app: TestApp) -> Bool {
+        app.screen.lines.contains { $0.split(whereSeparator: { !$0.isLetter && !$0.isNumber }).contains { $0 == row } }
     }
 }
