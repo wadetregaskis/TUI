@@ -369,6 +369,19 @@ struct DocumentSceneTests {
         #expect(app.hasRequestedQuit)
     }
 
+    /// Typed into the document's own editor, which holds the focus as ⌃Q
+    /// arrives, as a person quitting a text editor does.
+    @Test("⌃Q with a typed edit unsaved shows the save prompt")
+    func quitAfterTyping() async {
+        let app = TestApp(TextEditApp(), width: 90, height: 28)
+        app.advance(by: .zero)
+        app.type("draft")
+        await app.seeEdited()
+        app.press(.character("q"), modifiers: .control)
+        await app.see("Do you want to save")
+        #expect(!app.hasRequestedQuit)
+    }
+
     @Test("Quitting with unsaved changes asks: Cancel stays")
     func quitCancel() async {
         let app = await launched()
