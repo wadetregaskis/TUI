@@ -50,6 +50,13 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**A `Divider` in a table's or list's row menu no longer stretches the menu across the screen, and its `Section`s
+draw a rule between them.** The row menus — `contextMenu(forSelectionType:menu:primaryAction:)`, a `TableRow`'s
+`.contextMenu`, a table's column menu — drew their items as one view, so a `Divider` among them was measured as wide
+as the terminal and drew the menu from its left edge, and the menu never saw the `Section`s. Their items are now handed
+to the menu as the views they are, as `.contextMenu`'s and a `Menu`'s are: a divider is as wide as the items make the
+menu, and each section is set off by a rule.
+
 **A table's or list's selection menu runs the item chosen when its items have an `if` among them.** Where a view of
 the app's own whose body is several views was drawn as one view — behind an `AnyView`, as a `List`'s and a `Table`'s
 row menus draw their items — the views inside an `if` (or a `Group`) in its body took the identities of the body's

@@ -314,8 +314,34 @@ package enum RowContextMenuHost {
 
 /// A row menu's items, under a type of their own so their identity cannot
 /// meet any of the container's rows.
+///
+/// Handed to the menu as the views they are, as `.contextMenu`'s and a
+/// `Menu`'s items are (`MenuStyleConfiguration.Content`), not drawn whole
+/// behind their `AnyView`: the menu column measures a `Divider` among its
+/// rows as one cell across and draws it as wide as the items make the menu,
+/// and sets each `Section` off with a rule, only for the views it is handed.
+/// Drawn whole, the items were measured as one view, a `Divider` in them as
+/// wide as the screen, and their sections were not seen: a table's selection
+/// menu with a `Divider` was as wide as the terminal, and its sections drew no
+/// rule (tuitree's feedback, Milestone 2 item 2).
 private struct _RowMenuItems: View {
     let items: AnyView
 
     var body: some View { items }
+}
+
+@MainActor extension _RowMenuItems: ChildViewProvider {
+    func childViews(context: RenderContext) -> [ChildView] {
+        // Seen through the erasure as a `Form` sees its rows through one:
+        // the items are a view of the app's own, more often than not, whose
+        // body is several views — which an `AnyView` hands over only when it
+        // erases a provider of them.
+        rowMenuMembers(of: items.erasedView, context: items.contentContext(noting: context))
+    }
+}
+
+/// The views `items` hands the menu — the existential opened.
+@MainActor
+private func rowMenuMembers<Items: View>(of items: Items, context: RenderContext) -> [ChildView] {
+    resolveChildViews(from: items, context: context)
 }

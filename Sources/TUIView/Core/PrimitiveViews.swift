@@ -215,7 +215,7 @@ nonisolated public struct AnyView: View {
     /// Asked by every path the content takes: drawn whole (the render and the
     /// measure), and taken apart into its views (`childViews(context:)`),
     /// whose views sit below this identity too.
-    func contentContext(noting context: RenderContext) -> RenderContext {
+    package func contentContext(noting context: RenderContext) -> RenderContext {
         var contentContext = context
         contentContext.environmentApplicationDepth += 1
         guard let cache = context.renderCache else { return contentContext }
