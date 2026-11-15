@@ -42,6 +42,15 @@ enum PulledShape: Sendable {
     /// of one-line rows: `.fixedSize` in scroll
     /// content, measured up the ladder (design P5).
     case fixedSizeTable
+    /// `LazyVStack(pinnedViews: .sectionHeaders) { Section { ForEach } }`:
+    /// one long section, its header pinned (the design's sections'
+    /// follow-ups, S8).
+    case oneSection
+    /// `LazyVStack(pinnedViews: .sectionHeaders) { ForEach(groups) { Section
+    /// { ForEach } } }` of sections of 100 entries: fewer sections than the
+    /// lazy stack's threshold, and fewer rows in each, their rows together
+    /// past it (S8).
+    case sectionLoop
 }
 
 /// A page of lazy stacks of one- and two-line entries in one scroll view, the
@@ -196,6 +205,32 @@ struct PulledPageApp: View {
                     }
                 }
                 .fixedSize(horizontal: false, vertical: true)
+            )
+        case .oneSection:
+            AnyView(
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
+                    Section {
+                        ForEach(0..<entries, id: \.self) { entry in
+                            PulledEntry(seed: seed, section: 0, entry: entry)
+                        }
+                    } header: {
+                        Text(Synth.sentence(seed, words: 8)).bold()
+                    }
+                }
+            )
+        case .sectionLoop:
+            AnyView(
+                LazyVStack(alignment: .leading, spacing: 0, pinnedViews: .sectionHeaders) {
+                    ForEach(0..<max(1, entries / 100), id: \.self) { section in
+                        Section {
+                            ForEach(0..<100, id: \.self) { entry in
+                                PulledEntry(seed: seed, section: section, entry: entry)
+                            }
+                        } header: {
+                            Text(Synth.sentence(mix(seed, section), words: 3)).bold()
+                        }
+                    }
+                }
             )
         }
     }

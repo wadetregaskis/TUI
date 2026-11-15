@@ -313,6 +313,12 @@ enum AppShapeMatrix {
         scrolling("fixed-size-table", "a title over a Table of 10,000 rows, both fixed vertically,, scrolled three lines a tick") {
             AnyView(PulledPageApp(shape: .fixedSizeTable, entries: $0.sized(10_000), seed: $0.seed))
         },
+        scrolling("one-section", "one Section of 10,000 one- and two-line entries in a lazy stack, header pinned, scrolled three lines a tick (S8)") {
+            AnyView(PulledPageApp(shape: .oneSection, entries: $0.sized(10_000), seed: $0.seed))
+        },
+        scrolling("section-loop", "a lazy stack of 100 sections of 100 one- and two-line entries, headers pinned, scrolled three lines a tick (S8)") {
+            AnyView(PulledPageApp(shape: .sectionLoop, entries: $0.sized(10_000), seed: $0.seed))
+        },
         scrolling("titled-editor", "a title over a TextEditor of 10,000 wrapped paragraphs, scrolled three lines a tick") {
             AnyView(PulledEditorApp(lines: $0.sized(10_000), seed: $0.seed))
         },
