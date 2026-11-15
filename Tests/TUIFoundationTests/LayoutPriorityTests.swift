@@ -203,7 +203,7 @@ struct LayoutPriorityTests {
     }
 
     @Test("Without a priority a column shares its rows; a text that cannot shrink keeps them (SwiftUI: v-equal, v-b-priority-a-fixed, v-b-priority-a-reserves)")
-    func columnOfTextsShares() {
+    func columnOfTextsShares() throws {
         let equal = column(height: 4) {
             Text(threeLines)
             Text(otherThree)
@@ -214,7 +214,7 @@ struct LayoutPriorityTests {
             Text(threeLines).fixedSize(horizontal: false, vertical: true)
             Text(otherThree).layoutPriority(1)
         }
-        #expect(fixed.count == 4 && Array(fixed.prefix(3)) == ["one", "two", "three"], "\(fixed)")
+        try #require(fixed.count == 4 && Array(fixed.prefix(3)) == ["one", "two", "three"], "\(fixed)")
         #expect(fixed[3].hasPrefix("four"), "\(fixed)")
         let reserving = column(height: 4) {
             Text(threeLines).lineLimit(2...)

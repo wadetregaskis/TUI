@@ -22,13 +22,13 @@ struct ShapeSamplingGeometryTests {
     private let tolerance = 1e-6
 
     @Test("The sample grid is 6 centres × 16 samples, laid out centre-major")
-    func gridShape() {
+    func gridShape() throws {
         #expect(ShapeRegion.centres.count == 6)
         #expect(ShapeRegion.samplesPerCircle == 16)
         #expect(ShapeRegion.radius == 0.30)
 
         let points = ShapeRegion.normalizedSamplePoints()
-        #expect(points.count == ShapeRegion.centres.count * ShapeRegion.samplesPerCircle)
+        try #require(points.count == ShapeRegion.centres.count * ShapeRegion.samplesPerCircle)
 
         // Sample 0 of every circle sits exactly on the circle's centre (the
         // spiral radius is 0 at index 0), which also proves the centre-major

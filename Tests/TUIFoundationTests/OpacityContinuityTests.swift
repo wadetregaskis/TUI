@@ -72,7 +72,7 @@ struct OpacityContinuityTests {
     }
 
     @Test("An uncontested glyph never vanishes, and its colour moves monotonically")
-    func uncontestedFadeIsMonotone() {
+    func uncontestedFadeIsMonotone() throws {
         // A single character over a plain pane: the commonest fade there is.
         let destination = FrameBuffer(lines: [
             ANSIRenderer.colorize(" ", background: .rgb(200, 60, 20))
@@ -84,7 +84,7 @@ struct OpacityContinuityTests {
             let line = resolved(source, over: destination, alpha: alpha)
             #expect(line.stripped == "x", "the glyph vanished at \(alpha)")
             let colors = foregrounds(in: line)
-            #expect(colors.count == 1, "expected one foreground at \(alpha)")
+            try #require(colors.count == 1, "expected one foreground at \(alpha)")
             series.append(colors[0] + Array(repeating: 0, count: max(0, 3 - colors[0].count)))
         }
         expectMonotone(series, "a channel reversed direction mid-fade")

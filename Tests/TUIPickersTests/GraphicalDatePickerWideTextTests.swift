@@ -52,9 +52,9 @@ struct GraphicalDatePickerWideTextTests {
     }
 
     @Test("Wide weekday initials keep the three-cell columns of the day grid", arguments: ["ja_JP", "zh_CN"])
-    func weekdayColumns(locale: String) {
+    func weekdayColumns(locale: String) throws {
         let lines = lines(locale: locale)
-        #expect(lines.count >= 3, "\(lines)")
+        try #require(lines.count >= 3, "\(lines)")
         guard lines.count >= 3 else { return }
         // Seven columns of three cells: a blank and a two-cell initial.
         #expect(lines[1].strippedLength == 21, "the weekday row is \(lines[1].strippedLength) cells: \(lines[1])")

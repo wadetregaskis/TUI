@@ -43,7 +43,7 @@ struct RadioButtonContentTests {
     }
 
     @Test("Content renders under its own option, indented to the label column")
-    func contentSitsUnderItsOption() {
+    func contentSitsUnderItsOption() throws {
         let context = makeRenderContext(width: 40, height: 12)
         let lines = render(selection: "greys", context: context).lines.map(\.stripped)
 
@@ -52,7 +52,7 @@ struct RadioButtonContentTests {
         // option's content is DRAWN, selected or not: the rows an option
         // occupies must not move as the selection does, or arrowing down the
         // list would walk a list that rearranges itself underneath.
-        #expect(lines.count == 5, "Three options and two controls: \(lines)")
+        try #require(lines.count == 5, "Three options and two controls: \(lines)")
         #expect(lines[0] == "\(unselected) Plain")
         #expect(lines[1] == "\(selected) Greys")
         #expect(lines[2].hasPrefix("  "), "Content indents to the label: \(lines[2])")
@@ -142,13 +142,13 @@ struct RadioButtonContentTests {
     }
 
     @Test("Right steps into the selected option's controls, Left steps back out")
-    func rightEntersTheContentAndLeftLeavesIt() {
+    func rightEntersTheContentAndLeftLeavesIt() throws {
         let context = makeRenderContext(width: 40, height: 12)
         let focus = context.environment.focusManager!
         _ = render(selection: "greys", context: context)
 
         let ids = focus.focusableIDsInActiveSection()
-        #expect(ids.count == 2, "the group and one live control: \(ids)")
+        try #require(ids.count == 2, "the group and one live control: \(ids)")
         focus.focus(id: ids[0])
         #expect(focus.isFocused(id: ids[0]))
 

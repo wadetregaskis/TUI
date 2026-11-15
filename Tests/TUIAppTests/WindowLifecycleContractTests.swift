@@ -67,7 +67,7 @@ struct WindowLifecycleContractTests {
     }
 
     @Test("Rows fire onAppear on band entry, onDisappear on exit, and re-fire on re-entry")
-    func bandEntryAndExitDriveLifecycle() {
+    func bandEntryAndExitDriveLifecycle() throws {
         let tuiContext = TUIContext()
         let log = LifecycleLog()
         let view = makeView(log: log)
@@ -77,7 +77,7 @@ struct WindowLifecycleContractTests {
         renderFrame(view, tuiContext: tuiContext, offset: 0)
         #expect(log.appears[0] == 1, "top row appeared once: \(log.appears)")
         #expect(log.appears[20] == nil, "an off-window row must NOT appear: \(log.appears)")
-        #expect(log.disappears.isEmpty, "nothing disappeared yet: \(log.disappears)")
+        try #require(log.disappears.isEmpty, "nothing disappeared yet: \(log.disappears)")
 
         // Scroll deep: the top rows leave the band (onDisappear), the newly
         // visible rows appear.

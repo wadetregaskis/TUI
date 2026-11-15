@@ -43,10 +43,10 @@ struct GroupBoxTests {
     }
 
     @Test("A titled group box draws its title, then its content in a box")
-    func titled() {
+    func titled() throws {
         let drawn = lines(GroupBox("Terms") { Text("Agree?") })
         #expect(drawn.first == "Terms")
-        #expect(drawn.count == 4, "title, the box's top, the content, the box's bottom: \(drawn)")
+        try #require(drawn.count == 4, "title, the box's top, the content, the box's bottom: \(drawn)")
         #expect(drawn[2].contains("Agree?"))
         #expect(drawn[1] != drawn[2] && !drawn[1].contains("Agree?"), "the content is boxed")
     }

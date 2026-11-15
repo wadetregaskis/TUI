@@ -64,7 +64,7 @@ struct DispatcherHoverTransitionTests {
     }
 
     @Test("Crossing between two regions fires exit + enter pair")
-    func crossingFiresExitThenEnter() {
+    func crossingFiresExitThenEnter() throws {
         let dispatcher = MouseEventDispatcher()
         dispatcher.setActiveSupport(.full)
         dispatcher.beginRenderPass()
@@ -94,7 +94,7 @@ struct DispatcherHoverTransitionTests {
         // Cursor crosses to B (passes off A first via the off-screen path)
         _ = dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 25, y: 5))
 
-        #expect(transcript.count == 3, "expected enter-A, exit-A, enter-B; got \(transcript)")
+        try #require(transcript.count == 3, "expected enter-A, exit-A, enter-B; got \(transcript)")
         #expect(transcript[0].handlerLabel == "A" && transcript[0].phase == .entered)
         #expect(transcript[1].handlerLabel == "A" && transcript[1].phase == .exited)
         #expect(transcript[2].handlerLabel == "B" && transcript[2].phase == .entered)

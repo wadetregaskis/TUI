@@ -90,7 +90,7 @@ struct TextLinkTests {
     // MARK: - The hyperlink
 
     @Test("A host that honours OSC 8 gets the link around its words only")
-    func hyperlink() {
+    func hyperlink() throws {
         let without = TerminalHyperlink.withSupport(false) { lines(Text(sentence)) }
         let with = TerminalHyperlink.withSupport(true) { lines(Text(sentence)) }
         #expect(!without.joined().contains("\u{1B}]8;"))
@@ -99,7 +99,7 @@ struct TextLinkTests {
         #expect(!leavesLinkOpen(line))
         // The words either side are outside the pair.
         let linked = line.components(separatedBy: opening)
-        #expect(linked.count == 2)
+        try #require(linked.count == 2)
         #expect(linked[0].stripped == "See ")
         #expect(linked[1].components(separatedBy: TerminalHyperlink.closing)[0].stripped == "docs")
         // An escape costs no cells.

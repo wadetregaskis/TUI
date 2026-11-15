@@ -37,9 +37,9 @@ struct ListRowStyleTests {
     }
 
     @Test("Vertical insets add lines above and below")
-    func verticalInsets() {
+    func verticalInsets() throws {
         let inset = lines(Text("row").listRowInsets(EdgeInsets(top: 1, leading: 0, bottom: 1, trailing: 0)))
-        #expect(inset.count == 3)
+        try #require(inset.count == 3)
         #expect(inset[0].trimmingCharacters(in: .whitespaces).isEmpty)
         #expect(inset[1].contains("row"))
     }
@@ -107,7 +107,7 @@ struct ListRowStyleTests {
     }
 
     @Test("A view background is repeated to cover the row")
-    func viewBackgroundTiles() {
+    func viewBackgroundTiles() throws {
         // The generic (View) overload, not the Color one: a one-line view
         // behind a three-line row has to cover all three, or the row shows
         // through where the background ran out.
@@ -119,7 +119,7 @@ struct ListRowStyleTests {
             }
             .listRowBackground(Text("~~~~~~~~~~~~~~~~~~~~")),
             context: makeRenderContext(width: 20, height: 6))
-        #expect(buffer.lines.count == 3)
+        try #require(buffer.lines.count == 3)
         // The content wins where it draws (the VStack centres its rows within
         // its own width, hence `contains` rather than `hasPrefix`), and the
         // background fills the row out to its full width either side.

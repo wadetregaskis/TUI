@@ -187,9 +187,9 @@ struct GradientEditorPanelMutationTests {
     /// position reads as evenly spaced, which is what the old bare-hex format
     /// meant back when a gradient WAS an even `[Color]`.
     @Test("Recents written in the old format read as evenly-spaced gradients")
-    func recentsMigrateByBeingRead() {
+    func recentsMigrateByBeingRead() throws {
         let decoded = Panel.decodeRecents("FF0000,00FF00,0000FF;112233,445566")
-        #expect(decoded.count == 2)
+        try #require(decoded.count == 2)
         let primaries: [Color] = [.rgb(255, 0, 0), .rgb(0, 255, 0), .rgb(0, 0, 255)]
         #expect(colours(decoded[0]) == primaries)
         #expect(locations(decoded[0]) == [0, 0.5, 1], "even spacing is what the old format meant")
@@ -209,11 +209,11 @@ struct GradientEditorPanelMutationTests {
     }
 
     @Test("A mixed or corrupt entry degrades rather than throwing the list away")
-    func recentsDegrade() {
+    func recentsDegrade() throws {
         // One unreadable colour inside an otherwise good entry; a whole entry
         // with too few stops; and a stop with an unparseable position.
         let decoded = Panel.decodeRecents("FF0000@0.000,zzz,0000FF@1.000;AABBCC;FF0000@x,0000FF@1")
-        #expect(decoded.count == 2, "the one-stop entry drops, the other two survive")
+        try #require(decoded.count == 2, "the one-stop entry drops, the other two survive")
         #expect(colours(decoded[0]) == [.rgb(255, 0, 0), .rgb(0, 0, 255)])
         #expect(decoded[1].stops.first?.location == 0, "an unreadable position falls back to even")
     }
@@ -222,9 +222,9 @@ struct GradientEditorPanelMutationTests {
     /// splits into NO parts, and indexing the first one trapped on a value
     /// read back from the app's store.
     @Test("A stop that is only a separator is skipped, not trapped on")
-    func recentsSkipSeparatorOnlyStops() {
+    func recentsSkipSeparatorOnlyStops() throws {
         let decoded = Panel.decodeRecents("FF0000@0.000,@,0000FF@1.000")
-        #expect(decoded.count == 1)
+        try #require(decoded.count == 1)
         #expect(colours(decoded[0]) == [.rgb(255, 0, 0), .rgb(0, 0, 255)])
     }
 }

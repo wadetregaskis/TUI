@@ -212,7 +212,7 @@ struct WindowedFocusReachTests {
     }
 
     @Test("Tab walks past the window edge, one off-window row per step")
-    func tabWalksPastTheWindow() {
+    func tabWalksPastTheWindow() throws {
         let tuiContext = TUIContext()
         let focusManager = FocusManager()
         let view = makeView()
@@ -221,7 +221,7 @@ struct WindowedFocusReachTests {
         // by walking from the auto-focused row 0.
         renderFrame(view, tuiContext: tuiContext, focusManager: focusManager, windowOffset: 0)
         let ring = focusManager.registeredFocusIDsInActiveSection()
-        #expect(ring.count == Self.viewportHeight + 1, "window rows + one margin row register")
+        try #require(ring.count == Self.viewportHeight + 1, "window rows + one margin row register")
 
         // Walk downward well past the original window; each step re-renders,
         // which re-centres the enumeration margin on the new focused row.

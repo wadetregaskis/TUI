@@ -409,13 +409,13 @@ struct DatePickerTests {
     }
 
     @Test("The focused field hands its pulsing block to the run loop")
-    func pulseAnimates() {
+    func pulseAnimates() throws {
         // Not "the output changes with the phase": the picker no longer reads
         // the phase as it renders — that read is what forced a full re-render
         // of the page per tick. It leaves a run instead, and the run is where
         // the breathing now lives.
         let buffer = focusedBuffer()
-        #expect(buffer.animatedCells.count == 1, "the active component left no run")
+        try #require(buffer.animatedCells.count == 1, "the active component left no run")
         let run = buffer.animatedCells[0]
         #expect(run.isAnimating, "the run is a still picture")
         let pictures: Set<String> = Set(run.frames.map(\.stripped))

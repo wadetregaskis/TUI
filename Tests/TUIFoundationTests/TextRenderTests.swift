@@ -27,9 +27,9 @@ struct TextRenderTests {
     // MARK: - Default
 
     @Test("Default short text renders one line with exact content")
-    func defaultSingleLine() {
+    func defaultSingleLine() throws {
         let buffer = renderToBuffer(Text("Hello, World!"), context: context())
-        #expect(buffer.lines.count == 1, "Single short text must be exactly one line, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 1, "Single short text must be exactly one line, got \(buffer.lines.count)")
         #expect(buffer.lines[0].stripped == "Hello, World!")
         // It must not be padded out to the available width.
         #expect(buffer.lines[0].stripped.strippedLength == 13)
@@ -44,18 +44,18 @@ struct TextRenderTests {
     // MARK: - Empty / whitespace
 
     @Test("Empty text renders a single empty line (no extra rows)")
-    func emptyText() {
+    func emptyText() throws {
         let buffer = renderToBuffer(Text(""), context: context())
         // A primitive Text("") legitimately occupies one (empty) line; it
         // must NOT expand to fill the available height with blank rows.
-        #expect(buffer.lines.count == 1, "Empty text must be a single line, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 1, "Empty text must be a single line, got \(buffer.lines.count)")
         #expect(buffer.lines[0].stripped.isEmpty, "Empty text line must be visibly empty, got >>\(buffer.lines[0].stripped)<<")
     }
 
     @Test("verbatim initializer renders the string unchanged")
-    func verbatim() {
+    func verbatim() throws {
         let buffer = renderToBuffer(Text(verbatim: "raw {value}"), context: context())
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "raw {value}")
     }
 
@@ -71,9 +71,9 @@ struct TextRenderTests {
     }
 
     @Test("A blank line between paragraphs is preserved, not collapsed")
-    func blankLinePreserved() {
+    func blankLinePreserved() throws {
         let buffer = renderToBuffer(Text("A\n\nB"), context: context())
-        #expect(buffer.lines.count == 3, "Blank middle line must be preserved, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 3, "Blank middle line must be preserved, got \(buffer.lines.count)")
         #expect(buffer.lines[0].stripped == "A")
         #expect(buffer.lines[1].stripped.isEmpty, "Middle line should be blank, got >>\(buffer.lines[1].stripped)<<")
         #expect(buffer.lines[2].stripped == "B")
@@ -91,9 +91,9 @@ struct TextRenderTests {
     }
 
     @Test("Wide width leaves short content on one line")
-    func wideWidthSingleLine() {
+    func wideWidthSingleLine() throws {
         let buffer = renderToBuffer(Text("Short"), context: context(width: 120))
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "Short")
     }
 
@@ -105,9 +105,9 @@ struct TextRenderTests {
     // MARK: - CJK / wide characters
 
     @Test("CJK text is measured at two cells per glyph")
-    func cjkWidth() {
+    func cjkWidth() throws {
         let buffer = renderToBuffer(Text("你好"), context: context(width: 30))
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "你好")
         #expect(buffer.width == 4, "Two CJK glyphs occupy 4 cells, got \(buffer.width)")
     }

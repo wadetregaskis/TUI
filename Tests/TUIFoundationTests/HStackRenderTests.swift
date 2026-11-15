@@ -22,7 +22,7 @@ struct HStackRenderTests {
     // MARK: - Default arrangement
 
     @Test("Arranges children left-to-right on one row with default spacing 1")
-    func defaultArrangement() {
+    func defaultArrangement() throws {
         let buffer = renderToBuffer(
             HStack {
                 Text("A")
@@ -31,7 +31,7 @@ struct HStackRenderTests {
             },
             context: ctx()
         )
-        #expect(buffer.lines.count == 1, "Single-line children stay on one row")
+        try #require(buffer.lines.count == 1, "Single-line children stay on one row")
         // Default spacing is 1 character between each pair: "A B C".
         #expect(buffer.lines[0].stripped == "A B C")
         #expect(buffer.width == 5)
@@ -72,16 +72,16 @@ struct HStackRenderTests {
     }
 
     @Test("A single child renders as itself")
-    func singleChild() {
+    func singleChild() throws {
         let buffer = renderToBuffer(HStack { Text("solo") }, context: ctx())
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "solo")
     }
 
     // MARK: - Spacer
 
     @Test("Spacer pushes siblings to the left and right edges")
-    func spacerExpands() {
+    func spacerExpands() throws {
         let buffer = renderToBuffer(
             HStack {
                 Text("L")
@@ -90,7 +90,7 @@ struct HStackRenderTests {
             },
             context: ctx(width: 20, height: 3)
         )
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         let line = buffer.lines[0].stripped
         #expect(line.hasPrefix("L"), "Left item flush left")
         #expect(line.hasSuffix("R"), "Right item flush right")
@@ -103,7 +103,7 @@ struct HStackRenderTests {
     // MARK: - Vertical alignment
 
     @Test("Top alignment puts a short child on the first row of a taller row")
-    func topAlignment() {
+    func topAlignment() throws {
         let buffer = renderToBuffer(
             HStack(alignment: .top, spacing: 1) {
                 VStack { Text("a"); Text("b") }
@@ -111,7 +111,7 @@ struct HStackRenderTests {
             },
             context: ctx(width: 10, height: 3)
         )
-        #expect(buffer.lines.count == 2, "Row is as tall as the tallest child (2 lines)")
+        try #require(buffer.lines.count == 2, "Row is as tall as the tallest child (2 lines)")
         #expect(buffer.lines[0].stripped == "a X", "X sits on the top row")
         #expect(buffer.lines[1].stripped.hasPrefix("b"))
         // The X column on the second row is blank (no second line for X).
@@ -160,14 +160,14 @@ struct HStackRenderTests {
     // MARK: - Multi-item
 
     @Test("All items render in order across the row")
-    func manyItems() {
+    func manyItems() throws {
         let buffer = renderToBuffer(
             HStack(spacing: 1) {
                 ForEach(0..<4) { Text("\($0)") }
             },
             context: ctx(width: 30, height: 2)
         )
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "0 1 2 3")
     }
 
@@ -194,7 +194,7 @@ struct HStackRenderTests {
     // MARK: - Filtered (empty) children
 
     @Test("A leading empty child claims no spacing slot")
-    func leadingEmptyChildClaimsNoSpacing() {
+    func leadingEmptyChildClaimsNoSpacing() throws {
         // `EmptyView` is NOT a ChildViewProvider, so unlike `if false { … }` it
         // survives child resolution and renders an empty buffer at index 0 —
         // which is exactly the case that used to buy a spacing slot it never
@@ -204,7 +204,7 @@ struct HStackRenderTests {
                 EmptyView()
                 Text("Hi")
             }, context: ctx())
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "Hi")
         #expect(buffer.width == 2)
     }

@@ -192,7 +192,7 @@ struct SectionListIntegrationTests {
 struct SectionListRowExtractorTests {
 
     @Test("Section extracts rows from ForEach content")
-    func sectionExtractsRowsFromForEach() {
+    func sectionExtractsRowsFromForEach() throws {
         let context = createTestContext()
 
         struct Item: Identifiable, Sendable {
@@ -213,7 +213,7 @@ struct SectionListRowExtractorTests {
         // Test that Section conforms to ListRowExtractor
         let rows: [ListRow<String>] = section.extractListRows(context: context)
 
-        #expect(rows.count == 2)
+        try #require(rows.count == 2)
         #expect(rows[0].id == "1")
         #expect(rows[1].id == "2")
     }

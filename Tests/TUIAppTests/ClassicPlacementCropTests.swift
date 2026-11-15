@@ -122,7 +122,7 @@ struct ClassicPlacementCropTests {
     private func check(
         _ placed: [Placed], sent: String, visible: Set<Int>, wholeImage: KittyGraphics.ImageID? = nil,
         cellOf: (_ row: Int, _ column: Int) -> (row: Int, column: Int) = { ($0, $1) }
-    ) {
+    ) throws {
         let cells = placed.flatMap { $0.cells.flatMap(\.self) }
         #expect(cells.count == Set(cells).count, "no placement overlaps another")
         #expect(Set(cells) == visible, "they cover exactly the cells that show")
@@ -134,7 +134,7 @@ struct ClassicPlacementCropTests {
             }
             #expect(image.width == placement.columns * 5 && image.height == placement.rows * 5)
             let first = cellOf(placement.row, placement.column)
-            #expect(image.bytes.count == image.width * image.height * 4)
+            try #require(image.bytes.count == image.width * image.height * 4)
             // Its corners: the pixels of those cells, whatever lies between.
             #expect(image.bytes[0] == UInt8(first.column * 5) && image.bytes[1] == UInt8(first.row * 5))
             let last = image.bytes.count - 4
@@ -170,78 +170,78 @@ struct ClassicPlacementCropTests {
     }
 
     @Test("A whole picture is placed as itself, and costs nothing more")
-    func whole() {
-        KittyGraphics.withClassicPlacements(true) {
+    func whole() throws {
+        try KittyGraphics.withClassicPlacements(true) {
             let (store, layer, writer) = fixture()
             let (rows, id) = picture(in: store)
             let frame = frame(rows, store: store, layer: layer, writer: writer)
             #expect(frame.sent.isEmpty)
             #expect(frame.placed.map(\.image) == [id])
-            check(frame.placed, sent: frame.sent, visible: cells(), wholeImage: id)
+            try check(frame.placed, sent: frame.sent, visible: cells(), wholeImage: id)
         }
     }
 
     @Test("A view in the middle leaves four rectangles, of just their pixels")
-    func middle() {
-        KittyGraphics.withClassicPlacements(true) {
+    func middle() throws {
+        try KittyGraphics.withClassicPlacements(true) {
             let (store, layer, writer) = fixture()
             let (rows, _) = picture(in: store)
             let lines = FrameBuffer(lines: rows).composited(with: cover(columns: 10, rows: 6), at: (15, 7)).lines
             let frame = frame(lines, store: store, layer: layer, writer: writer)
             #expect(frame.placed.count == 4)
-            check(frame.placed, sent: frame.sent, visible: cells(less: [(15, 7, 10, 6)]))
+            try check(frame.placed, sent: frame.sent, visible: cells(less: [(15, 7, 10, 6)]))
         }
     }
 
     @Test("A view over one corner leaves two rectangles", arguments: [(0, 0), (30, 0), (0, 14), (30, 14)])
-    func corner(at: (x: Int, y: Int)) {
-        KittyGraphics.withClassicPlacements(true) {
+    func corner(at: (x: Int, y: Int)) throws {
+        try KittyGraphics.withClassicPlacements(true) {
             let (store, layer, writer) = fixture()
             let (rows, _) = picture(in: store)
             let lines = FrameBuffer(lines: rows).composited(with: cover(columns: 10, rows: 6), at: at).lines
             let frame = frame(lines, store: store, layer: layer, writer: writer)
             #expect(frame.placed.count == 2)
-            check(frame.placed, sent: frame.sent, visible: cells(less: [(at.x, at.y, 10, 6)]))
+            try check(frame.placed, sent: frame.sent, visible: cells(less: [(at.x, at.y, 10, 6)]))
         }
     }
 
     @Test("Two views leave what the two leave, with no overlap")
-    func twoViews() {
-        KittyGraphics.withClassicPlacements(true) {
+    func twoViews() throws {
+        try KittyGraphics.withClassicPlacements(true) {
             let (store, layer, writer) = fixture()
             let (rows, _) = picture(in: store)
             let lines = FrameBuffer(lines: rows)
                 .composited(with: cover(columns: 10, rows: 6), at: (2, 2))
                 .composited(with: cover(columns: 8, rows: 6), at: (20, 5)).lines
             let frame = frame(lines, store: store, layer: layer, writer: writer)
-            check(frame.placed, sent: frame.sent, visible: cells(less: [(2, 2, 10, 6), (20, 5, 8, 6)]))
+            try check(frame.placed, sent: frame.sent, visible: cells(less: [(2, 2, 10, 6), (20, 5, 8, 6)]))
         }
     }
 
     @Test("A scroll clip's rows are one rectangle, and the next scroll position another image")
-    func scrollClip() {
-        KittyGraphics.withClassicPlacements(true) {
+    func scrollClip() throws {
+        try KittyGraphics.withClassicPlacements(true) {
             let (store, layer, writer) = fixture()
             let (rows, _) = picture(in: store)
             var frame = frame(Array(rows[3..<13]), store: store, layer: layer, writer: writer)
-            #expect(frame.placed.count == 1)
-            check(frame.placed, sent: frame.sent, visible: cells(rows: 0..<10)) { ($0 + 3, $1) }
+            try #require(frame.placed.count == 1)
+            try check(frame.placed, sent: frame.sent, visible: cells(rows: 0..<10)) { ($0 + 3, $1) }
             let first = frame.placed[0].image
 
             frame = self.frame(Array(rows[4..<14]), store: store, layer: layer, writer: writer)
-            #expect(frame.placed.count == 1)
+            try #require(frame.placed.count == 1)
             #expect(frame.placed[0].image != first)
-            check(frame.placed, sent: frame.sent, visible: cells(rows: 0..<10)) { ($0 + 4, $1) }
+            try check(frame.placed, sent: frame.sent, visible: cells(rows: 0..<10)) { ($0 + 4, $1) }
         }
     }
 
     @Test("A clip at the screen's right edge is a rectangle of the cells left")
-    func rightEdge() {
-        KittyGraphics.withClassicPlacements(true) {
+    func rightEdge() throws {
+        try KittyGraphics.withClassicPlacements(true) {
             let (store, layer, writer) = fixture()
             let (rows, _) = picture(in: store)
             let frame = frame(Array(rows[0..<5]), width: 25, store: store, layer: layer, writer: writer)
-            check(frame.placed, sent: frame.sent, visible: cells(columns: 0..<25, rows: 0..<5))
+            try check(frame.placed, sent: frame.sent, visible: cells(columns: 0..<25, rows: 0..<5))
         }
     }
 

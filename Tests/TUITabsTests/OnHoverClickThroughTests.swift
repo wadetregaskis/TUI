@@ -216,7 +216,7 @@ struct RegionClippingTests {
     }
 
     @Test("clamped trims regions to the box and drops the clipped-away")
-    func clampedTrimsRegions() {
+    func clampedTrimsRegions() throws {
         var buffer = FrameBuffer(lines: ["0123456789", "0123456789", "0123456789"])
         buffer.hitTestRegions = [
             region(x: 0, y: 0, w: 4, h: 1),  // wholly inside
@@ -225,7 +225,7 @@ struct RegionClippingTests {
         ]
         let clamped = buffer.clamped(toWidth: 9, height: 2)
 
-        #expect(clamped.hitTestRegions.count == 2, "\(clamped.hitTestRegions)")
+        try #require(clamped.hitTestRegions.count == 2, "\(clamped.hitTestRegions)")
         #expect(clamped.hitTestRegions[0].width == 4)
         #expect(clamped.hitTestRegions[1].offsetX == 8)
         #expect(clamped.hitTestRegions[1].width == 1, "trimmed to the box, not kept whole")

@@ -44,18 +44,18 @@ struct ButtonRowRenderTests {
     // MARK: - Single button
 
     @Test("A one-button row renders exactly that button, hugging its label")
-    func singleButton() {
+    func singleButton() throws {
         let out = lines(ButtonRow { Button("Only") {} })
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(openCap) Only \(closeCap)", "got: '\(out[0])'")
     }
 
     // MARK: - Default spacing (2)
 
     @Test("Two default buttons sit side by side with two spaces between them")
-    func twoButtonsDefaultSpacing() {
+    func twoButtonsDefaultSpacing() throws {
         let out = lines(ButtonRow { Button("Cancel") {}; Button("OK") {} })
-        #expect(out.count == 1, "single line: \(out)")
+        try #require(out.count == 1, "single line: \(out)")
         #expect(out[0] == "\(openCap) Cancel \(closeCap)  \(openCap) OK \(closeCap)",
             "got: '\(out[0])'")
         // `▐ Cancel ▌`(10) + 2 spaces + `▐ OK ▌`(6) = 18.
@@ -63,9 +63,9 @@ struct ButtonRowRenderTests {
     }
 
     @Test("Three buttons are laid out left to right with a 2-space gap each")
-    func threeButtons() {
+    func threeButtons() throws {
         let out = lines(ButtonRow { Button("A") {}; Button("B") {}; Button("C") {} })
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(openCap) A \(closeCap)  \(openCap) B \(closeCap)  \(openCap) C \(closeCap)",
             "got: '\(out[0])'")
     }
@@ -73,9 +73,9 @@ struct ButtonRowRenderTests {
     // MARK: - Custom spacing
 
     @Test("Custom spacing inserts exactly that many columns between buttons")
-    func customSpacing() {
+    func customSpacing() throws {
         let out = lines(ButtonRow(spacing: 5) { Button("A") {}; Button("B") {} })
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         // `▐ A ▌`(5) + 5 spaces + `▐ B ▌`(5) = 15.
         #expect(out[0] == "\(openCap) A \(closeCap)     \(openCap) B \(closeCap)", "got: '\(out[0])'")
         #expect(out[0].strippedLength == 15)
@@ -84,9 +84,9 @@ struct ButtonRowRenderTests {
     // MARK: - Empty-label member
 
     @Test("A row with an empty-label button keeps that button's caps and the gap")
-    func rowWithEmptyLabelButton() {
+    func rowWithEmptyLabelButton() throws {
         let out = lines(ButtonRow { Button("") {}; Button("OK") {} })
-        #expect(out.count == 1, "single line: \(out)")
+        try #require(out.count == 1, "single line: \(out)")
         // Empty button stays `▐  ▌` (caps + padding), 2-space gap, then `▐ OK ▌`.
         #expect(out[0] == "\(openCap)  \(closeCap)  \(openCap) OK \(closeCap)", "got: '\(out[0])'")
         #expect(out[0].hasPrefix(openCap))
@@ -96,12 +96,12 @@ struct ButtonRowRenderTests {
     // MARK: - Focus distribution
 
     @Test("Only the first button in the row carries the focus indicator")
-    func onlyFirstButtonFocused() {
+    func onlyFirstButtonFocused() throws {
         // Each button gets its own focus identity; the first focusable to
         // register against a fresh manager is auto-focused. In a plain-style
         // row that surfaces as a single `●` (the focus dot) on button one.
         let out = lines(ButtonRow { Button("Cancel") {}; Button("OK") {} }.buttonStyle(.plain))
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         let dots = out[0].filter { $0 == "\u{25CF}" }.count
         #expect(dots == 1, "exactly one focus dot across the row: '\(out[0])'")
         // The composed line: `● Cancel` + 2-space row gap + `  OK` (2-cell

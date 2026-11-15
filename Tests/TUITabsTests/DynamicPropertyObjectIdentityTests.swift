@@ -264,7 +264,7 @@ struct DynamicPropertyObjectIdentityTests {
     /// that first walks it (review1 of lane DYNVCLAIM, a7d1f8e75 (a)). An
     /// object made before the pass that walks it has ids of its own.
     @Test("An object made in an earlier frame, shown after one made with it, gets a namespace of its own")
-    func objectMadeEarlierGetsItsOwnNamespaceAfterAChain() {
+    func objectMadeEarlierGetsItsOwnNamespaceAfterAChain() throws {
         let tui = TUIContext()
         let log = NamespaceLog()
         let store = ScopedStore()
@@ -273,7 +273,7 @@ struct DynamicPropertyObjectIdentityTests {
         _ = frame(ScopedSelection(objects: store.both(), selection: 1, log: log), tui, height: 1)
         _ = frame(ScopedSelection(objects: store.both(), selection: 0, log: log), tui, height: 1)
         let ids = log.ids["detail"] ?? []
-        #expect(ids.count == 4)
+        try #require(ids.count == 4)
         #expect(ids[1] != ids[0], "\(ids)")
         #expect(ids[2] == ids[1], "\(ids)")
         #expect(ids[3] == ids[0], "\(ids)")
@@ -286,7 +286,7 @@ struct DynamicPropertyObjectIdentityTests {
     /// outlived its pass (review1 of lane DYNVCLAIM, ac4bf0644). Then it gets
     /// ids of its own.
     @Test("An object made on demand takes ids of its own once it outlives the pass it was made in")
-    func lazilyMadeObjectTakesItsOwnNamespaceOnceItOutlivesItsPass() {
+    func lazilyMadeObjectTakesItsOwnNamespaceOnceItOutlivesItsPass() throws {
         let tui = TUIContext()
         let log = NamespaceLog()
         let store = ScopedStore()
@@ -294,7 +294,7 @@ struct DynamicPropertyObjectIdentityTests {
             _ = frame(LazyScopedParent(store: store, key: key, log: log), tui, height: 1)
         }
         let ids = log.ids["detail"] ?? []
-        #expect(ids.count == 5)
+        try #require(ids.count == 5)
         #expect(ids[1] == ids[0], "taken for the chain's next object: \(ids)")
         #expect(ids[2] != ids[0], "its own once it outlived its pass: \(ids)")
         #expect(ids[3] == ids[0], "\(ids)")

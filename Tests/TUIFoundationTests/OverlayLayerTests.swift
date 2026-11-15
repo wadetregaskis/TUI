@@ -53,70 +53,70 @@ struct OverlayLayerPropagationTests {
     }
 
     @Test("appendVertically shifts the appended buffer's overlays down")
-    func appendVerticalShiftsOverlays() {
+    func appendVerticalShiftsOverlays() throws {
         var top = FrameBuffer(lines: ["AAA", "AAA"])
         let bottom = layeredBuffer(["BBB"], overlayAt: (1, 0))
         top.appendVertically(bottom)
 
-        #expect(top.overlays.count == 1)
+        try #require(top.overlays.count == 1)
         // Bottom started two rows down, so its overlay shifts by 2.
         #expect(top.overlays[0].offsetY == 2)
         #expect(top.overlays[0].offsetX == 1)
     }
 
     @Test("appendVertically keeps overlays from both buffers")
-    func appendVerticalKeepsBothOverlays() {
+    func appendVerticalKeepsBothOverlays() throws {
         var top = layeredBuffer(["AAA"], overlayAt: (0, 0))
         let bottom = layeredBuffer(["BBB"], overlayAt: (0, 0))
         top.appendVertically(bottom, spacing: 1)
 
-        #expect(top.overlays.count == 2)
+        try #require(top.overlays.count == 2)
         #expect(top.overlays[0].offsetY == 0)
         // Bottom lands after one line of content plus one line of spacing.
         #expect(top.overlays[1].offsetY == 2)
     }
 
     @Test("appendHorizontally shifts the appended buffer's overlays right")
-    func appendHorizontalShiftsOverlays() {
+    func appendHorizontalShiftsOverlays() throws {
         var left = FrameBuffer(lines: ["AAAA"])
         let right = layeredBuffer(["B"], overlayAt: (0, 0))
         left.appendHorizontally(right, spacing: 2)
 
-        #expect(left.overlays.count == 1)
+        try #require(left.overlays.count == 1)
         // Right starts past 4 columns of content plus 2 of spacing.
         #expect(left.overlays[0].offsetX == 6)
     }
 
     @Test("clamped preserves overlay layers while truncating content")
-    func clampedPreservesOverlays() {
+    func clampedPreservesOverlays() throws {
         let buffer = layeredBuffer(["AAAAAAAA"], overlayAt: (0, 5))
         let clamped = buffer.clamped(toWidth: 3, height: 1)
 
         #expect(clamped.width == 3)
-        #expect(clamped.overlays.count == 1)
+        try #require(clamped.overlays.count == 1)
         // The free-floating layer is untouched by content clamping.
         #expect(clamped.overlays[0].offsetY == 5)
     }
 
     @Test("composited lifts a nested overlay shifted by the paste position")
-    func compositedLiftsNestedOverlays() {
+    func compositedLiftsNestedOverlays() throws {
         let base = FrameBuffer(lines: ["..........", ".........."])
         let pasted = layeredBuffer(["P"], overlayAt: (1, 1))
         let result = base.composited(with: pasted, at: (x: 4, y: 1))
 
-        #expect(result.overlays.count == 1)
+        try #require(result.overlays.count == 1)
         // Nested overlay offset (1,1) plus paste position (4,1).
         #expect(result.overlays[0].offsetX == 5)
         #expect(result.overlays[0].offsetY == 2)
     }
 
     @Test("replacingLines shifts overlays by the given amount")
-    func replacingLinesShiftsOverlays() {
+    func replacingLinesShiftsOverlays() throws {
         let buffer = layeredBuffer(["AB"], overlayAt: (0, 0))
         let replaced = buffer.replacingLines(["  AB  "], overlayShiftX: 2, overlayShiftY: 1)
 
         #expect(replaced.lines == ["  AB  "])
-        #expect(replaced.overlays.count == 1)
+        try #require(replaced.overlays.count == 1)
         #expect(replaced.overlays[0].offsetX == 2)
         #expect(replaced.overlays[0].offsetY == 1)
     }
@@ -129,7 +129,7 @@ struct OverlayLayerPropagationTests {
 struct OverlayContainerPropagationTests {
 
     @Test("A VStack carries a child's overlay layer, shifted past earlier siblings")
-    func vStackPropagatesChildOverlay() {
+    func vStackPropagatesChildOverlay() throws {
         let context = makeContext()
         let stack = VStack(alignment: .leading, spacing: 0) {
             Text("AAA")
@@ -137,7 +137,7 @@ struct OverlayContainerPropagationTests {
         }
         let buffer = renderToBuffer(stack, context: context)
 
-        #expect(buffer.overlays.count == 1)
+        try #require(buffer.overlays.count == 1)
         // The probe sits below a single heading line, so its overlay shifts
         // down by one row; leading alignment keeps the x offset at zero.
         #expect(buffer.overlays[0].offsetY == 1)
@@ -145,12 +145,12 @@ struct OverlayContainerPropagationTests {
     }
 
     @Test("Padding shifts a wrapped view's overlay by its insets")
-    func paddingShiftsOverlay() {
+    func paddingShiftsOverlay() throws {
         let context = makeContext()
         let padded = OverlayProbe().padding(EdgeInsets(top: 2, leading: 3, bottom: 0, trailing: 0))
         let buffer = renderToBuffer(padded, context: context)
 
-        #expect(buffer.overlays.count == 1)
+        try #require(buffer.overlays.count == 1)
         #expect(buffer.overlays[0].offsetX == 3)
         #expect(buffer.overlays[0].offsetY == 2)
     }

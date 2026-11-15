@@ -183,14 +183,14 @@ struct GradientForegroundTests {
     /// A two-cell glyph is one glyph: the ramp may not change colour inside it,
     /// and it must advance the ramp by two cells, not one.
     @Test("A wide glyph takes one colour and two cells of the ramp")
-    func wideGlyphsAreNotSplit() {
+    func wideGlyphsAreNotSplit() throws {
         let lines = render(
             Text(verbatim: "一二三")
                 .foregroundStyle(
                     LinearGradient(colors: [red, blue], startPoint: .leading, endPoint: .trailing)),
             width: 12)
         let cells = inks(lines[0])
-        #expect(cells.count == 6, "three wide glyphs are six cells: \(cells)")
+        try #require(cells.count == 6, "three wide glyphs are six cells: \(cells)")
         for pair in stride(from: 0, to: 6, by: 2) {
             #expect(cells[pair] == cells[pair + 1], "a glyph was split across two colours")
         }
@@ -266,7 +266,7 @@ struct GradientForegroundTests {
     /// A vertical ramp over a wrapped text of several runs still steps per
     /// ROW, which is the cheap path (one run per line) and must stay that way.
     @Test("A vertical ramp over a text of several runs steps per row")
-    func verticalConcatenationStepsPerRow() {
+    func verticalConcatenationStepsPerRow() throws {
         let lines = render(
             Text("\(Text(verbatim: "aaaa ").italic())\(Text(verbatim: "bbbb"))")
                 .foregroundStyle(
@@ -274,7 +274,7 @@ struct GradientForegroundTests {
                 .frame(width: 5),
             width: 5)
         let rows = lines.prefix(2).map { painted($0) }
-        #expect(rows.count == 2, "\(lines)")
+        try #require(rows.count == 2, "\(lines)")
         #expect(Set(rows[0]).count == 1, "row 0 varied along itself: \(rows[0])")
         #expect(Set(rows[1]).count == 1, "row 1 varied along itself: \(rows[1])")
         #expect(rows[0].first != rows[1].first, "the rows share a colour: \(rows)")

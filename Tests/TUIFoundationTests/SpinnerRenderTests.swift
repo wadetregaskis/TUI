@@ -41,9 +41,9 @@ struct SpinnerRenderTests {
     // MARK: - No label
 
     @Test("Dots spinner without a label renders just the first frame glyph")
-    func dotsNoLabel() {
+    func dotsNoLabel() throws {
         let buffer = renderToBuffer(Spinner(style: .dots), context: context())
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         // First time-bucket frame of the dots style.
         #expect(buffer.lines[0].stripped == "⠋", "Expected the first braille frame, got >>\(buffer.lines[0].stripped)<<")
     }
@@ -94,10 +94,10 @@ struct SpinnerRenderTests {
     }
 
     @Test("Bouncing style renders a 9-position track of dot glyphs")
-    func bouncingTrack() {
+    func bouncingTrack() throws {
         let buffer = renderToBuffer(Spinner(style: .bouncing), context: context())
         let line = buffer.lines[0].stripped
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         // The track is a fixed 9 dot glyphs (the highlight may be off-screen
         // on the very first frame due to edge overshoot, so count glyphs).
         let dots = line.filter { $0 == "●" }
@@ -109,9 +109,9 @@ struct SpinnerRenderTests {
     // MARK: - Narrow width (no overflow)
 
     @Test("A label wider than the available width is clamped, never overflowing")
-    func narrowWidthClamps() {
+    func narrowWidthClamps() throws {
         let buffer = renderToBuffer(Spinner("Loading forever and ever", style: .line), context: context(width: 6))
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.width <= 6, "Spinner must not overflow the available width, got \(buffer.width)")
         #expect(buffer.lines[0].stripped.strippedLength <= 6,
                 "Visible content must fit within 6 cells, got \(buffer.lines[0].stripped.strippedLength)")

@@ -447,7 +447,7 @@ struct TabViewTests {
     }
 
     @Test("Clicking a tab in the strip selects it")
-    func clickSelectsTab() {
+    func clickSelectsTab() throws {
         let sel = IntBox(0)
         let ctx = makeRenderContext(width: 40, height: 8) { environment, tui in
             environment.mouseEventDispatcher = tui.mouseEventDispatcher
@@ -467,7 +467,7 @@ struct TabViewTests {
         let tabRegions = buffer.hitTestRegions.filter {
             !($0.width == buffer.width && $0.height == buffer.height)
         }
-        #expect(tabRegions.count >= 3, "a hit region per tab")
+        try #require(tabRegions.count >= 3, "a hit region per tab")
         let r = tabRegions[2]
         let x = r.offsetX + r.width / 2
         _ = dispatcher.dispatch(MouseEvent(button: .left, phase: .pressed, x: x, y: r.offsetY))

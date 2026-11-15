@@ -50,22 +50,22 @@ struct AnimatedCellRunTests {
     }
 
     @Test("Stacking vertically moves the lower buffer's runs down")
-    func appendVerticallyShifts() {
+    func appendVerticallyShifts() throws {
         var top = buffer(["one", "two"], runs: [run(x: 1, y: 0)])
         let bottom = buffer(["three"], runs: [run(x: 2, y: 0)])
         top.appendVertically(bottom)
-        #expect(top.animatedCells.count == 2)
+        try #require(top.animatedCells.count == 2)
         #expect(top.animatedCells[0].offsetY == 0)
         #expect(top.animatedCells[1].offsetY == 2, "the lower run rides its own lines down")
         #expect(top.animatedCells[1].offsetX == 2, "and does not move sideways")
     }
 
     @Test("Stacking horizontally moves the right buffer's runs right")
-    func appendHorizontallyShifts() {
+    func appendHorizontallyShifts() throws {
         var left = buffer(["abc"], runs: [run(x: 0, y: 0)])
         let right = buffer(["de"], runs: [run(x: 1, y: 0)])
         left.appendHorizontally(right)
-        #expect(left.animatedCells.count == 2)
+        try #require(left.animatedCells.count == 2)
         #expect(left.animatedCells[1].offsetX == 4, "3 columns of `abc`, then its own 1")
         #expect(left.animatedCells[1].offsetY == 0)
     }
@@ -83,17 +83,17 @@ struct AnimatedCellRunTests {
     }
 
     @Test("Compositing moves the overlay's runs to where it landed")
-    func compositingShifts() {
+    func compositingShifts() throws {
         let base = buffer(["....", "....", "...."])
         let overlay = buffer(["ab"], runs: [run(x: 0, y: 0)])
         let result = base.composited(with: overlay, at: (x: 2, y: 1))
-        #expect(result.animatedCells.count == 1)
+        try #require(result.animatedCells.count == 1)
         #expect(result.animatedCells[0].offsetX == 2)
         #expect(result.animatedCells[0].offsetY == 1)
     }
 
     @Test("Clamping drops the runs whose rows it clipped and cuts the ones its width cut through")
-    func clampingDropsClippedRuns() {
+    func clampingDropsClippedRuns() throws {
         // The point of the whole type: a run IS its cells. Scrolled out of a
         // viewport, it must stop — otherwise it repaints on a clock over
         // whatever moved into that position. Cut through by the width, the
@@ -107,7 +107,7 @@ struct AnimatedCellRunTests {
         ]
         let wide = buffer(Array(repeating: String(repeating: "x", count: 20), count: 8), runs: runs)
         let clamped = wide.clamped(toWidth: 10, height: 3)
-        #expect(clamped.animatedCells.count == 2, "got: \(clamped.animatedCells)")
+        try #require(clamped.animatedCells.count == 2, "got: \(clamped.animatedCells)")
         #expect(clamped.animatedCells.allSatisfy { $0.offsetY == 0 })
         let cut = clamped.animatedCells[1]
         #expect(cut.offsetX == 9 && cut.width == 1, "the cell inside the clamp survives: \(cut)")

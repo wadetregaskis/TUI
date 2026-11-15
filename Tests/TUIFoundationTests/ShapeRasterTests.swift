@@ -284,7 +284,7 @@ struct ShapeRasterTests {
     // MARK: Bytes and claims
 
     @Test("Cells become one introducer a run, and claims for what is translucent or absent")
-    func buffer() {
+    func buffer() throws {
         var cells = ShapeCells(width: 4, height: 1)
         cells[1, 0] = ShapeCells.Cell(ink: nil, field: .red, glyph: " ")
         cells[2, 0] = ShapeCells.Cell(ink: nil, field: .red, glyph: " ")
@@ -295,7 +295,7 @@ struct ShapeRasterTests {
         #expect(buffer.lines[0].hasPrefix(" "), "an absent cell states no colour")
         // The absent cell hands itself back (field 0); the translucent ink is
         // claimed at its alpha; the opaque field owes nothing.
-        #expect(buffer.opacityRegions.count == 2)
+        try #require(buffer.opacityRegions.count == 2)
         #expect(buffer.opacityRegions[0].offsetX == 0 && buffer.opacityRegions[0].fieldOpacity == 0)
         #expect(buffer.opacityRegions[1].offsetX == 3 && abs(buffer.opacityRegions[1].inkOpacity - 128.0 / 255) < 1e-9)
     }

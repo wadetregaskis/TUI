@@ -138,10 +138,10 @@ struct ChannelCurveEditorPanelTests {
     }
 
     @Test("Adding on the last point falls back INTO the ramp")
-    func addingOnTheLastPoint() {
+    func addingOnTheLastPoint() throws {
         let points: [Point] = [.init(input: 0, output: 0), .init(input: 1, output: 1)]
         let (updated, index) = Panel.adding(to: points, after: 1)
-        #expect(updated.count == 3)
+        try #require(updated.count == 3)
         #expect(updated[index].input < 1, "landed on top of the last point")
         #expect(updated[index].input > 0, "landed on top of the first")
         #expect(updated.map(\.input) == updated.map(\.input).sorted())
@@ -236,7 +236,7 @@ struct ChannelCurveEditorPanelTests {
     /// The other half: a press where there is no point puts one there, so
     /// "click the tone you want to change and drag it" is one gesture.
     @Test("Pressing empty chart adds a point at that input and output")
-    func pressingEmptyChartAddsAPoint() {
+    func pressingEmptyChartAddsAPoint() throws {
         var channels = ASCIIToneCurve.Channels(red: .identity, green: .identity, blue: .identity)
         let harness = harness(Binding(get: { channels }, set: { channels = $0 }))
         let lines = harness.frame()
@@ -247,7 +247,7 @@ struct ChannelCurveEditorPanelTests {
         let column = Panel.plotWidth / 2
         harness.dispatcher.dispatch(
             MouseEvent(button: .left, phase: .pressed, x: origin.x + column, y: origin.y + 1))
-        #expect(channels.red.points.count == 3, "no point was added: \(channels.red.points)")
+        try #require(channels.red.points.count == 3, "no point was added: \(channels.red.points)")
         let added = channels.red.points[1]
         #expect(Panel.column(forInput: added.input) == column)
         #expect(abs(added.output - Panel.output(atRow: 1)) < 1e-9, "wrong level: \(added.output)")

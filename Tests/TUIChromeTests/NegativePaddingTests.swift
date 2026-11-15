@@ -83,7 +83,7 @@ struct NegativePaddingTests {
     }
 
     @Test("In a VStack a frame pulled to no rows keeps its place, its content drawn over the row before")
-    func overlapsInVStack() {
+    func overlapsInVStack() throws {
         let column = VStack(alignment: .leading, spacing: 0) {
             Text("top")
             Text("mid").padding(.vertical, -1)
@@ -92,7 +92,7 @@ struct NegativePaddingTests {
         #expect(size(column).height == 2)
         expectParity(column)
         let out = composited(column)
-        #expect(out.count >= 2, "\(out)")
+        try #require(out.count >= 2, "\(out)")
         #expect(out[0].hasPrefix("mid"), "drawn a row up, over the row before it: \(out)")
         #expect(out[1].hasPrefix("bot"), "the row after it moved up by the overhang: \(out)")
     }

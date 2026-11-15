@@ -47,7 +47,7 @@ struct HStackRampOffsetTests {
     /// A three-row column beside a one-row leaf: the leaf's ink must be the ink
     /// of the column row it stands on, which is what "one ramp across the row"
     /// means once alignment moves the leaf down.
-    private func leafRow(_ alignment: VerticalAlignment, expectedRow: Int) {
+    private func leafRow(_ alignment: VerticalAlignment, expectedRow: Int) throws {
         let lines = renderToBuffer(
             HStack(alignment: alignment, spacing: 0) {
                 VStack(spacing: 0) {
@@ -61,7 +61,7 @@ struct HStackRampOffsetTests {
             .gradientExtent(.subtree),
             context: context()
         ).lines
-        #expect(lines.count == 3, "\(lines)")
+        try #require(lines.count == 3, "\(lines)")
         let leaf = (0..<3).map { truecolorInk(lines[$0], atColumn: 3) }
         let column = (0..<3).map { truecolorInk(lines[$0], atColumn: 0) }
         #expect(Set(column.compactMap { $0 }).count == 3, "the column's rows are three steps: \(column)")
@@ -71,19 +71,19 @@ struct HStackRampOffsetTests {
     }
 
     @Test("A bottom-aligned leaf takes the bottom row's ink")
-    func bottomAlignedLeaf() { leafRow(.bottom, expectedRow: 2) }
+    func bottomAlignedLeaf() throws { try leafRow(.bottom, expectedRow: 2) }
 
     @Test("A centre-aligned leaf takes the middle row's ink")
-    func centreAlignedLeaf() { leafRow(.center, expectedRow: 1) }
+    func centreAlignedLeaf() throws { try leafRow(.center, expectedRow: 1) }
 
     @Test("A top-aligned leaf takes the top row's ink")
-    func topAlignedLeaf() { leafRow(.top, expectedRow: 0) }
+    func topAlignedLeaf() throws { try leafRow(.top, expectedRow: 0) }
 
     /// A sibling that fills its height (a row `Divider`) takes the fallback
     /// path — it is measured at the row height — and must neither move the
     /// rigid leaf nor fail to span the row itself.
     @Test("A height-filling sibling is still placed by measurement")
-    func fillingSiblingIsMeasured() {
+    func fillingSiblingIsMeasured() throws {
         let lines = renderToBuffer(
             HStack(alignment: .bottom, spacing: 0) {
                 VStack(spacing: 0) {
@@ -98,7 +98,7 @@ struct HStackRampOffsetTests {
             .gradientExtent(.subtree),
             context: context()
         ).lines
-        #expect(lines.count == 3, "\(lines)")
+        try #require(lines.count == 3, "\(lines)")
         let divider = (0..<3).map { truecolorInk(lines[$0], atColumn: 3) }
         #expect(divider.allSatisfy { $0 != nil }, "the divider spans the row: \(divider)")
         #expect(
@@ -128,7 +128,7 @@ struct HStackRampOffsetTests {
     /// A spacer is neither measured nor placed, but the child after it must
     /// still land where the spacer's width puts it — at the far end of the ramp.
     @Test("A spacer advances the ramp without being measured")
-    func spacerAdvancesTheRamp() {
+    func spacerAdvancesTheRamp() throws {
         let lines = renderToBuffer(
             HStack(spacing: 0) {
                 Text(verbatim: "AA")
@@ -140,7 +140,7 @@ struct HStackRampOffsetTests {
             context: context(width: 10)
         ).lines
         let cells = truecolorInks(lines[0])
-        #expect(cells.count == 10, "\(cells)")
+        try #require(cells.count == 10, "\(cells)")
         #expect(cells[0] == "255;0;0", "the row starts at the ramp's start: \(cells)")
         #expect(cells[9] == "0;0;255", "the trailing leaf ends at the ramp's end: \(cells)")
         #expect(cells[2...7].allSatisfy { $0 == nil }, "the spacer draws nothing: \(cells)")

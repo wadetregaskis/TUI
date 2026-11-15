@@ -80,7 +80,7 @@ struct ScrollViewReservedIndicatorCanvasTests {
     }
 
     @Test("A Spacer spreads its layout over the content window, not the viewport")
-    func spacerFillsTheWindow() {
+    func spacerFillsTheWindow() throws {
         // Eight lines: "▲ …", six content lines, "▼ …".
         let drawn = settledLines(
             twoAxis(
@@ -90,18 +90,18 @@ struct ScrollViewReservedIndicatorCanvasTests {
                     Text("bottom")
                 }),
             height: 8)
-        #expect(drawn.count == 8, "\(drawn)")
+        try #require(drawn.count == 8, "\(drawn)")
         #expect(drawn[1] == "top", "the first content line: \(drawn)")
         #expect(drawn[6] == "bottom", "the last content line, directly above ▼: \(drawn)")
         #expect(count(in: drawn.last, arrow: "▼") == 0, "nothing to scroll to: \(drawn)")
     }
 
     @Test("A frame with an unbounded height fills the content window, not the viewport")
-    func infiniteFrameFillsTheWindow() {
+    func infiniteFrameFillsTheWindow() throws {
         let drawn = settledLines(
             twoAxis(Text("floor").frame(maxHeight: .infinity, alignment: .bottom)),
             height: 8)
-        #expect(drawn.count == 8, "\(drawn)")
+        try #require(drawn.count == 8, "\(drawn)")
         #expect(drawn[6] == "floor", "bottom-aligned on the last content line: \(drawn)")
         #expect(count(in: drawn.last, arrow: "▼") == 0, "nothing to scroll to: \(drawn)")
     }
@@ -124,7 +124,7 @@ struct ScrollViewReservedIndicatorCanvasTests {
     /// follows the bar, round by round, so the measure that added the bar and
     /// the one after it must both be taken at what is left.
     @Test("Under a horizontal bar too, a Spacer fills the window both leave")
-    func spacerFillsTheWindowUnderAHorizontalBar() {
+    func spacerFillsTheWindowUnderAHorizontalBar() throws {
         // Nine lines: "▲ …", six content lines, "▼ …", the horizontal bar.
         let drawn = settledLines(
             twoAxis(
@@ -134,7 +134,7 @@ struct ScrollViewReservedIndicatorCanvasTests {
                     Text("bottom")
                 }),
             height: 9)
-        #expect(drawn.count == 9, "\(drawn)")
+        try #require(drawn.count == 9, "\(drawn)")
         #expect(count(in: drawn[7], arrow: "▼") == 0, "nothing to scroll to: \(drawn)")
         #expect(drawn[6] == "bottom", "the last content line, above ▼ and the bar: \(drawn)")
     }
@@ -144,11 +144,11 @@ struct ScrollViewReservedIndicatorCanvasTests {
     /// above the bar, or bottom-aligned content lands a line too high.
     /// (A probe that ignored the floor passed every other test here.)
     @Test("Too short to draw the indicator lines, the content keeps the whole height")
-    func noReservationUnderTheFloor() {
+    func noReservationUnderTheFloor() throws {
         let drawn = settledLines(
             twoAxis(Text(String(repeating: "w", count: 50)).frame(maxHeight: .infinity, alignment: .bottom)),
             height: 3)
-        #expect(drawn.count == 3, "\(drawn)")
+        try #require(drawn.count == 3, "\(drawn)")
         #expect(drawn[1].hasPrefix("www"), "bottom-aligned on the line above the bar: \(drawn)")
     }
 

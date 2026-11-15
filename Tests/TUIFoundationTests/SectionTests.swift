@@ -283,7 +283,7 @@ struct SectionInfoExtractionTests {
 struct SectionChildInfoProviderTests {
 
     @Test("Section provides single ChildInfo")
-    func sectionProvidesChildInfo() {
+    func sectionProvidesChildInfo() throws {
         let context = createTestContext()
 
         let section = Section("Title") {
@@ -292,7 +292,7 @@ struct SectionChildInfoProviderTests {
 
         let infos = section.childInfos(context: context)
 
-        #expect(infos.count == 1)
+        try #require(infos.count == 1)
         #expect(infos[0].isSpacer == false)
         #expect(infos[0].buffer != nil)
     }

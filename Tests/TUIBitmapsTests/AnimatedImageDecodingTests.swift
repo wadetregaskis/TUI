@@ -122,7 +122,7 @@ struct AnimatedImageDecodingTests {
             let data = try writeAPNG(frames: [10, 200, 90], delay: 0.2, plays: 3)
             #expect(AnimatedImageDecoder.mayAnimate(head: [UInt8](data.prefix(4_096))))
             let animation = try #require(AnimatedImageDecoder.decode(data, maxPixelCount: nil))
-            #expect(animation.frames.count == 3)
+            try #require(animation.frames.count == 3)
             #expect(animation.plays == 3)
             #expect(animation.frames.map { $0.delayNanos / 1_000_000 } == [200, 200, 200])
             #expect(grey(animation.frames[1].image, 0, 0) > grey(animation.frames[0].image, 0, 0))
@@ -203,7 +203,7 @@ struct AnimatedImageDecodingTests {
             AnimatedImageDecoder.decode(fixture.data, maxPixelCount: nil, byteBudget: budget),
         ] {
             let animation = try #require(animation)
-            #expect(animation.frames.count == 4)
+            try #require(animation.frames.count == 4)
             #expect((animation.width, animation.height) == (64, 32))
             let held = animation.frames.reduce(0) { $0 + $1.image.pixels.count * 4 }
             #expect(held <= budget)

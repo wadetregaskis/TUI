@@ -283,12 +283,12 @@ struct PickerSegmentsTests {
     }
 
     @Test("The selected segment is drawn as a prominent button's label: bold")
-    func theSelectionIsMarked() {
+    func theSelectionIsMarked() throws {
         // Unfocused, so the cursor's own drawing is not what is measured.
         let line = renderToBuffer(picker(Choice(2)), context: makeBareRenderContext(width: 40, height: 3))
             .lines.first ?? ""
         let segments = line.components(separatedBy: "│")
-        #expect(segments.count == 3, "\(line.debugDescription)")
+        try #require(segments.count == 3, "\(line.debugDescription)")
         let bold = "\u{1B}[1;"
         #expect(segments.count == 3 && segments[1].contains(bold), "\(segments.map(\.debugDescription))")
         #expect(segments.count == 3 && !segments[0].contains(bold) && !segments[2].contains(bold))

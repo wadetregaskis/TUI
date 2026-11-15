@@ -93,9 +93,9 @@ struct ListHairlineSeparatorTests {
     }
 
     @Test("Elsewhere, a separator asked for is today's rule line of its own")
-    func elsewhereRules() {
+    func elsewhereRules() throws {
         let lines = render(names(["a", "b"]).listRowSeparator(.visible), hairlines: false)
-        #expect(text(lines).count == 3)
+        try #require(text(lines).count == 3)
         #expect(text(lines)[1].allSatisfy { $0 == "─" })
         #expect(markedLines(lines).isEmpty)
     }

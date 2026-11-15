@@ -67,7 +67,7 @@ struct VStackRenderTests {
     // MARK: - Spacing
 
     @Test("Spacing inserts blank lines between children, not around them")
-    func spacingBetweenChildren() {
+    func spacingBetweenChildren() throws {
         let buffer = renderToBuffer(
             VStack(spacing: 2) {
                 Text("A")
@@ -76,7 +76,7 @@ struct VStackRenderTests {
             context: ctx()
         )
         // A, blank, blank, B — no leading/trailing blanks.
-        #expect(buffer.lines.count == 4)
+        try #require(buffer.lines.count == 4)
         #expect(buffer.lines[0].stripped == "A")
         #expect(buffer.lines[1].stripped.trimmingCharacters(in: .whitespaces).isEmpty)
         #expect(buffer.lines[2].stripped.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -106,16 +106,16 @@ struct VStackRenderTests {
     }
 
     @Test("A single child renders as itself with no extra lines")
-    func singleChild() {
+    func singleChild() throws {
         let buffer = renderToBuffer(VStack { Text("only") }, context: ctx())
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "only")
     }
 
     // MARK: - Filtered (empty) children
 
     @Test("A false `if` branch contributes no row and claims no spacing slot")
-    func falseBranchFiltered() {
+    func falseBranchFiltered() throws {
         let buffer = renderToBuffer(
             VStack(spacing: 1) {
                 Text("A")
@@ -125,7 +125,7 @@ struct VStackRenderTests {
             context: ctx()
         )
         // Only A and C remain. With spacing 1 between them: A, blank, C.
-        #expect(buffer.lines.count == 3, "Expected A, blank, C — the false branch is dropped")
+        try #require(buffer.lines.count == 3, "Expected A, blank, C — the false branch is dropped")
         #expect(buffer.lines[0].stripped == "A")
         #expect(buffer.lines[1].stripped.trimmingCharacters(in: .whitespaces).isEmpty)
         #expect(buffer.lines[2].stripped == "C")
@@ -134,7 +134,7 @@ struct VStackRenderTests {
     // MARK: - Spacer
 
     @Test("Spacer expands to push siblings to top and bottom edges")
-    func spacerExpands() {
+    func spacerExpands() throws {
         let buffer = renderToBuffer(
             VStack {
                 Text("Top")
@@ -143,7 +143,7 @@ struct VStackRenderTests {
             },
             context: ctx(width: 30, height: 5)
         )
-        #expect(buffer.lines.count == 5, "Should fill the full 5-line height")
+        try #require(buffer.lines.count == 5, "Should fill the full 5-line height")
         #expect(buffer.lines.first?.stripped.contains("Top") == true)
         #expect(buffer.lines.last?.stripped.contains("Bot") == true)
         // The three interior lines are pure spacer fill (blank).
@@ -156,7 +156,7 @@ struct VStackRenderTests {
 
     // One line: given rows, the word would break across them instead.
     @Test("A one-line child wider than the stack truncates with an ellipsis")
-    func narrowTruncation() {
+    func narrowTruncation() throws {
         let buffer = renderToBuffer(
             VStack(alignment: .leading) {
                 Text("HelloWorld").lineLimit(1)
@@ -165,7 +165,7 @@ struct VStackRenderTests {
             context: ctx(width: 5, height: 4)
         )
         #expect(buffer.width == 5)
-        #expect(buffer.lines.count == 2)
+        try #require(buffer.lines.count == 2)
         #expect(buffer.lines[0].stripped == "Hell…", "Long line truncates to width with ellipsis")
         #expect(buffer.lines[1].stripped == "Hi   ")
     }
@@ -187,14 +187,14 @@ struct VStackRenderTests {
     // MARK: - Multi-item count
 
     @Test("All ten items in a large stack render on their own lines")
-    func manyItems() {
+    func manyItems() throws {
         let buffer = renderToBuffer(
             VStack(alignment: .leading) {
                 ForEach(0..<10) { Text("item \($0)") }
             },
             context: ctx(width: 20, height: 12)
         )
-        #expect(buffer.lines.count == 10)
+        try #require(buffer.lines.count == 10)
         #expect(buffer.lines[0].stripped == "item 0")
         #expect(buffer.lines[9].stripped == "item 9")
     }

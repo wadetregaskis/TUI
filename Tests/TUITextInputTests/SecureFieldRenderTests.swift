@@ -77,7 +77,7 @@ struct SecureFieldRenderTests {
     // MARK: Focused
 
     @Test("Focused field masks text with bullets followed by the cursor")
-    func focusedWithText() {
+    func focusedWithText() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
         let raw = rawLines(
@@ -85,7 +85,7 @@ struct SecureFieldRenderTests {
             context: ctx
         )
 
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         #expect(fm.currentFocusedID == "sf")
         let line = raw[0].stripped
         #expect(line.count == 30)
@@ -100,7 +100,7 @@ struct SecureFieldRenderTests {
     }
 
     @Test("Focused empty field with no prompt or title shows only the cursor")
-    func focusedEmpty() {
+    func focusedEmpty() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
         // No title: with one, the field shows it where a prompt would go.
@@ -109,7 +109,7 @@ struct SecureFieldRenderTests {
             context: ctx
         )
 
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         let line = raw[0].stripped
         #expect(line.count == 30)
         #expect(!line.contains(bullet))
@@ -120,7 +120,7 @@ struct SecureFieldRenderTests {
     // MARK: Unfocused
 
     @Test("Unfocused field with text shows bullets, no cursor and no plaintext")
-    func unfocusedWithText() {
+    func unfocusedWithText() throws {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 30, focusManager: fm, identityPath: "decoy")
         _ = renderToBuffer(SecureField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
@@ -132,7 +132,7 @@ struct SecureFieldRenderTests {
         )
 
         #expect(fm.currentFocusedID == "decoy")
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         let line = raw[0].stripped
         #expect(line.count == 30)
         #expect(!hasCaretCell(raw[0]))  // no caret when unfocused
@@ -142,7 +142,7 @@ struct SecureFieldRenderTests {
     }
 
     @Test("Empty unfocused field with a prompt shows the prompt text")
-    func unfocusedEmptyWithPrompt() {
+    func unfocusedEmptyWithPrompt() throws {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 30, focusManager: fm, identityPath: "decoy")
         _ = renderToBuffer(SecureField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
@@ -153,7 +153,7 @@ struct SecureFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 30)
         #expect(!line.contains(bullet))  // empty field has nothing to mask
@@ -164,7 +164,7 @@ struct SecureFieldRenderTests {
     // MARK: Empty label
 
     @Test("Empty label does not add a blank line or alter the field")
-    func emptyLabel() {
+    func emptyLabel() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 20, focusManager: fm)
         let lines = strippedLines(
@@ -172,7 +172,7 @@ struct SecureFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 20)
         #expect(line == "\(openCap)\(bullet)\(bullet)" + String(repeating: " ", count: 16) + closeCap)
@@ -181,7 +181,7 @@ struct SecureFieldRenderTests {
     // MARK: Disabled
 
     @Test("Disabled field masks its text but cannot take focus")
-    func disabled() {
+    func disabled() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
         let lines = strippedLines(
@@ -190,7 +190,7 @@ struct SecureFieldRenderTests {
         )
 
         #expect(fm.currentFocusedID == nil)
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 30)
         #expect(!line.contains("pw"))
@@ -201,7 +201,7 @@ struct SecureFieldRenderTests {
     // MARK: Narrow width / truncation
 
     @Test("Focused narrow field scrolls bullets to keep the cursor visible")
-    func focusedNarrowScrolls() {
+    func focusedNarrowScrolls() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 14, focusManager: fm)
         let lines = strippedLines(
@@ -209,7 +209,7 @@ struct SecureFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 14)
         #expect(!line.contains("abc"))  // never reveal plaintext
@@ -219,7 +219,7 @@ struct SecureFieldRenderTests {
     }
 
     @Test("Unfocused narrow field clips bullets to the content width")
-    func unfocusedNarrowTruncates() {
+    func unfocusedNarrowTruncates() throws {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 14, focusManager: fm, identityPath: "decoy")
         _ = renderToBuffer(SecureField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
@@ -230,7 +230,7 @@ struct SecureFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 14)
         // width 14 => content width 12; first 12 bullets shown, no cursor.
@@ -240,7 +240,7 @@ struct SecureFieldRenderTests {
     // MARK: Wide
 
     @Test("Wide field expands to fill the available width")
-    func wide() {
+    func wide() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 50, focusManager: fm)
         let lines = strippedLines(
@@ -248,7 +248,7 @@ struct SecureFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 50)
         // Focused: two bullets + the caret cell (an inverted space) + padding.
@@ -258,7 +258,7 @@ struct SecureFieldRenderTests {
     // MARK: Multi-field composition
 
     @Test("A VStack of secure fields renders one continuous line each, only first focused")
-    func multipleFieldsInVStack() {
+    func multipleFieldsInVStack() throws {
         let fm = FocusManager()
         var env = EnvironmentValues()
         env.focusManager = fm
@@ -278,7 +278,7 @@ struct SecureFieldRenderTests {
         let buffer = renderToBuffer(view, context: ctx)
         let lines = buffer.lines.map { $0.stripped }
 
-        #expect(lines.count == 2)
+        try #require(lines.count == 2)
         for line in lines {
             #expect(line.count == 24)
             #expect(line.hasPrefix(openCap))

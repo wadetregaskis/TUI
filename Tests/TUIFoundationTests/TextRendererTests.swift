@@ -76,9 +76,9 @@ struct TextRendererTests {
         let text = Text("\(Text(verbatim: "abc "))\(Text(verbatim: "def").bold())\(Text(verbatim: " ghij klm"))")
         _ = rendered(text.textRenderer(Recording(probe: probe)), width: 10)
         let layout = try #require(probe.layout)
-        #expect(layout.count == 2, "\(layout.map { $0.map { $0.glyphs.map(\.character).joined() } })")
+        try #require(layout.count == 2, "\(layout.map { $0.map { $0.glyphs.map(\.character).joined() } })")
         let first = layout[0]
-        #expect(first.count == 2, "plain, then bold: the wrap drops the space after it")
+        try #require(first.count == 2, "plain, then bold: the wrap drops the space after it")
         #expect(first[1].glyphs.map(\.character).joined() == "def")
         #expect(first[1].typographicBounds.rect == CGRect(x: 4, y: 0, width: 3, height: 1))
         #expect(layout[1].origin == CGPoint(x: 0, y: 1))
@@ -90,7 +90,7 @@ struct TextRendererTests {
         let probe = LayoutProbe()
         _ = rendered(Text(verbatim: "a漢b").textRenderer(Recording(probe: probe)))
         let run = try #require(probe.layout?.first?.first)
-        #expect(run.count == 3)
+        try #require(run.count == 3)
         #expect(run[1].typographicBounds.width == 2)
         #expect(run[2].typographicBounds.origin.x == 3)
     }
@@ -101,7 +101,7 @@ struct TextRendererTests {
         let text = Text("\(Text(verbatim: "plain "))\(Text(verbatim: "loud").customAttribute(Emphasis()))")
         _ = rendered(text.textRenderer(Recording(probe: probe)))
         let runs = Array(try #require(probe.layout?.first))
-        #expect(runs.count == 2)
+        try #require(runs.count == 2)
         #expect(runs[0][Emphasis.self] == nil)
         #expect(runs[1][Emphasis.self] != nil)
         #expect(runs[1].glyphs.map(\.character).joined() == "loud")
@@ -189,8 +189,8 @@ struct TextRendererTests {
     }
 
     @Test("A filter changes a glyph's colours at 256-colour depth and emits 256-colour codes")
-    func filterAtPalette256() {
-        ColorDepth.withCurrent(.palette256) {
+    func filterAtPalette256() throws {
+        try ColorDepth.withCurrent(.palette256) {
             let view = Text(verbatim: "abcd")
                 .foregroundStyle(.palette.accent)
                 .textRenderer(PerGlyph { index, glyph, ctx in
@@ -210,7 +210,7 @@ struct TextRendererTests {
                 }
                 return true
             }
-            #expect(foregrounds.count == 4)
+            try #require(foregrounds.count == 4)
             #expect(
                 foregrounds.contains { $0 != foregrounds[0] },
                 "hue rotation across glyphs must change the 256-colour foreground: \(foregrounds)")

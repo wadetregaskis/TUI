@@ -234,7 +234,7 @@ struct ReplayBackgroundTests {
     /// `.background` recorded it (`AnimatedCellRun.ground`); the row is built by
     /// the writer on a page of another colour.
     @Test("A run in a container keeps the container's background after its own resets")
-    func aRunKeepsItsContainersBackground() {
+    func aRunKeepsItsContainersBackground() throws {
         let writer = FrameDiffWriter(program: .unidentified)
         let panel = "\u{1B}[48;5;22m"
         let chip = "\u{1B}[48;5;28m"
@@ -253,7 +253,7 @@ struct ReplayBackgroundTests {
             run, showing: frame, in: row, fields: run.fields(onPage: Self.page))
         let cells = paintedCells(patched).map(\.background)
         #expect(patched.stripped.hasPrefix("ab ▐xx▌ z"), "the run did not land: \(patched.stripped)")
-        #expect(cells.count == 12, "the splice changed the row's width")
+        try #require(cells.count == 12, "the splice changed the row's width")
         guard cells.count == 12 else { return }
         #expect(cells[3] == panel, "the left cap left the panel: \(cells[3].debugDescription)")
         #expect(cells[4] == chip && cells[5] == chip, "the label lost the chip's own surface")

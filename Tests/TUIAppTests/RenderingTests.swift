@@ -177,7 +177,7 @@ struct RenderingTests {
     }
 
     @Test("VStack with Spacer distributes available height")
-    func vstackWithSpacer() {
+    func vstackWithSpacer() throws {
         let stack = VStack {
             Text("Top")
             Spacer()
@@ -187,7 +187,7 @@ struct RenderingTests {
 
         // Debug: Check child infos
         let infos = resolveChildInfos(from: stack.content, context: context)
-        #expect(infos.count == 3, "Should have 3 children: Text, Spacer, Text")
+        try #require(infos.count == 3, "Should have 3 children: Text, Spacer, Text")
         #expect(infos[0].isSpacer == false, "First should be Text")
         #expect(infos[1].isSpacer == true, "Second should be Spacer")
         #expect(infos[2].isSpacer == false, "Third should be Text")

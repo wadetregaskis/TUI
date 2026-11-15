@@ -660,12 +660,12 @@ struct LocalizedTitleTests {
     }
 
     @Test("Notification message")
-    func notification() {
+    func notification() throws {
         let service = NotificationService()
         service.post("test.title.control")
         service.post(Self.computedKey)
         let entries = service.activeEntries()
-        #expect(entries.count == 2)
+        try #require(entries.count == 2)
         #expect(entries[0].message == Self.translation)
         #expect(entries[1].message == Self.key)
     }

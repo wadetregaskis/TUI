@@ -139,11 +139,11 @@ struct TimelineScheduleTests {
     }
 
     @Test("The default rate is the run loop's default frame rate")
-    func animationDefaultRate() {
+    func animationDefaultRate() throws {
         // The tolerance is set by Double's resolution at this magnitude
         // (~2.4e-7 s at 8e8 s past the reference date), not by the schedule.
         let entries = firstEntries(AnimationTimelineSchedule(), from: base, count: 3)
-        #expect(entries.count == 3)
+        try #require(entries.count == 3)
         #expect(abs((entries[1] - entries[0]) - 1.0 / 60.0) < 1e-6)
         #expect(abs((entries[2] - entries[1]) - 1.0 / 60.0) < 1e-6)
     }

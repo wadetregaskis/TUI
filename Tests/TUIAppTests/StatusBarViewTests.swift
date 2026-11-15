@@ -223,7 +223,7 @@ struct StatusBarAlignmentTests {
 struct StatusBarItemsModifierTests {
 
     @Test("statusBarItems modifier sets items in environment")
-    func modifierSetsItemsInEnvironment() {
+    func modifierSetsItemsInEnvironment() throws {
         // Setup: Create a status bar state and environment
         let state = StatusBarState()
         state.showSystemItems = false  // Disable for cleaner test
@@ -247,12 +247,12 @@ struct StatusBarItemsModifierTests {
         _ = renderToBuffer(view, context: context)
 
         // Check that user items were set
-        #expect(state.currentUserItems.count == 1)
+        try #require(state.currentUserItems.count == 1)
         #expect(state.currentUserItems[0].label == "test")
     }
 
     @Test("statusBarItems modifier with context pushes to stack")
-    func modifierWithContextPushesToStack() {
+    func modifierWithContextPushesToStack() throws {
         // Setup
         let state = StatusBarState()
         state.showSystemItems = false  // Disable for cleaner test
@@ -281,14 +281,14 @@ struct StatusBarItemsModifierTests {
         _ = renderToBuffer(view, context: context)
 
         // Context items should be active
-        #expect(state.currentUserItems.count == 1)
+        try #require(state.currentUserItems.count == 1)
         #expect(state.currentUserItems[0].label == "dialog-item")
 
         // Pop context
         state.pop(context: "dialog")
 
         // Global items should be back
-        #expect(state.currentUserItems.count == 1)
+        try #require(state.currentUserItems.count == 1)
         #expect(state.currentUserItems[0].label == "global")
     }
 
@@ -318,7 +318,7 @@ struct StatusBarItemsModifierTests {
     }
 
     @Test("Nested statusBarItems modifiers")
-    func nestedModifiers() {
+    func nestedModifiers() throws {
         let state = StatusBarState()
         state.showSystemItems = false  // Disable for cleaner test
         var environment = EnvironmentValues()
@@ -347,7 +347,7 @@ struct StatusBarItemsModifierTests {
         _ = renderToBuffer(outerView, context: context)
 
         // Inner context should be on top
-        #expect(state.currentUserItems.count == 1)
+        try #require(state.currentUserItems.count == 1)
         #expect(state.currentUserItems[0].label == "inner-item")
 
         // Pop inner context

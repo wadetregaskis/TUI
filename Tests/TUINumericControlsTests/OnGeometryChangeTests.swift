@@ -107,7 +107,7 @@ struct OnGeometryChangeTests {
     }
 
     @Test("The two-argument form carries the previous value")
-    func twoArgumentForm() {
+    func twoArgumentForm() throws {
         let fixture = Fixture()
         let pairs = MainActorBox([(Int, Int)]())
         var width = 3
@@ -120,14 +120,14 @@ struct OnGeometryChangeTests {
         }
 
         fixture.frame(view())
-        #expect(pairs.value.count == 1)
+        try #require(pairs.value.count == 1)
         #expect(
             pairs.value[0].0 == 3 && pairs.value[0].1 == 3,
             "the first report is old == new: \(pairs.value)")
 
         width = 7
         fixture.frame(view())
-        #expect(pairs.value.count == 2)
+        try #require(pairs.value.count == 2)
         #expect(pairs.value[1].0 == 3 && pairs.value[1].1 == 7, "\(pairs.value)")
     }
 

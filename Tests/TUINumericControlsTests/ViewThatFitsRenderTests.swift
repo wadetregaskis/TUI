@@ -26,7 +26,7 @@ struct ViewThatFitsRenderTests {
     // MARK: - Picks the first fitting candidate
 
     @Test("When the first candidate fits, it is the one rendered")
-    func firstCandidateFits() {
+    func firstCandidateFits() throws {
         let buffer = renderToBuffer(
             ViewThatFits {
                 Text("Short")
@@ -34,7 +34,7 @@ struct ViewThatFitsRenderTests {
             },
             context: ctx(width: 30, height: 8)
         )
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "Short", "First candidate fits, so it wins")
     }
 
@@ -72,7 +72,7 @@ struct ViewThatFitsRenderTests {
     // MARK: - Row → column switch (the canonical use)
 
     @Test("A wide HStack candidate yields to a VStack fallback when too narrow")
-    func rowToColumn() {
+    func rowToColumn() throws {
         let view = ViewThatFits {
             HStack(spacing: 1) { Text("Name"); Text("Size"); Text("Modified") }
             VStack(alignment: .leading) { Text("Name"); Text("Size"); Text("Modified") }
@@ -80,7 +80,7 @@ struct ViewThatFitsRenderTests {
 
         // Wide: the single-row HStack fits.
         let wide = renderToBuffer(view, context: ctx(width: 40, height: 8))
-        #expect(wide.lines.count == 1, "Wide enough: the row layout is chosen")
+        try #require(wide.lines.count == 1, "Wide enough: the row layout is chosen")
         #expect(wide.lines[0].stripped == "Name Size Modified")
 
         // Narrow: the row cannot fit, so the column fallback is chosen.
@@ -97,7 +97,7 @@ struct ViewThatFitsRenderTests {
     // MARK: - A candidate that fills the axis being tested
 
     @Test("A Spacer in a candidate row does not veto the row")
-    func flexibleRowIsNotRejected() {
+    func flexibleRowIsNotRejected() throws {
         let view = ViewThatFits {
             HStack(spacing: 1) { Text("Name"); Spacer(); Text("Size") }
             VStack(alignment: .leading, spacing: 0) { Text("Name"); Text("Size") }
@@ -107,13 +107,13 @@ struct ViewThatFitsRenderTests {
         // row reports the probe's own extent as its MINIMUM width — a number no
         // terminal can satisfy — so it used to lose at every width.
         let wide = renderToBuffer(view, context: ctx(width: 40, height: 8))
-        #expect(wide.lines.count == 1, "The filling row wins, not the 2-line column")
+        try #require(wide.lines.count == 1, "The filling row wins, not the 2-line column")
         #expect(wide.width == 40)
         #expect(wide.lines[0].stripped == "Name" + String(repeating: " ", count: 32) + "Size")
     }
 
     @Test("A candidate that fills both axes is not rejected by either")
-    func fillingCandidateIsAccepted() {
+    func fillingCandidateIsAccepted() throws {
         // A GeometryReader reports `availableWidth` x `availableHeight` and flags
         // both axes flexible, so under the probe it over-reports both at once.
         let buffer = renderToBuffer(
@@ -123,7 +123,7 @@ struct ViewThatFitsRenderTests {
             },
             context: ctx(width: 12, height: 3)
         )
-        #expect(buffer.lines.count == 3, "The reader fills 12x3, so it fits it")
+        try #require(buffer.lines.count == 3, "The reader fills 12x3, so it fits it")
         #expect(buffer.lines[0].stripped == "reader" + String(repeating: " ", count: 6))
     }
 
@@ -197,7 +197,7 @@ struct ViewThatFitsRenderTests {
     }
 
     @Test("A both-axes test rejects a candidate that is too tall")
-    func bothAxesRejectsTall() {
+    func bothAxesRejectsTall() throws {
         let buffer = renderToBuffer(
             ViewThatFits {
                 VStack(alignment: .leading) { Text("a"); Text("b"); Text("c") }  // 3 rows
@@ -207,7 +207,7 @@ struct ViewThatFitsRenderTests {
         )
         // Default both-axes: the 3-row candidate does not fit height 1, so
         // the single-row fallback is chosen.
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "z")
     }
 

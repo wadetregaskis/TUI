@@ -101,7 +101,7 @@ struct DisclosureGroupTests {
             frame(
                 DisclosureGroup("Advanced", isExpanded: .constant(true)) { Text("Secret") },
                 tui: tui, context: context))
-        #expect(rendered.count == 2, "header plus content: \(rendered)")
+        try #require(rendered.count == 2, "header plus content: \(rendered)")
         #expect(rendered[0].contains(TerminalSymbols.disclosureExpanded), "▼: \(rendered)")
         #expect(rendered[1].contains("Secret"), "the content is drawn: \(rendered)")
     }

@@ -25,7 +25,7 @@ struct GroupRenderTests {
     // MARK: - Transparency
 
     @Test("A bare Group stacks its children vertically like an implicit VStack")
-    func bareGroupStacksChildren() {
+    func bareGroupStacksChildren() throws {
         let buffer = renderToBuffer(
             Group {
                 Text("First")
@@ -33,22 +33,22 @@ struct GroupRenderTests {
             },
             context: ctx()
         )
-        #expect(buffer.lines.count == 2)
+        try #require(buffer.lines.count == 2)
         #expect(buffer.lines[0].stripped == "First")
         #expect(buffer.lines[1].stripped == "Second")
     }
 
     @Test("A single-view Group renders exactly that view")
-    func singleViewGroup() {
+    func singleViewGroup() throws {
         let buffer = renderToBuffer(Group { Text("only") }, context: ctx())
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "only")
     }
 
     // MARK: - Flattening into a VStack
 
     @Test("Group flattens into a VStack so spacing applies between grouped views")
-    func flattensIntoVStack() {
+    func flattensIntoVStack() throws {
         // If Group nested instead of flattening, the VStack spacing would
         // not appear between A and B.
         let buffer = renderToBuffer(
@@ -60,7 +60,7 @@ struct GroupRenderTests {
             },
             context: ctx()
         )
-        #expect(buffer.lines.count == 3, "Expected A, blank, B")
+        try #require(buffer.lines.count == 3, "Expected A, blank, B")
         #expect(buffer.lines[0].stripped == "A")
         #expect(buffer.lines[1].stripped.trimmingCharacters(in: .whitespaces).isEmpty)
         #expect(buffer.lines[2].stripped == "B")
@@ -89,7 +89,7 @@ struct GroupRenderTests {
     // MARK: - Flattening into an HStack
 
     @Test("Group flattens into an HStack so children lay out horizontally")
-    func flattensIntoHStack() {
+    func flattensIntoHStack() throws {
         let buffer = renderToBuffer(
             HStack(spacing: 1) {
                 Group {
@@ -99,7 +99,7 @@ struct GroupRenderTests {
             },
             context: ctx()
         )
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "A B", "Grouped children spaced like direct HStack children")
     }
 
@@ -164,7 +164,7 @@ struct GroupRenderTests {
     /// forwards that witness, so it is carried across in `ChildView` instead
     /// of re-read off the wrapper.
     @Test("A Spacer inside a modified Group is still a spacer to the stack")
-    func modifiedGroupKeepsSpacerMetadata() {
+    func modifiedGroupKeepsSpacerMetadata() throws {
         // The member's spacer flag is read from the static `View` witness, and
         // no wrapper forwards that witness — so re-reading it off the wrapper
         // the distribution puts around each member would answer `false` and the
@@ -180,7 +180,7 @@ struct GroupRenderTests {
             },
             context: ctx(width: 10)
         )
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "A        B", "the spacer pushed B to the far edge")
     }
 
@@ -461,41 +461,41 @@ struct GroupRenderTests {
     // every child's spacer flag and z-index.
 
     @Test("Group.childInfos splices its children rather than wrapping them in one")
-    func childInfosSplicesChildren() {
+    func childInfosSplicesChildren() throws {
         let infos = Group {
             Text("A")
             Text("B")
         }
         .childInfos(context: ctx())
 
-        #expect(infos.count == 2, "one info per grouped child, not one for the Group")
+        try #require(infos.count == 2, "one info per grouped child, not one for the Group")
         #expect(infos[0].buffer?.lines.first?.stripped == "A")
         #expect(infos[1].buffer?.lines.first?.stripped == "B")
     }
 
     @Test("A Spacer inside a Group keeps its spacer flag through childInfos")
-    func childInfosPreservesSpacerMetadata() {
+    func childInfosPreservesSpacerMetadata() throws {
         let infos = Group {
             Spacer()
             Text("tail")
         }
         .childInfos(context: ctx())
 
-        #expect(infos.count == 2)
+        try #require(infos.count == 2)
         #expect(infos[0].isSpacer, "an opaque wrapper would render the spacer to a buffer instead")
         #expect(infos[0].buffer == nil)
         #expect(!infos[1].isSpacer)
     }
 
     @Test("A z-index inside a Group survives childInfos")
-    func childInfosPreservesZIndex() {
+    func childInfosPreservesZIndex() throws {
         let infos = Group {
             Text("under")
             Text("over").zIndex(3)
         }
         .childInfos(context: ctx())
 
-        #expect(infos.count == 2)
+        try #require(infos.count == 2)
         #expect(infos[0].zIndex == 0)
         #expect(infos[1].zIndex == 3, "an opaque wrapper would report the group's own z-index, 0")
     }

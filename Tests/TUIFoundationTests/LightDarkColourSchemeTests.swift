@@ -60,27 +60,27 @@ struct LightDarkColourSchemeTests {
     }
 
     @Test("A dark subtree inside a light app draws the dark variant")
-    func darkSubtreeInLightApp() {
+    func darkSubtreeInLightApp() throws {
         let drawn = lines(
             VStack {
                 Text("Outer").foregroundStyle(Self.brand)
                 Text("Inner").foregroundStyle(Self.brand).environment(\.colorScheme, .dark)
             }
             .palette(Self.lightPage))
-        #expect(drawn.count >= 2)
+        try #require(drawn.count >= 2)
         #expect(drawn[0].contains(Self.lightInk), "\(drawn[0].debugDescription)")
         #expect(drawn[1].contains(Self.darkInk), "\(drawn[1].debugDescription)")
     }
 
     @Test("A light subtree inside a dark app draws the light variant")
-    func lightSubtreeInDarkApp() {
+    func lightSubtreeInDarkApp() throws {
         let drawn = lines(
             VStack {
                 Text("Outer").foregroundStyle(Self.brand)
                 Text("Inner").foregroundStyle(Self.brand).environment(\.colorScheme, .light)
             }
             .palette(Self.darkPage))
-        #expect(drawn.count >= 2)
+        try #require(drawn.count >= 2)
         #expect(drawn[0].contains(Self.darkInk), "\(drawn[0].debugDescription)")
         #expect(drawn[1].contains(Self.lightInk), "\(drawn[1].debugDescription)")
     }

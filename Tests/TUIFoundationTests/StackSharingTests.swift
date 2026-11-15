@@ -105,7 +105,7 @@ struct StackSharingTests {
     }
 
     @Test("A column shares its height as a row shares its width (SwiftUI: a stack shares either axis)")
-    func columnShares() {
+    func columnShares() throws {
         let column = renderToBuffer(
             VStack(spacing: 0) {
                 ScrollView { VStack(spacing: 0) { ForEach(0..<2, id: \.self) { Text("a\($0)") } } }
@@ -118,7 +118,7 @@ struct StackSharingTests {
         // is dealt half, as SwiftUI deals them, where placed in order (as
         // columns were until 2026-10-15) the first kept its two and the second
         // took the eight left.
-        #expect(column.count == 10)
+        try #require(column.count == 10)
         #expect(column[0].hasPrefix("a0") && column[1].hasPrefix("a1"), "\(column)")
         #expect(column[2...4].allSatisfy { $0.trimmingCharacters(in: .whitespaces).isEmpty }, "\(column)")
         #expect(column[5].hasPrefix("b0"), "\(column)")

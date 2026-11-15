@@ -89,7 +89,7 @@ struct TextFieldRenderTests {
     // MARK: Focused (default first-field auto-focus)
 
     @Test("Focused field shows text followed by the block cursor")
-    func focusedWithText() {
+    func focusedWithText() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
         let raw = rawLines(
@@ -97,7 +97,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         #expect(fm.currentFocusedID == "tf")  // first focusable auto-focuses
         let line = raw[0].stripped
         #expect(line.count == 30)
@@ -111,7 +111,7 @@ struct TextFieldRenderTests {
     }
 
     @Test("Focused empty field with no prompt or title shows only the cursor")
-    func focusedEmpty() {
+    func focusedEmpty() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
         // No title: with one, the field shows it where a prompt would go.
@@ -120,7 +120,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         let line = raw[0].stripped
         #expect(line.count == 30)
         // The caret is a caret-coloured cell, not a glyph — the stripped
@@ -223,7 +223,7 @@ struct TextFieldRenderTests {
     // MARK: Unfocused
 
     @Test("Unfocused field with text shows the text, no cursor")
-    func unfocusedWithText() {
+    func unfocusedWithText() throws {
         let fm = FocusManager()
         // A decoy field registers first and grabs the auto-focus, so the
         // field under test renders in its unfocused state.
@@ -237,7 +237,7 @@ struct TextFieldRenderTests {
         )
 
         #expect(fm.currentFocusedID == "decoy")  // not our field
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         let line = raw[0].stripped
         #expect(line.count == 30)
         // No cursor when unfocused: no cell carries the caret colour.
@@ -248,7 +248,7 @@ struct TextFieldRenderTests {
     }
 
     @Test("Empty unfocused field with a prompt shows the prompt text")
-    func unfocusedEmptyWithPrompt() {
+    func unfocusedEmptyWithPrompt() throws {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 30, focusManager: fm, identityPath: "decoy")
         _ = renderToBuffer(TextField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
@@ -259,7 +259,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         let line = raw[0].stripped
         #expect(line.count == 30)
         #expect(!hasCaretCell(raw[0]))
@@ -268,7 +268,7 @@ struct TextFieldRenderTests {
     }
 
     @Test("Empty unfocused field without a prompt or title is blank between the caps")
-    func unfocusedEmptyNoPrompt() {
+    func unfocusedEmptyNoPrompt() throws {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 30, focusManager: fm, identityPath: "decoy")
         _ = renderToBuffer(TextField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
@@ -279,7 +279,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         // Exactly: open cap, 28 spaces, close cap. No stray cursor, no gap.
         #expect(line == openCap + String(repeating: " ", count: 28) + closeCap)
@@ -308,7 +308,7 @@ struct TextFieldRenderTests {
     // MARK: Empty label
 
     @Test("Empty label does not add a blank line or alter the field")
-    func emptyLabel() {
+    func emptyLabel() throws {
         // The label is metadata for the field; it is never rendered inside
         // the field itself, so an empty label must not introduce a blank
         // line or change the single-line layout.
@@ -319,7 +319,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 20)
         #expect(line == "\(openCap)hi" + String(repeating: " ", count: 16) + closeCap)
@@ -328,7 +328,7 @@ struct TextFieldRenderTests {
     // MARK: Disabled
 
     @Test("Disabled field renders its text but cannot take focus")
-    func disabled() {
+    func disabled() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 30, focusManager: fm)
         let lines = strippedLines(
@@ -338,7 +338,7 @@ struct TextFieldRenderTests {
 
         // Disabled views never register, so nothing is focused.
         #expect(fm.currentFocusedID == nil)
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 30)
         let content = String(line.dropFirst().dropLast())
@@ -348,7 +348,7 @@ struct TextFieldRenderTests {
     // MARK: Narrow width / truncation
 
     @Test("Unfocused narrow field clips overflowing text to the content width")
-    func unfocusedNarrowTruncates() {
+    func unfocusedNarrowTruncates() throws {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 14, focusManager: fm, identityPath: "decoy")
         _ = renderToBuffer(TextField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
@@ -359,7 +359,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 14)
         // width 14 => content width 12; first 12 characters are shown.
@@ -367,7 +367,7 @@ struct TextFieldRenderTests {
     }
 
     @Test("Focused narrow field scrolls to keep the cursor visible")
-    func focusedNarrowScrolls() {
+    func focusedNarrowScrolls() throws {
         let fm = FocusManager()
         let ctx = fieldContext(width: 14, focusManager: fm)
         let raw = rawLines(
@@ -375,7 +375,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         let line = raw[0].stripped
         #expect(line.count == 14)
         // Cursor sits at the end (position 26); the field scrolls so the
@@ -386,7 +386,7 @@ struct TextFieldRenderTests {
     }
 
     @Test("Narrow field at its minimum total width keeps both caps")
-    func minimumWidthKeepsBothCaps() {
+    func minimumWidthKeepsBothCaps() throws {
         // The field's minimum total width is minContentWidth (10) + 2 caps = 12.
         let fm = FocusManager()
         let ctx = fieldContext(width: 12, focusManager: fm)
@@ -395,7 +395,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 12)
         #expect(line.hasPrefix(openCap))
@@ -407,7 +407,7 @@ struct TextFieldRenderTests {
     // MARK: Wide
 
     @Test("Wide field expands to fill the available width")
-    func wide() {
+    func wide() throws {
         let fm = FocusManager()
         let decoyCtx = fieldContext(width: 50, focusManager: fm, identityPath: "decoy")
         _ = renderToBuffer(TextField("Decoy", text: .constant("x")).focusID("decoy"), context: decoyCtx)
@@ -418,7 +418,7 @@ struct TextFieldRenderTests {
             context: ctx
         )
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         let line = lines[0]
         #expect(line.count == 50)
         #expect(line == "\(openCap)hi" + String(repeating: " ", count: 46) + closeCap)
@@ -522,13 +522,13 @@ struct TextFieldRenderTests {
     }
 
     @Test("TextField renders tabs as spaces and control characters as replacement characters")
-    func rendersTabsAndControlCharactersSafely() {
+    func rendersTabsAndControlCharactersSafely() throws {
         let ctx = fieldContext(width: 20, focusManager: FocusManager(), identityPath: "safe")
         let raw = rawLines(
             TextField("Test", text: .constant("a\tb\u{1B}c")).focusID("tf"),
             context: ctx
         )
-        #expect(raw.count == 1)
+        try #require(raw.count == 1)
         let visible = raw[0].stripped
         #expect(visible.contains("a b\u{FFFD}c"))
     }

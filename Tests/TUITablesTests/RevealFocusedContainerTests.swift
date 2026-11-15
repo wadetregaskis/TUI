@@ -57,7 +57,7 @@ struct RevealFocusedContainerTests {
     }
 
     @Test("Tabbing to an off-screen Table scrolls the ScrollView to it")
-    func tablesInScrollViewFollowFocus() {
+    func tablesInScrollViewFollowFocus() throws {
         let tuiContext = TUIContext()
         let focusManager = FocusManager()
         let view = ScrollView {
@@ -77,7 +77,7 @@ struct RevealFocusedContainerTests {
 
         let tables = focusManager.registeredFocusIDsInActiveSection()
             .filter { $0.hasPrefix("table-") }
-        #expect(tables.count == 4, "all four tables registered: \(tables)")
+        try #require(tables.count == 4, "all four tables registered: \(tables)")
         guard tables.count == 4 else { return }
 
         // Jump straight to the last table (Tab would land there eventually;
@@ -98,7 +98,7 @@ struct RevealFocusedContainerTests {
     }
 
     @Test("Tabbing to an off-screen List scrolls the ScrollView to it")
-    func listsInScrollViewFollowFocus() {
+    func listsInScrollViewFollowFocus() throws {
         let tuiContext = TUIContext()
         let focusManager = FocusManager()
         let view = ScrollView {
@@ -121,7 +121,7 @@ struct RevealFocusedContainerTests {
 
         let lists = focusManager.registeredFocusIDsInActiveSection()
             .filter { $0.hasPrefix("list-") }
-        #expect(lists.count == 4, "all four lists registered: \(lists)")
+        try #require(lists.count == 4, "all four lists registered: \(lists)")
         guard lists.count == 4 else { return }
 
         focusManager.focus(id: lists[3])

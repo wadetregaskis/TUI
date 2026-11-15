@@ -46,7 +46,7 @@ struct ListUnownedEditActionTests {
     /// row belongs to the row's own `ForEach`; if it ever reached the outer one
     /// it would delete a REGION while the user was pointing at a sea.
     @Test("Delete on a row never reaches the outer ForEach that made the Sections")
-    func outerForEachOfSectionsIsNotTheRowsDeleter() {
+    func outerForEachOfSectionsIsNotTheRowsDeleter() throws {
         let regions = MainActorBox([
             EditableRegion(id: "North", seas: ["coral", "philippine"]),
             EditableRegion(id: "South", seas: ["sargasso", "weddell"]),
@@ -66,7 +66,7 @@ struct ListUnownedEditActionTests {
         #expect(
             fixture.pressDelete(onRow: 5, named: "weddell") == false,
             "no row of a section is the section itself")
-        #expect(regions.value.count == 2, "no region was deleted: \(regions.value.map(\.id))")
+        try #require(regions.value.count == 2, "no region was deleted: \(regions.value.map(\.id))")
         #expect(regions.value[1].seas == ["sargasso", "weddell"], "got \(regions.value[1].seas)")
     }
 

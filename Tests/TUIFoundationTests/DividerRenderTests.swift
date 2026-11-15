@@ -26,9 +26,9 @@ struct DividerRenderTests {
     // MARK: - Default
 
     @Test("Default divider fills the width with a continuous box-drawing rule")
-    func defaultFillsWidth() {
+    func defaultFillsWidth() throws {
         let buffer = renderToBuffer(Divider(), context: context(width: 10))
-        #expect(buffer.lines.count == 1, "Divider must be exactly one row, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 1, "Divider must be exactly one row, got \(buffer.lines.count)")
         let line = buffer.lines[0].stripped
         #expect(line == String(repeating: "─", count: 10), "Expected a 10-wide rule, got >>\(line)<<")
         #expect(line.strippedLength == 10, "Rule must fill exactly the available width")
@@ -46,9 +46,9 @@ struct DividerRenderTests {
     // MARK: - Custom character
 
     @Test("Custom ASCII character fills the width")
-    func customAsciiCharacter() {
+    func customAsciiCharacter() throws {
         let buffer = renderToBuffer(Divider(character: "="), context: context(width: 6))
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "======")
         #expect(buffer.lines[0].stripped.allSatisfy { $0 == "=" })
     }
@@ -65,9 +65,9 @@ struct DividerRenderTests {
     // MARK: - Narrow / wide
 
     @Test("Narrow width still produces a single continuous row")
-    func narrowWidth() {
+    func narrowWidth() throws {
         let buffer = renderToBuffer(Divider(), context: context(width: 1))
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "─")
     }
 
@@ -107,14 +107,14 @@ struct DividerRenderTests {
     // MARK: - In a stack
 
     @Test("Divider between two texts is exactly one full-width row")
-    func dividerInVStack() {
+    func dividerInVStack() throws {
         let view = VStack(spacing: 0) {
             Text("Section 1")
             Divider()
             Text("Section 2")
         }
         let buffer = renderToBuffer(view, context: context(width: 13))
-        #expect(buffer.lines.count == 3, "Two texts + one divider = 3 rows, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 3, "Two texts + one divider = 3 rows, got \(buffer.lines.count)")
         #expect(buffer.lines[0].stripped.contains("Section 1"))
         let rule = buffer.lines[1].stripped
         #expect(rule.contains("─"), "Middle row must be the divider rule, got >>\(rule)<<")

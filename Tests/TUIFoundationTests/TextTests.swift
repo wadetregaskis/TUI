@@ -273,9 +273,9 @@ struct TextWhitespaceTests {
     /// An indent wider than the width is emitted and left to the caller to
     /// truncate — the same contract a single over-long word has.
     @Test("An indent wider than the width does not produce a blank line")
-    func indentWiderThanWidth() {
+    func indentWiderThanWidth() throws {
         let lines = TextWrapping.wrap("    x", width: 3)
-        #expect(lines.count == 1, "no phantom blank first line: \(lines)")
+        try #require(lines.count == 1, "no phantom blank first line: \(lines)")
         #expect(lines[0] == "    x")
     }
 }
@@ -456,42 +456,42 @@ struct TextTruncationTests {
 struct FoldSeparatorTests {
 
     @Test("A folded CJK tail gains no invented spaces")
-    func cjkFoldHasNoGaps() {
+    func cjkFoldHasNoGaps() throws {
         let folded = TextWrapping.fitMeasured("日本語の文章です。", width: 4, maxLines: 2)
-        #expect(folded.lines.count == 2)
+        try #require(folded.lines.count == 2)
         #expect(!folded.lines[1].contains(" "), "\(folded.lines)")
     }
 
     @Test("A folded Latin tail keeps its real spaces")
-    func latinFoldKeepsSpaces() {
+    func latinFoldKeepsSpaces() throws {
         let folded = TextWrapping.fitMeasured("one two three four five", width: 9, maxLines: 2)
-        #expect(folded.lines.count == 2)
+        try #require(folded.lines.count == 2)
         #expect(!folded.lines[1].contains("twothree"), "\(folded.lines)")
         #expect(!folded.lines[1].contains("threefour"), "\(folded.lines)")
     }
 
     @Test("A mixed tail keeps the space that was really there")
-    func mixedFoldKeepsRealSpace() {
+    func mixedFoldKeepsRealSpace() throws {
         let folded = TextWrapping.fitMeasured("words 日本語です", width: 5, maxLines: 2)
-        #expect(folded.lines.count == 2)
+        try #require(folded.lines.count == 2)
         let tail = folded.lines[1]
         #expect(!tail.contains("語 で") && !tail.contains("本 語"), "\(folded.lines)")
     }
 
     @Test("A line-limited fold keeps paragraph's leading indent when nothing has been kept yet")
-    func lineLimitPreservesLeadingIndent() {
+    func lineLimitPreservesLeadingIndent() throws {
         let folded = TextWrapping.fitMeasured("  hello\nworld", width: 20, maxLines: 1)
-        #expect(folded.lines.count == 1)
+        try #require(folded.lines.count == 1)
         #expect(folded.lines[0].hasPrefix("  hello"), "Expected leading indent preserved, got \(folded.lines[0])")
     }
 
     @Test("A fold keeps the indent of a paragraph that starts after the kept lines, and not a soft wrap's space")
-    func lineLimitPreservesLaterParagraphIndent() {
+    func lineLimitPreservesLaterParagraphIndent() throws {
         let folded = TextWrapping.fitMeasured("Title\n  indented body\nmore", width: 30, maxLines: 2)
-        #expect(folded.lines.count == 2)
+        try #require(folded.lines.count == 2)
         #expect(folded.lines[1].hasPrefix("  indented body"), "\(folded.lines)")
         let wrapped = TextWrapping.fitMeasured("one two  three four five", width: 9, maxLines: 2)
-        #expect(wrapped.lines.count == 2)
+        try #require(wrapped.lines.count == 2)
         #expect(!wrapped.lines[1].hasPrefix(" "), "\(wrapped.lines)")
     }
 }

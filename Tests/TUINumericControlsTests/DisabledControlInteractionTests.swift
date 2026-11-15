@@ -76,7 +76,7 @@ struct DisabledControlInteractionTests {
     }
 
     @Test("A control that becomes disabled loses the focus it was holding")
-    func disablingTakesTheFocus() {
+    func disablingTakesTheFocus() throws {
         let context = makeRenderContext(width: 40, height: 6)
         let focus = context.environment.focusManager!
         var enabled = true
@@ -88,7 +88,7 @@ struct DisabledControlInteractionTests {
         _ = renderToBuffer(view, context: context)
         focus.endRenderPass()
         let held = focus.focusableIDsInActiveSection()
-        #expect(held.count == 1, "the slider is the only stop: \(held)")
+        try #require(held.count == 1, "the slider is the only stop: \(held)")
         #expect(focus.isFocused(id: held[0]))
 
         // Disabled: it declines focus, and the pass that notices takes it away

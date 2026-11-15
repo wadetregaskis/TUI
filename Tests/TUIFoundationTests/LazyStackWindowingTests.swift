@@ -33,9 +33,9 @@ struct LazyStackWindowingTests {
     }
 
     @Test("Only the rows intersecting the window (plus the one-row enumeration margin) carry content")
-    func windowsToViewport() {
+    func windowsToViewport() throws {
         let lines = windowed(offset: 5, viewportHeight: 4)  // rows 5..8 visible
-        #expect(lines.count == 20, "the buffer stays full-height so the ScrollView clip is correct")
+        try #require(lines.count == 20, "the buffer stays full-height so the ScrollView clip is correct")
         #expect(lines[5] == "Row 5")
         #expect(lines[8] == "Row 8")
         // One margin row past each edge renders (and so registers its

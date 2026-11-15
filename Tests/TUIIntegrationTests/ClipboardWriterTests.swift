@@ -88,7 +88,7 @@ struct ClipboardSequenceTests {
     @Test("One selector, and it is c")
     func oneSelector() throws {
         let sequence = try #require(ClipboardSequence.write("x"))
-        #expect(sequence.components(separatedBy: ";").count == 3)
+        try #require(sequence.components(separatedBy: ";").count == 3)
         #expect(sequence.components(separatedBy: ";")[1] == "c")
     }
 }

@@ -49,10 +49,10 @@ struct MultilineTextAlignmentTests {
     }
 
     @Test("Alignment applies to wrapped (not just explicit-newline) text")
-    func wrappedText() {
+    func wrappedText() throws {
         // "aaaa bb" at width 4 wraps to "aaaa" (4) and "bb" (2).
         let rows = render(Text("aaaa bb").multilineTextAlignment(.trailing), width: 4)
-        #expect(rows.count == 2)
+        try #require(rows.count == 2)
         #expect(rows[0] == "aaaa")
         #expect(rows[1] == "  bb", "wrapped short line flush-right: '\(rows[1])'")
     }

@@ -193,7 +193,7 @@ struct InputByteBufferTests {
     /// growing until the room in front pays for a slide moves a few times what
     /// goes in.
     @Test("One byte out, one byte in, over a full buffer, copies linearly")
-    func steadyTrickleCopiesLinearly() {
+    func steadyTrickleCopiesLinearly() throws {
         var buffer = InputByteBuffer(minimumCapacity: 4096)
         buffer.append(contentsOf: [UInt8](repeating: 7, count: 4095))
         var appended = 4095
@@ -202,7 +202,7 @@ struct InputByteBufferTests {
             buffer.append(contentsOf: [UInt8(truncatingIfNeeded: step)])
             appended += 1
         }
-        #expect(buffer.count == 4095)
+        try #require(buffer.count == 4095)
         #expect(buffer[4094] == UInt8(truncatingIfNeeded: 9999))
         #expect(buffer.bytesMoved <= 4 * appended, "\(buffer.bytesMoved) bytes moved for \(appended) appended")
         #expect(buffer.capacity <= 4 * 4096, "the buffer settles rather than growing without end")

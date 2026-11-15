@@ -23,17 +23,17 @@ private func testContext(width: Int = 40, height: Int = 24) -> RenderContext {
 struct SpinnerStyleTests {
 
     @Test("Dots style has 10 braille frames")
-    func dotsFrameCount() {
+    func dotsFrameCount() throws {
         let frames = SpinnerStyle.dots.frames
-        #expect(frames.count == 10)
+        try #require(frames.count == 10)
         #expect(frames[0] == "⠋")
         #expect(frames[9] == "⠏")
     }
 
     @Test("Line style has 4 ASCII frames")
-    func lineFrameCount() {
+    func lineFrameCount() throws {
         let frames = SpinnerStyle.line.frames
-        #expect(frames.count == 4)
+        try #require(frames.count == 4)
         #expect(frames[0] == "|")
         #expect(frames[1] == "/")
         #expect(frames[2] == "-")
@@ -41,14 +41,14 @@ struct SpinnerStyleTests {
     }
 
     @Test("Bouncing positions form a complete bounce cycle with edge overshoot")
-    func bouncingPositions() {
+    func bouncingPositions() throws {
         let positions = SpinnerStyle.bouncingPositions(trackLength: SpinnerStyle.trackWidth)
         let overshoot = SpinnerStyle.edgeOvershoot  // 2
 
         // Range: -2 → 10 (13 forward) + 10 back positions (9 → -1) = 24
         let forwardCount = SpinnerStyle.trackWidth + 2 * overshoot  // 13
         let backwardCount = forwardCount - 2  // 11
-        #expect(positions.count == forwardCount + backwardCount)
+        try #require(positions.count == forwardCount + backwardCount)
 
         // Forward sweep starts at -overshoot
         #expect(positions[0] == -overshoot)
@@ -141,7 +141,7 @@ struct SpinnerStyleTests {
     }
 
     @Test("The glow follows where the dot has been, not where it is going")
-    func bouncingTrailFollowsHistory() {
+    func bouncingTrailFollowsHistory() throws {
         // Frame 2 is the dot's first frame ON the track (positions -2, -1 then
         // 0), reached from the left after the wrap. Cell 0 holds the highlight;
         // the cells to its RIGHT were where the dot was a few frames ago, coming
@@ -156,7 +156,7 @@ struct SpinnerStyleTests {
             .replacing("\u{1B}[0m", with: "\u{1B}[0m\u{1}")
             .split(separator: "\u{1}")
             .map(String.init)
-        #expect(cells.count == SpinnerStyle.trackWidth)
+        try #require(cells.count == SpinnerStyle.trackWidth)
         #expect(cells[0] == ANSIRenderer.colorize("●", foreground: .red), "the highlight")
         #expect(cells[1] != plain, "the cell the dot passed through is still warm")
     }
@@ -169,23 +169,23 @@ struct SpinnerStyleTests {
 struct SpinnerRenderingTests {
 
     @Test("Spinner without label renders single spinner character")
-    func spinnerWithoutLabel() {
+    func spinnerWithoutLabel() throws {
         let spinner = Spinner(style: .line)
         let context = testContext()
         let buffer = renderToBuffer(spinner, context: context)
 
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         // First frame of line style is "|", colored with accent
         #expect(buffer.lines[0].stripped.contains("|"))
     }
 
     @Test("Spinner with label renders spinner followed by label text")
-    func spinnerWithLabel() {
+    func spinnerWithLabel() throws {
         let spinner = Spinner("Loading...", style: .line)
         let context = testContext()
         let buffer = renderToBuffer(spinner, context: context)
 
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         let stripped = buffer.lines[0].stripped
         #expect(stripped.contains("Loading..."))
         #expect(stripped.contains("|"))
@@ -214,12 +214,12 @@ struct SpinnerRenderingTests {
     }
 
     @Test("Spinner renders with custom color")
-    func spinnerCustomColor() {
+    func spinnerCustomColor() throws {
         let spinner = Spinner(style: .dots, color: .red)
         let context = testContext()
         let buffer = renderToBuffer(spinner, context: context)
 
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         // Red's foreground, in the spelling this build's colour depth gives it
         let red = "\u{1B}[" + asDrawn(Color.red).foregroundCodes().joined(separator: ";") + "m"
         #expect(buffer.lines[0].contains(red), "\(buffer.lines[0].debugDescription)")

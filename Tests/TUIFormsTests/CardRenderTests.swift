@@ -34,12 +34,12 @@ struct CardRenderTests {
     // MARK: Default (no title, no footer)
 
     @Test("Bare card wraps content in a continuous rounded border with padding")
-    func bareCardRoundedBorder() {
+    func bareCardRoundedBorder() throws {
         // Default appearance is `.rounded` → ╭╮╰╯, with default padding 1 on
         // all sides: one blank row above and below the content.
         let lines = strippedLines(Card { Text("Hello") })
 
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(lines[0] == "╭───────╮")
         #expect(lines[1] == "│       │")
         #expect(lines[2] == "│ Hello │")
@@ -71,10 +71,10 @@ struct CardRenderTests {
     // MARK: Title
 
     @Test("Title renders inline in the top border")
-    func cardTitleInTopBorder() {
+    func cardTitleInTopBorder() throws {
         let lines = strippedLines(Card(title: "Profile") { Text("Name: John") })
 
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(lines[0] == "╭─ Profile ──╮")
         #expect(lines[1] == "│            │")
         #expect(lines[2] == "│ Name: John │")
@@ -92,10 +92,10 @@ struct CardRenderTests {
     // MARK: Footer
 
     @Test("Footer is separated from the body by a T-junction divider")
-    func cardFooterSeparator() {
+    func cardFooterSeparator() throws {
         let lines = strippedLines(Card(title: "Form") { Text("Body") } footer: { Text("[OK]") })
 
-        #expect(lines.count == 7)
+        try #require(lines.count == 7)
         #expect(lines[0] == "╭─ Form ─╮")
         #expect(lines[2] == "│ Body   │")
         // Divider uses left/right T-junctions, not corners.
@@ -116,14 +116,14 @@ struct CardRenderTests {
     // MARK: Multi-line content
 
     @Test("Multi-line content renders one bordered row per line, in order")
-    func cardMultilineContent() {
+    func cardMultilineContent() throws {
         let lines = strippedLines(Card(title: "T") {
             Text("L1")
             Text("L2")
             Text("L3")
         }, width: 30, height: 10)
 
-        #expect(lines.count == 7)
+        try #require(lines.count == 7)
         #expect(lines[0] == "╭─ T ─╮")
         #expect(lines[1] == "│     │")
         #expect(lines[2] == "│ L1  │")
@@ -138,10 +138,10 @@ struct CardRenderTests {
     // MARK: Border styles
 
     @Test("Double-line border uses double-line glyphs on every edge")
-    func cardDoubleLineBorder() {
+    func cardDoubleLineBorder() throws {
         let lines = strippedLines(Card(title: "D", borderStyle: .doubleLine) { Text("x") })
 
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(lines[0] == "╔═ D ═╗")
         #expect(lines[2] == "║ x   ║")
         #expect(lines[4] == "╚═════╝")
@@ -159,12 +159,12 @@ struct CardRenderTests {
     // MARK: Empty content
 
     @Test("Card with EmptyView content still renders a padded bordered box")
-    func cardEmptyContent() {
+    func cardEmptyContent() throws {
         // Padding(1) gives an empty body real size, so the border survives
         // rather than collapsing to nothing.
         let lines = strippedLines(Card { EmptyView() })
 
-        #expect(lines.count == 4)
+        try #require(lines.count == 4)
         #expect(lines[0] == "╭──╮")
         #expect(lines[1] == "│  │")
         #expect(lines[2] == "│  │")

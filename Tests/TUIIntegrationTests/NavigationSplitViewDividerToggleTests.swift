@@ -90,11 +90,11 @@ struct NavigationSplitViewDividerToggleTests {
     // MARK: Drawing
 
     @Test("The leftmost divider draws ◀ between two grip dots; the next divider keeps three dots")
-    func drawsTheArrow() {
+    func drawsTheArrow() throws {
         let context = splitContext(width: 80)
         let buffer = frame(split(Box(.all), three: true), context)
         let dividers = (0..<buffer.width).filter { column($0, in: buffer).contains("◦") }
-        #expect(dividers.count == 2, "\(buffer.lines.map(\.stripped))")
+        try #require(dividers.count == 2, "\(buffer.lines.map(\.stripped))")
         guard dividers.count == 2 else { return }
         // A pin of the two divider columns, 9 rows tall: blank, then the grip
         // centred on row 4.

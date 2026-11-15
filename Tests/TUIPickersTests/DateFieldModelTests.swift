@@ -55,12 +55,12 @@ struct DateFieldModelTests {
     }
 
     @Test("Cells lay the field out with correct column ranges")
-    func cellLayout() {
+    func cellLayout() throws {
         let model = model(.date)
         let cells = model.cells(date: date(2026, 3, 5), activeIndex: 0)
         #expect(cells.map(\.text).joined() == "2026-03-05")
         let editable = cells.filter { $0.kind != nil }
-        #expect(editable.count == 3)
+        try #require(editable.count == 3)
         #expect(editable[0].columns == 0..<4)  // year
         #expect(editable[1].columns == 5..<7)  // month (after the "-")
         #expect(editable[2].columns == 8..<10)  // day

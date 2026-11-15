@@ -119,12 +119,12 @@ struct LineLimitEnvironmentTests {
     // MARK: - reservesSpace
 
     @Test("A short text still occupies the lines it reserved")
-    func reservesSpacePadsShortText() {
+    func reservesSpacePadsShortText() throws {
         // The point of the modifier: two rows whose text differs in length are
         // the same height, so a column of them does not shuffle as the data
         // changes.
         let short = rendered(VStack { Text("one") }.lineLimit(3, reservesSpace: true))
-        #expect(short.count == 3, "padded out to its reservation: \(short)")
+        try #require(short.count == 3, "padded out to its reservation: \(short)")
         #expect(short[0].contains("one"))
         #expect(short[1].isEmpty && short[2].isEmpty, "the reserved rows are blank: \(short)")
 
@@ -134,12 +134,12 @@ struct LineLimitEnvironmentTests {
     }
 
     @Test("A reservation is a floor, not a second ceiling")
-    func reservationStillCaps() {
+    func reservationStillCaps() throws {
         // Long prose under `.lineLimit(2, reservesSpace: true)` is still capped
         // at two lines — an implementation that only ever padded would let it
         // run on.
         let long = rendered(VStack { Text(prose) }.lineLimit(2, reservesSpace: true))
-        #expect(long.count == 2, "\(long)")
+        try #require(long.count == 2, "\(long)")
         #expect(!long[1].isEmpty, "and both lines carry text: \(long)")
     }
 
@@ -177,9 +177,9 @@ struct LineLimitEnvironmentTests {
     // MARK: - Ranges
 
     @Test("A closed range reserves its lower bound and caps at its upper")
-    func closedRange() {
+    func closedRange() throws {
         let short = rendered(VStack { Text("one") }.lineLimit(2...4))
-        #expect(short.count == 2, "padded to the floor: \(short)")
+        try #require(short.count == 2, "padded to the floor: \(short)")
         #expect(short[0].contains("one") && short[1].isEmpty)
         let long = rendered(VStack { Text(prose) }.lineLimit(2...4))
         #expect(long.count == 4, "capped at the ceiling: \(long)")

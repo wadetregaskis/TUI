@@ -558,7 +558,7 @@ struct ColorPickerPanelCrashSafetyTests {
     }
 
     @Test("Clicking semantic swatches while the selection is bound into the palette never traps")
-    func paletteBoundSemanticSelectionDoesNotTrap() {
+    func paletteBoundSemanticSelectionDoesNotTrap() throws {
         // Reproduces the real crash: the selection writes into `palette.accent`,
         // and that same palette is the environment the panel resolves against —
         // so a semantic pick makes `accent` a semantic reference, and every later
@@ -610,7 +610,7 @@ struct ColorPickerPanelCrashSafetyTests {
         }
 
         let tabRegions = render().hitTestRegions
-        #expect(tabRegions.count >= 6, "the six model tabs register hit regions")
+        try #require(tabRegions.count >= 6, "the six model tabs register hit regions")
         click(tabRegions[4])  // the Semantic tab (rgb,hsl,hsb,cmyk,semantic,256)
 
         let semanticView = render()

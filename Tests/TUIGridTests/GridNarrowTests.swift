@@ -77,9 +77,9 @@ struct GridNarrowTests {
     }
 
     @Test("Under lineLimit(1) a squeezed column truncates and the grid stays two lines")
-    func squeezedColumnsTruncate() {
+    func squeezedColumnsTruncate() throws {
         let drawn = lines(threeText.lineLimit(1), width: 20)
-        #expect(drawn.count == 2, "\(drawn)")
+        try #require(drawn.count == 2, "\(drawn)")
         #expect(drawn[0].hasPrefix("Name"), "\(drawn)")
         #expect(drawn[0].hasSuffix("Size"), "\(drawn)")
         #expect(drawn[1].contains("…"), "\(drawn)")

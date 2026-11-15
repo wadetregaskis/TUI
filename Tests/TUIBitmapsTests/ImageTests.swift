@@ -216,14 +216,14 @@ struct ASCIIConverterTests {
     }
 
     @Test("ASCII character set conversion produces output")
-    func asciiConversion() {
+    func asciiConversion() throws {
         let pixels = [RGBA](repeating: RGBA(r: 128, g: 128, b: 128), count: 100)
         let image = RGBAImage(width: 10, height: 10, pixels: pixels)
 
         let converter = ASCIIConverter(characterSet: .ascii, colorMode: .mono, dithering: .none)
         let lines = converter.convert(image, width: 10, height: 5).lines
 
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(!lines[0].isEmpty)
     }
 
@@ -239,7 +239,7 @@ struct ASCIIConverterTests {
     }
 
     @Test("Fine-block conversion uses two vertical pixels per cell")
-    func halfBlocksUsesTwoPixelsPerCell() {
+    func halfBlocksUsesTwoPixelsPerCell() throws {
         // Rows that ALTERNATE, so each cell's two source pixels differ and the
         // doubled vertical resolution is the thing under test. A solid image
         // cannot show it: with nothing to distinguish the halves the cell has
@@ -256,9 +256,9 @@ struct ASCIIConverterTests {
         let converter = ASCIIConverter(
             characterSet: .blocks(.fine), colorMode: .trueColor, dithering: .none)
 
-        withColorDepth(.truecolor) {
+        try withColorDepth(.truecolor) {
             let lines = converter.convert(image, width: 8, height: 4).lines
-            #expect(lines.count == 4, "Output height matches the requested cell count")
+            try #require(lines.count == 4, "Output height matches the requested cell count")
             #expect(lines[0].contains("\u{2584}"), "Each cell uses the lower-half-block glyph")
             // True-colour mode emits both 38;2; (fg) and 48;2; (bg) codes — bg is
             // what makes the half-block effectively double the vertical resolution.
@@ -272,15 +272,15 @@ struct ASCIIConverterTests {
     /// space with only a background and states no foreground at all. See
     /// `HalfBlockUniformCellTests` for why that matters to Warp.
     @Test("A fine-block cell of one colour states no foreground")
-    func halfBlocksCollapseAUniformCell() {
+    func halfBlocksCollapseAUniformCell() throws {
         let pixels = [RGBA](repeating: RGBA(r: 200, g: 50, b: 80), count: 64)
         let image = RGBAImage(width: 8, height: 8, pixels: pixels)
         let converter = ASCIIConverter(
             characterSet: .blocks(.fine), colorMode: .trueColor, dithering: .none)
 
-        withColorDepth(.truecolor) {
+        try withColorDepth(.truecolor) {
             let lines = converter.convert(image, width: 8, height: 4).lines
-            #expect(lines.count == 4)
+            try #require(lines.count == 4)
             #expect(!lines[0].contains("\u{2584}"), "nothing to draw, so no glyph")
             #expect(!lines[0].contains("38;2;"), "and no foreground to draw it in")
             #expect(lines[0].contains("48;2;200;50;80"), "the colour is the field")
@@ -307,7 +307,7 @@ struct ASCIIConverterTests {
     }
 
     @Test("Fine-block conversion in mono mode uses block glyphs only")
-    func halfBlocksMonoUsesBlockGlyphs() {
+    func halfBlocksMonoUsesBlockGlyphs() throws {
         // Top half black, bottom half white. Mono inks the BRIGHT pixels (see
         // `ASCIIConverter.isMonoInk`), matching every text charset's ramp — a
         // black pixel paints nothing on a dark terminal, a white one paints
@@ -320,7 +320,7 @@ struct ASCIIConverterTests {
             characterSet: .blocks(.fine), colorMode: .mono, dithering: .none)
         let lines = converter.convert(image, width: 4, height: 2).lines
 
-        #expect(lines.count == 2)
+        try #require(lines.count == 2)
         // 4×4 → 4 cells wide × 2 cells tall is 1:1, so cell row 0 sees source
         // rows 0–1 (both black) and cell row 1 sees rows 2–3 (both white).
         #expect(lines[0].allSatisfy { $0 == " " }, "Top cell row: both halves black → space")
@@ -392,13 +392,13 @@ struct ASCIIConverterTests {
     func colorModeEscapeCodes(
         pixel: RGBA, mode: ASCIIColorMode, depth: ColorDepth,
         mustContain: [String], mustNotContain: [String]
-    ) {
+    ) throws {
         let image = RGBAImage(width: 1, height: 1, pixels: [pixel])
         let converter = ASCIIConverter(characterSet: .ascii, colorMode: mode, dithering: .none)
 
-        withColorDepth(depth) {
+        try withColorDepth(depth) {
             let lines = converter.convert(image, width: 1, height: 1).lines
-            #expect(lines.count == 1)
+            try #require(lines.count == 1)
             for needle in mustContain {
                 #expect(lines[0].contains(needle), "expected \(needle) in '\(lines[0])'")
             }
@@ -409,14 +409,14 @@ struct ASCIIConverterTests {
     }
 
     @Test("Mono output contains no ANSI codes")
-    func monoOutput() {
+    func monoOutput() throws {
         let pixels = [RGBA(r: 128, g: 128, b: 128)]
         let image = RGBAImage(width: 1, height: 1, pixels: pixels)
 
         let converter = ASCIIConverter(characterSet: .ascii, colorMode: .mono, dithering: .none)
         let lines = converter.convert(image, width: 1, height: 1).lines
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         // Mono should not contain color escape sequences
         #expect(!lines[0].contains("38;2;"))
         #expect(!lines[0].contains("38;5;"))
@@ -448,16 +448,16 @@ struct ASCIIConverterTests {
     }
 
     @Test("All color modes emit no color codes on noColor terminal")
-    func noColorTerminalSuppressesEscapes() {
+    func noColorTerminalSuppressesEscapes() throws {
         let pixels = [RGBA(r: 200, g: 100, b: 50)]
         let image = RGBAImage(width: 1, height: 1, pixels: pixels)
 
-        withColorDepth(.noColor) {
+        try withColorDepth(.noColor) {
             for mode in [ASCIIColorMode.trueColor, .ansi256, .ansi16, .grayscale, .mono] {
                 let converter = ASCIIConverter(characterSet: .ascii, colorMode: mode, dithering: .none)
                 let lines = converter.convert(image, width: 1, height: 1).lines
 
-                #expect(lines.count == 1)
+                try #require(lines.count == 1)
                 #expect(!lines[0].contains("38;2;"))
                 #expect(!lines[0].contains("38;5;"))
             }

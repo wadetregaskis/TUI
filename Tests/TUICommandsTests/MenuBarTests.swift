@@ -213,9 +213,9 @@ struct MenuBarTests {
     }
 
     @Test("In a terminal too short for every bar, the menu bar keeps its row and the top bar gives way")
-    func shortTerminal() {
+    func shortTerminal() throws {
         let rows = screen(TestApp(BarsApp(), width: 30, height: 2))
-        #expect(rows.count == 2)
+        try #require(rows.count == 2)
         #expect(rows[0].hasPrefix(" Note"), "\(rows)")
         #expect(rows[1].hasPrefix("╭"), "what is left of the top bar: \(rows)")
     }

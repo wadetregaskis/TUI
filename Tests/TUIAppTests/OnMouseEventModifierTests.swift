@@ -41,13 +41,13 @@ struct OnMouseEventModifierTests {
     }
 
     @Test("Emits a hit-test region covering the rendered content")
-    func emitsRegion() {
+    func emitsRegion() throws {
         let ctx = context()
         let view = Text("hello").onMouseEvent { _ in true }
 
         let buffer = renderToBuffer(view, context: ctx)
 
-        #expect(!buffer.hitTestRegions.isEmpty)
+        try #require(!buffer.hitTestRegions.isEmpty)
         let region = buffer.hitTestRegions[0]
         #expect(region.width == buffer.width)
         #expect(region.height == buffer.height)

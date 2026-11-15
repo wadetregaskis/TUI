@@ -33,11 +33,11 @@ struct DialogRenderTests {
     // MARK: Title in top border
 
     @Test("Simple dialog renders the title in the top border with padded body")
-    func dialogSimple() {
+    func dialogSimple() throws {
         // Default padding is horizontal 2, vertical 1.
         let lines = strippedLines(Dialog(title: "Settings") { Text("Opt 1") })
 
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(lines[0] == "╭─ Settings ─╮")
         #expect(lines[1] == "│            │")
         #expect(lines[2] == "│  Opt 1     │")
@@ -151,11 +151,11 @@ struct DialogRenderTests {
     // MARK: Border styles
 
     @Test("A doubleLine border style draws a double-line box")
-    func dialogDoubleLineBorder() {
+    func dialogDoubleLineBorder() throws {
         let dialog = Dialog(title: "DL", borderStyle: .doubleLine) { Text("x") }
         let lines = strippedLines(dialog)
 
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(lines[0] == "╔═ DL ═╗")
         #expect(lines[2] == "║  x   ║")
         #expect(lines[4] == "╚══════╝")
@@ -174,14 +174,14 @@ struct DialogRenderTests {
     // MARK: Multi-line content
 
     @Test("Multi-line body renders each line in order with no gaps")
-    func dialogMultiline() {
+    func dialogMultiline() throws {
         let lines = strippedLines(Dialog(title: "List") {
             Text("Opt 1")
             Text("Opt 2")
         }, width: 30, height: 10)
 
         let bodyRows = lines.filter { $0.contains("Opt") }
-        #expect(bodyRows.count == 2)
+        try #require(bodyRows.count == 2)
         #expect(bodyRows[0].contains("Opt 1"))
         #expect(bodyRows[1].contains("Opt 2"))
     }

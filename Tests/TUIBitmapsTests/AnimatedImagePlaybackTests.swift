@@ -368,7 +368,7 @@ struct AnimatedImagePlaybackTests {
             app.frame(atNanos: now)
             looks.append(app.screen)
         }
-        #expect(looks.count == 3)
+        try #require(looks.count == 3)
         mode.picture = false
         app.frame(atNanos: now)
         #expect(app.screen == looks[2], "drawn as it was, not converted here")

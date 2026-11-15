@@ -138,10 +138,10 @@ struct StackLayoutTests {
     /// A layout is allowed to overlap its subviews, and this one does: the last
     /// written lands on top, which is what makes it a Z stack.
     @Test("ZStackLayout puts every subview at one origin")
-    func overlay() {
+    func overlay() throws {
         let drawn = lines(ZStackLayout { Text(verbatim: "....."); Text(verbatim: "AB") })
         let painted = drawn.filter { !$0.isEmpty }
-        #expect(painted.count == 1, "one row, not two: \(drawn)")
+        try #require(painted.count == 1, "one row, not two: \(drawn)")
         #expect(painted[0].hasPrefix("AB"), "the later view drew over the earlier: \(painted)")
     }
 

@@ -133,14 +133,14 @@ struct RepeatingOpacityTests {
     }
 
     @Test("The whole cycle is handed to the run loop, pre-rendered")
-    func repeatingFadeBecomesRuns() {
+    func repeatingFadeBecomesRuns() throws {
         // 0.4 s out and back is 0.8 s, which is sixteen steps of the 50 ms
         // replay clock — the same sixteen a focus breath uses.
         let screen = Screen(.linear(duration: 0.4).repeatForever(autoreverses: true))
         _ = screen.render(1, atStep: 0)
         let buffer = screen.render(0.2, atStep: 0)
 
-        #expect(buffer.animatedCells.count == 1, "one row of text, so one run")
+        try #require(buffer.animatedCells.count == 1, "one row of text, so one run")
         let run = buffer.animatedCells[0]
         #expect(run.isAnimating)
         #expect(run.frames.count == 16, "got \(run.frames.count) frames")

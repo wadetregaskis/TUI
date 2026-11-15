@@ -75,7 +75,7 @@ struct MenuTests {
     // MARK: - Inline style
 
     @Test("An inline menu renders its label as a heading over every item")
-    func inlineRendersHeadingAndItems() {
+    func inlineRendersHeadingAndItems() throws {
         let (tui, context) = harness()
         let view = Menu("Main Menu") {
             Button("Text Styles") {}
@@ -85,7 +85,7 @@ struct MenuTests {
         .menuStyle(.inline)
 
         let out = lines(renderArmed(view, tui: tui, context: context))
-        #expect(out.count == 7, "border + heading + rule + 3 items + border, got \(out)")
+        try #require(out.count == 7, "border + heading + rule + 3 items + border, got \(out)")
         #expect(out[1].contains("Main Menu"))
         #expect(out[2].contains("──"), "a rule separates the heading: \(out[2])")
         #expect(out[3].contains("Text Styles"))
@@ -272,7 +272,7 @@ struct MenuTests {
     }
 
     @Test("A Divider between items renders as a rule spanning the menu")
-    func inlineDivider() {
+    func inlineDivider() throws {
         let (tui, context) = harness()
         let view = Menu("Menu") {
             Button("First") {}
@@ -284,7 +284,7 @@ struct MenuTests {
         let buffer = renderArmed(view, tui: tui, context: context)
         let out = lines(buffer)
         // border + heading + rule + First + divider + Second + border
-        #expect(out.count == 7, "got \(out)")
+        try #require(out.count == 7, "got \(out)")
         #expect(out[4].contains("──"), "the divider is a rule: \(out[4].debugDescription)")
         #expect(out[4].strippedLength == buffer.width, "…spanning the menu's width")
     }

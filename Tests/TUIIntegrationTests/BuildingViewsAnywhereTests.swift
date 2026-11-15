@@ -183,7 +183,7 @@ struct BuildingViewsAnywhereTests {
     }
 
     @Test("Many tasks making one keyed Text make equal ones")
-    func concurrentKeys() async {
+    func concurrentKeys() async throws {
         let texts = await withTaskGroup(of: [Text].self) { group in
             for _ in 0..<8 {
                 group.addTask {
@@ -194,7 +194,7 @@ struct BuildingViewsAnywhereTests {
             for await made in group { all += made }
             return all
         }
-        #expect(texts.count == 1_600)
+        try #require(texts.count == 1_600)
         #expect(Set(texts.map { drawn($0) }).count == 1)
         #expect(texts.allSatisfy { $0 == texts[0] })
     }

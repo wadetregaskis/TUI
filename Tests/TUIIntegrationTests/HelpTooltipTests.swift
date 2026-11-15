@@ -428,11 +428,11 @@ struct TooltipStatusBarTests {
     }
 
     @Test("The row is drawn above the items, inside the bar's own chrome")
-    func rowSitsAboveTheItems() {
+    func rowSitsAboveTheItems() throws {
         let lines = bar(
             items: [StatusBarItem(shortcut: "q", label: "quit")],
             tooltipLines: ["Rebuild the index"])
-        #expect(lines.count == 4, "top border, tooltip, items, bottom border: \(lines)")
+        try #require(lines.count == 4, "top border, tooltip, items, bottom border: \(lines)")
         #expect(lines[1].contains("Rebuild the index"), "the tooltip row: \(lines)")
         #expect(lines[2].contains("quit"), "the items below it: \(lines)")
         // Inside the box, not above it — a bordered bar with a bare line over its
@@ -459,9 +459,9 @@ struct TooltipStatusBarTests {
     /// A bar with no items at all still makes room for a tooltip, or the row is
     /// computed and then drawn nowhere.
     @Test("A tooltip shows on an otherwise empty bar")
-    func tooltipWithoutItems() {
+    func tooltipWithoutItems() throws {
         let lines = bar(items: [], tooltipLines: ["Nothing else to say"])
-        #expect(lines.count == 3, "top border, tooltip, bottom border: \(lines)")
+        try #require(lines.count == 3, "top border, tooltip, bottom border: \(lines)")
         #expect(lines[1].contains("Nothing else to say"), "\(lines)")
     }
 
@@ -521,7 +521,7 @@ struct TooltipPopoverTests {
     /// The candidate carries the style it was published under, so a popover
     /// tooltip attaches an overlay and does NOT ask the status bar for a row.
     @Test("A revealed popover tooltip attaches an overlay to its own control")
-    func revealAttachesAnOverlay() {
+    func revealAttachesAnOverlay() throws {
         let h = harness()
         let view = Button("Rebuild") {}.help("Rebuild the index from scratch")
         let first = frame(view, h)
@@ -530,7 +530,7 @@ struct TooltipPopoverTests {
 
         #expect(h.tooltips.toggleKeyboardReveal(focusID: h.focus.currentFocusedID))
         let shown = frame(view, h)
-        #expect(shown.overlays.count == 1, "the panel is attached: \(shown.overlays.count)")
+        try #require(shown.overlays.count == 1, "the panel is attached: \(shown.overlays.count)")
         let panel = shown.overlays[0].content.lines.map { $0.stripped }
         #expect(
             panel.contains { $0.contains("Rebuild the index") },

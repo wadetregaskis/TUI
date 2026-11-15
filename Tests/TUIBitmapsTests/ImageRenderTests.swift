@@ -57,7 +57,7 @@ struct ImageRenderTests {
     // MARK: Default placeholder
 
     @Test("Default placeholder fills the frame and centres a spinner glyph")
-    func defaultPlaceholderSpinner() {
+    func defaultPlaceholderSpinner() throws {
         let buffer = renderToBuffer(Image(.file("/does-not-exist.png")), context: createTestContext())
         let lines = buffer.lines.map { $0.stripped }
 
@@ -67,7 +67,7 @@ struct ImageRenderTests {
 
         // Exactly one row carries the spinner; the rest are blank.
         let nonBlank = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        #expect(nonBlank.count == 1)
+        try #require(nonBlank.count == 1)
         #expect(nonBlank[0].contains("⠋"))
 
         // The spinner sits on the vertically-centred row (height 6 → row 2 or 3).
@@ -144,14 +144,14 @@ struct ImageRenderTests {
     // MARK: Custom text, no spinner
 
     @Test("Disabling the spinner with custom text shows just the text, centred")
-    func customTextNoSpinner() {
+    func customTextNoSpinner() throws {
         let buffer = renderToBuffer(
             Image(.file("/nope.png")).imagePlaceholder("Wait…").imagePlaceholderSpinner(false),
             context: createTestContext())
         let lines = buffer.lines.map { $0.stripped }
 
         let nonBlank = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        #expect(nonBlank.count == 1)
+        try #require(nonBlank.count == 1)
         #expect(nonBlank[0].trimmingCharacters(in: .whitespaces) == "Wait…")
         // No spinner glyph when the spinner is disabled.
         #expect(!lines.contains { $0.contains("⠋") })
@@ -173,14 +173,14 @@ struct ImageRenderTests {
     // MARK: No spinner, no text
 
     @Test("No spinner and no text falls back to a centred \"Loading...\"")
-    func fallbackLoadingText() {
+    func fallbackLoadingText() throws {
         let buffer = renderToBuffer(
             Image(.file("/nope.png")).imagePlaceholderSpinner(false),
             context: createTestContext())
         let lines = buffer.lines.map { $0.stripped }
         let nonBlank = lines.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
 
-        #expect(nonBlank.count == 1)
+        try #require(nonBlank.count == 1)
         #expect(nonBlank[0].trimmingCharacters(in: .whitespaces) == "Loading...")
     }
 
@@ -200,12 +200,12 @@ struct ImageRenderTests {
     }
 
     @Test("URL-source placeholder behaves identically to a file source")
-    func urlSourcePlaceholder() {
+    func urlSourcePlaceholder() throws {
         let buffer = renderToBuffer(
             Image(.url("https://example.com/x.png")),
             context: createTestContext(width: 20, height: 6))
         let nonBlank = buffer.lines.map { $0.stripped }.filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
-        #expect(nonBlank.count == 1)
+        try #require(nonBlank.count == 1)
         #expect(nonBlank[0].contains("⠋"))
     }
 

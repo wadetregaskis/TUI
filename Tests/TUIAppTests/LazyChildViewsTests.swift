@@ -101,14 +101,14 @@ struct LazyChildViewsTests {
     }
 
     @Test("Lazy and eager construction agree on identity, key, and memo wrapping")
-    func lazyMatchesEager() {
+    func lazyMatchesEager() throws {
         let items = ["alpha", "beta", "gamma"]
         let forEach = ForEach(items, id: \.self) { Text($0) }
         let context = makeBareRenderContext(width: 30, height: 10)
 
         let eager = forEach.childViews(context: context)
         let collection = forEach.childViewCollection(context: context)
-        #expect(collection.count == eager.count)
+        try #require(collection.count == eager.count)
         for ordinal in 0..<eager.count {
             let lazyChild = collection[ordinal]
             #expect(lazyChild.identityChildKey == eager[ordinal].identityChildKey)

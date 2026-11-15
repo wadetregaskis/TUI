@@ -37,9 +37,9 @@ struct ZStackRenderTests {
     }
 
     @Test("A single child renders exactly as itself")
-    func singleChild() {
+    func singleChild() throws {
         let buffer = renderToBuffer(ZStack { Text("solo") }, context: ctx())
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "solo")
         #expect(buffer.width == 4)
     }
@@ -47,7 +47,7 @@ struct ZStackRenderTests {
     // MARK: - Layering (tree order)
 
     @Test("With equal z-index the later sibling draws on top")
-    func laterSiblingOnTop() {
+    func laterSiblingOnTop() throws {
         // Equal width so whole-line replacement yields a clean result.
         let buffer = renderToBuffer(
             ZStack {
@@ -56,7 +56,7 @@ struct ZStackRenderTests {
             },
             context: ctx()
         )
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         #expect(buffer.lines[0].stripped == "BBB", "Last child wins the row")
     }
 
@@ -222,7 +222,7 @@ struct ZStackRenderTests {
     // MARK: - Multi-line layering (equal-size children)
 
     @Test("Per-row layering picks the topmost non-empty row from equal-size children")
-    func multiLineLayering() {
+    func multiLineLayering() throws {
         // Background rows present on both lines; foreground only fills row 1.
         // Foreground row 0 is empty (EmptyView via false branch) so the
         // background row 0 shows through; foreground row 1 wins.
@@ -233,7 +233,7 @@ struct ZStackRenderTests {
             },
             context: ctx()
         )
-        #expect(buffer.lines.count == 2)
+        try #require(buffer.lines.count == 2)
         // Later (foreground) sibling wins each row it occupies.
         #expect(buffer.lines[0].stripped == "CCC")
         #expect(buffer.lines[1].stripped == "DDD")

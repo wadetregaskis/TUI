@@ -101,24 +101,24 @@ struct NotificationTests {
     // MARK: - Service
 
     @Test("Post adds an entry to the service")
-    func postAddsEntry() {
+    func postAddsEntry() throws {
         let service = NotificationService()
         service.post("Hello")
 
         let entries = service.activeEntries()
-        #expect(entries.count == 1)
+        try #require(entries.count == 1)
         #expect(entries[0].message == "Hello")
     }
 
     @Test("Multiple posts stack entries in order")
-    func multiplePostsStack() {
+    func multiplePostsStack() throws {
         let service = NotificationService()
         service.post("First")
         service.post("Second")
         service.post("Third")
 
         let entries = service.activeEntries()
-        #expect(entries.count == 3)
+        try #require(entries.count == 3)
         #expect(entries[0].message == "First")
         #expect(entries[1].message == "Second")
         #expect(entries[2].message == "Third")

@@ -80,7 +80,7 @@ struct KnightRiderBounceTests {
     @Test(
         "An 80-cell knightRider with fewer frames than steps reaches the far wall",
         arguments: [(1.975, 59), (1.7, 51)])
-    func fewerFramesThanStepsStillReachTheFarWall(period: Double, frames: Int) {
+    func fewerFramesThanStepsStillReachTheFarWall(period: Double, frames: Int) throws {
         let style = IndeterminateStyle.custom(
             IndeterminateConfiguration(motion: .knightRider, period: period, extent: 1.0 / 8.0))
         func draw(_ position: IndeterminateRenderer.Position) -> String {
@@ -92,7 +92,7 @@ struct KnightRiderBounceTests {
         let cycle = IndeterminateRenderer.cycle(
             width: 80, style: style, fillColor: .green, backgroundColor: .black, accentColor: .white,
             palette: SystemPalette(.green), speed: .standard)
-        #expect(cycle.frames.count == frames)
+        try #require(cycle.frames.count == frames)
         let farWall = draw(.step(79))
         #expect(
             cycle.frames.firstIndex(of: farWall) == frames / 2,

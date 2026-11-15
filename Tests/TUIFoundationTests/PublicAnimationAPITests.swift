@@ -88,17 +88,17 @@ struct PublicAnimationAPITests {
     }
 
     @Test("An app's own Renderable can hand the run loop its animated cells")
-    func renderableRoute() {
+    func renderableRoute() throws {
         let buffer = focused { PublicProbeIndicator(cycle: $0, dim: $1, bright: $2) }
-        #expect(buffer.animatedCells.count == 1, "no run reached the buffer")
+        try #require(buffer.animatedCells.count == 1, "no run reached the buffer")
         #expect(buffer.animatedCells[0].isAnimating)
         #expect(buffer.animatedCells[0].clock == .cursor)
     }
 
     @Test("An app's own COMPOSED view can declare them instead")
-    func composedRoute() {
+    func composedRoute() throws {
         let buffer = focused { PublicProbeComposed(cycle: $0, dim: $1, bright: $2) }
-        #expect(buffer.animatedCells.count == 1, "no run reached the buffer")
+        try #require(buffer.animatedCells.count == 1, "no run reached the buffer")
         // Declared at offset 1 — between the two brackets, where it was drawn.
         #expect(buffer.animatedCells[0].offsetX == 1)
         // And replaying the current step must change nothing on screen, which is

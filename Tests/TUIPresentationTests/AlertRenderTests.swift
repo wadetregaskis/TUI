@@ -38,11 +38,11 @@ struct AlertRenderTests {
     // MARK: - Basic alert (no actions)
 
     @Test("A simple alert renders the title in the top border and the message in the body")
-    func simpleAlert() {
+    func simpleAlert() throws {
         let alert = AlertPanel(title: "Warning", message: "Are you sure?")
         let result = lines(renderToBuffer(alert, context: makeContext()))
 
-        #expect(result.count == 5, "top + blank + message + blank + bottom")
+        try #require(result.count == 5, "top + blank + message + blank + bottom")
         #expect(result.first?.contains("Warning") == true, "Title sits in the top border")
         #expect(isAllBorder(result[0], corners: (tl, tr)), "Top border corners present")
         #expect(result.contains(where: { $0.contains("Are you sure?") }), "Message in body")

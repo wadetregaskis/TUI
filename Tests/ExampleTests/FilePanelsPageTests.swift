@@ -65,7 +65,7 @@ struct FilePanelsPageTests {
         try app.click("page.files.chooseFolder")
         app.press(.escape)
         let shown = results(app)
-        #expect(shown.count == Self.panelCount)
+        try #require(shown.count == Self.panelCount)
         #expect(shown[0] == "page.files.cancelled" && shown[2] == "page.files.cancelled", "\(shown)")
         #expect(shown[1] == "—")
     }

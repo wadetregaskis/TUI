@@ -40,14 +40,14 @@ struct ColorPickerSwatchTests {
     }
 
     @Test("A focused swatch hands its bullet to the run loop")
-    func focusBulletIsARun() {
+    func focusBulletIsARun() throws {
         // The bullet breathes. Building that from the live clock is what forced
         // a full re-render of the page on every tick; it leaves a run instead,
         // over the one cell it drew into.
         let context = makeRenderContext(width: 60, height: 4)
         let buffer = renderToBuffer(picker(), context: context)
         let runs = buffer.animatedCells
-        #expect(runs.count == 1, "the focused swatch left no run")
+        try #require(runs.count == 1, "the focused swatch left no run")
         #expect(runs[0].isAnimating, "the run is a still picture")
         #expect(runs[0].width == 1, "the bullet is one cell")
         #expect(runs[0].frames.allSatisfy { $0.stripped == "●" }, "the pulse is colour-only")

@@ -443,7 +443,7 @@ struct FocusIndicatorAnimationTests {
     // MARK: - Menu row
 
     @Test("A focused menu row hands over its whole bar")
-    func menuRowBar() {
+    func menuRowBar() throws {
         // The other producers hand over a mark — a cap, a bullet, a caret. A
         // menu row hands over the ROW: the highlight spans it, so the run has
         // to be as wide as the row is and start at its first cell, or the
@@ -454,7 +454,7 @@ struct FocusIndicatorAnimationTests {
                 Button("Second") {}
             }
             .menuStyle(.inline))
-        #expect(buffer.animatedCells.count == 1, "one bar, on the focused row only")
+        try #require(buffer.animatedCells.count == 1, "one bar, on the focused row only")
         expectAnimates(buffer, runs: 1, "menu row bar")
         let run = buffer.animatedCells[0]
         // The bar is as wide as the ROW — the rows share a width, so the
@@ -471,7 +471,7 @@ struct FocusIndicatorAnimationTests {
     }
 
     @Test("The menu bar moves down the menu with the focus")
-    func menuRowBarFollowsFocus() {
+    func menuRowBarFollowsFocus() throws {
         // A menu is a list, so a run left on row 0 repaints the wrong item
         // forever — and still looks plausible, because every row's bar is the
         // same colour. Only its position tells them apart.
@@ -485,7 +485,7 @@ struct FocusIndicatorAnimationTests {
         _ = renderToBuffer(menu, context: context)  // registers the rows
         context.environment.focusManager?.focusNext()
         let buffer = renderToBuffer(menu, context: context)
-        #expect(buffer.animatedCells.count == 1)
+        try #require(buffer.animatedCells.count == 1)
         #expect(buffer.animatedCells[0].offsetY > 0, "the bar followed the focus down")
         expectReplayIsIdentity(buffer, "the moved bar does not match the drawn row")
     }
@@ -689,7 +689,7 @@ struct FocusIndicatorAnimationTests {
     }
 
     @Test("A row lifts the runs of the button that actually has focus")
-    func rowRunsSitOnTheFocusedButton() {
+    func rowRunsSitOnTheFocusedButton() throws {
         // Two buttons, one focused: the runs must land on the focused one's
         // cells, not the first one's. A composer that forgot the x-shift would
         // pass the count check above and put both caps on the wrong button —
@@ -702,7 +702,7 @@ struct FocusIndicatorAnimationTests {
         }
         _ = renderToBuffer(row, context: context)  // register the ring
         let ring = context.environment.focusManager?.registeredFocusIDsInActiveSection() ?? []
-        #expect(ring.count == 2, "two buttons, two focus ids: \(ring)")
+        try #require(ring.count == 2, "two buttons, two focus ids: \(ring)")
         context.environment.focusManager?.focus(id: ring[1])
         let buffer = renderToBuffer(row, context: context)
 

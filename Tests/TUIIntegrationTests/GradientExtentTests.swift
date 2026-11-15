@@ -214,7 +214,7 @@ struct GradientExtentTests {
     /// A leaf still resolves over the EXTENT, not its own box, so a short leaf
     /// at the far end takes the far end's colour rather than the whole ramp.
     @Test("A short leaf takes its own slice of the extent, not the whole ramp")
-    func shortLeafTakesItsSlice() {
+    func shortLeafTakesItsSlice() throws {
         let lines = renderToBuffer(
             HStack(spacing: 0) {
                 Text(verbatim: "AAAAAA")
@@ -225,7 +225,7 @@ struct GradientExtentTests {
             context: context()
         ).lines
         let cells = inks(lines[0]).compactMap { $0 }
-        #expect(cells.count == 7, "\(cells)")
+        try #require(cells.count == 7, "\(cells)")
         #expect(cells.last == "0;0;255", "the last cell is not the ramp's end")
         #expect(cells[5] != "0;0;255", "the wide leaf reached the end on its own")
     }
@@ -419,7 +419,7 @@ extension GradientExtentTests {
     /// estimates. The ramp is estimated with it — approximate by construction,
     /// and required to still start at the start and advance downward.
     @Test("A ramp over anchored content advances from the top")
-    func lazyRampAcrossAnchoredWalk() {
+    func lazyRampAcrossAnchoredWalk() throws {
         let lines = renderToBuffer(
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
@@ -442,7 +442,7 @@ extension GradientExtentTests {
         // ramp, so every visible row is red-dominant and none is the end.
         for row in rows {
             let channels = row.split(separator: ";").compactMap { Int($0) }
-            #expect(channels.count == 3, "malformed ink \(row)")
+            try #require(channels.count == 3, "malformed ink \(row)")
             if channels.count == 3 {
                 #expect(channels[0] > channels[2], "the ramp ran to its end on screen: \(rows)")
             }

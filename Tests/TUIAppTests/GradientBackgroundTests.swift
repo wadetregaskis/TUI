@@ -129,7 +129,7 @@ struct GradientBackgroundTests {
     /// A background under `.gradientExtent(.subtree)` resolves over the same
     /// rectangle a foreground would.
     @Test("A subtree extent reaches the background too")
-    func subtreeExtentAppliesToBackgrounds() {
+    func subtreeExtentAppliesToBackgrounds() throws {
         let lines = renderToBuffer(
             VStack(alignment: .leading, spacing: 0) {
                 Text(verbatim: "aa").background(
@@ -143,7 +143,7 @@ struct GradientBackgroundTests {
             context: context()
         ).lines
         let rows = lines.prefix(3).compactMap { fills($0).compactMap { $0 }.first }
-        #expect(rows.count == 3)
+        try #require(rows.count == 3)
         #expect(rows[0] == "255;0;0", "\(rows)")
         #expect(rows[2] == "0;0;255", "\(rows)")
     }

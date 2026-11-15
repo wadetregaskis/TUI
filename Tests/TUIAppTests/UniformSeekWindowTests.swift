@@ -59,7 +59,7 @@ struct UniformSeekWindowTests {
     }
 
     @Test("A frame deep in a 100k-row stack builds O(window) rows, not 100k")
-    func framesBuildOnlyTheWindow() {
+    func framesBuildOnlyTheWindow() throws {
         let counter = BuildCounter()
         let tuiContext = TUIContext()
 
@@ -73,7 +73,7 @@ struct UniformSeekWindowTests {
             "a windowed frame must not touch all 100k rows; built \(counter.calls)")
 
         // And it is CORRECT: rows land at their exact arithmetic positions.
-        #expect(lines.count == Self.rows, "full-height buffer (Stage 6 shrinks this)")
+        try #require(lines.count == Self.rows, "full-height buffer (Stage 6 shrinks this)")
         #expect(lines[50_000] == "row 50000")
         #expect(lines[50_004] == "row 50004")
         #expect(lines[49_999] == "row 49999", "top margin row")

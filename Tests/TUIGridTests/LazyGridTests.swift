@@ -136,13 +136,13 @@ struct LazyGridTests {
     // MARK: - LazyVGrid
 
     @Test("content wraps onto a new row when the columns fill up")
-    func verticalWraps() {
+    func verticalWraps() throws {
         let drawn = painted(
             LazyVGrid(columns: Array(repeating: GridItem(.fixed(2)), count: 3), alignment: .leading)
             {
                 ForEach(["a", "b", "c", "d", "e"], id: \.self) { Text(verbatim: $0) }
             })
-        #expect(drawn.count == 2, "five items over three columns is two rows: \(drawn)")
+        try #require(drawn.count == 2, "five items over three columns is two rows: \(drawn)")
         #expect(drawn[0].hasPrefix("a  b  c"), "\(drawn)")
         #expect(drawn[1].hasPrefix("d  e"), "the last row is short, not wrapped: \(drawn)")
     }
@@ -225,12 +225,12 @@ struct LazyGridTests {
     }
 
     @Test("content wraps into a new column when the rows fill up")
-    func horizontalWraps() {
+    func horizontalWraps() throws {
         let drawn = painted(
             LazyHGrid(rows: Array(repeating: GridItem(.fixed(1)), count: 2), alignment: .top) {
                 ForEach(["a", "b", "c", "d", "e"], id: \.self) { Text(verbatim: $0) }
             })
-        #expect(drawn.count == 2, "two rows of tracks: \(drawn)")
+        try #require(drawn.count == 2, "two rows of tracks: \(drawn)")
         // a c e down the first row of the grid, b d down the second.
         #expect(drawn[0].replacingOccurrences(of: " ", with: "") == "ace", "\(drawn)")
         #expect(drawn[1].replacingOccurrences(of: " ", with: "") == "bd", "\(drawn)")

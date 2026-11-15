@@ -109,12 +109,12 @@ struct TightViewportTests {
     /// view in a normal terminal would shift by a cell.
     @Test("Padding is untouched as soon as the viewport can afford it")
     @MainActor
-    func paddingIsIntactWhenItFits() {
+    func paddingIsIntactWhenItFits() throws {
         let context = RenderContext(
             availableWidth: 20, availableHeight: 5, tuiContext: TUIContext()
         ).isolatingRenderCache()
         let buffer = renderToBuffer(Text("X").padding(), context: context)
-        #expect(buffer.lines.count == 3, "one row of content between two pad rows")
+        try #require(buffer.lines.count == 3, "one row of content between two pad rows")
         #expect(
             buffer.lines[0].stripped.trimmingCharacters(in: .whitespaces).isEmpty,
             "the top pad row is still blank")

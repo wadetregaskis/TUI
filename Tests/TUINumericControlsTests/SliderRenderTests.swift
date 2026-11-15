@@ -62,9 +62,9 @@ struct SliderRenderTests {
     // MARK: - Structure
 
     @Test("A slider renders on exactly one line with both arrows and the value")
-    func singleLineWithArrowsAndValue() {
+    func singleLineWithArrowsAndValue() throws {
         let out = lines(Slider(value: .constant(0.5)))
-        #expect(out.count == 1, "exactly one line, got: \(out)")
+        try #require(out.count == 1, "exactly one line, got: \(out)")
         #expect(out[0].contains("◀"))
         #expect(out[0].contains("▶"))
         #expect(out[0].contains("50%"))
@@ -72,7 +72,7 @@ struct SliderRenderTests {
     }
 
     @Test("The string title is drawn to the LEFT of the track, on the same line (SwiftUI parity)")
-    func titleDrawnInline() {
+    func titleDrawnInline() throws {
         // This test used to assert the opposite, on the stated grounds that
         // "SwiftUI's Slider label is for accessibility, not display". That is
         // the iOS behaviour, and Apple's docs hedge accordingly ("Not all
@@ -80,7 +80,7 @@ struct SliderRenderTests {
         // desktop-shaped framework — DOES draw it, to the left, shortening the
         // track to fit. Measured against real SwiftUI hosted in an NSHostingView.
         let out = lines(Slider("Volume", value: .constant(0.5)))
-        #expect(out.count == 1, "still a single line, got: \(out)")
+        try #require(out.count == 1, "still a single line, got: \(out)")
         #expect(out[0].hasPrefix("Volume "), "the title leads the row: |\(out[0])|")
         #expect(out[0].contains("◀"), "the track follows the title: |\(out[0])|")
         #expect(out[0].contains("50%"))

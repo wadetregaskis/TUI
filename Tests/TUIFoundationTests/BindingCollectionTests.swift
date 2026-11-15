@@ -86,11 +86,11 @@ struct BindingCollectionTests {
     /// The conformance is what `ForEach.elementBindings(_:)` is built from now,
     /// so the two must not have drifted apart.
     @Test("ForEach's per-row bindings are the collection's own")
-    func forEachUsesTheConformance() {
+    func forEachUsesTheConformance() throws {
         let store = Store([Row(id: 1, enabled: false), Row(id: 2, enabled: false)])
         let rows = ForEach<[Row], Int, EmptyView>.elementBindings(store.binding)
 
-        #expect(rows.count == 2)
+        try #require(rows.count == 2)
         rows[0].enabled.wrappedValue = true
         #expect(store.rows[0].enabled)
     }

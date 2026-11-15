@@ -381,7 +381,7 @@ struct ContainerSheetSizeCostTests {
     /// in the environment every view inside it copies, for a size almost no
     /// box is offered.
     @Test("A box offered no sheet size leaves its content's environment without one")
-    func noSheetSizeNoWrite() {
+    func noSheetSizeNoWrite() throws {
         // The two keys, found by what a sheet stores under them.
         let offered = SeenKeys()
         _ = renderToBuffer(
@@ -413,7 +413,7 @@ struct ContainerSheetSizeCostTests {
                 environment.sheetDetentHeight = 5
                 environment.sheetProposedWidth = 7
             })
-        #expect(!consumed.values.isEmpty, "precondition: the probe ran")
+        try #require(!consumed.values.isEmpty, "precondition: the probe ran")
         #expect(
             sheetKeys.allSatisfy { key in
                 // Unwrapped first: a lookup's `Any?` cast to `Int?` flattens.

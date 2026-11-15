@@ -87,7 +87,7 @@ struct LineSpacingTests {
         #expect(drawn[3].isEmpty)
         #expect(drawn[4] == "epsilon", "\(drawn)")
         // Nothing after the final line: the height stops at the text.
-        #expect(drawn.count == 5 || drawn[5].isEmpty)
+        #expect(drawn.count == 5 || (drawn.count > 5 && drawn[5].isEmpty))
     }
 
     @Test("a single line is unaffected however large the spacing")

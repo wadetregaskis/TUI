@@ -31,10 +31,10 @@ struct ContentUnavailableViewRenderTests {
     // MARK: Single label
 
     @Test("String title renders on a single centred line")
-    func stringTitleSingleLine() {
+    func stringTitleSingleLine() throws {
         let lines = strippedLines(ContentUnavailableView("Empty"))
 
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         #expect(lines[0].contains("Empty"))
         // Centred: the title is preceded by leading whitespace.
         #expect(lines[0].hasPrefix(" "))
@@ -44,10 +44,10 @@ struct ContentUnavailableViewRenderTests {
     // MARK: Label + description
 
     @Test("Title and description stack with a single blank spacer between them")
-    func titleAndDescription() {
+    func titleAndDescription() throws {
         let lines = strippedLines(ContentUnavailableView("No Items", description: "Add some."))
 
-        #expect(lines.count == 3)
+        try #require(lines.count == 3)
         #expect(lines[0].trimmingCharacters(in: .whitespaces) == "No Items")
         // One blank spacer row (appendVertically spacing: 1).
         #expect(lines[1].trimmingCharacters(in: .whitespaces).isEmpty)
@@ -57,7 +57,7 @@ struct ContentUnavailableViewRenderTests {
     // MARK: Full (label + description + actions)
 
     @Test("Full layout stacks label, description and actions with blank spacers")
-    func fullLayout() {
+    func fullLayout() throws {
         let lines = strippedLines(ContentUnavailableView {
             Text("Title")
         } description: {
@@ -66,7 +66,7 @@ struct ContentUnavailableViewRenderTests {
             Text("[A]")
         })
 
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(lines[0].trimmingCharacters(in: .whitespaces) == "Title")
         #expect(lines[1].trimmingCharacters(in: .whitespaces).isEmpty)
         #expect(lines[2].trimmingCharacters(in: .whitespaces) == "Desc")
@@ -75,20 +75,20 @@ struct ContentUnavailableViewRenderTests {
     }
 
     @Test("Label-only ViewBuilder renders just the label, no spacer rows")
-    func labelOnlyViewBuilder() {
+    func labelOnlyViewBuilder() throws {
         let lines = strippedLines(ContentUnavailableView { Text("Only Label") })
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         #expect(lines[0].trimmingCharacters(in: .whitespaces) == "Only Label")
     }
 
     // MARK: Search presets
 
     @Test("Search preset renders the canned label and description")
-    func searchPreset() {
+    func searchPreset() throws {
         let view = ContentUnavailableView.search
         let lines = strippedLines(view, width: 40, height: 8)
 
-        #expect(lines.count == 3)
+        try #require(lines.count == 3)
         #expect(lines[0].trimmingCharacters(in: .whitespaces) == "No Results")
         #expect(lines[1].trimmingCharacters(in: .whitespaces).isEmpty)
         #expect(lines[2].trimmingCharacters(in: .whitespaces) == "Check the spelling or try a new search.")

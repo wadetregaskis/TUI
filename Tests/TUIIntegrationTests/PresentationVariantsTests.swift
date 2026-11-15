@@ -36,13 +36,13 @@ struct PresentationVariantsTests {
     // MARK: - Popover
 
     @Test("A popover is an undimmed overlay anchored below its view")
-    func popoverAnchorsBelow() {
+    func popoverAnchorsBelow() throws {
         let buffer = renderToBuffer(
             Text("anchor")
                 .popover(isPresented: .constant(true)) { Text("detail") },
             context: context())
 
-        #expect(buffer.overlays.count == 1)
+        try #require(buffer.overlays.count == 1)
         let overlay = buffer.overlays[0]
         // A popover belongs beside the thing it came from, so it must NOT be
         // the centred, dimming presentation a sheet is.
@@ -136,13 +136,13 @@ struct PresentationVariantsTests {
     // MARK: - Full-screen cover
 
     @Test("A cover fills the content area and dims nothing")
-    func coverFillsTheScreen() {
+    func coverFillsTheScreen() throws {
         let height = 12
         let buffer = renderToBuffer(
             Text("page").fullScreenCover(isPresented: .constant(true)) { Text("cover") },
             context: context(width: 30, height: height))
 
-        #expect(buffer.overlays.count == 1)
+        try #require(buffer.overlays.count == 1)
         let overlay = buffer.overlays[0]
         // Nothing shows through a cover, so dimming would be painting under an
         // opaque thing — and there is nowhere to drag it to.
@@ -180,11 +180,11 @@ struct PresentationVariantsTests {
     }
 
     @Test("A sheet still dims and centres — the cover did not change it")
-    func sheetIsUnchanged() {
+    func sheetIsUnchanged() throws {
         let buffer = renderToBuffer(
             Text("page").sheet(isPresented: .constant(true)) { Text("sheet") },
             context: context())
-        #expect(buffer.overlays.count == 1)
+        try #require(buffer.overlays.count == 1)
         #expect(buffer.overlays[0].dimsBackground == true)
         #expect(buffer.overlays[0].centered == true)
     }
@@ -261,14 +261,14 @@ struct PresentationVariantsTests {
     /// rows went out as blank, unstyled, opaque overlay lines that punched a
     /// hole through the page below it.
     @Test("A detent sizes the sheet's box, and the box encloses the slack")
-    func detentSizesTheSheet() {
+    func detentSizesTheSheet() throws {
         let buffer = renderToBuffer(
             Text("page").sheet(isPresented: .constant(true)) {
                 Panel("title") { Text("one line") }
                     .presentationDetents([.medium])
             },
             context: context(width: 30, height: 20))
-        #expect(buffer.overlays.count == 1)
+        try #require(buffer.overlays.count == 1)
         // Half of 20, not the three rows the panel would take by itself.
         let lines = buffer.overlays[0].content.lines.map(\.stripped)
         #expect(lines.count == 10)
@@ -317,7 +317,7 @@ struct PresentationVariantsTests {
     /// The height belongs to the sheet's own box and to that box alone: a panel
     /// nested inside a detented one must not stretch to the sheet's height too.
     @Test("Only the outermost box takes the detent's height")
-    func nestedBoxesDoNotAlsoStretch() {
+    func nestedBoxesDoNotAlsoStretch() throws {
         let buffer = renderToBuffer(
             Text("page").sheet(isPresented: .constant(true)) {
                 Panel("outer") { Panel("inner") { Text("x") } }
@@ -329,7 +329,7 @@ struct PresentationVariantsTests {
         // The inner panel is three rows near the top, not a second 18-row box:
         // its bottom border lands well above the outer one.
         let borders = lines.enumerated().filter { $0.element.contains("─") }.map(\.offset)
-        #expect(borders.count == 4, "expected two boxes' worth of borders: \(lines)")
+        try #require(borders.count == 4, "expected two boxes' worth of borders: \(lines)")
         #expect(borders[2] < 8, "the inner box stretched too: \(lines)")
     }
 

@@ -73,7 +73,7 @@ struct ReversingRowBreathTests {
         let reversal = RowBackground.Paint.reversed(ink: ink, field: field)
         let background = RowBackground.pulsingReversal(Self.cycle, dim: reversal, bright: .fill(fill))
         let paints = try #require(background.framePaints)
-        #expect(paints.count == 16)
+        try #require(paints.count == 16)
         let bright = paints.indices.filter { paints[$0].fill == fill }
         #expect(bright == [0, 1, 2, 3, 4, 12, 13, 14, 15])
         #expect(paints.indices.filter { paints[$0].fill == nil } == Array(5...11))

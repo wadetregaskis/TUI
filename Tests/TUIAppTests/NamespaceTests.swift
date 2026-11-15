@@ -44,12 +44,12 @@ struct NamespaceTests {
     }
 
     @Test("A namespace keeps its id from frame to frame, even when the view value is rebuilt")
-    func stableAcrossFrames() {
+    func stableAcrossFrames() throws {
         let tui = TUIContext()
         let seen = Seen()
         render(Holder(seen: seen), tui: tui)
         render(Holder(seen: seen), tui: tui)
-        #expect(seen.ids.count == 4)
+        try #require(seen.ids.count == 4)
         #expect(seen.ids[0] == seen.ids[2], "the first property's id survives a new view value")
         #expect(seen.ids[1] == seen.ids[3], "so does the second's")
     }

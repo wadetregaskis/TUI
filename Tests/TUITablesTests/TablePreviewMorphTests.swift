@@ -125,7 +125,7 @@ struct TablePreviewMorphTests {
     }
 
     @Test("The travel starts as the row was drawn and ends condensed")
-    func theTravelSpansBothLayouts() {
+    func theTravelSpansBothLayouts() throws {
         let fixture = Fixture(rows)
         let (session, rowLine) = dragging(fixture, "gamma")
         guard let drag = session.active, !drag.morph.isEmpty else {
@@ -143,7 +143,7 @@ struct TablePreviewMorphTests {
         // …and the last is the hand layout: the same cells, closed up.
         let last = drag.morph.last!.lines.first ?? ""
         let lastRuns = inkRuns(last)
-        #expect(lastRuns.count == rowCellRuns(rowLine).count, "same cells: \(last.stripped)")
+        try #require(lastRuns.count == rowCellRuns(rowLine).count, "same cells: \(last.stripped)")
         #expect(
             lastRuns.last!.upperBound < rowCellRuns(rowLine).last!.upperBound,
             "the cells did not close up: \(last.stripped)")

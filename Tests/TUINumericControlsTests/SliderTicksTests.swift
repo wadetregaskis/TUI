@@ -58,7 +58,7 @@ struct SliderTicksTests {
     }
 
     @Test("Ticks draw a mark under each value and the labels under those")
-    func ticksAndLabels() {
+    func ticksAndLabels() throws {
         var value = 0.5
         let rows = lines(
             Slider(value: Binding(get: { value }, set: { value = $0 })) {
@@ -68,7 +68,7 @@ struct SliderTicksTests {
                 SliderTick(0.5)
                 SliderTick("hi", 1.0)
             })
-        #expect(rows.count == 3, "\(rows)")
+        try #require(rows.count == 3, "\(rows)")
         #expect(rows[1].filter { $0 == "╵" }.count == 3, "\(rows)")
         #expect(rows[2].contains("lo") && rows[2].contains("hi"), "\(rows)")
         let markColumns = rows[1].enumerated().filter { $0.element == "╵" }.map(\.offset)
@@ -77,13 +77,13 @@ struct SliderTicksTests {
     }
 
     @Test("Unlabelled ticks take one row, and a tick per step comes from tick:")
-    func tickPerStep() {
+    func tickPerStep() throws {
         var value = 2.0
         let rows = lines(
             Slider(value: Binding(get: { value }, set: { value = $0 }), in: 0...4, step: 1) {
                 EmptyView()
             } tick: { SliderTick($0) })
-        #expect(rows.count == 2)
+        try #require(rows.count == 2)
         #expect(rows[1].filter { $0 == "╵" }.count == 5, "\(rows)")
     }
 

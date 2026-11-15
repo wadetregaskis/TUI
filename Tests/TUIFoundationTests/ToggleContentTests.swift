@@ -30,7 +30,7 @@ struct ToggleContentTests {
     }
 
     @Test("Content sits under the toggle, indented to its LABEL not its box")
-    func contentIndentsToTheLabel() {
+    func contentIndentsToTheLabel() throws {
         var indents: [Int] = []
         for (characterSet, name) in [
             (ToggleCharacterSet.unicode, "unicode"), (.emoji, "emoji"), (.ascii, "ascii"),
@@ -38,7 +38,7 @@ struct ToggleContentTests {
             let context = makeRenderContext(width: 40, height: 10)
             let lines = rendered(isOn: true, characterSet: characterSet, context: context)
                 .lines.map(\.stripped)
-            #expect(lines.count == 2, "\(name): \(lines)")
+            try #require(lines.count == 2, "\(name): \(lines)")
             // The label starts after the indicator and one space; so does the
             // content. `■` is one cell, `⬛︎` two, `[x]` three — which is the
             // whole reason this is not a constant.
@@ -115,12 +115,12 @@ struct ToggleContentTests {
     }
 
     @Test("A toggle carrying nothing is unchanged")
-    func plainToggleIsUnaffected() {
+    func plainToggleIsUnaffected() throws {
         let context = makeRenderContext(width: 40, height: 10)
         let plain = Toggle("Edge lines", isOn: .constant(true)).toggleCharacterSet(.unicode)
         _ = renderToBuffer(plain, context: context)
         let lines = renderToBuffer(plain, context: context).lines.map(\.stripped)
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         #expect(lines[0].hasSuffix("Edge lines"))
     }
 }

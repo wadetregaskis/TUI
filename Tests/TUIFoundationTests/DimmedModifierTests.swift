@@ -28,10 +28,10 @@ struct DimmedModifierTests {
     }
 
     @Test("Dimmed text strips original styling and applies uniform colors")
-    func dimmedStripsAndRecolors() {
+    func dimmedStripsAndRecolors() throws {
         let view = Text("Hello").dimmed()
         let buffer = render(view)
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         // Should NOT contain the old ANSI dim code — we use palette colors now
         #expect(!buffer.lines[0].contains("\u{1B}[2m"))
         // Visible text must survive the stripping

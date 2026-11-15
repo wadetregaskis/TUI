@@ -230,7 +230,7 @@ struct TextSuggestionMemoTests {
     /// Every label renders at the field's own identity, so memos inside two
     /// labels share one entry: they must stay off, as they were.
     @Test("Two labels with memos inside draw as themselves")
-    func labelsWithMemosDrawAsThemselves() {
+    func labelsWithMemosDrawAsThemselves() throws {
         let loop = SuggestionLoop()
         var text = ""
         let binding = Binding(get: { text }, set: { text = $0 })
@@ -251,7 +251,7 @@ struct TextSuggestionMemoTests {
         _ = loop.focus.dispatchKeyEvent(KeyEvent(key: .down))
         loop.frame(view())
         let rows = loop.frame(view()).filter { $0.stripped.contains("Paris") }
-        #expect(rows.count == 2, "both rows in the open menu: \(rows.map(\.stripped))")
+        try #require(rows.count == 2, "both rows in the open menu: \(rows.map(\.stripped))")
         if rows.count == 2 {
             #expect(rows[0] != rows[1], "one label was served the other's buffer: \(rows)")
         }

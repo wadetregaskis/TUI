@@ -32,7 +32,7 @@ struct ForEachBindingTests {
     /// Editing through a row's binding must reach the array the ForEach was
     /// given — the whole point of the overload.
     @Test("A row's binding writes back to the collection")
-    func rowBindingWritesThrough() {
+    func rowBindingWritesThrough() throws {
         var options = [
             Option(id: "verbose", enabled: false),
             Option(id: "colour", enabled: true),
@@ -40,7 +40,7 @@ struct ForEachBindingTests {
         let binding = Binding(get: { options }, set: { options = $0 })
         let rows = ForEach<[Binding<Option>], String, EmptyView>.elementBindings(binding)
 
-        #expect(rows.count == 2)
+        try #require(rows.count == 2)
         rows[0].wrappedValue.enabled = true
         rows[1].wrappedValue.enabled = false
         #expect(options.map(\.enabled) == [true, false], "edits reached the array: \(options)")
@@ -109,7 +109,7 @@ struct ForEachBindingTests {
     /// key that isn't there has no value — and `Toggle` cannot take that, so
     /// `defaulted(to:)` decides what absent means at the call site.
     @Test("A dictionary-keyed row binds through defaulted(to:)")
-    func dictionaryKeyedTogglesRender() {
+    func dictionaryKeyedTogglesRender() throws {
         nonisolated(unsafe) var selected: [String: Bool] = ["colour": true]
         let features = ["verbose", "colour"]
         let binding = Binding(get: { unsafe selected }, set: { unsafe selected = $0 })
@@ -132,7 +132,7 @@ struct ForEachBindingTests {
         // The absent key reads as off and the present one as on, so the two
         // rows must not draw the same checkbox.
         let states = buffer.lines.map(\.stripped).filter { $0.contains("verbose") || $0.contains("colour") }
-        #expect(states.count == 2, "one line each: \(states)")
+        try #require(states.count == 2, "one line each: \(states)")
         #expect(
             states[0].prefix(3) != states[1].prefix(3),
             "off and on draw differently: \(states)")

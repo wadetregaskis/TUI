@@ -26,9 +26,9 @@ struct SpacerRenderTests {
     // MARK: - Standalone
 
     @Test("Default standalone spacer renders a single blank row")
-    func defaultStandalone() {
+    func defaultStandalone() throws {
         let buffer = renderToBuffer(Spacer(), context: context())
-        #expect(buffer.lines.count == 1, "Default standalone spacer should be one row, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 1, "Default standalone spacer should be one row, got \(buffer.lines.count)")
         // Blank: no visible glyphs.
         #expect(buffer.lines[0].stripped.trimmingCharacters(in: .whitespaces).isEmpty,
                 "Spacer row must be blank, got >>\(buffer.lines[0].stripped)<<")
@@ -74,14 +74,14 @@ struct SpacerRenderTests {
     // MARK: - In an HStack
 
     @Test("Spacer pushes HStack siblings to opposite edges")
-    func spacerInHStack() {
+    func spacerInHStack() throws {
         let view = HStack(spacing: 0) {
             Text("L")
             Spacer()
             Text("R")
         }
         let buffer = renderToBuffer(view, context: context(width: 10, height: 1))
-        #expect(buffer.lines.count == 1, "Single-row HStack expected, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 1, "Single-row HStack expected, got \(buffer.lines.count)")
         let line = buffer.lines[0].stripped
         #expect(line.strippedLength == 10, "HStack with a spacer should fill the width, got \(line.strippedLength)")
         #expect(line.hasPrefix("L"), "Left text must sit at the left edge, got >>\(line)<<")
@@ -94,14 +94,14 @@ struct SpacerRenderTests {
     // MARK: - In a VStack
 
     @Test("Spacer pushes VStack siblings to top and bottom")
-    func spacerInVStack() {
+    func spacerInVStack() throws {
         let view = VStack(spacing: 0) {
             Text("Top")
             Spacer()
             Text("Bottom")
         }
         let buffer = renderToBuffer(view, context: context(width: 10, height: 5))
-        #expect(buffer.lines.count == 5, "VStack with a spacer should fill 5 rows, got \(buffer.lines.count)")
+        try #require(buffer.lines.count == 5, "VStack with a spacer should fill 5 rows, got \(buffer.lines.count)")
         // VStack centres horizontally by default, so the text may be padded;
         // what the spacer must guarantee is the vertical distribution: the
         // top text on the first row, the bottom text on the last row.

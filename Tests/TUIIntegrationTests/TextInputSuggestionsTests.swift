@@ -673,7 +673,7 @@ struct MenuDividerTests {
         let layer = try #require(open.overlays.first)
         let lines = layer.content.lines.map(\.stripped)
         // Top border, Apple, rule, Banana, bottom border.
-        #expect(lines.count == 5)
+        try #require(lines.count == 5)
         #expect(lines[1].contains("Apple"))
         #expect(lines[2].contains("──"), "the divider renders as a rule: \(lines[2])")
         #expect(lines[3].contains("Banana"))
@@ -682,7 +682,7 @@ struct MenuDividerTests {
     }
 
     @Test("The Picker extracts Divider entries from its content")
-    func pickerExtraction() {
+    func pickerExtraction() throws {
         @ViewBuilder func content() -> some View {
             Text("A").tag("a")
             Divider()
@@ -690,7 +690,7 @@ struct MenuDividerTests {
         }
         let options = _PickerOptionsReader<String, _, EmptyView>(content: content()) { _, _ in EmptyView() }
             .entries(in: makeRenderContext(width: 20, height: 5))
-        #expect(options.count == 3)
+        try #require(options.count == 3)
         guard case .divider = options[1] else {
             Issue.record("expected a divider entry")
             return

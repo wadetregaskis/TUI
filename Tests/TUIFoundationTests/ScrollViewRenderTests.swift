@@ -47,7 +47,7 @@ struct ScrollViewRenderTests {
     // MARK: - Fills its viewport
 
     @Test("Short content fills the full viewport height with blank rows")
-    func shortContentFillsViewport() {
+    func shortContentFillsViewport() throws {
         let buffer = renderToBuffer(
             ScrollView {
                 VStack(alignment: .leading) {
@@ -57,7 +57,7 @@ struct ScrollViewRenderTests {
             },
             context: ctx(width: 20, height: 6)
         )
-        #expect(buffer.lines.count == 6, "ScrollView fills the whole viewport")
+        try #require(buffer.lines.count == 6, "ScrollView fills the whole viewport")
         #expect(buffer.width == 20, "Every row padded to the full viewport width")
         #expect(buffer.lines[0].stripped == "L0".padding(toLength: 20, withPad: " ", startingAt: 0))
         #expect(buffer.lines[1].stripped == "L1".padding(toLength: 20, withPad: " ", startingAt: 0))
@@ -144,7 +144,7 @@ struct ScrollViewRenderTests {
     // MARK: - Overflowing content (bottom indicator)
 
     @Test("Tall content shows a 'N more lines below' indicator at the bottom edge")
-    func tallContentBottomIndicator() {
+    func tallContentBottomIndicator() throws {
         let buffer = renderToBuffer(
             ScrollView {
                 VStack(alignment: .leading) {
@@ -153,7 +153,7 @@ struct ScrollViewRenderTests {
             },
             context: textCtx(width: 20, height: 6)
         )
-        #expect(buffer.lines.count == 6)
+        try #require(buffer.lines.count == 6)
         // At rest (offset 0) the top shows real content, the bottom row is
         // the "more lines below" indicator.
         #expect(buffer.lines[0].stripped.hasPrefix("Line 0"))
@@ -164,7 +164,7 @@ struct ScrollViewRenderTests {
     }
 
     @Test(".scrollIndicators(.hidden) suppresses the indicator and shows raw content")
-    func indicatorsSuppressed() {
+    func indicatorsSuppressed() throws {
         let buffer = renderToBuffer(
             ScrollView {
                 VStack(alignment: .leading) {
@@ -174,7 +174,7 @@ struct ScrollViewRenderTests {
             .scrollIndicators(.hidden),
             context: textCtx(width: 20, height: 6)
         )
-        #expect(buffer.lines.count == 6)
+        try #require(buffer.lines.count == 6)
         let joined = buffer.lines.map { $0.stripped }.joined()
         #expect(!joined.contains("more lines below"), "No indicator when suppressed")
         // The bottom row shows real content (Line 5) rather than chrome.
@@ -184,7 +184,7 @@ struct ScrollViewRenderTests {
     // MARK: - Disabled
 
     @Test("A disabled ScrollView still renders its content")
-    func disabledStillRenders() {
+    func disabledStillRenders() throws {
         let buffer = renderToBuffer(
             ScrollView {
                 VStack(alignment: .leading) { Text("A"); Text("B") }
@@ -192,7 +192,7 @@ struct ScrollViewRenderTests {
             .disabled(),
             context: ctx(width: 20, height: 5)
         )
-        #expect(buffer.lines.count == 5)
+        try #require(buffer.lines.count == 5)
         #expect(buffer.lines[0].stripped.hasPrefix("A"))
         #expect(buffer.lines[1].stripped.hasPrefix("B"))
     }

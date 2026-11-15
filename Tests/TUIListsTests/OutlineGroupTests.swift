@@ -96,10 +96,10 @@ struct OutlineGroupTests {
     // MARK: - Flattening
 
     @Test("closed: only the roots, one row each")
-    func closedShowsOnlyRoots() {
+    func closedShowsOnlyRoots() throws {
         let (tui, context) = harness()
         let rendered = lines(frame(outline(), tui: tui, context: context))
-        #expect(rendered.count == 2, "two roots, two rows — got \(rendered)")
+        try #require(rendered.count == 2, "two roots, two rows — got \(rendered)")
         #expect(rendered[0].contains("Sources"))
         #expect(rendered[1].contains("README"))
         #expect(rendered.contains { $0.contains("TUI") } == false, "children stay hidden")

@@ -48,7 +48,7 @@ struct TextFieldTests {
     // MARK: - Rendering
 
     @Test("TextField renders with brackets only when focused")
-    func renderWithBrackets() {
+    func renderWithBrackets() throws {
         var text = "test"
         let binding = Binding(get: { text }, set: { text = $0 })
         let textField = TextField("Input", text: binding)
@@ -56,7 +56,7 @@ struct TextFieldTests {
 
         let buffer = renderToBuffer(textField, context: context)
 
-        #expect(buffer.lines.count == 1)
+        try #require(buffer.lines.count == 1)
         let line = buffer.lines[0].stripped
 
         // Unfocused: no brackets

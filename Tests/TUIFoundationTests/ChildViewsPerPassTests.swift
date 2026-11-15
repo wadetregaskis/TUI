@@ -45,7 +45,7 @@ struct ChildViewsPerPassTests {
     }
 
     @Test("Inside a scroll view, one resolution per pass — and a fresh one next pass")
-    func oncePerPass() {
+    func oncePerPass() throws {
         let tui = TUIContext()
         let view = VStack(alignment: .leading, spacing: 0) {
             Text("heading")
@@ -53,7 +53,7 @@ struct ChildViewsPerPassTests {
         }
         unsafe Counters.resolutions = 0
         let buffer = Self.frame(view, tui: tui)
-        #expect(buffer.lines.count == 8)
+        try #require(buffer.lines.count == 8)
         #expect(buffer.lines[1].stripped.hasPrefix("row 0"), "\(buffer.lines[1])")
         unsafe #expect(Counters.resolutions == 1, "resolved once for the whole pass: \(Counters.resolutions)")
         _ = Self.frame(view, tui: tui)

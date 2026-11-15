@@ -108,9 +108,9 @@ struct PrimitiveButtonStyleTests {
     }
 
     @Test("Button(configuration) draws the button the style was applied over")
-    func wrapsTheOuterStyle() {
+    func wrapsTheOuterStyle() throws {
         let wrapped = lines(Button("Go") {}.buttonStyle(RedBorderedButtonStyle()))
-        #expect(wrapped.count >= 3, "a border is three rows")
+        try #require(wrapped.count >= 3, "a border is three rows")
         #expect(wrapped[1].contains("Go") && wrapped[1] != "│Go│", "inside it, the default button")
         let overPlain = lines(Button("Go") {}.buttonStyle(RedBorderedButtonStyle()).buttonStyle(.plain))
         #expect(overPlain[1].contains("Go"))

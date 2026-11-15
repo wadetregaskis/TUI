@@ -47,9 +47,9 @@ struct ButtonRenderTests {
     // MARK: - Default (bracketed) style
 
     @Test("A default button renders one bracketed line that hugs its label")
-    func defaultBracketed() {
+    func defaultBracketed() throws {
         let out = lines(Button("OK") {})
-        #expect(out.count == 1, "single line: \(out)")
+        try #require(out.count == 1, "single line: \(out)")
         #expect(out[0] == "\(openCap) OK \(closeCap)", "got: '\(out[0])'")
         // It hugs the label: 2 caps + 2 padding + 2 label = 6, not the full width.
         #expect(out[0].strippedLength == 6)
@@ -66,9 +66,9 @@ struct ButtonRenderTests {
     // MARK: - Empty label
 
     @Test("An empty-label button is a single line, not a blank line")
-    func emptyLabelSingleLine() {
+    func emptyLabelSingleLine() throws {
         let out = lines(Button("") {})
-        #expect(out.count == 1, "single line: \(out)")
+        try #require(out.count == 1, "single line: \(out)")
         // Caps stay continuous around the (empty) label + its padding: `▐  ▌`.
         // The line is NOT blank and NOT a border gap (cf. the Panel empty-title class).
         #expect(out[0] == "\(openCap)  \(closeCap)", "got: '\(out[0])'")
@@ -81,9 +81,9 @@ struct ButtonRenderTests {
     // MARK: - Roles & alternate styles
 
     @Test("A destructive-role button renders its label bracketed")
-    func destructiveRole() {
+    func destructiveRole() throws {
         let out = lines(Button("Delete", role: .destructive) {})
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(openCap) Delete \(closeCap)", "got: '\(out[0])'")
     }
 
@@ -128,16 +128,16 @@ struct ButtonRenderTests {
     }
 
     @Test("A plain-style button drops the brackets and shows the focus dot when focused")
-    func plainFocused() {
+    func plainFocused() throws {
         // First (only) focusable → auto-focused → pulsing `● ` prefix, no caps.
         let out = lines(Button("OK") {}.buttonStyle(.plain))
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\u{25CF} OK", "got: '\(out[0])'")  // ● + space + label
         #expect(!out[0].contains(openCap) && !out[0].contains(closeCap), "no caps in plain style")
     }
 
     @Test("An unfocused plain-style button shows a 2-cell blank prefix, no dot")
-    func plainUnfocused() {
+    func plainUnfocused() throws {
         // Park focus on a directly-registered sentinel so the button under
         // test renders un-focused. (Registering via a prior render does not
         // work: each render pass re-collects focusables, so the next button
@@ -148,7 +148,7 @@ struct ButtonRenderTests {
         context.environment.focusManager!.register(FocusHolder())
         let out = renderToBuffer(Button("Second") {}.buttonStyle(.plain), context: context)
             .lines.map { $0.stripped }
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "  Second", "unfocused plain prefix is 2 spaces: '\(out[0])'")
         #expect(!out[0].contains("\u{25CF}"), "no focus dot when unfocused")
     }
@@ -156,9 +156,9 @@ struct ButtonRenderTests {
     // MARK: - Disabled
 
     @Test("A disabled button still renders its label on one bracketed line")
-    func disabledStillRenders() {
+    func disabledStillRenders() throws {
         let out = lines(Button("OK") {}.disabled())
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(openCap) OK \(closeCap)", "got: '\(out[0])'")
     }
 
@@ -180,10 +180,10 @@ struct ButtonRenderTests {
     // MARK: - Truncation (narrow width)
 
     @Test("A too-long label is ellipsis-truncated and never overflows the cell")
-    func narrowTruncatesWithEllipsis() {
+    func narrowTruncatesWithEllipsis() throws {
         // Standard chrome = 2 caps + 2 padding = 4 cells; width 8 → 4 for label.
         let out = lines(Button("Submit Form Now") {}, width: 8)
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(openCap) Sub\u{2026} \(closeCap)", "got: '\(out[0])'")  // ▐ Sub… ▌
         #expect(out[0].contains("\u{2026}"), "truncation shows an ellipsis")
         #expect(out[0].strippedLength <= 8, "never overflows the available width")
@@ -192,10 +192,10 @@ struct ButtonRenderTests {
     }
 
     @Test("A plain-style label also truncates with an ellipsis when squeezed")
-    func plainNarrowTruncates() {
+    func plainNarrowTruncates() throws {
         // Plain chrome = 2-cell focus prefix; width 5 → 3 cells for label.
         let out = lines(Button("Submit Form Now") {}.buttonStyle(.plain), width: 5)
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\u{25CF} Su\u{2026}", "got: '\(out[0])'")  // ● Su…
         #expect(out[0].strippedLength <= 5, "never overflows the available width")
     }

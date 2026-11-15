@@ -174,12 +174,12 @@ struct OptInChromeTests {
     }
 
     @Test("In a terminal too short for both bars, the bottom bar stays whole and the top bar gives way")
-    func shortTerminalKeepsTheBottomBar() {
+    func shortTerminalKeepsTheBottomBar() throws {
         let app = TestApp(BothBarsApp(), width: 40, height: 4)
         app.frame(atNanos: 0)
         app.frame(atNanos: 20_000_000)
         let rows = app.screen.lines
-        #expect(rows.count == 4, "\(rows)")
+        try #require(rows.count == 4, "\(rows)")
         #expect(rows[0].hasPrefix("╭"), "the top bar's first row is all of it there is room for: \(rows)")
         #expect(rows[1].hasPrefix("╭"), "the bottom bar's top border: \(rows)")
         #expect(rows[2].contains("Q quit"), "the line of key hints is on the screen: \(rows)")

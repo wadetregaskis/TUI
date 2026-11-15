@@ -56,16 +56,16 @@ struct ToggleRenderTests {
     // MARK: - On / off indicator
 
     @Test("An OFF toggle renders □ then the label, on a single line")
-    func offRendersEmptyBox() {
+    func offRendersEmptyBox() throws {
         let out = lines(Toggle("Wifi", isOn: .constant(false)))
-        #expect(out.count == 1, "exactly one line, got: \(out)")
+        try #require(out.count == 1, "exactly one line, got: \(out)")
         #expect(out[0] == "\(off) Wifi", "got: |\(out[0])|")
     }
 
     @Test("An ON toggle renders ■ then the label, on a single line")
-    func onRendersCheckedBox() {
+    func onRendersCheckedBox() throws {
         let out = lines(Toggle("Wifi", isOn: .constant(true)))
-        #expect(out.count == 1, "exactly one line, got: \(out)")
+        try #require(out.count == 1, "exactly one line, got: \(out)")
         #expect(out[0] == "\(on) Wifi", "got: |\(out[0])|")
     }
 
@@ -267,34 +267,34 @@ struct ToggleRenderTests {
     // MARK: - Empty / whitespace label (the "empty chrome" bug class)
 
     @Test("An unlabelled toggle is one line with the indicator, never a blank line")
-    func emptyLabelHasNoBlankLine() {
+    func emptyLabelHasNoBlankLine() throws {
         let out = lines(Toggle("", isOn: .constant(false)))
-        #expect(out.count == 1, "unlabelled toggle must be a single line, got: \(out)")
+        try #require(out.count == 1, "unlabelled toggle must be a single line, got: \(out)")
         // The line must start with the indicator and not be blank.
         #expect(out[0].hasPrefix(off), "got: |\(out[0])|")
         #expect(!out[0].isEmpty, "must not be a blank line, got: |\(out[0])|")
     }
 
     @Test("An unlabelled ON toggle still shows the checked indicator")
-    func emptyLabelOnShowsCheck() {
+    func emptyLabelOnShowsCheck() throws {
         let out = lines(Toggle("", isOn: .constant(true)))
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0].hasPrefix(on), "got: |\(out[0])|")
     }
 
     @Test("A whitespace-only label does not add extra lines")
-    func whitespaceLabelSingleLine() {
+    func whitespaceLabelSingleLine() throws {
         let out = lines(Toggle("   ", isOn: .constant(false)))
-        #expect(out.count == 1, "got: \(out)")
+        try #require(out.count == 1, "got: \(out)")
         #expect(out[0].hasPrefix(off))
     }
 
     // MARK: - Custom (ViewBuilder) label
 
     @Test("A ViewBuilder-label toggle renders the custom label after the box")
-    func viewBuilderLabel() {
+    func viewBuilderLabel() throws {
         let out = lines(Toggle(isOn: .constant(true)) { Text("Custom") })
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(on) Custom", "got: |\(out[0])|")
     }
 
@@ -309,13 +309,13 @@ struct ToggleRenderTests {
     }
 
     @Test("In a stack the second (unfocused) toggle still renders its box and label")
-    func unfocusedInStack() {
+    func unfocusedInStack() throws {
         let out = lines(
             VStack(spacing: 0) {
                 Toggle("First", isOn: .constant(false))
                 Toggle("Second", isOn: .constant(true))
             })
-        #expect(out.count == 2, "one row per toggle, got: \(out)")
+        try #require(out.count == 2, "one row per toggle, got: \(out)")
         #expect(out[0].hasPrefix("\(off) First"))
         #expect(out[1].hasPrefix("\(on) Second"))
     }
@@ -323,10 +323,10 @@ struct ToggleRenderTests {
     // MARK: - Disabled
 
     @Test("A disabled toggle still renders its indicator and label (no missing content)")
-    func disabledStillRenders() {
+    func disabledStillRenders() throws {
         // Disabled changes colour only; the stripped text must be unchanged.
         let out = lines(Toggle("Wifi", isOn: .constant(true)).disabled())
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(on) Wifi", "got: |\(out[0])|")
     }
 
@@ -339,11 +339,11 @@ struct ToggleRenderTests {
     // MARK: - Width / truncation
 
     @Test("A long label wraps to the available width, under the label's column")
-    func longLabelWrapsToWidth() {
+    func longLabelWrapsToWidth() throws {
         // As a `Text` wraps, and SwiftUI's checkbox label: joined onto one line
         // and clipped, as it once was, the label lost its last words unseen.
         let out = lines(Toggle("A very long setting label here", isOn: .constant(true)), w: 12)
-        #expect(out.count > 1, "wraps, got: \(out)")
+        try #require(out.count > 1, "wraps, got: \(out)")
         #expect(out.allSatisfy { $0.strippedLength <= 12 }, "within the available width, got: \(out)")
         #expect(out[0].hasPrefix("\(on) "), "indicator stays at the front, got: |\(out[0])|")
         let indent = String(repeating: " ", count: "\(on) ".count)
@@ -354,9 +354,9 @@ struct ToggleRenderTests {
     }
 
     @Test("A wide toggle shows the full label with no padding artefacts")
-    func wideShowsFullLabel() {
+    func wideShowsFullLabel() throws {
         let out = lines(Toggle("Short", isOn: .constant(false)), w: 40)
-        #expect(out.count == 1)
+        try #require(out.count == 1)
         #expect(out[0] == "\(off) Short", "got: |\(out[0])|")
     }
 

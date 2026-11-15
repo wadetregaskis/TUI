@@ -67,13 +67,13 @@ struct ToneCurveEditorPanelTests {
     }
 
     @Test("Adding on the last stop falls back INTO the curve, not on top of it")
-    func addingOnTheLastStop() {
+    func addingOnTheLastStop() throws {
         // The last stop is at white, which is where it nearly always is, so
         // there is no room after it. Landing a second stop at the same tone
         // would make "+" look broken: nothing new is visible, and the new
         // stop cannot be reached by dragging because its span is zero.
         let (updated, index) = Panel.adding(to: stops, after: 2)
-        #expect(updated.count == 4)
+        try #require(updated.count == 4)
         let landed = Panel.position(of: updated[index])
         #expect(landed < Panel.position(of: stops[2]), "landed on top of the last stop")
         #expect(landed > Panel.position(of: stops[1]), "landed past the stop before it")
@@ -81,9 +81,9 @@ struct ToneCurveEditorPanelTests {
     }
 
     @Test("Adding on the only stop of a one-stop list still lands somewhere new")
-    func addingOnASoleStop() {
+    func addingOnASoleStop() throws {
         let (updated, index) = Panel.adding(to: [.init(at: 1, to: .rgb(9, 9, 9))], after: 0)
-        #expect(updated.count == 2)
+        try #require(updated.count == 2)
         #expect(Panel.position(of: updated[index]) < 1)
     }
 
@@ -145,7 +145,7 @@ struct ToneCurveEditorPanelTests {
     }
 
     @Test("There is one marker per stop, at that stop's own column")
-    func markersSitWhereTheStopsAre() {
+    func markersSitWhereTheStopsAre() throws {
         let lines = rendered(stops)
         guard let markers = lines.first(where: { $0.contains(TerminalSymbols.toneCurveStop) })
         else {
@@ -155,7 +155,7 @@ struct ToneCurveEditorPanelTests {
         let columns = markers.enumerated()
             .filter { String($0.element) == TerminalSymbols.toneCurveStop }
             .map(\.offset)
-        #expect(columns.count == stops.count, "one marker per stop: \(markers)")
+        try #require(columns.count == stops.count, "one marker per stop: \(markers)")
         // The marker row carries the same gutter the strips do, so the offsets
         // differ from the strip columns by exactly that — which is what makes
         // the diagram legible, and is worth asserting rather than eyeballing.
@@ -310,7 +310,7 @@ struct ToneCurveEditorPanelTests {
     /// the caption gutter being counted (or not) is what this fails on.
     @MainActor
     @Test("Dragging a marker moves that stop along the tone axis")
-    func draggingAMarkerMovesTheStop() {
+    func draggingAMarkerMovesTheStop() throws {
         var list: [Stop] = [
             .init(at: 0, to: .rgb(0, 0, 0)), .init(at: 0.5, to: .rgb(128, 0, 0)),
             .init(at: 1, to: .rgb(255, 255, 255)),
@@ -327,7 +327,7 @@ struct ToneCurveEditorPanelTests {
         harness.frame()
         harness.dispatcher.dispatch(
             MouseEvent(button: .left, phase: .dragged, x: from + 6, y: origin.y))
-        #expect(list.count == 3, "the drag added a stop instead of moving one")
+        try #require(list.count == 3, "the drag added a stop instead of moving one")
         #expect(
             Panel.column(forTone: Panel.position(of: list[1]))
                 == Panel.column(forTone: 0.5) + 6,
@@ -339,7 +339,7 @@ struct ToneCurveEditorPanelTests {
     /// grabs the stop above it just as the marker row does.
     @MainActor
     @Test("The strips are the axis too, not just the marker row")
-    func theStripsGrabAsWell() {
+    func theStripsGrabAsWell() throws {
         var list: [Stop] = [
             .init(at: 0, to: .rgb(0, 0, 0)), .init(at: 0.5, to: .rgb(128, 0, 0)),
             .init(at: 1, to: .rgb(255, 255, 255)),
@@ -357,7 +357,7 @@ struct ToneCurveEditorPanelTests {
         harness.frame()
         harness.dispatcher.dispatch(
             MouseEvent(button: .left, phase: .dragged, x: from - 4, y: origin.y + 1))
-        #expect(list.count == 3)
+        try #require(list.count == 3)
         #expect(
             Panel.column(forTone: Panel.position(of: list[1]))
                 == Panel.column(forTone: 0.5) - 4,
@@ -368,7 +368,7 @@ struct ToneCurveEditorPanelTests {
     /// already produces there, so the press alone changes nothing.
     @MainActor
     @Test("Pressing empty axis adds a stop that changes nothing")
-    func pressingEmptyAxisAddsAnInertStop() {
+    func pressingEmptyAxisAddsAnInertStop() throws {
         var list: [Stop] = [.init(at: 0, to: .rgb(0, 0, 0)), .init(at: 1, to: .rgb(255, 255, 255))]
         let before = ASCIIToneCurve(list)
         let harness = harness(Binding(get: { list }, set: { list = $0 }))
@@ -380,7 +380,7 @@ struct ToneCurveEditorPanelTests {
         let column = Panel.stripWidth / 2
         harness.dispatcher.dispatch(
             MouseEvent(button: .left, phase: .pressed, x: origin.x + column, y: origin.y))
-        #expect(list.count == 3, "no stop was added: \(list.count)")
+        try #require(list.count == 3, "no stop was added: \(list.count)")
         #expect(Panel.column(forTone: Panel.position(of: list[1])) == column)
         let after = ASCIIToneCurve(list)
         for step in 0...20 {

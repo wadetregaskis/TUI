@@ -237,7 +237,7 @@ struct EnvironmentStampTests {
     }
 
     @Test("A bucket keeps 32 live stamps, most recently used first, and counts what it pushes out")
-    func bucketCapacity() {
+    func bucketCapacity() throws {
         let stamps = EnvironmentStamps()
         var held: [EnvironmentStamp] = []
         for value in 0..<40 {
@@ -247,7 +247,7 @@ struct EnvironmentStampTests {
                 held.append(made)
             }
         }
-        #expect(held.count == 40)
+        try #require(held.count == 40)
         #expect(stamps.counts.overflows == 40 - EnvironmentStamps.bucketCapacity)
         // The first is the least recently used and was pushed out; a stamp of
         // the same environment is now a new object.

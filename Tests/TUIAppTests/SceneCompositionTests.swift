@@ -158,10 +158,10 @@ struct SceneCompositionTests {
     }
 
     @Test("A bare window group is the launch scene at the scene's own identity, with no path")
-    func bareGroupKeepsItsIdentity() {
+    func bareGroupKeepsItsIdentity() throws {
         let root = ViewIdentity(rootType: Never.self)
         let catalog = SceneCatalog(WindowGroup { Text("x") }, identity: root)
-        #expect(catalog.windows.count == 1)
+        try #require(catalog.windows.count == 1)
         #expect(catalog.windows[0].path.isEmpty)
         #expect(catalog.windows[0].identity == root)
     }

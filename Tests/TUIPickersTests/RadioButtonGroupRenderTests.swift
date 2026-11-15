@@ -43,7 +43,7 @@ struct RadioButtonGroupRenderTests {
     // MARK: - Vertical layout
 
     @Test("Vertical group renders one row per item, only the selected item filled")
-    func verticalDefault() {
+    func verticalDefault() throws {
         // Selection is "b"; register a focus hog first so the group is unfocused
         // and only the *selected* item shows the filled glyph.
         let group = RadioButtonGroup(selection: .constant("b")) {
@@ -56,7 +56,7 @@ struct RadioButtonGroupRenderTests {
         _ = renderToBuffer(group, context: context)  // register
         let result = lines(renderToBuffer(group, context: context))  // read state
 
-        #expect(result.count == 3, "Three items must produce exactly three rows")
+        try #require(result.count == 3, "Three items must produce exactly three rows")
         #expect(result[0] == "\(unselected) Alpha")
         #expect(result[1] == "\(selected) Bravo")
         #expect(result[2] == "\(unselected) Charlie")
@@ -65,7 +65,7 @@ struct RadioButtonGroupRenderTests {
     }
 
     @Test("A single-item group renders exactly one row")
-    func singleItem() {
+    func singleItem() throws {
         let group = RadioButtonGroup(selection: .constant("only")) {
             RadioButtonItem("only", "Only")
         }
@@ -74,7 +74,7 @@ struct RadioButtonGroupRenderTests {
         _ = renderToBuffer(group, context: context)
         let result = lines(renderToBuffer(group, context: context))
 
-        #expect(result.count == 1)
+        try #require(result.count == 1)
         #expect(result[0] == "\(selected) Only")
     }
 
@@ -170,7 +170,7 @@ struct RadioButtonGroupRenderTests {
     // MARK: - Disabled
 
     @Test("A disabled group still shows its selection but registers no focus glyph")
-    func disabledGroup() {
+    func disabledGroup() throws {
         let group = RadioButtonGroup(selection: .constant("a"), isDisabled: true) {
             RadioButtonItem("a", "Alpha")
             RadioButtonItem("b", "Bravo")
@@ -179,7 +179,7 @@ struct RadioButtonGroupRenderTests {
         _ = renderToBuffer(group, context: context)
         let result = lines(renderToBuffer(group, context: context))
 
-        #expect(result.count == 2)
+        try #require(result.count == 2)
         // Disabled groups never auto-focus, so only the selected item is filled;
         // a disabled *unselected* item shows the dotted circle ◌ ("not pickable")
         // rather than the plain empty circle of an enabled-but-unselected one.
@@ -192,7 +192,7 @@ struct RadioButtonGroupRenderTests {
     // MARK: - Horizontal layout
 
     @Test("Horizontal group renders all items on a single line")
-    func horizontalSingleLine() {
+    func horizontalSingleLine() throws {
         let group = RadioButtonGroup(selection: .constant("a"), orientation: .horizontal) {
             RadioButtonItem("a", "Alpha")
             RadioButtonItem("b", "Bravo")
@@ -202,13 +202,13 @@ struct RadioButtonGroupRenderTests {
         _ = renderToBuffer(group, context: context)
         let result = lines(renderToBuffer(group, context: context))
 
-        #expect(result.count == 1, "Horizontal layout is a single row")
+        try #require(result.count == 1, "Horizontal layout is a single row")
         // Two items joined by two spaces.
         #expect(result[0] == "\(selected) Alpha  \(unselected) Bravo")
     }
 
     @Test("Horizontal group separates items with two spaces")
-    func horizontalSpacing() {
+    func horizontalSpacing() throws {
         let group = RadioButtonGroup(selection: .constant("a"), orientation: .horizontal) {
             RadioButtonItem("a", "A")
             RadioButtonItem("b", "B")
@@ -219,7 +219,7 @@ struct RadioButtonGroupRenderTests {
         _ = renderToBuffer(group, context: context)
         let result = lines(renderToBuffer(group, context: context))
 
-        #expect(result.count == 1)
+        try #require(result.count == 1)
         #expect(result[0] == "\(selected) A  \(unselected) B  \(unselected) C")
     }
 
@@ -241,7 +241,7 @@ struct RadioButtonGroupRenderTests {
     }
 
     @Test("Pre-built items array renders and selects properly")
-    func prebuiltItemsArray() {
+    func prebuiltItemsArray() throws {
         let items = [
             RadioButtonItem(Optional<String>.none) { Text("None") },
             RadioButtonItem(Optional("a")) { Text("Option A") },
@@ -256,7 +256,7 @@ struct RadioButtonGroupRenderTests {
         _ = renderToBuffer(group, context: context)
         let result = lines(renderToBuffer(group, context: context))
 
-        #expect(result.count == 3)
+        try #require(result.count == 3)
         #expect(result[0] == "\(selected) None")
         #expect(result[1] == "\(unselected) Option A")
         #expect(result[2] == "\(unselected) Option B")

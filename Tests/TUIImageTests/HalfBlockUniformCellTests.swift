@@ -49,9 +49,9 @@ struct HalfBlockUniformCellTests {
     /// No foreground is stated at all, which is the point — there is no text
     /// for a terminal to decide is illegible.
     @Test("A cell of one colour is a space with only a background")
-    func uniformCellIsASpace() {
+    func uniformCellIsASpace() throws {
         let flat = lines(banded(width: 6, [grey, grey]), .ansi16, cells: 6)
-        #expect(flat.count == 1)
+        try #require(flat.count == 1)
         #expect(glyphs(flat[0]) == "      ")
         #expect(flat[0].contains("\u{1B}[40m"), "the background is stated")
         for named in 30...37 {

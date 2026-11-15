@@ -56,9 +56,9 @@ struct ControlInlineLabelTests {
     // MARK: - Slider
 
     @Test("a Slider's label is drawn, to the left of the track")
-    func sliderDrawsItsLabel() {
+    func sliderDrawsItsLabel() throws {
         let rendered = lines(of: Slider(value: .constant(0.5)) { Text("Volume") })
-        #expect(rendered.count == 1, "the label shares the track's line: \(rendered)")
+        try #require(rendered.count == 1, "the label shares the track's line: \(rendered)")
         let line = rendered[0]
         #expect(line.contains("Volume"), "the label must be drawn at all: \(line)")
         let labelAt = line.range(of: "Volume").map { line.distance(from: line.startIndex, to: $0.lowerBound) }
@@ -95,33 +95,33 @@ struct ControlInlineLabelTests {
     // MARK: - Picker
 
     @Test("a Picker's label sits on the control's line, not above it")
-    func pickerLabelIsInline() {
+    func pickerLabelIsInline() throws {
         let rendered = lines(
             of: Picker("Theme", selection: .constant(1)) {
                 Text("Light").tag(0)
                 Text("Dark").tag(1)
             })
-        #expect(rendered.count == 1, "label and control share one line: \(rendered)")
+        try #require(rendered.count == 1, "label and control share one line: \(rendered)")
         let line = rendered[0]
         #expect(line.hasPrefix("Theme"), "the label leads the line: \(line)")
         #expect(line.contains("Dark"), "the selected option is on the same line: \(line)")
     }
 
     @Test("an unlabelled Picker reserves nothing — no leading gap, no blank line")
-    func unlabelledPickerHasNoLeadingGap() {
+    func unlabelledPickerHasNoLeadingGap() throws {
         let rendered = lines(
             of: Picker("", selection: .constant(1)) {
                 Text("Light").tag(0)
                 Text("Dark").tag(1)
             })
-        #expect(rendered.count == 1, "no stray label line: \(rendered)")
+        try #require(rendered.count == 1, "no stray label line: \(rendered)")
         #expect(
             !rendered[0].hasPrefix(" "),
             "an absent label must not leave a leading space: '\(rendered[0])'")
     }
 
     @Test("a radio-group Picker's label leads the FIRST option's line")
-    func radioGroupPickerLabelIsTopAligned() {
+    func radioGroupPickerLabelIsTopAligned() throws {
         // macOS SwiftUI top-aligns the label with the first radio button,
         // rather than centring it against the group.
         let rendered = lines(
@@ -131,7 +131,7 @@ struct ControlInlineLabelTests {
                 Text("Auto").tag(2)
             }
             .pickerStyle(.radioGroup))
-        #expect(rendered.count == 3, "one line per option, label folded in: \(rendered)")
+        try #require(rendered.count == 3, "one line per option, label folded in: \(rendered)")
         #expect(rendered[0].hasPrefix("Theme"), "label leads the first option: \(rendered)")
         #expect(rendered[0].contains("Light"), "first option shares the label's line: \(rendered)")
     }

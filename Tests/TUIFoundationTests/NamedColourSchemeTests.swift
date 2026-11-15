@@ -58,7 +58,7 @@ struct NamedColourSchemeTests {
     }
 
     @Test("A dark subtree inside a light app draws the dark value")
-    func darkSubtreeInLightApp() {
+    func darkSubtreeInLightApp() throws {
         let view = VStack {
             Text("Outer").foregroundStyle(.red)
             Text("Inner").foregroundStyle(.red).environment(\.colorScheme, .dark)
@@ -67,13 +67,13 @@ struct NamedColourSchemeTests {
         let lines = ColorDepth.withCurrent(.truecolor) {
             renderToBuffer(view, context: makeBareRenderContext()).lines
         }
-        #expect(lines.count >= 2)
+        try #require(lines.count >= 2)
         #expect(lines[0].contains(Self.lightRedInk), "\(lines[0].debugDescription)")
         #expect(lines[1].contains(Self.darkRedInk), "\(lines[1].debugDescription)")
     }
 
     @Test("A light subtree inside a dark app draws the light value")
-    func lightSubtreeInDarkApp() {
+    func lightSubtreeInDarkApp() throws {
         let view = VStack {
             Text("Outer").foregroundStyle(.red)
             Text("Inner").foregroundStyle(.red).environment(\.colorScheme, .light)
@@ -82,7 +82,7 @@ struct NamedColourSchemeTests {
         let lines = ColorDepth.withCurrent(.truecolor) {
             renderToBuffer(view, context: makeBareRenderContext()).lines
         }
-        #expect(lines.count >= 2)
+        try #require(lines.count >= 2)
         #expect(lines[0].contains(Self.darkRedInk), "\(lines[0].debugDescription)")
         #expect(lines[1].contains(Self.lightRedInk), "\(lines[1].debugDescription)")
     }

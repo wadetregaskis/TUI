@@ -83,13 +83,13 @@ struct StyleAsViewTests {
     /// It claims the slack and never demands any — the ``Spacer`` contract, and
     /// what makes `HStack { Text("a"); Color.red; Text("b") }` behave.
     @Test("It takes the leftover space in a stack, and only the leftover")
-    func fillsTheSlack() {
+    func fillsTheSlack() throws {
         let column = render(
             VStack(spacing: 0) {
                 Text(verbatim: "hi")
                 red
             }, width: 10, height: 3)
-        #expect(column.count == 3)
+        try #require(column.count == 3)
         #expect(column[0].contains("hi"), "the text kept its row")
         let filled = Array(repeating: "255;0;0", count: 10)
         #expect(backgrounds(column[1]) == filled && backgrounds(column[2]) == filled)
@@ -100,7 +100,7 @@ struct StyleAsViewTests {
                 red
                 Text(verbatim: "b")
             }, width: 8, height: 1)
-        #expect(row.count == 1)
+        try #require(row.count == 1)
         #expect(row[0].strippedLength == 8)
         #expect(row[0].stripped == "a      b", "the fill took exactly the middle: |\(row[0].stripped)|")
     }
@@ -123,11 +123,11 @@ struct StyleAsViewTests {
     // MARK: - The gradients
 
     @Test("A gradient view runs its ramp across the fill")
-    func gradientFills() {
+    func gradientFills() throws {
         let lines = render(
             LinearGradient(colors: [red, blue], startPoint: .leading, endPoint: .trailing),
             width: 8, height: 2)
-        #expect(lines.count == 2)
+        try #require(lines.count == 2)
         let colours = backgrounds(lines[0])
         #expect(colours.count == 8, "a run per cell across the ramp: \(colours)")
         #expect(colours.first == "255;0;0" && colours.last == "0;0;255")
@@ -138,12 +138,12 @@ struct StyleAsViewTests {
     /// The geometry resolves over the FILL's rectangle, which is what makes a
     /// radial gradient a ring rather than four unrelated stripes.
     @Test("A radial gradient view is symmetric about its centre")
-    func radialFills() {
+    func radialFills() throws {
         let lines = render(
             RadialGradient(colors: [red, blue], center: .center, startRadius: 0, endRadius: 4),
             width: 9, height: 3)
         let middle = backgrounds(lines[1])
-        #expect(middle.count == 9)
+        try #require(middle.count == 9)
         #expect(middle == middle.reversed(), "not symmetric: \(middle)")
         #expect(middle[4] == "255;0;0", "the centre is the ramp's start")
     }
@@ -157,24 +157,24 @@ struct StyleAsViewTests {
     /// centre cell's field is its top half's colour, not the centre's
     /// (`GradientHalfBlockTests`, decisions B95).
     @Test("An elliptical gradient view fills the box with its own ellipse")
-    func ellipticalFills() {
+    func ellipticalFills() throws {
         var oneSample = context(width: 9, height: 3)
         oneSample.environment.blockElementsFillTheLine = false
         let lines = renderToBuffer(EllipticalGradient(colors: [red, blue]), context: oneSample).lines
-        #expect(lines.count == 3)
+        try #require(lines.count == 3)
         let middle = backgrounds(lines[1])
-        #expect(middle.count == 9)
+        try #require(middle.count == 9)
         #expect(middle == middle.reversed(), "not symmetric about the centre: \(middle)")
         #expect(middle[4] == "255;0;0", "the centre is the ramp's start")
         #expect(middle[0] != middle[4], "the ramp went somewhere: \(middle)")
     }
 
     @Test("An angular gradient view sweeps around its centre")
-    func angularFills() {
+    func angularFills() throws {
         let lines = render(
             AngularGradient(colors: [red, blue], center: .center, angle: .zero),
             width: 9, height: 3)
-        #expect(lines.count == 3)
+        try #require(lines.count == 3)
         let top = backgrounds(lines[0])
         let bottom = backgrounds(lines[2])
         #expect(top.count == 9 && bottom.count == 9)
@@ -211,13 +211,13 @@ struct StyleAsViewTests {
     /// about the field it lands on. This is the whole point of a fill as a
     /// view, and it did not work — the letters used to punch a hole in the red.
     @Test("A fill lies behind its ZStack siblings, glyph cells included")
-    func fillShowsThroughGlyphCells() {
+    func fillShowsThroughGlyphCells() throws {
         let lines = render(
             ZStack {
                 red
                 Text(verbatim: "hi")
             }, width: 10, height: 3)
-        #expect(lines.count == 3)
+        try #require(lines.count == 3)
         #expect(
             backgrounds(lines[0]) == Array(repeating: "255;0;0", count: 10),
             "the row above the text is all fill")
@@ -234,14 +234,14 @@ struct StyleAsViewTests {
     /// segfault the debug runtime, so this doubles as the regression test for
     /// the conformance living in `TUIView` — see `ColorAsView.swift`.
     @Test("A sibling that names its own background keeps it")
-    func siblingBackgroundWins() {
+    func siblingBackgroundWins() throws {
         let lines = render(
             ZStack {
                 red
                 Text(verbatim: "hi").background(Color.rgb(0, 255, 0))
             }, width: 10, height: 3)
         let row = backgrounds(lines[1])
-        #expect(row.count == 10)
+        try #require(row.count == 10)
         #expect(row[4] == "0;255;0" && row[5] == "0;255;0", "the sibling lost its own: \(row)")
         #expect(row[0] == "255;0;0" && row[9] == "255;0;0", "the fill stopped: \(row)")
     }
@@ -293,7 +293,7 @@ struct BackgroundStyleTests {
     /// The pair, end to end: one modifier names the surface, another paints it,
     /// and a plain `.background()` a whole subtree away picks it up.
     @Test("The style set above is the fill drawn below")
-    func publishedStyleReachesTheFill() {
+    func publishedStyleReachesTheFill() throws {
         let lines = renderToBuffer(
             VStack(spacing: 0) {
                 Text(verbatim: "ab").background()
@@ -301,12 +301,12 @@ struct BackgroundStyleTests {
             .backgroundStyle(Color.rgb(20, 30, 40)),
             context: context(width: 2, height: 1)
         ).lines
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         #expect(lines[0].contains("48;2;20;30;40"), "the named surface: \(lines[0].debugDescription)")
     }
 
     @Test("A gradient background style paints a ramp under the words")
-    func gradientBackgroundStyle() {
+    func gradientBackgroundStyle() throws {
         let lines = renderToBuffer(
             Text(verbatim: "abcd").background()
                 .backgroundStyle(
@@ -315,7 +315,7 @@ struct BackgroundStyleTests {
                         endPoint: .trailing)),
             context: context(width: 4, height: 1)
         ).lines
-        #expect(lines.count == 1)
+        try #require(lines.count == 1)
         #expect(lines[0].contains("48;2;255;0;0"), "the ramp's start")
         #expect(lines[0].contains("48;2;0;0;255"), "and its end: \(lines[0].debugDescription)")
     }

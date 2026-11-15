@@ -123,7 +123,7 @@ struct CommandsCollectionTests {
     }
 
     @Test("Within a group: the newest before first, the afters in order, the last replacement")
-    func groupComposition() {
+    func groupComposition() throws {
         let menus = menus(
             Group {
                 CommandGroup(replacing: .newItem) { Button("R1") {} }
@@ -133,7 +133,7 @@ struct CommandsCollectionTests {
                 CommandGroup(before: .newItem) { Button("Before1") {} }
                 CommandGroup(before: .newItem) { Button("Before2") {} }
             })
-        #expect(menus.count == 1)
+        try #require(menus.count == 1)
         #expect(groups(menus[0]) == [["Before2", "Before1", "R2", "After1", "After2"]])
     }
 

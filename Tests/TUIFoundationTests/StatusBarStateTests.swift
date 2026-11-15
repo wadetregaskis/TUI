@@ -118,7 +118,7 @@ struct StatusBarStateTests {
     }
 
     @Test("Context stack respects order")
-    func contextStackOrder() {
+    func contextStackOrder() throws {
         let state = StatusBarState()
         state.showSystemItems = false  // Disable system items for cleaner test
 
@@ -137,7 +137,7 @@ struct StatusBarStateTests {
         )
 
         // Top of stack is shown (only user items)
-        #expect(state.currentUserItems.count == 1)
+        try #require(state.currentUserItems.count == 1)
         #expect(state.currentUserItems[0].label == "second")
 
         state.pop(context: "second")
@@ -145,7 +145,7 @@ struct StatusBarStateTests {
     }
 
     @Test("Push replaces same context")
-    func pushReplacesSameContext() {
+    func pushReplacesSameContext() throws {
         let state = StatusBarState()
         state.showSystemItems = false  // Disable system items for cleaner test
 
@@ -163,12 +163,12 @@ struct StatusBarStateTests {
             ]
         )
 
-        #expect(state.currentUserItems.count == 1)
+        try #require(state.currentUserItems.count == 1)
         #expect(state.currentUserItems[0].label == "replaced")
     }
 
     @Test("Clear contexts keeps global user items")
-    func clearContextsKeepsGlobal() {
+    func clearContextsKeepsGlobal() throws {
         let state = StatusBarState()
         state.showSystemItems = false  // Disable system items for cleaner test
 
@@ -185,7 +185,7 @@ struct StatusBarStateTests {
 
         state.clearContexts()
 
-        #expect(state.currentUserItems.count == 1)
+        try #require(state.currentUserItems.count == 1)
         #expect(state.currentUserItems[0].shortcut == "g")
     }
 
@@ -377,7 +377,7 @@ struct SystemStatusBarItemsTests {
     }
 
     @Test("User items can override system items with same shortcut")
-    func userItemsOverrideSystemItems() {
+    func userItemsOverrideSystemItems() throws {
         let state = StatusBarState()
 
         // Set user item with same shortcut as system quit
@@ -389,7 +389,7 @@ struct SystemStatusBarItemsTests {
 
         // Should only have one quit item, and it should be the user's
         let qItems = state.currentItems.filter { $0.shortcut == Shortcut.quit }
-        #expect(qItems.count == 1)
+        try #require(qItems.count == 1)
         #expect(qItems[0].label == "custom-quit")
     }
 
@@ -489,7 +489,7 @@ struct StatusBarSectionCascadingTests {
     }
 
     @Test("Merge: section item wins on shortcut conflict")
-    func mergeChildWinsOnConflict() {
+    func mergeChildWinsOnConflict() throws {
         let state = StatusBarState()
         state.showSystemItems = false
 
@@ -513,7 +513,7 @@ struct StatusBarSectionCascadingTests {
         let escItems = items.filter { $0.shortcut == Shortcut.escape }
 
         // Only one ESC item, and it's the section's
-        #expect(escItems.count == 1)
+        try #require(escItems.count == 1)
         #expect(escItems[0].label == "close")
     }
 

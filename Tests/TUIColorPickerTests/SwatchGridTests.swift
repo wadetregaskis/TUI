@@ -122,7 +122,7 @@ struct SwatchGridRenderTests {
     }
 
     @Test("cellHeight renders multi-line swatches; hit regions span the whole cell")
-    func multiLineSwatches() {
+    func multiLineSwatches() throws {
         let box = ColorBox(entries[10])  // row 1, column 2
         let tui = TUIContext()
         let fm = FocusManager()
@@ -143,7 +143,7 @@ struct SwatchGridRenderTests {
         #expect(buffer.lines.allSatisfy { $0.strippedLength == 32 }, "8 columns of 4-wide swatches")
         #expect(buffer.lines.joined().contains("✔"), "the cursor cell is still marked")
         // One 4×2 region per swatch.
-        #expect(buffer.hitTestRegions.count == entries.count)
+        try #require(buffer.hitTestRegions.count == entries.count)
         #expect(buffer.hitTestRegions.allSatisfy { $0.width == 4 && $0.height == 2 })
         // A click anywhere inside a swatch's 4×2 box selects it.
         let target = 5  // row 0, column 5
@@ -155,7 +155,7 @@ struct SwatchGridRenderTests {
     }
 
     @Test("The focused selection mark animates on pulse and is steady on none (#2)")
-    func selectionIndicatorAnimation() {
+    func selectionIndicatorAnimation() throws {
         let entries: [Color] = (0..<4).map { Color.rgb(0, UInt8($0 * 60), 0) }
         let fm = FocusManager()
         let tui = TUIContext()
@@ -181,7 +181,7 @@ struct SwatchGridRenderTests {
         // as it renders — that read re-rendered the whole panel on every tick.
         // It leaves ONE run, over the cursor swatch, and the breathing is there.
         let pulsing = render(style: .pulse)
-        #expect(pulsing.animatedCells.count == 1, "the focused mark left no run")
+        try #require(pulsing.animatedCells.count == 1, "the focused mark left no run")
         let run = pulsing.animatedCells[0]
         #expect(run.isAnimating, "pulse: the focused mark animates")
         let pictures: Set<String> = Set(run.frames.map(\.stripped))

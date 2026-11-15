@@ -490,7 +490,7 @@ struct ToggleHoverTests {
     }
 
     @Test("The lift covers exactly the clickable row")
-    func hoverStopsAtTheClickRow() {
+    func hoverStopsAtTheClickRow() throws {
         // An explanatory subtitle is not a click target (see
         // `toggleSubtitleIsNotClickable`), so it is not part of the affordance
         // either — what answers is what the pointer can actually hit.
@@ -505,7 +505,7 @@ struct ToggleHoverTests {
 
         let lift = ANSIRenderer.colorize(
             "Title", foreground: palette.hoveredForeground(palette.foreground))
-        #expect(after.count >= 2, "expected a title and a subtitle row: \(after)")
+        try #require(after.count >= 2, "expected a title and a subtitle row: \(after)")
         #expect(after[0].contains(lift), "the title row lifts: \(after[0])")
         #expect(
             !after[1].contains("Explanatory subtitle\(ANSIRenderer.reset)")

@@ -218,7 +218,7 @@ struct TextEditorAlphaTests {
         let drawn = try focused(long, palette: palette, height: 4) {
             $0.moveCursor(toLine: 0, column: long.count)
         }
-        #expect(drawn.lines.count == 4)
+        try #require(drawn.lines.count == 4)
         // The leading tab is a place to break, so the long run of x's starts on
         // the second row, as the macOS text system breaks it.
         #expect(drawn.lines[1].stripped.hasPrefix("xxxx"), "row 1: '\(drawn.lines[1].stripped)'")
