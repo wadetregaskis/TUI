@@ -864,6 +864,21 @@ failed before:
   against P3's 269 µs, most likely because P3's page did not move: the harness composed no rows a
   frame there and 32 at 9db53e79a, and 989c60504 since made a `ScrollPosition` bound with a new
   value scroll (not traced).
+- **Measured** (2026-11-14, `ab_bench.py`, release, cpu per frame, 10 reps, `slot.py
+  --exclusive`, base 9db53e79a with the flattened page against the lane's tip, load 6.3):
+  `boxed-eager` +0.9%, `flow-10k` −0.2%, `titled-lazy` −0.1%, `two-stacked-lazy` +0.7%,
+  `boxed-lazy` −2.2%, `layout-list` −2.0%, `grouped-feed` 0.0%, `headed-log` −0.1%,
+  `settings-form` −0.7%, `grids` +1.0%, `customlayout` 0.0%, `dashboard` −0.9%, `megalist` −0.5%,
+  `session/editor` −0.8%: indistinguishable, RSS within 0.6 MB but `flow-10k`'s 6.8 MB less. That
+  tip still drew a loop a stack in a box lays out as one lazy child (13a0e81cc fixed it); at the
+  fixed tip (load 2.7) `boxed-eager` −0.1%, `boxed-lazy` −0.4%, `titled-lazy` +0.2%,
+  `two-stacked-lazy` −0.1%, `layout-list` −0.2%: indistinguishable. `Stress --selfcheck` clean
+  (139 cases, 26 sessions); the full suite passes (`parallel_test.py`, 15,714 tests); `api_baseline.py` records `ForEach.staysWhole(in:)`, the
+  witness of `ChildViewProvider`'s requirement the column of several needs. Not run:
+  `frame_parity.py`. Left: a `Section` drawn as one view with several views in its content; a
+  columns form of several views, of data that cannot be compared, or grouped; `LazyVStack {
+  header; ForEach(10k) }` itself still builds every row on its first frame (50,009 at 10,000, a
+  `TupleView` resolving its loop eagerly), though not on the frames after.
 
 ### 1d. Heights of rows not yet built
 
@@ -1697,6 +1712,7 @@ already running separately.
 | **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
 | **P8** | A-SCROLLFIT-1's windowed containers (1c): `GroupBox`, `DisclosureGroup`, `.columns` `Form`, `Section` content outside `List`, `FlowLayout` per A-SCROLLFIT-5; the transition record for them (1g) | 3 | Sizes unchanged. Built counts of `formColumns` and `flowLayout` at 10,000 drop (`formColumns` < 100 a frame; `flowLayout` per A-SCROLLFIT-5). The baseline's `groupBox` and `disclosureGroup` wrap an eager `VStack` and stay as they are; new tests pin a `GroupBox` and a `DisclosureGroup` directly around a `ForEach` |
 | **P8 as built** (2026-11-12) | `GroupBox`, `DisclosureGroup` and a `Section` drawn as one view directly around a `ForEach` (the implicit column, windowed past 256 elements as a lazy stack at the loop's identity); `FlowLayout` per A-SCROLLFIT-5 (a) as a lazy stack of its lines; the transition record by the lazy stack's. Not built: the `.columns` `Form` (its pillar and widths read every row each frame), a container's content of several views, a pulled `Grid` (drawn whole, twins pass). See "As P8 built it" under 1c | ½ + flow ½ | None of the table's rows (each P8 container there is under the threshold or wraps an eager `VStack`); new `WindowedContainersTests` (a page under 100 rows built, equal at 2,000 and 10,000) and `tallFlowLayoutUnderTitle` |
+| **P8 leftovers as built** (2026-11-14) | A container's content of several views with a long loop among them drawn as a column that pulls them (`_ImplicitColumnOfSeveral`); a lazy stack in a `Grid` cell pulled through the grid's places (`LayoutPull`, shared with P9's adapter); a long `.columns` `Form` over comparable data keeping its label column and rows' width per data and width, its rows a lazy stack; Stress's pulled pages each at one depth, which is where P3's nested-stack +1.6–3.0% was (see "P8 leftovers as built" under 1c) | ½ | None of the table's rows (`ScrollFitBaselineTests` unchanged); new counts in `WindowedContainersTests` (headed shapes), `PulledGridTests` and `WindowedFormColumnsTests`, a page's rows equal at 2,000 and 10,000. A probe at 30 × 12 and 10,000 rows, before → after: a headed `GroupBox` 240,000 → 62 rows on the first frame and 10,000 → 26 a page; a lazy stack in a grid cell 64,119 → 126 on the first frame; a columns form 50,000 a page (26 in `WindowedFormColumnsTests` after) |
 | **P9** | The app-`Layout` adapter (B-SCROLLFIT-13) | 1½ | None (no app `Layout` in the baseline); a new `layout-list` test |
 | **P9 as built** (2026-11-12) | The adapter, by rects: pulled subviews beside the lead in the parallel shape, subviews below it following its drawn end, everything else drawn whole (see "As P9 built it" under 1b); `app-shapes/layout-list` in Stress | ½ | None; `PulledLayoutTests` pins under 100 rows a frame at 10,000 rows in a layout (43,081 and 63,081 on the first frame before) |
 
