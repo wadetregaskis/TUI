@@ -59,6 +59,9 @@ app:
   So does a `LazyVStack` of a loop of a few hundred sections or fewer, `ForEach(groups) { Section { ForEach(items) {
   … } } }`, whose first frame built every row of every section however many there were: it now builds a sample of
   the sections and the rows on screen.
+- Page Up from the end of a `LazyVStack` of long lazy stacks with spacing between their rows, two `VStack { header;
+  LazyVStack(spacing: 1) { ForEach … } }` or two long `Section`s, moves up a page, where it went a hundred or more rows
+  further, and Home then goes back to the top.
 
 **A `ScrollViewReader` inside a scroll view's content scrolls that scroll view.** `ScrollView { ScrollViewReader {
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll

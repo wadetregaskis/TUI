@@ -133,19 +133,7 @@ struct SectionedLazyStackFirstFrameTests {
         let lazy = Self.app(shape, rows: 280, spacing: layout.1, alignment: layout.0)
         let whole = Self.app(shape, rows: 280, lazy: false, spacing: layout.1, alignment: layout.0)
         Self.positions([lazy, whole]) { step in
-            let check = {
-                #expect(Self.content(lazy) == Self.content(whole), "\(step):\n\(lazy.screen)\n---\n\(whole.screen)")
-            }
-            // Not the sections': a lazy stack of two `VStack { header;
-            // LazyVStack(spacing: 1) }` pages up from its end 140 rows too far
-            // as well (traced no further; the SCROLL-FIT design's S8 record).
-            if shape == .two, layout.1 > 0, step.hasPrefix("end, page up") {
-                withKnownIssue("A lazy stack of two pulled children with spacing pages up from its end too far") {
-                    check()
-                }
-            } else {
-                check()
-            }
+            #expect(Self.content(lazy) == Self.content(whole), "\(step):\n\(lazy.screen)\n---\n\(whole.screen)")
         }
     }
 

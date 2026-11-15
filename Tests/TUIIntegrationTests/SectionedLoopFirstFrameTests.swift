@@ -137,16 +137,7 @@ struct SectionedLoopFirstFrameTests {
         let lazy = Self.app(sections: 40, rows: 20, titled: titled, spacing: spacing)
         let whole = Self.app(sections: 40, rows: 20, titled: titled, lazy: false, spacing: spacing)
         Self.positions([lazy, whole]) { step in
-            let check = {
-                #expect(Self.content(lazy) == Self.content(whole), "\(step):\n\(lazy.screen)\n---\n\(whole.screen)")
-            }
-            // As `SectionedLazyStackFirstFrameTests` finds: a lazy stack of
-            // pulled children with spacing pages up from its end too far.
-            if spacing > 0, step.hasPrefix("end, page up") {
-                withKnownIssue("A lazy stack of pulled children with spacing pages up from its end too far") { check() }
-            } else {
-                check()
-            }
+            #expect(Self.content(lazy) == Self.content(whole), "\(step):\n\(lazy.screen)\n---\n\(whole.screen)")
         }
     }
 

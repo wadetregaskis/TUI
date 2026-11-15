@@ -289,12 +289,13 @@ extension ScrollFillColumn {
     /// position 0, and the walk to the offset is exact up to four screens in
     /// (`advanceAnchor`). From the end, the rows are walked up from the last by
     /// their exact pitches until they cover the lines between the viewport's
-    /// top and the column's end, and the position puts that end at
-    /// `estimatedEnd` — the column's own lines need not start at its first
-    /// row's top, but must hold every row the walk measured — or, when every
-    /// row fits below the viewport's top, puts the first row's top where the
-    /// rows end it.
-    func enter(edgeOf window: inout ScrollContentWindow, estimatedEnd: Int) {
+    /// top and the column's end, and the position puts that end at the
+    /// column's end as last reported, or, before any report, at the rows the
+    /// walk covered plus the rows above them (``estimatedEnd(covered:above:)``)
+    /// — the column's own lines need not start at its first row's top, but
+    /// must hold every row the walk measured — or, when every row fits below
+    /// the viewport's top, puts the first row's top where the rows end it.
+    func enter(edgeOf window: inout ScrollContentWindow) {
         switch window.edge {
         case .position:
             return
@@ -318,10 +319,32 @@ extension ScrollFillColumn {
                 window.offset = covered - line
             } else {
                 anchor.within = covered - line
-                window.offset = max(estimatedEnd, covered) - line
+                let end = anchor.reportedTotal ?? estimatedEnd(covered: covered, above: ordinal)
+                window.offset = max(end, covered) - line
             }
             anchor.derivedOffset = window.offset
         }
         window.edge = .position
+    }
+
+    /// The column's end in its own lines, first entered from below: the
+    /// `covered` lines of the rows the walk measured up from the last, below
+    /// the `above` rows it did not reach — each measured, in a column that
+    /// walks its jumps (a few rows, of heights an average does not describe),
+    /// else priced at the running pitch, which the walk has just refined.
+    ///
+    /// Read after the walk, not before it, as the callers once worked it out
+    /// (`count × estimatedPitch`): the end is where the column's lines put its
+    /// top, and a column above takes a pulled child's end as its height, so a
+    /// short end moved every line above it. A lazy stack entered from below on
+    /// its first draw priced every row at the one-line floor, its spacing left
+    /// out (280 rows at spacing 2 ended at 278 lines, not 838); the next frame,
+    /// drawn by uniform arithmetic in exact lines, read the position the walk
+    /// had answered in those short lines, and Page Up from the end landed 187
+    /// rows up. And a column of a header over such a stack, priced after the
+    /// walk at its average, ended twice as far down as it does.
+    private func estimatedEnd(covered: Int, above: Int) -> Int {
+        guard walksJumps else { return covered + above * estimatedPitch }
+        return (0..<above).reduce(covered) { $0 + pitch(of: $1) }
     }
 }

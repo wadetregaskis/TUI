@@ -230,7 +230,7 @@ private enum PulledPlace {
         // fills to it from a neighbour, or has just moved its anchor into it —
         // places the anchor afresh, whatever this column remembers of it.
         let enteredAtAnEdge = window.edge != .position
-        frame.enter(edgeOf: &window, estimatedEnd: frame.anchor.reportedTotal ?? frame.rowCount * frame.estimatedPitch)
+        frame.enter(edgeOf: &window)
         // A seek moves from the rows on screen, read from the anchor, so the
         // anchor is walked to this frame's offset first, as the anchored
         // window walks it (`renderAnchoredWindow`).

@@ -78,7 +78,12 @@ private final class AnchoredWindowFrame {
         pitchCache[ordinal] = value
         widthCache[ordinal] = measured.width
         built[ordinal] = child
-        state.recordMeasuredPitch(value)
+        // The running pitch prices rows with a gap below them, and a total
+        // takes the last gap off once, so the last row counts with the gap it
+        // does not draw. Counted without it, a walk up from the end over a few
+        // widely spaced rows averaged it in: three one-line rows at spacing 6
+        // priced the rest at 5, not 7, and the end's lines lost 2 a row.
+        state.recordMeasuredPitch(max(1, measured.height) + spacing)
         // Filed, as the uniform render files the rows it draws, so a row that
         // fills goes on counting at the measure's ask after it scrolls away
         // (`anchoredSizeThatFits`): the measure samples only the first rows.
@@ -113,9 +118,6 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     var ladder: [String: Int] { state.rowOrdinalMemo }
 
     var estimatedPitch: Int { state.estimatedPitch(spacing: spacing) }
-
-    /// Every row priced at the running pitch, less the gap after the last.
-    var estimatedTotal: Int { children.count * estimatedPitch - spacing }
 }
 
 // MARK: - The anchored render
@@ -622,7 +624,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             : applyDesignatedAnchor(frame: frame, state: state, window: window, context: context, mode: anchorMode)
 
         var window = window
-        frame.enter(edgeOf: &window, estimatedEnd: frame.anchor.reportedTotal ?? frame.estimatedTotal)
+        frame.enter(edgeOf: &window)
         let topRowOffset = rebindingAnchor(
             frame: frame, state: state, window: &window, designatedKey: designatedKey)
 

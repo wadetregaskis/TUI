@@ -256,7 +256,7 @@ extension PulledBandRequest {
         case .position, .top: rowsWindow.offset = window.offset - top
         case .end: rowsWindow.offset = window.offset + bottom
         }
-        column.enter(edgeOf: &rowsWindow, estimatedEnd: rows.estimatedRowsHeight(count: count))
+        column.enter(edgeOf: &rowsWindow)
         column.rebindAnchor(holdsRow: false)
         var resolvedSeek = false
         if let seek = window.seek, let target = seekRow(seek), target >= 0, target < count {

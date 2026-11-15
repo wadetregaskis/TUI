@@ -1543,6 +1543,29 @@ thumb a cell off on some of them (a probe, not kept). `Stress --selfcheck` clean
 sessions); the full suite passes (`parallel_test.py`, 15,798 tests with 70 known issues, the lane's probe suite among
 them); no public declaration changed, so `api_baseline.py` was not run.
 
+**S10, the sections' found issue: a column entered from its end prices the rows the walk did not reach after the walk**
+(2026-11-15, `ScrollColumnFill.swift`'s `enter(edgeOf:)`). End sends a pulled child it reaches from below a request
+counted from its end, and the child walks up from its last row by exact pitches and puts its own end at its last
+reported end or, on its first draw, at an estimate. The callers worked that estimate out *before* the walk: a lazy
+stack that had never measured a row priced each at the one-line floor, its spacing left out, so 280 rows at spacing 1
+ended at 278 lines where they take 559. On the next frame the uniform hypothesis was seeded and the stack drew by
+arithmetic in exact lines, reading the position the walk had answered in the short ones: Page Up from the end landed
+140 rows up (187 at spacing 2), the column above taking the stack's short end as its height. Not the sections': the
+lazy stack of two `VStack { header; LazyVStack(spacing:) }` does it as well, and only a *lazy* outer stack, which never
+draws its second child until End reaches it (an eager column draws every child off the band each frame, so the inner
+stack's hypothesis was seeded long before). Now the estimate is read after the walk, from it: the lines it covered,
+plus the rows above them, each measured in a column of a few rows (`walksJumps`, a header over a long stack, whose
+average describes neither) and priced at the running pitch, which the walk has just measured, in any other. Reading the
+callers' `count × pitch` after the walk instead was tried and was worse: a column of a one-line header over an
+838-line stack ended at 1,676, and Home then landed at the first stack's end. And the running pitch now counts the last
+row with the gap it does not draw (`AnchoredWindowFrame.pitch`), as it prices rows that have one: a walk up from the end
+over three one-line rows at spacing 6 averaged 5, not 7, and the end lost 2 lines a row. `PulledSpacedChildrenTests`
+(a lazy and an eager outer column, spacing 0, 1, 2 and 6, Page Down, End, Page Up, Home, End and Home again, and the
+wheel) failed at Page Up from the end and at Home after a second End at spacing 1 and 2 before, and at spacing 6 with
+the estimate read after the walk but the last row counted without its gap; spacing 0, the eager outer column and the
+wheel passed before and after. The twins' known issues (`SectionedLazyStackFirstFrameTests`,
+`SectionedLoopFirstFrameTests`) are gone.
+
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
 their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split
