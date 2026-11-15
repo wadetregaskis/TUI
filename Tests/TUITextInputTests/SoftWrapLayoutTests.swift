@@ -142,6 +142,18 @@ struct SoftWrapLayoutTests {
         #expect(layout.column(of: 13, inRow: 1) == 4)
     }
 
+    /// The widths are kept a byte each, with the rare wider one apart: a tab
+    /// to a stop 300 cells out is 300 cells, not 255.
+    @Test("A character 255 cells wide or wider keeps its width")
+    func wideCellsKeepTheirWidth() {
+        let layout = SoftWrapLayout(Array("\tab"), width: 1_000) { character, column in
+            TabLayout.advance(from: column, over: character, tabWidth: .periodic(300))
+        }
+        #expect(layout.cellWidths == [300, 1, 1])
+        #expect(layout.cells(inRow: 0, before: 2) == 301)
+        #expect(layout.column(of: 1, inRow: 0) == 300)
+    }
+
     @Test("A tab is a place to break, and hangs past the margin as a space does")
     func tabsHang() {
         let layout = tabbed("aaaaaaaa\tb", width: 10)

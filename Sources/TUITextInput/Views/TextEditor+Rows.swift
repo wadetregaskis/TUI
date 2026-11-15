@@ -39,7 +39,7 @@ extension _TextEditorCore {
                 // Only what starts inside the row: a hanging run may run on.
                 var (end, cell) = (span.start, 0)
                 while end < span.end, cell < rows.width {
-                    cell += layout.cellWidths[end]
+                    cell += layout.cellWidth(at: end)
                     end += 1
                 }
                 // A block's columns are this row's cells already.

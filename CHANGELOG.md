@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A wrapping `TextEditor` holds a byte a character for each width it keeps its text wrapped at, where it held eight.**
+Each character's width in cells was an `Int`; it is now a byte, and the rare character 255 cells wide or wider (a tab to
+a far stop) is kept apart. Over 3.2 MB of text, wrapped at the widths a frame asks for, that is about 45 MB less.
+
 **A key in a large `TextEditor` costs the line it changes, not the document.** Each edit joined every line of the text
 into a new string, the editor wrapped the whole document again for the next frame, and an editor with a selection
 binding walked the text's characters to the caret on every key and every frame: about 230 ms a key in a release build

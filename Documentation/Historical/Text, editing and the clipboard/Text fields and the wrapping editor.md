@@ -662,6 +662,15 @@ changed (a retain for each of forty thousand lines), and the starts of the
 lines after the edit moved. An undo step's first edit also scans the text
 from both ends for where it changed (`TextEdit`).
 
+**Then the widths** (the next commit, the same day): each wrapping kept every
+character's width in cells as an `Int`, 8 bytes a character for each width
+an editor keeps (two or three a frame: its own, a cell narrower for the
+scroll bar, and a container's measure). `SoftWrapLayout` keeps them a byte
+each now, 255 standing for a width kept apart in a dictionary, which only a
+tab to a stop that far out reaches (`cellWidth(at:)`). The `bigtext`
+session's rss-peak went from 195 and 186 MB to 155 and 142 MB in two pairs of
+runs, the time a key the same.
+
 **Left open:** the text is still held as lines of `Character`s, 16 bytes a
 character, beside the string; an editor keeping its text as the string's
 UTF-8 and its lines as offsets would take that to the line starts alone, and

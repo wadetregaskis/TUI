@@ -71,14 +71,32 @@ struct SoftWrapLayout: Equatable {
     /// The rows, top to bottom. Never empty: an empty text is one empty row.
     let rows: [Row]
 
-    /// Each character's width in cells, by offset; a newline's is 0.
-    let cellWidths: [Int]
+    /// Each character's width in cells, by offset, a newline's 0: a byte
+    /// each, for a width under 255 — every character but a tab past a stop
+    /// that far out — and 255 for one whose width is in ``wideCells``. An
+    /// `Int` each was 8 bytes a character for every width an editor kept its
+    /// document wrapped at, the most of what a large text cost (tuitree's M4
+    /// feedback, item 3). Read through ``cellWidth(at:)``.
+    private let narrowWidths: [UInt8]
+
+    /// The widths of 255 cells and more, by offset.
+    private let wideCells: [Int: Int]
+
+    /// The cells the character at `offset` takes; a newline's is 0.
+    func cellWidth(at offset: Int) -> Int {
+        let narrow = narrowWidths[offset]
+        return narrow == .max ? wideCells[offset, default: Int(narrow)] : Int(narrow)
+    }
+
+    /// Each character's width in cells, by offset: for a test, which reads
+    /// them all.
+    var cellWidths: [Int] { narrowWidths.indices.map(cellWidth(at:)) }
 
     /// The cells a row may draw on. Text wraps at one fewer (the margin).
     let width: Int
 
     /// The number of characters laid out — the largest caret offset.
-    var characterCount: Int { cellWidths.count }
+    var characterCount: Int { narrowWidths.count }
 
     /// Lays out `characters` in rows `width` cells wide.
     ///
@@ -117,7 +135,11 @@ struct SoftWrapLayout: Equatable {
         Self.wrap(
             characters, from: start, to: characters.count, budget: budget, advance: advance, widths: &widths,
             into: &rows)
-        (self.rows, cellWidths, self.width) = (rows, widths, width)
+        (self.rows, self.width) = (rows, width)
+        narrowWidths = widths.map { UInt8(clamping: $0) }
+        var wide: [Int: Int] = [:]
+        for (offset, cells) in widths.enumerated() where cells >= Int(UInt8.max) { wide[offset] = cells }
+        wideCells = wide
     }
 
     /// Whether a row may break after `character`, hanging it past the margin.
@@ -204,7 +226,7 @@ struct SoftWrapLayout: Equatable {
     func cells(inRow row: Int, before offset: Int) -> Int {
         let row = rows[row]
         let upper = min(max(row.start, offset), row.end)
-        return cellWidths[row.start..<upper].reduce(0, +)
+        return (row.start..<upper).reduce(0) { $0 + cellWidth(at: $1) }
     }
 
     /// The column the caret at `offset` is drawn at on `row`: the cells before
@@ -264,7 +286,7 @@ struct SoftWrapLayout: Equatable {
     private func offset(inRow row: Int, atColumn column: Int, first: Int, last: Int) -> Int {
         var cellX = 0
         for offset in rows[row].start..<rows[row].end {
-            let next = cellX + cellWidths[offset]
+            let next = cellX + cellWidth(at: offset)
             if column < next { return max(first, min(offset, last)) }
             cellX = next
         }
