@@ -1363,6 +1363,13 @@ through `LayoutPull` as `Grid` does (about half a day). A grouped `Form`'s rows 
   the key through the forwarded content as for any key of its own. An outer view's search stops at a scroll view
   inside the reader that holds the key, so no row is scrolled to twice. `NestedScrollViewReaderTests` (both shapes
   failed before: the page did not move).
+- **Page Up on a pulled list's first row and Page Down on its last page the scroll view on** (`ItemListHandler+Keys.swift`).
+  The list took the key though its cursor could not move, so non-focusable text after a table (or before it) in the
+  same scroll view was out of the keys' reach. A list or table whose scroll view scrolls it (`isScrollEnabled` off,
+  as its pull pins it) now leaves a page key that moves no cursor to `FocusManager.scrollActiveSection(for:)`, as a
+  focused button does. Its own scroll offset is no test of movement there: the pull re-pins it to the band every
+  frame, and a first try that also compared it left a table's second Page Down on its last row moving nothing (most
+  likely taken as a move, not traced). A list that scrolls itself takes the key as before. `PulledListPageOnTests`.
 
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →

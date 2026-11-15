@@ -150,17 +150,32 @@ extension ItemListHandler {
         // page that overshoots is corrected by `ensureFocusedItemVisible`
         // anyway, so the staleness that forces `pageDistance` to recompute
         // does not bite here.
+        //
+        // In a scroll view's content as tall as its rows (SCROLL-FIT), whose
+        // scroll view scrolls it (`isScrollEnabled` off), a page key that
+        // does not move the cursor — on the first row or the last — is not
+        // taken, so it pages that scroll view on
+        // (`FocusManager.scrollActiveSection(for:)`), as it does over a
+        // focused button. Taken, it moved nothing, and text below the list,
+        // or above it, that nothing focuses was out of the keys' reach.
         case .pageUp:
-            glidingPageKey { moveFocus(by: -viewportHeight, wrap: false) }
-            return true
+            return pageKeyMovesCursor { glidingPageKey { moveFocus(by: -viewportHeight, wrap: false) } }
 
         case .pageDown:
-            glidingPageKey { moveFocus(by: viewportHeight, wrap: false) }
-            return true
+            return pageKeyMovesCursor { glidingPageKey { moveFocus(by: viewportHeight, wrap: false) } }
 
         default:
             return nil
         }
+    }
+
+    /// Runs a page key's `move`, and says whether the list takes the key (see
+    /// the page keys above): always where it scrolls itself; where its scroll
+    /// view scrolls it, when the cursor moved.
+    private func pageKeyMovesCursor(_ move: () -> Void) -> Bool {
+        let cursor = focusedIndex
+        move()
+        return isScrollEnabled || focusedIndex != cursor
     }
 
     /// The ``Table`` sort chords. `nil` unless the view handed this handler an

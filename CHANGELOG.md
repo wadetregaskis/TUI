@@ -26,7 +26,8 @@ app:
 
 - A `Table` in a scroll view was capped at the scroll view's height and scrolled its own rows; it is now its rows'
   height, its header and horizontal scroll bar pinned to the top and bottom of the scroll view while its rows are under
-  them, and its arrow keys, Page Up and Page Down, End and type select scroll the page. A `List` was 4,096 lines tall,
+  them, and its arrow keys, Page Up and Page Down, End and type select scroll the page; Page Down on its last row, and
+  Page Up on its first, page on to what follows or precedes it. A `List` was 4,096 lines tall,
   most of them blank under its rows; it is its rows' height, its section headers pinned. Focused at launch, neither
   scrolls the title above it out of sight any more.
 - A `Spacer`, `Color`, shape, `GeometryReader` or `.frame(maxHeight: .infinity)` in a vertical scroll view's content
