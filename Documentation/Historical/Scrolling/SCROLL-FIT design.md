@@ -1456,6 +1456,16 @@ matches (9,578 declarations) once `ScrollViewReader.body` is a `@ViewBuilder` ag
   release, `PlainViewMemo.noteMeasured`), and from then on asks the memo for it: on a loaded machine the stress table
   crosses the line and stores. `ab_counters.py`'s doc now says so.
 
+Measured for these four (2026-11-15, `ab_bench.py`, release, cpu per frame, 10 reps, `slot.py --exclusive`,
+1caeed378 against 778064287, load 4.0): `scrolleager` +0.3% [+0.2, +1.2] slower and `app-shapes/fixed-size-table`
+-0.4% [-1.0, -0.1] faster; `megalist`, `scrollfollow`, `glide`, `tables-scroll`, `table` and `app-shapes/` `titled-lazy`,
+`titled-table`, `titled-list`, `headed-log`, `boxed-eager`, `grouped-feed` and `two-stacked-lazy` indistinguishable;
+RSS within 0.3 MB. `ab_counters.py` on the same fourteen: no checksum differs; 12 moved no count past 1%, and the two
+that did (`two-stacked-lazy`'s value-memo stores -11.5%, `titled-table`'s measure lookups +1.2%) move as much between
+three runs of either binary (2,242–2,434 against 2,274–2,594 stores; 1,934–1,952 against 1,886–1,940 lookups), the
+learner above. The full suite passes (`parallel_test.py`, 15,767 tests), `Stress --selfcheck` is clean (139 cases, 38
+scenarios, 26 sessions), and `api_baseline.py --check` matches (9,578 declarations).
+
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
 their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split
