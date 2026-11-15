@@ -5921,8 +5921,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func refresh(_ handler: ItemListHandler<Value.ID>, context: RenderContext) {
         handler.itemCount = data.count
         handler.drawing = HandlerDrawing(context)
-        handler.resolvePendingTypeSelect(measuring: context.isMeasuring) {
-            typeSelectText(of: data[$0], context: context)
+        // The probing context is made once for the scan, when a prefix is
+        // waiting, rather than once per row it scans: a copy of the context
+        // with an environment write, which was about a third of a key-path
+        // table's scan (``typeSelectText(of:probe:width:)``).
+        var probe: RenderContext?
+        let width = max(1, context.availableWidth)
+        handler.resolvePendingTypeSelect(measuring: context.isMeasuring) { index in
+            if probe == nil {
+                var made = Self.probing(context)
+                made.environment.isTypeSelectProbe = true
+                probe = made
+            }
+            return probe.flatMap { typeSelectText(of: data[index], probe: $0, width: width) }
         }
     }
 
@@ -5930,11 +5941,14 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// value of a key-path column, the text a view cell states with
     /// `typeSelectEquivalent(_:)`, or else the view cell's first line drawn as
     /// a measure, which registers nothing (the row may be far out of sight).
-    private func typeSelectText(of item: Value, context: RenderContext) -> String? {
+    ///
+    /// - Parameters:
+    ///   - probe: The table's context as a measure, asking view cells for the
+    ///     text they state (`isTypeSelectProbe`).
+    ///   - width: The width a view cell is drawn at.
+    private func typeSelectText(of item: Value, probe: RenderContext, width: Int) -> String? {
         guard let column = allColumns.first else { return nil }
-        var probe = Self.probing(context)
-        probe.environment.isTypeSelectProbe = true
-        let value = cellValue(column, for: item, width: max(1, context.availableWidth), context: probe)
+        let value = cellValue(column, for: item, width: width, context: probe)
         return value.split(separator: "\n", maxSplits: 1, omittingEmptySubsequences: false).first.map {
             var line = String($0).stripped
             // A tree's first column begins with the row's indent and triangle

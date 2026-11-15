@@ -15,10 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
-**Type select on a long list of plain `Text` rows is about three times quicker.** A typed prefix is matched against
+**Type select on a long list of plain `Text` rows is about three times quicker, and on a long table a third.** A typed prefix is matched against
 the rows from the cursor on, stopping at the first that starts with it, so a prefix no row starts with asks every row
 for its text. A row that is a plain `Text` is now read for it rather than drawn: on a 10,000-row list such a key press
-went from about 140 ms to 50 ms (a debug build). A row the app built from other views is still drawn to be read.
+went from about 140 ms to 50 ms (a debug build), and on a table whose first column is a key path or a plain `Text`
+from about 33 ms to 23 ms. A row the app built from other views is still drawn to be read.
 
 **`.typeSelectDisabled()` turns type select off, so the app's bare keys work beside a list.** A focused list or
 table, an open `Picker` drop-down and an open pop-up menu take every printable character but Space to find a row by
