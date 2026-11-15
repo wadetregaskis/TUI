@@ -1216,6 +1216,7 @@ ForEach.onDelete(perform:) | func onDelete(perform action: ((IndexSet) -> Void)?
 ForEach.onMove(perform:) | func onMove(perform action: ((IndexSet, Int) -> Void)?) -> ForEach<Data, ID, Content> [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
 ForEach.renderToBuffer(context:) | @MainActor func renderToBuffer(context: RenderContext) -> FrameBuffer [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
 ForEach.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
+ForEach.staysWhole(in:) | @MainActor func staysWhole(in context: RenderContext) -> Bool [extension where Data : RandomAccessCollection, ID : Hashable, Content : View]
 ForEachSubviewCollection | @MainActor struct ForEachSubviewCollection<Content> where Content : View
 ForEachSubviewCollection.Element | typealias Element = Subview [extension where Content : View]
 ForEachSubviewCollection.Index | typealias Index = Int [extension where Content : View]

@@ -227,17 +227,18 @@ extension View {
     /// several (``_ImplicitColumnOfSeveral``): its parent is the column's
     /// step, or an `if` among the column's views — the branch an `if`/`else`
     /// took, and the conditional or the `Optional` above it — stands between.
+    /// A loop a stack in the column lays out is that stack's rows, not one of
+    /// the column's views.
     private static func isAmongColumnOfSeveral(_ node: ViewIdentity) -> Bool {
-        var cursor = node.parent
-        while let parent = cursor {
-            guard let type = parent.leafType, !parent.isBranchStep else {
-                guard parent.isBranchStep else { return false }
-                cursor = parent.parent
-                continue
+        var cursor: ViewIdentity? = node
+        while let step = cursor {
+            if let type = step.leafType {
+                if ObjectIdentifier(type) == ObjectIdentifier(_ImplicitColumnOfSeveral.self) { return true }
+                guard type is any CountedLoop.Type else { return false }
+            } else if !step.isBranchStep {
+                return false
             }
-            if ObjectIdentifier(type) == ObjectIdentifier(_ImplicitColumnOfSeveral.self) { return true }
-            guard type is any IfContent.Type else { return false }
-            cursor = parent.parent
+            cursor = step.parent
         }
         return false
     }
@@ -245,8 +246,12 @@ extension View {
     /// A loop drawn as a windowing container's column stays one child of the
     /// column of several views it stands in (``_ImplicitColumnOfSeveral``),
     /// drawn as its lazy stack, rather than handing the column every row.
+    /// Asked where it is resolved: at its own step among the column's views,
+    /// or an `if`'s among them. Anywhere else — a stack it is the content of —
+    /// it is taken apart as always.
     public func staysWhole(in context: RenderContext) -> Bool {
-        windowedColumn(context: context) != nil
+        context.scrollContentOriginDepth != 0 && Self.isAmongColumnOfSeveral(context.identity)
+            && windowedColumn(context: context) != nil
     }
 
     /// `column` drawn, or, for a measure that draws to find a size (a
