@@ -50,6 +50,12 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**A `TestApp` has an undo manager, as a running app does.** `@Environment(\.undoManager)` read `nil` in a test, so an
+app's undo could not be tested through its keys or its status-bar items. A `TestApp` now makes one as a running app
+does: a view reads it, ⌃Z undoes through it, the status bar shows its undo and redo items, and a test reads it as
+`app.undoManager`. A test that types into a text field in a `TestApp` of a whole app now sees the bar's "undo" item, as
+the app's users do.
+
 **`\.copyToClipboard` puts text on the clipboard from an app's own command.** Read it with
 `@Environment(\.copyToClipboard)` and call it, `copyToClipboard(path)`, in a menu item's or a button's action: the text
 goes where every copy in the app goes — by OSC 52 to the terminal's clipboard, which is the clipboard of the machine the

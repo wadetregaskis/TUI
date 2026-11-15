@@ -45,6 +45,11 @@ open class UndoManager {
     /// The number of nested undo groups in the current event loop.
     open var groupingLevel: Int { stack.groupingLevel }
 
+    /// Closes the group grouping by event opened, as the end of the main
+    /// actor's job would: for a harness that sends its events from one job
+    /// (TUIApp's `HeadlessUndoEvents`). Nothing if it is closed.
+    package func endEvent() { stack.endEvent() }
+
     /// Whether the receiver automatically creates undo groups around each
     /// event.
     open var groupsByEvent: Bool {

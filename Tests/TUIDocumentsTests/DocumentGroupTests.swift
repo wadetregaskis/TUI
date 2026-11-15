@@ -31,9 +31,8 @@ struct DocumentSceneTests {
     }
 
     /// The app, drawn, with `url` opened through `openDocument` if it is given.
-    private func launched(opening url: URL? = nil, undoing: Bool = false) async -> TestApp {
+    private func launched(opening url: URL? = nil) async -> TestApp {
         let app = TestApp(NotesApp(), width: 90, height: 28)
-        if undoing { app.headless.adoptUndoManager() }
         app.advance(by: .zero)
         await app.see("text=new")
         if let url { await load(url, in: app) }
@@ -320,7 +319,7 @@ struct DocumentSceneTests {
 
     @Test("An undoable edit undoes within its document")
     func undoesWithin() async throws {
-        let app = await launched(undoing: true)
+        let app = await launched()
         app.tap("record")
         await app.see("text=new!")
         app.tap("revert")
@@ -330,7 +329,7 @@ struct DocumentSceneTests {
 
     @Test("New leaves nothing of the last document to undo, as a new window's own undo manager would")
     func newClearsUndo() async throws {
-        let app = await launched(undoing: true)
+        let app = await launched()
         app.tap("record")
         await app.see("text=new!")
         app.command("n")
@@ -346,7 +345,7 @@ struct DocumentSceneTests {
     @Test("Open leaves nothing of the last document to undo")
     func openClearsUndo() async throws {
         let folder = try DocumentFolder()
-        let app = await launched(undoing: true)
+        let app = await launched()
         app.tap("record")
         await app.see("text=new!")
         DocumentProbe.shared.url = try folder.write("two", "b.txt")

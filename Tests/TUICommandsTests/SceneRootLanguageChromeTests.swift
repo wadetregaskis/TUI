@@ -74,7 +74,6 @@ struct SceneRootLanguageChromeTests {
     /// open Edit menu.
     private func shown(_ app: some App) -> (page: String, menu: String) {
         let app = TestApp(app, width: 72, height: 16)
-        app.headless.adoptUndoManager()
         var now: Int64 = 0
         func frame() {
             now += 20_000_000

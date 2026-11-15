@@ -62,9 +62,8 @@ package final class HeadlessApp {
     private let renderer: any HeadlessRendering
     private let inputHandler: InputHandler
     private let tuiContext: TUIContext
-
-    /// The status bar, for ``adoptUndoManager()``.
-    private let statusBar: StatusBarState
+    /// The end of each event for the app's undo manager, where it has one.
+    private let undoEvents: HeadlessUndoEvents?
     private let lifecycleManager: LifecycleManager
     private let focusManager: FocusManager
     private let animationScheduler = AnimationScheduler()
@@ -85,17 +84,15 @@ package final class HeadlessApp {
     /// exactly when a frame drawn through it is the frame drawn without it.
     package var clearsRenderCacheEachFrame = false
 
-    /// Gives the app the undo manager `AppRunner` makes for every app and this
-    /// doesn't, so that what no test asked for doesn't change what a frame draws:
-    /// for a test of the undo items in the bars.
-    package func adoptUndoManager() {
-        let undoManager = UndoManager()
-        tuiContext.undoManager = undoManager
-        statusBar.undoManager = undoManager
-    }
-
     /// Assembles `app` over an in-memory terminal of `width` × `height` cells.
-    package init<A: App>(_ app: A, width: Int, height: Int) {
+    ///
+    /// - Parameter undoManager: The app's undo manager, handed to everything
+    ///   that uses it as `AppRunner` hands the one it makes for every app
+    ///   (`makeUndoManager()`): `\.undoManager`, the input chain's undo and
+    ///   redo keys, and the status bar's undo and redo items. A `TestApp`
+    ///   gives one, as a running app has one; `nil`, the default, gives the
+    ///   app none, for a session (Stress) that measures what an app draws.
+    package init<A: App>(_ app: A, width: Int, height: Int, undoManager: UndoManager? = nil) {
         let terminal = InMemoryTerminal(width: width, height: height)
         let quits = QuitCount()
         self.quits = quits
@@ -115,7 +112,12 @@ package final class HeadlessApp {
         let appearanceManager = ThemeManager(items: AppearanceRegistry.all, renderTrigger: {})
         self.terminal = terminal
         self.tuiContext = tuiContext
-        self.statusBar = statusBar
+        if let undoManager {
+            tuiContext.undoManager = undoManager
+            statusBar.undoManager = undoManager
+            statusBar.undoKeys = tuiContext.undoKeys
+        }
+        self.undoEvents = undoManager.map { HeadlessUndoEvents($0) }
         self.lifecycleManager = tuiContext.lifecycle
         self.focusManager = focusManager
         let renderer = RenderLoop(
@@ -139,7 +141,8 @@ package final class HeadlessApp {
             tooltipState: tuiContext.tooltipState, unhandledKeyBell: tuiContext.terminalBell,
             shortcutOverlay: shortcutOverlay, settingsPanel: renderer.scenes.settingsPanel,
             // A script has no process to quit or suspend: a quit is counted.
-            onQuit: { quits.count += 1 }, onSuspend: {}, screenSelection: tuiContext.screenSelection,
+            onQuit: { quits.count += 1 }, onSuspend: {}, undoManager: undoManager, undoKeys: tuiContext.undoKeys,
+            screenSelection: tuiContext.screenSelection,
             // The user's quit key, ⌃\ as a terminal's driver has it by
             // default, reaches the chain as a running app's does once its
             // first frame is up (`Terminal.maskQuitKey(for:)`): it asks first,
@@ -253,6 +256,9 @@ package final class HeadlessApp {
         // As `AppRunner` presses them, once the frame is drawn: a menu bar's
         // item's key, or its Quit. The next frame shows what they did.
         for owed in tuiContext.keysAfterFrame.take() { inputHandler.perform(owed) }
+        // What the frame registered — an effect's step, a key pressed after
+        // it — is a step of its own, as a running app's run loop makes it.
+        endUndoEvent()
     }
 
     /// The census of observation registrations the app's render cache arms,
@@ -278,6 +284,7 @@ package final class HeadlessApp {
     /// - Returns: Whether some layer consumed it.
     @discardableResult
     package func send(_ event: KeyEvent) -> Bool {
+        defer { endUndoEvent() }
         focusManager.noteInputSource(.keyboard)
         tuiContext.mouseEventDispatcher.noteInput()
         // What it shows of the terminal, as the event funnel learns it; the
@@ -294,10 +301,17 @@ package final class HeadlessApp {
     /// - Returns: Whether a handler consumed it.
     @discardableResult
     package func send(_ event: MouseEvent) -> Bool {
+        defer { endUndoEvent() }
         focusManager.noteInputSource(.pointer)
         return AmbientApp.$renderState.withValue(tuiContext.appState) {
             tuiContext.mouseEventDispatcher.dispatch(event, noting: focusManager)
         }
+    }
+
+    /// Ends the undo manager's group for the event just handled, as a running
+    /// app's run loop ends it at the end of its pass (``HeadlessUndoEvents``).
+    private func endUndoEvent() {
+        undoEvents?.endEvent()
     }
 
     /// What the terminal reports about the keyboard: a legacy encoding unless

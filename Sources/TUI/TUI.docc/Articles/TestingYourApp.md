@@ -73,6 +73,10 @@ An `@AppStorage` or `@SceneStorage` with no store of its own uses one in memory,
 test leaves nothing in your preferences, and one test's settings are not the next one's. A `TestApp` runs in no terminal
 session, so `@SceneStorage` keeps only the last saved value.
 
+A `TestApp` has an undo manager, as a running app does: `@Environment(\.undoManager)` reads it, ⌃Z and the other undo
+keys undo through it, the status bar shows its undo and redo items, and a `DocumentGroup` empties it when New or Open
+replaces the document. ``TestApp/undoManager`` is the same one, for a test to ask what is left to undo.
+
 ### Reading the screen
 
 ``TestApp/screen`` is a ``TestScreen``, a value holding what is on screen at that moment. A failing `#expect` on it

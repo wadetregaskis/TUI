@@ -28,6 +28,7 @@ TestApp.screen | @MainActor var screen: TestScreen { get }
 TestApp.scroll(_:by:at:) | @MainActor func scroll(_ direction: TestApp.ScrollDirection, by ticks: Int = 1, at point: CellPoint? = nil)
 TestApp.scroll(_:by:over:) | @MainActor func scroll(_ direction: TestApp.ScrollDirection, by ticks: Int = 1, over text: String) throws
 TestApp.type(_:) | @MainActor func type(_ text: String)
+TestApp.undoManager | @MainActor let undoManager: UndoManager
 TestApp.wait(for:timeout:) | @MainActor func wait(for text: String, timeout: Duration = .seconds(60)) async throws
 TestApp.wait(until:timeout:) | @MainActor func wait(until condition: @MainActor () -> Bool, timeout: Duration = .seconds(60)) async throws
 TestAppError | struct TestAppError

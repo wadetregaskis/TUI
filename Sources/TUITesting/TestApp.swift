@@ -100,7 +100,9 @@ public final class TestApp {
     public init<Content: View>(
         width: Int = 80, height: Int = 24, @ViewBuilder content: @escaping () -> Content
     ) {
-        headless = HeadlessApp(TestViewHost(content: content), width: width, height: height)
+        undoManager = UndoManager()
+        headless = HeadlessApp(
+            TestViewHost(content: content), width: width, height: height, undoManager: undoManager)
         useInMemoryAppStorage()
     }
 
@@ -115,7 +117,8 @@ public final class TestApp {
     ///   - width: The terminal's width, in cells.
     ///   - height: The terminal's height, in rows.
     public init<A: App>(_ app: A, width: Int = 80, height: Int = 24) {
-        headless = HeadlessApp(app, width: width, height: height)
+        undoManager = UndoManager()
+        headless = HeadlessApp(app, width: width, height: height, undoManager: undoManager)
         useInMemoryAppStorage()
     }
 
@@ -158,6 +161,19 @@ public final class TestApp {
         start()
         return headless.lastCopiedText
     }
+
+    /// The app's undo manager, which `@Environment(\.undoManager)` reads.
+    ///
+    /// A running app has one, made as it starts, and so does a `TestApp`: the
+    /// undo keys (⌃Z) undo through it, the status bar shows its undo and redo
+    /// items, and a `DocumentGroup` empties it when New or Open replaces the
+    /// document. Read it to check what an action left to undo:
+    ///
+    /// ```swift
+    /// app.press(.character("k"), modifiers: .control)
+    /// #expect(app.undoManager.canUndo)
+    /// ```
+    public let undoManager: UndoManager
 
     /// Whether the app has asked to quit, by its quit key, its Quit menu item
     /// or its last window closing.
