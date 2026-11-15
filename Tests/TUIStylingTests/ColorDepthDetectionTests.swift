@@ -244,21 +244,23 @@ struct ColorDepthDetectionTests {
                 == ColorDepth.detect(environment: ProcessInfo.processInfo.environment))
     }
 
-    @Test("The process-wide depth still says what this process's environment says")
+    @Test("The process-wide depth is still the 24-bit the test bundle pinned as it loaded")
     func processDepthIsNotLatchedToAFakeValue() {
         // The runtime backstop to the lint rule, and the only check that also
         // covers the OTHER route to the same defect: `ColorDepth.current` has a
         // setter, and a test assigning it process-wide would poison every
         // concurrently-rendering test exactly as a fake `TERM` would. Both pins
         // (`withCurrent`/`withCap`) are task-local and invisible here, and
-        // `cap` defaults to `.truecolor`, so `current` should be precisely what
-        // detection says about this process.
+        // `cap` defaults to `.truecolor`, so `current` should be precisely the
+        // one process-wide write the suite makes: 24-bit, before any test runs
+        // (CTestSupport.c), so that no test draws by what the environment of
+        // the run says — `NO_COLOR`, which a piped `swift test` sets, included.
         //
         // It is a BACKSTOP, not the mechanism: it can only fire if the
         // poisoning happened earlier in this same process, which under the
         // parallel runner means the same shard. What makes forgetting
         // impossible is the lint rule; this catches the case the regex cannot
         // see (`let name = "TERM"; setenv(name, …)`) when luck cooperates.
-        #expect(ColorDepth.current == ColorDepth.detect())
+        #expect(ColorDepth.current == .truecolor)
     }
 }

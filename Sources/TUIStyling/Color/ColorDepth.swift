@@ -114,6 +114,12 @@ extension ColorDepth {
     /// pinned depth into every concurrently-rendering test.
     @TaskLocal private static var taskCurrent: ColorDepth?
 
+    /// The depth ``withCurrent(_:operation:)-(_,()->T)`` has pinned on the
+    /// current task, or `nil` when nothing has: for a host that draws at a
+    /// depth of its own unless its caller pinned one, as TUITesting's
+    /// `TestApp` draws at 24-bit whatever the environment says.
+    package static var taskPin: ColorDepth? { taskCurrent }
+
     /// The process-wide ceiling on ``current``, before any task-local pin.
     /// Atomic for the same reason ``processCurrent`` is.
     private static let processCap = Atomic<ColorDepth>(.truecolor)

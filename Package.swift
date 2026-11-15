@@ -789,7 +789,7 @@ let package = Package(
         .target(
             name: "TUITestSupport",
             dependencies: [
-                "TUICore", "TUIFoundation", "TUIStrings", "TUIStyling", "TUIView",
+                "TUICore", "TUIFoundation", "TUIStrings", "TUIStyling", "TUITestProcess", "TUIView",
             ],
             path: "Tests/TUITestSupport", exclude: ["__Snapshots__", "__Fixtures__"],
             swiftSettings: [.define("TUI_TEST_SUPPORT", .when(configuration: .debug))]
@@ -1029,9 +1029,19 @@ let package = Package(
             ]
         ),
         // C declarations a test needs that only the C importer makes — a struct
-        // with bitfields, which the runtime's field list leaves out. Tests
-        // only; no product names it.
+        // with bitfields, which the runtime's field list leaves out — and the
+        // constructor that pins the test process's colour depth as the test
+        // bundle loads (CTestSupport.c). Tests only; no product names it.
         .target(name: "CTestSupport", path: "Tests/CTestSupport"),
+        // The Swift half of that constructor: it sets `ColorDepth.current` to
+        // 24-bit before any test runs, so no test draws by what the
+        // environment of the run says (`swift test` sets `NO_COLOR` whenever
+        // its output is not a terminal). A plain target needing no
+        // testability, so unguarded, and every test target links it — through
+        // TUITestSupport, or directly — save TUITestingTests, which tests
+        // TUITesting as a client runs it, with no such pin; swift-build
+        // (6.4's default) links a binary per test target, so each needs it.
+        .target(name: "TUITestProcess", dependencies: ["CTestSupport", "TUIStyling"], path: "Tests/TUITestProcess"),
 
         // The Example app's own views, where a test must hold the view the
         // app ships rather than a copy of its shape — a copy goes on passing
@@ -1045,7 +1055,7 @@ let package = Package(
             name: "ExampleTests",
             dependencies: [
                 .target(name: "Example", condition: .when(platforms: [.macOS, .linux])),
-                "TUI", "TUIApp", "TUIChrome", "TUIFoundation", "TUITesting",
+                "TUI", "TUIApp", "TUIChrome", "TUIFoundation", "TUITesting", "TUITestProcess",
             ]
         ),
         // `TUITesting`'s own tests, written as a client's are: `import TUITesting` and the modules the
@@ -1059,21 +1069,21 @@ let package = Package(
         // Each links ONLY its module. A unit test that drifts into a sibling or
         // higher layer stops compiling here — that is the point: it keeps every
         // module provably testable in isolation.
-        .testTarget(name: "TUICoreTests", dependencies: ["TUICore", "TUIWidthCorpus"]),
+        .testTarget(name: "TUICoreTests", dependencies: ["TUICore", "TUITestProcess", "TUIWidthCorpus"]),
         .testTarget(
             name: "TUIEnvironmentDocsTests",
-            dependencies: ["TUIEnvironmentDocs"]
+            dependencies: ["TUIEnvironmentDocs", "TUITestProcess"]
         ),
-        .testTarget(name: "TUIStylingTests", dependencies: ["TUIStyling"]),
-        .testTarget(name: "TUIViewTests", dependencies: ["TUIView"]),
-        .testTarget(name: "TUIImageTests", dependencies: ["TUIImage"]),
+        .testTarget(name: "TUIStylingTests", dependencies: ["TUIStyling", "TUITestProcess"]),
+        .testTarget(name: "TUIViewTests", dependencies: ["TUITestProcess", "TUIView"]),
+        .testTarget(name: "TUIImageTests", dependencies: ["TUIImage", "TUITestProcess"]),
 
         // The macros, used as an app uses them: expanded in test sources. Not
         // also on the plugin target, to check expansions as source: a test
         // target that depends on a macro target has SwiftPM build the whole
         // test product for the host, and `ExampleTests` then cannot import the
         // `Example` executable (measured, SwiftPM 6.2.4).
-        .testTarget(name: "TUIMacrosTests", dependencies: ["TUIMacros", "TUI"]),
+        .testTarget(name: "TUIMacrosTests", dependencies: ["TUIMacros", "TUI", "TUITestProcess"]),
 
         // ── Stress test ─────────────────────────────────────────────────────────────────────────────────
         // A performance stress harness shaped like an app: deep/wide view

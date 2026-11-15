@@ -45,6 +45,10 @@ func withColorDepth<T>(_ depth: ColorDepth, _ body: () throws -> T) rethrows -> 
 /// without colour where it is a fill with it — passed under the runner and
 /// failed under `swift test`, the same way every time. The pin is task-local
 /// (`ColorDepth.withCurrent`), so no other test sees it.
+///
+/// Every test now draws at 24-bit anyway: the test bundle pins the process's
+/// depth as it loads (`TestProcessColorDepth.swift`). This says so of a suite
+/// whose assertions rest on it, and keeps it so should that default change.
 struct DrawsInTruecolor: SuiteTrait, TestTrait, TestScoping {
     /// Every test, not only the suite: see `RendersEnglishUI`.
     func scopeProvider(for test: Test, testCase: Test.Case?) -> Self? { self }

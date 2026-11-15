@@ -43,6 +43,24 @@ import TUIFoundation
 /// runs there varies with the machine and its load. A `TestApp` times nothing,
 /// so a test that counts body evaluations or draws gets the same count on a
 /// laptop as on a busy CI runner.
+///
+/// Nor does it depend on where the tests run. A running app draws in the
+/// colours its environment says the terminal has: none under `NO_COLOR`, which
+/// `swift test` sets whenever its output is not a terminal, and what `TERM`
+/// and `COLORTERM` say elsewhere. A `TestApp` draws in 24-bit colour, so
+/// ``TestScreen/styledLines`` are the same in a terminal, down a pipe and on CI.
+/// To see it in fewer colours, pin them around the test:
+///
+/// ```swift
+/// ColorDepth.withCurrent(.noColor) {
+///     let app = TestApp { Counter() }
+///     // app.screen.styledLines keep bold and underline, and no colours.
+/// }
+/// ```
+///
+/// An app that sets ``ColorDepth/current`` itself, from a `--color` flag say,
+/// is drawn in 24-bit colour here too, so pin the depth to test what it sets.
+/// ``ColorDepth/cap`` still applies, as it does in a running app.
 @MainActor
 public final class TestApp {
     /// The engine: the render loop and input chain over an in-memory terminal.
@@ -273,9 +291,17 @@ public final class TestApp {
         }
     }
 
+    /// Draws a frame at the depth the test pinned with `ColorDepth.withCurrent`,
+    /// else at `drawnColorDepth`: never at what the environment says, which
+    /// differs from one run of a test to the next (see the type's discussion).
     private func drawFrame(atNanos nanos: Int64) {
-        headless.frame(atNanos: nanos, date: startDate.addingTimeInterval(TimeInterval(nanos) / 1e9))
+        ColorDepth.withCurrent(ColorDepth.taskPin ?? Self.drawnColorDepth) {
+            headless.frame(atNanos: nanos, date: startDate.addingTimeInterval(TimeInterval(nanos) / 1e9))
+        }
     }
+
+    /// The colours a frame is drawn with when the test pinned none: millions.
+    static let drawnColorDepth = ColorDepth.truecolor
 
     private static let framesPerChange = 8
 

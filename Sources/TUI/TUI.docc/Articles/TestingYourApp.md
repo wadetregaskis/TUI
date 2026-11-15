@@ -268,6 +268,9 @@ The first run writes it and throws, so that you look at it. When a change is wha
 - **It needs `TUIApp`,** so it has no Windows build, where TUI's console layer has none yet.
 - **Colours are in the escape codes.** ``TestScreen/styledLines`` has them, but TUI has no API for asking what colour a
   cell is. To test that something changes colour, compare rows of `styledLines`.
+- **It draws in 24-bit colour, whatever the environment says.** `swift test` sets `NO_COLOR` whenever its output isn't a
+  terminal, and `TERM` and `COLORTERM` differ from one machine to the next, so a running app's colours would differ from
+  one run of a test to the next. To test fewer colours, wrap the test in `ColorDepth.withCurrent(.basic16) { … }`.
 
 ## Topics
 

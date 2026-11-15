@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`TestApp` draws in the same colours wherever its tests run.** It drew in the colours its environment said the
+terminal had, as a running app does, and `swift test` sets `NO_COLOR` whenever its output isn't a terminal, so a test
+of `styledLines` could pass in a terminal and fail down a pipe or on CI; `TERM` and `COLORTERM` differ between
+machines too. It now draws in 24-bit colour. To test fewer colours, wrap the test in `ColorDepth.withCurrent(_:)`,
+which it follows. Apps are unchanged.
+
 **Type select on a long list of plain `Text` rows is about three times quicker, and on a long table a third.** A typed prefix is matched against
 the rows from the cursor on, stopping at the first that starts with it, so a prefix no row starts with asks every row
 for its text. A row that is a plain `Text` is now read for it rather than drawn: on a 10,000-row list such a key press
