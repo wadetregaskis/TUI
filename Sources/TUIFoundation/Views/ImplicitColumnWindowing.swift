@@ -9,7 +9,9 @@
 //  its rows, `StackedChildren.swift`); in scroll content, past 256 rows, that
 //  column is drawn as a lazy stack is, so the scroll view's request pulls
 //  it through the container (`ContainerViewCore+Pulled.swift`, `Section`'s
-//  relay) and only the band is built.
+//  relay) and only the band is built. Content of several views with such a
+//  loop among them — `GroupBox { header; ForEach(rows) }` — is drawn as a
+//  column of those views, the loop one of them, drawn as the lazy stack.
 //
 //  The difference from SwiftUI the owner accepted: a row off screen is not
 //  built, so its `onAppear` and `.task` run when it scrolls in, not when the
@@ -59,11 +61,121 @@ nonisolated package struct _WindowingImplicitColumn<Content: View>: View, Render
     }
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        TUIView.renderToBuffer(content, context: context.withChildIdentity(type: Self.self))
+        let column = context.withChildIdentity(type: Self.self)
+        if let several = columnOfSeveral(context: column) {
+            return TUIView.renderToBuffer(several, context: column.withChildIdentity(type: _ImplicitColumnOfSeveral.self))
+        }
+        return TUIView.renderToBuffer(content, context: column)
     }
 
     @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        measureChild(content, proposal: proposal, context: context.withChildIdentity(type: Self.self))
+        let column = context.withChildIdentity(type: Self.self)
+        if let several = columnOfSeveral(context: column) {
+            return measureChild(
+                several, proposal: proposal, context: column.withChildIdentity(type: _ImplicitColumnOfSeveral.self))
+        }
+        return measureChild(content, proposal: proposal, context: column)
+    }
+
+    /// The content as a column that pulls its views, when it is several of
+    /// them and one is a loop past the lazy stack's threshold, in scroll
+    /// content: `GroupBox { header; ForEach(rows) }`. Its views are the
+    /// column's children, at its step (``_ImplicitColumnOfSeveral``), and the
+    /// loop among them stays one child (`ForEach.staysWhole(in:)`), drawn as
+    /// the lazy stack it is drawn as alone; so the header is drawn whole and
+    /// only the loop's rows on screen are built. `nil` otherwise, and the
+    /// content draws as it always has: several views stacked whole, which
+    /// builds every row of the loop to resolve them.
+    ///
+    /// The views' identities are the column's, not those the views stacked
+    /// whole take, so a loop growing past the threshold starts its rows' state
+    /// afresh, once.
+    @MainActor private func columnOfSeveral(context: RenderContext) -> (any View)? {
+        guard context.scrollContentOriginDepth != 0, !context.environment.drawsContainerRowsWhole,
+            !context.environment.drawsListSectionChrome
+        else { return nil }
+        return (content as? any ImplicitColumnMembers)?.columnOfSeveral(in: context)
+    }
+}
+
+/// The identity step a windowing container's column of several views is
+/// drawn at as a column (`_WindowingImplicitColumn.columnOfSeveral`): its
+/// views are sibling steps under it, so the column is a container a pulled
+/// view stands in (``ScrollPlacing``), and a loop directly under it is the
+/// container's column, drawn as a lazy stack (`ForEach.windowedColumn`).
+package enum _ImplicitColumnOfSeveral: ScrollPlacing {}
+
+/// A windowing container's content that may be several views, one of them a
+/// loop past the lazy stack's threshold: a builder's tuple, or the erasures a
+/// style's configuration holds it in.
+@MainActor
+package protocol ImplicitColumnMembers {
+    /// These views as a column that pulls them, when one is such a loop
+    /// (written bare, or in an `if`); `nil` otherwise.
+    func columnOfSeveral(in context: RenderContext) -> (any View)?
+}
+
+/// What an `if` is in a view builder: the conditional an `if`/`else` makes,
+/// or the `Optional` an `if` alone does.
+private protocol IfContent {}
+extension ConditionalView: IfContent {}
+extension Optional: IfContent where Wrapped: View {}
+
+/// A view that is, or holds as an `if` does, a loop: counted without
+/// building a row.
+@MainActor
+private protocol CountedLoop {
+    func liveElementCount(in context: RenderContext) -> Int
+}
+
+@MainActor extension ForEach: CountedLoop where Content: View {
+    fileprivate func liveElementCount(in context: RenderContext) -> Int { data(in: context).count }
+}
+
+@MainActor extension ConditionalView: CountedLoop {
+    fileprivate func liveElementCount(in context: RenderContext) -> Int {
+        switch self {
+        case .trueContent(let content): (content as? any CountedLoop)?.liveElementCount(in: context) ?? 0
+        case .falseContent(let content): (content as? any CountedLoop)?.liveElementCount(in: context) ?? 0
+        }
+    }
+}
+
+@MainActor extension Optional: CountedLoop where Wrapped: View {
+    fileprivate func liveElementCount(in context: RenderContext) -> Int {
+        guard case .some(let view) = self, let loop = view as? any CountedLoop else { return 0 }
+        return loop.liveElementCount(in: context)
+    }
+}
+
+@MainActor extension TupleView: ImplicitColumnMembers {
+    package func columnOfSeveral(in context: RenderContext) -> (any View)? {
+        for child in repeat each children {
+            if let loop = child as? any CountedLoop,
+                loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
+            {
+                return _VStackCore(alignment: .leading, spacing: 0, overflow: .clip, content: self)
+            }
+        }
+        return nil
+    }
+}
+
+@MainActor extension _StyledContent: ImplicitColumnMembers {
+    package func columnOfSeveral(in context: RenderContext) -> (any View)? {
+        (underlying as? any ImplicitColumnMembers)?.columnOfSeveral(in: context)
+    }
+}
+
+@MainActor extension AnyView: ImplicitColumnMembers {
+    package func columnOfSeveral(in context: RenderContext) -> (any View)? {
+        (erasedView as? any ImplicitColumnMembers)?.columnOfSeveral(in: context)
+    }
+}
+
+@MainActor extension DisclosureGroupStyleConfiguration.Content: ImplicitColumnMembers {
+    package func columnOfSeveral(in context: RenderContext) -> (any View)? {
+        make().columnOfSeveral(in: context)
     }
 }
 
@@ -102,10 +214,39 @@ extension View {
         var cursor: ViewIdentity? = identity
         while let node = cursor {
             if node.leafType.map({ $0 is any WindowsItsImplicitColumn.Type }) == true { return true }
-            if node.isSiblingStep { return false }
+            // One of several views a windowing container draws as a column
+            // (``_ImplicitColumnOfSeveral``), written bare or in an `if`, is
+            // the container's column too.
+            if node.isSiblingStep { return isAmongColumnOfSeveral(node) }
             cursor = node.parent
         }
         return false
+    }
+
+    /// Whether `node`, a sibling step, is one of the views of a column of
+    /// several (``_ImplicitColumnOfSeveral``): its parent is the column's
+    /// step, or an `if` among the column's views — the branch an `if`/`else`
+    /// took, and the conditional or the `Optional` above it — stands between.
+    private static func isAmongColumnOfSeveral(_ node: ViewIdentity) -> Bool {
+        var cursor = node.parent
+        while let parent = cursor {
+            guard let type = parent.leafType, !parent.isBranchStep else {
+                guard parent.isBranchStep else { return false }
+                cursor = parent.parent
+                continue
+            }
+            if ObjectIdentifier(type) == ObjectIdentifier(_ImplicitColumnOfSeveral.self) { return true }
+            guard type is any IfContent.Type else { return false }
+            cursor = parent.parent
+        }
+        return false
+    }
+
+    /// A loop drawn as a windowing container's column stays one child of the
+    /// column of several views it stands in (``_ImplicitColumnOfSeveral``),
+    /// drawn as its lazy stack, rather than handing the column every row.
+    public func staysWhole(in context: RenderContext) -> Bool {
+        windowedColumn(context: context) != nil
     }
 
     /// `column` drawn, or, for a measure that draws to find a size (a

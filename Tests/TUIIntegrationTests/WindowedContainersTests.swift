@@ -26,6 +26,9 @@ import TUITesting
 struct WindowedContainersTests {
     enum Shape: String, CaseIterable, Sendable {
         case groupBox, titledGroupBox, disclosureGroup, section, flow
+        /// A header above the loop in the container: several views, drawn
+        /// as a column the loop is pulled in (`columnOfSeveral`).
+        case headedGroupBox, headedDisclosureGroup
     }
 
     /// A row's text: two lines every third row in a column; in a flow, words
@@ -59,6 +62,12 @@ struct WindowedContainersTests {
         case .groupBox: GroupBox { rows() }
         case .titledGroupBox: GroupBox("Box") { rows() }
         case .disclosureGroup: disclosure(rows())
+        case .headedGroupBox:
+            GroupBox {
+                Text("header")
+                rows()
+            }
+        case .headedDisclosureGroup: headedDisclosure(rows())
         case .section: rows()
         case .flow: flow(rows())
         }
@@ -68,6 +77,13 @@ struct WindowedContainersTests {
         DisclosureGroup("More", isExpanded: .constant(true)) { rows }
     }
 
+    private static func headedDisclosure<Rows: View>(_ rows: Rows) -> some View {
+        DisclosureGroup("More", isExpanded: .constant(true)) {
+            Text("header")
+            rows
+        }
+    }
+
     private static func flow<Rows: View>(_ rows: Rows) -> some View {
         FlowLayout(spacing: 1) { rows }
     }
@@ -75,7 +91,9 @@ struct WindowedContainersTests {
     /// `rows` in `shape` under a title and over a footer in scroll content;
     /// drawn `whole`, every row built, as before SCROLL-FIT P8: the twin the
     /// windowed drawing must match.
-    private static func app(_ shape: Shape, rows count: Int, builds: Builds, whole: Bool = false) -> TestApp {
+    private static func app(
+        _ shape: Shape, rows count: Int, builds: Builds, whole: Bool = false, fitsContent: Bool = false
+    ) -> TestApp {
         TestApp(width: 30, height: 12) {
             ScrollView {
                 // A section in a stack is taken apart, its rows the stack's
@@ -98,6 +116,7 @@ struct WindowedContainersTests {
                 }
             }
             .environment(\.drawsContainerRowsWhole, whole)
+            .environment(\.scrollFitsContent, fitsContent)
         }
     }
 
@@ -107,11 +126,13 @@ struct WindowedContainersTests {
         app.screen.lines.map { String(($0 + String(repeating: " ", count: 30)).prefix(29)) }
     }
 
+    /// With SCROLL-FIT's switch on too (`scrollFitsContent`), as P7 makes
+    /// the default.
     @Test("A windowed container draws what the eager one draws, at the top, paged, wheeled and at the end",
-          arguments: Shape.allCases)
-    func drawsWhatTheEagerOneDraws(_ shape: Shape) {
-        let lazy = Self.app(shape, rows: 300, builds: Builds())
-        let eager = Self.app(shape, rows: 300, builds: Builds(), whole: true)
+          arguments: Shape.allCases, [false, true])
+    func drawsWhatTheEagerOneDraws(_ shape: Shape, fitsContent: Bool) {
+        let lazy = Self.app(shape, rows: 300, builds: Builds(), fitsContent: fitsContent)
+        let eager = Self.app(shape, rows: 300, builds: Builds(), whole: true, fitsContent: fitsContent)
         func check(_ step: String) {
             #expect(Self.content(lazy) == Self.content(eager), "\(shape) \(step):\n\(lazy.screen)\n---\n\(eager.screen)")
         }
@@ -140,9 +161,9 @@ struct WindowedContainersTests {
     }
 
     /// The rows built on the first frame and on each of five page-downs.
-    private static func builtPerStep(_ shape: Shape, rows: Int) -> [Int] {
+    private static func builtPerStep(_ shape: Shape, rows: Int, fitsContent: Bool) -> [Int] {
         let builds = Builds()
-        let app = app(shape, rows: rows, builds: builds)
+        let app = app(shape, rows: rows, builds: builds, fitsContent: fitsContent)
         _ = app.screen
         var counts = [builds.count]
         for _ in 0..<5 {
@@ -162,10 +183,10 @@ struct WindowedContainersTests {
     /// to break its lines (A-SCROLLFIT-5 (a)); its steps measure none again.
     /// (Before P8, every row on every frame: 10,000 a step.)
     @Test("Around 10,000 rows, a page builds fewer than 100 rows, the same as around 2,000",
-          arguments: Shape.allCases)
-    func builtRowsIndependentOfRowCount(_ shape: Shape) {
-        let tenThousand = Self.builtPerStep(shape, rows: 10_000)
-        let twoThousand = Self.builtPerStep(shape, rows: 2_000)
+          arguments: Shape.allCases, [false, true])
+    func builtRowsIndependentOfRowCount(_ shape: Shape, fitsContent: Bool) {
+        let tenThousand = Self.builtPerStep(shape, rows: 10_000, fitsContent: fitsContent)
+        let twoThousand = Self.builtPerStep(shape, rows: 2_000, fitsContent: fitsContent)
         #expect(tenThousand.dropFirst().allSatisfy { $0 < 100 }, "\(shape): \(tenThousand)")
         #expect(tenThousand.dropFirst() == twoThousand.dropFirst(), "\(shape): \(twoThousand) \(tenThousand)")
         if shape == .flow {

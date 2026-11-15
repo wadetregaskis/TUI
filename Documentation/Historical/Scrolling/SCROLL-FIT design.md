@@ -798,6 +798,24 @@ No `existence` protocol: each of these containers draws its content as an implic
   walk), as before. The fifth P2 lane's plan, placing a pulled cell's row by what the cell drew,
   stays the next step (about a day): this lane spent its time on the containers above.
 
+**P8 leftovers as built** (2026-11-14). What P8 left, each pinned by a twin (the same rows drawn
+whole, `drawsContainerRowsWhole`) with the switch off and on, and by a count of rows built that
+failed before:
+
+- **A container's content of several views, a long loop among them** (`GroupBox { header;
+  ForEach(rows) }`, the same in a `DisclosureGroup`; `ImplicitColumnWindowing.swift`). The cause:
+  the content's `TupleView` drew its views stacked whole, and its loop, a sibling step under it,
+  was not the container's column, so every row was built every frame (240,000 rows on the first
+  frame at 10,000, then 10,000 a page). Now, in scroll content and when one of the views is a loop
+  past 256 elements (written bare or in an `if`), the content is drawn as a column of its views
+  at a step of its own (`_ImplicitColumnOfSeveral`, a `ScrollPlacing` marker), the loop one child
+  of it (`ForEach.staysWhole(in:)`) drawn as the lazy stack it is drawn as alone. So the column
+  pulls the header whole and the loop's band: a page builds the same rows at 2,000 and 10,000
+  (`WindowedContainersTests`' `headedGroupBox` and `headedDisclosureGroup`). The views' identities
+  are the column's, not those of the views stacked whole, so a loop that grows past the threshold
+  starts its rows' state afresh, once. A `Section` drawn as one view with several views in its
+  content still draws them whole.
+
 ### 1d. Heights of rows not yet built
 
 **B-SCROLLFIT-3 (kept). Fixed pitch is arithmetic; variable pitch is an estimate, through the
