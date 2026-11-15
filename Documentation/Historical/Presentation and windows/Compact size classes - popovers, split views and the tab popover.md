@@ -2,7 +2,8 @@
 
 *What TUI does when an app writes a compact size class: a popover becomes a
 sheet, a split view collapses to `preferredCompactColumn`, and a tab's popover
-adapts too. Ids: A21, A21-TABPOPOVER; B3 is in
+adapts too; and a split too narrow for its columns collapses whatever the class.
+Ids: A21, A21-TABPOPOVER, SPLIT-STACK; B3 is in
 [Safe areas, size classes and layout direction](<../Layout and geometry/Safe areas, size classes and layout direction.md>).*
 
 ## In short
@@ -11,7 +12,10 @@ Size classes are the app's to set (B3). Under `.compact` a popover adapts to a
 sheet (`presentationCompactAdaptation`), a `NavigationSplitView` collapses to
 a stack showing `preferredCompactColumn`, and since 2026-10-24 a tab's popover
 adapts as `View.popover`'s does (TUITabs now depends on TUIPresentation:
-+3.1% for an app on TUIApp and TUITabs with no sheet of its own).
++3.1% for an app on TUIApp and TUITabs with no sheet of its own). Since
+2026-11-14 a split whose width has no room for its columns side by side
+collapses the same way whatever the class, which the owner kept on 2026-11-15
+(SPLIT-STACK).
 
 ## The record
 
@@ -114,3 +118,30 @@ it is not drawn. A `Table` chooses its rows the same way since the compact
 onto the collapsed stack, over that column (lane TOOLBARS, 2026-10-19); in a
 regular class a split's links still push only within a `NavigationStack`
 (decisions TOOLBARS, B-TOOLBARS-3).
+
+### SPLIT-STACK. A split view too narrow for its columns: stack or hide?
+
+**The problem (2026-11-14).** Every column of a `NavigationSplitView` is
+held to 10 cells, so three columns in a 20-cell terminal drew 32 wide: the
+detail and the second divider lay past the screen's edge, and Tab still
+focused that divider.
+
+**What shipped (4aa8f2b65, 2026-11-14).** A split collapses into a stack,
+as it does in a compact size class (A21), wherever its width has no room
+for its visible columns side by side at 10 cells each and a divider
+between: three under 32 cells, two under 21. A detail shown alone never
+collapses. The size class and `columnVisibility` are left as they are, and
+the split expands again when the room comes back. Hiding the sidebar, as
+macOS does for a narrow window, was tried first and set aside: the sidebar
+(a contacts list, a mailbox list) became unreachable.
+
+**The options put to the owner.** (a) Keep the stack, built and landed.
+(b) Hide the sidebar, as macOS does: half a day, plus a key to show it
+again.
+
+**Ruling (owner, 2026-11-15): (a), keep the stack.** SwiftUI's split
+collapses into a stack at compact width, as on an iPhone or an iPad
+narrowed into a compact width; macOS hides the sidebar instead, and the
+user widens the window to bring it back. A terminal app can't widen its
+window, so a hidden sidebar would have no way back, where the stack keeps
+every column reachable.
