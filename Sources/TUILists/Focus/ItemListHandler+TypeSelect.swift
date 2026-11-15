@@ -11,8 +11,9 @@ import TUICore
 import TUIFoundation
 
 extension ItemListHandler: TypeSelectingFocusHandler {
-    /// Always, while it holds the focus, as a focused macOS table does.
-    package var takesTypedCharacters: Bool { true }
+    /// Always, while it holds the focus, as a focused macOS table does —
+    /// unless `.typeSelectDisabled()` turned type select off.
+    package var takesTypedCharacters: Bool { typeSelected.isEnabled }
 }
 
 extension ItemListHandler {
@@ -25,7 +26,8 @@ extension ItemListHandler {
     /// table takes them, whether or not a row matches. No bare-key binding
     /// hears one meanwhile, TUI's own `q`, `t`, `a` and help key included
     /// (``TypeSelectingFocusHandler``). The row shortcuts are never bare keys,
-    /// so none of them is lost to it.
+    /// so none of them is lost to it. Where `.typeSelectDisabled()` turned it
+    /// off, nothing is taken, and the key goes on to the next handler.
     ///
     /// - Returns: Whether the key was taken.
     func typeSelect(_ event: KeyEvent) -> Bool {

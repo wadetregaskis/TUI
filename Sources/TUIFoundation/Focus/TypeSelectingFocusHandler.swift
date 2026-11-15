@@ -17,7 +17,8 @@ import TUICore
 /// (``StatusBarState/currentItems``).
 package protocol TypeSelectingFocusHandler: AnyObject {
     /// Whether it takes typed characters now: a list's or table's always, a
-    /// `Picker`'s only while its drop-down is open.
+    /// `Picker`'s only while its drop-down is open — and neither where
+    /// `.typeSelectDisabled()` turned type select off (``TypeSelectBuffer/isEnabled``).
     var takesTypedCharacters: Bool { get }
 }
 
@@ -61,6 +62,16 @@ package struct TypeSelectBuffer {
     /// How long a pause starts a new prefix.
     package static var timeout: Duration { .seconds(1) }
 
+    /// Whether type select is on where the control is drawn
+    /// (``EnvironmentValues/isTypeSelectEnabled``, `.typeSelectDisabled(_:)`):
+    /// set by the control's render, for event time. Off, ``take(_:)`` takes
+    /// nothing, so a typed character goes on to the next handler, and the
+    /// control does not hold typed keys (``TypeSelectingFocusHandler``).
+    /// Turning it off forgets what was typed.
+    package var isEnabled = true {
+        didSet { if !isEnabled { reset() } }
+    }
+
     package init() {}
 
     /// Forgets what was typed: the next character starts a new prefix.
@@ -82,11 +93,12 @@ package struct TypeSelectBuffer {
     }
 
     /// Takes `event` into the prefix — starting a new one after a pause — if
-    /// it is a character type select takes (``takes(_:)``).
+    /// it is a character type select takes (``takes(_:)``) and type select is
+    /// on (``isEnabled``).
     ///
     /// - Returns: Whether the key was taken.
     package mutating func take(_ event: KeyEvent) -> Bool {
-        guard Self.takes(event), case .character(let character) = event.key else { return false }
+        guard isEnabled, Self.takes(event), case .character(let character) = event.key else { return false }
         let now = ContinuousClock.now
         if let lastKey, now - lastKey > Self.timeout { prefix = "" }
         lastKey = now

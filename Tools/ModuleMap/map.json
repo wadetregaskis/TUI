@@ -313,6 +313,7 @@
   "TUIFoundation/Environment/TerminalFeaturesEnvironment.swift": "TUIFoundation",
   "TUIFoundation/Environment/TransitionSpace.swift": "TUIFoundation",
   "TUIFoundation/Environment/TruncationModeEnvironment.swift": "TUIFoundation",
+  "TUIFoundation/Environment/TypeSelectDisabled.swift": "TUIFoundation",
   "TUIFoundation/Environment/TypedClipboard.swift": "TUIFoundation",
   "TUIFoundation/Environment/ViewEnvironmentKeys.swift": "TUIFoundation",
   "TUIFoundation/Environment/WindowActions.swift": "TUIFoundation",

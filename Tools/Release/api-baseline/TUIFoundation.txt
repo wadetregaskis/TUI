@@ -919,6 +919,7 @@ EnvironmentValues.isFocused | var isFocused: Bool { get set }
 EnvironmentValues.isLuminanceReduced | var isLuminanceReduced: Bool { get set }
 EnvironmentValues.isPresented | var isPresented: Bool { get set }
 EnvironmentValues.isScrollEnabled | var isScrollEnabled: Bool { get set }
+EnvironmentValues.isTypeSelectEnabled | var isTypeSelectEnabled: Bool { get set }
 EnvironmentValues.isUserAuthenticationEnabled | var isUserAuthenticationEnabled: Bool { get }
 EnvironmentValues.keyLetterCase | var keyLetterCase: KeyLetterCase { get set }
 EnvironmentValues.keyNotation | var keyNotation: KeyNotation { get set }
@@ -4137,6 +4138,7 @@ View.transformEnvironment(_:transform:) | nonisolated func transformEnvironment<
 View.transformPreference(_:_:) | nonisolated func transformPreference<K>(_ key: K.Type = K.self, _ callback: @escaping (inout K.Value) -> Void) -> some View where K : PreferenceKey
 View.transitionSpace(_:) | nonisolated func transitionSpace(_ space: TransitionSpace) -> some View
 View.truncationMode(_:) | nonisolated func truncationMode(_ mode: TruncationMode) -> some View
+View.typeSelectDisabled(_:) | nonisolated func typeSelectDisabled(_ disabled: Bool = true) -> some View
 View.typeSelectEquivalent(_:) | nonisolated func typeSelectEquivalent(_ stringKey: LocalizedStringKey) -> some View
 View.typeSelectEquivalent(_:) | nonisolated func typeSelectEquivalent(_ text: Text?) -> some View
 View.typeSelectEquivalent(_:) | nonisolated func typeSelectEquivalent<S>(_ string: S) -> some View where S : StringProtocol

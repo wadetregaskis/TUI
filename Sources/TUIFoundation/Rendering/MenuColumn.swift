@@ -336,6 +336,14 @@ package final class MenuPopupController {
     /// one the keys are in.
     private var typeSelected = TypeSelectBuffer()
 
+    /// Whether a typed character finds a row
+    /// (``EnvironmentValues/isTypeSelectEnabled``), set where the menu is
+    /// presented, for event time.
+    var isTypeSelectEnabled: Bool {
+        get { typeSelected.isEnabled }
+        set { typeSelected.isEnabled = newValue }
+    }
+
     /// The menu the prefix was typed in: one typed in another — the keys gone
     /// into a submenu, or back out of one — is forgotten.
     private weak var typedIn: MenuPopupController?

@@ -140,6 +140,8 @@ Table(processes, selection: $selection) { … }
     }
 ```
 
+Or turn the list's or table's type select off with ``View/typeSelectDisabled(_:)``: the item with an action on a bare letter then fires and shows while it has the focus, as it does anywhere else.
+
 See <doc:ListAndTable> ("Keyboard Navigation").
 
 ## Context Stack

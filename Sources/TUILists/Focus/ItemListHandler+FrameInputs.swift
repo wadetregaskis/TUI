@@ -76,6 +76,8 @@ extension ItemListHandler {
         shiftStepMultiplier = environment.shiftStepMultiplier
         // Whether a key's cursor move selects, at event time too.
         selectionFollowsCursor = environment.selectionFollowsCursor
+        // Whether a typed character finds a row, at event time too.
+        typeSelected.isEnabled = environment.isTypeSelectEnabled
         // The app-customisable key bindings, resolved once here rather than per
         // keystroke (see `RowShortcuts.lookup`) — and now once per HANDLER
         // rather than once per pass, which is what ``shortcutsKey`` is for.

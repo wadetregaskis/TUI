@@ -270,6 +270,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
         handler.itemValues = itemValues
         handler.canBeFocused = !isDisabled
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier
+        handler.isTypeSelectEnabled = context.environment.isTypeSelectEnabled
         handler.highlight.adopt(count: itemValues.count)
         // Open means drawn: the dispatcher asks it of a press that opened the
         // drop-down (`MouseEventDispatcher.pressOpenedPopup`), to know whether

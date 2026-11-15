@@ -15,6 +15,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**`.typeSelectDisabled()` turns type select off, so the app's bare keys work beside a list.** A focused list or
+table, an open `Picker` drop-down and an open pop-up menu take every printable character but Space to find a row by
+its first characters, so no bare-key shortcut or status-bar item hears one meanwhile; that is still the default, as
+the owner ruled, shortcuts being meant to take a modifier. Set on a view, the modifier turns type select off for
+every one of them below it: a typed character then moves nothing and goes on to the next handler, a
+`.keyboardShortcut` with no modifiers, a status-bar item's action (which the bar shows again), or an open menu
+row's bare key equivalent. `.typeSelectDisabled(false)` turns it back on inside, and `\.isTypeSelectEnabled` reads
+it.
+
 **`.statusBarKeySpelling(_:)` is now `.keyLetterCase(_:)`, and it reaches every place a key is drawn.** A letter
 pressed alone is drawn as a capital by default, as macOS draws it (`K`), or in lower case under `.asTyped` (`k`), in
 the status bar, a menu's shortcut column and the F1 list of shortcuts alike. A key that needs Shift is drawn `⇧K` in

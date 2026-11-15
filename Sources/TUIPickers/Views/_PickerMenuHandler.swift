@@ -60,6 +60,14 @@ final class _PickerMenuHandler: PersistedFocusable {
     /// What has been typed to find an option, while the drop-down is open.
     private var typeSelected = TypeSelectBuffer()
 
+    /// Whether a typed character finds an option
+    /// (``EnvironmentValues/isTypeSelectEnabled``). Synced from the
+    /// environment during render, for event time.
+    var isTypeSelectEnabled: Bool {
+        get { typeSelected.isEnabled }
+        set { typeSelected.isEnabled = newValue }
+    }
+
     /// The drop-down's vertical scroll, when the option list is taller than the
     /// menu can show. `extent` = option count, `viewportHeight` = visible rows,
     /// `scrollOffset` = first visible option. Drives the menu's scrollbar (the
@@ -127,6 +135,10 @@ final class _PickerMenuHandler: PersistedFocusable {
             isOpen = false
             return false
         default:
+            // `.typeSelectDisabled()`: a character type select would have
+            // taken goes on to the next handler, as though the drop-down
+            // were not open — a page's bare shortcut, a status-bar item.
+            if !typeSelected.isEnabled, TypeSelectBuffer.takes(event) { return false }
             // A typed character moves the highlight to the option it starts
             // (type select), as an open macOS pop-up button's menu does; no
             // bare-key binding hears it (`TypeSelectingFocusHandler`).
@@ -145,6 +157,7 @@ final class _PickerMenuHandler: PersistedFocusable {
 
 extension _PickerMenuHandler: TypeSelectingFocusHandler {
     /// Only while open: a closed picker takes no characters, so a bare-key
-    /// binding still has them then.
-    var takesTypedCharacters: Bool { isOpen }
+    /// binding still has them then. Nor an open one where
+    /// `.typeSelectDisabled()` turned type select off.
+    var takesTypedCharacters: Bool { isOpen && typeSelected.isEnabled }
 }

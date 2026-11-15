@@ -158,6 +158,23 @@ Table(processes, selection: $selection) {
 }
 ```
 
+Or turn type select off with ``View/typeSelectDisabled(_:)``. A typed character
+then moves nothing and goes on as though the list or table were not there, so
+an app's bare-key shortcut or status-bar item has it, and the bar shows the
+item again. It is an environment value: it reaches every list, table, `Picker`
+drop-down and pop-up menu below it, and `.typeSelectDisabled(false)` turns it
+back on inside.
+
+```swift
+Table(processes, selection: $selection) {
+    TableColumn("Name", value: \.name)
+}
+.typeSelectDisabled()
+.statusBarItems {
+    StatusBarItem(shortcut: "k", label: "kill") { kill(selection) }
+}
+```
+
 ### Selection that follows the cursor
 
 The cursor is apart from the selection by default, so the keys browse a list
@@ -867,6 +884,7 @@ List("Items", selection: $selected) {
 | ``View/listEmptyPlaceholder(_:)-(LocalizedStringKey)`` | Text shown when a list has no items (default: "No items"), in the secondary ink where a row's text would start |
 | `.listFooterSeparator(_:)` | Controls the separator line before the footer |
 | ``View/selectionFollowsCursor(_:)`` | A key that moves the cursor selects the row it lands on, as on macOS (lists and tables alike) |
+| ``View/typeSelectDisabled(_:)`` | Turns type select off, so a typed character goes on to the app's bare keys (lists and tables alike) |
 | `.disabled(_:)` | Prevents keyboard interaction |
 
 A ``Table`` has its own:

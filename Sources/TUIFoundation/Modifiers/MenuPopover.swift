@@ -291,7 +291,10 @@ package func presentMenuPopover<Items: View>(
     claimKeyboardAsMenu(sectionID: sectionID, dismiss: dismiss, context: context)
     // A typed character finds a row by its title (type select), in whichever
     // of the menus open the keys are in: asked by the input handler as a
-    // focused list is asked, after the handler below declines it.
+    // focused list is asked, after the handler below declines it. Where
+    // `.typeSelectDisabled()` turned it off, the controller takes nothing,
+    // and a typed character goes on — to a row's bare key equivalent, say.
+    controller.isTypeSelectEnabled = context.environment.isTypeSelectEnabled
     context.environment.keyEventDispatcher!.setTypeSelectTarget(
         TypeSelectTarget(typeSelect: { controller.typeSelect($0) }),
         sectionID: sectionID)
