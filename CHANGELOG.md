@@ -50,6 +50,12 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**A table's or list's selection menu runs the item chosen when its items have an `if` among them.** Where a view of
+the app's own whose body is several views was drawn as one view — behind an `AnyView`, as a `List`'s and a `Table`'s
+row menus draw their items — the views inside an `if` (or a `Group`) in its body took the identities of the body's
+first views. They shared those views' `@State`, and in a row menu their rows, so choosing the first item ran the first
+item inside the `if`. Each view now has an identity of its own.
+
 **A `NavigationSplitView` too narrow for its columns collapses into a stack.** Each column is at least 10 cells
 wide, so three columns in a 20-cell terminal drew 32 wide: the detail and a divider lay past the screen's edge, and Tab
 still focused that divider. A split whose width has no room for its visible columns side by side (three under 32 cells,

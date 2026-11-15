@@ -96,9 +96,11 @@ extension TupleView: @MainActor Equatable where repeat each V: Equatable {
 
     public func childInfos(context: RenderContext) -> [ChildInfo] {
         var infos: [ChildInfo] = []
+        var slot = 0
         repeat Self.appendChildInfos(
             from: each children,
             into: &infos,
+            slot: &slot,
             context: context
         )
         return infos
@@ -121,14 +123,28 @@ extension TupleView: @MainActor Equatable where repeat each V: Equatable {
     /// through `resolveChildViews` for exactly that reason; this
     /// path remains only for `List`/`Section` row extraction,
     /// which handles `ForEach` separately.
+    ///
+    /// A provider's children are made one identity step in, at the provider's
+    /// STATIC `slot`, as ``childViews(context:)`` makes them — not at this
+    /// tuple's own identity. Made at the tuple's own, as they were, their
+    /// indices started again at 0 beside the tuple's own children, so the first
+    /// views of an `if` met the first views of the tuple: `Button("A"); Button("B"); if c { Button("D");
+    /// Button("E") }`, drawn whole, put D on A's identity and E on B's — one
+    /// `@State` box each, and in a menu one row each, so choosing A ran D
+    /// (tuitree's feedback, Milestone 2 item 1, a table's selection menu, whose
+    /// items are drawn whole behind an `AnyView`). The cast below is what
+    /// reaches an `if`'s views: Swift's `as?` looks through an `Optional`.
     @MainActor
     private static func appendChildInfos<C: View>(
         from child: C,
         into infos: inout [ChildInfo],
+        slot: inout Int,
         context: RenderContext
     ) {
+        defer { slot += 1 }
         if let provider = child as? ChildInfoProvider {
-            infos.append(contentsOf: provider.childInfos(context: context))
+            infos.append(
+                contentsOf: provider.childInfos(context: context.withChildIdentity(erasedType: C.self, index: slot)))
         } else {
             infos.append(
                 makeChildInfo(
