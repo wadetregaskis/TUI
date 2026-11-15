@@ -244,7 +244,7 @@ extension View {
     }
 
     /// A loop drawn as a windowing container's column stays one child of the
-    /// column of several views it stands in (``_ImplicitColumnOfSeveral``),
+    /// column of several views it stands in (`_ImplicitColumnOfSeveral`),
     /// drawn as its lazy stack, rather than handing the column every row.
     /// Asked where it is resolved: at its own step among the column's views,
     /// or an `if`'s among them. Anywhere else — a stack it is the content of —
