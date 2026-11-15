@@ -1511,6 +1511,17 @@ scenarios, 26 sessions), and `api_baseline.py --check` matches (9,578 declaratio
   at the top, twelve pages down, at the end and paged up from it, with and without a title, pinned or not
   (`SectionedLoopFirstFrameTests`). At spacing 1 the page up from the end lands at the last section's top: the found
   issue above, marked known there.
+- **S7, a lazy stack of more sections than the threshold samples each section it measures whole: kept.** 300 sections
+  of 30 rows build 1,800 rows on the first frame (a title above, 2,700), 30 a section in the stack's sample of sixteen,
+  over the frame's measures. Drawing the sampled sections as the pulled columns above (built in this lane, then taken
+  out) cut it to 1,060 (1,918 with the title), the two-level sample of sixteen by sixteen, and cost exactness: the
+  stack becomes a pulled column of estimated sections, so a jump of more than four screens is placed at the running
+  pitch, where the anchored window measured each section whole and placed it exactly — `CompositeMembersLazyTests`'
+  `.scrollPosition(y: 50)` over 300 sections of one to three rows drew a line off. A section's height is its rows'
+  heights, so an exact measure of a sampled section builds its rows; a stack of that many sections already windows
+  by its count, and a section of fewer than 256 rows builds no more than those. So a loop of more sections than the
+  threshold leaves its sections' loops alone (`ForEach.sectionLoopRows` answers `nil`). *Left:* a title over such a
+  loop draws each section in the band whole, 210 rows a page.
 
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
