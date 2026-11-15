@@ -377,7 +377,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 ? layout.wrapped(width: width, tabWidth: context.environment.tabWidth).rowCount
                 : layout.lines.count)
         // Pulled, its rows' height, held (`TextEditor+Pulled.swift`).
-        if notePulled(context: context) {
+        // Offered no height and not pulled, its rows' height too
+        // (`answersNaturalHeight`).
+        if notePulled(context: context) || answersNaturalHeight(proposal: proposal, context: context) {
             return ViewSize(width: width, height: contentHeight, isWidthFlexible: true, isHeightFlexible: false)
         }
         let height = proposal.height ?? min(contentHeight, max(1, context.availableHeight))

@@ -230,6 +230,12 @@ extension _ListCore {
         guard context.environment.scrollFitsContent, context.scrollContentOriginDepth != 0,
             !context.hasExplicitHeight, context.isPulledWhereItStands
         else { return nil }
+        return contentLines(context: context)
+    }
+
+    /// The list's lines as a pulled list reads them: its chrome and its rows,
+    /// none built.
+    private func contentLines(context: RenderContext) -> ListPulledLines {
         let source = extractRows(from: content, context: context)
         let style = context.environment.listStyle
         let titleOverhead = (title != nil && !style.showsBorder) ? 1 : 0
@@ -291,6 +297,31 @@ extension _ListCore {
         }
         guard lines.variable else { return lines.total }
         guard let rows = pulledState(context: context)?.rows, rows.hasSamples || rows.reportedRowsHeight != nil
+        else { return lines.total }
+        return lines.top + rows.estimatedRowsHeight(count: lines.count) + lines.bottom
+    }
+
+    /// The list's height when it is asked how tall it would be with nothing
+    /// to stop it — no height proposed, offered the natural-extent ladder's
+    /// budget, given none — and is not pulled: `.fixedSize` outside a scroll
+    /// view, or scroll content below a container that does not pull. Its
+    /// content's height, as a pulled list's measure answers it (rows of
+    /// varying height at the running pitch of those measured, else a line
+    /// each), where it took the budget: 4,096 lines in a scroll view, and
+    /// under `.fixedSize` the height it was offered (SCROLL-FIT P7, the
+    /// baseline's `listPlain fixedSize`). `nil` anywhere else. Not filed as a
+    /// band: with no viewport to pull against it is drawn whole (design 2f).
+    func naturalHeight(proposal: ProposedViewSize, context: RenderContext) -> Int? {
+        guard context.environment.scrollFitsContent, proposal.height == nil, !context.hasExplicitHeight,
+            isNaturalExtentBudget(context.availableHeight)
+        else { return nil }
+        let lines = contentLines(context: context)
+        guard !lines.isEmpty else {
+            let placeholder = emptyStateContent(height: Self.chromeProbeHeight, context: context)
+            return lines.top + placeholder.lines.count + lines.bottom
+        }
+        guard lines.variable, let rows = pulledState(context: context)?.rows,
+            rows.hasSamples || rows.reportedRowsHeight != nil
         else { return lines.total }
         return lines.top + rows.estimatedRowsHeight(count: lines.count) + lines.bottom
     }

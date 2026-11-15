@@ -640,7 +640,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             return .zero
         }
         // Pulled, its content's height, held (`_ListCore+Pulled.swift`).
-        let pulled = pulledHeight(context: context)
+        // Offered no height and not pulled, its content's (`naturalHeight`).
+        let pulled = pulledHeight(context: context) ?? naturalHeight(proposal: proposal, context: context)
         let height = pulled ?? proposal.height ?? context.availableHeight
         // Default: greedy on both axes, no rows built — the O(1) measure that
         // makes the layout pass cheap.

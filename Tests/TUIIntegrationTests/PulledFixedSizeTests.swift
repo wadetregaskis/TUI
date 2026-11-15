@@ -266,11 +266,12 @@ struct PulledFixedSizeTests {
         #expect(Self.fixedSize(subject, rows: 10_000).sizeA == size)
     }
 
-    /// A `List` has no ideal height: it says it fills what it is offered, so
-    /// the ladder stops at its first rung and it keeps the screen's height.
-    @Test("A List under .fixedSize keeps the height it is offered, at 60 and 10,000 rows", arguments: [60, 10_000])
-    func listHasNoIdealHeight(_ rows: Int) {
-        #expect(Self.fixedSize(.listPlain, rows: rows).sizeA == CellSize(width: 60, height: 23))
+    /// A `List` is its content's height too since P7, which it answers asked
+    /// for no height (`ContentSizedOfferedNoneTests`); until then it said it
+    /// filled what it was offered, and kept the screen's height.
+    @Test("A List under .fixedSize is its content's height, at 60 and 10,000 rows", arguments: [60, 10_000])
+    func listIsItsContentsHeight(_ rows: Int) {
+        #expect(Self.fixedSize(.listPlain, rows: rows).sizeA == CellSize(width: 60, height: rows + 2))
     }
 
     // MARK: - Fillers (B-SCROLLFIT-7)
@@ -279,8 +280,8 @@ struct PulledFixedSizeTests {
     /// scroll view, and under `.fixedSize` the screen's height left under the
     /// title. On, offered no height it is its minimum, as a `Color` is, so it
     /// comes out as tall as a `Color` does wherever the baseline puts one
-    /// (the screen's height alone in a scroll view, which draws its content
-    /// no shorter than its viewport until P7).
+    /// (no lines in a vertical scroll view, which draws its content at its
+    /// own height since P7; the viewport's in a horizontal one).
     @Test(
         "A GeometryReader offered no height is its minimum, as a Color is",
         arguments: [ScrollFitSituation.alone, .underTitle, .twoStacked, .fixedSize, .horizontal])

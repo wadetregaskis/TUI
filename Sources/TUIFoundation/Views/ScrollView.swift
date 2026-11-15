@@ -353,11 +353,13 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         let ideal =
             proposal.width == nil || proposal.height == nil
             ? idealSize(proposal: proposal, context: context) : nil
+        // Offered no height with nothing to stop it, its content's, fixed.
+        let natural = naturalHeight(proposal: proposal, ideal: ideal, context: read)
         return ViewSize(
             width: proposal.width ?? (ideal?.width ?? context.availableWidth),
-            height: proposal.height ?? (ideal?.height ?? context.availableHeight),
+            height: natural ?? proposal.height ?? (ideal?.height ?? context.availableHeight),
             isWidthFlexible: true,
-            isHeightFlexible: true
+            isHeightFlexible: natural == nil
         )
     }
 

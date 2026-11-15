@@ -42,6 +42,18 @@ extension _TextEditorCore {
         return pulled
     }
 
+    /// Whether the editor, not pulled, is asked how tall it would be with
+    /// nothing to stop it — no height proposed, offered the natural-extent
+    /// ladder's budget, given none: `.fixedSize` outside a scroll view, or
+    /// scroll content below a container that does not pull. It is then its
+    /// rows' height, drawn whole, where it was the budget or the height it was
+    /// offered, whichever was less: 4,096 lines in a scroll view, 23 under
+    /// `.fixedSize` on a 24-line screen (SCROLL-FIT P7).
+    func answersNaturalHeight(proposal: ProposedViewSize, context: RenderContext) -> Bool {
+        context.environment.scrollFitsContent && proposal.height == nil && !context.hasExplicitHeight
+            && isNaturalExtentBudget(context.availableHeight)
+    }
+
     /// Whether a column pulls the editor (the switch on, in scroll content,
     /// given no height, every container above it a column).
     private func isPulled(context: RenderContext) -> Bool {
