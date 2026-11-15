@@ -22,6 +22,11 @@ extension TestApp {
     /// that stands in for ⌘ in a terminal, which is Control unless the app
     /// says otherwise with `.commandKey(_:)`. So press it with `.control`.
     ///
+    /// A lowercase letter pressed with `.shift` arrives as its capital, as a
+    /// terminal sends it: `press(.character("g"), modifiers: [.control,
+    /// .shift])` is ⇧⌃G, which fires a `.keyboardShortcut("g", modifiers:
+    /// [.command, .shift])`, as `.character("G")` with `.control` does.
+    ///
     /// - Parameters:
     ///   - key: The key, such as `.space`, `.down` or `.character("a")`.
     ///   - modifiers: The modifier keys held.
@@ -31,12 +36,26 @@ extension TestApp {
     public func press(_ key: Key, modifiers: EventModifiers = [], times: Int = 1) -> Bool {
         press(
             KeyEvent(
-                key: key,
+                key: Self.shifted(key, if: modifiers.contains(.shift)),
                 ctrl: modifiers.contains(.control),
                 alt: modifiers.contains(.option),
                 shift: modifiers.contains(.shift),
                 command: modifiers.contains(.command)),
             times: times)
+    }
+
+    /// `key` as a terminal sends it with Shift held: a lowercase letter as its
+    /// capital, alone or in a Control or Option chord (the kitty keyboard
+    /// protocol reports the shifted key, and TUI's parser reads it so), and
+    /// anything else as it is. A key's Shift is read from a letter's case
+    /// (`KeyboardShortcut`'s trigger), so a lowercase letter with the flag
+    /// was a key no terminal sends, and it fired the unshifted shortcut.
+    /// A letter whose capital is more than one character, such as ß, stays.
+    private static func shifted(_ key: Key, if shift: Bool) -> Key {
+        guard shift, case .character(let character) = key, character.isLowercase else { return key }
+        let capital = character.uppercased()
+        guard capital.count == 1, let first = capital.first else { return key }
+        return .character(first)
     }
 
     /// Delivers a key event, `times` times, and draws the frames each causes,

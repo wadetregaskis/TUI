@@ -146,6 +146,25 @@ struct TestAppKeyTests {
         #expect(app.screen.contains("Saved 1"))
     }
 
+    @Test("Shift with a lowercase letter is sent as its capital, so ⇧⌃G fires the shortcut that declares Shift")
+    func shiftedLetterIsItsCapital() {
+        struct Page: View {
+            @State private var found = ""
+            var body: some View {
+                VStack {
+                    Text("Found: \(found)")
+                    Button("Next") { found = "next" }.keyboardShortcut("g")
+                    Button("Previous") { found = "previous" }.keyboardShortcut("g", modifiers: [.command, .shift])
+                }
+            }
+        }
+        let app = TestApp(width: 40, height: 4) { Page() }
+        app.press(.character("g"), modifiers: [.control, .shift])
+        #expect(app.screen.contains("Found: previous"), "\(app.screen)")
+        app.press(.character("g"), modifiers: .control)
+        #expect(app.screen.contains("Found: next"), "\(app.screen)")
+    }
+
     @Test("A change `onChange` makes to state is drawn before press returns")
     func framesUntilSettled() {
         struct Page: View {

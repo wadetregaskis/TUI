@@ -58,6 +58,11 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**`TestApp.press` sends a lowercase letter held with Shift as its capital, as a terminal does.**
+`press(.character("g"), modifiers: [.control, .shift])` was a ⌃G with a Shift flag no terminal sends, and shortcuts
+read Shift from a letter's case, so it fired the `("g")` shortcut rather than the `("g", modifiers: [.command,
+.shift])` one. It is now ⇧⌃G.
+
 **A `TestApp` draws a change made outside a key press before a test reads the screen.** An undo made through
 `app.undoManager.undo()`, or a write to an `@Observable` model a view read, asked for a frame that no one drew until
 the next key, click or `advance(by:)`, so the test read the screen as it was before the change. `screen`, `focusedID`
