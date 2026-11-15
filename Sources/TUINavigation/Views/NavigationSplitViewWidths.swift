@@ -145,12 +145,16 @@ extension _NavigationSplitViewCore {
         _ column: NavigationSplitViewColumn, proposal: ProposedViewSize, context: RenderContext
     ) -> ViewSize {
         switch column {
+        // At the identity the column renders at (`renderColumnContent`).
         case .sidebar:
-            return measureChild(sidebar, proposal: proposal, context: context.withChildIdentity(type: type(of: sidebar)))
+            return measureChild(
+                sidebar, proposal: proposal, context: columnIdentityContext(of: sidebar, column: column, in: context))
         case .content:
-            return measureChild(content, proposal: proposal, context: context.withChildIdentity(type: type(of: content)))
+            return measureChild(
+                content, proposal: proposal, context: columnIdentityContext(of: content, column: column, in: context))
         case .detail:
-            return measureChild(detail, proposal: proposal, context: context.withChildIdentity(type: type(of: detail)))
+            return measureChild(
+                detail, proposal: proposal, context: columnIdentityContext(of: detail, column: column, in: context))
         default:
             return ViewSize(width: 0, height: 0)
         }

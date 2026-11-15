@@ -63,6 +63,10 @@ row menus draw their items — the views inside an `if` (or a `Group`) in its bo
 first views. They shared those views' `@State`, and in a row menu their rows, so choosing the first item ran the first
 item inside the `if`. Each view now has an identity of its own.
 
+**Two columns of a `NavigationSplitView` whose views are of one type keep their own state.** A column's identity was
+its view's type alone, so a sidebar and a content column of the same type — two `List`s of strings, say — shared their
+`@State`, and two lists shared one cursor and selection. Each column now has an identity of its own.
+
 **A `NavigationSplitView` too narrow for its columns collapses into a stack.** Each column is at least 10 cells
 wide, so three columns in a 20-cell terminal drew 32 wide: the detail and a divider lay past the screen's edge, and Tab
 still focused that divider. A split whose width has no room for its visible columns side by side (three under 32 cells,

@@ -628,9 +628,9 @@ extension _NavigationSplitViewCore {
     func renderColumnContent(_ column: NavigationSplitViewColumn, context: RenderContext) -> FrameBuffer {
         // The column is its content's `containerRelativeFrame` container,
         // published under the column's own identity so each column's size is
-        // noted in a slot of its own.
+        // noted in a slot of its own (``columnIdentityContext(of:column:in:)``).
         func columnContext<V: View>(_ view: V) -> RenderContext {
-            context.withChildIdentity(type: type(of: view)).publishingContainerSize(
+            columnIdentityContext(of: view, column: column, in: context).publishingContainerSize(
                 CellSize(width: max(0, context.availableWidth), height: max(0, context.availableHeight)))
         }
         switch column {
@@ -643,6 +643,26 @@ extension _NavigationSplitViewCore {
         default:
             return FrameBuffer()
         }
+    }
+
+    /// The context `column`'s view, `view`, renders and measures in: under a
+    /// step named for the column, then its view's type.
+    ///
+    /// By type alone, two columns of one type — a sidebar `List` and a content
+    /// `List` of the same rows, each with a `.navigationTitle` — were one
+    /// identity, so they shared their `@State` and one list's handler, its
+    /// cursor and selection binding swapped between them on every pass (found
+    /// by NavigationSplitViewCollapseTests' three columns, once a list's cursor
+    /// followed the selection it is bound to). The step is a branch, as an
+    /// `if`'s arm is, not a sibling index: a column is still its split's single
+    /// child for the active section's ● (`focusIndicatorOriginDepth`, which a
+    /// sibling step between the split and the column's border loses). The same
+    /// in the regular layout and the collapsed one, so a column keeps its
+    /// state across a change of size class.
+    func columnIdentityContext<V: View>(
+        of view: V, column: NavigationSplitViewColumn, in context: RenderContext
+    ) -> RenderContext {
+        context.withBranchIdentity(sectionName(of: column)).withChildIdentity(type: type(of: view))
     }
 
     /// Combines column buffers horizontally, inserting a one-column divider
