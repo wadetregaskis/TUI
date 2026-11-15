@@ -213,4 +213,34 @@ struct SearchPresentationTests {
         app.type("x")
         #expect(probe.query == "hellox")
     }
+
+    // MARK: - Escape
+
+    /// As macOS's search field's cancel operation does
+    /// (`Tools/SwiftUIProbes/Search field focus and Escape/`), but for where
+    /// the keyboard goes: to the content, where macOS leaves no view focused.
+    @Test("Escape in the search field empties it and ends the search, the keyboard going to the content")
+    func escapeEndsTheSearch() {
+        let probe = Probe()
+        let app = TestApp(width: 40, height: 12) { PlainPage(probe: probe) }
+        app.press(.character("f"), modifiers: .control)
+        app.type("x")
+        #expect(probe.query == "hellox")
+        app.press(.escape)
+        #expect(probe.query.isEmpty)
+        app.press(.space)
+        #expect(probe.pressed == 1, "the content's button holds the keyboard")
+    }
+
+    @Test("Escape in an empty search field ends the search too")
+    func escapeInAnEmptyField() {
+        let probe = Probe()
+        probe.query = ""
+        let app = TestApp(width: 40, height: 12) { PlainPage(probe: probe) }
+        app.press(.character("f"), modifiers: .control)
+        app.press(.escape)
+        app.press(.space)
+        #expect(probe.pressed == 1, "the content's button holds the keyboard")
+        #expect(probe.query.isEmpty, "and nothing was typed into the field")
+    }
 }

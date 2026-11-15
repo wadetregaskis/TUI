@@ -58,6 +58,10 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**Escape in a search field ends the search.** It empties the field and gives the keyboard back to the content, past
+the scopes, with text or without, as Escape (the cancel operation) does in a macOS search field; it did nothing. An
+open suggestions menu still closes first. `dismissSearch` likewise no longer leaves the focus in the scope bar.
+
 **A `.searchable`'s field no longer takes the focus from the content as the app starts.** The content's first control
 does, as on macOS, where a window opens with its `List` or `Table` focused and its search field in the toolbar
 untouched. Before, every key the content answered — the arrows, Return, an app's `onKeyPress` chords — typed into the

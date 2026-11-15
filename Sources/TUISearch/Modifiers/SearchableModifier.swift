@@ -95,8 +95,18 @@ struct SearchableModifier<Content: View> {
     /// Backspace in an empty field removes the last token — asked of the row
     /// rather than the field, through `onKeyPress`, which hears the key before
     /// the field does and only while the focus is in the row.
+    ///
+    /// Escape ends the search, with text or without: the field empties, and
+    /// the keyboard goes back to the content (``SearchDismissal/dismiss()``).
+    /// On macOS, Escape in a window's search field (its cancel operation)
+    /// empties it, ends the search and takes the focus out of it, empty or
+    /// not (measured with SwiftUI on macOS 15.8, `Tools/SwiftUIProbes/Search
+    /// field focus and Escape/`); there the focus goes to no view, which a
+    /// terminal's keyboard has no use for. Asked after the field, through
+    /// `onExitCommand`, so an open suggestions menu closes first.
     @ViewBuilder
     @MainActor private var fieldRow: some View {
+        let dismissal = dismissal
         let row = HStack(spacing: 1) {
             if supportsEmojiChrome, iconPlacement == .leading {
                 icon
@@ -123,6 +133,7 @@ struct SearchableModifier<Content: View> {
                 icon
             }
         }
+        .onExitCommand { dismissal.dismiss() }
         if let tokens {
             let text = text
             row.onKeyPress(.delete) {

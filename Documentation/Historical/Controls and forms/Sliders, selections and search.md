@@ -140,3 +140,9 @@ does nothing until ⌃F or Tab, so the field takes the focus there, as every
 searchable did before. A SwiftUI program behaves no differently for it: only
 the keys that would have done nothing reach the field.
 
+**Escape** (the same probe, the same day): in macOS's search field, with text
+or empty, Escape empties it, ends the search (`isSearching` false) and takes
+the focus out of it, to no view. TUI's field did nothing with it. It now ends
+the search as `dismissSearch` does: the field empties and the keyboard goes
+to the content, past the scopes, rather than to nothing.
+

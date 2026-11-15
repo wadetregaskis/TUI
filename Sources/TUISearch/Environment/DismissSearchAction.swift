@@ -112,10 +112,19 @@ final class SearchDismissal: Equatable {
     /// canonical shape — and moving focus off a control the user is actually
     /// using would be a bug, not a dismissal. Focus goes to the *next*
     /// focusable, which is the content: the field is drawn above it, so this is
-    /// the same step Tab would take out of the field.
+    /// the same step Tab would take out of the field — and on past the rows
+    /// under the field, the scopes, which ending the search hides.
     func dismiss() {
         text?.wrappedValue = ""
-        if isSearching { focusManager?.focusNext() }
+        guard isSearching, let focusManager else { return }
+        focusManager.focusNext()
+        // Each step moves the focus on, and the ring holds the field, which is
+        // not in the rows, so this ends: at the content, or back at the field
+        // where the content has nothing to focus.
+        while focusIsInAccessories, let before = focusManager.currentFocusedID {
+            focusManager.focusNext()
+            if focusManager.currentFocusedID == before { break }
+        }
     }
 
     nonisolated static func == (lhs: SearchDismissal, rhs: SearchDismissal) -> Bool { lhs === rhs }

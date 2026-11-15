@@ -96,4 +96,18 @@ struct SearchScopesTests {
         harness.frame(page(model, .onTextEntry))
         #expect(showsScopes(harness.frame(page(model, .onTextEntry))))
     }
+
+    @Test("Escape in the field ends the search past the scopes, to the content")
+    func escapePassesTheScopes() {
+        let harness = InputChainHarness(width: 60, height: 12)
+        let model = Model()
+        model.query = "app"
+        harness.frame(page(model))
+        harness.press(KeyEvent(key: .character("f"), ctrl: true))
+        #expect(showsScopes(harness.frame(page(model))), "the field has the focus: search is presented")
+        harness.press(KeyEvent(key: .escape))
+        harness.frame(page(model))
+        #expect(model.query.isEmpty)
+        #expect(!showsScopes(harness.frame(page(model))), "the focus is not in the scopes, which ending the search hid")
+    }
 }
