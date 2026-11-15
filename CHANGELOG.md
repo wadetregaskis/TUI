@@ -50,6 +50,9 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**`TestApp.windowTitle` reads the title the app has given the terminal's window**, such as a `DocumentGroup`
+window's document name with "Edited", so a test can check that an edit marks a document edited and a save clears it.
+
 **`.keyboardShortcutHint(_:)` shows a key beside a menu item without binding it.** For an item whose key something
 else binds — a table's `onKeyPress` chord, which leaves a focused text field its own ⌃D where an app-wide
 `.keyboardShortcut` would take it — the menu shows the key, and pressing it does what the binding does, not the item.

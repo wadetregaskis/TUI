@@ -55,7 +55,6 @@ extension TestApp {
     }
     var laidOutRegions: [HitTestRegion] { headless.laidOutRegions }
     var scenes: ScenePresenter { headless.scenes }
-    var terminalWindowTitle: String? { headless.terminalWindowTitle }
     var hostWrites: [String] { headless.hostWrites }
     var hostStateKeepAliveDeadline: Int64? { headless.hostStateKeepAliveDeadline }
     var departureCount: Int { headless.departureCount }

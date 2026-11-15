@@ -31,6 +31,7 @@ TestApp.type(_:) | @MainActor func type(_ text: String)
 TestApp.undoManager | @MainActor let undoManager: UndoManager
 TestApp.wait(for:timeout:) | @MainActor func wait(for text: String, timeout: Duration = .seconds(60)) async throws
 TestApp.wait(until:timeout:) | @MainActor func wait(until condition: @MainActor () -> Bool, timeout: Duration = .seconds(60)) async throws
+TestApp.windowTitle | @MainActor var windowTitle: String? { get }
 TestAppError | struct TestAppError
 TestAppError.description | let description: String
 TestClock | final class TestClock

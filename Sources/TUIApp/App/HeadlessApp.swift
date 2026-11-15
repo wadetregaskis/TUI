@@ -448,7 +448,7 @@ package final class HeadlessApp {
 
     /// The title the frames have given the terminal's window, or `nil` while
     /// it shows its own (``TerminalHostState``).
-    var terminalWindowTitle: String? { renderer.hostState.writtenTitle }
+    package var terminalWindowTitle: String? { renderer.hostState.writtenTitle }
 
     /// What the frames wrote to the terminal beyond its cells — each title
     /// change, with the save before the first, and each progress report — in

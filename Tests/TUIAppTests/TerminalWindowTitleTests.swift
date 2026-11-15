@@ -94,14 +94,14 @@ struct TerminalWindowTitleTests {
     mutating func sceneTitle() {
         let app = launched(TitledApp())
         #expect(app.hostWrites == [Self.save + Self.set("Notes")])
-        #expect(app.terminalWindowTitle == "Notes")
+        #expect(app.windowTitle == "Notes")
     }
 
     @Test("An app with no title leaves the terminal's title alone")
     mutating func noTitleNoWrites() {
         let app = launched(UntitledApp())
         #expect(app.hostWrites.isEmpty)
-        #expect(app.terminalWindowTitle == nil)
+        #expect(app.windowTitle == nil)
     }
 
     @Test("The window in front titles the terminal; closing it gives the title back to the window behind")
@@ -109,7 +109,7 @@ struct TerminalWindowTitleTests {
         let app = launched(TitledApp())
         app.scenes.open(WindowTarget(id: "inspector"))
         frame(app)
-        #expect(app.terminalWindowTitle == "Inspector")
+        #expect(app.windowTitle == "Inspector")
         app.scenes.close([app.scenes.windows.last!.serial])
         frame(app)
         #expect(app.hostWrites == [Self.save + Self.set("Notes"), Self.set("Inspector"), Self.set("Notes")])
@@ -120,21 +120,21 @@ struct TerminalWindowTitleTests {
         let app = launched(TitledApp())
         app.scenes.open(WindowTarget(id: "untitled"))
         frame(app)
-        #expect(app.terminalWindowTitle == nil)
+        #expect(app.windowTitle == nil)
         #expect(app.hostWrites.last == Self.restore)
     }
 
     @Test("A root navigation title no top bar shows titles the terminal, over the scene's")
     mutating func navigationTitleWithoutBar() {
         let app = launched(NavigationTitledApp())
-        #expect(app.terminalWindowTitle == "Inbox", "\(app.hostWrites)")
+        #expect(app.windowTitle == "Inbox", "\(app.hostWrites)")
     }
 
     @Test("A root navigation title the top bar shows leaves the terminal the scene's")
     mutating func navigationTitleInBar() {
         let app = launched(BarTitledApp())
         #expect(app.screen.lines.joined().contains("Inbox"), "\(app.screen.lines)")
-        #expect(app.terminalWindowTitle == "Mail", "\(app.hostWrites)")
+        #expect(app.windowTitle == "Mail", "\(app.hostWrites)")
     }
 
     @Test("Handing the terminal back restores its title, and the next frame sets the app's again")
@@ -148,7 +148,7 @@ struct TerminalWindowTitleTests {
     @Test("A title cannot end its sequence early: its control characters are dropped and its line breaks spaced")
     mutating func sanitisedTitle() {
         let app = launched(UnsafeTitleApp())
-        #expect(app.terminalWindowTitle == "Bell]0;pwned\\Line Two")
+        #expect(app.windowTitle == "Bell]0;pwned\\Line Two")
         #expect(app.hostWrites.count == 1)
         #expect(app.hostWrites.first?.filter { $0 == "\u{1B}" }.count == 3, "the save, the OSC and its ST: no more")
     }

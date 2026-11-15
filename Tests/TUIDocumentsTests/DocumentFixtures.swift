@@ -280,7 +280,7 @@ final class DocumentFolder {
 extension TestApp {
     /// The terminal window's title, where a document's name and Edited go: a
     /// title alone makes no top bar.
-    var title: String { headless.terminalWindowTitle ?? "" }
+    var title: String { windowTitle ?? "" }
 
     /// Whether the title says the document has unsaved changes.
     var saysEdited: Bool { title.contains("Edited") }

@@ -102,6 +102,13 @@ Button("Add") { count += 1 }.focusID("add")
 #expect(app.focusedID == "add")
 ```
 
+``TestApp/windowTitle`` is the title the app has given the terminal's window, which is not on the screen: a
+`DocumentGroup` window's document name, with "Edited" while it has unsaved changes.
+
+```swift
+#expect(app.windowTitle == "Notes.txt — Edited")
+```
+
 A copy the app makes — a text field's ⌃C, a `.copyable` view's, a command that calls `\.copyToClipboard` — goes to
 no real clipboard. ``TestApp/clipboard`` is the text it last copied:
 

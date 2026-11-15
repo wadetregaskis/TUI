@@ -175,6 +175,19 @@ public final class TestApp {
     /// ```
     public let undoManager: UndoManager
 
+    /// The title the app has given the terminal's window, or `nil` while it
+    /// has given none and the window shows its own.
+    ///
+    /// The window in front's scene title — `WindowGroup("Notes")`'s, a
+    /// `DocumentGroup` window's document name with "Edited" while it has
+    /// unsaved changes — or a root `.navigationTitle` that no top bar shows.
+    /// It is not on the ``screen``: a terminal draws it in its own title bar
+    /// or tab.
+    public var windowTitle: String? {
+        start()
+        return headless.terminalWindowTitle
+    }
+
     /// Whether the app has asked to quit, by its quit key, its Quit menu item
     /// or its last window closing.
     ///
