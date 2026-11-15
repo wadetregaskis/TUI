@@ -385,6 +385,9 @@ potential — let's try that first, and see how it feels." Built on lane
 SELWIDEN for the owner to try; the border handle and
 `.textSelectionScope(.pane)` work as before.
 
+
+**Accepted (owner, 2026-11-15):** "that's working and accepted", after using it since it was built. The
+rule below is final; 3 and 6 stay as they are.
 - **What widens.** A drag kept to a bordered container's interior that goes
   more than **3 rows** above or below it, or more than **6 columns** beside
   it, widens to the scope the container sits in, and the selection re-clips

@@ -3,7 +3,7 @@
 //
 //  A drag kept to a bordered container's interior that goes well past it
 //  widens to the scope the container sits in (A-TEXT2-1, option 2: built
-//  2026-10-24 as an experiment for the owner to try). All of the rule but
+//  2026-10-24 as an experiment, accepted by the owner 2026-11-15). All of the rule but
 //  the two stored properties it moves is here, so it can be tuned, or taken
 //  out, in one place.
 //
@@ -17,7 +17,7 @@ extension HeldPress {
     /// by a row or two, and that must not throw the selection out to the
     /// page; three rows beyond the border is a drag that meant to leave, yet
     /// still few enough to reach below a card near the screen's foot.
-    /// (A-TEXT2-1: an experiment, for the owner to feel.)
+    /// (A-TEXT2-1, accepted 2026-11-15.)
     static let wideningRows = 3
 
     /// How many columns outside the rectangle a drag may go and stay kept to

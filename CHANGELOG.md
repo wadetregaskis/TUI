@@ -19,7 +19,8 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 experiments.** Arrows that go to the nearest control on screen, the terminal's text cursor on the focused control, and
 animated pictures the terminal plays by itself keep their defaults and do what they did, but they now fall under the
 API stability promise, as the rest of the end-user variables do, rather than being free to change or go in any
-release. `TUI_PLAIN_TEXT=transliterate` and the held-press widening of a text selection stay experiments.
+release. The held-press widening of a text selection (a drag well past a bordered container's interior widens to the
+pane) is accepted as it is, and `TUI_PLAIN_TEXT=transliterate` stays an experiment.
 
 ### Scroll views and lists build only what shows
 

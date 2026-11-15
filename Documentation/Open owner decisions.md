@@ -31,7 +31,7 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| EXPERIMENTS | Each experiment, promoted, kept as a documented experiment, or deleted before 1.0 (API-STABILITY point 5, 2026-11-09: you'll test them first). Answered in part on 2026-11-15: `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` and `TUI_GRAPHICS_PLAYBACK` are promoted to supported options, defaults and behaviour unchanged. Still open: `TUI_PLAIN_TEXT=transliterate` (you're still testing it, and expect to promote it) and the held-press widening (A-TEXT2-1, undecided). The [API stability policy](<API stability policy.md>) leaves an experiment out of the promise until it is promoted. | Decide each after trying it | They stay experiments, unpromised; 1.0 waits for your call |
+| EXPERIMENTS | Each experiment, promoted, kept as a documented experiment, or deleted before 1.0 (API-STABILITY point 5, 2026-11-09: you'll test them first). Answered in part on 2026-11-15: `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` and `TUI_GRAPHICS_PLAYBACK` are promoted to supported options, defaults and behaviour unchanged, and the held-press widening (A-TEXT2-1) is accepted as it is. Still open: `TUI_PLAIN_TEXT=transliterate` (you're still testing it, and expect to promote it). The [API stability policy](<API stability policy.md>) leaves an experiment out of the promise until it is promoted. | Decide each after trying it | They stay experiments, unpromised; 1.0 waits for your call |
 
 ### Open on 2026-11-01
 
