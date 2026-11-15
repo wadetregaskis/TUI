@@ -235,7 +235,7 @@ private struct _AppStatusBarCore: View, Renderable {
         // keys still work (`StatusBarState.showsNoteInPlaceOfItems`). Whether
         // there are items for it to stand in for is what the next frame asks.
         let note = state.showsNoteInPlaceOfItems && state.hasItems
-        if !context.isMeasuring { state.recordLineDrawn(spelling: context.environment.keyLetterCase) }
+        if !context.isMeasuring { state.recordLineDrawn(letterCase: context.environment.keyLetterCase) }
         // And the core reads the same state for what it reads of its own —
         // the claimed Escape and Return labels, which item the pointer is over
         // — and writes the hover back to it.
@@ -1010,20 +1010,21 @@ private struct _StatusBarCore: View, Renderable {
 
 // MARK: - Writing an item's key
 
-/// How the bar writes an item's key: a one-letter key in the
-/// ``KeyLetterCase`` in force, then in the ``KeyNotation`` in force —
-/// read once from the environment for the whole bar.
+/// How the bar writes an item's key: a one-letter key as any key is drawn,
+/// Shift as `⇧`, its letter in the ``KeyLetterCase`` in force, then in the
+/// ``KeyNotation`` in force — read once from the environment for the whole
+/// bar.
 private struct KeyWriting {
-    let spelling: KeyLetterCase
+    let letterCase: KeyLetterCase
     let notation: KeyNotation
 
     init(_ environment: EnvironmentValues) {
-        spelling = environment.keyLetterCase
+        letterCase = environment.keyLetterCase
         notation = environment.keyNotation
     }
 
     /// `shortcut`, an item's key as its string writes it, as the bar draws it.
     func writing(_ shortcut: String) -> String {
-        notation.spelling(spelling.spelling(shortcut))
+        notation.spelling(letterCase.statusBarItemKey(shortcut))
     }
 }

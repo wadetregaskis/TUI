@@ -27,6 +27,7 @@ Respond to keys, clicks, drags and gestures, and decide where the focus goes.
 - ``ShortcutSet``
 - ``MoveCommandDirection``
 - ``KeyNotation``
+- ``KeyLetterCase``
 - ``View/sensoryFeedback(_:trigger:)``
 - ``SensoryFeedback``
 

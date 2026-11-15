@@ -1,54 +1,78 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  KeyLetterCase.swift
 //
-//  How the status bar draws an item's key written as one letter: as a macOS
-//  menu draws a key equivalent (`Q`, `⇧N`), or as the item's string is typed
-//  (`q`, `N`), where the case is the Shift.
+//  How a key that is a letter pressed alone is drawn, wherever TUI draws a
+//  key — the status bar, the F1 list of shortcuts, a menu's shortcut column:
+//  as a capital (`K`), as macOS draws it, or as it is typed (`k`). A key that
+//  needs Shift is `⇧K` in either. The owner's APPFB-4, 2026-11-14.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
-// MARK: - The spelling
+// MARK: - The case
 
-/// How the status bar draws an item's key when the item's `shortcut` is one
-/// letter.
+/// How TUI draws a key that is a letter pressed with no modifier: in upper
+/// case, as a macOS menu draws a key equivalent, or in lower case, as it is
+/// typed.
 ///
-/// TUI-specific. A ``StatusBarItem``'s `shortcut` string is the key it binds,
-/// in the bar's own vocabulary, where the case is the Shift: `"q"` is q, and
-/// `"N"` is Shift-N. Every other key TUI names is drawn as a macOS menu
-/// draws a key equivalent (``KeyboardShortcut/displayString``): a letter in
-/// upper case, Shift as `⇧`. By default the bar draws a one-letter key that
-/// way too, so `y yes` reads `Y yes` beside `⌃Z undo`, and an app's `"N"`
-/// item reads `⇧N` (the owner's ruling B-KS-1, 2026-10-23). The string still
-/// binds the key and names the item; only what is drawn changes.
+/// TUI-specific. TUI draws keys as macOS does (``KeyboardShortcut/displayString``):
+/// the modifiers in the order ⌃ ⌥ ⇧ ⌘, then the key, a letter in upper case —
+/// `K` for the bare k key, `⇧K` for Shift-K, `⌃K` for Control-K. That is the
+/// default, here as on a Mac. An app whose users read keys as a terminal
+/// program writes them (`k kill`, as `htop` and `less` do) asks for
+/// ``asTyped``, which draws a bare letter in lower case. Either way a key that
+/// needs Shift is drawn with `⇧` (`⇧K`), never as a bare capital, so the case
+/// alone never has to say whether Shift is held.
+///
+/// The status bar, the F1 list of shortcuts and a menu's shortcut column all
+/// follow ``EnvironmentValues/keyLetterCase``; text of the app's own that
+/// names a key can follow it through ``spelling(_:)``.
 ///
 /// ```swift
-/// StatusBar()
-///     .keyLetterCase(.asTyped)   // `y yes`, `N new`
+/// ContentView()
+///     .keyLetterCase(.asTyped)   // k kill, ⇧K kill all, ⌃S save
 /// ```
 public enum KeyLetterCase: Hashable, Sendable, CaseIterable {
-    /// As a macOS menu draws a key: a letter in upper case, and a capital as
-    /// `⇧` and the letter — `Q`, `⇧N`. The default.
+    /// A letter in upper case, as a macOS menu draws it: `K`, `⇧K`, `⌃K`.
+    /// The default.
     case capital
 
-    /// As the item's string is typed, the TUI convention in which lower case
-    /// means no Shift — `q`, `N`.
+    /// A letter pressed alone in lower case, as it is typed: `k`. A letter
+    /// with a modifier is drawn as under ``capital`` — `⇧K`, `⌃K` — so Shift
+    /// is still always a `⇧`.
     case asTyped
 
-    /// `shortcut`, an item's key as its string writes it, as the bar draws it
-    /// in this spelling.
+    /// `name`, a key or shortcut as TUI draws it in ``capital``
+    /// (``KeyboardShortcut/displayString``), in this case.
     ///
-    /// Only a string of one letter with a case changes; anything else — a
-    /// digit, `?`, `⎋`, `⌃Z`, `1-9`, `c|C`, `↑↓` — is drawn as written, in
-    /// either spelling. A letter whose capital is not one character (`ß`) has
-    /// no key cap of its own, and is drawn as written too.
-    public func spelling(_ shortcut: String) -> String {
-        guard self == .capital, shortcut.count == 1, let letter = shortcut.first, letter.isLetter else {
-            return shortcut
-        }
-        if letter.isLowercase {
-            return KeySymbols.keyCap(letter)
-        }
+    /// Under ``capital`` it is `name`. Under ``asTyped`` a name that is one
+    /// upper-case letter, a letter pressed alone, is that letter in lower
+    /// case; anything else — `⇧K`, `⌃K`, `⎋`, `1`, `F5` — is `name`.
+    ///
+    /// ```swift
+    /// @Environment(\.keyLetterCase) private var keyLetterCase
+    ///
+    /// Text(keyLetterCase.spelling(killShortcut.displayString ?? "") + " kill")
+    /// ```
+    public func spelling(_ name: String) -> String {
+        guard self == .asTyped, name.count == 1, let letter = name.first, letter.isUppercase else { return name }
+        // A letter whose lower case is not one character keeps its capital.
+        let lower = letter.lowercased()
+        return lower.count == 1 ? lower : name
+    }
+
+    /// `shortcut`, a ``StatusBarItem``'s key as its string writes it, as it is
+    /// drawn in this case.
+    ///
+    /// An item's string is in the bar's own vocabulary, where the case is the
+    /// Shift: `"k"` is k and `"K"` is Shift-K. A string of one letter is drawn
+    /// as the key it binds is drawn anywhere else — `K` (`k` ``asTyped``) for
+    /// `"k"`, `⇧K` for `"K"` — and anything else as written: a digit, `?`,
+    /// `⎋`, `⌃Z`, `1-9`, `c|C`, `↑↓`, and a letter with no one-character
+    /// capital (`ß`), which has no key cap of its own.
+    package func statusBarItemKey(_ shortcut: String) -> String {
+        guard shortcut.count == 1, let letter = shortcut.first, letter.isLetter else { return shortcut }
+        if letter.isLowercase { return spelling(KeySymbols.keyCap(letter)) }
         guard letter.isUppercase, letter.lowercased().count == 1 else { return shortcut }
         return "⇧" + shortcut
     }
@@ -62,7 +86,7 @@ private struct KeyLetterCaseKey: EnvironmentKey {
 }
 
 extension EnvironmentValues {
-    /// How the status bar draws an item's one-letter key — see
+    /// How a key that is a letter pressed alone is drawn — see
     /// ``KeyLetterCase``. ``KeyLetterCase/capital`` by default.
     public var keyLetterCase: KeyLetterCase {
         get { self[KeyLetterCaseKey.self] }
@@ -71,15 +95,18 @@ extension EnvironmentValues {
 }
 
 extension View {
-    /// Sets how a status bar in this subtree draws an item's one-letter key:
-    /// as a macOS menu draws it (`Q`, `⇧N`, the default) or as the item's
-    /// string is typed (`q`, `N`).
+    /// Sets how the keys drawn in this subtree write a letter pressed alone:
+    /// as a capital (`K`, the default, as macOS draws it) or as typed (`k`).
+    /// A key that needs Shift is `⇧K` either way.
     ///
-    /// TUI-specific; see ``KeyLetterCase``.
+    /// Reaches the status bar, the F1 list of shortcuts (which writes keys as
+    /// the status bar beside it does) and a menu's shortcut column. Set on a
+    /// scene with `.environment(\.keyLetterCase, .asTyped)` it reaches
+    /// everything the scene draws. TUI-specific; see ``KeyLetterCase``.
     ///
-    /// - Parameter spelling: The spelling.
-    /// - Returns: A view whose status bar draws its items' keys in `spelling`.
-    nonisolated public func keyLetterCase(_ spelling: KeyLetterCase) -> some View {
-        environment(\.keyLetterCase, spelling)
+    /// - Parameter letterCase: The case.
+    /// - Returns: A view whose keys are drawn in `letterCase`.
+    nonisolated public func keyLetterCase(_ letterCase: KeyLetterCase) -> some View {
+        environment(\.keyLetterCase, letterCase)
     }
 }

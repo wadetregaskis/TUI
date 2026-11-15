@@ -635,10 +635,10 @@ public final class StatusBarState {
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _lineShowsItems = false
 
-    /// How the app's line of key hints last drew an item's one-letter key
-    /// (``KeyLetterCase``, read from the environment where the line is
-    /// drawn), so the F1 list of shortcuts names an item's key as the bar
-    /// beside it does. Recorded by the line as it draws.
+    /// The case the app's line of key hints last drew a letter pressed alone
+    /// in (``KeyLetterCase``, read from the environment where the line is
+    /// drawn), so the F1 list of shortcuts names every key as the bar beside
+    /// it does. Recorded by the line as it draws.
     package var itemKeyLetterCase: KeyLetterCase {
         get { _itemKeyLetterCase }
         set { _itemKeyLetterCase = newValue }
@@ -650,11 +650,11 @@ public final class StatusBarState {
 
     /// Records what the app's line of key hints drew this frame: a row of
     /// items, if there are any (``lineShowsItems``), and its items' keys in
-    /// `spelling` (``itemKeyLetterCase``). Called by the line as it draws, not
-    /// as it is measured.
-    package func recordLineDrawn(spelling: KeyLetterCase) {
+    /// `letterCase` (``itemKeyLetterCase``). Called by the line as it draws,
+    /// not as it is measured.
+    package func recordLineDrawn(letterCase: KeyLetterCase) {
         if hasItems { lineShowsItems = true }
-        itemKeyLetterCase = spelling
+        itemKeyLetterCase = letterCase
     }
 }
 

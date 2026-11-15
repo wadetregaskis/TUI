@@ -2,14 +2,15 @@
 
 *How a shortcut is drawn — the macOS symbols in macOS's order — how a key is
 spelled out, how a status-bar item's own key is drawn, and the localization
-strategies. Ids: B8, B-KS-1 to 5, B-KS-1's ruling of 2026-10-23, C4.*
+strategies. Ids: B8, B-KS-1 to 5, B-KS-1's ruling of 2026-10-23, C4, APPFB-4.*
 
 ## In short
 
 Shortcuts are drawn with the Unicode symbols (⌃ ⌥ ⇧ ⌘ ⎋ …) in macOS's order,
 the owner's request of 2026-10-05. Spelled out, keys take their English
-terminal names. A status-bar item's key is drawn in a menu's spelling (`Q
-quit`, `⇧N`) unless the app asks `.statusBarKeySpelling(.asTyped)`.
+terminal names. A letter pressed alone is drawn as a capital (`Q quit`)
+wherever a key is drawn, unless the app asks `.keyLetterCase(.asTyped)`
+(`q quit`); a key that needs Shift is `⇧N` either way (APPFB-4).
 `KeyboardShortcut.Localization` is recorded and every strategy behaves as
 `.custom` until right-to-left lands.
 
@@ -22,6 +23,8 @@ quit`, `⇧N`) unless the app asks `.statusBarKeySpelling(.asTyped)`.
    lands.
 3. **2026-10-23, B-KS-1:** menu spelling by default, with an option for the
    case-sensitive one; built by lane KEYS, 2026-10-24.
+4. **2026-11-14, APPFB-4:** both forms, capitals by default, Shift always
+   `⇧`; the option reaches the F1 list and menus too, renamed `KeyLetterCase`.
 
 ## The record
 
@@ -139,6 +142,26 @@ follow the same drawing, so a hint on a bare u reads `U` under `.menu` and
 modifier, `.statusBarKeySpelling(_:)`, by the modifier-first rule. Every
 app's bar changes; the chrome snapshots were re-recorded (`S save`, `Q quit`).
 Tests: `KeyNotationTests.statusBar`, `StatusBarKeySpellingTests`.
+
+**Revisited (owner, 2026-11-14, APPFB-4).** The first app built on TUI
+read `K signal` for an item on `"k"` as Shift-K, and asked for the as-typed
+form by default. The owner: "Support both presentation forms, configurably,
+but stick with capitals by default, matching the macOS convention. Use the
+shift glyph to indicate when we specifically mean the capitalised form —
+explicit, no ambiguity." So capitals stay the default, and `.asTyped` no
+longer draws an item's `"N"` as a bare `N`: Shift is `⇧N` in both forms, and
+only a letter pressed alone changes case (`k`). A chord keeps its capital
+(`⌃K`) in both, decided in the lane: the ambiguity is a letter alone, and a
+terminal writes a chord's letter as a capital too (`^K`). The setting was the
+status bar's only; it now reaches every place a key is drawn — the status
+bar, a menu's shortcut column (`MenuItemButtonStyle`) and the F1 list, which
+draws every key in the case in force where the bar is — so it was renamed
+from `StatusBarKeySpelling` (`.menu`, `.asTyped`) to `KeyLetterCase`
+(`.capital`, `.asTyped`), with `.keyLetterCase(_:)` and `\.keyLetterCase`.
+`spelling(_:)` now takes a key's name as TUI draws it
+(`KeyboardShortcut/displayString`), and the bar's item strings go through
+`statusBarItemKey(_:)`. Tests: `KeyLetterCaseTests`,
+`KeyLetterCaseSurfacesTests`.
 
 ### B-KS-2. Spelled out, the keys have their English terminal names
 

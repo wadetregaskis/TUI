@@ -70,8 +70,8 @@ struct ShortcutOverlayListing: Equatable {
     /// the one with a name people know it by (a menu's Quit before the status
     /// bar's).
     ///
-    /// Compared in upper case, because the status bar writes a bare letter in
-    /// the case it types and a menu row writes a capital.
+    /// Compared in upper case, so a letter pressed alone is one key whichever
+    /// case it is written in (``KeyLetterCase``); Shift is a `⇧` of its own.
     mutating func add(_ row: ListedShortcut, to title: String) {
         guard !row.key.isEmpty, !row.title.isEmpty, seen.insert(row.key.uppercased()).inserted else { return }
         if let index = sections.firstIndex(where: { $0.title == title }) {
@@ -101,20 +101,27 @@ extension InputHandler {
         let shortcuts = keyboardShortcuts.listing(
             activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
             modalSection: focusManager.activeModalSectionID)
-        for row in shortcuts { listing.add(row, to: row.menu ?? page) }
+        // Every key in the case the status bar draws a letter pressed alone
+        // in (`K` or `k`; `⇧K` either way), so the list and the bar beside it
+        // name a key one way.
+        let letterCase = statusBar.itemKeyLetterCase
+        for row in shortcuts {
+            listing.add(
+                ListedShortcut(key: letterCase.spelling(row.key), title: row.title, menu: row.menu),
+                to: row.menu ?? page)
+        }
 
         let bar = service.string(for: LocalizationKey.Menu.shortcutsStatusBar)
-        // An item's one-letter key as the bar draws it (`K` or `k`), not as
-        // its string is written, so the two name a key one way.
-        let spelling = statusBar.itemKeyLetterCase
+        // An item's one-letter key as the bar draws it, not as its string is
+        // written: `"k"` is `K` (or `k`), `"K"` is `⇧K`.
         for item in statusBar.currentItems {
-            listing.add(ListedShortcut(key: spelling.spelling(item.shortcut), title: item.label), to: bar)
+            listing.add(ListedShortcut(key: letterCase.statusBarItemKey(item.shortcut), title: item.label), to: bar)
         }
 
         let general = service.string(for: LocalizationKey.Menu.shortcutsGeneral)
         func addGeneral(_ key: Key, _ title: LocalizationKey.Menu, shift: Bool = false) {
             guard let chord = KeyEvent(key: key, shift: shift).displayString else { return }
-            listing.add(ListedShortcut(key: chord, title: service.string(for: title)), to: general)
+            listing.add(ListedShortcut(key: letterCase.spelling(chord), title: service.string(for: title)), to: general)
         }
         addGeneral(.f1, .keyboardShortcuts)
         // The settings panel's key, unless the app has it: its own row, from

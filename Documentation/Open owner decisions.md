@@ -27,15 +27,6 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Decisions waiting on you
 
-### Open on 2026-11-14
-
-From the first app built on TUI, tuitop; each question in full, with its prices, under
-[App feedback, 2026-11-14](<Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#app-feedback-2026-11-14>).
-
-| Id | Question | Recommended | If you don't answer |
-|---|---|---|---|
-| APPFB-4 | Should a bare letter's key be drawn as typed by default (`k signal`), a capital only beside a modifier (`⇧K`, `⌃S`), in the bar, the F1 list and a menu's shortcut column (B-KS-1 chose the menu's `K`)? | (b): as typed, Shift always `⇧` | `K signal`; `.statusBarKeySpelling(.asTyped)` draws `k` |
-
 ### Open on 2026-11-09
 
 | Id | Question | Recommended | If you don't answer |

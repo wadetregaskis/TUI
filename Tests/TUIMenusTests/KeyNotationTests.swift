@@ -152,9 +152,10 @@ struct KeyNotationTests {
         #expect(names.contains("Esc back") && names.contains("Ctrl-Z undo") && names.contains("Q quit"), "\(names)")
         #expect(names.contains("Shift-N new"), "\(names)")
         #expect(!names.contains("⎋") && !names.contains("⌃"), "\(names)")
-        // As typed, where the case is the Shift.
+        // As typed: a bare letter in lower case, Shift still ⇧ (APPFB-4).
         let typed = drawn(.symbols, .asTyped)
-        #expect(typed.contains("q quit") && typed.contains("N new") && typed.contains("⌃Z undo"), "\(typed)")
+        #expect(typed.contains("q quit") && typed.contains("⇧N new") && typed.contains("⌃Z undo"), "\(typed)")
+        #expect(drawn(.spelledOut, .asTyped).contains("Shift-N new"))
     }
 
     @Test("The user's TUI_KEY_SYMBOLS=0, as the app runner reads it, reaches the status bar")

@@ -112,14 +112,14 @@ Shortcut.range("1", "9")
 
 ### One-letter keys
 
-An item's `shortcut` string is the key it binds in the bar's own vocabulary, where the case is the Shift: `"n"` is n and `"N"` is Shift-N. The bar draws a one-letter key the way a macOS menu draws it, as every other key TUI names is drawn — `N new` for `"n"`, `⇧N new` for `"N"`, and `Y yes` — so the bar reads the same as `⌃Z undo` beside it. The string still binds the key and names the item. An app that prefers the TUI convention, in which lower case means no Shift, sets ``KeyLetterCase/asTyped`` with ``View/keyLetterCase(_:)``:
+An item's `shortcut` string is the key it binds in the bar's own vocabulary, where the case is the Shift: `"n"` is n and `"N"` is Shift-N. The bar draws a one-letter key the way a macOS menu draws it, as every other key TUI names is drawn — `N new` for `"n"`, `⇧N new` for `"N"`, and `Y yes` — so the bar reads the same as `⌃Z undo` beside it. The string still binds the key and names the item. An app whose users read keys as terminal programs write them (`n new`, as `htop` and `less` do) sets ``KeyLetterCase/asTyped`` with ``View/keyLetterCase(_:)``, which draws a letter pressed alone in lower case. A key that needs Shift is drawn with `⇧` either way, never as a bare capital, so the case never has to say whether Shift is held:
 
 ```swift
-StatusBar()
-    .keyLetterCase(.asTyped)   // n new, N new, y yes
+ContentView()
+    .keyLetterCase(.asTyped)   // n new, ⇧N new, y yes, ⌃Z undo
 ```
 
-A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way. The list of shortcuts on F1 names an item's key the way the bar draws it, in the spelling in force where the bar is.
+A key of anything but one letter — `1-9`, `c|C`, `↑↓`, `?` — is drawn as written either way. The setting is not the bar's alone: a menu's shortcut column and the list of shortcuts on F1 draw their keys in it too, the F1 list in the case in force where the bar is. Set on the scene (`WindowGroup { … }.environment(\.keyLetterCase, .asTyped)`), it reaches all of them, the menu bar included.
 
 ### Keys written by name
 

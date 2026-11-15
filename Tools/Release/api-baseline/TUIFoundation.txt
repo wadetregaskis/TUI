@@ -1726,7 +1726,7 @@ KeyEventModifier.wrappedContentContext(_:) | @MainActor func wrappedContentConte
 KeyLetterCase | enum KeyLetterCase
 KeyLetterCase.asTyped | case asTyped
 KeyLetterCase.capital | case capital
-KeyLetterCase.spelling(_:) | func spelling(_ shortcut: String) -> String
+KeyLetterCase.spelling(_:) | func spelling(_ name: String) -> String
 KeyNotation | enum KeyNotation
 KeyNotation.spelledOut | case spelledOut
 KeyNotation.spelling(_:) | func spelling(_ text: String) -> String
@@ -3935,7 +3935,7 @@ View.interactiveResizeTimeout(_:) | nonisolated func interactiveResizeTimeout(_ 
 View.italic(_:) | nonisolated func italic(_ enabled: Bool = true) -> some View
 View.itemProvider(_:) | nonisolated func itemProvider(_ action: (() -> NSItemProvider?)?) -> some View
 View.keepsStateWhileHidden(_:) | nonisolated func keepsStateWhileHidden(_ keeps: Bool = true) -> some View
-View.keyLetterCase(_:) | nonisolated func keyLetterCase(_ spelling: KeyLetterCase) -> some View
+View.keyLetterCase(_:) | nonisolated func keyLetterCase(_ letterCase: KeyLetterCase) -> some View
 View.keyboardShortcut(_:) | nonisolated func keyboardShortcut(_ shortcut: KeyboardShortcut) -> some View
 View.keyboardShortcut(_:) | nonisolated func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some View
 View.keyboardShortcut(_:modifiers:) | nonisolated func keyboardShortcut(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some View

@@ -81,7 +81,9 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
     }
 
     /// The button's key equivalent, as the row prints it: its symbols, or
-    /// their names where ``EnvironmentValues/keyNotation`` asks for those.
+    /// their names where ``EnvironmentValues/keyNotation`` asks for those, a
+    /// letter pressed alone in the ``EnvironmentValues/keyLetterCase`` in
+    /// force.
     /// Formatted once here rather than on each of the row's three reads of it,
     /// and asked of the environment only by a row that has a shortcut.
     ///
@@ -92,7 +94,8 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
         // row reserves for it is the width it is drawn at.
         if context.environment.menuRowOpensSubmenu { return context.spelled(DropdownMenu.submenuCaret) }
         guard let symbols = configuration.keyboardShortcut?.displayString else { return "" }
-        return context.spelled(context.environment.keyNotation.spelling(symbols))
+        let environment = context.environment
+        return context.spelled(environment.keyNotation.spelling(environment.keyLetterCase.spelling(symbols)))
     }
 
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
