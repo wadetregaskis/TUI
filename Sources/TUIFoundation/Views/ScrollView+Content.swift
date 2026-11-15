@@ -169,28 +169,37 @@ extension _ScrollViewCore {
         }
 
         measureContext.availableWidth = renderWidth
-        let natural = measureNaturalExtent(
+        let natural = naturalExtent(
             content, along: .vertical,
             proposal: ProposedViewSize(width: renderWidth, height: nil),
             context: measureContext,
             startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight))
-        return (width: renderWidth, height: canvasHeight(natural: natural.height, viewportHeight: viewportHeight, context))
+        return (width: renderWidth, height: canvasHeight(natural: natural, viewportHeight: viewportHeight, context))
     }
 
-    /// The height the content is drawn at, its natural height `natural`
-    /// along the axis it scrolls, under SCROLL-FIT's switch (design 2a, "the
-    /// scroll view's canvas"): a flexible view in it (a `Color`, a `Spacer`,
-    /// a split view's panes) takes its minimum there, as SwiftUI's content is
-    /// proposed no height, rather than stretching to the viewport; a view
-    /// that wants the viewport's height says so
-    /// (`.containerRelativeFrame(.vertical)`). Before, and across a
-    /// horizontal view's height, which it proposes to its content
-    /// (A-SCROLLFIT-2), at least the viewport's.
-    func canvasHeight(natural: Int, viewportHeight: Int, _ context: RenderContext) -> Int {
-        guard axes.contains(.vertical), context.environment.scrollFitsContent else {
-            return max(viewportHeight, natural)
+    /// The height the content is drawn at, under SCROLL-FIT's switch (design
+    /// 2a, "the scroll view's canvas"):
+    ///
+    /// - Down the axis this view scrolls, the content's natural height: a
+    ///   flexible view in it (a `Color`, a `Spacer`, a split view's panes)
+    ///   takes its minimum there, as SwiftUI's content is proposed no height,
+    ///   rather than stretching to the viewport; a view that wants the
+    ///   viewport's height says so (`.containerRelativeFrame(.vertical)`).
+    /// - Across a horizontal view, which proposes its own height to its
+    ///   content (A-SCROLLFIT-2): the viewport's for content that takes what
+    ///   it is offered (a `Table`, a `List`, which then scroll their own rows
+    ///   within it), and at least the viewport's for content taller than it,
+    ///   which this view still scrolls down. Content that filled the
+    ///   measuring ladder's budget was drawn at it: a 10,000-row table 4,096
+    ///   lines tall, every one of its rows built each frame.
+    ///
+    /// Before, at least the viewport's whatever the axis.
+    func canvasHeight(natural: NaturalExtentAnswer, viewportHeight: Int, _ context: RenderContext) -> Int {
+        guard context.environment.scrollFitsContent else { return max(viewportHeight, natural.size.height) }
+        guard axes.contains(.vertical) else {
+            return natural.fillsBudget ? viewportHeight : max(viewportHeight, natural.size.height)
         }
-        return natural
+        return natural.size.height
     }
 
     /// The content's own width on a horizontal view's measure `canvas`, or
