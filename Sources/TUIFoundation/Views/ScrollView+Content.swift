@@ -130,8 +130,8 @@ extension _ScrollViewCore {
     /// buffer — the same measures `renderedContent` uses to size its render, so the
     /// scrollbar-reservation decision matches what will actually be drawn.
     ///
-    /// `height` is the rendered buffer's height, `max(viewportHeight,
-    /// naturalHeight)`: the natural height comes from ``measureNaturalExtent`` — a
+    /// `height` is the rendered buffer's height (``canvasHeight(natural:viewportHeight:_:)``):
+    /// the natural height comes from ``measureNaturalExtent`` — a
     /// stack's measure clamps its report to `availableHeight`, so any FIXED budget
     /// is a ceiling on how tall content can be, and the ladder grows the budget
     /// until the content stops filling it instead of guessing one — under an
@@ -174,7 +174,23 @@ extension _ScrollViewCore {
             proposal: ProposedViewSize(width: renderWidth, height: nil),
             context: measureContext,
             startingBudget: naturalExtentStartingBudget(forVisible: viewportHeight))
-        return (width: renderWidth, height: max(viewportHeight, natural.height))
+        return (width: renderWidth, height: canvasHeight(natural: natural.height, viewportHeight: viewportHeight, context))
+    }
+
+    /// The height the content is drawn at, its natural height `natural`
+    /// along the axis it scrolls, under SCROLL-FIT's switch (design 2a, "the
+    /// scroll view's canvas"): a flexible view in it (a `Color`, a `Spacer`,
+    /// a split view's panes) takes its minimum there, as SwiftUI's content is
+    /// proposed no height, rather than stretching to the viewport; a view
+    /// that wants the viewport's height says so
+    /// (`.containerRelativeFrame(.vertical)`). Before, and across a
+    /// horizontal view's height, which it proposes to its content
+    /// (A-SCROLLFIT-2), at least the viewport's.
+    func canvasHeight(natural: Int, viewportHeight: Int, _ context: RenderContext) -> Int {
+        guard axes.contains(.vertical), context.environment.scrollFitsContent else {
+            return max(viewportHeight, natural)
+        }
+        return natural
     }
 
     /// The content's own width on a horizontal view's measure `canvas`, or
