@@ -126,17 +126,27 @@ struct ActivationLabelTests {
             .lines.joined()
     }
 
-    @Test("The Return entry takes the focused control's verb, and nothing else does")
+    @Test("The system Return entry takes the focused control's verb, and nothing else does")
     func barRenamesOnlyReturn() {
         let rendered = bar(
             items: [
-                StatusBarItem(shortcut: Shortcut.enter, label: "show"),
+                SystemStatusBarItem.returnKey(label: "show"),
                 StatusBarItem(shortcut: "q", label: "quit"),
             ],
             verb: "toggle")
         #expect(rendered.contains("toggle"))
         #expect(!rendered.contains("show"))
         #expect(rendered.contains("quit"))
+    }
+
+    /// tuitree's feedback, Milestone 2 item 4: a focused table's "open"
+    /// replaced the app's "edit", though the app is what says what Return
+    /// does to its rows.
+    @Test("An app's own Return item keeps its label over the focused control's verb")
+    func barKeepsTheAppsReturnItem() {
+        let rendered = bar(items: [StatusBarItem(shortcut: Shortcut.enter, label: "edit")], verb: "open")
+        #expect(rendered.contains("edit"))
+        #expect(!rendered.contains("open"))
     }
 
     @Test("With nothing published the page's own label stands")

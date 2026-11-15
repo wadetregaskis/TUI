@@ -534,12 +534,18 @@ private struct _StatusBarCore: View, Renderable {
         )
 
         // Apply the modal escape-label override only to items bound to
-        // the escape key, and the focused control's Return verb only to items
-        // bound to Return; everything else keeps its declared label.
+        // the escape key, and the focused control's Return verb only to the
+        // system Return item (`SystemStatusBarItem.returnKey`, which the bar
+        // carries while a control says what Return does); everything else
+        // keeps its declared label. Not to an app's own Return item: the app
+        // is what says what Return does to its rows — tuitree's "↩ edit" read
+        // "↩ open" over a table with a primary action (its feedback,
+        // Milestone 2 item 4) — and a page that wants the focused control's
+        // verb declares no Return item of its own, and gets the system one.
         let effectiveLabel: String
         if item.shortcut == Shortcut.escape, let override = escapeOverride {
             effectiveLabel = override
-        } else if Self.isReturnShortcut(item.shortcut), let override = activationOverride {
+        } else if Self.isReturnShortcut(item.shortcut), item.order == .returnKey, let override = activationOverride {
             effectiveLabel = override
         } else {
             effectiveLabel = item.label

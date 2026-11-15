@@ -214,7 +214,7 @@ An entry appears only while something has said what its key does. Nothing said, 
 
 Both entries are **informational**: they carry no action, so they display and do not intercept. Turning one off is a display decision and changes nothing about what the key does.
 
-A page that wants Escape (or Return) to do something of its own publishes an ordinary user item for it. That wins the shortcut dedup, keeps its action — and is still renamed in place while a presented surface claims the key, so "⎋ back" reads "⎋ close popover" for as long as the popover is up.
+A page that wants Escape (or Return) to do something of its own publishes an ordinary user item for it. That wins the shortcut dedup, keeps its action — and an Escape item is still renamed in place while a presented surface claims the key, so "⎋ back" reads "⎋ close popover" for as long as the popover is up. A Return item of the page's own keeps its label whatever has the focus, with an action or without one: the page is what says what Return does there, as a table whose primary action edits a row says "↩ edit" where the table alone would say "↩ open". A page that wants the focused view's verb declares no Return item, and the bar's own says it.
 
 A sheet's Escape is the sheet's. Items its content declares with `.statusBarItems` are added to the sheet's own "⎋ dismiss" (or "⎋ cancel", where Escape presses the content's cancel button), never put in its place, so a page's "⎋ back" declared around the view presenting the sheet does not answer Escape while the sheet is up. Content that declares an Escape item of its own keeps it: that item answers the key instead.
 

@@ -364,8 +364,11 @@ public final class StatusBarState {
     /// `FocusRegistration.publishActivationLabel(_:context:isFocused:)`) and
     /// cleared at the top of every frame, so a control that lost the focus
     /// never leaves its verb behind. A control that does nothing with Return —
-    /// a slider, a stepper — publishes nothing, and the page's own label
-    /// stands.
+    /// a slider, a stepper — publishes nothing.
+    ///
+    /// It names the system Return item (`SystemStatusBarItem.returnKey`),
+    /// never a Return item of the page's own, whose label the page chose: a
+    /// page that declares one says what Return does there, and keeps it.
     public var activationLabelOverride: String?
 
     /// The `id` of the status-bar item the mouse cursor is

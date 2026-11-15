@@ -50,6 +50,11 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**An app's own Return item in the status bar keeps its label.** The focused control's verb for Return replaced the
+label of every Return item on the bar, the app's own too, so a table with a primary action showed an app's "↩ edit" as
+"↩ open". It now names only the bar's own Return item; a page that declares a Return item says what Return does there,
+and a page that wants the focused control's verb declares none.
+
 **Type select's pause runs on a `TestApp`'s clock.** The second's pause after which a typed character starts a new
 prefix was measured on the machine's clock, which `advance(by:)` does not move, so two type selects in a test ran
 together ("t", then "s", was "ts"). It is measured on the clock input arrives on, which in a `TestApp` is the one the
