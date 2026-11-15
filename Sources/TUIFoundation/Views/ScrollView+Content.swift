@@ -123,6 +123,16 @@ extension _ScrollViewCore {
         // drawn with blank rows, the long one cut (decisions
         // TABLE-IN-SCROLL-HEIGHT). A frame in the content gives one again.
         if axes.contains(.vertical), contentContext.hasExplicitHeight { contentContext.hasExplicitHeight = false }
+        // And the scroll view a `ScrollViewReader` in the content scrolls: this
+        // one, the nearest around it that scrolls. A vertical scroll view
+        // nested in a vertical one's content forwards its content without
+        // passing through here (`ScrollView+Nested.swift`), so a reader in it
+        // keeps the outer one's.
+        if let registry = enclosingRegistry(context),
+            contentContext.environment.enclosingScrollToRegistry !== registry
+        {
+            contentContext.environment.enclosingScrollToRegistry = registry
+        }
         return contentContext.markingScrollContentOrigin()
     }
 

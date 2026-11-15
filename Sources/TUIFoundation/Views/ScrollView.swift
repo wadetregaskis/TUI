@@ -265,6 +265,9 @@ enum ScrollViewStateIndex {
     /// Whether the content sizes itself against the container
     /// (``ContainerReadNote``).
     static let containerRead = 5
+    /// The registry this view keeps for a ``ScrollViewReader`` in its
+    /// content (``EnvironmentValues/enclosingScrollToRegistry``).
+    static let enclosingRegistry = 6
 }
 
 /// A lightweight String-box used by ``_ScrollViewCore`` to track
@@ -610,12 +613,8 @@ struct _ScrollViewCore<Content: View>: View, Renderable, Layoutable {
         )
         let handler = resolvedHandler(persistedFocusID: persistedFocusID, context: context)
 
-        // Rendezvous with an enclosing ScrollViewReader, refreshed every
-        // render pass so the proxy always reaches the LIVE handler set.
-        if !context.isMeasuring {
-            context.environment.scrollToRegistry?.register(
-                handler: handler, identity: context.identity, renderCache: context.renderCache)
-        }
+        // Rendezvous with the ScrollViewReaders around it and in it.
+        registerWithReaders(handler: handler, context: context)
 
         // Scrollbar reservation. Each bar steals one cell across the viewport — the
         // vertical bar a trailing column, the horizontal bar a bottom row. The

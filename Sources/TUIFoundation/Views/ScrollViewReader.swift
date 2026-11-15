@@ -71,6 +71,11 @@ public struct ScrollViewProxy {
 /// scrolling the scroll views it contains. Matches SwiftUI's type of the
 /// same name.
 ///
+/// A reader in a scroll view's content scrolls that scroll view too, as
+/// SwiftUI's does: `ScrollView { ScrollViewReader { proxy in … } }`. A
+/// vertical scroll view in a vertical one's content, given no height, is its
+/// content's height and scrolls nothing; a reader in it scrolls the outer one.
+///
 /// ```swift
 /// ScrollViewReader { proxy in
 ///     ScrollView {
@@ -90,6 +95,10 @@ public struct ScrollViewReader<Content: View> {
     /// must still reach a scroll view that registers in frame 50.
     @State private var registry = ScrollToRegistry()
 
+    /// The registry of the scroll view this reader stands in, if any: the
+    /// nearest around it that scrolls (``EnvironmentValues/enclosingScrollToRegistry``).
+    @Environment(\.enclosingScrollToRegistry) private var enclosingRegistry
+
     /// Creates a reader whose `content` receives the scrolling proxy.
     public init(@ViewBuilder content: @escaping (ScrollViewProxy) -> Content) {
         self.content = content
@@ -97,6 +106,12 @@ public struct ScrollViewReader<Content: View> {
 
     /// The content and behavior of this view.
     @MainActor @ViewBuilder public var body: some View {
+        // A reader in a scroll view's content scrolls that scroll view, as in
+        // SwiftUI (`ScrollView { ScrollViewReader { proxy in … } }`), as well
+        // as any in its own content. `let _ =`: a builder takes declarations,
+        // not a bare assignment.
+        // swiftlint:disable:next redundant_discardable_let
+        let _ = registry.enclosing = enclosingRegistry
         content(ScrollViewProxy(registry: registry))
             .environment(\.scrollToRegistry, registry)
     }
@@ -153,6 +168,11 @@ package final class ScrollToRegistry {
     /// How many scroll views are on record, live or dead. For tests.
     var entryCount: Int { entries.count }
 
+    /// A reader's registry: the registry of the scroll view the reader stands
+    /// in, which a request goes on to (``scrollTo(key:anchor:)``). Weak: it is
+    /// that scroll view's state, and leaves with it.
+    weak var enclosing: ScrollToRegistry?
+
     /// Registers (or refreshes) a scrolling view for this frame.
     ///
     /// Only a NEW identity can grow the table, so only that sweeps, and only
@@ -195,6 +215,12 @@ package final class ScrollToRegistry {
     /// frame, and that frame's start drops the cached buffers of the scroll
     /// view, of its content and of everything above it. With no live scroll
     /// view it asks for nothing.
+    ///
+    /// A reader's registry goes on to the scroll view the reader stands in
+    /// (``enclosing``), which holds the request as one of its own would: a key
+    /// in a scroll view inside the reader is that one's to seek, and the outer
+    /// one's search stops there (`_ScrollViewCore.sizeThatFits`), so no row is
+    /// scrolled to twice.
     func scrollTo(key: String, anchor: UnitPoint?) {
         for (path, entry) in entries {
             guard let handler = entry.handler else {
@@ -204,6 +230,7 @@ package final class ScrollToRegistry {
             handler.pendingScrollTo = ScrollToRequest(key: key, anchor: anchor)
             entry.renderCacheLink?.invalidateRender(for: entry.identity)
         }
+        enclosing?.scrollTo(key: key, anchor: anchor)
     }
 }
 
@@ -229,9 +256,40 @@ extension ScrollToRegistry: Equatable {
     package static func == (lhs: ScrollToRegistry, rhs: ScrollToRegistry) -> Bool { lhs === rhs }
 }
 
+// MARK: - The scroll view's side
+
+extension _ScrollViewCore {
+    /// Registers `handler` with an enclosing ``ScrollViewReader``'s registry,
+    /// refreshed every render pass so the proxy always reaches the LIVE
+    /// handler set; and with a reader in this view's content, through the
+    /// registry this view keeps for it (``enclosingRegistry(_:)``).
+    func registerWithReaders(handler: ScrollViewHandler, context: RenderContext) {
+        guard !context.isMeasuring else { return }
+        context.environment.scrollToRegistry?.register(
+            handler: handler, identity: context.identity, renderCache: context.renderCache)
+        enclosingRegistry(context)?.register(
+            handler: handler, identity: context.identity, renderCache: context.renderCache)
+    }
+
+    /// The registry a ``ScrollViewReader`` in this view's content reaches this
+    /// view through (``EnvironmentValues/enclosingScrollToRegistry``): one per
+    /// scroll view, kept in its state, holding this view alone. `nil` with no
+    /// state storage.
+    func enclosingRegistry(_ context: RenderContext) -> ScrollToRegistry? {
+        context.stateStorage?.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.enclosingRegistry),
+            default: ScrollToRegistry()
+        ).value
+    }
+}
+
 // MARK: - Environment
 
 private struct ScrollToRegistryKey: EnvironmentKey {
+    static var defaultValue: ScrollToRegistry? { nil }
+}
+
+private struct EnclosingScrollToRegistryKey: EnvironmentKey {
     static var defaultValue: ScrollToRegistry? { nil }
 }
 
@@ -242,5 +300,16 @@ extension EnvironmentValues {
     package var scrollToRegistry: ScrollToRegistry? {
         get { self[ScrollToRegistryKey.self] }
         set { self[ScrollToRegistryKey.self] = newValue }
+    }
+
+    /// The registry of the nearest scroll view around this point that
+    /// scrolls, which holds that scroll view alone: what a
+    /// ``ScrollViewReader`` standing here reaches it through. A vertical
+    /// scroll view nested in a vertical one's content, which forwards its
+    /// content to the outer one and scrolls nothing (SCROLL-FIT P7), publishes
+    /// none, so a reader in it reaches the outer one. `nil` in no scroll view.
+    package var enclosingScrollToRegistry: ScrollToRegistry? {
+        get { self[EnclosingScrollToRegistryKey.self] }
+        set { self[EnclosingScrollToRegistryKey.self] = newValue }
     }
 }

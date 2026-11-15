@@ -1350,6 +1350,20 @@ first five behind the switch, so the flip itself changed only what the switch ga
 and drawn whole, every row built each frame, where 2a's table calls `HSplitView` parallel-shaped; it would serve
 through `LayoutPull` as `Grid` does (about half a day). A grouped `Form`'s rows are still eager (P4).
 
+**P7's follow-ups** (2026-11-15), one commit each:
+
+- **A `ScrollViewReader` in a scroll view's content scrolls it** (`ScrollViewReader.swift`). A proxy reached only
+  the scroll views that registered with its reader's registry, which are those in the reader's content, so a reader
+  *inside* a scroll view — `ScrollView { ScrollViewReader { proxy in … } }`, a shape SwiftUI's examples take — reached
+  none, and `scrollTo` did nothing; inside a nested vertical view that P7 forwards (the *not built* above) it was the
+  same, since the nested view registers nowhere. Each scroll view that scrolls now keeps a registry of its own in its
+  state, holding itself, and publishes it to its content (`enclosingScrollToRegistry`); a reader records the one it
+  stands in, and its requests go on there as well as to the scroll views in its content. The forwarded view publishes
+  none (its content does not pass through `contentContext`), so a reader in it reaches the outer view, which seeks
+  the key through the forwarded content as for any key of its own. An outer view's search stops at a scroll view
+  inside the reader that holds the key, so no row is scrolled to twice. `NestedScrollViewReaderTests` (both shapes
+  failed before: the page did not move).
+
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
 their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split

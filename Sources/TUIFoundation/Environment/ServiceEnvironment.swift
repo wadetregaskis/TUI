@@ -350,6 +350,7 @@ extension EnvironmentValues {
         // Handed down to a subtree by what encloses it.
         detached.scrollContentWindow = nil
         detached.scrollToRegistry = nil
+        detached.enclosingScrollToRegistry = nil
         detached.scrollPositionBinding = nil
         detached.scrollObservers = ScrollObservers()
         detached.dismissalGate = nil

@@ -34,12 +34,17 @@ app:
   content no longer spreads down the screen. Use `.containerRelativeFrame(.vertical)` for a view that should be as
   tall as the scroll view.
 - A vertical `ScrollView` inside another draws no scroll bar of its own and scrolls nothing: the outer one scrolls its
-  content. A `VSplitView` lays each pane out at its own height rather than cutting the first.
+  content, and a `ScrollViewReader` in it scrolls the outer one. A `VSplitView` lays each pane out at its own height
+  rather than cutting the first.
 - `.fixedSize(horizontal: false, vertical: true)` makes a `List`, `TextEditor`, `ScrollView` or split view its
   content's height too, where it kept the height it was offered.
 - `ScrollView(.horizontal)` gives its content its own height, so a long table or list in it is that tall and scrolls
   its own rows, where it was 4,096 lines tall. Taller content of other kinds still scrolls down.
 - A frame still gives any of these a height, as in SwiftUI, and the view then scrolls its own rows inside it.
+
+**A `ScrollViewReader` inside a scroll view's content scrolls that scroll view.** `ScrollView { ScrollViewReader {
+proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
+views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
 **A `NavigationSplitView` too narrow for its columns collapses into a stack.** Each column is at least 10 cells
 wide, so three columns in a 20-cell terminal drew 32 wide: the detail and a divider lay past the screen's edge, and Tab
