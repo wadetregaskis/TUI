@@ -83,7 +83,7 @@ private struct ChordPage: View {
                     Text("wxyz")
                 }
         case .searchField:
-            Text("CONTENT").searchable(text: binding)
+            FocusedSearchable(text: binding) { Text("CONTENT") }
         case .textEditor:
             // Without a find bar: an editor that has one gives Ctrl-F to it
             // (decisions B81), and the chord is the reference's here.

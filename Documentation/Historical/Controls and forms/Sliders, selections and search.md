@@ -1,8 +1,9 @@
 # Sliders, selections and search
 
 *Slider ticks and bounds read from the documentation, a wrong-typed write
-through a selection's projection, and when search scopes show. Ids: B33,
-B-PARITYMISC-1, B38, STEPPER-WIDTH.*
+through a selection's projection, when search scopes show, and where the
+focus starts beside a search field. Ids: B33, B-PARITYMISC-1, B38,
+SEARCH-FOCUS, STEPPER-WIDTH.*
 
 ## In short
 
@@ -108,3 +109,34 @@ picker it was heading for.
 since a terminal's field is never hidden. That reads well for a dedicated
 search page but makes `.onTextEntry` meaningless, so it would have to be a
 TUI-only activation rather than a reading of SwiftUI's.
+
+### SEARCH-FOCUS. A search field is not where the focus starts (2026-11-15)
+
+*`View.searchable(text:placement:prompt:)` and its siblings, `AutomaticFocusDeclining`*
+
+The focus manager gave the first focus to the first control drawn, and a
+search field is drawn above the content, so every searchable page opened with
+the keys in its field: the arrows, Return and an app's `onKeyPress` chords
+typed into it until Tab took the focus out (tuitree's M3 feedback, item 3).
+
+**Measured** with SwiftUI on macOS 15.8.3 (`Tools/SwiftUIProbes/Search field
+focus and Escape/`, a `WindowGroup` whose `NavigationStack` content is
+`.searchable`, its field in the toolbar): a window whose content is a `List`
+or a `Table` opens with that view the first responder; one whose content has
+nothing focusable opens with the window itself first responder, no view
+focused. Never the search field.
+
+**Shipped:** the search field declines the focus the manager chooses by
+itself while anything else can take it — the first registrant's, and the
+first-focusable fallback at a frame's end — so the content's first control
+takes it, as on macOS. ⌃F (Find) puts the keys in the field, as ⌘F does
+there; `.searchFocused`, `.defaultFocus`, `isPresented:`, Tab and a neighbour
+leaving still focus it.
+
+**Not matched:** where the content has nothing to focus, macOS opens with no
+view focused, and the person clicks the field. A terminal has no pointer to
+count on, and a page of results with the keys going nowhere is a page that
+does nothing until ⌃F or Tab, so the field takes the focus there, as every
+searchable did before. A SwiftUI program behaves no differently for it: only
+the keys that would have done nothing reach the field.
+

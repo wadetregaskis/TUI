@@ -52,6 +52,9 @@ private struct SelectedPage: View {
 @MainActor
 @Suite("Search selection", .rendersEnglishUI)
 struct SearchSelectionTests {
+    /// Find, ⌃F: the keys into the search field, which the focus does not
+    /// start in while the content has a control (`AutomaticFocusDeclining`).
+    private let find = KeyEvent(key: .character("f"), ctrl: true)
 
     // `TextSelection` is macOS 15's; the bodies run where it exists, which is
     // every CI lane.
@@ -70,6 +73,7 @@ struct SearchSelectionTests {
         let harness = InputChainHarness()
         let probe = Probe()
         harness.frame(SelectedPage(probe: probe))
+        harness.press(find)
         harness.frame(SelectedPage(probe: probe))
         harness.press(KeyEvent(key: .home))
         #expect(probe.offsets == 0..<0, "the caret is written as it moves: \(String(describing: probe.offsets))")
@@ -84,6 +88,7 @@ struct SearchSelectionTests {
         let harness = InputChainHarness()
         let probe = Probe()
         harness.frame(SelectedPage(probe: probe))
+        harness.press(find)
         harness.frame(SelectedPage(probe: probe))
         probe.select(1..<4)
         harness.frame(SelectedPage(probe: probe))

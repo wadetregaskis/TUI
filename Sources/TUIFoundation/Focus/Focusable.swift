@@ -113,3 +113,48 @@ package protocol PersistedFocusable: Focusable {
 /// below itself, including through the environment. A `List` does not qualify:
 /// its rows draw the selection differently while it holds the focus.
 package protocol FocusDrawnOnlyAtItself: Focusable {}
+
+/// A control the focus manager gives the focus to of its own accord only when
+/// nothing else can take it: not as the first control of a window or a section
+/// that nothing has focused while another control follows it. A key, a click,
+/// `.focused(_:)`, `.defaultFocus(_:_:)` or a neighbour leaving still focuses
+/// it.
+///
+/// A `.searchable`'s field is one, as macOS's search field in a window's
+/// toolbar is (measured with SwiftUI on macOS 15.8, `Tools/SwiftUIProbes/Search
+/// field focus and Escape/`): a window whose content is a `List` or a `Table`
+/// opens with the focus there, never in the search field. ⌃F puts it there, as
+/// ⌘F does on macOS. Where the content has nothing to focus, macOS opens with
+/// no view focused, to be clicked; a terminal has no pointer to count on, so
+/// the field takes the focus then, rather than leave the keys going nowhere.
+///
+/// A class's stored property, set as the control renders
+/// (``EnvironmentValues/declinesAutomaticFocus``), so a registration a memo
+/// replays carries it too.
+package protocol AutomaticFocusDeclining: Focusable {
+    /// Whether the focus manager leaves this control alone when it chooses
+    /// the focus by itself.
+    var declinesAutomaticFocus: Bool { get }
+}
+
+extension Focusable {
+    /// Whether the focus manager may give this control the focus by itself:
+    /// not an ``AutomaticFocusDeclining`` control that declines it.
+    var takesAutomaticFocus: Bool {
+        (self as? any AutomaticFocusDeclining)?.declinesAutomaticFocus != true
+    }
+}
+
+private struct DeclinesAutomaticFocusKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    /// Whether a text field in this subtree is left alone when the focus
+    /// manager chooses the focus by itself (``AutomaticFocusDeclining``).
+    /// A `.searchable` sets it on its own field, and on nothing else.
+    package var declinesAutomaticFocus: Bool {
+        get { self[DeclinesAutomaticFocusKey.self] }
+        set { self[DeclinesAutomaticFocusKey.self] = newValue }
+    }
+}

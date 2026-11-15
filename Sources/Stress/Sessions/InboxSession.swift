@@ -158,10 +158,13 @@ final class InboxSession: StressSession {
     var page: InboxPage { InboxPage(inbox: inbox) }
 
     func step(_ index: Int) -> SessionStep {
-        // The search field is the first focusable view, so it holds the focus
-        // when the page opens; the list is a Tab away.
+        // The list holds the focus when the page opens, as on macOS: a search
+        // field does not take it while the content has a control
+        // (`AutomaticFocusDeclining`). Before, the field did, and this step
+        // was the Tab that took the focus to the list; it is kept, with no
+        // keys, so every later step is the one it was.
         if index == 0 {
-            return SessionStep(action: "focus", keys: [KeyEvent(key: .tab)])
+            return SessionStep(action: "focus")
         }
         if !pending.isEmpty {
             let key = pending.removeFirst()

@@ -238,9 +238,13 @@ struct SearchableTests {
         let focus = FocusManager()
 
         frame(view, tuiContext: tui, focusManager: focus)
+        // The button after the field took the opening focus
+        // (`AutomaticFocusDeclining`); the search starts as Find starts it.
+        let field = focus.activeSection?.focusables.first { $0 is any TextInputFocusHandler }
+        focus.focus(id: field?.focusID ?? "")
         frame(view, tuiContext: tui, focusManager: focus)
         let fieldID = focus.currentFocusedID
-        #expect(fieldID != nil, "the search field should hold focus to begin with")
+        #expect(fieldID != nil && fieldID == field?.focusID, "the search field should hold focus to begin with")
 
         captured.dismiss?()
         #expect(box.query.isEmpty, "the query is emptied")

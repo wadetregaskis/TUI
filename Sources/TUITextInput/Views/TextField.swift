@@ -983,6 +983,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         let handler = handlerBox.value
         handler.text = text
         handler.canBeFocused = !isDisabled
+        handler.declinesAutomaticFocus = context.environment.declinesAutomaticFocus
         // Redacted, the field hides its text, and then it behaves as a
         // SecureField does for every way the text could get out — no copy or
         // cut, no kill to yank, a word motion one character, a double-click

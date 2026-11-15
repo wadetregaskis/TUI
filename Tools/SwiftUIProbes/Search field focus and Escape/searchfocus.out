@@ -1,0 +1,28 @@
+content: list; app active: true
+toolbar items: ["com.apple.SwiftUI.search"]
+at launch: first responder = SwiftUIOutlineListView; query = ""; isSearching = false
+search field clicked: first responder = field editor of AppKitSearchField; query = ""; isSearching = true
+typed abc: first responder = field editor of AppKitSearchField; query = "abc"; isSearching = true
+Escape with text: first responder = AppKitWindow; query = ""; isSearching = false
+Escape again: first responder = AppKitWindow; query = ""; isSearching = false
+search field clicked, empty: first responder = field editor of AppKitSearchField; query = ""; isSearching = true
+Escape in the empty field: first responder = AppKitWindow; query = ""; isSearching = false
+content: table; app active: true
+toolbar items: ["com.apple.SwiftUI.search"]
+at launch: first responder = SwiftUIOutlineTableView; query = ""; isSearching = false
+search field clicked: first responder = field editor of AppKitSearchField; query = ""; isSearching = true
+typed abc: first responder = field editor of AppKitSearchField; query = "abc"; isSearching = true
+Escape with text: first responder = AppKitWindow; query = ""; isSearching = false
+Escape again: first responder = AppKitWindow; query = ""; isSearching = false
+search field clicked, empty: first responder = field editor of AppKitSearchField; query = ""; isSearching = true
+Escape in the empty field: first responder = AppKitWindow; query = ""; isSearching = false
+content: text; app active: true
+toolbar items: ["com.apple.SwiftUI.search"]
+at launch: first responder = AppKitWindow; query = ""; isSearching = false
+search field clicked: first responder = field editor of AppKitSearchField; query = ""; isSearching = true
+typed abc: first responder = field editor of AppKitSearchField; query = "abc"; isSearching = true
+Escape with text: first responder = AppKitWindow; query = ""; isSearching = false
+Escape again: first responder = AppKitWindow; query = ""; isSearching = false
+search field clicked, empty: first responder = field editor of AppKitSearchField; query = ""; isSearching = true
+Escape in the empty field: first responder = AppKitWindow; query = ""; isSearching = false
+measured 2026-11-15 on macOS 15.8.3, built with Xcode's Swift 6.2 against the macOS 26 SDK; the probe app activated itself (app active: true).

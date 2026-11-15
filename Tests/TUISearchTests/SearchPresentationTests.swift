@@ -56,6 +56,23 @@ private struct ValuedPage: View {
     }
 }
 
+/// A searchable page and nothing more: a button for content, or text alone.
+private struct PlainPage: View {
+    let probe: Probe
+    var hasControl = true
+
+    var body: some View {
+        VStack {
+            if hasControl {
+                Button("Result") { probe.pressed += 1 }
+            } else {
+                Text("Results")
+            }
+        }
+        .searchable(text: probe.text)
+    }
+}
+
 /// A searchable page presented through `isPresented`.
 private struct PresentedPage: View {
     let probe: Probe
@@ -74,8 +91,11 @@ struct SearchPresentationTests {
         let probe = Probe()
         let app = TestApp(width: 40, height: 12) { FocusedPage(probe: probe) }
         app.advance(by: .zero)
-        #expect(probe.focus?.wrappedValue == true, "the field, first on the page, holds the focus")
+        #expect(probe.focus?.wrappedValue == false, "the focus starts in the content, not the field above it")
 
+        probe.focus?.wrappedValue = true
+        app.advance(by: .zero)
+        #expect(probe.focus?.wrappedValue == true, "setting it moved the focus to the field")
         app.press(.tab)
         #expect(probe.focus?.wrappedValue == false, "Tab took the focus to the result")
 
@@ -91,7 +111,7 @@ struct SearchPresentationTests {
     func findFocusesTheField() {
         let probe = Probe()
         let app = TestApp(width: 40, height: 12) { FocusedPage(probe: probe) }
-        app.press(.tab)
+        app.advance(by: .zero)
         #expect(probe.focus?.wrappedValue == false, "sanity: the focus is on the result")
         app.press(.character("f"), modifiers: .control)
         #expect(probe.focus?.wrappedValue == true, "Find moved the focus to the field")
@@ -105,6 +125,8 @@ struct SearchPresentationTests {
         var last: Area?
         let app = TestApp(width: 40, height: 12) { ValuedPage { last = $0 } }
         app.advance(by: .zero)
+        #expect(last == .list, "the focus starts in the content")
+        app.press(.character("f"), modifiers: .control)
         #expect(last == .search)
         app.press(.tab)
         #expect(last == .list)
@@ -115,7 +137,9 @@ struct SearchPresentationTests {
         let probe = Probe()
         let app = TestApp(width: 40, height: 12) { PresentedPage(probe: probe) }
         app.advance(by: .zero)
-        #expect(probe.presented, "the field took the opening focus, so search is presented")
+        #expect(!probe.presented, "the focus starts in the content, so search is not presented")
+        app.press(.character("f"), modifiers: .control)
+        #expect(probe.presented, "Find put the focus in the field, so search is presented")
 
         app.press(.tab)
         #expect(!probe.presented, "the focus left the field")
@@ -133,7 +157,7 @@ struct SearchPresentationTests {
     func endingFromTheApp() async {
         let probe = Probe()
         let app = TestApp(width: 40, height: 12) { PresentedPage(probe: probe) }
-        app.advance(by: .zero)
+        app.press(.character("f"), modifiers: .control)
         #expect(probe.presented)
 
         probe.presented = false
@@ -164,5 +188,29 @@ struct SearchPresentationTests {
         #expect(app.screen.contains("Notes"), "what is above the field is still drawn")
         #expect(app.screen.contains("first result"), "and so is the content")
         #expect(probe.presented, "search is presented: the field holds the focus")
+    }
+
+    // MARK: - Where the focus starts
+
+    /// As on macOS, where a window's search field is in its toolbar
+    /// (`Tools/SwiftUIProbes/Search field focus and Escape/`): the content's
+    /// List or Table holds the focus as the window opens.
+    @Test("The focus starts in the content, not in the search field above it")
+    func focusStartsInTheContent() {
+        let probe = Probe()
+        let app = TestApp(width: 40, height: 12) { PlainPage(probe: probe) }
+        app.press(.space)
+        #expect(probe.pressed == 1, "Space pressed the content's button")
+        #expect(probe.query == "hello", "and typed nothing into the field")
+    }
+
+    /// Where macOS opens such a window with no view focused, for a click on the
+    /// field: a terminal has no pointer to count on (``AutomaticFocusDeclining``).
+    @Test("With nothing to focus in the content, the search field takes the focus")
+    func fieldFocusedWithoutContentControls() {
+        let probe = Probe()
+        let app = TestApp(width: 40, height: 12) { PlainPage(probe: probe, hasControl: false) }
+        app.type("x")
+        #expect(probe.query == "hellox")
     }
 }

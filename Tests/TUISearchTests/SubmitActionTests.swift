@@ -213,7 +213,11 @@ struct SubmitActionTests {
             .onSubmit(of: .search) { searchFired = true }
             .onSubmit(of: .text) { textFired = true }
 
+        // A whole pass: the field takes the focus as it ends, the content having
+        // nothing to focus (`AutomaticFocusDeclining`).
+        focusManager.beginRenderPass()
         _ = renderToBuffer(view, context: context)
+        focusManager.endRenderPass()
         _ = focusManager.dispatchKeyEvent(KeyEvent(key: .enter))
         #expect(searchFired == true, "the search field ran the .search action")
         #expect(textFired == false, "and NOT the .text action")

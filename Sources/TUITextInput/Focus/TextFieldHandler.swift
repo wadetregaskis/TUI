@@ -119,6 +119,10 @@ final class TextFieldHandler: PersistedFocusable {
     /// Whether this element can currently receive focus.
     var canBeFocused: Bool
 
+    /// Whether the focus manager leaves the field alone when it chooses the
+    /// focus by itself: a `.searchable`'s field (``AutomaticFocusDeclining``).
+    var declinesAutomaticFocus = false
+
     /// Whether the field masks its contents, i.e. is a ``SecureField``.
     ///
     /// `SecureField` reuses this handler because the key handling really is
@@ -351,6 +355,8 @@ final class TextFieldHandler: PersistedFocusable {
         if let undoManager { departedUndoSteps?.add(undoHistory.allMarks, from: undoManager) }
     }
 }
+
+extension TextFieldHandler: AutomaticFocusDeclining {}
 
 // MARK: - Leaving the screen
 

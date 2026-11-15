@@ -39,6 +39,9 @@ private final class Model {
 @Suite("Search tokens", .rendersEnglishUI)
 struct SearchTokensTests {
     private let backspace = KeyEvent(key: .backspace)
+    /// Find, ⌃F: the keys into the search field, which the focus does not
+    /// start in while the content has a control (`AutomaticFocusDeclining`).
+    private let find = KeyEvent(key: .character("f"), ctrl: true)
 
     private func page(_ model: Model) -> some View {
         VStack { Button("Result") {} }
@@ -85,6 +88,7 @@ struct SearchTokensTests {
         let model = Model()
         model.query = "a"
         harness.frame(page(model))
+        harness.press(find)
         harness.frame(page(model))
         harness.press(backspace)
         harness.frame(page(model))
@@ -101,6 +105,7 @@ struct SearchTokensTests {
         model.tokens = []
         let page = { self.suggestingPage(model) { EmptyView() } }
         harness.frame(page())
+        harness.press(find)
         let closed = screen(harness.frame(page()))
         #expect(!closed.contains { $0.contains("Fig") }, "nothing is offered until the menu opens: \(closed)")
         harness.press(KeyEvent(key: .down))  // opens the menu at its first row, Apple
@@ -125,6 +130,7 @@ struct SearchTokensTests {
         model.tokens = []
         let page = { self.suggestingPage(model) { Text("apricot") } }
         harness.frame(page())
+        harness.press(find)
         harness.frame(page())
         harness.press(KeyEvent(key: .down))
         let open = screen(harness.frame(page()))
@@ -155,6 +161,7 @@ struct SearchTokensTests {
             }
         }
         harness.frame(page())
+        harness.press(find)
         harness.frame(page())
         harness.press(KeyEvent(key: .character("f")))
         harness.frame(page())
@@ -182,6 +189,7 @@ struct SearchTokensTests {
                 }
         }
         harness.frame(page())
+        harness.press(find)
         harness.frame(page())
         harness.press(KeyEvent(key: .down))
         let open = screen(harness.frame(page()))

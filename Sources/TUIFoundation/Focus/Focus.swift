@@ -585,6 +585,7 @@ extension FocusManager {
             && !focusScopes.holdsAutoFocus
             && !optionalFocusSectionIDs.contains(targetID)
             && !suppressesAutoFocus
+            && element.takesAutomaticFocus
         {
             // Chosen by the manager, not asked for: a preference may replace it.
             focusPreservingPendingIntent(element, automatically: true)
@@ -1554,10 +1555,14 @@ extension FocusManager {
 
         // Auto-focus if, after validation and any default, nothing holds focus: the
         // dropped control's handoff target or neighbour when it had one, the first
-        // focusable otherwise.
+        // focusable that takes the focus by itself otherwise (not a search field:
+        // ``AutomaticFocusDeclining``), and one that declines it only where there
+        // is nothing else to focus.
         if focusedID == nil, let section = activeSection,
             !optionalFocusSectionIDs.contains(section.id),
-            let target = recovery?.element ?? section.focusables.first(where: { $0.canBeFocused })
+            let target = recovery?.element
+                ?? section.focusables.first(where: { $0.canBeFocused && $0.takesAutomaticFocus })
+                ?? section.focusables.first(where: { $0.canBeFocused })
         {
             if let sectionID = recovery?.sectionID { activeSectionID = sectionID }
             // The first focusable, or the untouched choice's neighbour, is the

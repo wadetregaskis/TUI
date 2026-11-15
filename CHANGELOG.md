@@ -58,6 +58,13 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**A `.searchable`'s field no longer takes the focus from the content as the app starts.** The content's first control
+does, as on macOS, where a window opens with its `List` or `Table` focused and its search field in the toolbar
+untouched. Before, every key the content answered — the arrows, Return, an app's `onKeyPress` chords — typed into the
+field until Tab took the focus out. ⌃F (Find) puts the keys in the field, and `.searchFocused(_:)`,
+`.defaultFocus(_:_:)` and `isPresented:` still can. Where the content has nothing to focus, the field still takes the
+focus, as there is no pointer to click into it with.
+
 **`TestApp.press` sends a lowercase letter held with Shift as its capital, as a terminal does.**
 `press(.character("g"), modifiers: [.control, .shift])` was a ⌃G with a Shift flag no terminal sends, and shortcuts
 read Shift from a letter's case, so it fired the `("g")` shortcut rather than the `("g", modifiers: [.command,

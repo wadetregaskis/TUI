@@ -110,6 +110,10 @@ struct SearchableModifier<Content: View> {
             // consumes `.text`.
             queryField
                 .environment(\.submitTriggerRole, .search)
+                // Not where the focus starts: the content's first control is,
+                // as on macOS, where the search field is in the toolbar and ⌘F
+                // reaches it (``AutomaticFocusDeclining``). ⌃F does here.
+                .environment(\.declinesAutomaticFocus, true)
             // A slot of its own after the field's, so the field stays the same
             // view as the button comes and goes.
             if !text.wrappedValue.isEmpty {

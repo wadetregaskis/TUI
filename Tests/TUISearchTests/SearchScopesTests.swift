@@ -30,6 +30,9 @@ private final class Model {
 @Suite("Search scopes", .rendersEnglishUI)
 struct SearchScopesTests {
     private let tab = KeyEvent(key: .tab)
+    /// Find, ⌃F: the keys into the search field, which the focus does not
+    /// start in.
+    private let find = KeyEvent(key: .character("f"), ctrl: true)
 
     private func page(_ model: Model, _ activation: SearchScopeActivation = .automatic) -> some View {
         VStack { Button("Result") {} }
@@ -49,7 +52,9 @@ struct SearchScopesTests {
         let harness = InputChainHarness(width: 60, height: 12)
         let model = Model()
         harness.frame(page(model))
-        #expect(showsScopes(harness.frame(page(model))), "the field took the focus: search is presented")
+        #expect(!showsScopes(harness.frame(page(model))), "the focus starts in the content: search is not presented")
+        harness.press(find)
+        #expect(showsScopes(harness.frame(page(model))), "Find put the focus in the field: search is presented")
 
         harness.press(tab)  // field → the scope bar, on the selected scope
         #expect(showsScopes(harness.frame(page(model))), "Tab from the field reaches the scopes")
@@ -85,6 +90,7 @@ struct SearchScopesTests {
         let harness = InputChainHarness(width: 60, height: 12)
         let model = Model()
         harness.frame(page(model, .onTextEntry))
+        harness.press(find)
         #expect(!showsScopes(harness.frame(page(model, .onTextEntry))), "presented, but nothing typed")
         harness.press(KeyEvent(character: "a"))
         harness.frame(page(model, .onTextEntry))

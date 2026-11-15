@@ -71,6 +71,23 @@ struct AppShortcut: Sendable, CustomTestStringConvertible {
     }
 }
 
+/// `content`, searchable, with the search field holding the focus from the
+/// first frame, as the field under test must: a search field does not take
+/// the focus by itself, as on macOS (``AutomaticFocusDeclining``), so the
+/// page gives it the focus by default.
+struct FocusedSearchable<Content: View>: View {
+    let text: Binding<String>
+    @ViewBuilder let content: Content
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        content
+            .searchable(text: text)
+            .searchFocused($focused)
+            .defaultFocus($focused, true)
+    }
+}
+
 /// The text control under test, first on the page so it takes the focus, and
 /// a button carrying the shortcut, if there is one, after it.
 private struct PrecedencePage: View {
@@ -106,11 +123,12 @@ private struct PrecedencePage: View {
                 buttons
             }
         case .searchField:
-            VStack {
-                Text("CONTENT")
-                buttons
+            FocusedSearchable(text: binding) {
+                VStack {
+                    Text("CONTENT")
+                    buttons
+                }
             }
-            .searchable(text: binding)
         case .textEditor:
             VStack {
                 // Without a find bar, whose own keys Ctrl-F and Ctrl-G are
