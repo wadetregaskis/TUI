@@ -685,12 +685,28 @@ extension View {
 
     /// Shows `shortcut` as the wrapped control's key — the key a menu row
     /// prints at its trailing edge — without binding it: for a menu item whose
-    /// key something else binds, and which does what that key does. The menu
-    /// bar's standard items (TUICommands) are such: Undo's key is the
-    /// scene's undo key, Copy's the focused view's ⌘C, Quit's the quit key.
+    /// key something else binds, and which does what that key does.
     ///
-    /// TUI-internal: SwiftUI's menu items draw the key they are bound to.
-    package func keyboardShortcutHint(_ shortcut: KeyboardShortcut?) -> some View {
+    /// ```swift
+    /// CommandMenu("Node") {
+    ///     Button("Delete Node") { deleteNode() }
+    ///         .keyboardShortcutHint(KeyboardShortcut("d", modifiers: .control))
+    /// }
+    /// ```
+    ///
+    /// The key stays whoever's binds it — here a table's `onKeyPress`, which
+    /// hears ⌃D only while the table has the focus, so a focused text field
+    /// in one of its rows keeps ⌃D for deleting a character, as an app-wide
+    /// `.keyboardShortcut` would not let it. The menu bar's standard items
+    /// are such too: Undo's key is the scene's undo key, Copy's the focused
+    /// view's ⌘C, Quit's the quit key. The F1 list of shortcuts names the
+    /// item beside the key, as it does a bound one. `nil` shows none.
+    ///
+    /// TUI-specific: SwiftUI's menu items draw the key they are bound to, and
+    /// nothing else. A terminal gives an app fewer keys, and the ones it gives
+    /// are the text fields' Emacs keys too, so the place that binds a key and
+    /// the menu that names it are more often apart.
+    nonisolated public func keyboardShortcutHint(_ shortcut: KeyboardShortcut?) -> some View {
         KeyboardShortcutModifier(
             content: self, assignment: shortcut.map { KeyboardShortcutAssignment($0, registers: false) })
     }

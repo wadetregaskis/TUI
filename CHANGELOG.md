@@ -50,6 +50,11 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**`.keyboardShortcutHint(_:)` shows a key beside a menu item without binding it.** For an item whose key something
+else binds — a table's `onKeyPress` chord, which leaves a focused text field its own ⌃D where an app-wide
+`.keyboardShortcut` would take it — the menu shows the key, and pressing it does what the binding does, not the item.
+TUI's own menu bar items used it already; it is now public. SwiftUI has no such modifier.
+
 **An app's own Return item in the status bar keeps its label.** The focused control's verb for Return replaced the
 label of every Return item on the bar, the app's own too, so a table with a primary action showed an app's "↩ edit" as
 "↩ open". It now names only the bar's own Return item; a page that declares a Return item says what Return does there,

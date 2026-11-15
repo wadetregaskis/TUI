@@ -506,6 +506,20 @@ selected, ahead of your ⌘C and of a `.ctrlC` quit. Where that is not what you
 want, use the form whose handler takes the ``KeyEvent``, check its `ctrl`, and
 return `false` to let the key go on.
 
+A command bound that way, with an `onKeyPress` around a table whose rows hold
+text fields, can still show its key in a menu. ``View/keyboardShortcutHint(_:)``
+on the menu item shows the key beside it and binds nothing, so the key goes on
+doing what the `onKeyPress` does, and a focused field keeps its own chord:
+
+```swift
+CommandMenu("Node") {
+    Button("Delete Node") { deleteNode() }
+        .keyboardShortcutHint(KeyboardShortcut("d", modifiers: .control))
+}
+```
+
+SwiftUI has no such modifier: a menu item there shows the key it binds.
+
 ## Framework Shortcuts
 
 A few controls bind keys of their own, the way SwiftUI's built-in menu items do.
