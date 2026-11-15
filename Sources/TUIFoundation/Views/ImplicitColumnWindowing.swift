@@ -61,7 +61,7 @@ nonisolated package struct _WindowingImplicitColumn<Content: View>: View, Render
     }
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        let column = context.withChildIdentity(type: Self.self)
+        let column = context.withChildIdentity(type: Self.self).leavingImplicitColumnRowLayout()
         if let several = columnOfSeveral(context: column) {
             return TUIView.renderToBuffer(several, context: column.withChildIdentity(type: _ImplicitColumnOfSeveral.self))
         }
@@ -69,7 +69,7 @@ nonisolated package struct _WindowingImplicitColumn<Content: View>: View, Render
     }
 
     @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        let column = context.withChildIdentity(type: Self.self)
+        let column = context.withChildIdentity(type: Self.self).leavingImplicitColumnRowLayout()
         if let several = columnOfSeveral(context: column) {
             return measureChild(
                 several, proposal: proposal, context: column.withChildIdentity(type: _ImplicitColumnOfSeveral.self))
@@ -150,14 +150,99 @@ private protocol CountedLoop {
 
 @MainActor extension TupleView: ImplicitColumnMembers {
     package func columnOfSeveral(in context: RenderContext) -> (any View)? {
+        columnOfSeveral(alignment: .leading, spacing: 0, in: context)
+    }
+
+    /// These views as a column laid out at `alignment` and `spacing`, when
+    /// one is a loop past the lazy stack's threshold; `nil` otherwise.
+    package func columnOfSeveral(alignment: HorizontalAlignment, spacing: Int, in context: RenderContext) -> (any View)? {
         for child in repeat each children {
             if let loop = child as? any CountedLoop,
                 loop.liveElementCount(in: context) > _VStackCore<EmptyView>.anchoredWindowThreshold
             {
-                return _VStackCore(alignment: .leading, spacing: 0, overflow: .clip, content: self)
+                return _VStackCore(alignment: alignment, spacing: spacing, overflow: .clip, content: self)
             }
         }
         return nil
+    }
+}
+
+// MARK: - A lazy stack's column of several
+
+/// A lazy stack's content of several views that may be drawn as a column of
+/// them, the loop among them drawn as a lazy stack of its own: a builder's
+/// tuple.
+@MainActor
+package protocol LazyColumnMembers {
+    /// See ``TupleView/columnOfSeveral(alignment:spacing:in:)``.
+    func columnOfSeveral(alignment: HorizontalAlignment, spacing: Int, in context: RenderContext) -> (any View)?
+}
+
+extension TupleView: LazyColumnMembers {}
+
+/// The alignment and spacing a loop drawn as a column of several's lazy stack
+/// lays its rows out at: those of the lazy stack the column stands in for
+/// (``_VStackCore/lazyColumnOfSeveral(context:)``). A windowing container's
+/// column (a `GroupBox`'s) states none, and its rows are leading, with no
+/// spacing, as its content drawn whole stacks them.
+package struct ImplicitColumnRowLayout: Equatable, Sendable {
+    let alignment: HorizontalAlignment
+    let spacing: Int
+}
+
+/// EnvironmentKey for ``EnvironmentValues/implicitColumnRowLayout``.
+private struct ImplicitColumnRowLayoutKey: EnvironmentKey {
+    static let defaultValue: ImplicitColumnRowLayout? = nil
+}
+
+extension EnvironmentValues {
+    /// See ``ImplicitColumnRowLayout``. Set on a lazy stack's column of
+    /// several, and cleared under the loop drawn there and under a windowing
+    /// container's column, so no column further down reads it.
+    package var implicitColumnRowLayout: ImplicitColumnRowLayout? {
+        get { self[ImplicitColumnRowLayoutKey.self] }
+        set { self[ImplicitColumnRowLayoutKey.self] = newValue }
+    }
+}
+
+extension RenderContext {
+    /// This context with no ``EnvironmentValues/implicitColumnRowLayout``,
+    /// written only where one was set.
+    func leavingImplicitColumnRowLayout() -> RenderContext {
+        guard environment.implicitColumnRowLayout != nil else { return self }
+        var context = self
+        context.environment.implicitColumnRowLayout = nil
+        return context
+    }
+}
+
+extension _VStackCore {
+    /// A lazy stack whose content is several views, one of them a loop past
+    /// the threshold, in scroll content — `LazyVStack { header; ForEach(rows)
+    /// }` — as the column of those views a windowing container's content of
+    /// several is drawn as (`_WindowingImplicitColumn.columnOfSeveral`): the
+    /// header drawn whole, the loop a lazy stack of its own at this stack's
+    /// alignment and spacing, a pulled child of the column. `nil` otherwise,
+    /// and the stack draws as before.
+    ///
+    /// Taken apart into one column of rows, the tuple resolved its loop
+    /// eagerly, building every row on the first frame for each measure of it
+    /// (30,035 at 10,000 rows, 30 × 12; the row memo then served every row
+    /// after it, still walked). Not for a stack that pins its sections, which
+    /// pins only its own.
+    ///
+    /// The rows' identities are the column's, not those the rows had taken
+    /// apart, so a loop growing past the threshold starts its rows' state
+    /// afresh, once, as a `GroupBox`'s does.
+    @MainActor func lazyColumnOfSeveral(context: RenderContext) -> (column: any View, context: RenderContext)? {
+        guard overflow == .window, !pinsSectionHeaders, !pinsSectionFooters, context.scrollContentOriginDepth != 0,
+            let members = content as? any LazyColumnMembers,
+            !context.environment.drawsContainerRowsWhole, !context.environment.drawsListSectionChrome,
+            let column = members.columnOfSeveral(alignment: alignment, spacing: spacing, in: context)
+        else { return nil }
+        var columnContext = context.withChildIdentity(type: _ImplicitColumnOfSeveral.self)
+        columnContext.environment.implicitColumnRowLayout = ImplicitColumnRowLayout(alignment: alignment, spacing: spacing)
+        return (column, columnContext)
     }
 }
 
@@ -204,7 +289,11 @@ extension View {
             // and keeps its own rows.
             !context.environment.drawsListSectionChrome
         else { return nil }
-        return _VStackCore(alignment: .leading, spacing: 0, overflow: .window, content: self)
+        // The lazy stack's own alignment and spacing, where the column of
+        // several stands in for one (`_VStackCore.lazyColumnOfSeveral`).
+        let layout = context.environment.implicitColumnRowLayout
+        return _VStackCore(
+            alignment: layout?.alignment ?? .leading, spacing: layout?.spacing ?? 0, overflow: .window, content: self)
     }
 
     /// Whether a windowing container (``WindowsItsImplicitColumn``) stands on

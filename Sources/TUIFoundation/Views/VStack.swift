@@ -104,6 +104,11 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
 
     /// Measures the VStack without rendering.
     @MainActor package func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+        // A lazy stack of a header and a long loop, drawn as a column of
+        // several (`ImplicitColumnWindowing.swift`).
+        if let several = lazyColumnOfSeveral(context: context) {
+            return measureChild(several.column, proposal: proposal, context: several.context)
+        }
         // A `scrollTo` searching below the rows of a stack above
         // (`StackNestedSeek.swift`) asks this one only whether the key lies
         // among or below its rows.
@@ -457,6 +462,9 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
     }
 
     @MainActor package func renderToBuffer(context: RenderContext) -> FrameBuffer {
+        if let several = lazyColumnOfSeveral(context: context) {
+            return TUIView.renderToBuffer(several.column, context: several.context)
+        }
         // A container measured by drawing it, under a search's measure, draws
         // this stack only to search it (`StackNestedSeek.swift`).
         if let search = ScrollKeyLocate.search(in: context), !search.marksTarget {

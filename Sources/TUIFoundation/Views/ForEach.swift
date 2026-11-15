@@ -214,13 +214,16 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     /// `DisclosureGroup`, a `Section` drawn as one view) is drawn as a lazy
     /// stack past its threshold, in scroll content (`ImplicitColumnWindowing.swift`).
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        if let column = windowedColumn(context: context) { return renderWindowed(column, context: context) }
+        if let column = windowedColumn(context: context) {
+            return renderWindowed(column, context: context.leavingImplicitColumnRowLayout())
+        }
         return renderStackedVertically(childViews(context: context), context: context)
     }
 
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let column = windowedColumn(context: context) {
-            return windowedColumnSize(column.sizeThatFits(proposal: proposal, context: context), proposal: proposal, context: context)
+            let rows = context.leavingImplicitColumnRowLayout()
+            return windowedColumnSize(column.sizeThatFits(proposal: proposal, context: rows), proposal: proposal, context: rows)
         }
         return measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
     }
