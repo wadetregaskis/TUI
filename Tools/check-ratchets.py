@@ -19,7 +19,7 @@ RATCHETS = [
         "name": "unsafe-concurrency exceptions",
         "pattern": r"disable:this concurrency_escape",
         "paths": ["Sources"],
-        "limit": 12,
+        "limit": 11,
         "instead": "try dropping Sendable, a Mutex, an Atomic, @MainActor or sending",
     },
     # The exceptions to the SwiftLint rule `safe_escape`: a type marked `@safe`, which

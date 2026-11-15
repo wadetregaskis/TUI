@@ -58,6 +58,12 @@ app:
 proxy in … } }`, a shape SwiftUI's own examples take, did nothing on `proxy.scrollTo`: the proxy reached only the scroll
 views inside the reader. It now also reaches the nearest scroll view around the reader that scrolls, as in SwiftUI.
 
+**TUI builds without warnings against the macOS 15 SDK.** A swift.org toolchain on a Mac with only the Command Line
+Tools builds against that SDK, and there TUI gave three warnings in every build of a package that depends on it: two
+"no unsafe operations occur within 'unsafe' expression" and a "capture of non-Sendable type 'T.Type'" from
+`fileExporter`. Whether `String(format:)` is unsafe, and whether `Transferable` is `Sendable`, is the SDK's to say, and
+the macOS 26 SDK says yes to both where the macOS 15 SDK says no; TUI's code no longer depends on the answer.
+
 **`TestApp.windowTitle` reads the title the app has given the terminal's window**, such as a `DocumentGroup`
 window's document name with "Edited", so a test can check that an edit marks a document edited and a save clears it.
 

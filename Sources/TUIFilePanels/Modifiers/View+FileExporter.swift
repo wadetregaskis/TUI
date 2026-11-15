@@ -263,16 +263,6 @@ enum FileExportWrite {
     /// Through `NSItemProvider` rather than `Transferable.exported(as:)`, which
     /// is macOS 15.2's, where TUI runs on macOS 15.0 (registering a
     /// `Transferable` is macOS 13's).
-    /// An item handed to `NSItemProvider`, whose `register(_:)` takes it as
-    /// a `@Sendable` autoclosure: see ``TransferableExport/init(_:contentTypes:)``.
-    private struct HandedItem<T>: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
-        let item: T
-
-        init(_ item: T) {
-            self.item = item
-        }
-    }
-
     nonisolated struct TransferableExport {
         /// The provider the item is registered with. Only read, and only
         /// asked to load.
@@ -290,16 +280,23 @@ enum FileExportWrite {
             // The provider takes the item as a `@Sendable` autoclosure, which
             // it may call on a queue of its own when it loads the data.
             // SwiftUI's `fileExporter` takes any `Transferable`, `Sendable` or
-            // not, so the item is handed over in a box that vouches for it, as
-            // SwiftUI's must: only that load reads it, once the panel is
-            // closed. swift.org 6.4.0 rejects the bare capture ("implicit
-            // capture of 'item' requires that 'T' conforms to 'Sendable'"),
-            // which Xcode's 6.2.4 let through. It still warns that the
-            // autoclosure captures `T`'s metatype (SE-0470), which nothing
-            // SwiftUI's signature lets `T` be constrained by can make
-            // `Sendable`.
-            let handed = HandedItem(item)
-            provider.register(handed.item)
+            // not, so the item is handed over as SwiftUI's must be, vouched
+            // for: only that load reads it, once the panel is closed. Vouched
+            // for by calling `register(_:)` as a function whose closure need
+            // not be `@Sendable` — the same two words, as `@Sendable` changes
+            // no function's layout — rather than by a box of the item that is
+            // `@unchecked Sendable`: the box covered the item, but the closure
+            // still captured `T`'s metatype, which is `Sendable` only where
+            // `Transferable` refines `Sendable`, as the macOS 26 SDK's does and
+            // the macOS 15 SDK's does not. Against that one, which a swift.org
+            // toolchain builds with when only the Command Line Tools are
+            // installed, every build warned "capture of non-Sendable type
+            // 'T.Type' in an isolated closure" (SE-0470), and nothing
+            // SwiftUI's signature lets `T` be constrained by could stop it.
+            let register = unsafe unsafeBitCast(
+                provider.register as (@escaping @Sendable () -> T) -> Void,
+                to: ((@escaping () -> T) -> Void).self)
+            register { item }
             self.provider = provider
             self.contentTypes = contentTypes.isEmpty ? provider.registeredContentTypes : contentTypes
             // An empty suggestion is none: the panel offers Untitled instead.
