@@ -511,6 +511,9 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         } else {
             return nil
         }
+        // A long loop's columns, in scroll content, build only the rows on
+        // screen (`FormColumnsWindowing.swift`).
+        if !grouped, let windowed = windowedColumns(context: context) { return windowed }
 
         let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
         let widths = columnWidths(of: elements, context: context)

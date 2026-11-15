@@ -123,8 +123,10 @@ extension AnchoredWindowFrame: ScrollFillColumn {
 @MainActor extension _VStackCore {
     /// Row counts above this use the anchored walk once uniform arithmetic
     /// is unavailable; at or below it, the exact full walk is cheap and
-    /// keeps small stacks byte-exact in absolute space.
-    static var anchoredWindowThreshold: Int { 256 }
+    /// keeps small stacks byte-exact in absolute space. Package-wide for the
+    /// containers outside this module that window as a lazy stack does (a
+    /// `.columns` form).
+    package static var anchoredWindowThreshold: Int { 256 }
 
     /// How many leading rows the anchored estimate measures for its pitch (and,
     /// within the budget's reach, its width). The uniform seek's width records

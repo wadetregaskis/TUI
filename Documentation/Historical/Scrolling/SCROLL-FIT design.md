@@ -829,6 +829,20 @@ failed before:
   as drawn whole and measured again, as a layout is. `PulledGridTests`: the twin matches at the
   top, paged, wheeled and at End; a first frame builds 171 rows and a page 20 to 30, the same at
   2,000 and 10,000.
+- **A `.columns` `Form` of a long loop** (`FormColumnsWindowing.swift`). The cause, as P8 found
+  it: the form extracts every row each frame to classify it, and reads its label column and its
+  rows' width from all of them, then lays out every row in an eager column (50,000 rows built a
+  page at 10,000). Now a form whose content is a loop of more than 256 elements over comparable
+  data (`listRowsSignature`), in scroll content, keeps those widths at its identity, read once
+  from every row at each width it is laid out at (eight at most) and again only when the data or
+  the labels' visibility changes, and draws its rows as a lazy stack framed to the width the whole
+  column hugs, each row extracted only when drawn. The signal the extraction lacked is the
+  loop's data: a row whose label changes with something other than the data keeps the old column
+  until the data changes, as a `List`'s hugged width does (`_ListCore.widestRowWidth`). A loop over
+  data that cannot be compared, a grouped form and a form of several views among which a loop
+  stands still extract every row. `WindowedFormColumnsTests`: the twin matches with the switch
+  off and on, the column follows a change of the data, and a page builds 26 rows at 2,000 and
+  10,000 (the first frame 20,177 at 10,000, every row read at two widths).
 
 ### 1d. Heights of rows not yet built
 
