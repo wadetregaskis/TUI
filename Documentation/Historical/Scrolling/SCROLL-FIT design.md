@@ -1447,6 +1447,14 @@ matches (9,578 declarations) once `ScrollViewReader.body` is a `@ViewBuilder` ag
   So there is nothing for the table or the measure protocol to drop: what would cut it is serving a table's unchanged
   rows across frames, and a launch that settles the focus in fewer frames, both general and not the horizontal
   view's.
+- **`tables-scroll`'s memo stores, 25 → 38 in the A/B above, are the machine's load, not the follow-ups** (traced,
+  not changed). Release builds of d9a562b30 and of 1caeed378 (the follow-ups, rebased, with the same code as
+  cfdb1a218 but for `ScrollViewReader.body`'s builder) each stored 25 at a quiet start and, run six times at load 8.6,
+  25, 39 or 43 (d9a562b30) and 25, 38 or 46 (1caeed378), with the checksum the same in every run, and lookups rising
+  with the stores (197 → 226); the fixed frame clock (`--frame-checksums`) still gave 42 once in ten. The plain memo
+  marks a view type heavy after three of its timed measures inside a value memo run over `heavySubtree` (100 µs in
+  release, `PlainViewMemo.noteMeasured`), and from then on asks the memo for it: on a loaded machine the stress table
+  crosses the line and stores. `ab_counters.py`'s doc now says so.
 
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →

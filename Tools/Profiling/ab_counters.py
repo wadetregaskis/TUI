@@ -39,6 +39,14 @@ and nothing fails on a difference. Counts can differ for good reasons (a memo
 that now serves more), so the output says what moved and by how much, and the
 reader says whether that was the point.
 
+Not every count is the same from run to run of one binary. The plain memo marks
+a view type heavy, and asks the memo for it inside a value memo, once three of
+its timed measures run over `PlainViewMemo.heavySubtree` (100 µs in release), so
+on a loaded machine more types cross it and a scenario's value-memo lookups and
+stores rise with the same checksum: `tables-scroll` stored 25 to 46 over six runs
+of one binary at load 8.6 (2026-11-15). Run a moved memo count again, on each
+binary, before reading it as the change's.
+
 Only the standard library, like the rest of this directory.
 """
 import argparse
