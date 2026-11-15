@@ -14,8 +14,10 @@ import TUIFoundation
 /// Its handler keeps one of these instead, keyed by the text it was made from.
 /// An untouched document costs one string comparison a frame — `String ==`
 /// answers from the storage when the binding hands back the same string — and
-/// an edit, which the editor writes itself, hands its lines over with the text,
-/// so nothing splits them again.
+/// an edit, which the editor writes itself, is made from the layout before it
+/// (``replacing(lines:)``): the lines it changed are spliced into the text's
+/// bytes and wrapped again, and the rest are kept as they are, so a key costs
+/// the lines it touched and not the document (tuitree's M4 feedback, item 3).
 final class EditorLayout {
     /// The text laid out.
     let text: String
@@ -26,6 +28,18 @@ final class EditorLayout {
 
     /// The line ending separator detected from the text ("\n", "\r\n", or "\r").
     let lineEnding: String
+
+    /// Where each line starts in the text, in UTF-8 bytes.
+    let lineStarts: [Int]
+
+    /// Where each line starts in the text, in characters: a line break is one.
+    let characterStarts: [Int]
+
+    /// Whether every line break in the text is ``lineEnding``, so the text is
+    /// its lines joined by it, byte for byte, and an edit can be spliced into
+    /// it (``replacing(lines:)``). A text that mixes them is joined afresh by
+    /// each edit, which writes every break as ``lineEnding``.
+    let hasOneLineEnding: Bool
 
     /// The lines wrapped at the widths asked for this frame and the last
     /// (``wrapped(width:tabWidth:)``), each with the frame that last asked.
@@ -39,28 +53,310 @@ final class EditorLayout {
     var wrapsMade = 0
 
     /// Splits `text` into its lines.
-    init(text: String) {
-        self.text = text
-        let separator: String
-        if text.contains("\r\n") {
-            separator = "\r\n"
-        } else if text.contains("\r") {
-            separator = "\r"
-        } else {
-            separator = "\n"
-        }
-        self.lineEnding = separator
+    convenience init(text: String) {
         let parts = text.split(omittingEmptySubsequences: false, whereSeparator: {
             $0 == "\n" || $0 == "\r\n" || $0 == "\r"
         }).map { Array($0) }
-        lines = parts.isEmpty ? [[]] : parts
+        self.init(text: text, lines: parts)
     }
 
     /// The layout of `text`, whose lines the caller already has — the editor's
     /// own edit, written as these lines joined.
-    init(text: String, lines: [[Character]], lineEnding: String = "\n") {
+    init(text: String, lines: [[Character]], lineEnding: String? = nil) {
+        let breaks = Self.lineBreaks(in: text)
         self.text = text
         self.lines = lines.isEmpty ? [[]] : lines
+        self.lineEnding = lineEnding ?? breaks.ending
+        self.lineStarts = breaks.starts
+        self.hasOneLineEnding = breaks.isUniform
+        self.characterStarts = Self.characterStarts(of: self.lines)
+    }
+
+    /// A layout made by ``replacing(lines:)``, with its parts worked out
+    /// there.
+    private init(
+        text: String, lines: [[Character]], lineEnding: String, lineStarts: [Int], characterStarts: [Int]
+    ) {
+        self.text = text
+        self.lines = lines
         self.lineEnding = lineEnding
+        self.lineStarts = lineStarts
+        self.characterStarts = characterStarts
+        self.hasOneLineEnding = true
+    }
+
+    /// The text's line breaks: where each line starts, in bytes; the ending
+    /// the text uses — CRLF if it has one, else a lone CR if it has one, else
+    /// LF — and whether it uses no other.
+    ///
+    /// A byte at a time: a line break is a grapheme of its own (Unicode's
+    /// rules GB4 and GB5 break after and before every CR and LF), so its bytes
+    /// are where its character is.
+    private static func lineBreaks(in text: String) -> (starts: [Int], ending: String, isUniform: Bool) {
+        var starts = [0]
+        var kinds = (lf: false, crlf: false, cr: false)
+        // A CR seen, which the byte after it says is a CRLF's or a lone one.
+        var afterCR = false
+        var offset = 0
+        for byte in text.utf8 {
+            if afterCR {
+                afterCR = false
+                if byte == 0x0A {
+                    kinds.crlf = true
+                    starts.append(offset + 1)
+                    offset += 1
+                    continue
+                }
+                kinds.cr = true
+                starts.append(offset)
+            }
+            if byte == 0x0D {
+                afterCR = true
+            } else if byte == 0x0A {
+                kinds.lf = true
+                starts.append(offset + 1)
+            }
+            offset += 1
+        }
+        if afterCR {
+            kinds.cr = true
+            starts.append(offset)
+        }
+        let ending = kinds.crlf ? "\r\n" : kinds.cr ? "\r" : "\n"
+        let seen = [kinds.lf, kinds.crlf, kinds.cr].filter { $0 }.count
+        return (starts, ending, seen <= 1)
+    }
+
+    /// Where each of `lines` starts, in characters, a line break between each
+    /// and the next.
+    private static func characterStarts(of lines: [[Character]]) -> [Int] {
+        var starts: [Int] = []
+        starts.reserveCapacity(lines.count)
+        var next = 0
+        for line in lines {
+            starts.append(next)
+            next += line.count + 1
+        }
+        return starts
+    }
+}
+
+// MARK: - An edit
+
+extension EditorLayout {
+    /// An edit to a layout's lines, as ``replacing(lines:)`` makes it: the
+    /// text it leaves, and what of the layout it changed.
+    struct Edit {
+        /// The text with the edit made.
+        let text: String
+        /// Its layout.
+        let layout: EditorLayout
+        /// The lines of the layout before it that the edit replaced
+        /// (``EditorLayout/lines`` indices), and those of the layout after it
+        /// that took their place.
+        let replaced: Range<Int>
+        let replacement: Range<Int>
+    }
+
+    /// The text `newLines` are, and its layout, made from this layout's: the
+    /// lines that differ from this layout's, at its start and its end, are
+    /// spliced into its text's bytes, and the rest is kept, so an edit costs
+    /// the lines it changed and a copy of the bytes, not the whole document
+    /// read again as characters. `nil` where the text has more than one kind
+    /// of line break (``hasOneLineEnding``): there every break is written as
+    /// ``lineEnding``, as joining the lines writes it.
+    ///
+    /// The layout's wrappings are not carried over until the text is known to
+    /// be written (``adoptWrappings(of:for:)``): a binding can refuse it.
+    func replacing(lines newLines: [[Character]]) -> Edit? {
+        guard hasOneLineEnding, !newLines.isEmpty else { return nil }
+        let old = lines
+        let shorter = min(old.count, newLines.count)
+        var first = 0
+        while first < shorter, Self.same(old[first], newLines[first]) { first += 1 }
+        if first == old.count, first == newLines.count {
+            return Edit(text: text, layout: self, replaced: first..<first, replacement: first..<first)
+        }
+        var kept = 0
+        while kept < shorter - first, Self.same(old[old.count - 1 - kept], newLines[newLines.count - 1 - kept]) {
+            kept += 1
+        }
+        let replaced = first..<(old.count - kept)
+        let replacement = first..<(newLines.count - kept)
+        let ending = Array(lineEnding.utf8)
+        let total = text.utf8.count
+
+        // The bytes the edit replaces, and those it puts there: each new line
+        // with the break after it while lines follow, else the break before
+        // it, or nothing where lines at the end went.
+        var bytes: [UInt8] = []
+        var lengths: [Int] = []
+        lengths.reserveCapacity(replacement.count)
+        let span: Range<Int>
+        var firstStart: Int
+        if kept > 0 {
+            span = lineStarts[replaced.lowerBound]..<lineStarts[replaced.upperBound]
+            firstStart = span.lowerBound
+            for line in newLines[replacement] {
+                let utf8 = String(line).utf8
+                lengths.append(utf8.count)
+                bytes += utf8
+                bytes += ending
+            }
+        } else if first < old.count {
+            if replacement.isEmpty {
+                // Lines at the end gone, with the break before them.
+                span = (lineStarts[first] - ending.count)..<total
+            } else {
+                span = lineStarts[first]..<total
+            }
+            firstStart = span.lowerBound
+            for (index, line) in newLines[replacement].enumerated() {
+                if index > 0 { bytes += ending }
+                let utf8 = String(line).utf8
+                lengths.append(utf8.count)
+                bytes += utf8
+            }
+        } else {
+            // Lines added at the end.
+            span = total..<total
+            firstStart = total + ending.count
+            for line in newLines[replacement] {
+                let utf8 = String(line).utf8
+                lengths.append(utf8.count)
+                bytes += ending
+                bytes += utf8
+            }
+        }
+
+        // Copied from the text's contiguous bytes, as a block: through its
+        // UTF-8 view, a byte at a time, the copy was most of a key's cost.
+        var source = text
+        let newText = source.withUTF8 { old in
+            var spliced: [UInt8] = []
+            spliced.reserveCapacity(total - span.count + bytes.count)
+            unsafe spliced.append(contentsOf: old[..<span.lowerBound])
+            spliced += bytes
+            unsafe spliced.append(contentsOf: old[span.upperBound...])
+            // Bytes, not `Data`: the text's own UTF-8 around whole lines'.
+            // swiftlint:disable:next optional_data_string_conversion
+            return String(decoding: spliced, as: UTF8.self)
+        }
+
+        // Where the lines start: the kept ones before as they were, the new
+        // ones where their bytes went, the kept ones after moved by as much
+        // as the edit grew or shrank the text.
+        var starts = Array(lineStarts[..<first])
+        var characters = Array(characterStarts[..<first])
+        starts.reserveCapacity(newLines.count)
+        characters.reserveCapacity(newLines.count)
+        var characterStart =
+            first < old.count ? characterStarts[first] : characterStarts[old.count - 1] + old[old.count - 1].count + 1
+        for (line, length) in zip(newLines[replacement], lengths) {
+            starts.append(firstStart)
+            characters.append(characterStart)
+            firstStart += length + ending.count
+            characterStart += line.count + 1
+        }
+        if kept > 0 {
+            let byteShift = firstStart - lineStarts[replaced.upperBound]
+            let characterShift = characterStart - characterStarts[replaced.upperBound]
+            starts += lineStarts[replaced.upperBound...].lazy.map { $0 + byteShift }
+            characters += characterStarts[replaced.upperBound...].lazy.map { $0 + characterShift }
+        }
+        let layout = EditorLayout(
+            text: newText, lines: newLines, lineEnding: lineEnding, lineStarts: starts, characterStarts: characters)
+        return Edit(text: newText, layout: layout, replaced: replaced, replacement: replacement)
+    }
+
+    /// Whether two lines are the same characters, byte for byte: at once where
+    /// they share storage, as the lines an edit left alone do. Not `==`, which
+    /// takes canonically equivalent characters for one.
+    private static func same(_ a: [Character], _ b: [Character]) -> Bool {
+        guard a.count == b.count else { return false }
+        // The closures' pointer types are unsafe before Swift 6.4, and not
+        // from it, which warns of an `unsafe` with nothing unsafe in it.
+        #if compiler(>=6.4)
+            let shared = a.withUnsafeBufferPointer { x in
+                b.withUnsafeBufferPointer { y in unsafe x.baseAddress == y.baseAddress }
+            }
+        #else
+            let shared = unsafe a.withUnsafeBufferPointer { x in
+                unsafe b.withUnsafeBufferPointer { y in unsafe x.baseAddress == y.baseAddress }
+            }
+        #endif
+        if shared { return true }
+        return zip(a, b).allSatisfy { $0.utf8.elementsEqual($1.utf8) }
+    }
+
+    /// Takes `old`'s wrappings for this layout, which `edit` made from it:
+    /// the lines it replaced wrapped again, the rest kept, so a key wraps the
+    /// lines it touched and not the document. `old` keeps none: it is the
+    /// layout of a text no longer there.
+    func adoptWrappings(of old: EditorLayout, for edit: Edit) {
+        guard edit.layout === self, old !== self, !old.wrappings.isEmpty else { return }
+        var taken = old.wrappings
+        old.wrappings = []
+        for index in taken.indices {
+            taken[index].rows.replaceLines(
+                edit.replaced, with: lines[edit.replacement], tabWidth: taken[index].tabWidth)
+        }
+        wrappings = taken
+        frame = old.frame
+    }
+}
+
+// MARK: - Character offsets
+
+extension EditorLayout: TextCharacterOffsets {
+    /// The line the character `offset` is on, and its column there.
+    func position(ofCharacter offset: Int) -> TextEditorPosition {
+        let offset = max(0, offset)
+        let line = Self.lastIndex(in: characterStarts, atOrBefore: offset)
+        return TextEditorPosition(line: line, column: min(offset - characterStarts[line], lines[line].count))
+    }
+
+    /// `position` as a character offset into the text, line breaks counted.
+    func characterOffset(of position: TextEditorPosition) -> Int {
+        let line = min(max(0, position.line), lines.count - 1)
+        return characterStarts[line] + min(max(0, position.column), lines[line].count)
+    }
+
+    func offset(of index: String.Index, in text: String) -> Int {
+        guard index > text.startIndex else { return 0 }
+        guard index < text.endIndex else {
+            // Typed in steps: as one expression it exceeded the type-check guard.
+            let last: Int = lines.count - 1
+            let lastStart: Int = characterStarts[last]
+            return lastStart + lines[last].count
+        }
+        // Onto the character the index is in, as the editor's characters are.
+        let index = text.index(index, offsetBy: 0)
+        let byte = text.utf8.distance(from: text.utf8.startIndex, to: index)
+        let line = Self.lastIndex(in: lineStarts, atOrBefore: byte)
+        let start = text.utf8.index(text.utf8.startIndex, offsetBy: lineStarts[line])
+        return characterStarts[line] + min(text[start..<index].count, lines[line].count)
+    }
+
+    func index(atOffset offset: Int, in text: String) -> String.Index {
+        let position = position(ofCharacter: offset)
+        guard offset <= characterOffset(of: TextEditorPosition(line: lines.count - 1, column: .max)) else {
+            return text.endIndex
+        }
+        let line = lines[position.line]
+        let bytes = line[..<position.column].reduce(0) { $0 + $1.utf8.count }
+        return text.utf8.index(text.utf8.startIndex, offsetBy: lineStarts[position.line] + bytes)
+    }
+
+    /// The last index of `starts`, ascending from 0, whose value is at most
+    /// `value`.
+    private static func lastIndex(in starts: [Int], atOrBefore value: Int) -> Int {
+        var low = 0
+        var high = starts.count - 1
+        while low < high {
+            let middle = (low + high + 1) / 2
+            if starts[middle] <= value { low = middle } else { high = middle - 1 }
+        }
+        return low
     }
 }

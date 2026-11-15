@@ -20,7 +20,8 @@ extension TextFieldHandler {
     /// Adopts a selection the app wrote, if it changed since the last exchange.
     /// Called at render, before the field draws.
     func adoptSelectionFromApp() {
-        guard let channel = selectionChannel, let wanted = channel.read(), wanted != exchangedSelection
+        guard let channel = selectionChannel, let wanted = channel.read(WalkedCharacterOffsets()),
+            wanted != exchangedSelection
         else { return }
         let count = text.wrappedValue.count
         let lower = min(max(0, wanted.lowerBound), count)
@@ -39,48 +40,30 @@ extension TextFieldHandler {
         let current = selectionOffsets
         guard current != exchangedSelection else { return }
         exchangedSelection = current
-        channel.write(current, text.wrappedValue, selectionAffinity)
+        channel.write(current, text.wrappedValue, selectionAffinity, WalkedCharacterOffsets())
     }
 }
 
 extension TextEditorHandler {
-    /// `position` as a character offset into the text, newlines counted.
-    private func offset(of position: TextEditorPosition, in lines: [[Character]]) -> Int {
-        guard !lines.isEmpty else { return 0 }
-        let line = min(max(0, position.line), lines.count - 1)
-        let before = lines[..<line].reduce(0) { $0 + $1.count + 1 }
-        return before + min(max(0, position.column), lines[line].count)
-    }
-
-    /// The line and column a character offset falls at.
-    private func position(of offset: Int, in lines: [[Character]]) -> TextEditorPosition {
-        var remaining = max(0, offset)
-        for (index, line) in lines.enumerated() {
-            if remaining <= line.count { return TextEditorPosition(line: index, column: remaining) }
-            remaining -= line.count + 1
-        }
-        let last = max(0, lines.count - 1)
-        return TextEditorPosition(line: last, column: lines.isEmpty ? 0 : lines[last].count)
-    }
-
-    /// The caret and selection as character offsets.
+    /// The caret and selection as character offsets, found from where the
+    /// layout's lines start (``EditorLayout/characterOffset(of:)``).
     var selectionOffsets: Range<Int> {
-        let lines = readLines()
-        let caret = offset(of: TextEditorPosition(line: cursorLine, column: cursorColumn), in: lines)
-        guard let anchor = selectionAnchor.map({ offset(of: $0, in: lines) }) else { return caret..<caret }
+        let layout = layout()
+        let caret = layout.characterOffset(of: TextEditorPosition(line: cursorLine, column: cursorColumn))
+        guard let anchor = selectionAnchor.map({ layout.characterOffset(of: $0) }) else { return caret..<caret }
         return min(anchor, caret)..<max(anchor, caret)
     }
 
     /// Adopts a selection the app wrote, if it changed since the last exchange.
     func adoptSelectionFromApp() {
-        guard let channel = selectionChannel, let wanted = channel.read(), wanted != exchangedSelection
+        let layout = layout()
+        guard let channel = selectionChannel, let wanted = channel.read(layout), wanted != exchangedSelection
         else { return }
-        let lines = readLines()
-        let caret = position(of: wanted.upperBound, in: lines)
-        selectionAnchor = wanted.isEmpty ? nil : position(of: wanted.lowerBound, in: lines)
+        let caret = layout.position(ofCharacter: wanted.upperBound)
+        selectionAnchor = wanted.isEmpty ? nil : layout.position(ofCharacter: wanted.lowerBound)
         cursorLine = caret.line
         cursorColumn = caret.column
-        syncDesiredColumn(lines)
+        syncDesiredColumn(layout.lines)
         // As the macOS text system leans a selection set from outside it.
         caretLean = .upstream
         exchangedSelection = wanted
@@ -93,6 +76,6 @@ extension TextEditorHandler {
         let current = selectionOffsets
         guard current != exchangedSelection else { return }
         exchangedSelection = current
-        channel.write(current, text.wrappedValue, selectionAffinity)
+        channel.write(current, text.wrappedValue, selectionAffinity, layout())
     }
 }

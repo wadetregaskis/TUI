@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A key in a large `TextEditor` costs the line it changes, not the document.** Each edit joined every line of the text
+into a new string, the editor wrapped the whole document again for the next frame, and an editor with a selection
+binding walked the text's characters to the caret on every key and every frame: about 230 ms a key in a release build
+over 3.2 MB of JSON. The edit is now spliced into the text's bytes, only the lines it touched are wrapped again, and the
+caret is found from where each line starts: about 2.6 ms a key over the same text, and 90 MB less held.
+
 **A `TextEditor`'s typing can be undone after the editor leaves the screen.** Its steps stayed in the app's undo
 manager only while it was drawn: a pane hidden in a split view took them with it, though its binding, and the text,
 lived on. They now stay, and undo and redo restore the text through the binding, as SwiftUI's editor's steps stay in

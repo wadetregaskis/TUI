@@ -13,11 +13,11 @@ struct WrappedRows {
     let width: Int
 
     /// Each line's layout, by line.
-    let lines: [SoftWrapLayout]
+    private(set) var lines: [SoftWrapLayout]
 
     /// The first row of each line, and one past the last row at the end — so
     /// `rowStarts[line + 1] - rowStarts[line]` is a line's row count.
-    let rowStarts: [Int]
+    private(set) var rowStarts: [Int]
 
     /// Every row of the document.
     var rowCount: Int { rowStarts.last ?? 0 }
@@ -31,13 +31,43 @@ struct WrappedRows {
         var starts: [Int] = [0]
         starts.reserveCapacity(lines.count + 1)
         for line in lines {
-            let layout = SoftWrapLayout(line, width: self.width) { character, column in
-                TabLayout.advance(from: column, over: character, tabWidth: tabWidth)
-            }
+            let layout = Self.layout(of: line, width: self.width, tabWidth: tabWidth)
             layouts.append(layout)
             starts.append(starts[starts.count - 1] + layout.rows.count)
         }
         (self.lines, rowStarts) = (layouts, starts)
+    }
+
+    /// One line wrapped at `width`, tabs reaching their stops from each row's
+    /// start.
+    private static func layout(of line: [Character], width: Int, tabWidth: TabWidth) -> SoftWrapLayout {
+        SoftWrapLayout(line, width: width) { character, column in
+            TabLayout.advance(from: column, over: character, tabWidth: tabWidth)
+        }
+    }
+
+    /// Replaces the lines `replaced` with `newLines`, wrapped, and moves the
+    /// rows of the lines after them by as many rows as that adds or takes
+    /// away: an edit's lines wrapped again, and no other
+    /// (``EditorLayout/adoptWrappings(of:for:)``). In place, where the rows
+    /// are this value's alone.
+    mutating func replaceLines(_ replaced: Range<Int>, with newLines: ArraySlice<[Character]>, tabWidth: TabWidth) {
+        let layouts = newLines.map { Self.layout(of: $0, width: width, tabWidth: tabWidth) }
+        var ends: [Int] = []
+        ends.reserveCapacity(layouts.count)
+        var next = rowStarts[replaced.lowerBound]
+        for layout in layouts {
+            next += layout.rows.count
+            ends.append(next)
+        }
+        let shift = next - rowStarts[replaced.upperBound]
+        lines.replaceSubrange(replaced, with: layouts)
+        // A line's row ends are the next line's starts: those of the lines
+        // replaced give way to the new lines', and the rest move.
+        rowStarts.replaceSubrange((replaced.lowerBound + 1)..<(replaced.upperBound + 1), with: ends)
+        if shift != 0 {
+            for index in (replaced.lowerBound + 1 + ends.count)..<rowStarts.count { rowStarts[index] += shift }
+        }
     }
 
     /// The row a line's `rowInLine` is, among all of them.

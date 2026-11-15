@@ -273,12 +273,12 @@ extension TextEditor: View {}
         if let selection { return selection }
         let box = $findSelection
         return _TextSelectionChannel(
-            read: { box.wrappedValue },
-            write: { offsets, _, _ in if box.wrappedValue != offsets { box.wrappedValue = offsets } })
+            read: { _ in box.wrappedValue },
+            write: { offsets, _, _, _ in if box.wrappedValue != offsets { box.wrappedValue = offsets } })
     }
 
     private func selectMatch(_ offsets: Range<Int>) {
-        findChannel.write(offsets, text.wrappedValue, .automatic)
+        findChannel.write(offsets, text.wrappedValue, .automatic, WalkedCharacterOffsets())
     }
 
     /// Whether an app shortcut is on `press`'s chord, and takes it from the

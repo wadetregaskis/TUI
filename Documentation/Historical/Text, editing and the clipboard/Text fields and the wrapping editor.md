@@ -3,9 +3,10 @@
 *How TUI's text controls came to behave as macOS's: a vertical text field, a
 newline from the keyboard, line limits, one-range selection, the wrapping
 editor's keys and caret, the find bar, Ctrl-U, a drag selection kept to a
-bordered container, and rich-text editing. Ids: B62 to B65, B62-FULLER,
-B63-CTRLJ, B63-KITTY, B-D4X-10 to 12, B-D4X-16, D4X-FULLER, B81, A-TEXT2-1,
-B-TEXT2-1, B-TEXT2-2, TEXT2-INTERIOR, A42, A42-Q8.*
+bordered container, rich-text editing, and what a key costs in a large
+document. Ids: B62 to B65, B62-FULLER, B63-CTRLJ, B63-KITTY, B-D4X-10 to 12,
+B-D4X-16, D4X-FULLER, B81, A-TEXT2-1, B-TEXT2-1, B-TEXT2-2, TEXT2-INTERIOR,
+A42, A42-Q8, EDITOR-SPLICE.*
 
 ## In short
 
@@ -43,6 +44,8 @@ B65's several ranges, after A42's first stage; A42 itself.
 
 ## For a future reader
 
+- **A key in a large `TextEditor` costs its lines, not the document** (EDITOR-SPLICE, 2026-11-15, below); what is
+  left of the per-character storage is listed there.
 - **Every `NSTextContentType` is spelled**, free-text types filter nothing, and a `TextEditor` filters as a field does (B-PARITYMISC-2, below).
 
 ## The record
@@ -616,3 +619,52 @@ country, an expiry month of 1–12. Each is a rule about a whole value, not a
 character, so it belongs to submission rather than typing; about a day for
 the numeric ones, and a locale table for postal codes. Not recommended
 without an app asking.
+
+### EDITOR-SPLICE. A key in a large `TextEditor` costs the lines it changes (2026-11-15)
+
+*`EditorLayout`, `WrappedRows`, `TextEditorHandler.writeLines(_:)`, `TextCharacterOffsets`*
+
+tuitree's source pane holds a 3.2 MB JSON file, and a key there took 89 to
+271 ms in a release build (its M4 feedback, item 3). Measured with Stress's
+`bigtext` session (forty thousand lines, typed into in the middle, through
+`TextEditor(text:selection:)`), Time Profiler attached to `--bench --scenario
+session/bigtext`: 228.6 ms a key, and of the CPU, `WrappedRows.init` 75.5%
+inclusive (the whole document wrapped again, by the key's own caret motion and
+by the frame after it), `_stringCompareWithSmolCheck` 9.2% self, and the
+selection binding's walk of the text's characters to the caret
+(`String.UnicodeScalarView.distance` 8.6%,
+`_StringGuts.validateInclusiveScalarIndex` 6.8%), on every key and every frame.
+Every edit also joined every line back into a new string.
+
+**Shipped:**
+
+- `EditorLayout` knows where each line starts, in bytes and in characters,
+  and whether the text has one kind of line break. An edit's lines are
+  compared with the layout's from each end — by their storage, which the
+  lines an edit left alone share, else byte for byte — and only the lines
+  between are spliced into the text's bytes (`replacing(lines:)`): the text
+  written is byte for byte the lines joined, as before. A text that mixes
+  kinds of line break is still joined afresh, which writes every break as the
+  one the text uses most (CRLF, else CR, else LF), as it did.
+- The new layout takes the old one's wrappings, with the replaced lines
+  wrapped again and the rows after them moved (`adoptWrappings(of:for:)`,
+  `WrappedRows.replaceLines`), in place.
+- The selection binding converts between `String.Index` and character offsets
+  through the layout (`TextCharacterOffsets`): the line by a binary search of
+  its starts, then a walk of that line alone. A field, whose text is a line,
+  walks it (`WalkedCharacterOffsets`).
+
+After: 2.6 ms a key on the same session, rss-peak 292 MB to 200 MB. What a
+key still costs is proportional to the document in three places, each a copy
+and not a walk of characters: the text's bytes copied into the new string
+(about 0.4 ms at 3 MB), the editor's array of lines copied before it is
+changed (a retain for each of forty thousand lines), and the starts of the
+lines after the edit moved. An undo step's first edit also scans the text
+from both ends for where it changed (`TextEdit`).
+
+**Left open:** the text is still held as lines of `Character`s, 16 bytes a
+character, beside the string; an editor keeping its text as the string's
+UTF-8 and its lines as offsets would take that to the line starts alone, and
+the lines' array copy with it. That is a redesign of every edit in
+`TextEditorHandler`, which index lines of `Character`s throughout, and is not
+done here.

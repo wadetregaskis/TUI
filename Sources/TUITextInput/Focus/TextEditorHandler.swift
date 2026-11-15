@@ -292,8 +292,25 @@ final class TextEditorHandler: PersistedFocusable {
         String(text.map { $0.isNewline ? $0 : glyph })
     }
 
+    /// Writes `lines`, an edit of the text's lines, to the bound text: spliced
+    /// into the text's bytes where they differ from its lines
+    /// (``EditorLayout/replacing(lines:)``), so a key costs the lines it
+    /// changed, and the layout of the text written made from the one before,
+    /// its wrappings with it. A text with more than one kind of line break is
+    /// joined afresh, writing each as its ``EditorLayout/lineEnding``.
     func writeLines(_ lines: [[Character]]) {
-        let ending = layout().lineEnding
+        let before = layout()
+        if let edit = before.replacing(lines: lines) {
+            write(edit.text)
+            // Unless the binding kept something else: that is laid out afresh
+            // by the next read.
+            if text.wrappedValue == edit.text, edit.layout !== before {
+                edit.layout.adoptWrappings(of: before, for: edit)
+                cachedLayout = edit.layout
+            }
+            return
+        }
+        let ending = before.lineEnding
         let joined = lines.map { String($0) }.joined(separator: ending)
         write(joined)
         // The lines just written are the layout of the text just written —

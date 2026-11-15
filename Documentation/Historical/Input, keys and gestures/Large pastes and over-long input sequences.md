@@ -147,7 +147,10 @@ above. From the code, not measured:
 - Its undo keeps up to 50 texts from before an edit (`TextUndoHistory`),
   each the whole document. Once a 16 MiB paste is in, each later edit adds
   16 MiB, up to 800 MiB, and each joins every line back into one string, so
-  every key typed walks the document. `TextField` keeps the same history
+  every key typed walks the document. (Since B-PASTE-1-EDITOR the history
+  keeps edits, not copies; since EDITOR-SPLICE, 2026-11-15, a key is spliced
+  into the text's bytes rather than joining every line, and wraps only the
+  lines it changed: `Text fields and the wrapping editor.md`.) `TextField` keeps the same history
   (`pushUndoState` records the whole text), so the same 800 MiB applies to a
   field.
 - Its insert shifts the lines after the caret once for each line it
