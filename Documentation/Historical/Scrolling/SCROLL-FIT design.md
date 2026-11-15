@@ -1370,6 +1370,19 @@ through `LayoutPull` as `Grid` does (about half a day). A grouped `Form`'s rows 
   focused button does. Its own scroll offset is no test of movement there: the pull re-pins it to the band every
   frame, and a first try that also compared it left a table's second Page Down on its last row moving nothing (most
   likely taken as a move, not traced). A list that scrolls itself takes the key as before. `PulledListPageOnTests`.
+- **A table or text editor in a horizontal scroll view is the view's height whatever its row count**
+  (`Table.swift`, `TextEditor.swift`). A-SCROLLFIT-2's ruling (b) says a horizontal view proposes its own height, so
+  a `Table` there is 24 with its own bar (2a's column (v)); the 63 lines at 60 rows were the bug, not the ruling. The
+  cause: given a height and asked how tall it would be with nothing to stop it (the ladder's rung, no height
+  proposed), a table answered its rows' height up to the rung, flexibly, so under the rung it read as content of
+  that height and was drawn whole; and it was measured at the rung, its columns read from every row the rung reached,
+  for the width ask the horizontal view makes first (`naturalContentWidth`) and the height after it (4,156 rows built
+  at 10,000). Now, where `asksWholeContentWidth` says a horizontal view's canvas, it answers the rung, flexibly, as a
+  `List` already did, and is measured at the viewport's height, which it is drawn at (the viewport read is volatile,
+  and made only there). A `TextEditor` answered the same way and drew 60 lines whole; it answers the rung too. Built
+  at 10,000 rows: the first frame 4,156 → 84 (four times the band's 21, not traced further), a wheel step 21; at 60
+  rows 59x63 → 60x24 with its own bar, every row reached. The baseline's `table horizontal 60` and `textEditor
+  horizontal 60` rows move to 60x24.
 
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →

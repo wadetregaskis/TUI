@@ -998,6 +998,17 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     }
 
     private func measuredSizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+        // Filling a horizontal scroll view's height (`horizontalCanvasHeight`):
+        // the height it is offered, flexibly, as a `List` answers there, and
+        // as wide as it is drawn at the viewport's height.
+        if let viewportHeight = horizontalCanvasHeight(proposal: proposal, context: context) {
+            var drawn = context
+            drawn.availableHeight = viewportHeight
+            let size = measuredSizeThatFits(proposal: proposal, context: drawn)
+            return ViewSize(
+                width: size.width, height: context.availableHeight,
+                isWidthFlexible: size.isWidthFlexible, isHeightFlexible: true)
+        }
         var context = RowSelectionIndicator.resolvingForTable(context)
         Self.claimCellText(in: &context)
         if let style = customStyle(context.environment) {
@@ -1116,6 +1127,34 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return ViewSize(
             width: size.width, height: pulled ?? size.height,
             isWidthFlexible: fillsWidth, isHeightFlexible: context.hasExplicitHeight)
+    }
+
+    /// The viewport's height, when this table stands in a horizontal scroll
+    /// view's content, given a height, and is asked how tall it would be with
+    /// nothing to stop it (no height proposed, offered the natural-extent
+    /// ladder's budget); `nil` anywhere else.
+    ///
+    /// A horizontal scroll view proposes its own height to its content
+    /// (A-SCROLLFIT-2, SCROLL-FIT design 2a), so a table there is that height
+    /// and scrolls its own rows, as in SwiftUI. It answers the budget,
+    /// flexibly, so the ladder reads it as filling what it is offered, as a
+    /// `List` answers (`_ListCore.sizeThatFits`), and is measured at the
+    /// viewport's height, which it is drawn at: its columns are as wide as the
+    /// rows that show there. Measured at the budget instead, a table of fewer
+    /// rows than the budget's lines said its rows' height and was drawn whole
+    /// at it, scrolled by the view (63 lines at 60 rows), and a taller one
+    /// built every row the budget reached for the width the view asks first
+    /// (4,156 at 10,000 rows) and then drew 21.
+    ///
+    /// `asksWholeContentWidth` is set only on a horizontal scroll view's canvas,
+    /// and a two-axis view's content is given no height, so the viewport read
+    /// (which tells the memos above not to keep what read it) is made only
+    /// there.
+    private func horizontalCanvasHeight(proposal: ProposedViewSize, context: RenderContext) -> Int? {
+        guard proposal.height == nil, context.hasExplicitHeight, isNaturalExtentBudget(context.availableHeight),
+            context.environment.asksWholeContentWidth, let viewport = context.environment.scrollViewportSize
+        else { return nil }
+        return max(1, viewport.height)
     }
 
     /// The single-line table's rendered size, computed without building its

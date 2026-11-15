@@ -78,14 +78,16 @@ struct ScrollFitBaselineTests {
 
     /// `ScrollView(.horizontal)` proposes its own height (A-SCROLLFIT-2): the
     /// table is framed to it and scrolls its own rows. (Before: 4,096 lines,
-    /// 16,372 rows built on the first frame and 4,093 a wheel step.) The
-    /// first frame still builds the rung's rows: `HorizontalScrollViewHeightTests`.
+    /// 16,372 rows built on the first frame and 4,093 a wheel step; then
+    /// 4,156 on the first frame, for its columns' widths read at the
+    /// measuring ladder's first rung.)
     @Test("A 10,000-row table in a horizontal ScrollView is the view's height and scrolls its own rows")
     func tallTableHorizontal() {
         let result = tall(.table, .horizontal)
         #expect(result.sizeA?.height == 24)
         #expect(result.innerIndicator)
         #expect(result.builtStep < 50, "a wheel step built \(result.builtStep)")
+        #expect(result.builtFirst < 100, "the first frame built \(result.builtFirst)")
     }
 
     /// Its content's height, pulled (P3). (Before P7: the 4,095 lines the

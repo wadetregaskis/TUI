@@ -48,7 +48,7 @@ enum ScrollFitBaseline {
         table                underTitle  60  59x63    -        Y   n
         table                twoStacked  60  59x63    59x63    YY  n
         table                fixedSize   60  60x63    -        n   n
-        table                horizontal  60  59x63    -        Y   n
+        table                horizontal  60  60x24    -        Y   Y
         listPlain            alone       3   60x5     -        Y   n
         listPlain            underTitle  3   60x5     -        Y   n
         listPlain            twoStacked  3   60x5     60x5     YY  n
@@ -108,7 +108,7 @@ enum ScrollFitBaseline {
         textEditor           underTitle  60  59x60    -        Y   n
         textEditor           twoStacked  60  59x60    59x60    YY  n
         textEditor           fixedSize   60  60x60    -        n   n
-        textEditor           horizontal  60  59x60    -        Y   n
+        textEditor           horizontal  60  60x24    -        Y   n
         scrollSameAxis       alone       3   60x3     -        Y   n
         scrollSameAxis       underTitle  3   60x3     -        Y   n
         scrollSameAxis       twoStacked  3   60x3     60x3     YY  n

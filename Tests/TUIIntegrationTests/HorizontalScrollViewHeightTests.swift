@@ -34,12 +34,17 @@ struct HorizontalScrollViewHeightTests {
         #expect(tall.sizeA?.height == 24, "\(tall)")
         // An editor's bar is in the screen's last column, beside the page's.
         #expect(tall.innerIndicator || subject == .textEditor, "\(tall)")
-        // A step builds a screenful. The first frame still builds a table's
-        // rows down the ladder's first rung (4,156; 16,372 before), most
-        // likely for the width ask, made at that rung's height: not traced.
-        #expect(tall.builtFirst < 5_000 && tall.builtStep < 100, "\(tall)")
-        // Every row reached by the wheel over it.
-        #expect(Self.measure(subject, rows: 60, walk: true).reachedA)
+        // A step builds a screenful, and so does the first frame: a table was
+        // measured at the ladder's first rung, its columns read from every
+        // row that rung reached, 4,156 built (16,372 before A-SCROLLFIT-2).
+        #expect(tall.builtFirst < 100 && tall.builtStep < 100, "\(tall)")
+        // Fewer rows than the rung's lines: the view's height too, with a bar
+        // of its own, where a table said its rows' height (63 at 60 rows)
+        // and was drawn whole, scrolled by the view. Every row reached by the
+        // wheel over it.
+        let short = Self.measure(subject, rows: 60, walk: true)
+        #expect(short.sizeA?.height == 24 && short.reachedA, "\(short)")
+        #expect(short.innerIndicator || subject == .textEditor, "\(short)")
     }
 
     @Test("Eager content taller than the view still scrolls down, every row reached")

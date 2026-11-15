@@ -366,6 +366,17 @@ struct _TextEditorCore: View, Renderable, Layoutable {
 
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         let width = context.fillingWidth(proposal: proposal)
+        // In a horizontal scroll view's content, which proposes its own height
+        // (A-SCROLLFIT-2), asked how tall it would be with nothing to stop it:
+        // the height it is offered, flexibly, so the measuring ladder reads it
+        // as filling the view's height, as a `List` and a `Table` answer there.
+        // Its rows' height instead, under the ladder's first rung, drew an
+        // editor of 60 lines whole and had the view scroll it.
+        if proposal.height == nil, context.hasExplicitHeight, context.environment.asksWholeContentWidth,
+            isNaturalExtentBudget(context.availableHeight)
+        {
+            return ViewSize(width: width, height: context.availableHeight, isWidthFlexible: true, isHeightFlexible: true)
+        }
         // A wrapping editor is as tall as its rows at the width it is given.
         // Given no width — the ideal-width ask, whose answer is 0 as SwiftUI's
         // editor's is — it is as tall as its lines: wrapping at one cell would

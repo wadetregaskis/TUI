@@ -39,8 +39,9 @@ app:
   rather than cutting the first.
 - `.fixedSize(horizontal: false, vertical: true)` makes a `List`, `TextEditor`, `ScrollView` or split view its
   content's height too, where it kept the height it was offered.
-- `ScrollView(.horizontal)` gives its content its own height, so a long table or list in it is that tall and scrolls
-  its own rows, where it was 4,096 lines tall. Taller content of other kinds still scrolls down.
+- `ScrollView(.horizontal)` gives its content its own height, so a table, list or text editor in it is that tall and
+  scrolls its own rows, however many it has, where a long one was 4,096 lines tall and a short one its rows' height.
+  Taller content of other kinds still scrolls down.
 - A frame still gives any of these a height, as in SwiftUI, and the view then scrolls its own rows inside it.
 
 **A `ScrollViewReader` inside a scroll view's content scrolls that scroll view.** `ScrollView { ScrollViewReader {
