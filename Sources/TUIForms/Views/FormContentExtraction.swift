@@ -325,15 +325,18 @@ private func sectionRows(of elements: [_FormElement]) -> [_FormElement] {
 
 @MainActor extension ForEach: FormContentExtractor where Content: View {
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
-        data.flatMap { element in
-            let rowScope = walk.withChildIdentity(erasedType: Content.self, key: identityKey(elementID(of: element)))
-            // Observed, measuring too, as `ForEach`'s own rows are: the form
-            // extracts its rows to measure, and the closure is the row's body.
-            let row = observingBodyClosure(of: Self.self, context: rowScope, observesWhenMeasuring: true) {
-                content(element)
-            }
-            return formElements(from: row, in: rowScope)
+        data.flatMap { rowElements(of: $0, in: walk) }
+    }
+
+    /// The elements `element`'s row is, read where the walk is.
+    func rowElements(of element: Data.Element, in walk: RenderContext) -> [_FormElement] {
+        let rowScope = walk.withChildIdentity(erasedType: Content.self, key: identityKey(elementID(of: element)))
+        // Observed, measuring too, as `ForEach`'s own rows are: the form
+        // extracts its rows to measure, and the closure is the row's body.
+        let row = observingBodyClosure(of: Self.self, context: rowScope, observesWhenMeasuring: true) {
+            content(element)
         }
+        return formElements(from: row, in: rowScope)
     }
 }
 

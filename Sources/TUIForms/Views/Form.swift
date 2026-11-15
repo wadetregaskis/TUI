@@ -317,7 +317,7 @@ private func sectionHeaderView(_ header: AnyView, pillar: Int) -> some View {
 /// leading blank line (except the first), its bold right-aligned header, its
 /// rows, then its footer — all to one pillar.
 @MainActor @ViewBuilder
-private func columnsElementView(
+func columnsElementView(
     _ element: _FormElement, pillar: Int, contentWidth: Int, isFirst: Bool
 ) -> some View {
     switch element {
@@ -446,7 +446,7 @@ private func groupedRowView(_ row: _FormRow, pillar: Int) -> some View {
 /// concrete content type to extract its rows, which the type-erased
 /// ``FormStyleConfiguration`` can't carry — while a custom style is dispatched
 /// through its ``FormStyle/makeBody(configuration:)``.
-private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
+struct _FormLayout<Content: View>: View, Renderable, Layoutable {
     let content: Content
 
     var body: Never {
@@ -513,22 +513,9 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         }
 
         let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
-        var pillar = pillarWidth(of: elements, context: context)
-        // The widest non-button row: in columns the width a row with a
-        // `formRowAlignment` is framed to; in grouped the shared box width.
-        var contentWidth = contentWidth(of: elements, pillar: pillar, context: context)
-        // A row measures no wider than the width it is offered, so a form that
-        // fills it may be one that does not fit. Only labels wider than half
-        // the width are narrowed, so a form whose labels are not asks nothing
-        // more of its rows (a field fills the width, so the second test alone
-        // would be every such form, every frame).
-        if pillar > (context.availableWidth - 1) / 2, contentWidth >= context.availableWidth {
-            let narrowed = narrowedPillar(pillar, of: elements, within: context.availableWidth, context: context)
-            if narrowed < pillar {
-                pillar = narrowed
-                contentWidth = self.contentWidth(of: elements, pillar: pillar, context: context)
-            }
-        }
+        let widths = columnWidths(of: elements, context: context)
+        let pillar = widths.pillar
+        var contentWidth = widths.contentWidth
         // A grouped form fills the width it is laid out at, being a scroll
         // view, and its sections span it, as SwiftUI's do: each box is its
         // rows' width, a cell of padding and a border each side. Asked for its
@@ -553,6 +540,28 @@ private struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         // `_FormScroller`'s, around this layout.
         if grouped { return AnyView(column.environment(\.labeledContentPlacement, .groupedFormRow)) }
         return AnyView(column)
+    }
+
+    /// The label column (``pillarWidth(of:context:)``) and the widest
+    /// non-button row (``contentWidth(of:pillar:context:)``) of `elements`:
+    /// in columns the width a row with a `formRowAlignment` is framed to, in
+    /// grouped the shared box width.
+    func columnWidths(of elements: [_FormElement], context: RenderContext) -> (pillar: Int, contentWidth: Int) {
+        var pillar = pillarWidth(of: elements, context: context)
+        var contentWidth = contentWidth(of: elements, pillar: pillar, context: context)
+        // A row measures no wider than the width it is offered, so a form that
+        // fills it may be one that does not fit. Only labels wider than half
+        // the width are narrowed, so a form whose labels are not asks nothing
+        // more of its rows (a field fills the width, so the second test alone
+        // would be every such form, every frame).
+        if pillar > (context.availableWidth - 1) / 2, contentWidth >= context.availableWidth {
+            let narrowed = narrowedPillar(pillar, of: elements, within: context.availableWidth, context: context)
+            if narrowed < pillar {
+                pillar = narrowed
+                contentWidth = self.contentWidth(of: elements, pillar: pillar, context: context)
+            }
+        }
+        return (pillar, contentWidth)
     }
 
     /// The shared pillar: the widest field label across every row (sections
