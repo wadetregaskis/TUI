@@ -260,7 +260,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
 
     /// One row's worth of resolved cells. A `nil` `row` marks a child that was
     /// not a `GridRow` and therefore spans every column.
-    private struct Row {
+    struct Row {
         let cells: [ChildView]
         let spans: [Int]
         let alignment: VerticalAlignment?
@@ -275,7 +275,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
     /// one child per element — is taken apart here, its cells resolved under
     /// the row's own identity. Anything else is one child spanning every
     /// column, which is how a `Divider` between rows works.
-    private func rows(context: RenderContext) -> [Row] {
+    func rows(context: RenderContext) -> [Row] {
         let children = resolveChildViews(from: content, context: context)
         return groupGridRows(
             children, mark: { $0.gridRowMark }, wholeRow: { wholeGridRow($0, context: context) }
@@ -290,7 +290,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
     /// per-column alignment overrides — see ``GridLattice`` — with the columns
     /// sharing `width` (``GridLattice/fit(toWidth:grows:rows:minimum:measure:)``),
     /// a filling column growing into it only where `grows`.
-    private func lattice(_ rows: [Row], width: Int, grows: Bool = true, context: RenderContext) -> GridLattice {
+    func lattice(_ rows: [Row], width: Int, grows: Bool = true, context: RenderContext) -> GridLattice {
         let cells = rows.map { row in
             GridLattice.Row(
                 cells: zip(row.cells, row.spans).map { cell, span in
@@ -310,7 +310,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         return lattice
     }
 
-    func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+    func sizeThatFits(proposal: ProposedViewSize, context offered: RenderContext) -> ViewSize {
         // Ground the proposal into the context before the lattice reads it —
         // the same two lines `_ContainerViewCore.sizeThatFits` and
         // `_ViewThatFitsCore.sizeThatFits` open with. `lattice` measures every
@@ -325,13 +325,16 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         // tall, and the render built its lattice at the 15 cells it was given
         // — 3 lines — and clamped "epsilon" away with nothing on screen to say
         // so. Grounded, both passes build the lattice from the same width.
-        var context = context.publishingContainerAxis(.vertical)
+        var context = offered.publishingContainerAxis(.vertical)
         context.availableWidth = proposal.width ?? context.availableWidth
         context.availableHeight = proposal.height ?? context.availableHeight
         // A sheet's size is not a cell's (see `renderToBuffer(context:)`).
         context.consumeSheetSize()
         let rows = rows(context: context)
         guard !rows.isEmpty else { return ViewSize.fixed(0, 0) }
+        // Filed, in scroll content, as placing its cells against a request
+        // before they are measured (`GridCore+Pulled.swift`).
+        LayoutPull.noteFiling(context: context)
         // Offered no width, the grid answers its columns' own, squeezed only
         // to the width there is, as an `HStack` asked its ideal width does.
         let lattice = lattice(
@@ -346,6 +349,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         // this changes no pixels, only the number the grid tells its parent
         // about them.
         let height = lattice.totalHeight(spacing: verticalSpacing)
+        if !servesPull(rows, lattice: lattice, context: context) { return sizeThatFits(proposal: proposal, context: offered) }
         return ViewSize(
             width: min(lattice.totalWidth, max(0, proposal.width ?? context.availableWidth)),
             height: min(height, max(0, proposal.height ?? context.availableHeight)))
@@ -372,6 +376,8 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
         let width = lattice.totalWidth
         guard width > 0 else { return FrameBuffer() }
         let origins = lattice.columnOrigins
+        // Holding a pulled view, served by the lattice's places.
+        if let pulled = renderPulledGrid(rows, lattice: lattice, context: context) { return pulled }
 
         // A `.gradientExtent(.subtree)` ramp spanning this grid. A grid is the
         // one container that places children two-dimensionally without being a
@@ -418,7 +424,9 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
                         gradient: gradientFrame, x: seat.x, y: rowTops[rowIndex] + seat.y)
                 }
                 let rendered = cell.render(
-                    width: max(0, boxWidth), height: max(1, rowHeight), context: childContext)
+                    width: max(0, boxWidth),
+                    height: LayoutPull.measuringHeight(max(1, rowHeight), of: cell, at: rowTops[rowIndex], context: context),
+                    context: childContext)
                 let seat = placement(
                     width: rendered.width, height: rendered.height, in: box, cell: cell,
                     rowAlignment: rowAlignment, columnAlignment: columnGuide)
@@ -445,7 +453,7 @@ struct _GridCore<Content: View>: View, Renderable, Layoutable {
 
     /// Where a cell of this size sits inside its box — see
     /// ``GridLattice/placement(width:height:in:anchor:rowAlignment:columnAlignment:gridAlignment:)``.
-    private func placement(
+    func placement(
         width renderedWidth: Int,
         height renderedHeight: Int,
         in box: CellRect,

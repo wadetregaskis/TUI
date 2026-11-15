@@ -796,7 +796,8 @@ No `existence` protocol: each of these containers draws its content as an implic
   column's children, are drawn as their eager twins draw them at the top, paged, wheeled and at
   the end (`PulledGridTests`); the stack in a cell is drawn whole, every row built (design D's
   walk), as before. The fifth P2 lane's plan, placing a pulled cell's row by what the cell drew,
-  stays the next step (about a day): this lane spent its time on the containers above.
+  stays the next step (about a day): this lane spent its time on the containers above. (Built
+  otherwise in P8's leftovers, below.)
 
 **P8 leftovers as built** (2026-11-14). What P8 left, each pinned by a twin (the same rows drawn
 whole, `drawsContainerRowsWhole`) with the switch off and on, and by a count of rows built that
@@ -815,6 +816,19 @@ failed before:
   are the column's, not those of the views stacked whole, so a loop that grows past the threshold
   starts its rows' state afresh, once. A `Section` drawn as one view with several views in its
   content still draws them whole.
+- **A lazy stack in a `Grid` cell** (`GridCore+Pulled.swift`). The cause: a cell's identity is a
+  sibling step under its `GridRow`, and neither the row nor the grid was a container that pulls,
+  so the stack was drawn whole, design D's walk building 64,119 rows on the first frame at 10,000.
+  Not the fifth lane's band of the lattice: the grid is now served as an app's `Layout` is (P9,
+  `LayoutPull`, the adapter's reading of placements by rects made package-wide for it), each cell
+  at the place the lattice gives it, the cells beside the pulled one in the parallel shape and the
+  rows wholly below it following where its drawing ends, so no estimate of the lattice places
+  anything after it. `GridRow` is `ScrollPlacing` (its cells are laid out by whatever lays the row
+  out, as an `if`'s view is), and `_GridCore` files itself as placing before its cells are
+  measured; a grid whose places cannot be served (two pulled cells one above the other) is filed
+  as drawn whole and measured again, as a layout is. `PulledGridTests`: the twin matches at the
+  top, paged, wheeled and at End; a first frame builds 171 rows and a page 20 to 30, the same at
+  2,000 and 10,000.
 
 ### 1d. Heights of rows not yet built
 
