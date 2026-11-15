@@ -206,9 +206,25 @@ struct CompactColumnPosition {
 private enum LinkedScreen {}
 
 extension _NavigationSplitViewCore {
-    /// Whether the split is collapsed: its horizontal size class is compact.
+    /// Whether the split is collapsed: its horizontal size class is compact,
+    /// or its width has no room for the columns its visibility shows
+    /// (``hasRoom(for:width:)``).
+    ///
+    /// The second is the stack SwiftUI's split becomes on an iPad narrowed
+    /// into a compact width, here with no size class written: laid out side
+    /// by side, three columns at their minimum drew 32 cells wide in a
+    /// 20-cell terminal, a divider and the detail past its edge and the
+    /// divider still a Tab stop there. Collapsed, every column stays reachable,
+    /// which leaving the sidebar out, as macOS does for a window too narrow
+    /// for it, would not: a terminal has no window to widen and no overlay to
+    /// show the sidebar in. The split expands again when the room comes back,
+    /// its visibility as it was, and a split showing its detail alone never
+    /// collapses for room.
     func isCollapsed(_ context: RenderContext) -> Bool {
-        context.environment.horizontalSizeClass == .compact
+        if context.environment.horizontalSizeClass == .compact { return true }
+        let toggleState = existingState(SplitViewToggleState.self, at: SplitViewStateIndex.toggle, context)
+        let shown = calculateVisibleColumns(visibility: resolveVisibility(toggleState: toggleState))
+        return !hasRoom(for: shown, width: context.availableWidth)
     }
 
     /// The split collapsed into a stack: the column on top, full width, under

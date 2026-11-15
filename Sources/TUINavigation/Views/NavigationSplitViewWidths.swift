@@ -31,6 +31,17 @@ private struct ColumnMeasurement {
 // MARK: - Column Widths
 
 extension _NavigationSplitViewCore {
+    /// Whether `width` has room for `columns` side by side: `minimumColumnWidth`
+    /// each, the width every column is held to (`calculateColumnWidths`), and
+    /// a one-cell divider between. One column always has room: it takes what
+    /// there is (`columnWidths`).
+    ///
+    /// Where there is none, the split collapses (`isCollapsed(_:)`), and the
+    /// ▶ edge column yields its cell (`hasEdgeColumn`).
+    func hasRoom(for columns: [NavigationSplitViewColumn], width: Int) -> Bool {
+        columns.count <= 1 || columns.count * minimumColumnWidth + columns.count - 1 <= width
+    }
+
     /// The width of every visible column for this frame, in column order.
     ///
     /// The single entry point the render uses, so the two width models — fit the
@@ -46,7 +57,8 @@ extension _NavigationSplitViewCore {
     ) -> [Int] {
         let measured = measureColumns(
             visibleColumns: visibleColumns, includingTrailing: style.sizesToFit, context: context)
-        return style.sizesToFit
+        var result =
+            style.sizesToFit
             ? sizeToFitColumnWidths(
                 visibleColumns: visibleColumns, availableWidth: context.availableWidth,
                 measured: measured, widths: widths, writeBack: writeBack)
@@ -54,6 +66,18 @@ extension _NavigationSplitViewCore {
                 visibleColumns: visibleColumns, style: style,
                 availableWidth: context.availableWidth, measured: measured,
                 widths: widths, writeBack: writeBack)
+        // The trailing column takes what the others leave and no more. Held to
+        // the minimum, a detail column shown alone in a split narrower than
+        // that drew past the split's edge. Columns side by side have room
+        // (`hasRoom(for:width:)`), and for them this changes nothing.
+        if let last = result.indices.last {
+            // Typed in steps: as one expression it exceeded the type-check guard.
+            let others: Int = result.dropLast().reduce(0, +)
+            let dividers: Int = result.count - 1
+            let room: Int = context.availableWidth - (others + dividers)
+            result[last] = max(0, min(result[last], room))
+        }
+        return result
     }
 
     /// Measures each visible column once for this frame: its hugged content size

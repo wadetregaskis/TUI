@@ -135,10 +135,12 @@ struct NavigationSplitViewEdgeColumnTests {
 
     /// Leading chrome is an offset, and an offset as wide as the split pushes
     /// every column's content out of it. So the edge takes its cell only while
-    /// the visible columns keep at least one each: from 2 columns wide with one
-    /// column showing, from 3 with two (the divider takes the other). Below
-    /// that the split draws as if nothing were hidden.
-    @Test("Sizes from 1x1 up never trap, and the edge takes the first cell only while the columns keep one")
+    /// the visible columns keep their room beside it: from 2 columns wide with
+    /// one column showing, which takes what there is; from 22 with two, 10 a
+    /// column and the divider. Two columns at 21 have room only without the
+    /// edge, and below that the split collapses into a stack, the sidebar on
+    /// top (NavigationSplitViewNarrowWidthTests).
+    @Test("Sizes from 1x1 up never trap, and the edge takes the first cell only while the columns keep their room")
     func sizeSweep() {
         for width in 1...24 {
             for height in 1...5 {
@@ -151,14 +153,10 @@ struct NavigationSplitViewEdgeColumnTests {
                     let label = "\(width)x\(height) \(three ? "three" : "two") columns"
                     let first: Character = three ? "C" : "D"
                     #expect(buffer.height == height, "\(label): height \(buffer.height)")
-                    guard width > (three ? 2 : 1) else {
-                        // Two visible columns and their divider in ONE cell give
-                        // the columns no width at all, edge or no edge; that
-                        // boundary is the columns' own, so only the edge is
-                        // asserted there.
-                        if !(three && width == 1) {
-                            #expect(character(buffer, x: 0, y: 0) == first, "\(label): content off-screen")
-                        }
+                    #expect(buffer.width <= width, "\(label): width \(buffer.width)")
+                    guard width > (three ? 21 : 1) else {
+                        let shown: Character = !three ? "D" : width == 21 ? "C" : "S"
+                        #expect(character(buffer, x: 0, y: 0) == shown, "\(label): content off-screen")
                         #expect(!buffer.lines.contains { $0.stripped.contains("▶") }, "\(label)")
                         #expect(edgeSection(focusManager) == nil, "\(label)")
                         continue

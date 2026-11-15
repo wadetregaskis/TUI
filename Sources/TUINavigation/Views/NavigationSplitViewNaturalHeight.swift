@@ -69,7 +69,7 @@ extension _NavigationSplitViewCore {
     }
 
     /// The split's state at `index` where a render has made it, else `nil`.
-    private func existingState<Value>(_: Value.Type, at index: Int, _ context: RenderContext) -> Value? {
+    func existingState<Value>(_: Value.Type, at index: Int, _ context: RenderContext) -> Value? {
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: index)
         let box: StateBox<Value>? = context.stateStorage?.existingStorage(for: key)
         return box?.value

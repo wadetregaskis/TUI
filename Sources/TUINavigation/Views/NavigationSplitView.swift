@@ -128,8 +128,14 @@ import TUIFoundation
 /// Space or a click, selects it and shows the next column, as tapping one does
 /// on iPhone.
 /// A terminal's size classes are `.regular` unless the app writes `.compact`
-/// into `\.horizontalSizeClass`, so a split view collapses only where an app
-/// says so — for a narrow terminal, say.
+/// into `\.horizontalSizeClass`. The split view collapses there, and wherever
+/// its width has no room for the columns it shows side by side, at 10 cells
+/// each and a divider between: three columns under 32 cells, two under 21.
+/// That is the stack SwiftUI's split view becomes on an iPad narrowed into a
+/// compact width; it keeps every column reachable, where leaving the sidebar
+/// out, as macOS does in a window too narrow for it, would leave a terminal no
+/// way to it. It expands again when the room comes back, its column visibility
+/// as it was, and a split showing its detail alone never collapses for room.
 ///
 /// Which column is on top starts as the sidebar. To read it or set it, pass a
 /// ``NavigationSplitViewColumn`` binding to an initializer such as
@@ -291,8 +297,9 @@ struct _NavigationSplitViewCore<Sidebar: View, Content: View, Detail: View>: Vie
     }
 
     func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        // Collapsed, one column shows.
-        let minWidth = minimumColumnWidth * (isCollapsed(context) ? 1 : isThreeColumn ? 3 : 2)
+        // One column's width is all it needs: with less room than its columns
+        // side by side, it collapses into a stack and shows one.
+        let minWidth = minimumColumnWidth
         // Offered a height, one line and flexible: it takes what it is given.
         // Offered none (scroll content, `.fixedSize`), its tallest visible
         // column's height, still flexible, as `HSplitView` answers.

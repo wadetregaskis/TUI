@@ -4,7 +4,8 @@
 //  Real-world screens: a list beside its detail. A List in a NavigationSplitView's
 //  sidebar choosing what its detail shows, a long sidebar whose last row must
 //  be reachable, and three columns. The detail must follow the selection, and
-//  the columns must not overlap or leave the screen at any size.
+//  the columns must not overlap or leave the screen at any size: too narrow
+//  for them side by side, the split is a stack.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -96,18 +97,21 @@ struct ListDetailScreens {
         let app = TestApp(width: size.width, height: size.height) { MailPage() }
         LayoutSanity.check(app, "launch")
         var seen: Set<String> = []
-        // At 20 columns the three columns' minimums are wider than the screen,
-        // so the second divider and the detail lie past its right edge, and
-        // Tab focuses the divider there. macOS hides the sidebar of a window
-        // too narrow for its columns; this split does not yet.
-        withKnownIssue("three columns wider than a 20-column screen put a divider off it") {
-            for step in 0..<6 {
-                if let focused = app.focusedID { seen.insert(focused) }
-                app.press(.tab)
-                LayoutSanity.check(app, "Tab ×\(step + 1)")
-            }
-        } when: {
-            size.width < 40
+        for step in 0..<6 {
+            if let focused = app.focusedID { seen.insert(focused) }
+            app.press(.tab)
+            LayoutSanity.check(app, "Tab ×\(step + 1)")
+        }
+        if size.width < 32 {
+            // Too narrow for three columns side by side, the split is a stack
+            // with the mailboxes on top, and choosing one shows its messages.
+            // Before, the columns drew 32 wide, and Tab reached a divider past
+            // the screen's edge.
+            for _ in 0..<6 where app.focusedID != "mailboxes" { app.press(.tab) }
+            app.press(.enter)
+            LayoutSanity.check(app, "a mailbox chosen")
+            for _ in 0..<6 where app.focusedID != "messages" { app.press(.tab) }
+            if let focused = app.focusedID { seen.insert(focused) }
         }
         #expect(seen.isSuperset(of: ["mailboxes", "messages"]), "Tab visited only \(seen.sorted())")
         for _ in 0..<6 where app.focusedID != "messages" { app.press(.tab) }

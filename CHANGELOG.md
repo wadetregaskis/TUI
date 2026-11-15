@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `NavigationSplitView` too narrow for its columns collapses into a stack.** Each column is at least 10 cells
+wide, so three columns in a 20-cell terminal drew 32 wide: the detail and a divider lay past the screen's edge, and Tab
+still focused that divider. A split whose width has no room for its visible columns side by side (three under 32 cells,
+two under 21) now draws as it does in a compact size class, the sidebar on top and choosing a row going forward, and
+expands again when the room comes back, its `columnVisibility` unchanged. A detail column shown alone never collapses,
+and is no longer drawn wider than a split narrower than 10 cells.
+
 **A `DocumentGroup`'s New and Open leave nothing of the last document to undo.** The app's undo manager kept the
 replaced document's steps, so an undo after New or Open could write the old document's text into the new one, through
 the binding a step was registered against, and mark it edited. Replacing the document now empties the undo manager, as

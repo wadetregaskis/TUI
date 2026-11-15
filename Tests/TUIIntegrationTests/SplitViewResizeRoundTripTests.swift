@@ -69,8 +69,9 @@ struct SplitViewResizeRoundTripTests {
         #expect(widened.count == 1, "\(app.screen)")
         // A terminal too narrow for it holds the column in; wider again, the
         // column stayed at the narrow width, the clamp written over the
-        // person's width.
-        app.resize(width: 20, height: 5)
+        // person's width. 21 is the narrowest the two columns have room in
+        // side by side; narrower, the split is a stack.
+        app.resize(width: 21, height: 5)
         app.resize(width: 80, height: 5)
         #expect(dividers(app, glyph: "◀") == widened, "\(app.screen)")
         // A step taken at a narrower width is a step from what was shown

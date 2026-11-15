@@ -222,7 +222,9 @@ extension _NavigationSplitViewCore {
     /// any column registers, so Tab reaches it first, and the columns share what
     /// is left of the width. Leading chrome yields its cell when the columns
     /// would be left none to draw in: at one cell per visible column or fewer,
-    /// the edge would push every column's content out of the split.
+    /// the edge would push every column's content out of the split; and when
+    /// the columns side by side would be left too little, as the split
+    /// collapses with none (``hasRoom(for:width:)``).
     func layOutEdge(
         visibleColumns: [NavigationSplitViewColumn], context: RenderContext,
         focusManager: FocusManager?, toggleState: SplitViewToggleState?
@@ -237,7 +239,7 @@ extension _NavigationSplitViewCore {
     /// Whether the split draws the edge column (see
     /// ``layOutEdge(visibleColumns:context:focusManager:toggleState:)``): it
     /// shows its toggle, a leading column is hidden, and the columns would keep
-    /// a cell each beside it.
+    /// a cell each beside it, and their minimum widths side by side.
     func hasEdgeColumn(
         visibleColumns: [NavigationSplitViewColumn], context: RenderContext, toggleState: SplitViewToggleState?
     ) -> Bool {
@@ -246,6 +248,7 @@ extension _NavigationSplitViewCore {
             && !(context.environment.windowChrome?.hasBarToggle(for: context.identity) ?? false)
             && visibleColumns.count < (isThreeColumn ? 3 : 2)
             && context.availableWidth > visibleColumns.count
+            && hasRoom(for: visibleColumns, width: columnsBesideEdge(context).availableWidth)
     }
 
     /// The context the columns lay out in beside the edge column: one cell narrower.
