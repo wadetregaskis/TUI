@@ -10,6 +10,10 @@ pull (design C, NESTED-LAZY-PULL) after the owner's A-SCROLLFIT-3. Ids: A-SCROLL
 (answered), A-SCROLLFIT-4 and 5 (for the owner), B-SCROLLFIT-1 to 18 (decided here; 1 and 4
 superseded by the pull, 2 renamed).*
 
+**Status: complete** (2026-11-14). P1–P9, P5b/P6b, the P8 leftovers and P7 are built, and P7
+turned SCROLL-FIT on and deleted its switch; "As P7 built it" under 2a says what that changed
+and what is left.
+
 ## In short
 
 The scroll view keeps its position as an **anchor**: the identity of a row in its content,
@@ -1286,6 +1290,132 @@ anchor engine on the vertical axis, so nothing becomes unreachable. Column (v) o
 then reads `Table` 24 (its own bar), `List` 24 (its own bar), eager containers as now. One
 sentence in the deviations records it as an extension that no SwiftUI program can trip over.
 
+**As P7 built it** (2026-11-14). The switch is on and deleted; SCROLL-FIT is complete. Six commits, the
+first five behind the switch, so the flip itself changed only what the switch gated:
+
+- **The canvas** (`canvasHeight`, `ScrollView+Content.swift`). A vertical scroll view draws its content at the
+  content's natural height, not `max(viewport, natural)`: a `Color`, a shape, a `GeometryReader` or
+  `.frame(maxHeight: .infinity)` under a title takes no lines (was the 23 left), a `Spacer` between two lines its
+  stack's minimum, a resizable image alone its ideal (15, was 24). `.containerRelativeFrame(.vertical)` still reads
+  the viewport (`ScrollCanvasFitsContentTests`).
+- **Offered no height, content-sized.** Asked how tall it would be with nothing to stop it (no height proposed, a
+  natural-extent budget offered, none given: `.fixedSize`, or scroll content where nothing pulls it), each of these
+  answered the height it was offered, flexibly, which P5 left for P7: a `List` (its chrome and rows as a pulled list
+  reads them, none built, `naturalHeight`), a `TextEditor` (`answersNaturalHeight`), a `ScrollView` (its content's
+  ideal height), the split views (the tallest pane's beside, the panes' and dividers' one above another). A
+  vertical split now lays each pane out at its own height every frame until a divider moves; split evenly, its top
+  pane was cut even at 60 rows, and the sizes the first frame's measuring walk left, scaled up, cut it too. Under
+  `.fixedSize` at a window's root P5b's band draws them: a 10,000-row list 60x10002, 84 rows built on its first frame
+  (was 60x23). `ContentSizedOfferedNoneTests`.
+- **A nested vertical `ScrollView` forwards** (`ScrollView+Nested.swift`, the forward shape): in a vertical scroll
+  view's content, given no height, not the framework's own, it draws its content in its place at its child
+  identity, as wide as it is offered with the content at the leading edge, with no handler, bar or focus stop; the
+  outer request passes through a single-child step, so a lazy stack in it is pulled, building the same rows as the
+  stack written in its place, equal at 1,000 and 10,000 rows (`NestedScrollViewForwardTests`; before, 90,000 row
+  builds on the first frame at 10,000). A key search goes on into it. *Not built:* a `ScrollViewReader` *inside*
+  the nested view reaches no scroll view (none registers under it); the design's "seeks through the outer view"
+  needs the reader's registry to reach the outer one.
+- **A grouped `Form` the scroll view scrolls is as wide as it is offered**, its sections at the leading edge, as
+  the scroll view it otherwise is lays them out (it hugged its widest row and stood centred under a wider title).
+- **A-SCROLLFIT-2.** A horizontal-only scroll view draws content that fills the measuring ladder's budget at its
+  viewport's height (`canvasHeight`, from `naturalExtent`'s `fillsBudget`): a 10,000-row `Table`, `List` or
+  `TextEditor` is 24 lines and scrolls its own rows (was 4,096, the rows past them out of reach), a wheel step 21
+  rows built. *Left:* a table whose rows come in under the first rung (60 rows) says its height rather than filling,
+  so it is drawn whole at 63 lines and the view scrolls it down, not "Table 24 (its own bar)" as 2a has it; and its
+  first frame still builds its rows down the rung (4,156 at 10,000), most likely for the width ask made at that
+  height (not traced). `HorizontalScrollViewHeightTests`.
+- **The flip.** `EnvironmentValues.scrollFitsContent` is deleted, as B-SCROLLFIT-10 and "For a future reader" rule
+  ("deleted, not deprecated"): no escape hatch, since nothing needs one — a frame gives any of these views a height
+  and it scrolls itself, as before. Every read of it goes (P3 to P6's and this lane's), with `.fixedSize`'s
+  measure-once vertical path; `_TableCore.scrollViewportCap` and its two uses go with TABLE-IN-SCROLL-HEIGHT. The
+  pull's fallbacks stay: design D's walk for a stack below a container that does not pull, and a `List` or `Table`
+  drawn whole there (now at its content's height). The Stress pages lose their switch lines.
+- **What the full suite found with it on everywhere.** The framework's own scroll views
+  (`asChrome()`: a dialog's body, a menu's column) neither forward a nested scroll view nor answer
+  their content's height offered none: nested in a `Dialog`'s chrome scroller, an app's `.visible`
+  text-style `ScrollView` forwarded and lost its "N more" lines. A `VSplitView` lays its panes out
+  at their own heights when it is given exactly their total, as scroll content and `.fixedSize`
+  give it, rather than wherever no height was given (a split drawn directly, with none, kept its
+  even split). Tests that pinned the old canvas now frame their content to the container
+  (`ScrollViewReservedIndicatorCanvasTests`, `ScrollViewRenderTests`' middle spacer), and two of
+  the first under an `.automatic` horizontal bar went: framed to its container a filler fills the
+  container, which is the viewport less the pair whether such a bar comes or not (decisions
+  SCROLL B-SCROLL-2), so the case they guarded cannot arise. `ListRowSelectionValueCostTests`'
+  hugging lists are fixed across only (`.fixedSize(horizontal: true, vertical: false)`): fixed down
+  too, a list now answers its rows' height, an extraction of its rows that read a few tags (53
+  tag builds against a bound of 49 for 300 rows; how it grows with the row count is not
+  measured).
+
+*Not built:* split views do not pull (they are not `ScrollPlacing`): a `List` in a pane is its content's height
+and drawn whole, every row built each frame, where 2a's table calls `HSplitView` parallel-shaped; it would serve
+through `LayoutPull` as `Grid` does (about half a day). A grouped `Form`'s rows are still eager (P4).
+
+**The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
+one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
+their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split
+views at 3 rows the viewport → their content, `vSplitView` at 60 now reached (`n` → `Y`, the horizontal row too), the fillers 0
+(`color`, `rectangle`, `spacer`, `geometryReader`), `maxHeightText` 1, `imageResizable` 15, `lazyVStack` alone 59x25
+→ 59x60 (`onGeometryChange` reads the pulled height, P5b), the horizontal `List`s 59x4096 → 60x24 with their own bar.
+Rows that did not move stay where switch-off had them (the eager containers, `Divider`, `scaledToFit`,
+`LazyHStack`). The 10,000-row tests were converted where the old behaviour was the bug: the table under a title
+59x24 capped → 59x10003, under 150 rows built and no bar of its own; under `.fixedSize` 4,153 rows built → under 150;
+horizontal 4,096 lines → 24 with its own bar; the list 4,095 lines and 12,000 rows → 59x10002 and under 150; the
+editor 4,095 → 10,000; the lazy stack's reported size its band → its whole height. The keys tests now pin P6's: the
+title stays on line 0 at launch, the table's header pinned over the page as its cursor moves the page, and the list's
+last row followed by the line after it rather than four thousand blank lines. Deleted: `PulledListTests`' "With the
+switch off the list is drawn as before" and `PulledFormTests`' "The switch written on the scroll view's content",
+which pinned the switch itself; the `fitsContent` twins of `WindowedContainersTests`, `WindowedFormColumnsTests` and
+`PulledGridTests` collapse to one side. `ScrollingTablesScreens`' known issue (a `List` filling 4,096 rows "until
+SCROLL-FIT's P7") is gone.
+
+**Frames** (`frame_parity.py`, 120 × 40, every scenario, variant and session, release builds). The base 72033451f
+against the last commit before the flip (1789b806c): 165 of 165 alike, as they should be, the five commits before it
+changing only what the switch gated (the Stress pages that turn it on in their content kept their scroll view's
+canvas, which reads the scroll view's own). The base, and the pre-flip commit, against the flip (ba9c88718; the tree
+built was 2bd3acff9's, the same tree under a message the lane amended): 164 of 165 alike. `table-api/in-scrollview`,
+a 500-row table alone in a `ScrollView`, differs from its first frame, where the old drawing was the cap: the table
+the viewport's height, its own scroll bar and bottom border on screen, scrolling its own rows; it is now its rows'
+height, pulled, under the outer scroll view's bar (L19). The tip against itself: 165 of 165 (`timeline-rows`, which
+differed between runs of one binary in earlier lanes, drew alike in all four runs here). No page with a filler under
+short content is among the Stress pages, so the canvas changed none of them.
+
+**Measured** (2026-11-15, `ab_bench.py`, release, cpu per frame, 10 reps, `slot.py --exclusive`, base 72033451f
+against the flip's tree 2bd3acff9; the sweep at load 4.1, the variants at 3.4 → 2.9):
+
+| Scenario | Base µs | Tip µs | Change | 95% CI | RSS MB |
+|---|---|---|---|---|---|
+| `tables-scroll` | 2,786.2 | 20.9 | −99.2% | [−99.3, −99.2] | 18.5 → 15.9 |
+| `alpharamp` | 7,768.5 | 5,454.0 | −29.8% | [−30.3, −29.3] | 53.5 → 26.1 |
+| `churn` | 8,624.9 | 8,511.8 | −2.0% | [−2.2, −0.3] | 21.0 → 20.8 |
+| `app-shapes` | 10,491.2 | 10,377.5 | −0.9% | [−1.5, −0.7] | 36.0 → 35.2 |
+| `table-churn` | 401.0 | 404.0 | +0.5% | [+0.0, +1.1] | 17.2 → 17.4 |
+| `table-churn-wrapped` | 957.6 | 968.6 | +1.2% | [+0.4, +1.9] | 17.3 → 17.4 |
+| `app-shapes/grouped-form` | 310,754 | 300,221 | −3.2% | [−9.7, −2.3] | 78.8 → 78.5 |
+| `app-shapes/fixed-size-table` | 488.6 | 477.9 | −2.7% | [−3.0, −1.0] | 18.4 → 18.8 |
+| `app-shapes/titled-table` | 400.8 | 392.2 | −2.5% | [−2.8, −1.8] | 19.0 → 18.8 |
+| `app-shapes/titled-list` | 588.7 | 578.5 | −2.4% | [−2.6, −1.2] | 20.4 → 20.8 |
+| `app-shapes/titled-editor` | 553.2 | 543.3 | −1.7% | [−2.8, −1.4] | 71.3 → 74.2 |
+| `app-shapes/titled-list-variable` | 895.0 | 883.7 | −1.5% | [−1.6, −0.9] | 22.0 → 22.4 |
+
+Indistinguishable: `megalist`, `scrollfollow`, `scrolleager`, `glide`, `table`, `table-multiline`, `truncate`,
+`table-tail`, `table-api`, `tables-vstack`, `deep`, `fanout`, `modifiers`, `preferences`, `geometry`, `customlayout`,
+`textwall`, `texteffects`, `anyview`, `dashboard`, `framedcolumns`, `gradients`, `menus`, `keyrows`, `sheetrows`,
+`controls`, `grids`, `pickers`, `stateful`, `kitchensink`, and of `app-shapes` `titled-lazy`, `two-stacked-lazy`,
+`boxed-lazy`, `boxed-eager`, `flow-10k`, `layout-list`, `grouped-feed`, `headed-log`, `sidebar`, `settings-form`,
+`code-editor`, `text-editor`. RSS within 1.3 MB everywhere but the two large gains and `titled-editor` (+2.9 MB)
+and `text-editor` (−4.8 MB). The two table-churn pages, 1.2% at most, are inside the owner's few-percent line; not
+profiled. `tables-scroll` and `alpharamp` draw the same frames as before (above) and compose fewer rows a frame
+(`tables-scroll` 8 → 0, its cell values 1,001 → 0; `alpharamp` 185 → 151, 70 → 2): their tables, in scroll
+content, read the scroll view's viewport for the cap, and that getter tells the memos above not to keep what read it
+(the deleted `scrollViewportCap`'s own note), so the page was drawn again every frame; without the cap the memos
+hold. That is the likeliest reading of the counts, not a profile. The pulled pages' 1.5–3.2% gains are not traced
+either (the switch's reads and the cap's test gone from every measure is a guess).
+
+`Stress --selfcheck` clean (139 cases, 38 scenarios, 26 sessions); the full suite passes (`parallel_test.py`, 15,749
+tests); `api_baseline.py --check` matches (9,578 declarations: the switch was package-internal, nothing public moved);
+DocC `--strict` found one diagnostic, a public symbol's link to a package type from the P8 leftovers (30e520232),
+fixed in its own commit (820d8fb86), and is clean after it.
+
 ### 2b. The APIs that speak in absolute offsets, mapped onto anchors
 
 **B-SCROLLFIT-16. Moves are exact; absolute readings are exact where every extent is known and
@@ -1710,6 +1840,7 @@ already running separately.
 | **P6 as built** (2026-11-14) | A pulled table's header and horizontal bar as opaque scroll pins; columns that scroll sideways pulled; a row sought placed clear of them; pages less the pinned lines; the arrival reveal by the cursor's row for a control taller than the viewport (see "As P6 built them" under 2e). Not done: a section header pinned over a pulled `List` (P4 left it here; it is a list's own pinned header, A45, not the table's, and needs its section's extent read off the walk), the pinned lines taken off a multi-line table's page | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledTableChromeTests` and `PulledArrivalRevealTests` with it on |
 | **P5b/P6b as built** (2026-11-14) | `.fixedSize` at the window's root draws only the lines its offer holds, as a scroll view's content at its top; `onGeometryChange` reports a pulled view's whole height; a pulled `List` pins its section headers as scroll pins; a multi-line table's or a list's page leaves out the rows under the pinned header; the pinned header's composite writes its rows whole (see "As P5b built it" under 2f and "As P6b built them" under 2e). Measured (`ab_bench.py`, release, cpu per frame, 10 reps, base d3548ddf5, load 2.7): `titled-table` 377.7 → 387.3 µs (+2.4% [+0.5, +3.7]) and `fixed-size-table` 448.7 → 463.1 µs (+3.0%, indistinguishable), down from P6's +4.6% and +4.7%; the guarded build again, `titled-table` +1.9% (indistinguishable), `fixed-size-table` +2.9% [+2.3, +4.0]; `titled-list`, `titled-list-variable`, `titled-lazy`, `boxed-lazy`, `headed-log`, `grouped-feed`, `titled-editor`, `megalist`, `scrolleager`, `scrollfollow`, `dashboard`, `table`, `table-multiline`, `table-churn`, `tables-scroll`, `tables-vstack`, `geometry` and the sessions indistinguishable or faster. `frame_parity.py` against main: 162 of 165 alike, the two pulled-table pages differing as P6's do and in the composite's bytes (not its cells), `timeline-rows` between runs of one binary. Left: a `.fixedSize` root a frame draws past (`TestApp`'s window) is still drawn whole; a frame of a table whose columns compute their values draws its rows on screen again, a wheel step that moves nothing included (21 rows, as in a scroll view); a lazy stack pulled under `.fixedSize` reports its band's width | — | None with the switch off (`ScrollFitBaselineTests` unchanged); `PulledFixedSizeTests` with it on: outside a scroll view the 10,000-row table 24,093 → 84 rows built on the first frame and 10,000 → 21 a wheel step, still 60x10003; `PulledTableTests`' geometry, `PulledVariableListTests`' pinned sections, `PulledMultiLineTableTests`' page, `PaintedRowOverlayTests` |
 | **P7** | The switch: defaults flipped, switch and `scrollViewportCap` deleted; `TextEditor`, nested `ScrollView`, grouped `Form`, split views content-sized; fillers' minimum; A-SCROLLFIT-2's horizontal view. Rewrites `TableInScrollViewHeightTests` and `FramedTableFillsTests`. Docs: L19, the articles, CHANGELOG, compatibility guide | 2 | Every row in the "Under SCROLL-FIT" column, e.g. `table underTitle 60` 59x24 → 59x63, `listPlain alone 60` 59x4096 → 59x62, `color alone 3` 24 → 0. Column (v) per A-SCROLLFIT-2. `ownBar` → `n` for every content-sized view |
+| **P7 as built** (2026-11-14) | The canvas at the content's height; `List`, `TextEditor`, `ScrollView` and the split views their content's height asked for none; a nested vertical `ScrollView` forwarded; a grouped `Form` as wide as offered; A-SCROLLFIT-2's horizontal view; the switch and `scrollViewportCap` deleted (see "As P7 built it" under 2a). Not built: split views pulled, a `ScrollViewReader` inside a forwarded scroll view, a horizontal view framing a table shorter than the ladder's rung | — | 80 of the 240 rows moved, each to 2a's "After" column; the 10,000-row and keys tests converted (see "The baseline" under 2a) |
 | **P8** | A-SCROLLFIT-1's windowed containers (1c): `GroupBox`, `DisclosureGroup`, `.columns` `Form`, `Section` content outside `List`, `FlowLayout` per A-SCROLLFIT-5; the transition record for them (1g) | 3 | Sizes unchanged. Built counts of `formColumns` and `flowLayout` at 10,000 drop (`formColumns` < 100 a frame; `flowLayout` per A-SCROLLFIT-5). The baseline's `groupBox` and `disclosureGroup` wrap an eager `VStack` and stay as they are; new tests pin a `GroupBox` and a `DisclosureGroup` directly around a `ForEach` |
 | **P8 as built** (2026-11-12) | `GroupBox`, `DisclosureGroup` and a `Section` drawn as one view directly around a `ForEach` (the implicit column, windowed past 256 elements as a lazy stack at the loop's identity); `FlowLayout` per A-SCROLLFIT-5 (a) as a lazy stack of its lines; the transition record by the lazy stack's. Not built: the `.columns` `Form` (its pillar and widths read every row each frame), a container's content of several views, a pulled `Grid` (drawn whole, twins pass). See "As P8 built it" under 1c | ½ + flow ½ | None of the table's rows (each P8 container there is under the threshold or wraps an eager `VStack`); new `WindowedContainersTests` (a page under 100 rows built, equal at 2,000 and 10,000) and `tallFlowLayoutUnderTitle` |
 | **P8 leftovers as built** (2026-11-14) | A container's content of several views with a long loop among them drawn as a column that pulls them (`_ImplicitColumnOfSeveral`); a lazy stack in a `Grid` cell pulled through the grid's places (`LayoutPull`, shared with P9's adapter); a long `.columns` `Form` over comparable data keeping its label column and rows' width per data and width, its rows a lazy stack; Stress's pulled pages each at one depth, which is where P3's nested-stack +1.6–3.0% was (see "P8 leftovers as built" under 1c) | ½ | None of the table's rows (`ScrollFitBaselineTests` unchanged); new counts in `WindowedContainersTests` (headed shapes), `PulledGridTests` and `WindowedFormColumnsTests`, a page's rows equal at 2,000 and 10,000. A probe at 30 × 12 and 10,000 rows, before → after: a headed `GroupBox` 240,000 → 62 rows on the first frame and 10,000 → 26 a page; a lazy stack in a grid cell 64,119 → 126 on the first frame; a columns form 50,000 a page (26 in `WindowedFormColumnsTests` after) |
@@ -1803,8 +1934,8 @@ cost is one measure per item, not per frame.
   pages that do not scroll.
 - **`isRow` must stay a data question** (1g). Answered from drawing, every row scrolled into a
   band would fade in.
-- **The switch (B-SCROLLFIT-10) lives only from P3 to P7.** If P7 is delayed, the switch is not
-  to become public API. It is deleted, not deprecated.
+- **The switch (B-SCROLLFIT-10) lived only from P3 to P7.** P7 deleted it (2026-11-14); it never
+  became public API. A view that must scroll itself takes a frame, as in SwiftUI.
 - **Dead reckoning is the rule that keeps the readings steady** (2b). A change that re-derives
   the offset from estimates every frame would make `onScrollGeometryChange` report motion nobody
   made.

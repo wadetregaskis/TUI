@@ -5,7 +5,7 @@
 //  axis its parent leaves unbounded: the table `ScrollFitBaselineTests`
 //  checks. Recorded on 2026-11-11, before the SCROLL-FIT ruling changed it;
 //  each lane that built SCROLL-FIT updated the rows it changed, on purpose,
-//  and P7, which turned it on, the 79 that it moved (design §4: a `List`
+//  and P7, which turned it on, the 80 that it moved (design §4: a `List`
 //  59x4096 -> its rows, a `Table` 59x24 -> its rows, a `Color` 60x24 -> 0x0,
 //  a vertical split's top pane whole). `git log -p` on this file has each
 //  lane's rows; the step-1 report is
