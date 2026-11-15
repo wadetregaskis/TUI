@@ -1523,6 +1523,26 @@ scenarios, 26 sessions), and `api_baseline.py --check` matches (9,578 declaratio
   threshold leaves its sections' loops alone (`ForEach.sectionLoopRows` answers `nil`). *Left:* a title over such a
   loop draws each section in the band whole, 210 rows a page.
 
+Measured for these (2026-11-15, `ab_bench.py`, release, cpu per frame, 10 reps, `slot.py --exclusive`, base 0dd60a98d
+with the lane's two Stress pages added against the lane's tip aa44cc526, load 9.6 at the start): the two pages the
+lane adds, `app-shapes/one-section` (one pinned `Section` of 10,000 one- and two-line entries) 3,417.6 → 849.6 µs a
+frame (−75.1% [−75.4, −74.8], RSS 25.2 → 20.1 MB) and `app-shapes/section-loop` (100 pinned sections of 100 entries)
+193,018 → 2,418 µs (−98.8% [−98.8, −98.7], RSS 147.1 → 17.2 MB); `app-shapes/boxed-lazy` +0.7% [+0.1, +1.2] slower,
+inside the owner's few-percent line and not profiled; `titled-lazy`, `two-stacked-lazy`, `boxed-eager`, `headed-log`,
+`grouped-feed`, `outline`, `titled-list`, `titled-table`, `flow-10k`, `layout-list`, `megalist`, `scrollfollow`,
+`scrolleager`, `glide`, `tables-scroll`, `table`, `churn`, `dashboard` and `grids` indistinguishable; RSS within 1.1
+MB but the two pages'. `ab_counters.py` on the same 22: 16 moved no count past 1%; `section-loop`'s value-memo stores
+2,362,040 → 5,454 and measure lookups 5,926,860 → 54,507, `one-section`'s measure hits 4,746 → 2,916, and
+`two-stacked-lazy`, `boxed-lazy`, `outline` and `titled-table` moved memo counts by 1 to 8.5%, as much as the
+follow-ups' follow-ups found between runs of one binary (not traced here).
+The checksums of every page but the two new ones are the same; those two draw
+differently from base (`frame_parity.py`, 0 of 2 alike from the first frame), most likely the scroll bar's thumb,
+which an estimate of the height below the band now sizes, and `one-section`'s header, which now pins: an eager
+`VStack` of the same mixed-height content draws the same lines as the lane's tip at six pages for both shapes, the
+thumb a cell off on some of them (a probe, not kept). `Stress --selfcheck` clean (141 cases, 38 scenarios, 26
+sessions); the full suite passes (`parallel_test.py`, 15,798 tests with 70 known issues, the lane's probe suite among
+them); no public declaration changed, so `api_baseline.py` was not run.
+
 **The baseline** (`ScrollFitBaselineTests`). The table's 240 rows stay as the pins of the behaviour; 80 moved, every
 one to what 2a's "After" column asks: `table` at 60 rows 59x24 (own bar) → 59x63, the three `List`s 59x4096 →
 their rows (5, 7, 62, 64), `formGrouped`, `textEditor`, both nested scroll views and the split and navigation-split
