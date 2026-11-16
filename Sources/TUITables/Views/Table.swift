@@ -6050,7 +6050,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// This is the question `_ListCore.widestRowWidth` asks of a `List`, so it
     /// is answered the same way and with the same four guards, rather than with
     /// a second set of rules: a size entry under the table's own identity,
-    /// compared against the rows' DATA; the table marks itself active or the
+    /// compared against the rows' DATA (through their version, `fitMemoKey`,
+    /// which `List` does not have yet); the table marks itself active or the
     /// entry dies at the end of the pass it was stored in; a value read from a
     /// per-frame source declines the store; and so does an environment carrying
     /// something that cannot be compared.
@@ -6103,10 +6104,12 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             } else {
                 nil
             }
-        if let memo {
+        // Compared by the rows' version rather than the rows: see `fitMemoKey`.
+        let memoKey = memo.map { fitMemoKey(rows: $0.signature, context: context) }
+        if let memo, let memoKey {
             // The table is not a memoising view, so nothing else marks it.
             memo.cache.markActive(context.identity)
-            if let cached = memo.cache.lookupSize(key: key, view: memo.signature) {
+            if let cached = memo.cache.lookupSize(key: key, view: memoKey) {
                 guard RenderCache.verifiesMeasureMemo else { return cached.width }
                 // Scanned again, on the check's own tracker, and the fresh
                 // width is the one laid out: the check the value memo's sizes
@@ -6135,14 +6138,34 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
         let lease = context.renderCache?.leases.endComputation(leaseMark)
 
-        if let memo, tracker.cacheUnsafeCount == unsafeBefore,
+        if let memo, let memoKey, tracker.cacheUnsafeCount == unsafeBefore,
             !context.environment.hasUncomparableEnvironmentValue
         {
             memo.cache.storeSize(
-                key: key, identity: context.identity, view: memo.signature,
+                key: key, identity: context.identity, view: memoKey,
                 size: ViewSize.fixed(fitted, 0), lease: lease)
         }
         return fitted
+    }
+
+    /// What ``fitWidth(of:cappedAt:context:)``'s render-cache entry is
+    /// compared by: the version of `rows` the table's ``DataVersion`` hands
+    /// out, rather than `rows` themselves, where the table has state to keep
+    /// one in.
+    ///
+    /// Compared by the rows, every ask compared every row whenever the rows
+    /// came in a new buffer — which they do every frame from a body that sorts
+    /// or filters — and each `.fit` column is asked by the measure and again
+    /// by the render: 7% of `Stress`'s 4,000-row `file-browser` frame. The
+    /// version compares the rows once against the last ones seen, and any
+    /// change to them is a new version, so a stale width still misses.
+    private func fitMemoKey(rows: AnyEquatableBox, context: RenderContext) -> AnyEquatableBox {
+        guard let storage = context.stateStorage else { return rows }
+        let state = storage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.fitRecords),
+            default: _TableFitRecords()
+        ).value
+        return AnyEquatableBox(state.rowsVersion.token(for: rows))
     }
 
     /// The widest of `column`'s header and cells, stopping at `cap`, walked

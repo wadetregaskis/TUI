@@ -33,6 +33,10 @@ final class _TableFitRecords {
     /// collection reads again: a write that moves what rows draw shows there
     /// first.
     var drawn: Range<Int> = 0..<0
+    /// The rows' version, which the columns' render-cache entries are
+    /// compared by (`_TableCore.fitMemoKey`): kept here, where the writes that
+    /// sweep those entries do not reach it.
+    let rowsVersion = DataVersion()
 
     init() {}
 }

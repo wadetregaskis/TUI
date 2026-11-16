@@ -21,6 +21,14 @@ Its rows are now windowed as a `ForEach`'s are, and the open nodes are kept from
 its open branches are the same: with 5,000 rows open, a frame makes 22 rows where it made 5,001, and the same at
 50,000. Keys, selection, type select and `scrollTo` reach every row as before.
 
+**A `Table` with `.fit` columns whose rows the app builds in its body compares them once a frame, not once for every
+time a column's width is asked.** The kept width of a `.fit` column was looked up by comparing the rows it was taken
+over with the rows the table was handed, element by element whenever they came in a new array, which a body that sorts
+or filters makes every frame; each `.fit` column is asked by the measure and again by the render, so 4,000 rows were
+compared twice a frame for each such column, about 7% of a file browser's frame. The table now keeps a version of its
+rows: compared once with the last rows it was handed, the same while they are equal, and a new one for any change at
+all — an edit, an insertion, a removal, a reorder — so a changed collection is still measured again.
+
 **A row appended to a `Table` with `.fit` columns costs that row, and a hidden tab's table costs next to nothing to
 switch back to.** A `.fit` column's width was kept in the render cache, which the write that brings a row sweeps, and
 which a table not drawn while its tab was hidden lost at the end of every frame: each appended row, and each switch to
