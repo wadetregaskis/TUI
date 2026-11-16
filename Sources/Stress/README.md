@@ -438,8 +438,8 @@ the design and its record are
 [A declarative perf-case table](<../../Documentation/Historical/Performance/A declarative perf-case table.md>).
 
 `--check-counts` plays every case twice, and again at 10n (`flat`) or 2n
-(`linear`), and compares what each phase did — frames, rows built and served,
-bodies run, cell values, measure-memo misses, bytes written — with
+(`linear`), and compares what each phase did — frames, rows listed, rows built
+and served, bodies run, cell values, measure-memo misses, bytes written — with
 `Cases/RecordedCounts.txt`. A count that rises fails; one that falls passes and
 is printed as `IMPROVED` with both numbers until it is re-recorded. Served rows
 and memo misses may move by 1%; everything else is exact. The gate and CI run

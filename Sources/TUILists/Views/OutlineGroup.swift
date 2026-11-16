@@ -435,6 +435,7 @@ final class OutlineSubtreeIndex<Element, ID: Hashable> {
             while let deepest = ancestry.last, deepest.depth >= node.depth { ancestry.removeLast() }
             if let parent = ancestry.last { parentRowID[AnyHashable(rowID)] = parent.id }
             ancestry.append((depth: node.depth, id: AnyHashable(rowID)))
+            context.renderCache?.rowWork.listed += 1  // see `RowWork.listed`
             let view = row(for: node, expansion: expansion, rowOwnsFocus: true)
             let rowContext = context.withChildIdentity(
                 erasedType: _OutlineRow<Data.Element, ID, Leaf>.self,

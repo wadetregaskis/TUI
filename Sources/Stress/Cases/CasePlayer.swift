@@ -20,6 +20,8 @@ struct CaseCounts: Equatable, Sendable {
     /// The steps the phase took, and the frames those drew.
     var steps = 0
     var frames = 0
+    /// Row boxes a list made, drawn or not: `RenderCache.RowWork.listed`.
+    var listed = 0
     /// Rows (or memoized subtrees) composed, and served from a memo instead:
     /// `RenderCache.RowWork.rendered` and `.served`.
     var built = 0
@@ -34,17 +36,17 @@ struct CaseCounts: Equatable, Sendable {
     var bytes = 0
 
     /// The counts by their column names, in the recorded file's order.
-    static let names = ["steps", "frames", "built", "served", "bodies", "cells", "misses", "bytes"]
+    static let names = ["steps", "frames", "listed", "built", "served", "bodies", "cells", "misses", "bytes"]
 
-    var values: [Int] { [steps, frames, built, served, bodies, cells, misses, bytes] }
+    var values: [Int] { [steps, frames, listed, built, served, bodies, cells, misses, bytes] }
 
     init() {}
 
     init?(values: [Int]) {
         guard values.count == Self.names.count else { return nil }
-        (steps, frames, built, served, bodies, cells, misses) =
+        (steps, frames, listed, built, served, bodies, cells) =
             (values[0], values[1], values[2], values[3], values[4], values[5], values[6])
-        bytes = values[7]
+        (misses, bytes) = (values[7], values[8])
     }
 }
 
@@ -174,6 +176,7 @@ final class CasePlayer {
         var counts = CaseCounts()
         let work = app.renderCache.rowWork
         counts.frames = app.framesDrawn
+        counts.listed = work.listed
         counts.built = work.rendered
         counts.served = work.served
         counts.bodies = work.bodies

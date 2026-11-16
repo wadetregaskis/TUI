@@ -451,7 +451,8 @@ RenderCache.RowWork | struct RowWork
 RenderCache.RowWork.bodies | var bodies: Int
 RenderCache.RowWork.cellValues | var cellValues: Int
 RenderCache.RowWork.delta(since:) | func delta(since earlier: RenderCache.RowWork) -> RenderCache.RowWork
-RenderCache.RowWork.init(rendered:served:servedDrawing:cellValues:repainted:bodies:) | init(rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0, bodies: Int = 0)
+RenderCache.RowWork.init(rendered:served:servedDrawing:cellValues:repainted:bodies:listed:) | init(rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0, bodies: Int = 0, listed: Int = 0)
+RenderCache.RowWork.listed | var listed: Int
 RenderCache.RowWork.rendered | var rendered: Int
 RenderCache.RowWork.repainted | var repainted: Int
 RenderCache.RowWork.served | var served: Int

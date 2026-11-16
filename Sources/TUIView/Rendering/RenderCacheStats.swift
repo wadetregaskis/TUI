@@ -51,10 +51,17 @@ extension RenderCache {
         /// them because it is read the same way, as a delta per frame
         /// (`Stress --check-counts`, the perf-case table's `bodies` column).
         public var bodies = 0
+        /// Row boxes a `List` made: one per row a loop or an outline
+        /// described to the list (`LazyListRowContent`), drawn or not. A
+        /// windowed list makes them for the rows it walks, about a screenful;
+        /// a list that describes every row makes one a row, every frame —
+        /// which is what this is here to show (the perf-case table's `listed`
+        /// column). Not ``rendered``: a box draws nothing until it is read.
+        public var listed = 0
 
         public init(
             rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0,
-            bodies: Int = 0
+            bodies: Int = 0, listed: Int = 0
         ) {
             self.rendered = rendered
             self.served = served
@@ -62,6 +69,7 @@ extension RenderCache {
             self.cellValues = cellValues
             self.repainted = repainted
             self.bodies = bodies
+            self.listed = listed
         }
 
         /// This minus `earlier`, for a per-frame reading rather than a total.
@@ -70,7 +78,7 @@ extension RenderCache {
                 rendered: rendered - earlier.rendered, served: served - earlier.served,
                 servedDrawing: servedDrawing - earlier.servedDrawing,
                 cellValues: cellValues - earlier.cellValues, repainted: repainted - earlier.repainted,
-                bodies: bodies - earlier.bodies)
+                bodies: bodies - earlier.bodies, listed: listed - earlier.listed)
         }
     }
 

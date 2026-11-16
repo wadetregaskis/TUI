@@ -25,7 +25,7 @@ enum CountCheck {
     /// The counts a case's scaling rerun is held to. `bytes` is not one: a
     /// scroll bar's thumb is a different size and place at 10n, and writes
     /// other cells for the same rows.
-    static let scaledCounts = ["built", "served", "bodies", "cells", "misses"]
+    static let scaledCounts = ["listed", "built", "served", "bodies", "cells", "misses"]
 
     // MARK: The environment
 

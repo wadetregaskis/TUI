@@ -4,58 +4,58 @@
 # `TUI_RECORD_PERF_COUNTS=1 swift run Stress --check-counts`; the commit that re-records says, per
 # case, what moved and why. `git log -p` on this file is the ledger of what each change did.
 # <id>@10n / <id>@2n: the case's scaling rerun. <key>@linux: a line that holds on Linux alone.
-case                  phase          steps  frames  built  served  bodies  cells   misses  bytes
-list-wheel            open           1      2       94     0       196     0       176     5595
-list-wheel            wheel:+5       20     20      306    140     700     0       600     33981
-list-wheel@10n        open           1      2       94     0       196     0       176     5595
-list-wheel@10n        wheel:+5       20     20      306    140     700     0       600     33558
-list-hover            open           1      2       94     0       196     0       176     5595
-list-hover            hover:+1       20     20      6      440     100     0       0       5132
-list-hover@10n        open           1      2       94     0       196     0       176     5595
-list-hover@10n        hover:+1       20     20      6      440     100     0       0       5132
-list-search           open           1      2       90     0       232     0       312     5558
-list-search           key:tab        1      1       21     0       58      0       78      1172
-list-search           type:ab        1      2       45     0       122     0       184     3020
-list-search           key:bksp       2      2       42     0       119     0       170     2947
-list-search@10n       open           1      2       90     0       232     0       312     5558
-list-search@10n       key:tab        1      1       21     0       58      0       78      1172
-list-search@10n       type:ab        1      2       45     0       122     0       184     3020
-list-search@10n       key:bksp       2      2       42     0       119     0       170     2947
-table-fit-tail        open           1      2       120    36      28      30740   8       10441
-table-fit-tail        append:1       50     50      62     1800    350     9750    100     0
-table-fit-tail@10n    open           1      2       120    36      28      300740  8       10441
-table-fit-tail@10n    append:1       50     50      62     1800    350     9750    100     0
-chat-lazy-follow      open           1      3       81     31      409     0       1322    3724
-chat-lazy-follow      append:1       100    100     120    1381    3004    0       14116   42370
-chat-lazy-follow@10n  open           1      3       81     31      494     0       1703    3724
-chat-lazy-follow@10n  append:1       100    100     120    1381    3304    0       16816   42370
-chat-eager-follow     open           1      3       2010   1       7040    0       20066   3724
-chat-eager-follow     append:1       20     20      10225  0       21680   0       64820   8076
-chat-eager-follow@2n  open           1      3       4010   1       14040   0       40066   3724
-chat-eager-follow@2n  append:1       20     20      20225  0       42680   0       127820  8076
-tabs-switch           open           1      3       121    1       262     15000   283     10481
-tabs-switch           key:right      1      2       44     36      30      30360   48      7643
-tabs-switch           key:left       1      1       41     0       84      0       87      7131
-tabs-switch           key:right#2    1      1       3      36      15      362     24      7643
-tabs-switch           key:left#2     1      1       39     0       84      0       87      7131
-tabs-switch@10n       open           1      3       121    1       262     150000  283     10481
-tabs-switch@10n       key:right      1      2       44     36      30      300360  48      7643
-tabs-switch@10n       key:left       1      1       41     0       84      0       87      7131
-tabs-switch@10n       key:right#2    1      1       3      36      15      362     24      7643
-tabs-switch@10n       key:left#2     1      1       39     0       84      0       87      7131
-split-resize          open           1      3       366    173     532     46140   507     24566
-split-resize          resize:80x24   1      1       105    0       175     12044   239     6723
-split-resize          resize:200x60  5      5       130    236     157     15285   118     122830
-split-resize@10n      open           1      3       366    173     532     451140  507     24551
-split-resize@10n      resize:80x24   1      1       105    0       175     120044  251     6723
-split-resize@10n      resize:200x60  5      5       130    236     157     150285  118     122755
-editor-typing         open           1      2       6      0       20      0       8       5377
-editor-typing         key:pgdn       10     10      3      0       50      0       20      26020
-editor-typing         type:hello     1      5       3      0       25      0       10      852
-editor-typing         idle           5      5       0      0       25      0       10      0
-editor-typing@10n     open           1      2       6      0       20      0       8       5377
-editor-typing@10n     key:pgdn       10     10      3      0       50      0       20      25002
-editor-typing@10n     type:hello     1      5       3      0       25      0       10      852
-editor-typing@10n     idle           5      5       0      0       25      0       10      0
-mail-idle             open           1      3       107    35      8176    0       42520   11573
-mail-idle             idle           200    200     6      7000    4200    0       12800   0
+case                  phase          steps  frames  listed  built  served  bodies  cells    misses  bytes
+list-wheel            open           1      2       88      94     0       196     0        176     5595
+list-wheel            wheel:+5       20     20      440     306    140     700     0        600     33981
+list-wheel@10n        open           1      2       88      94     0       196     0        176     5595
+list-wheel@10n        wheel:+5       20     20      440     306    140     700     0        600     33558
+list-hover            open           1      2       88      94     0       196     0        176     5595
+list-hover            hover:+1       20     20      440     6      440     100     0        0       0
+list-hover@10n        open           1      2       88      94     0       196     0        176     5595
+list-hover@10n        hover:+1       20     20      440     6      440     100     0        0       0
+list-search           open           1      2       84      90     0       232     0        312     5558
+list-search           key:tab        1      1       21      21     0       58      0        78      1172
+list-search           type:ab        1      2       42      45     0       122     0        184     3020
+list-search           key:bksp       2      2       42      42     0       119     0        170     2947
+list-search@10n       open           1      2       84      90     0       232     0        312     5558
+list-search@10n       key:tab        1      1       21      21     0       58      0        78      1172
+list-search@10n       type:ab        1      2       42      45     0       122     0        184     3020
+list-search@10n       key:bksp       2      2       42      42     0       119     0        170     2947
+table-fit-tail        open           1      2       0       120    36      28      30740    8       10441
+table-fit-tail        append:1       50     50      0       62     1800    350     515625   100     0
+table-fit-tail@10n    open           1      2       0       120    36      28      300740   8       10441
+table-fit-tail@10n    append:1       50     50      0       62     1800    350     5015625  100     0
+chat-lazy-follow      open           1      3       0       81     31      409     0        1305    3724
+chat-lazy-follow      append:1       100    100     0       120    1381    3004    0        13816   42370
+chat-lazy-follow@10n  open           1      3       0       81     31      494     0        1679    3724
+chat-lazy-follow@10n  append:1       100    100     0       120    1381    3304    0        16416   42370
+chat-eager-follow     open           1      3       0       2010   1       7040    0        20060   3724
+chat-eager-follow     append:1       20     20      0       10225  0       21680   0        64780   8076
+chat-eager-follow@2n  open           1      3       0       4010   1       14040   0        40060   3724
+chat-eager-follow@2n  append:1       20     20      0       20225  0       42680   0        127780  8076
+tabs-switch           open           1      3       111     121    1       262     15000    279     10481
+tabs-switch           key:right      1      2       0       44     36      30      30360    46      7643
+tabs-switch           key:left       1      1       37      41     0       84      0        86      7131
+tabs-switch           key:right#2    1      1       0       3      36      15      15180    23      7643
+tabs-switch           key:left#2     1      1       37      39     0       84      0        86      7131
+tabs-switch@10n       open           1      3       111     121    1       262     150000   279     10481
+tabs-switch@10n       key:right      1      2       0       44     36      30      300360   46      7643
+tabs-switch@10n       key:left       1      1       37      41     0       84      0        86      7131
+tabs-switch@10n       key:right#2    1      1       0       3      36      15      150180   23      7643
+tabs-switch@10n       key:left#2     1      1       37      39     0       84      0        86      7131
+split-resize          open           1      3       290     366    173     532     61140    505     24566
+split-resize          resize:80x24   1      1       81      105    0       175     12044    239     6723
+split-resize          resize:200x60  5      5       290     130    236     157     15285    118     122830
+split-resize@10n      open           1      3       290     366    173     532     601140   505     24551
+split-resize@10n      resize:80x24   1      1       81      105    0       175     120044   251     6723
+split-resize@10n      resize:200x60  5      5       290     130    236     157     150285   118     122755
+editor-typing         open           1      2       0       6      0       20      0        8       5377
+editor-typing         key:pgdn       10     10      0       3      0       50      0        20      26020
+editor-typing         type:hello     1      5       0       3      0       25      0        10      852
+editor-typing         idle           5      5       0       0      0       25      0        10      0
+editor-typing@10n     open           1      2       0       6      0       20      0        8       5377
+editor-typing@10n     key:pgdn       10     10      0       3      0       50      0        20      25002
+editor-typing@10n     type:hello     1      5       0       3      0       25      0        10      852
+editor-typing@10n     idle           5      5       0       0      0       25      0        10      0
+mail-idle             open           1      3       6104    107    35      8176    0        42520   11573
+mail-idle             idle           200    200     5200    6      7000    4200    0        12800   0

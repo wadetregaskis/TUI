@@ -557,6 +557,32 @@ and `tabs-switch` on `misses` alone (1305 → 1322 and 279 → 283 as they open,
 alike). Neither 7da6f3351 (the measure memo's keep) nor 10830966f (`Form`) re-recorded, and one of them is the likely
 cause; they are left for whoever lands those to explain and re-record.
 
+## The `listed` count (2026-11-16)
+
+**Why.** The first outline cases (finding G1, from building tuitree: a `List(_:children:)` describes every open row
+on every pass) played 5,000 open rows in 5.9 s where a flat list of 10,000 plays in 0.4 s, and every count stayed
+flat at 10n. What the outline paid for was a row *box* per open row a pass, its closures, its identity and its ids,
+none of which draws anything, runs a body or misses a measure, so no column saw it. A box is the unit a windowed
+`List` saves: it makes one for the rows it walks and none for the rest.
+
+**What.** `RenderCache.RowWork.listed` counts the row boxes a `List` makes (`LazyListRowContent`), drawn or not:
+counted where a `ForEach` row's box is made (`makeListRowContent`), where a child walk's row's is
+(`deferredListRow`, `loneListRow`), and where an outline's is. The table gained a `listed` column after `frames`,
+and `listed` joined the counts a scaling rerun is held to. Recording it moved no other count of the ten cases, and
+it is 0 for every case with no `List` in it.
+
+| Case | Phase | Listed |
+|---|---|--:|
+| `list-wheel` | `open` | 88 |
+| `list-wheel` | `wheel:+5` (20 steps) | 440 |
+| `tabs-switch` | `open` | 111 |
+| `split-resize` | `open` | 290 |
+| `mail-idle` | `open` | 6,104 |
+| `mail-idle` | `idle` (200 steps) | 5,200 |
+
+`mail-idle` makes 26 boxes an idle frame for the boxes its lists show: a box is made again every pass, cheaply,
+and served from the row memo when it is read, which is why `built` there is 6 over 200 frames.
+
 ## For a future reader
 
 - Counts are proxies. A clean `--check-counts` says the work did not change, not that the time did
