@@ -794,7 +794,10 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
             return TUIView.renderToBuffer(
                 menuRow(context: context), context: menuRowContext(context))
         }
-        let isDisabled = self.isDisabled || !context.environment.isEnabled
+        // Its own `.disabled(_:)` reaches its label, style and content, as
+        // the view modifier's does.
+        let context = _ControlLabel.disablingContent(context, controlDisabled: self.isDisabled)
+        let isDisabled = !context.environment.isEnabled
         let palette = context.environment.palette
 
         let interaction = interactionState(isDisabled: isDisabled, context: context)

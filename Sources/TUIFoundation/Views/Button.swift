@@ -478,7 +478,8 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         }
         let resolved = resolve(context: context)
         return style.makeSize(
-            configuration: resolved.configuration, proposal: proposal, context: context)
+            configuration: resolved.configuration, proposal: proposal,
+            context: _ControlLabel.disablingContent(context, controlDisabled: isDisabled))
     }
 
     /// Reports this button to whatever owns its highlight, and answers whether
@@ -730,7 +731,12 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                 action()
                 dismissMenu?()
             })
-        var bodyContext = context.withChildIdentity(type: StyleChain<any PrimitiveButtonStyle>.self, index: 0)
+        // Disabled by this button's own `.disabled(_:)` too, which the
+        // configuration does not carry: the body's `Button(configuration)` was
+        // otherwise a live button.
+        var bodyContext = _ControlLabel.disablingContent(
+            context.withChildIdentity(type: StyleChain<any PrimitiveButtonStyle>.self, index: 0),
+            controlDisabled: isDisabled)
         bodyContext.environment.primitiveButtonStyleChain = entry.outer?.chain
         return (configuration, bodyContext)
     }
@@ -748,8 +754,11 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         let pressBox = resolved.pressBox
         let effectiveAction = resolved.effectiveAction
         let style = context.environment.buttonStyle
+        // The style's body, label included, sees this button's own
+        // `.disabled(_:)` in `\.isEnabled`, as under the view modifier.
         var buffer = style.makeBuffer(
-            configuration: resolved.configuration, context: context)
+            configuration: resolved.configuration,
+            context: _ControlLabel.disablingContent(context, controlDisabled: isDisabled))
 
         // A held repeat stops when the button is disabled under it: its
         // handler is not registered while disabled, so the release that would

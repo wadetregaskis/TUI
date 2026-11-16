@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A control's own `.disabled(_:)` reaches its label and its style.** `Button(…).disabled(true)`, and the same on a
+`Toggle`, `Picker`, `DatePicker`, `Stepper` or `Slider`, is the control's own method, which returns the control rather
+than a view under `View.disabled(_:)`, and it left `\.isEnabled` true: a label or a custom style's body reading
+`@Environment(\.isEnabled)` drew an enabled control, a control in the label stayed live, and a disabled button under a
+`PrimitiveButtonStyle` whose body is `Button(configuration)` could still be pressed and clicked. Each now draws its
+label and its style's body with `\.isEnabled` false, as the view modifier does.
+
 **A table column of strings sorts `item2` before `item10` on Windows and Linux, as on a Mac.** Given no comparator,
 `TableColumn(_:value:)` and `TableColumn(_:value:content:)` over a `String` property sort as Finder lists names
 everywhere, where off Apple platforms they sorted by character codes (`Zebra` before `apple`, `item10` before

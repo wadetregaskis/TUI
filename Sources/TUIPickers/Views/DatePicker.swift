@@ -104,7 +104,9 @@ public struct DatePicker<Label: View> {
         } else if style is any BuiltInDatePickerStyle {
             _DatePickerField(configuration: configuration, focusID: focusID, isDisabled: isDisabled)
         } else {
-            style.makeAnyBody(configuration: configuration)
+            // This picker's own `.disabled(_:)`, which the configuration does
+            // not carry, reaches the style's body as the view modifier would.
+            style.makeAnyBody(configuration: configuration).disabled(isDisabled)
         }
     }
 }

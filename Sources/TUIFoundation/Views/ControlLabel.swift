@@ -41,6 +41,20 @@ enum _ControlLabel {
     ) -> FrameBuffer {
         buffer.fadedWithoutColor(if: controlDisabled || !context.environment.isEnabled, context: context)
     }
+
+    /// `context` with `\.isEnabled` off where the control's own `.disabled()`
+    /// flag (`controlDisabled`) is set and the environment does not say so
+    /// already — what ``View/disabled(_:)`` writes, as `DisabledModifier` does.
+    ///
+    /// The per-control method returns the control, not a view under the
+    /// modifier, so without this what the control draws of the app's — a
+    /// label, a custom style's body — read `isEnabled` as true, and a control
+    /// in it, a primitive style's `Button(configuration)` included, stayed live.
+    /// `context` itself where nothing changes, as the modifier leaves it.
+    static func disablingContent(_ context: RenderContext, controlDisabled: Bool) -> RenderContext {
+        guard controlDisabled, context.environment.isEnabled else { return context }
+        return context.withDerivedEnvironment(context.environment.setting(\.isEnabled, to: false))
+    }
 }
 
 /// Renders an inline control label followed by one separating space — or
@@ -103,7 +117,7 @@ nonisolated package struct _CollapsingLabel<Label: View>: View, Renderable, Layo
             TUIView.renderToBuffer(
                 _ControlLabel.dimmingWhenDisabled(
                     label, context: context, controlDisabled: controlDisabled),
-                context: context),
+                context: _ControlLabel.disablingContent(context, controlDisabled: controlDisabled)),
             context: context, controlDisabled: controlDisabled)
         guard !buffer.isBlank else { return FrameBuffer() }
         // `replacingLines`, not `FrameBuffer(lines:)`: a label is a full view
@@ -142,7 +156,7 @@ nonisolated package struct _DetachedControlLabel<Label: View>: View, Renderable,
         _ControlLabel.fadingWhenDisabled(
             TUIView.renderToBuffer(
                 _ControlLabel.dimmingWhenDisabled(label, context: context, controlDisabled: controlDisabled),
-                context: context),
+                context: _ControlLabel.disablingContent(context, controlDisabled: controlDisabled)),
             context: context, controlDisabled: controlDisabled)
     }
 }
