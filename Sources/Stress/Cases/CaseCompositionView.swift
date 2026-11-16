@@ -32,6 +32,8 @@ struct CasePage: View {
             AnyView(
                 VStack(alignment: .leading, spacing: 0) { Text(verbatim: Self.title); content }
                     .fixedSize(horizontal: false, vertical: true))
+        case .stacked:
+            AnyView(VStack(alignment: .leading, spacing: 0) { Text(verbatim: Self.title); content })
         }
     }
 

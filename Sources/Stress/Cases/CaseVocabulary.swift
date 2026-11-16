@@ -151,6 +151,9 @@ enum CaseContainer: String, CaseIterable, Sendable {
     case sheet
     /// Under a title in a `VStack` fixed to its ideal height.
     case fixed
+    /// Under a line of title in a `VStack` that fills the page, as an app's
+    /// page holds its table: the stack measures it before it is drawn.
+    case stacked
     /// None: an adopted scenario brings its own.
     case none = "-"
 }

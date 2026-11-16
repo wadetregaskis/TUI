@@ -196,7 +196,7 @@ Spaces may not appear inside a column.
 |---|---|---|
 | `id` | Stable, kebab-case; the session or variant id is `case:<id>` | unique |
 | `composition` | What the page is built from: a name from `CaseComposition`, with dotted options | `list.plain`, `list.search`, `table.fit5`, `table.wrap5`, `chat.lazy`, `chat.eager`, `editor.wrap`, `tabs(list.plain,table.fit5)`, `split(list.plain,table.fit5)`, `follows(list.plain)` (in a scene whose focus follows the pointer; added 2026-11-16), … ; `stress:<scenario>[/<variant>]` adopts an existing one |
-| `in` | The container around it: `CaseContainer`, a superset of `ScrollFitSituation` | `alone`, `title` (in a `ScrollView` under a title), `bottom` (bottom-anchored `ScrollView`), `sheet`, `fixed`, `-` for an adopted scenario |
+| `in` | The container around it: `CaseContainer`, a superset of `ScrollFitSituation` | `alone`, `title` (in a `ScrollView` under a title), `bottom` (bottom-anchored `ScrollView`), `sheet`, `fixed`, `stacked` (under a title in a `VStack` that fills the page), `-` for an adopted scenario |
 | `size` | The terminal, in cells | `80x24`, `120x40`, `200x60`, `40x12` |
 | `n` | The data count, synthesised from the case's seed by `Synth` | an integer |
 | `script` | Phases separated by `;`. A phase is a step, with an optional `*k` to repeat it | see below |
@@ -629,6 +629,22 @@ Recorded on a clean debug build:
   outline alone does, the header before them and the footer after (`_ListCore.windowedSectionSource`). `listed` falls
   to `outline-list`'s, at n and 10n alike (`wheel:+5` 50,010 to 220), and the known issue is gone. A section among
   other rows, or several sections, still extracts its rows at once.
+
+**`outline-rows-stacked` (2026-11-16).** tuitree's table is not the whole page: it sits in a stack under other
+views, and a stack measures its children before it draws them. Timed in tuitree (release, a 3.2 MB file, about
+200,000 rows open), a key cost 2.3 to 3 s, and a Time Profiler attach put 92.7% of it in the table's preparation,
+reached once from the measure (68.4% of samples) and once from the draw (24.3%): each flattened the tree again. A
+container was added for that shape, `stacked` (`VStack { title; it }`, filling the page), and a case of the table
+in it, recorded on a clean debug build. It lists every open row twice a frame, where `outline-rows` lists them once:
+
+| Case | Phase | Steps | Listed at n | Listed at 10n |
+|---|---|--:|--:|--:|
+| `outline-rows-stacked` | `key:oright` | 1 | 10,002 | 100,002 |
+| `outline-rows-stacked` | `wheel:+5` | 10 | 100,020 | 1,000,020 |
+| `outline-rows-stacked` | `key:pgdn` | 3 | 30,006 | 300,006 |
+
+Filed under G1-rows with `outline-rows`; the second listing a pass is not part of the row-builder contract
+question, and is the case's to remove.
 
 ### G1-rows: why it is not fixed yet, and the options
 
