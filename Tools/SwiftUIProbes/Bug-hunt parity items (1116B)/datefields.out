@@ -1,0 +1,13 @@
+macOS Version 15.8.3 (Build 24H241) locale en_AU@rg=uszzzz
+hourAndMinute: picker elements 12, style 0, time zone GMT, first responder PlatformDatePicker
+  start: bound 2026-03-14 09:26:37.250, picker 2026-03-14 09:26:37.250
+  Up in the first field: bound 2026-03-14 10:26:37.250, picker 2026-03-14 10:26:37.250
+  Tab, Up in the second field: bound 2026-03-14 10:27:37.250, picker 2026-03-14 10:27:37.250
+date: picker elements 224, style 0, time zone GMT, first responder PlatformDatePicker
+  start: bound 2026-03-14 09:26:37.250, picker 2026-03-14 09:26:37.250
+  Up in the first field: bound 2026-04-14 09:26:37.250, picker 2026-04-14 09:26:37.250
+  Tab, Up in the second field: bound 2026-04-15 09:26:37.250, picker 2026-04-15 09:26:37.250
+both: picker elements 236, style 0, time zone GMT, first responder PlatformDatePicker
+  start: bound 2026-03-14 09:26:37.250, picker 2026-03-14 09:26:37.250
+  Up in the first field: bound 2026-04-14 09:26:37.250, picker 2026-04-14 09:26:37.250
+  Tab, Up in the second field: bound 2026-04-15 09:26:37.250, picker 2026-04-15 09:26:37.250

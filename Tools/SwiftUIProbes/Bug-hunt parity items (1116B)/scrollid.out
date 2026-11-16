@@ -1,0 +1,38 @@
+macOS Version 15.8.3 (Build 24H241)
+(writes: what the binding was set to during the step, the app's own write left out)
+lazy:
+  1 appear, id nil: y 0, top row 0, id nil, writes []
+  2 app writes 50: y 820, top row 41, id 50, writes ["50"]
+  3 app writes 50 again: y 820, top row 41, id 50, writes []
+  4 user scrolls to the top: y 0, top row 0, id 0, writes ["0"]
+  5 app writes 50: y 820, top row 41, id 50, writes ["50"]
+  6a user scrolls to y 1600: y 1600, top row 80, id 80, writes ["80"]
+  6b app writes 50: y 1000, top row 50, id 50, writes ["50"]
+  7 app writes 52: y 1000, top row 50, id 52, writes ["52"]
+eager:
+  1 appear, id nil: y 0, top row 0, id nil, writes []
+  2 app writes 50: y 820, top row 41, id 50, writes ["50"]
+  3 app writes 50 again: y 820, top row 41, id 50, writes []
+  4 user scrolls to the top: y 0, top row 0, id 0, writes ["0"]
+  5 app writes 50: y 820, top row 41, id 50, writes ["50"]
+  6a user scrolls to y 1600: y 1600, top row 80, id 80, writes ["80"]
+  6b app writes 50: y 1000, top row 50, id 50, writes ["50"]
+  7 app writes 52: y 1000, top row 50, id 52, writes ["52"]
+list (row height 24):
+  1 appear, id nil: y 0, top row 0, id nil, writes []
+  2 app writes 50: y 0, top row 0, id 50, writes []
+  3 app writes 50 again: y 0, top row 0, id 50, writes []
+  4 user scrolls to the top: y 0, top row 0, id 50, writes []
+  5 app writes 50: y 0, top row 0, id 50, writes []
+  6a user scrolls to y 1600: y 1600, top row 66, id 50, writes []
+  6b app writes 50: y 1600, top row 66, id 50, writes []
+  7 app writes 52: y 1600, top row 66, id 52, writes []
+lazy, anchor .top:
+  1 appear, id nil: y 0, top row 0, id nil, writes []
+  2 app writes 50: y 1000, top row 50, id 50, writes ["50"]
+  3 app writes 50 again: y 1000, top row 50, id 50, writes []
+  4 user scrolls to the top: y 0, top row 0, id 0, writes ["0"]
+  5 app writes 50: y 1000, top row 50, id 50, writes ["50"]
+  6a user scrolls to y 1600: y 1600, top row 80, id 80, writes ["80"]
+  6b app writes 50: y 1000, top row 50, id 50, writes ["50"]
+  7 app writes 52: y 1040, top row 52, id 52, writes ["52"]

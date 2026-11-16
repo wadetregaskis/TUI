@@ -1444,3 +1444,32 @@ messages cite that path), and what cites it.
 - **Cited by:** `Documentation/Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md`
   (APPFB-1 to APPFB-4); `Tests/TUITablesTests/TreeOpenAtFirstTests.swift`,
   `Tests/TUITablesTests/TypeSelectGivesWayToOnKeyPressTests.swift`.
+
+### Bug-hunt parity items (1116B)
+
+- **Asks:** four questions a bug hunt left open, each a probe built alone (`swiftc -parse-as-library`), its output
+  beside it. `scrollid.swift` (`scrollid.out`): what `.scrollPosition(id:)` with no anchor does when the app writes
+  the id: rows 0 to 99, 20 points tall, in a 200-point viewport, in a `LazyVStack` and a `VStack` marked
+  `.scrollTargetLayout()` and in a `List`, and the lazy stack again with `anchor: .top`; the app writes 50, writes it
+  again, the user scrolls to the top (the live-scroll notifications), the app writes 50, the user scrolls to row
+  80, the app writes 50, then 52. `sections.swift` (`sections.out`): where the keyboard goes in a `List(selection:)`
+  of two `Section`s, single and multiple selection, in each list style: Down from no selection, past the second
+  header, Up, End, Home, Up from no selection. `sheetitem.swift` (`sheetitem.out`): a `.sheet(item:onDismiss:)`
+  whose item is replaced while it is up, by another id and by the same id with other contents. `datefields.swift`
+  (`datefields.out`): a `DatePicker` showing `.hourAndMinute`, `.date` or both, bound to 09:26:37.250, its first
+  field stepped with Up and its second after Tab.
+- **Answers:** with no anchor a written id is sought by the least move (row 50 from the top lands at the bottom, top
+  row 41; from row 80 it lands at the top), and the binding keeps the id the app wrote (SwiftUI writes it back
+  itself); writing it again does nothing, a written id already in view moves nothing, and the binding reads the top
+  row only after the user scrolls; a `nil` id is not written as the view appears. `anchor: .top` puts the row at the
+  top every time. macOS's `List` follows no `scrollPosition(id:)` at all. A section header is never the keyboard's
+  row: Down from no selection selects the first section's first item, Down and Up step over the second header, End
+  and Home move no selection, and Up from no selection selects the last item, in every style and both selection
+  kinds. Replacing a sheet's item keeps the sheet up, the same window: no `onDismiss`, no `onDisappear` or
+  `onAppear`, and the content keeps its `@State`, seeing the new id through `onChange`; `onDismiss` runs once the
+  item is `nil`. Every edit keeps the components the picker does not show: the seconds and their fraction survive
+  an hour, minute, month or day step.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-16.
+- **Was:** written here.
+- **Cited by:** `Tests/TUIAppTests/ScrollPositionIDHoldTests.swift`, `Tests/TUIListsTests/ListMultiSectionRowsTests.swift`,
+  `Tests/TUIPresentationTests/SheetItemSwitchDismissTests.swift`, `Tests/TUIPickersTests/DateFieldModelTests.swift`.

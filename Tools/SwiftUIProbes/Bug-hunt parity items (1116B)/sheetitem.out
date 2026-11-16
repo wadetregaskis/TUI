@@ -1,0 +1,5 @@
+macOS Version 15.8.3 (Build 24H241)
+present A: ["content appear A state#1"]; item A one; sheet up, a new window
+replace A with B: ["content sees id B state#1"]; item B one; sheet up, the same window
+replace B with B' (same id, new note): ["content sees note two state#1"]; item B two; sheet up, the same window
+set nil: ["onDismiss"]; item nil; sheet none

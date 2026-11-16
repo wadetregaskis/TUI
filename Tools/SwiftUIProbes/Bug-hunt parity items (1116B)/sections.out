@@ -1,0 +1,81 @@
+macOS Version 15.8.3 (Build 24H241)
+automatic, Int?: first responder SwiftUIOutlineListView, 7 rows
+  start: selection nil, selected row -1
+  Down: selection apple, selected row 1
+  Down: selection banana, selected row 2
+  Down: selection cherry, selected row 3
+  Down (past the Veg header?): selection daikon, selected row 5
+  Up (back across it): selection cherry, selected row 3
+  End: selection cherry, selected row 3
+  Home: selection cherry, selected row 3
+  selection cleared, then Up: selection endive, selected row 6
+automatic, Set<Int>: first responder SwiftUIOutlineListView, 7 rows
+  start: selection [], selected row -1
+  Down: selection [apple], selected row 1
+  Down: selection [banana], selected row 2
+  Down: selection [cherry], selected row 3
+  Down (past the Veg header?): selection [daikon], selected row 5
+  Up (back across it): selection [cherry], selected row 3
+  End: selection [cherry], selected row 3
+  Home: selection [cherry], selected row 3
+  selection cleared, then Up: selection [endive], selected row 6
+sidebar, Int?: first responder SwiftUIOutlineListView, 7 rows
+  start: selection nil, selected row -1
+  Down: selection apple, selected row 1
+  Down: selection banana, selected row 2
+  Down: selection cherry, selected row 3
+  Down (past the Veg header?): selection daikon, selected row 5
+  Up (back across it): selection cherry, selected row 3
+  End: selection cherry, selected row 3
+  Home: selection cherry, selected row 3
+  selection cleared, then Up: selection endive, selected row 6
+sidebar, Set<Int>: first responder SwiftUIOutlineListView, 7 rows
+  start: selection [], selected row -1
+  Down: selection [apple], selected row 1
+  Down: selection [banana], selected row 2
+  Down: selection [cherry], selected row 3
+  Down (past the Veg header?): selection [daikon], selected row 5
+  Up (back across it): selection [cherry], selected row 3
+  End: selection [cherry], selected row 3
+  Home: selection [cherry], selected row 3
+  selection cleared, then Up: selection [endive], selected row 6
+inset, Int?: first responder SwiftUIOutlineListView, 7 rows
+  start: selection nil, selected row -1
+  Down: selection apple, selected row 1
+  Down: selection banana, selected row 2
+  Down: selection cherry, selected row 3
+  Down (past the Veg header?): selection daikon, selected row 5
+  Up (back across it): selection cherry, selected row 3
+  End: selection cherry, selected row 3
+  Home: selection cherry, selected row 3
+  selection cleared, then Up: selection endive, selected row 6
+inset, Set<Int>: first responder SwiftUIOutlineListView, 7 rows
+  start: selection [], selected row -1
+  Down: selection [apple], selected row 1
+  Down: selection [banana], selected row 2
+  Down: selection [cherry], selected row 3
+  Down (past the Veg header?): selection [daikon], selected row 5
+  Up (back across it): selection [cherry], selected row 3
+  End: selection [cherry], selected row 3
+  Home: selection [cherry], selected row 3
+  selection cleared, then Up: selection [endive], selected row 6
+plain, Int?: first responder SwiftUIOutlineListView, 7 rows
+  start: selection nil, selected row -1
+  Down: selection apple, selected row 1
+  Down: selection banana, selected row 2
+  Down: selection cherry, selected row 3
+  Down (past the Veg header?): selection daikon, selected row 5
+  Up (back across it): selection cherry, selected row 3
+  End: selection cherry, selected row 3
+  Home: selection cherry, selected row 3
+  selection cleared, then Up: selection endive, selected row 6
+plain, Set<Int>: first responder SwiftUIOutlineListView, 7 rows
+  start: selection [], selected row -1
+  Down: selection [apple], selected row 1
+  Down: selection [banana], selected row 2
+  Down: selection [cherry], selected row 3
+  Down (past the Veg header?): selection [daikon], selected row 5
+  Up (back across it): selection [cherry], selected row 3
+  End: selection [cherry], selected row 3
+  Home: selection [cherry], selected row 3
+  selection cleared, then Up: selection [endive], selected row 6
