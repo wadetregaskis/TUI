@@ -271,6 +271,12 @@ enum AppShapeMatrix {
         variant("sidebar-filtered", "a hugged sidebar List of 2,000 projects filtered in the body: a new array of rows every frame") {
             AnyView(FilteredSidebarApp(count: $0.sized(2_000), seed: $0.seed))
         },
+        variant("columns-form-filtered", "a .columns Form of 2,000 settings in scroll content, filtered in the body: a new array of rows every frame") {
+            AnyView(FilteredColumnsFormApp(count: $0.sized(2_000), seed: $0.seed))
+        },
+        variant("code-editor-filtered", "2,000 source lines on both scroll axes, filtered in the body: a new array of rows every frame") {
+            AnyView(FilteredEditorApp(count: $0.sized(2_000), seed: $0.seed))
+        },
         variant("sidebar-tabs", "a sidebar-adaptable TabView: two tabs, then a section of 60 looped folder tabs with badges") {
             AnyView(FolderTabsApp(count: $0.sized(60), seed: $0.seed))
         },

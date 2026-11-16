@@ -109,7 +109,7 @@ scale live · `a` toggle autopilot.
 | `table-churn-wrapped` | the same, 250 rows wrapped: below the extent estimator's row limit, where every row is measured |
 | `table-tail` | a window over a growing sequence — rows keep their content and change position |
 | `table-api` | **a matrix**: one `Table` built every way the API allows, one variant per point (see below) |
-| `app-shapes` | **a matrix**: whole applications — file browser, log viewer, process monitor, mail client, settings form, code editor (settled and tailing), chat, a sidebar source list (tagged, untagged, and filtered in the body: `sidebar-filtered`), a sidebar-adaptable tab view with a section of looped folder tabs (`sidebar-tabs`) |
+| `app-shapes` | **a matrix**: whole applications — file browser, log viewer, process monitor, mail client, settings form, code editor (settled and tailing), chat, a sidebar source list (tagged, untagged, and filtered in the body: `sidebar-filtered`), a `.columns` form and a two-axis editor filtered in the body (`columns-form-filtered`, `code-editor-filtered`), a sidebar-adaptable tab view with a section of looped folder tabs (`sidebar-tabs`) |
 | `tables-scroll` | **multiple** `Table`s in a `ScrollView` — N per-table column-width computations, ScrollView windowing over the combined buffer |
 | `tables-vstack` | **multiple** `Table`s in a `VStack` (no scroll) — N per-table column-width computations, VStack measure/layout over many table children |
 | `deep` | structural `ViewIdentity` chain depth, measure recursion, context propagation |
@@ -209,7 +209,14 @@ counts both). `sidebar-filtered` is the source list as a `List(data)` over two
 thousand projects filtered in the body, so the rows arrive in a new array every
 frame: the shape the split view's hug of its widest row is priced on, kept by
 the list and compared against rows it has not seen in that buffer before
-(`_ListCore.widestRowWidth`).
+(`_ListCore.widestRowWidth`). `columns-form-filtered` and `code-editor-filtered`
+are the same shape for the two widths kept in `@State` rather than the render
+cache: a `.columns` `Form` of two thousand settings in scroll content, whose
+label column and rows' width are read once from every row
+(`FormColumnsWindowing.swift`), and two thousand source lines in a lazy stack on
+both scroll axes, whose width over every row is kept (`StackContentWidth.swift`),
+each filtered in the body. (`code-editor` loops over a range, which compares in
+O(1), so it never priced that compare.)
 
 Three variants are there to price what TUI OBSERVES. `outline` is forty
 sections of rows in one lazy stack, each row reading an `@Observable` counter
