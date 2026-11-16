@@ -552,10 +552,10 @@ terminal resized every 37, add about two minutes, debug, to the gate's eighteen:
 over 10,000 titles runs per keystroke in both instances), `mail-idle` 29 s, `chat-eager-follow` 17 s, the other
 seven 1 to 9 s each. The nine pages at rest add seconds. All pass.
 
-Not this lane's, found while checking it: on `main` at 4accf58ea, `--check-counts` already fails `chat-lazy-follow`
-and `tabs-switch` on `misses` alone (1305 → 1322 and 279 → 283 as they open, 1 to 2% throughout, a clean build
-alike). Neither 7da6f3351 (the measure memo's keep) nor 10830966f (`Form`) re-recorded, and one of them is the likely
-cause; they are left for whoever lands those to explain and re-record.
+The misses this lane saw rise as `chat-lazy-follow` and `tabs-switch` open (1305 → 1322 and 279 → 283, 1 to 2%
+throughout) are its own harness's, not `main`'s: `--check-counts` on `main` at 4accf58ea matched exactly, twice, and
+this lane's commits change no TUI source. The likely cause is that every case's scene now carries
+`.focusFollowsPointer(_:)` for `list-hover`. They were re-recorded with the `.fit` record (cce0fed95).
 
 ## The `listed` count (2026-11-16)
 
