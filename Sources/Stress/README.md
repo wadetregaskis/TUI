@@ -441,26 +441,209 @@ past, 2026-11-14).
 
 ## Perf cases: one line each, counted in the gate
 
-A perf case is one line of a table in `Cases/Tables/`: a composition (what
-the page is built from), the container it sits in, a terminal size, a data
-count, a script of phases, a scaling class, whether the timed sweep includes
-it, and tags. The words those columns are written in are `Cases/CaseVocabulary.swift`;
-the design and its record are
+A perf case is one line of a table: a page, a terminal size, a data count, a
+script of what is done to the page, and how its work may grow with the count.
+`Stress --check-counts` plays every case and compares the work each phase of
+its script did with the counts recorded for it, and the gate and CI run it
+after `--selfcheck`. These are counts of work, not of time: the same build
+playing the same script does the same work on any machine, loaded or not, in
+debug as in release, so they are compared exactly and need no quiet machine.
+A case marked `timed` is also timed, on demand, by
+`Tools/Profiling/ab_bench.py --cases timed`. The design, the owner's rulings
+and what the first cases found are in
 [A declarative perf-case table](<../../Documentation/Historical/Performance/A declarative perf-case table.md>).
 
-`--check-counts` plays every case twice, and again at 10n (`flat`) or 2n
-(`linear`), and compares what each phase did — frames, rows listed, rows built
-and served, bodies run, cell values, measure-memo misses, bytes written — with
-`Cases/RecordedCounts.txt`. A count that rises fails; one that falls passes and
-is printed as `IMPROVED` with both numbers until it is re-recorded. Served rows
-and memo misses may move by 1%; everything else is exact. The gate and CI run
-it. When a change moves a count on purpose, re-record and say in the commit, per
-case, what moved and why:
+### The tables
+
+The cases are in `Cases/Tables/`, one file per family of situations, so two
+people adding cases to different families never edit the same lines:
+`Lists.swift`, `Tables.swift`, `Outlines.swift`, `Scrolling.swift`,
+`Composites.swift` (tabs and splits), `Editors.swift`, and `Adopted.swift`
+(existing scenarios, adopted as rows with no new code). Each file holds one
+multi-line string literal, a `CaseTableSource`, and `CaseTables.all`
+(`Cases/CaseTables.swift`) lists them in the order `--check-counts` plays
+them. A table is a header line and then one case a line, its columns
+separated by runs of spaces, so no column can hold a space. A line that starts
+with `#` is a comment. What a case is for goes in a `//` comment above the
+literal.
+
+```
+id           composition          in     size   n      script                           scales  timed  tags
+list-wheel   list.plain           alone  80x24  10000  open;wheel:+5*20                 flat    t      list,window
+list-hover   follows(list.plain)  alone  80x24  10000  open;hover:+1*20                 flat    -      list,hover,bytes
+list-search  list.search          alone  80x24  10000  open;key:tab;type:ab;key:bksp*2  flat    -      list,search,invalidate
+```
+
+| Column | Meaning | Written as |
+|---|---|---|
+| `id` | Kebab-case and unique across every table: `--case`, the recorded counts and the session `case:<id>` name a case by it | `list-wheel` |
+| `composition` | What the page is built from (below) | `table.fit5`, `tabs(list.plain,table.fit5)` |
+| `in` | The container around it (`CaseContainer`) | `alone`; `title` (in a `ScrollView` under a line of title); `bottom` (a bottom-anchored `ScrollView`); `sheet` (in a sheet over a line of text); `fixed` (under a title in a `VStack` at its ideal height); `stacked` (under a title in a `VStack` that fills the page); `-` for an adopted scenario, and only for one |
+| `size` | The terminal, in cells | `80x24` |
+| `n` | The data count: rows synthesised from a seed (`CaseRows`), or an adopted scenario's `--scale` | a positive integer |
+| `script` | Phases separated by `;`, each a step with an optional `*k` to take it k times in a row. `open` is the first phase, and is added when left out | `open;key:pgdn*10;type:hello;idle*5` |
+| `scales` | The complexity class the counts must keep (below) | `flat`, `linear` or `-` |
+| `timed` | Whether `ab_bench.py --cases timed` times it | `t` or `-` |
+| `tags` | What it exercises, comma-separated, for `--tags` | words from `CaseTags.known` |
+
+`CaseRows`' content repeats every 100 ids (`CaseRows.period`), so the last
+rows of a list of 10n are the same rows as the last rows of a list of n, and a
+bottom-anchored rerun draws the same rows at the same heights. Every mistake
+in the tables is reported at once, each with its file and line, by `--cases`
+and `--check-counts`, which then exit 1. (The `cases` scenario and the case
+sessions are then empty, so `--check-counts` is where a mistake shows.)
+
+### The vocabulary
+
+The words a case is written in are Swift enums in `Cases/CaseVocabulary.swift`,
+written once. A new composition or step is Swift code there (with its page in
+`CaseCompositionView.swift`, or its input in `CaseStep+Playing.swift`), and
+every row can then use it.
+
+- **Compositions** (`CaseLeaf`): `list.plain`, `list.search` (the list under
+  `.searchable`, filtered by the app's own O(n) code), `table.fit5` (five
+  `.fit` columns), `table.wrap5`, `chat.lazy`, `chat.eager`, `editor.wrap`,
+  and the outlines `outline.list`, `outline.table`, `outline.rows` (rows
+  written as `DisclosureTableRow` content) and `outline.section`. They combine
+  as `tabs(a,b,…)` (a `TabView`, the first tab selected) and `split(a,b)` (an
+  `HSplitView`). `follows(a)` puts the whole page in a scene with
+  `.focusFollowsPointer(true)`, and wraps only a whole page, never a part.
+  `stress:<scenario>[/<variant>]` adopts an existing scenario, or one variant
+  of a matrix scenario, built as `--bench` builds it.
+- **Steps** (`CaseStep`), named after `TestApp`'s methods. A phase's step is
+  taken, then the frames it causes are drawn, and only then is the next step
+  taken:
+
+  | Step | What it does |
+  |---|---|
+  | `open` | The first frame. Always the first phase, and only that |
+  | `idle` | A frame with nothing changed |
+  | `wheel:+k`, `wheel:-k` | Scrolls down or up by k over the screen's middle |
+  | `key:<name>` | Presses `pgdn`, `pgup`, `end`, `home`, `up`, `down`, `left`, `right`, `tab`, `enter`, `space`, `esc` or `bksp`; `oright` and `oleft` are Option-Right and Option-Left, which open and close a whole subtree |
+  | `type:<text>` | Types a character, draws its frames, then types the next. Printable ASCII, no spaces |
+  | `hover:+k`, `hover:-k` | Moves the pointer down or up by k rows |
+  | `resize:WxH` | Resizes the terminal |
+  | `tick:<ms>` | Advances the clock |
+  | `append:k`, `edit:mid`, `remove:i`, `move:a>b`, `replace` | Writes to the case's rows outside any render: k rows appended, the middle row changed, a row removed, a row moved, every row replaced |
+
+- **Scaling** (`CaseScaling`): `flat` (every count the same at 10n), `linear`
+  (every count at 2n is the count at n or twice it, ±10%: O(1) or O(n), never
+  worse), `-` (not checked).
+- **Tags** (`CaseTags.known`): a listed set, so a misspelt tag is a mistake in
+  the table rather than a case no `--tags` ever picks. A new word is added
+  there.
+
+### Checking the counts
 
 ```sh
-TUI_RECORD_PERF_COUNTS=1 swift run Stress --check-counts            # every case
-swift run Stress --check-counts --case list-wheel,list-hover        # some
+swift run Stress --check-counts                                # every case
+swift run Stress --check-counts --case list-wheel,list-hover   # some
+swift run Stress --check-counts --case list-search --show      # and print its last frame
 ```
+
+Each phase is counted on its own, as totals over its steps (`CaseCounts`),
+and recorded as one line of `Cases/RecordedCounts.txt`:
+
+| Count | What it is |
+|---|---|
+| `steps`, `frames` | The steps the phase took and the frames they drew. `frames` is a count like the others: a page that starts asking for frames it does not need fails on it |
+| `listed` | The row boxes a `List` made, drawn or not (`RowWork.listed`) |
+| `built`, `served` | Rows composed, and rows served from a memo instead (`RowWork.rendered`, `.served`) |
+| `bodies` | Composite bodies evaluated (`RowWork.bodies`) |
+| `cells` | Calls into a table column's value closures (`RowWork.cellValues`) |
+| `misses` | Measure-memo misses |
+| `bytes` | Bytes written to the terminal |
+
+A phase is labelled by its step, and a step that comes again in one script by
+its step and `#2`, `#3`, … (`key:right#2`).
+
+- **A rise fails; a fall passes and is reported.** A count above its recorded
+  value fails. One below it passes, and prints
+  `IMPROVED <case> <phase> <count> <old> → <new>` on every run until it is
+  re-recorded, so an improvement is kept as a number rather than lost (owner,
+  A-PERFCASE-1). `served` and `misses` may move by 1% either way; every other
+  count is exact. A change in `steps` means the script changed, and fails
+  until it is re-recorded.
+- **Every case is played twice**, and the two plays must agree in every
+  count. A count is deterministic, so a difference is flakiness, which exact
+  counts are there to catch.
+- **A recorded line that no case plays fails** a run of every case: re-record
+  to drop it.
+- **A failure prints** the case and phase, the recorded and the new line, and
+  the two commands a person needs next: `again:` (the `--case` run) and
+  `re-record:`. The last line is `check-counts: all N cases match … (M lines)`,
+  or `check-counts: FAILED — …`; the gate passes only on the first.
+- **The environment is pinned** for the whole process before anything reads
+  it, so a count does not depend on how the check was started: every `TUI_`
+  variable but `TUI_RECORD_PERF_COUNTS` is unset, and so are `NO_COLOR`,
+  `FORCE_COLOR`, `CLICOLOR_FORCE`, `COLUMNS` and `LINES` (`swift test` sets
+  `NO_COLOR` when its output is piped); the language and locale are English
+  (US); `TUI_CONFIG_DIR` names a folder that does not exist, so no stored
+  setting is read; and every frame is drawn at 24-bit colour.
+- `--counts-file F` reads and writes another file in place of
+  `Cases/RecordedCounts.txt`.
+
+### The scaling reruns: `@10n` and `@2n`
+
+A `flat` case is played again at 10n and a `linear` one at 2n, and its lines
+are recorded under `<id>@10n` or `<id>@2n`. The rerun is held to its class in
+`listed`, `built`, `served`, `bodies`, `cells` and `misses`; not in `bytes`,
+since a scroll bar's thumb sits elsewhere at 10n (`list-wheel` writes 33,981
+bytes at n and 33,558 at 10n for the same rows). The rerun's lines are also
+recorded and compared exactly, like any other, so a finding that gets worse at
+10n fails there even where the class is excused.
+
+### Known issues
+
+A case states what its work should be (its `scales` column). Where the code
+falls short, the finding is filed and the case keeps its class: it is not
+relabelled to match the code. `Cases/CaseKnownIssues.swift` names, per case,
+the counts its rerun is excused in: a bare count (`"listed"`) in every phase,
+or a phase's label and a count (`"open cells"`) in that phase alone. Each run
+prints them as `KNOWN <id> is not flat: <the finding>`, with the numbers, and
+fails for none of them; a count it does not name still fails. The commit that
+fixes a finding takes its entry out. The findings are described in the design
+("Findings").
+
+### Re-recording
+
+```sh
+TUI_RECORD_PERF_COUNTS=1 swift run Stress --check-counts                    # every case
+TUI_RECORD_PERF_COUNTS=1 swift run Stress --check-counts --case list-wheel  # only its lines
+```
+
+A run of every case rewrites the file, dropping the lines no case plays any
+more; `--case` replaces only the named cases' lines. A re-record still fails,
+after writing, on what no re-record can settle: two plays that disagree, or a
+scaling class broken in a count no known issue names. On Linux it writes an
+`@linux` line only for a phase whose counts differ from the shared (macOS)
+line, and a Linux failure prints that `@linux` line ready to paste, since
+nobody re-records on CI.
+
+The commit that re-records says, per case, what moved and why, with both
+numbers, as `.claude/CLAUDE.md` asks of any commit that profiling informed.
+`git log -p Sources/Stress/Cases/RecordedCounts.txt` is then the ledger of
+what each change did to each case. A rise deserves the question a reviewer
+would ask: what does the case now do that it did not do before?
+
+### Adding a case
+
+1. Write its line in its family's table (a new family is a new file under
+   `Cases/Tables/`, added to `CaseTables.all`), with a comment above saying
+   what it asks.
+2. Play it with `--check-counts --case <id> --show` and read the last frame:
+   check that the script did what it says. Two of the first ten cases did not
+   (a Tab that moved the focus where no Right switched a tab, and a hover in a
+   scene that does not follow the pointer), and both recorded 0 bytes.
+3. Record it with `TUI_RECORD_PERF_COUNTS=1 … --case <id>` in the commit that
+   adds it.
+4. Break what it guards (switch off the pull, bypass the memo), and watch the
+   check fail; then put the code back. A check nobody has seen fail is not
+   known to check anything.
+
+Whether to mark it `timed` is in `CONTRIBUTING.md` ("Performance tests").
+
+### The cases in the rest of the harness
 
 Every case is also where the harness's other tools look, so they need no case
 of their own:
@@ -472,11 +655,14 @@ swift run Stress --bench --scenario session/case:list-wheel
 swift run Stress --bench --scenario cases --variant list-wheel   # its page at rest
 ```
 
-`--tags` picks the cases with any of the tags named. A case's session plays at
-the case's size whatever `--cols`/`--rows` say, a step a frame, its script
-starting again after its `open` once it ends; `--scale` multiplies its `n`.
-`--selfcheck` plays every case's session and renders every page of the `cases`
-matrix scenario, memo-verified, as it does every other session and variant.
+`--cases` prints a line per case in the table's columns, its id first and no
+header, for tools to read; `--timed` keeps the cases marked `t`, and `--tags`
+the cases with any of the tags named. A tag no case can have, or a table with
+mistakes, exits 1. A case's session plays at the case's size whatever
+`--cols`/`--rows` say, a step a frame, its script starting again after its
+`open` once it ends; `--scale` multiplies its `n`. `--selfcheck` plays every
+case's session and renders every page of the `cases` matrix scenario,
+memo-verified, as it does every other session and variant.
 `Tools/Profiling/ab_bench.py --cases timed` (or `--tags table,memo`) times the
 cases' sessions, `sweep.py --cases` surveys them, and `frame_parity.py` and
 `ab_counters.py` take them as they take any session (`session/case:<id>`).

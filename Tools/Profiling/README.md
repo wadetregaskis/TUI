@@ -114,6 +114,14 @@ no `--scenarios` both take every session `Stress --sessions` lists, the cases'
 among them, and `frame_parity.py` every variant too, the `cases` scenario's
 pages among them; `session/case:<id>` names one case to either.
 
+A timed case costs what a scenario does, about 90 s of a quiet machine at the
+default 4.5 s × 10 reps for each of two binaries, which is why only the cases
+marked `t` are in `--cases timed` and why that set is kept to about an hour
+(`CONTRIBUTING.md`, "Performance tests"). A case's counts need no A/B at all:
+`Stress --check-counts` compares them with the recorded ones in the gate. In
+`sweep.py`'s table a case reports its rows per step, as a session does, and no
+cell values, so its `cells` column is 0.
+
 **The scenario list comes from the binary**, not from this script — a hard-coded
 list goes stale silently, and did: `menus` and `gradients` were added to
 `Stress` and never added here, so every "full sweep" for weeks quietly skipped

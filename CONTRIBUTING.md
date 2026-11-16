@@ -1162,6 +1162,43 @@ Benchmarks/
 - Benchmarks: `TUI_BENCHMARKS=1 swift package benchmark` (full suite) — see `Benchmarks/TUIBenchmarks`. The `TUI_BENCHMARKS` flag opts the `ordo-one/benchmark` dependency into the graph; without it the default build/test stays benchmark-free (no jemalloc requirement, no plugin deprecation warnings).
 - Profiling: see [Tools/Profiling/README.md](Tools/Profiling/README.md) (Instruments Time Profiler via a PTY, plus the no-PTY `RenderHarness` for `xctrace --launch`).
 
+### Performance tests
+
+A performance question about a situation (a control, in a container, at a
+size, with a count of rows, while something is done to it) is a **perf case**:
+one line in a table under `Sources/Stress/Cases/Tables/`, written in a
+vocabulary of compositions, containers and script steps. How to write one,
+check it and record it is in
+[`Sources/Stress/README.md`](Sources/Stress/README.md) ("Perf cases").
+
+- **Add a case** when a change makes a claim about work: that a list builds
+  only the rows it shows, that a memo serves, that an edit invalidates only
+  what it touched, that a keystroke writes a few rows' bytes. Every case is
+  counted by `Stress --check-counts` in the gate and in CI, and a count that
+  rises fails until the commit re-records it and says why
+  (`TUI_RECORD_PERF_COUNTS=1`). Write a scenario or a session instead when the
+  shape deserves a name and checks of its own; write a test with its own
+  assertion when it guards one particular fix.
+- **Mark a case `timed`** (`t`) only when a count cannot see its cost. Counts
+  are deterministic and free; a timed case costs about 90 s of a quiet machine
+  in every timed sweep (4.5 s × 10 reps × 2 binaries), so the timed set is
+  kept to what fits about an hour, some 40 cases. A case is timed when at
+  least one of these holds:
+
+  | Reason | Example |
+  |---|---|
+  | Its cost is in work no counter sees: per-glyph drawing, compositing, colour arithmetic, emission | gradients, translucency, text effects |
+  | It stands for a class of application, where constant factors are what a user feels | `mail-idle` (the `app-shapes` mail client) |
+  | It was the site of a regression that counts did not show | the stacks a copying accumulator made O(n²) in time while every call count stayed linear (2026-08) |
+  | It is half of a measured pair | `chat-eager-follow`, the eager half of the `chat` / `chat-eager` pair |
+
+  A case that asks only about a complexity class, whether a memo serves, or
+  what an edit invalidates, is not timed. When a counted-only case turns out
+  to be where time goes, mark it `timed` and say so in the commit.
+- **Timing is on demand**, never in the gate:
+  `Tools/Profiling/ab_bench.py OLD NEW --cases timed` (or `--tags`), described
+  in [Tools/Profiling/README.md](Tools/Profiling/README.md).
+
 ## Detailed Architecture Rules
 
 For comprehensive architecture documentation including the `_*Core` pattern, focus system, state management, and interactive view rules, see [`.claude/CLAUDE.md`](.claude/CLAUDE.md).
