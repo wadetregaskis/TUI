@@ -14,7 +14,8 @@
 /// builds its rows in its body (a sort, a filter) hands a new buffer every
 /// frame, and every ask of every memo keyed by them compared all of them:
 /// `Table`'s `.fit` widths, asked per `.fit` column by the measure and again by
-/// the render, were 7% of `Stress`'s 4,000-row `file-browser` frame.
+/// the render, were 7% of `Stress`'s 4,000-row `file-browser` frame; a hugging
+/// `List`'s widest row (`_ListCore.widestRowMemoKey`) is asked the same way.
 ///
 /// Here the rows are compared once against the last value seen, and the token
 /// stays the same while they are equal. The newest value is kept in place of

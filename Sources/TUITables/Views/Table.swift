@@ -6055,10 +6055,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// is answered the same way and with the same four guards, rather than with
     /// a second set of rules: a size entry under the table's own identity,
     /// compared against the rows' DATA (through their version, `fitMemoKey`,
-    /// which `List` does not have yet); the table marks itself active or the
-    /// entry dies at the end of the pass it was stored in; a value read from a
-    /// per-frame source declines the store; and so does an environment carrying
-    /// something that cannot be compared.
+    /// as `List`'s is through `widestRowMemoKey`); the table marks itself
+    /// active or the entry dies at the end of the pass it was stored in; a
+    /// value read from a per-frame source declines the store; and so does an
+    /// environment carrying something that cannot be compared.
     ///
     /// Invalidation comes from the cache's own rules, which is why there is
     /// none here: a `@State` write clears the identity that owns it together

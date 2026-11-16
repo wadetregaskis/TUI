@@ -33,6 +33,12 @@ Its rows are now windowed as a `ForEach`'s are, and the open nodes are kept from
 its open branches are the same: with 5,000 rows open, a frame makes 22 rows where it made 5,001, and the same at
 50,000. Keys, selection, type select and `scrollTo` reach every row as before.
 
+**A `List` that hugs its rows — a split view's sidebar, `.fixedSize(horizontal: true)` — compares rows the app builds
+in its body once a frame, as a `Table`'s `.fit` columns now do.** The kept width of its widest row was looked up by
+comparing the rows it was taken over with the rows the list was handed, element by element whenever they came in a new
+array, on each of the measure's and the render's asks. The list now keeps a version of its rows, the same while they
+are equal and a new one for any change at all, so a changed collection is still measured again.
+
 **A `Table` with `.fit` columns whose rows the app builds in its body compares them once a frame, not once for every
 time a column's width is asked.** The kept width of a `.fit` column was looked up by comparing the rows it was taken
 over with the rows the table was handed, element by element whenever they came in a new array, which a body that sorts
