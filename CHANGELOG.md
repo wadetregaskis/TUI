@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `TextEditor` lays its text out once in the frame it first appears, not once for every measure.** Before its
+first render had made the handler that keeps the layout, each measure of a new editor split its whole text into lines
+afresh, and the render once more: six times over for an editor beside a tree and under a heading, 658 ms of a 786 ms
+file open over 3.2 MB of JSON in tuitree. The first measure's layout is now kept for the frame's other measures and
+handed to the handler the render makes: an editor of the same 3.2 MB in a pane of that shape now opens in about 315
+ms of CPU, against 1,050 ms (release build).
+
 **A wrapping `TextEditor` holds a byte a character for each width it keeps its text wrapped at, where it held eight.**
 Each character's width in cells was an `Int`; it is now a byte, and the rare character 255 cells wide or wider (a tab to
 a far stop) is kept apart. Over 3.2 MB of text, wrapped at the widths a frame asks for, that is about 45 MB less.

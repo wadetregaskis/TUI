@@ -52,8 +52,14 @@ final class EditorLayout {
     /// served from the wrappings it kept rather than wrapping again.
     var wrapsMade = 0
 
+    /// Told of every text split into lines whole (``init(text:)``), while a
+    /// task binds it: the test seam that counts how often a frame lays a
+    /// document out, as `DroppedMember.reporter` is one for its reports.
+    @TaskLocal static var buildReporter: (@Sendable () -> Void)?
+
     /// Splits `text` into its lines.
     convenience init(text: String) {
+        Self.buildReporter?()
         let parts = text.split(omittingEmptySubsequences: false, whereSeparator: {
             $0 == "\n" || $0 == "\r\n" || $0 == "\r"
         }).map { Array($0) }

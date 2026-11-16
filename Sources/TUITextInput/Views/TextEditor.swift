@@ -332,6 +332,11 @@ extension TextEditor {
 private enum TextEditorStateIndex {
     static let handler = 0
     static let focusID = 1
+    /// A tracked value, not a box: the layout a measure makes before the
+    /// handler exists (`TextEditor+FirstLayout.swift`). In the reserved
+    /// table (`StateStorage.StateKey`), as tracked values of modifiers
+    /// sharing the identity count from 0.
+    static let firstLayout = -240
 }
 
 /// Renders the editor: a windowed view of the text with a block cursor,
@@ -359,6 +364,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
 
     /// The handler's slot, for the pull (`TextEditor+Pulled.swift`).
     static var handlerStateIndex: Int { StateIndex.handler }
+
+    /// The first frame's layout's slot (`TextEditor+FirstLayout.swift`).
+    static var firstLayoutStateIndex: Int { StateIndex.firstLayout }
 
     var body: Never {
         fatalError("_TextEditorCore renders via Renderable")
@@ -427,6 +435,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // Redacted, the editor hides its text as a SecureField does
         // (``TextEditorHandler/isSecure``).
         handler.hidingGlyph = Self.hidingGlyph(in: context)
+        // A handler made just now draws the layout this frame's measures made.
+        adoptFirstLayout(into: handler, context: context)
         menuTarget.handler = handler
         // The app's undo manager, which the editor's edits are registered with,
         // and where the editor leaves them when it goes away; and the steps of
@@ -706,7 +716,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
 
     /// The layout of the text THIS view's binding holds, kept by the editor's
     /// handler where it has one — a measure before the first render has not
-    /// made it yet.
+    /// made it yet, and keeps the layout for the frame's other measures and
+    /// the render instead (``firstLayout(of:hidingWith:context:)``).
     ///
     /// Never the handler's own binding: that is the one the LAST render handed
     /// it (`handler.text = text`), and a measure runs before this frame's
@@ -725,7 +736,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             handler.hidingGlyph = glyph
             return handler.displayLayout(of: current)
         }
-        return EditorLayout(text: glyph.map { TextEditorHandler.hiding(current, with: $0) } ?? current)
+        return firstLayout(of: current, hidingWith: glyph, context: context)
     }
 
     /// The glyph a redacted editor draws for each character, or `nil` where

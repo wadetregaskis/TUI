@@ -677,3 +677,41 @@ UTF-8 and its lines as offsets would take that to the line starts alone, and
 the lines' array copy with it. That is a redesign of every edit in
 `TextEditorHandler`, which index lines of `Character`s throughout, and is not
 done here.
+
+### EDITOR-FIRST. A new `TextEditor` lays its text out once in its first frame (2026-11-15)
+
+*`_TextEditorCore.firstLayout(of:hidingWith:context:)`, `adoptFirstLayout(into:context:)`, `FirstEditorLayout`*
+
+tuitree's M5 feedback, item 1: opening a 3.2 MB JSON file into its source
+pane took 786 ms, 658 ms of it `EditorLayout.init(text:)`. The handler keeps
+the layout (EDITOR-SPLICE above), but the handler is made by the editor's
+first RENDER, and a measure may not create state; so in the frame an editor
+first appears every measure laid the whole text out afresh, and the render
+once more: five layouts for an editor under a heading beside a tree (an
+`HStack` and a `VStack` measuring it), six for a redacted one.
+
+**Shipped:** a measure with no handler to ask keeps the layout it made as a
+tracked value at the editor's identity (reserved index -240), not a box, so it
+creates no state; the frame's other measures take it while the binding hands
+back the same text, and the render that makes the handler hands it over and
+drops it. A frame that measured the editor and did not draw it leaves it to
+the pass's prune, as any tracked value at an undrawn identity. Counted by
+`EditorLayoutFirstFrameTests` (`EditorLayout.buildReporter`, a task-local
+seam): one layout in the first frame, wrapping or not, none in the next; a
+redacted editor two (the hidden text it draws, and the text its caret is
+placed in), down from six.
+
+Measured with Stress's `bigtext-open` session (bigtext's document opened
+into a new editor every step, in that pane's shape): 1057 ms of CPU an
+opening before, of which `EditorLayout.init(text:)` was 45.5% inclusive and
+`WrappedRows.init` 46.1% (each measure's new layout wrapped afresh, though a
+layout keeps the rows it wraps); 324.5 ms after, where the one layout is
+31.9% and wrapping at each width the stacks measure at 62.5%. A paired A/B:
+`bigtext-open` -70.3% (95% CI -70.6% to -69.6%), rss-peak 292 to 261 MB;
+`bigtext` -0.6%, its own first frame cheaper; `editor` and `textwall`
+indistinguishable.
+
+**Left open:** the one layout still splits the text on `Character`
+comparisons and copies every line into a `[Character]`; building the lines
+from the line starts `lineBreaks(in:)` already finds, decoding each line's
+bytes once, would make it cheaper (the feedback's second suggestion).
