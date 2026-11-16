@@ -35,11 +35,6 @@ enum CaseKnownIssues {
             "PERFCASE-F5: a resize clears the whole cache, and a .fit column's kept walk with it; and the narrow "
                 + "resize misses 12 more measures at 10n than at n"
         ),
-        "outline-list": (
-            ["listed"],
-            "G1: a List(_:children:) makes a row box for every open row on every pass (n + 1 a frame), where a "
-                + "ForEach's rows are windowed"
-        ),
         "chat-lazy-follow": (
             ["bodies", "misses"],
             "PERFCASE-F3: at 10n the bottom-anchored lazy stack runs 21% more bodies and misses 29% more measures "

@@ -99,6 +99,12 @@ import TUIView
 /// a closed branch's descendants are neither built nor measured — the
 /// flattening walk simply stops there.
 ///
+/// In a `List` its rows are windowed, as a `ForEach`'s are: the list counts the
+/// open nodes and builds a row only for those it draws, about a screenful,
+/// however much of the tree is open. The open nodes are kept from pass to pass
+/// while the tree and its open branches are the same, so a scroll or a cursor
+/// move walks no tree at all.
+///
 /// That is why, like `ForEach`, this has no `body` of its own: it is not one
 /// view, it is a run of them.
 ///
@@ -131,6 +137,11 @@ nonisolated public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashabl
 
     /// Builds a node's label.
     package let content: (Data.Element) -> Leaf
+
+    /// Whether a `List` windows these rows (``windowedListRows(context:)``):
+    /// `false` extracts every row on every pass, as a `Section` holding an
+    /// outline does — the drawing the windowed one is tested against.
+    package var windowsListRows = true
 
     /// The bridge a hierarchical ``List`` drives the disclosure through.
     ///
@@ -202,75 +213,34 @@ final class OutlineActivation {
     var parentOf: ((AnyHashable) -> AnyHashable?)?
 }
 
-/// The frame's tree, in the shape a disclosure keystroke needs to read it:
-/// which rows are branches, and how to reach everything under one.
-///
-/// Built during the render pass, read from key dispatch: written once while a
-/// frame renders, only read afterwards, and replaced wholesale by the next frame.
-///
-/// Deliberately holds the *elements* and a walk rather than precomputed id
-/// lists. Precomputing would mean walking every closed branch's descendants on
-/// every frame — and a closed branch is exactly the one whose subtree might be
-/// enormous and is certainly not on screen. This way the walk happens once, on
-/// the keystroke that asks for it.
-final class OutlineSubtreeIndex<Element, ID: Hashable> {
-    /// The branch rows of this frame, by the id the LIST knows them by.
-    private let branches: [AnyHashable: Element]
-
-    /// An element's own identity.
-    private let idOf: KeyPath<Element, ID>
-
-    /// Every branch id under an element, itself included.
-    private let branchesUnder: (Element) -> [ID]
-
-    init(
-        branches: [AnyHashable: Element],
-        idOf: KeyPath<Element, ID>,
-        branchesUnder: @escaping (Element) -> [ID]
-    ) {
-        self.branches = branches
-        self.idOf = idOf
-        self.branchesUnder = branchesUnder
-    }
-
-    /// The ids one disclosure gesture writes.
-    ///
-    /// - Returns: The row's own branch id, and the ids to write — that one
-    ///   alone, or its whole subtree. `nil` when the row is not a branch of
-    ///   this frame's tree, which is how a leaf lets the key fall through.
-    func affected(_ rowID: AnyHashable, includingDescendants: Bool) -> (own: ID, all: [ID])? {
-        guard let element = branches[rowID] else { return nil }
-        let own = element[keyPath: idOf]
-        return (own, includingDescendants ? branchesUnder(element) : [own])
-    }
-}
-
 // MARK: - The rows
 
 @MainActor extension OutlineGroup where Leaf: View {
     /// The rows to draw, depth-first, stopping at every closed branch.
     ///
-    /// Recomputed per pass rather than cached: it is a function of the data and
-    /// the expansion set, both of which the caller already has, and an outline
-    /// is sized by what a person can actually see.
+    /// A walk of the open part of the tree, reading two key paths a node and
+    /// building no row: a stack's rows are made from it as they are drawn, and
+    /// a `List` keeps it from pass to pass while nothing in it can have
+    /// changed (``OutlineVisibleNodes``), building only the rows it draws.
     func visibleNodes(expanded: Set<ID>) -> [Node] {
         var nodes: [Node] = []
         // An explicit stack rather than recursion: a deep tree must not put the
         // render pass any nearer the stack limit than the view hierarchy
         // already does. Pushed in reverse, so the top of the stack is always
         // the next node in reading order.
-        var stack: [(element: Data.Element, depth: Int)] = roots.reversed().map { ($0, 0) }
-        while let (element, depth) = stack.popLast() {
+        var stack: [(element: Data.Element, depth: Int, parent: Int)] = roots.reversed().map { ($0, 0, -1) }
+        while let (element, depth, parent) = stack.popLast() {
             let id = element[keyPath: idKeyPath]
             let children = element[keyPath: childrenKeyPath]
             let isOpen = expanded.contains(id)
             nodes.append(
                 Node(
                     id: id, element: element, depth: depth, isBranch: children != nil,
-                    isExpanded: isOpen))
+                    isExpanded: isOpen, parent: parent))
             guard let children, isOpen else { continue }
+            let index = nodes.count - 1
             for child in children.reversed() {
-                stack.append((child, depth + 1))
+                stack.append((child, depth + 1, index))
             }
         }
         return nodes
@@ -345,22 +315,31 @@ final class OutlineSubtreeIndex<Element, ID: Hashable> {
         // every branch closes itself again on the next frame.
         storage.markActive(identity)
         return storage.storage(
-            for: StateStorage.StateKey(identity: identity, propertyIndex: 0), default: [])
+            for: StateStorage.StateKey(identity: identity, propertyIndex: OutlineStateIndex.expansion), default: [])
     }
 
-    /// A node as it appears on screen: the element, how deep it sits, whether
-    /// it has a triangle, and which way that triangle points.
-    struct Node {
-        let id: ID
-        let element: Data.Element
-        let depth: Int
-        let isBranch: Bool
+    /// A node as it appears on screen (``OutlineNode``).
+    typealias Node = OutlineNode<Data.Element, ID>
+}
 
-        /// Carried on the node rather than re-read per row, so the flattening
-        /// walk is the only thing that consults the expansion set — the row
-        /// and the walk cannot disagree about which triangle to draw.
-        let isExpanded: Bool
-    }
+/// A node of an outline as it appears on screen: the element, how deep it
+/// sits, whether it has a triangle, which way that triangle points, and the
+/// row it sits under.
+struct OutlineNode<Element, ID: Hashable> {
+    let id: ID
+    let element: Element
+    let depth: Int
+    let isBranch: Bool
+
+    /// Carried on the node rather than re-read per row, so the flattening
+    /// walk is the only thing that consults the expansion set — the row
+    /// and the walk cannot disagree about which triangle to draw.
+    let isExpanded: Bool
+
+    /// The index among the visible nodes of the node this one sits under, or
+    /// -1 for a root: what Left walks out to. Read off the walk, which pushed
+    /// every child with it, so finding it asks nothing of the tree.
+    let parent: Int
 }
 
 // MARK: - One row per visible node
@@ -393,99 +372,6 @@ final class OutlineSubtreeIndex<Element, ID: Hashable> {
 
     package func parentRowID(of id: AnyHashable) -> AnyHashable? {
         activation.parentOf?(id)
-    }
-}
-
-@MainActor extension OutlineGroup: ListRowExtractor where Leaf: View {
-    /// One list row per visible node, so a `List` selects, reveals and scrolls
-    /// to *nodes* rather than to the outline as a whole.
-    ///
-    /// Eager rather than windowed: the row count is a function of the expansion
-    /// set, so answering it at all means walking the visible nodes — which is
-    /// the same O(visible) the list was going to pay. Content is still built
-    /// lazily, per row, exactly as `ForEach` does it.
-    package func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
-        let expansion = expansion(context: context)
-        let nodes = visibleNodes(expanded: expansion.value)
-        // What the list will call a row is not always what the outline calls a
-        // node: a list with no selection binding is keyed by `Int`, so its rows
-        // are POSITIONS. The disclosure has to be reachable from whichever id
-        // the list hands back, so the two are paired here, where both are in
-        // hand — branches only, since a leaf must let the key fall through
-        // rather than swallow a Left or Right it has no use for.
-        //
-        // The ELEMENT rather than just its id, because a recursive open or
-        // close has to walk a subtree that is mostly not on screen: the
-        // descendants of a closed branch were never flattened into `nodes`, and
-        // the element is what still knows where they are.
-        var branchElement: [AnyHashable: Data.Element] = [:]
-        // Child → parent, in the list's own ids. Read off the flattening rather
-        // than the data: `nodes` is depth-first, so the parent of a row is the
-        // nearest one before it at a shallower depth, and that is true whatever
-        // the list decided to key its rows by.
-        var parentRowID: [AnyHashable: AnyHashable] = [:]
-        var ancestry: [(depth: Int, id: AnyHashable)] = []
-        var rows: [ListRow<RowID>] = []
-        rows.reserveCapacity(nodes.count)
-        for (index, node) in nodes.enumerated() {
-            guard let rowID: RowID = (node.id as? RowID) ?? (index as? RowID) else { continue }
-            if node.isBranch {
-                branchElement[AnyHashable(rowID)] = node.element
-            }
-            while let deepest = ancestry.last, deepest.depth >= node.depth { ancestry.removeLast() }
-            if let parent = ancestry.last { parentRowID[AnyHashable(rowID)] = parent.id }
-            ancestry.append((depth: node.depth, id: AnyHashable(rowID)))
-            context.renderCache?.rowWork.listed += 1  // see `RowWork.listed`
-            let view = row(for: node, expansion: expansion, rowOwnsFocus: true)
-            let rowContext = context.withChildIdentity(
-                erasedType: _OutlineRow<Data.Element, ID, Leaf>.self,
-                key: identityKey(node.id))
-            rows.append(
-                ListRow(
-                    id: rowID,
-                    content: LazyListRowContent(
-                        identity: rowContext.identity,
-                        carriesBadge: false,
-                        measure: {
-                            (
-                                measureChild(
-                                    view,
-                                    proposal: ProposedViewSize(
-                                        width: rowContext.availableWidth, height: nil),
-                                    context: rowContext),
-                                rowContext.availableWidth
-                            )
-                        },
-                        render: { placement, prominence in
-                            var rowContext = rowContext
-                            rowContext.gradientFrame = placement ?? rowContext.gradientFrame
-                            // As a `ForEach` row's render applies it — see there.
-                            if prominence != .standard {
-                                rowContext.environment.backgroundProminence = prominence
-                            }
-                            return (TUIView.renderToBuffer(view, context: rowContext), nil)
-                        })))
-        }
-        let index = OutlineSubtreeIndex(
-            branches: branchElement, idOf: idKeyPath, branchesUnder: subtreeBranchWalk())
-        activation.parentOf = { parentRowID[$0] }
-        activation.apply = { erased, target, includingDescendants in
-            guard let affected = index.affected(erased, includingDescendants: includingDescendants)
-            else { return false }
-            // A recursive gesture takes its DIRECTION from the node it was
-            // aimed at, then imposes that one state on the whole subtree —
-            // rather than toggling each branch to its own opposite, which
-            // would open half a tree and close the other half.
-            let wanted = target ?? !expansion.value.contains(affected.own)
-            let before = expansion.value.count
-            if wanted {
-                expansion.value.formUnion(affected.all)
-            } else {
-                expansion.value.subtract(affected.all)
-            }
-            return expansion.value.count != before
-        }
-        return rows
     }
 }
 
