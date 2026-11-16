@@ -495,10 +495,18 @@ messages cite that path), and what cites it.
   It seeks along x: the row's own span is aligned by the anchor's `x` (row 4, the widest, to 300 under
   `.trailing` and 150 under `.center` in a 200-point view; a centred narrower row to its own edge), and no anchor
   moves nothing where the row already shows. Top-level code, built alone.
-- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19.
+- **And asks** (`selrow.swift`, `selrow.out`, built with `-parse-as-library`): whether `scrollTo` on a row of a
+  focused `List` or `Table` with a selection moves the selection or the keyboard's row: rows 0 to 99, the table view
+  the first responder, row 0 selected (or nothing), `scrollTo(50)` with no anchor and with `.top`, then Down twice,
+  for a single and a multiple selection. It moves only the rows in view (row 50 the last in view with no anchor,
+  the first with `.top`, under a table's header): the selection binding and the table view's selected row stay on row 0, and Down selects row 1 and
+  scrolls back to it. With nothing selected, Down selects row 0, not a row in view. The same for `List` and
+  `Table`, `Int?` and `Set<Int>`.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19; `selrow.swift` on macOS 15.8.3, Xcode 26.3's `swiftc`
+  (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-16.
 - **Was:** `SCROLL/probe/`.
 - **Cited by:** `Documentation/Historical/Scrolling/README.md` (C-SCROLL-1);
-  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`.
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`; `Tests/TUITablesTests/ScrollToLeavesTheCursorTests.swift`.
 
 ### Nested scroll position
 

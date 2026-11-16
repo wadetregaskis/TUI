@@ -1,0 +1,61 @@
+macOS Version 15.8.3 (Build 24H241)
+List, Int?, selection row 0, scrollTo(50, no anchor): first responder SwiftUIOutlineListView
+  start: selection 0, selected row 0, rows 0...9 in view
+  scrollTo(50): selection 0, selected row 0, rows 41...50 in view
+  Down: selection 1, selected row 1, rows 1...10 in view
+  Down: selection 2, selected row 2, rows 1...10 in view
+List, Int?, selection row 0, scrollTo(50, .top): first responder SwiftUIOutlineListView
+  start: selection 0, selected row 0, rows 0...9 in view
+  scrollTo(50): selection 0, selected row 0, rows 50...59 in view
+  Down: selection 1, selected row 1, rows 1...10 in view
+  Down: selection 2, selected row 2, rows 1...10 in view
+List, Int?, selection empty, scrollTo(50, no anchor): first responder SwiftUIOutlineListView
+  start: selection nil, selected row -1, rows 0...9 in view
+  scrollTo(50): selection nil, selected row -1, rows 41...50 in view
+  Down: selection 0, selected row 0, rows 0...9 in view
+  Down: selection 1, selected row 1, rows 0...9 in view
+List, Set<Int>, selection row 0, scrollTo(50, no anchor): first responder SwiftUIOutlineListView
+  start: selection [0], selected row 0, rows 0...9 in view
+  scrollTo(50): selection [0], selected row 0, rows 41...50 in view
+  Down: selection [1], selected row 1, rows 1...10 in view
+  Down: selection [2], selected row 2, rows 1...10 in view
+List, Set<Int>, selection row 0, scrollTo(50, .top): first responder SwiftUIOutlineListView
+  start: selection [0], selected row 0, rows 0...9 in view
+  scrollTo(50): selection [0], selected row 0, rows 50...59 in view
+  Down: selection [1], selected row 1, rows 1...10 in view
+  Down: selection [2], selected row 2, rows 1...10 in view
+List, Set<Int>, selection empty, scrollTo(50, no anchor): first responder SwiftUIOutlineListView
+  start: selection [], selected row -1, rows 0...9 in view
+  scrollTo(50): selection [], selected row -1, rows 41...50 in view
+  Down: selection [0], selected row 0, rows 0...9 in view
+  Down: selection [1], selected row 1, rows 0...9 in view
+Table, Int?, selection row 0, scrollTo(50, no anchor): first responder SwiftUIOutlineTableView
+  start: selection 0, selected row 0, rows 0...11 in view
+  scrollTo(50): selection 0, selected row 0, rows 37...50 in view
+  Down: selection 1, selected row 1, rows 0...13 in view
+  Down: selection 2, selected row 2, rows 0...13 in view
+Table, Int?, selection row 0, scrollTo(50, .top): first responder SwiftUIOutlineTableView
+  start: selection 0, selected row 0, rows 0...11 in view
+  scrollTo(50): selection 0, selected row 0, rows 48...62 in view
+  Down: selection 1, selected row 1, rows 0...13 in view
+  Down: selection 2, selected row 2, rows 0...13 in view
+Table, Int?, selection empty, scrollTo(50, no anchor): first responder SwiftUIOutlineTableView
+  start: selection nil, selected row -1, rows 0...11 in view
+  scrollTo(50): selection nil, selected row -1, rows 37...50 in view
+  Down: selection 0, selected row 0, rows 0...11 in view
+  Down: selection 1, selected row 1, rows 0...11 in view
+Table, Set<Int>, selection row 0, scrollTo(50, no anchor): first responder SwiftUIOutlineTableView
+  start: selection [0], selected row 0, rows 0...11 in view
+  scrollTo(50): selection [0], selected row 0, rows 37...50 in view
+  Down: selection [1], selected row 1, rows 0...13 in view
+  Down: selection [2], selected row 2, rows 0...13 in view
+Table, Set<Int>, selection row 0, scrollTo(50, .top): first responder SwiftUIOutlineTableView
+  start: selection [0], selected row 0, rows 0...11 in view
+  scrollTo(50): selection [0], selected row 0, rows 48...62 in view
+  Down: selection [1], selected row 1, rows 0...13 in view
+  Down: selection [2], selected row 2, rows 0...13 in view
+Table, Set<Int>, selection empty, scrollTo(50, no anchor): first responder SwiftUIOutlineTableView
+  start: selection [], selected row -1, rows 0...11 in view
+  scrollTo(50): selection [], selected row -1, rows 37...50 in view
+  Down: selection [0], selected row 0, rows 0...11 in view
+  Down: selection [1], selected row 1, rows 0...11 in view
