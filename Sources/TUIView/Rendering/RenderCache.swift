@@ -233,6 +233,7 @@ import TUIStyling
         var staleMeasures: [MeasureKey] = []
         for key in measureEntries.keys where key.identityHash == folded { staleMeasures.append(key) }
         for key in staleMeasures { measureEntries.removeValue(forKey: key) }
+        forgetPassCompositions(atIdentityHash: folded)
     }
 
     /// Forgets every size this pass has memoized.
@@ -251,6 +252,7 @@ import TUIStyling
     package func forgetPassMeasures() {
         measureEntries.removeAll(keepingCapacity: true)
         measuredValues.release()
+        forgetPassCompositions()
     }
 
     /// One measurement under one vertical budget: what ``MeasureKey`` leaves out.
@@ -310,6 +312,15 @@ import TUIStyling
     /// store, and a keep or a release calls nothing that reaches this cache,
     /// so no two accesses can overlap and the run-time check is pure cost.
     @exclusivity(unchecked) private var measuredValues = PassValueKeep()
+
+    /// What layouts composed this pass, by place: see
+    /// ``composedOncePerPass(for:context:_:)``. Emptied with the measure
+    /// memo's entries, since what is kept here is measured too.
+    var passCompositions: [PassCompositionKey: PassComposition] = [:]
+
+    /// How many compositions ``composedOncePerPass(for:context:_:)`` has kept
+    /// and served, over every pass: what a test reads.
+    package internal(set) var compositionCounts = (kept: 0, served: 0)
 
     /// Memoized `measureChild` results — see ``lookupMeasure`` / ``storeMeasure``.
     ///
@@ -1327,6 +1338,7 @@ extension RenderCache {
         // The measure memo is this frame's scratch space and nothing more.
         measureScratch.endOfPass(&measureEntries)
         measuredValues.release()
+        forgetPassCompositions()
         bodyKeep.beginPass()
         passLeases.removeAll(keepingCapacity: true)
         revalidation.beginPass()
@@ -1347,6 +1359,7 @@ extension RenderCache {
         drainPendingInvalidations()
         measureEntries.removeAll(keepingCapacity: true)
         measuredValues.release()
+        forgetPassCompositions()
         childViewEntries.removeAll(keepingCapacity: true)
         bodyKeep.reset()
     }

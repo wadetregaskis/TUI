@@ -302,6 +302,7 @@ extension RenderCache {
     /// cache, and the snapshot's context would never be freed.
     package func endOneOffWalk() {
         bodyKeep.reset()
+        forgetPassCompositions()
         revalidation.endPass()
     }
 }

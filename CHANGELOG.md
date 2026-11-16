@@ -245,6 +245,13 @@ in turn, each holding its width in an object made afresh, all came out 12 cells 
 it holds a size for until the frame ends, as the record of a stack's children does. `RenderCache.storeMeasure` takes
 the measured value as `measuring:`.
 
+**A `Form` reads its rows and measures them once for a frame's measure and draw, where it read them for each.** A form
+reads its content into rows and measures every one to find its label column and its width before it lays out a
+column, and in a scroll view it was asked for that column three times a frame. Laid out again at the same place and
+width, under an environment it cannot tell apart, it now takes the rows, the widths and the column it made the first
+time: a grouped form of 1,000 rows in a scroll view reads them twice a frame rather than three times, and its frame
+costs what it did before sizes were kept with the views they were measured for.
+
 **`TestApp.advance(by:)` plays an animation the test started itself.** A test that changed a model in its own code
 under `withAnimation`, rather than through a key or a click, and then advanced the clock, saw the animation begin
 where the advance ended: a row that should have arrived was still blank, its transition at its first frame, and a

@@ -515,16 +515,22 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         // screen (`FormColumnsWindowing.swift`).
         if !grouped, let windowed = windowedColumns(context: context) { return windowed }
 
-        let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
-        let widths = columnWidths(of: elements, context: context)
-        let pillar = widths.pillar
-        var contentWidth = widths.contentWidth
+        // Read and measured once a pass at this place and width, and the same
+        // column handed to every measure and the draw: each asks for it.
+        let composition =
+            context.renderCache?.composedOncePerPass(for: self, context: context) { readComposition(context: context) }
+            ?? readComposition(context: context)
         // A grouped form fills the width it is laid out at, being a scroll
         // view, and its sections span it, as SwiftUI's do: each box is its
         // rows' width, a cell of padding and a border each side. Asked for its
         // ideal width it hugs its widest row, so a parent that sizes to fit
         // lays it out at that.
-        if grouped, fillsWidth { contentWidth = max(contentWidth, context.availableWidth - 4) }
+        let fills = grouped && fillsWidth
+        if let column = composition.columns[fills] { return column }
+        let elements = composition.elements
+        let pillar = composition.pillar
+        var contentWidth = composition.contentWidth
+        if fills { contentWidth = max(contentWidth, context.availableWidth - 4) }
 
         let column = VStack(alignment: .leading, spacing: grouped ? 1 : 0) {
             ForEach(_indexed(elements)) { entry in
@@ -541,8 +547,23 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         // `LabeledContent` drawn in one (`_GroupedLabeledRow`). Its scroll
         // view, and the `contentMargins` that scroll view takes, are
         // `_FormScroller`'s, around this layout.
-        if grouped { return AnyView(column.environment(\.labeledContentPlacement, .groupedFormRow)) }
-        return AnyView(column)
+        let composed: AnyView
+        if grouped {
+            composed = AnyView(column.environment(\.labeledContentPlacement, .groupedFormRow))
+        } else {
+            composed = AnyView(column)
+        }
+        composition.columns[fills] = composed
+        return composed
+    }
+
+    /// This form's rows read from its content where `context` is, and the
+    /// label column and content width measured from them
+    /// (``columnWidths(of:context:)``).
+    private func readComposition(context: RenderContext) -> _FormComposition {
+        let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
+        let widths = columnWidths(of: elements, context: context)
+        return _FormComposition(elements: elements, pillar: widths.pillar, contentWidth: widths.contentWidth)
     }
 
     /// The label column (``pillarWidth(of:context:)``) and the widest
