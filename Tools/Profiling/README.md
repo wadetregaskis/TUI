@@ -98,7 +98,21 @@ Tools/Profiling/ab_bench.py /tmp/old /tmp/new                    # every scenari
 Tools/Profiling/ab_bench.py /tmp/old /tmp/new --quick            # six of them, ~4 min
 Tools/Profiling/ab_bench.py /tmp/old /tmp/new --scenarios fanout --reps 40
 Tools/Profiling/ab_bench.py /tmp/old /tmp/new --cold             # all-miss frames
+Tools/Profiling/ab_bench.py /tmp/old /tmp/new --cases timed      # the perf cases marked timed
+Tools/Profiling/ab_bench.py /tmp/old /tmp/new --tags table,memo  # the perf cases with either tag
 ```
+
+**Perf cases** (`Stress --cases`, `Sources/Stress/README.md`'s "Perf cases") are
+timed as the sessions that play their scripts, `session/case:<id>`, each at its
+case's own size whatever `--cols`/`--rows` say. `--cases` alone is every case,
+`--cases timed` those the table marks `t`, and `--cases a b` the ones named;
+`--tags` keeps those with any of its tags, with or without `--cases`. Both add
+to `--scenarios` when it is given too, and a case the base binary lacks is
+skipped as a scenario is. `sweep.py --cases`/`--tags` surveys the same
+sessions. `frame_parity.py` and `ab_counters.py` read the cases unchanged: with
+no `--scenarios` both take every session `Stress --sessions` lists, the cases'
+among them, and `frame_parity.py` every variant too, the `cases` scenario's
+pages among them; `session/case:<id>` names one case to either.
 
 **The scenario list comes from the binary**, not from this script — a hard-coded
 list goes stale silently, and did: `menus` and `gradients` were added to

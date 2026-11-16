@@ -367,7 +367,7 @@ suspected.
 
 Proposed 2026-11-14; the owner answered A-PERFCASE-1 to 3 the same day. B-PERFCASE-1 to 7 are decided here and
 stand unless the owner's answers change them. Lanes 1 and 2 were built on 2026-11-15 ("Lanes 1 and 2, as built",
-below); lanes 3 to 5 are still to come.
+below), lane 3 on 2026-11-16 ("Lane 3, as built"); lanes 4 and 5 are still to come.
 
 ## Lanes 1 and 2, as built (2026-11-15)
 
@@ -487,7 +487,7 @@ the cases says `check-counts: absent` instead. CI runs it after the selfcheck st
 
 **Left for lanes 3 to 5.** The generic `CaseSession` and the `cases` matrix scenario, so cases are in `--sessions`,
 `--variants` and `--selfcheck` (memo-verified); a `--cases [--timed] [--tags]` listing; `ab_bench.py` and
-`sweep.py` taking `--cases`/`--tags` (L3). About a hundred more cases, each surprising count filed as a finding
+`sweep.py` taking `--cases`/`--tags` (L3, built 2026-11-16: "Lane 3, as built", below). About a hundred more cases, each surprising count filed as a finding
 (L4). The `Stress` README's section and the Profiling README's, `CONTRIBUTING.md`, and the timing-trend CSV the owner
 said yes to (L5). The three findings above that stand (F1 to F3) are for whoever takes them.
 
@@ -501,6 +501,46 @@ per-process seed, which differs on every run on both platforms alike, has moved 
 static-linux build (swift.org 6.3.3, musl) of `Stress` with the cases builds with no error or warning of the code's (2026-11-15). If a Linux lane does find a phase
 that differs, its failure prints the `@linux` line to add, and that platform then reads it in place of the shared
 one.
+
+## Lane 3, as built (2026-11-16)
+
+Every case is now where the harness's other tools look (B-PERFCASE-3), with no tool learning a new kind of thing:
+
+- **`CaseSession`** (`Cases/CaseSession.swift`): a case's script as a `Stress` session, `case:<id>`, after every
+  other session in `--sessions`. It plays in the app `--check-counts` plays in (`PerfCase.app(page:)`, through a new
+  `StressSession.makeApp(width:height:)`, `nil` for every other session), at 24-bit colour, and at the case's size
+  whatever `--cols`/`--rows` say (`SessionDescriptor.size`, applied by `SessionRunner.Options.sized(for:)` wherever a
+  session is run and reported). `--scale` multiplies its `n`.
+- **The `cases` matrix scenario** (`Cases/CaseMatrix.swift`): every case's page at rest, a variant each, grouped in
+  `--variants` by the table it is written in. An adopted case has no variant, its page being a scenario's already.
+  One translated title, no string per case (B-PERFCASE-5). `ab_bench.py` leaves it out of its default sweep, as it
+  leaves `animating` and `translucent`: a case is timed through `--cases`.
+- **`Stress --cases [--timed] [--tags a,b]`**: a line per case in the table's columns, its id first and no header,
+  machine-read as `--variants` is. `--tags` keeps the cases with any of the tags; a tag `CaseTags` does not know, or a
+  table with mistakes, exits 1.
+- **`ab_bench.py` and `sweep.py`** take `--cases` (every case, `timed`, or ids) and `--tags`, and time or survey each
+  case as `session/case:<id>`. `ab_bench.py` skips a case the base binary lacks, as it skips a scenario.
+- **`frame_parity.py` and `ab_counters.py` read cases unchanged**: both take every session `--sessions` lists, and
+  `frame_parity.py` every variant, so with no `--scenarios` they play the case sessions and (`frame_parity.py`) the
+  `cases` pages too; `session/case:<id>` names one.
+
+Where the build differs from the design, and why:
+
+| Design | As built | Why |
+|---|---|---|
+| A case with a script plays as a session; one without, as a variant | Every case is both: a session plays its script, a variant draws its page at rest | Every case has a script (`open` at least), and a page at rest is what `sweep.py` and `frame_parity.py` survey across variants |
+| The session plays the script | The script loops after its `open`; a step is one frame; `type:ab` is a step per character; `tick:<ms>` is an idle step | A session plays as many steps as asked (a bench's iterations); the runner draws one frame a step and owns the clock |
+| `--sessions`'s ids as they are | `--selfcheck` pads a session's id without cutting it | `session/case:chat-eager-follow` is longer than the 26 columns the ids were cut to |
+
+What the selfcheck costs: the ten case sessions, each played 150 steps against its cache-cleared twin with the
+terminal resized every 37, add about two minutes, debug, to the gate's eighteen: `list-search` 46 s (its O(n) filter
+over 10,000 titles runs per keystroke in both instances), `mail-idle` 29 s, `chat-eager-follow` 17 s, the other
+seven 1 to 9 s each. The nine pages at rest add seconds. All pass.
+
+Not this lane's, found while checking it: on `main` at 4accf58ea, `--check-counts` already fails `chat-lazy-follow`
+and `tabs-switch` on `misses` alone (1305 → 1322 and 279 → 283 as they open, 1 to 2% throughout, a clean build
+alike). Neither 7da6f3351 (the measure memo's keep) nor 10830966f (`Form`) re-recorded, and one of them is the likely
+cause; they are left for whoever lands those to explain and re-record.
 
 ## For a future reader
 

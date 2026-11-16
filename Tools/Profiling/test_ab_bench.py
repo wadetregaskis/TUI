@@ -53,5 +53,47 @@ class CalibrationTests(unittest.TestCase):
         self.assertEqual(asked, [30, 30])
 
 
+class CaseSelectionTests(unittest.TestCase):
+    """`--cases` and `--tags`, against a stub of `Stress --cases`."""
+
+    CASES = {"list-wheel": ({"list", "window"}, True), "list-hover": ({"list", "hover"}, False),
+             "table-fit-tail": ({"table", "memo"}, True)}
+
+    def lister(self, binary, timed=False, tags=None):
+        self.asked.append((timed, tags))
+        return [case for case, (case_tags, case_timed) in self.CASES.items()
+                if (not timed or case_timed) and (not tags or case_tags & set(tags))]
+
+    def setUp(self):
+        self.asked = []
+
+    def choose(self, wanted, tags=()):
+        return ab_bench.case_scenarios("bin", wanted, list(tags), lister=self.lister)
+
+    def test_every_case_is_its_session(self):
+        self.assertEqual(self.choose([]), ["session/case:list-wheel", "session/case:list-hover",
+                                           "session/case:table-fit-tail"])
+
+    def test_timed_asks_the_binary_for_the_timed_sweep(self):
+        self.assertEqual(self.choose(["timed"]), ["session/case:list-wheel", "session/case:table-fit-tail"])
+        self.assertEqual(self.asked, [(True, [])])
+
+    def test_tags_pick_cases_with_any_of_them(self):
+        self.assertEqual(self.choose([], tags=["hover", "memo"]),
+                         ["session/case:list-hover", "session/case:table-fit-tail"])
+
+    def test_named_cases_keep_their_order(self):
+        self.assertEqual(self.choose(["table-fit-tail", "list-wheel"]),
+                         ["session/case:table-fit-tail", "session/case:list-wheel"])
+
+    def test_a_misspelt_case_stops_the_run(self):
+        with self.assertRaises(SystemExit):
+            self.choose(["list-wheal"])
+
+    def test_a_binary_with_no_cases_stops_the_run(self):
+        with self.assertRaises(SystemExit):
+            ab_bench.case_scenarios("bin", [], [], lister=lambda *_, **__: None)
+
+
 if __name__ == "__main__":
     unittest.main()

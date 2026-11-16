@@ -4,6 +4,10 @@ Paired A/B benchmark of two prebuilt `Stress` binaries, with an honest
 confidence interval and a verdict.
 
     Tools/Profiling/ab_bench.py OLD NEW [--scenarios a b c] [--scale N] [--cold]
+                                [--cases [timed | ID ...]] [--tags a,b]
+
+`--cases` and `--tags` pick perf cases (`Stress --cases`), each timed as the
+session that plays its script, `session/case:<id>`, at the case's own size.
 
 Why this exists
 ---------------
@@ -52,7 +56,14 @@ import sys
 # driven by the harness's frame counter, so a fixed-iteration run measures a
 # different mix of in-flight work each time — ask for them by name, where the
 # question is about animation or compositing rather than about layout.
-EXCLUDED_FROM_SWEEP = {"animating", "translucent"}
+#
+# `cases` too: its default variant is one perf case's page at rest, and the
+# cases are timed through `--cases`/`--tags`, as the sessions `session/case:<id>`
+# that play their scripts.
+EXCLUDED_FROM_SWEEP = {"animating", "translucent", "cases"}
+
+# A perf case's session id, as `Stress --sessions` lists it: `case:<id>`.
+CASE_SESSION_PREFIX = "session/case:"
 
 # The fallback list, for a binary too old to be asked. The live list comes from
 # the binary itself (`scenario_ids`) — a hard-coded one goes stale silently, and
@@ -108,6 +119,47 @@ def scenario_ids(binary):
     return [name for name in ids if name not in EXCLUDED_FROM_SWEEP]
 
 
+def listed_cases(binary, timed=False, tags=None):
+    """The perf cases `binary --cases` lists (with `--timed`, the timed
+    sweep's; with `tags`, those with any of them), or `None` for a binary
+    that has none, or a listing that failed (a misspelt tag says why)."""
+    command = [binary, "--cases"] + (["--timed"] if timed else []) \
+        + (["--tags", ",".join(tags)] if tags else [])
+    try:
+        # No stdin: a binary from before `--cases` takes it for the
+        # interactive shell, which must not wait on this terminal.
+        result = subprocess.run(command, capture_output=True, text=True, timeout=30,
+                                stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        sys.stderr.write(result.stdout + result.stderr)
+        return None
+    return [line.split()[0] for line in result.stdout.splitlines() if line.strip()]
+
+
+def case_scenarios(binary, wanted, tags, lister=None):
+    """The `session/case:<id>` ids `--cases WANTED --tags TAGS` choose.
+
+    `wanted` is `--cases`'s values: none for every case, `timed` for the
+    timed sweep's, or case ids. `tags` narrows to the cases with any of them.
+    Named ids are checked against the listing, so a misspelt one stops the run
+    rather than timing nothing under its name. `lister` stands in for
+    `listed_cases` in a test.
+    """
+    lister = lister or listed_cases
+    timed = list(wanted) == ["timed"]
+    listed = lister(binary, timed=timed, tags=tags)
+    if listed is None:
+        sys.exit(f"{binary} lists no perf cases (Stress --cases)")
+    named = [] if timed else list(wanted)
+    unknown = [case for case in named if case not in listed]
+    if unknown:
+        sys.exit(f"no perf case {' '.join(unknown)} (with those tags)" if tags
+                 else f"no perf case {' '.join(unknown)}")
+    return [CASE_SESSION_PREFIX + case for case in (named or listed)]
+
+
 def runnable_by_both(scenarios, old, new):
     """`scenarios` less those either binary does not have, and those left out.
 
@@ -115,13 +167,20 @@ def runnable_by_both(scenarios, old, new):
     to end the whole run there (B71's A/B, 2026-10-27: `glide` against a base
     from 10-03 lost the scenarios after it). A `scenario/variant` or a
     `session/<id>` is checked by the scenario it names; a binary that lists
-    none is trusted.
+    none is trusted. A perf case, `session/case:<id>`, is checked by the
+    cases each binary lists: a base from before a case was written lacks it.
     """
     kept, missing = [], []
     listings = [listed_scenarios(binary) for binary in (old, new)]
+    cases = None
     for scenario in scenarios:
         base = scenario.partition("/")[0]
-        if base == "session" or all(ids is None or base in ids for ids in listings):
+        if scenario.startswith(CASE_SESSION_PREFIX):
+            if cases is None:
+                cases = [listed_cases(binary) or [] for binary in (old, new)]
+            case = scenario[len(CASE_SESSION_PREFIX):]
+            (kept if all(case in ids for ids in cases) else missing).append(scenario)
+        elif base == "session" or all(ids is None or base in ids for ids in listings):
             kept.append(scenario)
         else:
             missing.append(scenario)
@@ -242,6 +301,15 @@ def main():
                              "less the frame-counter-driven pair); "
                              "`scenario/variant` runs one variant "
                              "(`Stress --variants` lists them)")
+    parser.add_argument("--cases", nargs="*", default=None, metavar="ID|timed",
+                        help="perf cases, played as their sessions "
+                             "(`session/case:<id>`): every one with no value, "
+                             "the timed sweep's with `timed`, or the ids named "
+                             "(`Stress --cases` lists them); added to "
+                             "--scenarios when both are given")
+    parser.add_argument("--tags", default=None,
+                        help="with or without --cases: only the perf cases with "
+                             "any of these comma-separated tags")
     parser.add_argument("--quick", action="store_true",
                         help="six representative scenarios at 12 reps — about "
                              "four minutes instead of an hour. For iterating; "
@@ -273,6 +341,10 @@ def main():
                              "of a page, and the honest check on any change that "
                              "makes a cache MISS cost more than it used to.")
     args = parser.parse_args()
+    if args.cases is not None or args.tags:
+        tags = [tag for tag in (args.tags or "").split(",") if tag]
+        cases = case_scenarios(args.old, args.cases or [], tags)
+        args.scenarios = (args.scenarios or []) + cases
     if args.scenarios is None:
         args.scenarios = QUICK_SCENARIOS if args.quick else scenario_ids(args.old)
     args.scenarios, missing = runnable_by_both(args.scenarios, args.old, args.new)

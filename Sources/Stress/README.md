@@ -466,6 +466,9 @@ the case's size whatever `--cols`/`--rows` say, a step a frame, its script
 starting again after its `open` once it ends; `--scale` multiplies its `n`.
 `--selfcheck` plays every case's session and renders every page of the `cases`
 matrix scenario, memo-verified, as it does every other session and variant.
+`Tools/Profiling/ab_bench.py --cases timed` (or `--tags table,memo`) times the
+cases' sessions, `sweep.py --cases` surveys them, and `frame_parity.py` and
+`ab_counters.py` take them as they take any session (`session/case:<id>`).
 
 ## Profiling
 

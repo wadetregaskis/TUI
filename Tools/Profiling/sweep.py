@@ -4,6 +4,12 @@ Survey one `Stress` binary across many scenarios (and variants), one row each.
 
     Tools/Profiling/sweep.py [BIN] [--scenarios a b] [--variants-of table-api]
                              [--all] [--reps 3] [--scale N] [--cold] [--csv F]
+                             [--cases [timed | ID ...]] [--tags a,b]
+
+`--cases` and `--tags` add perf cases (`Stress --cases`), each surveyed as the
+session that plays its script, `session/case:<id>`, at the case's own size, as
+`ab_bench.py --cases` times them. A session reports rows per step and no cell
+values, so its `cells` column is 0.
 
 Why this exists
 ---------------
@@ -41,8 +47,13 @@ import statistics
 import subprocess
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from ab_bench import case_scenarios  # noqa: E402
+
 CPU_RE = re.compile(r"cpu-per-frame=([\d.]+)(µs|ms|ns)")
 ROWS_RE = re.compile(r"rows/frame: ([\d.]+) composed, ([\d.]+) served")
+# A session's (`session/<id>`, a perf case's among them): rows per step.
+SESSION_ROWS_RE = re.compile(r"memoized rows: \d+ composed, \d+ served \(([\d.]+)/step, ([\d.]+)/step\)")
 CELLS_RE = re.compile(r"cell values/frame: ([\d.]+)")
 MEMO_RE = re.compile(r"measure memo: (\d+) hits / (\d+) lookups")
 RSS_RE = re.compile(r"rss-peak=([\d.]+)MB")
@@ -83,7 +94,7 @@ def run(binary, scenario, variant, iterations, scale, cold):
     cpu = CPU_RE.search(out)
     if not cpu:
         return None
-    rows = ROWS_RE.search(out)
+    rows = ROWS_RE.search(out) or SESSION_ROWS_RE.search(out)
     cells = CELLS_RE.search(out)
     memo = MEMO_RE.search(out)
     rss = RSS_RE.search(out)
@@ -116,6 +127,12 @@ def main():
     ap.add_argument("--scale", type=int, default=1)
     ap.add_argument("--cold", action="store_true")
     ap.add_argument("--csv", default=None)
+    ap.add_argument("--cases", nargs="*", default=None, metavar="ID|timed",
+                    help="perf cases, as their sessions: every one with no value, the "
+                         "timed sweep's with `timed`, or the ids named")
+    ap.add_argument("--tags", default=None,
+                    help="with or without --cases: only the perf cases with any of these "
+                         "comma-separated tags")
     args = ap.parse_args()
 
     binary = args.binary or os.path.join(
@@ -130,8 +147,11 @@ def main():
         cases = [(s, None) for s in scenarios_of(binary)]
     if args.variants_of:
         cases += [(args.variants_of, v) for v in variants_of(binary, args.variants_of)]
+    if args.cases is not None or args.tags:
+        tags = [tag for tag in (args.tags or "").split(",") if tag]
+        cases += [(session, None) for session in case_scenarios(binary, args.cases or [], tags)]
     if not cases:
-        sys.exit("nothing to sweep: pass --scenarios, --variants-of or --all")
+        sys.exit("nothing to sweep: pass --scenarios, --variants-of, --all, --cases or --tags")
 
     print(f"{'case':34} {'cpu/frame':>10} {'±':>6} {'composed':>9} {'served':>8} "
           f"{'cells':>8} {'memo%':>6} {'rssMB':>6}")
