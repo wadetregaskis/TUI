@@ -306,8 +306,10 @@ import TUIStyling
     /// than in them, which stay trivially copyable (see
     /// ``MeasureEntry/leaseIndex``), and only for a type that holds a
     /// reference: a value of one that holds none has no address in its key
-    /// that can be freed.
-    private var measuredValues = PassValueKeep()
+    /// that can be freed. `@exclusivity(unchecked)`: kept into on every
+    /// store, and a keep or a release calls nothing that reaches this cache,
+    /// so no two accesses can overlap and the run-time check is pure cost.
+    @exclusivity(unchecked) private var measuredValues = PassValueKeep()
 
     /// Memoized `measureChild` results — see ``lookupMeasure`` / ``storeMeasure``.
     ///
