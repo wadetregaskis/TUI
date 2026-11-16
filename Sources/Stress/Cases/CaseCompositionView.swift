@@ -107,11 +107,11 @@ private struct CaseLeafView: View {
                 })
         case .editorWrap:
             AnyView(TextEditor(text: Binding(get: { rows.document }, set: { rows.document = $0 })))
-        case .outlineList, .outlineTable:
-            // One arm for both, in a view of their own: an arm each nested the
+        case .outlineList, .outlineTable, .outlineRows, .outlineSection:
+            // One arm for all, in a view of their own: an arm each nested the
             // switch's content a level deeper for every leaf, and moved the
             // other cases' measure-memo misses.
-            AnyView(CaseOutlineView(asTable: leaf == .outlineTable, rows: rows))
+            AnyView(CaseOutlineView(leaf: leaf, rows: rows))
         }
     }
 
@@ -119,28 +119,68 @@ private struct CaseLeafView: View {
 }
 
 /// The case's rows as a tree (``CaseRows/tree``), in a selectable `List` or
-/// in a `Table` of three columns.
+/// in a `Table` of three columns, as ``CaseLeaf`` says.
 private struct CaseOutlineView: View {
-    let asTable: Bool
+    let leaf: CaseLeaf
     let rows: CaseRows
 
     var body: some View {
-        if asTable {
-            Table(rows.tree, children: \.children, selection: selection) {
-                TableColumn(CaseTableView.titles[4]) { (node: CaseRows.Node) in Text(verbatim: rows.title(node.row)) }
-                TableColumn(CaseTableView.titles[2]) { (node: CaseRows.Node) in Text(verbatim: rows.status(node.row)) }
-                TableColumn(CaseTableView.titles[3]) { (node: CaseRows.Node) in
-                    Text(verbatim: "\(rows.size(node.row))")
-                }
-            }
-        } else {
-            List(rows.tree, children: \.children, selection: selection) { node in
-                CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
-            }
+        switch leaf {
+        case .outlineTable:
+            AnyView(
+                Table(rows.tree, children: \.children, selection: selection) {
+                    TableColumn(CaseTableView.titles[4]) { (node: CaseRows.Node) in Text(verbatim: rows.title(node.row)) }
+                    TableColumn(CaseTableView.titles[2]) { (node: CaseRows.Node) in Text(verbatim: rows.status(node.row)) }
+                    TableColumn(CaseTableView.titles[3]) { (node: CaseRows.Node) in
+                        Text(verbatim: "\(rows.size(node.row))")
+                    }
+                })
+        case .outlineRows:
+            AnyView(
+                Table(of: CaseRows.Node.self, selection: selection) {
+                    TableColumn(CaseTableView.titles[4]) { (node: CaseRows.Node) in Text(verbatim: rows.title(node.row)) }
+                    TableColumn(CaseTableView.titles[2]) { (node: CaseRows.Node) in Text(verbatim: rows.status(node.row)) }
+                    TableColumn(CaseTableView.titles[3]) { (node: CaseRows.Node) in
+                        Text(verbatim: "\(rows.size(node.row))")
+                    }
+                } rows: {
+                    CaseNodeRows(nodes: rows.tree)
+                })
+        case .outlineSection:
+            AnyView(
+                List(selection: selection) {
+                    Section {
+                        OutlineGroup(rows.tree, children: \.children) { node in
+                            CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
+                        }
+                    }
+                })
+        default:
+            AnyView(
+                List(rows.tree, children: \.children, selection: selection) { node in
+                    CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
+                })
         }
     }
 
     private var selection: Binding<Int?> { Binding(get: { rows.selection }, set: { rows.selection = $0 }) }
+}
+
+/// A tree's rows as tuitree writes its own (`NodeRows`): a `DisclosureTableRow`
+/// for each branch, whose rows are this content again over its children, and a
+/// `TableRow` for each leaf. The table keeps the branches' expansion.
+private struct CaseNodeRows: TableRowContent {
+    let nodes: [CaseRows.Node]
+
+    var tableRowBody: some TableRowContent<CaseRows.Node> {
+        ForEach(nodes) { node in
+            if let children = node.children {
+                DisclosureTableRow(node) { Self(nodes: children) }
+            } else {
+                TableRow(node)
+            }
+        }
+    }
 }
 
 /// A list's row: its title, and its status at the trailing edge. `Equatable`,

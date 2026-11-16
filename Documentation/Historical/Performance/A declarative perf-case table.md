@@ -589,6 +589,38 @@ flattens it again, building every open row's content, and `listed` counts the ro
 not (`_TableCore.resolveRows`). A `Table(_:children:)` keeps its outline from pass to pass and builds no row content
 to make it, so it lists none: `outline-table` is 0 throughout. Counting it moved no count of any recorded case.
 
+## The outline cases (2026-11-16)
+
+Finding G1, from building tuitree, had two shapes left after `List(_:children:)` was windowed (a5b20c46f): a
+`Table(of:columns:rows:)` whose rows are a tree written as row content, which is the table tuitree draws, and an
+outline inside a `Section` of a `List`. Two cases play them over the same tree and script as `outline-list` and
+`outline-table` (`Tables/Outlines.swift`), `flat` at 5,000 and 50,000 open rows:
+
+| Case | Composition | What it draws |
+|---|---|---|
+| `outline-rows` | `outline.rows` | `Table(of:columns:rows:)`, its rows `CaseNodeRows`: a `ForEach` of a `DisclosureTableRow` for each branch, its rows the same content again over its children, and a `TableRow` for each leaf, as tuitree's `NodeRows` |
+| `outline-section` | `outline.section` | `List { Section { OutlineGroup(_:children:) } }` |
+
+Recorded on a clean debug build:
+
+| Case | Phase | Steps | Listed at n | Listed at 10n |
+|---|---|--:|--:|--:|
+| `outline-rows` | `key:oright` | 1 | 5,001 | 50,001 |
+| `outline-rows` | `wheel:+5` | 10 | 50,010 | 500,010 |
+| `outline-rows` | `key:pgdn` | 3 | 15,003 | 150,003 |
+| `outline-rows` | `key:left` | 2 | 9,993 | 99,993 |
+| `outline-rows` | `key:right` | 1 | 5,001 | 50,001 |
+| `outline-section` | every phase but `open` | | 1 a step | 1 a step |
+
+**Findings:**
+
+- **G1-rows.** The table's outline is flattened again every pass, each open row's content built by the app's row
+  builders: n + 1 rows a frame, every other count the same as `outline-table`'s. Filed as the case's known issue.
+  The case plays in 2.6 s where `outline-table` plays in 0.6 s.
+- **G1-section.** `outline-section` is flat only because nothing opens: Option-Right, Left and Right do not reach an
+  outline inside a `Section`. The list asks the view its rows came from to open a row (`RowSource.rowsContent`),
+  and for a section that is the `Section`, which opens nothing. The rows are still extracted all at once.
+
 ## For a future reader
 
 - Counts are proxies. A clean `--check-counts` says the work did not change, not that the time did

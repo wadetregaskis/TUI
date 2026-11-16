@@ -41,6 +41,24 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     case outlineList = "outline.list"
     /// The same tree as a selectable `Table(_:children:)` of three columns.
     case outlineTable = "outline.table"
+    /// The same tree as a selectable `Table(of:columns:rows:)` of three
+    /// columns whose rows are written as tuitree writes its own: a `ForEach`
+    /// of a `DisclosureTableRow` for each branch, its rows built by the same
+    /// row content again, and a `TableRow` for each leaf.
+    case outlineRows = "outline.rows"
+    /// The same tree as a selectable `List` of one `Section` holding an
+    /// `OutlineGroup`.
+    case outlineSection = "outline.section"
+}
+
+extension CaseLeaf {
+    /// Whether the leaf shows the rows as a tree (``CaseRows/tree``).
+    var isOutline: Bool {
+        switch self {
+        case .outlineList, .outlineTable, .outlineRows, .outlineSection: true
+        default: false
+        }
+    }
 }
 
 /// What a case's page is built from: a leaf, leaves combined, or a `Stress`
@@ -106,7 +124,7 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
     /// Whether any part of the page shows the rows as a tree.
     var hasOutline: Bool {
         switch self {
-        case .leaf(let leaf): leaf == .outlineList || leaf == .outlineTable
+        case .leaf(let leaf): leaf.isOutline
         case .tabs(let parts): parts.contains(where: \.hasOutline)
         case .split(let first, let second): first.hasOutline || second.hasOutline
         case .followsPointer(let page): page.hasOutline
