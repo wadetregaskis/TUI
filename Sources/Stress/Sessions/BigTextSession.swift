@@ -64,16 +64,22 @@ final class BigTextSession: StressSession {
     /// Records in the document: forty thousand at the default scale, 3.2 MB.
     static func records(_ config: StressConfig) -> Int { config.sized(40_000) }
 
-    init(config: StressConfig) {
+    /// The document: a JSON array of ``records(_:)`` records, one a line.
+    /// `bigtext-open` opens the same one.
+    static func documentText(_ config: StressConfig) -> String {
         let seed = config.seed
         let text = (0..<Self.records(config)).map { index in
             let h = mix(seed, index)
             let name = Synth.sentence(h, words: 2 + Int(h % 3))
             return "  {\"id\": \(index), \"name\": \"\(name)\", \"size\": \(h % 100_000), \"ok\": \(h & 1 == 0)},"
         }.joined(separator: "\n")
-        document = BigTextDocument(text: "[\n" + text + "\n]")
+        return "[\n" + text + "\n]"
+    }
+
+    init(config: StressConfig) {
+        document = BigTextDocument(text: Self.documentText(config))
         expectedBytes = document.text.utf8.count
-        random = SessionRandom(seed: seed)
+        random = SessionRandom(seed: config.seed)
     }
 
     var page: BigTextPage { BigTextPage(document: document) }
