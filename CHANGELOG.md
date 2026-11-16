@@ -244,6 +244,13 @@ where the advance ended: a row that should have arrived was still blank, its tra
 moved value had not moved. An event draws the frames it causes before it returns; a change made between events now
 gets its frame at the instant it was made, when the clock is next advanced, as a running app draws it at once.
 
+**A focused split-view divider no longer leaves the focus on nothing when the split collapses and widens again.**
+Narrowed into its stack, a `NavigationSplitView` takes its dividers away, and a focused one handed the focus to the
+column on top, if that had a control. Where it had none — columns of text — nothing was focused, and when the split
+widened again the dividers came back with nothing focused still: the keyboard stayed with the sidebar's empty column,
+and only Tab reached anything. Now, wherever a focus the framework had to drop found nowhere to go, the first section
+with something to focus takes the keyboard as soon as there is one, and its first control the focus.
+
 **A long lazy stack, `List` or `Table` no longer holds on to every row's `if` once it has scrolled past it.**
 Each `if` keeps a record of what it last held, and a row scrolled out of view kept its records — the picture its
 view last drew and the identity of every view down to it — for as long as the container lived: a lazy stack of

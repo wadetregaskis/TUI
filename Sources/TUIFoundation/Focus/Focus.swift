@@ -1558,7 +1558,10 @@ extension FocusManager {
         // A passive section holding the keyboard with nothing focused hands it
         // to the first section that has something to focus — a page whose
         // controls arrived after the bar did.
-        if let section = idlePassiveHandBackSection() { activeSectionID = section }
+        // So does a section left holding it with nothing to focus where the
+        // focus was dropped, this pass or since: a split view's divider gone
+        // with its columns' room, and back.
+        if let section = idlePassiveHandBackSection() ?? owedFocusSection(focusOnEntry) { activeSectionID = section }
 
         // Auto-focus if, after validation and any default, nothing holds focus: the
         // dropped control's handoff target or neighbour when it had one, the first
@@ -1629,6 +1632,7 @@ extension FocusManager {
         // the hand-over the focus test above saw no change, so the frame on
         // screen went on showing the dead section's hints.
         if focusedID != focusOnEntry || activeSectionID != sectionOnEntry { onFocusChange?() }
+        noteFocusAtPassEnd(focusOnEntry)
 
         // Last, once the focus is settled: a reader handed a value this frame
         // went on to change asks for the frame that shows the change.

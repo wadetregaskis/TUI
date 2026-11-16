@@ -33,6 +33,41 @@ extension FocusManager {
         return nil
     }
 
+    /// Where the end of a pass moves the keyboard when it dropped the focus and
+    /// the section holding the keyboard has nothing to focus: the first section
+    /// that has, for the auto-focus that follows to focus it. `nil` otherwise,
+    /// and where nothing has.
+    ///
+    /// Only for a focus that was dropped — since the last pass ended, by the
+    /// pass's own walk or by its end (`focusOnEntry`, what held it as the end
+    /// began), or earlier with nowhere found for it then
+    /// (``FocusScopeRegistry/focusIsOwed``) — never for one nothing ever held,
+    /// and never away from a modal section. A
+    /// section that leaves the tree hands the keyboard to the first one left,
+    /// and when that one has nothing to focus, nor anything else then, nothing
+    /// held the focus from then on, though controls came back: a split view's
+    /// focused divider, gone as its columns collapsed into a stack of text, was
+    /// back when they widened again with nothing focused.
+    func owedFocusSection(_ focusOnEntry: String?) -> String? {
+        guard focusOnEntry != nil || focusScopes.focusAtPassEnd != nil || focusScopes.focusIsOwed,
+            currentFocusedID == nil, !suppressesAutoFocus, !activeSectionIsModal,
+            let activeID = activeSectionIdentifier,
+            section(id: activeID)?.focusables.contains(where: \.canBeFocused) != true
+        else { return nil }
+        return sectionIDs.first { id in
+            !passiveSectionIDs.contains(id) && section(id: id)?.focusables.contains(where: \.canBeFocused) == true
+        }
+    }
+
+    /// Notes, as a pass ends, where the focus is and whether it is owed (see
+    /// ``owedFocusSection(_:)``): dropped since the last pass ended, or owed
+    /// then, and held by nothing now.
+    func noteFocusAtPassEnd(_ focusOnEntry: String?) {
+        let dropped = focusOnEntry != nil || focusScopes.focusAtPassEnd != nil
+        focusScopes.focusIsOwed = currentFocusedID == nil && (focusScopes.focusIsOwed || dropped)
+        focusScopes.focusAtPassEnd = currentFocusedID
+    }
+
     /// A control that focus recovery chose, and the section it is registered in, which
     /// is not the active one when a handoff names a control elsewhere.
     struct RecoveryTarget {

@@ -164,6 +164,16 @@ final class FocusScopeRegistry {
     /// applies again when it comes back.
     private var applied: Set<Namespace.ID> = []
 
+    /// Whether the focus was dropped and nothing could be given it, so the
+    /// manager still owes it, to the first control that can take it once there
+    /// is one (`FocusManager.owedFocusSection(_:)`); and what held the focus as
+    /// the last pass ended, which tells a focus dropped during the next pass's
+    /// walk (a collapsing split view's divider) from one nothing held. Both set
+    /// at the end of each pass (`FocusManager.noteFocusAtPassEnd(_:)`); beside
+    /// ``autoFocusedID`` as the other records of the manager's own choices.
+    var focusIsOwed = false
+    var focusAtPassEnd: String?
+
     /// The control the focus manager focused by itself — the first of a
     /// section, the first left when the focus was dropped, or the neighbour an
     /// untouched choice recovers to when it leaves, at a pass's end or

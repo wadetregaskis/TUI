@@ -136,6 +136,10 @@ import TUIFoundation
 /// out, as macOS does in a window too narrow for it, would leave a terminal no
 /// way to it. It expands again when the room comes back, its column visibility
 /// as it was, and a split showing its detail alone never collapses for room.
+/// A divider that has the focus as the split collapses hands it to the column
+/// on top, as any control that leaves the tree hands it on; where nothing
+/// there can take it, the first control that can once there is one does, a
+/// divider when the split widens again.
 ///
 /// Which column is on top starts as the sidebar. To read it or set it, pass a
 /// ``NavigationSplitViewColumn`` binding to an initializer such as
