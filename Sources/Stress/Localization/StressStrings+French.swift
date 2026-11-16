@@ -222,6 +222,10 @@ extension StressStrings {
         "stress.scenario.kitchensink.stresses": "disposition en vue divisée + fenêtrage de liste + grille de conteneurs simultanément",
         "stress.scenario.kitchensink.heading.items": "Éléments ({0})",
         "stress.scenario.kitchensink.heading.metrics": "Métriques",
+        // MARK: cases
+        "stress.scenario.cases.title": "Cas de performance",
+        "stress.scenario.cases.blurb": "La page de chaque cas de performance au repos, une variante chacun ; leurs scripts se jouent en sessions.",
+        "stress.scenario.cases.stresses": "ce que chaque cas est écrit pour demander · listes, tableaux, onglets, vues divisées, éditeurs, conversations",
     ]
 }
 

@@ -220,5 +220,9 @@ extension StressStrings {
         "stress.scenario.kitchensink.stresses": "分割ビューのレイアウト + リストのウィンドウ化 + コンテナグリッドを同時に",
         "stress.scenario.kitchensink.heading.items": "アイテム（{0}）",
         "stress.scenario.kitchensink.heading.metrics": "メトリクス",
+        // MARK: cases
+        "stress.scenario.cases.title": "パフォーマンスケース",
+        "stress.scenario.cases.blurb": "各パフォーマンスケースの静止したページ、それぞれ一つのバリアント。スクリプトはセッションとして再生されます。",
+        "stress.scenario.cases.stresses": "各ケースが問うように書かれたもの · リスト、テーブル、タブ、分割ビュー、エディタ、会話",
     ]
 }

@@ -35,6 +35,9 @@
 //  Perf cases (one line each in Cases/Tables/ — see Cases/CaseTable.swift):
 //    --check-counts [--case a,b] [--counts-file F] [--show]  play every case, compare its counts with
 //                                                     Cases/RecordedCounts.txt; TUI_RECORD_PERF_COUNTS=1 re-records
+//    --cases [--timed] [--tags a,b]              list them (all, the timed sweep's, or those with any of the tags)
+//    --session case:<id>                         a case's script, looped (Cases/CaseSession.swift)
+//    --bench --scenario cases --variant <id>     a case's page at rest (Cases/CaseMatrix.swift)
 
 import Foundation
 import TUI
@@ -86,6 +89,8 @@ let usageText = """
                   (and Stress --bench --scenario session/<id>, which ab_bench.py can A/B)
     Counts:       Stress --check-counts [--case a,b] [--counts-file F] [--show]
                   (TUI_RECORD_PERF_COUNTS=1 writes the counts instead of comparing them)
+    Cases:        Stress --cases [--timed] [--tags a,b]
+                  (a case's script is the session case:<id>; its page at rest, --scenario cases --variant <id>)
 
     Scenario ids (the interactive menu shows titles, not ids):
     \(scenarioIDs)
@@ -157,11 +162,16 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
             print("session: unknown session '\(id)'. Known: \(Sessions.all.map(\.id).joined(separator: ", "))")
             return 1
         }
-        let report = SessionRunner.run(descriptor, config: config, options: options)
-        SessionRunner.print(report, id: id, options: options, config: config)
+        let sized = options.sized(for: descriptor)
+        let report = SessionRunner.run(descriptor, config: config, options: sized)
+        SessionRunner.print(report, id: id, options: sized, config: config)
         return report.passed ? 0 : 1
     }
     exit(code)
+} else if rawArgs.contains("--cases") {
+    let tags = Set(flagValue("--tags")?.split(separator: ",").map(String.init) ?? [])
+    let timedOnly = rawArgs.contains("--timed")
+    exit(CaseTables.list(timedOnly: timedOnly, tags: tags))
 } else if rawArgs.contains("--check-counts") {
     refuseStripes(in: "check-counts")
     var options = CountCheck.Options()
@@ -206,6 +216,7 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
             options.height = rows
             options.checks = false
             options.frameChecksums = rawArgs.contains("--frame-checksums")
+            options = options.sized(for: descriptor)
             let report = SessionRunner.run(descriptor, config: config, options: options)
             SessionRunner.print(report, id: sessionID, options: options, config: config)
             return 0

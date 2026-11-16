@@ -116,6 +116,12 @@ protocol StressSession: AnyObject {
     /// Called on the warm instance and on the twin, so both draw the same
     /// last frame.
     func finish() -> String?
+
+    /// The app the session plays in, built by the session itself, or `nil`
+    /// for ``SessionHost`` (or ``CommandsSessionHost``) around ``page``: for a
+    /// session whose app must be the one something else plays the same page
+    /// in (``CaseSession``, `--check-counts`'s). Called once per instance.
+    func makeApp(width: Int, height: Int) -> HeadlessApp?
 }
 
 extension StressSession {
@@ -128,6 +134,7 @@ extension StressSession {
     var checkpointEvery: Int? { nil }
     var declaresCommands: Bool { false }
     func finish() -> String? { nil }
+    func makeApp(width: Int, height: Int) -> HeadlessApp? { nil }
 }
 
 /// The app a session's page is the whole of.
@@ -228,9 +235,10 @@ final class DrivenSession {
     /// cells, clearing its render cache before every frame when `cold`.
     init<S: StressSession>(_ session: S, width: Int, height: Int, cold: Bool) {
         let app =
-            session.declaresCommands
-            ? HeadlessApp(CommandsSessionHost(page: session.page), width: width, height: height)
-            : HeadlessApp(SessionHost(page: session.page), width: width, height: height)
+            session.makeApp(width: width, height: height)
+            ?? (session.declaresCommands
+                ? HeadlessApp(CommandsSessionHost(page: session.page), width: width, height: height)
+                : HeadlessApp(SessionHost(page: session.page), width: width, height: height))
         app.clearsRenderCacheEachFrame = cold
         // What an app does, learned from the clock as an app's cache learns:
         // `HeadlessApp` turns it off for tests.
@@ -299,6 +307,10 @@ struct SessionDescriptor {
     let exercises: String
     /// Builds one instance, playing against its own app.
     let make: @MainActor (_ config: StressConfig, _ width: Int, _ height: Int, _ cold: Bool) -> DrivenSession
+    /// The size the session always plays at, whatever `--cols` and `--rows`
+    /// say, or `nil` for theirs: a perf case's, which is part of what the
+    /// case is (``SessionRunner/Options/sized(for:)``).
+    var size: (width: Int, height: Int)?
 }
 
 /// Every session, in the order `--sessions` lists them.
@@ -327,6 +339,8 @@ enum Sessions {
             BigTextSession.descriptor,
             BigTextOpenSession.descriptor,
         ]
+        // Last: every perf case, `case:<id>`, its script looped.
+        + CaseSession.descriptors
 
     @MainActor
     static func byID(_ id: String) -> SessionDescriptor? {

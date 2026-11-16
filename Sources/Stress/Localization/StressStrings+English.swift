@@ -233,6 +233,10 @@ extension StressStrings {
         "stress.scenario.kitchensink.stresses": "split-view layout + list windowing + container grid simultaneously",
         "stress.scenario.kitchensink.heading.items": "Items ({0})",
         "stress.scenario.kitchensink.heading.metrics": "Metrics",
+        // MARK: cases
+        "stress.scenario.cases.title": "Perf Cases",
+        "stress.scenario.cases.blurb": "Every perf case's page at rest, one variant each; their scripts play as sessions.",
+        "stress.scenario.cases.stresses": "whatever each case is written to ask · lists, tables, tabs, splits, editors, conversations",
     ]
 }
 

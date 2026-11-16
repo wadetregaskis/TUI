@@ -135,6 +135,7 @@ scale live · `a` toggle autopilot.
 | `pickers` | **a matrix**: rows of a segmented `Picker` and a horizontal `RadioButtonGroup`, a graphical `DatePicker` under every fourth, the selections moving with the tick (`rows`, the default), or a `Form` in `.formStyle(.grouped)` of pickers, toggles and date pickers whose odd sections an `if` drops every other frame (`grouped-form`). No scenario drew a date picker, a radio group or a grouped form before 2026-10-19 (decisions SPB7) |
 | `stateful` | **a matrix**: 50 composite rows (× scale) redrawn every frame, so every row's `body` runs and pays the property walks; the variants differ only in what each row holds — `state-env` (the default: one `@State`, one `@Environment`), `plain` (nothing: its type is planned as holding nothing), `app-property` (an app `DynamicProperty` with a `@State`: `update()` and write-back per body), `optional-property` (a `nil` check per body), `existential` (`any DynamicProperty`, too big for the existential's inline buffer: its dynamic type read per body, the value copied out of its box and put in a new one), `enum-rows` (an enum view with no property: its case read per body). Two more hold class properties that several views show: `shared-objects` (driven: 50 long-lived objects × scale, each with a `@State` and an `@Environment`, shown by memoised rows under one environment and by a detail view of the selected one under another; each frame writes the selected object's state and one row's, and the selection moves every 8 ticks — what a write redrawing every view holding the object costs) and `identity-churn` (500 rows × scale under `ForEach` of models made with a new `UUID` every frame, each row holding a long-lived object with a `@State`: a new holder of every object per row per frame). An A/B of two builds on one variant prices that kind of field |
 | `kitchensink` | split-view + list windowing + container grid simultaneously |
+| `cases` | **a matrix**: every perf case's page at rest, a variant each, by its id (see "Perf cases" below), grouped by the table it is written in; an adopted case (`stress:<scenario>`) has none, being a scenario already. The page is drawn at the bench's `--cols`/`--rows`, its `n` times `--scale`. Its script plays as the session `case:<id>` |
 
 ## Matrix scenarios and variants
 
@@ -449,6 +450,22 @@ case, what moved and why:
 TUI_RECORD_PERF_COUNTS=1 swift run Stress --check-counts            # every case
 swift run Stress --check-counts --case list-wheel,list-hover        # some
 ```
+
+Every case is also where the harness's other tools look, so they need no case
+of their own:
+
+```sh
+swift run Stress --cases [--timed] [--tags table,memo]   # list them: a line each, its id first
+swift run Stress --session case:list-hover --verify      # its script, looped, against a cache-cleared twin
+swift run Stress --bench --scenario session/case:list-wheel
+swift run Stress --bench --scenario cases --variant list-wheel   # its page at rest
+```
+
+`--tags` picks the cases with any of the tags named. A case's session plays at
+the case's size whatever `--cols`/`--rows` say, a step a frame, its script
+starting again after its `open` once it ends; `--scale` multiplies its `n`.
+`--selfcheck` plays every case's session and renders every page of the `cases`
+matrix scenario, memo-verified, as it does every other session and variant.
 
 ## Profiling
 

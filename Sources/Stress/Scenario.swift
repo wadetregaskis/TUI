@@ -115,6 +115,7 @@ enum Scenarios {
         PickerRowsMatrix.descriptor,
         StatefulRowsScenario.descriptor,
         KitchenSinkScenario.descriptor,
+        CaseMatrix.descriptor,
     ]
 
     @MainActor

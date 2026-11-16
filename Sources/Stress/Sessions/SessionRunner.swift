@@ -53,6 +53,16 @@ enum SessionRunner {
         /// for `Tools/Profiling/frame_parity.py` to compare two builds frame by
         /// frame.
         var frameChecksums = false
+
+        /// These options at the size `descriptor` always plays at, if it has
+        /// one (``SessionDescriptor/size``): a perf case's. Applied wherever
+        /// a session is run and reported, so the report says the size played.
+        func sized(for descriptor: SessionDescriptor) -> Self {
+            guard let size = descriptor.size else { return self }
+            var sized = self
+            (sized.width, sized.height) = size
+            return sized
+        }
     }
 
     /// What one kind of step cost, over every step of that kind.

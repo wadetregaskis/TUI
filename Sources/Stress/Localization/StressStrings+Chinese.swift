@@ -220,5 +220,9 @@ extension StressStrings {
         "stress.scenario.kitchensink.stresses": "分栏视图布局 + 列表窗口化 + 容器网格同时进行",
         "stress.scenario.kitchensink.heading.items": "条目（{0}）",
         "stress.scenario.kitchensink.heading.metrics": "指标",
+        // MARK: cases
+        "stress.scenario.cases.title": "性能用例",
+        "stress.scenario.cases.blurb": "每个性能用例的静止页面，各为一个变体；其脚本作为会话播放。",
+        "stress.scenario.cases.stresses": "每个用例所要考察的内容 · 列表、表格、标签页、分栏视图、编辑器、对话",
     ]
 }

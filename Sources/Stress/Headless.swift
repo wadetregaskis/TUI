@@ -312,11 +312,14 @@ enum Headless {
         sessionOptions.verify = true
         sessionOptions.resizeEvery = 37
         for session in Sessions.all {
-            let report = SessionRunner.run(session, config: config, options: sessionOptions)
+            let report = SessionRunner.run(session, config: config, options: sessionOptions.sized(for: session))
             let ok = report.passed
             if !ok { failures += 1 }
-            let id = "session/\(session.id)".padding(toLength: 26, withPad: " ", startingAt: 0)
-            print("  \(ok ? "ok  " : "FAIL") \(id) \(report.steps) steps  \(session.summary)")
+            // Padded, never truncated, as the scenarios' ids above are: a perf
+            // case's id, `session/case:chat-eager-follow`, is longer than 26.
+            let id = "session/\(session.id)"
+            let padded = id.count >= 26 ? id : id.padding(toLength: 26, withPad: " ", startingAt: 0)
+            print("  \(ok ? "ok  " : "FAIL") \(padded) \(report.steps) steps  \(session.summary)")
             if let mismatch = report.scriptMismatch { print("      \(mismatch)") }
             for divergence in report.divergences.prefix(3) { print("      " + divergence) }
             for problem in report.brokenExpectations.prefix(3) { print("      " + problem) }

@@ -222,6 +222,10 @@ extension StressStrings {
         "stress.scenario.kitchensink.stresses": "Geteilte-Ansicht-Layout + Listenfensterung + Container-Raster gleichzeitig",
         "stress.scenario.kitchensink.heading.items": "Einträge ({0})",
         "stress.scenario.kitchensink.heading.metrics": "Metriken",
+        // MARK: cases
+        "stress.scenario.cases.title": "Leistungsfälle",
+        "stress.scenario.cases.blurb": "Die Seite jedes Leistungsfalls im Ruhezustand, je eine Variante; ihre Skripte laufen als Sitzungen.",
+        "stress.scenario.cases.stresses": "was jeder Fall zu fragen geschrieben ist · Listen, Tabellen, Tabs, geteilte Ansichten, Editoren, Unterhaltungen",
     ]
 }
 
