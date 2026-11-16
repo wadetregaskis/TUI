@@ -64,6 +64,24 @@ extension ItemListHandler {
         focusedIndex = min(itemCount - 1, lastLandingRow(orElse: itemCount - 1))
     }
 
+    /// Starts the cursor on the first row it can land on, once, on the first
+    /// frame with rows, where it would start on a row the selection cannot
+    /// name — a section's header. SwiftUI's keyboard never stands on a
+    /// header: from no selection, Down selects the first section's first
+    /// item (measured, `Tools/SwiftUIProbes/Bug-hunt parity items
+    /// (1116B)/sections.swift`). Started on row 0, the cursor sat on the
+    /// first header, where Space and Return did nothing until Down. Render
+    /// pass only, after ``keepCursorOnTheRows()``; a cursor already on a
+    /// landable row — the first item, or a selection written before the
+    /// first frame — is left where it is.
+    func placeStartingCursor() {
+        guard !hasPlacedStartingCursor, itemCount > 0 else { return }
+        hasPlacedStartingCursor = true
+        guard !isInLandingSet(focusedIndex) else { return }
+        let first = firstLandingRow(orElse: -1)
+        if first >= 0, isInLandingSet(first) { focusedIndex = first }
+    }
+
     /// Remembers the cursor's row for the next frame's
     /// ``followCursorRow(from:ownMovePending:)``, after everything this frame
     /// does to the cursor. Reads no id when the cursor is still where

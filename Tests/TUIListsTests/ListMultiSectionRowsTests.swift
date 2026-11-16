@@ -199,6 +199,27 @@ struct ListMultiSectionRowsTests {
             "the row under the header is that section's first item: \(String(describing: selection))")
     }
 
+    /// A header is never the keyboard's row in SwiftUI: from no selection,
+    /// Down selects the first section's first ITEM, and no key lands on a
+    /// header (measured, `Tools/SwiftUIProbes/Bug-hunt parity items
+    /// (1116B)/sections.swift`). TUI's cursor started on row 0, the
+    /// "Regions" header, where Space selected nothing until Down.
+    @Test("The cursor starts on the first item, not on the first section's header")
+    func cursorStartsOnTheFirstItem() {
+        let fixture = Fixture()
+        var selection: UUID?
+        let view = twoSections(selection: Binding(get: { selection }, set: { selection = $0 }))
+        fixture.render(view)
+        fixture.render(view)
+        guard let handler = fixture.handler else {
+            Issue.record("the list took focus")
+            return
+        }
+        #expect(handler.focusedIndex == 1, "the cursor is on row \(handler.focusedIndex)")
+        _ = handler.handleKeyEvent(KeyEvent(key: .space))
+        #expect(selection == Self.regions[0].id, "Space selected \(String(describing: selection))")
+    }
+
     /// Apple's worked example for a multidimensional list. This is the case
     /// that COMPILED and wrote the wrong id: the `ForEach` iterates regions, so
     /// the windowed path keyed every row by an `OceanRegion.ID` while the app

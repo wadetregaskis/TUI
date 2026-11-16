@@ -246,7 +246,8 @@ struct SectionActionsTests {
         var drawn = lines(view, context: context)
         #expect(drawn.contains { $0.contains("Fruit") && $0.contains("AddFruit") }, "\(drawn)")
         #expect(!drawn.joined().contains("AddVeg"), "\(drawn)")
-        for _ in 0..<3 { _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .down)) }
+        // From Apple (the cursor never starts on a header): Pear, then Leek.
+        for _ in 0..<2 { _ = context.environment.focusManager?.dispatchKeyEvent(KeyEvent(key: .down)) }
         drawn = lines(view, context: context)
         #expect(drawn.contains { $0.contains("Veg") && $0.contains("AddVeg") }, "\(drawn)")
         #expect(!drawn.joined().contains("AddFruit"), "\(drawn)")

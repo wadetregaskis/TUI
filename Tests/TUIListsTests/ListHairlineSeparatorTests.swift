@@ -180,9 +180,9 @@ struct ListHairlineSeparatorTests {
         #expect(markedLines(render(list, hairlines: true)) == [3])
     }
 
-    /// The header is the cursor's first stop here, so the section's first
-    /// separator to show is under its first row; hidden, the header's own
-    /// leaves the rest.
+    /// The cursor starts on the section's first row, never on its header, so
+    /// the separators either side of that row are left out and the one under
+    /// "b" shows; hidden, the header's own leaves the rest.
     @Test("A section's separators are hairlines, and its .hidden edge is the style's to keep")
     func sections() {
         let list = List {
@@ -190,7 +190,7 @@ struct ListHairlineSeparatorTests {
         }
         let lines = render(list, hairlines: true)
         #expect(text(lines) == ["Head", "a", "b", "c"])
-        #expect(markedLines(lines) == [2, 3])
+        #expect(markedLines(lines) == [3])
         let two = List {
             Section("A") { Text("a1"); Text("a2") }
             Section("B") { Text("b1") }

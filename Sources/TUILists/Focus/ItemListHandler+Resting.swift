@@ -214,6 +214,7 @@ extension ItemListHandler {
         let checkedCursor = followCursorRow(from: cursorBefore, ownMovePending: ownMovePending)
         let checkedAnchor = followAnchorRow(ownMovePending: ownMovePending)
         keepCursorOnTheRows()
+        placeStartingCursor()
         clampScrollOffset()
         clampTopClip()
         // After the clamps, which is what puts the offset AT the whole-row

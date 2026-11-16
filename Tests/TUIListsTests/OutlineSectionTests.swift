@@ -126,8 +126,8 @@ struct OutlineSectionTests {
         }
         _ = app.screen
         if app.focusedID == nil { app.press(.tab) }
-        // The cursor starts on the first section's header; Down takes it to n1.
-        app.press(.down)
+        // The cursor starts on n1, the first section's first row: never on a
+        // header, as SwiftUI's keyboard never is.
         app.press(.right)
         #expect(app.screen.contains("n2"), "Right on n1 opened it: \(app.screen)")
         // Down past n2, n3 and the second header, to n10.

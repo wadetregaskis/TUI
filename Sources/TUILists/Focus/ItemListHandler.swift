@@ -1644,6 +1644,10 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     var cursorRowID: SelectionValue?
     var cursorRowOrdinal = 0
 
+    /// Whether the cursor has been given its starting row: set on the first
+    /// frame with rows (``placeStartingCursor()``).
+    var hasPlacedStartingCursor = false
+
     /// The id of the row the range anchor (``selectionAnchor``) stood on when
     /// the last frame was drawn, and the anchor then — what
     /// ``followAnchorRow(ownMovePending:)`` finds the anchor's row by, as

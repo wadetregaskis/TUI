@@ -249,7 +249,8 @@ struct ListRowTagTests {
             Issue.record("the list took focus")
             return
         }
-        for _ in 0..<4 { _ = handler.handleKeyEvent(KeyEvent(key: .down)) }
+        // From alpha, where the cursor starts (never on the header).
+        _ = handler.handleKeyEvent(KeyEvent(key: .down))
         #expect(handler.handleKeyEvent(KeyEvent(key: .enter)) == true)
         #expect(selection == "b", "the last row's tag, got \(String(describing: selection))")
     }

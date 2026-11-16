@@ -267,9 +267,9 @@ struct ListPinnedSectionHeaderTests {
         let box = Box()
         let harness = InputChainHarness(width: 30, height: 10)
         let build = { TallHeader(selection: Binding(get: { box.selection }, set: { box.selection = $0 })) }
-        // The cursor onto veg1: the first Down lands on fruit0, then on through
-        // Fruit's twenty rows and over Veg's header.
-        _ = down(22, in: harness, build)
+        // The cursor onto veg1: it starts on fruit0 (never on a header), then
+        // goes on through Fruit's twenty rows and over Veg's header.
+        _ = down(21, in: harness, build)
         _ = harness.press(KeyEvent(key: .space))
         _ = harness.frame(build())
         try #require(box.selection == "veg1", "\(String(describing: box.selection))")

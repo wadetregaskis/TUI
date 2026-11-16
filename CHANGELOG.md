@@ -24,6 +24,10 @@ with no anchor can leave the row at the bottom of the view, and then wrote the r
 binding: the app's id was lost, and writing it again did nothing, the row being in view already. The binding now
 keeps the id the app wrote until the user scrolls, as SwiftUI's does, and reads the row at the top from then on.
 
+**A `List` of `Section`s starts its cursor on the first item, not on the first header.** The cursor started on row 0,
+the first section's header, where Space and Return did nothing until Down moved it. It now starts on the first row
+the selection can name, as SwiftUI's keyboard never stands on a header.
+
 **A control's own `.disabled(_:)` reaches its label and its style.** `Button(…).disabled(true)`, and the same on a
 `Toggle`, `Picker`, `DatePicker`, `Stepper` or `Slider`, is the control's own method, which returns the control rather
 than a view under `View.disabled(_:)`, and it left `\.isEnabled` true: a label or a custom style's body reading
