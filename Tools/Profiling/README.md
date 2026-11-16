@@ -120,7 +120,8 @@ marked `t` are in `--cases timed` and why that set is kept to about an hour
 (`CONTRIBUTING.md`, "Performance tests"). A case's counts need no A/B at all:
 `Stress --check-counts` compares them with the recorded ones in the gate. In
 `sweep.py`'s table a case reports its rows per step, as a session does, and no
-cell values, so its `cells` column is 0.
+cell values, so its `cells` column is 0. To keep the timed cases' readings
+from commit to commit, save the run's output for `perf_trend.py` (below).
 
 **The scenario list comes from the binary**, not from this script — a hard-coded
 list goes stale silently, and did: `menus` and `gradients` were added to
@@ -232,6 +233,44 @@ tests came back `faster`/`slower` at the edge of a narrow interval — chance,
 or a bootstrap of ten short runs claiming more than it knows — while
 `4.5 s × 10` gave none in ten, so the longer run is the default.
 The full sweep takes twice as long as it did, about an hour.
+
+## How the timings move across commits — `perf_trend.py`
+
+An A/B answers one question about two builds. Drift that no single A/B was set
+up to catch shows only across many: the owner's ruling A-PERFCASE-3
+(2026-11-14) keeps a timing trend, as a CSV in the working notes, never in the
+repository. (The counts' trend needs no file of its own: it is the git history
+of `Sources/Stress/Cases/RecordedCounts.txt`.)
+
+```bash
+Tools/Profiling/ab_bench.py /tmp/old /tmp/new --cases timed | tee ab.log
+Tools/Profiling/perf_trend.py ab.log --sha "$(git rev-parse --short=9 HEAD)"
+Tools/Profiling/perf_trend.py --report             # the last 5 readings of each
+Tools/Profiling/perf_trend.py --report --last 10
+```
+
+It reads the saved output and runs nothing. Each result row becomes one CSV
+row of the **new** binary's reading: `date` (the log's own time, when the run
+finished), `sha` (`--sha`, else this checkout's `HEAD`: name the commit the
+new binary was built from), `host`, `load` (as `ab_bench.py` printed it at the
+start), `metric` (`cpu` or `wall`, with `-cold` for a `--cold` run, so readings
+of different kinds are never compared), `scenario` (a case is
+`session/case:<id>`), `iterations`, `median_us`, `ci_low_pct` and
+`ci_high_pct` (the 95% interval of the change against the run's base, as
+printed) and `rss_mb`. A log appended twice adds nothing the second time.
+
+The CSV is `--csv F`, else `$TUI_PERF_TREND_CSV`, else
+`~/Documents/TUIkit-session-notes/perf/trend.csv` when that folder exists.
+With none of them it writes nothing and says so.
+
+`--report` prints, per scenario and metric, the last N rows, and the change of
+the latest median from the first of them beside the widest interval
+half-width among them: `within` or `beyond` it. Read `beyond` as a reason to
+A/B those two commits, not as a result. The interval is a paired A/B's, from
+one sitting; two readings from different days are unpaired, on a machine whose
+load differed, and move by more than that.
+
+Its tests run with `python3 Tools/Profiling/test_perf_trend.py`, with no build.
 
 ## `ab_bench.py` is blind to the whole output half — `emit_bench.py`
 

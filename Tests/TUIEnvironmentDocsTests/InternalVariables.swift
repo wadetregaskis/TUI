@@ -47,6 +47,7 @@ enum InternalVariables {
         "TUI_COLLISION_REPORT": "A test alone reads it.",
         "TUI_COLLISION_SWEEP": "A test alone reads it.",
         "TUI_MEASURE_FLEX_PROBE": "A test alone reads it.",
+        "TUI_PERF_TREND_CSV": "A tool alone reads it.",
         "TUI_PARALLEL_TEST_LOCK": "A tool alone reads it.",
         "TUI_PARALLEL_TEST_STALL_SECONDS": "A tool alone reads it.",
         "TUI_PRODUCT_SMOKE_URL": "A tool alone reads it.",

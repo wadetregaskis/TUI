@@ -367,7 +367,8 @@ suspected.
 
 Proposed 2026-11-14; the owner answered A-PERFCASE-1 to 3 the same day. B-PERFCASE-1 to 7 are decided here and
 stand unless the owner's answers change them. Lanes 1 and 2 were built on 2026-11-15 ("Lanes 1 and 2, as built",
-below), lane 3 on 2026-11-16 ("Lane 3, as built"); lanes 4 and 5 are still to come.
+below), lane 3 on 2026-11-16 ("Lane 3, as built"), lane 5 the same day ("Lane 5, as built"); lane 4 is still to
+come.
 
 ## Lanes 1 and 2, as built (2026-11-15)
 
@@ -728,6 +729,22 @@ debug build: every count, at n and 10n, is `outline-table`'s (`key:oright` liste
 `outline-table`'s arm of the case's `switch` (`expansion:` `nil` there): an arm of its own, as first written, nested
 the other arms a level deeper and raised `outline-rows-stacked`'s `misses` by about one a frame (`open` 81 → 84,
 `wheel:+5` 270 → 280), the harness's shape and not the table's, as the comment on `CaseOutlineView` already warned.
+
+## Lane 5, as built (2026-11-16)
+
+**The documentation.** The `Stress` README's "Perf cases" section is the reference for writing, checking and
+re-recording a case, written from the code rather than from this design; the Profiling README's A/B section prices a
+timed case; `CONTRIBUTING.md`'s "Performance tests" says when to add a case and when to mark it `timed` (the table
+under "Choosing between counting and timing for a case", above).
+
+**The timing trend** (A-PERFCASE-3): `Tools/Profiling/perf_trend.py`, with its tests in `test_perf_trend.py`.
+
+| Design | As built | Why |
+|---|---|---|
+| A sweep of the `timed` cases appends its rows | The script appends what a saved `ab_bench.py` output holds, and runs nothing | Timing is the scarce resource: a run already made is read, not paid for twice. `ab_bench.py`'s table is the one timed run there is; `sweep.py`'s CSV is a survey of 3 short reps, too coarse for a trend |
+| Commit, toolchain, machine, load, µs, interval | Date, commit, machine, load, metric, scenario, iterations, median µs, interval, RSS; no toolchain | The output names no toolchain, and the commit is given with `--sha` (default `HEAD`). The metric (`cpu`, `wall`, `-cold`) keeps readings of different kinds apart |
+| The interval of the reading | The interval of the change against the run's base, as `ab_bench.py` printed it | `ab_bench.py` bootstraps the paired ratio and prints no interval of an absolute time. Its width is that sitting's noise |
+| A case that drifted past its noise floor against the median of its last five readings is flagged | `--report` prints the last N readings and the latest's change from the first, `within` or `beyond` the widest interval among them | The interval is a paired one; readings from different days are not paired, so `beyond` is a prompt for an A/B of the two commits, not a flag of a regression |
 
 ## For a future reader
 
