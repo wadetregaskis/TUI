@@ -107,7 +107,8 @@ extension _ScrollViewCore {
     /// same discipline `onPreferenceChange` follows, and for the same reason.
     func reportVisibleID(_ id: AnyHashable, handler: ScrollViewHandler, context: RenderContext) {
         pageScrollPosition(context.environment)?.report(
-            id, trackedBy: handler, at: \.positionTracking, context: context)
+            id, trackedBy: handler, at: \.positionTracking, userScrolled: handler.userScrolledSinceRender,
+            context: context)
     }
 
     /// Tells a bound ``ScrollPosition`` that the user scrolled it since the last

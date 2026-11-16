@@ -505,6 +505,15 @@ package struct ScrollPositionTracking {
     var lastRequest: ScrollPosition.Request?
     /// The row last reported, or asked for by a plain `id:` binding.
     var lastReportedID: AnyHashable?
+    /// Whether a plain `id:` binding still reads the row the APP wrote: from
+    /// its seek until the user scrolls, the row at the anchor is not written
+    /// back over it. SwiftUI's binding keeps the id the app wrote — with no
+    /// anchor the row is sought by the least move and may land at the bottom
+    /// — and reads the row at the top again only after the user scrolls
+    /// (measured, `Tools/SwiftUIProbes/Bug-hunt parity items
+    /// (1116B)/scrollid.swift`). Written back at once, the app's id was lost,
+    /// and writing it again moved nothing.
+    var holdsAskedID = false
 
     package init() {}
 }
@@ -541,6 +550,7 @@ package enum ScrollPositionPlacement {
         guard isFresh else { return nil }
         tracking.lastRequest = position.request
         tracking.lastReportedID = value
+        tracking.holdsAskedID = position.requestToken == 0
         let seekAnchor = position.requestToken == 0 ? transactionAnchor ?? anchor : anchor ?? transactionAnchor
         // The same stringification `ForEach` derives its keys with, so the
         // comparison in the seek paths is exact.
@@ -580,15 +590,22 @@ package enum ScrollPositionPlacement {
     /// subtree every frame and never settle, the discipline
     /// `onPreferenceChange` follows, for the same reason.
     ///
+    /// Not while a plain `id:` binding holds the row the app wrote
+    /// (``ScrollPositionTracking/holdsAskedID``), unless `userScrolled`: the
+    /// user's scroll since the last frame is what hands the binding back to
+    /// the row shown.
+    ///
     /// The tracking is `owner`'s, at `tracking`. In a drawing that may yet be
     /// drawn again, the write waits for the drawing to be kept, and the row
     /// noted as reported is put back if it is not (`EffectStage`): the row the
     /// kept drawing shows is the one the binding is told.
     package func report<Owner: AnyObject>(
         _ id: AnyHashable, trackedBy owner: Owner, at tracking: ReferenceWritableKeyPath<Owner, ScrollPositionTracking>,
-        context: RenderContext
+        userScrolled: Bool, context: RenderContext
     ) {
-        let before = owner[keyPath: tracking].lastReportedID
+        let (before, held) = (owner[keyPath: tracking].lastReportedID, owner[keyPath: tracking].holdsAskedID)
+        guard !held || userScrolled else { return }
+        owner[keyPath: tracking].holdsAskedID = false
         guard before != id else { return }
         owner[keyPath: tracking].lastReportedID = id
         let binding = binding
@@ -599,7 +616,10 @@ package enum ScrollPositionPlacement {
                 position.reportVisible(id: id)
                 binding.wrappedValue = position
             },
-            undo: { [weak owner] in owner?[keyPath: tracking].lastReportedID = before })
+            undo: { [weak owner] in
+                owner?[keyPath: tracking].lastReportedID = before
+                owner?[keyPath: tracking].holdsAskedID = held
+            })
     }
 
     /// Tells the position that the user scrolled it: its request is dropped

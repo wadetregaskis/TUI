@@ -339,7 +339,9 @@ struct SectionScrollWindowTests {
         visible = 25
         let after = scrollFrame(view, tui: tui, focusManager: focusManager, height: 6)
         #expect(after.contains { $0.hasPrefix("row 25") }, "the write seeks: \(after)")
-        #expect(visible == topRow(on: after), "the top row is read back: \(after)")
+        // The binding keeps the id the app wrote, as SwiftUI's does
+        // (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`).
+        #expect(visible == 25, "the app's id is kept: \(String(describing: visible))")
     }
 
     @Test("Read-back under the \"more above\" line over a header reports the first row a person can see")

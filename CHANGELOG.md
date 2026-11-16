@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`.scrollPosition(id:)` keeps the id the app wrote.** Writing the id scrolled to its row by the least move, which
+with no anchor can leave the row at the bottom of the view, and then wrote the row at the top straight back into the
+binding: the app's id was lost, and writing it again did nothing, the row being in view already. The binding now
+keeps the id the app wrote until the user scrolls, as SwiftUI's does, and reads the row at the top from then on.
+
 **A control's own `.disabled(_:)` reaches its label and its style.** `Button(…).disabled(true)`, and the same on a
 `Toggle`, `Picker`, `DatePicker`, `Stepper` or `Slider`, is the control's own method, which returns the control rather
 than a view under `View.disabled(_:)`, and it left `\.isEnabled` true: a label or a custom style's body reading
