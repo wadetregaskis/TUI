@@ -28,6 +28,10 @@ keeps the id the app wrote until the user scrolls, as SwiftUI's does, and reads 
 the first section's header, where Space and Return did nothing until Down moved it. It now starts on the first row
 the selection can name, as SwiftUI's keyboard never stands on a header.
 
+**A `DatePicker` edit keeps the seconds.** Stepping or typing an hour, minute, day, month or year rebuilt the date
+to the minute and dropped its seconds and their fraction; an edit now changes only the field edited, as SwiftUI's
+picker does.
+
 **A control's own `.disabled(_:)` reaches its label and its style.** `Button(…).disabled(true)`, and the same on a
 `Toggle`, `Picker`, `DatePicker`, `Stepper` or `Slider`, is the control's own method, which returns the control rather
 than a view under `View.disabled(_:)`, and it left `\.isEnabled` true: a label or a custom style's body reading

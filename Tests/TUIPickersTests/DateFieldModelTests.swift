@@ -105,4 +105,20 @@ struct DateFieldModelTests {
         #expect(model.value(.month, of: model.setting(date: date, kind: .month, to: 99)) == 12)
         #expect(model.value(.day, of: model.setting(date: date, kind: .day, to: 99)) == 31)  // March
     }
+
+    /// An edit changes the field edited and nothing it does not show: SwiftUI's
+    /// picker keeps the seconds and the fraction of a second through an hour,
+    /// minute, month or day step (measured, `Tools/SwiftUIProbes/Bug-hunt parity
+    /// items (1116B)/datefields.swift`).
+    @Test("An edit keeps the seconds and their fraction", arguments: [DateFieldModel.Kind.year, .month, .day, .hour, .minute])
+    func editKeepsSeconds(kind: DateFieldModel.Kind) {
+        let start = calendar.date(
+            from: DateComponents(year: 2026, month: 3, day: 14, hour: 9, minute: 26, second: 37, nanosecond: 250_000_000))!
+        let model = model([.date, .hourAndMinute])
+        for edited in [model.adjusted(date: start, kind: kind, by: 1), model.setting(date: start, kind: kind, to: 5)] {
+            let parts = calendar.dateComponents([.second, .nanosecond], from: edited)
+            #expect(parts.second == 37, "\(edited)")
+            #expect(abs((parts.nanosecond ?? 0) - 250_000_000) < 1_000, "\(edited)")
+        }
+    }
 }

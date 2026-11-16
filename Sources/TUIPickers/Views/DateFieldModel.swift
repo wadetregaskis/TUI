@@ -151,7 +151,7 @@ struct DateFieldModel {
     /// re-clamping the day to the resulting month, then clamping the whole date
     /// to the allowed range.
     func adjusted(date: Date, kind: Kind, by delta: Int) -> Date {
-        var parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        var parts = editableParts(of: date)
         switch kind {
         case .year: parts.year = min(9999, max(1, (parts.year ?? 2000) + delta))
         case .month: parts.month = wrap((parts.month ?? 1) + delta, 1, 12)
@@ -167,7 +167,7 @@ struct DateFieldModel {
     /// Sets one component to an explicit value (from typed digits), clamping the
     /// value into its field range and the date into the allowed range.
     func setting(date: Date, kind: Kind, to raw: Int) -> Date {
-        var parts = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        var parts = editableParts(of: date)
         switch kind {
         case .year: parts.year = min(9999, max(1, raw))
         case .month: parts.month = min(12, max(1, raw))
@@ -187,6 +187,16 @@ struct DateFieldModel {
     }
 
     // MARK: - Helpers
+
+    /// The date's components down to the nanosecond, with its era: an edit
+    /// changes the field edited and keeps every component the field does not
+    /// show, as SwiftUI's picker keeps the seconds and their fraction through
+    /// an hour or a day step (measured, `Tools/SwiftUIProbes/Bug-hunt parity
+    /// items (1116B)/datefields.swift`). Asked for to the minute, the
+    /// rebuilt date lost its seconds on every edit.
+    private func editableParts(of date: Date) -> DateComponents {
+        calendar.dateComponents([.era, .year, .month, .day, .hour, .minute, .second, .nanosecond], from: date)
+    }
 
     /// Re-derives the day for its (possibly changed) month, rebuilds the date,
     /// and clamps to the range.
