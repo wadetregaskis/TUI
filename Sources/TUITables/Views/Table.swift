@@ -574,6 +574,10 @@ private enum StateIndex {
     /// What a pulled table of multi-line rows keeps between frames: the
     /// anchor its rows are walked from (``PulledRows``, SCROLL-FIT P4).
     static let pulledRows = 6
+    /// The `.fit` columns' kept walks (``_TableFitRecords``), which outlive
+    /// the render cache's entry: a write sweeps that, and a hidden tab's pass
+    /// prunes it.
+    static let fitRecords = 7
 }
 
 /// What the plain layout's width pass throws when the columns' minimum widths
@@ -5804,8 +5808,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// over the page to ask whether its presenter was left out
     /// (`StateStorage.noteWindowedRows`) — its row found among the rows'
     /// identities (``rowIdentity(of:context:)``).
+    /// And for the `.fit` records' challenge, which reads them again
+    /// (``_TableFitRecords/drawn``).
     private func noteDrawnRows(_ drawn: Range<Int>, stateStorage: StateStorage, context: RenderContext) {
-        guard !context.isMeasuring, stateStorage.notesWindowedRows else { return }
+        guard !context.isMeasuring else { return }
+        let fitKey = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.fitRecords)
+        (stateStorage.existingStorage(for: fitKey) as StateBox<_TableFitRecords>?)?.value.drawn = drawn
+        guard stateStorage.notesWindowedRows else { return }
         let data = data
         stateStorage.noteWindowedRows(
             WindowedRows(
@@ -6061,6 +6070,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ///
     /// Data that cannot be compared — a row type that is not `Equatable` — has
     /// no signature, so it scans every frame exactly as before.
+    ///
+    /// A miss here is not a walk of every row: it falls back to the column's
+    /// record in `@State` (``keptFitWidth(of:cappedAt:signature:context:)``),
+    /// which the writes that sweep this entry do not reach. Without it, the
+    /// write that appends a row read every row again (PERFCASE-F1), and so did
+    /// every switch to a tab whose table the hidden frames had pruned from the
+    /// cache (PERFCASE-F2).
     private func fitWidth(
         of column: _TableColumnSpec<Value>, cappedAt cap: Int?, context: RenderContext
     ) -> Int {
@@ -6113,8 +6129,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // reads an `@Observable` is read here and nowhere a body is: observed
         // at the table, so a write drops the width it fitted.
         let leaseMark = context.renderCache?.leases.beginComputation()
+        let signature = memo?.signature ?? (context.renderCache == nil ? nil : Self.rowsSignature(of: data))
         let fitted = observingKeptResult(of: Self.self, kind: .keptMeasure, context: context) {
-            scanForFitWidth(of: column, cappedAt: cap, context: context)
+            keptFitWidth(of: column, cappedAt: cap, signature: signature, context: context)
         }
         let lease = context.renderCache?.leases.endComputation(leaseMark)
 
@@ -6128,29 +6145,224 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         return fitted
     }
 
-    /// The widest of `column`'s header and cells, stopping at `cap` — the scan
-    /// ``fitWidth(of:at:cappedAt:context:)`` keeps the answer of.
+    /// The widest of `column`'s header and cells, stopping at `cap`, walked
+    /// from the first row — the scan ``fitWidth(of:at:cappedAt:context:)``
+    /// keeps the answer of, and what its verifier checks a kept one against.
     private func scanForFitWidth(
         of column: _TableColumnSpec<Value>, cappedAt cap: Int?, context: RenderContext
     ) -> Int {
-        // The header measured here is the one that will be DRAWN, sort
-        // indicator and all: measuring the bare title instead fitted the
-        // column two cells short and truncated its own header ("Track…").
-        var fitted =
-            headerLines(context.environment) > 0 ? headerTitle(for: column).strippedLength : 0
+        let header = fitHeaderWidth(of: column, context: context)
+        var walk = _TableFitWalk()
+        walkFitCells(of: column, continuing: &walk, header: header, cappedAt: cap, context: context)
+        return max(header, walk.widest)
+    }
+
+    /// The width of `column`'s header as it will be DRAWN, sort indicator and
+    /// all: measuring the bare title instead fitted the column two cells short
+    /// and truncated its own header ("Track…").
+    private func fitHeaderWidth(of column: _TableColumnSpec<Value>, context: RenderContext) -> Int {
+        headerLines(context.environment) > 0 ? headerTitle(for: column).strippedLength : 0
+    }
+
+    /// Walks `column`'s cells on from where `walk` stopped, to the end or to
+    /// the first row that brings the widest — with the header — to `cap`.
+    private func walkFitCells(
+        of column: _TableColumnSpec<Value>, continuing walk: inout _TableFitWalk, header: Int,
+        cappedAt cap: Int?, context: RenderContext
+    ) {
+        readFitCells(of: column, at: walk.walked..<data.count, cappedAt: cap, context: context) { ordinal, width in
+            walk.walked = ordinal + 1
+            walk.note(width, at: ordinal)
+            return cap.map { max(header, walk.widest) < $0 } ?? true
+        }
+        walk.stopped = walk.walked < data.count
+    }
+
+    /// Reads `column`'s cells in the rows `ordinals`, in order, as the `.fit`
+    /// walk reads them, handing each row's width to `take` for as long as it
+    /// answers `true`. The context a cell is read under is made once, not per
+    /// cell: a `RenderContext` copied per row of a string column, which reads
+    /// none of it, cost a walk its retains.
+    private func readFitCells(
+        of column: _TableColumnSpec<Value>, at ordinals: some Sequence<Int>, cappedAt cap: Int?,
+        context: RenderContext, _ take: (_ ordinal: Int, _ width: Int) -> Bool
+    ) {
         // A view cell is measured at the widest the column could be, under a
-        // measuring context: this walks every row, drawn or not.
+        // measuring context: the walk reads rows that are not drawn.
         let probe = column.laysOutItsOwnLines ? Self.probing(context) : context
-        let probeWidth = cap ?? context.availableWidth
+        let width = cap ?? context.availableWidth
         // A one-line column's cell is one line however it arrived — a view
         // cell keeps its first — so only a taller one has lines to compare.
         let mayHaveLines = column.laysOutItsOwnLines && column.lineLimit > 1
-        for item in data {
-            let value = cellValue(column, for: item, width: probeWidth, context: probe)
-            fitted = max(fitted, Self.widestLine(of: value, laidOut: mayHaveLines))
-            if let cap, fitted >= cap { break }
+        for ordinal in ordinals {
+            let value = cellValue(column, for: data[ordinal], width: width, context: probe)
+            guard take(ordinal, Self.widestLine(of: value, laidOut: mayHaveLines)) else { return }
         }
-        return fitted
+    }
+
+    // MARK: - Kept `.fit` walks
+
+    /// The width a `.fit` column needs, answered from its kept record
+    /// (``_TableFitRecord``) where that can be done exactly, and walking only
+    /// what it cannot: nothing for rows already read, the new rows for a
+    /// collection that only grew, and every row for one that lost or changed
+    /// rows — so a removed widest row narrows the column, as a walk would.
+    ///
+    /// What ``fitWidth(of:cappedAt:context:)`` asks on a miss of its render
+    /// cache entry, under the same observation and lease, which holds what
+    /// the record's walks observed (``_TableFitRecord/use(in:)``).
+    private func keptFitWidth(
+        of column: _TableColumnSpec<Value>, cappedAt cap: Int?, signature: AnyEquatableBox?,
+        context: RenderContext
+    ) -> Int {
+        let header = fitHeaderWidth(of: column, context: context)
+        var walk = _TableFitWalk()
+        guard let signature, let records = fitRecords(context) else {
+            walkFitCells(of: column, continuing: &walk, header: header, cappedAt: cap, context: context)
+            return max(header, walk.widest)
+        }
+        let index = column.declarationIndex
+        let probeWidth = column.laysOutItsOwnLines ? cap ?? context.availableWidth : nil
+        let wraps = column.laysOutItsOwnLines && column.lineLimit > 1
+        let count = data.count
+        // What an extension files: the prefix as checked as the challenge left
+        // it, and the leases of the walks that read it.
+        var inheritedVerification: Int?
+        var inheritedLeases: [ObservationLease] = []
+        if var record = records.columns[index], record.isCurrent(in: context),
+            record.isLaidOutAlike(at: probeWidth, wraps: wraps),
+            record.answers(header: header, cap: cap)
+        {
+            let whole = record.covered == count && record.rows == signature
+            if whole || (record.covered <= count && signature.extends(record.rows)) {
+                // The drawn rows only when the collection did not move: a
+                // collection that grew has its new rows walked below.
+                let drawn = whole ? records.drawn : 0..<0
+                if challengeFitRecord(&record, of: column, drawn: drawn, header: header, cappedAt: cap, context: context) {
+                    records.columns[index] = record
+                    record.use(in: context)
+                    if whole { return max(header, record.widest) }
+                    walk = _TableFitWalk(
+                        widest: record.widest, widestOrdinal: record.widestOrdinal, runnerUp: record.runnerUp,
+                        walked: record.covered)
+                    inheritedVerification = record.verifiedGeneration
+                    inheritedLeases = record.walkLeases + [record.challengeLease].compactMap { $0 }
+                } else {
+                    // Falsified, so gone: kept, it would only be challenged again.
+                    records.columns[index] = nil
+                }
+            }
+        }
+
+        let leaseMark = context.renderCache?.leases.beginComputation()
+        let keepable = readingNothingVolatile(context) {
+            walkFitCells(of: column, continuing: &walk, header: header, cappedAt: cap, context: $0)
+        }
+        let walkLease = context.renderCache?.leases.endComputation(leaseMark)
+        // A walk the cap stopped knows a lower bound, not a maximum; one that
+        // read something that moves on its own, or under an environment that
+        // cannot be compared, knows a maximum for this frame only.
+        if keepable, !walk.stopped, !context.environment.hasUncomparableEnvironmentValue {
+            records.columns[index] = _TableFitRecord(
+                rows: signature, covered: walk.walked, probeWidth: probeWidth, wraps: wraps,
+                widest: walk.widest, widestOrdinal: walk.widestOrdinal, runnerUp: walk.runnerUp,
+                widthGeneration: TerminalWidthTraits.generation,
+                measureGeneration: context.generationIgnoringIdealWidth,
+                clearGeneration: context.renderCache?.clearGeneration ?? 0,
+                verifiedGeneration: inheritedVerification ?? (context.renderCache?.sizeClearGeneration ?? 0),
+                walkLeases: inheritedLeases + [walkLease].compactMap { $0 },
+                challengeLease: nil)
+        }
+        return max(header, walk.widest)
+    }
+
+    /// Reads again, after a size clear the record has not seen — a write
+    /// somewhere above the table — the row that decided its maximum and, for
+    /// an unchanged collection, the rows the last frame drew: `ContentWidthRecord`'s
+    /// challenge (`_VStackCore.challenge`), whose reasoning and residue this
+    /// shares. `true`, with the record moved to what was read, when the
+    /// maximum is still known exactly; `false` when only a walk can say.
+    private func challengeFitRecord(
+        _ record: inout _TableFitRecord, of column: _TableColumnSpec<Value>, drawn: Range<Int>, header: Int,
+        cappedAt cap: Int?, context: RenderContext
+    ) -> Bool {
+        guard record.verifiedGeneration != (context.renderCache?.sizeClearGeneration ?? 0) else { return true }
+        // What this challenge reads lives under a lease of its own, which the
+        // record keeps once the challenge answers — replacing the last one's.
+        let leaseMark = context.renderCache?.leases.beginComputation()
+        var leaseTaken = false
+        defer {
+            if !leaseTaken { _ = context.renderCache?.leases.endComputation(leaseMark) }
+        }
+        let limit = cap ?? Int.max
+        let reach = min(record.covered, data.count)
+        let widestOrdinal = record.widestOrdinal
+        var read = _TableFitWalk(runnerUp: record.runnerUp)
+        var known = true
+        let keepable = readingNothingVolatile(context) { context in
+            // Every row read here is known exactly; every other row is at most
+            // the runner-up, on the challenge's premise that it did not move.
+            var ordinals = drawn.clamped(to: 0..<reach).filter { $0 != widestOrdinal }
+            if let widestOrdinal {
+                guard widestOrdinal < data.count else { return known = false }
+                ordinals.insert(widestOrdinal, at: 0)
+            }
+            readFitCells(of: column, at: ordinals, cappedAt: cap, context: context) { ordinal, width in
+                guard max(header, width) < limit else {
+                    known = false
+                    return false
+                }
+                read.note(width, at: ordinal)
+                return true
+            }
+        }
+        // Narrower than the bound on the rows NOT read: one of them may be the
+        // widest now, and only a walk can say which.
+        guard known, read.widestOrdinal == nil || read.widest >= record.runnerUp else { return false }
+        leaseTaken = true
+        record.challengeLease = context.renderCache?.leases.endComputation(leaseMark)
+        record.widest = read.widest
+        record.widestOrdinal = read.widestOrdinal
+        record.runnerUp = read.runnerUp
+        // Read AFTER the cells: a clear a read itself caused is one this
+        // answer reflects.
+        if keepable, !context.environment.hasUncomparableEnvironmentValue {
+            record.verifiedGeneration = context.renderCache?.sizeClearGeneration ?? 0
+        }
+        return true
+    }
+
+    /// Runs `read` under a volatile-read tracker — the pass's, or one of its
+    /// own where the pass has none — and answers whether it read nothing that
+    /// moves on its own, so what it found may be kept past this frame.
+    private func readingNothingVolatile(_ context: RenderContext, _ read: (RenderContext) -> Void) -> Bool {
+        if let tracker = context.environment.volatileReadTracker {
+            let before = tracker.cacheUnsafeCount
+            read(context)
+            return tracker.cacheUnsafeCount == before
+        }
+        let tracker = VolatileReadTracker()
+        context.withVolatileReadTracker(tracker) { read($0) }
+        return tracker.cacheUnsafeCount == 0
+    }
+
+    /// This table's `.fit` records, made where there are none yet — `nil`
+    /// outside a pass with state and a cache — and emptied when a cell closure
+    /// read an `@Observable` that has since changed: the walks' scopes report
+    /// at this table's identity, and the change may be in a row no challenge
+    /// reads.
+    ///
+    /// Made from a measure too: every field in it is derived from the rows,
+    /// the case `StackContentWidth.swift`'s "Why rung 3 may be written from a
+    /// measure" sets out.
+    private func fitRecords(_ context: RenderContext) -> _TableFitRecords? {
+        guard let storage = context.stateStorage, let cache = context.renderCache else { return nil }
+        let records = storage.storage(
+            for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.fitRecords),
+            default: _TableFitRecords()
+        ).value
+        if cache.link.takeObservedChange(forReportAt: context.identity) { records.columns.removeAll() }
+        return records
     }
 
     /// A cell's width in cells: its widest line when it arrived laid out.

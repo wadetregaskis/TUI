@@ -10,8 +10,9 @@
 
 /// Findings a case's scaling rerun shows, by case: printed as `KNOWN` on every
 /// run, and failed for nothing, as a session's `knownIssues` are. Only the
-/// counts named are excused; any other count that breaks the class fails.
-/// The fix of a finding takes its entry out.
+/// counts named are excused — a bare count (`"cells"`) in every phase, a count
+/// after a phase's label (`"open cells"`) in that phase alone — and any other
+/// count that breaks the class fails. The fix of a finding takes its entry out.
 ///
 /// The scaling rerun's own counts are still recorded and compared exactly
 /// (the `@10n` / `@2n` lines), so a finding that gets worse fails there.
@@ -20,18 +21,19 @@
 enum CaseKnownIssues {
     static let scaling: [String: (counts: Set<String>, finding: String)] = [
         "table-fit-tail": (
-            ["cells"],
-            "PERFCASE-F1: every appended row rescans all n rows of every .fit column (5n cell values a frame): "
-                + "the fit-width memo is keyed by the rows, which an append changes"
+            ["open cells"],
+            "a .fit column reads every row as its table opens, which is what .fit means (5n cell values), and "
+                + "again for each whole-cache clear of the open's frames (PERFCASE-F5)"
         ),
         "tabs-switch": (
-            ["cells"],
-            "PERFCASE-F2: the hidden tab's table scans its .fit columns at open (5n cell values) though it draws "
-                + "nothing, and every switch to it scans them again (PERFCASE-F1's memo, dropped while hidden)"
+            ["open cells", "key:right cells"],
+            "the hidden tab's table reads its .fit columns at open (5n cell values), measured for the panel's size, "
+                + "and again at the first switch to it, whose frame clears the whole cache (PERFCASE-F5)"
         ),
         "split-resize": (
-            ["cells", "misses"],
-            "PERFCASE-F1 again, per resize; and the narrow resize misses 12 more measures at 10n than at n"
+            ["open cells", "resize:80x24 cells", "resize:200x60 cells", "misses"],
+            "PERFCASE-F5: a resize clears the whole cache, and a .fit column's kept walk with it; and the narrow "
+                + "resize misses 12 more measures at 10n than at n"
         ),
         "chat-lazy-follow": (
             ["bodies", "misses"],

@@ -145,8 +145,9 @@ enum CountCheck {
     /// `flat`: every count of the rerun at 10n is the count at n: O(1).
     /// `linear`: every count of the rerun at 2n is either the count at n or
     /// twice it, ±10%: O(1) or O(n), never worse, and never shrinking. A
-    /// count the case's known issues name (``CaseKnownIssues``) is printed as
-    /// known rather than failed.
+    /// count the case's known issues name (``CaseKnownIssues``) — in every
+    /// phase, or in the one phase they name with it — is printed as known
+    /// rather than failed.
     private static func checkScaling(
         _ perfCase: PerfCase, _ base: CasePlay, _ rerun: CasePlay, factor: Int, into report: inout Report
     ) {
@@ -165,7 +166,7 @@ enum CountCheck {
                 }
                 guard !keeps else { continue }
                 let what = "\(label): \(name) \(x) at n but \(y) at \(factor)n"
-                if known?.counts.contains(name) == true {
+                if let known, known.counts.contains(name) || known.counts.contains("\(label) \(name)") {
                     brokenKnown.append(what)
                 } else {
                     report.fail(perfCase, "\(what), and the case is \(perfCase.scaling.rawValue)")

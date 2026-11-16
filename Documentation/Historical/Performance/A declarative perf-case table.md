@@ -445,9 +445,24 @@ before anything reads them; the colour depth is pinned per frame, at 24 bits, as
 - **PERFCASE-F1.** A row appended to a `Table` rescans every row of every `.fit` column: `table-fit-tail` reads
   515,625 cell values over 50 appends at 2,000 rows (5 columns × 2,062 rows a frame), 5,015,625 at 20,000. The
   fit-width memo is keyed by the rows' data, which an append changes, so the O(rows) scan `sweep.py` found is still
-  there for a growing table. `split-resize` pays it on every resize.
+  there for a growing table. `split-resize` pays it on every resize. **Fixed (2026-11-16):** each `.fit` column keeps
+  its walk in `@State` as well (`_TableFitRecord`, `TableFitRecord.swift`), which the write that brings a row does not
+  sweep, and extends it by the rows a collection grew by — the lazy stack's content-width record
+  (`StackContentWidth.swift`) followed rung for rung, challenge included. `table-fit-tail`'s 50 appends now read 9,750
+  cell values at n and at 10n alike: the drawn rows, the new row and, after the write, the row that decided each
+  width.
 - **PERFCASE-F2.** A hidden tab's `.fit` table scans its columns at open: `tabs-switch` reads 15,000 cell values
-  (5 × 3,000) for a table nothing draws.
+  (5 × 3,000) for a table nothing draws. And every switch to it read them again, the cache's entry pruned by the
+  frames the tab was hidden in. **Fixed (2026-11-16)** with PERFCASE-F1: the record is in the table's `@State`, which
+  a tab view keeps for its hidden tabs, and the second switch reads 362 cell values (15,180 before), at n and 10n.
+  The read at open stays — the tab view measures every tab once for its panel's size, and a `.fit` width is a walk of
+  every row — and so does the first switch's, for PERFCASE-F5.
+- **PERFCASE-F5.** A whole-cache clear (`RenderCache.clearGeneration`) makes a `.fit` column's kept walk stale, as it
+  makes a lazy stack's content width stale, and every row is read again: twice as `table-fit-tail` opens (30,740 at
+  n), at the first switch to `tabs-switch`'s table (30,360), and at each of `split-resize`'s resizes, since a new
+  terminal size moves the `EnvironmentSnapshot`. Not every such clear moves anything a cell's width depends on — a
+  resize moves only the terminal's size — but the counter does not say which; a record that could tell them apart
+  would serve all three.
 - **PERFCASE-F3.** The bottom-anchored lazy stack is not O(window): at 10n `chat-lazy-follow` runs 21% more bodies
   and misses 29% more measures as it opens, and 10% and 19% more per row appended.
 - **PERFCASE-F4, withdrawn: the case's mistake, not the code's.** It said a hover moves nothing on a `List`, since

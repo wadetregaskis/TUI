@@ -15,6 +15,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A row appended to a `Table` with `.fit` columns costs that row, and a hidden tab's table costs next to nothing to
+switch back to.** A `.fit` column's width was kept in the render cache, which the write that brings a row sweeps, and
+which a table not drawn while its tab was hidden lost at the end of every frame: each appended row, and each switch to
+the tab, read every cell of every `.fit` column again — 2,000 rows of five columns, 10,000 cells, for one row. The
+width is now kept with the table's state as well: a collection that only grew reads its new rows; one unchanged reads,
+after a write, the row that decided the width and the rows on screen; and one that lost or changed rows is read again,
+so removing the widest row still narrows the column. A table its container gives another width reads no row either,
+unless its one-line cells reach the width they were laid out at. A change to the terminal's size, the theme or
+anything else that clears every cached view still reads every row.
+
 **A `TextEditor` lays its text out once in the frame it first appears, not once for every measure.** Before its
 first render had made the handler that keeps the layout, each measure of a new editor split its whole text into lines
 afresh, and the render once more: six times over for an editor beside a tree and under a heading, 658 ms of a 786 ms

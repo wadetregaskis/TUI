@@ -98,12 +98,15 @@ struct TableFitColumnMemoTests {
 
     /// A settled table over unchanged rows walks none of them.
     ///
-    /// Three frames, not two, and the third is the one that matters. The table
-    /// builds its own `@State` while rendering frame 1; that write invalidates
-    /// its subtree, and the cache applies it at the start of frame 2 — which
-    /// therefore scans and stores, and frame 3 is the first that can be served.
-    /// Every memo in the framework has a version of this warm-up; here it is
-    /// visible because the oracle is a count rather than a clock.
+    /// Three frames, not two. The table builds its own `@State` while rendering
+    /// frame 1; that write invalidates its subtree, and the cache applies it at
+    /// the start of frame 2, which finds the cache's entry gone. It used to
+    /// walk every row again there; the column's record in `@State`
+    /// (`_TableFitRecord`), which the write does not reach, now answers it,
+    /// reading only the row that decided the width again (the challenge after
+    /// a write), and frame 3 is served from the cache. Every memo in the
+    /// framework has a version of this warm-up; here it is visible because the
+    /// oracle is a count rather than a clock.
     ///
     /// The residue each frame is the VISIBLE rows: `renderRow` asks each
     /// column for the cell it draws, which no memo removes and none should.
@@ -115,7 +118,7 @@ struct TableFitColumnMemoTests {
         let counts = scanCounts(frames: 3, in: context, calls: calls, comparableTable(data, calls: calls))
 
         #expect(counts[0] >= data.count, "frame 1 walks every row: \(counts)")
-        #expect(counts[1] >= data.count, "frame 2 re-walks after the state write: \(counts)")
+        #expect(counts[1] < 50, "frame 2 walked \(counts[1]) rows after the state write: \(counts)")
         #expect(counts[2] < 50, "frame 3 walked \(counts[2]) rows, of 200: \(counts)")
     }
 
