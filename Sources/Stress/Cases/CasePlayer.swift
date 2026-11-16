@@ -91,21 +91,8 @@ final class CasePlayer {
     /// scenario `Stress` does not have.
     init?(_ perfCase: PerfCase, count: Int) {
         rows = CaseRows(count: count, seed: Self.seed, keepsDocument: perfCase.composition.hasEditor)
-        let page: AnyView
-        if case .adopted(let scenario, let variant) = perfCase.composition {
-            guard let adopted = CasePage.adopted(scenario: scenario, variant: variant, scale: count, seed: Self.seed)
-            else { return nil }
-            page = adopted
-        } else {
-            page = AnyView(CasePage(composition: perfCase.composition, container: perfCase.container, rows: rows))
-        }
-        app = HeadlessApp(
-            CaseHost(page: page, followsPointer: perfCase.composition.followsPointer),
-            width: perfCase.size.width, height: perfCase.size.height)
-        app.configureEnvironment { environment in
-            environment.locale = Locale(identifier: "en_US")
-            environment.colorScheme = .dark
-        }
+        guard let page = perfCase.page(rows: rows, count: count, seed: Self.seed) else { return nil }
+        app = perfCase.app(page: page)
     }
 
     /// Plays every phase of `perfCase` and counts each.
@@ -138,44 +125,28 @@ final class CasePlayer {
 
     private func take(_ step: CaseStep) {
         switch step {
-        case .open, .idle:
-            break  // the frames drawn after every step are what these ask for
-        case .wheel(let ticks):
-            let button: MouseButton = ticks > 0 ? .scrollDown : .scrollUp
-            let (width, height) = app.size
-            pinned {
-                for _ in 0..<abs(ticks) {
-                    _ = app.send(MouseEvent(button: button, phase: .scrolled, x: width / 2, y: height / 2))
-                }
-            }
-        case .key(let key):
-            pinned { _ = app.send(key.event) }
-        case .type(let text):
-            for character in text {
-                pinned { _ = app.send(KeyEvent(key: .character(character))) }
+        case .type:
+            // A character, then its frames, then the next.
+            for key in step.input(size: app.size, pointer: &pointer).keys {
+                pinned { _ = app.send(key) }
                 drawFrames()
             }
             return
-        case .hover(let rows):
-            let height = app.size.height
-            let start = pointer ?? (x: app.size.width / 2, y: 0)
-            let moved = (x: start.x, y: max(0, min(height - 1, start.y + rows)))
-            pointer = moved
-            pinned { _ = app.send(MouseEvent(button: .none, phase: .moved, x: moved.x, y: moved.y)) }
         case .resize(let size):
             app.resize(width: size.width, height: size.height)
         case .tick(let milliseconds):
             nanos += Int64(milliseconds) * 1_000_000
-        case .append(let count):
-            rows.append(count)
-        case .editMiddle:
-            rows.editMiddle()
-        case .remove(let index):
-            rows.remove(at: index)
-        case .move(let from, let to):
-            rows.move(from: from, to: to)
-        case .replace:
-            rows.replace()
+        default:
+            // `open` and `idle` send and write nothing: the frames drawn
+            // after every step are what they ask for.
+            let input = step.input(size: app.size, pointer: &pointer)
+            if !input.keys.isEmpty || !input.mouse.isEmpty {
+                pinned {
+                    for key in input.keys { _ = app.send(key) }
+                    for event in input.mouse { _ = app.send(event) }
+                }
+            }
+            rows.write(step)
         }
         drawFrames()
     }
