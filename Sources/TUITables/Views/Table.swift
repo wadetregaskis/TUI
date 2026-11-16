@@ -729,28 +729,8 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// a tree's open branches are state, kept at this table's identity, which
     /// only a pass's context can reach. Everything past the entry points then
     /// reads an ordinary table of rows.
-    private mutating func resolveRows(_ context: RenderContext) {
-        if let rowTree {
-            let expansion: StateBox<Set<AnyHashable>> =
-                context.stateStorage?.storage(
-                    for: StateStorage.StateKey(
-                        identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
-                    default: []) ?? StateBox([])
-            let outline: _TableOutline<Value>
-            if let roots = rowTree.roots {
-                // Kept from pass to pass: a pass that opens nothing and is
-                // handed the same roots makes no outline (decisions B-FP2-5).
-                let cache = context.stateStorage?.storage(
-                    for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.outlineCache),
-                    default: _TableOutlineCache<Value>())
-                outline = (cache?.value ?? _TableOutlineCache()).outline(of: roots, expansion: expansion)
-            } else {
-                outline = _TableOutline(tree: rowTree, expansion: expansion)
-                // A tree written as row content is flattened again every pass,
-                // every open row's content built by the app's row builders:
-                // counted as a list's row boxes are (see `RowWork.listed`).
-                context.renderCache?.rowWork.listed += outline.values.count
-            }
+    private mutating func resolveRows(_ context: RenderContext, outline: _TableOutline<Value>?) {
+        if let outline {
             outline.onExpansionChange = onOutlineExpansionChange
             data = outline.values
             rowTraits = outline.traits
@@ -772,6 +752,44 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         }
     }
 
+    /// This table's tree flattened into the rows that show this pass, or `nil`
+    /// for a table that is not a tree. Asked by ``prepared(_:measuring:)`` of
+    /// the copy a pass laid out, before it prepares one.
+    private func flattenedOutline(_ context: RenderContext) -> _TableOutline<Value>? {
+        guard let rowTree else { return nil }
+        let expansion: StateBox<Set<AnyHashable>> =
+            context.stateStorage?.storage(
+                for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
+                default: []) ?? StateBox([])
+        if let roots = rowTree.roots {
+            // Kept from pass to pass: a pass that opens nothing and is handed
+            // the same roots makes no outline (decisions B-FP2-5).
+            let cache = context.stateStorage?.storage(
+                for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.outlineCache),
+                default: _TableOutlineCache<Value>())
+            return (cache?.value ?? _TableOutlineCache()).outline(of: roots, expansion: expansion)
+        }
+        // A tree written as row content is flattened again every pass, every
+        // open row's content built by the app's row builders (G1-rows), and
+        // counted as a list's row boxes are (see `RowWork.listed`). Once a
+        // pass at this place: each measure and the draw prepares the table, and
+        // a table in a stack is measured before it is drawn, which listed every
+        // open row two or three times a frame. The flattening reads the tree
+        // and the expansion at this place, never the environment or the width.
+        // It is kept under the tree's first level (`_TableOutlineSource`), not
+        // this value: the draw's table is usually another value, made by its
+        // parent's body evaluated again for the draw, its row builders new
+        // closures over the same rows.
+        let flatten = {
+            let outline = _TableOutline(tree: rowTree, expansion: expansion)
+            context.renderCache?.rowWork.listed += outline.values.count
+            return outline
+        }
+        return context.renderCache?.composedOncePerPass(
+            for: _TableOutlineSource(rowTree), context: context, readsLayout: false, flatten)
+            ?? flatten()
+    }
+
     /// This table as a pass lays it out, when that is not this copy: its row
     /// heights sized (``sizeRows(_:)``), the widths it keeps for its columns
     /// applied (``applyKeptWidths(_:)``), its rows resolved
@@ -785,12 +803,13 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// twice a pass, and the table copied twice where its rows were sized.
     private func prepared(_ context: RenderContext, measuring: Bool = false) -> Self? {
         guard !isPrepared else { return nil }
+        let outline = flattenedOutline(context)
         var table = self
         table.isPrepared = true
         table.readLiveHeaders(context, measuring: measuring)
         table.sizeRows(context.environment)
         table.applyKeptWidths(context)
-        if table.needsResolution { table.resolveRows(context) }
+        if table.needsResolution { table.resolveRows(context, outline: outline) }
         table.cascadesCellText = Self.cellTextAttributes(context.environment) != StyleAttributes()
         // Headers spelled in ASCII once here, where `TUI_PLAIN_TEXT=transliterate`
         // asks, so the width they're measured at is the width they're drawn at;

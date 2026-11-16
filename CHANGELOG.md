@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `Table` whose tree is row content flattens it once a frame.** A table whose rows are a tree written as row
+content (`DisclosureTableRow`, a `ForEach` of rows beneath one) built the content of every open row each time a frame
+laid it out: once for each measure a stack around it made, and again to draw it. In a page's stack, as an editor's
+table sits under its toolbar, that was two or three times a frame. The rows are built once a frame now and handed to
+every measure and the draw; rows or open branches that change between frames are built again.
+
 **An outline in a `List`'s `Section` builds only the rows it draws.** `List { Section { OutlineGroup(…) } }` made a
 row for every open node of its tree on every frame, as `List(_:children:)` did before it was windowed. A list whose
 content is one section holding an outline now windows its rows the same way, with the section's header before them

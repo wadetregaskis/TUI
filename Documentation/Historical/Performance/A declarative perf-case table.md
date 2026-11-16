@@ -646,6 +646,21 @@ in it, recorded on a clean debug build. It lists every open row twice a frame, w
 Filed under G1-rows with `outline-rows`; the second listing a pass is not part of the row-builder contract
 question, and is the case's to remove.
 
+**Once a pass (2026-11-16).** The table flattens its tree once a pass at its place and hands that outline to every
+measure and the draw (`RenderCache.composedOncePerPass(for:context:readsLayout:_:)`, the pass's keep a `Form`'s
+rows use, here with `readsLayout: false`: the flattening reads neither the environment nor the width). It is kept
+under the tree's first level, its rows' ids and which are branches (`_TableOutlineSource`), not under the table's
+value: the stack's measure and its draw each ran the page's body, a quick one `BodyKeep` does not keep, so the draw's
+table held new row-builder closures over the same rows, and a key of the value never matched. Within one pass the
+app's state is the state the measure saw, so the same first level is taken to have the same rows beneath; across
+passes the rows are built again, as before. `listed` halves, to `outline-rows`' counts at n and 10n:
+
+| Case | Phase | Listed at n | Listed at 10n |
+|---|---|--:|--:|
+| `outline-rows-stacked` | `key:oright` | 10,002 → 5,001 | 100,002 → 50,001 |
+| `outline-rows-stacked` | `wheel:+5` | 100,020 → 50,010 | 1,000,020 → 500,010 |
+| `outline-rows-stacked` | `key:pgdn` | 30,006 → 15,003 | 300,006 → 150,003 |
+
 ### G1-rows: why it is not fixed yet, and the options
 
 A `Table(_:children:)` keeps its outline because it can tell its tree has not changed: one array buffer of values

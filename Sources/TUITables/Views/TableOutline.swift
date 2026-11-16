@@ -266,6 +266,39 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     }
 }
 
+/// A tree of row content's first level, as the key a pass keeps the table's
+/// outline under (`RenderCache.composedOncePerPass`). Never drawn.
+///
+/// Not the tree itself: a table's parent evaluates its body again for the
+/// draw, unless its body is slow enough for the pass to keep (`BodyKeep`),
+/// and every row builder in the tree is then a new closure, at a new address,
+/// over the same rows. Within one pass, at one place, the app's state is the
+/// state the measure saw, so rows whose first level is the same — the same
+/// rows by id, in the same order, the same ones branches, with the same loops
+/// among them — are taken to be the same rows beneath. That is a premise
+/// about one pass, not across passes, where the rows are always built again
+/// (the row-builder question, G1-rows, is the owner's).
+struct _TableOutlineSource<Value: Identifiable>: View {
+    /// The first level's rows, hashed: their count, ids and which are
+    /// branches, and the number of loops among them.
+    let firstLevel: Int
+
+    init(_ tree: _TableRowBranch<Value>) {
+        var hasher = Hasher()
+        hasher.combine(tree.nodes.count)
+        hasher.combine(tree.insertions.count)
+        for node in tree.nodes {
+            hasher.combine(node.value.id)
+            hasher.combine(node.children != nil)
+        }
+        firstLevel = hasher.finalize()
+    }
+
+    var body: Never {
+        fatalError("_TableOutlineSource is a key, never drawn")
+    }
+}
+
 // MARK: - Insertions between an outline's rows
 
 /// Where the loops of a hierarchical table's shown rows take payloads in

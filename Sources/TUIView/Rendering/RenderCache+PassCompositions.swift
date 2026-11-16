@@ -7,7 +7,9 @@
 //  width before it can lay out a column, and was asked for that column three
 //  times a frame — two measures and the draw — each reading and measuring
 //  every row again, and each a fresh set of values for the measure memo to
-//  store and keep.
+//  store and keep. A `Table` whose tree is row content flattens it into the
+//  rows that show before it can measure or draw, and was asked to by every
+//  measure and the draw.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -17,10 +19,14 @@ import TUICore
 /// A place a layout composed something this pass: its identity, hashed as the
 /// measure memo hashes it (the measure generation folded in, so a composition
 /// made under one generation is never served under another), and the width
-/// it was laid out at.
+/// it was laid out at — ``anyWidth`` for one that reads no layout.
 struct PassCompositionKey: Hashable {
     let identityHash: Int
     let availableWidth: Int
+
+    /// The width of a composition made without reading the layout
+    /// (`readsLayout: false`), which serves every width: none a context has.
+    static let anyWidth = Int.min
 }
 
 /// What ``RenderCache/composedOncePerPass(for:context:_:)`` keeps at a place.
@@ -32,8 +38,9 @@ struct PassComposition {
     /// to another value while the entry stands, as the measure memo keeps the
     /// values it stores sizes for (`measuredValues`).
     let view: Any
-    /// The environment it was made under.
-    let environment: EnvironmentStamp
+    /// The environment it was made under; `nil` for a composition that reads
+    /// none, served under any.
+    let environment: EnvironmentStamp?
     /// What the making observed, which a computation it is served to holds.
     let lease: ObservationLease?
     let composed: AnyObject
@@ -53,18 +60,33 @@ extension RenderCache {
     /// the environment comparable, and nothing volatile read while it is made.
     /// The environment has to be compared, not trusted: a measure's is not a
     /// draw's (``BodyKeep/take(_:context:cache:)``).
+    ///
+    /// With `readsLayout` false, `make()` promises more: it reads neither the
+    /// environment nor the width nor how a measure asks, only `view` and the
+    /// state at `context`'s place — a `Table` flattening its tree of row
+    /// content, which its row builders make with no context at all. Then one
+    /// composition serves every measure and the draw, at any width, under any
+    /// environment, and whatever marks a measure's generation carries (an
+    /// ideal-width or overflow ask).
     @MainActor
     package func composedOncePerPass<V: View, Composed: AnyObject>(
-        for view: V, context: RenderContext, _ make: () -> Composed
+        for view: V, context: RenderContext, readsLayout: Bool = true, _ make: () -> Composed
     ) -> Composed {
-        guard let tracker = volatileReadTracker, let valueHash = viewValueHash(view, plans: valueHashPlans),
-            let environment = revalidation.stamps.stamp(of: context.environment)
+        guard let tracker = volatileReadTracker, let valueHash = viewValueHash(view, plans: valueHashPlans)
         else { return make() }
+        var environment: EnvironmentStamp?
+        if readsLayout {
+            guard let stamp = revalidation.stamps.stamp(of: context.environment) else { return make() }
+            environment = stamp
+        }
+        // The generation without its marks (bits 6 and 7), for a composition
+        // that reads no layout: they say how a measure asks, not what it sees.
+        let generation = readsLayout ? context.measureGeneration : context.measureGeneration & 0x3F
         let key = PassCompositionKey(
-            identityHash: measureIdentityHash(context.identity, generation: context.measureGeneration),
-            availableWidth: context.availableWidth)
+            identityHash: measureIdentityHash(context.identity, generation: generation),
+            availableWidth: readsLayout ? context.availableWidth : PassCompositionKey.anyWidth)
         if let kept = passCompositions[key], kept.viewType == ObjectIdentifier(V.self), kept.valueHash == valueHash,
-            kept.environment === environment || kept.environment.isEquivalent(to: environment),
+            Self.stamp(kept.environment, serves: environment),
             let composed = kept.composed as? Composed
         {
             compositionCounts.served += 1
@@ -82,6 +104,14 @@ extension RenderCache {
                 lease: lease, composed: composed)
         }
         return composed
+    }
+
+    /// Whether a composition made under `kept` serves a context under
+    /// `asked`: both `nil` (one that reads no layout, kept at ``PassCompositionKey/anyWidth``,
+    /// where nothing else is), or stamps that cannot be told apart.
+    private static func stamp(_ kept: EnvironmentStamp?, serves asked: EnvironmentStamp?) -> Bool {
+        guard let kept, let asked else { return kept == nil && asked == nil }
+        return kept === asked || kept.isEquivalent(to: asked)
     }
 
     /// Lets go of every composition kept this pass.
