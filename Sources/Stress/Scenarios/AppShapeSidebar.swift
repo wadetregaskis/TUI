@@ -113,6 +113,50 @@ private struct UntaggedProjectList: View {
     }
 }
 
+// MARK: - The filtered sidebar
+
+/// The source list filtered in its body, as a search field drives one: two
+/// thousand projects, a new array of them every frame, in the sidebar a
+/// `NavigationSplitView` hugs.
+///
+/// The shape the hug's kept width is priced on. The split view asks its sidebar
+/// for the width of its widest row on every frame, by the measure and again by
+/// the render, and the rows the list is handed are a new buffer each time, so a
+/// kept width compared against the rows themselves compared every one of them
+/// per ask (`_ListCore.widestRowWidth`). The `sidebar` pair has a hand-written
+/// row, which leaves the list nothing to compare and walks it instead.
+struct FilteredSidebarApp: View {
+    /// Synthesised once, like a workspace's project list.
+    let projects: [SidebarProject]
+    @State private var pick: Int? = 0
+
+    init(count: Int, seed: UInt64) {
+        self.projects = (0..<count).map { SidebarProject.sample($0, seed: seed) }
+    }
+
+    var body: some View {
+        // Every project with issues open: what a "has issues" filter shows, and
+        // a new array each time the body runs.
+        let shown = projects.filter { $0.openIssues > 0 }
+        return VStack(alignment: .leading, spacing: 0) {
+            Text(Lf("stress.scenario.app-shapes.heading", "sidebar-filtered", shown.count)).bold()
+            NavigationSplitView {
+                List(shown, selection: $pick) { ProjectRow(project: $0) }
+            } detail: {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("\(shown.count) of \(projects.count) projects")
+                    Divider()
+                    HStack(spacing: 2) {
+                        Spacer()
+                        // In a leaf, for the reason `TickStamp` gives.
+                        TickStamp()
+                    }
+                }
+            }
+        }
+    }
+}
+
 /// One project: its name, and a count pushed to the trailing edge.
 private struct ProjectRow: View {
     let project: SidebarProject
