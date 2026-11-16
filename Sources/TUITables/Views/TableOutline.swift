@@ -40,6 +40,25 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         let disclosure: Disclosure
     }
 
+    /// One visible row's place in the tree, and its links to the rows around
+    /// it, by index: kept parallel to ``values`` rather than by id, so that
+    /// listing a row costs an append, not a store in a dictionary or three.
+    struct Row {
+        let placement: Placement
+        /// The row it sits under, by its index in ``values``, or -1 for a root.
+        let parent: Int
+        /// Its node among ``branchNodes``, or -1 for a leaf.
+        let branch: Int
+
+        /// This row in an outline that lists `rows` rows and `branches`
+        /// branches before the ones it was listed among.
+        func shifted(rows: Int, branches: Int) -> Self {
+            Self(
+                placement: placement, parent: parent < 0 ? -1 : parent + rows,
+                branch: branch < 0 ? -1 : branch + branches)
+        }
+    }
+
     /// The visible rows' values, in the order they are drawn.
     let values: [Value]
 
@@ -47,14 +66,18 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// ``values``, or `nil` when they said nothing about any.
     let traits: [_TableRowTraits]?
 
-    /// Where each visible row sits.
-    private let placements: [Value.ID: Placement]
+    /// Where each visible row sits, parallel to ``values``.
+    private let rows: [Row]
 
-    /// Each visible row's parent, for Left's walk out of a subtree.
-    private let parents: [Value.ID: Value.ID]
+    /// The visible branches, to open or close, by ``Row/branch``.
+    private let branchNodes: [_TableRowNode<Value>]
 
-    /// The visible branches, to open or close.
-    private let branches: [Value.ID: _TableRowNode<Value>]
+    /// Each visible row's index in ``values`` by its id, made the first time a
+    /// row is asked for by id — a draw asks for the rows it draws, a key for
+    /// the row it acts on — and not by the flattening, which lists every open
+    /// row of a tree written as row content again every pass. Where two rows
+    /// share an id, which SwiftUI's rows may not, the later one answers.
+    private var rowIndices: [Value.ID: Int]?
 
     /// The expansion of every branch that keeps no binding of its own.
     private let expansion: StateBox<Set<AnyHashable>>
@@ -79,9 +102,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         self.expansion = expansion
         self.values = flat.values
         self.traits = flat.anyTraits ? flat.traits : nil
-        self.placements = flat.placements
-        self.parents = flat.parents
-        self.branches = flat.branches
+        self.rows = flat.rows
+        self.branchNodes = flat.branchNodes
         self.insertionAction = flat.insertionAction
     }
 
@@ -89,12 +111,48 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// each sits.
     struct Flattening {
         var values: [Value] = []
+        /// Empty until a row has traits, then one per row (``noteTraits(_:at:)``).
         var traits: [_TableRowTraits] = []
         var anyTraits = false
-        var placements: [Value.ID: Placement] = [:]
-        var parents: [Value.ID: Value.ID] = [:]
-        var branches: [Value.ID: _TableRowNode<Value>] = [:]
+        var rows: [Row] = []
+        var branchNodes: [_TableRowNode<Value>] = []
         var insertionAction: _TableDropInsertion?
+
+        /// Notes row `row`'s traits: nothing while no row has had any, so a
+        /// tree no row modifier reached lists no traits at all.
+        mutating func noteTraits(_ rowTraits: _TableRowTraits, at row: Int) {
+            if anyTraits {
+                traits.append(rowTraits)
+            } else if !rowTraits.isEmpty {
+                anyTraits = true
+                traits = Array(repeating: _TableRowTraits(), count: row)
+                traits.append(rowTraits)
+            }
+        }
+
+        /// Notes a row listed at `depth` under the row `parent` (-1 for a
+        /// root): `node`, a branch when it has rows beneath it.
+        mutating func noteRow(_ node: _TableRowNode<Value>, depth: Int, parent: Int, isOpen: Bool) {
+            guard node.children != nil else {
+                rows.append(Row(placement: Placement(depth: depth, disclosure: .leaf), parent: parent, branch: -1))
+                return
+            }
+            rows.append(
+                Row(
+                    placement: Placement(depth: depth, disclosure: isOpen ? .open : .closed), parent: parent,
+                    branch: branchNodes.count))
+            branchNodes.append(node)
+        }
+
+        /// Appends `other`'s rows and branches after these, their links
+        /// shifted to where they now are. Not its values: the caller splices
+        /// those.
+        mutating func appendPlacements(of other: Self) {
+            let rowBase = rows.count
+            let branchBase = branchNodes.count
+            rows += other.rows.lazy.map { $0.shifted(rows: rowBase, branches: branchBase) }
+            branchNodes += other.branchNodes
+        }
     }
 
     /// Flattens `tree`: every root, and beneath each open branch its rows.
@@ -105,29 +163,26 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         var insertions = _TableOutlineInsertions(roots: tree.insertions)
         // An explicit stack, not recursion: a deep tree must not bring the
         // render pass any nearer the stack limit. Pushed in reverse so the top
-        // is always the next row in reading order.
+        // is always the next row in reading order. A row's parent is its index.
         let roots = insertions.rootList
-        var stack: [(node: _TableRowNode<Value>, depth: Int, parent: Value.ID?, siblings: Int?)] =
-            tree.nodes.reversed().map { ($0, 0, nil, roots) }
+        var stack: [(node: _TableRowNode<Value>, depth: Int, parent: Int, siblings: Int?)] =
+            tree.nodes.reversed().map { ($0, 0, -1, roots) }
         while let (node, depth, parent, siblings) = stack.popLast() {
-            let id = node.value.id
-            insertions.drew(row: flat.values.count, depth: depth, in: siblings)
+            let row = flat.values.count
+            insertions.drew(row: row, depth: depth, in: siblings)
             flat.values.append(node.value)
-            flat.traits.append(node.traits)
-            flat.anyTraits = flat.anyTraits || !node.traits.isEmpty
-            if let parent { flat.parents[id] = parent }
+            flat.noteTraits(node.traits, at: row)
             guard let children = node.children else {
-                flat.placements[id] = Placement(depth: depth, disclosure: .leaf)
+                flat.noteRow(node, depth: depth, parent: parent, isOpen: false)
                 continue
             }
-            flat.branches[id] = node
             let isOpen = Self.isOpen(node, in: expansion)
-            flat.placements[id] = Placement(depth: depth, disclosure: isOpen ? .open : .closed)
+            flat.noteRow(node, depth: depth, parent: parent, isOpen: isOpen)
             guard isOpen else { continue }
             let branch = children()
-            let list = insertions.opened(after: flat.values.count - 1, depth: depth + 1, loops: branch.insertions)
+            let list = insertions.opened(after: row, depth: depth + 1, loops: branch.insertions)
             for child in branch.nodes.reversed() {
-                stack.append((child, depth + 1, id, list))
+                stack.append((child, depth + 1, row, list))
             }
         }
         flat.insertionAction = insertions.action(rowCount: flat.values.count)
@@ -146,14 +201,28 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// the blank after it, so a child's triangle sits under its parent's label.
     static var indentStep: Int { DisclosureMetrics.triangleColumnWidth }
 
+    /// The index in ``values`` of the row `id` names, or `nil` for a row this
+    /// outline does not show: from ``rowIndices``, made on the first ask.
+    private func rowIndex(of id: Value.ID) -> Int? {
+        if let rowIndices { return rowIndices[id] }
+        var indices = [Value.ID: Int](minimumCapacity: values.count)
+        for index in values.indices { indices[values[index].id] = index }
+        rowIndices = indices
+        return indices[id]
+    }
+
+    /// The place of the row `id` names, or `nil` for a row this outline does
+    /// not show.
+    private func row(for id: Value.ID) -> Row? {
+        rowIndex(of: id).map { rows[$0] }
+    }
+
     /// What the first column's cell begins with: the row's indentation, then
     /// its triangle — or, for a leaf, a blank of the triangle's width, so the
     /// labels of a level line up whatever they are.
     func prefix(for id: Value.ID) -> String {
-        // A row with no placement is a leaf among the roots, which an outline
-        // of a collection's roots does not note one by one
-        // (``flattening(roots:branches:expansion:)``).
-        let placement = placements[id] ?? Placement(depth: 0, disclosure: .leaf)
+        // A row this outline does not show draws as a leaf among the roots.
+        let placement = row(for: id)?.placement ?? Placement(depth: 0, disclosure: .leaf)
         let indent = String.spaces(placement.depth * Self.indentStep)
         let blank = String.spaces(DisclosureMetrics.glyphSpacing)
         switch placement.disclosure {
@@ -167,7 +236,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// the column starts: its triangle and the blank after it. `nil` for a
     /// leaf.
     func triangleColumns(for id: Value.ID) -> Range<Int>? {
-        guard let placement = placements[id], placement.disclosure != .leaf else { return nil }
+        guard let placement = row(for: id)?.placement, placement.disclosure != .leaf else { return nil }
         let start = placement.depth * Self.indentStep
         return start..<(start + Self.indentStep)
     }
@@ -233,7 +302,10 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// ``setRowExpanded(_:to:includingDescendants:)``, on the main actor.
     @discardableResult
     func setExpanded(_ id: AnyHashable, to target: Bool?, includingDescendants: Bool) -> Bool {
-        guard let rowID = id.base as? Value.ID, let node = branches[rowID] else { return false }
+        guard let rowID = id.base as? Value.ID, let branch = row(for: rowID)?.branch, branch >= 0 else {
+            return false
+        }
+        let node = branchNodes[branch]
         let open = target ?? !Self.isOpen(node, in: expansion)
         var changed = false
         var stack = [node]
@@ -250,8 +322,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// The row this one sits under, or `nil` for a root row.
     func parentRowID(of id: AnyHashable) -> AnyHashable? {
-        guard let rowID = id.base as? Value.ID, let parent = parents[rowID] else { return nil }
-        return AnyHashable(parent)
+        guard let rowID = id.base as? Value.ID, let parent = row(for: rowID)?.parent, parent >= 0 else { return nil }
+        return AnyHashable(values[parent].id)
     }
 
     private func set(_ node: _TableRowNode<Value>, open: Bool) {

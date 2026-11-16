@@ -661,6 +661,16 @@ passes the rows are built again, as before. `listed` halves, to `outline-rows`' 
 | `outline-rows-stacked` | `wheel:+5` | 100,020 → 50,010 | 1,000,020 → 500,010 |
 | `outline-rows-stacked` | `key:pgdn` | 30,006 → 15,003 | 300,006 → 150,003 |
 
+**Cheaper to flatten (2026-11-16).** The flattening noted each row's place, parent and node in three dictionaries
+keyed by its id, 16.5% of a frame of `outline-rows-stacked` in their stores. It keeps them in arrays parallel to the
+rows now, and builds the one index by id the first time a row is asked for by id (a draw asks for the rows it draws);
+a row modifier's traits are kept only once a row has some, and a branch's rows handed to an empty list are taken
+rather than copied. Timed against the once-a-pass commit (`ab_bench.py`, release, cpu-per-frame): `outline-rows`
+−15.8%, `outline-rows-stacked` −17.6%, `outline-table` −18.6%, `outline-list` unchanged; against the commit before
+both, `outline-rows-stacked` −55.9% and `outline-rows` −16.2%. What remains is the row builders themselves (the
+row-builder question above), and in them generic metadata lookups (`swift_getGenericMetadata`, 19–21% of the frame
+inclusive, before and after) made by the unspecialised row content walk: a lead for another change.
+
 ### G1-rows: why it is not fixed yet, and the options
 
 A `Table(_:children:)` keeps its outline because it can tell its tree has not changed: one array buffer of values

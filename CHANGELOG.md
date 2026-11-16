@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A hierarchical `Table` lists its open rows with less bookkeeping.** As it flattened its tree, a table noted where
+each open row sat in three tables keyed by the row's id; it keeps them in order now, and looks a row up by id only
+when something asks. Listing the rows of an open tree is about a sixth faster, for rows written as row content
+(`DisclosureTableRow`) and for an open `Table(_:children:)`, and holds less memory.
+
 **A `Table` whose tree is row content flattens it once a frame.** A table whose rows are a tree written as row
 content (`DisclosureTableRow`, a `ForEach` of rows beneath one) built the content of every open row each time a frame
 laid it out: once for each measure a stack around it made, and again to draw it. In a page's stack, as an editor's

@@ -71,20 +71,25 @@ extension _TableOutline {
     /// open branch its rows, in reading order.
     ///
     /// Only the branches among the roots are visited (`branches`, their
-    /// indices); a leaf among the roots is not noted at all — a row with no
-    /// placement draws as one (``prefix(for:)``) — and where no branch is open
-    /// the rows are the roots' own array, shared rather than copied.
+    /// indices); a leaf among the roots is given a leaf's row without being
+    /// looked at, and where no branch is open the rows are the roots' own
+    /// array, shared rather than copied.
     static func flattening(
         roots: _TableOutlineRoots<Value>, branches: [Int], expansion: StateBox<Set<AnyHashable>>
     ) -> Flattening {
         var flat = Flattening()
+        let leaf = Row(placement: Placement(depth: 0, disclosure: .leaf), parent: -1, branch: -1)
+        // The first root not yet copied into the values, once a branch has
+        // opened; and the first root not yet given a row.
         var start = 0
+        var listed = 0
         var spliced = false
         for index in branches {
             let node = roots.node(roots.values[index])
+            flat.rows += repeatElement(leaf, count: index - listed)
+            listed = index + 1
             guard isOpen(node, in: expansion) else {
-                flat.placements[node.value.id] = Placement(depth: 0, disclosure: .closed)
-                flat.branches[node.value.id] = node
+                flat.noteRow(node, depth: 0, parent: -1, isOpen: false)
                 continue
             }
             if !spliced { flat.values.reserveCapacity(roots.values.count) }
@@ -94,10 +99,9 @@ extension _TableOutline {
             // The open branch and its rows, as a tree of one root.
             let beneath = flattening(_TableRowBranch(nodes: [node]), expansion: expansion)
             flat.values += beneath.values
-            flat.placements.merge(beneath.placements) { _, new in new }
-            flat.parents.merge(beneath.parents) { _, new in new }
-            flat.branches.merge(beneath.branches) { _, new in new }
+            flat.appendPlacements(of: beneath)
         }
+        flat.rows += repeatElement(leaf, count: roots.values.count - listed)
         if spliced {
             flat.values += roots.values[start...]
         } else {

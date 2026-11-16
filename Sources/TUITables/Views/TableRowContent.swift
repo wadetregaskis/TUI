@@ -133,6 +133,13 @@ public struct _TableRowList<Value: Identifiable> {
     /// Appends another list's rows, and its loops' insertions at the rows
     /// they land on here.
     mutating func append(contentsOf other: _TableRowList<Value>) {
+        // Into an empty list — content an app writes, its body's rows handed
+        // to the fresh list of the branch it opens — the other list is the
+        // result as it stands: taken, its arrays shared, not copied row by row.
+        if values.isEmpty, builtNodes == nil, insertions.isEmpty, sectionHeaders.isEmpty, !isTree, !hasTraits {
+            self = other
+            return
+        }
         isTree = isTree || other.isTree
         hasTraits = hasTraits || other.hasTraits
         let base = values.count
