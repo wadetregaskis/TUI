@@ -204,6 +204,13 @@ final class StackWindowState {
         /// `StackContentWidth.swift`, which owns every rule about it.
         var contentWidth: ContentWidthRecord?
 
+        /// The version of the rows ``contentWidth`` was taken over, by which
+        /// the record is matched to the rows the stack is handed
+        /// (``ContentWidthRecord/rowsToken``). Beside the record rather than
+        /// in it, as the token outlives any one record: one is minted only
+        /// when the rows change.
+        let rowsVersion = DataVersion()
+
         /// The rows the last band render DREW — the viewport's rows, not the
         /// focus targets rendered beside them. After a write, the challenge
         /// re-measures these with the row the record names as its widest

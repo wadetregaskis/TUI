@@ -17,7 +17,8 @@
 /// the render, were 7% of `Stress`'s 4,000-row `file-browser` frame; a hugging
 /// `List`'s widest row (`_ListCore.widestRowMemoKey`) is asked the same way,
 /// and so are a windowed `.columns` form's kept widths
-/// (`FormColumnWidths.rowsVersion`).
+/// (`FormColumnWidths.rowsVersion`) and a lazy stack's width over every row
+/// (`StackWindowState.rowsVersion`).
 ///
 /// Here the rows are compared once against the last value seen, and the token
 /// stays the same while they are equal. The newest value is kept in place of

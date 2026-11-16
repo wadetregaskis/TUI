@@ -148,7 +148,14 @@ import TUIView
 /// `_VStackCore.challenge(_:children:context:)`.
 struct ContentWidthRecord {
     /// The rows the maximum was taken over — the whole collection at the time.
+    /// Read only to tell whether a collection that changed EXTENDS them.
     let rows: AnyEquatableBox
+    /// Their version (``StackWindowState/rowsVersion``), which is what tells
+    /// whether the record covers the rows the stack is handed now: compared
+    /// in O(1), where `rows` was compared element by element on every ask once
+    /// the rows came in a new buffer — every frame, from a body that sorts or
+    /// filters — as `Table`'s `.fit` columns keep theirs (`DataVersion`).
+    let rowsToken: DataVersion.Token
     /// How many leading rows `widest` is the maximum over.
     let covered: Int
     /// The widest row among them that has a width of its own. A row that
@@ -301,7 +308,9 @@ struct ContentWidthRecord {
         // And the walks' leases, which an extension keeps beside its own.
         var inheritedLeases: [ObservationLease] = []
         if var record = state.contentWidth, record.isCurrent(in: context) {
-            let whole = record.rows == signature && record.covered == count
+            // The rows' version, asked only here and where a walk files: a
+            // stack with no record to check would compare the rows for nothing.
+            let whole = record.rowsToken == state.rowsVersion.token(for: signature) && record.covered == count
             // Challenged only once it is known to be USABLE: a record for other
             // rows is about to be replaced by a walk, and re-measuring its
             // widest row would be a row measured for nothing.
@@ -400,7 +409,7 @@ struct ContentWidthRecord {
             !measureContext.environment.hasUncomparableEnvironmentValue
         {
             state.contentWidth = ContentWidthRecord(
-                rows: signature, covered: walked, widest: widest,
+                rows: signature, rowsToken: state.rowsVersion.token(for: signature), covered: walked, widest: widest,
                 widestOrdinal: widestOrdinal, measuredAt: measuredAt, runnerUp: runnerUp,
                 isFlexible: isFlexible,
                 widthGeneration: TerminalWidthTraits.generation,

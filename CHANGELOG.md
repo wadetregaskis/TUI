@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A `LazyVStack` in a `ScrollView` that scrolls both ways, over rows the app builds in its body, compares them once a
+frame.** The width of its widest row, kept so the horizontal scroll reaches every row's end, was matched to the rows
+by comparing the rows it was taken over with the rows the stack was handed, element by element whenever they came in
+a new array, which a body that sorts or filters makes every frame — on each of the several asks a frame makes. The
+stack now keeps a version of its rows, as a `Table`'s `.fit` columns do: the same while they are equal, and a new one
+for any change at all, so a changed collection is still measured again.
+
 **A long `.columns` `Form` in scroll content whose rows the app builds in its body compares them once a frame.** The
 widths it keeps for its label column and rows were looked up by comparing the rows it was first handed with the rows
 it was handed now, element by element whenever they came in a new array, which a body that sorts or filters makes
