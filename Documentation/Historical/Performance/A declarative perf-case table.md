@@ -620,6 +620,11 @@ Recorded on a clean debug build:
 - **G1-section.** `outline-section` is flat only because nothing opens: Option-Right, Left and Right do not reach an
   outline inside a `Section`. The list asks the view its rows came from to open a row (`RowSource.rowsContent`),
   and for a section that is the `Section`, which opens nothing. The rows are still extracted all at once.
+  **Keys fixed (2026-11-16):** each section hands its outline up (`SectionContentRows.rowsContent`), the list keeps
+  every section's (`RowSource.sectionOutlines`, one `SectionOutlines` for several), and the keys open and close it as
+  in `List(_:children:)`. Re-recorded, the case now opens its tree and shows what remains: a box for every open row
+  on every pass, the counts `outline-list` had before it was windowed (`wheel:+5` 50,010 at n, 500,010 at 10n), filed
+  as its known issue.
 
 ## For a future reader
 

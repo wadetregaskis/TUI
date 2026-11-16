@@ -270,6 +270,43 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
     }
 }
 
+// MARK: - Outlines inside sections
+
+/// The outlines inside a list's sections, as one: each opens the rows it knows
+/// and walks out of them, and a row none knows lets the key fall through.
+///
+/// A list asks the view its rows came from to open a row, which for a section
+/// is the `Section`, and a section opens nothing: so Left, Right and their
+/// Option forms did nothing to an outline inside one. The section hands its
+/// outline up instead (`SectionContentRows.rowsContent`), and the list keeps
+/// every section's (``RowSource/sectionOutlines``).
+@MainActor
+struct SectionOutlines: OutlineRowActivating {
+    let outlines: [any OutlineRowActivating]
+
+    /// The outlines as one, or `nil` where there are none; the outline itself
+    /// where there is one.
+    static func make(_ outlines: [any OutlineRowActivating]) -> (any OutlineRowActivating)? {
+        outlines.count > 1 ? Self(outlines: outlines) : outlines.first
+    }
+
+    /// The first outline that moved, asked in order: one that does not know
+    /// the row moves nothing.
+    @discardableResult
+    func setRowExpanded(_ id: AnyHashable, to target: Bool?, includingDescendants: Bool) -> Bool {
+        outlines.contains { $0.setRowExpanded(id, to: target, includingDescendants: includingDescendants) }
+    }
+
+    /// The parent the first outline that knows one names. A root row has none
+    /// in its own outline, and no other outline knows it.
+    func parentRowID(of id: AnyHashable) -> AnyHashable? {
+        for outline in outlines {
+            if let parent = outline.parentRowID(of: id) { return parent }
+        }
+        return nil
+    }
+}
+
 @MainActor extension OutlineGroup: ListRowExtractor where Leaf: View {
     /// One list row per visible node, every one at once: what a `Section`
     /// holding an outline asks. A `List` of an outline alone asks

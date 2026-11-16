@@ -40,6 +40,11 @@ enum CaseKnownIssues {
             "G1-rows: a Table whose tree is row content (DisclosureTableRow) runs the row builders of every open row "
                 + "on every pass (n + 1 a frame): the tree exists only as those closures"
         ),
+        "outline-section": (
+            ["listed"],
+            "G1-section: a List's Section extracts its outline's rows all at once, a box for every open row on every "
+                + "pass (n + 1 a frame)"
+        ),
         "chat-lazy-follow": (
             ["bodies", "misses"],
             "PERFCASE-F3: at 10n the bottom-anchored lazy stack runs 21% more bodies and misses 29% more measures "

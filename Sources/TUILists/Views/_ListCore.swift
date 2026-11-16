@@ -121,6 +121,12 @@ final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeci
     /// different set of wrappers than the rows did.
     var rowsContent: (any View)?
 
+    /// The outlines inside the sections these rows came from, each of which
+    /// opens its own rows: a section's rows came from the section, which opens
+    /// nothing, so ``rowsContent`` cannot answer for them. Empty for rows that
+    /// came from no section.
+    var sectionOutlines: [any OutlineRowActivating] = []
+
     /// Per-frame memo so a row touched by both the overflow check and the visible
     /// window (or re-read by the compose pass) is built — and rendered — once.
     private var materialized: [Int: SelectableListRow<SelectionValue>] = [:]
@@ -182,15 +188,18 @@ final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeci
     /// some row's is still to be asked for, the scan waits for someone to want
     /// the answer.
     fileprivate static func eager(
-        _ rows: [EagerListRow<SelectionValue>], editOwners: [ListRowEditOwner] = []
+        _ rows: [EagerListRow<SelectionValue>], editOwners: [ListRowEditOwner] = [],
+        outlines: [any OutlineRowActivating] = []
     ) -> RowSource {
-        RowSource(
+        let source = RowSource(
             count: rows.count,
             allContent: rows.allSatisfy(\.isKnown) ? rows.allSatisfy(\.isSelectable) : nil,
             editOwners: editOwners,
             sectionChrome: rows.indices.compactMap { index in rows[index].sectionChrome.map { (index, $0) } },
             typeAt: { rows[$0].type },
             make: { rows[$0].content })
+        source.sectionOutlines = outlines
+        return source
     }
 
     /// ``eager(_:editOwners:)`` for rows whose types are all known.
@@ -2151,7 +2160,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // knows how to open one — reached the same way `.onMove` / `.onDelete`
         // are, by asking the view the rows were extracted from, so through the
         // same `Group`s and `if`/`else`s the rows came through.
-        let outline = source.rowsContent as? any OutlineRowActivating
+        // A section's outline is reached through the section's own rows'
+        // content (``RowSource/sectionOutlines``).
+        let outline = source.rowsContent as? any OutlineRowActivating ?? SectionOutlines.make(source.sectionOutlines)
         handler.outlineActivation = outline
         // Return ACTIVATES the focused row, and for a branch with no other
         // action the activation is to disclose it. An app's own primary action
@@ -4183,7 +4194,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // its row set — header/content/footer — is small and built eagerly).
         if let section = content as? SectionRowExtractor {
             let extracted = extractSectionRows(from: section, context: context, firstRowIndex: 0)
-            return .eager(extracted.rows, editOwners: extracted.editOwners)
+            return .eager(extracted.rows, editOwners: extracted.editOwners, outlines: extracted.outlines)
         }
 
         // A `ForEach` whose rows are themselves `Section`s — Apple's own
@@ -4210,7 +4221,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             let loopOwner =
                 windowed.listRowsAreSections
                 ? nil : Self.varyingLoopEditOwner(of: content, rowKeys: extracted.rowKeys)
-            return .eager(extracted.rows, editOwners: extracted.editOwners + (loopOwner.map { [$0] } ?? []))
+            return .eager(
+                extracted.rows, editOwners: extracted.editOwners + (loopOwner.map { [$0] } ?? []),
+                outlines: extracted.outlines)
         }
 
         // Windowed path (ForEach): the row count is known in O(1) and each row's
@@ -4284,7 +4297,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // are (decisions D1S, B-D1S-6).
         if content is ChildViewProvider || isCompositeHandingOverChildren(V.self) {
             let extracted = extractFromChildren(of: content, context: context)
-            return .eager(extracted.rows, editOwners: extracted.editOwners)
+            return .eager(extracted.rows, editOwners: extracted.editOwners, outlines: extracted.outlines)
         }
 
         // Fallback: a single content row, carrying its badge
@@ -4327,6 +4340,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     ) -> ExtractedRows {
         var result: [EagerListRow<SelectionValue>] = []
         var editOwners: [ListRowEditOwner] = []
+        var outlines: [any OutlineRowActivating] = []
         var rowKeys: [String?] = []
         // A ramp spanning the list places these rows here, where the walk has
         // every child in hand: unlike the windowed path it can measure them all
@@ -4384,6 +4398,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                     firstRowIndex: result.count)
                 result.append(contentsOf: extracted.rows)
                 editOwners.append(contentsOf: extracted.editOwners)
+                outlines += extracted.outlines
                 rowKeys += repeatElement(nil, count: extracted.rows.count)
                 continue
             }
@@ -4419,7 +4434,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rowKeys.append(child.identityChildKey)
         }
 
-        return ExtractedRows(rows: result, editOwners: editOwners, rowKeys: rowKeys)
+        return ExtractedRows(rows: result, editOwners: editOwners, rowKeys: rowKeys, outlines: outlines)
     }
 
     /// A list's eagerly-extracted rows together with the editable `ForEach`es
@@ -4437,6 +4452,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         /// whose rows vary attributes its rows to its elements
         /// (``ListRowElements/listed(rowKeys:of:)``).
         var rowKeys: [String?] = []
+        /// The outlines among the sections these rows came from, which open
+        /// their own rows (``RowSource/sectionOutlines``).
+        var outlines: [any OutlineRowActivating] = []
     }
 
     /// The owner record for a `ForEach` that IS a list's whole content, or
@@ -4565,7 +4583,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             rows[0] = headerRow(drawn)
         }
 
-        return ExtractedRows(rows: rows, editOwners: editOwners)
+        // The section's outline opens its own rows: the list asks the section,
+        // which opens nothing (``RowSource/sectionOutlines``).
+        let outlines = (items.rowsContent as? any OutlineRowActivating).map { [$0] } ?? []
+        return ExtractedRows(rows: rows, editOwners: editOwners, outlines: outlines)
     }
 
     /// A section's header line, with its actions drawn on it while the section

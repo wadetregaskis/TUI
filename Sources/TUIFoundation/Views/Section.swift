@@ -459,6 +459,12 @@ package struct SectionContentRows<RowID: Hashable> {
     /// Which element of the loop each row draws, for ``actions`` — one row per
     /// element, or a row's several views (decisions B15).
     package var elements: ListRowElements = .onePerRow
+
+    /// The view the rows came from once the wrappers that only pass their
+    /// content's rows through are off: what the list asks to open an outline's
+    /// row (`OutlineRowActivating`), as it asks a list's own content. `nil`
+    /// for a collapsed section, which has no rows.
+    package var rowsContent: (any View)?
 }
 
 /// Metadata about a section for List rendering.
@@ -720,7 +726,8 @@ package struct SectionHeaderActions {
         case .none: elements = .onePerRow
         }
         return SectionContentRows(
-            rows: unwrapped.rows, actions: elements == nil ? nil : actions, elements: elements ?? .onePerRow)
+            rows: unwrapped.rows, actions: elements == nil ? nil : actions, elements: elements ?? .onePerRow,
+            rowsContent: content)
     }
 
     /// ``listRows(of:context:)``'s rows once the wrappers are off, with each

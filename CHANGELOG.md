@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Left, Right and their Option forms open and close an outline inside a `List`'s `Section`.** A list asked the view
+its rows came from to open a row, and for a section that was the `Section`, which opens nothing: in
+`List { Section { OutlineGroup(…) } }` the keys did nothing to the tree, and Return on a branch did not disclose it.
+Each section now hands its outline to the list, so the keys work as in `List(_:children:)`, in every section of a list
+of several.
+
 **An outline in a `List` builds only the rows it draws.** `List(_:children:)` made a row for every open node of its
 tree on every frame, so a tree of thousands of open rows cost thousands of rows a frame however few were on screen.
 Its rows are now windowed as a `ForEach`'s are, and the open nodes are kept from frame to frame while the tree and
