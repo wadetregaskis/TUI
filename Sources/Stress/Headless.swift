@@ -470,7 +470,8 @@ enum Headless {
             "  rows/frame: \((Double(work.rendered) / divisor).formatted(.fixed(1))) composed, "
                 + "\((Double(work.served) / divisor).formatted(.fixed(1))) served (\((servedShare).formatted(.fixed(0)))%), "
                 + "\((Double(work.repainted) / divisor).formatted(.fixed(1))) of them repainted; "
-                + "cell values/frame: \((Double(work.cellValues) / divisor).formatted(.fixed(1))); clears: \(render.clears) whole, "
+                + "cell values/frame: \((Double(work.cellValues) / divisor).formatted(.fixed(1))); "
+                + "bodies/frame: \((Double(work.bodies) / divisor).formatted(.fixed(1))); clears: \(render.clears) whole, "
                 + "\(render.subtreeClears) subtree (\(render.clearVisits) entries visited)")
     }
 

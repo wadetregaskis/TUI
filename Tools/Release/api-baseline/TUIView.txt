@@ -448,9 +448,10 @@ RenderCache.MeasureKey | struct MeasureKey
 RenderCache.MeasureKey.hash(into:) | func hash(into hasher: inout Hasher)
 RenderCache.MeasureKey.init(identityHash:effectiveWidth:availableWidth:hasExplicitWidth:hasExplicitHeight:viewType:valueHash:) | init(identityHash: Int, effectiveWidth: Int, availableWidth: Int, hasExplicitWidth: Bool, hasExplicitHeight: Bool, viewType: ObjectIdentifier, valueHash: Int)
 RenderCache.RowWork | struct RowWork
+RenderCache.RowWork.bodies | var bodies: Int
 RenderCache.RowWork.cellValues | var cellValues: Int
 RenderCache.RowWork.delta(since:) | func delta(since earlier: RenderCache.RowWork) -> RenderCache.RowWork
-RenderCache.RowWork.init(rendered:served:servedDrawing:cellValues:repainted:) | init(rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0)
+RenderCache.RowWork.init(rendered:served:servedDrawing:cellValues:repainted:bodies:) | init(rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0, bodies: Int = 0)
 RenderCache.RowWork.rendered | var rendered: Int
 RenderCache.RowWork.repainted | var repainted: Int
 RenderCache.RowWork.served | var served: Int

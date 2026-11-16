@@ -515,6 +515,7 @@ enum SessionRunner {
             "  memoized rows: \(rows.rendered) composed, \(rows.served) served "
                 + "(\((Double(rows.rendered) / steps).formatted(.fixed(1)))/step, "
                 + "\((Double(rows.served) / steps).formatted(.fixed(1)))/step); "
+                + "bodies: \(rows.bodies) (\((Double(rows.bodies) / steps).formatted(.fixed(1)))/step); "
                 + "value memos: \(stats.hits) hits, \(stats.misses) misses, \(stats.stores) stores; "
                 + "subtree clears: \(stats.subtreeClears) (\(stats.clearVisits) entries visited)")
         Swift.print("  effects: \(report.effectSettling)")

@@ -41,15 +41,27 @@ extension RenderCache {
         /// keep changing parity (a log tailing into it) draws each row again
         /// once per parity, not once per frame.
         public var repainted = 0
+        /// Composite bodies evaluated: every `body` of a `View` (a modifier's
+        /// `body(content:)` included, through its `ModifiedContent`) the
+        /// measure or the render walk ran, counted where the walk settles a
+        /// `_printChanges()` request (`BodyChangeReport.noteBodyEvaluated`).
+        /// A body served from `BodyKeep`, or skipped because a memo served
+        /// its subtree, is not counted: this is the work a memo exists to
+        /// save, as ``rendered`` is for rows. Not row-shaped, but here beside
+        /// them because it is read the same way, as a delta per frame
+        /// (`Stress --check-counts`, the perf-case table's `bodies` column).
+        public var bodies = 0
 
         public init(
-            rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0
+            rendered: Int = 0, served: Int = 0, servedDrawing: Int = 0, cellValues: Int = 0, repainted: Int = 0,
+            bodies: Int = 0
         ) {
             self.rendered = rendered
             self.served = served
             self.servedDrawing = servedDrawing
             self.cellValues = cellValues
             self.repainted = repainted
+            self.bodies = bodies
         }
 
         /// This minus `earlier`, for a per-frame reading rather than a total.
@@ -57,7 +69,8 @@ extension RenderCache {
             Self(
                 rendered: rendered - earlier.rendered, served: served - earlier.served,
                 servedDrawing: servedDrawing - earlier.servedDrawing,
-                cellValues: cellValues - earlier.cellValues, repainted: repainted - earlier.repainted)
+                cellValues: cellValues - earlier.cellValues, repainted: repainted - earlier.repainted,
+                bodies: bodies - earlier.bodies)
         }
     }
 

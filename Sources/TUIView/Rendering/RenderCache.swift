@@ -566,7 +566,13 @@ import TUIStyling
     /// is the object a row memo would live on and the one a harness already
     /// holds per context — a control reads it from the environment exactly as
     /// it reads the cache.
-    public var rowWork = RowWork()
+    ///
+    /// `@exclusivity(unchecked)`: a class's stored variable is otherwise
+    /// checked for exclusive access at run time on every write, and
+    /// ``RowWork/bodies`` is written once per composite body evaluated, the
+    /// commonest event of a frame. The cache is used on the main actor alone,
+    /// so two accesses never overlap.
+    @exclusivity(unchecked) public var rowWork = RowWork()
 
     /// Where the animation clocks stand at the frame being drawn: the instant an
     /// entry stored now draws its animated cells at, and the one a lookup asks

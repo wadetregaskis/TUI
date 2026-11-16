@@ -297,8 +297,9 @@ An A/B tool, not a gate: nothing is checked in, nothing fails. A count moving
 can be the point of the change — a memo serving more — so read what moved
 against what the change meant to do. Allocation counts repeat to within about
 1% between runs of one binary (a session measured −0.7% against a copy of
-itself); everything else here repeats exactly. It has no count of body runs:
-nothing in the harness counts them yet.
+itself); everything else here repeats exactly. Body runs are counted too
+(`bodies/frame` on a bench, `bodies` on a session's memoized-rows line): every
+composite `body` the walks evaluated, `RenderCache.RowWork.bodies`.
 
 ## Caches that keep growing — `cache_growth.py`
 

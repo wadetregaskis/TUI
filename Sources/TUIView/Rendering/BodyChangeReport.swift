@@ -92,8 +92,14 @@ package enum BodyChangeReport {
     /// Settles a request made while `view`'s body was evaluated at `context`,
     /// if there is one. Called by the walk straight after every composite body
     /// it evaluates; one load and a branch when nothing called.
+    ///
+    /// Also where ``RenderCache/RowWork/bodies`` is counted, since this is the
+    /// one call every evaluated body is followed by: an increment on the
+    /// cache, which is a class, rather than a field carried in every
+    /// `RenderContext` (perf-case design, B-PERFCASE-6).
     @inline(__always)
     package static func noteBodyEvaluated<V: View>(_ view: V, context: RenderContext) {
+        context.renderCache?.rowWork.bodies &+= 1
         if _slowPath(pending != nil) { settle(view, context: context) }
     }
 
