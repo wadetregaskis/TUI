@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`Table(_:children:)` can take the app's expansion: `expansion: $openIDs`.** Every hierarchical table initializer
+has a new, defaulted argument after `children:`, a binding to the set of open branches' ids. Handed one, the table
+opens exactly the ids in the set, and the user's Right, Left, ⌥Right, ⌥Left and clicks on a triangle write it, so an
+app can start with its root open, or open a Find match's ancestors from code, then select the match and scroll to it.
+The table still keeps its outline between frames and builds only the rows it draws, which a tree written as row
+content (`DisclosureTableRow`) does not. SwiftUI's `Table(_:children:)` takes no expansion; without the argument TUI's
+behaves as before, and every SwiftUI call compiles unchanged.
+
 **`.scrollPosition(id:)` keeps the id the app wrote.** Writing the id scrolled to its row by the least move, which
 with no anchor can leave the row at the bottom of the view, and then wrote the row at the top straight back into the
 binding: the app's id was lost, and writing it again did nothing, the row being in view already. The binding now

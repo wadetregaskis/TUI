@@ -1177,6 +1177,23 @@ private struct TableOutlineShapes: View {
             Table(files, children: \.children, selection: $selection) {
                 TableColumn("Name", value: \.name)
             }
+            // Every form SwiftUI has, so TUI's defaulted `expansion:` after
+            // `children:` is seen to leave each one resolving as it did.
+            Table(files, children: \.children, selection: $picked) {
+                TableColumn("Name", value: \.name)
+            }
+            Table(files, children: \.children, sortOrder: $sortOrder) {
+                TableColumn("Name", value: \.name)
+            }
+            Table(files, children: \.children, selection: $selection, sortOrder: $sortOrder) {
+                TableColumn("Name", value: \.name)
+            }
+            Table(files, children: \.children, selection: $picked, sortOrder: $sortOrder) {
+                TableColumn("Name", value: \.name)
+            }
+            Table(files, children: \.children, columnCustomization: $customization) {
+                TableColumn("Name", value: \.name)
+            }
             Table(
                 files, children: \.children, selection: $picked, sortOrder: $sortOrder,
                 columnCustomization: $customization

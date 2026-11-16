@@ -40,9 +40,18 @@ struct _TableOutlineRoots<Value: Identifiable> {
     /// every pass.
     private let comparesByStorage: Bool
 
+    /// The app's expansion, from `Table(_:children:expansion:)`, or `nil` for
+    /// the table to keep its own. Not part of what makes two readings the same
+    /// rows: a change to it makes a new outline over the same roots
+    /// (``_TableOutlineCache``).
+    let expansion: Binding<Set<Value.ID>>?
+
     @MainActor
-    init<Data: RandomAccessCollection>(_ data: Data, children: KeyPath<Value, Data?>) where Data.Element == Value {
+    init<Data: RandomAccessCollection>(
+        _ data: Data, children: KeyPath<Value, Data?>, expansion: Binding<Set<Value.ID>>? = nil
+    ) where Data.Element == Value {
         values = Array(data)
+        self.expansion = expansion
         self.children = children
         isBranch = { $0[keyPath: children] != nil }
         node = { TableOutlineGroupContent<Data>.node($0, children: children) }
@@ -75,7 +84,7 @@ extension _TableOutline {
     /// looked at, and where no branch is open the rows are the roots' own
     /// array, shared rather than copied.
     static func flattening(
-        roots: _TableOutlineRoots<Value>, branches: [Int], expansion: StateBox<Set<AnyHashable>>
+        roots: _TableOutlineRoots<Value>, branches: [Int], expansion: _TableOutlineExpansion<Value>.Reading
     ) -> Flattening {
         var flat = Flattening()
         let leaf = Row(placement: Placement(depth: 0, disclosure: .leaf), parent: -1, branch: -1)
@@ -124,26 +133,25 @@ final class _TableOutlineCache<Value: Identifiable> {
     private var roots: _TableOutlineRoots<Value>?
     private var branchIndices: [Int] = []
     private var outline: _TableOutline<Value>?
-    private var expansionSeen: Set<AnyHashable> = []
-    private var expansionBox: ObjectIdentifier?
+    private var expansionSeen: _TableOutlineExpansion<Value>.Reading?
 
     /// The outline of `roots` with the branches `expansion` opens: the one
     /// made last, where neither has changed since.
-    func outline(of roots: _TableOutlineRoots<Value>, expansion: StateBox<Set<AnyHashable>>) -> _TableOutline<Value> {
+    func outline(of roots: _TableOutlineRoots<Value>, expansion: _TableOutlineExpansion<Value>) -> _TableOutline<Value> {
         if self.roots.map({ !$0.hasSameRows(as: roots) }) ?? true {
             branchIndices = roots.values.indices.filter { roots.isBranch(roots.values[$0]) }
             self.roots = roots
             outline = nil
         }
-        if let outline, expansionBox == ObjectIdentifier(expansion), expansionSeen == expansion.value {
+        let reading = expansion.read()
+        if let outline, expansionSeen == reading {
             return outline
         }
         let made = _TableOutline(
-            _TableOutline.flattening(roots: roots, branches: branchIndices, expansion: expansion),
+            _TableOutline.flattening(roots: roots, branches: branchIndices, expansion: reading),
             expansion: expansion)
         outline = made
-        expansionSeen = expansion.value
-        expansionBox = ObjectIdentifier(expansion)
+        expansionSeen = reading
         return made
     }
 }

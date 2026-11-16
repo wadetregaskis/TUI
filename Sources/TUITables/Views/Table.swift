@@ -757,10 +757,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// the copy a pass laid out, before it prepares one.
     private func flattenedOutline(_ context: RenderContext) -> _TableOutline<Value>? {
         guard let rowTree else { return nil }
-        let expansion: StateBox<Set<AnyHashable>> =
-            context.stateStorage?.storage(
-                for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
-                default: []) ?? StateBox([])
+        // The app's, when it handed `Table(_:children:expansion:)` one; else
+        // the table's own, at its place.
+        let expansion: _TableOutlineExpansion<Value> =
+            if let binding = rowTree.roots?.expansion {
+                _TableOutlineExpansion(binding)
+            } else {
+                _TableOutlineExpansion(
+                    context.stateStorage?.storage(
+                        for: StateStorage.StateKey(
+                            identity: context.identity, propertyIndex: StateIndex.outlineExpansion),
+                        default: []) ?? StateBox([]))
+            }
         if let roots = rowTree.roots {
             // Kept from pass to pass: a pass that opens nothing and is handed
             // the same roots makes no outline (decisions B-FP2-5).

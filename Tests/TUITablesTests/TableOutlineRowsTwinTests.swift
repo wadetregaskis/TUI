@@ -137,7 +137,8 @@ struct TableOutlineRowsTwinTests {
     func traitsByRow() throws {
         let model = Model()
         let outline = _TableOutline(
-            tree: tableRows(of: Rows(nodes: tree, model: model)).branch, expansion: StateBox([]))
+            tree: tableRows(of: Rows(nodes: tree, model: model)).branch,
+            expansion: _TableOutlineExpansion(StateBox([])))
         let traits = try #require(outline.traits)
         #expect(traits.count == outline.values.count)
         let disabled = outline.values.indices.filter { traits[$0].selectionDisabled == true }
@@ -148,7 +149,8 @@ struct TableOutlineRowsTwinTests {
     func rowContentAndRootsAgree() {
         let model = Model()
         let open: Set<AnyHashable> = ["root", "alpha", "alpha-two", "other"]
-        let expansion = StateBox<Set<AnyHashable>>(open)
+        let box = StateBox<Set<AnyHashable>>(open)
+        let expansion = _TableOutlineExpansion<Node>(box)
         let rows: _TableOutline<Node> = _TableOutline(
             tree: tableRows(of: Rows(nodes: tree, model: model)).branch, expansion: expansion)
         let roots: _TableOutline<Node> = _TableOutlineCache<Node>().outline(
@@ -165,7 +167,7 @@ struct TableOutlineRowsTwinTests {
         #expect(rows.triangleColumns(for: "last") == nil)
         #expect(rows.prefix(for: "nowhere") == rows.prefix(for: "last"), "a row not shown draws as a root leaf")
         #expect(roots.setExpanded(AnyHashable("other"), to: false, includingDescendants: false))
-        #expect(!expansion.value.contains(AnyHashable("other")))
+        #expect(!box.value.contains(AnyHashable("other")))
         #expect(!roots.setExpanded(AnyHashable("last"), to: true, includingDescendants: false), "a leaf opens nothing")
     }
 }

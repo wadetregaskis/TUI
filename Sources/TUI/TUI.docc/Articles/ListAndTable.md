@@ -444,11 +444,42 @@ Table(of: File.self) {
 #### A tree that starts open
 
 `Table(_:children:)` and `OutlineGroup` start with every branch closed, as
-SwiftUI's do, and take no expansion of their own. For a tree that starts open —
-a process tree, say — write the rows as SwiftUI does: a `TableRowContent` of
+SwiftUI's do. SwiftUI's take no expansion of their own; TUI's
+`Table(_:children:)` takes one as an extra, defaulted argument, `expansion:`, a
+binding to the set of open branches' ids. Handed one, the table opens exactly
+the ids in the set, and Right, Left, ⌥Right, ⌥Left and a click on a triangle
+write it, so the app can open a root at launch, or a match's ancestors when
+Find lands on it:
+
+```swift
+@State private var open: Set<File.ID> = [root.id]
+@State private var selection: File.ID?
+
+ScrollViewReader { proxy in
+    Table(files, children: \.children, expansion: $open, selection: $selection) {
+        TableColumn("Name", value: \.name)
+    }
+    .onChange(of: match) { _, match in
+        guard let match else { return }
+        open.formUnion(ancestors(of: match))   // the rows above it, by id
+        selection = match.id
+        proxy.scrollTo(match.id)
+    }
+}
+```
+
+This is the windowed way to a tree that starts open. The table keeps its outline
+between frames while the rows and the set are the same, and builds only the rows
+it draws, however many are open; a change to the set makes the outline once. It
+is TUI's alone: a SwiftUI port drops the argument and writes its rows as below.
+`List(_:children:)` and `OutlineGroup` take no such argument yet.
+
+The other way, SwiftUI's, is to write the rows yourself: a `TableRowContent` of
 your own that names itself for each branch's children, each branch a
-`DisclosureTableRow` bound to an expansion you keep. Here the app keeps the
-branches the user has closed, so every other one is open:
+`DisclosureTableRow` bound to an expansion you keep. Its rows are built again
+every frame, every open branch's, so it suits a tree of hundreds of rows rather
+than one of thousands. Here the app keeps the branches the user has closed, so
+every other one is open:
 
 ```swift
 struct ProcessRows: TableRowContent {

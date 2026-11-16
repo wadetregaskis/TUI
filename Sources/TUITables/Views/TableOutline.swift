@@ -80,7 +80,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     private var rowIndices: [Value.ID: Int]?
 
     /// The expansion of every branch that keeps no binding of its own.
-    private let expansion: StateBox<Set<AnyHashable>>
+    private let expansion: _TableOutlineExpansion<Value>
 
     /// Called when any branch in the outline is expanded or collapsed.
     var onExpansionChange: ((Value.ID, Bool) -> Void)?
@@ -92,13 +92,13 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Flattens `tree`: every root, and beneath each open branch its rows, in
     /// reading order. A closed branch's rows are never built.
-    convenience init(tree: _TableRowBranch<Value>, expansion: StateBox<Set<AnyHashable>>) {
-        self.init(Self.flattening(tree, expansion: expansion), expansion: expansion)
+    convenience init(tree: _TableRowBranch<Value>, expansion: _TableOutlineExpansion<Value>) {
+        self.init(Self.flattening(tree, expansion: expansion.read()), expansion: expansion)
     }
 
     /// The outline `flat` describes, opening and closing branches in
     /// `expansion`.
-    init(_ flat: Flattening, expansion: StateBox<Set<AnyHashable>>) {
+    init(_ flat: Flattening, expansion: _TableOutlineExpansion<Value>) {
         self.expansion = expansion
         self.values = flat.values
         self.traits = flat.anyTraits ? flat.traits : nil
@@ -156,7 +156,9 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     }
 
     /// Flattens `tree`: every root, and beneath each open branch its rows.
-    static func flattening(_ tree: _TableRowBranch<Value>, expansion: StateBox<Set<AnyHashable>>) -> Flattening {
+    static func flattening(
+        _ tree: _TableRowBranch<Value>, expansion: _TableOutlineExpansion<Value>.Reading
+    ) -> Flattening {
         var flat = Flattening()
         // Where each list of siblings drew its rows — the roots, and each open
         // branch's — for the loops among them.
@@ -191,8 +193,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Whether a branch is open: as its own binding says, or as the table
     /// remembers. A branch starts closed, as SwiftUI's do.
-    static func isOpen(_ node: _TableRowNode<Value>, in expansion: StateBox<Set<AnyHashable>>) -> Bool {
-        node.isExpanded?.wrappedValue ?? expansion.value.contains(AnyHashable(node.value.id))
+    static func isOpen(_ node: _TableRowNode<Value>, in expansion: _TableOutlineExpansion<Value>.Reading) -> Bool {
+        node.isExpanded?.wrappedValue ?? expansion.contains(node.value.id)
     }
 
     // MARK: Drawing
@@ -306,18 +308,21 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             return false
         }
         let node = branchNodes[branch]
-        let open = target ?? !Self.isOpen(node, in: expansion)
-        var changed = false
+        // Read once, now: a key handled before the next frame sees what the
+        // one before it wrote.
+        let reading = expansion.read()
+        let open = target ?? !Self.isOpen(node, in: reading)
+        var changed: [_TableRowNode<Value>] = []
         var stack = [node]
         while let current = stack.popLast() {
-            if Self.isOpen(current, in: expansion) != open {
-                set(current, open: open)
-                changed = true
+            if Self.isOpen(current, in: reading) != open {
+                changed.append(current)
             }
             guard includingDescendants, let children = current.children else { continue }
             stack += children().nodes.filter { $0.children != nil }
         }
-        return changed
+        set(changed, open: open)
+        return !changed.isEmpty
     }
 
     /// The row this one sits under, or `nil` for a root row.
@@ -326,15 +331,19 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         return AnyHashable(values[parent].id)
     }
 
-    private func set(_ node: _TableRowNode<Value>, open: Bool) {
-        if let binding = node.isExpanded {
-            binding.wrappedValue = open
-        } else if open {
-            expansion.value.insert(AnyHashable(node.value.id))
-        } else {
-            expansion.value.remove(AnyHashable(node.value.id))
+    /// Opens or closes `nodes`: each through its own binding where it has
+    /// one, the rest in one write to the expansion.
+    private func set(_ nodes: [_TableRowNode<Value>], open: Bool) {
+        var kept: [Value.ID] = []
+        for node in nodes {
+            if let binding = node.isExpanded {
+                binding.wrappedValue = open
+            } else {
+                kept.append(node.value.id)
+            }
         }
-        onExpansionChange?(node.value.id, open)
+        expansion.set(kept, open: open)
+        for node in nodes { onExpansionChange?(node.value.id, open) }
     }
 }
 
