@@ -651,6 +651,19 @@ for. The question for the owner: is (c)'s rule, SwiftUI's own for lazy container
 (b) with the walk made cheap the limit? Until then tuitree can draw its tree as `Table(_:children:)` over a tree of
 values whose children are stored (not computed), which is windowed and kept today.
 
+That workaround has a catch, found 2026-11-16 while putting the question to the owner: `Table(_:children:)` takes no
+expansion of its own, as SwiftUI's takes none (`ListAndTable.md`, "A tree that starts open"), so its branches start
+closed and only the user opens them. tuitree opens its root at launch and Find opens a match's ancestors from code;
+on `Table(_:children:)` it could do neither. Hence a fourth option:
+
+| Option | Rule | What it saves | Cost and risk |
+|---|---|---|---|
+| (d) Let the app own a `Table(_:children:)`'s expansion | A TUI-only modifier (`.outlineExpansion($openIDs)`, say), kept apart from SwiftUI's API as CLAUDE.md asks of TUI-only options; the row-builder contract is untouched | What `Table(_:children:)` saves today, for an app that must open branches from code | About a day in TUI. An API SwiftUI lacks, so a SwiftUI port goes back to `DisclosureTableRow`. The app builds a tree of values with stored children once per change, not per pass |
+
+Put to the owner with (d) recommended, measured first: a cursor move in tuitree on its 3.2 MB file is timed before
+anything is built, since `built` stays at a screenful and only `listed` grows, and the time the closure walk costs
+there has not been measured.
+
 ## For a future reader
 
 - Counts are proxies. A clean `--check-counts` says the work did not change, not that the time did
