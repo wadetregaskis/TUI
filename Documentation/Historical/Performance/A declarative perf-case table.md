@@ -630,6 +630,27 @@ Recorded on a clean debug build:
   to `outline-list`'s, at n and 10n alike (`wheel:+5` 50,010 to 220), and the known issue is gone. A section among
   other rows, or several sections, still extracts its rows at once.
 
+### G1-rows: why it is not fixed yet, and the options
+
+A `Table(_:children:)` keeps its outline because it can tell its tree has not changed: one array buffer of values
+whose children are stored in them (decisions B-FP2-5). A tree written as row content has no such test. The table is
+made again in its parent's body on every pass that draws it (a write at the table, its own scroll included, drops
+its ancestors' memo entries, so their bodies run), and with it every `DisclosureTableRow`'s content closure is new.
+What a closure would build cannot be known without running it, and running it for every open branch is the cost.
+Keeping the outline needs a rule for when the app's row builders would build the same rows, which is a contract
+question, not an optimisation:
+
+| Option | Rule | What it saves | Cost and risk |
+|---|---|---|---|
+| (a) Keep the whole outline | The plain-body memo's rule (decisions, "When a body runs"): the root rows compare equal field by field, closures ignored, while nothing at or above the table wrote since | Scrolls and the table's own cursor moves become a screenful | Needs a "written above since" signal the render cache drains but does not keep. Does not help tuitree: its `.selectionFollowsCursor()` writes the editor's `@State` on every cursor move, and its expansion bindings on every open, and after a parent's write a closure counts as changed (deviation S8) |
+| (b) Keep each branch's rows | SwiftUI's rule for a `TableRowContent` struct: a branch's content value (`NodeRows`) equal field by field to the kept one keeps the kept rows | Every branch whose inputs did not change | The same S8 limit: `NodeRows` holds a `Binding`, opaque, so under a parent's write every branch is rebuilt; and a walk of every open branch is still linear, if far cheaper |
+| (c) Window the rows | A `ForEach` of rows counts one row per element (SwiftUI's lazy containers assume a constant number of views per element), each open branch's subtree size kept from the last pass, and only drawn rows' content built | Every pass, tuitree's cursor moves included | Unsound where an element's content changes shape (a branch becomes a leaf, a filter in the closure) with its data unchanged: the row count and the keys' targets are stale until those rows are drawn. A large change to `Table`'s resolution, which reads `data` whole (type select, selection by id, `.fit` columns) |
+
+Not chosen here: (a) leaves tuitree as it is, and (b) and (c) change what an app can rely on its row builders
+for. The question for the owner: is (c)'s rule, SwiftUI's own for lazy containers, acceptable for table rows, or is
+(b) with the walk made cheap the limit? Until then tuitree can draw its tree as `Table(_:children:)` over a tree of
+values whose children are stored (not computed), which is windowed and kept today.
+
 ## For a future reader
 
 - Counts are proxies. A clean `--check-counts` says the work did not change, not that the time did
