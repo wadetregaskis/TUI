@@ -238,6 +238,12 @@ in turn, each holding its width in an object made afresh, all came out 12 cells 
 it holds a size for until the frame ends, as the record of a stack's children does. `RenderCache.storeMeasure` takes
 the measured value as `measuring:`.
 
+**`TestApp.advance(by:)` plays an animation the test started itself.** A test that changed a model in its own code
+under `withAnimation`, rather than through a key or a click, and then advanced the clock, saw the animation begin
+where the advance ended: a row that should have arrived was still blank, its transition at its first frame, and a
+moved value had not moved. An event draws the frames it causes before it returns; a change made between events now
+gets its frame at the instant it was made, when the clock is next advanced, as a running app draws it at once.
+
 **A long lazy stack, `List` or `Table` no longer holds on to every row's `if` once it has scrolled past it.**
 Each `if` keeps a record of what it last held, and a row scrolled out of view kept its records — the picture its
 view last drew and the identity of every view down to it — for as long as the container lived: a lazy stack of

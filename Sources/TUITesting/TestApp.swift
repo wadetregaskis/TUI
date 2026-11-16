@@ -240,11 +240,24 @@ public final class TestApp {
     /// blinking cursor move on it too. This takes no real time beyond drawing:
     /// an hour with nothing animating is one frame.
     ///
+    /// A change the test made itself since the last frame, rather than through
+    /// an event — a model's property set in the test, under `withAnimation` or
+    /// not — is drawn first, at the instant it was made, as a running app's
+    /// loop draws it at once: an animation it starts plays over the time this
+    /// moves on.
+    ///
     /// Work that runs on the real clock does not move on it, such as a
     /// `Task.sleep` in `.task`. Hand such a view a ``TestClock``, or wait for
     /// what it does with ``wait(for:timeout:)``.
     public func advance(by duration: Duration) {
         start()
+        // An event draws the frames it causes before it returns; a change the
+        // test made in its own code has asked for its frame and waits. Drawn
+        // only at the target, it began its animation there: `withAnimation {
+        // model.showing = true }` then `advance(by: .seconds(1))` drew the
+        // arriving row at the first instant of its transition, blank, and a
+        // moved value where it started.
+        if headless.takeFrameRequest() { drawFrames() }
         let target = headless.lastFrameNanos &+ max(0, Self.nanoseconds(in: duration))
         while let wake = headless.nextWake(after: headless.lastFrameNanos), wake <= target {
             drawFrames(atNanos: wake)
