@@ -41,7 +41,7 @@ place:
 | [Swift language and platforms](<Swift language and platforms/>) | Building views off the main actor; raising the floor to macOS 15; strict memory safety. |
 | [SwiftTUI comparison, 2026-11](<SwiftTUI comparison, 2026-11/>) | TUI against SwiftTUI: engines, size, features, tests and safety, measured; the owner's decisions; the numbers to beat. |
 | [Terminals](<Terminals/>) | Adopting Ghostty's documented features; the host ledger; pointer shapes; grapheme widths; terminal capabilities for apps. |
-| [Text, editing and the clipboard](<Text, editing and the clipboard/>) | Copying out of a terminal; text fields and the wrapping editor; undo; links, Markdown and attributed text; formatting and live text. |
+| [Text, editing and the clipboard](<Text, editing and the clipboard/>) | Copying out of a terminal; text fields and the wrapping editor; undo; links, Markdown and attributed text; formatting and live text; the attributed editor's design (G3). |
 
 [Index of decision ids](<Index of decision ids.md>) finds the story holding any id (B30,
 B-D2S-6, A-SCROLLANCHOR-1…) cited by a commit message, a code comment or an older document. The
