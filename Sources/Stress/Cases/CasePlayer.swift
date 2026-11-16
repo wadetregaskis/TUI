@@ -99,7 +99,9 @@ final class CasePlayer {
         } else {
             page = AnyView(CasePage(composition: perfCase.composition, container: perfCase.container, rows: rows))
         }
-        app = HeadlessApp(CaseHost(page: page), width: perfCase.size.width, height: perfCase.size.height)
+        app = HeadlessApp(
+            CaseHost(page: page, followsPointer: perfCase.composition.followsPointer),
+            width: perfCase.size.width, height: perfCase.size.height)
         app.configureEnvironment { environment in
             environment.locale = Locale(identifier: "en_US")
             environment.colorScheme = .dark
@@ -222,16 +224,28 @@ extension CaseCounts {
 ///
 /// `App` requires `init()`, for `@main`; a host is never launched, only handed
 /// to a `HeadlessApp` with its page, as `SessionHost` is.
+///
+/// Its scene states whether the focus follows the pointer, as the case's
+/// `follows(…)` says: a headless app reads no `TUI_FOCUS_FOLLOWS_POINTER`, so
+/// the scene is the only place it can be turned on.
 struct CaseHost: App {
     let page: AnyView?
+    let followsPointer: Bool
 
-    init(page: AnyView) { self.page = page }
+    init(page: AnyView, followsPointer: Bool) {
+        self.page = page
+        self.followsPointer = followsPointer
+    }
 
-    init() { page = nil }
+    init() {
+        page = nil
+        followsPointer = false
+    }
 
     var body: some Scene {
         WindowGroup {
             if let page { page }
         }
+        .focusFollowsPointer(followsPointer)
     }
 }

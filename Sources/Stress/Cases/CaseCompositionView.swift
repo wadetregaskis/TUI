@@ -17,7 +17,8 @@ struct CasePage: View {
     let rows: CaseRows
 
     var body: some View {
-        let content = CaseCompositionView(composition: composition, rows: rows)
+        // `page`: the scene's setting, if any, is `CaseHost`'s, not a view's.
+        let content = CaseCompositionView(composition: composition.page, rows: rows)
         switch container {
         case .alone, .none:
             AnyView(content)
@@ -60,6 +61,10 @@ struct CaseCompositionView: View {
                     Self(composition: first, rows: rows)
                     Self(composition: second, rows: rows)
                 })
+        case .followsPointer(let page):
+            // Never reached from `CasePage`, which draws `composition.page`:
+            // the setting is the scene's (`CaseHost`).
+            AnyView(Self(composition: page, rows: rows))
         case .adopted:
             // Built once by `CasePage.adopted(_:count:seed:)`, never here: a
             // scenario's `make` builds its model, and a body runs every frame.

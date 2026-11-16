@@ -45,6 +45,12 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
     case tabs([Self])
     /// An `HSplitView` of two parts.
     case split(Self, Self)
+    /// The page in a scene whose focus follows the pointer
+    /// (`.focusFollowsPointer(true)`): `follows(<composition>)`. A scene's
+    /// setting, so it wraps a whole page, never a part of one. Without it a
+    /// hover moves no focus and no list's cursor row, as in an app that has
+    /// not turned it on (HOVER-FOCUS b).
+    case followsPointer(Self)
     /// An existing scenario, or one variant of a matrix scenario, built as
     /// `--bench` builds it: `stress:<scenario>[/<variant>]`. Its `n` is the
     /// scenario's `--scale`.
@@ -55,6 +61,7 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
         case .leaf(let leaf): leaf.rawValue
         case .tabs(let parts): "tabs(\(parts.map(\.description).joined(separator: ",")))"
         case .split(let first, let second): "split(\(first),\(second))"
+        case .followsPointer(let page): "follows(\(page))"
         case .adopted(let scenario, let variant): "stress:\(scenario)" + (variant.map { "/\($0)" } ?? "")
         }
     }
@@ -71,8 +78,23 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
         case .leaf(let leaf): leaf == .editorWrap
         case .tabs(let parts): parts.contains(where: \.hasEditor)
         case .split(let first, let second): first.hasEditor || second.hasEditor
+        case .followsPointer(let page): page.hasEditor
         case .adopted: false
         }
+    }
+
+    /// Whether the page's scene has the focus follow the pointer.
+    var followsPointer: Bool {
+        if case .followsPointer = self { return true }
+        return false
+    }
+
+    /// The page without its scene's setting: what is drawn. Built without
+    /// the wrapper, so a case that turns the setting on draws the same views
+    /// as one that does not, and their counts differ only by what it does.
+    var page: Self {
+        if case .followsPointer(let page) = self { return page }
+        return self
     }
 }
 

@@ -195,7 +195,7 @@ Spaces may not appear inside a column.
 | Column | Meaning | Values |
 |---|---|---|
 | `id` | Stable, kebab-case; the session or variant id is `case:<id>` | unique |
-| `composition` | What the page is built from: a name from `CaseComposition`, with dotted options | `list.plain`, `list.search`, `table.fit5`, `table.wrap5`, `chat.lazy`, `chat.eager`, `editor.wrap`, `tabs(list.plain,table.fit5)`, `split(list.plain,table.fit5)`, … ; `stress:<scenario>[/<variant>]` adopts an existing one |
+| `composition` | What the page is built from: a name from `CaseComposition`, with dotted options | `list.plain`, `list.search`, `table.fit5`, `table.wrap5`, `chat.lazy`, `chat.eager`, `editor.wrap`, `tabs(list.plain,table.fit5)`, `split(list.plain,table.fit5)`, `follows(list.plain)` (in a scene whose focus follows the pointer; added 2026-11-16), … ; `stress:<scenario>[/<variant>]` adopts an existing one |
 | `in` | The container around it: `CaseContainer`, a superset of `ScrollFitSituation` | `alone`, `title` (in a `ScrollView` under a title), `bottom` (bottom-anchored `ScrollView`), `sheet`, `fixed`, `-` for an adopted scenario |
 | `size` | The terminal, in cells | `80x24`, `120x40`, `200x60`, `40x12` |
 | `n` | The data count, synthesised from the case's seed by `Synth` | an integer |
@@ -414,7 +414,7 @@ before anything reads them; the colour depth is pinned per frame, at 24 bits, as
 | `list-wheel` | `open` | 1 | 2 | 94 | 0 | 196 | 0 | 176 | 5,595 |
 | `list-wheel` | `wheel:+5` | 20 | 20 | 306 | 140 | 700 | 0 | 600 | 33,981 |
 | `list-hover` | `open` | 1 | 2 | 94 | 0 | 196 | 0 | 176 | 5,595 |
-| `list-hover` | `hover:+1` | 20 | 20 | 6 | 440 | 100 | 0 | 0 | 0 |
+| `list-hover` | `hover:+1` | 20 | 20 | 6 | 440 | 100 | 0 | 0 | 0 (5,132 since F4 was withdrawn) |
 | `list-search` | `open` | 1 | 2 | 90 | 0 | 232 | 0 | 312 | 5,558 |
 | `list-search` | `key:tab` | 1 | 1 | 21 | 0 | 58 | 0 | 78 | 1,172 |
 | `list-search` | `type:ab` | 1 | 2 | 45 | 0 | 122 | 0 | 184 | 3,020 |
@@ -450,9 +450,16 @@ before anything reads them; the colour depth is pinned per frame, at 24 bits, as
   (5 × 3,000) for a table nothing draws.
 - **PERFCASE-F3.** The bottom-anchored lazy stack is not O(window): at 10n `chat-lazy-follow` runs 21% more bodies
   and misses 29% more measures as it opens, and 10% and 19% more per row appended.
-- **PERFCASE-F4.** A hover moves nothing on a `List`: `list-hover` writes no byte over 20 steps. The owner's
-  2026-11-10 ruling (HOVER-FOCUS b: hovering a row moves the list's keyboard row) is not built; when it is, this
-  case re-records (two rows rebuilt and written a step, as the design expected).
+- **PERFCASE-F4, withdrawn: the case's mistake, not the code's.** It said a hover moves nothing on a `List`, since
+  `list-hover` wrote no byte over 20 steps, and that the owner's ruling was not built. It was false. The ruling
+  (HOVER-FOCUS b, built in 217c8bdf5) is for a scene whose focus follows the pointer: hovering a row then moves the
+  list's cursor row and the focus, never the selection. The case played a `List` without `.focusFollowsPointer()`,
+  and `--check-counts` unsets every `TUI_` variable, `TUI_FOCUS_FOLLOWS_POINTER` with it, so a hover rightly moved
+  nothing. The composition is now `follows(list.plain)` (`follows(…)`: the page in a scene with
+  `.focusFollowsPointer(true)`, drawn with no extra view, so only what the setting does moves a count), and the
+  case re-recorded (2026-11-16): a hover step now writes 257 bytes (5,132 over 20 steps), two rows' worth, and
+  rebuilds no row. The cursor's highlight is drawn over rows the memo serves (22 a step, as before), so the
+  design's "two rows rebuilt a step" was itself wrong; every other count is unchanged.
 - `tabs-switch`: switching back to the list tab rebuilds its visible rows (41 built, none served) every time, and
   the design's script, `key:tab;key:right*10`, switched nothing: the tab strip holds the focus as the page opens,
   so the Tab moved the focus into the list, where Right does nothing (0 bytes). The case now plays
@@ -482,7 +489,7 @@ the cases says `check-counts: absent` instead. CI runs it after the selfcheck st
 `--variants` and `--selfcheck` (memo-verified); a `--cases [--timed] [--tags]` listing; `ab_bench.py` and
 `sweep.py` taking `--cases`/`--tags` (L3). About a hundred more cases, each surprising count filed as a finding
 (L4). The `Stress` README's section and the Profiling README's, `CONTRIBUTING.md`, and the timing-trend CSV the owner
-said yes to (L5). The four findings above are for whoever takes them.
+said yes to (L5). The three findings above that stand (F1 to F3) are for whoever takes them.
 
 **The platform question.** Settled by reasoning and a build, not yet by a Linux run (nothing here runs Linux): CI runs
 `--check-counts` on the Linux lanes as on macOS, binding, against the same recorded lines. What a count depends on is

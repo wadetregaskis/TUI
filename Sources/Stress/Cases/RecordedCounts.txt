@@ -10,9 +10,9 @@ list-wheel            wheel:+5       20     20      306    140     700     0    
 list-wheel@10n        open           1      2       94     0       196     0        176     5595
 list-wheel@10n        wheel:+5       20     20      306    140     700     0        600     33558
 list-hover            open           1      2       94     0       196     0        176     5595
-list-hover            hover:+1       20     20      6      440     100     0        0       0
+list-hover            hover:+1       20     20      6      440     100     0        0       5132
 list-hover@10n        open           1      2       94     0       196     0        176     5595
-list-hover@10n        hover:+1       20     20      6      440     100     0        0       0
+list-hover@10n        hover:+1       20     20      6      440     100     0        0       5132
 list-search           open           1      2       90     0       232     0        312     5558
 list-search           key:tab        1      1       21     0       58      0        78      1172
 list-search           type:ab        1      2       45     0       122     0        184     3020

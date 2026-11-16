@@ -133,8 +133,8 @@ enum CaseTable {
 
     // MARK: Compositions
 
-    /// A composition: a leaf's name, `tabs(a,b,…)`, `split(a,b)` or
-    /// `stress:<scenario>[/<variant>]`.
+    /// A composition: a leaf's name, `tabs(a,b,…)`, `split(a,b)`,
+    /// `follows(a)` or `stress:<scenario>[/<variant>]`.
     static func parseComposition(_ text: String, at origin: CaseOrigin) throws(CaseTableError) -> CaseComposition {
         func fail(_ message: String) -> CaseTableError { CaseTableError(origin: origin, message: message) }
         if text.hasPrefix("stress:") {
@@ -149,23 +149,28 @@ enum CaseTable {
             var parts: [CaseComposition] = []
             let inside = String(text[text.index(after: open)..<text.index(before: text.endIndex)])
             for part in try splitArguments(inside, at: origin) { parts.append(try parseComposition(part, at: origin)) }
+            if parts.contains(where: \.isAdopted) { throw fail("an adopted scenario cannot be a part") }
+            if parts.contains(where: \.followsPointer) {
+                throw fail("follows(…) is the scene's setting: it wraps the whole composition, never a part")
+            }
             switch head {
             case "tabs":
                 guard parts.count >= 2 else { throw fail("tabs(…) takes two parts or more") }
-                if parts.contains(where: \.isAdopted) { throw fail("an adopted scenario cannot be a part") }
                 return .tabs(parts)
             case "split":
                 guard parts.count == 2 else { throw fail("split(…) takes two parts") }
-                if parts.contains(where: \.isAdopted) { throw fail("an adopted scenario cannot be a part") }
                 return .split(parts[0], parts[1])
+            case "follows":
+                guard parts.count == 1 else { throw fail("follows(…) takes one composition") }
+                return .followsPointer(parts[0])
             default:
-                throw fail("'\(head)(…)' is not tabs(…) or split(…)")
+                throw fail("'\(head)(…)' is not tabs(…), split(…) or follows(…)")
             }
         }
         guard let leaf = CaseLeaf(rawValue: text) else {
             throw fail(
                 "composition '\(text)' is not one of \(CaseLeaf.allCases.map(\.rawValue).joined(separator: ", ")), "
-                    + "tabs(…), split(…) or stress:<scenario>[/<variant>]")
+                    + "tabs(…), split(…), follows(…) or stress:<scenario>[/<variant>]")
         }
         return .leaf(leaf)
     }
