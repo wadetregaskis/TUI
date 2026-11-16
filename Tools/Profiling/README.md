@@ -64,7 +64,8 @@ Tools/Profiling/record.sh idle 12         # steady-state per-frame cost
 Tools/Profiling/record.sh list 15 24 80   # List page in an 80x24 terminal
 ```
 
-Traces land in `profiling-traces/` (git-ignored).
+Traces land in `profiling-traces/` (git-ignored). `xctrace` also leaves its raw recording, an `instruments*.ktrace` of often hundreds of MB, in
+the user's temp directory; `drive.py` removes the one its recording made.
 
 ## What a page costs to ARRIVE — `page_open.py`
 

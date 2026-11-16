@@ -354,6 +354,17 @@ def login_tty_compat(fd):
         os.close(fd)
 
 
+def leftover_ktraces():
+    """The raw `instruments*.ktrace` recordings in the user's temp directory."""
+    try:
+        temp = subprocess.run(["getconf", "DARWIN_USER_TEMP_DIR"], capture_output=True,
+                              text=True).stdout.strip() or tempfile.gettempdir()
+        return {os.path.join(temp, name) for name in os.listdir(temp)
+                if name.startswith("instruments") and name.endswith(".ktrace")}
+    except OSError:
+        return set()
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -451,6 +462,7 @@ def main():
     drain(args.settle)
 
     xctrace = None
+    ktraces_before = leftover_ktraces()
     if args.trace:
         xctrace = subprocess.Popen(
             ["xcrun", "xctrace", "record", "--template", "Time Profiler",
@@ -508,6 +520,14 @@ def main():
         out, _ = xctrace.communicate(timeout=180)
         if not args.quiet:
             print("\n".join("[xctrace] " + l for l in out.strip().splitlines()[-6:]))
+        # xctrace leaves its raw recording (`instruments*.ktrace`, often hundreds of MB) in the
+        # user's temp directory once the .trace is written; on 2026-11-15 a day's recordings held
+        # ~3.2 GB of a disk that filled. Remove the ones this recording made.
+        for path in leftover_ktraces() - ktraces_before:
+            try:
+                os.remove(path)
+            except OSError:
+                pass
 
     # The child's memory footprint where the scenario left it, before the way
     # out: macOS's `footprint` (dirty memory, what the system charges the
