@@ -102,7 +102,8 @@ Public APIs MUST match SwiftUI signatures exactly unless terminal constraints re
 | Trailing closures | `@ViewBuilder () -> T`, not `String` |
 
 **Before implementing:** Look up exact SwiftUI signature first.
-**TUI-specific APIs:** OK to add, but keep separate from SwiftUI equivalents.
+**TUI-specific APIs:** OK to add as modifiers, extra initialisers or defaulted parameters on SwiftUI's own
+initialisers, so long as no SwiftUI declaration is shadowed, renamed or made ambiguous ("Extending SwiftUI's API" below).
 
 ### View Architecture (non-negotiable)
 
@@ -235,34 +236,56 @@ private enum StateIndex {
 
 ### SwiftUI API Design (non-negotiable)
 
-#### Init signatures: Keep them minimal
-- Public inits MUST match SwiftUI parameter names and order; SwiftUI's own
-  signature stays exactly as it is
-- TUI-specific options that should reach a subtree (focusID, emptyPlaceholder,
-  styles, etc.) MUST be modifiers, not init params: an init param reaches only
-  its own view
-- A per-instance TUI-specific option with no meaning for a subtree (a toolbar
-  item's label, say) MAY be an extra init — preferred, as it leaves SwiftUI's
-  untouched and costs nothing unused — or a defaulted parameter (owner,
-  2026-10-14). A default stays source-compatible with SwiftUI call sites
-- Minimize init overloads (each extra one costs type-checking time and risks
-  ambiguity); prefer `@ViewBuilder` label variants over String convenience inits
+#### Extending SwiftUI's API: never shadow or break it
+The rule is SwiftUI compatibility, not a particular shape (owner, 2026-11-16): a
+SwiftUI call site must compile and behave exactly as it does in SwiftUI, and
+nothing TUI adds may shadow, rename or make ambiguous a SwiftUI declaration.
+Within that, a TUI-specific option or extension may take whatever shape suits it:
 
-**Correct:**
+- **A modifier.** The natural shape for an option that should reach a subtree
+  (focusID, emptyPlaceholder, styles, etc.), since an init parameter reaches only
+  its own view.
+- **An extra initialiser** of TUI's own, beside SwiftUI's. It leaves SwiftUI's
+  untouched and costs nothing when unused.
+- **An extra parameter on a SwiftUI initialiser,** provided it has a default
+  argument, so every SwiftUI call site stays source-compatible.
+
+What stays fixed:
+- SwiftUI's own signatures keep SwiftUI's parameter names, order and types
+  exactly (see "SwiftUI API Parity" above); a TUI parameter is added, never
+  substituted, and always defaulted.
+- Minimize init overloads (each extra one costs type-checking time and risks
+  ambiguity); prefer `@ViewBuilder` label variants over String convenience inits.
+  Check that a new init or parameter makes no existing SwiftUI call ambiguous.
+
+**Deliberate deviations need the owner's approval.** TUI does sometimes depart
+from SwiftUI's API on purpose: leaving a SwiftUI API unimplemented, or
+implementing a source-incompatible version of one. That is permitted, and at
+times necessary and worth it, but only once the owner has reviewed it and
+explicitly approved it. Put it to the owner as a question (what SwiftUI has,
+what TUI would do instead, why, and what a SwiftUI program would have to
+change), never decide it yourself, and record the ruling with its date in
+`Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` and in the
+declaration's own doc comment.
+
+**Fine:**
 ```swift
 List(selection: $selection) { content }
-    .focusID("my-list")
-    .listEmptyPlaceholder("No items")
+    .focusID("my-list")                  // a modifier: reaches the subtree
+Table(rows, children: \.children, expansion: $open) { columns }   // illustrative: a defaulted
+                                         // TUI parameter on SwiftUI's init
 ```
 
 **Wrong:**
 ```swift
-List(selection: $selection, focusID: "my-list", emptyPlaceholder: "No items") { content }
+// A required (undefaulted) TUI parameter: SwiftUI's own call no longer compiles.
+public init(selection: Binding<Selection>, focusID: String, @ViewBuilder content: () -> Content)
+// A renamed SwiftUI parameter, or an overload that makes `List(selection:)` ambiguous.
 ```
 
-#### Modifier-first principle
+#### Modifier-first for subtree-wide behaviour
 TUI-specific behavior that SwiftUI handles via modifiers, or that should apply
-to a whole view hierarchy, MUST also be modifiers:
+to a whole view hierarchy, SHOULD be a modifier:
 - Focus identity: `.focusID(_:)`
 - Placeholder text: `.listEmptyPlaceholder(_:)`
 - Visual customization: `.trackStyle(_:)`, `.buttonStyle(_:)`, etc.
