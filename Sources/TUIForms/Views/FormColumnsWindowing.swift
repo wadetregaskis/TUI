@@ -68,7 +68,13 @@ final class FormColumnWidths {
     /// its render's), and a resize at a new one.
     static let capacity = 8
 
-    var rows: AnyEquatableBox?
+    /// The version of the rows the widths were read from: compared in O(1),
+    /// where the rows themselves were compared element by element each time
+    /// the form was laid out once they came in a new buffer — every frame,
+    /// from a body that sorts or filters — as `Table`'s `.fit` columns keep
+    /// theirs (`_TableCore.fitMemoKey`).
+    let rowsVersion = DataVersion()
+    var rows: DataVersion.Token?
     var labelsHidden = false
     var byWidth: [Int: Widths] = [:]
 }
@@ -107,8 +113,10 @@ final class FormColumnWidths {
         stateStorage.markActive(context.identity)
         let kept = box.value
         let labelsHidden = context.environment.controlLabelsAreHidden
-        if kept.rows != signature || kept.labelsHidden != labelsHidden {
-            kept.rows = signature
+        // Compared by the rows' version, not the rows: see `rowsVersion`.
+        let rows = kept.rowsVersion.token(for: signature)
+        if kept.rows != rows || kept.labelsHidden != labelsHidden {
+            kept.rows = rows
             kept.labelsHidden = labelsHidden
             kept.byWidth.removeAll()
         }

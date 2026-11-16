@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A long `.columns` `Form` in scroll content whose rows the app builds in its body compares them once a frame.** The
+widths it keeps for its label column and rows were looked up by comparing the rows it was first handed with the rows
+it was handed now, element by element whenever they came in a new array, which a body that sorts or filters makes
+every frame — and the rows it kept were never replaced, so every time the form was laid out compared all of them. The
+form now keeps a version of its rows, as a `Table`'s `.fit` columns do: the same while they are equal, and a new one
+for any change at all, so a changed collection is still read again.
+
 **A hierarchical `Table` lists its open rows with less bookkeeping.** As it flattened its tree, a table noted where
 each open row sat in three tables keyed by the row's id; it keeps them in order now, and looks a row up by id only
 when something asks. Listing the rows of an open tree is about a sixth faster, for rows written as row content
