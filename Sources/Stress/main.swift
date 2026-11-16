@@ -31,6 +31,10 @@
 //    --sessions                                  list them
 //    --session <id> [--steps N] [--verify] [--resize-every N] [--cols C] [--rows R] [--show] [--show-steps A-B] [--trace] [--census] [--cache-sizes N]
 //    --bench --scenario session/<id> ...         a session as a benchmark
+//
+//  Perf cases (one line each in Cases/Tables/ — see Cases/CaseTable.swift):
+//    --check-counts [--case a,b] [--counts-file F] [--show]  play every case, compare its counts with
+//                                                     Cases/RecordedCounts.txt; TUI_RECORD_PERF_COUNTS=1 re-records
 
 import Foundation
 import TUI
@@ -38,6 +42,10 @@ import TUI
 // Register the harness's own localized strings with the shared
 // LocalizationService before any UI renders, so `L(_:)` resolves them. Harmless
 // in the headless `--bench` / `--selfcheck` modes (they never read the result).
+// `--check-counts` pins the language, the locale and the `TUI_` variables
+// before anything reads them: the localization service, made by the line
+// after, reads the language once (`CountCheck.pinEnvironment()`).
+if CommandLine.arguments.contains("--check-counts") { CountCheck.pinEnvironment() }
 registerStressLocalizations()
 
 let rawArgs = Array(CommandLine.arguments.dropFirst())
@@ -76,6 +84,8 @@ let usageText = """
     Session:      Stress --session <id> [--steps N] [--verify] [--resize-every N] [--cols C] [--rows R] [--show]
                                 [--show-steps A-B] [--trace] [--census] [--cache-sizes N]
                   (and Stress --bench --scenario session/<id>, which ab_bench.py can A/B)
+    Counts:       Stress --check-counts [--case a,b] [--counts-file F] [--show]
+                  (TUI_RECORD_PERF_COUNTS=1 writes the counts instead of comparing them)
 
     Scenario ids (the interactive menu shows titles, not ids):
     \(scenarioIDs)
@@ -151,6 +161,15 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
         SessionRunner.print(report, id: id, options: options, config: config)
         return report.passed ? 0 : 1
     }
+    exit(code)
+} else if rawArgs.contains("--check-counts") {
+    refuseStripes(in: "check-counts")
+    var options = CountCheck.Options()
+    options.only = Set(flagValue("--case")?.split(separator: ",").map(String.init) ?? [])
+    options.path = flagValue("--counts-file") ?? options.path
+    options.records = ProcessInfo.processInfo.environment[CountCheck.recordVariable] == "1"
+    options.shows = rawArgs.contains("--show")
+    let code = await MainActor.run { CountCheck.run(options) }
     exit(code)
 } else if rawArgs.contains("--selfcheck") {
     refuseStripes(in: "selfcheck")

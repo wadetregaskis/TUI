@@ -1101,7 +1101,9 @@ let package = Package(
         .executableTarget(
             name: "Stress",
             dependencies: ["TUI"],
-            exclude: ["README.md"]  // documentation, not a bundled resource
+            // Documentation, and the counts `--check-counts` reads from the
+            // source tree (`RecordedCounts.defaultPath`): neither is a bundled resource.
+            exclude: ["README.md", "Cases/RecordedCounts.txt"]
         ),
 
         // ── Tools ───────────────────────────────────────────────────────────────────────────────────────

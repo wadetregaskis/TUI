@@ -29,6 +29,10 @@ swift run Stress
 # Headless smoke test: render every scenario once, non-zero exit on empty.
 swift run Stress --selfcheck
 
+# Play every perf case and compare its work counts with the recorded ones
+# (see "Perf cases" below); TUI_RECORD_PERF_COUNTS=1 re-records them.
+swift run Stress --check-counts
+
 # Headless benchmark of one scenario (no PTY — see "Profiling" below).
 swift run -c release Stress -- --bench --scenario fanout --iterations 2000 --cold
 ```
@@ -422,6 +426,29 @@ tables that keep growing (see `Tools/Profiling/README.md`). `--bench --scenario
 context, so a page whose `rss-peak` climbs with the frame count says which
 table holds it (it named the `if` records of the rows a lazy stack scrolled
 past, 2026-11-14).
+
+## Perf cases: one line each, counted in the gate
+
+A perf case is one line of a table in `Cases/Tables/`: a composition (what
+the page is built from), the container it sits in, a terminal size, a data
+count, a script of phases, a scaling class, whether the timed sweep includes
+it, and tags. The words those columns are written in are `Cases/CaseVocabulary.swift`;
+the design and its record are
+[A declarative perf-case table](<../../Documentation/Historical/Performance/A declarative perf-case table.md>).
+
+`--check-counts` plays every case twice, and again at 10n (`flat`) or 2n
+(`linear`), and compares what each phase did — frames, rows built and served,
+bodies run, cell values, measure-memo misses, bytes written — with
+`Cases/RecordedCounts.txt`. A count that rises fails; one that falls passes and
+is printed as `IMPROVED` with both numbers until it is re-recorded. Served rows
+and memo misses may move by 1%; everything else is exact. The gate and CI run
+it. When a change moves a count on purpose, re-record and say in the commit, per
+case, what moved and why:
+
+```sh
+TUI_RECORD_PERF_COUNTS=1 swift run Stress --check-counts            # every case
+swift run Stress --check-counts --case list-wheel,list-hover        # some
+```
 
 ## Profiling
 

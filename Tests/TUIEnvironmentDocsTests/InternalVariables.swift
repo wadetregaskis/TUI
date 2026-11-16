@@ -29,6 +29,7 @@ enum InternalVariables {
         "TUI_EXAMPLE_PAGE": "The Example alone reads it.",
         "TUI_EXAMPLE_PALETTE_ALPHA": "The Example alone reads it.",
         "TUI_EXAMPLE_PICTURE": "The Example alone reads it.",
+        "TUI_RECORD_PERF_COUNTS": "Stress --check-counts alone reads it: 1 re-records the perf cases' counts.",
         "TUI_STRESS_AUTOPILOT": "Stress alone reads it.",
         "TUI_STRESS_SCALE": "Stress alone reads it.",
         "TUI_STRESS_SCENARIO": "Stress alone reads it.",
@@ -65,5 +66,7 @@ enum InternalVariables {
 
     /// String literals in capitals, in a file that reads the environment, that aren't
     /// the name of a variable.
-    static let notVariables: Set<String> = ["A", "B", "ESC", "FAIL", "P", "SCREEN", "SS", "TUI", "VERSION", "X"]
+    static let notVariables: Set<String> = [
+        "A", "B", "ESC", "FAIL", "P", "SCREEN", "SS", "TUI", "TUI_", "TUIKIT_", "VERSION", "X",
+    ]
 }

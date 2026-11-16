@@ -105,6 +105,7 @@ Read only by those two executables, for clips, sweeps and measuring. `Sources/St
 | `TUI_STRESS_SCENARIO` | A scenario's name | The scenario to open on. |
 | `TUI_STRESS_VARIANT` | A variant's name | The scenario's variant. |
 | `TUI_STRESS_STRIPES` | A stripe set's name | The stripes that state is kept in. |
+| `TUI_RECORD_PERF_COUNTS` | `1` | `Stress --check-counts` re-records the perf cases' counts instead of checking them. |
 
 Stress's command-line flags override these, which is the rule at the top of the article, applied by an app of our own.
 

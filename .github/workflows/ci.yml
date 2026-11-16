@@ -599,6 +599,16 @@ jobs:
           TUI_VERIFY_RENDER_MEMO: "1"
         run: $SWIFT run Stress --selfcheck
 
+      - name: Perf cases — work counts match the recorded ones
+        # Every case in Sources/Stress/Cases/Tables/, played twice and at its
+        # scaling rerun, its counts (rows built and served, bodies run, cell
+        # values, measure-memo misses, bytes) compared with
+        # Sources/Stress/Cases/RecordedCounts.txt: a rise fails, a fall is
+        # printed as IMPROVED. It pins its own language, locale, colour depth
+        # and TUI_ variables, so no env here. The gate runs it too. Design:
+        # Documentation/Historical/Performance/A declarative perf-case table.md.
+        run: $SWIFT run Stress --check-counts
+
       - name: Smoke — drive both apps in a real PTY (${{ matrix.smoke }})
         run: ./Tools/Smoke/ci-pty-smoke.sh ${{ matrix.smoke }}
 
@@ -911,6 +921,14 @@ jobs:
         env:
           TUI_VERIFY_RENDER_MEMO: "1"
         run: swift run Stress --selfcheck
+
+      # The macOS job's step says what it checks. The same recorded file: no
+      # count of a case depends on the platform as far as its code goes (the
+      # design's "Fitting it into the gate" has the reasoning); a phase that
+      # does differ here gets an `@linux` line, which a failure prints ready
+      # to paste.
+      - name: Perf cases — work counts match the recorded ones
+        run: swift run Stress --check-counts
 
       - name: Smoke — drive both apps in a real PTY (${{ matrix.smoke }})
         run: ./Tools/Smoke/ci-pty-smoke.sh ${{ matrix.smoke }}

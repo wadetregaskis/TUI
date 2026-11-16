@@ -365,8 +365,135 @@ suspected.
 
 ## Where it stands
 
-Proposed 2026-11-14; the owner answered A-PERFCASE-1 to 3 the same day. Nothing is built yet. B-PERFCASE-1 to 7
-are decided here and stand unless the owner's answers change them.
+Proposed 2026-11-14; the owner answered A-PERFCASE-1 to 3 the same day. B-PERFCASE-1 to 7 are decided here and
+stand unless the owner's answers change them. Lanes 1 and 2 were built on 2026-11-15 ("Lanes 1 and 2, as built",
+below); lanes 3 to 5 are still to come.
+
+## Lanes 1 and 2, as built (2026-11-15)
+
+**The counter.** `RenderCache.RowWork.bodies` counts every composite body the walks evaluate, incremented in
+`BodyChangeReport.noteBodyEvaluated`, the one call every evaluated body is followed by (B-PERFCASE-6).
+`RenderCache.rowWork` became `@exclusivity(unchecked)`, since it is now written once per body. Its price:
+`ab_bench.py --quick`, release, against its base (d642eb2a1), load 3.2 to 5.5: indistinguishable in all seven
+scenarios, medians −0.3% to +2.1%, the tightest intervals `modifiers` −1.7%…+0.8%, `framedcolumns` −0.4%…+1.3% and
+`table-churn` −0.8%…+0.3%. No measurable cost.
+
+**The cases.** `Sources/Stress/Cases/`: the vocabulary (`CaseVocabulary.swift`), the rows every composition reads
+(`CaseRows.swift`), the parser (`CaseTable.swift`, `CaseTable+Script.swift`), the pages (`CaseCompositionView.swift`),
+the player (`CasePlayer.swift`, a `HeadlessApp` per play), the check (`CountCheck*.swift`), the known issues
+(`CaseKnownIssues.swift`) and the ten cases, one file per family under `Tables/`. `Stress --check-counts` plays them
+in about 35 s, debug, on the development machine.
+
+Where the build differs from the design above, and why:
+
+| Design | As built | Why |
+|---|---|---|
+| The recorded file holds per-frame means | It holds the phase's totals, with its `steps` and `frames` | A total compares exactly; a mean of 3 frames does not. `frames` is a count too: a page that starts asking for frames it does not need fails on it |
+| `@10n` lines are compared with the `n` lines only | They are recorded and compared exactly as well, besides the scaling check | They cost nothing, and a finding that gets worse at 10n then fails even where its scaling is excused |
+| `linear` is "twice at 2n, ±10%" | Each count at 2n is the count at n or twice it, ±10% | A case's chrome and its first frame's fixed work do not double; what `linear` rules out is worse than O(n) |
+| Scaling compares every count | It compares `built`, `served`, `bodies`, `cells` and `misses`, not `bytes` | A scroll bar's thumb sits elsewhere at 10n: `list-wheel` writes 33,981 bytes at n and 33,558 at 10n for the same rows |
+| `list-search` is `linear` | `flat` | The O(n) filter is the app's own code, which no count sees; the framework's work is O(window) at any n, so filtered-out rows run no body |
+| `list-search` is `open;type:ab;key:bksp*2` | `open;key:tab;type:ab;key:bksp*2` | The list holds the focus as the page opens, as on macOS; the Tab reaches the search field |
+| `tabs-switch` is `open;key:tab;key:right*10` | `open;key:right;key:left;key:right;key:left` | The tab strip holds the focus as the page opens: the Tab moved it into the list, and no Right switched a tab (0 bytes) |
+| A failure names `Stress --session case:<id>` to reproduce | `Stress --check-counts --case <id> [--show]`, `--show` printing the last frame | The generic `CaseSession` is lane 3's |
+| Rows synthesised by `Synth` from the seed | Content repeats every 100 ids (`CaseRows.period`) | The rows at the end of a list of 10n are then the rows at the end of a list of n: a bottom-anchored rerun draws the same rows at the same heights |
+| A case with a broken scaling class fails | A finding can excuse named counts of one case (`CaseKnownIssues`), printed as `KNOWN` on every run | Findings are filed, not fixed in the lane; a case keeps the class it is for |
+
+What each failure prints: the case, the phase, the recorded and the new line, the command that plays the case
+again and the one that re-records it, and on Linux the `@linux` line ready to paste. `--check-counts` also unsets
+every `TUI_` variable and `NO_COLOR`, `COLUMNS` and `LINES`, and pins the language and locale to English (US)
+before anything reads them; the colour depth is pinned per frame, at 24 bits, as `TestApp` pins it.
+
+**Determinism.** Every case agreed with itself across two plays in one process and across processes (whose
+`Hasher` seeds differ), in every count, `served` and `misses` included: the 1% they may move has not been needed.
+
+**The recorded counts** (totals over each phase; `@10n` and `@2n` lines left out):
+
+| Case | Phase | Steps | Frames | Built | Served | Bodies | Cells | Misses | Bytes |
+|---|---|--:|--:|--:|--:|--:|--:|--:|--:|
+| `list-wheel` | `open` | 1 | 2 | 94 | 0 | 196 | 0 | 176 | 5,595 |
+| `list-wheel` | `wheel:+5` | 20 | 20 | 306 | 140 | 700 | 0 | 600 | 33,981 |
+| `list-hover` | `open` | 1 | 2 | 94 | 0 | 196 | 0 | 176 | 5,595 |
+| `list-hover` | `hover:+1` | 20 | 20 | 6 | 440 | 100 | 0 | 0 | 0 |
+| `list-search` | `open` | 1 | 2 | 90 | 0 | 232 | 0 | 312 | 5,558 |
+| `list-search` | `key:tab` | 1 | 1 | 21 | 0 | 58 | 0 | 78 | 1,172 |
+| `list-search` | `type:ab` | 1 | 2 | 45 | 0 | 122 | 0 | 184 | 3,020 |
+| `list-search` | `key:bksp` | 2 | 2 | 42 | 0 | 119 | 0 | 170 | 2,947 |
+| `table-fit-tail` | `open` | 1 | 2 | 120 | 36 | 28 | 30,740 | 8 | 10,441 |
+| `table-fit-tail` | `append:1` | 50 | 50 | 62 | 1,800 | 350 | 515,625 | 100 | 0 |
+| `chat-lazy-follow` | `open` | 1 | 3 | 81 | 31 | 409 | 0 | 1,305 | 3,724 |
+| `chat-lazy-follow` | `append:1` | 100 | 100 | 120 | 1,381 | 3,004 | 0 | 13,816 | 42,370 |
+| `chat-eager-follow` | `open` | 1 | 3 | 2,010 | 1 | 7,040 | 0 | 20,060 | 3,724 |
+| `chat-eager-follow` | `append:1` | 20 | 20 | 10,225 | 0 | 21,680 | 0 | 64,780 | 8,076 |
+| `tabs-switch` | `open` | 1 | 3 | 121 | 1 | 262 | 15,000 | 279 | 10,481 |
+| `tabs-switch` | `key:right` | 1 | 2 | 44 | 36 | 30 | 30,360 | 46 | 7,643 |
+| `tabs-switch` | `key:left` | 1 | 1 | 41 | 0 | 84 | 0 | 86 | 7,131 |
+| `tabs-switch` | `key:right#2` | 1 | 1 | 3 | 36 | 15 | 15,180 | 23 | 7,643 |
+| `tabs-switch` | `key:left#2` | 1 | 1 | 39 | 0 | 84 | 0 | 86 | 7,131 |
+| `split-resize` | `open` | 1 | 3 | 366 | 173 | 532 | 61,140 | 505 | 24,566 |
+| `split-resize` | `resize:80x24` | 1 | 1 | 105 | 0 | 175 | 12,044 | 239 | 6,723 |
+| `split-resize` | `resize:200x60` | 5 | 5 | 130 | 236 | 157 | 15,285 | 118 | 122,830 |
+| `editor-typing` | `open` | 1 | 2 | 6 | 0 | 20 | 0 | 8 | 5,377 |
+| `editor-typing` | `key:pgdn` | 10 | 10 | 3 | 0 | 50 | 0 | 20 | 26,020 |
+| `editor-typing` | `type:hello` | 1 | 5 | 3 | 0 | 25 | 0 | 10 | 852 |
+| `editor-typing` | `idle` | 5 | 5 | 0 | 0 | 25 | 0 | 10 | 0 |
+| `mail-idle` | `open` | 1 | 3 | 107 | 35 | 8,176 | 0 | 42,520 | 11,573 |
+| `mail-idle` | `idle` | 200 | 200 | 6 | 7,000 | 4,200 | 0 | 12,800 | 0 |
+
+**Findings** (filed, not fixed here):
+
+- **PERFCASE-F1.** A row appended to a `Table` rescans every row of every `.fit` column: `table-fit-tail` reads
+  515,625 cell values over 50 appends at 2,000 rows (5 columns × 2,062 rows a frame), 5,015,625 at 20,000. The
+  fit-width memo is keyed by the rows' data, which an append changes, so the O(rows) scan `sweep.py` found is still
+  there for a growing table. `split-resize` pays it on every resize.
+- **PERFCASE-F2.** A hidden tab's `.fit` table scans its columns at open: `tabs-switch` reads 15,000 cell values
+  (5 × 3,000) for a table nothing draws.
+- **PERFCASE-F3.** The bottom-anchored lazy stack is not O(window): at 10n `chat-lazy-follow` runs 21% more bodies
+  and misses 29% more measures as it opens, and 10% and 19% more per row appended.
+- **PERFCASE-F4.** A hover moves nothing on a `List`: `list-hover` writes no byte over 20 steps. The owner's
+  2026-11-10 ruling (HOVER-FOCUS b: hovering a row moves the list's keyboard row) is not built; when it is, this
+  case re-records (two rows rebuilt and written a step, as the design expected).
+- `tabs-switch`: switching back to the list tab rebuilds its visible rows (41 built, none served) every time, and
+  the design's script, `key:tab;key:right*10`, switched nothing: the tab strip holds the focus as the page opens,
+  so the Tab moved the focus into the list, where Right does nothing (0 bytes). The case now plays
+  `key:right;key:left;key:right;key:left`.
+- `mail-idle`: an idle frame of the mail client, nothing changed, runs 21 bodies and misses 64 measures.
+
+**Planted regressions.** Each count's check was seen to fail with the regression planted, and pass without it:
+
+| Count | Planted | Seen failing |
+|---|---|---|
+| (the table) | `list.plane` and `wheel:5` in `Lists.swift` | Both reported, each at its own line of the file (18, 19) |
+| `bytes` | The diff writer forgets the last frame (`previousLines: []`) | 46 lines in all 10 cases |
+| `misses` | The measure memo never answers | `misses` on 16 lines (`list-search`, `tabs-switch`, `mail-idle`), `bodies` with it |
+| `cells` | A `Table`'s `.fit` width memo bypassed: the doc's planted regression | `cells` on 6 lines (`table-fit-tail`, `split-resize`) |
+| `built`, `bodies` | The value memo never serves a row | `built` and `bodies` on 20 lines each, in 7 cases; `served` fell (printed as improved) |
+| `served` | The row window takes 20 rows past the viewport: the pull switched off, as the doc says | `served` on 10 lines, `built` on 24 |
+| `frames` | Every render asks for another frame, as a page that never idles does | `frames` on 54 lines in all 10 cases |
+
+Each was planted in the source, built, checked, and taken out again; the tree without it passes.
+
+**In the gate and CI.** The gate (`gates_inline.sh`, in the working notes) runs `Stress --check-counts` after
+`--selfcheck`, in its build-dependent phase, and passes only with its `check-counts: all` line; a tree from before
+the cases says `check-counts: absent` instead. CI runs it after the selfcheck step in the macOS and the Linux jobs
+(not Windows, where `TUIApp`, and so `HeadlessApp`, does not build).
+
+**Left for lanes 3 to 5.** The generic `CaseSession` and the `cases` matrix scenario, so cases are in `--sessions`,
+`--variants` and `--selfcheck` (memo-verified); a `--cases [--timed] [--tags]` listing; `ab_bench.py` and
+`sweep.py` taking `--cases`/`--tags` (L3). About a hundred more cases, each surprising count filed as a finding
+(L4). The `Stress` README's section and the Profiling README's, `CONTRIBUTING.md`, and the timing-trend CSV the owner
+said yes to (L5). The four findings above are for whoever takes them.
+
+**The platform question.** Settled by reasoning and a build, not yet by a Linux run (nothing here runs Linux): CI runs
+`--check-counts` on the Linux lanes as on macOS, binding, against the same recorded lines. What a count depends on is
+the same on both. The cases draw ASCII text whose widths come from TUI's own tables, not the C library's; no case
+draws an SF Symbol (whose glyph depends on the host's fonts, which is why `750e1de04` took one out of the SCROLL-FIT
+baseline); none sorts (`TableColumn`'s comparator is the one Darwin-only branch on a case's path); the numbers drawn
+are interpolated, not formatted; the language, locale, colour depth and `TUI_` variables are pinned; and `Hasher`'s
+per-process seed, which differs on every run on both platforms alike, has moved no count (see Determinism). A
+static-linux build (swift.org 6.3.3, musl) of `Stress` with the cases builds with no error or warning of the code's (2026-11-15). If a Linux lane does find a phase
+that differs, its failure prints the `@linux` line to add, and that platform then reads it in place of the shared
+one.
 
 ## For a future reader
 
