@@ -15,7 +15,9 @@ extension CaseTables {
     //   the table tuitree draws: its rows written as `Table(of:columns:rows:)` content, a `DisclosureTableRow` for
     //   each branch; outline-rows-stacked is that table under a title in a `VStack`, as tuitree's page holds it,
     //   where the stack measures the table before it is drawn; outline-section is the list's outline inside a
-    //   `Section`.
+    //   `Section`. outline-children-bound is outline-table with the app keeping its expansion
+    //   (`Table(_:children:expansion:)`, the windowed way to a tree that starts open, G1-rows (d)): the keys write
+    //   the app's set, and every count is outline-table's.
     static let outlines = CaseTableSource(file: #fileID, line: #line, """
         id               composition      in     size   n     script                                                       scales  timed  tags
         outline-list     outline.list     alone  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat    -      list,outline,window
@@ -23,5 +25,6 @@ extension CaseTables {
         outline-rows     outline.rows     alone  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat    -      table,outline,window
         outline-section  outline.section  alone  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat    -      list,outline,window
         outline-rows-stacked  outline.rows  stacked  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat  -  table,outline,window
+        outline-children-bound  outline.bound  alone  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat  -  table,outline,window
         """)
 }

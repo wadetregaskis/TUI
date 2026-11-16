@@ -44,6 +44,9 @@ final class CaseRows {
     var query = ""
     /// A list's or table's selection.
     var selection: Int?
+    /// The open branches of an outline whose expansion the app keeps
+    /// (`outline.bound`), by row id.
+    var open: Set<Int> = []
     /// A tab view's selection.
     var tab = 0
     /// The rows as lines of text, for a `TextEditor`: written when the case is

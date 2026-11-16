@@ -41,6 +41,9 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     case outlineList = "outline.list"
     /// The same tree as a selectable `Table(_:children:)` of three columns.
     case outlineTable = "outline.table"
+    /// The same table with the app keeping its expansion
+    /// (`Table(_:children:expansion:)`, ``CaseRows/open``).
+    case outlineBound = "outline.bound"
     /// The same tree as a selectable `Table(of:columns:rows:)` of three
     /// columns whose rows are written as tuitree writes its own: a `ForEach`
     /// of a `DisclosureTableRow` for each branch, its rows built by the same
@@ -55,7 +58,7 @@ extension CaseLeaf {
     /// Whether the leaf shows the rows as a tree (``CaseRows/tree``).
     var isOutline: Bool {
         switch self {
-        case .outlineList, .outlineTable, .outlineRows, .outlineSection: true
+        case .outlineList, .outlineTable, .outlineBound, .outlineRows, .outlineSection: true
         default: false
         }
     }

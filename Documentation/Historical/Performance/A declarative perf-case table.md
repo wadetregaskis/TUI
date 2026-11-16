@@ -705,6 +705,30 @@ Put to the owner with (d) recommended, measured first: a cursor move in tuitree 
 anything is built, since `built` stays at a screenful and only `listed` grows, and the time the closure walk costs
 there has not been measured.
 
+**(d) chosen and built (owner, 2026-11-16).** Not as a modifier, as the row above first sketched it, but as CLAUDE.md's
+new "Extending SwiftUI's API" section allows: a defaulted parameter on SwiftUI's own initialisers,
+`expansion: Binding<Set<Value.ID>>? = nil`, after `children:` on all six `Table(_:children:)` forms (selection none,
+single, set; each with and without `sortOrder:`). `nil` keeps the table's own expansion at its place, as before; a
+binding is the only record, opened exactly as its set says and written by Right, Left, ⌥Right, ⌥Left and the
+triangle's click. Every SwiftUI form is in the compile corpus, so each is seen to resolve as it did.
+
+How it keeps the windowed path: the outline's expansion became one type with two stores
+(`_TableOutlineExpansion`, the table's box or the app's binding), read once a flattening and once a key or click, and
+written once a gesture (an ⌥Right over thousands of branches copies the app's set once, not once a branch). The kept
+outline (`_TableOutlineCache`) compares the reading it was made from with the reading now, so an unchanged set, in the
+same storage, keeps it; a change makes the outline again from the kept roots. Making only the changed branches again,
+splicing their rows into the kept outline, was not done: the rows' parent links and branch indices shift with every
+splice, and the outline is made once a change, as the table's own expansion already makes it, never once a frame.
+`List(_:children:)` and `OutlineGroup` were not given the parameter: their expansion is the group's `StateBox` across
+the list's windowed and section paths, and threading a binding through them is its own change, left as a follow-up.
+
+`outline-children-bound` is `outline-table` with the app keeping the expansion (`outline.bound`), recorded on a clean
+debug build: every count, at n and 10n, is `outline-table`'s (`key:oright` listed 0, built 21; `wheel:+5` built
+158, served 60), so the binding costs the windowed table nothing the counters see. Its page shares
+`outline-table`'s arm of the case's `switch` (`expansion:` `nil` there): an arm of its own, as first written, nested
+the other arms a level deeper and raised `outline-rows-stacked`'s `misses` by about one a frame (`open` 81 → 84,
+`wheel:+5` 270 → 280), the harness's shape and not the table's, as the comment on `CaseOutlineView` already warned.
+
 ## For a future reader
 
 - Counts are proxies. A clean `--check-counts` says the work did not change, not that the time did

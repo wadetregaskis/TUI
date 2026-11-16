@@ -109,7 +109,7 @@ private struct CaseLeafView: View {
                 })
         case .editorWrap:
             AnyView(TextEditor(text: Binding(get: { rows.document }, set: { rows.document = $0 })))
-        case .outlineList, .outlineTable, .outlineRows, .outlineSection:
+        case .outlineList, .outlineTable, .outlineBound, .outlineRows, .outlineSection:
             // One arm for all, in a view of their own: an arm each nested the
             // switch's content a level deeper for every leaf, and moved the
             // other cases' measure-memo misses.
@@ -128,9 +128,17 @@ private struct CaseOutlineView: View {
 
     var body: some View {
         switch leaf {
-        case .outlineTable:
+        // One arm for both: an arm of its own nests the switch's other arms a
+        // level deeper, which moved outline-rows-stacked's memo misses. Without
+        // the app's expansion (`nil`) the table keeps its own, as
+        // `Table(_:children:)` with no `expansion:` does.
+        case .outlineTable, .outlineBound:
             AnyView(
-                Table(rows.tree, children: \.children, selection: selection) {
+                Table(
+                    rows.tree, children: \.children,
+                    expansion: leaf == .outlineBound ? Binding(get: { rows.open }, set: { rows.open = $0 }) : nil,
+                    selection: selection
+                ) {
                     TableColumn(CaseTableView.titles[4]) { (node: CaseRows.Node) in Text(verbatim: rows.title(node.row)) }
                     TableColumn(CaseTableView.titles[2]) { (node: CaseRows.Node) in Text(verbatim: rows.status(node.row)) }
                     TableColumn(CaseTableView.titles[3]) { (node: CaseRows.Node) in
