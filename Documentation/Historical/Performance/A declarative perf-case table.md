@@ -583,6 +583,12 @@ it is 0 for every case with no `List` in it.
 `mail-idle` makes 26 boxes an idle frame for the boxes its lists show: a box is made again every pass, cheaply,
 and served from the row memo when it is read, which is why `built` there is 6 over 200 frames.
 
+A `Table`'s rows count too where its tree is row content (`Table(of:columns:rows:)` with a `DisclosureTableRow` or
+an `OutlineGroup` of table rows, as tuitree's is): such a tree exists only as the app's row builders, so a pass
+flattens it again, building every open row's content, and `listed` counts the rows that flattening lists, drawn or
+not (`_TableCore.resolveRows`). A `Table(_:children:)` keeps its outline from pass to pass and builds no row content
+to make it, so it lists none: `outline-table` is 0 throughout. Counting it moved no count of any recorded case.
+
 ## For a future reader
 
 - Counts are proxies. A clean `--check-counts` says the work did not change, not that the time did

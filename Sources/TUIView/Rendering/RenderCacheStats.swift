@@ -57,6 +57,12 @@ extension RenderCache {
         /// a list that describes every row makes one a row, every frame —
         /// which is what this is here to show (the perf-case table's `listed`
         /// column). Not ``rendered``: a box draws nothing until it is read.
+        ///
+        /// And the rows of a `Table` whose tree is row content — a
+        /// `DisclosureTableRow`, an `OutlineGroup` of table rows — that a
+        /// pass's outline lists, each built by the app's row builders, drawn
+        /// or not. A `Table(_:children:)` keeps its outline from pass to pass,
+        /// and builds no row content to make it, so lists none.
         public var listed = 0
 
         public init(

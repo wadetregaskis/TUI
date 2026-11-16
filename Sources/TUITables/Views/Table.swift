@@ -746,6 +746,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 outline = (cache?.value ?? _TableOutlineCache()).outline(of: roots, expansion: expansion)
             } else {
                 outline = _TableOutline(tree: rowTree, expansion: expansion)
+                // A tree written as row content is flattened again every pass,
+                // every open row's content built by the app's row builders:
+                // counted as a list's row boxes are (see `RowWork.listed`).
+                context.renderCache?.rowWork.listed += outline.values.count
             }
             outline.onExpansionChange = onOutlineExpansionChange
             data = outline.values
