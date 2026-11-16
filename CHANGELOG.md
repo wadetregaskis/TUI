@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Table` measured more than once in a frame measures its border and header once.** A table sizes its chrome by
+measuring it around a stand-in for its rows, at the size the rows come to, so a second measure at another size
+asks the same thing; the frame's measure memo answered it only by luck, since the header line it was keyed by was
+built afresh each time. It is now keyed by the header's size: a title over a 10,000-row table fixed vertically does
+24 fewer measures a frame (78 to 54) and takes about 10% less time.
+
 **`sheet(item:)`, `fullScreenCover(item:)` and `popover(item:)` keep each item's state while they are up.** Switched
 from one item to another and back, the presented content is as it was left for that item — its `@State`, scroll
 positions, selections and where the focus was — while each other item's content has state of its own; its `onAppear`

@@ -1401,11 +1401,19 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             padding: drawnPadding(context.environment, showsBar: showsBar)
         ) {
             VStack(alignment: .leading, spacing: 0) {
-                // No claims on the analytic MEASURE path: it reports a size and draws
-                // nothing, and a claim describes cells that were never on screen.
-                _TableHeaderView(
-                    line: headerLines(context.environment) > 0 ? headerLine : nil, claims: [],
-                    trailingCells: trailingPadding(context.environment, showsBar: showsBar))
+                // The header's SIZE, not its line: what `_TableHeaderView` draws,
+                // the line with its leading inset cell and the trailing ones, on
+                // one line or none. The line is a string built afresh for every
+                // ask, and the pass's measure memo keys this container by a hash
+                // that reads its buffer's address, which, since the memo keeps
+                // every value it stored to the pass's end, is a new one each time:
+                // every ask of a table measured more than once in a pass measured
+                // its chrome again (`TableChromeMeasureMemoTests`). Sizes alone
+                // hash the same whenever they are the same.
+                _TableSizeStub(
+                    width: headerLines(context.environment) > 0
+                        ? headerLine.strippedLength + 1 + trailingPadding(context.environment, showsBar: showsBar) : 0,
+                    height: headerLines(context.environment) > 0 ? 1 : 0)
                 // The rows' lines with the inset cells each draws (`TableRowInset`,
                 // `TableTrailingInset`).
                 _TableSizeStub(
