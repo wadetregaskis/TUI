@@ -670,7 +670,8 @@ private func memoizedMeasure<V: View>(
                 proposalHeight: proposal.height,
                 availableHeight: context.availableHeight,
                 size: size,
-                lease: lease)
+                lease: lease,
+                measuring: view)
         }
         return size
     }

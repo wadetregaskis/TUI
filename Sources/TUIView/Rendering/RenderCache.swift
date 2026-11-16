@@ -250,6 +250,7 @@ import TUIStyling
     /// stack, and those are not reachable from the stack's identity.
     package func forgetPassMeasures() {
         measureEntries.removeAll(keepingCapacity: true)
+        measuredValues.release()
     }
 
     /// One measurement under one vertical budget: what ``MeasureKey`` leaves out.
@@ -294,6 +295,19 @@ import TUIStyling
     /// the reader it checked until the next frame, which is exactly the watch
     /// a kept result that forgot its lease relies on.
     private var passLeases: [ObservationLease?] = []
+
+    /// The values this pass's measures were stored for, kept alive until the
+    /// entries are emptied: a ``MeasureKey``'s value hash reads the addresses
+    /// a value holds — a class instance, a closure's context, an array's or a
+    /// string's buffer — and an address names a value only while that value
+    /// lives. Freed during the pass, one could be handed straight back to a
+    /// different value measured at the same identity, which then had the
+    /// first one's key and was served its size. Kept beside the entries rather
+    /// than in them, which stay trivially copyable (see
+    /// ``MeasureEntry/leaseIndex``), and only for a type that holds a
+    /// reference: a value of one that holds none has no address in its key
+    /// that can be freed.
+    private var measuredValues = PassValueKeep()
 
     /// Memoized `measureChild` results — see ``lookupMeasure`` / ``storeMeasure``.
     ///
@@ -1160,19 +1174,21 @@ extension RenderCache {
         return nil
     }
 
-    /// ``storeMeasure(key:proposalWidthWasSpecified:proposalHeight:availableHeight:size:)``
+    /// ``storeMeasure(key:proposalWidthWasSpecified:proposalHeight:availableHeight:size:measuring:)``
     /// with the lease of the measure that found `size` — the per-pass slot
     /// `measureChild` opens around a miss — which a later hit this pass hands
     /// to the computation it serves.
-    package func storeMeasure(
+    package func storeMeasure<Value>(
         key: MeasureKey,
         proposalWidthWasSpecified: Bool,
         proposalHeight: Int?,
         availableHeight: Int,
         size: ViewSize,
-        lease: ObservationLease?
+        lease: ObservationLease?,
+        measuring value: Value
     ) {
         measureMemoStores += 1
+        measuredValues.keep(value)
         var leaseIndex: Int32 = -1
         if let lease {
             leaseIndex = Int32(truncatingIfNeeded: passLeases.count)
@@ -1302,6 +1318,7 @@ extension RenderCache {
         frameCounter &+= 1
         // The measure memo is this frame's scratch space and nothing more.
         measureScratch.endOfPass(&measureEntries)
+        measuredValues.release()
         bodyKeep.beginPass()
         passLeases.removeAll(keepingCapacity: true)
         revalidation.beginPass()
@@ -1321,6 +1338,7 @@ extension RenderCache {
     package func beginRewalk() {
         drainPendingInvalidations()
         measureEntries.removeAll(keepingCapacity: true)
+        measuredValues.release()
         childViewEntries.removeAll(keepingCapacity: true)
         bodyKeep.reset()
     }

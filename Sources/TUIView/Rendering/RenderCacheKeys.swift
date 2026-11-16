@@ -244,14 +244,16 @@ extension RenderCache {
         /// reference, a closure, a string stored two ways) **miss**, and the
         /// view is measured again — correct, just not saved. A false *hit*
         /// needs two different values to hash identically: a 64-bit collision
-        /// among the few hundred entries a pass stores — or, with no collision
-        /// at all, an ADDRESS, which names a value only while that value lives.
-        /// A class instance or a closure's context freed during a pass can have
-        /// its address handed straight back to the next allocation, and a view
-        /// holding the newcomer has the old view's bytes (the 2026-08 performance profile,
-        /// §60, §62: still open for references and closures). An erased view's
-        /// box, the one such address §60 found in a key, is never hashed: its
-        /// content is.
+        /// among the few hundred entries a pass stores. An ADDRESS names a
+        /// value only while that value lives — a class instance or a closure's
+        /// context freed during a pass can have its address handed straight
+        /// back to the next allocation, and a view holding the newcomer has the
+        /// old view's bytes (the 2026-08 performance profile, §60, §62) — so
+        /// the memo keeps every value it stored a size for alive until its
+        /// entries are emptied (`RenderCache.measuredValues`), and no address
+        /// in a key can name another value while the entry stands. An erased
+        /// view's box, the one such address §60 found in a key, is never
+        /// hashed: its content is.
         let valueHash: Int
 
         /// The six fields folded into one word before `Hasher` sees any of them
@@ -292,9 +294,9 @@ extension RenderCache {
     /// `resolveChildViews(from:context:)`. The identity's hash plus the
     /// content's type and value hash, like ``MeasureKey`` without a proposal:
     /// which children a content value has does not depend on the space it is
-    /// offered. Unlike a measure entry, an entry keeps the content value it was
-    /// made from alive for the pass, so an address its value hash read cannot
-    /// be handed to another content value while the entry stands (see
+    /// offered. As a measure entry's value is, an entry's content value is kept
+    /// alive for the pass, so an address its value hash read cannot be handed
+    /// to another content value while the entry stands (see
     /// `RenderCache.ChildViewsEntry`).
     public struct ChildViewsKey: Hashable {
         /// The identity's structural hash, not the identity — the trade

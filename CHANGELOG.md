@@ -230,6 +230,14 @@ build was handed the memory the first had just given back, the drawing used the 
 ideal width rather than the page's. Which memory came back varied from run to run, so the frame it hit did too. The
 record now keeps the content it was made from until the frame ends.
 
+**A view no longer takes the size of a different one measured at the same place earlier in the frame.** Sizes are
+also worked out once a frame and looked up by the view's value, and so by the addresses it holds: an object, a
+closure, a string's or an array's storage. A view built, measured and let go of within a frame could hand its memory
+to the next one built at the same place, which was then given the first one's size: rows asked for at 4 and 12 cells
+in turn, each holding its width in an object made afresh, all came out 12 cells wide after the fourth. The record now keeps each view
+it holds a size for until the frame ends, as the record of a stack's children does. `RenderCache.storeMeasure` takes
+the measured value as `measuring:`.
+
 **A long lazy stack, `List` or `Table` no longer holds on to every row's `if` once it has scrolled past it.**
 Each `if` keeps a record of what it last held, and a row scrolled out of view kept its records — the picture its
 view last drew and the identity of every view down to it — for as long as the container lived: a lazy stack of

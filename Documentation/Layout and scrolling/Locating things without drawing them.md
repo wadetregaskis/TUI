@@ -883,9 +883,12 @@ probe that took it. That is the probe's property, not a guarantee. A row is
 built when its measure misses the pass's memo, and the memo keys a row by its
 view's value (`viewValueHash`), among it the heap address of its `ForEach`
 closure's context (its element's box is opened, and its content hashed); where
-a freed row's address comes straight back, the memo serves a measure the count
-would otherwise show. So a
-probe whose rows capture differently can read less, and move from frame to
+a freed row's address came straight back, the memo served a measure the count
+would otherwise have shown. Since 2026-11-15 the memo keeps every value it
+stored a size for alive until the pass ends (`RenderCache.measuredValues`), so
+no address comes back within a pass and such a hit is gone; the counts below
+were taken before that. So a
+probe whose rows capture differently could read less, and move from frame to
 frame: the forty groups, in a probe whose rows capture less, read anywhere
 from 14,361 to 14,662 across runs, where the probe above read 14,662 on every
 frame. (Before a nested stack answered a two-axis view's asks from its walk,

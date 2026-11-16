@@ -425,7 +425,7 @@ struct ObservationLeaseTests {
         let measureLease = try #require(cache.leases.endComputation(measured), "the measure armed a scope")
         cache.storeMeasure(
             key: key, proposalWidthWasSpecified: false, proposalHeight: nil, availableHeight: 5,
-            size: .fixed(3, 1), lease: measureLease)
+            size: .fixed(3, 1), lease: measureLease, measuring: ())
         let kept = cache.leases.beginComputation()
         _ = cache.lookupMeasure(
             key: key, proposalWidthWasSpecified: false, proposalHeight: nil, availableHeight: 5,
