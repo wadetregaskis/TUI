@@ -14,36 +14,6 @@ import TUICore
 import TUIFoundation
 import TUIView
 
-// MARK: - The rows, windowed
-
-/// An outline's rows as a `List` reads them: how many, what each is called,
-/// and a row's box, made only when asked for.
-///
-/// What ``WindowedListRowExtractor`` is to a `ForEach`, for a view whose row
-/// count needs a context to answer: an outline's rows depend on which of its
-/// branches are open, which is state at its identity.
-struct OutlineListRows<RowID: Hashable> {
-    /// The rows that show.
-    let count: Int
-
-    /// The id the list knows row `index` by, or `nil` where neither the node's
-    /// id nor the index can be one.
-    let rowID: (Int) -> RowID?
-
-    /// Row `index`'s box, made on the call.
-    let make: (Int) -> LazyListRowContent
-}
-
-/// A view whose list rows are windowed but need a context to count:
-/// `OutlineGroup`.
-@MainActor
-protocol WindowedOutlineListRows {
-    /// The rows, or `nil` when the list's ids cannot name them (row 0 answers
-    /// to neither the node's id nor its index), and the eager path, which
-    /// draws such rows as it can, takes them instead.
-    func windowedListRows<RowID: Hashable>(context: RenderContext) -> OutlineListRows<RowID>?
-}
-
 // MARK: - Kept from pass to pass
 
 /// Where an outline keeps its state, under its identity
@@ -152,7 +122,7 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
 // MARK: - The rows
 
 @MainActor extension OutlineGroup: WindowedOutlineListRows where Leaf: View {
-    func windowedListRows<RowID: Hashable>(context: RenderContext) -> OutlineListRows<RowID>? {
+    package func windowedListRows<RowID: Hashable>(context: RenderContext) -> OutlineListRows<RowID>? {
         guard windowsListRows else { return nil }
         let rows: OutlineListRows<RowID> = listRows(context: context)
         // Row 0's answer decides the whole list, as a `ForEach`'s does: every
@@ -309,14 +279,13 @@ struct SectionOutlines: OutlineRowActivating {
 
 @MainActor extension OutlineGroup: ListRowExtractor where Leaf: View {
     /// One list row per visible node, every one at once: what a `Section`
-    /// holding an outline asks. A `List` of an outline alone asks
+    /// among other rows asks, and one with its windowing off. A `List` of an
+    /// outline alone, or of one `Section` holding it, asks
     /// ``windowedListRows(context:)``, and builds only the rows it draws.
     ///
     /// A row whose id the list cannot name is left out, as it always was here.
     package func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         let rows: OutlineListRows<RowID> = listRows(context: context)
-        return (0..<rows.count).compactMap { index in
-            rows.rowID(index).map { ListRow(id: $0, content: rows.make(index)) }
-        }
+        return rows.all
     }
 }

@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**An outline in a `List`'s `Section` builds only the rows it draws.** `List { Section { OutlineGroup(…) } }` made a
+row for every open node of its tree on every frame, as `List(_:children:)` did before it was windowed. A list whose
+content is one section holding an outline now windows its rows the same way, with the section's header before them
+and its footer after: with 5,000 rows open, a frame makes about a screenful of rows, and the same at 50,000. A
+section among other rows, or several sections, still extracts its rows at once.
+
 **Left, Right and their Option forms open and close an outline inside a `List`'s `Section`.** A list asked the view
 its rows came from to open a row, and for a section that was the `Section`, which opens nothing: in
 `List { Section { OutlineGroup(…) } }` the keys did nothing to the tree, and Return on a branch did not disclose it.

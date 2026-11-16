@@ -425,8 +425,24 @@ package protocol SectionRowExtractor {
 /// and the actions of the `ForEach` that produced every one of them.
 package struct SectionContentRows<RowID: Hashable> {
     /// The content's rows, in order — the section's own header and footer are
-    /// not among them.
-    package var rows: [ListRow<RowID>]
+    /// not among them. Where they are ``windowed``, reading this makes every
+    /// row's box, as the eager rows always did.
+    @MainActor package var rows: [ListRow<RowID>] {
+        get { windowed?.all ?? listedRows }
+        set {
+            listedRows = newValue
+            windowed = nil
+        }
+    }
+
+    /// ``rows`` where they are not windowed.
+    private var listedRows: [ListRow<RowID>]
+
+    /// The rows of an outline that is the section's whole content, windowed
+    /// (``OutlineListRows``): a list whose content is this section builds only
+    /// the rows it draws, as a list of the outline alone does. `nil` for any
+    /// other content.
+    package private(set) var windowed: OutlineListRows<RowID>?
 
     /// The row-mutation actions the content carries, when the content IS an
     /// editable `ForEach`, or a `Group`, an `if`/`else` or a view of the app's
@@ -465,6 +481,35 @@ package struct SectionContentRows<RowID: Hashable> {
     /// row (`OutlineRowActivating`), as it asks a list's own content. `nil`
     /// for a collapsed section, which has no rows.
     package var rowsContent: (any View)?
+
+    package init(
+        rows: [ListRow<RowID>], actions: (any DynamicViewContentActions)?, elements: ListRowElements = .onePerRow,
+        rowsContent: (any View)? = nil
+    ) {
+        self.listedRows = rows
+        self.actions = actions
+        self.elements = elements
+        self.rowsContent = rowsContent
+    }
+
+    /// An outline's rows, windowed, from `rowsContent`.
+    package init(windowed: OutlineListRows<RowID>, rowsContent: any View) {
+        self.listedRows = []
+        self.windowed = windowed
+        self.actions = nil
+        self.rowsContent = rowsContent
+    }
+
+    /// Draws every row through `transform`: a modifier on the section. Windowed
+    /// rows stay windowed, each mapped as its box is made.
+    @MainActor
+    package mutating func mapBuffers(_ transform: @escaping (FrameBuffer) -> FrameBuffer) {
+        if let windowed {
+            self.windowed = windowed.mappingBuffers(transform)
+        } else {
+            listedRows = listedRows.map { $0.mappingBuffer(transform) }
+        }
+    }
 }
 
 /// Metadata about a section for List rendering.
@@ -611,9 +656,7 @@ package struct SectionHeaderActions {
     package func extractSectionContentRows<RowID: Hashable>(context: RenderContext) -> SectionContentRows<RowID> {
         var extracted: SectionContentRows<RowID> = content.extractSectionContentRows(
             context: modifier.adjustContext(context))
-        extracted.rows = extracted.rows.map { row in
-            row.mappingBuffer { modified($0, context: context) }
-        }
+        extracted.mapBuffers { modified($0, context: context) }
         return extracted
     }
 
@@ -705,6 +748,14 @@ package struct SectionHeaderActions {
         // and for the same reason (see `listRowsBody(of:context:)`).
         if let body = listRowsBody(of: content, context: context) {
             return listRows(of: body.content, context: body.context)
+        }
+        // An outline that is the section's whole content hands its rows over
+        // windowed: a list whose content is this section builds only the rows
+        // it draws (``SectionContentRows/windowed``). One the list's ids cannot
+        // name, or whose windowing is off, is extracted below.
+        if let outline = content as? any WindowedOutlineListRows,
+            let rows: OutlineListRows<RowID> = outline.windowedListRows(context: context) {
+            return SectionContentRows(windowed: rows, rowsContent: content)
         }
         // Only when the content IS the `ForEach`, seen through those wrappers:
         // `resolveChildViews` flattens a `ForEach` sitting among static rows,

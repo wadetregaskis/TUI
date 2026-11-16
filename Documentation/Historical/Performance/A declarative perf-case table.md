@@ -624,7 +624,11 @@ Recorded on a clean debug build:
   every section's (`RowSource.sectionOutlines`, one `SectionOutlines` for several), and the keys open and close it as
   in `List(_:children:)`. Re-recorded, the case now opens its tree and shows what remains: a box for every open row
   on every pass, the counts `outline-list` had before it was windowed (`wheel:+5` 50,010 at n, 500,010 at 10n), filed
-  as its known issue.
+  as its known issue. **Windowed (2026-11-16):** a section whose content is an outline hands its rows over
+  windowed (`SectionContentRows.windowed`), and a list whose content is that one section draws them as a list of the
+  outline alone does, the header before them and the footer after (`_ListCore.windowedSectionSource`). `listed` falls
+  to `outline-list`'s, at n and 10n alike (`wheel:+5` 50,010 to 220), and the known issue is gone. A section among
+  other rows, or several sections, still extracts its rows at once.
 
 ## For a future reader
 

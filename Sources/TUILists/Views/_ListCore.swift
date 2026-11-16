@@ -4193,7 +4193,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // Section first (it conforms to both Section- and List-RowExtractor, and
         // its row set — header/content/footer — is small and built eagerly).
         if let section = content as? SectionRowExtractor {
-            let extracted = extractSectionRows(from: section, context: context, firstRowIndex: 0)
+            let info = section.extractSectionInfo(context: context)
+            let items = sectionItems(of: section, info: info, context: context, firstRowIndex: 0)
+            // An outline that is the section's whole content: windowed, as the
+            // outline alone is (`windowedSectionSource`).
+            if let windowed = items.windowed {
+                return windowedSectionSource(info: info, rows: windowed, rowsContent: items.rowsContent, context: context)
+            }
+            let extracted = extractSectionRows(info: info, items: items, context: context, firstRowIndex: 0)
             return .eager(extracted.rows, editOwners: extracted.editOwners, outlines: extracted.outlines)
         }
 
@@ -4522,9 +4529,35 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         context: RenderContext,
         firstRowIndex: Int
     ) -> ExtractedRows {
+        let info = section.extractSectionInfo(context: context)
+        let items = sectionItems(of: section, info: info, context: context, firstRowIndex: firstRowIndex)
+        return extractSectionRows(info: info, items: items, context: context, firstRowIndex: firstRowIndex)
+    }
+
+    /// The rows a section's content contributes, with the actions of the
+    /// `ForEach` that produced them — one walk, so the loop the actions belong
+    /// to is the loop that produced the rows. The list row this section's
+    /// first ITEM draws at (after its header) is set before the rows are
+    /// extracted because their content boxes are built during that call and
+    /// each captures the base as it is built; cleared after, so the next child
+    /// (or the windowed path, which never sets it) counts from zero again. An
+    /// outline's windowed rows make their boxes later, and capture no base.
+    private func sectionItems(
+        of section: SectionRowExtractor, info: SectionInfo, context: RenderContext, firstRowIndex: Int
+    ) -> SectionContentRows<SelectionValue> {
+        let restrictions = context.environment.listRowEditRestrictions
+        restrictions?.rowIndexBase = firstRowIndex + (info.headerBuffer == nil ? 0 : 1)
+        defer { restrictions?.rowIndexBase = 0 }
+        return section.extractSectionContentRows(context: context)
+    }
+
+    /// ``extractSectionRows(from:context:firstRowIndex:)`` once the section's
+    /// parts are in hand: every row at once.
+    private func extractSectionRows(
+        info: SectionInfo, items: SectionContentRows<SelectionValue>, context: RenderContext, firstRowIndex: Int
+    ) -> ExtractedRows {
         var rows: [EagerListRow<SelectionValue>] = []
         var editOwners: [ListRowEditOwner] = []
-        let info = section.extractSectionInfo(context: context)
 
         // Header (non-selectable). Drawn with its actions on it, where it has
         // them, once the section's extent is known and with it whether the
@@ -4537,27 +4570,17 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         if let headerBuffer = info.headerBuffer { rows.append(headerRow(headerBuffer)) }
         let headerRows = rows.count
 
-        // Content rows (selectable), with the actions of the `ForEach` that
-        // produced them — one walk, so the loop the actions belong to is the
-        // loop that produced the rows. The list row this section's first ITEM
-        // draws at — the header is already counted — is set before the rows are
-        // extracted because their content boxes are built during that call and
-        // each captures the base as it is built; cleared after, so the next
-        // child (or the windowed path, which never sets it) counts from zero
-        // again.
-        let restrictions = context.environment.listRowEditRestrictions
-        restrictions?.rowIndexBase = firstRowIndex + headerRows
-        let items: SectionContentRows<SelectionValue> = section.extractSectionContentRows(
-            context: context)
-        restrictions?.rowIndexBase = 0
+        // Content rows (selectable), extracted by `sectionItems`. Read once: an
+        // outline's windowed rows make a box each time they are read whole.
+        let itemRows = items.rows
         let firstItemRow = firstRowIndex + headerRows
-        for row in items.rows {
+        for row in itemRows {
             // Thread the lazy box through — don't force `.buffer` / `.badge` —
             // and the id too, where the section's walk left it to be asked.
             rows.append(EagerListRow(row))
         }
         // The line under the section's last row is the section's, not the row's.
-        items.rows.last?.content.sectionSeparator = (.bottom, info.separator.bottom, info.separator.bottomTint)
+        itemRows.last?.content.sectionSeparator = (.bottom, info.separator.bottom, info.separator.bottomTint)
         // The section's own `ForEach` owns exactly the rows it just
         // produced, and its `.onDelete` / `.onMove` offsets are indices
         // into ITS collection — element 0 is the row at `firstItemRow`.
@@ -4598,7 +4621,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// them where macOS shows them, under the pointer. Not in use, the header
     /// keeps their cells blank (``SectionInfo/headerActions``), and this is
     /// `nil`.
-    private static func sectionHeader(
+    static func sectionHeader(
         actions: SectionHeaderActions, span: Range<Int>, context: RenderContext
     ) -> FrameBuffer? {
         guard !context.isMeasuring, let restrictions = context.environment.listRowEditRestrictions

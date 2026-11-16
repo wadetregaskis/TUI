@@ -139,8 +139,8 @@ nonisolated public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashabl
     package let content: (Data.Element) -> Leaf
 
     /// Whether a `List` windows these rows (``windowedListRows(context:)``):
-    /// `false` extracts every row on every pass, as a `Section` holding an
-    /// outline does — the drawing the windowed one is tested against.
+    /// `false` extracts every row on every pass, as a `Section` among other
+    /// rows does — the drawing the windowed one is tested against.
     package var windowsListRows = true
 
     /// The bridge a hierarchical ``List`` drives the disclosure through.
