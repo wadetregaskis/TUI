@@ -52,14 +52,62 @@ final class CaseRows {
     var document = ""
     /// Whether ``document`` is kept: only a page with an editor reads it.
     let keepsDocument: Bool
+    /// The rows as a tree, for an outline: made when the case is, and only for
+    /// a page with an outline, so neither a body nor another case pays for it.
+    /// Not rebuilt by the writes: no case writes to an outline's rows.
+    @ObservationIgnored private(set) var tree: [Node] = []
     @ObservationIgnored private var nextID: Int
 
-    init(count: Int, seed: UInt64, keepsDocument: Bool) {
+    init(count: Int, seed: UInt64, keepsDocument: Bool, keepsTree: Bool = false) {
         self.seed = seed
         self.keepsDocument = keepsDocument
         rows = (0..<count).map { Row(id: $0, revision: 0) }
         nextID = count
         rewriteDocument()
+        if keepsTree { tree = [Self.tree(of: rows)] }
+    }
+
+    // MARK: The tree
+
+    /// A node of ``tree``: a row, and the rows beneath it, `nil` for a leaf.
+    /// A value with its children stored, as an app's tree is, so a `Table`
+    /// keeps its outline from pass to pass while the tree is the same.
+    struct Node: Identifiable, Sendable {
+        let row: Row
+        var children: [Self]?
+        var id: Int { row.id }
+    }
+
+    /// Rows per group, and per group within a group: a divisor of ``period``.
+    nonisolated static let outlineFanOut = 10
+
+    /// One root over every row: a group every `fanOut²` rows, in each a group
+    /// every `fanOut` rows, and the rest leaves — so opened all the way, the
+    /// tree shows every row and one more, three deep. The root is a row of its
+    /// own, with an id no row has.
+    private static func tree(of rows: [Row]) -> Node {
+        let fanOut = outlineFanOut
+        let group = fanOut * fanOut
+        var groups: [Node] = []
+        var start = 0
+        while start < rows.count {
+            let end = min(start + group, rows.count)
+            var members: [Node] = []
+            var index = start + 1
+            while index < end {
+                if index.isMultiple(of: fanOut) {
+                    let inner = rows[(index + 1)..<min(index + fanOut, end)].map { Node(row: $0) }
+                    members.append(Node(row: rows[index], children: inner))
+                    index += fanOut
+                } else {
+                    members.append(Node(row: rows[index]))
+                    index += 1
+                }
+            }
+            groups.append(Node(row: rows[start], children: members))
+            start = end
+        }
+        return Node(row: Row(id: -1, revision: 0), children: groups)
     }
 
     // MARK: Content

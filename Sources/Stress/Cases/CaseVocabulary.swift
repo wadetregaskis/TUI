@@ -35,6 +35,12 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     case chatEager = "chat.eager"
     /// A `TextEditor` over the rows as lines of text, wrapping.
     case editorWrap = "editor.wrap"
+    /// A selectable `List(_:children:)` of the rows as a tree
+    /// (``CaseRows/tree``): one root, a branch every
+    /// ``CaseRows/outlineFanOut`` rows, the rest leaves.
+    case outlineList = "outline.list"
+    /// The same tree as a selectable `Table(_:children:)` of three columns.
+    case outlineTable = "outline.table"
 }
 
 /// What a case's page is built from: a leaf, leaves combined, or a `Stress`
@@ -96,6 +102,17 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
         if case .followsPointer(let page) = self { return page }
         return self
     }
+
+    /// Whether any part of the page shows the rows as a tree.
+    var hasOutline: Bool {
+        switch self {
+        case .leaf(let leaf): leaf == .outlineList || leaf == .outlineTable
+        case .tabs(let parts): parts.contains(where: \.hasOutline)
+        case .split(let first, let second): first.hasOutline || second.hasOutline
+        case .followsPointer(let page): page.hasOutline
+        case .adopted: false
+        }
+    }
 }
 
 // MARK: - Containers
@@ -145,6 +162,9 @@ struct CaseSize: Equatable, Sendable, CustomStringConvertible {
 /// A key a script can press, by its name in the table.
 enum CaseKey: String, CaseIterable, Sendable {
     case pgdn, pgup, end, home, up, down, left, right, tab, enter, space, esc, bksp
+    /// Option-Right and Option-Left: an outline's open and close of a whole
+    /// subtree.
+    case oright, oleft
 
     /// The event the key sends.
     var event: KeyEvent {
@@ -162,6 +182,8 @@ enum CaseKey: String, CaseIterable, Sendable {
         case .space: KeyEvent(key: .space)
         case .esc: KeyEvent(key: .escape)
         case .bksp: KeyEvent(key: .backspace)
+        case .oright: KeyEvent(key: .right, alt: true)
+        case .oleft: KeyEvent(key: .left, alt: true)
         }
     }
 }
@@ -259,8 +281,8 @@ enum CaseScaling: String, CaseIterable, Sendable {
 enum CaseTags {
     static let known: Set<String> = [
         "anchor", "appshape", "bytes", "eager", "editor", "hover", "invalidate", "lazy", "list", "memo",
-        "narrow", "offscreen", "resize", "scroll", "search", "sheet", "split", "table", "tabs", "tail",
-        "window", "wrap",
+        "narrow", "offscreen", "outline", "resize", "scroll", "search", "sheet", "split", "table", "tabs",
+        "tail", "window", "wrap",
     ]
 }
 

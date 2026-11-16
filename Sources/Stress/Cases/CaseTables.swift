@@ -10,7 +10,7 @@
 
 /// The perf-case tables, in the order `--check-counts` plays them.
 enum CaseTables {
-    static let all: [CaseTableSource] = [lists, tables, scrolling, composites, editors, adopted]
+    static let all: [CaseTableSource] = [lists, tables, outlines, scrolling, composites, editors, adopted]
 
     /// The tables read, once: every case, or every mistake.
     static let parsed = CaseTable.parse(all)

@@ -107,6 +107,36 @@ private struct CaseLeafView: View {
                 })
         case .editorWrap:
             AnyView(TextEditor(text: Binding(get: { rows.document }, set: { rows.document = $0 })))
+        case .outlineList, .outlineTable:
+            // One arm for both, in a view of their own: an arm each nested the
+            // switch's content a level deeper for every leaf, and moved the
+            // other cases' measure-memo misses.
+            AnyView(CaseOutlineView(asTable: leaf == .outlineTable, rows: rows))
+        }
+    }
+
+    private var selection: Binding<Int?> { Binding(get: { rows.selection }, set: { rows.selection = $0 }) }
+}
+
+/// The case's rows as a tree (``CaseRows/tree``), in a selectable `List` or
+/// in a `Table` of three columns.
+private struct CaseOutlineView: View {
+    let asTable: Bool
+    let rows: CaseRows
+
+    var body: some View {
+        if asTable {
+            Table(rows.tree, children: \.children, selection: selection) {
+                TableColumn(CaseTableView.titles[4]) { (node: CaseRows.Node) in Text(verbatim: rows.title(node.row)) }
+                TableColumn(CaseTableView.titles[2]) { (node: CaseRows.Node) in Text(verbatim: rows.status(node.row)) }
+                TableColumn(CaseTableView.titles[3]) { (node: CaseRows.Node) in
+                    Text(verbatim: "\(rows.size(node.row))")
+                }
+            }
+        } else {
+            List(rows.tree, children: \.children, selection: selection) { node in
+                CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
+            }
         }
     }
 

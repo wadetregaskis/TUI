@@ -49,7 +49,8 @@ enum CaseMatrix {
                 make: { config in
                     let count = perfCase.count * max(1, config.scale)
                     let rows = CaseRows(
-                        count: count, seed: CasePlayer.seed, keepsDocument: perfCase.composition.hasEditor)
+                        count: count, seed: CasePlayer.seed, keepsDocument: perfCase.composition.hasEditor,
+                        keepsTree: perfCase.composition.hasOutline)
                     return perfCase.page(rows: rows, count: count, seed: CasePlayer.seed)
                         ?? AnyView(Text(verbatim: "Stress has no scenario \(perfCase.composition)"))
                 })
