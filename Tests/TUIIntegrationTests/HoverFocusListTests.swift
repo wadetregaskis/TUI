@@ -36,13 +36,14 @@ struct HoverFocusListTests {
     private struct Page: View {
         let kind: Kind
         var count = 3
+        var selectionFollowsCursor = false
         @State private var selection: Int?
 
         var body: some View {
             VStack(alignment: .leading) {
                 Button("Go") {}.focusID("go")
                 Text("picked \(selection.map { id in HoverFocusListTests.items.first { $0.id == id }?.name ?? "Letters" } ?? "none")")
-                rows.frame(height: 7)
+                rows.selectionFollowsCursor(selectionFollowsCursor).frame(height: 7)
                 Spacer()
             }
         }
@@ -75,17 +76,25 @@ struct HoverFocusListTests {
         let kind: Kind
         let follows: Bool
         var count = 3
+        var selectionFollowsCursor = false
         init() { (kind, follows) = (.list, true) }
-        init(kind: Kind, follows: Bool, count: Int = 3) { (self.kind, self.follows, self.count) = (kind, follows, count) }
+        init(kind: Kind, follows: Bool, count: Int = 3, selectionFollowsCursor: Bool = false) {
+            (self.kind, self.follows, self.count) = (kind, follows, count)
+            self.selectionFollowsCursor = selectionFollowsCursor
+        }
 
         var body: some Scene {
-            WindowGroup { Page(kind: kind, count: count) }
+            WindowGroup { Page(kind: kind, count: count, selectionFollowsCursor: selectionFollowsCursor) }
                 .focusFollowsPointer(follows)
         }
     }
 
-    private func launched(_ kind: Kind, follows: Bool, count: Int = 3) -> TestApp {
-        let app = TestApp(PageApp(kind: kind, follows: follows, count: count), width: 40, height: 14)
+    private func launched(
+        _ kind: Kind, follows: Bool, count: Int = 3, selectionFollowsCursor: Bool = false
+    ) -> TestApp {
+        let app = TestApp(
+            PageApp(kind: kind, follows: follows, count: count, selectionFollowsCursor: selectionFollowsCursor),
+            width: 40, height: 14)
         app.advance(by: .milliseconds(20))
         if kind == .outline {
             // Open the one branch, from the keyboard, and give the focus back.
@@ -122,6 +131,25 @@ struct HoverFocusListTests {
         #expect(picked(app) == "none")
         app.press(.space)
         #expect(picked(app) == "Gamma", "\(kind): the keys acted on \(picked(app) ?? "nothing"), not the row under the pointer")
+    }
+
+    /// `.selectionFollowsCursor()` makes the KEYS' moves select; the pointer
+    /// moves the cursor without them, so it still selects nothing (HOVER-FOCUS
+    /// b: never a value or a selection). The next arrow goes on from the row
+    /// the pointer left the cursor on, and selects where it lands.
+    @Test(
+        "With selectionFollowsCursor, the pointer still selects nothing; the next arrow selects from where it is",
+        arguments: Kind.allCases)
+    func selectionFollowsCursorIgnoresPointer(_ kind: Kind) throws {
+        let app = launched(kind, follows: true, count: 4, selectionFollowsCursor: true)
+        app.hover(at: try cell(app, "Beta"))
+        #expect(app.focusedID == "rows", "\(kind): the focus is on \(app.focusedID ?? "nothing")")
+        app.hover(at: try cell(app, "Gamma"))
+        #expect(picked(app) == "none", "\(kind): a hover selected \(picked(app) ?? "nothing")")
+        app.advance(by: .milliseconds(20))
+        #expect(picked(app) == "none", "\(kind): a later frame selected \(picked(app) ?? "nothing")")
+        app.press(.down)
+        #expect(picked(app) == "Delta", "\(kind): the arrow selected \(picked(app) ?? "nothing"), not the row after the pointer's")
     }
 
     @Test("Off, the pointer moves neither the focus nor the cursor", arguments: Kind.allCases)

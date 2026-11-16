@@ -504,7 +504,7 @@ column, focuses the control, as moving onto the control does.
 
 **With the focus following the pointer, a list's cursor row follows it.** Over a `List`, a `Table` or an outline,
 the row the pointer moves onto becomes the row the keys act on; the selection stays until you click or press Space
-or Return, and rows the wheel scrolls under a still pointer leave the cursor where it was. A closed menu bar title
+or Return (under `.selectionFollowsCursor()` too, or until an arrow moves the cursor on), and rows the wheel scrolls under a still pointer leave the cursor where it was. A closed menu bar title
 still opens nothing under the pointer.
 
 **A circular `Gauge` shows its value without colour.** The lit part of `.accessoryCircular`'s and

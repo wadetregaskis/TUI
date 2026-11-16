@@ -192,7 +192,9 @@ clicks.
 - **The pointer moves the focus, never a value or a selection.** In a `List`,
   a `Table` or an outline, the list's cursor row follows the pointer too, so
   the keys act on the row under it, but the selection stays where it is until
-  you click or press Space or Return. Only a move of the pointer moves the
+  you click or press Space or Return. Under ``View/selectionFollowsCursor(_:)``
+  too, which makes the keys' moves select, not the pointer's: the next arrow
+  selects the row after the one under the pointer. Only a move of the pointer moves the
   cursor: rows the wheel or the keys scroll under a pointer at rest leave it
   where it was. A segmented picker's and a radio group's cursor follow it the
   same way, to the segment or option under the pointer; a disabled option and
