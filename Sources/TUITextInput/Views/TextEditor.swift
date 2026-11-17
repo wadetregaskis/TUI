@@ -61,9 +61,12 @@ import TUIFoundation
 /// status bar's "undo" take it back from anywhere, and Ctrl-Z is the app's
 /// undo, as ⌘Z is a window's on macOS. Each event's changes are one step there;
 /// outside a running app Ctrl-Z takes back one key's change at a time from the
-/// editor's own history, from the last 50. It never brings back text the editor
-/// did not produce: when the app replaces the bound text, loading another
-/// document, the editor forgets its history.
+/// editor's own history, from the last 50. The steps stay in the undo manager
+/// after the editor leaves the screen — a pane a split view hides — and undo
+/// restores the text through the binding, as SwiftUI's editor's steps stay in
+/// the window's. It never brings back text the editor did not produce: when
+/// the app replaces the bound text, loading another document, the editor
+/// forgets its history.
 ///
 /// An app's own keyboard shortcut beats most of the Emacs chords. Under the
 /// default ``EnvironmentValues/commandKey`` a SwiftUI ⌘ shortcut arrives as a
