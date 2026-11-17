@@ -404,6 +404,9 @@ extension Stepper {
 extension Stepper {
     /// Creates a disabled version of this stepper.
     ///
+    /// As with `View.disabled(_:)`, what the stepper draws of yours sees it:
+    /// its label reads `\.isEnabled` as `false`.
+    ///
     /// - Parameter disabled: Whether the stepper is disabled.
     /// - Returns: A new stepper with the disabled state.
     public func disabled(_ disabled: Bool = true) -> Stepper {

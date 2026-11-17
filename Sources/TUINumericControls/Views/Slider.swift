@@ -313,6 +313,9 @@ extension Slider {
 
     /// Creates a disabled version of this slider.
     ///
+    /// As with `View.disabled(_:)`, what the slider draws of yours sees it:
+    /// its label reads `\.isEnabled` as `false`.
+    ///
     /// - Parameter disabled: Whether the slider is disabled.
     /// - Returns: A new slider with the disabled state.
     public func disabled(_ disabled: Bool = true) -> Slider {

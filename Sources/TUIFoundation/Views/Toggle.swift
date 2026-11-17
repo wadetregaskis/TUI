@@ -539,6 +539,9 @@ extension Toggle {
 extension Toggle {
     /// Creates a disabled version of this toggle.
     ///
+    /// As with `View.disabled(_:)`, what the toggle draws of yours sees it:
+    /// its label and a custom style's body read `\.isEnabled` as `false`.
+    ///
     /// - Parameter disabled: Whether the toggle is disabled.
     /// - Returns: A new toggle with the disabled state.
     public func disabled(_ disabled: Bool = true) -> Toggle {

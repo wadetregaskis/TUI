@@ -263,6 +263,9 @@ extension DatePicker where Label == Text {
 
 extension DatePicker {
     /// Disables the picker.
+    ///
+    /// As with `View.disabled(_:)`, what the picker draws of yours sees it:
+    /// its label and a custom style's body read `\.isEnabled` as `false`.
     public func disabled(_ disabled: Bool = true) -> DatePicker {
         var copy = self
         copy.isDisabled = isDisabled || disabled

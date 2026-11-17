@@ -326,6 +326,9 @@ extension Picker where Label == Text {
 extension Picker {
     /// Creates a disabled version of this picker.
     ///
+    /// As with `View.disabled(_:)`, what the picker draws of yours sees it:
+    /// its label reads `\.isEnabled` as `false`.
+    ///
     /// - Parameter disabled: Whether the picker is disabled.
     /// - Returns: A new picker with the disabled state.
     public func disabled(_ disabled: Bool = true) -> Picker {

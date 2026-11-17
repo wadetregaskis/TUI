@@ -1020,6 +1020,10 @@ extension View {
 
     /// Creates a disabled version of this button.
     ///
+    /// As with `View.disabled(_:)`, what the button draws of yours sees it:
+    /// its label and a custom style's body read `\.isEnabled` as `false`, and
+    /// a primitive style's `Button(configuration)` is disabled with it.
+    ///
     /// - Parameter disabled: Whether the button is disabled.
     /// - Returns: A new button with the disabled state.
     nonisolated public func disabled(_ disabled: Bool = true) -> Button {
