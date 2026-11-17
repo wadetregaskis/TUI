@@ -73,6 +73,15 @@ import TUIFoundation
 /// it, the field forgets its history. A ``SecureField`` keeps its own history
 /// and registers nothing with the app's.
 ///
+/// A paste keeps its line breaks, in a field on one line too, as SwiftUI's
+/// does: "ab", a newline and "cd" bind as `"ab\ncd"`, never `"abcd"`, and a
+/// paste never submits. Each break is bound as one `"\n"`, whatever the
+/// clipboard used (a terminal sends a pasted line break as CR, so that cannot
+/// be told), and U+2028 and U+2029 as themselves. A field on one line draws
+/// each line break as `\u{FFFD}` in one cell, so the text after it stays in
+/// view; AppKit's draws only the first line. A tab is kept and drawn as a
+/// space; other control characters are dropped from a paste.
+///
 /// The Emacs-style Control chords name the same commands as in ``TextEditor``,
 /// read from one table, but a field is a single line with a keyboard
 /// selection, so some do something else:
@@ -127,7 +136,8 @@ import TUIFoundation
 /// | Ctrl+A / Ctrl+E | Start / end of the line the caret is on |
 /// | Ctrl+K | Kill to the end of the line, or the newline at its end |
 ///
-/// A paste keeps its line breaks. Option+Return is the macOS key, and reaches
+/// A paste keeps its line breaks, as it does on one line, and they break rows
+/// here. Option+Return is the macOS key, and reaches
 /// the field where the terminal sends Option as Meta (see the note on
 /// ``TextEditor``); elsewhere it arrives as a plain Return and submits. Ctrl+O
 /// is macOS's too, and arrives from every terminal. macOS's Ctrl+Return, which
@@ -808,12 +818,12 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // honours a `.control(.textField)` cascade foreground (`.style(.control(.textField))`).
         let cascaded = context.environment.styleCascade.resolve(
             for: [.all, .text, .control(.textField)])
-        // A text field draws what was typed, mapping tabs to spaces and control
-        // characters to replacement characters (\u{FFFD}) — or, redacted, a
+        // A text field draws what was typed, mapping tabs to spaces, and control
+        // characters and line breaks to replacement characters (\u{FFFD}) — or, redacted, a
         // glyph for every character, as a SecureField masks.
         let displayCharacter =
             TextFieldHandler.redactedDisplay(context.environment.effectiveRedactionReasons)
-            ?? TextFieldHandler.displayCharacter
+            ?? TextFieldHandler.singleLineDisplayCharacter
         var renderer = TextFieldContentRenderer(
             prompt: prompt,
             isDisabled: isDisabled,
@@ -921,7 +931,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             contentWidth: textWidth,
             // As drawn: a redacted field's glyphs (``TextFieldHandler/redactedDisplay(_:keepingLineBreaks:)``).
             displayCharacter: TextFieldHandler.redactedDisplay(context.environment.effectiveRedactionReasons)
-                ?? TextFieldHandler.displayCharacter,
+                ?? TextFieldHandler.singleLineDisplayCharacter,
             leadingCapWidth: leading,
             disclosureRange: disclosureRange)
     }

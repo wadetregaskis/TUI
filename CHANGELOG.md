@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextField` or `SecureField` on one line keeps a pasted line break.** Pasting "ab", a newline and "cd" bound
+`"abcd"`, joining the words on either side; it now binds `"ab\ncd"`, as SwiftUI's field does (measured on macOS
+15.8.3). Each break is bound as one `"\n"`, whatever convention the clipboard used, as a vertical field already bound
+it, and U+2028 and U+2029 as themselves. The field draws a line break of any kind as `\u{FFFD}` in one cell, so the
+text after it stays in view; U+2028 and U+2029 were handed to the terminal raw, to draw as it pleased. An app that
+wants one line strips the breaks itself, as it would in SwiftUI.
+
 **`@SceneStorage` keeps its values in a store of its own, which no `@AppStorage` key can name.** The window opened at
 launch kept `@SceneStorage("tab")` under `scene.tab` in the app's own store, so `@AppStorage("scene.tab")` was the same
 value and writing either changed the other. Scene state now lives beside the app's store, under its declared keys: in

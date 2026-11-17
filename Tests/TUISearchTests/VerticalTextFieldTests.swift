@@ -242,7 +242,7 @@ struct VerticalTextFieldTests {
         #expect(shortcut.fired)
     }
 
-    @Test("A paste keeps its line breaks, each as one newline; a field on one line drops them")
+    @Test("A paste keeps its line breaks, each as one newline, in a field on one line too (as SwiftUI's does)")
     func pasteKeepsLineBreaks() {
         let harness = InputChainHarness(width: 20)
         let model = Model("")
@@ -252,7 +252,7 @@ struct VerticalTextFieldTests {
         harness.play([KeyEvent(key: .paste("x\r\ny"))]) {
             TextField("T", text: oneLine.binding).textFieldStyle(.plain)
         }
-        #expect(oneLine.text == "xy")
+        #expect(oneLine.text == "x\ny")
     }
 
     // MARK: - Scrolling and the pointer

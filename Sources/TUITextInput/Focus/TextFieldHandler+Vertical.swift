@@ -26,7 +26,7 @@ import TUIFoundation
 // | Ctrl-O | Insert a newline in front of the caret (Cocoa's open line) |
 // | Ctrl-A / Ctrl-E | The start / end of the caret's line |
 // | Ctrl-K | Kill to the end of the line, or the newline at its end |
-// | A paste | Keeps its line breaks |
+// | A paste | Its line breaks break rows (a field on one line keeps them too, drawn as marks) |
 //
 // Option+Return needs a terminal that sends Option as Meta (ESC before the
 // key); without it the terminal sends a plain Return, which submits. Ctrl-O

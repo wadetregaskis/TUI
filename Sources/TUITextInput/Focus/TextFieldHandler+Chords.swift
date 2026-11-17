@@ -113,8 +113,8 @@ extension TextFieldHandler {
     /// and returns whether it did.
     ///
     /// A field on one line declines the commands about other lines: the
-    /// previous and next line, opening a line, and paging down. It has one
-    /// line, and strips line breaks from anything pasted into it. Each of those
+    /// previous and next line, opening a line, and paging down. It draws one
+    /// row, even where a paste left a line break in its text. Each of those
     /// chords propagates as a chord nothing binds would. (Ctrl-V never gets
     /// here, because the field reads it as paste first, and paging down is
     /// declined by a vertical field too.)

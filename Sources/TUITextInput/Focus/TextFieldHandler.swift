@@ -104,8 +104,8 @@ import TUIFoundation
 ///
 /// A vertical field (`TextField(…, axis: .vertical)`) changes a few rows: Up
 /// and Down move by a row, Option+Return and Ctrl+O insert a newline, the
-/// line commands work on the line the caret is on, and a paste keeps its line
-/// breaks. See `TextFieldHandler+Vertical.swift`.
+/// line commands work on the line the caret is on, and a pasted line break
+/// breaks a row (every field keeps one). See `TextFieldHandler+Vertical.swift`.
 final class TextFieldHandler: PersistedFocusable {
     /// The unique identifier for this focusable element.
     var focusID: String

@@ -75,26 +75,25 @@ extension TextFieldHandler {
         guard !string.isEmpty else { return }
         resetSuggestionNavigation()
 
-        // A field on one line strips the line breaks from pasted text; a
-        // vertical one keeps them, each as one newline whatever convention
-        // the clipboard used. Control characters (category Cc) are stripped on
-        // paste so escape sequences and control codes cannot enter the field.
-        // Vertical fields preserve \n and \r (handled by normalizingLineBreaks);
-        // U+2028 is category Zl so it is naturally preserved. A tab is kept,
-        // as an AppKit field keeps a pasted one and as TextEditor does: it is
-        // text, a column separator copied from a table, and the field draws it
-        // as a space (``displayCharacter(_:)``).
+        // Every field keeps a pasted line break, one on one line too: SwiftUI's
+        // TextField and SecureField bind exactly what was pasted, measured on
+        // macOS 15.8.3 (`Tools/SwiftUIProbes/Pasted line breaks and drops
+        // (1117)/paste.out`: "ab\ncd" binds "ab\ncd", and no paste submits).
+        // Each break is kept as one newline whatever convention the clipboard
+        // used (``normalizingLineBreaks(_:)``), where SwiftUI keeps CRLF and
+        // CR as they came: a terminal sends a pasted line break as CR, so the
+        // clipboard's convention cannot be read back from a paste. U+2028 and
+        // U+2029 are categories Zl and Zp, kept as they are. Control characters
+        // (category Cc) are stripped on paste so escape sequences and control
+        // codes cannot enter the field. A tab is kept, as an AppKit field keeps
+        // a pasted one and as TextEditor does: it is text, a column separator
+        // copied from a table, and the field draws it as a space
+        // (``displayCharacter(_:)``).
         let filteredScalars = string.unicodeScalars.filter { scalar in
-            if scalar == "\t" || (isVertical && (scalar == "\n" || scalar == "\r")) {
-                return true
-            }
+            if scalar == "\t" || scalar == "\n" || scalar == "\r" { return true }
             return scalar.properties.generalCategory != .control
         }
-        let filtered = String(filteredScalars)
-        var sanitized =
-            isVertical
-            ? Self.normalizingLineBreaks(filtered)
-            : filtered
+        var sanitized = Self.normalizingLineBreaks(String(filteredScalars))
 
         // Filter by content type if set, and ring the bell once for whatever
         // it turned away, so a paste is never cut short in silence.
@@ -119,6 +118,25 @@ extension TextFieldHandler {
         let prefixLength = (current[..<index] + sanitized).count
         current.insert(contentsOf: sanitized, at: index)
         if write(current) { cursorPosition = prefixLength }
+    }
+
+    /// What a field on one line draws for `character`: as
+    /// ``displayCharacter(_:)`` draws it, and a line break of any kind, U+2028
+    /// and U+2029 included, as the replacement character `\u{FFFD}`, one cell.
+    ///
+    /// The field keeps a pasted line break, as SwiftUI's does
+    /// (``insertText(_:)``), but a row cannot show one. AppKit lays the text
+    /// after it out on a second line inside the one-line field, which shows
+    /// only the first while the field is not being edited (measured on macOS
+    /// 15.8.3: `Tools/SwiftUIProbes/Pasted line breaks and drops
+    /// (1117)/paste.out`), so text the field holds and would submit goes
+    /// unseen. Drawn as a mark instead, every character stays in view, and the
+    /// break draws as an app's own `"\n"` always has. Not a space, which would
+    /// read as one typed; and never the raw U+2028 or U+2029, a line break the
+    /// terminal is handed to draw in a cell, which no survey of TUI's has
+    /// measured a terminal doing.
+    nonisolated static func singleLineDisplayCharacter(_ character: Character) -> Character {
+        character.isNewline ? "\u{FFFD}" : displayCharacter(character)
     }
 }
 
