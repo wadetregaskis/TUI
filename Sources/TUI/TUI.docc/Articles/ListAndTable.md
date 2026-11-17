@@ -94,7 +94,8 @@ List("Settings", selection: $selected) {
 ```
 
 In a list, section headers are rendered dimmed and bold above the group, and
-footers dimmed below it. Outside a `List`, a `Form` and a `Table`, a `Section`
+footers dimmed below it. The cursor starts on the first section's first item,
+never on a header, as SwiftUI's keyboard never stands on one. Outside a `List`, a `Form` and a `Table`, a `Section`
 is its parts: a stack lays its header, rows and footer out as its own children,
 drawn as written.
 
