@@ -314,8 +314,14 @@ struct SessionDescriptor {
     /// How many steps play every phase of a perf case's script, or `nil` for
     /// a session that is not a case. `--selfcheck` plays a case this far, or
     /// to its first resize if that is further, rather than every session's
-    /// 150 steps (``Headless/selfcheckSteps(of:fullLength:)``).
+    /// 150 steps (``Headless/selfcheckPlay(of:fullLength:)``).
     var stepsToEveryPhase: Int?
+    /// How `--selfcheck` plays a session whose steps are one frame over and
+    /// over, so that 150 of them repeat a few: this many steps, the terminal
+    /// resized every `resizeEvery`, through the same sizes 150 visit. `nil`
+    /// for every session but `bigtext-open`
+    /// (``Headless/selfcheckPlay(of:fullLength:)``).
+    var selfcheckReplay: (steps: Int, resizeEvery: Int)?
 }
 
 /// Every session, in the order `--sessions` lists them.

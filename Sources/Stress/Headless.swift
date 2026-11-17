@@ -244,23 +244,35 @@ enum Headless {
     /// steps.
     static let selfcheckResizeEvery = 37
 
-    /// The steps the selfcheck plays `session`: 150, or for a perf case
-    /// (`fullLength` false) as far as reaches every phase of its script and
-    /// the first resize, which is 38 for every case so far. A case's job is
+    /// How the selfcheck plays `session`: 150 steps, resized every 37, but
+    /// with `fullLength` false, two kinds of session shorter.
+    ///
+    /// A perf case plays as far as reaches every phase of its script and the
+    /// first resize, which is 38 steps for every case so far. A case's job is
     /// its counts, which `--check-counts` plays in full; what the selfcheck
     /// adds is the cache-cleared twin over each phase and a resize, and the
     /// 112 steps more of fifty-nine cases cost the gate about four minutes,
     /// debug.
-    /// `--full-cases` plays them 150 too.
-    static func selfcheckSteps(of session: SessionDescriptor, fullLength: Bool) -> Int {
-        guard !fullLength, let reach = session.stepsToEveryPhase else { return selfcheckSessionSteps }
-        return min(selfcheckSessionSteps, max(reach, selfcheckResizeEvery + 1))
+    ///
+    /// A session that names its own replay (``SessionDescriptor/selfcheckReplay``)
+    /// plays that: `bigtext-open`, whose every step is a new editor's first
+    /// frame of the same document, plays 12 resized every 3, through the
+    /// sizes 150 visit, where 150 cost the gate about seventeen minutes,
+    /// debug, drawing that frame 37 times at each size.
+    ///
+    /// `--full-length` plays every session 150 steps, resized every 37.
+    static func selfcheckPlay(of session: SessionDescriptor, fullLength: Bool) -> (steps: Int, resizeEvery: Int) {
+        let full = (steps: selfcheckSessionSteps, resizeEvery: selfcheckResizeEvery)
+        guard !fullLength else { return full }
+        if let replay = session.selfcheckReplay { return replay }
+        guard let reach = session.stepsToEveryPhase else { return full }
+        return (min(selfcheckSessionSteps, max(reach, selfcheckResizeEvery + 1)), selfcheckResizeEvery)
     }
 
     /// Renders every scenario (and every variant) once at a fixed size; prints
     /// dimensions. Returns the number that produced an empty buffer (a failure).
-    /// `fullLength` plays the perf cases' sessions as long as every other's
-    /// (``selfcheckSteps(of:fullLength:)``).
+    /// `fullLength` plays the perf cases' sessions and `bigtext-open` as long
+    /// as every other (``selfcheckPlay(of:fullLength:)``).
     @MainActor
     static func selfcheck(_ config: StressConfig, fullLength: Bool = false) -> Int {
         let clock = StressClock()
@@ -331,9 +343,8 @@ enum Headless {
         // draws what it should, frame after frame, and not only at rest.
         var sessionOptions = SessionRunner.Options()
         sessionOptions.verify = true
-        sessionOptions.resizeEvery = selfcheckResizeEvery
         for session in Sessions.all {
-            sessionOptions.steps = selfcheckSteps(of: session, fullLength: fullLength)
+            (sessionOptions.steps, sessionOptions.resizeEvery) = selfcheckPlay(of: session, fullLength: fullLength)
             let report = SessionRunner.run(session, config: config, options: sessionOptions.sized(for: session))
             let ok = report.passed
             if !ok { failures += 1 }

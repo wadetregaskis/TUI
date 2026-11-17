@@ -964,8 +964,8 @@ across a resize.
 been resized once: `max(steps to the last phase's first, 38)`, at most 150 (`Headless.selfcheckSteps(of:fullLength:)`,
 from `SessionDescriptor.stepsToEveryPhase`). That is 38 for every case so far: no script reaches its last phase after
 step 37 (`sheet-item-walk`'s, the furthest, at 25). A script shorter than that loops, as it did at 150, so a case
-whose fault shows on the second time round (PERFCASE-F13's) still shows it. Every other session plays 150, as before.
-`--selfcheck --full-cases` plays the cases 150 steps too.
+whose fault shows on the second time round (PERFCASE-F13's) still shows it. Every other session plays 150, as before,
+but `bigtext-open` (below). `--selfcheck --full-length` (`--full-cases` until the change below) plays them 150 too.
 
 **What it saved**, debug, while other lanes built and ran their own selfchecks: the whole selfcheck went from 1,629 s
 to 1,383 s, 246 s (load 6.8 at the start of both, 22 and 25 at their busiest). The case sessions take 92 s now (the
@@ -977,6 +977,53 @@ is not the cases': `session/bigtext-open`, one of the eighty-seven sessions, too
 selfcheck now plays it (`--session case:popover-values --verify --steps 38 --resize-every 37`) fails 21 of its 38
 frames, the first at step 14, the Tab into the popover presented a second time; at 150 steps it failed 105, from
 the same step.
+
+## The selfcheck plays `bigtext-open` 12 steps (2026-11-17)
+
+**Why.** After the cases, most of the selfcheck was one session's: `bigtext-open`, which opens tuitree's 3.2 MB,
+40,000-line document into a new `TextEditor` (`.id`) every step, played 150 steps against its cache-cleared twin,
+resized every 37. Each step costs two first frames over the whole document, warm and cold, about 6.5 s debug, and
+every step draws the same frame. Between two steps at one size only the editor's identity and the heading's count
+change: the text does not, nothing scrolls, the editor is neither focused nor hovered, so it draws no scroll bar and no
+appearance flash, and the warm render cache is emptied at every resize (its clear generation moves on at the resize
+step, measured). So from the third step at a size on, a step meets the cache the step before met, one earlier editor's
+frame at that size, and draws what that step drew: the other 34 steps of each run of 37 repeat it.
+
+**What.** `SessionDescriptor.selfcheckReplay` names a session's own selfcheck play, and `bigtext-open`'s is 12 steps
+resized every 3 (`Headless.selfcheckPlay(of:fullLength:)`, which also gives the perf cases theirs). The 150 visit
+120x40, 136x46, 120x40 again and 96x30; the 12 visit the same sizes in the same order, each a resize's frame and two
+more opens (a cache filled by one, served to the next), and the heading's count passes from one digit to two. The
+document stays its full size: one that fits the editor would lose the overflow and the rows past the screen that the
+layout still lays out. `bigtext`, the typing session, is not shortened: its steps are all different keys, and its 150
+take 37 s. `--selfcheck --full-length` (renamed from `--full-cases`, which it replaces) plays every session 150 steps
+resized every 37.
+
+**What it saved**, debug, while a gate ran beside it: `--session bigtext-open --verify` as the selfcheck plays it
+went from 997 s (150 steps, every 37; load 9.5 at the start, 18.5 at the end) to 126 s (12, every 3; load 20.2 and
+26.0, busier), and 74 to 85 s in the plant runs below (load 4 to 11). The whole selfcheck took 328 s (load 6.4 at
+the start, 2.8 at the end), where the gate's took 23 to 27 min before and 1,383 s at the change before this one,
+both under heavier loads; `--check-counts` matches all fifty-nine cases, no count moved.
+
+**What it still finds, and what it never could.** Four faults were planted, each a memo held in the render cache
+(dropped by a clear, so the twin never has it):
+
+- A: an editor's frame kept by its first 24 lines of text alone, ignoring the size and everything past them.
+  `bigtext` fails it at once (19 of 20 frames). `bigtext-open` passes it at 12 steps, and as the 150 play it through
+  their first resize (39 steps, served 39 times): the same document at the same size is the same frame, and a resize
+  empties the cache.
+- B: a tall document's size answer kept and given to every later ask, whatever it proposes. Passes at 12: every
+  measure of a step asks what the last step's did.
+- C: the editor's frame kept before the scroll bar joins it, so only a document taller than the editor is served
+  a wrong one. Passes at 12: this editor draws no bar, being neither focused nor hovered.
+- D: a counted text's frame kept by its length, not its words. Fails at 12: 8 of 12 frames, the first at step 1,
+  every step after the first at a size, the heading's count stale, by the twin and by the session's own check alike.
+
+So `bigtext-open`'s twin can see a stale serve of what changes between its steps, the heading and the size, and A to
+C say it cannot see one inside the editor; what hides B and C (one ask a step, no bar) is the same at 150 steps, and
+A was played as the 150 play it through their first resize. It guards the editor's first frame by its check (the
+heading, and the document's first line) and by the selfcheck's blank and stack-guard tests. A memo that goes wrong
+only after a few serves at one size would be one 150 catch and 12 do not; none is known, and `--full-length` plays
+them.
 
 ## For a future reader
 

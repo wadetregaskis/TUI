@@ -80,5 +80,26 @@ final class BigTextOpenSession: StressSession {
         exercises: "an editor's first frame over a large document: its measures and its render, before it has a handler",
         make: { config, width, height, cold in
             DrivenSession(BigTextOpenSession(config: config), width: width, height: height, cold: cold)
-        })
+        },
+        selfcheckReplay: selfcheckReplay)
+
+    /// What `--selfcheck` plays: 12 steps, resized every 3, not every
+    /// session's 150 resized every 37.
+    ///
+    /// Every step draws the same frame, a new editor's first over the whole
+    /// document, so all that can tell a cached frame from a fresh one is
+    /// what changes between steps: the size, and the heading's count. The
+    /// render cache is emptied at a resize, so a step after the first two at
+    /// a size meets the cache the step before it met, one earlier editor's
+    /// frame at that size, and draws what it drew. 150 steps drew that frame
+    /// 37 times at 120x40, then at 136x46, at 120x40 again and at 96x30,
+    /// which cost the gate's selfcheck about seventeen minutes of its
+    /// twenty-odd, debug. These 12 visit the same sizes in the same order,
+    /// each a resize's frame and two more opens (a cache filled by one,
+    /// served to the next), and the heading's count passes from one digit
+    /// to two. The document stays its full 3.2 MB: a smaller one would fit
+    /// the editor and lose what is large about it, the scroll bar and the
+    /// rows past the screen that the layout still lays out.
+    /// `--selfcheck --full-length` plays 150.
+    static let selfcheckReplay = (steps: 12, resizeEvery: 3)
 }

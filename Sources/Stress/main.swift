@@ -13,7 +13,7 @@
 //  Modes:
 //    (no flags)     interactive — a menu of scenarios (needs a terminal)
 //    --selfcheck    render every scenario once headlessly; non-zero exit on empty
-//                   [--full-cases] play each perf case's session 150 steps, not to its last phase
+//                   [--full-length] play every session 150 steps resized every 37 (perf cases, bigtext-open)
 //    --bench        timed render loop of one scenario (no PTY; for xctrace --launch)
 //
 //  Common options (env var | flag):
@@ -79,8 +79,8 @@ let usageText = """
     Stress — a performance stress harness for TUI.
 
     Interactive:  Stress
-    Self-check:   Stress --selfcheck [--scale N] [--full-cases]
-                  (--full-cases: each perf case's session 150 steps, as every other session's, not to its last phase)
+    Self-check:   Stress --selfcheck [--scale N] [--full-length]
+                  (--full-length: every session 150 steps resized every 37, the perf cases and bigtext-open too)
     Benchmark:    Stress --bench --scenario <id> [--variant V] [--iterations N] [--cols C] [--rows R] [--cold] [--stripes automatic|enabled|disabled]
                   [--frame-checksums]  (each frame's checksum, for Tools/Profiling/frame_parity.py)
                   [--cache-sizes N]  (every cache's entry count, every N frames)
@@ -185,7 +185,7 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
     exit(code)
 } else if rawArgs.contains("--selfcheck") {
     refuseStripes(in: "selfcheck")
-    let fullLength = rawArgs.contains("--full-cases")
+    let fullLength = rawArgs.contains("--full-length")
     let failures = await MainActor.run { Headless.selfcheck(config, fullLength: fullLength) }
     exit(failures == 0 ? 0 : 1)
 } else if rawArgs.contains("--bench") {
