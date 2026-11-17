@@ -162,7 +162,13 @@ public struct _TableRowList<Value: Identifiable> {
 
     /// These rows as a branch of a tree, or a tree's roots: the rows, and the
     /// loops among them that take payloads in between their rows.
-    var branch: _TableRowBranch<Value> { _TableRowBranch(nodes: nodes, insertions: insertions) }
+    ///
+    /// Where no row is more than its value, the branch keeps the values
+    /// (``_TableRowBranch/leaves``) rather than a node made for each.
+    var branch: _TableRowBranch<Value> {
+        guard let builtNodes else { return _TableRowBranch(leaves: values, insertions: insertions) }
+        return _TableRowBranch(nodes: builtNodes, insertions: insertions)
+    }
 
     /// Makes every row here one loop that takes payloads in between its rows.
     mutating func addInsertion(accepts: @escaping (Any) -> Bool, perform: @escaping (Int, [Any]) -> Void) {
@@ -187,12 +193,50 @@ public struct _TableRowList<Value: Identifiable> {
 /// the loops among them that take payloads in between their rows, counted in
 /// these rows' own numbering (``_TableRowList/insertions``).
 struct _TableRowBranch<Value: Identifiable> {
-    var nodes: [_TableRowNode<Value>]
+    /// The rows, unless they are ``leaves``.
+    private var builtNodes: [_TableRowNode<Value>]
+
+    /// Every row's value, when every row is a plain leaf — nothing beneath
+    /// it, no traits — as most of a tree's branches are: a folder of files.
+    /// `nil` otherwise.
+    ///
+    /// The values, not a node made for each: in this unspecialised code each
+    /// node was made through a closure, its metadata looked up at run time,
+    /// and then pushed and popped on the flattening's stack, for every leaf of
+    /// every open branch on every pass. The flattening lists these whole.
+    private(set) var leaves: [Value]?
+
     var insertions: [_TableRowInsertion] = []
     /// A tree's roots as the collection they came from, in place of
     /// ``nodes`` — `Table(_:children:)`'s, whose outline is kept from pass to
     /// pass (``_TableOutlineCache``).
     var roots: _TableOutlineRoots<Value>?
+
+    init(
+        nodes: [_TableRowNode<Value>], insertions: [_TableRowInsertion] = [],
+        roots: _TableOutlineRoots<Value>? = nil
+    ) {
+        self.builtNodes = nodes
+        self.insertions = insertions
+        self.roots = roots
+    }
+
+    /// Plain leaves, `values`.
+    init(leaves values: [Value], insertions: [_TableRowInsertion]) {
+        self.builtNodes = []
+        self.leaves = values
+        self.insertions = insertions
+    }
+
+    /// The rows, in order: a node for each of the ``leaves``, where it is
+    /// they. Set, they are the rows from then on.
+    var nodes: [_TableRowNode<Value>] {
+        get { leaves?.map { _TableRowNode(value: $0, children: nil, isExpanded: nil) } ?? builtNodes }
+        set {
+            builtNodes = newValue
+            leaves = nil
+        }
+    }
 }
 
 /// One row of a table, and — when it is a branch of a hierarchical table — how

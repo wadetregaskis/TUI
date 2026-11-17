@@ -165,6 +165,20 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             branchNodes.append(node)
         }
 
+        /// Lists `leaves`, rows with nothing beneath them and no traits, at
+        /// `depth` under the row `parent`: what ``noteTraits(_:at:)`` and
+        /// ``noteRow(_:depth:parent:isOpen:)`` note of each such row, at once.
+        mutating func appendLeaves(_ leaves: [Value], depth: Int, parent: Int) {
+            values += leaves
+            // One by one, not `+= repeatElement(…)`, for the reason the
+            // flattening's stack is pushed so.
+            let leaf = Row(placement: Placement(depth: depth, disclosure: .leaf), parent: parent, branch: -1)
+            for _ in 0..<leaves.count { rows.append(leaf) }
+            if anyTraits {
+                for _ in 0..<leaves.count { traits.append(_TableRowTraits()) }
+            }
+        }
+
         /// Appends `other`'s rows and branches after these, their links
         /// shifted to where they now are. Not its values: the caller splices
         /// those.
@@ -209,6 +223,14 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             guard isOpen else { continue }
             let branch = children()
             let list = insertions.opened(after: row, depth: depth + 1, loops: branch.insertions)
+            if let leaves = branch.leaves {
+                // Rows with nothing beneath them are the next rows in reading
+                // order, as they are: listed here, with nothing pushed.
+                let first = flat.values.count
+                flat.appendLeaves(leaves, depth: depth + 1, parent: row)
+                insertions.drew(rows: first..<flat.values.count, depth: depth + 1, in: list)
+                continue
+            }
             stack += branch.nodes.reversed()
             // One by one, not `+= repeatElement(…)`: that took the generic
             // `+=` of a sequence, unspecialised, element by element.
@@ -474,6 +496,11 @@ struct _TableOutlineInsertions {
     mutating func drew(row: Int, depth: Int, in list: Int?) {
         if depthsStart != nil { depths.append(depth) }
         if let list { lists[list].rows.append(row) }
+    }
+
+    /// ``drew(row:depth:in:)`` for each of `rows`, shown rows in a row.
+    mutating func drew(rows: Range<Int>, depth: Int, in list: Int?) {
+        for row in rows { drew(row: row, depth: depth, in: list) }
     }
 
     /// Starts the list of an opened branch — the shown row `row` — whose rows
