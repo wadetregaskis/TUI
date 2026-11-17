@@ -1,0 +1,63 @@
+{
+  "stamp": {
+    "probe": "identity_probe",
+    "measured": "2026-11-16T22:47:38-08:00",
+    "screen": "primary",
+    "os": "Windows 10.0.26300",
+    "machine": "ARM64",
+    "env": {
+      "TERM": "xterm-256color",
+      "WT_SESSION": "72d00bba-a6f3-49a8-84ed-aa6edd2406f3"
+    },
+    "mode_2027_grapheme_clustering": "permanently set",
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+    "windows_terminal_version": "1.24.12741.0"
+  },
+  "environment": {
+    "TERM": "xterm-256color"
+  },
+  "answers": {
+    "DA1": {
+      "query": "<ESC>[c",
+      "reply": "<ESC>[?61;4;6;7;14;21;22;23;24;28;32;42;52c",
+      "raw": "\u001b[?61;4;6;7;14;21;22;23;24;28;32;42;52c",
+      "what": "Primary Device Attributes — ESC[?…c"
+    },
+    "DA2": {
+      "query": "<ESC>[>c",
+      "reply": "<ESC>[>0;10;1c",
+      "raw": "\u001b[>0;10;1c",
+      "what": "Secondary Device Attributes — ESC[>…c"
+    },
+    "DA3": {
+      "query": "<ESC>[=c",
+      "reply": "<ESC>P!|00000000<ESC>\\",
+      "raw": "\u001bP!|00000000\u001b\\",
+      "what": "Tertiary Device Attributes — DCS!|…ST"
+    },
+    "XTVERSION": {
+      "query": "<ESC>[>0q",
+      "reply": "<silent>",
+      "raw": "",
+      "what": "Terminal name and version — DCS>|…ST"
+    },
+    "XTGETTCAP_TN": {
+      "query": "<ESC>P+q544e<ESC>\\",
+      "reply": "<silent>",
+      "raw": "",
+      "what": "terminfo 'TN' (terminal name) — DCS…ST"
+    },
+    "DSR5": {
+      "query": "<ESC>[5n",
+      "reply": "<ESC>[0n",
+      "raw": "\u001b[0n",
+      "what": "Device status — ESC[0n; TUI's exchange fence"
+    },
+    "XTVERSION+DSR5": {
+      "query": "<ESC>[>0q<ESC>[5n",
+      "reply": "<ESC>[0n",
+      "raw": "\u001b[0n",
+      "what": "XTVERSION's reply (if any), THEN ESC[0n"
+    }
+  }
+}

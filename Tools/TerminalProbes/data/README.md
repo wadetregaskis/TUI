@@ -245,3 +245,33 @@ python3 landing_analyze.py /tmp/landing.json \
 
 then write the model from the record, and let
 `TerminalLedgerConformanceTests` hold the two together.
+
+## Windows Terminal and conhost (2026-11-16)
+
+`windows-terminal-1.24.12741.0-*` and `conhost-10.0.26300-*` were taken on a
+Windows 11 arm64 VM (build 26300) through `Tools/TerminalProbes/windows/`: the
+probes themselves, unchanged, run in a new Windows Terminal window or a conhost
+window by `drive.py`, with `termios`/`tty`/`select` standing in over the
+console's modes. conhost has no version of its own; it is named for the Windows
+build it shipped in.
+
+- **advance** and **alternate**: `advance_probe.py`, both screens, identical row
+  for row on each host.
+- **identity**: `identity_probe.py`. Neither host answers XTVERSION or sets
+  `TERM_PROGRAM`; Windows Terminal sets `WT_SESSION`. The `TERM` in the stamps
+  (`xterm-256color`) is the launching shell's, inherited, not set by either host.
+- **modes**: `decrqm_probe.py`, the sixteen modes TUI sets or asks about. In
+  Windows Terminal, 1003, 1004, 1006 and 9001 read *set* before anything set
+  them: the pseudo console between the app and Windows Terminal holds them on
+  its own link (win32-input-mode, focus and the mouse), and that is what
+  answers.
+- **colours**: `osc_colour_probe.py`. **clipboard**: `clipboard_probe.py`, read
+  back through `windows/clipboard.py`. **hyperlinks**, **sync**, **title**: their
+  probes; the title probe cannot read a Windows window's title, so its `steps`
+  are empty and only its leak rows say anything. **sixel** (Windows Terminal
+  only, as conhost's DA1 has no 4): `sixel_probe.py`, its cards read from
+  screenshots and described in the survey.
+
+No landing record: `landing_analyze.py` needs Pillow, which the VM did not have.
+Both hosts draw on a strict cell grid, and the survey says what a screenshot
+showed of where they paint.

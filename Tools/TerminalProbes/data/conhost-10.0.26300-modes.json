@@ -1,0 +1,100 @@
+{
+  "modes": {
+    "1": {
+      "what": "DECCKM application cursor keys",
+      "raw": "\u001b[?1;2$y",
+      "state": "reset"
+    },
+    "7": {
+      "what": "DECAWM autowrap",
+      "raw": "\u001b[?7;1$y",
+      "state": "set"
+    },
+    "25": {
+      "what": "DECTCEM cursor visible",
+      "raw": "\u001b[?25;1$y",
+      "state": "set"
+    },
+    "1000": {
+      "what": "mouse: press and release",
+      "raw": "\u001b[?1000;2$y",
+      "state": "reset"
+    },
+    "1002": {
+      "what": "mouse: button motion",
+      "raw": "\u001b[?1002;2$y",
+      "state": "reset"
+    },
+    "1003": {
+      "what": "mouse: any motion",
+      "raw": "\u001b[?1003;2$y",
+      "state": "reset"
+    },
+    "1004": {
+      "what": "focus reports",
+      "raw": "\u001b[?1004;2$y",
+      "state": "reset"
+    },
+    "1006": {
+      "what": "SGR mouse encoding",
+      "raw": "\u001b[?1006;2$y",
+      "state": "reset"
+    },
+    "1016": {
+      "what": "SGR-Pixels mouse encoding",
+      "raw": "\u001b[?1016;0$y",
+      "state": "not recognised"
+    },
+    "1049": {
+      "what": "alternate screen",
+      "raw": "\u001b[?1049;1$y",
+      "state": "set"
+    },
+    "2004": {
+      "what": "bracketed paste",
+      "raw": "\u001b[?2004;2$y",
+      "state": "reset"
+    },
+    "2026": {
+      "what": "synchronized output",
+      "raw": "\u001b[?2026;0$y",
+      "state": "not recognised"
+    },
+    "2027": {
+      "what": "grapheme clustering",
+      "raw": "\u001b[?2027;0$y",
+      "state": "not recognised"
+    },
+    "2031": {
+      "what": "colour-palette update notifications",
+      "raw": "\u001b[?2031;0$y",
+      "state": "not recognised"
+    },
+    "2048": {
+      "what": "in-band resize reports",
+      "raw": "\u001b[?2048;0$y",
+      "state": "not recognised"
+    },
+    "9001": {
+      "what": "win32-input-mode",
+      "raw": "\u001b[?9001;2$y",
+      "state": "reset"
+    }
+  },
+  "other": {
+    "kitty_keyboard": "",
+    "xtversion": ""
+  },
+  "stamp": {
+    "probe": "decrqm_probe",
+    "measured": "2026-11-16T22:54:31-08:00",
+    "screen": "alternate",
+    "os": "Windows 10.0.26300",
+    "machine": "ARM64",
+    "env": {
+      "TERM": "xterm-256color"
+    },
+    "mode_2027_grapheme_clustering": "not recognised",
+    "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+  }
+}

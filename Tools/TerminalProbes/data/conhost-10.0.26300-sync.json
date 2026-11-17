@@ -1,0 +1,28 @@
+{
+ "stamp": {
+  "probe": "sync_probe",
+  "measured": "2026-11-16T22:53:59-08:00",
+  "screen": "alternate",
+  "os": "Windows 10.0.26300",
+  "machine": "ARM64",
+  "env": {
+   "TERM": "xterm-256color"
+  },
+  "mode_2027_grapheme_clustering": "not recognised",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py"
+ },
+ "leak": {
+  "before": [
+   2,
+   1
+  ],
+  "after": [
+   2,
+   1
+  ],
+  "clean": true
+ },
+ "xtversion": null,
+ "decrqm_2026": "not asked (Apple Terminal, or a host that did not identify itself, may print DECRQM's final byte)",
+ "tmux": null
+}

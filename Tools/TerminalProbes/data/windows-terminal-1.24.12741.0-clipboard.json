@@ -1,0 +1,75 @@
+{
+ "stamp": {
+  "probe": "clipboard_probe",
+  "measured": "2026-11-16T22:55:48-08:00",
+  "screen": "alternate",
+  "os": "Windows 10.0.26300",
+  "machine": "ARM64",
+  "env": {
+   "TERM": "xterm-256color",
+   "WT_SESSION": "fa7b955e-f77c-46bf-b5fb-b2494b4c407f"
+  },
+  "mode_2027_grapheme_clustering": "permanently set",
+  "method": "DSR cursor report — confirm any disagreement with visual_card.py",
+  "windows_terminal_version": "1.24.12741.0"
+ },
+ "remote": {},
+ "read_back": "C:\\Users\\shive\\AppData\\Local\\Programs\\Swift\\Python-3.10.1\\usr\\bin\\python.exe C:\\Users\\shive\\Documents\\TUI\\Tools\\TerminalProbes\\windows\\clipboard.py read",
+ "identity": {
+  "xtversion": null,
+  "da1": "\u001b[?61;4;6;7;14;21;22;23;24;28;32;42;52c",
+  "da1_has_52": true,
+  "da2": "\u001b[>0;10;1c"
+ },
+ "leak": {
+  "before": [
+   2,
+   1
+  ],
+  "after": [
+   2,
+   1
+  ],
+  "clean": true
+ },
+ "write_st": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 25
+ },
+ "tmux": null,
+ "write_bel": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 16
+ },
+ "write_empty_selector": {
+  "fenced": true,
+  "arrived": true,
+  "read_length": 27
+ },
+ "ceiling": {
+  "sizes": {
+   "1KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 1024,
+    "base64_bytes": 1368
+   },
+   "8KiB": {
+    "fenced": true,
+    "arrived": true,
+    "read_length": 8192,
+    "base64_bytes": 10924
+   },
+   "64KiB": {
+    "fenced": true,
+    "arrived": false,
+    "read_length": 8192,
+    "base64_bytes": 87384
+   }
+  },
+  "largest_intact_kib": 8
+ },
+ "restored": true
+}

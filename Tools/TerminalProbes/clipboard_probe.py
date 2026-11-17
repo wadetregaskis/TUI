@@ -136,10 +136,15 @@ def osc52(text, selector=b"c", terminator=ST):
 # MARK: - Reading the clipboard back
 
 
+WINDOWS_CLIPBOARD = os.path.join(os.path.dirname(os.path.abspath(__file__)), "windows", "clipboard.py")
+
+
 def local_helpers():
     """(read argv, write argv) for this machine's clipboard, or (None, None)."""
     if sys.platform == "darwin":
         return ["pbpaste"], ["pbcopy"]
+    if sys.platform == "win32":
+        return [sys.executable, WINDOWS_CLIPBOARD, "read"], [sys.executable, WINDOWS_CLIPBOARD, "write"]
     if os.environ.get("WAYLAND_DISPLAY") and shutil.which("wl-paste"):
         return ["wl-paste", "--no-newline"], ["wl-copy"]
     if os.environ.get("DISPLAY"):
@@ -164,6 +169,8 @@ def type_lister():
     clipboard — or (None, None, None) where nothing can list them."""
     if sys.platform == "darwin":
         return ["osascript", "-e", "clipboard info"], parse_clipboard_info, None
+    if sys.platform == "win32":
+        return [sys.executable, WINDOWS_CLIPBOARD, "list"], str.splitlines, None
     if os.environ.get("WAYLAND_DISPLAY") and shutil.which("wl-paste"):
         return ["wl-paste", "--list-types"], str.split, WAYLAND_EMPTY
     if os.environ.get("DISPLAY") and shutil.which("xclip"):
@@ -182,6 +189,9 @@ def parse_clipboard_info(output):
 # picture, a file list, RTF — would be replaced by text.
 MAC_TEXT_TYPES = {"«class utf8»", "«class ut16»", "string", "Unicode text"}
 X_TEXT_TARGETS = {"UTF8_STRING", "STRING", "TEXT", "COMPOUND_TEXT"}
+# Windows's text formats: the three the system synthesises from one another, and
+# the locale it keeps beside them (`windows/clipboard.py list`).
+WINDOWS_TEXT_FORMATS = {"CF_UNICODETEXT", "CF_TEXT", "CF_OEMTEXT", "CF_LOCALE"}
 # What X11 lists beside the data, which is not data.
 X_META_TARGETS = {"TARGETS", "TIMESTAMP", "MULTIPLE", "SAVE_TARGETS", "DELETE", "INCR"}
 
@@ -194,7 +204,7 @@ RICH_TEXT_TYPES = {"«class RTF »", "«class HTML»", "«class rtfd»", "text/h
 def holds_only_text(types):
     """Whether a clipboard holding `types` is put back whole by writing its text."""
     for name in types:
-        if name in MAC_TEXT_TYPES or name in X_TEXT_TARGETS or name in X_META_TARGETS:
+        if name in MAC_TEXT_TYPES or name in X_TEXT_TARGETS or name in X_META_TARGETS or name in WINDOWS_TEXT_FORMATS:
             continue
         if name.startswith("text/plain"):
             continue
@@ -404,6 +414,8 @@ def plain_text_advice():
     put back whole."""
     if sys.platform == "darwin":
         return "printf probe | pbcopy"
+    if sys.platform == "win32":
+        return "echo probe| clip"
     if os.environ.get("WAYLAND_DISPLAY"):
         return "printf probe | wl-copy"
     return "printf probe | xclip -selection clipboard"

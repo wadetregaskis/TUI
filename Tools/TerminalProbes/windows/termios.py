@@ -225,7 +225,7 @@ _standard_get_terminal_size = os.get_terminal_size
 def _get_terminal_size(fd=1):
     """`os.get_terminal_size`, which on Windows takes only 0, 1 and 2: any
     console descriptor is asked as standard output, the window's size."""
-    if fd not in (0, 1, 2) and _is_console(fd):
+    if _is_console_input(fd) or (fd not in (0, 1, 2) and _is_console(fd)):
         fd = 1
     return _standard_get_terminal_size(fd)
 
@@ -262,3 +262,7 @@ if not hasattr(_signal, "SIGALRM"):
 
     _signal.setitimer = _setitimer
     _signal.alarm = _alarm_seconds
+
+# The window-size request, which `fcntl.py` beside this answers from the console.
+TIOCGWINSZ = 0x5413
+TIOCSWINSZ = 0x5414
