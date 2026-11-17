@@ -48,14 +48,29 @@ enum ModalPresentationStateIndex {
     /// — was never pruned, and a sheet presented again came back as it was
     /// left.
     ///
-    /// The content's own state goes too, once, on the frame the sheet closes
-    /// — or is presented for another item — as a branch an `if` leaves loses
-    /// its own (``PresentationEntry/contentIdentity``). The same containers
-    /// keep it: a sheet presented again from a `List` or `Table` row, a lazy
-    /// stack's row or a toolbar item came back with its content's `@State` as
-    /// it was left, and what its modifier said now — a `State(initialValue:)`
-    /// made from it — was never read.
+    /// The content's own state goes too, once, on the frame the sheet closes,
+    /// as a branch an `if` leaves loses its own
+    /// (``PresentationEntry/contentIdentity``) — an `item:` sheet's for every
+    /// item it was presented for (``PresentationEntry/keptItems``). The same
+    /// containers keep it: a sheet presented again from a `List` or `Table`
+    /// row, a lazy stack's row or a toolbar item came back with its content's
+    /// `@State` as it was left, and what its modifier said now — a
+    /// `State(initialValue:)` made from it — was never read.
     func startOver(context: RenderContext) {
+        startOverPresenter(context: context)
+        if let entry = existingPresentationEntry(context: context) {
+            if let content = entry.contentIdentity {
+                context.stateStorage?.invalidateDescendants(of: content, includingItself: true)
+                entry.contentIdentity = nil
+            }
+            entry.keptItems.dropAll(in: context.stateStorage)
+        }
+    }
+
+    /// Empties what the presenter keeps for the sheet ITSELF — where it was
+    /// dragged, its sticky size, its detent, its entry and its toolbar rows —
+    /// but not its content's state (``startOver(context:)``).
+    private func startOverPresenter(context: RenderContext) {
         DialogDrag.reset(context: context, propertyIndex: StateIndex.dragHandler)
         existingKeptSheetSize(context: context)?.size = nil
         existingDetentState(context: context)?.chosen = nil
@@ -63,10 +78,6 @@ enum ModalPresentationStateIndex {
             entry.hasEntered = false
             entry.isKeptOffTheDock = false
             entry.rowsShortOfDetent = nil
-            if let content = entry.contentIdentity {
-                context.stateStorage?.invalidateDescendants(of: content, includingItself: true)
-                entry.contentIdentity = nil
-            }
         }
         // Presented again, its toolbar rows are seeded again.
         (context.stateStorage?.existingStorage(
@@ -74,11 +85,14 @@ enum ModalPresentationStateIndex {
             as StateBox<PresentationToolbarItems>?)?.value.startOver()
     }
 
-    /// Starts over (``startOver(context:)``) when the sheet is presented for
-    /// another item than it was: an `item:` sheet switched to another item is
-    /// never closed — its binding stays non-`nil` — but the item's id is the
-    /// sheet's identity, so another item is another sheet, as SwiftUI
-    /// presents it.
+    /// Starts the sheet over (``startOverPresenter(context:)``) when it is
+    /// presented for another item than it was, and keeps the content of the
+    /// item it leaves (``KeptItemContents``): an `item:` sheet switched to
+    /// another item is never closed — its binding stays non-`nil` — but the
+    /// item's id is its content's identity, so another item is another
+    /// content, with state of its own; and switched back, an item's content
+    /// is as it was left (the owner's ruling SHEET-ITEM-STATE, 2026-11-16).
+    /// Every frame, it keeps the items left behind out of the pass's prune.
     ///
     /// All but the hold off the dock (`PresentationEntry.isKeptOffTheDock`),
     /// which is about where the PRESENTER's row sits, and another item does
@@ -88,11 +102,15 @@ enum ModalPresentationStateIndex {
     /// disappearance more, on every switch.
     func startOver(forItem itemKey: String, context: RenderContext) {
         let entry = presentationEntry(context: context)
-        guard entry.itemKey != itemKey else { return }
-        let isKeptOffTheDock = entry.isKeptOffTheDock
-        startOver(context: context)
-        entry.isKeptOffTheDock = isKeptOffTheDock
-        entry.itemKey = itemKey
+        if entry.itemKey != itemKey {
+            let isKeptOffTheDock = entry.isKeptOffTheDock
+            startOverPresenter(context: context)
+            entry.isKeptOffTheDock = isKeptOffTheDock
+            entry.keptItems.leave(entry.itemKey, drawnAt: entry.contentIdentity, for: itemKey, context: context)
+            entry.contentIdentity = nil
+            entry.itemKey = itemKey
+        }
+        entry.keptItems.retain(in: context.stateStorage)
     }
 }
 

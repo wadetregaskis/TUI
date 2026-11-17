@@ -2629,6 +2629,29 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   **Lane**.
 ---
 
+### W17. An `item:` presentation keeps each item's state while it is up
+
+- **SwiftUI (measured, macOS 15.8.3, 2026-11-16):** replacing a
+  `sheet(item:)`'s item with another of a different id keeps the same window
+  and the same content state: the content is handed the new item, and no
+  `onDismiss` or `onAppear` runs (`Tools/SwiftUIProbes/Bug-hunt parity items
+  (1116B)/sheetitem.swift`, `sheetitem.out`). Not measured for
+  `fullScreenCover(item:)` or `popover(item:)`.
+- **TUI:** the item's id is the content's identity, so each item's content
+  has its own `@State`, scroll positions, selections and focus, and each is
+  kept while the presentation stays up (`KeptItemContents`): switched back to
+  an item, its content is as it was left and its `onAppear`/`task` run again,
+  as a tab's do; up to 16 items left behind keep theirs. Switching runs no
+  `onDismiss`; dismissing drops every item's state. All three `item:` forms
+  (`PresentationItemIdentityTests`, `SheetItemStateKeptTests`).
+- **Why:** an editor presented for a list's selection is about that row: one
+  shared state leaked a half-typed draft into the next row's editor (the bug
+  fixed 2026-09-20, 47337e48d), while starting over on every switch threw away
+  a draft the user only stepped away from. An app that wants macOS's one state
+  holds it in the presenting view, or presents on a flag.
+- **Decided:** [SHEET-ITEM-STATE](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#bug-hunt-parity-items-2026-11-16>),
+  option (c), 2026-11-16. **Owner.**
+
 ## Lifecycle
 
 ### F1. A row windowed out of a lazy container keeps its state

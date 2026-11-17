@@ -113,10 +113,15 @@ final class PresentationEntry {
     var itemKey: String?
 
     /// The identity the presented content is drawn at, from the first frame
-    /// it is drawn there until the sheet is closed or presented for another
-    /// item: the subtree whose state goes then
-    /// (`ModalPresentationModifier.startOver(context:)`).
+    /// it is drawn there until the sheet is closed — the subtree whose state
+    /// goes then (`ModalPresentationModifier.startOver(context:)`) — or
+    /// presented for another item, which keeps it (``keptItems``).
     var contentIdentity: ViewIdentity?
+
+    /// The content of the items an `item:` sheet was presented for before
+    /// the one it shows, kept while it stays presented
+    /// (`ModalPresentationModifier.startOver(forItem:context:)`).
+    var keptItems = KeptItemContents()
 }
 
 // MARK: - Presenting live

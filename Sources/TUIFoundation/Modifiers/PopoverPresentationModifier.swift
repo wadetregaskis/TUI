@@ -302,6 +302,7 @@ nonisolated package struct PopoverPresentationModifier<Content: View, Popover: V
             teardown.contentIdentity = nil
             teardown.itemKey = nil
         }
+        teardown?.keptItems.dropAll(in: context.stateStorage)
         if ownsPresentation {
             guard let teardown, teardown.isPending else { return }
             teardown.isPending = false
@@ -312,16 +313,23 @@ nonisolated package struct PopoverPresentationModifier<Content: View, Popover: V
 
     /// Notes, at the presenter's identity, where its content is drawn
     /// (``PopoverTeardown/contentIdentity``), from the first frame it is drawn
-    /// there: the state that goes when the popover closes — or, for the
-    /// `item:` form, when it is presented for another item, which is another
-    /// popover, and the last item's state goes at once.
+    /// there: the state that goes when the popover closes. For the `item:`
+    /// form, presented for another item — another content, with state of its
+    /// own — the content of the item it leaves is kept while the popover stays
+    /// up (``KeptItemContents``, the owner's ruling SHEET-ITEM-STATE), and
+    /// every frame the items left behind are kept out of the pass's prune.
     private func notePresentedContent(at identity: ViewIdentity, context: RenderContext) {
         guard let storage = context.stateStorage else { return }
         let record = storage.storage(for: Self.teardownKey(context), default: PopoverTeardown()).value
-        if record.itemKey != itemKey, let old = record.contentIdentity {
-            storage.invalidateDescendants(of: old, includingItself: true)
+        if record.itemKey != itemKey {
+            if let itemKey {
+                record.keptItems.leave(record.itemKey, drawnAt: record.contentIdentity, for: itemKey, context: context)
+            } else if let old = record.contentIdentity {
+                storage.invalidateDescendants(of: old, includingItself: true)
+            }
             record.contentIdentity = nil
         }
+        record.keptItems.retain(in: storage)
         record.itemKey = itemKey
         if record.contentIdentity == nil { record.contentIdentity = identity }
     }
@@ -426,10 +434,14 @@ private final class PopoverTeardown {
     var isPending = false
 
     /// Where the presented content is drawn, from the first frame it is drawn
-    /// there until the popover closes or is presented for another item: the
-    /// subtree whose state goes then.
+    /// there until the popover closes — the subtree whose state goes then —
+    /// or is presented for another item, which keeps it (``keptItems``).
     var contentIdentity: ViewIdentity?
 
     /// The item the popover was last presented for, for the `item:` form.
     var itemKey: String?
+
+    /// The content of the items the `item:` form was presented for before the
+    /// one it shows, kept while it stays up.
+    var keptItems = KeptItemContents()
 }

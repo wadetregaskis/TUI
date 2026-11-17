@@ -359,14 +359,26 @@ extension View {
     /// runs `onDismiss`. As with the `isPresented:` form, the terminal presents a
     /// centred, background-dimming overlay rather than a sliding sheet.
     ///
-    /// The item's **id is the content's identity**, which is what this form has
-    /// over closing over a value and presenting on a flag: change the item and
-    /// the sheet is a different view — `@State` back at its initial values,
-    /// `onAppear`/`task` firing again — rather than the same view handed a new
-    /// row to describe. Moving a selection from one row to another while the
-    /// sheet is up used to leave the first row's half-typed draft, scroll
-    /// position and selection sitting in the second row's editor. Keep the ids
-    /// distinct: two items whose ids are equal are one view, as in SwiftUI.
+    /// The item's **id is the content's identity**: change the item and the
+    /// sheet's content is a different view, with `@State` of its own, rather
+    /// than the same view handed a new row to describe — moving a selection
+    /// from one row to another while the sheet is up once left the first
+    /// row's half-typed draft sitting in the second row's editor. **Each
+    /// item's content keeps its state while the sheet is up**: switched back
+    /// to an item, its content is as it was left — `@State`, scroll
+    /// positions, selections, where the focus was — and its `onAppear`/`task`
+    /// run again, as a tab's do when it is shown again. Up to 16 items left
+    /// behind keep theirs; one shown longer ago starts fresh. Switching runs
+    /// no `onDismiss`; dismissing drops every item's state, so presented again
+    /// an item starts fresh. Keep the ids distinct: two items whose ids are
+    /// equal are one view, as in SwiftUI.
+    ///
+    /// This deviates from SwiftUI on macOS, which keeps one sheet and one
+    /// state for every item and hands the content the new item, running no
+    /// `onAppear` (the owner's ruling SHEET-ITEM-STATE, 2026-11-16). To get
+    /// that, hold the state in the presenting view and pass it in, or present
+    /// on a flag (``sheet(isPresented:onDismiss:content:)``) and read the item
+    /// in the content.
     ///
     /// ```swift
     /// @State var editing: Row?
@@ -495,8 +507,11 @@ extension View {
     /// SwiftUI's `fullScreenCover(item:onDismiss:content:)`.
     ///
     /// The item's id is the content's identity, exactly as in
-    /// ``sheet(item:onDismiss:content:)`` — a cover shown for a different item
-    /// starts with fresh state.
+    /// ``sheet(item:onDismiss:content:)``: a cover shown for a different item
+    /// starts with fresh state, and each item's content keeps its state while
+    /// the cover is up, so switched back to an item it is as it was left.
+    /// SwiftUI on macOS keeps one state for every item instead; to get that,
+    /// hold the state in the presenting view.
     ///
     /// - Parameters:
     ///   - item: A binding to an optional, identifiable item; non-`nil` presents.

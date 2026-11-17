@@ -4,6 +4,9 @@
 //  What the `item:` form of a presentation promises over the `isPresented:`
 //  form: the presented content is ABOUT something, and when that something
 //  changes the content is a DIFFERENT view — fresh `@State`, fresh lifecycle.
+//  And, by the owner's ruling SHEET-ITEM-STATE (2026-11-16), each item's
+//  content keeps its own state while the presentation stays up: switched back
+//  to an item, its content is as it was left; dismissed, all of it goes.
 //  These renders drive `StateStorage`'s pass boundaries the way the run loop
 //  does (as `ModalBackdropStateTests` does), because the prune at the end of a
 //  pass is what makes a dismissed presentation forget; without the bracketing
@@ -22,6 +25,12 @@ import TUIPresentation
 /// The thing a presentation is about.
 private struct Row: Identifiable, Equatable {
     let id: Int
+}
+
+/// The three `item:` forms, for the tests that hold of each.
+enum ItemForm: CaseIterable, CustomTestStringConvertible {
+    case sheet, cover, popover
+    var testDescription: String { "\(self)" }
 }
 
 /// The presented content: a draft that only its own Button writes to. The
@@ -196,5 +205,100 @@ struct PresentationItemIdentityTests {
         #expect(
             Self.draftLine(later) == "row=1 draft=[edit-1]",
             "the draft survived the frames after it was typed: \(later)")
+    }
+
+    // MARK: - Each item keeps its own state while presented (SHEET-ITEM-STATE)
+
+    /// The presenter under a view that keeps its subtree's state, as a `List`
+    /// or `Table` row is: there, nothing the presentation stops keeping is
+    /// pruned by the end of the pass, so what it drops — on dismissal, or
+    /// past the cap — it must drop itself, and these tests see whether it did.
+    private func presenter(_ form: ItemForm, item: ItemBox) -> some View {
+        let page = Text("page")
+        return Group {
+            switch form {
+            case .sheet: page.sheet(item: item.binding) { row in DraftEditor(row: row) }
+            case .cover: page.fullScreenCover(item: item.binding) { row in DraftEditor(row: row) }
+            case .popover: page.popover(item: item.binding) { row in DraftEditor(row: row) }
+            }
+        }
+        .keepsStateWhileHidden()
+    }
+
+    /// Presents `row`, types its draft, and says what the editor shows.
+    private func typeDraft(
+        for row: Int, _ form: ItemForm, item: ItemBox, tui: TUIContext, fm: FocusManager
+    ) -> String? {
+        item.value = Row(id: row)
+        typeIntoTheDraft(presenter(form, item: item), tui: tui, fm: fm)
+        return Self.draftLine(frame(presenter(form, item: item), tui: tui, fm: fm))
+    }
+
+    @Test("Switched back to an item, its content is as it was left; the other item's is its own", arguments: ItemForm.allCases)
+    func switchedBackKeepsState(_ form: ItemForm) {
+        let item = ItemBox()
+        let tui = TUIContext()
+        let fm = FocusManager()
+        #expect(typeDraft(for: 1, form, item: item, tui: tui, fm: fm) == "row=1 draft=[edit-1]", "sanity")
+
+        item.value = Row(id: 2)
+        let fresh = Self.draftLine(frame(presenter(form, item: item), tui: tui, fm: fm))
+        #expect(fresh == "row=2 draft=[]", "row 2 opened holding another row's draft")
+        #expect(typeDraft(for: 2, form, item: item, tui: tui, fm: fm) == "row=2 draft=[edit-2]", "sanity")
+
+        item.value = Row(id: 1)
+        let back = Self.draftLine(frame(presenter(form, item: item), tui: tui, fm: fm))
+        #expect(back == "row=1 draft=[edit-1]", "row 1's draft was lost while row 2 was shown")
+        item.value = Row(id: 2)
+        let backToTwo = Self.draftLine(frame(presenter(form, item: item), tui: tui, fm: fm))
+        #expect(backToTwo == "row=2 draft=[edit-2]", "row 2's draft was lost while row 1 was shown")
+    }
+
+    @Test("Dismissed, every item's kept state goes: presented again, it starts fresh", arguments: ItemForm.allCases)
+    func dismissalDropsKeptState(_ form: ItemForm) {
+        let item = ItemBox()
+        let tui = TUIContext()
+        let fm = FocusManager()
+        // The baseline: what a presentation for one item leaves behind once
+        // dismissed — the presenter's own records, whatever they are.
+        item.value = Row(id: 9)
+        _ = frame(presenter(form, item: item), tui: tui, fm: fm)
+        item.value = nil
+        _ = frame(presenter(form, item: item), tui: tui, fm: fm)
+        _ = frame(presenter(form, item: item), tui: tui, fm: fm)
+        let before = Self.stateValues(tui)
+        for row in 1...3 {
+            #expect(typeDraft(for: row, form, item: item, tui: tui, fm: fm) == "row=\(row) draft=[edit-\(row)]")
+        }
+        item.value = nil
+        _ = frame(presenter(form, item: item), tui: tui, fm: fm)
+        _ = frame(presenter(form, item: item), tui: tui, fm: fm)
+        #expect(Self.stateValues(tui) == before, "kept item state outlived the dismissal")
+
+        item.value = Row(id: 1)
+        let again = Self.draftLine(frame(presenter(form, item: item), tui: tui, fm: fm))
+        #expect(again == "row=1 draft=[]", "presented again, row 1 came back with its old draft")
+    }
+
+    @Test("Beyond the cap, the item shown longest ago starts fresh; the rest keep theirs", arguments: [ItemForm.sheet, .popover])
+    func keptItemsAreCapped(_ form: ItemForm) {
+        let item = ItemBox()
+        let tui = TUIContext()
+        let fm = FocusManager()
+        let rows = KeptItemContents.capacity + 2
+        for row in 1...rows {
+            #expect(typeDraft(for: row, form, item: item, tui: tui, fm: fm) == "row=\(row) draft=[edit-\(row)]")
+        }
+        // Kept: the `capacity` items left most recently — 2 through rows - 1.
+        item.value = Row(id: 2)
+        let kept = Self.draftLine(frame(presenter(form, item: item), tui: tui, fm: fm))
+        #expect(kept == "row=2 draft=[edit-2]", "an item within the cap lost its state")
+        item.value = Row(id: 1)
+        let dropped = Self.draftLine(frame(presenter(form, item: item), tui: tui, fm: fm))
+        #expect(dropped == "row=1 draft=[]", "the item left longest ago was kept beyond the cap")
+    }
+
+    private static func stateValues(_ tui: TUIContext) -> Int? {
+        tui.stateStorage.entryCounts.first { $0.name == "state.values" }?.count
     }
 }

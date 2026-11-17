@@ -66,8 +66,11 @@ extension View {
     /// `popover(item:attachmentAnchor:arrowEdge:content:)`.
     ///
     /// The item's id is the content's identity, exactly as in
-    /// ``View/sheet(item:onDismiss:content:)`` — a popover reopened for a
-    /// different item starts with fresh state.
+    /// ``View/sheet(item:onDismiss:content:)``: a popover presented for a
+    /// different item starts with fresh state, and each item's content keeps
+    /// its state while the popover is up, so switched back to an item it is
+    /// as it was left. SwiftUI keeps one state for every item instead; to get
+    /// that, hold the state in the presenting view.
     ///
     /// - Parameters:
     ///   - item: A binding to an optional, identifiable item; non-`nil` presents.

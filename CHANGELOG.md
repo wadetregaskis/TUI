@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`sheet(item:)`, `fullScreenCover(item:)` and `popover(item:)` keep each item's state while they are up.** Switched
+from one item to another and back, the presented content is as it was left for that item — its `@State`, scroll
+positions, selections and where the focus was — while each other item's content has state of its own; its `onAppear`
+and `task` run again on its return, as a tab's do. Switching runs no `onDismiss`, and dismissing (the item `nil`)
+drops every item's state, so presented again an item starts fresh. Up to 16 items left behind keep theirs; one shown
+longer ago starts fresh. Before, every switch started the content over. SwiftUI on macOS keeps one state for every
+item instead, handing the content the new item; an app that wants that holds the state in the presenting view, or
+presents on a flag and reads the item in the content.
+
 **`Table(_:children:)` can take the app's expansion: `expansion: $openIDs`.** Every hierarchical table initializer
 has a new, defaulted argument after `children:`, a binding to the set of open branches' ids. Handed one, the table
 opens exactly the ids in the set, and the user's Right, Left, ⌥Right, ⌥Left and clicks on a triangle write it, so an

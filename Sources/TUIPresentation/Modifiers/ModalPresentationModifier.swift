@@ -85,8 +85,10 @@ nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>
     /// the `isPresented:` forms, which are about nothing in particular.
     ///
     /// The `item:` forms fold it into the presented content's identity below,
-    /// which is what makes a different item a different view — fresh `@State`,
-    /// fresh lifecycle — as SwiftUI's `item:` contract requires. Read at
+    /// which is what makes a different item a different view, with `@State` of
+    /// its own, each item's kept while the sheet stays presented
+    /// (``startOver(forItem:context:)``, the owner's ruling SHEET-ITEM-STATE;
+    /// macOS keeps one state for every item instead). Read at
     /// construction, from the same binding read the same moment as the item
     /// ``modal`` builds the content from, so the key and the content can never
     /// describe different items.
@@ -141,8 +143,9 @@ nonisolated package struct ModalPresentationModifier<Content: View, Modal: View>
         // Read once for the frame: an `item:` form's binding reads the item.
         let isShown = isPresented.wrappedValue
 
-        // Presented for another item than it was, it is a new sheet — before
-        // anything reads what the presenter keeps for it.
+        // Presented for another item than it was, it is a new sheet, the
+        // content of the item it leaves kept — before anything reads what the
+        // presenter keeps for it.
         if !context.isMeasuring, isShown, let itemKey {
             startOver(forItem: itemKey, context: context)
         }

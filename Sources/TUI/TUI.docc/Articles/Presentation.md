@@ -195,13 +195,21 @@ List(rows, selection: $selection) { ... }
     }
 ```
 
-The item's **id is the sheet content's identity**, which is the whole reason to
-reach for this form: move the selection to another row while the sheet is up and
-the editor is a *different view* — its `@State` back at its initial values, its
-`onAppear`/`task` firing again — rather than the same editor handed a new row to
-describe, still holding the previous row's half-typed draft. The same is true of
-`fullScreenCover(item:onDismiss:content:)` and
+The item's **id is the sheet content's identity**: move the selection to
+another row while the sheet is up and the editor is a *different view*, with
+`@State` of its own, rather than the same editor handed a new row to describe,
+still holding the previous row's half-typed draft. Each row's editor **keeps its
+state while the sheet is up**: move back to a row and its editor is as it was
+left — its draft, its scroll position, where the focus was — with its
+`onAppear`/`task` run again, as a tab's are when it comes back into view.
+Switching rows runs no `onDismiss`; dismissing the sheet drops every row's
+state, so presented again a row starts fresh. Up to 16 rows left behind keep
+theirs. The same is true of `fullScreenCover(item:onDismiss:content:)` and
 `popover(item:attachmentAnchor:arrowEdge:content:)`.
+
+SwiftUI on macOS keeps one editor for every row instead, handing it the new
+row. To get that here, keep the state in the view that presents the sheet, or
+present on a flag (`sheet(isPresented:)`) and read the row in the content.
 
 ### Insisting on an answer
 

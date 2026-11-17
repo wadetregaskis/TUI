@@ -147,7 +147,7 @@ struct SheetContentStateTests {
         #expect(again.contains("opened 1"), "the popover came back as it was left: \(again)")
     }
 
-    @Test("An item popover switched to another item and back starts the first item's content afresh")
+    @Test("An item popover switched to another item and back keeps the first item's state, and appears again")
     func itemPopoverSwitchedAndBack() {
         let model = DraftModel()
         let build = {
@@ -164,10 +164,12 @@ struct SheetContentStateTests {
         model.item = DraftItem(id: "A")
         harness.frame(build())
         let again = screen(harness, build())
-        #expect(again.contains("A opened 1"), "item A's popover came back as it was left: \(again)")
+        // SHEET-ITEM-STATE (c), owner 2026-11-16: A's state is kept while the popover is up (its count of 1),
+        // and returning to it runs onAppear again, as a tab coming back into view does: 2.
+        #expect(again.contains("A opened 2"), "item A's popover came back as it was left, and appeared again: \(again)")
     }
 
-    @Test("An item sheet switched to another item and back starts the first item's content afresh")
+    @Test("An item sheet switched to another item and back shows the first item's draft as it was left")
     func itemSwitchedAndBack() {
         let model = DraftModel()
         let build = {
@@ -184,6 +186,7 @@ struct SheetContentStateTests {
         model.item = DraftItem(id: "A")
         harness.frame(build())
         let again = screen(harness, build())
-        #expect(again.contains("draft: A first"), "item A's sheet came back as it was left: \(again)")
+        // SHEET-ITEM-STATE (c), owner 2026-11-16: each item's content keeps its state while the sheet is up.
+        #expect(again.contains("draft: edited"), "item A's sheet came back as it was left: \(again)")
     }
 }
