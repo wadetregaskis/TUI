@@ -94,4 +94,14 @@ struct ControlLifetimeTests {
         expectFreed("text field", drawing: ["field"]) { TextField("Name", text: .constant("field")) }
         expectFreed("draggable", drawing: ["chip"]) { Text("chip").draggable("payload") }
     }
+
+    /// A drop destination's target, which the drag session holds until the
+    /// next frame's, held the session and the mouse dispatcher back: the
+    /// session never went, and the dispatcher kept every handler's objects.
+    @Test("A drop destination frees the app's objects with its loop")
+    func dropDestination() {
+        expectFreed("drop destination", drawing: ["bin"]) {
+            Text("bin").dropDestination(for: String.self) { _, _ in true }
+        }
+    }
 }

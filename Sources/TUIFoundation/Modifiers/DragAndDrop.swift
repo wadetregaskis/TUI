@@ -574,9 +574,15 @@ package enum DropZone {
         // still active while its drop performs, so the preview frame is
         // reportable — localized the same way (effects anchor to the image,
         // not the cursor).
-        func info(at event: MouseEvent, carrying payload: Any) -> DropInfo {
-            let (dx, dy) = dispatcher.regionOffset(for: id) ?? (0, 0)
-            let frame = session.previewFrame() ?? (x: event.x, y: event.y, width: 0, height: 0)
+        //
+        // Both held weakly: the session holds this target until the next
+        // frame's registrations replace it — after the app's last frame, for
+        // good — so a target holding the session back is a cycle, and the
+        // dispatcher it held kept every handler's objects alive after the loop
+        // (`ControlLifetimeTests`).
+        let info = { [weak dispatcher, weak session] (event: MouseEvent, payload: Any) -> DropInfo in
+            let (dx, dy) = dispatcher?.regionOffset(for: id) ?? (0, 0)
+            let frame = session?.previewFrame() ?? (x: event.x, y: event.y, width: 0, height: 0)
             return DropInfo(
                 x: event.x - dx, y: event.y - dy,
                 shift: event.shift, ctrl: event.ctrl, meta: event.meta,
@@ -587,17 +593,17 @@ package enum DropZone {
         var target = DragAndDropSession.Target(
             handlerID: id,
             accepts: accepts,
-            perform: { payload, event in perform(payload, info(at: event, carrying: payload)) },
+            perform: { payload, event in perform(payload, info(event, payload)) },
             setTargeted: setTargeted,
             proposedOperation: proposedOperation,
             identity: context.identity
         )
         target.focusIDs = focusIDs
         if hovering != nil || hoveringInfo != nil {
-            target.hovering = { x, y in
+            target.hovering = { [weak session] x, y in
                 hovering?(x, y)
-                if let hoveringInfo, let event = session.lastAbsoluteEvent, let payload = session.active?.payload {
-                    hoveringInfo(info(at: event, carrying: payload))
+                if let hoveringInfo, let event = session?.lastAbsoluteEvent, let payload = session?.active?.payload {
+                    hoveringInfo(info(event, payload))
                 }
             }
         }

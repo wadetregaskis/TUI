@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `.dropDestination` no longer keeps an app's objects alive after its loop ends.** The drop target it registers,
+which the drag session holds until the next frame's, held the session and the mouse dispatcher back, and with them
+the focus manager and every control's mouse handler.
+
 **A `TextField` or `SecureField` on one line keeps a pasted line break.** Pasting "ab", a newline and "cd" bound
 `"abcd"`, joining the words on either side; it now binds `"ab\ncd"`, as SwiftUI's field does (measured on macOS
 15.8.3). Each break is bound as one `"\n"`, whatever convention the clipboard used, as a vertical field already bound
