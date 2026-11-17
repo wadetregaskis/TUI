@@ -356,7 +356,7 @@ extension MouseEventDispatcher {
 /// - A drag kept to a bordered container's interior that **leaves it** by
 ///   more than ``wideningRows`` rows or ``wideningColumns`` columns widens to
 ///   the scope the container sits in, and stays widened until the release
-///   (A-TEXT2-1, an experiment for the owner to try).
+///   (A-TEXT2-1, accepted by the owner 2026-11-15).
 /// - A **double-click** selects the word under it at once, a **triple-click**
 ///   the row, and a drag after either extends by words or rows. The claimer
 ///   still hears the click, which for a pane's background is harmless — it
