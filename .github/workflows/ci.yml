@@ -1294,6 +1294,32 @@ jobs:
       - name: "Build TUITabImages"
         run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITabImages"
 
+      # The console layer, ported on 2026-11-16 (Documentation/Windows
+      # port.md): built and its Example driven on a Windows 11 arm64 VM with
+      # 6.3.3, and not yet by CI. Advisory, with the umbrella's timeout,
+      # until every Windows job has built them; binding from then on.
+      - name: "Build TUIApp"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIApp"
+
+      - name: "Build TUICommands"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICommands"
+
+      - name: "Build TUIScenes"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIScenes"
+
+      # Links, which nothing above does: the first step to catch a symbol
+      # missing from the toolchain's Foundation (Windows port.md, "Toolchain").
+      - name: "Build Example"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --product Example"
+
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
       # run without a console layer. Advisory until they went green;
@@ -1436,6 +1462,25 @@ jobs:
         run: swift build --target TUIFilePanels
       - name: "Build TUITabImages"
         run: swift build --target TUITabImages
+
+      # The console layer and what links it: advisory, as in the container
+      # lane, and for the same reason.
+      - name: "Build TUIApp"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIApp
+      - name: "Build TUICommands"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUICommands
+      - name: "Build TUIScenes"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUIScenes
+      - name: "Build Example"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --product Example
 
       # The same scoreboard rows as the container lane, with the same timeouts
       # and for the same reason — see that lane.
