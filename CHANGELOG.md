@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Opening or closing a branch of a big `Table(_:children:)` costs that branch's rows.** A change to the open branches
+made the table's kept outline again from its roots, listing every open row and each one's id: with 200,000 rows open,
+Right and Left took about 240 ms where Down took 8. The table now puts in or takes out only the rows beneath the
+branches that opened or closed, and keeps the rest and its index of them by id, so a toggle, an ⌥Right or ⌥Left on a
+branch, and an app's write to its `expansion:` set cost the rows they show or hide, and one copy of the open rows.
+
 **Under `.selectionFollowsCursor()` the first key from an empty selection does what macOS's does.** With nothing
 selected the cursor started on the first row, drawn there, so the first Down selected the second row and the first
 row's own letter skipped it. Now, with nothing selected and nothing having placed the cursor, no row is drawn as the

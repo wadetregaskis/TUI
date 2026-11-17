@@ -45,18 +45,16 @@ enum CaseKnownIssues {
             "G1-rows, as outline-rows: every open row's row builders run on every pass that lays the table out"
         ),
         "outline-table": (
-            ["key:oright listed", "key:left listed", "key:right listed"],
-            "Option-Right on the root opens all n rows, which is its change; and M6-2: one branch opened or closed "
-                + "makes a Table(_:children:)'s kept outline again whole, listing every open row"
+            ["key:oright listed"],
+            "Option-Right on the root opens all n rows, and lists them: that is its change, not a finding"
         ),
         "outline-children-bound": (
-            ["key:oright listed", "key:left listed", "key:right listed"],
-            "as outline-table: Option-Right on the root opens all n rows, and M6-2 lists every open row a toggle"
+            ["key:oright listed"],
+            "as outline-table: Option-Right on the root opens all n rows, and lists them"
         ),
         "outline-toggle": (
-            ["open listed", "key:left listed", "key:right listed", "key:oleft listed", "key:oright listed"],
-            "the tree starts open, so its first frame lists its n + 1 rows; and M6-2: each open or close of the "
-                + "first group's 99 rows makes the kept outline again whole, listing every open row"
+            ["open listed"],
+            "the tree starts open, so its first frame lists its n + 1 rows: what opening it costs, not a finding"
         ),
         "chat-lazy-follow": (
             ["bodies", "misses"],

@@ -69,7 +69,8 @@ private struct _TableOutlinePending {
 /// A class for the reason ``OutlineActivation`` is one: the table's row handler
 /// keeps it and calls it from key dispatch, outside the render pass that built
 /// it. It is built once per pass and only read afterwards, and the next pass
-/// replaces it.
+/// replaces it — a `Table(_:children:)`'s kept one by splicing it, when its
+/// open branches change (``splicing(_:to:expansion:)``).
 ///
 /// Main-actor isolated, because building rows is — a `DisclosureTableRow`'s
 /// children come from its row builder, and a recursive open builds them — and
@@ -88,17 +89,38 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     let traits: [_TableRowTraits]?
 
     /// Where each visible row sits, parallel to ``values``.
-    private let rows: [Row]
+    let rows: [Row]
 
     /// The visible branches, to open or close, by ``Row/branch``.
-    private let branchNodes: [_TableRowNode<Value>]
+    let branchNodes: [_TableRowNode<Value>]
 
     /// Each visible row's index in ``values`` by its id, made the first time a
     /// row is asked for by id — a draw asks for the rows it draws, a key for
     /// the row it acts on — and not by the flattening, which lists every open
     /// row of a tree written as row content again every pass. Where two rows
-    /// share an id, which SwiftUI's rows may not, the later one answers.
-    private var rowIndices: [Value.ID: Int]?
+    /// share an id, which SwiftUI's rows may not, the later one answers. An
+    /// outline made by splicing takes its predecessor's, the splice noted in
+    /// it (``_TableOutlineRowIndex``).
+    var rowIndices: _TableOutlineRowIndex<Value>?
+
+    /// The nodes in ``branchNodes`` of branches no longer shown: an outline
+    /// made by splicing leaves a closed branch's nodes where they were, so
+    /// the rows it keeps keep their branches' numbers, and is made again
+    /// whole once these are half of them.
+    var garbageBranches = 0
+
+    /// One write a key or click on this outline made to the expansion: the
+    /// reading before it and after it, and the ids it changed.
+    struct Write {
+        let before: _TableOutlineExpansion<Value>.Reading
+        let after: _TableOutlineExpansion<Value>.Reading
+        let ids: [Value.ID]
+    }
+
+    /// The writes the keys and clicks on this outline made, in order; `nil`
+    /// once one read back other than it wrote (``changedIDs(from:to:)``).
+    /// The kept outline's cache empties it when it has taken them.
+    var writes: [Write]? = []
 
     /// The expansion of every branch that keeps no binding of its own.
     private let expansion: _TableOutlineExpansion<Value>
@@ -256,11 +278,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// The index in ``values`` of the row `id` names, or `nil` for a row this
     /// outline does not show: from ``rowIndices``, made on the first ask.
     private func rowIndex(of id: Value.ID) -> Int? {
-        if let rowIndices { return rowIndices[id] }
-        var indices = [Value.ID: Int](minimumCapacity: values.count)
-        for index in values.indices { indices[values[index].id] = index }
-        rowIndices = indices
-        return indices[id]
+        if rowIndices?.isWorn ?? true { rowIndices = _TableOutlineRowIndex(values) }
+        return rowIndices?.row(of: id)
     }
 
     /// The place of the row `id` names, or `nil` for a row this outline does
@@ -371,8 +390,31 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             guard includingDescendants, let children = current.children else { continue }
             stack += children().nodes.filter { $0.children != nil }
         }
-        set(changed, open: open)
+        if let written = set(changed, open: open) {
+            // Read back: an app's binding may keep other than it was handed.
+            let after = expansion.read()
+            if after == written {
+                writes?.append(Write(before: reading, after: after, ids: changed.map(\.value.id)))
+            } else {
+                writes = nil
+            }
+        }
         return !changed.isEmpty
+    }
+
+    /// The ids opened or closed between the readings `seen` and `now`: the
+    /// ids this outline's own writes changed, where they lead from one to the
+    /// other — so a key's change is found without comparing the two sets
+    /// whole — else what comparing them finds.
+    func changedIDs(
+        from seen: _TableOutlineExpansion<Value>.Reading, to now: _TableOutlineExpansion<Value>.Reading
+    ) -> [Value.ID]? {
+        if let writes, let first = writes.first, let last = writes.last, first.before == seen, last.after == now,
+            zip(writes, writes.dropFirst()).allSatisfy({ $0.after == $1.before })
+        {
+            return writes.flatMap(\.ids)
+        }
+        return now.changedIDs(since: seen)
     }
 
     /// The row this one sits under, or `nil` for a root row.
@@ -383,7 +425,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Opens or closes `nodes`: each through its own binding where it has
     /// one, the rest in one write to the expansion.
-    private func set(_ nodes: [_TableRowNode<Value>], open: Bool) {
+    /// Returns what the write to the expansion wrote, `nil` for none.
+    private func set(_ nodes: [_TableRowNode<Value>], open: Bool) -> _TableOutlineExpansion<Value>.Reading? {
         var kept: [Value.ID] = []
         for node in nodes {
             if let binding = node.isExpanded {
@@ -392,8 +435,9 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
                 kept.append(node.value.id)
             }
         }
-        expansion.set(kept, open: open)
+        let written = expansion.set(kept, open: open)
         for node in nodes { onExpansionChange?(node.value.id, open) }
+        return written
     }
 }
 

@@ -623,6 +623,33 @@ Recorded on a clean debug build, every toggle lists every open row:
 
 The first frame lists the open tree, which is what opening it costs; the toggles are M6-2, the case's known issue.
 
+**Spliced (2026-11-16).** M6-2 fixed: given the same roots and a changed set, the kept outline is spliced rather than
+made again (`_TableOutline.splicing(_:to:expansion:)`, `TableOutlineSplice.swift`). The ids that changed come from the
+outline's own writes where they lead from the reading the cache last saw to the one it sees now, else from comparing
+the two sets; only the shown branches whose triangle no longer matches are turned, in reading order, each outermost one
+once, its rows flattened as a tree of one root and put in, or taken out. Every other row is copied, values and places
+in bulk and each parent link moved by the runs before it, in a merge that is not generic over the rows' values (the
+row types are top-level since a74bc4ec2: nested in the generic outline, a third of a toggle went in metadata lookups). The
+index by id moves to the new outline with the splices noted, a lookup replaying those since its row was noted. Shared
+ids, rows with traits or loops, or a new store fall back to the whole flattening. The paragraph under "(d) chosen and
+built" that set splicing aside is answered by both: the links that shift are moved by runs, and branch nodes stay put.
+
+Re-recorded on a clean debug build, `listed` now counts the rows a change puts in or takes out:
+
+| Case | Phase | Listed at n, before → after | At 10n, before → after |
+|---|---|--:|--:|
+| `outline-toggle` | each of `key:left`, `key:right`, `key:oleft`, `key:oright` | 49,902 or 50,001 → 99 | 499,902 or 500,001 → 99 |
+| `outline-table`, `outline-children-bound` | `key:left` (2 steps) | 4,992 → 9 | 49,992 → 9 |
+| | `key:right` | 5,001 → 9 | 50,001 → 9 |
+| | `key:oright` | 5,001 → 5,000 | 50,001 → 50,000 |
+
+Flat, so the known issues keep only what is the change itself: ⌥→ on the root (it now lists the rows it puts in, not
+the root again) and `outline-toggle`'s first frame. No other count moved. Timed (`ab_bench.py --exclusive`, release,
+cpu-per-frame, against the case's commit): `outline-toggle` 29,581 → 1,510 µs (−94.9%), `outline-children-bound`
+−42.1%, `outline-table` −37.0%; the other outline cases and the eight table scenarios indistinguishable but for
+`tables-vstack` (−4.4%). What a change still costs beyond its rows is one copy of the kept rows (no node built, no id
+hashed), and without a write of the outline's own, one comparison of the two sets.
+
 ## The outline cases (2026-11-16)
 
 Finding G1, from building tuitree, had two shapes left after `List(_:children:)` was windowed (a5b20c46f): a

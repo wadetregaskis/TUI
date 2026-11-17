@@ -63,8 +63,9 @@ extension RenderCache {
         /// pass's outline lists, each built by the app's row builders, drawn
         /// or not. A `Table(_:children:)` keeps its outline from pass to pass
         /// and builds no row content to make it: it counts the rows an
-        /// outline it makes lists, which a pass that changes neither its roots
-        /// nor its open branches makes none of.
+        /// outline it makes lists, and the rows a change of its open branches
+        /// puts in or takes out; a pass that changes neither its roots nor its
+        /// open branches lists none.
         public var listed = 0
 
         public init(

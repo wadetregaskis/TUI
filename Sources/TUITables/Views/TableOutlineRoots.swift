@@ -127,7 +127,11 @@ extension _TableOutline {
 /// a cursor move, a scroll, a selection — makes none.
 ///
 /// Two levels: the branches among the roots, found again only when the roots
-/// change; and the outline, made again when the roots or the open branches do.
+/// change; and the outline, made again when the roots change, and spliced when
+/// the open branches do (``_TableOutline/splicing(_:to:expansion:)``): the
+/// rows beneath a branch that opened or closed put in or taken out, the rest
+/// kept, so a key that opens one branch of a big open tree costs that
+/// branch's rows rather than every open one (finding M6-2, from tuitree).
 @MainActor
 final class _TableOutlineCache<Value: Identifiable> {
     private var roots: _TableOutlineRoots<Value>?
@@ -135,9 +139,10 @@ final class _TableOutlineCache<Value: Identifiable> {
     private var outline: _TableOutline<Value>?
     private var expansionSeen: _TableOutlineExpansion<Value>.Reading?
 
-    /// The rows the outlines made here have listed, all told: what a pass
-    /// adds to `RowWork.listed`, so a perf case sees a kept outline made
-    /// again.
+    /// The rows the outlines made here have listed, all told — every row of
+    /// one made whole, the rows put in or taken out of one spliced: what a
+    /// pass adds to `RowWork.listed`, so a perf case sees a kept outline
+    /// made again.
     private(set) var listed = 0
 
     /// The outline of `roots` with the branches `expansion` opens: the one
@@ -149,8 +154,23 @@ final class _TableOutlineCache<Value: Identifiable> {
             outline = nil
         }
         let reading = expansion.read()
-        if let outline, expansionSeen == reading {
-            return outline
+        if let outline, let seen = expansionSeen {
+            if seen == reading { return outline }
+            if let changed = outline.changedIDs(from: seen, to: reading) {
+                switch outline.splicing(changed, to: reading, expansion: expansion) {
+                case .some(.unchanged):
+                    outline.writes = []
+                    expansionSeen = reading
+                    return outline
+                case .some(.spliced(let made, let count)):
+                    self.outline = made
+                    expansionSeen = reading
+                    listed += count
+                    return made
+                case .none:
+                    break
+                }
+            }
         }
         let made = _TableOutline(
             _TableOutline.flattening(roots: roots, branches: branchIndices, expansion: reading),

@@ -54,6 +54,21 @@ struct _TableOutlineExpansion<Value: Identifiable> {
             case .app(let open): open.contains(id)
             }
         }
+
+        /// The ids opened or closed since `earlier`, in no order; `nil` where
+        /// the two are not readings of one store — the table's box and the
+        /// app's binding, or two boxes — and cannot be compared by id.
+        func changedIDs(since earlier: Self) -> [Value.ID]? {
+            switch (earlier, self) {
+            case (.table(let box, let before), .table(let now, let after)) where box == now:
+                // The table writes its own box, always with the rows' ids.
+                before.symmetricDifference(after).compactMap { $0.base as? Value.ID }
+            case (.app(let before), .app(let after)):
+                Array(before.symmetricDifference(after))
+            default:
+                nil
+            }
+        }
     }
 
     /// The open branches now. Read once for each flattening, and once for
@@ -68,17 +83,21 @@ struct _TableOutlineExpansion<Value: Identifiable> {
 
     /// Opens or closes the branches `ids` name, in one write: a binding's set
     /// copied once, however many branches an Option-Right reaches, rather than
-    /// once a branch.
-    func set(_ ids: [Value.ID], open: Bool) {
-        guard !ids.isEmpty else { return }
+    /// once a branch. Returns the reading it wrote, `nil` for no write, for
+    /// the outline to tell its own writes from others.
+    @discardableResult
+    func set(_ ids: [Value.ID], open: Bool) -> Reading? {
+        guard !ids.isEmpty else { return nil }
         switch store {
         case .table(let box):
             let keys = ids.lazy.map { AnyHashable($0) }
             if open { box.value.formUnion(keys) } else { box.value.subtract(keys) }
+            return .table(ObjectIdentifier(box), box.value)
         case .app(let binding):
             var set = binding.wrappedValue
             if open { set.formUnion(ids) } else { set.subtract(ids) }
             binding.wrappedValue = set
+            return .app(set)
         }
     }
 }

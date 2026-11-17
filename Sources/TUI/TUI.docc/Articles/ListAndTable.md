@@ -471,7 +471,8 @@ ScrollViewReader { proxy in
 
 This is the windowed way to a tree that starts open. The table keeps its outline
 between frames while the rows and the set are the same, and builds only the rows
-it draws, however many are open; a change to the set makes the outline once. It
+it draws, however many are open; a change to the set puts in or takes out only
+the rows beneath the branches that opened or closed. It
 is TUI's alone: a SwiftUI port drops the argument and writes its rows as below.
 `List(_:children:)` and `OutlineGroup` take no such argument yet.
 
