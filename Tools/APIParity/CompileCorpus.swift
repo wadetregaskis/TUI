@@ -591,6 +591,35 @@ private struct TextSelectionShapes: View {
     }
 }
 
+/// An attributed text's selection, kept in step by `AttributedString`'s
+/// selection members as SwiftUI's documentation writes them (G3 L3; the
+/// editor that takes the selection is L4's).
+@available(macOS 15, *)
+@MainActor
+private struct AttributedTextSelectionShapes {
+    var text = AttributedString("Hello, World!")
+    var selection = AttributedTextSelection()
+
+    mutating func edit() {
+        text.replaceSelection(&selection, withCharacters: Date.now.formatted())
+        text.replaceSelection(&selection, with: AttributedString("!"))
+        selection = .init(range: text.startIndex..<text.endIndex)
+        text.transformAttributes(in: &selection) { $0.foregroundColor = .red }
+        text.transform(updating: &selection) { $0.characters.append("?") }
+        let isRed = selection.attributes(in: text)[\.foregroundColor].contains(.red)
+        let typing: AttributeContainer = selection.typingAttributes(in: text)
+        let leansUp = selection.affinity(in: text) == .upstream
+        if case .insertionPoint(let caret) = selection.indices(in: text), isRed, leansUp {
+            selection = AttributedTextSelection(insertionPoint: caret, typingAttributes: typing)
+        }
+    }
+
+    @available(macOS 26, *)
+    func selected() -> DiscontiguousAttributedSubstring {
+        text[selection]
+    }
+}
+
 /// Text fields on either axis, in each initialiser shape, as SwiftUI's
 /// documentation writes them.
 @MainActor

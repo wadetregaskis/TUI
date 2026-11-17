@@ -1,5 +1,26 @@
 # TUITextInput public API (library product).
 # Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2); arm64-apple-macosx26.0. Written by Tools/Release/api_baseline.py: do not edit by hand.
+AttributedString.replaceSelection(_:with:) | mutating func replaceSelection(_ selection: inout AttributedTextSelection, with newContent: some AttributedStringProtocol)
+AttributedString.replaceSelection(_:withCharacters:) | mutating func replaceSelection(_ selection: inout AttributedTextSelection, withCharacters newContent: some Collection<Character>)
+AttributedString.subscript(_:) | subscript(selection: AttributedTextSelection) -> DiscontiguousAttributedSubstring { get }
+AttributedString.transform(updating:body:) | mutating func transform<E>(updating selection: inout AttributedTextSelection, body: (inout AttributedString) throws(E) -> Void) throws(E) where E : Error
+AttributedString.transformAttributes(in:body:) | mutating func transformAttributes<E>(in selection: inout AttributedTextSelection, body: (inout AttributeContainer) throws(E) -> Void) throws(E) where E : Error
+AttributedTextSelection | struct AttributedTextSelection
+AttributedTextSelection.Attributes | struct Attributes<Text>
+AttributedTextSelection.Attributes.makeIterator() | func makeIterator() -> some IteratorProtocol<AttributeContainer>
+AttributedTextSelection.Attributes.subscript(_:) | subscript<K>(type: K.Type) -> some Sequence<Optional<K.Value>> where K : AttributedStringKey, K.Value : Sendable { get }
+AttributedTextSelection.Attributes.subscript(_:) | subscript<K>(type: KeyPath<AttributeDynamicLookup, K>) -> some Sequence<Optional<K.Value>> where K : AttributedStringKey, K.Value : Sendable { get }
+AttributedTextSelection.Indices | @frozen enum Indices
+AttributedTextSelection.Indices.insertionPoint(_:) | case insertionPoint(AttributedString.Index)
+AttributedTextSelection.Indices.ranges(_:) | case ranges(RangeSet<AttributedString.Index>)
+AttributedTextSelection.affinity(in:) | func affinity(in text: AttributedString) -> TextSelectionAffinity
+AttributedTextSelection.attributes(in:) | func attributes(in text: AttributedString) -> AttributedTextSelection.Attributes<AttributedString>
+AttributedTextSelection.indices(in:) | func indices(in text: AttributedString) -> AttributedTextSelection.Indices
+AttributedTextSelection.init() | init()
+AttributedTextSelection.init(insertionPoint:typingAttributes:) | init(insertionPoint: AttributedString.Index, typingAttributes: AttributeContainer? = nil)
+AttributedTextSelection.init(range:) | init(range: Range<AttributedString.Index>)
+AttributedTextSelection.init(ranges:) | init(ranges: RangeSet<AttributedString.Index>)
+AttributedTextSelection.typingAttributes(in:) | func typingAttributes(in text: AttributedString) -> AttributeContainer
 AutomaticTextEditorStyle | struct AutomaticTextEditorStyle
 AutomaticTextEditorStyle.init() | init()
 AutomaticTextEditorStyle.makeBody(configuration:) | @MainActor func makeBody(configuration: AutomaticTextEditorStyle.Configuration) -> some View

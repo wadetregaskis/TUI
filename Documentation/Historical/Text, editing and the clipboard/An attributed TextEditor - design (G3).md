@@ -13,7 +13,8 @@ owner), B-ATTRED-1 to 7 (decided here).*
 *Updated 2026-11-17: the owner ruled on A-ATTRED-1 to 4 (§7). The per-line styler is withdrawn. The deeper design
 that replaces it is [Highlighting a large source in TextEditor: design (G3,
 A-ATTRED-1)](<Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>) (A-ATTRED-5 to 7). The
-caret's side at a run's edge and at a wrap, measured on macOS, is §8 (A-ATTRED-8 and 9, B-ATTRED-16 to 18).*
+caret's side at a run's edge and at a wrap, measured on macOS, is §8 (A-ATTRED-8 and 9, B-ATTRED-16 to 18). L3, the selection API, is built (§5),
+and what its macOS 15 fallbacks cost is §9.*
 
 ## In short
 
@@ -303,6 +304,23 @@ the suite; Stress `--selfcheck` for the drawing lanes; the Linux cross-compile f
 measuring are new, and L5 is new. **For tuitree, L1, L2 and L5 are enough: 4 days.** L4 alone would give it
 SwiftUI's spelling at B-ATTRED-4's price, workable only on a small file.
 
+*As built in L3 (2026-11-17):* `AttributedTextSelection` (its four initializers, `indices(in:)`,
+`affinity(in:)`, `typingAttributes(in:)`, `attributes(in:)` and `Attributes`) and `AttributedString`'s
+`transform(updating:body:)`, `subscript(_:)`, `transformAttributes(in:body:)` and both `replaceSelection`s, in
+`Sources/TUITextInput/AttributedText/`, with SwiftUI's signatures from the macOS 26.2 SDK. Apple's documentation
+fixes two choices: `init()` is an insertion point at the end of the text, and `indices(in:)` gives "a valid fallback
+index" for indices that no longer fit, which here is that same insertion point at the end. Typing attributes follow
+B-ATTRED-16, and `affinity(in:)` reports `.upstream` for a selection the app made (B-ATTRED-17), the editor setting
+its lean in L4. Where Foundation has them (macOS 26, Linux, Windows) validity is `isValid(within:)` and tracking is
+Foundation's own, behaviour and all: a body Foundation cannot track (one that assigns the text whole) leaves the
+selection to `indices(in:)`'s fallback rather than crashing as Foundation's `inout` form would. `replaceSelection`
+removes the ranges and then inserts under tracking, so the caret lands after the new text, and
+`transformAttributes` sets each run's attributes under tracking, which renews the indices. Only the subscript is
+`@available(macOS 26, …)`. macOS 15 gets the fallbacks in one file, `AttributedTextSelection+MacOS15Fallbacks.swift`,
+priced in §9. Tests: `AttributedTextSelectionTests` and `AttributedStringSelectionEditTests`, which run the
+tracking cases through the platform's path and through the fallback directly, and on macOS 26, Linux and Windows hold
+the fallback to Foundation's answers over 400 random single changes.
+
 ## 6. Questions for the owner
 
 ### A-ATTRED-1. Colouring a large source: SwiftUI's API alone, or a per-line styler too
@@ -518,6 +536,42 @@ types into a token's attributes, since highlighting is a layer (B-ATTRED-8 in th
   **Price:** ½ day, and a row in the terminal compatibility survey for U+2595 in each terminal's fonts.
 
 ★ (a): it is how macOS shows typing attributes, and it keeps the caret's one focus identity. **Default:** (a).
+
+## 9. What macOS 15 costs (L3)
+
+The owner asked on 2026-11-17 for a ledger of what supporting Swift 6.2's macOS 15 costs. For L3 it is one file,
+`Sources/TUITextInput/AttributedText/AttributedTextSelection+MacOS15Fallbacks.swift` (218 lines, 111 of them code
+and the rest the documentation of what each approximates), and the `else` arm of four `#available` checks that
+call it. Dropping macOS 15 deletes the file and those arms. Linux and Windows never run it: swift-foundation has everything from Swift 6.2 (§L0).
+
+| What macOS 15 lacks | The fallback | What it approximates | Its cost |
+|---|---|---|---|
+| `Range.isValid(within:)` | Whether the range falls inside the text | An index made from another text, or from this one before a change, is taken as valid if it falls inside it, even inside a character | Two comparisons |
+| `transform(updating:body:)` (index tracking) | Runs the body, finds the one span between the longest common start and end of the text before and after, and moves the bounds through it by Foundation's rules (`IndexTracking.swift`'s prepare and finalize steps) | Exact for one contiguous change. Several disjoint changes count as one span, so a bound between them closes up to the span's start or end. A change whose text repeats its neighbours' is placed as late as possible. A change that writes back the same text is not seen. A body that assigns a whole new text is still compared, where Foundation loses track | One copy of the text's storage made shared, so the body's first change copies its path through the tree (0.01 to 0.02 ms for one inserted character here; §4 measured 2.9 ms for an insert into shared storage); both texts read into `String`s; one pass over their UTF-8. Measured on a 3.07 MB document shaped as `bigtext`'s, -O, best of five: 2.6 ms for an insert near the start, 2.9 ms in the middle and at the end, where Foundation's work is per change and bound |
+| `removeSubranges(_:)`, and tracking for `replaceSelection` | Removes the ranges from the last, inserts at the first's offset, finds the caret by offset | Nothing: the change is known | A scalar offset to an index for each bound and two more (0.013 ms at the end of 3.07 MB) |
+| Tracking in `transformAttributes(in:body:)` | Sets the runs' attributes and keeps the indices | Nothing: setting attributes moves no character, and a macOS 15 index is its offset | None |
+
+**The offset-to-index walk** (the owner's question): on macOS 15.8.3 Foundation's `AttributedString` finds an index
+from a character or scalar offset through its rope, so no walk happens. Without the UTF-8 view, on a
+3,074,445-byte document shaped as `bigtext`'s (40,000 JSON records, one a line; a standalone probe, not kept,
+built with Xcode's Swift 6.2.4 at -O, best of five, while other lanes built):
+
+| Conversion | At the document's end | Three quarters in |
+|---|---|---|
+| `characters.index(_:offsetBy:)` | 0.001 ms | 0.001 ms |
+| `unicodeScalars.index(_:offsetBy:)` | 0.001 ms | |
+| `characters.distance(from:to:)` (index to offset) | 0.001 ms | |
+
+The same held with accented letters, combining marks and emoji spread through the text. So B-ATTRED-3's "up to
+1.8 ms (three quarters of the way in)" is not what macOS 15.8.3's Foundation does for an offset; whatever that probe
+walked, the L4 editor can map a character offset to an index for about a microsecond on macOS 15, and does not need
+the UTF-8 view for it.
+
+**What is slow is reading the characters one by one.** Comparing two 3 MB texts element by element through the
+views took 0.9 to 1.2 s through the scalar view and 1.7 to 2.2 s through the character view, which is what a naive
+common-start-and-end comparison would cost. Foundation's `String(_:)` of a character-view slice copies the rope's
+chunks instead (0.56 ms for the whole text), so the fallback reads both texts into `String`s and compares
+their UTF-8 bytes.
 
 ## For a future reader
 
