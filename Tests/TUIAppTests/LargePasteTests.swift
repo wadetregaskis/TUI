@@ -17,6 +17,8 @@ import Testing
 
 #if canImport(Glibc)
 import Glibc
+#elseif os(Windows)
+import WinSDK
 #endif
 
 @testable import TUIApp
@@ -289,6 +291,14 @@ struct LargePasteTests {
         /// import; the unit of `ru_maxrss` is bytes on Darwin and KiB elsewhere,
         /// and Glibc types the `who` argument apart from its constant.
         nonisolated private static func peakResidentBytes() -> Int {
+            #if os(Windows)
+            // The peak working set: Windows's name for the most this process
+            // has had resident.
+            var counters = PROCESS_MEMORY_COUNTERS()
+            let size = DWORD(MemoryLayout<PROCESS_MEMORY_COUNTERS>.size)
+            _ = K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, size)
+            return Int(counters.PeakWorkingSetSize)
+            #else
             #if canImport(Glibc)
             let who = __rusage_who_t(RUSAGE_SELF.rawValue)
             #else
@@ -300,6 +310,7 @@ struct LargePasteTests {
             return usage.ru_maxrss
             #else
             return usage.ru_maxrss * 1024
+            #endif
             #endif
         }
     #endif

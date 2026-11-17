@@ -10,6 +10,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif os(Windows)
+import WinSDK
 #endif
 
 // MARK: - What the process is costing in RAM
@@ -63,6 +65,14 @@ enum ProcessMemory {
         #else
         return raw &* 1024
         #endif
+        #elseif os(Windows)
+        // The peak working set: Windows's name for the most this process has
+        // had resident.
+        var counters = PROCESS_MEMORY_COUNTERS()
+        guard K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, DWORD(MemoryLayout<PROCESS_MEMORY_COUNTERS>.size)),
+            counters.PeakWorkingSetSize > 0
+        else { return nil }
+        return UInt64(counters.PeakWorkingSetSize)
         #else
         return nil
         #endif
