@@ -160,6 +160,13 @@ extension ViewRenderer {
     /// row with the newline it ends in. Then empties what the walk left in the
     /// renderer's services.
     private func chunks<V: View>(of view: V, width: Int, height: Int?, plainText: Bool) -> [String] {
+        // On a stack large enough for a deep page, wherever this thread's is
+        // small: Windows's 1 MiB (`LargeStack`).
+        LargeStack.run { chunksOnLargeStack(of: view, width: width, height: height, plainText: plainText) }
+    }
+
+    /// ``chunks(of:width:height:plainText:)``, on the stack it is given.
+    private func chunksOnLargeStack<V: View>(of view: V, width: Int, height: Int?, plainText: Bool) -> [String] {
         beginRenderPass()
         let offered = height ?? naturalHeight(of: view, width: width)
         var chunks: [String] = []

@@ -559,6 +559,25 @@ extension RenderLoop {
         frameDate: Date = FrameClock.nowDate,
         writesFrame: Bool = true
     ) -> RenderActivity {
+        // On a stack large enough for a deep page, wherever this thread's is
+        // small: Windows's 1 MiB (`LargeStack`).
+        LargeStack.run {
+            renderOnLargeStack(
+                pulsePhase: pulsePhase, cursorTimer: cursorTimer, animationScheduler: animationScheduler,
+                frameNowNanos: frameNowNanos, frameDate: frameDate, writesFrame: writesFrame)
+        }
+    }
+
+    /// ``render(pulsePhase:cursorTimer:animationScheduler:frameNowNanos:frameDate:writesFrame:)``,
+    /// on the stack it is given.
+    private func renderOnLargeStack(
+        pulsePhase: Double,
+        cursorTimer: CursorTimer?,
+        animationScheduler: AnimationScheduler?,
+        frameNowNanos: Int64,
+        frameDate: Date,
+        writesFrame: Bool
+    ) -> RenderActivity {
         isRendering = true
         defer { isRendering = false }
         // This frame's instant, before anything reads a phase from the clock. The run

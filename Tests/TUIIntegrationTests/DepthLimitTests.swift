@@ -346,8 +346,16 @@ struct DepthLimitTests {
     /// with its state, and the notice is not kept: the `.equatable()` chain's
     /// value and identity stay the same, so nothing but the limit's own clear can
     /// drop the buffer it was drawn into.
+    ///
+    /// On the stack a walk is given (`LargeStack`), as the floor set by hand is
+    /// one on the stack the walks run on: on Windows, where that is not the
+    /// test thread's, a floor set on the thread's would be measured afresh.
     @Test("What was past the limit comes back with its state, and no notice is kept")
     func stateComesBack() throws {
+        try LargeStack.run { Result { try stateComesBackOnTheWalksStack() } }.get()
+    }
+
+    private func stateComesBackOnTheWalksStack() throws {
         let mark = LimitMark()
         let app = TestApp(width: 80, height: 24) { MarkedPage(mark: mark) }
         try app.click("tally 0")
@@ -402,9 +410,15 @@ struct DepthLimitTests {
     /// 20,000 levels of an 8 MiB stack, and as many in proportion of a smaller
     /// one: releasing the chain afterwards is one level inside the next, which
     /// no guard can cut short, and 20,000 of those overflowed a Windows thread's
-    /// 1 MiB. The draw descends far less deep than either.
+    /// 1 MiB. The draw descends far less deep than either. Built, drawn and
+    /// released on the stack a walk is given (`LargeStack`), so the chain is
+    /// as deep as that stack, which on Windows is not the test thread's.
     @Test("An erased chain built at run time does not crash or hang")
     func erasedChainBuiltAtRunTime() {
+        LargeStack.run { erasedChainOnTheWalksStack() }
+    }
+
+    private func erasedChainOnTheWalksStack() {
         var chain = AnyView(Text("end of the chain"))
         for _ in 0..<StackGuard.levelsInProportion(20_000) {
             chain = AnyView(chain)
