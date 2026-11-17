@@ -27,9 +27,13 @@
 //  returns in the C return register, and a witness takes no `self`, error or
 //  async context, the only parameters it gives registers of their own. On
 //  WebAssembly an indirect call checks the callee's signature, which a
-//  `swiftcc` one does not match, and on Windows it was not measured: there
-//  the walk falls back to a copy of the payload the runtime makes, and what
-//  `update()` changes there is not written back. An `arm64e` build, which
+//  `swiftcc` one does not match: there the walk falls back to a copy of the
+//  payload the runtime makes, and what `update()` changes there is not written
+//  back. On Windows arm64 it is measured (2026-11-16, Swift 6.3.3, the
+//  enum-payload tests of DynamicPropertyDiscoveryTests, which failed while
+//  Windows fell back to the copy); on Windows x86_64 it is reasoned as for
+//  Linux, the Microsoft x64 convention passing the three in RCX, RDX and R8
+//  for C and `swiftcc` alike. An `arm64e` build, which
 //  TUI does not make, would have to authenticate the table's signed
 //  function pointers before calling them.
 //
@@ -130,7 +134,7 @@ struct EnumWitnesses {
 
     /// `type`'s witnesses, or `nil` on a platform where they are not called.
     init?(_ type: Any.Type) {
-        #if arch(wasm32) || os(Windows)
+        #if arch(wasm32)
             return nil
         #else
             self.type = type
