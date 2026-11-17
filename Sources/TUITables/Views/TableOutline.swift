@@ -13,6 +13,53 @@ import TUICore
 import TUIFoundation
 import TUILists
 
+// MARK: - An outline row's place
+
+// These are not nested in `_TableOutline`: a type nested in a generic class is
+// generic itself, though it uses nothing of `Value`, and the code that lists the
+// rows runs unspecialised over the app's row type. So each row listed looked up
+// the metadata of `_TableOutline<Value>.Row`, and of an array of it, at run
+// time (`swift_getGenericMetadata`); a top-level type's is found once.
+
+/// Whether an outline row has rows beneath it, and whether they show.
+enum _TableOutlineDisclosure: Equatable {
+    case leaf, closed, open
+}
+
+/// One visible row's place in the tree.
+struct _TableOutlinePlacement {
+    let depth: Int
+    let disclosure: _TableOutlineDisclosure
+}
+
+/// One visible row's place in the tree, and its links to the rows around it,
+/// by index: kept parallel to the outline's values rather than by id, so that
+/// listing a row costs an append, not a store in a dictionary or three.
+struct _TableOutlineRow {
+    let placement: _TableOutlinePlacement
+    /// The row it sits under, by its index in the values, or -1 for a root.
+    let parent: Int
+    /// Its node among the outline's branches, or -1 for a leaf.
+    let branch: Int
+
+    /// This row in an outline that lists `rows` rows and `branches` branches
+    /// before the ones it was listed among.
+    func shifted(rows: Int, branches: Int) -> Self {
+        Self(
+            placement: placement, parent: parent < 0 ? -1 : parent + rows,
+            branch: branch < 0 ? -1 : branch + branches)
+    }
+}
+
+/// Where a row waiting on the flattening's stack goes: how deep, under which
+/// row, and among which list of siblings with loops. Beside the stack of the
+/// rows themselves, so that this part is not generic either.
+private struct _TableOutlinePending {
+    let depth: Int
+    let parent: Int
+    let siblings: Int?
+}
+
 // MARK: - The outline a table draws
 
 /// A hierarchical table's rows as one frame draws them: the rows that show,
@@ -29,35 +76,9 @@ import TUILists
 /// as the handler's key dispatch is (`StdinArrivalStream` delivers input there).
 @MainActor
 final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
-    /// Whether a row has rows beneath it, and whether they show.
-    enum Disclosure: Equatable {
-        case leaf, closed, open
-    }
-
-    /// One visible row's place in the tree.
-    struct Placement {
-        let depth: Int
-        let disclosure: Disclosure
-    }
-
-    /// One visible row's place in the tree, and its links to the rows around
-    /// it, by index: kept parallel to ``values`` rather than by id, so that
-    /// listing a row costs an append, not a store in a dictionary or three.
-    struct Row {
-        let placement: Placement
-        /// The row it sits under, by its index in ``values``, or -1 for a root.
-        let parent: Int
-        /// Its node among ``branchNodes``, or -1 for a leaf.
-        let branch: Int
-
-        /// This row in an outline that lists `rows` rows and `branches`
-        /// branches before the ones it was listed among.
-        func shifted(rows: Int, branches: Int) -> Self {
-            Self(
-                placement: placement, parent: parent < 0 ? -1 : parent + rows,
-                branch: branch < 0 ? -1 : branch + branches)
-        }
-    }
+    typealias Disclosure = _TableOutlineDisclosure
+    typealias Placement = _TableOutlinePlacement
+    typealias Row = _TableOutlineRow
 
     /// The visible rows' values, in the order they are drawn.
     let values: [Value]
@@ -166,10 +187,15 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
         // An explicit stack, not recursion: a deep tree must not bring the
         // render pass any nearer the stack limit. Pushed in reverse so the top
         // is always the next row in reading order. A row's parent is its index.
+        // Two stacks in step, the rows and where each goes, not one stack of
+        // tuples: a tuple over `Value` had its metadata looked up for every
+        // push and pop.
         let roots = insertions.rootList
-        var stack: [(node: _TableRowNode<Value>, depth: Int, parent: Int, siblings: Int?)] =
-            tree.nodes.reversed().map { ($0, 0, -1, roots) }
-        while let (node, depth, parent, siblings) = stack.popLast() {
+        var stack = Array(tree.nodes.reversed())
+        var pending = [_TableOutlinePending](
+            repeating: _TableOutlinePending(depth: 0, parent: -1, siblings: roots), count: stack.count)
+        while let node = stack.popLast(), let place = pending.popLast() {
+            let (depth, parent, siblings) = (place.depth, place.parent, place.siblings)
             let row = flat.values.count
             insertions.drew(row: row, depth: depth, in: siblings)
             flat.values.append(node.value)
@@ -183,9 +209,11 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
             guard isOpen else { continue }
             let branch = children()
             let list = insertions.opened(after: row, depth: depth + 1, loops: branch.insertions)
-            for child in branch.nodes.reversed() {
-                stack.append((child, depth + 1, row, list))
-            }
+            stack += branch.nodes.reversed()
+            // One by one, not `+= repeatElement(…)`: that took the generic
+            // `+=` of a sequence, unspecialised, element by element.
+            let place = _TableOutlinePending(depth: depth + 1, parent: row, siblings: list)
+            for _ in 0..<branch.nodes.count { pending.append(place) }
         }
         flat.insertionAction = insertions.action(rowCount: flat.values.count)
         return flat
