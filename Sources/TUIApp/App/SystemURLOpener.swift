@@ -7,6 +7,10 @@
 import Foundation
 import TUIFoundation
 
+#if os(Windows)
+    import WinSDK
+#endif
+
 /// This machine's URL opener — `open` on macOS, `xdg-open` on Linux — behind
 /// the substrate's ``URLOpenerBackend``: what the app's run loop installs into
 /// the ``TUIContext`` it creates. Nothing else does, so no other context
@@ -36,6 +40,17 @@ struct SystemURLOpener: URLOpenerBackend {
         // terminal rather than by us.
         #if canImport(WASILibc)
             return false
+        #elseif os(Windows)
+            // The shell's own opener, as `open` is macOS's: the user's
+            // default program for the URL's scheme, with no console of its own
+            // to write into this one.
+            let result = url.absoluteString.withCString(encodedAs: UTF16.self) { target in
+                "open".withCString(encodedAs: UTF16.self) { verb in
+                    ShellExecuteW(nil, verb, target, nil, nil, SW_SHOWNORMAL)
+                }
+            }
+            // Greater than 32 on success, by the function's own contract.
+            return Int(bitPattern: result) > 32
         #else
         for opener in ["/usr/bin/open", "/usr/bin/xdg-open"]
         where FileManager.default.fileExists(atPath: opener) {
