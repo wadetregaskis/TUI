@@ -23,6 +23,8 @@
     import Darwin
 #elseif canImport(WASILibc)
     import WASILibc
+#elseif os(Windows)
+    import WinSDK
 #endif
 import Foundation
 import TUICore
@@ -38,6 +40,51 @@ import TUICore
 struct RawMode {
     static func enable() -> RawMode { RawMode() }
     func restore() {}
+}
+#elseif os(Windows)
+/// The console's modes in place of `termios`: each key unechoed and
+/// unprocessed, the DSR replies as the bytes a POSIX terminal sends
+/// (`ENABLE_VIRTUAL_TERMINAL_INPUT`), escape sequences interpreted on the way
+/// out, and both ways UTF-8 — as TUI's own `ConsoleModes.raw(from:)`. Standard
+/// output in binary mode, so the C library adds no carriage returns.
+struct RawMode {
+    var input: DWORD
+    var output: DWORD
+    var outputCodePage: UINT
+
+    static func enable() -> RawMode {
+        var input: DWORD = 0
+        var output: DWORD = 0
+        _ = GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input)
+        _ = GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &output)
+        let original = RawMode(input: input, output: output, outputCodePage: GetConsoleOutputCP())
+        _ = SetConsoleMode(
+            GetStdHandle(STD_INPUT_HANDLE),
+            input & ~DWORD(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT)
+                | DWORD(ENABLE_VIRTUAL_TERMINAL_INPUT))
+        _ = SetConsoleMode(
+            GetStdHandle(STD_OUTPUT_HANDLE),
+            output | DWORD(ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
+        _ = SetConsoleOutputCP(UINT(CP_UTF8))
+        _ = _setmode(1, _O_BINARY)
+        return original
+    }
+
+    func restore() {
+        _ = SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), input)
+        _ = SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), output)
+        _ = SetConsoleOutputCP(outputCodePage)
+    }
+}
+
+/// The C library's `_write`, under the POSIX name it deprecates.
+func write(_ descriptor: Int32, _ buffer: UnsafeRawPointer?, _ count: Int) -> Int {
+    Int(_write(descriptor, buffer, UInt32(count)))
+}
+
+/// The C library's `_read`, under the POSIX name it deprecates.
+func read(_ descriptor: Int32, _ buffer: UnsafeMutableRawPointer?, _ count: Int) -> Int {
+    Int(_read(descriptor, buffer, UInt32(count)))
 }
 #else
 struct RawMode {
