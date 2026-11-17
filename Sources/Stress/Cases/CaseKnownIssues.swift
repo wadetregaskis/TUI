@@ -53,6 +53,11 @@ enum CaseKnownIssues {
             ["key:oright listed", "key:left listed", "key:right listed"],
             "as outline-table: Option-Right on the root opens all n rows, and M6-2 lists every open row a toggle"
         ),
+        "outline-toggle": (
+            ["open listed", "key:left listed", "key:right listed", "key:oleft listed", "key:oright listed"],
+            "the tree starts open, so its first frame lists its n + 1 rows; and M6-2: each open or close of the "
+                + "first group's 99 rows makes the kept outline again whole, listing every open row"
+        ),
         "chat-lazy-follow": (
             ["bodies", "misses"],
             "PERFCASE-F3: at 10n the bottom-anchored lazy stack runs 21% more bodies and misses 29% more measures "

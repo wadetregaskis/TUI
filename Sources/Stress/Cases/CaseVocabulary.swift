@@ -44,6 +44,10 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     /// The same table with the app keeping its expansion
     /// (`Table(_:children:expansion:)`, ``CaseRows/open``).
     case outlineBound = "outline.bound"
+    /// The same, every branch open from the start: the app's set holds
+    /// them all, as an app's tree that starts open does (tuitree's, after
+    /// an Option-Right on its root).
+    case outlineOpen = "outline.open"
     /// The same tree as a selectable `Table(of:columns:rows:)` of three
     /// columns whose rows are written as tuitree writes its own: a `ForEach`
     /// of a `DisclosureTableRow` for each branch, its rows built by the same
@@ -58,7 +62,7 @@ extension CaseLeaf {
     /// Whether the leaf shows the rows as a tree (``CaseRows/tree``).
     var isOutline: Bool {
         switch self {
-        case .outlineList, .outlineTable, .outlineBound, .outlineRows, .outlineSection: true
+        case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection: true
         default: false
         }
     }
@@ -131,6 +135,18 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
         case .tabs(let parts): parts.contains(where: \.hasOutline)
         case .split(let first, let second): first.hasOutline || second.hasOutline
         case .followsPointer(let page): page.hasOutline
+        case .adopted: false
+        }
+    }
+
+    /// Whether the page's tree starts with every branch open
+    /// (``CaseLeaf/outlineOpen``).
+    var opensTree: Bool {
+        switch self {
+        case .leaf(let leaf): leaf == .outlineOpen
+        case .tabs(let parts): parts.contains(where: \.opensTree)
+        case .split(let first, let second): first.opensTree || second.opensTree
+        case .followsPointer(let page): page.opensTree
         case .adopted: false
         }
     }

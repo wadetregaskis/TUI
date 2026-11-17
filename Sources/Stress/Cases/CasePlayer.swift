@@ -94,7 +94,8 @@ final class CasePlayer {
     init?(_ perfCase: PerfCase, count: Int) {
         rows = CaseRows(
             count: count, seed: Self.seed, keepsDocument: perfCase.composition.hasEditor,
-            keepsTree: perfCase.composition.hasOutline)
+            keepsTree: perfCase.composition.hasOutline,
+            opensTree: perfCase.composition.opensTree)
         guard let page = perfCase.page(rows: rows, count: count, seed: Self.seed) else { return nil }
         app = perfCase.app(page: page)
     }

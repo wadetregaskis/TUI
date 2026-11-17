@@ -47,7 +47,7 @@ final class CaseSession: StressSession {
         self.perfCase = perfCase
         rows = CaseRows(
             count: count, seed: CasePlayer.seed, keepsDocument: perfCase.composition.hasEditor,
-            keepsTree: perfCase.composition.hasOutline)
+            keepsTree: perfCase.composition.hasOutline, opensTree: perfCase.composition.opensTree)
         page = perfCase.page(rows: rows, count: count, seed: CasePlayer.seed)
             ?? AnyView(Text(verbatim: "Stress has no scenario \(perfCase.composition)"))
         size = (perfCase.size.width, perfCase.size.height)

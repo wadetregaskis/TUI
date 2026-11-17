@@ -45,7 +45,8 @@ final class CaseRows {
     /// A list's or table's selection.
     var selection: Int?
     /// The open branches of an outline whose expansion the app keeps
-    /// (`outline.bound`), by row id.
+    /// (`outline.bound`, `outline.open`), by row id: every branch from the
+    /// start where the case opens its tree.
     var open: Set<Int> = []
     /// A tab view's selection.
     var tab = 0
@@ -61,13 +62,14 @@ final class CaseRows {
     @ObservationIgnored private(set) var tree: [Node] = []
     @ObservationIgnored private var nextID: Int
 
-    init(count: Int, seed: UInt64, keepsDocument: Bool, keepsTree: Bool = false) {
+    init(count: Int, seed: UInt64, keepsDocument: Bool, keepsTree: Bool = false, opensTree: Bool = false) {
         self.seed = seed
         self.keepsDocument = keepsDocument
         rows = (0..<count).map { Row(id: $0, revision: 0) }
         nextID = count
         rewriteDocument()
         if keepsTree { tree = [Self.tree(of: rows)] }
+        if opensTree { open = Self.branchIDs(of: tree) }
     }
 
     // MARK: The tree
@@ -111,6 +113,18 @@ final class CaseRows {
             start = end
         }
         return Node(row: Row(id: -1, revision: 0), children: groups)
+    }
+
+    /// The ids of every branch in `nodes`, however deep.
+    private static func branchIDs(of nodes: [Node]) -> Set<Int> {
+        var ids = Set<Int>()
+        var stack = nodes
+        while let node = stack.popLast() {
+            guard let children = node.children else { continue }
+            ids.insert(node.id)
+            stack += children
+        }
+        return ids
     }
 
     // MARK: Content

@@ -607,6 +607,22 @@ neither its roots nor its open branches makes none and lists none. Re-recorded, 
 close and reopen one group of nine rows, and list every open row: M6-2, filed as both cases' known issue. No other
 count of any case moved.
 
+**`outline-toggle` (2026-11-16).** M6-2's own shape: one branch opened and closed in a big open outline. Its page,
+`outline.open`, is `outline-children-bound`'s table with every branch open from the start, the app's set holding
+them all, as tuitree's tree is after an ⌥→ on its root: at n = 50,000, 50,001 rows and 5,001 open branches. The
+script goes down to the first group (a branch of 99 rows, nine of them branches of nine), closes it with Left, opens
+it with Right, closes it and its nine with ⌥Left, opens them all with ⌥Right, and goes back up, so the session loops.
+Recorded on a clean debug build, every toggle lists every open row:
+
+| Phase | Listed at n | Listed at 10n |
+|---|--:|--:|
+| `open` | 50,001 | 500,001 |
+| `key:left`, `key:oleft` | 49,902 | 499,902 |
+| `key:right`, `key:oright` | 50,001 | 500,001 |
+| `key:down`, `key:up` | 0 | 0 |
+
+The first frame lists the open tree, which is what opening it costs; the toggles are M6-2, the case's known issue.
+
 ## The outline cases (2026-11-16)
 
 Finding G1, from building tuitree, had two shapes left after `List(_:children:)` was windowed (a5b20c46f): a
