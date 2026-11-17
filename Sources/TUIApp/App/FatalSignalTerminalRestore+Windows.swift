@@ -63,6 +63,15 @@ enum FatalSignalTerminalRestore {
 
     private static let owed = Mutex(Owed())
 
+    /// The most bytes a crash's debt is, as the POSIX arm's buffer holds: what
+    /// ``arm(owing:onQuit:restoring:)`` cuts a debt to, so a test holds the debts
+    /// to one bound on every platform.
+    static let capacity = 256
+
+    /// The most bytes a quit's debt is: ``capacity`` and the image deletes a
+    /// quit writes first (`Terminal.quitFarewell`).
+    static let quitCapacity = capacity + Terminal.quitFarewellCapacity
+
     /// Whether the handlers are installed. Main actor only.
     @MainActor private static var installed = false
 
@@ -76,7 +85,9 @@ enum FatalSignalTerminalRestore {
     @MainActor
     static func arm(owing sequence: String, onQuit quitSequence: String, restoring modes: ConsoleModes?) {
         owed.withLock {
-            $0 = Owed(crash: Array(sequence.utf8), quit: Array(quitSequence.utf8), modes: modes)
+            $0 = Owed(
+                crash: Array(sequence.utf8.prefix(capacity)), quit: Array(quitSequence.utf8.prefix(quitCapacity)),
+                modes: modes)
         }
         installIfNeeded()
     }
