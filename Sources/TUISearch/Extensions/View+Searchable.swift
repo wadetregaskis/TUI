@@ -19,6 +19,16 @@ extension View {
     ///     .searchable(text: $query)   // you filter `results` by `query`
     /// ```
     ///
+    /// The field does not take the focus as the app starts: the content's
+    /// first control does, as a macOS window opens with its list focused and
+    /// its toolbar's search field untouched. Find (⌘F's stand-in, ⌃F by
+    /// default) puts the keyboard in the field, as do `.searchFocused(_:)`
+    /// and `.defaultFocus(_:_:)`; where the content has nothing to focus, the
+    /// field has it from the start.
+    /// Escape in the field ends the search, with text or without: it empties
+    /// the field and gives the keyboard back to the content, after an open
+    /// suggestions menu closes. On macOS the focus then goes to no view.
+    ///
     /// - Note: `placement` is a preference, as SwiftUI documents it, and the
     ///   field renders at the top of the searchable subtree whatever it says —
     ///   unless a `DefaultToolbarItem(kind: .search)` places the field in one of
