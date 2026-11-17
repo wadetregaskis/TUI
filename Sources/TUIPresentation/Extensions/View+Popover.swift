@@ -69,7 +69,8 @@ extension View {
     /// ``View/sheet(item:onDismiss:content:)``: a popover presented for a
     /// different item starts with fresh state, and each item's content keeps
     /// its state while the popover is up, so switched back to an item it is
-    /// as it was left. SwiftUI keeps one state for every item instead; to get
+    /// as it was left. SwiftUI's `sheet(item:)` keeps one state for every item
+    /// instead (measured on macOS; its popover was not, deviation W17); to get
     /// that, hold the state in the presenting view.
     ///
     /// - Parameters:

@@ -375,7 +375,8 @@ extension View {
     ///
     /// This deviates from SwiftUI on macOS, which keeps one sheet and one
     /// state for every item and hands the content the new item, running no
-    /// `onAppear` (the owner's ruling SHEET-ITEM-STATE, 2026-11-16). To get
+    /// `onAppear` (deviation W17; the owner's ruling SHEET-ITEM-STATE,
+    /// 2026-11-16). To get
     /// that, hold the state in the presenting view and pass it in, or present
     /// on a flag (``sheet(isPresented:onDismiss:content:)``) and read the item
     /// in the content.
@@ -510,8 +511,9 @@ extension View {
     /// ``sheet(item:onDismiss:content:)``: a cover shown for a different item
     /// starts with fresh state, and each item's content keeps its state while
     /// the cover is up, so switched back to an item it is as it was left.
-    /// SwiftUI on macOS keeps one state for every item instead; to get that,
-    /// hold the state in the presenting view.
+    /// SwiftUI's `sheet(item:)` keeps one state for every item instead
+    /// (measured on macOS, where there is no full-screen cover; deviation
+    /// W17); to get that, hold the state in the presenting view.
     ///
     /// - Parameters:
     ///   - item: A binding to an optional, identifiable item; non-`nil` presents.

@@ -94,8 +94,11 @@ extension TabContent {
     /// for the popover's content.
     ///
     /// As ``TabContent/popover(isPresented:attachmentAnchor:arrowEdge:content:)``,
-    /// presented while `item` holds a value; closing it sets `item` to `nil`. A
-    /// popover reopened for a different item starts with fresh state.
+    /// presented while `item` holds a value; closing it sets `item` to `nil`.
+    /// As with a view's `popover(item:attachmentAnchor:arrowEdge:content:)`, the
+    /// item's id is the content's identity: a popover shown for a different
+    /// item starts with fresh state, and each item's content keeps its state
+    /// while the popover is up (deviation W17).
     ///
     /// - Parameters:
     ///   - item: A binding to an optional source of truth for the popover.
