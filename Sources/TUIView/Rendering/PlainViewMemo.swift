@@ -282,7 +282,7 @@ func renderPlainMemoized<V: View>(
         return render(view, context)
     }
     let plans = cache.valueHashPlans
-    let renderedBefore = cache.rowWork.rendered
+    let renderedBefore = unsafe cache.rowWork.rendered
     let buffer = renderValueMemoized(
         key: PlainKey(
             view: view, comparison: comparison, plans: plans,
@@ -290,7 +290,7 @@ func renderPlainMemoized<V: View>(
         viewType: V.self, context: context, slot: plainMemoSlot,
         build: { PlainRow(view: view, comparison: comparison, plans: plans) },
         render: { render($0.view, $1) })
-    memo.noteDrawn(at: hash, served: cache.rowWork.rendered == renderedBefore)
+    unsafe memo.noteDrawn(at: hash, served: cache.rowWork.rendered == renderedBefore)
     return buffer
 }
 

@@ -99,7 +99,7 @@ package enum BodyChangeReport {
     /// `RenderContext` (perf-case design, B-PERFCASE-6).
     @inline(__always)
     package static func noteBodyEvaluated<V: View>(_ view: V, context: RenderContext) {
-        context.renderCache?.rowWork.bodies &+= 1
+        unsafe context.renderCache?.rowWork.bodies &+= 1
         if _slowPath(pending != nil) { settle(view, context: context) }
     }
 

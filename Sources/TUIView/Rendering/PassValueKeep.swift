@@ -58,9 +58,9 @@ struct PassValueKeep {
             lastType = type
             lastBuffer = buffer
         }
-        if buffer.held == 0 { holding.append(buffer) }
+        if unsafe buffer.held == 0 { holding.append(buffer) }
         // The buffer was made for `Value`, under its type's identifier.
-        unsafe withUnsafePointer(to: value) { unsafe buffer.append(copying: UnsafeRawPointer($0)) }
+        withUnsafePointer(to: value) { unsafe buffer.append(copying: UnsafeRawPointer($0)) }
     }
 
     /// Lets go of everything kept.
@@ -102,7 +102,7 @@ private class KeptValues {
     @exclusivity(unchecked) private var capacity: Int
 
     override init() {
-        capacity = Self.initialCapacity
+        unsafe capacity = Self.initialCapacity
         unsafe base = .allocate(capacity: Self.initialCapacity)
     }
 
@@ -112,19 +112,19 @@ private class KeptValues {
     }
 
     override func append(copying value: UnsafeRawPointer) {
-        if held == capacity { grow() }
+        if unsafe held == capacity { unsafe grow() }
         unsafe (base + held).initialize(from: value.assumingMemoryBound(to: Value.self), count: 1)
-        held += 1
+        unsafe held += 1
     }
 
     /// Doubles the room, moving what is held.
     private func grow() {
-        let larger = capacity * 2
+        let larger = unsafe capacity * 2
         let moved = UnsafeMutablePointer<Value>.allocate(capacity: larger)
         unsafe moved.moveInitialize(from: base, count: held)
         unsafe base.deallocate()
         unsafe base = moved
-        capacity = larger
+        unsafe capacity = larger
     }
 
     /// Empties the buffer, keeping its room for the next pass unless it is
@@ -132,11 +132,11 @@ private class KeptValues {
     /// for nearly every view, and a steady one a few.
     override func release() {
         unsafe base.deinitialize(count: held)
-        if capacity > 4 * held + Self.initialCapacity {
+        if unsafe capacity > 4 * held + Self.initialCapacity {
             unsafe base.deallocate()
             unsafe base = .allocate(capacity: Self.initialCapacity)
-            capacity = Self.initialCapacity
+            unsafe capacity = Self.initialCapacity
         }
-        held = 0
+        unsafe held = 0
     }
 }

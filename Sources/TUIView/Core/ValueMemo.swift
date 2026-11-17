@@ -126,8 +126,8 @@ func renderValueMemoized<Key: Equatable, Row>(
         // `.equatable()`.
         // One row of `megalist` against one row of `table`, in a number: a
         // served subtree is a row a control did not have to compose.
-        cache.rowWork.served += 1
-        if !context.isMeasuring { cache.rowWork.servedDrawing += 1 }
+        unsafe cache.rowWork.served += 1
+        if !context.isMeasuring { unsafe cache.rowWork.servedDrawing += 1 }
         if RenderCache.verifiesRenderMemo {
             return verifyServe(
                 entry, viewType: viewType, context: context, cache: cache, render: { render(build(), $0) })
@@ -158,7 +158,7 @@ func renderValueMemoized<Key: Equatable, Row>(
     //     make again. One it CAN (`recordReplayableEffect`) was recorded in the
     //     effect journal while this render ran, and is stored with the buffer.
     // The other half of the pair above: a subtree that had to be composed.
-    cache.rowWork.rendered += 1
+    unsafe cache.rowWork.rendered += 1
     let existingTracker = context.environment.volatileReadTracker
     let tracker = existingTracker ?? VolatileReadTracker()
     let renderContext =

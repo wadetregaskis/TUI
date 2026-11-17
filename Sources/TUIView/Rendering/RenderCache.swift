@@ -251,7 +251,7 @@ import TUIStyling
     /// stack, and those are not reachable from the stack's identity.
     package func forgetPassMeasures() {
         measureEntries.removeAll(keepingCapacity: true)
-        measuredValues.release()
+        unsafe measuredValues.release()
         forgetPassCompositions()
     }
 
@@ -1207,7 +1207,7 @@ extension RenderCache {
         measuring value: Value
     ) {
         measureMemoStores += 1
-        measuredValues.keep(value)
+        unsafe measuredValues.keep(value)
         var leaseIndex: Int32 = -1
         if let lease {
             leaseIndex = Int32(truncatingIfNeeded: passLeases.count)
@@ -1337,7 +1337,7 @@ extension RenderCache {
         frameCounter &+= 1
         // The measure memo is this frame's scratch space and nothing more.
         measureScratch.endOfPass(&measureEntries)
-        measuredValues.release()
+        unsafe measuredValues.release()
         forgetPassCompositions()
         bodyKeep.beginPass()
         passLeases.removeAll(keepingCapacity: true)
@@ -1358,7 +1358,7 @@ extension RenderCache {
     package func beginRewalk() {
         drainPendingInvalidations()
         measureEntries.removeAll(keepingCapacity: true)
-        measuredValues.release()
+        unsafe measuredValues.release()
         forgetPassCompositions()
         childViewEntries.removeAll(keepingCapacity: true)
         bodyKeep.reset()
