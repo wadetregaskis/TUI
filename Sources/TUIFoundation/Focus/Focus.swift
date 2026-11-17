@@ -108,6 +108,7 @@ public final class FocusManager {
             guard oldValue != focusedID else { return }
             invalidateCachedRender(of: oldValue)
             invalidateCachedRender(of: focusedID)
+            dropDrawingsAwaitingFocus()
             focusScopes.focusMoved(to: focusedID)
         }
     }
@@ -137,7 +138,13 @@ public final class FocusManager {
     /// which is also what keeps the throwaway managers right: a dimmed
     /// backdrop's manager and the focus-reach probe's scratch one each end up
     /// pointed at the cache their own render used.
-    private var renderCacheHandle: RenderCache.Handle?
+    private(set) var renderCacheHandle: RenderCache.Handle?
+
+    /// The views that drew from what they last knew of the focus, because it
+    /// had not landed, and what they took it to be (whether it was inside
+    /// them): dropped from the cache when it moves, where that was wrong
+    /// (`FocusManager+UnlandedFocus.swift`).
+    var drawnAwaitingFocus: [ViewIdentity: Bool] = [:]
 
     /// The last focused element ID per section, so returning to a section
     /// (e.g. dismissing a modal whose overlay activated its own section)

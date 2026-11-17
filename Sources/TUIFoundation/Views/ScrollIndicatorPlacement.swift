@@ -235,11 +235,21 @@ extension RenderContext {
     /// the page is drawn, but it was last drawn under the backdrop's manager,
     /// so the live one no longer knows where it is until it registers again,
     /// after this view has read it. Until the focus lands, the view stays as
-    /// it was.
+    /// it was — and is noted (`FocusManager.noteDrawnAwaitingFocus(_:takingFocusWithin:)`),
+    /// so the move that lands it drops what the view drew where that was
+    /// wrong: from no focus, that move names no view of this one's, and a
+    /// `List` under a popover presented again was served beside its bar after
+    /// the Tab into it.
     package func focusIsWithin(_ focusID: String?, focusManager: FocusManager) -> Bool {
         if focusManager.isBackdrop { return heldBesideForFocus }
         if let focusID, focusManager.isFocused(id: focusID) { return true }
-        guard let focused = focusManager.focusedIdentity else { return heldBesideForFocus }
+        guard let focused = focusManager.focusedIdentity else {
+            // Until the focus lands, and dropped when it does: the move that
+            // lands it from nothing names no view of this one's (PERFCASE-F13).
+            let held = heldBesideForFocus
+            focusManager.noteDrawnAwaitingFocus(identity, takingFocusWithin: held)
+            return held
+        }
         return identity.isAncestor(of: focused)
     }
 
