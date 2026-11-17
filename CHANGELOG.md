@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `.scrollPosition(id:)` binding that starts `nil` stays `nil` as the view appears.** The first frame of a
+`ScrollView`, `List` or `Table` wrote the id of its top row into the binding, where SwiftUI writes nothing: an app
+that read `nil` as "not scrolled yet" never saw it, and an `onChange` of the binding fired as the view appeared. The
+binding now stays `nil` until the user scrolls, and then reads the row at the top, as SwiftUI's does.
+
 **Opening or closing a branch of a big `Table(_:children:)` costs that branch's rows.** A change to the open branches
 made the table's kept outline again from its roots, listing every open row and each one's id: with 200,000 rows open,
 Right and Left took about 240 ms where Down took 8. The table now puts in or takes out only the rows beneath the

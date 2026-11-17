@@ -397,7 +397,13 @@ struct ScrollPositionTests {
         .scrollPosition(id: binding)
 
         renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
-        #expect(visible == 0)
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil)
+        let handler = focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
+        handler?.userScrollFine(by: 5)
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(visible == 5, "the user's scroll is read back: \(String(describing: visible))")
 
         // …and writing it scrolls there.
         visible = 18
@@ -429,7 +435,13 @@ struct ScrollPositionTests {
         .scrollPosition(id: binding)
 
         renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
-        #expect(visible == 0, "the top row is reported: \(String(describing: visible))")
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil, "\(String(describing: visible))")
+        let handler = focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
+        handler?.userScrollFine(by: 5)
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(visible == 5, "the user's scroll is read back: \(String(describing: visible))")
 
         visible = 18
         let after = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
@@ -573,7 +585,9 @@ struct ScrollPositionTests {
         .scrollPosition(id: binding)
 
         renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
-        #expect(visible == 0)
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil)
         let handler = focusManager.activeSection?.focusables
             .compactMap { $0 as? ScrollViewHandler }.first
         handler?.userScrollFine(by: 5)
@@ -596,7 +610,9 @@ struct ScrollPositionTests {
         .scrollPosition(id: binding)
 
         renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
-        #expect(visible == 0)
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil)
         visible = 22
         let after = renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
         #expect(after.contains { $0.contains("row 22") }, "\(after)")

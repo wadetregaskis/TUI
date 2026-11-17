@@ -108,7 +108,7 @@ struct ScrollPositionIDHoldTests {
 
     /// SwiftUI leaves a `nil` id `nil` as the view appears: the binding is
     /// written when the app's seek lands or the user scrolls, not before
-    /// (step 1 of the probe). TUI reports the top row at once.
+    /// (step 1 of the probe). TUI used to report the top row at once.
     @Test("An id that starts nil stays nil until the user scrolls")
     func nilStaysNilAtAppear() {
         let tuiContext = TUIContext()
@@ -122,8 +122,13 @@ struct ScrollPositionIDHoldTests {
         }
         .scrollPosition(id: binding)
         renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
-        withKnownIssue("TUI writes the top row's id as the view appears; SwiftUI writes nothing") {
-            #expect(visible == nil, "\(String(describing: visible))")
-        }
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(visible == nil, "\(String(describing: visible))")
+
+        // The user's scroll hands the binding the row at the top.
+        let handler = focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
+        handler?.userScrollToBottom()
+        renderFrame(view, tuiContext: tuiContext, focusManager: focusManager)
+        #expect(visible == 40 - Self.viewport, "\(String(describing: visible))")
     }
 }

@@ -387,7 +387,8 @@ extension View {
     /// Writing the binding scrolls to that row, and the binding keeps the id
     /// you wrote, as SwiftUI's does, though with no anchor the row may land
     /// at the bottom of the view. Once the user scrolls, the scroll view
-    /// writes back the row at the anchor (the top by default).
+    /// writes back the row at the anchor (the top by default). A binding that
+    /// starts `nil` stays `nil` until the user scrolls, as SwiftUI's does.
     ///
     /// ```swift
     /// @State private var topRow: Int?
@@ -601,9 +602,9 @@ package enum ScrollPositionPlacement {
     /// `onPreferenceChange` follows, for the same reason.
     ///
     /// Not while a plain `id:` binding holds the row the app wrote
-    /// (``ScrollPositionTracking/holdsAskedID``), unless `userScrolled`: the
-    /// user's scroll since the last frame is what hands the binding back to
-    /// the row shown.
+    /// (``ScrollPositionTracking/holdsAskedID``), or holds the `nil` it
+    /// started with, unless `userScrolled`: the user's scroll since the last
+    /// frame is what hands the binding back to the row shown.
     ///
     /// The tracking is `owner`'s, at `tracking`. In a drawing that may yet be
     /// drawn again, the write waits for the drawing to be kept, and the row
@@ -615,6 +616,16 @@ package enum ScrollPositionPlacement {
     ) {
         let (before, held) = (owner[keyPath: tracking].lastReportedID, owner[keyPath: tracking].holdsAskedID)
         guard !held || userScrolled else { return }
+        // A plain `id:` binding that has read no row yet and holds `nil`
+        // stays `nil` until the user scrolls, as SwiftUI's does: nothing is
+        // written as the view appears (measured, step 1 of
+        // `Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`).
+        // It used to be written with the top row's id on the first frame.
+        // Not a `ScrollPosition` binding, whose `viewID` answers sooner on
+        // purpose (the compatibility guide's "one deliberate difference").
+        guard userScrolled || tracksUserPositioning || before != nil || binding.wrappedValue.target != nil else {
+            return
+        }
         owner[keyPath: tracking].holdsAskedID = false
         guard before != id else { return }
         owner[keyPath: tracking].lastReportedID = id

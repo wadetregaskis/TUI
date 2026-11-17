@@ -62,7 +62,9 @@ struct ListScrollPositionTests {
         let view = List { ForEach(0..<200, id: \.self) { Text("row \($0)") } }
             .scrollPosition(id: binding, anchor: .top)
         frame(view, tui, focus)
-        #expect(visible == 0, "the first frame reports the row at the top")
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil, "the first frame writes nothing")
         visible = 120
         let jumped = rows(frame(view, tui, focus))
         #expect(jumped.first == "row 120", "\(jumped)")
@@ -107,7 +109,9 @@ struct ListScrollPositionTests {
         let view = Table(data) { TableColumn("N") { (row: Numbered) in Text("item \(row.id)") } }
             .scrollPosition(id: binding, anchor: .top)
         frame(view, tui, focus)
-        #expect(visible == 0)
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil)
         visible = 120
         let jumped = rows(frame(view, tui, focus))
         #expect(jumped.first == "item 120", "\(jumped)")
@@ -146,13 +150,15 @@ struct ListScrollPositionTests {
         }
         .scrollPosition(id: binding, anchor: .top)
         frame(view, tui, focus)
-        #expect(visible == 0)
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil)
         visible = 48
         for index in 0..<3 {
             let screen = rows(frame(view, tui, focus))
             #expect(screen.first == "row 48", "frame \(index): \(screen)")
             #expect(visible == 48, "frame \(index)")
         }
-        #expect(writes == 1, "only the first frame's report: \(writes) writes")
+        #expect(writes == 0, "the app's id is kept, and nothing nested writes: \(writes) writes")
     }
 }

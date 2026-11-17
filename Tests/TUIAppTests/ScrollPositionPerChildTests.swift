@@ -86,7 +86,9 @@ struct ScrollPositionPerChildTests {
             ForEach(["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"], id: \.self) { Text("second \($0)") }
         }
         frame(view, tui, focus)
-        #expect(visible == "a")
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil)
         userScroll(4, focus)
         let screen = frame(view, tui, focus)
         #expect(screen.first?.hasPrefix("second b") == true, "precondition: \(screen)")
@@ -111,7 +113,9 @@ struct ScrollPositionPerChildTests {
             Text("hundred").id(100)
         }
         frame(view, tui, focus)
-        #expect(visible == 10)
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil)
         userScroll(1, focus)
         frame(view, tui, focus)
         #expect(visible == 20)
@@ -136,7 +140,9 @@ struct ScrollPositionPerChildTests {
         let binding = Binding<Int?>(get: { visible }, set: { visible = $0; writes.append($0) })
         let view = column(lazy: lazy, id: binding, anchor: .top) { ForEach(0..<40, id: \.self) { Text("row \($0)") } }
         frame(view, tui, focus)
-        #expect(writes == [0])
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(writes.isEmpty, "\(writes)")
         visible = 20
         writes = []
         for index in 0..<2 {

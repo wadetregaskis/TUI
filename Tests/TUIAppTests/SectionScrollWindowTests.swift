@@ -320,7 +320,8 @@ struct SectionScrollWindowTests {
         arguments: [SectionContentPath.uniform, .exactWalk, .anchored])
     func readBackUnderAHeader(path: SectionContentPath) {
         // At the top the sample line is the header's, above the stack's first
-        // row: the first row is reported, as a stack with no header reports it.
+        // row: the first row is reported, as a stack with no header reports it
+        // — once the user scrolls there.
         var visible: Int?
         let binding = Binding<Int?>(get: { visible }, set: { visible = $0 })
         let view = ScrollView {
@@ -334,7 +335,9 @@ struct SectionScrollWindowTests {
         .frame(height: 6)
         let (tui, focusManager) = (TUIContext(), FocusManager())
         _ = scrollFrame(view, tui: tui, focusManager: focusManager, height: 6)
-        #expect(visible == 0, "the first row is reported: \(String(describing: visible))")
+        // A binding that starts nil stays nil as the view appears, as SwiftUI's
+        // does (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`, step 1).
+        #expect(visible == nil, "nothing is written as the view appears: \(String(describing: visible))")
 
         visible = 25
         let after = scrollFrame(view, tui: tui, focusManager: focusManager, height: 6)
@@ -342,6 +345,11 @@ struct SectionScrollWindowTests {
         // The binding keeps the id the app wrote, as SwiftUI's does
         // (`Tools/SwiftUIProbes/Bug-hunt parity items (1116B)/scrollid.swift`).
         #expect(visible == 25, "the app's id is kept: \(String(describing: visible))")
+
+        let handler = focusManager.activeSection?.focusables.compactMap { $0 as? ScrollViewHandler }.first
+        handler?.userScrollToTop()
+        _ = scrollFrame(view, tui: tui, focusManager: focusManager, height: 6)
+        #expect(visible == 0, "back at the top, the first row is reported: \(String(describing: visible))")
     }
 
     @Test("Read-back under the \"more above\" line over a header reports the first row a person can see")
