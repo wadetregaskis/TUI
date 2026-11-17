@@ -2839,9 +2839,30 @@ no strikethrough at all.
 
 **conhost's font.** The quadrants matter: TUI inks a cell's quarters with them
 (`TerminalSymbols.quadrants`) for shapes, canvases and solid button faces. Consolas,
-conhost's default, has none, and conhost does no font fallback. Choosing Cascadia Mono (installed with Windows 11) in the console's
-properties draws them. TUI has no way to ask a terminal which glyphs its font has, so
-this is a note for users, not something TUI adapts to.
+conhost's default, has none. Choosing Cascadia Mono (installed with Windows 11) in the
+console's properties draws them. TUI has no way to ask a terminal which glyphs its font
+has, so this is a note for users (the Terminal Support article), not something TUI
+adapts to.
+
+**And its fallback works only within a run.** conhost does draw a glyph its font lacks
+from another font, but only when the run of text it draws it in — the characters of one
+colour and style — has a character the font has: `⌃ ⌥ ⇧ ⌘ ↩ ⎋ ⌫` drew among letters, and
+each drew as a box with a question mark in it when it was a run of its own, in a colour
+of its own, whether or not the words around it were (cards written with `WriteFile` and
+with `WriteConsoleW`, on both screens; the same symbols, the same font, the same code
+page, 65001). A shortcut hint draws its key in a colour of its own, so the Example's
+footer read `⍰ choose` and `⍰Q quit`. TUI therefore spells the key symbols in ASCII on
+conhost (`PlainTerminalText.spellsKeysForItsFont(in:)`, the `.asciiKeys` spelling a
+terminal that shows only ASCII gets), and the footer reads `Return choose` and
+`^Q quit`. `TUI_PLAIN_TEXT=0` keeps the symbols, for someone who has chosen a font with
+them.
+
+**The Example, run in each.** Built 2026-11-17 and driven by the mouse alone: in
+Windows Terminal it draws, its pictures in real pixels (Sixel), the emoji page's
+treatment rows each closing their brackets where TUI put them, a click selects and
+opens, the wheel scrolls, a footer hint is a button and the menu's Quit hands the
+console back; in conhost the same, the treatment rows aligned as the advance model
+says, monochrome.
 
 ### Capabilities
 

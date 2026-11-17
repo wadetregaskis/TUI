@@ -17,6 +17,8 @@ This page is for when you want to know what your users will see.
 | Warp | Yes | Yes, whole pictures only | Yes | Millions |
 | Apple's Terminal | Yes, see below | No, text characters | No | 256 |
 | GNOME Terminal | Yes | No, text characters | No | Millions |
+| Windows Terminal | Yes | Yes, through Sixel | No | Millions |
+| The Windows console (conhost) | Yes | No, text characters | No | Millions |
 | tmux | Passed on | No, text characters | No | Millions |
 | A web browser, through xterm.js | Yes | No, text characters | Yes | Millions |
 
@@ -30,6 +32,12 @@ Two terminals keep some of the mouse for themselves:
 
 - **iTerm2** opens its own menu on a right-click unless you change that in its Pointer settings. A ``View/contextMenu(menuItems:)`` also opens on a Control-click for this reason.
 - **Apple's Terminal** scrolls its own history on Shift and the scroll wheel, so an app never sees it. Use a trackpad's sideways swipe to scroll sideways.
+
+The Windows console, the window a program opens where Windows Terminal isn't the default, is the oldest of these, and does less:
+
+- **Emoji are monochrome**, and a family or a skin tone is drawn as its parts, side by side. TUI lays them out that way there, so nothing after them moves.
+- **Key symbols are spelled out**, `Ctrl-Q` rather than `⌃Q`, because its default font has none of them.
+- **Some block characters don't draw** in its default font, Consolas: the quarter blocks that shapes and canvases are drawn with come out as boxes. Choose Cascadia Mono in the window's Properties, under Font, and they draw.
 
 A few more things depend on the terminal, and fall back quietly where it can't:
 
