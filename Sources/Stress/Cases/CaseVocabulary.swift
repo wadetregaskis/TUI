@@ -62,6 +62,24 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     /// `outline.section` with the app keeping its expansion
     /// (`OutlineGroup(_:children:expansion:)`, ``CaseRows/open``).
     case outlineSectionBound = "outline.section.bound"
+
+    // The controls (`CaseControlView`): pages whose rows are controls, or
+    // whose count sits beside the controls a script drives.
+
+    /// A `Grid` of the rows, four cells each: eager, every row laid out.
+    case grid
+    /// A `Form` in `.grouped` style: a section of a `Stepper`, a `Slider` and
+    /// a `DatePicker`, then a section of a `Toggle` per row.
+    case formGrouped = "form.grouped"
+    /// The same form in `.columns` style.
+    case formColumns = "form.columns"
+    /// A `Button` per row in an eager `VStack`: what a Tab walks through.
+    case controls
+    /// A `Stepper`, a `Slider` and a `DatePicker` alone in a `VStack`; `n`
+    /// draws nothing.
+    case values
+    /// A `Menu` of a `Button` per row, under a line of text.
+    case menu
 }
 
 extension CaseLeaf {
@@ -71,6 +89,14 @@ extension CaseLeaf {
         case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection,
             .outlineListBound, .outlineSectionBound:
             true
+        default: false
+        }
+    }
+
+    /// Whether the leaf is one of the controls `CaseControlView` draws.
+    var isControl: Bool {
+        switch self {
+        case .grid, .formGrouped, .formColumns, .controls, .values, .menu: true
         default: false
         }
     }
@@ -94,6 +120,22 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
     /// `--bench` builds it: `stress:<scenario>[/<variant>]`. Its `n` is the
     /// scenario's `--scale`.
     case adopted(scenario: String, variant: String?)
+    /// The first part with `.sheet(isPresented:)` presenting the second,
+    /// bound to ``CaseRows/presented``: `sheet(a,b)`.
+    case sheet(Self, Self)
+    /// The first part with `.sheet(item:)` presenting the second for
+    /// ``CaseRows/item``, under a line naming the item: `sheetitem(a,b)`.
+    /// Each item's content keeps its own state while the sheet is up (W17).
+    case sheetItem(Self, Self)
+    /// The first part under a line of title that a `.popover(isPresented:)`
+    /// holding the second is attached to: `popover(a,b)`.
+    case popover(Self, Self)
+    /// The part with an `.alert(_:isPresented:)` of two buttons and a
+    /// message, bound to ``CaseRows/presented``: `alert(a)`.
+    case alert(Self)
+    /// A `NavigationSplitView` of two columns or three: `nsplit(a,b)`,
+    /// `nsplit(a,b,c)`.
+    case navigationSplit([Self])
 
     var description: String {
         switch self {
@@ -102,6 +144,24 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
         case .split(let first, let second): "split(\(first),\(second))"
         case .followsPointer(let page): "follows(\(page))"
         case .adopted(let scenario, let variant): "stress:\(scenario)" + (variant.map { "/\($0)" } ?? "")
+        case .sheet(let first, let second): "sheet(\(first),\(second))"
+        case .sheetItem(let first, let second): "sheetitem(\(first),\(second))"
+        case .popover(let first, let second): "popover(\(first),\(second))"
+        case .alert(let page): "alert(\(page))"
+        case .navigationSplit(let parts): "nsplit(\(parts.map(\.description).joined(separator: ",")))"
+        }
+    }
+
+    /// The compositions this one is made of: none for a leaf or an adopted
+    /// scenario.
+    var parts: [Self] {
+        switch self {
+        case .leaf, .adopted: []
+        case .tabs(let parts), .navigationSplit(let parts): parts
+        case .split(let first, let second), .sheet(let first, let second), .sheetItem(let first, let second),
+            .popover(let first, let second):
+            [first, second]
+        case .followsPointer(let page), .alert(let page): [page]
         }
     }
 
@@ -113,13 +173,8 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
 
     /// Whether any part of the page shows the rows' text in a `TextEditor`.
     var hasEditor: Bool {
-        switch self {
-        case .leaf(let leaf): leaf == .editorWrap
-        case .tabs(let parts): parts.contains(where: \.hasEditor)
-        case .split(let first, let second): first.hasEditor || second.hasEditor
-        case .followsPointer(let page): page.hasEditor
-        case .adopted: false
-        }
+        if case .leaf(let leaf) = self { return leaf == .editorWrap }
+        return parts.contains(where: \.hasEditor)
     }
 
     /// Whether the page's scene has the focus follow the pointer.
@@ -138,25 +193,15 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
 
     /// Whether any part of the page shows the rows as a tree.
     var hasOutline: Bool {
-        switch self {
-        case .leaf(let leaf): leaf.isOutline
-        case .tabs(let parts): parts.contains(where: \.hasOutline)
-        case .split(let first, let second): first.hasOutline || second.hasOutline
-        case .followsPointer(let page): page.hasOutline
-        case .adopted: false
-        }
+        if case .leaf(let leaf) = self { return leaf.isOutline }
+        return parts.contains(where: \.hasOutline)
     }
 
     /// Whether the page's tree starts with every branch open
     /// (``CaseLeaf/outlineOpen``).
     var opensTree: Bool {
-        switch self {
-        case .leaf(let leaf): leaf == .outlineOpen
-        case .tabs(let parts): parts.contains(where: \.opensTree)
-        case .split(let first, let second): first.opensTree || second.opensTree
-        case .followsPointer(let page): page.opensTree
-        case .adopted: false
-        }
+        if case .leaf(let leaf) = self { return leaf == .outlineOpen }
+        return parts.contains(where: \.opensTree)
     }
 }
 
@@ -253,6 +298,9 @@ enum CaseStep: Equatable, Sendable, CustomStringConvertible {
     case hover(Int)
     /// `resize(width:height:)`.
     case resize(CaseSize)
+    /// `resize(width:height:)` by a change in each, as a window dragged at
+    /// its corner resizes a terminal: `resize:-8x-3`. Clamped to 4x2.
+    case resizeBy(width: Int, height: Int)
     /// `advance(by:)`, in milliseconds.
     case tick(Int)
     /// `k` rows appended to the case's model, outside any render.
@@ -265,6 +313,17 @@ enum CaseStep: Equatable, Sendable, CustomStringConvertible {
     case move(from: Int, to: Int)
     /// Every row replaced by new content, the same count of them.
     case replace
+    /// ``CaseRows/presented`` set: the sheet, popover or alert bound to it
+    /// presented, as an app's button sets its flag.
+    case present
+    /// ``CaseRows/presented`` cleared and ``CaseRows/item`` set to `nil`.
+    case dismiss
+    /// ``CaseRows/item`` set to the row at an index (clamped): an item sheet
+    /// presented for it, or switched to it.
+    case item(Int)
+    /// ``CaseRows/item`` moved on by `k` rows (clamped), from the row before
+    /// the first when there is none: `item:+k`, a walk through the items.
+    case nextItem(Int)
 
     /// The step as the table spells it.
     var description: String {
@@ -276,12 +335,18 @@ enum CaseStep: Equatable, Sendable, CustomStringConvertible {
         case .type(let text): "type:\(text)"
         case .hover(let rows): "hover:\(rows < 0 ? "-" : "+")\(abs(rows))"
         case .resize(let size): "resize:\(size)"
+        case .resizeBy(let width, let height):
+            "resize:\(width < 0 ? "-" : "+")\(abs(width))x\(height < 0 ? "-" : "+")\(abs(height))"
         case .tick(let milliseconds): "tick:\(milliseconds)"
         case .append(let count): "append:\(count)"
         case .editMiddle: "edit:mid"
         case .remove(let index): "remove:\(index)"
         case .move(let from, let to): "move:\(from)>\(to)"
         case .replace: "replace"
+        case .present: "present"
+        case .dismiss: "dismiss"
+        case .item(let index): "item:\(index)"
+        case .nextItem(let rows): "item:+\(rows)"
         }
     }
 }
@@ -331,6 +396,7 @@ enum CaseTags {
         "anchor", "appshape", "bytes", "eager", "editor", "hover", "invalidate", "lazy", "list", "memo",
         "narrow", "offscreen", "outline", "resize", "scroll", "search", "sheet", "split", "table", "tabs",
         "tail", "window", "wrap",
+        "alert", "focus", "form", "grid", "menu", "navigation", "popover", "storm", "tiny", "typing", "values",
     ]
 }
 

@@ -46,6 +46,15 @@ extension CaseTable {
         case ("open", nil): return .open
         case ("idle", nil): return .idle
         case ("replace", nil): return .replace
+        case ("present", nil): return .present
+        case ("dismiss", nil): return .dismiss
+        case ("item", let argument?):
+            if argument.hasPrefix("+") {
+                guard let rows = signed(argument) else { throw fail("item:<index> or item:+k") }
+                return .nextItem(rows)
+            }
+            guard let index = Int(argument), index >= 0 else { throw fail("item:<index> or item:+k") }
+            return .item(index)
         case ("wheel", let argument?):
             guard let ticks = signed(argument), ticks != 0 else { throw fail("wheel:+k or wheel:-k") }
             return .wheel(ticks)
@@ -63,7 +72,14 @@ extension CaseTable {
             }
             return .type(argument)
         case ("resize", let argument?):
-            guard let size = CaseSize(argument) else { throw fail("resize:WIDTHxHEIGHT") }
+            if argument.hasPrefix("+") || argument.hasPrefix("-") {
+                let change = argument.split(separator: "x", omittingEmptySubsequences: false).map { signed(String($0)) }
+                guard change.count == 2, let width = change[0], let height = change[1] else {
+                    throw fail("resize:WIDTHxHEIGHT, or resize:±Wx±H")
+                }
+                return .resizeBy(width: width, height: height)
+            }
+            guard let size = CaseSize(argument) else { throw fail("resize:WIDTHxHEIGHT, or resize:±Wx±H") }
             return .resize(size)
         case ("tick", let argument?):
             guard let milliseconds = Int(argument), milliseconds > 0 else { throw fail("tick:<milliseconds>") }
@@ -82,7 +98,7 @@ extension CaseTable {
         default:
             throw fail(
                 "not one of open, idle, wheel:±k, key:<name>, type:<text>, hover:±k, resize:WxH, tick:<ms>, "
-                    + "append:k, edit:mid, remove:i, move:a>b, replace")
+                    + "append:k, edit:mid, remove:i, move:a>b, replace, present, dismiss, item:i, item:+k")
         }
     }
 

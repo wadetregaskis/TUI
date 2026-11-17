@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Observation
 import TUI
 
@@ -51,6 +52,19 @@ final class CaseRows {
     var open: Set<Int> = []
     /// A tab view's selection.
     var tab = 0
+    /// Whether a sheet, popover or alert bound to it is up (`present`,
+    /// `dismiss`).
+    var presented = false
+    /// The row an item sheet is presented for (`item:i`), `nil` for none.
+    var item: Row?
+    /// The rows whose toggle is on, in a form.
+    var checked: Set<Int> = []
+    /// A stepper's value, a slider's, and a date picker's: a fixed instant,
+    /// 2026-01-15 12:00 UTC, drawn in UTC, so no count depends on the day
+    /// the case is played or the machine's time zone.
+    var amount = 10
+    var level = 50.0
+    var day = Date(timeIntervalSince1970: 1_768_478_400)
     /// The rows as lines of text, for a `TextEditor`: written when the case is
     /// made and by every write to the rows, never in a body, so building it is
     /// not counted as the editor's cost.

@@ -67,11 +67,22 @@ struct CaseCompositionView: View {
             // Never reached from `CasePage`, which draws `composition.page`:
             // the setting is the scene's (`CaseHost`).
             AnyView(Self(composition: page, rows: rows))
-        case .adopted:
-            // Built once by `CasePage.adopted(_:count:seed:)`, never here: a
-            // scenario's `make` builds its model, and a body runs every frame.
-            AnyView(Text(verbatim: "an adopted scenario cannot be a part"))
+        default:
+            // An adopted scenario is built once by
+            // `CasePage.adopted(_:count:seed:)`, never here: a scenario's
+            // `make` builds its model, and a body runs every frame. The
+            // presentations and the navigation split share this arm, in a view
+            // of their own: an arm each would deepen the switch's conditional
+            // content, which moves the other cases' measure-memo misses (as
+            // `CaseOutlineView`'s comment says).
+            combined
         }
+    }
+
+    /// A presentation or a navigation split; never an adopted scenario.
+    private var combined: AnyView {
+        if composition.isAdopted { return AnyView(Text(verbatim: "an adopted scenario cannot be a part")) }
+        return AnyView(CaseCombinedView(composition: composition, rows: rows))
     }
 }
 
@@ -109,13 +120,18 @@ private struct CaseLeafView: View {
                 })
         case .editorWrap:
             AnyView(TextEditor(text: Binding(get: { rows.document }, set: { rows.document = $0 })))
-        case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection,
-            .outlineListBound, .outlineSectionBound:
-            // One arm for all, in a view of their own: an arm each nested the
-            // switch's content a level deeper for every leaf, and moved the
-            // other cases' measure-memo misses.
-            AnyView(CaseOutlineView(leaf: leaf, rows: rows))
+        default:
+            // The outlines, and the controls, in views of their own: an arm
+            // each nested the switch's content a level deeper for every leaf,
+            // and moved the other cases' measure-memo misses.
+            outlineOrControl
         }
+    }
+
+    /// An outline's page, or a control leaf's.
+    private var outlineOrControl: AnyView {
+        if leaf.isOutline { return AnyView(CaseOutlineView(leaf: leaf, rows: rows)) }
+        return AnyView(CaseControlView(leaf: leaf, rows: rows))
     }
 
     private var selection: Binding<Int?> { Binding(get: { rows.selection }, set: { rows.selection = $0 }) }

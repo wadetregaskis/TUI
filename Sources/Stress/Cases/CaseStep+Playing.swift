@@ -38,8 +38,19 @@ extension CaseStep {
             let moved = (x: start.x, y: max(0, min(size.height - 1, start.y + rows)))
             pointer = moved
             return ([], [MouseEvent(button: .none, phase: .moved, x: moved.x, y: moved.y)])
-        case .open, .idle, .resize, .tick, .append, .editMiddle, .remove, .move, .replace:
+        case .open, .idle, .resize, .resizeBy, .tick, .append, .editMiddle, .remove, .move, .replace, .present,
+            .dismiss, .item, .nextItem:
             return ([], [])
+        }
+    }
+
+    /// The size this step resizes a screen of `size` to, or `nil` for a step
+    /// that does not resize.
+    func resized(from size: (width: Int, height: Int)) -> (width: Int, height: Int)? {
+        switch self {
+        case .resize(let to): (to.width, to.height)
+        case .resizeBy(let width, let height): (max(4, size.width + width), max(2, size.height + height))
+        default: nil
         }
     }
 }
@@ -54,7 +65,13 @@ extension CaseRows {
         case .remove(let index): remove(at: index)
         case .move(let from, let to): move(from: from, to: to)
         case .replace: replace()
-        case .open, .idle, .wheel, .key, .type, .hover, .resize, .tick: break
+        case .present: presented = true
+        case .dismiss: (presented, item) = (false, nil)
+        case .item(let index): item = rows.isEmpty ? nil : rows[min(index, rows.count - 1)]
+        case .nextItem(let count):
+            let from = item.flatMap { current in rows.firstIndex { $0.id == current.id } } ?? -1
+            item = rows.isEmpty ? nil : rows[max(0, min(from + count, rows.count - 1))]
+        case .open, .idle, .wheel, .key, .type, .hover, .resize, .resizeBy, .tick: break
         }
     }
 }

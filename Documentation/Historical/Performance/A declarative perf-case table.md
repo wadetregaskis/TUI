@@ -367,8 +367,8 @@ suspected.
 
 Proposed 2026-11-14; the owner answered A-PERFCASE-1 to 3 the same day. B-PERFCASE-1 to 7 are decided here and
 stand unless the owner's answers change them. Lanes 1 and 2 were built on 2026-11-15 ("Lanes 1 and 2, as built",
-below), lane 3 on 2026-11-16 ("Lane 3, as built"), lane 5 the same day ("Lane 5, as built"); lane 4 is still to
-come.
+below), lane 3 on 2026-11-16 ("Lane 3, as built"), lane 5 the same day ("Lane 5, as built"); lane 4's first forty
+cases on 2026-11-17 ("Lane 4, the first part"), and about sixty are still to come.
 
 ## Lanes 1 and 2, as built (2026-11-15)
 
@@ -826,6 +826,105 @@ under "Choosing between counting and timing for a case", above).
 | Commit, toolchain, machine, load, µs, interval | Date, commit, machine, load, metric, scenario, iterations, median µs, interval, RSS; no toolchain | The output names no toolchain, and the commit is given with `--sha` (default `HEAD`). The metric (`cpu`, `wall`, `-cold`) keeps readings of different kinds apart |
 | The interval of the reading | The interval of the change against the run's base, as `ab_bench.py` printed it | `ab_bench.py` bootstraps the paired ratio and prints no interval of an absolute time. Its width is that sitting's noise |
 | A case that drifted past its noise floor against the median of its last five readings is flagged | `--report` prints the last N readings and the latest's change from the first, `within` or `beyond` the widest interval among them | The interval is a paired one; readings from different days are not paired, so `beyond` is a prompt for an A/B of the two commits, not a flag of a regression |
+
+## Lane 4, the first part (2026-11-17)
+
+Forty cases over situations nobody had counted, in six new tables and two more rows of `Editors.swift`. This lane
+measures: what broke a case's class is filed below as a finding and named in `CaseKnownIssues`, not fixed.
+
+| Table | Cases |
+|---|---|
+| `Presentations.swift` | `sheet-present`, `sheet-search`, `sheet-item-switch`, `sheet-item-walk` (W17's kept items, a walk past the 16), `popover-values`, `alert-list`, `alert-table`, `sheet-tiny` |
+| `Navigation.swift` | `tabs-kinds` (a list, a wrapped table, the value controls and a grid as tabs), `tabs-lists`, `nsplit-resize`, `nsplit-collapse` (under 21 cells, into a stack), `nsplit-three` |
+| `Narrow.swift` | `list-tiny`, `table-narrow`, `table-fit-tiny`, `split-tiny`, `form-narrow`, `chat-tiny`, `editor-tiny` (40x12 and 20x6) |
+| `Controls.swift` | `grid-scroll`, `grid-edit`, `form-grouped-tab`, `form-columns-tab`, `focus-tab-200`, `focus-tab-scaling`, `values-stepper`, `values-slider`, `values-date`, `form-slider`, `menu-walk` |
+| `Pointer.swift` | `table-hover`, `split-hover`, `outline-hover`, `tabs-hover` (focus follows the pointer) |
+| `Storms.swift` | `resize-storm` (a list beside tabs of a table and a grid), `nsplit-storm`, `dashboard-storm` (the `dashboard` scenario, adopted) |
+| `Editors.swift` | `editor-mid-typing` (300 lines in 80x24), `editor-sheet-typing` |
+
+**Timed:** `resize-storm` and `dashboard-storm` (a resize redraws every cell, which no count weighs),
+`editor-mid-typing` (a keystroke's cost is in the text storage and the wrap) and `form-grouped-tab` (a form's
+constant factors, PERFCASE-F7, are what a user feels).
+
+**The vocabulary it added**, written once and used by the rows: the leaves `grid`, `form.grouped`, `form.columns`,
+`controls`, `values` and `menu` (`CaseControlView.swift`); the combinators `sheet(a,b)`, `sheetitem(a,b)`,
+`popover(a,b)`, `alert(a)` and `nsplit(a,b[,c])` (`CaseCombinedView.swift`); and the steps `present`, `dismiss`,
+`item:i`, `item:+k` (writes to what a presentation is bound to) and `resize:±Wx±H` (a window dragged at its corner:
+`resize:-16x-5*5;resize:+16x+5*5` is a storm of ten). Each new arm shares an existing one of the switches that draw a
+page (a `default:` handing off to a view of its own), since an arm of its own deepens the conditional content the
+others sit in and moves their misses (as `CaseOutlineView`'s comment warns): every one of the sixteen earlier cases
+plays exactly its recorded counts.
+
+**What the scripts first did wrong**, each seen in the counts (0 bytes) and fixed before recording: a Tab in a sheet
+moved the focus out of the search field it opens in; the stepper answers Right and Left, not Up and Down; the first Tab
+in a three-column split lands on a divider; after a hover in a scene whose focus follows the pointer, Right is the
+content's, not the tab strip's; and 200 Tabs through 200 buttons came round to the first, so the rerun at 2n scrolled
+elsewhere. Three `linear` cases first failed for the case, not the code: in `tabs-kinds` at n = 100 and
+`focus-tab-scaling` at 60 the fixed work was a fifth to a third of a count, which at 2n is then neither the same nor
+twice (their n was raised), and `grid-scroll`'s 50 wheel ticks reached the end of 100 rows but not of 200.
+
+Each case's n is also what `--selfcheck` plays its session at, 150 steps against a cache-cleared twin, so a case of an
+eager control is kept small: `tabs-kinds` first held a form's tab (PERFCASE-F7) and took 95 s there, debug, then a
+grid's, whose fixed work kept `linear` from holding at any n the selfcheck could afford, and holds the value controls
+and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
+
+**Findings** (filed, not fixed here; the numbers are at n, then at 10n):
+
+- **PERFCASE-F6. A `NavigationSplitView`'s leading columns are not windowed.** `nsplit-resize` (300 rows) lists 1,389
+  row boxes, runs 2,819 bodies and misses 7,786 measures as it opens (12,194 / 24,429 / 72,611 at 10n), and about n
+  of each at every resize. `measureColumns` (`NavigationSplitViewWidths.swift`) measures each leading column offered
+  no width and no height, to read its hugged width, and a `List` offered no height lists, runs and measures every row.
+  Collapsed into a stack it is O(window) (`nsplit-collapse`'s `resize:20x12`: 66 boxes at n and 10n). `nsplit-three`
+  pays it in both leading columns; `nsplit-storm` at every resize the split is not collapsed. (At 200 rows
+  `nsplit-storm` built twice the rows it builds at 2,000, under the 256 rows a list builds whole; it plays 300.)
+- **PERFCASE-F7. A `Form` lays out every row on every frame.** `form-grouped-tab` (10 toggles under the value
+  controls) runs 559 bodies and misses 2,486 measures a Tab (4,564 / 21,258 at 100 toggles): about 45 bodies and 209
+  misses per toggle per frame, every row's body run and measured, none served. A slider step pays the same
+  (`form-slider`), and so does toggling one toggle (`key:space`). `.columns` is about a third of `.grouped`. A macOS
+  form is a list, windowed; this one is an eager stack. The cases keep n at 10 for what it costs the check.
+- **PERFCASE-F8. A `TabView` measures its hidden tab at every narrowing resize.** `resize-storm`'s hidden tab is a grid
+  of n rows: it runs 2,896 bodies as the page opens (24,496 at 10n), as `tabs-switch`'s hidden table reads its cells,
+  and 8,584 over the five narrowing resizes (78,798 at 10n), each of which also asks for a second frame; the five
+  widening ones run 598 (606). Not seen: why narrowing re-measures every tab and widening does not.
+- **PERFCASE-F9. A menu rebuilds every item at every arrow key.** `menu-walk` builds 808 rows over 20 Downs in a menu
+  of 40 items, 1,608 in one of 80: the whole menu a step, not the two rows the highlight moved between. The case is
+  `linear` (a menu's items are made when it opens), so its class holds and only the count says so.
+- **PERFCASE-F10. A hover over a table rebuilds its visible rows.** In a scene whose focus follows the pointer,
+  `table-hover` builds 328 rows and reads 4,900 cell values over 20 one-row hovers (about 16 rows and 245 cells a
+  step, every row on the screen), where `list-hover`'s list builds 6 and serves 440: a table's cursor row is drawn
+  into its rows, not over them. Flat in n; `tabs-hover` and `split-hover` show it too.
+- **PERFCASE-F11. A searchable `List` in a sheet builds every row as the first keystroke filters it.**
+  `sheet-search`'s `type:ab` builds 524 rows of 500 (5,024 at 10n), where `list-search`, the same list on a page,
+  builds 45; the backspaces after it build 2. Not seen: what about the first filtering in a sheet asks for every row.
+- **PERFCASE-F12. A few counts move by a constant at 10n.** `list-tiny` misses 4 more measures as it opens in 20x6
+  (359, 363), `split-tiny` 4 fewer at its resize (384, 380), `resize-storm`'s narrowing resizes list and build 7 more
+  rows (425, 432) and `nsplit-three` builds 2 more as it opens; a wrapped table reads 1,115 cell values as it opens
+  at 500 rows (`sheet-search`), 1,125 at 1,000 (`sheet-item-walk`) and 1,135 from 2,000 on.
+  None grows with n; their causes are not seen.
+- **PERFCASE-F13. A list row behind a popover presented a second time is drawn a cell off.** With `;key:esc` at the
+  end of `popover-values`' script, its session's loop presents the popover again, and from the Tab after that the
+  first list row below the popover is drawn with its status one column left of where the cache-cleared twin draws it,
+  on every frame: `Stress --session case:popover-values --steps 150 --verify --resize-every 37` fails 105 of 150
+  frames, from step 14 (14 of 30 with no resizes). A memo serves that row, or its size, from before the second
+  presentation. Found by `--selfcheck`'s verifier, not by a count; the case's script stops before the Escape until it
+  is fixed, so the gate's `--selfcheck` passes, and the fix puts it back.
+
+Known already and named for the new cases: a `.fit` column reads every row as its table opens (PERFCASE-F5's class,
+`alert-table`, `table-fit-tiny`, and `nsplit-storm`'s resizes), and the bottom-anchored lazy stack's PERFCASE-F3
+(`chat-tiny`).
+
+**What held.** Sheets, item sheets, popovers and alerts cost the rows on screen, at n and 10n: presenting
+`sheet-present`'s list over a list builds 92 rows and writes 102 bytes, and an item switched back to (`item:1#2`)
+builds 63 and writes 36 bytes, its scroll as it was left (W17). An alert over a `.fit` table reads 557 cell values,
+not the 10,000 of its columns. Typing in a 300-line editor, in a sheet or not, is the same at 3,000 lines. The value
+controls, the tiny list and table, the windowed tabs and every hover are flat.
+
+**What they cost**, debug, on the development machine while other lanes built and tested. `--check-counts`: the
+sixteen earlier cases 28 s, the forty about 80 s, `focus-tab-200` 15 s of it (199 frames of 200 buttons, which is why
+it is not rerun at 2n and `focus-tab-scaling` checks its class) and the form and split cases at 10n most of the rest
+(PERFCASE-F6 and F7). `--selfcheck`: their sessions, each 150 steps against its cache-cleared twin, about 4 min
+(244 s; `nsplit-storm` 27 s at 200 rows and 9 s at 300, `dashboard-storm` 14 s, `form-grouped-tab` 14 s,
+`focus-tab-200` 13 s), of a whole selfcheck of 31 min; their pages at rest, seconds.
 
 ## For a future reader
 

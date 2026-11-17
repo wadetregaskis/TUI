@@ -153,27 +153,46 @@ enum CaseTable {
             if parts.contains(where: \.followsPointer) {
                 throw fail("follows(…) is the scene's setting: it wraps the whole composition, never a part")
             }
-            switch head {
-            case "tabs":
-                guard parts.count >= 2 else { throw fail("tabs(…) takes two parts or more") }
-                return .tabs(parts)
-            case "split":
-                guard parts.count == 2 else { throw fail("split(…) takes two parts") }
-                return .split(parts[0], parts[1])
-            case "follows":
-                guard parts.count == 1 else { throw fail("follows(…) takes one composition") }
-                return .followsPointer(parts[0])
-            default:
-                throw fail("'\(head)(…)' is not tabs(…), split(…) or follows(…)")
-            }
+            return try combine(String(head), parts, at: origin)
         }
         guard let leaf = CaseLeaf(rawValue: text) else {
             throw fail(
                 "composition '\(text)' is not one of \(CaseLeaf.allCases.map(\.rawValue).joined(separator: ", ")), "
-                    + "tabs(…), split(…), follows(…) or stress:<scenario>[/<variant>]")
+                    + "\(Self.combinators) or stress:<scenario>[/<variant>]")
         }
         return .leaf(leaf)
     }
+
+    /// The composition a combinator `head` makes of `parts`.
+    static func combine(
+        _ head: String, _ parts: [CaseComposition], at origin: CaseOrigin
+    ) throws(CaseTableError) -> CaseComposition {
+        func fail(_ message: String) -> CaseTableError { CaseTableError(origin: origin, message: message) }
+        switch head {
+        case "tabs":
+            guard parts.count >= 2 else { throw fail("tabs(…) takes two parts or more") }
+            return .tabs(parts)
+        case "split", "sheet", "sheetitem", "popover":
+            guard parts.count == 2 else { throw fail("\(head)(…) takes two parts") }
+            switch head {
+            case "split": return .split(parts[0], parts[1])
+            case "sheet": return .sheet(parts[0], parts[1])
+            case "popover": return .popover(parts[0], parts[1])
+            default: return .sheetItem(parts[0], parts[1])
+            }
+        case "follows", "alert":
+            guard parts.count == 1 else { throw fail("\(head)(…) takes one composition") }
+            return head == "alert" ? .alert(parts[0]) : .followsPointer(parts[0])
+        case "nsplit":
+            guard (2...3).contains(parts.count) else { throw fail("nsplit(…) takes two parts or three") }
+            return .navigationSplit(parts)
+        default:
+            throw fail("'\(head)(…)' is not \(Self.combinators)")
+        }
+    }
+
+    /// The combinators a composition can be written with, for an error.
+    static let combinators = "tabs(…), split(…), follows(…), sheet(…), sheetitem(…), popover(…), alert(…), nsplit(…)"
 
     /// `a,b(c,d),e` as `a`, `b(c,d)`, `e`: commas inside parentheses belong to
     /// the part they are in.

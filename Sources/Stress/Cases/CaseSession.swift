@@ -70,8 +70,8 @@ final class CaseSession: StressSession {
         case .type: action = "type"
         default: action = step.description
         }
-        if case .resize(let to) = step {
-            size = (to.width, to.height)
+        if let to = step.resized(from: size) {
+            size = to
             return SessionStep(action: action, resize: size)
         }
         let input = step.input(size: size, pointer: &pointer)

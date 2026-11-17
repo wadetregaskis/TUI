@@ -61,5 +61,43 @@ enum CaseKnownIssues {
             "PERFCASE-F3: at 10n the bottom-anchored lazy stack runs 21% more bodies and misses 29% more measures "
                 + "at open, and 10% / 19% more per appended row"
         ),
+        // Lane L4 (2026-11-17): the first thirty-odd cases over situations not profiled before.
+        "chat-tiny": (["bodies", "misses"], "PERFCASE-F3, as chat-lazy-follow, in a 20x6 terminal"),
+        "alert-table": (["open cells"], "a .fit column reads every row as its table opens (PERFCASE-F5), as table-fit-tail"),
+        "table-fit-tiny": (["open cells"], "a .fit column reads every row as its table opens (PERFCASE-F5), as table-fit-tail"),
+        "nsplit-resize": (
+            ["listed", "built", "bodies", "misses"],
+            "PERFCASE-F6: a NavigationSplitView measures its leading columns offered no height, and a List offered "
+                + "none lists, runs and measures every row: about n row boxes a pass"
+        ),
+        "nsplit-collapse": (["open listed", "open bodies", "open misses"], "PERFCASE-F6, until the split collapses"),
+        "nsplit-three": (["listed", "built", "bodies", "misses"], "PERFCASE-F6, in both leading columns"),
+        "nsplit-storm": (
+            ["listed", "bodies", "misses", "cells"],
+            "PERFCASE-F6 at every resize the split is not collapsed, and PERFCASE-F5's .fit reread at each resize"
+        ),
+        "form-narrow": (
+            ["bodies", "misses"],
+            "PERFCASE-F7: a Form lays out every row on every frame, a toggle's body run and measured each time"
+        ),
+        "form-grouped-tab": (["bodies", "misses"], "PERFCASE-F7: every row of the form run and measured a frame"),
+        "form-columns-tab": (["bodies", "misses"], "PERFCASE-F7, in .columns style"),
+        "form-slider": (["bodies", "misses"], "PERFCASE-F7: a slider's step runs and measures every toggle of the form"),
+        "resize-storm": (
+            ["listed", "built", "bodies", "misses"],
+            "PERFCASE-F8: a TabView measures its hidden tab (an eager grid of n rows) as it opens and again at every "
+                + "resize that narrows it; and the narrowing resizes list and build 7 rows more at 10n (PERFCASE-F12)"
+        ),
+        "sheet-search": (
+            ["type:ab listed", "type:ab built", "type:ab bodies", "type:ab misses", "open cells"],
+            "PERFCASE-F11: a searchable List in a sheet builds every row on the keystroke that first filters it; and "
+                + "the wrapped table behind reads 20 more cell values as it opens at 10n (PERFCASE-F12)"
+        ),
+        "sheet-item-walk": (
+            ["open cells"],
+            "PERFCASE-F12: the wrapped table behind reads 10 more cell values as it opens at 10n than at n = 1,000"
+        ),
+        "list-tiny": (["open misses"], "PERFCASE-F12: 4 more measure misses as the list opens in 20x6 at 10n"),
+        "split-tiny": (["resize:40x12 misses"], "PERFCASE-F12: 4 fewer measure misses at the resize at 10n"),
     ]
 }

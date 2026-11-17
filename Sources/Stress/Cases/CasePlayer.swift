@@ -137,8 +137,8 @@ final class CasePlayer {
                 drawFrames()
             }
             return
-        case .resize(let size):
-            app.resize(width: size.width, height: size.height)
+        case .resize, .resizeBy:
+            if let size = step.resized(from: app.size) { app.resize(width: size.width, height: size.height) }
         case .tick(let milliseconds):
             nanos += Int64(milliseconds) * 1_000_000
         default:

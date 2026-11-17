@@ -458,9 +458,14 @@ and what the first cases found are in
 The cases are in `Cases/Tables/`, one file per family of situations, so two
 people adding cases to different families never edit the same lines:
 `Lists.swift`, `Tables.swift`, `Outlines.swift`, `Scrolling.swift`,
-`Composites.swift` (tabs and splits), `Editors.swift`, and `Adopted.swift`
-(existing scenarios, adopted as rows with no new code). Each file holds one
-multi-line string literal, a `CaseTableSource`, and `CaseTables.all`
+`Composites.swift` (tabs and splits), `Editors.swift`, `Adopted.swift`
+(existing scenarios, adopted as rows with no new code), `Presentations.swift`
+(sheets, item sheets, popovers, alerts), `Navigation.swift` (tab views and
+navigation split views), `Narrow.swift` (40x12 and 20x6 terminals),
+`Controls.swift` (grids, forms, focus traversal, the value controls, menus),
+`Pointer.swift` (hover where the focus follows the pointer) and `Storms.swift`
+(resize storms). Each file holds a multi-line string literal or two, each a
+`CaseTableSource`, and `CaseTables.all`
 (`Cases/CaseTables.swift`) lists them in the order `--check-counts` plays
 them. A table is a header line and then one case a line, its columns
 separated by runs of spaces, so no column can hold a space. A line that starts
@@ -508,9 +513,19 @@ every row can then use it.
   `outline.bound`, `outline.list.bound` and `outline.section.bound`, the
   table, the list and the section with the app keeping the expansion
   (`expansion:`), and `outline.open` (`outline.bound`, every branch open
-  from the start). They combine
-  as `tabs(a,b,…)` (a `TabView`, the first tab selected) and `split(a,b)` (an
-  `HSplitView`). `follows(a)` puts the whole page in a scene with
+  from the start); and the
+  controls (`CaseControlView.swift`): `grid` (a `Grid`, four cells a row),
+  `form.grouped` and `form.columns` (a `Form` of a `Stepper`, a `Slider` and a
+  `DatePicker`, then a `Toggle` a row), `controls` (a `Button` a row),
+  `values` (the stepper, slider and date picker alone; `n` draws nothing) and
+  `menu` (a `Menu` of a `Button` a row). They combine as `tabs(a,b,…)` (a
+  `TabView`, the first tab selected), `split(a,b)` (an `HSplitView`),
+  `nsplit(a,b)` and `nsplit(a,b,c)` (a `NavigationSplitView`), and the
+  presentations (`CaseCombinedView.swift`): `sheet(a,b)` (`a` with
+  `.sheet(isPresented:)` presenting `b`), `sheetitem(a,b)` (`.sheet(item:)`),
+  `popover(a,b)` (a `.popover(isPresented:)` on a line of title over `a`) and
+  `alert(a)` (an alert of two buttons and a message). `follows(a)` puts the
+  whole page in a scene with
   `.focusFollowsPointer(true)`, and wraps only a whole page, never a part.
   `stress:<scenario>[/<variant>]` adopts an existing scenario, or one variant
   of a matrix scenario, built as `--bench` builds it.
@@ -527,8 +542,10 @@ every row can then use it.
   | `type:<text>` | Types a character, draws its frames, then types the next. Printable ASCII, no spaces |
   | `hover:+k`, `hover:-k` | Moves the pointer down or up by k rows |
   | `resize:WxH` | Resizes the terminal |
+  | `resize:±Wx±H` | Resizes it by so many columns and rows, as a window dragged at its corner does: `resize:-16x-5*5;resize:+16x+5*5` is a storm of ten |
   | `tick:<ms>` | Advances the clock |
   | `append:k`, `edit:mid`, `remove:i`, `move:a>b`, `replace` | Writes to the case's rows outside any render: k rows appended, the middle row changed, a row removed, a row moved, every row replaced |
+  | `present`, `dismiss`, `item:i`, `item:+k` | Writes to what a presentation is bound to, as an app's button would: `present` raises the flag a sheet, popover or alert is bound to, `dismiss` lowers it and clears the item, `item:i` presents an item sheet for row i (or switches it there), `item:+k` moves it on k rows |
 
 - **Scaling** (`CaseScaling`): `flat` (every count the same at 10n), `linear`
   (every count at 2n is the count at n or twice it, ±10%: O(1) or O(n), never
