@@ -5,20 +5,20 @@ What it takes for TUI to be fully supported on Windows, which the owner made a 1
 starting point for the session that does it, on a Windows VM, and the record it keeps as it goes, as
 [WebAssembly port.md](<WebAssembly port.md>) is for that port.
 
-## Where it stands (2026-11-16, on the VM)
+## Where it stands (2026-11-17, on the VM)
 
-- **The whole package builds on Windows with Swift 6.3.3**, every library, tool and test target, with no warnings
-  (`swift build --build-tests`), on a Windows 11 arm64 VM. CI has not seen it yet: its steps for `TUIApp`,
-  `TUICommands`, `TUIScenes` and the Example are advisory until it has. Swift 6.2 and 6.4 are unmeasured.
-- **The Example runs**, under a pseudo console (`Tools/Smoke/conpty.py`) and in the Claude app's terminal panel: it
-  draws, takes keys, follows a resize, asks on ⌃\, quits on ⌃Q, and leaves the console as it found it on ⌃Q and on
-  Ctrl-Break. Windows Terminal and conhost themselves are unmeasured.
-- **The test suite**: see "The tests" below.
-
-Before this, on CI run 100 (2026-11-10), every module but `TUIApp` built, and `TUIApp` failed with 43 errors for
-POSIX names in seven files, so nothing above it built.
-
-A step allowed to fail reports "success" to GitHub's API, so read a job's log, not its step list, for what failed.
+- **The whole package builds on Windows** with Swift 6.3.3 and 6.4.2, every library, tool and test target, with no
+  warnings (`swift build --build-tests`), on a Windows 11 arm64 VM. 6.2 is not yet measured: 6.2.4's installer stopped at the Python installer it bundles, which waits for a click. CI has not seen it yet: its steps for
+  `TUIApp`, `TUICommands`, `TUIScenes` and the Example are advisory until it has.
+- **The test suite passes** on 6.3.3, one module at a time; and on 6.4.2 but for one Example test that the stack
+  guard's budget on Windows decides (see "The tests").
+- **The Example runs in Windows Terminal and in the classic console (conhost)**, both measured with
+  `Tools/TerminalProbes/` and both known hosts since 2026-11-16 (`TerminalClient.Program.windowsTerminal`,
+  `.windowsConsole`; the terminal survey's "Windows Terminal and the classic console"). Driven by the mouse in each:
+  it draws, a click selects and opens, the wheel scrolls, Windows Terminal draws its pictures in real pixels (Sixel),
+  the emoji page's treatment rows line up in both, and the menu's Quit hands the console back. Under a pseudo
+  console (`Tools/Smoke/conpty.py`) it also takes keys, follows a resize, asks on ⌃\, quits on ⌃Q, and leaves the
+  console as it found it on ⌃Q and on Ctrl-Break.
 
 ## What "fully supported" means here
 
@@ -78,12 +78,22 @@ Visual Studio 2022 Build Tools 17.14, installed with `winget install Swift.Toolc
   substring's attributes (`string[range].link`) link, being Foundation's own code, so `Text(AttributedString)` walks
   the string by character on Windows and merges the runs itself (`Text+Attributed.swift`). Nothing else in the
   package uses `runs`. CI never saw this: its Windows steps built modules, and nothing linked a program.
-- **Symlinks need a privilege the VM's user lacks** (Developer Mode is off), so SwiftPM could not check out
-  `swift-docc-plugin`, which keeps shared plugin code behind symlinks. Worked round for the VM only, not in the
-  package: git told to write links as files for SwiftPM's process (`GIT_CONFIG_COUNT=1`, `core.symlinks=false`), the
-  plugin's four link files in `.build/checkouts` replaced by copies of their targets, and `.build/plugins` and
-  `.build/plugin-tools.yaml` removed so the plugins were compiled from the copies. CI's containers run as
-  administrator and need none of this.
+- **Symlinks need Developer Mode** (or an administrator), both for SwiftPM's checkout of `swift-docc-plugin`, which
+  keeps shared plugin code behind symlinks, and for the file-panel tests that make links. Until the owner turned it
+  on (2026-11-16) the VM worked round the checkout by telling git to write links as files for SwiftPM's process
+  (`GIT_CONFIG_COUNT=1`, `core.symlinks=false`); CI's containers run as administrator and need neither.
+- **Toolchains install side by side** (6.3.3, then 6.4.2 and 6.2.4, each by `winget install Swift.Toolchain
+  --version …`), each adding itself to the user's `PATH` and setting `SDKROOT`: the first on the `PATH` compiles and
+  `SDKROOT` names the last installed, so a build sets both for the one it means. With more than one installed,
+  6.4's SwiftPM stops before building ("platform 'windows' already registered from …\Platforms\6.3.3"): its default
+  build system reads every platform in the install. `--build-system native`, deprecated, builds. A test runner needs
+  the same toolchain's runtime first on its `PATH`, or it stops at launch with `0xC0000139`, an entry point not found.
+- **6.4.2 sees `_RegexParser`'s `String.init` beside the standard library's**, so `String(cells.map { … ? "." : "#" })`,
+  literals that may be Strings or Characters, is ambiguous there (2aa30a83a). And it checks strict memory safety, which
+  6.2 and 6.3 build without: a Win32 handle is a raw pointer in Swift, so the Windows arms needed `unsafe` (3b8bc906a).
+- **A Windows Terminal started before a toolchain was installed** has the old `PATH` in every tab and window it
+  opens: a program built since stops at launch, "The code execution cannot proceed because
+  `swift_StringProcessing.dll` was not found" (CONTRIBUTING).
 
 ## The console layer
 
@@ -124,24 +134,30 @@ Measured under a pseudo console (`Tools/Smoke/conpty.py`, 2026-11-16, debug buil
 
 ## The tests
 
-Run on the VM (2026-11-16, Swift 6.3.3, debug), one test module at a time, as the whole suite in one process takes
-it down if any one test does. 29 of the 35 modules pass whole. Of the rest:
+Run on the VM, one test module at a time (a test that crashes takes its process down), debug builds.
 
-| Module | Result | Why |
-|---|---|---|
-| TUIFoundationTests | 3,038 pass | — |
-| TUIIntegrationTests | 2,705 pass (7 known issues, as elsewhere) | — |
-| TUIFormsTests | 53 pass | — |
-| TUIAppTests | 2,654 of 2,655 pass | **Open**: "A top-level Toggle bound to an `@Observable` asks for a frame when the property is written" fails, every run and alone (`FrameObservationTests.swift:173`): the write asks for no frame. The suite's other eight reads — a button style's `makeBody`, the app's body, a `GeometryReader`, a `TimelineView`, a `ForEach` — do ask, so it is the control's `Binding` read. Not yet found. "Enabled, the press acts at once" (`ButtonRepeatBehaviorTests`) fails only under load: it waits on the real clock, and with 2,655 tests in parallel on this VM the wait outlasts the repeat's 700 ms delay |
-| TUIDocumentsTests | 23 of 41 pass | **Open**: five `DocumentGroupTests` that open a second document with changes unsaved wait for the "Do you want to save" dialog and do not see it, or see it and find Escape does nothing; each waits out a 30–60 s timeout. Not yet investigated |
-| TUIFilePanelsTests | 52 of 213 pass | Environment: the 161 failures are all `Win32Error(code: 1314)`, `ERROR_PRIVILEGE_NOT_HELD`, from fixtures that make symbolic links, which this VM's user may not (no Developer Mode). CI's containers run as administrator |
+**6.3.3** (2026-11-17): every module passes, all 35. One test has failed in earlier runs under load: "a cancelled
+timeout never resumes a later waiter (no cascade spin)" (`StdinArrivalNotifierTests`), which counts completions in a
+real-time window, and which passes alone.
+
+**6.4.2** (2026-11-17): every module passes but `ExampleTests`, where one test fails every run: "On the page itself,
+Show / hide fades the panel out" (`AnimationPageShowHideTests.swift:330`). It is the stack guard. Swift Testing on
+Windows runs a `@MainActor` test on a libdispatch worker thread, with 1 MiB of stack, and the guard keeps 256 KiB of it
+in reserve (`StackGuard.reserveBytes`); the Example's whole Animation page, drawn in a debug build, needs more than the
+768 KiB left. Counted (`StackGuard.truncationCount`) over the frame that starts the removal: 110 cuts on 6.3.3, where
+none falls on what the test reads, and 285 on 6.4.2, whose debug frames are larger, where the panel is one of them. A
+Windows program's main thread has 1 MiB too unless it is linked with more (`/STACK`). What to change is the owner's
+call: a smaller reserve on Windows, a larger stack for TUI's executables (which reaches an app's main thread, not a
+test's), or less stack a level.
 
 What the runs found, and fixed, on the way (each its own commit): the stack guard had no Windows arm, so too
 deep a tree overflowed rather than being cut short; `AnyView.staysWhole(in:)` walked a chain of `AnyView`s with no
 guard; tests that chose a depth against an 8 MiB stack overflowed Windows's 1 MiB (releasing a deep chain can never be
 cut short, so those depths are now proportional to the thread's stack); the enum value witnesses, never called on
-Windows, work there; `ExampleTests` needed the Example as a dependency on Windows; and tests that assumed
-`/dev/null/…` cannot be written, that a system zlib exists, or that `timespec` has no padding.
+Windows, work there; a write to a control's `Binding` asked for no frame, as the thread that walks a frame did not
+mark itself; a file panel listed no folder that held a link leading nowhere, and completed no path from a drive or a
+share; `ExampleTests` needed the Example as a dependency on Windows; and tests that assumed `/dev/null/…` cannot be
+written, that a system zlib exists, or that `timespec` has no padding.
 
 Two things about the environment the runs needed:
 
@@ -152,11 +168,17 @@ Two things about the environment the runs needed:
 
 ## Still to do
 
-- The two open test failures above, and a CI run of every Windows step (then binding, per the ratchet).
-- Swift 6.2 and 6.4: only 6.3.3 is measured. The Swift installer replaces one version with another, so each is a
-  reinstall.
-- Windows Terminal and conhost themselves (everything above is under a pseudo console, or the Claude app's terminal
-  panel), with `Tools/TerminalProbes/`, into the terminal survey; and a crash under them, to see the exception filter
-  pay the debt.
-- Windows x86_64: reasoned, not measured, where it differs (the enum witnesses); CI's lanes are x86_64.
-- README's platform badge, once all of this is done.
+- **The stack guard's budget on Windows** (the 6.4.2 failure above): the owner's decision, then the change.
+- **Swift 6.2**: 6.2.4's installer stopped at the Python 3.10.11 installer it bundles, which waits for a click; once
+  it is in, a build with no warnings and a run of the suite, as for 6.3.3 and 6.4.2.
+- **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
+- **A crash under Windows Terminal and conhost**, to see the exception filter pay the debt: nothing in the Example
+  crashes on cue.
+- **Keys and the mouse, measured**: `Tools/TerminalProbes/`' key and mouse probes need someone at the keyboard, so how
+  each terminal encodes modifiers, how many wheel reports a notch sends, and which pointer shapes it takes are
+  unmeasured. The Example was driven by clicks and the wheel only.
+- **The console's font**: conhost's Consolas has no quadrants (`▖ ▗ ▘ ▝ ▙ ▛ ▜ ▟`), which shapes and canvases draw with;
+  TUI cannot ask a terminal what its font has, so the Terminal Support article tells users to choose Cascadia Mono.
+- **An OSC 52 write over 8 KiB** left the clipboard as it was in both terminals; TUI sends a copy whole, whatever its
+  size, so a larger one is lost there. Unaddressed.
+- **Windows x86_64**: reasoned, not measured, where it differs (the enum witnesses); CI's lanes are x86_64.

@@ -205,7 +205,9 @@ and the two latent bugs it turned up in platform-independent code — is in
 Windows is **being ported**, and is to be fully supported at 1.0 (owner, 2026-11-09);
 [`Documentation/Windows port.md`](<Documentation/Windows port.md>) is the plan and the record of the port,
 with what each piece of the console layer became and why. Since 2026-11-16 the whole package builds there,
-the console layer included, and the Example runs under a pseudo console; what is left is in that file.
+the console layer included, and the suite passes; the Example runs in Windows Terminal and in the classic console
+(conhost), both measured and both known hosts (the terminal survey's "Windows Terminal and the classic console").
+What is left is in that file.
 
 The CI job is a **ratchet**: every step says for itself whether it is allowed
 to fail, so the job as a whole promises exactly *"everything that builds on
@@ -245,7 +247,17 @@ To work on Windows: check the repository out with LF line endings, as CI does
 again) — several tests read source files and split them on `"\n"`, which a CR LF
 never matches, being one `Character` in Swift. Some file-panel tests make
 symbolic links, which a Windows user may do only with Developer Mode on or as an
-administrator (CI's containers run as one).
+administrator (CI's containers run as one); `swift-docc-plugin`'s checkout needs the same.
+
+After installing a toolchain, quit Windows Terminal, every window of it, and start it
+again: its tabs and windows have the environment it started with, so the new runtime is not
+on their `PATH`, and a built program stops at launch with "The code execution cannot
+proceed because `swift_StringProcessing.dll` was not found". Two toolchains install
+side by side, each putting itself on the user's `PATH` and in `SDKROOT`; the first on the
+`PATH` compiles, and `SDKROOT` names the last installed, so set both for the one you mean.
+With two installed, 6.4's SwiftPM stops before building ("platform 'windows' already
+registered"): its default build system reads every platform in the install, so build
+with `--build-system native` there, or keep one toolchain installed.
 
 Two things that are *not* blockers, despite looking like them: `@AppStorage`
 already falls back to JSON-file storage off Apple platforms, so the open
