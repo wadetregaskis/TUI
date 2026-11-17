@@ -110,6 +110,8 @@ package enum SystemZlib {
             }
             return nil
         #else
+            // WebAssembly has no `dlopen`, and Windows ships no zlib: there is
+            // nothing to borrow, and a transmission goes uncompressed.
             return nil
         #endif
     }()

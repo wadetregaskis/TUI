@@ -51,10 +51,10 @@ struct SystemZlibTests {
         return nil
     }
 
-    #if canImport(WASILibc)
-        /// WASI has no `dlopen`, so no zlib is borrowed there, and the two
-        /// tests that need one are left out below.
-        @Test("On WebAssembly no zlib is borrowed, so nothing is compressed")
+    #if canImport(WASILibc) || os(Windows)
+        /// WASI has no `dlopen`, and Windows ships no zlib to borrow, so none is
+        /// borrowed there, and the two tests that need one are left out below.
+        @Test("On WebAssembly and Windows no zlib is borrowed, so nothing is compressed")
         func noZlibOnWASI() {
             #expect(!SystemZlib.isAvailable)
             #expect(SystemZlib.compress(Array(repeating: 7, count: 4096)) == nil)
@@ -84,7 +84,7 @@ struct SystemZlibTests {
         #expect(SystemZlib.compress([]) == nil)
     }
 
-    #if !canImport(WASILibc)  // no zlib there: see `noZlibOnWASI`
+    #if !canImport(WASILibc) && !os(Windows)  // no zlib there: see `noZlibOnWASI`
     @Test("The level is honoured: the default deflates a repetitive payload at least as tightly as the fastest")
     func levelsAreDistinguishable() throws {
         try #require(SystemZlib.isAvailable)

@@ -223,6 +223,8 @@ struct TerminalImageStoreTests {
     /// There is no combining mark for the 298th column, so an image that would
     /// need one is not drawn this way at all — the caller falls back to glyphs
     /// rather than drawing a truncated picture.
+    // No zlib to deflate with on WebAssembly or Windows (`SystemZlibTests`).
+    #if !canImport(WASILibc) && !os(Windows)
     @Test("A store transmits deflated exactly when the terminal said it would take it")
     func transmitsDeflatedOnlyWhereSupported() throws {
         try #require(SystemZlib.isAvailable, "no libz here; there is no compressed path to take")
@@ -242,6 +244,7 @@ struct TerminalImageStoreTests {
         #expect(deflated.contains("o=z"))
         #expect(deflated.count < raw.count / 4, "\(deflated.count) against \(raw.count)")
     }
+    #endif
 
     // MARK: - One picture, many views
 
