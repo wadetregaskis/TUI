@@ -25,7 +25,7 @@ private enum StoredMode: String {
     case list, columns
 }
 
-/// `scene.page`'s property in `store`, drawn in `session` (or none).
+/// `page`'s scene storage given `store`, drawn in `session` (or none).
 private func scenePage(in store: any StorageBackend, session: String?) -> SceneStorage<String> {
     let property = SceneStorage(wrappedValue: "default", "page", store: store)
     var environment = EnvironmentValues()
@@ -51,10 +51,28 @@ struct PersistedSettingsCompatibilityTests {
             #expect(store.value(forKey: "tuikit.gradientEditor.recents") == Optional("FF0000@0.000,0000FF@1.000"))
             #expect(scenePage(in: store, session: nil).wrappedValue == "Buttons")
             #expect(scenePage(in: store, session: Fixtures.session).wrappedValue == "Lists")
-            let ledger: [String: SceneStorageSessions.Record]? = store.value(forKey: SceneStorageSessions.ledgerKey)
+            let ledger: [String: SceneStorageSessions.Record]? =
+                store.sceneStateStore.value(forKey: SceneStorageSessions.ledgerKey)
             #expect(
                 ledger == [Fixtures.session: .init(lastWritten: 1_762_790_400, keys: [Fixtures.sessionPageKey])])
         }
+    }
+
+    /// No migration, pre-1.0 (the CHANGELOG says so): the `scene` keys earlier
+    /// versions left in `settings.json` are not scene state any more, nor any
+    /// `@AppStorage`'s but one that names them.
+    @Test("The scene keys an earlier version left in settings.json are not read back as scene state")
+    func earlierSceneKeysAreNotRead() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tui.settings-earlier.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let settings = directory.appendingPathComponent("settings.json")
+        try FileManager.default.copyItem(at: Fixtures.url("settings.json"), to: settings)
+        let store = JSONFileStorage(fileURL: settings)
+        #expect(scenePage(in: store, session: nil).wrappedValue == "default")
+        #expect(scenePage(in: store, session: Fixtures.session).wrappedValue == "default")
+        #expect(store.value(forKey: "scene.page") == Optional("Buttons"), "the file is as the app left it")
     }
 
     /// The other half of "today's file": what today's writer puts there must be
@@ -76,15 +94,22 @@ struct PersistedSettingsCompatibilityTests {
             store.setValue("FF0000@0.000,0000FF@1.000", forKey: "tuikit.gradientEditor.recents")
             scenePage(in: store, session: nil).wrappedValue = "Buttons"
             let ledger = [Fixtures.session: SceneStorageSessions.Record(lastWritten: 1_762_790_400, keys: [Fixtures.sessionPageKey])]
-            store.setValue(ledger, forKey: SceneStorageSessions.ledgerKey)
+            store.sceneStateStore.setValue(ledger, forKey: SceneStorageSessions.ledgerKey)
+            store.sceneStateStore.synchronize()
             store.synchronize()
             for key in [
                 "TUIFilePanels.viewMode", "TUIFilePanels.showsHiddenFiles", "TUIFilePanels.open.width",
-                "TUIFilePanels.docs.directory", "tuikit.gradientEditor.recents", "scene.page",
-                SceneStorageSessions.ledgerKey,
+                "TUIFilePanels.docs.directory", "tuikit.gradientEditor.recents",
             ] {
                 let (wrote, holds) = (try Fixtures.storedJSON(key, in: written), try Fixtures.storedJSON(key, in: fixture))
                 #expect(wrote != nil && wrote == holds, "today's writer and today's file differ at \(key)")
+            }
+            let (wroteScenes, holdsScenes) = (Fixtures.scenesFile(beside: written), Fixtures.scenesFile(beside: fixture))
+            for key in ["page", SceneStorageSessions.ledgerKey] {
+                let (wrote, holds) = (
+                    try Fixtures.storedJSON(key, in: wroteScenes), try Fixtures.storedJSON(key, in: holdsScenes)
+                )
+                #expect(wrote != nil && wrote == holds, "today's writer and today's scene-state file differ at \(key)")
             }
         }
     }
@@ -102,7 +127,8 @@ struct PersistedSettingsCompatibilityTests {
             #expect(scenePage(in: store, session: nil).wrappedValue == "Buttons")
             #expect(scenePage(in: store, session: Fixtures.session).wrappedValue == "Lists")
             // A record with a field this build doesn't know reads without it.
-            let ledger: [String: SceneStorageSessions.Record]? = store.value(forKey: SceneStorageSessions.ledgerKey)
+            let ledger: [String: SceneStorageSessions.Record]? =
+                store.sceneStateStore.value(forKey: SceneStorageSessions.ledgerKey)
             #expect(ledger?[Fixtures.session] == .init(lastWritten: 1_762_790_400, keys: [Fixtures.sessionPageKey]))
             #expect(ledger?.count == 2)
             // Out of range reads as stored; the sheet clamps it where it is used.
@@ -129,17 +155,18 @@ struct PersistedSettingsCompatibilityTests {
     /// later build had kept, gone.
     @Test("A write to a later file keeps every key this build doesn't know, as it was")
     func writeKeepsWhatItDoesNotKnow() throws {
-        try Fixtures.withStore("settings-newer.json") { store, file in
+        try Fixtures.withStore("settings-newer.json") { store, settings in
+            let file = Fixtures.scenesFile(beside: settings)
             let before = try Fixtures.topLevel(of: file)
             scenePage(in: store, session: nil).wrappedValue = "Tables"
-            store.synchronize()
+            store.sceneStateStore.synchronize()
             let after = try Fixtures.topLevel(of: file)
             #expect(Set(after.keys) == Set(before.keys))
-            for key in before.keys where key != "scene.page" {
+            for key in before.keys where key != "page" {
                 #expect(
                     "\(after[key] ?? "missing")" == "\(before[key] ?? "missing")", "\(key) changed under a write of another")
             }
-            #expect(JSONFileStorage(fileURL: file).value(forKey: "scene.page") == Optional("Tables"))
+            #expect(JSONFileStorage(fileURL: file).value(forKey: "page") == Optional("Tables"))
         }
     }
 }

@@ -244,7 +244,9 @@ beneath it.
 
 Any ``StorageBackend`` can stand behind `@AppStorage(_:store:)`. A store implements
 four primitives — read an entry, store, remove, synchronize — and hands back the
-key's ``StoredKey`` from each, the same one every time; the methods everyone else
+key's ``StoredKey`` from each, the same one every time. It also names the store
+`@SceneStorage` keeps scene state in beside it (``StorageBackend/sceneStateStore``):
+another of its kind, made once, which answers itself; the methods everyone else
 calls (`value(forKey:)`, `setValue(_:forKey:)`, `removeValue(forKey:)`) do the
 observation around them. Keep each key's `StoredKey` beside its value, so a read
 — which is on the render path — finds both in one lookup.
@@ -276,8 +278,9 @@ path. Directory creation, loads, encodes and writes are all reported.
 ## @SceneStorage
 
 ``SceneStorage`` keeps where the user was, such as a tab, a selection or a scroll position, rather than what they
-chose. It is kept per window: each window the app opens has values of its own, and `@SceneStorage("tab")` is never the
-same value as `@AppStorage("tab")`.
+chose. It is kept per window: each window the app opens has values of its own. It is kept apart from app storage, in a
+store of its own beside the app's, so `@SceneStorage("tab")` is never the value of any `@AppStorage` key, `"tab"` and
+`"scene.tab"` alike.
 
 ```swift
 struct BrowserView: View {
@@ -299,8 +302,9 @@ The session is what the terminal names in the environment it started the shell w
 (Windows Terminal) and the like. Where there's none, as over a plain ssh connection or in Ghostty, which names no window,
 there is only the last saved. A store keeps each session for 30 days after its last write, however many there are.
 
-It is stored where an `@AppStorage` with the same `store:`, or none, would be: <doc:StateManagement#Which-store>
-applies as it stands.
+It is stored beside where an `@AppStorage` with the same `store:`, or none, would be (<doc:StateManagement#Which-store>
+applies as it stands), in that store's ``StorageBackend/sceneStateStore``: `settings.scenes.json` beside `settings.json`,
+or a `UserDefaults` suite of its own, `<app>.scene-state`.
 
 ## Where Saved State Lives
 
@@ -309,8 +313,9 @@ connection. TUI decides each kind of state by whose it is.
 
 **On the machine the app runs on**, as SwiftUI keeps it on the machine it runs on:
 
-- `@AppStorage` and `@SceneStorage` values, in `UserDefaults` on macOS and in `settings.json` in the app's configuration
-  directory elsewhere (`TUI_CONFIG_DIR` moves it).
+- `@AppStorage` values, in `UserDefaults` on macOS and in `settings.json` in the app's configuration directory
+  elsewhere (`TUI_CONFIG_DIR` moves it), and `@SceneStorage` values beside them, in the suite `<app>.scene-state` and
+  in `settings.scenes.json`.
 - The language chosen in the app, in the same directory.
 - TUI's own settings as chosen in the app, and the person's settings for every TUI program (see
   <doc:StateManagement#Settings-for-This-Program-and-All-Programs>).

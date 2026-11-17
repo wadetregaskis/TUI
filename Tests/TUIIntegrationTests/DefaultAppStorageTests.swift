@@ -213,6 +213,7 @@ struct DefaultAppStorageTests {
         func store<T: Codable>(_ value: T, forKey key: String) -> StoredKey { StoredKey() }
         func remove(forKey key: String) -> StoredKey? { nil }
         func synchronize() {}
+        var sceneStateStore: any StorageBackend { self }
     }
 
     @Test("Default stores are equal when they read and write through one object, and a value store never is")

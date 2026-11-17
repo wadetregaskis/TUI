@@ -438,6 +438,18 @@ public struct TestAppError: Error, CustomStringConvertible, Sendable {
 private final class TestAppStorage: StorageBackend {
     private let entries = Mutex<[String: (data: Data?, key: StoredKey)]>([:])
 
+    /// The ``sceneStateStore``, in memory too, or `nil` for a store that is
+    /// itself one.
+    private let sceneState: TestAppStorage?
+
+    init(keepsSceneState: Bool = true) {
+        sceneState = keepsSceneState ? TestAppStorage(keepsSceneState: false) : nil
+    }
+
+    /// Where the app's `@SceneStorage` keeps its values: a store of its own,
+    /// as the built-in stores keep them.
+    var sceneStateStore: any StorageBackend { sceneState ?? self }
+
     func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
         let entry = entries.withLock { entries in
             let entry = entries[key] ?? (nil, StoredKey())

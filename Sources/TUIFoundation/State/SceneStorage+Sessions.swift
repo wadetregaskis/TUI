@@ -14,26 +14,24 @@ import Foundation
 /// Where a ``SceneStorage`` keeps its values for one terminal session, and
 /// the record of the sessions a store holds, which bounds them.
 ///
-/// A property keeps two copies of each value: the session's, under
+/// A property keeps two copies of each value, both in its scene-state store
+/// (``StorageBackend/sceneStateStore``): the session's, under
 /// ``key(_:session:)``, and the one last saved from any session, under its
-/// plain `scene.` key. It reads the session's, else the last saved, else its
-/// default. See
+/// plain key. It reads the session's, else the last saved, else its default.
+/// See
 /// `Documentation/Historical/State and dynamic properties/Scene storage per terminal session.md`.
 enum SceneStorageSessions {
-    /// The key a session keeps `scopedKey` (`scene.` and on) under:
-    /// `scene@`, a fixed-length digest of the session and the rest of the
-    /// key, so `scene@0123456789abcdef.viewer#2.tab`.
+    /// The key a session keeps `scopedKey` (the window's namespace and the
+    /// declared key) under: `@`, a fixed-length digest of the session, a dot
+    /// and the key, so `@0123456789abcdef.viewer#2.tab`.
     ///
     /// A digest rather than the session itself, which is a terminal's own
     /// string (a path, a UUID, `w0t0p0:…`): fixed in length, so no session's
     /// characters can run into the key after it, and no terminal's
     /// identifiers are written into the app's preferences.
     static func key(_ scopedKey: String, session: String) -> String {
-        "scene@" + digest(session) + scopedKey.dropFirst(prefixLength)
+        "@" + digest(session) + "." + scopedKey
     }
-
-    /// The length of `scene`, which ``key(_:session:)`` replaces.
-    private static let prefixLength = "scene".count
 
     /// FNV-1a over the session's UTF-8, as sixteen hex digits: the same from
     /// run to run and platform to platform, as `Hasher`, seeded per process,
@@ -51,9 +49,9 @@ enum SceneStorageSessions {
 
     // MARK: - The Ledger
 
-    /// The key the ledger is kept under. `scene@` and no digest, so no
-    /// session's keys can be it.
-    static let ledgerKey = "scene@sessions"
+    /// The key the ledger is kept under. `@` and no digest, so no session's
+    /// keys can be it.
+    static let ledgerKey = "@sessions"
 
     /// How long a session that wrote nothing is kept: 30 days, longer than a
     /// window is left alone and still come back to, short enough that a

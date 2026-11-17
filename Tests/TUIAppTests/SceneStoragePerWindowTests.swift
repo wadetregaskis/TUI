@@ -2,9 +2,9 @@
 //  SceneStoragePerWindowTests.swift
 //
 //  `@SceneStorage` is one per window (lane O9): each window the app opens
-//  keeps its values under a namespace of its own, the window opened at launch
-//  under `scene.` as before, a `Window`'s under its identifier, and a group's
-//  windows past the first under their ordinal too.
+//  keeps its values under a namespace of its own in the scene-state store,
+//  the window opened at launch under its declared keys, a `Window`'s under its
+//  identifier, and a group's windows past the first under their ordinal too.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -97,7 +97,7 @@ struct SceneStoragePerWindowTests {
     }
 
     private func stored(_ key: String) -> String? {
-        StorageProbe.shared.store.entry(forKey: key, as: String.self).value
+        StorageProbe.shared.store.sceneStateMock.entry(forKey: key, as: String.self).value
     }
 
     /// Opens `id` and presses the new window's button.
@@ -108,12 +108,12 @@ struct SceneStoragePerWindowTests {
         frame(app)
     }
 
-    @Test("The window opened at launch keeps its scene storage under scene., as an app of one window did")
+    @Test("The window opened at launch keeps its scene storage under its declared key, as an app of one window did")
     mutating func launchWindowNamespace() {
         let app = launched()
         app.send(KeyEvent(key: .enter))
         frame(app)
-        #expect(stored("scene.tab") == "second")
+        #expect(stored("tab") == "second")
     }
 
     @Test("Another window's scene storage is its own: written there, it leaves the launch window's alone")
@@ -124,8 +124,8 @@ struct SceneStoragePerWindowTests {
         #expect(screen(app).contains("tab=first"))
         app.send(KeyEvent(key: .enter))
         frame(app)
-        #expect(stored("scene.inspector.tab") == "second")
-        #expect(stored("scene.tab") == nil)
+        #expect(stored("inspector.tab") == "second")
+        #expect(stored("tab") == nil)
         app.send(KeyEvent(key: .escape))
         frame(app)
         #expect(screen(app).contains("tab=first"), "the launch window's own: \(screen(app))")
@@ -143,8 +143,8 @@ struct SceneStoragePerWindowTests {
         frame(app)
         #expect(Set(LateWrites.byWindow.keys) == ["viewer.", "viewer#2."], "precondition: both viewers drew")
         LateWrites.byWindow["viewer."]?()
-        #expect(stored("scene.viewer.tab") == "late")
-        #expect(stored("scene.viewer#2.tab") == nil, "the window in front's is its own")
+        #expect(stored("viewer.tab") == "late")
+        #expect(stored("viewer#2.tab") == nil, "the window in front's is its own")
     }
 
     @Test("A group's windows past the first are told apart by their ordinal")
@@ -152,7 +152,7 @@ struct SceneStoragePerWindowTests {
         let app = launched()
         openAndPress("viewer", in: app)
         openAndPress("viewer", in: app)
-        #expect(stored("scene.viewer.tab") == "second")
-        #expect(stored("scene.viewer#2.tab") == "second")
+        #expect(stored("viewer.tab") == "second")
+        #expect(stored("viewer#2.tab") == "second")
     }
 }

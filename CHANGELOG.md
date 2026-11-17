@@ -19,6 +19,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`@SceneStorage` keeps its values in a store of its own, which no `@AppStorage` key can name.** The window opened at
+launch kept `@SceneStorage("tab")` under `scene.tab` in the app's own store, so `@AppStorage("scene.tab")` was the same
+value and writing either changed the other. Scene state now lives beside the app's store, under its declared keys: in
+`settings.scenes.json` next to `settings.json` (`TUI_CONFIG_DIR` moves both), in a `UserDefaults` suite named
+`<app>.scene-state` on Apple platforms (`<suite>.scene-state` for a store of a suite), and in memory with a `TestApp`'s
+own. **A `StorageBackend` of your own** has a new requirement, `sceneStateStore`: hand back another store of your kind,
+made once, which answers itself. **Scene state saved by earlier versions is not read back**, since TUI keeps no
+compatibility shims before 1.0: windows open once as they would on a first launch, and the old `scene.` keys stay in
+the app's store, unread.
+
 **A menu open while the terminal shrinks keeps its highlighted row in sight.** A pop-up menu, a submenu, a context
 menu, a `Picker`'s drop-down and a text field's suggestions kept their rows scrolled where they were when their
 window of rows changed size, so the highlighted row could end up out of sight and Return chose a row nobody could

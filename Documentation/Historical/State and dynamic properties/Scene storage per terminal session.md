@@ -74,3 +74,14 @@ so `TestApp`'s in-memory store didn't cover it, and a test using `@SceneStorage`
   starts from the last saved.
 - **Inheritance by a terminal that names nothing.** kitty's variables inherited by a terminal that sets no
   `TERM_PROGRAM` of its own, or none per window, make all its windows one session.
+
+## A store of its own (2026-11-17)
+
+A bug hunt found the `scene.` prefix was a namespace only by convention: the launch window's `@SceneStorage("tab")` was
+`scene.tab` in the app's own store, so `@AppStorage("scene.tab")` read and wrote the same value. No prefix can fix that,
+since an `@AppStorage` key can be any string. Scene state now lives in a store of its own beside the app's,
+`StorageBackend.sceneStateStore`: `settings.scenes.json` beside a `JSONFileStorage`'s file, a suite named
+`<suite or app domain>.scene-state` for a `UserDefaultsStorage` (a suite's reads do not fall through to the app's
+domain, measured on macOS 15), and another in-memory store for `TestApp`'s. The keys lost their `scene` prefix with it:
+`tab`, `viewer#2.tab`, `@<digest>.viewer#2.tab`, and the ledger `@sessions`. Pre-1.0, there was no migration: scene
+state saved before is not read back.

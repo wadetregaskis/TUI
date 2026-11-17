@@ -53,6 +53,53 @@ struct SceneStorageTests {
         #expect(app.wrappedValue == 7)
     }
 
+    /// A prefix in the same store was a namespace only by convention:
+    /// `@AppStorage("scene.tab")` was the launch window's `@SceneStorage("tab")`
+    /// under another name, so writing either changed the other (bug hunt,
+    /// 2026-11-17). Scene state is in a store of its own now, which no key of
+    /// the app's store can name — in a store of an app's own, and in the file
+    /// store an app keeps its settings in.
+    @Test("No @AppStorage key names a scene's value, the scene's prefixed key included")
+    func noAppStorageKeyNamesSceneState() throws {
+        func check(_ backend: any StorageBackend, _ name: String) {
+            let scene = SceneStorage(wrappedValue: "inbox", "tab", store: backend)
+            let prefixed = AppStorage(wrappedValue: "none", "scene.tab", store: backend)
+            let plain = AppStorage(wrappedValue: "none", "tab", store: backend)
+            scene.wrappedValue = "archive"
+            #expect(prefixed.wrappedValue == "none", "\(name): the scene's write reached @AppStorage(\"scene.tab\")")
+            #expect(plain.wrappedValue == "none", "\(name): the scene's write reached @AppStorage(\"tab\")")
+            prefixed.wrappedValue = "chosen"
+            plain.wrappedValue = "chosen"
+            #expect(scene.wrappedValue == "archive", "\(name): an app storage write reached the scene's")
+        }
+        check(MockStorageBackend(), "a store of the app's own")
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tui.scene-state.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = JSONFileStorage(fileURL: directory.appendingPathComponent("settings.json"))
+        check(file, "the settings file")
+        file.synchronize()
+    }
+
+    @Test("The settings file's scene state is kept in a file beside it")
+    func fileStoreKeepsSceneStateBeside() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tui.scene-state.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let file = JSONFileStorage(fileURL: directory.appendingPathComponent("settings.json"))
+        SceneStorage(wrappedValue: "inbox", "tab", store: file).wrappedValue = "archive"
+        file.sceneStateStore.synchronize()
+        let beside = JSONFileStorage(fileURL: directory.appendingPathComponent("settings.scenes.json"))
+        #expect(beside.value(forKey: "tab") == Optional("archive"))
+        #expect(file.value(forKey: "tab") as String? == nil && file.value(forKey: "scene.tab") as String? == nil)
+        // Asked twice: the same store each time, as the protocol requires.
+        let asked = ObjectIdentifier(file.sceneStateStore as AnyObject)
+        let askedAgain = ObjectIdentifier(file.sceneStateStore as AnyObject)
+        #expect(asked == askedAgain, "one store, every time")
+    }
+
     @Test("The optional forms start nil and store a value")
     func optionalForms() {
         let backend = MockStorageBackend()
@@ -122,8 +169,8 @@ struct SceneStorageRawValueTests {
         #expect(pane.wrappedValue == .list)
         pane.wrappedValue = .detail
         #expect(pane.wrappedValue == .detail)
-        #expect(backend.value(forKey: "scene.pane") == Optional("detail"))
-        backend.setValue("gallery", forKey: "scene.pane")
+        #expect(backend.sceneStateMock.value(forKey: "pane") == Optional("detail"))
+        backend.sceneStateMock.setValue("gallery", forKey: "pane")
         #expect(pane.wrappedValue == .list, "a raw value that is no case reads as nothing stored")
     }
 }

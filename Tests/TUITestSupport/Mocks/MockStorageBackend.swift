@@ -28,7 +28,30 @@ final class MockStorageBackend: StorageBackend, @unchecked Sendable {
     /// Number of times ``synchronize()`` has been called.
     private(set) var synchronizeCallCount = 0
 
-    init() {}
+    /// Whether this mock is another's ``sceneStateStore``, and so its own.
+    private let isSceneState: Bool
+
+    /// The ``sceneStateMock``, made the first time it is asked for.
+    private var sceneState: MockStorageBackend?
+
+    init() { isSceneState = false }
+
+    private init(isSceneState: Bool) { self.isSceneState = isSceneState }
+
+    /// Where scene storage given this mock keeps its values: a mock of its
+    /// own, as the built-in stores keep a store of their own for it, or this
+    /// one for a mock that is itself one. Typed, so a test can look inside.
+    var sceneStateMock: MockStorageBackend {
+        if isSceneState { return self }
+        lock.lock()
+        defer { lock.unlock() }
+        if let sceneState { return sceneState }
+        let made = MockStorageBackend(isSceneState: true)
+        sceneState = made
+        return made
+    }
+
+    var sceneStateStore: any StorageBackend { sceneStateMock }
 
     func entry<T: Codable>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) {
         lock.lock()

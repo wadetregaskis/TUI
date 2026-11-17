@@ -33,8 +33,10 @@ struct SceneStorageSessionTests {
     func noSession() {
         let store = MockStorageBackend()
         property("tab", in: store, session: nil).wrappedValue = "sent"
-        #expect(store.value(forKey: "scene.tab") == Optional("sent"))
-        #expect(store.value(forKey: SceneStorageSessions.ledgerKey) as [String: SceneStorageSessions.Record]? == nil)
+        #expect(store.sceneStateMock.value(forKey: "tab") == Optional("sent"))
+        #expect(
+            store.sceneStateMock.value(forKey: SceneStorageSessions.ledgerKey) as [String: SceneStorageSessions.Record]?
+                == nil)
         #expect(property("tab", in: store, session: nil).wrappedValue == "sent")
     }
 
@@ -59,11 +61,11 @@ struct SceneStorageSessionTests {
     func namespacesUnderTheSession() {
         let store = MockStorageBackend()
         property("tab", in: store, session: "A", namespace: "viewer#2.").wrappedValue = "x"
-        let key = SceneStorageSessions.key("scene.viewer#2.tab", session: "A")
-        #expect(key.hasPrefix("scene@") && key.hasSuffix(".viewer#2.tab"))
-        #expect(key.count == "scene@".count + 16 + ".viewer#2.tab".count)
-        #expect(store.value(forKey: key) == Optional("x"))
-        #expect(store.value(forKey: "scene.viewer#2.tab") == Optional("x"))
+        let key = SceneStorageSessions.key("viewer#2.tab", session: "A")
+        #expect(key.hasPrefix("@") && key.hasSuffix(".viewer#2.tab"))
+        #expect(key.count == "@".count + 16 + ".viewer#2.tab".count)
+        #expect(store.sceneStateMock.value(forKey: key) == Optional("x"))
+        #expect(store.sceneStateMock.value(forKey: "viewer#2.tab") == Optional("x"))
         #expect(property("tab", in: store, session: "A").wrappedValue == "default", "the launch window's is its own")
     }
 
@@ -74,26 +76,26 @@ struct SceneStorageSessionTests {
         let count = 100
         for index in 0..<count {
             let session = "S\(index)"
-            let key = SceneStorageSessions.key("scene.tab", session: session)
+            let key = SceneStorageSessions.key("tab", session: session)
             store.setValue(session, forKey: key)
             SceneStorageSessions.noteWrite(
                 of: key, session: session, in: store, now: start.addingTimeInterval(TimeInterval(index)))
         }
         let ledger: [String: SceneStorageSessions.Record]? = store.value(forKey: SceneStorageSessions.ledgerKey)
         #expect(ledger?.count == count)
-        #expect(store.value(forKey: SceneStorageSessions.key("scene.tab", session: "S0")) == Optional("S0"))
-        #expect(store.value(forKey: SceneStorageSessions.key("scene.tab", session: "S99")) == Optional("S99"))
+        #expect(store.value(forKey: SceneStorageSessions.key("tab", session: "S0")) == Optional("S0"))
+        #expect(store.value(forKey: SceneStorageSessions.key("tab", session: "S99")) == Optional("S99"))
     }
 
     @Test("A session that wrote nothing for longer than its lifetime goes when another writes")
     func sessionLifetime() {
         let store = MockStorageBackend()
         let start = Date(timeIntervalSince1970: 1_000_000)
-        let old = SceneStorageSessions.key("scene.tab", session: "old")
+        let old = SceneStorageSessions.key("tab", session: "old")
         store.setValue("old", forKey: old)
         SceneStorageSessions.noteWrite(of: old, session: "old", in: store, now: start)
 
-        let new = SceneStorageSessions.key("scene.tab", session: "new")
+        let new = SceneStorageSessions.key("tab", session: "new")
         let later = start.addingTimeInterval(SceneStorageSessions.sessionLifetime + 1)
         SceneStorageSessions.noteWrite(of: new, session: "new", in: store, now: later)
 
@@ -106,7 +108,7 @@ struct SceneStorageSessionTests {
     func stampInterval() {
         let store = MockStorageBackend()
         let start = Date(timeIntervalSince1970: 1_000_000)
-        let key = SceneStorageSessions.key("scene.tab", session: "A")
+        let key = SceneStorageSessions.key("tab", session: "A")
         SceneStorageSessions.noteWrite(of: key, session: "A", in: store, now: start)
         SceneStorageSessions.noteWrite(of: key, session: "A", in: store, now: start.addingTimeInterval(60))
         var ledger: [String: SceneStorageSessions.Record]? = store.value(forKey: SceneStorageSessions.ledgerKey)
@@ -126,6 +128,6 @@ struct SceneStorageSessionTests {
         environment.defaultAppStorage = DefaultAppStorage(store)
         property.resolveEnvironment(environment)
         property.wrappedValue = "kept here"
-        #expect(store.value(forKey: "scene.SceneStorageSessionTests.tab") == Optional("kept here"))
+        #expect(store.sceneStateMock.value(forKey: "SceneStorageSessionTests.tab") == Optional("kept here"))
     }
 }

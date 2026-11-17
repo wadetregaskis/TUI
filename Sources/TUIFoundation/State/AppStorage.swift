@@ -70,6 +70,13 @@ public final class JSONFileStorage: StorageBackend {
 
     private let state = Mutex(State())
 
+    /// Whether this store is another's ``sceneStateStore``, and so its own.
+    private let isSceneState: Bool
+
+    /// The ``sceneStateStore``, made the first time it is asked for: most apps
+    /// keep no scene state, and should not read a file for it.
+    private let sceneState = Mutex<JSONFileStorage?>(nil)
+
     /// Serialises every disk write. A dedicated serial queue rather than
     /// `Task.detached` for three reasons: writes land in submission order (two
     /// detached saves could race and let an older snapshot win the file);
@@ -103,13 +110,38 @@ public final class JSONFileStorage: StorageBackend {
         }
 
         self.fileURL = configDir.appendingPathComponent("settings.json")
+        self.isSceneState = false
         loadFromDisk()
     }
 
     /// Creates a JSON file storage with a custom file URL.
     public init(fileURL: URL) {
         self.fileURL = fileURL
+        self.isSceneState = false
         loadFromDisk()
+    }
+
+    /// A store at `fileURL`, which is another's ``sceneStateStore`` where
+    /// `isSceneState` says so.
+    private init(fileURL: URL, isSceneState: Bool) {
+        self.fileURL = fileURL
+        self.isSceneState = isSceneState
+        loadFromDisk()
+    }
+
+    /// Where `@SceneStorage` keeps what it is given this store for: a file of
+    /// its own beside this one's, `settings.scenes.json` beside
+    /// `settings.json`, so no key of this store can name a scene's value.
+    public var sceneStateStore: any StorageBackend {
+        if isSceneState { return self }
+        return sceneState.withLock { made in
+            if let made { return made }
+            let name = fileURL.deletingPathExtension().lastPathComponent + ".scenes.json"
+            let store = JSONFileStorage(
+                fileURL: fileURL.deletingLastPathComponent().appendingPathComponent(name), isSceneState: true)
+            made = store
+            return store
+        }
     }
 }
 

@@ -22,15 +22,21 @@ import Foundation
 /// - `settings.json`: today's `settings.json` (and Linux's `UserDefaults.json`,
 ///   the same format), holding a value for every key TUI keeps: the file
 ///   panels' view mode, preview, hidden files, size and folder, a customized
-///   toolbar, the colour picker's two, and `@SceneStorage`'s shared key, a
-///   session's key and the session ledger. NEVER regenerate it to make a test
+///   toolbar and the colour picker's two. NEVER regenerate it to make a test
 ///   pass: it is what apps already in use have on disk, and a change that
-///   cannot read it breaks them.
+///   cannot read it breaks them. Its three `scene` keys are what versions
+///   before 2026-11-17 kept scene state under, in the same file; they are not
+///   read now (the CHANGELOG says so), and are left as apps have them.
+/// - `settings.scenes.json`: today's scene-state file, beside it
+///   (`JSONFileStorage.sceneStateStore`): `@SceneStorage`'s shared key, a
+///   session's key and the session ledger. The same rule holds.
 /// - `settings-newer.json`: what a later TUI might leave there — a new case of
 ///   an enum stored by raw value, a size out of range and one retyped, a
 ///   record with a field this one doesn't know or without one it does, a key
 ///   it has never heard of, and values that are not this format's base64
 ///   strings at all. A reader must take what it knows and leave the rest.
+///   `settings-newer.scenes.json` is its scene-state file, with a ledger
+///   record that has a field this build doesn't know.
 ///
 /// Read by path (`#filePath`), as the golden snapshots are, so they are
 /// excluded from the build rather than bundled as resources.
@@ -38,9 +44,9 @@ package enum PersistedSettingsFixtures {
     /// The session `@SceneStorage`'s session key and ledger entry are for.
     package static let session = "fixture-session"
 
-    /// `scene.page`'s key for ``session``: `scene@`, the session's digest, and
-    /// the key after `scene`.
-    package static let sessionPageKey = "scene@dbf4e7add29e7a7f.page"
+    /// `page`'s key for ``session``: `@`, the session's digest, a dot and the
+    /// key.
+    package static let sessionPageKey = "@dbf4e7add29e7a7f.page"
 
     /// The committed fixture `name`.
     package static func url(_ name: String) -> URL {
@@ -59,7 +65,17 @@ package enum PersistedSettingsFixtures {
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let copy = directory.appendingPathComponent("settings.json")
         try FileManager.default.copyItem(at: url(name), to: copy)
+        // The fixture's scene-state file goes beside it, where the store looks.
+        let scenes = url(name.replacingOccurrences(of: ".json", with: ".scenes.json"))
+        if FileManager.default.fileExists(atPath: scenes.path) {
+            try FileManager.default.copyItem(at: scenes, to: scenesFile(beside: copy))
+        }
         return copy
+    }
+
+    /// The scene-state file of the settings file `settings`.
+    package static func scenesFile(beside settings: URL) -> URL {
+        settings.deletingLastPathComponent().appendingPathComponent("settings.scenes.json")
     }
 
     /// Runs `body` with a store loaded from a ``scratchCopy(_:)`` of fixture
@@ -71,7 +87,10 @@ package enum PersistedSettingsFixtures {
         defer { try? FileManager.default.removeItem(at: copy.deletingLastPathComponent()) }
         let store = JSONFileStorage(fileURL: copy)
         // A write queues its save, which could land after the removal above.
-        defer { store.synchronize() }
+        defer {
+            store.sceneStateStore.synchronize()
+            store.synchronize()
+        }
         try body(store, copy)
     }
 

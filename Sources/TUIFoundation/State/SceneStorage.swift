@@ -28,15 +28,19 @@ import Foundation
 /// can be scrolled to different places. So it is here: each window the app
 /// opens (`openWindow`) keeps its own, under a namespace of its own.
 ///
-/// - The window opened at launch keeps its values under `scene.`, so
-///   `@SceneStorage("tab")` and `@AppStorage("tab")` are different values
-///   rather than the same one under two names.
-/// - A `Window` scene's window keeps them under `scene.` and its identifier —
-///   `scene.inspector.tab` — the same from launch to launch.
-/// - Each other window of a group keeps them under `scene.`, its group's
-///   identifier (or its place among the app's window scenes, for one with
-///   none) and, past the first, the how-manyth of its group opened this
-///   session it is — `scene.viewer.tab`, `scene.viewer#2.tab`.
+/// Scene state is kept apart from app storage altogether, in a store of its
+/// own (``StorageBackend/sceneStateStore``), as SwiftUI keeps it with a
+/// window's restoration state rather than in `UserDefaults`. So
+/// `@SceneStorage("tab")` is never the value of any `@AppStorage` key, `"tab"`
+/// and `"scene.tab"` alike. Within that store:
+///
+/// - The window opened at launch keeps its values under the declared key.
+/// - A `Window` scene's window keeps them under its identifier and the key —
+///   `inspector.tab` — the same from launch to launch.
+/// - Each other window of a group keeps them under its group's identifier (or
+///   its place among the app's window scenes, for one with none) and, past
+///   the first, the how-manyth of its group opened this session it is —
+///   `viewer.tab`, `viewer#2.tab`.
 ///
 /// Which one to reach for is then a statement of intent — "this is where the
 /// user was" (a tab, a scroll position, a selection) versus "this is what the
@@ -62,10 +66,13 @@ import Foundation
 ///
 /// ## Where it is stored
 ///
-/// As ``AppStorage`` is: in the store a property names (`store:`), else the
-/// one `defaultAppStorage(_:)` set above its view, else
-/// ``StorageDefaults/backend``. So a test run in `TestApp` keeps its scene
-/// storage in memory with its app storage.
+/// Beside the store an ``AppStorage`` would use — the one a property names
+/// (`store:`), else the one `defaultAppStorage(_:)` set above its view, else
+/// ``StorageDefaults/backend`` — in that store's
+/// ``StorageBackend/sceneStateStore``: a file beside its file
+/// (`settings.scenes.json` beside `settings.json`), or a `UserDefaults` suite
+/// of its own (`<app>.scene-state`). So a test run in `TestApp` keeps its
+/// scene storage in memory with its app storage.
 ///
 /// > Note: SwiftUI does not guarantee scene storage survives a relaunch — it is
 ///   for *state restoration*, and the system may discard it. TUI persists it
@@ -91,9 +98,6 @@ public struct SceneStorage<Value> {
     /// environment names.
     private let namedStore: (any StorageBackend)?
 
-    /// The namespace that separates scene state from app preferences.
-    private static var prefix: String { "scene." }
-
     /// How the value is read from and written to the store: as itself, or as
     /// its raw value (``StorageCodec``).
     private let codec: any StorageCodec<Value>
@@ -108,14 +112,15 @@ public struct SceneStorage<Value> {
         self.codec = codec
     }
 
-    /// Where the property keeps its values now: the store, the shared key
-    /// (the declared key in the scene's namespace) and, if the app runs in a
-    /// terminal session, the session and its key.
+    /// Where the property keeps its values now: the scene-state store beside
+    /// the store an `@AppStorage` would use, the shared key (the declared key
+    /// in the scene's namespace) and, if the app runs in a terminal session,
+    /// the session and its key.
     private var location: SceneStorageLocation {
         let scope = scope.withLock { $0 }
-        let shared = Self.prefix + scope.namespace + key
+        let shared = scope.namespace + key
         return SceneStorageLocation(
-            store: namedStore ?? scope.store ?? StorageDefaults.backend,
+            store: (namedStore ?? scope.store ?? StorageDefaults.backend).sceneStateStore,
             shared: shared,
             session: scope.session,
             sessionKey: scope.session.map { SceneStorageSessions.key(shared, session: $0) })
@@ -286,10 +291,10 @@ private struct SceneStorageScope: Sendable {
 
 /// Where a ``SceneStorage`` reads and writes, worked out from its scope.
 private struct SceneStorageLocation {
-    /// The store.
+    /// The scene-state store (``StorageBackend/sceneStateStore``).
     var store: any StorageBackend
-    /// The last saved from any session: `scene.`, the window's namespace and
-    /// the declared key.
+    /// The last saved from any session: the window's namespace and the
+    /// declared key.
     var shared: String
     /// The terminal session, or `nil` for none.
     var session: String?
@@ -303,9 +308,9 @@ private struct SceneStorageNamespaceKey: EnvironmentKey {
 
 extension EnvironmentValues {
     /// Where the `@SceneStorage` of the window being drawn keeps its values,
-    /// after `scene.`: empty for the window opened at launch, and for any
-    /// other window its scene's and, past its group's first, its own, each
-    /// ending in a dot. Set by the app's scene presenter.
+    /// in front of the declared key: empty for the window opened at launch,
+    /// and for any other window its scene's and, past its group's first, its
+    /// own, each ending in a dot. Set by the app's scene presenter.
     package var sceneStorageNamespace: String {
         get { self[SceneStorageNamespaceKey.self] }
         set { self[SceneStorageNamespaceKey.self] = newValue }

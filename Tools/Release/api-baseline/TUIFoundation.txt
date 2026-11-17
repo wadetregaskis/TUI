@@ -1699,6 +1699,7 @@ JSONFileStorage.fileURL | let fileURL: URL
 JSONFileStorage.init() | init()
 JSONFileStorage.init(fileURL:) | init(fileURL: URL)
 JSONFileStorage.remove(forKey:) | func remove(forKey key: String) -> StoredKey?
+JSONFileStorage.sceneStateStore | var sceneStateStore: any StorageBackend { get }
 JSONFileStorage.store(_:forKey:) | func store<T>(_ value: T, forKey key: String) -> StoredKey where T : Decodable, T : Encodable
 JSONFileStorage.synchronize() | func synchronize()
 KeyEquivalent | struct KeyEquivalent
@@ -3171,6 +3172,7 @@ StorageBackend | protocol StorageBackend : Sendable
 StorageBackend.entry(forKey:as:) | func entry<T>(forKey key: String, as type: T.Type) -> (value: T?, key: StoredKey) where T : Decodable, T : Encodable
 StorageBackend.remove(forKey:) | func remove(forKey key: String) -> StoredKey?
 StorageBackend.removeValue(forKey:) | func removeValue(forKey key: String)
+StorageBackend.sceneStateStore | var sceneStateStore: any StorageBackend { get }
 StorageBackend.setValue(_:forKey:) | func setValue<T>(_ value: T, forKey key: String) where T : Decodable, T : Encodable
 StorageBackend.store(_:forKey:) | func store<T>(_ value: T, forKey key: String) -> StoredKey where T : Decodable, T : Encodable
 StorageBackend.synchronize() | func synchronize()
@@ -3752,6 +3754,7 @@ UserDefaultsStorage.init() | init()
 UserDefaultsStorage.init(_:) | init(_ defaults: UserDefaults)
 UserDefaultsStorage.init(suiteName:) | init(suiteName: String?)
 UserDefaultsStorage.remove(forKey:) | func remove(forKey key: String) -> StoredKey?
+UserDefaultsStorage.sceneStateStore | var sceneStateStore: any StorageBackend { get }
 UserDefaultsStorage.store(_:forKey:) | func store<T>(_ value: T, forKey key: String) -> StoredKey where T : Decodable, T : Encodable
 UserDefaultsStorage.synchronize() | func synchronize()
 UserInterfaceSizeClass | enum UserInterfaceSizeClass

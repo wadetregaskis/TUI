@@ -342,11 +342,11 @@ package final class ScenePresenter {
         return window
     }
 
-    /// Where a new window of `entry` keeps its `@SceneStorage`: nothing more
-    /// than `scene.` for the launch window, as an app of one window always
-    /// had; the scene's identifier (or its place among the window scenes, for
-    /// one with none) for a `Window`'s and the first of a group's; and that
-    /// with the how-manyth of its group it is for each after.
+    /// Where a new window of `entry` keeps its `@SceneStorage`, in front of
+    /// each declared key: nothing for the launch window, as an app of one
+    /// window always had; the scene's identifier (or its place among the
+    /// window scenes, for one with none) for a `Window`'s and the first of a
+    /// group's; and that with the how-manyth of its group it is for each after.
     private func storageNamespace(of entry: SceneCatalog.WindowEntry, isLaunchWindow: Bool) -> String {
         let ordinal = openedCounts[entry.identity, default: 0] + 1
         openedCounts[entry.identity] = ordinal

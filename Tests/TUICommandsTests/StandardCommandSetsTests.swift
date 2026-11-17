@@ -149,6 +149,8 @@ private final class MemoryStore: StorageBackend, @unchecked Sendable {
         return keys[key]
     }
     func synchronize() {}
+    /// Its own: these tests keep no scene state.
+    var sceneStateStore: any StorageBackend { self }
 }
 
 private struct FindApp: App {

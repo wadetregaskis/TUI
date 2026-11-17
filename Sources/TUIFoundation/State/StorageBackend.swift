@@ -15,8 +15,9 @@ import Observation
 /// A store of persistent values, keyed by string: what ``AppStorage`` and
 /// ``SceneStorage`` read and write.
 ///
-/// A store implements four primitives, and is used through three methods it
-/// gets for free: ``value(forKey:)``, ``setValue(_:forKey:)`` and
+/// A store implements four primitives, names the store its scene state is
+/// kept in (``sceneStateStore``), and is used through three methods it gets
+/// for free: ``value(forKey:)``, ``setValue(_:forKey:)`` and
 /// ``removeValue(forKey:)``. Those do the observation, so a store cannot
 /// forget it and a write made straight through a store — not through a
 /// property wrapper — reaches the views that read the key all the same.
@@ -62,6 +63,23 @@ import Observation
 ///     }
 ///
 ///     func synchronize() {}
+///
+///     /// A store of its own for scene state, made the first time it is asked
+///     /// for, whose own scene state is itself.
+///     private let isSceneState: Bool
+///     private let sceneState = Mutex<MemoryStorage?>(nil)
+///
+///     init(isSceneState: Bool = false) { self.isSceneState = isSceneState }
+///
+///     var sceneStateStore: any StorageBackend {
+///         if isSceneState { return self }
+///         return sceneState.withLock { made in
+///             if let made { return made }
+///             let store = MemoryStorage(isSceneState: true)
+///             made = store
+///             return store
+///         }
+///     }
 /// }
 /// ```
 ///
@@ -88,6 +106,18 @@ public protocol StorageBackend: Sendable {
 
     /// Makes everything written so far durable.
     func synchronize()
+
+    /// The store a ``SceneStorage`` given this one keeps its values in: a key
+    /// space of its own, so that no ``AppStorage`` key in this store can name
+    /// a scene's value, however it is spelt.
+    ///
+    /// Hand back the same store every time, as a key's ``StoredKey`` is: a
+    /// view that read a scene's value hears of a change only through the store
+    /// that announced it. A store that IS a scene-state store answers itself.
+    /// The built-in stores keep scene state beside their own: a
+    /// ``JSONFileStorage`` in a file next to its file, and a
+    /// ``UserDefaultsStorage`` in a suite of its own.
+    var sceneStateStore: any StorageBackend { get }
 }
 
 extension StorageBackend {
