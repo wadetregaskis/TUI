@@ -93,9 +93,13 @@ final class FormColumnWidths {
         let widths = keptWidths(signature: signature, context: context)
         let pillar = widths.pillar
         let contentWidth = widths.contentWidth
+        // Not memoised by their elements (`FormRowMemo.swift`): each row is
+        // already a row of the lazy stack's own loop, memoised there, and a
+        // memo inside that one only doubled the bookkeeping of every row
+        // served (`app-shapes/columns-form-filtered` +10%, PERFCASE-F7).
         let rows = ForEach(0..<loop.formRowCount, id: \.self) { ordinal in
             columnsElementView(
-                loop.formElement(at: ordinal, in: walk), pillar: pillar, contentWidth: contentWidth,
+                loop.formElement(at: ordinal, in: walk), pillar: pillar, contentWidth: contentWidth, walk: nil,
                 isFirst: ordinal == 0)
         }
         return AnyView(
@@ -122,7 +126,7 @@ final class FormColumnWidths {
         }
         if let widths = kept.byWidth[context.availableWidth] { return widths }
         let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
-        let (pillar, contentWidth) = columnWidths(of: elements, context: context)
+        let (pillar, contentWidth) = columnWidths(of: elements, walk: nil, context: context)
         let widths = FormColumnWidths.Widths(
             pillar: pillar, contentWidth: contentWidth,
             columnWidth: columnWidth(of: elements, pillar: pillar, contentWidth: contentWidth, context: context))
@@ -140,7 +144,7 @@ final class FormColumnWidths {
         var widest = 0
         for (index, element) in elements.enumerated() {
             let size = measureChild(
-                columnsElementView(element, pillar: pillar, contentWidth: contentWidth, isFirst: index == 0),
+                columnsElementView(element, pillar: pillar, contentWidth: contentWidth, walk: nil, isFirst: index == 0),
                 proposal: proposal, context: context)
             if size.isWidthFlexible { return context.availableWidth }
             widest = max(widest, size.width)

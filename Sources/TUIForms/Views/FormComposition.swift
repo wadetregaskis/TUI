@@ -25,13 +25,18 @@ final class _FormComposition {
     let elements: [_FormElement]
     let pillar: Int
     let contentWidth: Int
+    /// The version of what the read of the rows read, which the rows a loop
+    /// made are memoised under (``_FormWalkVersion``); `nil` where nothing
+    /// is memoised.
+    let walk: _FormWalkVersion?
     /// The column built from them, by whether it fills the width it is laid
     /// out at (a grouped form drawn or proposed a width) or hugs its rows.
     var columns: [Bool: AnyView] = [:]
 
-    init(elements: [_FormElement], pillar: Int, contentWidth: Int) {
+    init(elements: [_FormElement], pillar: Int, contentWidth: Int, walk: _FormWalkVersion?) {
         self.elements = elements
         self.pillar = pillar
         self.contentWidth = contentWidth
+        self.walk = walk
     }
 }

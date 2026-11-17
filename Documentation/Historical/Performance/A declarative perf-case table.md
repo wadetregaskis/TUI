@@ -890,6 +890,43 @@ and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
   misses per toggle per frame, every row's body run and measured, none served. A slider step pays the same
   (`form-slider`), and so does toggling one toggle (`key:space`). `.columns` is about a third of `.grouped`. A macOS
   form is a list, windowed; this one is an eager stack. The cases keep n at 10 for what it costs the check.
+  **Fixed in part (2026-11-17):** the form read its content into rows afresh every pass and drew each row through
+  views nothing could compare (`AnyView`s holding fresh `Binding`s), under a loop of its own over positions
+  (`_IndexedFormRow`, deliberately not `Equatable`), so the row memo a `ForEach` row has in a stack never applied.
+  Now a row a loop over comparable data made carries its element (`_FormRow.loopElement`) and is drawn through the
+  value memo (`_MemoizedRow`), keyed by the element, the label column and a version of what the form's content walk
+  read (`_FormWalkVersion`, `FormRowMemo.swift`). The version is needed because the walk evaluates the loop's
+  closure and any view of the app's own it reads through at a place of its own, a cousin of the drawn rows: a write
+  to what the walk read clears the walk and the form, never the rows, so the form leaves a mark in the cache at the
+  walk's place and takes a new version when the mark is gone. The rows' widths are measured at places of their own
+  below the form (`_FormRowWidth`), where they were all measured at the form's one place and could keep no size.
+  Counts, at n then 10n: `form-slider`'s slider step 384 → 209 and 2,414 → 264 bodies a step, misses 1,712 → 938
+  and 11,262 → 1,243; `form-grouped-tab`'s Tab 559 → 256 and 4,564 → 320 bodies, 2,486 → 1,125 and 21,258 → 1,479
+  misses; `.columns` 186 → 115 and 1,315 → 130; `form-narrow`'s Tab 480 → 311 and 2,423 → 315. What is left is
+  the eager stack: every frame reads the content and asks every row's memo (`served` is n a frame, about a body and
+  seven measure misses a row), the open frame builds every row, and a toggle's write draws every row again in these
+  cases, whose toggles all read one `Set` of checked rows: one observed property, so a write to it reaches every
+  reader, as it would in SwiftUI, and nothing below the row could know `contains(id)` answered the same for the
+  others. Rows that each read an object of their own (`FormRowMemoTests`) draw only the one toggled.
+  The open phase draws a third frame: at the second pass's end the first frame's observation leases retire, and
+  their sentinels fire the page's kept scope (the case view's plain-body memo), armed unleased in the first pass
+  because its type was not yet known to read, which had collected those sentinels from the leased row scopes nested
+  in it (`withObservationTracking` merges a nested scope's reads into the enclosing one). Such a scope cannot tell a
+  sentinel's write from a change, and its registration is gone once it fires, so it reports one: the third frame
+  is the conservative answer, not a stale one. `grid-scroll` and `focus-tab-scaling`, `ForEach` rows memoised in a
+  stack, open in three frames for the same reason; the fix belongs to the leases (keep scopes nested in an unleased
+  one unleased too, or retire the first pass's leases with the clear the learning pass asks for), not to the form.
+  **Fixed further (2026-11-17), the first try's regressions:** at rest `app-shapes/settings-form` is served whole by
+  its page's memo, but the 374 entries the rows keep under it were each asked about by every frame's prune (373
+  retained checks a frame, +51%). The render cache's prune now skips its walk when nothing was stored or marked
+  suspect since the last prune and the pass marked and retained exactly what that one did (`PruneWitness`): 373
+  checks → 0; and the state storage skips its walk over the values the same way, which the base walked too (303
+  boxes at rest, 359 with the rows' width places). A form whose walk's place is cleared on two passes running (`app-shapes/grouped-form` and
+  `pickers/grouped-form`, whose pages read the clock above the form) draws its rows afresh, unmemoised, until a pass
+  finds the mark again: the memo had stored 1,020 pictures and 7,000 sizes a frame there, all cleared at the next.
+  And a windowed `.columns` form's rows are not memoised by element at all: they are rows of the lazy stack's own
+  loop, already served from its memo, and a second memo inside doubled each served row's bookkeeping
+  (`columns-form-filtered` +10%).
 - **PERFCASE-F8. A `TabView` measures its hidden tab at every narrowing resize.** `resize-storm`'s hidden tab is a grid
   of n rows: it runs 2,896 bodies as the page opens (24,496 at 10n), as `tabs-switch`'s hidden table reads its cells,
   and 8,584 over the five narrowing resizes (78,798 at 10n), each of which also asks for a second frame; the five

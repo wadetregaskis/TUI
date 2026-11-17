@@ -83,12 +83,18 @@ enum CaseKnownIssues {
             "PERFCASE-F6 at every resize the split is not collapsed, and PERFCASE-F5's .fit reread at each resize"
         ),
         "form-narrow": (
-            ["bodies", "misses"],
-            "PERFCASE-F7: a Form lays out every row on every frame, a toggle's body run and measured each time"
+            ["built", "served", "bodies", "misses"],
+            "PERFCASE-F7: a Form is an eager stack: it builds every row as it opens, and each frame reads its content "
+                + "and asks every row's memo, served, about a body and seven measure misses a row"
         ),
-        "form-grouped-tab": (["bodies", "misses"], "PERFCASE-F7: every row of the form run and measured a frame"),
-        "form-columns-tab": (["bodies", "misses"], "PERFCASE-F7, in .columns style"),
-        "form-slider": (["bodies", "misses"], "PERFCASE-F7: a slider's step runs and measures every toggle of the form"),
+        "form-grouped-tab": (
+            ["built", "served", "bodies", "misses"],
+            "PERFCASE-F7, and a toggle's write draws every row again: each row's toggle reads the one set of checked rows"
+        ),
+        "form-columns-tab": (["built", "served", "bodies", "misses"], "PERFCASE-F7, in .columns style"),
+        "form-slider": (
+            ["built", "served", "bodies", "misses"], "PERFCASE-F7: a slider's step asks every toggle's memo, served"
+        ),
         "resize-storm": (
             ["listed", "built", "bodies", "misses"],
             "PERFCASE-F8: a TabView measures its hidden tab (an eager grid of n rows) as it opens and again at every "

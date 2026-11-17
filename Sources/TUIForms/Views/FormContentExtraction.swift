@@ -336,7 +336,28 @@ private func sectionRows(of elements: [_FormElement]) -> [_FormElement] {
         let row = observingBodyClosure(of: Self.self, context: rowScope, observesWhenMeasuring: true) {
             content(element)
         }
-        return formElements(from: row, in: rowScope)
+        let elements = formElements(from: row, in: rowScope)
+        // Each row keyed by the element it was made from, as `ForEach` keys
+        // its rows anywhere else (`makeChild(for:context:)`), so the form can
+        // serve one whose element is unchanged (`memoizedRowView`).
+        guard let equatable = element as? any Equatable else { return elements }
+        return elements.map { keyedByLoopElement($0, equatable) }
+    }
+}
+
+/// `element`'s rows, each keyed by `loopElement` — together with the key a
+/// loop nested in this one gave it, so that a row an inner loop made misses
+/// when the outer loop's element changes, which it may have been built from.
+private func keyedByLoopElement(_ element: _FormElement, _ loopElement: any Equatable) -> _FormElement {
+    switch element {
+    case .row(var row):
+        row.loopElement = row.loopElement.map { _FormNestedLoopElement(outer: loopElement, inner: $0) } ?? loopElement
+        return .row(row)
+    case .section(var section):
+        section.rows = section.rows.map { keyedByLoopElement($0, loopElement) }
+        return .section(section)
+    case .group(let elements, let branch):
+        return .group(elements.map { keyedByLoopElement($0, loopElement) }, branch: branch)
     }
 }
 

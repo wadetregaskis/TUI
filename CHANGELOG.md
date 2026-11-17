@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Form`'s rows a `ForEach` over comparable data makes are drawn only when they change.** A form read its content
+into rows afresh every frame and drew each one through views nothing could compare, so every toggle of a form ran its
+body and was measured a dozen times a frame, whatever the frame changed: a slider step in a form of 50 toggles ran
+2,400 bodies. Such a row is now kept by its element, as a `ForEach` row is in a stack, and by what the form read of
+its content, so a frame that changes one row, or nothing in the form, draws that row and serves the rest (the same
+step: 264 bodies). A row the loop's closure builds from observed data outside its element is drawn again when that data
+changes, as before. A form cleared on every frame — under a view that reads a clock — draws its rows as before, without
+keeping them.
+
 **A page served whole from a memo no longer pays, every frame, for what is cached below it.** The render cache's
 end-of-frame prune asked of every entry kept under the served memo whether it was still in the tree; it now skips that
 walk when the frame stored nothing and saw the same views as the last one.

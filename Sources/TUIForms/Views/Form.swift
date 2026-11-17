@@ -116,6 +116,12 @@ struct _FormRow {
     /// it out (measured). A form whose labels are all hidden has no label
     /// column at all (``_FormLayout``'s pillar).
     var hidesLabel = false
+    /// The element of the loop the row was made by, when the loop's data can
+    /// be compared — the row's key in the form's row memo, as a `ForEach`
+    /// row's element is its key anywhere else (``_FormLoopRowKey``). `nil`
+    /// for a row written out, or made by a loop over data that cannot be
+    /// compared: drawn afresh each time, as before.
+    var loopElement: (any Equatable)?
 
     init(_ kind: _FormRowKind, alignment: HorizontalAlignment? = nil) {
         self.kind = kind
@@ -147,8 +153,10 @@ struct _FormSection {
 /// (the documented hole `_MemoizedRow` warns framework views away from). This
 /// wrapper is deliberately NOT Equatable, so the memo declines to wrap the
 /// row at all: a Form rebuilds its rows from `content` every render pass, and
-/// display-only rows want exactly that. Identity is positional, stable across
-/// frames.
+/// display-only rows want exactly that. A row a loop over comparable data made
+/// is memoised inside, by its element and what the form's walk read
+/// (``memoizedRowView(_:row:pillar:walk:)``), never by its position. Identity
+/// is positional, stable across frames.
 private struct _IndexedFormRow<Value>: Identifiable {
     let id: Int
     let value: Value
@@ -265,14 +273,38 @@ private struct _FormControlRowView: View {
 }
 
 /// A row's natural layout (``baseRowView(_:pillar:)``) inside the modifiers
-/// that were written on it (``_FormRow/rewrap``).
+/// that were written on it (``_FormRow/rewrap``) — and, for a row a loop over
+/// comparable data made, inside the form's row memo (``memoizedRowView(_:pillar:walk:)``),
+/// so a row whose element, label column and walk are as they were is served
+/// rather than run and measured again.
+///
+/// A row of each kind keeps the arm it had: a memoised row is erased as a
+/// rewrapped one is, so the plain arm, and every row written out, draws at
+/// the identity and through the views it always did.
 @MainActor @ViewBuilder
-private func rewrappedRowView(_ row: _FormRow, pillar: Int) -> some View {
-    if let rewrap = row.rewrap {
-        rewrap(AnyView(baseRowView(row, pillar: pillar)))
+func rewrappedRowView(_ row: _FormRow, pillar: Int, walk: _FormWalkVersion?) -> some View {
+    if row.rewrap != nil || (walk != nil && row.loopElement != nil) {
+        erasedRowView(row, pillar: pillar, walk: walk)
     } else {
         baseRowView(row, pillar: pillar)
     }
+}
+
+/// ``rewrappedRowView(_:pillar:walk:)``'s erased arm: the row in its memo,
+/// or, for a row no loop keys, inside its modifiers.
+@MainActor
+private func erasedRowView(_ row: _FormRow, pillar: Int, walk: _FormWalkVersion?) -> AnyView {
+    if let walk, walk.memoisesRows, let element = row.loopElement {
+        return memoizedRowView(element, row: row, pillar: pillar, walk: walk)
+    }
+    return unmemoizedRowView(row, pillar: pillar)
+}
+
+/// A row's natural layout inside the modifiers written on it, drawn afresh.
+@MainActor
+func unmemoizedRowView(_ row: _FormRow, pillar: Int) -> AnyView {
+    let base = AnyView(baseRowView(row, pillar: pillar))
+    return row.rewrap?(base) ?? base
 }
 
 /// Builds one row's view. An explicit ``View/formRowAlignment(_:)``
@@ -283,9 +315,9 @@ private func rewrappedRowView(_ row: _FormRow, pillar: Int) -> some View {
 /// `contentWidth` is 0 while the form measures its rows.
 @MainActor @ViewBuilder
 private func formRowView(
-    _ row: _FormRow, pillar: Int, contentWidth: Int, inControlColumn: Bool = true
+    _ row: _FormRow, pillar: Int, contentWidth: Int, walk: _FormWalkVersion?, inControlColumn: Bool = true
 ) -> some View {
-    let base = rewrappedRowView(row, pillar: pillar)
+    let base = rewrappedRowView(row, pillar: pillar, walk: walk)
     if contentWidth > 0, let alignment = row.alignment {
         base.frame(width: contentWidth, alignment: Alignment(horizontal: alignment, vertical: .center))
     } else if inControlColumn, case .button = row.kind {
@@ -318,17 +350,17 @@ private func sectionHeaderView(_ header: AnyView, pillar: Int) -> some View {
 /// rows, then its footer — all to one pillar.
 @MainActor @ViewBuilder
 func columnsElementView(
-    _ element: _FormElement, pillar: Int, contentWidth: Int, isFirst: Bool
+    _ element: _FormElement, pillar: Int, contentWidth: Int, walk: _FormWalkVersion?, isFirst: Bool
 ) -> some View {
     switch element {
     case .row(let row):
-        formRowView(row, pillar: pillar, contentWidth: contentWidth)
+        formRowView(row, pillar: pillar, contentWidth: contentWidth, walk: walk)
     case .section(let section):
         VStack(alignment: .leading, spacing: 0) {
             if !isFirst { Text("") }  // blank line between sections
             if let header = section.header { sectionHeaderView(header, pillar: pillar) }
             ForEach(_indexed(section.rows)) { row in
-                columnsSectionRowView(row.value, pillar: pillar, contentWidth: contentWidth)
+                columnsSectionRowView(row.value, pillar: pillar, contentWidth: contentWidth, walk: walk)
             }
             if let footer = section.footer { footer }
         }
@@ -336,7 +368,7 @@ func columnsElementView(
         groupView(branch: branch, spacing: 0) {
             ForEach(_indexed(elements)) { entry in
                 columnsElementView(
-                    entry.value, pillar: pillar, contentWidth: contentWidth,
+                    entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk,
                     isFirst: isFirst && entry.id == 0)
             }
         }
@@ -346,14 +378,16 @@ func columnsElementView(
 /// One element of a columns section: a row, or an `if`'s rows (a section's
 /// rows hold no section).
 @MainActor @ViewBuilder
-private func columnsSectionRowView(_ element: _FormElement, pillar: Int, contentWidth: Int) -> some View {
+private func columnsSectionRowView(
+    _ element: _FormElement, pillar: Int, contentWidth: Int, walk: _FormWalkVersion?
+) -> some View {
     switch element {
     case .row(let row):
-        formRowView(row, pillar: pillar, contentWidth: contentWidth)
+        formRowView(row, pillar: pillar, contentWidth: contentWidth, walk: walk)
     case .group(let elements, let branch):
         groupView(branch: branch, spacing: 0) {
             ForEach(_indexed(elements)) { entry in
-                columnsSectionRowView(entry.value, pillar: pillar, contentWidth: contentWidth)
+                columnsSectionRowView(entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk)
             }
         }
     case .section:
@@ -381,17 +415,19 @@ private func groupView(branch: String?, spacing: Int, @ViewBuilder _ elements: (
 /// right borders line up vertically, and a button sits at its row's leading edge, as SwiftUI's
 /// grouped form puts one (measured).
 @MainActor @ViewBuilder
-private func groupedElementView(_ element: _FormElement, pillar: Int, contentWidth: Int) -> some View {
+private func groupedElementView(
+    _ element: _FormElement, pillar: Int, contentWidth: Int, walk: _FormWalkVersion?
+) -> some View {
     switch element {
     case .row(let row):
-        formRowView(row, pillar: pillar, contentWidth: contentWidth, inControlColumn: false)
+        formRowView(row, pillar: pillar, contentWidth: contentWidth, walk: walk, inControlColumn: false)
     case .section(let section):
         VStack(alignment: .leading, spacing: 0) {
             if let header = section.header { header.bold() }
             if section.isOpen {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(_indexed(section.rows)) { row in
-                        groupedSectionRowView(row.value, pillar: pillar)
+                        groupedSectionRowView(row.value, pillar: pillar, walk: walk)
                     }
                 }
                 .frame(width: contentWidth, alignment: .leading)
@@ -407,7 +443,7 @@ private func groupedElementView(_ element: _FormElement, pillar: Int, contentWid
     case .group(let elements, let branch):
         groupView(branch: branch, spacing: 1) {
             ForEach(_indexed(elements)) { entry in
-                groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth)
+                groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk)
             }
         }
     }
@@ -416,14 +452,14 @@ private func groupedElementView(_ element: _FormElement, pillar: Int, contentWid
 /// One element inside a grouped section's box: a row, or an `if`'s rows
 /// (a section's rows hold no section).
 @MainActor @ViewBuilder
-private func groupedSectionRowView(_ element: _FormElement, pillar: Int) -> some View {
+private func groupedSectionRowView(_ element: _FormElement, pillar: Int, walk: _FormWalkVersion?) -> some View {
     switch element {
     case .row(let row):
-        groupedRowView(row, pillar: pillar)
+        groupedRowView(row, pillar: pillar, walk: walk)
     case .group(let elements, let branch):
         groupView(branch: branch, spacing: 0) {
             ForEach(_indexed(elements)) { entry in
-                groupedSectionRowView(entry.value, pillar: pillar)
+                groupedSectionRowView(entry.value, pillar: pillar, walk: walk)
             }
         }
     case .section:
@@ -435,8 +471,8 @@ private func groupedSectionRowView(_ element: _FormElement, pillar: Int) -> some
 /// button at the row's leading edge, as SwiftUI's grouped form puts one
 /// (measured).
 @MainActor @ViewBuilder
-private func groupedRowView(_ row: _FormRow, pillar: Int) -> some View {
-    rewrappedRowView(row, pillar: pillar)
+private func groupedRowView(_ row: _FormRow, pillar: Int, walk: _FormWalkVersion?) -> some View {
+    rewrappedRowView(row, pillar: pillar, walk: walk)
 }
 
 // MARK: - Internal Core View
@@ -529,16 +565,17 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
         if let column = composition.columns[fills] { return column }
         let elements = composition.elements
         let pillar = composition.pillar
+        let walk = composition.walk
         var contentWidth = composition.contentWidth
         if fills { contentWidth = max(contentWidth, context.availableWidth - 4) }
 
         let column = VStack(alignment: .leading, spacing: grouped ? 1 : 0) {
             ForEach(_indexed(elements)) { entry in
                 if grouped {
-                    groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth)
+                    groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk)
                 } else {
                     columnsElementView(
-                        entry.value, pillar: pillar, contentWidth: contentWidth,
+                        entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk,
                         isFirst: entry.id == 0)
                 }
             }
@@ -559,20 +596,25 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
 
     /// This form's rows read from its content where `context` is, and the
     /// label column and content width measured from them
-    /// (``columnWidths(of:context:)``).
+    /// (``columnWidths(of:walk:context:)``), with the version of what the
+    /// read read (``walkVersion(context:)``) that its rows are memoised under.
     private func readComposition(context: RenderContext) -> _FormComposition {
+        let walk = walkVersion(context: context)
         let elements = formElements(from: content, in: context.withChildIdentity(type: _FormContentWalk.self))
-        let widths = columnWidths(of: elements, context: context)
-        return _FormComposition(elements: elements, pillar: widths.pillar, contentWidth: widths.contentWidth)
+        let widths = columnWidths(of: elements, walk: walk, context: context)
+        return _FormComposition(
+            elements: elements, pillar: widths.pillar, contentWidth: widths.contentWidth, walk: walk)
     }
 
     /// The label column (``pillarWidth(of:context:)``) and the widest
-    /// non-button row (``contentWidth(of:pillar:context:)``) of `elements`:
+    /// non-button row (``contentWidth(of:pillar:walk:context:)``) of `elements`:
     /// in columns the width a row with a `formRowAlignment` is framed to, in
     /// grouped the shared box width.
-    func columnWidths(of elements: [_FormElement], context: RenderContext) -> (pillar: Int, contentWidth: Int) {
+    func columnWidths(
+        of elements: [_FormElement], walk: _FormWalkVersion?, context: RenderContext
+    ) -> (pillar: Int, contentWidth: Int) {
         var pillar = pillarWidth(of: elements, context: context)
-        var contentWidth = contentWidth(of: elements, pillar: pillar, context: context)
+        var contentWidth = contentWidth(of: elements, pillar: pillar, walk: walk, context: context)
         // A row measures no wider than the width it is offered, so a form that
         // fills it may be one that does not fit. Only labels wider than half
         // the width are narrowed, so a form whose labels are not asks nothing
@@ -582,7 +624,7 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
             let narrowed = narrowedPillar(pillar, of: elements, within: context.availableWidth, context: context)
             if narrowed < pillar {
                 pillar = narrowed
-                contentWidth = self.contentWidth(of: elements, pillar: pillar, context: context)
+                contentWidth = self.contentWidth(of: elements, pillar: pillar, walk: walk, context: context)
             }
         }
         return (pillar, contentWidth)
@@ -634,16 +676,23 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
 
     /// The form's content width: the widest non-button row, which a row with a
     /// ``View/formRowAlignment(_:)`` is framed to.
-    private func contentWidth(of elements: [_FormElement], pillar: Int, context: RenderContext) -> Int {
-        formRows(of: elements)
-            .compactMap { row -> Int? in
-                if case .button = row.kind { return nil }
-                return measureChild(
-                    formRowView(row, pillar: pillar, contentWidth: 0),
-                    proposal: ProposedViewSize(width: nil, height: nil), context: context
-                ).width
-            }
-            .max() ?? 0
+    ///
+    /// A row the form memoises is measured at a place of its own below the
+    /// form's (``rowWidthContext(_:ordinal:walk:context:)``), so that its size
+    /// is kept from one frame to the next as its picture is.
+    private func contentWidth(
+        of elements: [_FormElement], pillar: Int, walk: _FormWalkVersion?, context: RenderContext
+    ) -> Int {
+        var widest = 0
+        for (ordinal, row) in formRows(of: elements).enumerated() {
+            if case .button = row.kind { continue }
+            let size = measureChild(
+                formRowView(row, pillar: pillar, contentWidth: 0, walk: walk),
+                proposal: ProposedViewSize(width: nil, height: nil),
+                context: rowWidthContext(row, ordinal: ordinal, walk: walk, context: context))
+            widest = max(widest, size.width)
+        }
+        return widest
     }
 }
 
