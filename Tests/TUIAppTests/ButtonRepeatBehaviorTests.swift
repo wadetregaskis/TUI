@@ -37,11 +37,17 @@ struct ButtonRepeatBehaviorTests {
         await yieldToSpawnedWork()
     }
 
+    /// On the test's clock, which moves only when told: on the real one the
+    /// repeat's first firing, 700 ms after the press, came before the checks
+    /// whenever the wait for the press's own action took that long, as it did
+    /// under a loaded suite on a Windows VM (17 actions, then 3).
     @Test("Enabled, the press acts at once and the release adds nothing")
     func enabledActsOnThePress() async {
         let count = PressCount()
+        let clock = TestClock()
         let harness = InputChainHarness()
-        harness.frame(Button("+") { count.value += 1 }.buttonRepeatBehavior(.enabled))
+        harness.frame(
+            Button("+") { count.value += 1 }.buttonRepeatBehavior(.enabled).environment(\.autoRepeatClock, clock))
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: 2, y: 0))
         await Self.settle(until: count, reaches: 1)
         #expect(count.value == 1)
