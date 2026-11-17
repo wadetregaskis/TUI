@@ -671,6 +671,18 @@ tab to a stop that far out reaches (`cellWidth(at:)`). The `bigtext`
 session's rss-peak went from 195 and 186 MB to 155 and 142 MB in two pairs of
 runs, the time a key the same.
 
+**Then the characters an edit joins** (2026-11-17): the layout an edit made
+kept the edit's lines as the handler built them, and an edit that takes
+characters out or joins two lines can leave the halves of one character apart
+in them — Backspace joining "e" to a line that began with a combining acute,
+a character taken out from between two regional indicators — while the text
+holds one. The caret then sat between the halves, and the next character
+typed went in there. `replacing(lines:)` now lays each line it replaced out as
+its string's characters (`EditorLayout.segmented(_:)`), copying the line only
+where that changes it; the insertion no longer merges the whole line itself,
+only the part before the caret, which places the caret, so a typed key walks
+the line's characters as often as it did.
+
 **Left open:** the text is still held as lines of `Character`s, 16 bytes a
 character, beside the string; an editor keeping its text as the string's
 UTF-8 and its lines as offsets would take that to the line starts alone, and

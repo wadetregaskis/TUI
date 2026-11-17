@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**An edit in a `TextEditor` that joins the halves of a character leaves one character.** Backspace or Delete joining
+a line that starts with a combining mark to the line before it, or taking out a character from between two regional
+indicators, left the editor counting the two halves apart while its text held one character: the caret sat between
+them, and the next key typed went there, so an accent moved onto the letter typed after it and a letter split a
+flag. Each line an edit changes is now laid out as its text's characters.
+
 **A click below the text of a `TextEditor` that scrolls sideways lands at the column clicked.** Under
 `.textEditorWrapsLines(false)`, a click in the empty rows below the last line put the caret at the start of that
 line wherever the click was. It now goes to the column clicked on the last line, as it does in an editor that wraps.

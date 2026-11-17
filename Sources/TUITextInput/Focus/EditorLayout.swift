@@ -174,8 +174,12 @@ extension EditorLayout {
     ///
     /// The layout's wrappings are not carried over until the text is known to
     /// be written (``adoptWrappings(of:for:)``): a binding can refuse it.
+    ///
+    /// Each line the edit replaced is laid out as its string's characters
+    /// (``segmented(_:)``), whatever characters the edit put together.
     func replacing(lines newLines: [[Character]]) -> Edit? {
         guard hasOneLineEnding, !newLines.isEmpty else { return nil }
+        var newLines = newLines
         let old = lines
         let shorter = min(old.count, newLines.count)
         var first = 0
@@ -189,6 +193,13 @@ extension EditorLayout {
         }
         let replaced = first..<(old.count - kept)
         let replacement = first..<(newLines.count - kept)
+        // Copied only where one changes, which an edit rarely makes one do.
+        // Compared character by character, not by count: regional indicators
+        // can pair afresh and keep it — "🇺" before "🇸🇬" is "🇺🇸" and "🇬".
+        for index in replacement {
+            let segmented = Self.segmented(newLines[index])
+            if !Self.same(segmented, newLines[index]) { newLines[index] = segmented }
+        }
         let ending = Array(lineEnding.utf8)
         let total = text.utf8.count
 
@@ -273,6 +284,17 @@ extension EditorLayout {
         let layout = EditorLayout(
             text: newText, lines: newLines, lineEnding: lineEnding, lineStarts: starts, characterStarts: characters)
         return Edit(text: newText, layout: layout, replaced: replaced, replacement: replacement)
+    }
+
+    /// `line` as its string's characters. An edit that takes characters out
+    /// of a line, or joins two, can leave a combining mark, a joiner or a
+    /// regional indicator beside the character it belongs to — "e" and a line
+    /// that began with a combining acute, joined, are "é" — and kept apart, the
+    /// line put the caret, and the next character typed, between them: the
+    /// accent went to the "Y" typed after the "e". An insertion's characters
+    /// merge as they are typed, as the string's own do.
+    static func segmented(_ line: [Character]) -> [Character] {
+        Array(String(line))
     }
 
     /// Whether two lines are the same characters, byte for byte: at once where

@@ -316,7 +316,11 @@ final class TextEditorHandler: PersistedFocusable {
         // The lines just written are the layout of the text just written —
         // unless the binding kept something else (one that transforms what it
         // is given), which the next read lays out afresh.
-        if text.wrappedValue == joined { cachedLayout = EditorLayout(text: joined, lines: lines, lineEnding: ending) }
+        // Each line as its string's characters, as an edit spliced in keeps
+        // them (``EditorLayout/segmented(_:)``).
+        if text.wrappedValue == joined {
+            cachedLayout = EditorLayout(text: joined, lines: lines.map(EditorLayout.segmented), lineEnding: ending)
+        }
     }
 
     /// Writes `newText` to the bound text. Every edit the editor makes goes
@@ -737,25 +741,25 @@ final class TextEditorHandler: PersistedFocusable {
         let tail = Array(line[cursorColumn...])
         line.removeSubrange(cursorColumn..<line.count)
 
-        // Each line's characters as its string has them: a combining mark, a
-        // vowel sign or a skin-tone modifier typed or pasted merges into the
-        // character before it, and an array that kept it apart put the caret a
-        // column late, and later than the text's own lines once read again.
-        func merged(_ characters: [Character]) -> [Character] { Array(String(characters)) }
+        // The caret's column as the string has the characters before it: a
+        // combining mark, a vowel sign or a skin-tone modifier typed or pasted
+        // merges into the character before it, and an array that kept it apart
+        // put the caret a column late. The lines themselves are written as
+        // their strings' characters (``EditorLayout/segmented(_:)``).
         if inserted.count == 1 {
-            let head = merged(line + inserted[0])
-            line = merged(head + tail)
+            let head = EditorLayout.segmented(line + inserted[0])
+            line = head + tail
             cursorColumn = min(head.count, line.count)
             lines[cursorLine] = line
         } else {
-            lines[cursorLine] = merged(line + inserted[0])
+            lines[cursorLine] = line + inserted[0]
             var insertAt = cursorLine + 1
             for middle in inserted[1..<(inserted.count - 1)] {
                 lines.insert(middle, at: insertAt)
                 insertAt += 1
             }
             let head = inserted[inserted.count - 1]
-            let last = merged(head + tail)
+            let last = head + tail
             cursorColumn = min(head.count, last.count)
             lines.insert(last, at: insertAt)
             cursorLine = insertAt
