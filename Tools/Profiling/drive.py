@@ -17,7 +17,7 @@ Two modes:
                    Profiler (via xctrace) to the running app for the run
 
 Usage:
-    drive.py BIN [--scenario tour|list|table|emoji|scroll|mouse|splitdrag|tabviews|images|idle|menu]
+    drive.py BIN [--scenario tour|list|table|emoji|scroll|mouse|splitdrag|tabviews|images|idle|menu|still]
                  [--loops N] [--rows R] [--cols C] [--settle S]
                  [--trace OUT.trace] [--time-limit MS] [--dump OUT.ansi] [--answer-fence] [--quiet]
 
@@ -223,6 +223,12 @@ def build_scenario(name, rows, cols):
         # and it is structurally unlike the demo pages: ~32 inline menu rows
         # plus the feature boxes, one of them focused and breathing.
         return [(0.30, b"")] + [(0.10, b"")] * 120
+    if name == "still":
+        # Sit on whatever the app opens on, with no input at all: `menu`'s
+        # script under a name that does not say Example, for an app booted
+        # straight into a page — `Stress` under `TUI_STRESS_SCENARIO`, a game
+        # whose loop draws every frame (`app-shapes/game-loop`).
+        return [(0.30, b"")] + [(0.10, b"")] * 120
     if name == "idle":
         # Sit on the emoji page (a heavy page) and let the pulse/cursor
         # timers re-render. Measures steady-state per-frame cost.
@@ -371,7 +377,7 @@ def main():
     ap.add_argument("binary")
     ap.add_argument("--scenario", default="tour",
                     choices=["tour", "list", "table", "emoji", "scroll", "mouse", "splitdrag", "tabviews", "images",
-                             "idle", "menu", "progress", "spinners"])
+                             "idle", "menu", "progress", "spinners", "still"])
     ap.add_argument("--loops", type=int, default=1)
     ap.add_argument("--rows", type=int, default=50)
     ap.add_argument("--cols", type=int, default=160)

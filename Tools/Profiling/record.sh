@@ -16,6 +16,12 @@
 #   Tools/Profiling/record.sh emoji 20     # hammer the emoji list for 20s
 #   Tools/Profiling/record.sh idle 12      # steady-state per-frame cost
 #
+# PROFILE_PRODUCT names another executable product to build and drive in
+# Example's place: Stress, booted straight into a scenario by its own
+# variables, which the driven app inherits, and left alone (`still`):
+#   PROFILE_PRODUCT=Stress TUI_STRESS_SCENARIO=app-shapes TUI_STRESS_VARIANT=game-loop \
+#       Tools/Profiling/record.sh still 12 24 80
+#
 # Requires: a macOS toolchain with `xcrun xctrace` (Instruments) and
 # python3. Run from the repository root.
 set -euo pipefail
@@ -28,9 +34,10 @@ COLS="${4:-160}"
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
-echo "==> Building Example (release, with debug symbols)…"
-swift build -c release --product Example -Xswiftc -g
-BIN="$(swift build -c release --product Example --show-bin-path)/Example"
+PRODUCT="${PROFILE_PRODUCT:-Example}"
+echo "==> Building $PRODUCT (release, with debug symbols)…"
+swift build -c release --product "$PRODUCT" -Xswiftc -g
+BIN="$(swift build -c release --product "$PRODUCT" --show-bin-path)/$PRODUCT"
 [ -x "$BIN" ] || { echo "build did not produce $BIN" >&2; exit 1; }
 
 OUTDIR="$REPO_ROOT/profiling-traces"

@@ -62,6 +62,9 @@ Tools/Profiling/record.sh                 # 'tour', 15s, 50x160
 Tools/Profiling/record.sh emoji 20        # hammer the 1212-row emoji list
 Tools/Profiling/record.sh idle 12         # steady-state per-frame cost
 Tools/Profiling/record.sh list 15 24 80   # List page in an 80x24 terminal
+# Another product in Example's place, booted into a page by its own variables:
+PROFILE_PRODUCT=Stress TUI_STRESS_SCENARIO=app-shapes TUI_STRESS_VARIANT=game-loop \
+    Tools/Profiling/record.sh still 12 24 80
 ```
 
 Traces land in `profiling-traces/` (git-ignored). `xctrace` also leaves its raw recording, an `instruments*.ktrace` of often hundreds of MB, in
