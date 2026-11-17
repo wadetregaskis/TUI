@@ -14,6 +14,10 @@ import TUI
 @testable import TUITestSupport
 @testable import TUIView
 
+#if os(Windows)
+    import struct WinSDK.FILETIME
+#endif
+
 // MARK: - Shapes
 
 /// A flag, then a word: seven bytes of padding between.
@@ -260,8 +264,15 @@ struct ValueHashPlanTests {
         #expect(found.bypassReason?.contains("imported from C") == true, "\(found.bypassReason ?? "")")
         // Real padding in an imported struct looks the same, and costs a hit.
         #expect(plan(CTestPadded.self).shape == .bypass)
-        // An imported struct with no gap is read as any other.
-        #expect(plan(timespec.self).shape == .dense)
+        // An imported struct with no gap is read as any other. Not `timespec`
+        // on Windows, whose C library gives it a 32-bit `tv_nsec` after a
+        // 64-bit `tv_sec`, and so four bytes of padding: `FILETIME`'s two
+        // 32-bit words instead.
+        #if os(Windows)
+            #expect(plan(FILETIME.self).shape == .dense)
+        #else
+            #expect(plan(timespec.self).shape == .dense)
+        #endif
         // Values that differ only in a bitfield must not share a key.
         var first = CTestBitfields()
         first.c = 1
