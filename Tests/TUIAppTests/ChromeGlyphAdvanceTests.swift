@@ -59,6 +59,8 @@ struct ChromeGlyphAdvanceTests {
         ("Apple Terminal", "apple-terminal-455.1-alternate.json", .appleTerminal),
         ("Warp", "warpterminal-v0.2026.09.30.08.29.stable_01-alternate.json", .warp),
         ("GNOME Terminal", "gnome-terminal-3.56.2-alternate.json", .gnomeTerminal),
+        ("Windows Terminal", "windows-terminal-1.24.12741.0-alternate.json", .windowsTerminal),
+        ("conhost", "conhost-10.0.26300-alternate.json", .windowsConsole),
     ]
 
     private typealias HostRecord = (

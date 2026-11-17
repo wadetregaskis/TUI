@@ -63,7 +63,8 @@ extension TerminalClient {
         switch program {
         case .ghostty: true
         case .unidentified: namesClipboardWritingTerminal(environment)
-        case .appleTerminal, .iTerm2, .warp, .gnomeTerminal, .xtermJS, .tmux: false
+        case .appleTerminal, .iTerm2, .warp, .gnomeTerminal, .xtermJS, .windowsTerminal, .windowsConsole, .tmux:
+            false
         }
     }
 

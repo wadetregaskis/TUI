@@ -83,7 +83,9 @@ package enum TerminalHost {
         switch program {
         case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal:
             true
-        case .tmux, .xtermJS, .unidentified:
+        // Windows Terminal draws ⬛︎ narrow, with a blank cell after it, and
+        // conhost has no colour emoji to choose from (read 2026-11-16).
+        case .tmux, .xtermJS, .windowsTerminal, .windowsConsole, .unidentified:
             false
         }
     }
@@ -102,7 +104,8 @@ package enum TerminalHost {
         switch program {
         case .appleTerminal:
             false
-        case .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .tmux, .unidentified:
+        case .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .windowsTerminal, .windowsConsole, .tmux,
+            .unidentified:
             true
         }
     }
@@ -121,7 +124,9 @@ package enum TerminalHost {
     /// compatibility survey*, "A double-width scrollbar's arrows".
     package static func cornerTrianglesFillTheCell(for program: TerminalClient.Program) -> Bool {
         switch program {
-        case .appleTerminal, .warp:
+        // Windows Terminal draws them from the font, short of the cell, and
+        // conhost's default font has none (read 2026-11-16).
+        case .appleTerminal, .warp, .windowsTerminal, .windowsConsole:
             false
         case .iTerm2, .ghostty, .gnomeTerminal, .xtermJS, .tmux, .unidentified:
             true
@@ -189,6 +194,15 @@ package enum TerminalHost {
             || environment["VTE_VERSION"] != nil
         {
             return "gnome-terminal"
+        }
+        // Windows Terminal sets no TERM_PROGRAM, but a session id in every tab
+        // (`WT_SESSION`), which it adds to `WSLENV` so that it reaches a WSL
+        // shell too. A console started from one of its tabs inherits it, so a
+        // classic console window opened that way is named Windows Terminal; its
+        // Device Attributes, which are asked only when nothing here names the
+        // host, would tell the two apart.
+        if environment["WT_SESSION"]?.isEmpty == false {
+            return "WindowsTerminal"
         }
         // An unrecognised LC_TERMINAL falls through rather than answering nil:
         // it names a terminal with no model here, so there is nothing for it to

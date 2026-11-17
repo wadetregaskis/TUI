@@ -77,6 +77,13 @@ struct ComplexScriptHostAdvanceTests {
                 "gnome-terminal-3.56.2-alternate.json",
             ]),
         Host(program: .tmux, files: ["tmux-3.7c-advance.json", "tmux-3.7c-alternate.json"]),
+        Host(
+            program: .windowsTerminal,
+            files: [
+                "windows-terminal-1.24.12741.0-advance.json",
+                "windows-terminal-1.24.12741.0-alternate.json",
+            ]),
+        Host(program: .windowsConsole, files: ["conhost-10.0.26300-advance.json", "conhost-10.0.26300-alternate.json"]),
     ]
 
     /// Where a host's advance and its claim are measured to differ and nothing
@@ -93,6 +100,14 @@ struct ComplexScriptHostAdvanceTests {
     ///   the claim is 2, and the conjuncts are 3, 3 and 3 — स्त्री's ी adding
     ///   nothing. Its traits keep the cluster rule; see `TerminalClient`'s
     ///   `.tmux` arm for why a per-code-point claim is not the fix there.
+    /// - Windows Terminal 1.24 advances an LRM and an RLM a cell each, as
+    ///   Apple Terminal does.
+    /// - conhost (build 26300) gives every code point a cell: each combining
+    ///   mark, virama, nukta, joiner and bidi mark takes one, and a Hangul
+    ///   vowel or final jamo one more after its leading consonant. Every row
+    ///   with one over-advances, and none can be repaired by a forward move;
+    ///   the walk composes what NFC can (`Character.windowsConsoleRespelling`),
+    ///   which none of these rows is.
     static let knownDivergences: Set<String> = [
         "appleTerminal/latin_zwj", "appleTerminal/latin_zwnj",
         "appleTerminal/bidi_lrm", "appleTerminal/bidi_rlm",
@@ -101,6 +116,18 @@ struct ComplexScriptHostAdvanceTests {
         "tmux/matra_deva_i", "tmux/matra_deva_o", "tmux/matra_deva_au",
         "tmux/matra_deva_i_anusvara", "tmux/matra_tamil_aa", "tmux/matra_khmer_aa",
         "tmux/conjunct_deva_stra", "tmux/conjunct_deva_shtra", "tmux/conjunct_deva_stri",
+        "windowsTerminal/bidi_lrm", "windowsTerminal/bidi_rlm",
+        "windowsConsole/arabic_harakat", "windowsConsole/arabic_shadda_harakat", "windowsConsole/bidi_lrm",
+        "windowsConsole/bidi_rlm", "windowsConsole/chillu_malayalam_zwj", "windowsConsole/combining_stack",
+        "windowsConsole/conjunct_bengali_ksha", "windowsConsole/conjunct_deva_ksha",
+        "windowsConsole/conjunct_deva_shtra", "windowsConsole/conjunct_deva_stra",
+        "windowsConsole/conjunct_deva_stri", "windowsConsole/conjunct_telugu_ksha", "windowsConsole/hangul_jamo_lv",
+        "windowsConsole/hangul_jamo_lvt", "windowsConsole/hebrew_dagesh_qamats", "windowsConsole/hebrew_hiriq",
+        "windowsConsole/lao_vowel_tone", "windowsConsole/latin_zwj", "windowsConsole/latin_zwnj",
+        "windowsConsole/matra_deva_i_anusvara", "windowsConsole/nukta_deva_qa", "windowsConsole/nukta_deva_rra",
+        "windowsConsole/thai_tone", "windowsConsole/thai_vowel_tone", "windowsConsole/tibetan_subjoined",
+        "windowsConsole/tibetan_subjoined_vowel", "windowsConsole/virama_kannada_ka",
+        "windowsConsole/virama_khmer_ka", "windowsConsole/virama_tamil_sa",
     ]
 
     private static let corpus: [String: TerminalWidthCorpus.Entry] =

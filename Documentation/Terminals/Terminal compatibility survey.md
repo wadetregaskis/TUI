@@ -656,6 +656,7 @@ without it the main menu draws no symbol (see tmux's "The defect this closed").
 |---|---|---|---|
 | `TERM_PROGRAM` | all four hosts + tmux | ✗ | authoritative when present |
 | `VTE_VERSION` / `GNOME_TERMINAL_*` | GNOME Terminal (VTE) | ✗ | authoritative for VTE |
+| `WT_SESSION` | Windows Terminal | ✗ | reaches a WSL shell through `WSLENV`; conhost sets nothing |
 | `LC_TERMINAL` | iTerm2 only | ✓ | set by iTerm2's shell integration; `LC_*` is forwarded |
 | `TERM` | **Ghostty only** | ✓ | the termtype travels in ssh's `pty-req` (RFC 4254 §6.2) |
 | XTVERSION (`ESC[>0q`) | iTerm2, Ghostty, Warp, GNOME Terminal | ✓ | GNOME Terminal answers `VTE(8001)`; **Apple Terminal answers nothing** |
@@ -1131,14 +1132,14 @@ each one on this machine, primary screen, macOS 15.8.1. The records are
 the table this one replaced: Ghostty's DA1 lists `52`, Warp answers DA2, and
 iTerm2's DA1 begins `64`, not `62`.
 
-| Query | Apple Terminal 455.1 | Ghostty 1.3.1 | Warp v0.2026.09.30.08.29 | iTerm2 3.7.6 | GNOME Terminal 3.56.2 (VTE 0.80.1) |
-|---|---|---|---|---|---|
-| XTVERSION `ESC[>0q` | *silent* | `ghostty 1.3.1` | `Warp(v0.2026.09.30.08.29.stable_01)` | `iTerm2 3.7.6` | `VTE(8001)` |
-| DA1 `ESC[c` | `ESC[?1;2c` | `ESC[?62;22;52c` | `ESC[?62c` | `ESC[?64;1;2;4;6;17;18;21;22;52c` | `ESC[?61;1;21;22;28c` |
-| DA2 `ESC[>c` | `ESC[>1;95;0c` | `ESC[>1;10;0c` | `ESC[>0;95;0c` | `ESC[>64;2500;0c` | `ESC[>61;8001;1c` |
-| DA3 `ESC[=c` | `ESC[?1;2c` (!) | *silent* | *silent* | a DCS report, `6954726D` (`iTrm` in hex) | a DCS report, `7E565445` (`~VTE` in hex) |
-| XTGETTCAP `TN` | *silent* | `xterm-ghostty` (hex-encoded) | *silent* | `xterm-256color` (hex-encoded) | *silent* |
-| `CSI 5 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` |
+| Query | Apple Terminal 455.1 | Ghostty 1.3.1 | Warp v0.2026.09.30.08.29 | iTerm2 3.7.6 | GNOME Terminal 3.56.2 (VTE 0.80.1) | Windows Terminal 1.24.12741.0 | conhost (build 26300) |
+|---|---|---|---|---|---|---|---|
+| XTVERSION `ESC[>0q` | *silent* | `ghostty 1.3.1` | `Warp(v0.2026.09.30.08.29.stable_01)` | `iTerm2 3.7.6` | `VTE(8001)` | *silent* | *silent* |
+| DA1 `ESC[c` | `ESC[?1;2c` | `ESC[?62;22;52c` | `ESC[?62c` | `ESC[?64;1;2;4;6;17;18;21;22;52c` | `ESC[?61;1;21;22;28c` | `ESC[?61;4;6;7;14;21;22;23;24;28;32;42;52c` | `ESC[?61;1;6;7;21;22;23;24;28;32;42;52c` |
+| DA2 `ESC[>c` | `ESC[>1;95;0c` | `ESC[>1;10;0c` | `ESC[>0;95;0c` | `ESC[>64;2500;0c` | `ESC[>61;8001;1c` | `ESC[>0;10;1c` | `ESC[>0;10;1c` |
+| DA3 `ESC[=c` | `ESC[?1;2c` (!) | *silent* | *silent* | a DCS report, `6954726D` (`iTrm` in hex) | a DCS report, `7E565445` (`~VTE` in hex) | a DCS report, `00000000` | a DCS report, `00000000` |
+| XTGETTCAP `TN` | *silent* | `xterm-ghostty` (hex-encoded) | *silent* | `xterm-256color` (hex-encoded) | *silent* | *silent* | *silent* |
+| `CSI 5 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` | `CSI 0 n` |
 
 Apple Terminal answers DA3 with a **DA1 reply** — it ignores the `=` and
 treats `ESC[=c` as `ESC[c`. Noted as a curiosity; nothing depends on it.
@@ -2723,6 +2724,144 @@ Compensated via `String.withGnomeTerminalCursorCompensation()` which uses `withC
 | **Progress & Attention (OSC 9;4, OSC 9)** | **swallowed** | Swallowed cleanly on both screens; progress bar is not drawn; attention falls back to terminal bell. |
 | **Graphics Protocols** | **no** | Kitty graphics, Sixel, and iTerm2 inline protocols are not supported in standard VTE; probe confirms all payloads are swallowed cleanly without cursor shift or text leakage. |
 | **Emoji Chrome (`supportsEmojiChrome`)** | **yes** | Safe with `withGnomeTerminalCursorCompensation()`. |
+
+---
+
+## Windows Terminal and the classic console (measured 2026-11-16)
+
+**Tested:** Windows Terminal 1.24.12741.0 and the classic console host (conhost) of
+Windows 11 build 26300, on ARM64, each in its default profile (Cascadia Mono in
+Windows Terminal, Consolas in conhost). The Python probes ran unchanged inside each,
+through the stand-ins in `Tools/TerminalProbes/windows/` (`termios`, `tty` and `fcntl`
+over the console's modes, and `drive.py`, which opens the window and waits for the
+record). Records: `data/windows-terminal-1.24.12741.0-*.json` and
+`data/conhost-10.0.26300-*.json`; the cards were read by eye from screenshots.
+
+The two are one codebase (`microsoft/terminal`), and conhost is also what stands
+between a console program and every other Windows terminal: under Windows Terminal a
+program talks to a conhost running as a pseudoconsole, which passes its output on.
+What is measured here as "conhost" is that program in its own window.
+
+### Identification
+
+| Signal | Windows Terminal | conhost |
+|---|---|---|
+| Environment | `WT_SESSION` (a GUID per tab; also put in `WSLENV`, so a WSL shell has it) | nothing |
+| `TERM` | not set by the terminal (`xterm-256color` where a shell sets it) | not set |
+| DA1 | `ESC[?61;4;6;7;14;21;22;23;24;28;32;42;52c` | `ESC[?61;1;6;7;21;22;23;24;28;32;42;52c` |
+| DA2 | `ESC[>0;10;1c` | `ESC[>0;10;1c` |
+| XTVERSION | silent | silent |
+| DECRQM `?2027` | permanently set | not recognised |
+
+`TerminalHost.hostProgram(environment:)` names Windows Terminal by `WT_SESSION`;
+`TerminalHost.nameFromDeviceAttributes(_:)` names either by the shared DA2, no
+XTVERSION, a DA1 of level 61, and the two attributes that part them: `4` (Sixel), which
+only Windows Terminal draws, and `1` (132 columns), which only a console window can be
+resized to. A reply with both or neither names neither. conhost sets nothing in the
+environment, so it is named only by the question, which TUI asks wherever nothing in
+the environment names the host. A console window opened from a Windows Terminal tab
+inherits `WT_SESSION`, and is named Windows Terminal: the environment outranks the
+question.
+
+### Advance: Windows Terminal
+
+Both screens agree row for row. Windows Terminal clusters graphemes (mode 2027 is
+permanently set), composes ZWJ sequences, merges skin tones, advances a Devanagari
+conjunct by its cluster and Thai and Lao as TUI does — every class as the composing
+traits price it. Against the claim (`TerminalClient.widthTraits(of: .windowsTerminal)`
+is `.composing`):
+
+| Class | Rows | Advance | Claim | Treatment |
+|---|---|---|---|---|
+| Bare SMP pictographs (🖥 🛡 🕹 🕷 🎞 🏙) | 6 | **1** | 2 | ECH + CUF. Painted two cells wide, over the next cell, as on Apple Terminal |
+| Lone regional indicator | 1 | **1** | 2 | ECH + CUF |
+| Plane-16 PUA (SF Symbols) | 3 | **1** | 2 | ECH + CUF |
+| LRM, RLM, U+2060–2064, U+180E | 8 | **1** | 0 | none possible: over-advances, documented (as on xterm.js) |
+| Everything else in the corpus | — | = claim | | |
+
+`Character.windowsTerminalCursorAdvance`, `String.withWindowsTerminalCursorCompensation()`.
+
+### Advance: conhost
+
+Both screens agree row for row. conhost clusters nothing and has no zero width:
+**every code point takes a cell, and two when it is wide.** A combining accent, a
+virama, a nukta, a variation selector, a ZWJ, a ZWNJ and a bidi mark each take one;
+a regional indicator and a skin-tone swatch take two. Its width table is otherwise
+TUI's, with two exceptions that take one cell: a bare SMP pictograph, and the emoji of
+Unicode 16. `Character.windowsConsoleCells` is that rule, and reproduces every row of
+both records (`WindowsHostTests`).
+
+Its traits are the ones that bring the most of that into line —
+`decomposedDroppingJoiners`, `detached`, `perCodePoint` (as GNOME Terminal's): the walk
+drops the joiners, so a ZWJ sequence lands as the sum of its segments, and a skin tone
+is claimed as its base and its swatch. What remains:
+
+| Class | Example | Advance | Claim | Treatment |
+|---|---|---|---|---|
+| Bare SMP pictographs | 🖥 | **1** | 2 | ECH + CUF |
+| Unicode 16 emoji | 🫩 | **1** | 2 | ECH + CUF |
+| Selector after a wide base | ⬛︎ 〰️ 〽️ | **3** | 2 | sent without the selector (`⬛`), which conhost draws the same |
+| A decomposed letter that composes | `e` + U+0301 | **2** | 1 | sent composed (`é`) |
+| Flags | 🇺🇸 | **4** | 2 | sent as the two letters (`US`), which is what conhost draws of a flag |
+| Keycaps | 1️⃣ | **3** | 2 | none: no spelling claims two cells |
+| Combining marks that compose with nothing | Hebrew, Arabic, Thai, Lao, Tibetan, Indic | **+1 per mark** | | none possible: over-advances, documented |
+| Conjuncts | स्त्र | **5** | 3 | none possible: each virama takes a cell |
+| Conjoining Hangul jamo | ᄒ + ᅡ | **3** | 2 | none possible |
+
+`Character.windowsConsoleCursorAdvance` is the cell count where it falls short of the
+claim and the claim where it does not, as every other host's model reads an
+over-advance; `Character.windowsConsoleRespelling` is the respelling, accepted only
+where the result claims what the character claims and conhost advances it exactly that
+far, so the layout never sees it. `String.withWindowsConsoleCursorCompensation()`.
+
+### Paint
+
+`visual_card.py`, `scrollbar_arrow_card.py` and two cards of their own (block elements
+stacked over three rows; a link, every underline shape, a coloured underline and a
+strikethrough), read from screenshots:
+
+| | Windows Terminal | conhost |
+|---|---|---|
+| Colour emoji | yes | **no**: every emoji is a monochrome glyph |
+| ⬛︎ ⬜︎ (VS-15) | a narrow square and a blank cell | a narrow square and a blank cell |
+| Block elements, `▀ ▄ ▌ ▐ █` | full line height, no seams | full line height, no seams |
+| Quadrants `▖ ▗ ▘ ▝ ▙ ▛ ▜ ▟`, `▔ ▏ ▕` | drawn | **no glyph** in Consolas: a boxed question mark |
+| Corner triangles `◢ ◣ ◤ ◥` | from the font, short of the cell's edges | no glyph, or a small one |
+| Double, curly, dotted, dashed underline; SGR 58 colour | all drawn | all drawn |
+| Strikethrough | drawn, in the text's colour (SGR 58 ignored) | **not drawn** |
+| OSC 8 link | dotted underline; Ctrl+click follows it | swallowed, drawn as plain text, nothing on hover |
+
+So `supportsEmojiChrome` is false on both, `blockElementsFillTheLine` true on both,
+`cornerTrianglesFillTheCell` false on both, `honoursHyperlinks` true on Windows Terminal
+and false on conhost, and `lineStyles(for:)` is every underline and its colour, with the
+strikethrough's colour only from the text, on both — conhost's text decorations listing
+no strikethrough at all.
+
+**conhost's font.** The quadrants matter: TUI inks a cell's quarters with them
+(`TerminalSymbols.quadrants`) for shapes, canvases and solid button faces. Consolas,
+conhost's default, has none, and conhost does no font fallback. Choosing Cascadia Mono (installed with Windows 11) in the console's
+properties draws them. TUI has no way to ask a terminal which glyphs its font has, so
+this is a note for users, not something TUI adapts to.
+
+### Capabilities
+
+| Feature | Windows Terminal | conhost | Evidence |
+|---|---|---|---|
+| OSC 52 clipboard write | **yes** | **yes** | ST, BEL and an empty selector all arrive; 1 KiB and 8 KiB whole, a 64 KiB write left the clipboard as it was (`clipboard_probe.py`) |
+| OSC 5522 MIME clipboard | no | no | not asked: neither names it |
+| OSC 9;4 progress | **yes, drawn** | no | a ring on the tab and the taskbar button (seen) |
+| OSC 9 / OSC 777 notification | no | no | neither posts one; a bell marks the tab |
+| OSC 2 title, XTWINOPS 22/23 | swallowed | swallowed | `title_probe.py`, both screens |
+| Synchronized output (2026) | reset, recognised | not recognised | DECRQM (`decrqm_probe.py`) |
+| SGR-Pixels mouse (1016) | not recognised | not recognised | DECRQM |
+| Focus reports (1004), SGR mouse (1006), bracketed paste (2004) | recognised | recognised | DECRQM |
+| win32-input-mode (9001) | recognised | recognised | DECRQM; TUI does not set it |
+| kitty keyboard protocol | no answer | no answer | `CSI ? u` unanswered before the fence |
+| Sixel | yes (DA1 `4`) | no (DA1 has no `4`) | `sixel_probe.py` in Windows Terminal: `CSI 16 t` answers a cell of 10 × 20, as its source says |
+
+Not measured: keys and their modifiers (the probes that read keys need someone at the
+keyboard), mouse reports, pointer shapes, scroll regions, and a cell's size in points
+for either.
 
 ---
 
@@ -5043,7 +5182,11 @@ recipe and no cause; the draft report and its tools are in `Documentation/Workin
 What TUI does with it: nothing yet. Playback stays off unless `TUI_GRAPHICS_PLAYBACK=1`
 (`playbackTrustsHandshake`), a supported option since 2026-11-15, off by default.
 
-### Windows Terminal and Sixel — read 2026-11-02, not measured
+### Windows Terminal and Sixel — read 2026-11-02; measured in part 2026-11-16
+
+Measured on 1.24.12741.0 (`data/windows-terminal-1.24.12741.0-sixel.json`): DA1 lists `4`, `CSI 16 t` answers a cell of 10 × 20 and `CSI 14 t` a text area of 1200 × 600 for its 120 × 30 grid, and with DECSDM set the cursor stays where the picture began. The rest below is still as read.
+
+The reading of 2026-11-02:
 
 No Windows machine here. Read from `microsoft/terminal`'s main branch, through
 summaries of `SixelParser.cpp` and `ImageSlice.cpp` rather than line by line. A

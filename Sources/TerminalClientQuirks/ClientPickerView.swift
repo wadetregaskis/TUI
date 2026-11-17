@@ -88,6 +88,10 @@ struct ClientPickerView: View {
             "ECH+CUF for VS-16, bare pictographs, keycaps, SF Symbols, pre-Unicode 16; tones detach; ZWJ decomposed"
         case .xtermJS:
             "ECH+CUF for SF Symbols, bare pictographs, lone RI, Unicode 15+ emoji, spacing vowel signs; keeps skin tones"
+        case .windowsTerminal:
+            "ECH+CUF for SF Symbols, bare pictographs, lone RI; keeps skin tones"
+        case .windowsConsole:
+            "ECH+CUF for bare pictographs, pre-Unicode 16; flags as letters; selectors dropped, accents composed; tones detach; ZWJ decomposed"
         case .tmux:
             "compositor: its own grid, its own model; strips BMP-base skin tones"
         case .unidentified:
@@ -120,6 +124,8 @@ struct ClientPickerView: View {
         case .warp: "Warp"
         case .gnomeTerminal: "GNOME Terminal"
         case .xtermJS: "xterm.js"
+        case .windowsTerminal: "Windows Terminal"
+        case .windowsConsole: "Windows Console (conhost)"
         case .tmux: "tmux"
         case .unidentified: "unidentified"
         }

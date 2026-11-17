@@ -86,8 +86,9 @@ struct QuirkTableView: View {
             switch client.program {
             case .ghostty: return "kept — Ghostty merges them correctly"
             case .xtermJS: return "kept — its graphemes addon merges them correctly"
+            case .windowsTerminal: return "kept — Windows Terminal merges them correctly"
             case .appleTerminal: return "separated — base, ZWNJ, modifier (withTerminalAppCursorCompensation)"
-            case .iTerm2, .warp, .gnomeTerminal: return "kept, detached — advance measured per host"
+            case .iTerm2, .warp, .gnomeTerminal, .windowsConsole: return "kept, detached — advance measured per host"
             case .tmux: return "modifier stripped (withSkinToneFallback)"
             case .unidentified: return "none — terminal not identified"
             }
@@ -123,6 +124,8 @@ struct QuirkTableView: View {
         case .warp: "Warp"
         case .gnomeTerminal: "GNOME Terminal"
         case .xtermJS: "xterm.js"
+        case .windowsTerminal: "Windows Terminal"
+        case .windowsConsole: "the Windows Console (conhost)"
         case .tmux: "tmux"
         case .unidentified: "an unidentified terminal"
         }

@@ -132,8 +132,10 @@ extension TerminalClient {
     /// wherever the user has told tmux it can.
     public static func honoursHyperlinks(_ program: Program) -> Bool {
         switch program {
-        case .iTerm2, .ghostty, .tmux, .gnomeTerminal, .xtermJS: true
-        case .appleTerminal, .warp, .unidentified: false
+        case .iTerm2, .ghostty, .tmux, .gnomeTerminal, .xtermJS, .windowsTerminal: true
+        // conhost swallows the sequence and does nothing with it: no
+        // underline, nothing on hover (build 26300, 2026-11-16).
+        case .appleTerminal, .warp, .windowsConsole, .unidentified: false
         }
     }
 

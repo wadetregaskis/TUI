@@ -88,6 +88,13 @@ extension TerminalHost {
             // no sequence it reads for one.
             return LineStyleSupport(
                 doubleUnderline: true, patternedUnderlines: true, underlineColour: true, strikethroughColour: false)
+        case .windowsTerminal, .windowsConsole:
+            // Read 2026-11-16 (1.24.12741.0; conhost build 26300): every
+            // underline shape and its colour; a strikethrough in the text's
+            // colour on Windows Terminal, and none at all in conhost, which
+            // `TerminalCapabilities.textDecorations(of:)` says.
+            return LineStyleSupport(
+                doubleUnderline: true, patternedUnderlines: true, underlineColour: true, strikethroughColour: false)
         case .warp:
             return LineStyleSupport(
                 doubleUnderline: true, patternedUnderlines: false, underlineColour: false, strikethroughColour: false)

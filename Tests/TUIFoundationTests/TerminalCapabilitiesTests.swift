@@ -134,7 +134,7 @@ struct TerminalCapabilitiesTests {
             let known = TerminalCapabilities.textDecorations(of: program)
             #expect(known.undetermined.isSuperset(of: Feature.all.subtracting(.textDecorations)))
             switch program {
-            case .appleTerminal, .iTerm2, .ghostty, .warp, .xtermJS:
+            case .appleTerminal, .iTerm2, .ghostty, .warp, .xtermJS, .windowsTerminal, .windowsConsole:
                 // As the renderer reduces a style by, so the two cannot disagree.
                 let styles = TerminalHost.lineStyles(for: program)
                 #expect(known.supports(.doubleUnderline) == styles.doubleUnderline)
@@ -148,6 +148,8 @@ struct TerminalCapabilitiesTests {
         }
         #expect(TerminalCapabilities.textDecorations(of: .appleTerminal).status(of: .strikethrough) == .unsupported)
         #expect(TerminalCapabilities.textDecorations(of: .warp).status(of: .strikethrough) == .supported)
+        #expect(TerminalCapabilities.textDecorations(of: .windowsTerminal).status(of: .strikethrough) == .supported)
+        #expect(TerminalCapabilities.textDecorations(of: .windowsConsole).status(of: .strikethrough) == .unsupported)
         #expect(TerminalCapabilities.textDecorations(of: .warp).status(of: .patternedUnderline) == .unsupported)
         #expect(TerminalCapabilities.textDecorations(of: .ghostty).status(of: .strikethroughColor) == .unsupported)
         #expect(TerminalCapabilities.textDecorations(of: .iTerm2).supports(.textDecorations))

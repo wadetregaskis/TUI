@@ -190,6 +190,8 @@ struct IdentificationView: View {
         case .warp: "Warp"
         case .gnomeTerminal: "GNOME Terminal"
         case .xtermJS: "xterm.js"
+        case .windowsTerminal: "Windows Terminal"
+        case .windowsConsole: "Windows Console (conhost)"
         case .tmux: "tmux"
         case .unidentified: "unidentified"
         }

@@ -583,8 +583,10 @@ struct ButtonsPage: View {
         case .warp: "Warp"
         case .gnomeTerminal: "GNOME Terminal"
         case .xtermJS: "xterm.js"
+        case .windowsTerminal: "Windows Terminal"
+        case .windowsConsole: "Windows Console"
         case .tmux: "tmux"
-        // The only one of the seven that is a description rather than a name.
+        // The only one that is a description rather than a name.
         case .unidentified: L("page.buttons.links.unidentified")
         }
     }
@@ -601,6 +603,8 @@ struct ButtonsPage: View {
         case .warp: "page.buttons.links.noteWarp"
         case .gnomeTerminal: "page.buttons.links.noteGnomeTerminal"
         case .xtermJS: "page.buttons.links.noteXtermJS"
+        case .windowsTerminal: "page.buttons.links.noteWindowsTerminal"
+        case .windowsConsole: "page.buttons.links.noteWindowsConsole"
         case .unidentified: "page.buttons.links.noteUnidentified"
         }
     }

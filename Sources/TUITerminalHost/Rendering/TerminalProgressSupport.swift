@@ -34,6 +34,8 @@ extension TerminalClient {
     /// | tmux | yes, and passes it on to a client that can draw it | keeps a bar per pane (`#{pane_pb_state}`, "can be set by application"), hands it to a client that attaches later, and passes each change — never a repeat — to a client with the `progressbar` feature, which tmux 3.7c gives iTerm2 and nothing else of these four (its manual and its built-in table; measured, `progress_probe.py`) |
     /// | Apple Terminal | no | nothing in the app |
     /// | Warp | no | nothing in the app names either sequence |
+    /// | Windows Terminal | yes, and draws it | a ring on the tab and the taskbar button (seen, 1.24.12741.0, 2026-11-16) |
+    /// | conhost | no | nothing in the console |
     /// | unidentified | no | an unmeasured host gets the answer that cannot hurt |
     ///
     /// kitty draws it too, from 0.47.0 (its changelog), but TUI has no
@@ -43,8 +45,8 @@ extension TerminalClient {
     /// survey.md`, "Progress and attention".
     public static func honoursProgressReports(_ program: Program) -> Bool {
         switch program {
-        case .ghostty, .iTerm2, .tmux: true
-        case .appleTerminal, .warp, .gnomeTerminal, .xtermJS, .unidentified: false
+        case .ghostty, .iTerm2, .windowsTerminal, .tmux: true
+        case .appleTerminal, .warp, .gnomeTerminal, .xtermJS, .windowsConsole, .unidentified: false
         }
     }
 

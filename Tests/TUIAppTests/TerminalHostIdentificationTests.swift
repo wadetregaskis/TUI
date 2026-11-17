@@ -228,6 +228,10 @@ struct TerminalHostIdentificationTests {
             doubleUnderline: true, patternedUnderlines: false, underlineColour: false, strikethroughColour: false))
         #expect(TerminalHost.lineStyles(for: .appleTerminal) == .plain)
         #expect(TerminalHost.lineStyles(for: .gnomeTerminal) == .plain)
+        for windows in [TerminalClient.Program.windowsTerminal, .windowsConsole] {
+            #expect(TerminalHost.lineStyles(for: windows) == LineStyleSupport(
+                doubleUnderline: true, patternedUnderlines: true, underlineColour: true, strikethroughColour: false))
+        }
         #expect(TerminalHost.lineStyles(for: .unidentified) == .plain)
     }
 
@@ -247,6 +251,10 @@ struct TerminalHostIdentificationTests {
                 #expect(TerminalHost.supportsEmojiChrome(for: program))
                 #expect(TerminalHost.blockElementsFillTheLine(for: program))
                 #expect(TerminalHost.cornerTrianglesFillTheCell(for: program))
+            case .windowsTerminal, .windowsConsole:
+                #expect(!TerminalHost.supportsEmojiChrome(for: program))
+                #expect(TerminalHost.blockElementsFillTheLine(for: program))
+                #expect(!TerminalHost.cornerTrianglesFillTheCell(for: program))
             case .xtermJS, .tmux, .unidentified:
                 #expect(!TerminalHost.supportsEmojiChrome(for: program))
                 #expect(TerminalHost.blockElementsFillTheLine(for: program))

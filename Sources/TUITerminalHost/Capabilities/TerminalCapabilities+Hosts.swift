@@ -23,13 +23,13 @@ extension TerminalCapabilities {
     /// *Terminal compatibility survey*, "Underline shapes and colours".
     package static func textDecorations(of program: TerminalClient.Program) -> Self {
         switch program {
-        case .appleTerminal, .iTerm2, .ghostty, .warp, .xtermJS:
+        case .appleTerminal, .iTerm2, .ghostty, .warp, .xtermJS, .windowsTerminal, .windowsConsole:
             let styles = TerminalHost.lineStyles(for: program)
             return nothingKnown
                 .settling(.doubleUnderline, drawn: styles.doubleUnderline)
                 .settling(.patternedUnderline, drawn: styles.patternedUnderlines)
                 .settling(.underlineColor, drawn: styles.underlineColour)
-                .settling(.strikethrough, drawn: program != .appleTerminal)
+                .settling(.strikethrough, drawn: program != .appleTerminal && program != .windowsConsole)
                 .settling(.strikethroughColor, drawn: styles.strikethroughColour)
         case .gnomeTerminal, .tmux, .unidentified:
             return nothingKnown

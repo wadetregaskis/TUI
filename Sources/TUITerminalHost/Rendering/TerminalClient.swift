@@ -56,6 +56,13 @@ public struct TerminalClient: Sendable, Equatable {
         /// runs it (`Tools/Web/`). A page embedding it may load other addons or
         /// none, and nothing here can see which.
         case xtermJS
+        /// Windows Terminal. Named by `WT_SESSION`, which it sets in every tab,
+        /// or by its Device Attributes.
+        case windowsTerminal
+        /// The classic Windows console, conhost: the window a console program
+        /// opens where Windows Terminal is not the default. Named by its
+        /// Device Attributes alone, as it sets nothing in the environment.
+        case windowsConsole
         /// A tmux pane. tmux is a compositor, not a passthrough — it parses our
         /// output into its own grid with its own width tables — so it, and not
         /// the terminal attached to it, is the host whose model applies.
@@ -74,6 +81,8 @@ public struct TerminalClient: Sendable, Equatable {
             case .warp: "WarpTerminal"
             case .gnomeTerminal: "gnome-terminal"
             case .xtermJS: "xterm.js"
+            case .windowsTerminal: "WindowsTerminal"
+            case .windowsConsole: "conhost"
             case .tmux: "tmux"
             case .unidentified: nil
             }
@@ -88,6 +97,8 @@ public struct TerminalClient: Sendable, Equatable {
             case "WarpTerminal": self = .warp
             case "gnome-terminal", "GNOME_Terminal", "vte": self = .gnomeTerminal
             case "xterm.js": self = .xtermJS
+            case "WindowsTerminal": self = .windowsTerminal
+            case "conhost": self = .windowsConsole
             case "tmux": self = .tmux
             default: self = .unidentified
             }
@@ -403,6 +414,26 @@ public struct TerminalClient: Sendable, Equatable {
             // स्त्र and स्त्री both 3 and कि 1, so the first over-advances by
             // one and the second is squared by a CUF.
             .composing
+        case .windowsTerminal:
+            // Measured on 1.24.12741.0, both screens, 2026-11-16: it clusters
+            // graphemes (DEC mode 2027, permanently set), composes ZWJ
+            // sequences, merges skin tones and advances स्त्र 2 — every class
+            // as the composing traits price it. Its chrome's ink is unread, so
+            // `.contained` with the other unread hosts.
+            .composing
+        case .windowsConsole:
+            // Measured on build 26300, both screens, 2026-11-16: it clusters
+            // nothing, and every code point takes a cell (two when wide). A ZWJ
+            // sequence's joiners each take one, so the walk drops them and the
+            // segments are priced as drawn; a skin tone is its base and a
+            // two-cell swatch; and a text cluster advances by its code points,
+            // स्त्र 5 against the 3 of TUI's per-code-point price, which gives
+            // a virama no cell. That last gap, and every combining mark's, is
+            // an over-advance no CUF repairs: see the survey.
+            TerminalWidthTraits(
+                zwjSequences: .decomposedDroppingJoiners,
+                skinTone: .detached,
+                textClusters: .perCodePoint)
         case .tmux:
             // NOT widened, deliberately. Measured 2026-08-26, tmux 3.7b does
             // not split by base plane the way iTerm2 does: 👍🏽 🙏🏽 👋🏽 merge
@@ -476,6 +507,8 @@ public struct TerminalClient: Sendable, Equatable {
         case .warp: cluster.warpCursorAdvance
         case .gnomeTerminal: cluster.gnomeTerminalCursorAdvance
         case .xtermJS: cluster.xtermJSCursorAdvance
+        case .windowsTerminal: cluster.windowsTerminalCursorAdvance
+        case .windowsConsole: cluster.windowsConsoleCursorAdvance
         case .tmux: cluster.tmuxCursorAdvance
         case .unidentified: cluster.unidentifiedHostCursorAdvance
         }
@@ -548,6 +581,10 @@ public struct TerminalClient: Sendable, Equatable {
             return strippingSkinTonesIfUnclaimed(text).withGnomeTerminalCursorCompensation()
         case .xtermJS:
             return text.withXtermJSCursorCompensation()
+        case .windowsTerminal:
+            return text.withWindowsTerminalCursorCompensation()
+        case .windowsConsole:
+            return strippingSkinTonesIfUnclaimed(text).withWindowsConsoleCursorCompensation()
         case .unidentified:
             // Not "no compensation" any more, but "no HOST compensation". An
             // unidentified terminal is still assumed to have no defects of its

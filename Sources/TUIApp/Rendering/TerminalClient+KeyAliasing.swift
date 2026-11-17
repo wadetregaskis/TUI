@@ -60,7 +60,7 @@ extension TerminalClient {
         case .appleTerminal: .controlShiftBackslash
         case .iTerm2, .warp, .gnomeTerminal: .all
         case .ghostty: .controlFour
-        case .xtermJS, .tmux, .unidentified: .all
+        case .xtermJS, .windowsTerminal, .windowsConsole, .tmux, .unidentified: .all
         }
     }
 }

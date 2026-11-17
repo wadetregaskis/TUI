@@ -54,6 +54,8 @@ extension ExampleStrings {
             "page.buttons.links.noteWarp": "Warp handles links only outside the alternate screen — the only buffer a TUI app ever draws into — so the escape would be stored nowhere and is not sent. ⇧-click selects text.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) honours OSC 8 hyperlinks. Hold Ctrl and click to follow the link, or right-click to open or copy the destination.",
             "page.buttons.links.noteXtermJS": "xterm.js honours OSC 8 hyperlinks, and the page it runs in says what a click does. Here it opens the link in a new tab.",
+            "page.buttons.links.noteWindowsTerminal": "Windows Terminal honours OSC 8 hyperlinks, underlining them with dots. Hold Ctrl and click to follow the link.",
+            "page.buttons.links.noteWindowsConsole": "The Windows Console accepts OSC 8 hyperlinks and draws them as plain text, so TUI sends none. Windows Terminal follows them.",
             "page.buttons.links.noteUnidentified": "This terminal was not identified, so links are off: an unmeasured host gets the answer that cannot hurt. Set TUI_HYPERLINKS=1 if yours does support them.",
         ],
 
@@ -91,6 +93,8 @@ extension ExampleStrings {
             "page.buttons.links.noteWarp": "Warp verarbeitet Links nur außerhalb des alternativen Bildschirms — dem einzigen Puffer, in den eine TUI-App zeichnet — die Sequenz würde also nirgends gespeichert und wird nicht gesendet. ⇧-Klick markiert Text.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) beachtet OSC-8-Hyperlinks. Strg gedrückt halten und klicken, um dem Link zu folgen, oder rechtsklicken zum Öffnen oder Kopieren des Ziels.",
             "page.buttons.links.noteXtermJS": "xterm.js beachtet OSC-8-Hyperlinks, und die Seite, auf der es läuft, legt fest, was ein Klick bewirkt. Hier öffnet er den Link in einem neuen Tab.",
+            "page.buttons.links.noteWindowsTerminal": "Windows Terminal beachtet OSC-8-Hyperlinks und unterstreicht sie gepunktet. Strg gedrückt halten und klicken, um dem Link zu folgen.",
+            "page.buttons.links.noteWindowsConsole": "Die Windows-Konsole nimmt OSC-8-Hyperlinks an und zeigt sie als einfachen Text, daher sendet TUI keine. Windows Terminal folgt ihnen.",
             "page.buttons.links.noteUnidentified": "Dieses Terminal wurde nicht erkannt, daher sind Links aus: Ein nicht vermessener Host bekommt die Antwort, die nicht schaden kann. TUI_HYPERLINKS=1 setzen, falls Ihres sie unterstützt.",
         ],
 
@@ -128,6 +132,8 @@ extension ExampleStrings {
             "page.buttons.links.noteWarp": "Warp ne traite les liens qu'en dehors de l'écran alternatif — le seul tampon où dessine une application TUI — la séquence ne serait donc stockée nulle part et n'est pas envoyée. Le ⇧-clic sélectionne du texte.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) honore les hyperliens OSC 8. Maintenez Ctrl et cliquez pour suivre le lien, ou faites un clic droit pour ouvrir ou copier la destination.",
             "page.buttons.links.noteXtermJS": "xterm.js honore les hyperliens OSC 8, et la page qui l'héberge décide de l'effet d'un clic. Ici, il ouvre le lien dans un nouvel onglet.",
+            "page.buttons.links.noteWindowsTerminal": "Windows Terminal honore les hyperliens OSC 8 et les souligne en pointillés. Maintenez Ctrl et cliquez pour suivre le lien.",
+            "page.buttons.links.noteWindowsConsole": "La console Windows accepte les hyperliens OSC 8 et les affiche en texte simple ; TUI n'en envoie donc aucun. Windows Terminal les suit.",
             "page.buttons.links.noteUnidentified": "Ce terminal n'a pas été identifié, les liens sont donc désactivés : un hôte non mesuré reçoit la réponse qui ne peut pas nuire. Définissez TUI_HYPERLINKS=1 si le vôtre les gère.",
         ],
 
@@ -165,6 +171,8 @@ extension ExampleStrings {
             "page.buttons.links.noteWarp": "Warp gestisce i collegamenti solo fuori dallo schermo alternativo — l'unico buffer in cui disegna un'app TUI — quindi la sequenza non verrebbe memorizzata da nessuna parte e non viene inviata. Il ⇧-clic seleziona il testo.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) onora i collegamenti ipertestuali OSC 8. Tieni premuto Ctrl e fai clic per seguire il collegamento, o fai clic con il tasto destro per aprire o copiare la destinazione.",
             "page.buttons.links.noteXtermJS": "xterm.js onora i collegamenti ipertestuali OSC 8, e la pagina che lo ospita decide cosa fa un clic. Qui apre il collegamento in una nuova scheda.",
+            "page.buttons.links.noteWindowsTerminal": "Windows Terminal onora i collegamenti ipertestuali OSC 8 e li sottolinea a puntini. Tieni premuto Ctrl e fai clic per seguire il collegamento.",
+            "page.buttons.links.noteWindowsConsole": "La console di Windows accetta i collegamenti ipertestuali OSC 8 e li mostra come testo semplice, quindi TUI non ne invia. Windows Terminal li segue.",
             "page.buttons.links.noteUnidentified": "Questo terminale non è stato identificato, quindi i collegamenti sono disattivati: un host non misurato riceve la risposta che non può nuocere. Imposta TUI_HYPERLINKS=1 se il tuo li supporta.",
         ],
 
@@ -202,6 +210,8 @@ extension ExampleStrings {
             "page.buttons.links.noteWarp": "Warp solo gestiona enlaces fuera de la pantalla alternativa — el único búfer en el que dibuja una app TUI — de modo que la secuencia no se guardaría en ningún sitio y no se envía. El ⇧-clic selecciona texto.",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal (VTE) respeta los hiperenlaces OSC 8. Mantén pulsado Ctrl y haz clic para seguir el enlace, o haz clic derecho para abrir o copiar el destino.",
             "page.buttons.links.noteXtermJS": "xterm.js respeta los hiperenlaces OSC 8, y la página que lo aloja decide qué hace un clic. Aquí abre el enlace en una pestaña nueva.",
+            "page.buttons.links.noteWindowsTerminal": "Windows Terminal respeta los hiperenlaces OSC 8 y los subraya con puntos. Mantén pulsado Ctrl y haz clic para seguir el enlace.",
+            "page.buttons.links.noteWindowsConsole": "La consola de Windows acepta los hiperenlaces OSC 8 y los muestra como texto sin formato, así que TUI no envía ninguno. Windows Terminal sí los sigue.",
             "page.buttons.links.noteUnidentified": "Este terminal no se identificó, así que los enlaces están desactivados: un host sin medir recibe la respuesta que no puede hacer daño. Define TUI_HYPERLINKS=1 si el tuyo sí los admite.",
         ],
 
@@ -239,6 +249,8 @@ extension ExampleStrings {
             "page.buttons.links.noteWarp": "Warp 仅在备用屏幕之外处理链接，而备用屏幕是 TUI 应用唯一绘制的缓冲区——序列无处可存，因此不发送。⇧-点击会选择文本。",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal（VTE）支持 OSC 8 超链接。按住 Ctrl 并单击以打开链接，或右键单击以打开或复制目标地址。",
             "page.buttons.links.noteXtermJS": "xterm.js 支持 OSC 8 超链接，单击的效果由运行它的页面决定。在这里，单击会在新标签页中打开链接。",
+            "page.buttons.links.noteWindowsTerminal": "Windows Terminal 支持 OSC 8 超链接，并以点状下划线标出。按住 Ctrl 并单击即可打开链接。",
+            "page.buttons.links.noteWindowsConsole": "Windows 控制台接受 OSC 8 超链接，但只将其显示为普通文本，因此 TUI 不发送超链接。Windows Terminal 支持打开它们。",
             "page.buttons.links.noteUnidentified": "未能识别此终端，因此链接已关闭：未经实测的主机采用不会造成损害的答案。若你的终端支持，请设置 TUI_HYPERLINKS=1。",
         ],
 
@@ -276,6 +288,8 @@ extension ExampleStrings {
             "page.buttons.links.noteWarp": "Warp は代替画面の外でしかリンクを扱いません。TUI アプリが描画するのは代替画面だけなので、シーケンスはどこにも保存されず、送信しません。⇧-クリックはテキストを選択します。",
             "page.buttons.links.noteGnomeTerminal": "GNOME Terminal（VTE）は OSC 8 ハイパーリンクを認識します。Ctrl を押しながらクリックしてリンクを開くか、右クリックして移動先を開くかコピーします。",
             "page.buttons.links.noteXtermJS": "xterm.js は OSC 8 ハイパーリンクを認識します。クリックしたときの動作は、それを動かしているページが決めます。ここでは新しいタブでリンクを開きます。",
+            "page.buttons.links.noteWindowsTerminal": "Windows Terminal は OSC 8 ハイパーリンクを認識し、点線の下線で示します。Ctrl キーを押しながらクリックするとリンクを開きます。",
+            "page.buttons.links.noteWindowsConsole": "Windows コンソールは OSC 8 ハイパーリンクを受け付けますが、ただのテキストとして表示するため、TUI は送信しません。Windows Terminal はリンクを開けます。",
             "page.buttons.links.noteUnidentified": "この端末は識別できなかったためリンクは無効です。未計測のホストには害のない答えを返します。対応しているなら TUI_HYPERLINKS=1 を設定してください。",
         ],
     ]

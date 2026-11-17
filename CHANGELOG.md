@@ -15,6 +15,8 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Windows Terminal and the classic Windows console are known hosts.** Windows Terminal is named by `WT_SESSION` or by its Device Attributes, and gets OSC 8 hyperlinks, every underline style, OSC 52 copying, OSC 9;4 progress, and CUF repairs for what it advances short of TUI's widths (bare pictographs, a lone regional indicator, SF Symbols). The console (conhost) is named by its Device Attributes. It gives every code point a cell, so ZWJ sequences go out as their parts and skin tones as base and swatch. A flag goes out as its two letters, a variation selector after a wide glyph is dropped, an accent is composed into its letter, and bare pictographs get a CUF. Combining marks that compose with nothing still take a cell each there. Both are measured in the Terminal compatibility survey.
+
 **A `LazyVStack` in a `ScrollView` that scrolls both ways, over rows the app builds in its body, compares them once a
 frame.** The width of its widest row, kept so the horizontal scroll reaches every row's end, was matched to the rows
 by comparing the rows it was taken over with the rows the stack was handed, element by element whenever they came in

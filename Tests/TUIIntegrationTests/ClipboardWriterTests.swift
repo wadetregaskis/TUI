@@ -258,10 +258,10 @@ struct ClipboardTerminalSupportTests {
         }
     #endif
 
-    @Test("Only Ghostty, of the programs TUI knows, writes by default")
+    @Test("Ghostty, Windows Terminal and conhost, of the programs TUI knows, write by default")
     func honouredPrograms() {
         let honoured = TerminalClient.Program.allCases.filter(TerminalClient.honoursClipboardWrites)
-        #expect(honoured == [.ghostty])
+        #expect(honoured == [.ghostty, .windowsTerminal, .windowsConsole])
     }
 
     @Test("DA1's 52 is a parameter, not a substring")

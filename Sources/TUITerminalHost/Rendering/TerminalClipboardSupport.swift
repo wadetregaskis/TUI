@@ -94,6 +94,8 @@ extension TerminalClient {
     /// | Host | Writes | Evidence |
     /// |---|---|---|
     /// | Ghostty | yes | `clipboard-write = allow` is its default (its OSC 52 page and config reference); measured 2026-10-19, 1.3.1 |
+    /// | Windows Terminal | yes | measured 2026-11-16, 1.24.12741.0: ST, BEL and an empty selector all arrive, 8 KiB whole and 64 KiB not |
+    /// | conhost | yes | measured 2026-11-16, build 26300: as Windows Terminal, the same codebase |
     /// | iTerm2 | only with a setting | "Applications in terminal may access clipboard", off by default; measured both ways 2026-10-19, 3.7.6 |
     /// | tmux | only with `set-clipboard on`, or through its passthrough | `external`, the default, ignores an application's write; `on` keeps it as a buffer and passes it on; under `allow-passthrough` TUI wraps the write and tmux passes it on (measured, 3.7c) |
     /// | GNU screen | through its passthrough | it drops a bare OSC 52 and passes one on inside its DCS passthrough, which TUI sends; recognised by `STY`, whatever terminal is named (measured, 4.00.03) |
@@ -117,7 +119,9 @@ extension TerminalClient {
     /// The table behind ``honoursClipboardWrites(_:)``, with its middle rung.
     static func support(of program: Program) -> ClipboardWriteSupport {
         switch program {
-        case .ghostty: .honoured
+        // Both write it (measured 2026-11-16, 1.24.12741.0 and build 26300):
+        // ST, BEL and an empty selector alike, 8 KiB whole, 64 KiB not.
+        case .ghostty, .windowsTerminal, .windowsConsole: .honoured
         // Whether tmux passes the write on is its `set-clipboard` option, which
         // the ladder asks tmux for; this is the answer for "on".
         case .iTerm2, .tmux: .unconfirmed

@@ -28,6 +28,8 @@ extension TerminalClient {
     /// | tmux | no | passes no `OSC 9` on to the terminal it is drawn in, and does pass a bell (measured, 3.7c, `progress_probe.py`) |
     /// | Apple Terminal | no | nothing in the app |
     /// | Warp | no | nothing in its binary names the sequence |
+    /// | Windows Terminal | no | neither `OSC 9` nor `OSC 777` posts one; a bell marks the tab (1.24.12741.0, 2026-11-16) |
+    /// | conhost | no | nothing in the console |
     /// | unidentified | no | the bell, which every terminal has |
     ///
     /// kitty posts it too (its desktop-notifications documentation), but has
@@ -37,7 +39,9 @@ extension TerminalClient {
     public static func honoursNotifications(_ program: Program) -> Bool {
         switch program {
         case .ghostty, .iTerm2: true
-        case .tmux, .appleTerminal, .warp, .gnomeTerminal, .xtermJS, .unidentified: false
+        case .tmux, .appleTerminal, .warp, .gnomeTerminal, .xtermJS, .windowsTerminal, .windowsConsole,
+            .unidentified:
+            false
         }
     }
 

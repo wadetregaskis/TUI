@@ -89,6 +89,9 @@ struct PixelMouseNegotiation {
                 return named ? Self(cellSource: .agreement) : nil
             case .appleTerminal, .warp, .gnomeTerminal, .tmux:
                 return nil
+            // Neither recognises `?1016` (DECRQM, 2026-11-16).
+            case .windowsTerminal, .windowsConsole:
+                return nil
             }
         }
     }
