@@ -1141,10 +1141,7 @@ extension AppRunner {
         // The pointer goes with the focus: nothing reports it while it is in
         // another window (`MouseEventDispatcher.pointerLeft()`).
         if !isFocused, tuiContext.mouseEventDispatcher.pointerLeft() { appState.setNeedsRender() }
-        guard tuiContext.scenePhase != .background else { return }
-        let phase: ScenePhase = isFocused ? .active : .inactive
-        guard tuiContext.scenePhase != phase else { return }
-        tuiContext.scenePhase = phase
+        guard tuiContext.movePhase(forTerminalFocus: isFocused) else { return }
         if isFocused {
             cursorTimer.restartFocusPhase()
             renderer.terminalFocusRegained()

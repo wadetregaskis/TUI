@@ -179,6 +179,18 @@ app.press(.character("q"), modifiers: .control)
 #expect(app.hasRequestedQuit)
 ```
 
+### The terminal's window
+
+``TestApp/reportFocus(_:)`` reports the terminal's window losing or gaining the focus, as a terminal does when the
+person switches to another window and back: `\.scenePhase` goes `.inactive` and `\.appearsActive` `false`, and back,
+as in a running app, so a game that pauses when its window goes to the back can be tested:
+
+```swift
+let app = TestApp { Game() }
+app.reportFocus(false)
+#expect(app.screen.contains("Paused"))
+```
+
 ### Moving time
 
 The clock stands still until you move it, so nothing depends on how fast the machine is:

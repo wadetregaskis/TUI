@@ -108,7 +108,6 @@ extension TestApp {
     var cursorVisible: Bool { headless.cursorVisible }
 
     func takeFrameRequest() -> Bool { headless.takeFrameRequest() }
-    func reportFocus(_ isFocused: Bool) { headless.reportFocus(isFocused) }
     func handBackHostState() { headless.handBackHostState() }
     func keepHostStateAlive(atNanos nanos: Int64) { headless.keepHostStateAlive(atNanos: nanos) }
     func nextWake(after nanos: Int64) -> Int64? { headless.nextWake(after: nanos) }

@@ -23,6 +23,7 @@ TestApp.init(width:height:content:) | @MainActor init<Content>(width: Int = 80, 
 TestApp.mouse(_:) | @discardableResult @MainActor func mouse(_ event: MouseEvent) -> Bool
 TestApp.press(_:modifiers:times:) | @discardableResult @MainActor func press(_ key: Key, modifiers: EventModifiers = [], times: Int = 1) -> Bool
 TestApp.press(_:times:) | @discardableResult @MainActor func press(_ event: KeyEvent, times: Int = 1) -> Bool
+TestApp.reportFocus(_:) | @MainActor func reportFocus(_ isFocused: Bool)
 TestApp.resize(width:height:) | @MainActor func resize(width: Int, height: Int)
 TestApp.screen | @MainActor var screen: TestScreen { get }
 TestApp.scroll(_:by:at:) | @MainActor func scroll(_ direction: TestApp.ScrollDirection, by ticks: Int = 1, at point: CellPoint? = nil)

@@ -343,10 +343,15 @@ package final class HeadlessApp {
 
     /// Reports the terminal's window gaining or losing the focus, as a focus
     /// report (mode 1004) does: losing it lets go of the pointer, as the app's
-    /// event funnel does (``MouseEventDispatcher/pointerLeft()``). The scene's
-    /// phase is the app's run loop's, which a script does not run.
+    /// event funnel does (``MouseEventDispatcher/pointerLeft()``), and the
+    /// scene's phase moves as the run loop moves it
+    /// (``TUIContext/movePhase(forTerminalFocus:)``), each asking for a frame
+    /// when it changed something. Not what the run loop does beyond the phase
+    /// on focus in: there is no focus breath to restart, nor a terminal to ask
+    /// for its colours again.
     package func reportFocus(_ isFocused: Bool) {
-        if !isFocused { tuiContext.mouseEventDispatcher.pointerLeft() }
+        if !isFocused, tuiContext.mouseEventDispatcher.pointerLeft() { tuiContext.appState.setNeedsRender() }
+        if tuiContext.movePhase(forTerminalFocus: isFocused) { tuiContext.appState.setNeedsRender() }
     }
 
     /// Changes the terminal's size, as `SIGWINCH` reports it: the next frame

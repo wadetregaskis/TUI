@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`TestApp.reportFocus(_:)` reports the terminal's window losing or gaining the focus.** A test could not reach
+`\.scenePhase`'s `.inactive`: it read `.active` throughout, so a game that pauses when its window goes to the back
+could not be tested. `app.reportFocus(false)` moves `\.scenePhase` to `.inactive` and `\.appearsActive` to `false`,
+and `app.reportFocus(true)` back, as a running app moves them on the terminal's focus reports; the pointer leaves with
+the focus, as it does there.
+
 **A `Canvas` beside a `TimelineView` is not drawn again on every frame of the timeline.** A game's board drawn
 beside the `TimelineView(.animation)` that runs its loop ran its renderer sixty times a second though nothing it read
 had changed: the timeline's entry drops what the cache keeps for the views around it, and nothing kept the canvas, so
