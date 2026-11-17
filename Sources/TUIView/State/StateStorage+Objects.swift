@@ -75,6 +75,7 @@ extension StateStorage {
             return (hub, token, token.lastObject, predecessor)
         }
         let made = HolderToken(holder: holder, hub: hub)
+        pruneWitness.changes += 1
         values[key] = made
         return (hub, made, .unknown, nil)
     }
@@ -120,6 +121,7 @@ extension StateStorage {
             return kept
         }
         own.place(at: key.identity)
+        pruneWitness.changes += 1
         if let replaced = values.updateValue(own, forKey: key), replaced !== own {
             (replaced as? any DroppableBox)?.markDropped()
         }

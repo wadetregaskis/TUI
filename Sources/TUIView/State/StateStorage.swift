@@ -181,6 +181,11 @@ import TUICore
     private var onChangeCounters: [ViewIdentity: Int] = [:]
 
     /// Identities seen during the current render pass (for garbage collection).
+    /// What the last ``endRenderPass()`` pruned the values by, so a pass that
+    /// changed none of it skips the walk (``PruneWitness``, as the render
+    /// cache's prune does). Internal for the objects' extension, which stores.
+    var pruneWitness = PruneWitness()
+
     private var activeIdentities: Set<ViewIdentity> = []
 
     /// Subtree roots whose descendants' state survives this pass's prune even
@@ -430,6 +435,7 @@ extension StateStorage {
         fresh.setInvalidationSink(renderCacheLink)
         // A box of another type under the key — the property's type changed
         // at its place — is dropped.
+        pruneWitness.changes += 1
         (values.updateValue(fresh, forKey: key) as? any DroppableBox)?.markDropped()
         return fresh
     }
@@ -458,6 +464,7 @@ extension StateStorage {
     /// scope. Kept among the values, beside the state it describes, so it is
     /// pruned and invalidated with that state's identity.
     func setEnumCaseRecord(_ record: EnumCaseRecord, at key: StateKey) {
+        pruneWitness.changes += 1
         values[key] = record
     }
 
@@ -686,6 +693,7 @@ extension StateStorage {
     ///   - value: The value to store.
     ///   - key: The state key (identity + property index).
     public func setTrackedValue<V>(_ value: V, for key: StateKey) {
+        pruneWitness.changes += 1
         trackedValues[key] = value
     }
 
@@ -698,8 +706,12 @@ extension StateStorage {
     package func setChangedTrackedValue<V>(_ value: V, for key: StateKey) {
         if effectStage.isStaging {
             let prior = trackedValues[key]
-            effectStage.noteUndo { [weak self] in self?.trackedValues[key] = prior }
+            effectStage.noteUndo { [weak self] in
+                self?.pruneWitness.changes += 1
+                self?.trackedValues[key] = prior
+            }
         }
+        pruneWitness.changes += 1
         trackedValues[key] = value
     }
 
@@ -751,6 +763,7 @@ extension StateStorage {
         animations.beginRenderPass()
         departures.beginRenderPass()
         placements.beginRenderPass()
+        pruneWitness.adopt(active: &activeIdentities, roots: &retainedSubtreeRoots)
         activeIdentities.removeAll(keepingCapacity: true)
         retainedSubtreeRoots.removeAll(keepingCapacity: true)
         beginSceneRender()
@@ -833,13 +846,18 @@ extension StateStorage {
         // and a climb per root per box was most of a frame's end on a page
         // of memoised cards (see `RetainedSubtreeIndex`).
         var retained = RetainedSubtreeIndex(roots: retainedSubtreeRoots)
-        let staleKeys = values.keys.filter {
+        // Not at all when nothing was stored since the last prune and the pass
+        // marked and retained what it did: every value is live again.
+        let unchanged = pruneWitness.isUnchanged(
+            active: activeIdentities, roots: retainedSubtreeRoots, entryCount: values.count + trackedValues.count)
+        pruneWitness.notePrune(walked: !unchanged)
+        let staleKeys = unchanged ? [] : values.keys.filter {
             !activeIdentities.contains($0.identity) && !retained.retains($0.identity)
         }
         for key in staleKeys {
             dropValue(forKey: key)
         }
-        let staleTrackedKeys = trackedValues.keys.filter {
+        let staleTrackedKeys = unchanged ? [] : trackedValues.keys.filter {
             !activeIdentities.contains($0.identity) && !retained.retains($0.identity)
         }
         for key in staleTrackedKeys {
@@ -954,6 +972,7 @@ extension StateStorage {
         trackedValues.removeAll()
         onChangeCounters.removeAll()
         activeIdentities.removeAll()
+        pruneWitness.reset()
         windowedRows.removeAll()
         lastConditionalCase.removeAll()
         conditionalRecordsAfterSweep = 0

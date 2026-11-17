@@ -160,6 +160,7 @@ extension RenderCache {
             case .suspect:
                 if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
                 unsafe entry.isSuspect = true
+                pruneWitness.changes += 1
             }
         }
         for key in staleKeys { entries.removeValue(forKey: key) }
@@ -168,7 +169,9 @@ extension RenderCache {
             switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
             case .keep: continue
             case .drop, .dropUnrecorded: staleSizeKeys.append(key)
-            case .suspect: unsafe entry.isSuspect = true
+            case .suspect:
+                unsafe entry.isSuspect = true
+                pruneWitness.changes += 1
             }
         }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }
@@ -247,6 +250,7 @@ extension RenderCache {
             case .suspect:
                 if unsafe !entry.isSuspect { revalidation.counts.suspectsMarked += 1 }
                 unsafe entry.isSuspect = true
+                pruneWitness.changes += 1
             }
         }
         for key in staleKeys { entries.removeValue(forKey: key) }
@@ -255,7 +259,9 @@ extension RenderCache {
             switch unsafe verdict(entry.identity, stamped: entry.revalidation != nil) {
             case .keep: continue
             case .drop, .dropUnrecorded: staleSizeKeys.append(key)
-            case .suspect: unsafe entry.isSuspect = true
+            case .suspect:
+                unsafe entry.isSuspect = true
+                pruneWitness.changes += 1
             }
         }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }

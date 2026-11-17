@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A page served whole from a memo no longer pays, every frame, for what is cached below it.** The render cache's
+end-of-frame prune asked of every entry kept under the served memo whether it was still in the tree; it now skips that
+walk when the frame stored nothing and saw the same views as the last one.
+
 **A `TextField`, `SecureField` or `TextEditor` takes text dropped on it, as SwiftUI's do.** A `String` dragged from a
 `.draggable` view goes in where it is let go, as a copy, selected, and as one step to undo, inserted as a paste is,
 so a content type and the binding treat it as pasted text. As measured of SwiftUI on macOS 15.8.3, a field takes a

@@ -535,6 +535,11 @@ import TUIStyling
     /// though nothing below them was visited. See ``retainSubtree(_:)``.
     private var retainedSubtreeRoots: [ViewIdentity] = []
 
+    /// What the last ``removeInactive()`` decided from, so a pass that changed
+    /// none of it skips the walk (``PruneWitness``). Internal for the drain,
+    /// which counts the entries it marks suspect.
+    var pruneWitness = PruneWitness()
+
     /// The value each environment slot applied, so a change can be detected.
     /// Internal, not private, only so `RenderCache+EnvironmentSlots.swift` can
     /// reach it: nothing but ``noteAppliedEnvironment(_:identity:keyPath:depth:)``
@@ -989,7 +994,7 @@ extension RenderCache {
         revalidation: Revalidation? = nil,
         slot: Int = 0
     ) {
-        stats.stores += 1
+        noteStore()
         let hash = identity.structuralHash ^ slot
         if slot != 0 { plainMemo.lastStored = hash }
         let key =
@@ -1148,7 +1153,7 @@ extension RenderCache {
         key: SizeKey, identity: ViewIdentity, view: V, size: ViewSize, lapsingAt: Date? = nil,
         lease: ObservationLease?, revalidation: Revalidation? = nil
     ) {
-        stats.stores += 1
+        noteStore()
         sizeEntries[key] = SizeEntry(
             viewSnapshot: view, size: size, identity: identity, lapsesAt: lapsingAt, lease: lease,
             revalidation: revalidation)
@@ -1296,7 +1301,7 @@ extension RenderCache {
     /// Sized by the last prune's asks: a page asks much the same of every
     /// frame, and a big cache whose entries were all marked asks nothing.
     private func retainedIndex() -> RetainedSubtreeIndex {
-        RetainedSubtreeIndex(roots: retainedSubtreeRoots, expectedChecks: lastPrune.retainedChecks)
+        RetainedSubtreeIndex(roots: retainedSubtreeRoots, expectedChecks: pruneWitness.expectedChecks)
     }
 
     /// Begins a new render pass by draining any deferred `@State` invalidations,
@@ -1332,6 +1337,7 @@ extension RenderCache {
         // that requested them, not to this one.
         bodyMutationDiagnostic?.beginFrame()
         drainPendingInvalidations()
+        pruneWitness.adopt(active: &activeIdentities, roots: &retainedSubtreeRoots)
         activeIdentities.removeAll(keepingCapacity: true)
         retainedSubtreeRoots.removeAll(keepingCapacity: true)
         frameCounter &+= 1
@@ -1421,15 +1427,13 @@ extension RenderCache {
         // entries a clear visited, the sizes at proposals nobody asked again),
         // for a re-check that may never come — and that the hard drain never
         // offered, so dropping it loses nothing that was there before.
-        var staleKeys: [Int] = []
-        for (key, entry) in entries where unsafe entry.isSuspect || !isLive(entry.identity) { staleKeys.append(key) }
+        //
+        // Not at all when the pass changed nothing a verdict reads: every
+        // entry is live again (`PruneWitness`). A page served whole from a
+        // memo marks next to nothing, and every entry kept below it was
+        // asked about, and kept, on every frame.
+        let (staleKeys, staleSizeKeys) = staleEntryKeys(active: active, roots: retainedSubtreeRoots, isLive: isLive)
         for key in staleKeys { entries.removeValue(forKey: key) }
-        // Collect-then-remove, the spelling `AnimationStore.endRenderPass()`
-        // uses and for its reason: removing inside `for … in sizeEntries`
-        // COW-copies the whole table on the first removal, and this table is
-        // hundreds of entries on a live page and thousands on `fanout`.
-        var staleSizeKeys: [SizeKey] = []
-        for (key, entry) in sizeEntries where unsafe entry.isSuspect || !isLive(entry.identity) { staleSizeKeys.append(key) }
         for key in staleSizeKeys { sizeEntries.removeValue(forKey: key) }
         // Ids interned per identity go the same way, and by the same rule: a
         // handler id baked into a stored buffer's regions must still name its
@@ -1439,6 +1443,7 @@ extension RenderCache {
         lastPrune = (
             renderEntries: entries.count + staleKeys.count, sizeEntries: sizeEntries.count + staleSizeKeys.count,
             retainedChecks: retainedChecks, prunedRender: staleKeys.count, prunedSizes: staleSizeKeys.count)
+        pruneWitness.noteChecks(retainedChecks)
         // The frame just drawn is on screen, and the one before it lets go of
         // what it observed — after the prune, so what the prune dropped is
         // released with it.
@@ -1515,6 +1520,7 @@ extension RenderCache {
         leases.reset()
         activeIdentities.removeAll()
         retainedSubtreeRoots.removeAll()
+        pruneWitness.reset()
         appliedEnvironment.removeAll()
         erasedContent.removeAll()
         hostedMembers.removeAll()
