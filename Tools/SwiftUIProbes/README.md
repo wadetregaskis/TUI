@@ -502,11 +502,20 @@ messages cite that path), and what cites it.
   the first with `.top`, under a table's header): the selection binding and the table view's selected row stay on row 0, and Down selects row 1 and
   scrolls back to it. With nothing selected, Down selects row 0, not a row in view. The same for `List` and
   `Table`, `Int?` and `Set<Int>`.
-- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19; `selrow.swift` on macOS 15.8.3, Xcode 26.3's `swiftc`
-  (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-16.
+- **And asks** (`firstkey.swift`, `firstkey.out`, built with `-parse-as-library`): what each key does as the first
+  in a focused `List` or `Table` of 100 rows named by a cycling letter: Down, Up, Home, End, Page Down, Page Up, `c`
+  and `a`, from nothing selected, from row 5 selected, from row 5 selected and then cleared by the app, and from
+  nothing selected after `scrollTo(50)`. With nothing selected (however it got so), Down selects row 0, Up row 99,
+  and a letter the first row it names (`a` row 0); with row 5, Down row 6, Up row 4, `a` row 26. Home, End and the
+  page keys only scroll and never select, with a row selected or without. The same for `List` and `Table`, `Int?`
+  and `Set<Int>`.
+- **Ran:** macOS 15.8.1, Xcode's Swift 6.2.4, 2026-10-19; `selrow.swift` and `firstkey.swift` on macOS 15.8.3,
+  Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-16.
 - **Was:** `SCROLL/probe/`.
 - **Cited by:** `Documentation/Historical/Scrolling/README.md` (C-SCROLL-1);
-  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`; `Tests/TUITablesTests/ScrollToLeavesTheCursorTests.swift`.
+  `Documentation/SwiftUI parity/SwiftUI compatibility guide.md`; `Tests/TUITablesTests/ScrollToLeavesTheCursorTests.swift`;
+  `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`;
+  `Tests/TUITablesTests/FirstKeyFromEmptySelectionTests.swift`.
 
 ### Nested scroll position
 

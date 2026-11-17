@@ -1,0 +1,145 @@
+macOS Version 15.8.3 (Build 24H241)
+List, Int?, nothing selected:
+  Down: selection nil, selected row -1, rows 0...9 -> selection 0, selected row 0, rows 0...9
+  Up: selection nil, selected row -1, rows 0...9 -> selection 99, selected row 99, rows 90...99
+  Home: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 0...9
+  End: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 90...99
+  Page Down: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 9...19
+  Page Up: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 0...9
+  c: selection nil, selected row -1, rows 0...9 -> selection 2, selected row 2, rows 0...9
+  a: selection nil, selected row -1, rows 0...9 -> selection 0, selected row 0, rows 0...9
+List, Int?, row 5 selected:
+  Down: selection 5, selected row 5, rows 0...9 -> selection 6, selected row 6, rows 0...9
+  Up: selection 5, selected row 5, rows 0...9 -> selection 4, selected row 4, rows 0...9
+  Home: selection 5, selected row 5, rows 0...9 -> selection 5, selected row 5, rows 0...9
+  End: selection 5, selected row 5, rows 0...9 -> selection 5, selected row 5, rows 90...99
+  Page Down: selection 5, selected row 5, rows 0...9 -> selection 5, selected row 5, rows 9...19
+  Page Up: selection 5, selected row 5, rows 0...9 -> selection 5, selected row 5, rows 0...9
+  c: selection 5, selected row 5, rows 0...9 -> selection 28, selected row 28, rows 19...28
+  a: selection 5, selected row 5, rows 0...9 -> selection 26, selected row 26, rows 17...26
+List, Int?, row 5 selected, then cleared by the app:
+  Down: selection nil, selected row -1, rows 0...9 -> selection 0, selected row 0, rows 0...9
+  Up: selection nil, selected row -1, rows 0...9 -> selection 99, selected row 99, rows 90...99
+  Home: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 0...9
+  End: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 90...99
+  Page Down: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 9...19
+  Page Up: selection nil, selected row -1, rows 0...9 -> selection nil, selected row -1, rows 0...9
+  c: selection nil, selected row -1, rows 0...9 -> selection 2, selected row 2, rows 0...9
+  a: selection nil, selected row -1, rows 0...9 -> selection 0, selected row 0, rows 0...9
+List, Int?, nothing selected, scrolled to row 50:
+  Down: selection nil, selected row -1, rows 50...59 -> selection 0, selected row 0, rows 0...9
+  Up: selection nil, selected row -1, rows 50...59 -> selection 99, selected row 99, rows 90...99
+  Home: selection nil, selected row -1, rows 50...59 -> selection nil, selected row -1, rows 0...9
+  End: selection nil, selected row -1, rows 50...59 -> selection nil, selected row -1, rows 90...99
+  Page Down: selection nil, selected row -1, rows 50...59 -> selection nil, selected row -1, rows 59...69
+  Page Up: selection nil, selected row -1, rows 50...59 -> selection nil, selected row -1, rows 48...58
+  c: selection nil, selected row -1, rows 50...59 -> selection 2, selected row 2, rows 2...11
+  a: selection nil, selected row -1, rows 50...59 -> selection 0, selected row 0, rows 0...9
+List, Set<Int>, nothing selected:
+  Down: selection [], selected row -1, rows 0...9 -> selection [0], selected row 0, rows 0...9
+  Up: selection [], selected row -1, rows 0...9 -> selection [99], selected row 99, rows 90...99
+  Home: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 0...9
+  End: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 90...99
+  Page Down: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 9...19
+  Page Up: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 0...9
+  c: selection [], selected row -1, rows 0...9 -> selection [2], selected row 2, rows 0...9
+  a: selection [], selected row -1, rows 0...9 -> selection [0], selected row 0, rows 0...9
+List, Set<Int>, row 5 selected:
+  Down: selection [5], selected row 5, rows 0...9 -> selection [6], selected row 6, rows 0...9
+  Up: selection [5], selected row 5, rows 0...9 -> selection [4], selected row 4, rows 0...9
+  Home: selection [5], selected row 5, rows 0...9 -> selection [5], selected row 5, rows 0...9
+  End: selection [5], selected row 5, rows 0...9 -> selection [5], selected row 5, rows 90...99
+  Page Down: selection [5], selected row 5, rows 0...9 -> selection [5], selected row 5, rows 9...19
+  Page Up: selection [5], selected row 5, rows 0...9 -> selection [5], selected row 5, rows 0...9
+  c: selection [5], selected row 5, rows 0...9 -> selection [28], selected row 28, rows 19...28
+  a: selection [5], selected row 5, rows 0...9 -> selection [26], selected row 26, rows 17...26
+List, Set<Int>, row 5 selected, then cleared by the app:
+  Down: selection [], selected row -1, rows 0...9 -> selection [0], selected row 0, rows 0...9
+  Up: selection [], selected row -1, rows 0...9 -> selection [99], selected row 99, rows 90...99
+  Home: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 0...9
+  End: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 90...99
+  Page Down: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 9...19
+  Page Up: selection [], selected row -1, rows 0...9 -> selection [], selected row -1, rows 0...9
+  c: selection [], selected row -1, rows 0...9 -> selection [2], selected row 2, rows 0...9
+  a: selection [], selected row -1, rows 0...9 -> selection [0], selected row 0, rows 0...9
+List, Set<Int>, nothing selected, scrolled to row 50:
+  Down: selection [], selected row -1, rows 50...59 -> selection [0], selected row 0, rows 0...9
+  Up: selection [], selected row -1, rows 50...59 -> selection [99], selected row 99, rows 90...99
+  Home: selection [], selected row -1, rows 50...59 -> selection [], selected row -1, rows 0...9
+  End: selection [], selected row -1, rows 50...59 -> selection [], selected row -1, rows 90...99
+  Page Down: selection [], selected row -1, rows 50...59 -> selection [], selected row -1, rows 59...69
+  Page Up: selection [], selected row -1, rows 50...59 -> selection [], selected row -1, rows 48...58
+  c: selection [], selected row -1, rows 50...59 -> selection [2], selected row 2, rows 2...11
+  a: selection [], selected row -1, rows 50...59 -> selection [0], selected row 0, rows 0...9
+Table, Int?, nothing selected:
+  Down: selection nil, selected row -1, rows 0...11 -> selection 0, selected row 0, rows 0...11
+  Up: selection nil, selected row -1, rows 0...11 -> selection 99, selected row 99, rows 87...99
+  Home: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 0...11
+  End: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 87...99
+  Page Down: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 10...23
+  Page Up: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 0...11
+  c: selection nil, selected row -1, rows 0...11 -> selection 2, selected row 2, rows 0...11
+  a: selection nil, selected row -1, rows 0...11 -> selection 0, selected row 0, rows 0...11
+Table, Int?, row 5 selected:
+  Down: selection 5, selected row 5, rows 0...11 -> selection 6, selected row 6, rows 0...11
+  Up: selection 5, selected row 5, rows 0...11 -> selection 4, selected row 4, rows 0...11
+  Home: selection 5, selected row 5, rows 0...11 -> selection 5, selected row 5, rows 0...11
+  End: selection 5, selected row 5, rows 0...11 -> selection 5, selected row 5, rows 87...99
+  Page Down: selection 5, selected row 5, rows 0...11 -> selection 5, selected row 5, rows 10...23
+  Page Up: selection 5, selected row 5, rows 0...11 -> selection 5, selected row 5, rows 0...11
+  c: selection 5, selected row 5, rows 0...11 -> selection 28, selected row 28, rows 15...28
+  a: selection 5, selected row 5, rows 0...11 -> selection 26, selected row 26, rows 13...26
+Table, Int?, row 5 selected, then cleared by the app:
+  Down: selection nil, selected row -1, rows 0...11 -> selection 0, selected row 0, rows 0...11
+  Up: selection nil, selected row -1, rows 0...11 -> selection 99, selected row 99, rows 87...99
+  Home: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 0...11
+  End: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 87...99
+  Page Down: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 10...23
+  Page Up: selection nil, selected row -1, rows 0...11 -> selection nil, selected row -1, rows 0...11
+  c: selection nil, selected row -1, rows 0...11 -> selection 2, selected row 2, rows 0...11
+  a: selection nil, selected row -1, rows 0...11 -> selection 0, selected row 0, rows 0...11
+Table, Int?, nothing selected, scrolled to row 50:
+  Down: selection nil, selected row -1, rows 48...62 -> selection 0, selected row 0, rows 0...11
+  Up: selection nil, selected row -1, rows 48...62 -> selection 99, selected row 99, rows 87...99
+  Home: selection nil, selected row -1, rows 48...62 -> selection nil, selected row -1, rows 0...11
+  End: selection nil, selected row -1, rows 48...62 -> selection nil, selected row -1, rows 87...99
+  Page Down: selection nil, selected row -1, rows 48...62 -> selection nil, selected row -1, rows 60...73
+  Page Up: selection nil, selected row -1, rows 48...62 -> selection nil, selected row -1, rows 37...50
+  c: selection nil, selected row -1, rows 48...62 -> selection 2, selected row 2, rows 0...14
+  a: selection nil, selected row -1, rows 48...62 -> selection 0, selected row 0, rows 0...11
+Table, Set<Int>, nothing selected:
+  Down: selection [], selected row -1, rows 0...11 -> selection [0], selected row 0, rows 0...11
+  Up: selection [], selected row -1, rows 0...11 -> selection [99], selected row 99, rows 87...99
+  Home: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 0...11
+  End: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 87...99
+  Page Down: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 10...23
+  Page Up: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 0...11
+  c: selection [], selected row -1, rows 0...11 -> selection [2], selected row 2, rows 0...11
+  a: selection [], selected row -1, rows 0...11 -> selection [0], selected row 0, rows 0...11
+Table, Set<Int>, row 5 selected:
+  Down: selection [5], selected row 5, rows 0...11 -> selection [6], selected row 6, rows 0...11
+  Up: selection [5], selected row 5, rows 0...11 -> selection [4], selected row 4, rows 0...11
+  Home: selection [5], selected row 5, rows 0...11 -> selection [5], selected row 5, rows 0...11
+  End: selection [5], selected row 5, rows 0...11 -> selection [5], selected row 5, rows 87...99
+  Page Down: selection [5], selected row 5, rows 0...11 -> selection [5], selected row 5, rows 10...23
+  Page Up: selection [5], selected row 5, rows 0...11 -> selection [5], selected row 5, rows 0...11
+  c: selection [5], selected row 5, rows 0...11 -> selection [28], selected row 28, rows 15...28
+  a: selection [5], selected row 5, rows 0...11 -> selection [26], selected row 26, rows 13...26
+Table, Set<Int>, row 5 selected, then cleared by the app:
+  Down: selection [], selected row -1, rows 0...11 -> selection [0], selected row 0, rows 0...11
+  Up: selection [], selected row -1, rows 0...11 -> selection [99], selected row 99, rows 87...99
+  Home: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 0...11
+  End: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 87...99
+  Page Down: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 10...23
+  Page Up: selection [], selected row -1, rows 0...11 -> selection [], selected row -1, rows 0...11
+  c: selection [], selected row -1, rows 0...11 -> selection [2], selected row 2, rows 0...11
+  a: selection [], selected row -1, rows 0...11 -> selection [0], selected row 0, rows 0...11
+Table, Set<Int>, nothing selected, scrolled to row 50:
+  Down: selection [], selected row -1, rows 48...62 -> selection [0], selected row 0, rows 0...11
+  Up: selection [], selected row -1, rows 48...62 -> selection [99], selected row 99, rows 87...99
+  Home: selection [], selected row -1, rows 48...62 -> selection [], selected row -1, rows 0...11
+  End: selection [], selected row -1, rows 48...62 -> selection [], selected row -1, rows 87...99
+  Page Down: selection [], selected row -1, rows 48...62 -> selection [], selected row -1, rows 60...73
+  Page Up: selection [], selected row -1, rows 48...62 -> selection [], selected row -1, rows 37...50
+  c: selection [], selected row -1, rows 48...62 -> selection [2], selected row 2, rows 0...14
+  a: selection [], selected row -1, rows 48...62 -> selection [0], selected row 0, rows 0...11

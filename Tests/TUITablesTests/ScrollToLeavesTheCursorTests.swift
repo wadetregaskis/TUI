@@ -128,7 +128,9 @@ struct ScrollToLeavesTheCursorTests {
     /// nothing selects the last row). The same happens without a `scrollTo`,
     /// and a `scrollTo` that moved the cursor would not change it. Fixing it
     /// is the first arrow, Home and End from an empty selection in every list,
-    /// table, tree and picker that follows the cursor, not this file's.
+    /// table, tree and picker that follows the cursor, not this file's: see
+    /// `FirstKeyFromEmptySelectionTests` and the plan in
+    /// `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`.
     @Test("With nothing selected, Down after scrollTo selects the first row, not one in view")
     func nothingSelected() {
         let selected = Selected()
