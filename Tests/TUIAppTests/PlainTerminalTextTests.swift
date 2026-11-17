@@ -55,6 +55,11 @@ struct PlainTerminalTextTests {
             (["LANG": "en_US.ISO8859-1"], .keys),
             (["TUI_PLAIN_TEXT": "0", "LANG": "en_US.ISO8859-1"], .none),
             ([:], .none),
+            // The classic Windows console's font has no key symbols to draw alone.
+            (["TUI_TERM_PROGRAM": "conhost"], .keys),
+            (["TUI_TERM_PROGRAM": "conhost", "TUI_PLAIN_TEXT": "0"], .none),
+            (["TUI_TERM_PROGRAM": "conhost", "TUI_PLAIN_TEXT": "transliterate"], .all),
+            (["WT_SESSION": "b6139141"], .none),
         ] as [([String: String], PlainTerminalText.Respelling)])
     func respelling(environment: [String: String], expected: PlainTerminalText.Respelling) {
         #expect(PlainTerminalText.respelling(in: environment) == expected)

@@ -12,6 +12,7 @@
 import Foundation
 import TUICore
 import TUIFoundation
+import TUITerminalHost
 
 /// Turns a row on its way to the terminal into ASCII, cell for cell.
 ///
@@ -52,11 +53,28 @@ package enum PlainTerminalText {
     /// How words are spelled before layout for this terminal: all in ASCII where the
     /// person asked for the transliteration by name; only the key symbols where the
     /// terminal needs plain text otherwise (``isNeeded(in:)``), so `⌥F` is `Alt-F`,
-    /// which the folding here, in the one cell `⌥` was laid out in, can't write; as
+    /// which the folding here, in the one cell `⌥` was laid out in, can't write, or
+    /// where its font cannot be relied on for them (``spellsKeysForItsFont(in:)``); as
     /// written everywhere else.
     package static func respelling(in environment: [String: String]) -> Respelling {
         if transliterates(in: environment) { return .all }
-        return isNeeded(in: environment) ? .keys : .none
+        return isNeeded(in: environment) || spellsKeysForItsFont(in: environment) ? .keys : .none
+    }
+
+    /// Whether the key symbols are spelled in ASCII for this terminal's font, though it
+    /// shows Unicode: the classic Windows console, unless `TUI_PLAIN_TEXT=0`.
+    ///
+    /// Its default font, Consolas, has none of `⌃ ⌥ ⇧ ⌘ ↩ ⎋ ⌫`, and the console draws a
+    /// glyph its font lacks only from a run of text that has characters the font has
+    /// in it: a symbol in a colour of its own, as a shortcut hint draws its key, is a
+    /// box with a question mark in it (build 26300, read 2026-11-16; see *Terminal
+    /// compatibility survey*, "Windows Terminal and the classic console"). The words
+    /// themselves draw, so it is only the keys, as for a terminal that shows only ASCII.
+    ///
+    /// Read from the environment, where the Device Attributes that name the console
+    /// are put at startup (`App.seedDiscoveredHost(_:)`).
+    static func spellsKeysForItsFont(in environment: [String: String]) -> Bool {
+        environment["TUI_PLAIN_TEXT"] != "0" && TerminalHost.detectProgram(environment: environment) == .windowsConsole
     }
 
     /// What ``respelling(in:)`` answers.
