@@ -1,0 +1,81 @@
+macOS Version 15.8.3 (Build 24H241)
+lazy, row sections, Tab (60 rows, 7 row fields made at first)
+  start: row 0 y=0
+  tab 1: row 1 y=0
+  tab 2: row 2 y=0
+  tab 3: row 3 y=0
+  tab 4: row 4 y=0
+  tab 5: row 5 y=0
+  tab 6: row 6 y=0
+  tab 7: row 0 y=0
+  tab 8: row 1 y=0
+  tab 9: row 2 y=0
+  tab 10: row 3 y=0
+  tab 11: row 4 y=0
+  tab 12: row 5 y=0
+lazy, row sections, Shift-Tab (60 rows, 7 row fields made at first)
+  start: row 0 y=0
+  shift-tab 1: row 6 y=0
+  shift-tab 2: row 5 y=0
+  shift-tab 3: row 4 y=0
+  shift-tab 4: row 3 y=0
+eager, row sections, Tab (60 rows, 60 row fields made at first)
+  start: row 0 y=0
+  tab 1: row 1 y=0
+  tab 2: row 2 y=0
+  tab 3: row 3 y=0
+  tab 4: row 4 y=0
+  tab 5: row 5 y=0
+  tab 6: row 6 y=0
+  tab 7: row 7 y=0
+  tab 8: row 8 y=0
+  tab 9: row 9 y=0
+  tab 10: row 10 y=0
+  tab 11: row 11 y=0
+  tab 12: row 12 y=0
+eager, row sections, Shift-Tab (60 rows, 60 row fields made at first)
+  start: row 0 y=0
+  shift-tab 1: row 59 y=0
+  shift-tab 2: row 58 y=0
+  shift-tab 3: row 57 y=0
+  shift-tab 4: row 56 y=0
+lazy, stack section, Tab (60 rows, 6 row fields made at first)
+  start: row 0 y=0
+  tab 1: row 1 y=0
+  tab 2: row 2 y=0
+  tab 3: row 3 y=0
+  tab 4: row 4 y=0
+  tab 5: row 5 y=0
+  tab 6: side 0 y=0
+  tab 7: side 1 y=0
+  tab 8: row 0 y=0
+  tab 9: row 1 y=0
+  tab 10: row 2 y=0
+  tab 11: row 3 y=0
+  tab 12: row 4 y=0
+lazy, stack section, Shift-Tab (60 rows, 6 row fields made at first)
+  start: row 0 y=0
+  shift-tab 1: side 1 y=0
+  shift-tab 2: side 0 y=0
+  shift-tab 3: row 5 y=0
+  shift-tab 4: row 4 y=0
+eager, stack section, Tab (60 rows, 60 row fields made at first)
+  start: row 0 y=0
+  tab 1: row 1 y=0
+  tab 2: row 2 y=0
+  tab 3: row 3 y=0
+  tab 4: row 4 y=0
+  tab 5: row 5 y=0
+  tab 6: row 6 y=0
+  tab 7: row 7 y=0
+  tab 8: row 8 y=0
+  tab 9: row 9 y=0
+  tab 10: row 10 y=0
+  tab 11: row 11 y=0
+  tab 12: row 12 y=0
+eager, stack section, Shift-Tab (60 rows, 60 row fields made at first)
+  start: row 0 y=0
+  shift-tab 1: side 1 y=0
+  shift-tab 2: side 0 y=0
+  shift-tab 3: row 59 y=0
+  shift-tab 4: row 58 y=0

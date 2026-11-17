@@ -92,6 +92,14 @@ Three more modifiers shape the order that Tab follows:
   binds to the control under that identity, so a named control still answers
   to its `@FocusState`.
 
+A `LazyVStack` in a `ScrollView` draws only the rows on screen, but Tab and
+Shift-Tab from one of its rows still step on to the next row off screen and
+scroll it in, so a walk started inside the stack reaches every row, in focus
+sections or not. Coming into the stack from outside its scroll view, the focus
+lands on the first or last row on screen, not the stack's first or last row,
+as it does in SwiftUI's lazy stack. Where the focus must enter at the stack's
+own first or last row, use a `VStack`, which draws every row each frame.
+
 ## When a Control Loses Focus
 
 A focused control can stop being able to hold the focus without anyone moving

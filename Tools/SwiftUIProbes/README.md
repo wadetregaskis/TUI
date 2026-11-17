@@ -1418,6 +1418,22 @@ messages cite that path), and what cites it.
 - **Cited by:** `Documentation/Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md` (FORM-SCROLL,
   LAZY-TAB); `Tests/TUIIntegrationTests/FormGroupedScrollTests.swift`.
 
+### Focus sections in a lazy stack (1117L)
+
+- **Asks:** whether `.focusSection()` changes where Tab and Shift-Tab go in a `ScrollView` of 60 text fields, lazy
+  and eager: each row its own section, and the stack one section under a section of two fields outside the scroll
+  view. The harness of 1110F: a 300 × 200 point key window, the first row focused, Tab (twelve times) or Shift-Tab
+  (four) sent through the window, the focused field and the clip origin printed after each.
+- **Files:** `sections.swift` (`swiftc -parse-as-library`), `sections.out`.
+- **Answers:** sections change nothing. Each lazy stack made 6 or 7 of its rows; Tab walks those, then (stack
+  section) the two outside fields, and wraps to the first row, and Shift-Tab from the first row goes to the last row
+  made (row 6, or row 5 after the outside fields), never further. The eager stacks walk every row, Shift-Tab entering
+  at row 59. Nothing scrolled: the clip origin stayed at 0 throughout, eager too.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-17.
+- **Was:** written here.
+- **Cited by:** `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md` (L7);
+  `Tests/TUIIntegrationTests/LazyStackFocusSectionTests.swift`.
+
 ### Tables in a scroll view (1111T)
 
 - **Asks:** what height SwiftUI gives `Table`s of 2, 5 and 30 rows, each under a title, stacked in a `VStack` in a
