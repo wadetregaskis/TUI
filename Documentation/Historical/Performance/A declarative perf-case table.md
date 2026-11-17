@@ -803,6 +803,14 @@ debug build: every count, at n and 10n, is `outline-table`'s (`key:oright` liste
 the other arms a level deeper and raised `outline-rows-stacked`'s `misses` by about one a frame (`open` 81 → 84,
 `wheel:+5` 270 → 280), the harness's shape and not the table's, as the comment on `CaseOutlineView` already warned.
 
+The follow-up landed on 2026-11-17: every `List(_:children:)` and view `OutlineGroup` initializer takes the same
+defaulted `expansion:` (`OutlineExpansion`, the outline's box or the app's binding, read once a pass and once a key,
+and compared by the kept rows, `OutlineVisibleNodes`, as the table's outline compares its reading). Two cases are
+`outline-list` and `outline-section` with the app keeping the expansion, `outline-list-bound` (`outline.list.bound`)
+and `outline-section-bound` (`outline.section.bound`), each sharing its twin's arm of the `switch` for the reason
+above. Recorded on a clean debug build, every count at n and 10n is the twin's (`key:oright` listed 22, built 21;
+`wheel:+5` listed 220, built 165, served 63), and no other recorded line moved.
+
 ## Lane 5, as built (2026-11-16)
 
 **The documentation.** The `Stress` README's "Perf cases" section is the reference for writing, checking and

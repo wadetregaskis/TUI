@@ -109,7 +109,8 @@ private struct CaseLeafView: View {
                 })
         case .editorWrap:
             AnyView(TextEditor(text: Binding(get: { rows.document }, set: { rows.document = $0 })))
-        case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection:
+        case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection,
+            .outlineListBound, .outlineSectionBound:
             // One arm for all, in a view of their own: an arm each nested the
             // switch's content a level deeper for every leaf, and moved the
             // other cases' measure-memo misses.
@@ -128,10 +129,11 @@ private struct CaseOutlineView: View {
 
     var body: some View {
         switch leaf {
-        // One arm for both: an arm of its own nests the switch's other arms a
-        // level deeper, which moved outline-rows-stacked's memo misses. Without
-        // the app's expansion (`nil`) the table keeps its own, as
-        // `Table(_:children:)` with no `expansion:` does.
+        // One arm for each pair, the app's expansion and the outline's own: an
+        // arm of its own nests the switch's other arms a level deeper, which
+        // moved outline-rows-stacked's memo misses. Without the app's expansion
+        // (`nil`) the outline keeps its own, as `Table(_:children:)`,
+        // `List(_:children:)` and `OutlineGroup` with no `expansion:` do.
         case .outlineTable, .outlineBound, .outlineOpen:
             AnyView(
                 Table(
@@ -156,24 +158,34 @@ private struct CaseOutlineView: View {
                 } rows: {
                     CaseNodeRows(nodes: rows.tree)
                 })
-        case .outlineSection:
+        case .outlineSection, .outlineSectionBound:
             AnyView(
                 List(selection: selection) {
                     Section {
-                        OutlineGroup(rows.tree, children: \.children) { node in
+                        OutlineGroup(
+                            rows.tree, children: \.children, expansion: expansion(.outlineSectionBound)
+                        ) { node in
                             CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
                         }
                     }
                 })
         default:
             AnyView(
-                List(rows.tree, children: \.children, selection: selection) { node in
+                List(
+                    rows.tree, children: \.children, expansion: expansion(.outlineListBound), selection: selection
+                ) { node in
                     CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
                 })
         }
     }
 
     private var selection: Binding<Int?> { Binding(get: { rows.selection }, set: { rows.selection = $0 }) }
+
+    /// The app's expansion (``CaseRows/open``) on `bound`'s page; `nil`, the
+    /// outline's own, on its twin's.
+    private func expansion(_ bound: CaseLeaf) -> Binding<Set<Int>>? {
+        leaf == bound ? Binding(get: { rows.open }, set: { rows.open = $0 }) : nil
+    }
 }
 
 /// A tree's rows as tuitree writes its own (`NodeRows`): a `DisclosureTableRow`

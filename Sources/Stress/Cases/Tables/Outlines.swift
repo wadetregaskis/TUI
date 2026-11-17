@@ -17,7 +17,9 @@ extension CaseTables {
     //   where the stack measures the table before it is drawn; outline-section is the list's outline inside a
     //   `Section`. outline-children-bound is outline-table with the app keeping its expansion
     //   (`Table(_:children:expansion:)`, the windowed way to a tree that starts open, G1-rows (d)): the keys write
-    //   the app's set, and every count is outline-table's.
+    //   the app's set, and every count is outline-table's. outline-list-bound and outline-section-bound are the same for
+    //   outline-list and outline-section (`List(_:children:expansion:)`, `OutlineGroup(_:children:expansion:)`): every
+    //   count is their twin's.
     // outline-toggle: one branch opened and closed in a big open outline (finding M6-2, from tuitree, whose → and ← on
     //   200,000 open rows cost 240 ms where ↓ cost 8). `outline.open` is outline-children-bound's table with every
     //   branch open from the start, the app's set holding them all: n + 1 rows and n / 10 + 1 branches, about 5,000
@@ -33,5 +35,7 @@ extension CaseTables {
         outline-rows-stacked  outline.rows  stacked  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat  -  table,outline,window
         outline-children-bound  outline.bound  alone  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat  -  table,outline,window
         outline-toggle   outline.open     alone  80x24  50000  open;key:down;key:left;key:right;key:oleft;key:oright;key:up  flat  -  table,outline
+        outline-list-bound outline.list.bound alone 80x24 5000 open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right flat - list,outline,window
+        outline-section-bound outline.section.bound alone 80x24 5000 open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right flat - list,outline,window
         """)
 }

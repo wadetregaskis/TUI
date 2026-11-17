@@ -56,13 +56,21 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     /// The same tree as a selectable `List` of one `Section` holding an
     /// `OutlineGroup`.
     case outlineSection = "outline.section"
+    /// `outline.list` with the app keeping its expansion
+    /// (`List(_:children:expansion:)`, ``CaseRows/open``).
+    case outlineListBound = "outline.list.bound"
+    /// `outline.section` with the app keeping its expansion
+    /// (`OutlineGroup(_:children:expansion:)`, ``CaseRows/open``).
+    case outlineSectionBound = "outline.section.bound"
 }
 
 extension CaseLeaf {
     /// Whether the leaf shows the rows as a tree (``CaseRows/tree``).
     var isOutline: Bool {
         switch self {
-        case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection: true
+        case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection,
+            .outlineListBound, .outlineSectionBound:
+            true
         default: false
         }
     }

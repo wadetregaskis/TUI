@@ -503,10 +503,12 @@ every row can then use it.
 - **Compositions** (`CaseLeaf`): `list.plain`, `list.search` (the list under
   `.searchable`, filtered by the app's own O(n) code), `table.fit5` (five
   `.fit` columns), `table.wrap5`, `chat.lazy`, `chat.eager`, `editor.wrap`,
-  and the outlines `outline.list`, `outline.table`, `outline.bound` (the
-  table with the app keeping its expansion), `outline.open` (that, every
-  branch open from the start), `outline.rows` (rows written as
-  `DisclosureTableRow` content) and `outline.section`. They combine
+  and the outlines `outline.list`, `outline.table`, `outline.rows` (rows
+  written as `DisclosureTableRow` content) and `outline.section`, and
+  `outline.bound`, `outline.list.bound` and `outline.section.bound`, the
+  table, the list and the section with the app keeping the expansion
+  (`expansion:`), and `outline.open` (`outline.bound`, every branch open
+  from the start). They combine
   as `tabs(a,b,…)` (a `TabView`, the first tab selected) and `split(a,b)` (an
   `HSplitView`). `follows(a)` puts the whole page in a scene with
   `.focusFollowsPointer(true)`, and wraps only a whole page, never a part.

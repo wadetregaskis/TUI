@@ -45,8 +45,9 @@ final class CaseRows {
     /// A list's or table's selection.
     var selection: Int?
     /// The open branches of an outline whose expansion the app keeps
-    /// (`outline.bound`, `outline.open`), by row id: every branch from the
-    /// start where the case opens its tree.
+    /// (`outline.bound`, `outline.open`, `outline.list.bound`,
+    /// `outline.section.bound`), by row id: every branch from the start
+    /// where the case opens its tree.
     var open: Set<Int> = []
     /// A tab view's selection.
     var tab = 0
