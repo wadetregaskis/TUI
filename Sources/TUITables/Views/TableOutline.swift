@@ -112,8 +112,8 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// One write a key or click on this outline made to the expansion: the
     /// reading before it and after it, and the ids it changed.
     struct Write {
-        let before: _TableOutlineExpansion<Value>.Reading
-        let after: _TableOutlineExpansion<Value>.Reading
+        let before: OutlineExpansion<Value.ID>.Reading
+        let after: OutlineExpansion<Value.ID>.Reading
         let ids: [Value.ID]
     }
 
@@ -123,7 +123,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     var writes: [Write]? = []
 
     /// The expansion of every branch that keeps no binding of its own.
-    private let expansion: _TableOutlineExpansion<Value>
+    private let expansion: OutlineExpansion<Value.ID>
 
     /// Called when any branch in the outline is expanded or collapsed.
     var onExpansionChange: ((Value.ID, Bool) -> Void)?
@@ -135,13 +135,13 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Flattens `tree`: every root, and beneath each open branch its rows, in
     /// reading order. A closed branch's rows are never built.
-    convenience init(tree: _TableRowBranch<Value>, expansion: _TableOutlineExpansion<Value>) {
+    convenience init(tree: _TableRowBranch<Value>, expansion: OutlineExpansion<Value.ID>) {
         self.init(Self.flattening(tree, expansion: expansion.read()), expansion: expansion)
     }
 
     /// The outline `flat` describes, opening and closing branches in
     /// `expansion`.
-    init(_ flat: Flattening, expansion: _TableOutlineExpansion<Value>) {
+    init(_ flat: Flattening, expansion: OutlineExpansion<Value.ID>) {
         self.expansion = expansion
         self.values = flat.values
         self.traits = flat.anyTraits ? flat.traits : nil
@@ -214,7 +214,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Flattens `tree`: every root, and beneath each open branch its rows.
     static func flattening(
-        _ tree: _TableRowBranch<Value>, expansion: _TableOutlineExpansion<Value>.Reading
+        _ tree: _TableRowBranch<Value>, expansion: OutlineExpansion<Value.ID>.Reading
     ) -> Flattening {
         var flat = Flattening()
         // Where each list of siblings drew its rows — the roots, and each open
@@ -265,7 +265,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Whether a branch is open: as its own binding says, or as the table
     /// remembers. A branch starts closed, as SwiftUI's do.
-    static func isOpen(_ node: _TableRowNode<Value>, in expansion: _TableOutlineExpansion<Value>.Reading) -> Bool {
+    static func isOpen(_ node: _TableRowNode<Value>, in expansion: OutlineExpansion<Value.ID>.Reading) -> Bool {
         node.isExpanded?.wrappedValue ?? expansion.contains(node.value.id)
     }
 
@@ -407,7 +407,7 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
     /// other — so a key's change is found without comparing the two sets
     /// whole — else what comparing them finds.
     func changedIDs(
-        from seen: _TableOutlineExpansion<Value>.Reading, to now: _TableOutlineExpansion<Value>.Reading
+        from seen: OutlineExpansion<Value.ID>.Reading, to now: OutlineExpansion<Value.ID>.Reading
     ) -> [Value.ID]? {
         if let writes, let first = writes.first, let last = writes.last, first.before == seen, last.after == now,
             zip(writes, writes.dropFirst()).allSatisfy({ $0.after == $1.before })
@@ -425,8 +425,10 @@ final class _TableOutline<Value: Identifiable>: OutlineRowActivating {
 
     /// Opens or closes `nodes`: each through its own binding where it has
     /// one, the rest in one write to the expansion.
-    /// Returns what the write to the expansion wrote, `nil` for none.
-    private func set(_ nodes: [_TableRowNode<Value>], open: Bool) -> _TableOutlineExpansion<Value>.Reading? {
+    /// Returns what the write to the expansion wrote, `nil` for none: every
+    /// id kept for it is one whose branch ``setExpanded(_:to:includingDescendants:)``
+    /// found in the other state, so a write happens whenever one is kept.
+    private func set(_ nodes: [_TableRowNode<Value>], open: Bool) -> OutlineExpansion<Value.ID>.Reading? {
         var kept: [Value.ID] = []
         for node in nodes {
             if let binding = node.isExpanded {

@@ -72,7 +72,7 @@ struct TableOutlineSpliceTests {
     /// The tree flattened whole with the branches `reading` opens: what the
     /// kept outline must be, row for row.
     private static func flattened(
-        _ roots: _TableOutlineRoots<Node>, expansion: _TableOutlineExpansion<Node>
+        _ roots: _TableOutlineRoots<Node>, expansion: OutlineExpansion<Node.ID>
     ) -> _TableOutline<Node> {
         let branches = roots.values.indices.filter { roots.isBranch(roots.values[$0]) }
         return _TableOutline(
@@ -110,19 +110,17 @@ struct TableOutlineSpliceTests {
     private func play(seed: UInt64, count: Int, steps: Int, sharing: Bool, app: Bool) {
         var generator = Seeded(state: seed)
         let model = Model()
-        let box = StateBox<Set<AnyHashable>>([])
+        let box = StateBox<Set<Int>>([])
         let forest = Self.forest(count: count, sharing: sharing, using: &generator)
         let roots = _TableOutlineRoots(forest, children: \Node.children, expansion: app ? model.binding : nil)
-        let expansion = app ? _TableOutlineExpansion<Node>(model.binding) : _TableOutlineExpansion<Node>(box)
+        let expansion = app ? OutlineExpansion<Node.ID>(model.binding) : OutlineExpansion<Node.ID>(box)
         let cache = _TableOutlineCache<Node>()
         /// Writes the app's set or the table's box, as a write from code.
         func write(_ change: (inout Set<Int>) -> Void) {
             if app {
                 change(&model.open)
             } else {
-                var ids = Set(box.value.compactMap { $0.base as? Int })
-                change(&ids)
-                box.value = Set(ids.map(AnyHashable.init))
+                change(&box.value)
             }
         }
         var kept = cache.outline(of: roots, expansion: expansion)
@@ -170,7 +168,7 @@ struct TableOutlineSpliceTests {
         let model = Model()
         model.open = [0, 2_002]
         let roots = _TableOutlineRoots([big, small], children: \Node.children, expansion: model.binding)
-        let expansion = _TableOutlineExpansion<Node>(model.binding)
+        let expansion = OutlineExpansion<Node.ID>(model.binding)
         let cache = _TableOutlineCache<Node>()
         let first = cache.outline(of: roots, expansion: expansion)
         #expect(cache.listed == 1_002, "the first outline lists every row it shows")

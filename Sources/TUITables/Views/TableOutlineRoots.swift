@@ -11,6 +11,7 @@
 
 import TUICore
 import TUIFoundation
+import TUILists
 
 // MARK: - The roots as data
 
@@ -84,7 +85,7 @@ extension _TableOutline {
     /// looked at, and where no branch is open the rows are the roots' own
     /// array, shared rather than copied.
     static func flattening(
-        roots: _TableOutlineRoots<Value>, branches: [Int], expansion: _TableOutlineExpansion<Value>.Reading
+        roots: _TableOutlineRoots<Value>, branches: [Int], expansion: OutlineExpansion<Value.ID>.Reading
     ) -> Flattening {
         var flat = Flattening()
         let leaf = Row(placement: Placement(depth: 0, disclosure: .leaf), parent: -1, branch: -1)
@@ -137,7 +138,7 @@ final class _TableOutlineCache<Value: Identifiable> {
     private var roots: _TableOutlineRoots<Value>?
     private var branchIndices: [Int] = []
     private var outline: _TableOutline<Value>?
-    private var expansionSeen: _TableOutlineExpansion<Value>.Reading?
+    private var expansionSeen: OutlineExpansion<Value.ID>.Reading?
 
     /// The rows the outlines made here have listed, all told — every row of
     /// one made whole, the rows put in or taken out of one spliced: what a
@@ -147,7 +148,7 @@ final class _TableOutlineCache<Value: Identifiable> {
 
     /// The outline of `roots` with the branches `expansion` opens: the one
     /// made last, where neither has changed since.
-    func outline(of roots: _TableOutlineRoots<Value>, expansion: _TableOutlineExpansion<Value>) -> _TableOutline<Value> {
+    func outline(of roots: _TableOutlineRoots<Value>, expansion: OutlineExpansion<Value.ID>) -> _TableOutline<Value> {
         if self.roots.map({ !$0.hasSameRows(as: roots) }) ?? true {
             branchIndices = roots.values.indices.filter { roots.isBranch(roots.values[$0]) }
             self.roots = roots

@@ -50,14 +50,14 @@ struct TableOutlineCacheTests {
     @Test("The same roots and open branches give the same outline; new roots or a branch opened, a new one")
     func keptWhileUnchanged() {
         let cache = _TableOutlineCache<File>()
-        let box = StateBox<Set<AnyHashable>>([])
-        let expansion = _TableOutlineExpansion<File>(box)
+        let box = StateBox<Set<String>>([])
+        let expansion = OutlineExpansion<File.ID>(box)
         var rows = Self.files
         let first = cache.outline(of: _TableOutlineRoots(rows, children: \.children), expansion: expansion)
         #expect(cache.outline(of: _TableOutlineRoots(rows, children: \.children), expansion: expansion) === first)
         #expect(first.values.map(\.id) == ["dir", "a", "b"])
 
-        box.value = [AnyHashable("dir")]
+        box.value = ["dir"]
         let opened = cache.outline(of: _TableOutlineRoots(rows, children: \.children), expansion: expansion)
         #expect(opened !== first)
         #expect(opened.values.map(\.id) == ["dir", "inner", "a", "b"])
@@ -72,14 +72,14 @@ struct TableOutlineCacheTests {
     func notKeptWhereTheyCanChangeUnseen() {
         let computed = _TableOutlineCache<Computed>()
         let computedRows = [Computed(id: "dir"), Computed(id: "a")]
-        let box = StateBox<Set<AnyHashable>>([])
-        let expansion = _TableOutlineExpansion<Computed>(box)
+        let box = StateBox<Set<String>>([])
+        let expansion = OutlineExpansion<Computed.ID>(box)
         let one = computed.outline(of: _TableOutlineRoots(computedRows, children: \.children), expansion: expansion)
         #expect(computed.outline(of: _TableOutlineRoots(computedRows, children: \.children), expansion: expansion) !== one)
 
         let classes = _TableOutlineCache<Node>()
         let nodes = [Node("dir", children: []), Node("a")]
-        let nodeExpansion = _TableOutlineExpansion<Node>(box)
+        let nodeExpansion = OutlineExpansion<Node.ID>(box)
         let two = classes.outline(of: _TableOutlineRoots(nodes, children: \.children), expansion: nodeExpansion)
         #expect(classes.outline(of: _TableOutlineRoots(nodes, children: \.children), expansion: nodeExpansion) !== two)
     }

@@ -235,7 +235,7 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
             // at the pass: a key handled before the next frame sees what the
             // one before it wrote, and the app's writes.
             let wanted = target ?? !expansion.read().open.contains(node.id)
-            return expansion.set(all, open: wanted)
+            return expansion.set(all, open: wanted) != nil
         }
     }
 }

@@ -120,7 +120,7 @@ struct TableOutlineExpansionBindingTests {
         let model = Model()
         let outline = _TableOutlineCache<Node>().outline(
             of: _TableOutlineRoots(tree, children: \.children, expansion: model.openBinding),
-            expansion: _TableOutlineExpansion<Node>(model.openBinding))
+            expansion: OutlineExpansion<Node.ID>(model.openBinding))
         // Two keys handled before the next frame act on one outline: the
         // second reads the set the first wrote, not the one the frame read.
         #expect(outline.setExpanded(AnyHashable("root"), to: nil, includingDescendants: false))
@@ -135,7 +135,7 @@ struct TableOutlineExpansionBindingTests {
         let model = Model(open: ["root"])
         let cache = _TableOutlineCache<Node>()
         let roots = _TableOutlineRoots(tree, children: \.children, expansion: model.openBinding)
-        let expansion = _TableOutlineExpansion<Node>(model.openBinding)
+        let expansion = OutlineExpansion<Node.ID>(model.openBinding)
         let first = cache.outline(of: roots, expansion: expansion)
         #expect(cache.outline(of: roots, expansion: expansion) === first)
         model.open.insert("other")

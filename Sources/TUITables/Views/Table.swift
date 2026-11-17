@@ -759,11 +759,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         guard let rowTree else { return nil }
         // The app's, when it handed `Table(_:children:expansion:)` one; else
         // the table's own, at its place.
-        let expansion: _TableOutlineExpansion<Value> =
+        let expansion: OutlineExpansion<Value.ID> =
             if let binding = rowTree.roots?.expansion {
-                _TableOutlineExpansion(binding)
+                OutlineExpansion(binding)
             } else {
-                _TableOutlineExpansion(
+                OutlineExpansion(
                     context.stateStorage?.storage(
                         for: StateStorage.StateKey(
                             identity: context.identity, propertyIndex: StateIndex.outlineExpansion),

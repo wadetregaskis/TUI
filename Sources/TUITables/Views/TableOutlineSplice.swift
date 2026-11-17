@@ -12,6 +12,7 @@
 
 import TUICore
 import TUIFoundation
+import TUILists
 
 // MARK: - The rows by id, across splices
 
@@ -250,8 +251,8 @@ extension _TableOutline {
     /// in `reading`, and its change would be missed. The kept outline of a
     /// `Table(_:children:)`, the only caller, has none.
     func splicing(
-        _ ids: [Value.ID], to reading: _TableOutlineExpansion<Value>.Reading,
-        expansion: _TableOutlineExpansion<Value>
+        _ ids: [Value.ID], to reading: OutlineExpansion<Value.ID>.Reading,
+        expansion: OutlineExpansion<Value.ID>
     ) -> Splicing? {
         guard traits == nil, insertionAction == nil else { return nil }
         if rowIndices?.isWorn ?? true { rowIndices = _TableOutlineRowIndex(values) }
