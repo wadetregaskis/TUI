@@ -47,8 +47,8 @@ extension Table {
     /// initializer also takes an `expansion:` binding, defaulted to `nil`, so a
     /// SwiftUI call site compiles and behaves as it does in SwiftUI. Handed
     /// one, the table opens exactly the branches whose IDs are in the set, and
-    /// the user's opening and closing — Right, Left, ⌥Right, ⌥Left, Space, a
-    /// click on a triangle — writes it:
+    /// the user's opening and closing — Right, Left, ⌥Right, ⌥Left, a click
+    /// on a triangle — writes it:
     ///
     /// ```swift
     /// @State private var open: Set<File.ID> = [root.id]   // starts open
