@@ -135,7 +135,8 @@ struct SessionLocalityTests {
         #expect(!local(nil))
     }
 
-    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+    // wasip1 has no process ids, and no parent to read; Windows walks its own way (ProcessAncestryTests).
+    #if !canImport(WASILibc) && !os(Windows)
         @Test("This process's own chain reads to the root")
         func ownChainReads() throws {
             let chain = try #require(ProcessAncestry.commandNames(from: getpid()))

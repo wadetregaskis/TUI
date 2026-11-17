@@ -19,14 +19,27 @@ import Musl
 
 @Suite("Process ancestry")
 struct ProcessAncestryTests {
-    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+    #if os(Windows)
+        @Test("On Windows, this process's chain reads up from its own executable, less .exe")
+        func windowsChain() throws {
+            let chain = try #require(ProcessAncestry.windowsCommandNames())
+            #expect(chain.count >= 2)
+            #expect(chain.allSatisfy { !$0.lowercased().hasSuffix(".exe") })
+            let own = (CommandLine.arguments.first ?? "").split(whereSeparator: { $0 == "\\" || $0 == "/" }).last
+            #expect(own.map { $0.lowercased().hasPrefix(chain[0].lowercased()) } == true)
+        }
+    #endif
+
+    // wasip1 has no process ids, and no parent to read; Windows walks its own way.
+    #if !canImport(WASILibc) && !os(Windows)
         @Test("A process's parent is the one the kernel reports to the process itself")
         func ownParent() {
             #expect(ProcessAncestry.parent(of: getpid()) == getppid())
         }
     #endif
 
-    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+    // wasip1 has no process ids, and no parent to read; Windows walks its own way.
+    #if !canImport(WASILibc) && !os(Windows)
         /// The terminal read from the kernel's record is there exactly where
         /// this process has a controlling terminal — where it can open
         /// `/dev/tty`, which a suite run from a script or CI cannot — and names a
@@ -67,7 +80,8 @@ struct ProcessAncestryTests {
         #expect(ProcessAncestry.terminalHolder(of: []) == nil)
     }
 
-    #if !canImport(WASILibc)  // wasip1 has no process ids, and no parent to read.
+    // wasip1 has no process ids, and no parent to read; Windows walks its own way.
+    #if !canImport(WASILibc) && !os(Windows)
         @Test("Following parents from this process reaches the root of the tree")
         func reachesTheRoot() {
             var current = getpid()
