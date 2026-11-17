@@ -2,8 +2,8 @@
 //  TestAppTerminalTests.swift
 //
 //  What a test can say about the terminal around a `TestApp`: its window
-//  losing and gaining the focus. Without `@testable`, as an app's tests are
-//  written.
+//  losing and gaining the focus, and what it can do from the start. Without
+//  `@testable`, as an app's tests are written.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -28,6 +28,19 @@ private struct PhaseWatcher: View {
     }
 }
 
+private struct ReleaseWatcher: View {
+    @Environment(\.terminalCapabilities) private var capabilities
+    @State private var knewAtAppear: Bool?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(verbatim: "at appear \(knewAtAppear.map(String.init(describing:)) ?? "-")")
+            Text(verbatim: "now \(capabilities.supports(.keyReleases))")
+        }
+        .onAppear { knewAtAppear = capabilities.supports(.keyReleases) }
+    }
+}
+
 @MainActor
 @Suite("TestApp: the terminal around the app")
 struct TestAppTerminalTests {
@@ -46,5 +59,25 @@ struct TestAppTerminalTests {
         #expect(app.screen.contains("phase active"))
         #expect(app.screen.contains("appears active"))
         #expect(app.screen.contains("pauses 1"))
+    }
+
+    @Test("Capabilities set before the first frame are the terminal's from the start")
+    func capabilitiesFromTheStart() {
+        let app = TestApp(width: 30, height: 3) { ReleaseWatcher() }
+        app.terminalCapabilities = TerminalCapabilities(supported: .keyReleases, unsupported: [])
+        #expect(app.terminalCapabilities.status(of: .keyReleases) == .supported)
+        #expect(app.screen.contains("at appear true"))
+        #expect(app.screen.contains("now true"))
+    }
+
+    @Test("By default every feature is undetermined, and a change later is drawn")
+    func capabilitiesLater() {
+        let app = TestApp(width: 30, height: 3) { ReleaseWatcher() }
+        #expect(app.terminalCapabilities.supported.isEmpty && app.terminalCapabilities.unsupported.isEmpty)
+        #expect(app.screen.contains("at appear false"))
+        app.terminalCapabilities = TerminalCapabilities(supported: .keyReleases, unsupported: .curlyUnderline)
+        #expect(app.screen.contains("at appear false"))
+        #expect(app.screen.contains("now true"))
+        #expect(app.terminalCapabilities.status(of: .curlyUnderline) == .unsupported)
     }
 }

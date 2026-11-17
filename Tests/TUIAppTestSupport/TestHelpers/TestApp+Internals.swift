@@ -90,11 +90,6 @@ extension TestApp {
         set { headless.keyboardReporting = newValue }
     }
 
-    var terminalCapabilities: TerminalCapabilities {
-        get { headless.terminalCapabilities }
-        set { headless.terminalCapabilities = newValue }
-    }
-
     var sendsProgressReports: Bool {
         get { headless.sendsProgressReports }
         set { headless.sendsProgressReports = newValue }

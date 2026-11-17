@@ -179,14 +179,21 @@ app.press(.character("q"), modifiers: .control)
 #expect(app.hasRequestedQuit)
 ```
 
-### The terminal's window
+### The terminal's window and what the terminal can do
 
 ``TestApp/reportFocus(_:)`` reports the terminal's window losing or gaining the focus, as a terminal does when the
 person switches to another window and back: `\.scenePhase` goes `.inactive` and `\.appearsActive` `false`, and back,
-as in a running app, so a game that pauses when its window goes to the back can be tested:
+as in a running app, so a game that pauses when its window goes to the back can be tested.
+``TestApp/terminalCapabilities`` is what the terminal can do, feature by feature, every feature undetermined until a
+test says otherwise. Set it before the first look or action and it is the terminal the app starts in, as `.onAppear`
+reads it; a keyboard feature such as key releases is then also one the terminal reports, though the events are the
+test's to send:
 
 ```swift
 let app = TestApp { Game() }
+app.terminalCapabilities = TerminalCapabilities(supported: .keyReleases, unsupported: [])
+app.press(.left)
+app.press(KeyEvent(key: .left, phase: .release))
 app.reportFocus(false)
 #expect(app.screen.contains("Paused"))
 ```

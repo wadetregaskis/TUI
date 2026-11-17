@@ -330,7 +330,12 @@ package final class HeadlessApp {
     /// settled, and what keys sent since have shown.
     package var terminalCapabilities: TerminalCapabilities {
         get { tuiContext.terminalCapabilities }
-        set { tuiContext.terminalCapabilities = newValue }
+        set {
+            guard newValue != tuiContext.terminalCapabilities else { return }
+            tuiContext.terminalCapabilities = newValue
+            // The views that read it draw it at the next frame.
+            tuiContext.appState.setNeedsRender()
+        }
     }
 
     /// Reports the modifier keys held on their own, as a terminal speaking the

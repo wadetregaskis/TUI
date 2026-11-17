@@ -72,11 +72,11 @@ struct TerminalCapabilitiesPublishingTests {
         frame(app)
         #expect(Self.shows(app, "links unknown"), "nothing known outside a run")
 
-        app.terminalCapabilities = TerminalCapabilities.nothingKnown.settling(.hyperlinks, as: .supported)
+        app.headless.terminalCapabilities = TerminalCapabilities.nothingKnown.settling(.hyperlinks, as: .supported)
         frame(app)
         #expect(Self.shows(app, "links yes"))
 
-        app.terminalCapabilities = app.terminalCapabilities.settling(.hyperlinks, as: .unsupported)
+        app.headless.terminalCapabilities = app.headless.terminalCapabilities.settling(.hyperlinks, as: .unsupported)
         frame(app)
         #expect(Self.shows(app, "links no"))
     }

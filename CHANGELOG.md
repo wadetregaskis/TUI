@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A test can play a terminal that can do what it says, from the start.** `TestApp.terminalCapabilities` is settable,
+and `TerminalCapabilities(supported:unsupported:)` is public, so a test can present a terminal that reports key
+releases (the kitty keyboard protocol) before the first frame, as a running app learns its terminal before its first
+frame: `.onAppear` reads it. A keyboard feature set this way is also one the terminal is taken to report.
+
 **`TestApp.reportFocus(_:)` reports the terminal's window losing or gaining the focus.** A test could not reach
 `\.scenePhase`'s `.inactive`: it read `.active` throughout, so a game that pauses when its window goes to the back
 could not be tested. `app.reportFocus(false)` moves `\.scenePhase` to `.inactive` and `\.appearsActive` to `false`,

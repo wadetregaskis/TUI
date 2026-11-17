@@ -33,6 +33,7 @@ TerminalCapabilities.Status | enum Status
 TerminalCapabilities.Status.supported | case supported
 TerminalCapabilities.Status.undetermined | case undetermined
 TerminalCapabilities.Status.unsupported | case unsupported
+TerminalCapabilities.init(supported:unsupported:) | init(supported: TerminalCapabilities.Feature, unsupported: TerminalCapabilities.Feature)
 TerminalCapabilities.status(of:) | func status(of feature: TerminalCapabilities.Feature) -> TerminalCapabilities.Status
 TerminalCapabilities.supported | let supported: TerminalCapabilities.Feature
 TerminalCapabilities.supports(_:) | func supports(_ features: TerminalCapabilities.Feature) -> Bool

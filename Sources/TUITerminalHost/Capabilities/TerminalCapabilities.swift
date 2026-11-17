@@ -76,7 +76,15 @@ public struct TerminalCapabilities: Hashable, Sendable {
 
     /// The capabilities with `supported` and `unsupported` known, and
     /// everything else undetermined. A feature in both is taken as supported.
-    package init(supported: Feature, unsupported: Feature) {
+    ///
+    /// An app reads its terminal's from `\.terminalCapabilities` and never
+    /// makes one; this is for a test or a preview that plays a terminal, such
+    /// as a `TestApp`'s (`TestApp.terminalCapabilities`):
+    ///
+    /// ```swift
+    /// app.terminalCapabilities = TerminalCapabilities(supported: .keyReleases, unsupported: [])
+    /// ```
+    public init(supported: Feature, unsupported: Feature) {
         self.supported = supported
         self.unsupported = unsupported.subtracting(supported)
     }
