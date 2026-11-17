@@ -384,8 +384,18 @@ extension View {
     /// Binds the id of the row at a scroll view's anchor. Matches SwiftUI's
     /// `scrollPosition(id:anchor:)`.
     ///
-    /// Writing the binding scrolls to that row; the scroll view writes back
-    /// the row it is actually showing.
+    /// Writing the binding scrolls to that row, and the binding keeps the id
+    /// you wrote, as SwiftUI's does, though with no anchor the row may land
+    /// at the bottom of the view. Once the user scrolls, the scroll view
+    /// writes back the row at the anchor (the top by default).
+    ///
+    /// ```swift
+    /// @State private var topRow: Int?
+    ///
+    /// ScrollView { LazyVStack { ForEach(1...500, id: \.self) { Text("Line \($0)") } } }
+    ///     .scrollPosition(id: $topRow)
+    /// Button("Go to 200") { topRow = 200 }   // topRow stays 200 until the user scrolls
+    /// ```
     ///
     /// - Parameters:
     ///   - id: The row identity to read and write.

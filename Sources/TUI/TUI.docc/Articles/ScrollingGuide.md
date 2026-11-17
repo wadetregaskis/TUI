@@ -133,7 +133,7 @@ struct Pages: View {
 }
 ```
 
-To only deal with the row's id, bind that directly: `.scrollPosition(id: $topRow)` with `@State private var topRow: Int?`.
+To only deal with the row's id, bind that directly: `.scrollPosition(id: $topRow)` with `@State private var topRow: Int?`. Writing `topRow` scrolls to that row, and it keeps the id you wrote until the user scrolls; from then on it reads the row at the top.
 
 ## Following new content
 
