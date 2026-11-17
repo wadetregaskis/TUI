@@ -1490,3 +1490,26 @@ messages cite that path), and what cites it.
 - **Was:** written here.
 - **Cited by:** `Tests/TUIAppTests/ScrollPositionIDHoldTests.swift`, `Tests/TUIListsTests/ListMultiSectionRowsTests.swift`,
   `Tests/TUIPresentationTests/SheetItemSwitchDismissTests.swift`, `Tests/TUIPickersTests/DateFieldModelTests.swift`.
+
+### Pasted line breaks and drops (1117)
+
+- **Asks:** what a SwiftUI `TextField` (plain and `axis: .vertical`), a `SecureField` and a `TextEditor` bind when
+  "ab", a line break and "cd" are pasted (LF, CRLF, CR, U+2028, U+2029, U+0085), and a tab, an ESC and a trailing
+  LF; whether `onSubmit` runs; what the field draws once it loses the focus; and whether each takes a string dropped
+  with no modifier held, focused and not (`paste.swift`, `paste.out`). The paste is the Edit menu's: `paste:` sent
+  to the field editor SwiftUI installed, with `NSPasteboard.general` redirected to a pasteboard of the probe's own,
+  so the real clipboard is never read or written. The drop is the destination's half only, through an
+  `NSDraggingInfo` of the probe's own offering copy, generic and move, to the view under the field that registers
+  for strings: AppKit's drag loop needs a real mouse, so the source's half is not measured. The probe's app was not
+  active and its window not key (a shell launched it), which a paste and a drop do not ask for.
+- **Answers:** every view binds exactly what was pasted, CRLF and CR, U+2028, U+2029, U+0085, a tab and ESC
+  included, and nothing is changed when the field loses the focus; no paste runs `onSubmit`. A one-line field's
+  editor lays the text after a break out on a second line, and the field, not focused, draws only the first ("ab");
+  a trailing LF draws nothing; a `SecureField` draws a bullet per UTF-16 unit, breaks included (six for "ab\r\ncd").
+  A `TextField` or `SecureField` that is not focused registers no drag types and takes no drop; focused, its field
+  editor takes the dropped string as a copy and inserts it. A `TextEditor` takes it as a copy whether or not it has
+  the focus, without taking the focus.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-17.
+- **Was:** written here.
+- **Cited by:** `Sources/TUITextInput/Focus/TextFieldHandler+Clipboard.swift`;
+  `Tests/TUITextInputTests/PastedLineBreakTests.swift`.

@@ -1,0 +1,117 @@
+macOS Version 15.8.3 (Build 24H241)
+plain: AppKitTextField, key window false, app active false
+  LF          "ab\ncd" -> "ab\ncd" submits +0, after focus leaves "ab\ncd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps false, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  CRLF        "ab\r\ncd" -> "ab\r\ncd" submits +0, after focus leaves "ab\r\ncd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps false, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  CR          "ab\rcd" -> "ab\rcd" submits +0, after focus leaves "ab\rcd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps false, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  tab         "ab\tcd" -> "ab\tcd" submits +0, after focus leaves "ab\tcd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 37; wraps false, single line true; unfocused field's ink columns 4-10 12-18 32-38 39-46, rows 5-15 of 21
+  U+2028      "ab\u{2028}cd" -> "ab\u{2028}cd" submits +0, after focus leaves "ab\u{2028}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps false, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  U+2029      "ab\u{2029}cd" -> "ab\u{2029}cd" submits +0, after focus leaves "ab\u{2029}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps false, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  trailing LF "abcd\n" -> "abcd\n" submits +0, after focus leaves "abcd\n" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 32; wraps false, single line true; unfocused field's ink columns 4-10 12-18 19-25 26-33, rows 5-15 of 21
+  U+0085      "ab\u{85}cd" -> "ab\u{85}cd" submits +0, after focus leaves "ab\u{85}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps false, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  ESC         "ab\u{1B}cd" -> "ab\u{1B}cd" submits +0, after focus leaves "ab\u{1B}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 24; wraps false, single line true; unfocused field's ink columns 4-10 12-18 19-25 26-33, rows 5-15 of 21
+  ref         "ab" -> "ab" submits +0, after focus leaves "ab" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 9; wraps false, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  ref         "cd" -> "cd" submits +0, after focus leaves "cd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 9; wraps false, single line true; unfocused field's ink columns 4-10 11-18, rows 5-15 of 21
+  ref         "abcd" -> "abcd" submits +0, after focus leaves "abcd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 24; wraps false, single line true; unfocused field's ink columns 4-10 12-18 19-25 26-33, rows 5-15 of 21
+  ref         "ab cd" -> "ab cd" submits +0, after focus leaves "ab cd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 27; wraps false, single line true; unfocused field's ink columns 4-10 12-18 23-29 30-36, rows 5-15 of 21
+vertical: AppKitTextField, key window false, app active false
+  LF          "ab\ncd" -> "ab\ncd" submits +0, after focus leaves "ab\ncd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps true, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  CRLF        "ab\r\ncd" -> "ab\r\ncd" submits +0, after focus leaves "ab\r\ncd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps true, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  CR          "ab\rcd" -> "ab\rcd" submits +0, after focus leaves "ab\rcd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps true, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  tab         "ab\tcd" -> "ab\tcd" submits +0, after focus leaves "ab\tcd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 37; wraps true, single line true; unfocused field's ink columns 4-10 12-18 32-38 39-46, rows 5-15 of 21
+  U+2028      "ab\u{2028}cd" -> "ab\u{2028}cd" submits +0, after focus leaves "ab\u{2028}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps true, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  U+2029      "ab\u{2029}cd" -> "ab\u{2029}cd" submits +0, after focus leaves "ab\u{2029}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps true, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  trailing LF "abcd\n" -> "abcd\n" submits +0, after focus leaves "abcd\n" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 32; wraps true, single line true; unfocused field's ink columns 4-10 12-18 19-25 26-33, rows 5-15 of 21
+  U+0085      "ab\u{85}cd" -> "ab\u{85}cd" submits +0, after focus leaves "ab\u{85}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 2 line fragment(s), last glyph's line at y 16, x 9; wraps true, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  ESC         "ab\u{1B}cd" -> "ab\u{1B}cd" submits +0, after focus leaves "ab\u{1B}cd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 24; wraps true, single line true; unfocused field's ink columns 4-10 12-18 19-25 26-33, rows 5-15 of 21
+  ref         "ab" -> "ab" submits +0, after focus leaves "ab" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 9; wraps true, single line true; unfocused field's ink columns 4-10 12-18, rows 5-15 of 21
+  ref         "cd" -> "cd" submits +0, after focus leaves "cd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 9; wraps true, single line true; unfocused field's ink columns 4-10 11-18, rows 5-15 of 21
+  ref         "abcd" -> "abcd" submits +0, after focus leaves "abcd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 24; wraps true, single line true; unfocused field's ink columns 4-10 12-18 19-25 26-33, rows 5-15 of 21
+  ref         "ab cd" -> "ab cd" submits +0, after focus leaves "ab cd" [_SystemTextFieldFieldEditor]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 27; wraps true, single line true; unfocused field's ink columns 4-10 12-18 23-29 30-36, rows 5-15 of 21
+secure: AppKitSecureTextField, key window false, app active false
+  LF          "ab\ncd" -> "ab\ncd" submits +0, after focus leaves "ab\ncd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 8-14 of 37
+  CRLF        "ab\r\ncd" -> "ab\r\ncd" submits +0, after focus leaves "ab\r\ncd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 42; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43 46-51, rows 8-14 of 37
+  CR          "ab\rcd" -> "ab\rcd" submits +0, after focus leaves "ab\rcd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 8-14 of 37
+  tab         "ab\tcd" -> "ab\tcd" submits +0, after focus leaves "ab\tcd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 7-13 of 21
+  U+2028      "ab\u{2028}cd" -> "ab\u{2028}cd" submits +0, after focus leaves "ab\u{2028}cd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 8-14 of 37
+  U+2029      "ab\u{2029}cd" -> "ab\u{2029}cd" submits +0, after focus leaves "ab\u{2029}cd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 8-14 of 37
+  trailing LF "abcd\n" -> "abcd\n" submits +0, after focus leaves "abcd\n" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 8-14 of 37
+  U+0085      "ab\u{85}cd" -> "ab\u{85}cd" submits +0, after focus leaves "ab\u{85}cd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 8-14 of 37
+  ESC         "ab\u{1B}cd" -> "ab\u{1B}cd" submits +0, after focus leaves "ab\u{1B}cd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 7-13 of 21
+  ref         "ab" -> "ab" submits +0, after focus leaves "ab" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 10; wraps false, single line true; unfocused field's ink columns 5-11 13-19, rows 7-13 of 21
+  ref         "cd" -> "cd" submits +0, after focus leaves "cd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 10; wraps false, single line true; unfocused field's ink columns 5-11 13-19, rows 7-13 of 21
+  ref         "abcd" -> "abcd" submits +0, after focus leaves "abcd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 26; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35, rows 7-13 of 21
+  ref         "ab cd" -> "ab cd" submits +0, after focus leaves "ab cd" [NSSecureTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 34; wraps false, single line true; unfocused field's ink columns 5-11 13-19 21-27 29-35 37-43, rows 7-13 of 21
+editor: PlatformTextView, key window false, app active false
+  LF          "ab\ncd" -> "ab\ncd" submits +0, after focus leaves "ab\ncd" [PlatformTextView]
+              editor layout: 2 line fragment(s), last glyph's line at y 12, x 11; wraps true, single line false; unfocused field's ink columns 5-17, rows 0-21 of 60
+  CRLF        "ab\r\ncd" -> "ab\r\ncd" submits +0, after focus leaves "ab\r\ncd" [PlatformTextView]
+              editor layout: 2 line fragment(s), last glyph's line at y 12, x 11; wraps true, single line false; unfocused field's ink columns 5-17, rows 0-21 of 60
+  CR          "ab\rcd" -> "ab\rcd" submits +0, after focus leaves "ab\rcd" [PlatformTextView]
+              editor layout: 2 line fragment(s), last glyph's line at y 12, x 11; wraps true, single line false; unfocused field's ink columns 5-17, rows 0-21 of 60
+  tab         "ab\tcd" -> "ab\tcd" submits +0, after focus leaves "ab\tcd" [PlatformTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 39; wraps true, single line false; unfocused field's ink columns 5-11 12-17 33-38 39-45, rows 0-9 of 60
+  U+2028      "ab\u{2028}cd" -> "ab\u{2028}cd" submits +0, after focus leaves "ab\u{2028}cd" [PlatformTextView]
+              editor layout: 2 line fragment(s), last glyph's line at y 12, x 11; wraps true, single line false; unfocused field's ink columns 5-17, rows 0-21 of 60
+  U+2029      "ab\u{2029}cd" -> "ab\u{2029}cd" submits +0, after focus leaves "ab\u{2029}cd" [PlatformTextView]
+              editor layout: 2 line fragment(s), last glyph's line at y 12, x 11; wraps true, single line false; unfocused field's ink columns 5-17, rows 0-21 of 60
+  trailing LF "abcd\n" -> "abcd\n" submits +0, after focus leaves "abcd\n" [PlatformTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 31; wraps true, single line false; unfocused field's ink columns 5-11 12-17 18-24 24-30, rows 0-9 of 60
+  U+0085      "ab\u{85}cd" -> "ab\u{85}cd" submits +0, after focus leaves "ab\u{85}cd" [PlatformTextView]
+              editor layout: 2 line fragment(s), last glyph's line at y 12, x 11; wraps true, single line false; unfocused field's ink columns 5-17, rows 0-21 of 60
+  ESC         "ab\u{1B}cd" -> "ab\u{1B}cd" submits +0, after focus leaves "ab\u{1B}cd" [PlatformTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 24; wraps true, single line false; unfocused field's ink columns 5-11 12-17 18-24 24-30, rows 0-9 of 60
+  ref         "ab" -> "ab" submits +0, after focus leaves "ab" [PlatformTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 11; wraps true, single line false; unfocused field's ink columns 5-11 12-17, rows 0-9 of 60
+  ref         "cd" -> "cd" submits +0, after focus leaves "cd" [PlatformTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 11; wraps true, single line false; unfocused field's ink columns 5-10 11-17, rows 0-9 of 60
+  ref         "abcd" -> "abcd" submits +0, after focus leaves "abcd" [PlatformTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 24; wraps true, single line false; unfocused field's ink columns 5-11 12-17 18-24 24-30, rows 0-9 of 60
+  ref         "ab cd" -> "ab cd" submits +0, after focus leaves "ab cd" [PlatformTextView]
+              editor layout: 1 line fragment(s), last glyph's line at y 0, x 27; wraps true, single line false; unfocused field's ink columns 5-11 12-17 22-27 28-33, rows 0-9 of 60
+plain drop, field not focused: no view under the field is registered for strings; field registers []
+plain drop, field focused, on _SystemTextFieldFieldEditor (field AppKitTextField, field registers 0 text types): entered 1, updated 1, performed true, bound "xyDROP", first responder _SystemTextFieldFieldEditor
+vertical drop, field not focused: no view under the field is registered for strings; field registers []
+vertical drop, field focused, on _SystemTextFieldFieldEditor (field AppKitTextField, field registers 0 text types): entered 1, updated 1, performed true, bound "xyDROP", first responder _SystemTextFieldFieldEditor
+secure drop, field not focused: no view under the field is registered for strings; field registers []
+secure drop, field focused, on NSSecureTextView (field AppKitSecureTextField, field registers 0 text types): entered 1, updated 1, performed true, bound "xyDROP", first responder NSSecureTextView
+editor drop, field not focused, on PlatformTextView (field PlatformTextView, field registers 1 text types): entered 1, updated 1, performed true, bound "xyDROP", first responder _SystemTextFieldFieldEditor
+editor drop, field focused, on PlatformTextView (field PlatformTextView, field registers 1 text types): entered 1, updated 1, performed true, bound "xyDROP", first responder PlatformTextView
