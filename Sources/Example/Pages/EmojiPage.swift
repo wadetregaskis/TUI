@@ -261,8 +261,10 @@ struct EmojiPage: View {
         } else {
             // Held to its share like the table it stands in for, or a stacked
             // pair would run past the rows it was handed.
+            // Both through `L`: a literal title beside a `String` description
+            // binds the as-written overload, which showed the key itself.
             ContentUnavailableView(
-                "page.emoji.sfSymbolsUnavailableTitle",
+                L("page.emoji.sfSymbolsUnavailableTitle"),
                 description: Self.allSymbols.isEmpty
                     ? L("page.emoji.sfSymbolsUnavailablePlatform")
                     : L("page.emoji.sfSymbolsUnavailableFont"))
