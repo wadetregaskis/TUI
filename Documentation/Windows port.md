@@ -63,3 +63,17 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
   to `staging` like everything else (CONTRIBUTING, "Staging and `main`"). Keep the macOS and Linux builds untouched
   by Windows arms: they are checked there, not on the VM.
 - Record decisions and measurements in this file as you go, with their reasons.
+
+## Toolchain
+
+Measured on a Windows 11 arm64 VM (Apple silicon host) with swift.org's 6.3.3 (`aarch64-unknown-windows-msvc`) and the
+Visual Studio 2022 Build Tools 17.14, installed with `winget install Swift.Toolchain --version 6.3.3`.
+
+- **`AttributedString.runs` does not link.** Any program that touches it — `for run in string.runs`, even
+  `string.runs.count` — fails with `undefined symbol: $s22_FoundationCollections9BigStringV5IndexVMn`. `Runs` holds a
+  `RangeSet<BigString.Index>`, and its code is inlined into the caller, which then needs that type's metadata;
+  `BigString` is `_FoundationCollections`', which the SDK's `FoundationEssentials.dll` builds in without exporting a
+  symbol of it, and which ships no library of its own. Reproduced in a ten-line program. `string.characters` and a
+  substring's attributes (`string[range].link`) link, being Foundation's own code, so `Text(AttributedString)` walks
+  the string by character on Windows and merges the runs itself (`Text+Attributed.swift`). Nothing else in the
+  package uses `runs`. CI never saw this: its Windows steps built modules, and nothing linked a program.

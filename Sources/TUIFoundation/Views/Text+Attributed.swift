@@ -76,24 +76,50 @@ import Foundation
     }
 
     /// The runs of `string`, neighbours drawn alike merged into one.
+    ///
+    /// On Windows, by its characters rather than its runs: a program there that
+    /// uses `AttributedString.runs` does not link with Swift 6.3.3. Its `Runs`
+    /// holds a `RangeSet` of `BigString.Index`, a type of Foundation's
+    /// `_FoundationCollections`, which Foundation's DLL builds in and does not
+    /// export, so the metadata the inlined `Runs` needs is a symbol no library
+    /// defines (`Documentation/Windows port.md`, "Toolchain"). A character's own
+    /// substring reads its attributes through Foundation's code, which links,
+    /// and the merge below makes the runs of the characters.
     nonisolated static func runs(of string: AttributedString) -> [Run] {
         var result: [Run] = []
-        for run in string.runs {
-            let text = String(string[run.range].characters)
-            guard !text.isEmpty else { continue }
-            let style = Self.style(of: run)
-            if let last = result.last, last.style == style, last.link == run.link, last.live == nil {
-                result[result.count - 1] = Run(text: last.text + text, style: style, link: run.link)
-            } else {
-                result.append(Run(text: text, style: style, link: run.link))
+        #if os(Windows)
+            var index = string.startIndex
+            while index < string.endIndex {
+                let next = string.characters.index(after: index)
+                append(string[index..<next], to: &result)
+                index = next
             }
-        }
+        #else
+            for run in string.runs {
+                append(string[run.range], to: &result)
+            }
+        #endif
         return result
     }
 
+    /// Appends `piece`, a stretch of an attributed string drawn alike, to
+    /// `runs`: into the last run where that is drawn alike too.
+    nonisolated private static func append(_ piece: AttributedSubstring, to runs: inout [Run]) {
+        let text = String(piece.characters)
+        guard !text.isEmpty else { return }
+        let style = Self.style(of: piece)
+        let link = piece.link
+        if let last = runs.last, last.style == style, last.link == link, last.live == nil {
+            runs[runs.count - 1] = Run(text: last.text + text, style: style, link: link)
+        } else {
+            runs.append(Run(text: text, style: style, link: link))
+        }
+    }
+
     /// What `run` states, as a run's own style: only what it states, so the
-    /// text's modifiers and the environment fill in the rest.
-    nonisolated private static func style(of run: AttributedString.Runs.Run) -> TextStyle {
+    /// text's modifiers and the environment fill in the rest. `run` is drawn
+    /// alike throughout, so each attribute it reads has one value over it.
+    nonisolated private static func style(of run: AttributedSubstring) -> TextStyle {
         var style = TextStyle()
         if let color = run.foregroundColor {
             style.foregroundColor = color
