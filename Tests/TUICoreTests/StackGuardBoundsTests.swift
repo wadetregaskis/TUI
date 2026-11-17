@@ -8,9 +8,6 @@ import Testing
 
 @testable import TUICore
 
-// Windows has no arm yet (its port is in progress): there the guard is off,
-// and says so by finding no bounds.
-#if !os(Windows)
     /// The guard is only as good as the bounds it measures against: where it
     /// finds none it is off, and a tree too deep for the stack is no longer
     /// cut short. On WebAssembly that is worse than a crash: the stack is a
@@ -39,7 +36,6 @@ import Testing
             #expect(StackGuard.hasHeadroomUncounted())
         }
     }
-#endif
 
 /// WebAssembly's extent, from the linker's bounds: the arithmetic, which runs
 /// anywhere, so it is tested on every platform.

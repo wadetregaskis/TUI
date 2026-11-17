@@ -10,6 +10,8 @@
     import Glibc
 #elseif canImport(Musl)
     import Musl
+#elseif os(Windows)
+    import WinSDK
 #endif
 
 #if os(WASI)
@@ -396,6 +398,16 @@ package enum StackGuard {
         #elseif os(WASI)
             // One stack for the whole program, whatever is asking.
             return wasmStackExtent(low: UInt(tui_wasm_stack_low()), high: UInt(tui_wasm_stack_high()))
+        #elseif os(Windows)
+            // The calling thread's whole reservation, its guard pages at the
+            // low end included, which the reserve above them stands clear of.
+            // A Windows thread has 1 MiB unless its creator asked for more, so
+            // the reserve leaves three quarters of a default stack to descend.
+            var low: ULONG_PTR = 0
+            var high: ULONG_PTR = 0
+            GetCurrentThreadStackLimits(&low, &high)
+            guard high > low else { return nil }
+            return extent(low: UInt(low), high: UInt(high))
         #else
             return nil  // unknown platform → guard disabled
         #endif
