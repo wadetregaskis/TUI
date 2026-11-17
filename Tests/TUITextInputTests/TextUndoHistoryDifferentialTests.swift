@@ -179,7 +179,7 @@ struct TextUndoHistoryDifferentialTests {
     func randomRuns(seed: UInt64) {
         var rng = SplitMix(state: seed)
         let start = Self.piece(&rng)
-        var edits = Document(text: start, caret: 0, history: TextUndoHistory<Int>(limit: 6))
+        var edits = Document(text: start, caret: 0, history: TextUndoHistory<String, Int>(limit: 6))
         var snaps = Document(text: start, caret: 0, history: SnapshotUndoHistory<Int>(limit: 6))
         for step in 0..<120 {
             let operation = Int.random(in: 0..<10, using: &rng)
@@ -253,7 +253,7 @@ struct TextUndoHistoryDifferentialTests {
 
     @Test("A text the history did not produce is not spliced into: the history forgets itself")
     func foreignTextForgets() {
-        var history = TextUndoHistory<Int>()
+        var history = TextUndoHistory<String, Int>()
         history.record(text: "one", caret: 0)
         history.noteWritten("one two")
         history.record(text: "one two", caret: 0)
@@ -267,7 +267,7 @@ struct TextUndoHistoryDifferentialTests {
 
     @Test("Fifty steps over a large text keep one copy of it, not fifty")
     func memoryIsTheEdits() {
-        var history = TextUndoHistory<Int>()
+        var history = TextUndoHistory<String, Int>()
         var text = String(repeating: "line of text\n", count: 20_000)
         for step in 0..<50 {
             history.record(text: text, caret: 0)

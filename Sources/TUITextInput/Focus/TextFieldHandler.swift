@@ -260,7 +260,7 @@ final class TextFieldHandler: PersistedFocusable {
     var textContentType: TextContentType?
 
     /// The text and cursor position before each edit, for Ctrl-Z.
-    private var undoHistory = TextUndoHistory<Int>()
+    private var undoHistory = TextUndoHistory<String, Int>()
 
     /// The app's undo manager, which the field's edits are registered with —
     /// set each frame from `\.undoManager`; `nil` outside a running app and in

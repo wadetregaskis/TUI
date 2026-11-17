@@ -61,13 +61,17 @@ import TUIFoundation
 /// takes canonically equivalent texts for one. The snapshot
 /// history this replaced is the reference `TextUndoHistoryDifferentialTests`
 /// checks this one against.
-struct TextUndoHistory<Caret: Equatable> {
+///
+/// Generic over the text too (``UndoableText``), for the editor bound to an
+/// `AttributedString`, whose steps have to give back its attributes as well
+/// as its characters (G3, B-ATTRED-1). A `String`'s edit is ``TextEdit``.
+struct TextUndoHistory<Text: UndoableText, Caret: Equatable> {
     /// What a recorded state keeps of its text: the text whole, while it is
     /// the newest step and nothing has shown where it ended; else the edit
     /// from it to the state after it.
     private enum Kept {
-        case text(String)
-        case edit(TextEdit)
+        case text(Text)
+        case edit(Text.UndoEdit)
     }
 
     /// One recorded state, and the mark its step in the app's undo manager is
@@ -81,10 +85,10 @@ struct TextUndoHistory<Caret: Equatable> {
         /// would record the same state again: its text is `text`. Kept as an
         /// edit, that is an edit that changed nothing, since `text` is then
         /// the text it left.
-        func leaves(unchanged text: String) -> Bool {
+        func leaves(unchanged text: Text) -> Bool {
             switch kept {
-            case .text(let kept): TextEdit.sameBytes(kept, text)
-            case .edit(let edit): edit.removed == edit.inserted
+            case .text(let kept): Text.sameContent(kept, text)
+            case .edit(let edit): edit.changesNothing
             }
         }
     }
@@ -98,7 +102,7 @@ struct TextUndoHistory<Caret: Equatable> {
 
     /// The text the control last wrote, as its binding read it back, or `nil`
     /// before it has written anything.
-    private var written: String?
+    private var written: Text?
 
     /// The marks of states let go of since the last ``takeDroppedMarks()``.
     private var dropped: [TextUndoMark] = []
@@ -108,7 +112,7 @@ struct TextUndoHistory<Caret: Equatable> {
     /// the same step (``record(text:caret:continuingTyping:)``). With them,
     /// the mark of that step, which the app's undo manager is asked about
     /// (``endTypingRun(unlessNewestIn:)``).
-    private var typingRun: (text: String, caret: Caret, mark: TextUndoMark?)?
+    private var typingRun: (text: Text, caret: Caret, mark: TextUndoMark?)?
 
     /// How many states are kept. Recording one more drops the oldest.
     let limit: Int
@@ -128,8 +132,8 @@ struct TextUndoHistory<Caret: Equatable> {
     ///
     /// - Returns: Whether it forgot.
     @discardableResult
-    mutating func forgetIfReplaced(current: String) -> Bool {
-        guard let written, !TextEdit.sameBytes(written, current) else { return false }
+    mutating func forgetIfReplaced(current: Text) -> Bool {
+        guard let written, !Text.sameContent(written, current) else { return false }
         forget()
         return true
     }
@@ -160,8 +164,8 @@ struct TextUndoHistory<Caret: Equatable> {
     /// - Returns: The mark of the state recorded, to register its step
     ///   against; `nil` when nothing was recorded.
     @discardableResult
-    mutating func record(text: String, caret: Caret, continuingTyping: Bool = false) -> TextUndoMark? {
-        if continuingTyping, let run = typingRun, run.caret == caret, TextEdit.sameBytes(run.text, text) {
+    mutating func record(text: Text, caret: Caret, continuingTyping: Bool = false) -> TextUndoMark? {
+        if continuingTyping, let run = typingRun, run.caret == caret, Text.sameContent(run.text, text) {
             return nil
         }
         typingRun = nil
@@ -182,7 +186,7 @@ struct TextUndoHistory<Caret: Equatable> {
         // The newest step ended in `text`, the state before this edit: it can
         // be kept as its edit now.
         if let last = states.indices.last, case .text(let before) = states[last].kept {
-            states[last].kept = .edit(TextEdit(from: before, to: text))
+            states[last].kept = .edit(Text.UndoEdit(from: before, to: text))
         }
         let mark = TextUndoMark()
         append(Entry(kept: .text(text), caret: caret, mark: mark))
@@ -199,7 +203,7 @@ struct TextUndoHistory<Caret: Equatable> {
 
     /// Notes the state a typing edit — a character, or Backspace — has just
     /// left, so a typing edit made from it next continues the same step.
-    mutating func noteTyped(text: String, caret: Caret) {
+    mutating func noteTyped(text: Text, caret: Caret) {
         typingRun = (text, caret, states.last?.mark)
     }
 
@@ -220,7 +224,7 @@ struct TextUndoHistory<Caret: Equatable> {
     /// Notes the text the control has just written, as its binding reads it
     /// back, so a binding that rewrites what it is given is not taken for a
     /// replacement.
-    mutating func noteWritten(_ text: String) {
+    mutating func noteWritten(_ text: Text) {
         written = text
     }
 
@@ -238,14 +242,14 @@ struct TextUndoHistory<Caret: Equatable> {
     /// produced by this history, and it forgets itself and answers `nil`
     /// rather than splice into it.
     mutating func undo(
-        from current: (text: String, caret: Caret), mark: TextUndoMark? = nil
-    ) -> (text: String, caret: Caret)? {
+        from current: (text: Text, caret: Caret), mark: TextUndoMark? = nil
+    ) -> (text: Text, caret: Caret)? {
         guard let previous = states.last, mark.map({ $0 === previous.mark }) ?? true else { return nil }
-        let edit: TextEdit
-        let before: String
+        let edit: Text.UndoEdit
+        let before: Text
         switch previous.kept {
         case .text(let text):
-            edit = TextEdit(from: text, to: current.text)
+            edit = Text.UndoEdit(from: text, to: current.text)
             before = text
         case .edit(let kept):
             guard let undone = kept.reverted(current.text) else {
@@ -265,8 +269,8 @@ struct TextUndoHistory<Caret: Equatable> {
     /// undo again under the same mark; `nil` when there is nothing to redo.
     /// `mark` as for ``undo(from:mark:)``.
     mutating func redo(
-        from current: (text: String, caret: Caret), mark: TextUndoMark? = nil
-    ) -> (text: String, caret: Caret)? {
+        from current: (text: Text, caret: Caret), mark: TextUndoMark? = nil
+    ) -> (text: Text, caret: Caret)? {
         guard let next = redoStates.last, mark.map({ $0 === next.mark }) ?? true,
             case .edit(let edit) = next.kept
         else { return nil }
@@ -308,8 +312,8 @@ struct TextUndoHistory<Caret: Equatable> {
     var keptBytes: Int {
         (states + redoStates).reduce(0) { sum, entry in
             switch entry.kept {
-            case .text(let text): sum + text.utf8.count
-            case .edit(let edit): sum + edit.removed.count + edit.inserted.count
+            case .text(let text): sum + text.undoKeptBytes
+            case .edit(let edit): sum + edit.keptBytes
             }
         }
     }
@@ -318,6 +322,57 @@ struct TextUndoHistory<Caret: Equatable> {
     private var heldMarks: [TextUndoMark] {
         states.map(\.mark) + redoStates.map(\.mark)
     }
+}
+
+/// A text a ``TextUndoHistory`` can keep: one that states the edit between
+/// two of its values, and gives either back from the other.
+protocol UndoableText {
+    /// The edit from one value to another (``TextEdit`` for a `String`).
+    associatedtype UndoEdit: UndoableTextEdit where UndoEdit.Text == Self
+
+    /// Whether `a` and `b` are the same text unit for unit: never a looser
+    /// equality, such as `String`'s canonical equivalence, since a history of
+    /// edits has to see the very text it left.
+    static func sameContent(_ a: Self, _ b: Self) -> Bool
+
+    /// What the history holds while it keeps this text whole, in bytes.
+    var undoKeptBytes: Int { get }
+}
+
+/// An edit between two values of a text (``UndoableText``).
+protocol UndoableTextEdit {
+    associatedtype Text
+
+    /// The edit that turns `before` into `after`.
+    init(from before: Text, to after: Text)
+
+    /// `after` with the edit taken back, or `nil` where `after` is not the text
+    /// the edit left.
+    func reverted(_ after: Text) -> Text?
+
+    /// `before` with the edit made again, or `nil` where `before` is not the
+    /// text the edit was made to.
+    func applied(_ before: Text) -> Text?
+
+    /// Whether the edit leaves its text as it was.
+    var changesNothing: Bool { get }
+
+    /// What the history holds while it keeps this edit, in bytes.
+    var keptBytes: Int { get }
+}
+
+extension String: UndoableText {
+    typealias UndoEdit = TextEdit
+
+    static func sameContent(_ a: String, _ b: String) -> Bool { TextEdit.sameBytes(a, b) }
+
+    var undoKeptBytes: Int { utf8.count }
+}
+
+extension TextEdit: UndoableTextEdit {
+    var changesNothing: Bool { removed == inserted }
+
+    var keptBytes: Int { removed.count + inserted.count }
 }
 
 /// One edit to a text, as the bytes it changed: from `offset` (in UTF-8 code

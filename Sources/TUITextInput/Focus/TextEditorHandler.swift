@@ -186,7 +186,7 @@ final class TextEditorHandler: PersistedFocusable {
     var clipboard: ClipboardAccess
 
     /// The text and caret before each key that changed the text, for Ctrl-Z.
-    var undoHistory = TextUndoHistory<TextEditorPosition>()
+    var undoHistory = TextUndoHistory<String, TextEditorPosition>()
 
     /// The app's undo manager, which the editor's edits are registered with —
     /// set each frame from `\.undoManager`; `nil` outside a running app.
