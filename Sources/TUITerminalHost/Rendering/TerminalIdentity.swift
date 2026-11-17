@@ -134,7 +134,32 @@ extension TerminalHost {
         {
             return "xterm.js"
         }
+        // Windows Terminal and the classic console (conhost) are one codebase
+        // (`microsoft/terminal`), answer the same DA2, `ESC[>0;10;1c`, and no
+        // XTVERSION. Their DA1s part on two attributes (measured 2026-11-16,
+        // 1.24.12741.0 and build 26300, `identity_probe.py`): Windows Terminal
+        // lists `4`, Sixel, which it draws and conhost does not, and conhost
+        // lists `1`, 132 columns, which only a console window can be resized
+        // to. A reply listing both, or neither, names neither.
+        if !identity.answeredVersion,
+            identity.secondaryAttributes == "\u{1B}[>0;10;1c",
+            let attributes = Self.primaryAttributeList(identity.primaryAttributes),
+            attributes.first == "61"
+        {
+            switch (attributes.contains("4"), attributes.contains("1")) {
+            case (true, false): return "WindowsTerminal"
+            case (false, true): return "conhost"
+            default: return nil
+            }
+        }
         return nil
+    }
+
+    /// The attributes a Primary Device Attributes reply lists — `["61", "4",
+    /// "6", …]` for `ESC[?61;4;6;…c` — or `nil` for anything not shaped as one.
+    private static func primaryAttributeList(_ reply: String?) -> [Substring]? {
+        guard let reply, reply.hasPrefix("\u{1B}[?"), reply.hasSuffix("c") else { return nil }
+        return reply.dropFirst(3).dropLast().split(separator: ";")
     }
 }
 
