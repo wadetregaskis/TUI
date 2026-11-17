@@ -235,7 +235,14 @@ struct FileWrapperTests {
 
         let relative = FileWrapper(symbolicLinkWithDestinationURL: URL(fileURLWithPath: "../rel/t.txt"))
         try relative.write(to: folder.url("link2"), options: [], originalContentsURL: nil)
-        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: folder.url("link2").path) == "../rel/t.txt")
+        // Windows keeps a link's destination with its own separator: what was
+        // written as `../rel/t.txt` reads back as `..\rel\t.txt` (measured, 6.3.3).
+        #if os(Windows)
+            let written = "..\\rel\\t.txt"
+        #else
+            let written = "../rel/t.txt"
+        #endif
+        #expect(try FileManager.default.destinationOfSymbolicLink(atPath: folder.url("link2").path) == written)
     }
 
     // MARK: - Attributes

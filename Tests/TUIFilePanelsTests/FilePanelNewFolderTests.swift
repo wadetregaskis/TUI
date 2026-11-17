@@ -178,6 +178,9 @@ struct FilePanelNewFolderTests {
         #expect(FileManager.default.fileExists(atPath: fixture.url("Reports").path))
     }
 
+    // Not on Windows, where a folder's mode is its read-only attribute, which
+    // nothing made inside it heeds: refusing writes there takes an access-control list.
+    #if !os(Windows)
     /// Skipped where permissions don't bind, as for root, which some CI containers are.
     @Test("A folder the user may not write to says so in the sheet")
     func noPermission() async throws {
@@ -207,6 +210,7 @@ struct FilePanelNewFolderTests {
         #expect(driver.click("Create"))
         await driver.waitFor("permission")
     }
+    #endif
 
     @Test("A failure's words: TUI's own for what a person can act on, the system's for the rest")
     func failureWords() {
