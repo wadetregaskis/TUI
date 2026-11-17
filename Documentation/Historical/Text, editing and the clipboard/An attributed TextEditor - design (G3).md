@@ -10,6 +10,11 @@ measured on this machine (macOS 15.8.3, Foundation's own `AttributedString`, Xco
 SwiftUI's own editor does was not measured, because macOS 26 does not run here. Ids: A-ATTRED-1 to 4 (for the
 owner), B-ATTRED-1 to 7 (decided here).*
 
+*Updated 2026-11-17: the owner ruled on A-ATTRED-1 to 4 (§7). The per-line styler is withdrawn. The deeper design
+that replaces it is [Highlighting a large source in TextEditor: design (G3,
+A-ATTRED-1)](<Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>) (A-ATTRED-5 to 7). The
+caret's side at a run's edge and at a wrap, measured on macOS, is §8 (A-ATTRED-8 and 9, B-ATTRED-16 to 18).*
+
 ## In short
 
 SwiftUI's attributed editor is one initializer, a selection type that carries typing attributes, five
@@ -31,6 +36,7 @@ sources and should be built as A42 decided; it cannot serve tuitree's file.
 editor: a function from a line's text to its styled runs, called for the lines drawn and kept while a line is
 unchanged, plus marks the app states by range (the parse error). That costs nothing for lines off screen and
 leaves a key at today's 2.6 ms. About 10 lane-days for everything, 4 of them for what tuitree needs.
+*(Not taken: the owner ruled on 2026-11-17 that a per-line styler is too limited, §7.)*
 
 ## The problem
 
@@ -305,6 +311,164 @@ character take?* macOS 26 decides this, and this machine (macOS 15.8.3) cannot r
 - **(b) Wait for the probe** before L4. **Price:** L4 waits for a machine.
 
 ★ (a): it is AppKit's long-standing rule, which SwiftUI's editor on macOS is built on. **Default:** (a).
+
+## 7. The owner's rulings (2026-11-17)
+
+- **A-ATTRED-1: neither (b) as proposed.** The per-line styler, a function from one line's text to its runs, is too
+  limited: a line's styling can depend on earlier lines, such as a string or a comment opened above. Syntax
+  highlighting is a solved problem in many editors, so dig deeper and design a more scalable, robust solution.
+  *What follows:* L5 is withdrawn. The deeper design is [Highlighting a large source in TextEditor: design (G3,
+  A-ATTRED-1)](<Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>): a line lexer carrying each
+  line's end state, re-lexed from an edit until the state converges, the viewport first, the catch-up in slices,
+  and marks carried through edits, behind a seam a tree-sitter styler could use. Its questions are A-ATTRED-5 to 7,
+  and its lanes H0 to H7 replace L5.
+- **A-ATTRED-2: SwiftUI's APIs first.** TUI will need them anyway, and building them may teach something that
+  changes the plan. *What follows:* the order is L0, L1, L2, L3, L4, L6, L7, then the H lanes. That is (a)'s
+  order, with L2's styled rows ahead of L3 because L4 and the H lanes both draw through them.
+- **A-ATTRED-3: draw what can be approximated.** Support a paragraph's alignment. Support line height crudely: a
+  line height of 2 puts a blank row between drawn lines. Approximate font information with bold, dim and the like
+  where reasonable. Ignore kerning, tracking, baseline offset and the like. *What follows, in L4:*
+  - **Alignment** (`AttributedString.TextAlignment`, which has `left`, `center` and `right` only, read from the
+    macOS 26.2 SDK's Core Text interface): each row of a paragraph is offset in a wrapping editor, and in an
+    unwrapped one where the line is narrower than the editor. Carets, clicks, drags and the vertical keys map
+    through the offset. `Text`'s `multilineTextAlignment` already offsets wrapped rows this way.
+  - **Line height** (`AttributedString.LineHeight`): `.multiple(factor:)` draws `max(1, factor.rounded())` rows a
+    row, the extra ones blank. `.normal`, `.tight`, `.loose`, `.variable`, `.leading(increase:)` and
+    `.exact(points:)` draw one, since a grid has no points to count. The blank rows belong to the row above for
+    clicks, and the vertical keys step over them.
+  - **Fonts**: weights from semibold up draw bold (as today), and light, thin and ultra-light weights draw dim
+    (SGR 2). Italic draws italic. Semantic styles draw as `Text`'s three tiers draw them. Size, family, width and
+    monospacing are ignored. `Text(AttributedString)` takes the same mapping, so the editor and a `Text` of the same
+    value agree. Its golden snapshots are checked in the lane.
+  - **Price:** about 1 day more in L4 (alignment ½, line height ¼, fonts ¼), so L4 is 2½ days.
+- **A-ATTRED-4: mimic macOS.** The owner asks whether TUI can also have a caret that, at one position, is attached
+  either to the character or run before it or to the one after it (upstream or downstream affinity), and whether a
+  terminal has the fidelity to show it. *What follows:* §8, measured on this machine's macOS.
+
+**The sum:** SwiftUI's API (L0–L4, L6, L7) about 9 lane-days, then the highlighter (H0–H6, ★) about 7. tuitree has
+colour 4½ days after the SwiftUI part.
+
+## 8. The caret's side: affinity and typing attributes
+
+### What macOS does
+
+One offset carries two separate things on macOS.
+
+- **Affinity** says where an offset is *drawn* when it has two places: at a soft wrap, where it is both the end of
+  the earlier row and the start of the later one, and at a change of direction in bidirectional text.
+  `NSTextView.selectionAffinity` and TextKit 2's `NSTextSelection.affinity` both document it that way. SwiftUI's
+  `TextSelectionAffinity` and `AttributedTextSelection.affinity(in:)` carry the same thing.
+- **Typing attributes** say what a typed character takes. `NSTextView` resets them whenever the selection changes.
+  `NSTextSelection.typingAttributes` and SwiftUI's `AttributedTextSelection.typingAttributes(in:)` carry them per
+  selection.
+
+Measured 2026-11-17 on macOS 15.8.3 with an `NSTextView` under TextKit 1 and under TextKit 2 (two standalone
+scripts, `xcrun swift`; not kept). The text was "aaa" red, "bbb" blue, a line break orange, "ccc" green. A second
+text had an empty paragraph between two lines. TextKit 1 and 2 gave the same typing attributes in every case:
+
+| The caret | Typing attributes |
+|---|---|
+| At the red–blue edge, come to by Right from inside the red | red |
+| The same, come to by Left from inside the blue | red |
+| The same, set by the program | red |
+| At the document's start | red: its first character's |
+| At the second paragraph's start, by Left, by Right or set | green: the paragraph's first character's, not the line break's |
+| In an empty paragraph | that paragraph's own line break's |
+| Before a line break; at the document's end | the character before |
+| After `typingAttributes` was set to green, without moving | green, and a character typed is green |
+| A selection, or typing over one | its first character's |
+| A selection collapsed by Left or by Right | the character before the new caret |
+
+The affinity reported after those motions differs between the two systems. TextKit 1 reports downstream after
+either arrow and upstream when the program set the caret, and TextKit 2 reports upstream for all three. Where no
+row wraps, both draw the same, so the difference cannot be seen there.
+
+So **macOS keeps no side at a run's edge.** How the caret got there makes no difference. The character before it
+decides, except at a paragraph's start, where the paragraph's first character decides. The only way to type other
+attributes at an edge is to set them without moving (⌘B, a colour from the Font panel), and they last until the
+caret moves. **At a soft wrap it does keep a side, and draws it.** TUI already does the same, per caret, from the
+motions measured on this macOS (`CaretLean`, lane LEAN, 2026-10-27, in
+[Text fields and the wrapping editor](<Text fields and the wrapping editor.md#b-d4x-16-upstream-a-caret-moved-onto-a-wrapped-row-lands-after-its-first-character>)).
+SwiftUI's macOS 26 editor, which sits on `NSTextView`, is still not measured here. L0 probes it when a macOS 26
+machine is at hand.
+
+**Editors that do keep a side** are not Mac ones. Firefox's editable content gives a formatting boundary two caret
+positions (as reported on the ProseMirror forum). The ProseMirror plugin `prosemirror-codemark` draws a stand-in
+caret, and at an inline code span's edge it makes Left or Right first switch whether the next character is code,
+without moving ([curvenote/prosemirror-codemark](https://github.com/curvenote/prosemirror-codemark)). Emacs keeps a side per text property rather than per caret: properties are
+rear-sticky by default, so a typed character takes those of the one before it
+([Stickiness](https://www.gnu.org/software/emacs/manual/html_node/elisp/Stickiness.html)).
+
+### What a terminal can show
+
+- **A cell, never a gap.** A caret between two characters can only be drawn on a cell: the one after it, as TUI's
+  block, underscore and bar are today (the bar glyph ▎ sits at the cell's left edge and reads "before this
+  character"), or the one before it.
+- **The terminal's own cursor** (shown under `TUI_TEXT_CURSOR_FOLLOWS_FOCUS=show`) has `DECSCUSR`'s shapes: a
+  block, an underline or a bar, each steady or blinking, with the bar at the cell's left edge
+  ([xterm control sequences](https://invisible-island.net/xterm/ctlseqs/ctlseqs.html)). Its one colour, set by
+  OSC 12, is the whole terminal's and must be restored at exit. It cannot sit between cells either, or past the last
+  column.
+- **A wrap has two cells to choose from:** the end of the earlier row, where `SoftWrapLayout`'s margin keeps a cell
+  free, and the start of the later one. So a wrap's affinity can be shown in full, and it is.
+- **A run's edge has one gap and two neighbours.** A side can only be shown by marking one neighbour. One way is a
+  glyph: a right-edge bar (▕, U+2595, in the common block-element fonts) on the cell before for "after the earlier
+  run", and the left bar ▎ on the cell after for "before the later run". Each covers the character under it, as the
+  bar caret does today. The other way is colour: the caret drawn in the typing attributes' foreground. Colour
+  shows only a difference of colour (not bold against plain), and it breaks the owner's rule that every caret
+  wears the one focus ink (2026-09-28).
+
+So a terminal has the fidelity for a wrap's affinity, which TUI already draws, and only part of it for a side at a
+run's edge.
+
+### B-ATTRED-16. Typing attributes follow the measured rule
+
+A new character takes the attributes of the character before the caret. At a paragraph's start it takes those of
+the paragraph's first character (its line break if the paragraph is empty), and at the document's start those of
+the first character. Typed over a selection, it takes the selection's first character's. Attributes set at a
+caret (`AttributedTextSelection(insertionPoint:typingAttributes:)`, a formatting command with no selection) last
+until the caret moves. An empty document uses the editor's own. This replaces A-ATTRED-4 (a)'s description,
+which was written before it was measured.
+
+### B-ATTRED-17. `affinity(in:)` reports the caret's lean
+
+`AttributedTextSelection.affinity(in:)` returns the lean `CaretLean` keeps: downstream after the arrows and a
+click, upstream after an edit and Ctrl-E. That is TextKit 1's report. TextKit 2 reports upstream after the arrows
+too, so the L0 probe on macOS 26 decides which SwiftUI follows, and this changes if it differs. Nothing drawn
+depends on it except at a wrap, where TUI already draws the lean.
+
+### B-ATTRED-18. The wrap's affinity is drawn as it is
+
+Unchanged from lane LEAN: upstream at the end of the earlier row, downstream at the start of the later one.
+
+### A-ATTRED-8. A side at a run's edge
+
+- **(a) ★ None, as macOS has.** B-ATTRED-16's rule. **Price:** none.
+- **(b) A side per caret,** as Firefox and `prosemirror-codemark` keep. A caret that comes to an edge by Right is
+  attached to the run before it, and one that comes by Left to the run after it. At an edge, Left or Right first
+  switches the side and then moves. This would be a deliberate deviation from macOS, and from SwiftUI on macOS: it
+  changes what a typed character takes, and how many presses an arrow needs. **Price:** 1½ days (the handler, the
+  selection's typing attributes, undo), and A-ATTRED-9 (c) to show it. Recorded in *Deliberate deviations* if
+  chosen.
+- **(c) As (b), behind a TUI modifier** (a sketch: `.textEditorTypingSide(.followsMotion)`), with macOS's rule by
+  default. **Price:** 2 days and one more modifier. No deviation by default.
+
+★ (a): the owner asked TUI to mimic macOS, and macOS has no such side. A source editor, the driver here, never
+types into a token's attributes, since highlighting is a layer (B-ATTRED-8 in the highlighting design).
+**Default:** (a).
+
+### A-ATTRED-9. Showing the typing attributes, or a side
+
+- **(a) ★ In the formatting context menu, not on the caret.** L6's Bold, Italic, Underline and Strikethrough items
+  are checked from the typing attributes, as macOS's Format menu and Font panel reflect them. The caret is drawn as
+  today. **Price:** ¼ day in L6.
+- **(b) The caret drawn in the typing attributes.** The block or underscore caret takes the typing foreground, and
+  the block's character is drawn bold or italic as a typed one would be. **Price:** ½ day. It departs from the one
+  focus ink on every caret (2026-09-28), so it needs the owner's word on that rule as well.
+- **(c) An edge glyph for the side,** only with A-ATTRED-8 (b) or (c): ▕ on the cell before, ▎ on the cell after.
+  **Price:** ½ day, and a row in the terminal compatibility survey for U+2595 in each terminal's fonts.
+
+★ (a): it is how macOS shows typing attributes, and it keeps the caret's one focus identity. **Default:** (a).
 
 ## For a future reader
 
