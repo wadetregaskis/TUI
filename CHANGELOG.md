@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`ScrollView { OutlineGroup(…) }` draws its tree.** An outline with nothing to lay out its rows — a scroll view's
+whole content, the shape `OutlineGroup`'s own documentation shows, or a view's entire `body` — drew a blank screen,
+since it had no drawing of its own; inside a `VStack` it drew fine. It now stacks its rows as a `VStack` does, and in
+scroll content past 256 open rows draws them as a `LazyVStack` does, building only the rows on screen: an outline has
+no lazy counterpart in SwiftUI, so it windows its rows as `GroupBox` and `DisclosureGroup` do.
+
 **A `.scrollPosition(id:)` binding that starts `nil` stays `nil` as the view appears.** The first frame of a
 `ScrollView`, `List` or `Table` wrote the id of its top row into the binding, where SwiftUI writes nothing: an app
 that read `nil` as "not scrolled yet" never saw it, and an `onChange` of the binding fired as the view appeared. The

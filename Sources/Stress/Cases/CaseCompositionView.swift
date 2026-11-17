@@ -185,14 +185,33 @@ private struct CaseOutlineView: View {
                         }
                     }
                 })
+        // `outline.scroll` shares the list's arm, chosen in `listOrScroll`
+        // rather than by an arm of its own, which would nest the switch's other
+        // arms a level deeper and move outline-rows-stacked's memo misses.
         default:
-            AnyView(
-                List(
-                    rows.tree, children: \.children, expansion: expansion(.outlineListBound), selection: selection
-                ) { node in
-                    CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
+            listOrScroll
+        }
+    }
+
+    /// The default arm's view: the list of the tree, or for `outline.scroll`
+    /// a bare `OutlineGroup` of ``CaseRows/forest`` as a `ScrollView`'s whole
+    /// content. A plain property, not a view builder, so the choice adds no
+    /// branch to the page's structure.
+    private var listOrScroll: AnyView {
+        if leaf == .outlineScroll {
+            return AnyView(
+                ScrollView {
+                    OutlineGroup(rows.forest, children: \.children) { node in
+                        CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
+                    }
                 })
         }
+        return AnyView(
+            List(
+                rows.tree, children: \.children, expansion: expansion(.outlineListBound), selection: selection
+            ) { node in
+                CaseListRow(title: rows.title(node.row), status: rows.status(node.row))
+            })
     }
 
     private var selection: Binding<Int?> { Binding(get: { rows.selection }, set: { rows.selection = $0 }) }

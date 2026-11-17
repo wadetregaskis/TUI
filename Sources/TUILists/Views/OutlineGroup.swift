@@ -105,8 +105,10 @@ import TUIView
 /// while the tree and its open branches are the same, so a scroll or a cursor
 /// move walks no tree at all.
 ///
-/// That is why, like `ForEach`, this has no `body` of its own: it is not one
-/// view, it is a run of them.
+/// A container asks for those rows before it would ever draw the outline as
+/// one view. Where nothing lays them out — as a scroll view's whole content,
+/// the example above — its `body` stacks them, and in scroll content past a
+/// few hundred open rows builds only those on screen, as a `LazyVStack` would.
 ///
 /// The expansion is the group's own, starting closed, exactly as in SwiftUI,
 /// unless the app hands it one of its own (below).
@@ -186,11 +188,13 @@ nonisolated public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashabl
 }
 
 @MainActor extension OutlineGroup: View where Leaf: View {
-    /// Never called: an outline is a run of rows, not one view, so it hands its
-    /// children to its container instead of rendering itself. `ForEach` says
-    /// the same thing the same way.
-    public var body: Never {
-        fatalError("OutlineGroup has no standalone rendering; use it inside a container")
+    /// The rows, stacked, for where nothing lays them out
+    /// (`OutlineGroup+Drawn.swift`). A container that does — a stack, a
+    /// `List`, a `Section` — takes the outline apart into its rows instead
+    /// (``childViews(context:)``, ``extractListRows(context:)``) and never
+    /// asks for this.
+    public var body: some View {
+        _OutlineGroupCore(outline: self)
     }
 }
 
@@ -386,15 +390,12 @@ struct OutlineNode<Element, ID: Hashable> {
 @MainActor extension OutlineGroup: ChildViewProvider where Leaf: View {
     /// One child per visible node, keyed by the node's id — so a stack lays the
     /// tree out as a column of siblings, and each row's own state follows its
-    /// node rather than its position.
+    /// node rather than its position. The nodes are the kept ones
+    /// (``OutlineVisibleNodes``), flattened again only when the tree or its
+    /// open branches change.
     public func childViews(context: RenderContext) -> [ChildView] {
         let expansion = expansion(context: context)
-        return visibleNodes(expanded: expansion.read().open).map { node in
-            ChildView(
-                row(for: node, expansion: expansion),
-                identityType: _OutlineRow<Data.Element, ID, Leaf>.self,
-                key: identityKey(node.id))
-        }
+        return visibleNodes(context: context, expansion: expansion).nodes.map { child(for: $0, expansion: expansion) }
     }
 }
 

@@ -75,6 +75,10 @@ final class CaseRows {
     /// a page with an outline, so neither a body nor another case pays for it.
     /// Not rebuilt by the writes: no case writes to an outline's rows.
     @ObservationIgnored private(set) var tree: [Node] = []
+    /// The members of every group of ``tree``, as roots of their own: closed,
+    /// an outline of 18 rows in every 100, more than a lazy stack draws whole.
+    /// Made with ``tree``, so its storage is the same from pass to pass.
+    @ObservationIgnored private(set) var forest: [Node] = []
     @ObservationIgnored private var nextID: Int
 
     init(count: Int, seed: UInt64, keepsDocument: Bool, keepsTree: Bool = false, opensTree: Bool = false) {
@@ -83,7 +87,10 @@ final class CaseRows {
         rows = (0..<count).map { Row(id: $0, revision: 0) }
         nextID = count
         rewriteDocument()
-        if keepsTree { tree = [Self.tree(of: rows)] }
+        if keepsTree {
+            tree = [Self.tree(of: rows)]
+            forest = tree.flatMap { $0.children ?? [] }.flatMap { $0.children ?? [] }
+        }
         if opensTree { open = Self.branchIDs(of: tree) }
     }
 

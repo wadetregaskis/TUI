@@ -146,7 +146,8 @@ ListStyle.plain | static var plain: PlainListStyle { get } [extension where Self
 ListStyle.sidebar | static var sidebar: SidebarListStyle { get } [extension where Self == SidebarListStyle]
 ListStyle.surface | static var surface: SurfaceListStyle { get } [extension where Self == SurfaceListStyle]
 OutlineGroup | nonisolated struct OutlineGroup<Data, ID, Leaf> where Data : RandomAccessCollection, ID : Hashable
-OutlineGroup.body | @MainActor var body: Never { get } [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.body | @MainActor var body: some View { get } [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
+OutlineGroup.childViewCollection(context:) | @MainActor func childViewCollection(context: RenderContext) -> ChildViewCollection [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
 OutlineGroup.childViews(context:) | @MainActor func childViews(context: RenderContext) -> [ChildView] [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
 OutlineGroup.init(_:children:expansion:content:) | init<C, E>(_ data: Binding<C>, children: WritableKeyPath<E, C?>, expansion: Binding<Set<ID>>? = nil, @ViewBuilder content: @escaping (Binding<E>) -> Leaf) where Data == Binding<C>, ID == E.ID, C : MutableCollection, C : RandomAccessCollection, E : Identifiable, E == C.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]
 OutlineGroup.init(_:children:expansion:content:) | init<C, E>(_ root: Binding<E>, children: WritableKeyPath<E, C?>, expansion: Binding<Set<ID>>? = nil, @ViewBuilder content: @escaping (Binding<E>) -> Leaf) where Data == Binding<C>, ID == E.ID, C : MutableCollection, C : RandomAccessCollection, E : Identifiable, E == C.Element [extension where Data : RandomAccessCollection, ID : Hashable, Leaf : View]

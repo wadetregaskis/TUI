@@ -149,8 +149,9 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
             make: { index in listRowContent(for: rows[index], expansion: expansion, context: context) })
     }
 
-    /// The kept visible nodes, brought up to date for this pass.
-    private func visibleNodes(
+    /// The kept visible nodes, brought up to date for this pass: what a list's
+    /// rows and a stack's children are made from.
+    func visibleNodes(
         context: RenderContext, expansion: OutlineExpansion<ID>
     ) -> OutlineVisibleNodes<Data.Element, ID> {
         let identity = context.withChildIdentity(erasedType: Self.self, key: "outline").identity

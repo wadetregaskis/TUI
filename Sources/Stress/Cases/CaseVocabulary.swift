@@ -62,6 +62,11 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     /// `outline.section` with the app keeping its expansion
     /// (`OutlineGroup(_:children:expansion:)`, ``CaseRows/open``).
     case outlineSectionBound = "outline.section.bound"
+    /// A bare `OutlineGroup` as a `ScrollView`'s whole content, the shape its
+    /// doc example uses, over the members of the tree's groups as its roots
+    /// (``CaseRows/forest``): 18 of every 100 rows, half of them branches of
+    /// nine leaves, all closed.
+    case outlineScroll = "outline.scroll"
 
     // The controls (`CaseControlView`): pages whose rows are controls, or
     // whose count sits beside the controls a script drives.
@@ -87,7 +92,7 @@ extension CaseLeaf {
     var isOutline: Bool {
         switch self {
         case .outlineList, .outlineTable, .outlineBound, .outlineOpen, .outlineRows, .outlineSection,
-            .outlineListBound, .outlineSectionBound:
+            .outlineListBound, .outlineSectionBound, .outlineScroll:
             true
         default: false
         }

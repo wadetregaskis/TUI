@@ -466,6 +466,14 @@ before anything reads them; the colour depth is pinned per frame, at 24 bits, as
   would serve all three.
 - **PERFCASE-F3.** The bottom-anchored lazy stack is not O(window): at 10n `chat-lazy-follow` runs 21% more bodies
   and misses 29% more measures as it opens, and 10% and 19% more per row appended.
+- **PERFCASE-F14.** A bare outline in a `ScrollView` does work that grows with the order of its rows' count: at 10n
+  `outline-scroll` runs 15% more bodies (1,065 to 1,223) and misses 19% more measures (1,938 to 2,312) on its first
+  frame, and one more body each frame after (159 against 158 for a Tab, 20 more over a wheel's 20 frames). The likely
+  cause, not traced: content past 4,096 lines takes another rung of the measure ladder, and that rung builds again an
+  outline's sixteen-row sample, its rows not memoised as an `Equatable` loop's are, and the outline's own `body`
+  (`OutlineScrollViewTests` sees 135 labels built against 183 at 1,000 and 10,000 roots, 48 being three builds of
+  sixteen rows, where a `LazyVStack` of a `ForEach` builds 59 at both). One rung for each eightfold in height, so
+  bounded.
 - **PERFCASE-F4, withdrawn: the case's mistake, not the code's.** It said a hover moves nothing on a `List`, since
   `list-hover` wrote no byte over 20 steps, and that the owner's ruling was not built. It was false. The ruling
   (HOVER-FOCUS b, built in 217c8bdf5) is for a scene whose focus follows the pointer: hovering a row then moves the

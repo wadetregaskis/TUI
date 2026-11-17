@@ -764,6 +764,20 @@ No `existence` protocol: each of these containers draws its content as an implic
   10,000 rows; a first frame 96, 114 and 144. The disclosure group's extra is the focus
   continuation probe (`focusRingStops`): its button holds the focus at launch, and the column
   below it looks through up to 64 rows for the focusable nearest its top each frame.
+- **A bare `OutlineGroup`** (2026-11-17). Drawn on its own, as a scroll view's whole content (the
+  shape its doc example uses) or a container's column, it had no drawing at all: `body` is `Never`
+  and it was not `Renderable`, so the renderer fell through to an empty buffer and
+  `ScrollView { OutlineGroup(…) }` drew a blank screen. Its `body` is now a private
+  `_OutlineGroupCore` (`OutlineGroup+Drawn.swift`), so modifiers and the environment reach its rows
+  as CLAUDE.md asks of a public control, while a stack, `List` or `Section` still takes the outline
+  apart by its own conformances before asking for the body. The core stacks the rows as a `ForEach`
+  drawn on its own does, and past 256 open rows in scroll content draws them
+  as a lazy stack at its own identity, by the same helper a windowing container's loop uses
+  (`_VStackCore.implicitColumn`). Unlike a `ForEach`, it windows wherever it is drawn on its own,
+  not only as a windowing container's column: an outline is itself the container, and has no lazy
+  counterpart. Its rows come from the kept visible nodes (`OutlineVisibleNodes`) as a lazy child
+  collection, so a lazy stack of it, `LazyVStack { OutlineGroup }`, builds only the rows it draws
+  as well. Perf case `outline-scroll`.
 - **Not windowed:** a container's content of several views (`GroupBox { header; ForEach }`), whose
   `TupleView` resolves its children eagerly, building every row to count them; the `.columns`
   `Form`, whose label pillar and content width are read from every row on every frame, from an

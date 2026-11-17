@@ -26,6 +26,11 @@ extension CaseTables {
     //   at n. The cursor goes to the first group, a branch of 99 rows; Left closes it, Right opens it, Option-Left
     //   closes it and the nine branches in it, Option-Right opens them all again, and Up goes back to the root, so the
     //   script loops. Each toggle must cost the rows it shows or hides, not the rows open.
+    // outline-scroll: a bare `OutlineGroup` as a `ScrollView`'s whole content, its doc example's shape, over the
+    //   tree's members of groups (`CaseRows.forest`, about n / 5 roots, closed): Tab from the first triangle,
+    //   focused at launch, to the second and Right opens it, then scrolled, paged down, and Left closes the branch
+    //   focused. Past the lazy stack's threshold the outline draws as a lazy stack does, so every step costs the
+    //   rows on screen, not the roots.
     static let outlines = CaseTableSource(file: #fileID, line: #line, """
         id               composition      in     size   n     script                                                       scales  timed  tags
         outline-list     outline.list     alone  80x24  5000  open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right  flat    -      list,outline,window
@@ -37,5 +42,6 @@ extension CaseTables {
         outline-toggle   outline.open     alone  80x24  50000  open;key:down;key:left;key:right;key:oleft;key:oright;key:up  flat  -  table,outline
         outline-list-bound outline.list.bound alone 80x24 5000 open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right flat - list,outline,window
         outline-section-bound outline.section.bound alone 80x24 5000 open;key:oright;wheel:+5*10;key:pgdn*3;key:left*2;key:right flat - list,outline,window
+        outline-scroll   outline.scroll   alone  80x24  5000  open;key:tab;key:right;wheel:+5*10;key:pgdn*3;key:left  flat  -  scroll,outline,window
         """)
 }

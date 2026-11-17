@@ -56,6 +56,12 @@ enum CaseKnownIssues {
             ["open listed"],
             "the tree starts open, so its first frame lists its n + 1 rows: what opening it costs, not a finding"
         ),
+        "outline-scroll": (
+            ["bodies", "open misses"],
+            "PERFCASE-F14: at 10n a bare outline's first frame runs 15% more bodies and misses 19% more measures, "
+                + "and each frame after one more body: likely the measure ladder's extra rung, which builds its "
+                + "unmemoised rows' sample and the outline's own body again"
+        ),
         "chat-lazy-follow": (
             ["bodies", "misses"],
             "PERFCASE-F3: at 10n the bottom-anchored lazy stack runs 21% more bodies and misses 29% more measures "
