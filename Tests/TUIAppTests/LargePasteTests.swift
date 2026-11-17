@@ -296,7 +296,7 @@ struct LargePasteTests {
             // has had resident.
             var counters = PROCESS_MEMORY_COUNTERS()
             let size = DWORD(MemoryLayout<PROCESS_MEMORY_COUNTERS>.size)
-            _ = K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, size)
+            _ = unsafe K32GetProcessMemoryInfo(GetCurrentProcess(), &counters, size)
             return Int(counters.PeakWorkingSetSize)
             #else
             #if canImport(Glibc)

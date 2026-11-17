@@ -140,7 +140,7 @@ package enum BindingReads {
         #if canImport(Glibc) || canImport(Musl)
             unsafe pthread_setspecific(walkingThreadKey, UnsafeRawPointer(bitPattern: 1))
         #elseif os(Windows)
-            _ = TlsSetValue(walkingThreadSlot, UnsafeMutableRawPointer(bitPattern: 1))
+            _ = unsafe TlsSetValue(walkingThreadSlot, UnsafeMutableRawPointer(bitPattern: 1))
         #endif
     }
 
@@ -178,7 +178,7 @@ package enum BindingReads {
         #elseif canImport(Glibc) || canImport(Musl)
             unsafe pthread_getspecific(walkingThreadKey) != nil
         #elseif os(Windows)
-            TlsGetValue(walkingThreadSlot) != nil
+            unsafe TlsGetValue(walkingThreadSlot) != nil
         #else
             Thread.isMainThread
         #endif

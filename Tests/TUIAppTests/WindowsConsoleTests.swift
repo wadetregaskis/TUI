@@ -67,7 +67,7 @@ struct WindowsConsoleTests {
         record.bKeyDown = WindowsBool(booleanLiteral: down)
         record.wRepeatCount = repeats
         record.wVirtualKeyCode = virtualKey
-        record.uChar.UnicodeChar = unit
+        unsafe record.uChar.UnicodeChar = unit
         record.dwControlKeyState = control ? DWORD(LEFT_CTRL_PRESSED) : 0
         return record
     }
@@ -115,13 +115,14 @@ struct WindowsConsoleTests {
         input.receive(Array("c".utf8))
         #expect(input.waitForInput(until: Date()))
         var buffer = [UInt8](repeating: 0, count: 2)
-        let first = buffer.withUnsafeMutableBufferPointer { input.read(into: $0) }
+        let first = buffer.withUnsafeMutableBufferPointer { unsafe input.read(into: $0) }
         #expect(first == 2)
         #expect(buffer == Array("ab".utf8))
-        let second = buffer.withUnsafeMutableBufferPointer { input.read(into: $0) }
+        let second = buffer.withUnsafeMutableBufferPointer { unsafe input.read(into: $0) }
         #expect(second == 1)
         #expect(buffer[0] == UInt8(ascii: "c"))
-        #expect(buffer.withUnsafeMutableBufferPointer { input.read(into: $0) } == 0)
+        let third = buffer.withUnsafeMutableBufferPointer { unsafe input.read(into: $0) }
+        #expect(third == 0)
     }
 
     @Test("What the reader received is announced to the loop")

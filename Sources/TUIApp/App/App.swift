@@ -1349,7 +1349,7 @@ extension TerminalHost {
     ///   ``nameFromDeviceAttributes(_:)`` returns.
     static func seedDiscoveredHost(_ name: String) {
         #if os(Windows)
-            _ = _putenv_s("TUI_TERM_PROGRAM", name)
+            _ = unsafe _putenv_s("TUI_TERM_PROGRAM", name)
         #else
             unsafe setenv("TUI_TERM_PROGRAM", name, 1)
         #endif

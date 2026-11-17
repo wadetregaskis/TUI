@@ -58,7 +58,7 @@ enum CountCheck {
     /// and `unsetenv`, or on Windows `_putenv_s`, where an empty value unsets.
     private static func set(_ name: String, to value: String?) {
         #if os(Windows)
-            _ = _putenv_s(name, value ?? "")
+            _ = unsafe _putenv_s(name, value ?? "")
         #else
             if let value { setenv(name, value, 1) } else { unsetenv(name) }
         #endif

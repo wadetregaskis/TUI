@@ -77,7 +77,7 @@ enum FatalSignalTerminalRestore {
 
     /// The unhandled-exception filter that was there before this one's, handed
     /// each exception after the debt is paid.
-    private static let previousFilter = Mutex<LPTOP_LEVEL_EXCEPTION_FILTER?>(nil)
+    private static let previousFilter = unsafe Mutex<LPTOP_LEVEL_EXCEPTION_FILTER?>(nil)
 
     /// Owes the terminal `sequence`, or `quitSequence` for a quit, and `modes`
     /// if there are any, should the process end without its teardown,
@@ -108,7 +108,7 @@ enum FatalSignalTerminalRestore {
     @MainActor
     static func provideAlternateStack() {
         var size = ULONG(64 * 1024)
-        _ = SetThreadStackGuarantee(&size)
+        _ = unsafe SetThreadStackGuarantee(&size)
     }
 
     /// Pays a quit's debt and ends the process as Ctrl-Break does: the user's
@@ -127,7 +127,7 @@ enum FatalSignalTerminalRestore {
     private static func installIfNeeded() {
         guard !installed else { return }
         installed = true
-        previousFilter.withLock { $0 = SetUnhandledExceptionFilter(exceptionFilter) }
+        unsafe previousFilter.withLock { unsafe $0 = SetUnhandledExceptionFilter(exceptionFilter) }
         _ = signal(SIGABRT, abortHandler)
         _ = SetConsoleCtrlHandler(controlHandler, true)
         _ = atexit(exitHandler)
@@ -138,8 +138,8 @@ enum FatalSignalTerminalRestore {
     private static let exceptionFilter: @convention(c) (UnsafeMutablePointer<EXCEPTION_POINTERS>?) -> LONG = {
         pointers in
         Self.pay(asQuit: false, waiting: false)
-        let previous = Self.previousFilter.withLockIfAvailable { $0 } ?? nil
-        if let previous { return previous(pointers) }
+        let previous = unsafe Self.previousFilter.withLockIfAvailable { unsafe $0 } ?? nil
+        if let previous = unsafe previous { return unsafe previous(pointers) }
         return EXCEPTION_CONTINUE_SEARCH
     }
 
@@ -185,9 +185,9 @@ enum FatalSignalTerminalRestore {
             guard var base = buffer.baseAddress else { return }
             var left = buffer.count
             while left > 0 {
-                let written = StandardHandle.write(base, left)
+                let written = unsafe StandardHandle.write(base, left)
                 guard written > 0 else { break }
-                base += written
+                unsafe base += written
                 left -= written
             }
         }

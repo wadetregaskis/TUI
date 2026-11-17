@@ -41,7 +41,7 @@ struct ConsoleModes: Equatable, Sendable {
     static func current() -> ConsoleModes? {
         var input: DWORD = 0
         var output: DWORD = 0
-        guard GetConsoleMode(StandardHandle.input, &input), GetConsoleMode(StandardHandle.output, &output)
+        guard unsafe GetConsoleMode(StandardHandle.input, &input), unsafe GetConsoleMode(StandardHandle.output, &output)
         else { return nil }
         return ConsoleModes(
             input: input, output: output, inputCodePage: GetConsoleCP(), outputCodePage: GetConsoleOutputCP())
@@ -54,12 +54,12 @@ struct ConsoleModes: Equatable, Sendable {
     /// console ignores the Quick Edit bit, so neither turning it off nor putting
     /// the user's back would take.
     func apply() {
-        _ = SetConsoleMode(StandardHandle.input, input | DWORD(ENABLE_EXTENDED_FLAGS))
-        if !SetConsoleMode(StandardHandle.output, output) {
+        _ = unsafe SetConsoleMode(StandardHandle.input, input | DWORD(ENABLE_EXTENDED_FLAGS))
+        if unsafe !SetConsoleMode(StandardHandle.output, output) {
             // A console older than Windows 10's 2016 updates has no
             // `DISABLE_NEWLINE_AUTO_RETURN`, and refuses the whole mode for it.
             // Every frame positions its own cursor, so it is done without.
-            _ = SetConsoleMode(StandardHandle.output, output & ~DWORD(DISABLE_NEWLINE_AUTO_RETURN))
+            _ = unsafe SetConsoleMode(StandardHandle.output, output & ~DWORD(DISABLE_NEWLINE_AUTO_RETURN))
         }
         _ = SetConsoleCP(inputCodePage)
         _ = SetConsoleOutputCP(outputCodePage)
@@ -109,10 +109,10 @@ struct ConsoleModes: Equatable, Sendable {
 /// (`SetStdHandle`).
 enum StandardHandle {
     /// Standard input's handle.
-    static var input: HANDLE? { GetStdHandle(STD_INPUT_HANDLE) }
+    static var input: HANDLE? { unsafe GetStdHandle(STD_INPUT_HANDLE) }
 
     /// Standard output's handle.
-    static var output: HANDLE? { GetStdHandle(STD_OUTPUT_HANDLE) }
+    static var output: HANDLE? { unsafe GetStdHandle(STD_OUTPUT_HANDLE) }
 
     /// Writes `count` bytes at `base` to standard output, and returns how many
     /// were written, or -1. `WriteFile` rather than the C library's `write`,
@@ -120,7 +120,7 @@ enum StandardHandle {
     /// frame writes into a carriage return and a line feed.
     static func write(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
         var written: DWORD = 0
-        guard WriteFile(output, base, DWORD(clamping: count), &written, nil) else { return -1 }
+        guard unsafe WriteFile(output, base, DWORD(clamping: count), &written, nil) else { return -1 }
         return Int(written)
     }
 
@@ -129,7 +129,7 @@ enum StandardHandle {
     /// usually far taller than its window, and what is drawn is the window.
     static func windowSize() -> (width: Int, height: Int)? {
         var info = CONSOLE_SCREEN_BUFFER_INFO()
-        guard GetConsoleScreenBufferInfo(output, &info) else { return nil }
+        guard unsafe GetConsoleScreenBufferInfo(output, &info) else { return nil }
         let width = Int(info.srWindow.Right) - Int(info.srWindow.Left) + 1
         let height = Int(info.srWindow.Bottom) - Int(info.srWindow.Top) + 1
         guard width > 0, height > 0 else { return nil }
@@ -149,9 +149,9 @@ enum StandardHandle {
 /// layer needs to know is whether there is a console to talk to.
 func isatty(_ descriptor: Int32) -> Int32 {
     let raw = _get_osfhandle(descriptor)
-    guard raw != -1, raw != -2, let handle = HANDLE(bitPattern: raw) else { return 0 }
+    guard raw != -1, raw != -2, let handle = unsafe HANDLE(bitPattern: raw) else { return 0 }
     var mode: DWORD = 0
-    return GetConsoleMode(handle, &mode) ? 1 : 0
+    return unsafe GetConsoleMode(handle, &mode) ? 1 : 0
 }
 
 /// The process's environment variable `name`, or `nil` where it is unset:
@@ -160,10 +160,10 @@ func isatty(_ descriptor: Int32) -> Int32 {
 /// read and write it. The C library's `getenv` is deprecated.
 func environmentValue(_ name: String) -> String? {
     name.withCString(encodedAs: UTF16.self) { key in
-        let length = GetEnvironmentVariableW(key, nil, 0)
+        let length = unsafe GetEnvironmentVariableW(key, nil, 0)
         guard length > 0 else { return nil }
         var value = [UInt16](repeating: 0, count: Int(length))
-        let written = GetEnvironmentVariableW(key, &value, length)
+        let written = unsafe GetEnvironmentVariableW(key, &value, length)
         guard written > 0, written < length else { return nil }
         return String(decoding: value[..<Int(written)], as: UTF16.self)
     }
@@ -222,18 +222,23 @@ final class ConsoleInput: @unchecked Sendable {
 
     /// Set when ``reading`` changes, so a reader waiting on the console wakes
     /// and looks at it.
-    private let changed: HANDLE?
+    private var changed: HANDLE? { unsafe HANDLE(bitPattern: changedEvent) }
+
+    /// ``changed``'s handle, kept as its bits: a `HANDLE` is a raw pointer, and
+    /// storing one would make this class's storage unsafe, and every owner's.
+    /// This class alone creates the event and closes it. 0 if none was made.
+    private let changedEvent: UInt
 
     /// The most held for the loop: far more than any burst of keys or a
     /// terminal's replies, and a paste past it waits in the console's own queue.
     private static let holdLimit = 1 << 20
 
     init() {
-        changed = CreateEventW(nil, false, false, nil)
+        changedEvent = unsafe UInt(bitPattern: CreateEventW(nil, false, false, nil))
     }
 
     deinit {
-        if let changed { CloseHandle(changed) }
+        if let changed = unsafe changed { unsafe CloseHandle(changed) }
     }
 
     /// Sets what the reader calls when it has read something: the run loop's
@@ -254,15 +259,15 @@ final class ConsoleInput: @unchecked Sendable {
             let thread = Thread { [self] in readRecords() }
             thread.name = "TUI console input"
             thread.start()
-        } else if let changed {
-            SetEvent(changed)
+        } else if let changed = unsafe changed {
+            unsafe SetEvent(changed)
         }
     }
 
     /// Stops reading until ``resume()``. What is held stays held.
     func pause() {
         condition.withLock { reading = false }
-        if let changed { SetEvent(changed) }
+        if let changed = unsafe changed { unsafe SetEvent(changed) }
     }
 
     /// Moves what is held into `buffer`, as much as fits, and returns how many
@@ -272,7 +277,7 @@ final class ConsoleInput: @unchecked Sendable {
         return condition.withLock {
             let count = min(queued.count, buffer.count)
             guard count > 0 else { return 0 }
-            queued.withUnsafeBufferPointer { base.update(from: $0.baseAddress!, count: count) }
+            queued.withUnsafeBufferPointer { unsafe base.update(from: $0.baseAddress!, count: count) }
             queued.removeFirst(count)
             return count
         }
@@ -291,18 +296,18 @@ final class ConsoleInput: @unchecked Sendable {
     /// The reader's thread: waits for records while reading, and for
     /// ``resume()`` while not, for the life of the process.
     private func readRecords() {
-        guard let console = StandardHandle.input else { return }
+        guard let console = unsafe StandardHandle.input else { return }
         var decoder = KeyRecordDecoder()
         var records = [INPUT_RECORD](repeating: INPUT_RECORD(), count: 128)
         while true {
             let (reading, resize) = condition.withLock { (self.reading, self.handlers?.resize) }
             guard reading else {
-                if let changed { WaitForSingleObject(changed, INFINITE) }
+                if let changed = unsafe changed { unsafe WaitForSingleObject(changed, INFINITE) }
                 continue
             }
-            var handles: [HANDLE?] = [console, changed]
+            var handles: [HANDLE?] = unsafe [console, changed]
             let woken = handles.withUnsafeMutableBufferPointer {
-                WaitForMultipleObjects(changed == nil ? 1 : 2, $0.baseAddress, false, INFINITE)
+                unsafe WaitForMultipleObjects(changed == nil ? 1 : 2, $0.baseAddress, false, INFINITE)
             }
             // The control event: look at `reading` again.
             guard woken == WAIT_OBJECT_0 else {
@@ -310,10 +315,10 @@ final class ConsoleInput: @unchecked Sendable {
                 continue
             }
             var pending: DWORD = 0
-            guard GetNumberOfConsoleInputEvents(console, &pending), pending > 0 else { continue }
+            guard unsafe GetNumberOfConsoleInputEvents(console, &pending), pending > 0 else { continue }
             var count: DWORD = 0
             let read = records.withUnsafeMutableBufferPointer {
-                ReadConsoleInputW(console, $0.baseAddress, DWORD(min(Int(pending), $0.count)), &count)
+                unsafe ReadConsoleInputW(console, $0.baseAddress, DWORD(min(Int(pending), $0.count)), &count)
             }
             guard read else { continue }
             var bytes: [UInt8] = []
@@ -321,7 +326,7 @@ final class ConsoleInput: @unchecked Sendable {
             for record in records[..<Int(count)] {
                 switch Int32(record.EventType) {
                 case KEY_EVENT:
-                    decoder.decode(record.Event.KeyEvent, into: &bytes)
+                    unsafe decoder.decode(record.Event.KeyEvent, into: &bytes)
                 case WINDOW_BUFFER_SIZE_EVENT:
                     resized = true
                 default:
@@ -365,7 +370,7 @@ struct KeyRecordDecoder {
 
     mutating func decode(_ key: KEY_EVENT_RECORD, into bytes: inout [UInt8]) {
         guard key.bKeyDown.boolValue else { return }
-        let unit = key.uChar.UnicodeChar
+        let unit = unsafe key.uChar.UnicodeChar
         let control = key.dwControlKeyState & DWORD(LEFT_CTRL_PRESSED | RIGHT_CTRL_PRESSED) != 0
         let isNull = unit == 0 && control && (key.wVirtualKeyCode == WORD(VK_SPACE) || key.wVirtualKeyCode == 0x32)
         guard unit != 0 || isNull else { return }

@@ -86,19 +86,19 @@ enum ProcessAncestry {
         /// process's, which can only make the chain longer, never pass over a
         /// daemon still running. A cycle, which reuse could make, ends it too.
         static func windowsCommandNames(limit: Int = 64) -> [String]? {
-            let snapshot = CreateToolhelp32Snapshot(DWORD(TH32CS_SNAPPROCESS), 0)
-            guard let snapshot, snapshot != INVALID_HANDLE_VALUE else { return nil }
-            defer { CloseHandle(snapshot) }
+            let snapshot = unsafe CreateToolhelp32Snapshot(DWORD(TH32CS_SNAPPROCESS), 0)
+            guard let snapshot = unsafe snapshot, unsafe snapshot != INVALID_HANDLE_VALUE else { return nil }
+            defer { unsafe CloseHandle(snapshot) }
             var processes: [DWORD: (parent: DWORD, name: String)] = [:]
             var entry = PROCESSENTRY32W()
             entry.dwSize = DWORD(MemoryLayout<PROCESSENTRY32W>.size)
-            var more = Process32FirstW(snapshot, &entry)
+            var more = unsafe Process32FirstW(snapshot, &entry)
             while more {
                 let name = withUnsafeBytes(of: entry.szExeFile) { raw in
-                    String(decodingCString: raw.bindMemory(to: UInt16.self).baseAddress!, as: UTF16.self)
+                    unsafe String(decodingCString: raw.bindMemory(to: UInt16.self).baseAddress!, as: UTF16.self)
                 }
                 processes[entry.th32ProcessID] = (entry.th32ParentProcessID, name)
-                more = Process32NextW(snapshot, &entry)
+                more = unsafe Process32NextW(snapshot, &entry)
             }
             var names: [String] = []
             var seen: Set<DWORD> = []

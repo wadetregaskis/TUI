@@ -55,14 +55,14 @@ struct RawMode {
     static func enable() -> RawMode {
         var input: DWORD = 0
         var output: DWORD = 0
-        _ = GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input)
-        _ = GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &output)
+        _ = unsafe GetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), &input)
+        _ = unsafe GetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), &output)
         let original = RawMode(input: input, output: output, outputCodePage: GetConsoleOutputCP())
-        _ = SetConsoleMode(
+        _ = unsafe SetConsoleMode(
             GetStdHandle(STD_INPUT_HANDLE),
             input & ~DWORD(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT)
                 | DWORD(ENABLE_VIRTUAL_TERMINAL_INPUT))
-        _ = SetConsoleMode(
+        _ = unsafe SetConsoleMode(
             GetStdHandle(STD_OUTPUT_HANDLE),
             output | DWORD(ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING))
         _ = SetConsoleOutputCP(UINT(CP_UTF8))
@@ -71,20 +71,20 @@ struct RawMode {
     }
 
     func restore() {
-        _ = SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), input)
-        _ = SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), output)
+        _ = unsafe SetConsoleMode(GetStdHandle(STD_INPUT_HANDLE), input)
+        _ = unsafe SetConsoleMode(GetStdHandle(STD_OUTPUT_HANDLE), output)
         _ = SetConsoleOutputCP(outputCodePage)
     }
 }
 
 /// The C library's `_write`, under the POSIX name it deprecates.
 func write(_ descriptor: Int32, _ buffer: UnsafeRawPointer?, _ count: Int) -> Int {
-    Int(_write(descriptor, buffer, UInt32(count)))
+    unsafe Int(_write(descriptor, buffer, UInt32(count)))
 }
 
 /// The C library's `_read`, under the POSIX name it deprecates.
 func read(_ descriptor: Int32, _ buffer: UnsafeMutableRawPointer?, _ count: Int) -> Int {
-    Int(_read(descriptor, buffer, UInt32(count)))
+    unsafe Int(_read(descriptor, buffer, UInt32(count)))
 }
 #else
 struct RawMode {

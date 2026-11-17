@@ -391,7 +391,7 @@ final class Terminal: HostStateKeeping {
     #elseif os(Windows)
         /// Reads what the console's reader holds (``consoleInput``).
         private lazy var byteSource: any TerminalByteSource = unsafe ClosureByteSource { [consoleInput] buffer in
-            consoleInput.read(into: buffer)
+            unsafe consoleInput.read(into: buffer)
         }
 
         /// The console's input, read on a thread of its own while raw mode is
@@ -1741,7 +1741,7 @@ extension Terminal {
     /// writes through unless a test hands it another.
     nonisolated static func writeToStandardOutput(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
         #if os(Windows)
-            StandardHandle.write(base, count)
+            unsafe StandardHandle.write(base, count)
         #else
             unsafe Foundation.write(STDOUT_FILENO, base, count)
         #endif

@@ -190,7 +190,7 @@ enum ProcessWideState {
         guard mayWrite("The environment variable \(name)") else { return }
         #if os(Windows)
             // An empty value removes the variable.
-            _ = _putenv_s(name, value ?? "")
+            _ = unsafe _putenv_s(name, value ?? "")
         #else
             if let value { unsafe setenv(name, value, 1) } else { unsafe unsetenv(name) }
         #endif

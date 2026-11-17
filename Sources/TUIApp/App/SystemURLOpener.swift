@@ -46,7 +46,7 @@ struct SystemURLOpener: URLOpenerBackend {
             // to write into this one.
             let result = url.absoluteString.withCString(encodedAs: UTF16.self) { target in
                 "open".withCString(encodedAs: UTF16.self) { verb in
-                    ShellExecuteW(nil, verb, target, nil, nil, SW_SHOWNORMAL)
+                    unsafe ShellExecuteW(nil, verb, target, nil, nil, SW_SHOWNORMAL)
                 }
             }
             // Greater than 32 on success, by the function's own contract.

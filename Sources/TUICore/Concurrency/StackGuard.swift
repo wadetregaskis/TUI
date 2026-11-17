@@ -405,7 +405,7 @@ package enum StackGuard {
             // the reserve leaves three quarters of a default stack to descend.
             var low: ULONG_PTR = 0
             var high: ULONG_PTR = 0
-            GetCurrentThreadStackLimits(&low, &high)
+            unsafe GetCurrentThreadStackLimits(&low, &high)
             guard high > low else { return nil }
             return extent(low: UInt(low), high: UInt(high))
         #else

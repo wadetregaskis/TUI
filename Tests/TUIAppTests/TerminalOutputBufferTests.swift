@@ -36,7 +36,7 @@ private func captureStdout(_ body: () -> Void) -> String {
         // (`StandardHandle`), at the pipe too. The pipe is large enough for every
         // test here, as nothing reads it until the body is done.
         var pipeFDs: [Int32] = [0, 0]
-        _ = _pipe(&pipeFDs, 1 << 20, _O_BINARY)
+        _ = unsafe _pipe(&pipeFDs, 1 << 20, _O_BINARY)
         let savedStdout = _dup(1)
         _ = _dup2(pipeFDs[1], 1)
         body()
@@ -46,7 +46,7 @@ private func captureStdout(_ body: () -> Void) -> String {
         var data = Data()
         var readBuffer = [UInt8](repeating: 0, count: 4096)
         while true {
-            let bytesRead = _read(pipeFDs[0], &readBuffer, UInt32(readBuffer.count))
+            let bytesRead = unsafe _read(pipeFDs[0], &readBuffer, UInt32(readBuffer.count))
             if bytesRead <= 0 { break }
             data.append(contentsOf: readBuffer.prefix(Int(bytesRead)))
         }

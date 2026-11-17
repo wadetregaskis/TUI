@@ -95,22 +95,22 @@ enum SystemClipboard {
         var units = Array(lineBreaks(text, as: "\r\n").utf16)
         units.append(0)
         let size = units.count * MemoryLayout<UInt16>.stride
-        guard let memory = GlobalAlloc(UINT(GMEM_MOVEABLE), SIZE_T(size)) else { return false }
-        guard let target = GlobalLock(memory) else {
-            GlobalFree(memory)
+        guard let memory = unsafe GlobalAlloc(UINT(GMEM_MOVEABLE), SIZE_T(size)) else { return false }
+        guard let target = unsafe GlobalLock(memory) else {
+            unsafe GlobalFree(memory)
             return false
         }
-        units.withUnsafeBytes { target.copyMemory(from: $0.baseAddress!, byteCount: size) }
-        GlobalUnlock(memory)
+        units.withUnsafeBytes { unsafe target.copyMemory(from: $0.baseAddress!, byteCount: size) }
+        unsafe GlobalUnlock(memory)
         guard open() else {
-            GlobalFree(memory)
+            unsafe GlobalFree(memory)
             return false
         }
         defer { CloseClipboard() }
         EmptyClipboard()
         // The clipboard owns the memory once it has taken it, and not before.
-        guard SetClipboardData(UINT(CF_UNICODETEXT), memory) != nil else {
-            GlobalFree(memory)
+        guard unsafe SetClipboardData(UINT(CF_UNICODETEXT), memory) != nil else {
+            unsafe GlobalFree(memory)
             return false
         }
         return true
@@ -120,11 +120,11 @@ enum SystemClipboard {
     static func paste() -> String? {
         guard open() else { return nil }
         defer { CloseClipboard() }
-        guard let memory = GetClipboardData(UINT(CF_UNICODETEXT)), let pointer = GlobalLock(memory) else {
+        guard let memory = unsafe GetClipboardData(UINT(CF_UNICODETEXT)), let pointer = unsafe GlobalLock(memory) else {
             return nil
         }
-        defer { GlobalUnlock(memory) }
-        let text = String(decodingCString: pointer.assumingMemoryBound(to: UInt16.self), as: UTF16.self)
+        defer { unsafe GlobalUnlock(memory) }
+        let text = unsafe String(decodingCString: pointer.assumingMemoryBound(to: UInt16.self), as: UTF16.self)
         return lineBreaks(text, as: "\n")
     }
 
