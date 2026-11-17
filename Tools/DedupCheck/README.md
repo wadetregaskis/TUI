@@ -57,7 +57,7 @@ python3 -m unittest discover -s Tools/DedupCheck -p 'test_*.py'     # the tool's
 
 ## In CI
 
-`ci-check.sh` runs on the "macOS 26 · Swift 6.4" and "macOS 15 · Xcode 26" (Xcode's 6.2.4) lanes, after their release
+`ci-check.sh` runs on the "macOS 27 · Swift 6.4" and "macOS 15 · Xcode 26" (Xcode's 6.2.4) lanes, after their release
 builds, because which functions fold is the compiler's: it relinks Stress whole with `-Xlinker -deduplicate` and runs
 the check, then links Stress, Example and IdleProbe with the same flag as an app developer would (TUI's default
 traits on, so TUI's symbols are out of the export table, which it checks: none of the three may export a

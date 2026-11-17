@@ -68,9 +68,10 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
 
 - Read `AGENTS.md`, `.claude/CLAUDE.md` and `CONTRIBUTING.md` first: SwiftUI parity, no singletons, zero warnings,
   docs changed in the commit that changes behaviour, one change per commit, a failing test before a bug fix.
-- Toolchains: Swift 6.2, 6.3 and 6.4 for Windows, with the Visual Studio build tools they need; CI runs the official
-  `swift:6.x-windowsservercore-ltsc2022` images through `Tools/ci-windows-swift.ps1`, which is the reference for
-  flags and environment.
+- Toolchains: Swift 6.4 for Windows, with the Visual Studio build tools it needs. CI tests 6.4 alone since
+  2026-11-16 (owner), installed natively by setup-swift on Windows Server 2025 (x86_64) and Windows 11 (arm64; GitHub
+  has no Windows Server arm64 runner). Until then it also ran the official `swift:6.x-windowsservercore-ltsc2022`
+  images on Server 2022 through `Tools/ci-windows-swift.ps1`, which still runs them by hand.
 - Commit to the local `main` (which tracks `staging`) in small commits, and never push: the owner moves the work to
   the Mac, where it is gated and pushed like everything else (CONTRIBUTING, "Staging and `main`"). Keep the macOS and
   Linux builds untouched by Windows arms: they are checked there, not on the VM.

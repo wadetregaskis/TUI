@@ -31,21 +31,26 @@ and Linux the suite runs through `Tools/ParallelTest/parallel_test.py -j 4`
 rather than `swift test` — see "Running the suite in parallel" below; Windows
 runs `swift test`.
 
-The three released Swift versions, 6.2, 6.3 and 6.4, are each covered on every
-operating system, and trunk on macOS and Linux:
+The three released Swift versions, 6.2, 6.3 and 6.4, are each covered on macOS
+and Linux, 6.4 alone on Windows, and trunk on macOS and Linux:
 
 | Swift | macOS | Linux | Windows |
 |-------|-------|-------|---------|
-| 6.2 | Xcode 26 on `macos-15` | `swift:6.2-noble` | `swift:6.2-…` |
-| 6.3 | Xcode 26 on `macos-26` | `swift:6.3-noble` | `swift:6.3-…` |
-| 6.4 | Xcode 27 on `xcode-27` (macOS 27); swift.org 6.4 release on `macos-26` | `swift:6.4-noble` | `swift:6.4-…` |
-| main | swift.org trunk snapshot | `nightly-main-noble` | — |
+| 6.2 | Xcode 26 on `macos-15` | `swift:6.2-noble`, arm64 | — |
+| 6.3 | Xcode 26 on `macos-26` | `swift:6.3-noble`, arm64 | — |
+| 6.4 | Xcode 27 on `xcode-27` (macOS 27); swift.org 6.4 release on `xcode-27` | `swift:6.4-noble`, arm64 and x86_64 | swift.org 6.4 on `windows-2025` (x86_64) and `windows-11-arm` (arm64) |
+| main | swift.org trunk snapshot on `xcode-27` | `nightly-main-noble`, arm64 | — |
 
 Released Swift comes from Xcode on macOS. 6.4 also runs from swift.org's
-release toolchain on `macos-26`, where no Xcode carries it. Trunk comes from
+release toolchain, beside Xcode 27 on macOS 27. Trunk comes from
 swift.org too: the newest snapshot of `main`, never a release branch's, and
-the job checks the snapshot it installed says so. Windows has no trunk job because its trunk image is rebuilt too rarely to be
-worth reporting as a nightly (on 2026-09-27 it was eleven weeks old).
+the job checks the snapshot it installed says so.
+
+Linux runs on arm64 (`ubuntu-24.04-arm`), and 6.4 on x86_64 too: the `swift:`
+images are multi-arch, so the two 6.4 jobs run the same tag. Windows installs
+swift.org's toolchain natively, x86_64 on Windows Server 2025 and arm64 on
+Windows 11, because GitHub has no Windows Server arm64 runner and Docker Hub
+has Windows images only for Server 2022 on x86_64. Windows tests no trunk.
 
 Until 6.4.0 shipped (2026-09-14) its row was `release/6.4.x` snapshots and
 nightlies, advisory; the release images replaced them, and they block. The
@@ -69,7 +74,7 @@ matching Swift SDK — pinned because a Swift SDK loads only under the toolchain
 version it was built for, and still 6.3.3 because that is the only version the
 port has been measured with (see [`Documentation/WebAssembly port.md`](<Documentation/WebAssembly port.md>)).
 
-Linux additionally runs Swift 6.3 on arm64, and lint runs on Linux only — it
+Lint runs on Linux (arm64) only — it
 gates everything else, so a style slip fails in a minute rather than after
 eighteen builds.
 
@@ -77,9 +82,9 @@ Four checks run on chosen jobs only:
 
 | Check | Jobs | What it catches |
 |-------|-------|-----------------|
-| Release build (`swift build -c release`: every library target, Stress, Example and the tools; no tests) | `macOS 26 · Swift 6.4`, `Linux · Swift 6.3 · arm64` | Failures that exist only under `-O`. Every other build in CI is debug; on 2026-10-08 Swift 6.3.3 could not build the library in release while every job was green. |
-| Span back-deployment library (`Tools/check-span-compatibility.sh` on that release build's Stress and Example, and on the objects of every module a library product ships; runs locally after `swift build -c release`) | `macOS 26 · Swift 6.4` | An executable that links `libswiftCompatibilitySpan.dylib`, which macOS has only from 26, or a library module that refers to one of its symbols (and so links it into every app that uses the module). Copied out of `.build` such an app stops at launch on macOS 15, as every 6.4 build did until 2026-10-10, through swift-collections. |
-| Type-check budget (the library rebuilt with every expression capped at a number of solver scopes, `-solver-scope-threshold`) | `macOS 15 · Xcode 26` (6.2.4) at 2,000; `macOS 26 · Swift 6.4` at 1,500 | An expression that has become expensive to type-check, as a count rather than a time, so a slow runner cannot fail it. The count belongs to the compiler, so each job's cap sits just above its own compiler's worst expression. |
+| Release build (`swift build -c release`: every library target, Stress, Example and the tools; no tests) | `macOS 27 · Swift 6.4`, `Linux · Swift 6.3 · arm64` | Failures that exist only under `-O`. Every other build in CI is debug; on 2026-10-08 Swift 6.3.3 could not build the library in release while every job was green. |
+| Span back-deployment library (`Tools/check-span-compatibility.sh` on that release build's Stress and Example, and on the objects of every module a library product ships; runs locally after `swift build -c release`) | `macOS 27 · Swift 6.4` | An executable that links `libswiftCompatibilitySpan.dylib`, which macOS has only from 26, or a library module that refers to one of its symbols (and so links it into every app that uses the module). Copied out of `.build` such an app stops at launch on macOS 15, as every 6.4 build did until 2026-10-10, through swift-collections. |
+| Type-check budget (the library rebuilt with every expression capped at a number of solver scopes, `-solver-scope-threshold`) | `macOS 15 · Xcode 26` (6.2.4) at 2,000; `macOS 27 · Swift 6.4` at 1,500 | An expression that has become expensive to type-check, as a count rather than a time, so a slow runner cannot fail it. The count belongs to the compiler, so each job's cap sits just above its own compiler's worst expression. |
 | Module map (`Tools/ModuleMap`) | `macOS 15 · Xcode 26` | A reference that would cross a planned module boundary upward. It reads the index store the build wrote, and the map is the same on every Swift. |
 
 The workflow's comment on each step has the measurements behind it and says
@@ -91,10 +96,11 @@ with this package. Everything on a released toolchain — including Windows —
 blocks.
 
 macOS 27 runs on GitHub's `xcode-27` image (macOS 27.0 with Xcode 27, and so
-Xcode's own Swift 6.4), and is required alongside `macos-15` and `macos-26`.
+Xcode's own Swift 6.4), and is required alongside `macos-15` and `macos-26`;
+swift.org's 6.4 (required) and trunk (advisory) jobs run there too.
 GitHub still labels that image a preview and warns it may queue; a queued
 macOS 27 job holds the `CI` check pending until it runs. When a `macos-27`
-label appears, the job moves to it (see the macOS 27 note at the top of the
+label appears, the jobs move to it (see the macOS 27 note at the top of the
 workflow).
 
 #### The `CI` gate job

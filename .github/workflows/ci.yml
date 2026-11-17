@@ -11,34 +11,43 @@ name: CI
 #             6.2 and 6.3 coverage without hardcoding minors that GitHub
 #             rebuilds weekly. 6.4 comes from Xcode 27 on macOS 27 (the
 #             `xcode-27` image, see the note below) and from swift.org's 6.4
-#             release on `macos-26`. UNRELEASED Swift (trunk) comes from
-#             swift.org too.
+#             release on the same image. UNRELEASED Swift (trunk) comes from
+#             swift.org too, also on macOS 27 (owner, 2026-11-16: the newest
+#             Swift on the newest macOS).
 #
 #   Linux   — the cheapest axis to widen, because the official `swift:` images
 #             pin the toolchain exactly. No setup action is involved or wanted.
+#             arm64 (`ubuntu-24.04-arm`) for every lane, and x86_64 for 6.4
+#             alone (owner, 2026-11-16): every `swift:` tag used here is
+#             multi-arch (amd64 and arm64 on Docker Hub, checked 2026-11-16),
+#             so the x86_64 lane runs the very image tag the arm64 6.4 lane
+#             does, and 6.4 is the Swift TUI is optimised for first.
 #
-#   Windows — the port is IN PROGRESS, and the lane is a ratchet rather than a
-#             progress report. Each step declares for itself whether it may
+#   Windows — 6.4 only (owner, 2026-11-16), on Windows Server 2025 for x86_64
+#             and Windows 11 for arm64: GitHub has no Windows Server arm64
+#             runner. See the `windows` job for why it is native and not a
+#             container. The port is IN PROGRESS, and the lane is a ratchet
+#             rather than a progress report. Each step declares for itself whether it may
 #             fail, so the job as a whole promises exactly "everything that
 #             builds on Windows today still builds". It is therefore REQUIRED
 #             on released toolchains — a step that has gone green cannot
 #             silently go back. Making a step binding is one deleted
 #             `continue-on-error`; when the console layer lands, the last of
-#             them goes and nothing staged is left. See the `windows_*` jobs.
+#             them goes and nothing staged is left. See the `windows` job.
 #
-# Swift version coverage. 6.2.4, 6.3.3 and 6.4.0 are the newest release of each
-# 6.x line as of 2026-09-27 (6.4.0 shipped on 2026-09-14). All three are
-# covered, and bind, on all three operating systems; trunk is covered, and
-# advisory, on two:
+# Swift version coverage. 6.2.4, 6.3.3 and 6.4.0 were the newest release of
+# each 6.x line as of 2026-09-27 (6.4.0 shipped on 2026-09-14). All three are
+# covered, and bind, on macOS and Linux; Windows tests 6.4 alone (owner,
+# 2026-11-16). Trunk is covered, and advisory, on two:
 #
 #            macOS                      Linux                  Windows
-#   6.2      Xcode 26 on macos-15       swift:6.2-noble        swift:6.2-…
-#   6.3      Xcode 26 on macos-26       swift:6.3-noble        swift:6.3-…
-#   6.4      Xcode 27 on xcode-27,      swift:6.4-noble        swift:6.4-…
-#            swift.org 6.4 on macos-26
-#   main     swift.org trunk snapshot   nightly-main-noble     (none: the Windows
-#                                                               main image is
-#                                                               rebuilt too rarely)
+#   6.2      Xcode 26 on macos-15       swift:6.2-noble arm64  —
+#   6.3      Xcode 26 on macos-26       swift:6.3-noble arm64  —
+#   6.4      Xcode 27 on xcode-27,      swift:6.4-noble arm64  swift.org 6.4 on
+#            swift.org 6.4 on xcode-27  and x86_64             windows-2025 (x86_64)
+#                                                              and windows-11-arm
+#   main     swift.org trunk snapshot   nightly-main-noble     (none: see the
+#            on xcode-27                arm64                  `windows` job)
 #
 # Every released row floats to the newest patch of its line — an Xcode MAJOR,
 # a `swift:6.x` image tag, swift.org's `6.4` with `check-latest` — so 6.4.1
@@ -48,22 +57,27 @@ name: CI
 #
 # The 6.4 row was `release/6.4.x` snapshots until 6.4.0 shipped. There is no
 # `release/6.5` branch yet; when one is cut, its nightlies are the next early
-# warning: add it on macOS (`swift: "6.5"`, `development: true`), on Linux
-# beside main, and to the Windows matrix, whose nightlies are advisory by
-# construction. Check the tag spelling on Docker Hub first: 6.2 and 6.3 had
-# `nightly-6.3-…`-style tags, 6.4 had `nightly-6.4.x-…`, and that inconsistency
-# is upstream's. When the version ships, promote it the way 6.4 was: the release
-# images replace the nightlies, and they bind.
+# warning: add it on macOS (`swift: "6.5"`, `development: true`) and on Linux
+# beside main, both advisory. Check the tag spelling on Docker Hub first: 6.2
+# and 6.3 had `nightly-6.3-…`-style tags, 6.4 had `nightly-6.4.x-…`, and that
+# inconsistency is upstream's. When the version ships, promote it the way 6.4
+# was: the release images replace the nightlies, and they bind.
 #
 # macOS 27: the "macOS 27 · Xcode 27" lane binds since 2026-09-28, when macOS 27
-# was out of beta (owner's call). GitHub's `xcode-27` image runs it (image
+# was out of beta (owner's call), and swift.org's 6.4 and trunk lanes joined it
+# on 2026-11-16 (owner's call). GitHub's `xcode-27` image runs all three (image
 # 20260921: macOS 27.0, Darwin 27.0.0, Xcode 27.0 by default, 27.1 and a 27.2
-# beta beside it) and is still the only image that does: there is no
-# `macos-27` label yet, and actions/runner-images still lists `xcode-27` as
-# "Xcode 27 (preview)". Its announcement (runner-images#14404) warns of
-# queueing while capacity is balanced, and a required cell that queues holds
-# the CI check pending until it runs. When a GA label appears (`macos-27`
-# would match macos-15/macos-26), point the lane at it.
+# beta beside it) and is still the only image that does: on 2026-11-16 there
+# was no `macos-27` label in actions/runner-images' README, which lists
+# `xcode-27` as "Xcode 27" with a "Preview (see issue #14404)" note, nor in
+# GitHub's runner reference
+# (docs.github.com/en/actions/reference/runners/github-hosted-runners), whose
+# arm64 macOS row is "macos-latest, macos-15, macos-26, xcode-27". The
+# announcement (runner-images#14404) warns of queueing while capacity is
+# balanced, and a required cell that queues holds the CI check pending until
+# it runs — two required cells now, the Xcode one and swift.org's 6.4. When a
+# GA label appears (`macos-27` would match macos-15/macos-26), point every
+# `xcode-27` runner here and in swiftui-parity-27.yml at it.
 
 # Pushes go to `staging`, never to `main`: `promote.yml` moves `main` to each
 # commit whose run here passes, so `main` only ever holds tested commits, and a
@@ -102,10 +116,13 @@ jobs:
   # ── Lint ───────────────────────────────────────────────────────────────────
   # One platform is enough: SwiftLint's output is platform-independent. Runs
   # first and gates the rest, so a style slip fails in ~1 minute instead of
-  # after eighteen builds.
+  # after eighteen builds. arm64, as every Linux lane is unless it says
+  # otherwise: SwiftLint publishes `swiftlint_linux_arm64.zip` beside the
+  # amd64 one (release 0.65.1's assets, checked 2026-11-16), and the install
+  # step below picks the zip by `uname -m`.
   lint:
     name: Lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     container: swift:6.3-noble
     steps:
       - name: Checkout
@@ -341,12 +358,17 @@ jobs:
             development: false
             smoke: full
             experimental: false
-          # Swift 6.4 on macOS 26, from swift.org: the 6.4 lane before Xcode
-          # 27's bound, kept because no Xcode puts 6.4 on macOS 26. Until
-          # 6.4.0 shipped this lane took the newest `release/6.4.x` snapshot
-          # and was advisory.
-          - name: "macOS 26 · Swift 6.4"
-            runner: macos-26
+          # Swift 6.4 from swift.org: the 6.4 lane before Xcode 27's bound,
+          # kept because swift.org's toolchain floats to 6.4's newest patch
+          # (`check-latest`) where an Xcode waits for GitHub's image, and is
+          # the open-source toolchain Linux and Windows build with. On macOS
+          # 26 until 2026-11-16, when it moved to macOS 27 beside Xcode 27
+          # (owner's call; see the macOS 27 note at the top of this file):
+          # `xcode` is empty, so it builds against the SDK of the image's
+          # default Xcode, 27. Until 6.4.0 shipped this lane took the newest
+          # `release/6.4.x` snapshot and was advisory.
+          - name: "macOS 27 · Swift 6.4"
+            runner: xcode-27
             xcode: ""
             swift: "6.4"
             development: false
@@ -371,9 +393,11 @@ jobs:
           # trunk's tags start `swift-DEVELOPMENT-SNAPSHOT-`, a release
           # branch's being `swift-6.4.x-DEVELOPMENT-SNAPSHOT-…`. That is the
           # action's code rather than its documented contract, so the step
-          # after the install checks the tag it got.
-          - name: "macOS 26 · Swift main snapshot"
-            runner: macos-26
+          # after the install checks the tag it got. On macOS 27 since
+          # 2026-11-16, as the 6.4 lane above: trunk is built against the
+          # newest SDK GitHub has.
+          - name: "macOS 27 · Swift main snapshot"
+            runner: xcode-27
             xcode: ""
             swift: "swift-DEVELOPMENT-SNAPSHOT"
             development: true
@@ -381,7 +405,8 @@ jobs:
             smoke: quick
             experimental: true
           # macOS 27 with Xcode 27's own toolchain (Swift 6.4). Binding; see
-          # the macOS 27 note at the top of this file.
+          # the macOS 27 note at the top of this file. Still `xcode-27`: no
+          # `macos-27` label existed on 2026-11-16.
           - name: "macOS 27 · Xcode 27"
             runner: xcode-27
             xcode: "27"
@@ -422,9 +447,13 @@ jobs:
       # installed through the `TOOLCHAINS` it exports. For a RELEASE, the
       # action first looks for the Xcode swift.org lists beside it; if that
       # Xcode is on the image and bundles the same Swift, it selects the Xcode
-      # and installs nothing, so `TOOLCHAINS` is never exported. No image this
-      # lane runs on has Xcode 27 today, but GitHub adds Xcodes to images
-      # without notice.
+      # and installs nothing, so `TOOLCHAINS` is never exported. Since
+      # 2026-11-16 these lanes run on `xcode-27`, whose Xcode 27 bundles a
+      # Swift 6.4, so for the 6.4 lane that is no longer hypothetical: this
+      # input is what keeps it testing swift.org's toolchain and not
+      # Xcode's, which the "macOS 27 · Xcode 27" lane already tests. The
+      # install itself is a universal `.pkg` (swift.org's `xcode` platform),
+      # the same on macOS 26 and 27.
       - name: Install Swift ${{ matrix.swift }} from swift.org
         id: setup-swift
         if: matrix.swift != ''
@@ -557,8 +586,8 @@ jobs:
       # Tools/ParallelTest/README.md.
       #
       # `-j 4` IS AN EXPERIMENT, to be tuned from these lanes' timings. GitHub's
-      # arm64 macOS runners for public repositories (macos-15, macos-26; the
-      # xcode-27 preview image is not listed, and presumably the same) have
+      # arm64 macOS runners for public repositories (macos-15, macos-26 and
+      # xcode-27, in GitHub's runner reference on 2026-11-16) have
       # 3 M1 cores and 7 GB, so four processes oversubscribe the CPU a little,
       # on purpose: they spend much of their time waiting on their own main
       # actor, not computing. MEMORY is the risk to watch. Measured locally, a
@@ -652,7 +681,7 @@ jobs:
       # not build TUIFoundation in release ("sending 'value' risks causing
       # data races", Theme.swift; a 6.3 optimiser clone that loses a function's
       # actor isolation, see the comment there) while every lane here was
-      # green. On three lanes: swift.org's 6.4 on macOS 26, the main target;
+      # green. On three lanes: swift.org's 6.4 on macOS 27, the main target;
       # Xcode's 6.2.4 on macOS 15, for the dedup check below, whose answer is
       # the compiler's; and Linux's 6.3 on arm64 (see that step). No tests in
       # release: the suite runs once, in debug, above.
@@ -769,9 +798,10 @@ jobs:
       #   at 1,850), then ScrollTransition.swift:218, 1,700–1,800. (Until
       #   2026-10-10 the step also rebuilt swift-collections, whose
       #   UniqueDeque.swift:240 needed between 1,850 and 1,900.)
-      # * macOS 26 with swift.org's 6.4, 1,500. 6.4.0 counts ordinary code far
-      #   lower than 6.2 does (6.2's two worst are under 300 on 6.4), so 6.2's
-      #   cap bounds 6.4 only loosely, and an expression 6.4's solver handles
+      # * macOS 27 (macOS 26 until 2026-11-16) with swift.org's 6.4, 1,500.
+      #   The count is the compiler's, not the host's. 6.4.0 counts
+      #   ordinary code far lower than 6.2 does (6.2's two worst are under
+      #   300 on 6.4), so 6.2's cap bounds 6.4 only loosely, and an expression 6.4's solver handles
       #   badly and 6.2's does not would pass it. On 2026-10-08 nothing failed
       #   on 6.4.0 at any cap from 1,000 up that passed on 6.2, and main
       #   (18325a175 and the Theme fix) built at 1,500. What binds this cap is
@@ -838,33 +868,43 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # arm64 for every Swift, and x86_64 for 6.4 alone (owner,
+        # 2026-11-16). The images are the same tags on both: Docker Hub lists
+        # an amd64 and an arm64 image under `swift:6.2-noble`,
+        # `swift:6.3-noble`, `swift:6.4-noble` and
+        # `swiftlang/swift:nightly-main-noble` (hub.docker.com/v2 tag API,
+        # checked 2026-11-16), and the runner's architecture picks one. Until
+        # then 6.2, 6.4 and trunk ran on x86_64 alone and 6.3 on both.
         include:
-          - name: "Linux · Swift 6.2 · x86_64"
-            runner: ubuntu-24.04
+          - name: "Linux · Swift 6.2 · arm64"
+            runner: ubuntu-24.04-arm
             image: "swift:6.2-noble"
             smoke: quick
             experimental: false
-          - name: "Linux · Swift 6.3 · x86_64"
-            runner: ubuntu-24.04
-            image: "swift:6.3-noble"
-            smoke: full
-            experimental: false
+          # The full PTY smoke and the release build, both of which were on
+          # 6.3 (x86_64 and arm64 respectively) before 6.3 had one lane.
           - name: "Linux · Swift 6.3 · arm64"
             runner: ubuntu-24.04-arm
             image: "swift:6.3-noble"
-            smoke: quick
+            smoke: full
             experimental: false
             # The release build at the end of the job: see that step.
             release_build: true
           # Was `swiftlang/swift:nightly-6.4.x-noble`, advisory, until 6.4.0
           # shipped.
+          - name: "Linux · Swift 6.4 · arm64"
+            runner: ubuntu-24.04-arm
+            image: "swift:6.4-noble"
+            smoke: quick
+            experimental: false
+          # The one x86_64 lane: 6.4, the Swift TUI is optimised for first.
           - name: "Linux · Swift 6.4 · x86_64"
             runner: ubuntu-24.04
             image: "swift:6.4-noble"
             smoke: quick
             experimental: false
-          - name: "Linux · Swift main nightly"
-            runner: ubuntu-24.04
+          - name: "Linux · Swift main nightly · arm64"
+            runner: ubuntu-24.04-arm
             image: "swiftlang/swift:nightly-main-noble"
             smoke: quick
             experimental: true
@@ -935,8 +975,10 @@ jobs:
 
       # The macOS job's "Release build" step says why. 6.3's lane, because
       # 6.3 is the Swift whose `-O` pipeline broke on 2026-10-08 while its
-      # debug build was clean; arm64, because x86_64 already runs the full PTY
-      # smoke, so the two 6.3 lanes end closer together. That failure was in
+      # debug build was clean. arm64, because 6.3 has no other lane since
+      # 2026-11-16; until then x86_64 ran the full PTY smoke and arm64 this,
+      # so the two 6.3 lanes ended closer together, and now one lane does
+      # both and is the longest Linux lane. That failure was in
       # the SIL pipeline, not the target: a reduction of it failed alike on
       # macOS arm64 and for x86_64 Linux (swift.org 6.3.3, its static SDK).
       # The whole package built in release for aarch64 Linux the same way
@@ -961,16 +1003,17 @@ jobs:
   # pull request: a release build of every test target is the dearest build
   # here. ADVISORY (`continue-on-error`) until it has a record of running green;
   # a failure is read, not waved through. One cell per OS, each on the Swift
-  # the package is optimised for first where it can be had: 6.4 on Linux, and
-  # Xcode 26's 6.3 on macOS (no GA image carries Xcode 27).
+  # the package is optimised for first where it can be had: 6.4 on Linux
+  # (arm64, as the Linux lanes are), and Xcode 26's 6.3 on macOS (no GA image
+  # carries Xcode 27).
   #
   # Locally: `python3 Tools/ParallelTest/parallel_test.py --release -j 4`
   # (Tools/Dev/README.md).
   release_tests_linux:
-    name: "Release tests · Linux · Swift 6.4"
+    name: "Release tests · Linux · Swift 6.4 · arm64"
     needs: lint
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     container:
       image: "swift:6.4-noble"
     continue-on-error: true
@@ -1029,17 +1072,55 @@ jobs:
 
   # ── Windows (the port is in progress) ─────────────────────────────
   #
-  # Uses the official `swift:<version>-windowsservercore-ltsc2022` images, which
-  # bundle the Visual Studio and Windows SDK prerequisites — the same approach
-  # the Swift project's own reusable workflow takes, and the reason no
-  # toolchain action appears here. Two Windows-specific constraints shape it:
+  # Swift 6.4 only since 2026-11-16 (owner's call); until then Server 2022
+  # containers tested 6.2, 6.3 and 6.4, and the native cells 6.3. Two cells,
+  # one per architecture:
   #
-  #   * GitHub Actions `container:` is Linux-only, so the image has to be driven
-  #     through an explicit `docker run`, and the Docker service is not started
-  #     on Windows runners by default.
-  #   * A `windowsservercore-ltsc2022` container needs a matching host kernel,
-  #     which pins this lane to `windows-2022`. Server 2025 and the Windows 11
-  #     client are covered by the native lane below.
+  #   * x86_64 on Windows Server 2025 (`windows-2025`), the newest Windows
+  #     Server GitHub hosts. Server 2022 (`windows-2022`) is no longer tested.
+  #   * arm64 on Windows 11 (`windows-11-arm`), a CLIENT OS, because GitHub
+  #     hosts no Windows Server on arm64: actions/runner-images' README and
+  #     GitHub's runner reference
+  #     (docs.github.com/en/actions/reference/runners/github-hosted-runners)
+  #     list `windows-11-arm` and `windows-11-vs2026-arm` as the only Windows
+  #     arm64 labels, both Windows 11 (checked 2026-11-16). When a Server arm64
+  #     label appears, that cell moves to it.
+  #
+  # Native, not a container. The x86_64 lane used to run the official
+  # `swift:<version>-windowsservercore-ltsc2022` images (through
+  # Tools/ci-windows-swift.ps1, which stays for running them by hand) on
+  # `windows-2022`, because they bundle the Visual Studio and Windows SDK
+  # prerequisites. They cannot serve both cells now:
+  #
+  #   * Docker Hub's `swift` repository has Windows images only as
+  #     `…-windowsservercore-ltsc2022`, amd64 only: no ltsc2025 tag and no
+  #     arm64 Windows image for any version (hub.docker.com/v2 tag API, checked
+  #     2026-11-16; `6.4-windowsservercore-ltsc2022` is 10.0.20348, amd64). So
+  #     arm64 has to install natively whatever x86_64 does.
+  #   * x86_64 could have kept the image on Server 2025. This note used to say
+  #     an ltsc2022 container needs a matching host kernel and so pins the lane
+  #     to `windows-2022`; Microsoft's compatibility table now lists Windows
+  #     Server 2022 images as supported on a Server 2025 host with process
+  #     isolation (learn.microsoft.com/en-us/virtualization/windowscontainers/
+  #     deploy-containers/version-compatibility). But a container cell beside
+  #     the native one would test the same Swift on the same OS twice, and one
+  #     in its place would put the two architectures on two install routes, so
+  #     a red cell would not say whether the OS, the architecture or the route
+  #     was at fault. One route for both is the cleaner promise, and the
+  #     native route is the one these two runners had already run green, with
+  #     6.3.
+  #
+  # The native route is the second place a toolchain action is genuinely
+  # needed: setup-swift installs swift.org's Windows installer — published
+  # for 6.4 on both architectures (`swift-6.4.2-RELEASE-windows10.exe` and
+  # `…-windows10-arm64.exe` under download.swift.org/swift-6.4.2-release/,
+  # checked 2026-11-16) — and also the Visual Studio components, and runs
+  # VsDevCmd, which is the fiddly part the images did for us.
+  #
+  # No trunk cell: 6.4 only, by the ruling above; and the trunk image this
+  # lane would have used, `nightly-main-windowsservercore-ltsc2022`, was
+  # rebuilt too rarely to report as a nightly (last 2026-07-09 when checked on
+  # 2026-09-27).
   #
   # Steps are deliberately separate so the job reads as a porting scoreboard:
   # the four lower modules already compile without POSIX and must stay green,
@@ -1058,28 +1139,20 @@ jobs:
   # and TUICurveEditors, which C9b peeled out of TUIColorPicker, and
   # TUIFilePanels, lane O10's leaf, a module of its own from the start, and
   # TUITabImages, Tab's image: initialisers (decisions C11), likewise.
-  windows_container:
-    name: "Windows Server 2022 · Swift ${{ matrix.swift }}"
+  windows:
+    name: "${{ matrix.name }} · Swift 6.4"
     needs: lint
-    runs-on: windows-2022
-    # Binding on released toolchains: what builds on Windows today must keep
-    # building. Nightlies stay advisory for the same reason they are everywhere
-    # else — they break for reasons that have nothing to do with this package.
-    continue-on-error: ${{ startsWith(matrix.swift, 'nightly') }}
+    runs-on: ${{ matrix.runner }}
+    # Binding: Swift 6.4 is a release, and the steps below say individually
+    # which ones are allowed to fail.
     strategy:
       fail-fast: false
       matrix:
-        # Released toolchains only, for now. The nightly that was here,
-        # `nightly-6.4.x`, became `6.4` when 6.4.0 shipped; the release branch
-        # it followed now only collects 6.4 patch releases, which the release
-        # image tracks. Trunk is no substitute on Windows: its image,
-        # `nightly-main-windowsservercore-ltsc2022`, had last been rebuilt on
-        # 2026-07-09 when checked on 2026-09-27 (it was four weeks stale when
-        # this lane was written), so it would test an old snapshot while
-        # reporting as a nightly. Linux and macOS cover trunk. Add the next
-        # release branch's nightly here once one exists — the
-        # `continue-on-error` above makes any `nightly-…` entry advisory.
-        swift: ["6.2", "6.3", "6.4"]
+        include:
+          - name: "Windows Server 2025 · x86_64"
+            runner: windows-2025
+          - name: "Windows 11 · arm64"
+            runner: windows-11-arm
     steps:
       # The runner defaults to core.autocrlf=true. SwiftLint on Windows requires
       # LF, and CRLF churn in Swift sources helps nobody — check out verbatim.
@@ -1091,33 +1164,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      - name: Start Docker
-        run: |
-          Start-Service docker
-          $deadline = (Get-Date).AddMinutes(3)
-          while ((Get-Date) -lt $deadline) {
-            docker info *> $null
-            if ($LASTEXITCODE -eq 0) { Write-Host "Docker ready"; exit 0 }
-            Start-Sleep -Seconds 5
-          }
-          Write-Error "Docker did not become ready"
-          exit 1
-
-      - name: Pull toolchain image
-        id: image
-        run: |
-          $tag = "${{ matrix.swift }}"
-          if ($tag.StartsWith("nightly")) {
-            $image = "swiftlang/swift:$tag-windowsservercore-ltsc2022"
-          } else {
-            $image = "swift:$tag-windowsservercore-ltsc2022"
-          }
-          docker pull $image
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          "image=$image" >> $env:GITHUB_OUTPUT
+      # 6.4 now that the macOS 6.4 lane, which uses the same action and
+      # version, has a record with it: these cells held at 6.3 until it had
+      # one. `check-latest` for the reason the macOS job gives: it is what
+      # floats the cell to 6.4's newest patch, as `swift:6.4-noble` does on
+      # Linux, rather than the action's own pinned swift.org data.
+      - name: Install Swift
+        uses: SwiftyLab/setup-swift@v1.14.1
+        with:
+          swift-version: "6.4"
+          check-latest: true
 
       - name: Toolchain version
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "--version"
+        run: swift --version
 
       # ── Binding: what already builds on Windows ──
       # This list is what CI has been observed to do, not what we would like it
@@ -1125,16 +1184,16 @@ jobs:
       # step below goes green, delete its `continue-on-error` and it joins this
       # group permanently.
       - name: "Build TUICore"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICore"
+        run: swift build --target TUICore
 
       - name: "Build TUIStyling"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStyling"
+        run: swift build --target TUIStyling
 
       # Failed on 6.2 for reasons never diagnosed, and was advisory there,
       # until every job built it (CI runs 99 and 100): binding everywhere since
       # 2026-11-10.
       - name: "Build TUIView"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIView"
+        run: swift build --target TUIView
 
       # ── One module a step ──
       # Each its own step, so a red one names itself. They were advisory, each
@@ -1147,7 +1206,7 @@ jobs:
       # unconditionally, so Windows got no `cos` at all. Fixed, and green on
       # all five Windows lanes since, so it is binding.
       - name: "Build TUIImage"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIImage"
+        run: swift build --target TUIImage
 
       # ── The modules carved out of TUIFoundation ──
       # Module split step B2's two side modules, which need TUICore alone.
@@ -1156,10 +1215,10 @@ jobs:
       # B-SPB2-1). Advisory until CI had seen them green; binding since 2026-11-10, when every Windows job had built them in CI runs 99
       # and 100.
       - name: "Build TUIStrings"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStrings"
+        run: swift build --target TUIStrings
 
       - name: "Build TUITerminalHost"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITerminalHost"
+        run: swift build --target TUITerminalHost
 
       # ── The module the console layer left ──
       # TUIFoundation held the console layer until module split step B3
@@ -1173,7 +1232,7 @@ jobs:
       # side modules above first, so a red step here after green ones there is
       # TUIFoundation's own.
       - name: "Build TUIFoundation"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIFoundation"
+        run: swift build --target TUIFoundation
 
       # ── The leaves carved out above TUIFoundation ──
       # Module split step B5b's three leaves, each built on TUIFoundation
@@ -1229,55 +1288,55 @@ jobs:
       # and 100. TUIApp, the other leaf, is
       # POSIX by design and has no step (the umbrella's covers it).
       - name: "Build TUIChrome"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIChrome"
+        run: swift build --target TUIChrome
 
       - name: "Build TUIEffects"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIEffects"
+        run: swift build --target TUIEffects
 
       - name: "Build TUIMenus"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIMenus"
+        run: swift build --target TUIMenus
 
       - name: "Build TUIBitmaps"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIBitmaps"
+        run: swift build --target TUIBitmaps
 
       - name: "Build TUINavigation"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUINavigation"
+        run: swift build --target TUINavigation
 
       - name: "Build TUIPresentation"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIPresentation"
+        run: swift build --target TUIPresentation
 
       - name: "Build TUILists"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUILists"
+        run: swift build --target TUILists
 
       - name: "Build TUITables"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITables"
+        run: swift build --target TUITables
 
       - name: "Build TUITabs"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITabs"
+        run: swift build --target TUITabs
 
       - name: "Build TUIGrid"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIGrid"
+        run: swift build --target TUIGrid
 
       - name: "Build TUITextInput"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITextInput"
+        run: swift build --target TUITextInput
 
       - name: "Build TUINumericControls"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUINumericControls"
+        run: swift build --target TUINumericControls
 
       - name: "Build TUIPickers"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIPickers"
+        run: swift build --target TUIPickers
 
       - name: "Build TUISearch"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUISearch"
+        run: swift build --target TUISearch
 
       - name: "Build TUIForms"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIForms"
+        run: swift build --target TUIForms
 
       - name: "Build TUIColorPicker"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIColorPicker"
+        run: swift build --target TUIColorPicker
 
       - name: "Build TUICurveEditors"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICurveEditors"
+        run: swift build --target TUICurveEditors
 
       # Lane O10's leaf, built on TUIPresentation, TUITables and
       # TUITextInput, so after them: the file panels. It reads folders
@@ -1286,13 +1345,13 @@ jobs:
       # where that module is absent, as on Windows) and `canImport(Darwin)`
       # (a name column's comparator, as TUITables').
       - name: "Build TUIFilePanels"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIFilePanels"
+        run: swift build --target TUIFilePanels
 
       # The owner's TAB-IMAGE-NAME option 2 (decisions C11): `Tab`'s `image:`
       # initialisers, built on TUIBitmaps and TUITabs, so after them.
       # No POSIX API and no `#if`.
       - name: "Build TUITabImages"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUITabImages"
+        run: swift build --target TUITabImages
 
       # The console layer, ported on 2026-11-16 (Documentation/Windows
       # port.md): built and its Example driven on a Windows 11 arm64 VM with
@@ -1301,189 +1360,30 @@ jobs:
       - name: "Build TUIApp"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIApp"
+        run: swift build --target TUIApp
 
       - name: "Build TUICommands"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICommands"
+        run: swift build --target TUICommands
 
       - name: "Build TUIScenes"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIScenes"
+        run: swift build --target TUIScenes
 
       # Links, which nothing above does: the first step to catch a symbol
       # missing from the toolchain's Foundation (Windows port.md, "Toolchain").
       - name: "Build Example"
         continue-on-error: true
         timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --product Example"
+        run: swift build --product Example
 
       # ── The four modules' own test targets ──
       # Each links only its module, so these are the first tests Windows can
       # run without a console layer. Advisory until they went green;
       # binding since 2026-11-10, when every Windows job had built them in CI runs 99
       # and 100.
-      - name: "Build TUICoreTests"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUICoreTests"
-
-      - name: "Build TUIStylingTests"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIStylingTests"
-
-      - name: "Build TUIViewTests"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIViewTests"
-
-      - name: "Build TUIImageTests"
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUIImageTests"
-
-      # Every advisory step carries a timeout. `swift build --build-tests` on
-      # the 6.3 container printed its last diagnostic and then sat for six
-      # hours until the job's own limit cancelled it (2026-09-04) — and a
-      # cancelled job is not `continue-on-error`'s to forgive, so the gate
-      # went red for a hang in a step that is allowed to fail. Thirty minutes
-      # is several times what any of these takes when it finishes.
-      - name: "Build TUI (umbrella)"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --target TUI"
-
-      - name: "Build everything"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "build --build-tests"
-
-      - name: "Test"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "test"
-
-      - name: "Smoke — headless render of every scenario"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: ./Tools/ci-windows-swift.ps1 -Image "${{ steps.image.outputs.image }}" -Arguments "run Stress --selfcheck"
-
-  # Server 2025 and the Windows 11 client cannot host an ltsc2022 container, so
-  # these install the toolchain natively. This is the second place a toolchain
-  # action is genuinely needed — it also installs the Visual Studio components
-  # and runs VsDevCmd, which is the fiddly part.
-  windows_native:
-    name: "${{ matrix.name }} · Swift 6.3"
-    needs: lint
-    runs-on: ${{ matrix.runner }}
-    # Binding: Swift 6.3 is a release, and the steps below say individually
-    # which ones are allowed to fail.
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: "Windows Server 2025"
-            runner: windows-2025
-          - name: "Windows 11 · arm64"
-            runner: windows-11-arm
-    steps:
-      - name: Check out with LF endings
-        run: |
-          git config --global core.autocrlf false
-          git config --global core.eol lf
-
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      # 6.3 and not 6.4, deliberately for now. These lanes are here for the OS
-      # (Server 2025, and Windows 11 on arm64), and 6.4 already binds on
-      # Windows in the container lane. What a move to 6.4 would add is a
-      # dependency on setup-swift's 6.4.0 support, which arrived in 1.14.1
-      # (2026-09-25) and had no record on any runner when this was written;
-      # raise this line once the macOS 6.4 lane, which uses the same action,
-      # has one.
-      - name: Install Swift
-        uses: SwiftyLab/setup-swift@v1.14.1
-        with:
-          swift-version: "6.3"
-
-      - name: Toolchain version
-        run: swift --version
-
-      - name: "Build TUICore"
-        run: swift build --target TUICore
-      - name: "Build TUIStyling"
-        run: swift build --target TUIStyling
-      - name: "Build TUIView"
-        run: swift build --target TUIView
-
-      # Green on both native lanes as well as every container lane, so binding
-      # here too.
-      - name: "Build TUIImage"
-        run: swift build --target TUIImage
-
-      # Binding, as in the container lane — see that lane.
-      - name: "Build TUIStrings"
-        run: swift build --target TUIStrings
-      - name: "Build TUITerminalHost"
-        run: swift build --target TUITerminalHost
-      - name: "Build TUIFoundation"
-        run: swift build --target TUIFoundation
-      - name: "Build TUIChrome"
-        run: swift build --target TUIChrome
-      - name: "Build TUIEffects"
-        run: swift build --target TUIEffects
-      - name: "Build TUIMenus"
-        run: swift build --target TUIMenus
-      - name: "Build TUIBitmaps"
-        run: swift build --target TUIBitmaps
-      - name: "Build TUINavigation"
-        run: swift build --target TUINavigation
-      - name: "Build TUIPresentation"
-        run: swift build --target TUIPresentation
-      - name: "Build TUILists"
-        run: swift build --target TUILists
-      - name: "Build TUITables"
-        run: swift build --target TUITables
-      - name: "Build TUITabs"
-        run: swift build --target TUITabs
-      - name: "Build TUIGrid"
-        run: swift build --target TUIGrid
-      - name: "Build TUITextInput"
-        run: swift build --target TUITextInput
-      - name: "Build TUINumericControls"
-        run: swift build --target TUINumericControls
-      - name: "Build TUIPickers"
-        run: swift build --target TUIPickers
-      - name: "Build TUISearch"
-        run: swift build --target TUISearch
-      - name: "Build TUIForms"
-        run: swift build --target TUIForms
-      - name: "Build TUIColorPicker"
-        run: swift build --target TUIColorPicker
-      - name: "Build TUICurveEditors"
-        run: swift build --target TUICurveEditors
-      - name: "Build TUIFilePanels"
-        run: swift build --target TUIFilePanels
-      - name: "Build TUITabImages"
-        run: swift build --target TUITabImages
-
-      # The console layer and what links it: advisory, as in the container
-      # lane, and for the same reason.
-      - name: "Build TUIApp"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: swift build --target TUIApp
-      - name: "Build TUICommands"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: swift build --target TUICommands
-      - name: "Build TUIScenes"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: swift build --target TUIScenes
-      - name: "Build Example"
-        continue-on-error: true
-        timeout-minutes: 30
-        run: swift build --product Example
-
-      # The same scoreboard rows as the container lane, with the same timeouts
-      # and for the same reason — see that lane.
       - name: "Build TUICoreTests"
         run: swift build --target TUICoreTests
 
@@ -1495,6 +1395,17 @@ jobs:
 
       - name: "Build TUIImageTests"
         run: swift build --target TUIImageTests
+
+      # Every advisory step carries a timeout. `swift build --build-tests` on
+      # the 6.3 container printed its last diagnostic and then sat for six
+      # hours until the job's own limit cancelled it (2026-09-04) — and a
+      # cancelled job is not `continue-on-error`'s to forgive, so the gate
+      # went red for a hang in a step that is allowed to fail. Thirty minutes
+      # is several times what any of these takes when it finishes.
+      - name: "Build TUI (umbrella)"
+        continue-on-error: true
+        timeout-minutes: 30
+        run: swift build --target TUI
 
       - name: "Build everything"
         continue-on-error: true
@@ -1509,8 +1420,6 @@ jobs:
       - name: "Smoke — headless render of every scenario"
         continue-on-error: true
         timeout-minutes: 30
-        env:
-          TUI_VERIFY_RENDER_MEMO: "1"
         run: swift run Stress --selfcheck
 
   # ── WebAssembly ────────────────────────────────────────────────────────────
@@ -1533,10 +1442,18 @@ jobs:
   # Documentation/WebAssembly port.md), and a binding lane moves to a pair somebody
   # has built. Moving is every 6.3.3 below plus swift.org's published
   # checksum for the 6.4.0 bundle.
+  #
+  # On an arm64 host since 2026-11-16, as the Linux lanes are. The host's
+  # architecture is the toolchain's alone: `swift:6.3.3-noble` has an arm64
+  # image (Docker Hub, checked 2026-11-16), and the SDK bundle names only
+  # its target, so swift.org publishes one bundle and one checksum for every
+  # host (macOS arm64 included) and the pinned checksum below holds
+  # unchanged. Not yet run on an arm64 Linux host: if it fails there for a
+  # reason that is the host's, `ubuntu-24.04` is the way back.
   wasm:
     name: "WebAssembly · wasm32-unknown-wasip1"
     needs: lint
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-24.04-arm
     container: swift:6.3.3-noble
     steps:
       - name: Checkout
@@ -1664,8 +1581,8 @@ jobs:
   gate:
     name: CI
     if: always()
-    needs: [lint, parity, macos, linux, wasm, windows_container, windows_native, docs, consumer]
-    runs-on: ubuntu-24.04
+    needs: [lint, parity, macos, linux, wasm, windows, docs, consumer]
+    runs-on: ubuntu-24.04-arm
     steps:
       - name: Check required lanes
         run: |
@@ -1678,8 +1595,7 @@ jobs:
           linux:${{ needs.linux.result }}
           wasm:${{ needs.wasm.result }}
           docs:${{ needs.docs.result }}
-          windows_container:${{ needs.windows_container.result }}
-          windows_native:${{ needs.windows_native.result }}"
+          windows:${{ needs.windows.result }}"
 
           # The consumer lane runs on tags only, so it is required exactly when
           # it runs. Adding it to the list unconditionally would make every
@@ -1690,8 +1606,8 @@ jobs:
             consumer:${{ needs.consumer.result }}"
           fi
 
-          # The Windows lanes are required now. Not because the port is done —
-          # it is not — but because each of their steps says for itself whether
+          # The Windows lane is required now. Not because the port is done —
+          # it is not — but because each of its steps says for itself whether
           # it is allowed to fail, so the job as a whole is exactly the promise
           # "everything that builds on Windows today still does". That set only
           # grows: a step going green loses its `continue-on-error` and can
