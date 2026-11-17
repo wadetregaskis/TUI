@@ -14,6 +14,8 @@ import TUICore
     import Glibc
 #elseif canImport(Musl)
     import Musl
+#elseif os(Windows)
+    import WinSDK
 #endif
 
 // MARK: - Reads nothing keeps
@@ -137,6 +139,8 @@ package enum BindingReads {
         unsafe noted = []
         #if canImport(Glibc) || canImport(Musl)
             unsafe pthread_setspecific(walkingThreadKey, UnsafeRawPointer(bitPattern: 1))
+        #elseif os(Windows)
+            _ = TlsSetValue(walkingThreadSlot, UnsafeMutableRawPointer(bitPattern: 1))
         #endif
     }
 
@@ -147,6 +151,8 @@ package enum BindingReads {
             unsafe noted = nil
             #if canImport(Glibc) || canImport(Musl)
                 pthread_setspecific(walkingThreadKey, nil)
+            #elseif os(Windows)
+                _ = TlsSetValue(walkingThreadSlot, nil)
             #endif
         }
         return unsafe noted ?? []
@@ -161,12 +167,18 @@ package enum BindingReads {
     /// drained by a pool thread after the first suspension (see `StackGuard`),
     /// so `Thread.isMainThread` is false for the walk: the walking thread marks
     /// itself, and each thread reads only its own mark, so no thread reads what
-    /// another writes. Elsewhere the main actor is the main thread.
+    /// another writes. So on Windows, where the main actor may be drained by a
+    /// libdispatch worker — Swift Testing's is (measured, 6.3.3): a top-level
+    /// `Toggle`'s binding went unnoted, and a write to it asked for no frame —
+    /// with a thread-local slot of the system's. Elsewhere the main actor is
+    /// the main thread.
     private static var isWalkingThread: Bool {
         #if canImport(WASILibc)
             true
         #elseif canImport(Glibc) || canImport(Musl)
             unsafe pthread_getspecific(walkingThreadKey) != nil
+        #elseif os(Windows)
+            TlsGetValue(walkingThreadSlot) != nil
         #else
             Thread.isMainThread
         #endif
@@ -179,6 +191,9 @@ package enum BindingReads {
             unsafe pthread_key_create(&key, nil)
             return key
         }()
+    #elseif os(Windows)
+        /// The thread-local slot ``isWalkingThread`` reads.
+        private static let walkingThreadSlot: DWORD = TlsAlloc()
     #endif
 
     @inline(__always)
