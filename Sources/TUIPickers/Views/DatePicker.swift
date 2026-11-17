@@ -45,7 +45,9 @@ public struct DatePickerComponents: OptionSet, Sendable {
 /// > a popover — it lays the components out in a fixed `YYYY-MM-DD HH:MM` order
 /// > rather than the environment locale's, and it omits the watchOS-only
 /// > `.hourMinuteAndSecond` component. Components wrap within their field (no
-/// > carry) and the whole date is clamped to the `in:` range.
+/// > carry) and the whole date is clamped to the `in:` range. As in SwiftUI,
+/// > an edit changes only the component edited: a time field keeps the
+/// > date's day, a date field its time, and both its seconds.
 /// >
 /// > What it does take from the environment is the arithmetic:
 /// > ``EnvironmentValues/calendar`` and ``EnvironmentValues/timeZone``, so the
