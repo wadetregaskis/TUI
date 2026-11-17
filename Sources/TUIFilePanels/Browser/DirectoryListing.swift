@@ -100,8 +100,20 @@ enum DirectoryListing {
     ) -> Result<[FileEntry], DirectoryListingFailure> {
         let urls: [URL]
         do {
-            urls = try FileManager.default.contentsOfDirectory(
-                at: directory, includingPropertiesForKeys: keys, options: [])
+            #if os(Windows)
+                // By name, each item's values then read one by one (`entry`): on
+                // Windows `contentsOfDirectory(at:)` throws "The file doesn't
+                // exist" for the whole folder when one item in it is a link that
+                // leads nowhere, with its keys prefetched or not (Swift 6.3.3,
+                // measured), while the names list and the link's own values
+                // read.
+                urls = try FileManager.default.contentsOfDirectory(atPath: directory.path).map {
+                    directory.appendingPathComponent($0)
+                }
+            #else
+                urls = try FileManager.default.contentsOfDirectory(
+                    at: directory, includingPropertiesForKeys: keys, options: [])
+            #endif
         } catch {
             return .failure(
                 DirectoryListingFailure(folderName: displayName(of: directory), reason: error.localizedDescription))
