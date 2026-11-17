@@ -289,10 +289,11 @@ import TUICore
         }
     }
 
-// MARK: - UserDefaults Storage (Linux, WebAssembly)
+// MARK: - UserDefaults Storage (Linux, WebAssembly, Windows)
 
-#elseif os(Linux) || os(WASI)
-    /// A storage backend that emulates UserDefaults on Linux and WebAssembly.
+#elseif os(Linux) || os(WASI) || os(Windows)
+    /// A storage backend that emulates UserDefaults on Linux, WebAssembly and
+    /// Windows. On Windows the folder is `%APPDATA%\<appName>` (``appConfigDirectory()``).
     ///
     /// Uses a JSON file at `UserDefaults.json` (or `UserDefaults-<suite>.json`)
     /// in `appConfigDirectory()` — `$XDG_CONFIG_HOME/<appName>`, else
