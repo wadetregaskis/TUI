@@ -252,7 +252,11 @@ struct FormWrappedSectionTests {
         // the level it stops at is then the render's to draw, whole.
         let walk = makeRenderContext(width: 40, height: 10).withChildIdentity(type: _FormContentWalk.self)
         let rows = formRows(of: formElements(from: NestedRows(level: 0, depth: 100_000), in: walk))
-        #expect(rows.count > 100, "the levels the stack holds are read through: \(rows.count) rows")
+        // A hundred levels of an 8 MiB stack, as many in proportion of a
+        // smaller one: 72 were read on a Windows thread's 1 MiB.
+        #expect(
+            rows.count > StackGuard.levelsInProportion(100),
+            "the levels the stack holds are read through: \(rows.count) rows")
         #expect(rows.count < 100_000, "the walk stopped short of the innermost level")
         // The level it stopped at is one row, drawn whole: the view there,
         // whichever of a level's views the stack ran short at — the level
@@ -272,12 +276,18 @@ struct FormWrappedSectionTests {
     func deeplyNestedErasedChainIsReadAsFarAsTheStackAllows() {
         // Deep enough that the walk would need several times the stack,
         // shallow enough that releasing the chain — one node inside the
-        // next — fits in it.
-        let depth = 10_000
+        // next — fits in it: 10,000 levels of an 8 MiB stack, as many in
+        // proportion of a smaller one (a Windows thread's 1 MiB).
+        let depth = StackGuard.levelsInProportion(10_000)
         let chain = erasedNestedRows(depth: depth)
         let walk = makeRenderContext(width: 40, height: 10).withChildIdentity(type: _FormContentWalk.self)
         let rows = formRows(of: formElements(from: chain, in: walk))
-        #expect(rows.count > 100, "the levels the stack holds are read through: \(rows.count) rows")
+        // A hundred levels of an 8 MiB stack, the main thread's on macOS and
+        // Linux; as many in proportion on a smaller one — a Windows thread has
+        // 1 MiB, where 53 levels were read.
+        #expect(
+            rows.count > StackGuard.levelsInProportion(100),
+            "the levels the stack holds are read through: \(rows.count) rows")
         #expect(rows.count < depth, "the walk stopped short of the innermost level")
         // The level it stopped at is one row, drawn whole.
         guard case .plain? = rows.last?.kind else {

@@ -14,6 +14,7 @@ import TUI
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+import TUITestSupport
 import TUITesting
 @testable import TUIView
 
@@ -397,10 +398,15 @@ struct DepthLimitTests {
     /// An `AnyView` of an `AnyView`, built before the walk: no `body` on the way
     /// down, so nothing but the `AnyView`'s own guard stops the draw, and its
     /// value hash runs out of stack at every level on the way.
+    ///
+    /// 20,000 levels of an 8 MiB stack, and as many in proportion of a smaller
+    /// one: releasing the chain afterwards is one level inside the next, which
+    /// no guard can cut short, and 20,000 of those overflowed a Windows thread's
+    /// 1 MiB. The draw descends far less deep than either.
     @Test("An erased chain built at run time does not crash or hang")
     func erasedChainBuiltAtRunTime() {
         var chain = AnyView(Text("end of the chain"))
-        for _ in 0..<20_000 {
+        for _ in 0..<StackGuard.levelsInProportion(20_000) {
             chain = AnyView(chain)
         }
         let page = screen(of: Page(content: chain))
