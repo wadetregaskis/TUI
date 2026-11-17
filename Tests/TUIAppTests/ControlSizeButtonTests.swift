@@ -148,7 +148,7 @@ struct ControlSizeButtonTests {
                 // Which cells the face paints: the rows above and below leave
                 // out the first and last cells and keep every cell between.
                 let painted = lines.map { line in
-                    String(paintedCells(line).map { $0.background.isEmpty ? "." : "#" })
+                    paintedCells(line).map { $0.background.isEmpty ? "." : "#" }.joined()
                 }
                 let rim = blocksFill ? "..###.." : ".#####."
                 #expect(painted.first == rim && painted.last == rim, "\(painted)")
@@ -311,7 +311,7 @@ struct ControlSizeButtonTests {
         func painted(_ shape: ButtonBorderShape) -> [String] {
             let button = Button("OK") {}.controlSize(size).buttonBorderShape(shape).controlStyle(.block)
             let lines = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context).lines }
-            return lines.map { String(paintedCells($0).map { $0.background.isEmpty ? "." : "#" }) }
+            return lines.map { paintedCells($0).map { $0.background.isEmpty ? "." : "#" }.joined() }
         }
         let square = painted(.roundedRectangle(radius: 0))
         #expect(square.allSatisfy { !$0.contains(".") }, "\(square)")

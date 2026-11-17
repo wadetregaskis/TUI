@@ -45,17 +45,16 @@ struct CanvasImageTests {
         defer { tui.stateStorage.endRenderPass() }
         let buffer = ColorDepth.withCurrent(.truecolor) { renderToBuffer(canvas.canvasGrain(.cells), context: context) }
         return buffer.lines.map { line in
-            String(
-                paintedCells(line).map { cell in
-                    switch cell.state.backgroundColour {
-                    case .rgb(255, 0, 0): "R"
-                    case .rgb(0, 255, 0): "G"
-                    case .rgb(0, 0, 255): "B"
-                    case .rgb(255, 255, 255): "W"
-                    case nil: "."
-                    default: "?"
-                    }
-                })
+            paintedCells(line).map { cell -> String in
+                switch cell.state.backgroundColour {
+                case .rgb(255, 0, 0): "R"
+                case .rgb(0, 255, 0): "G"
+                case .rgb(0, 0, 255): "B"
+                case .rgb(255, 255, 255): "W"
+                case nil: "."
+                default: "?"
+                }
+            }.joined()
         }
     }
 

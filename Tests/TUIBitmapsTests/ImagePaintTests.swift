@@ -73,17 +73,16 @@ struct ImagePaintTests {
     /// letter a cell, as ``fields(_:columns:rows:ink:)`` spells them.
     private func letters(_ buffer: FrameBuffer, columns: Int, rows: Int, ink: Bool) -> [String] {
         buffer.lines.prefix(rows).map { line in
-            String(
-                paintedCells(line).prefix(columns).map { cell in
-                    switch ink ? cell.ink : cell.state.backgroundColour {
-                    case .rgb(255, 0, 0): "R"
-                    case .rgb(0, 255, 0): "G"
-                    case .rgb(0, 0, 255): "B"
-                    case .rgb(255, 255, 255): "W"
-                    case nil: "."
-                    default: "?"
-                    }
-                })
+            paintedCells(line).prefix(columns).map { cell -> String in
+                switch ink ? cell.ink : cell.state.backgroundColour {
+                case .rgb(255, 0, 0): "R"
+                case .rgb(0, 255, 0): "G"
+                case .rgb(0, 0, 255): "B"
+                case .rgb(255, 255, 255): "W"
+                case nil: "."
+                default: "?"
+                }
+            }.joined()
         }
     }
 

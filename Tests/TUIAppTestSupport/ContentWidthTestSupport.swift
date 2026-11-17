@@ -127,7 +127,7 @@ func contentWidthAsks<Row: View>(
 /// proposal — five into forty — wraps to exactly the proposal and hides it.)
 func wideText(_ cells: Int, breakable: Bool) -> String {
     guard breakable else { return String(repeating: "0", count: cells) }
-    return String((0..<cells).map { $0 % 7 == 6 && $0 != cells - 1 ? " " : "a" })
+    return (0..<cells).map { $0 % 7 == 6 && $0 != cells - 1 ? " " : "a" }.joined()
 }
 
 /// Whether a row is mid-animation, in the only sense the content width can see:

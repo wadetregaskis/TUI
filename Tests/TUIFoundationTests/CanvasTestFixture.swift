@@ -36,15 +36,14 @@ func canvasSurface(
 func canvasLetters(_ surface: GraphicsContext.Surface) -> [String] {
     let raster = surface.raster
     return (0..<raster.height).map { y in
-        String(
-            (0..<raster.width).map { x in
-                switch raster[x, y] {
-                case CanvasRGBA(red: 255, green: 0, blue: 0, alpha: 255): "R"
-                case CanvasRGBA(red: 0, green: 0, blue: 255, alpha: 255): "B"
-                case .clear: "."
-                default: "?"
-                }
-            })
+        (0..<raster.width).map { x -> String in
+            switch raster[x, y] {
+            case CanvasRGBA(red: 255, green: 0, blue: 0, alpha: 255): "R"
+            case CanvasRGBA(red: 0, green: 0, blue: 255, alpha: 255): "B"
+            case .clear: "."
+            default: "?"
+            }
+        }.joined()
     }
 }
 

@@ -30,7 +30,7 @@ private final class Frames {
         storage.beginRenderPass()
         defer { storage.endRenderPass() }
         let line = renderToBuffer(view, context: context).lines.first ?? ""
-        return String((0..<line.strippedLength).map { line.ansiSGRStateAt(visibleColumn: $0).isStruckThrough ? "-" : " " })
+        return (0..<line.strippedLength).map { line.ansiSGRStateAt(visibleColumn: $0).isStruckThrough ? "-" : " " }.joined()
     }
 }
 

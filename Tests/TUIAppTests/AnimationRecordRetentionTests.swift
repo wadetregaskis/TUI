@@ -47,7 +47,7 @@ struct AnimationRecordRetentionTests {
         let line = renderToBuffer(VStack { Row(done: done).equatable() }, context: context).lines.first ?? ""
         tui.stateStorage.endRenderPass()
         tui.renderCache.removeInactive()
-        return String((0..<line.strippedLength).map { line.ansiSGRStateAt(visibleColumn: $0).isStruckThrough ? "-" : " " })
+        return (0..<line.strippedLength).map { line.ansiSGRStateAt(visibleColumn: $0).isStruckThrough ? "-" : " " }.joined()
     }
 
     @Test("A strike changed under an animation sweeps though the row was served for frames before")
