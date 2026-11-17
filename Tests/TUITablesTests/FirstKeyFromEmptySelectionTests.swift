@@ -6,8 +6,11 @@
 //  (`Tools/SwiftUIProbes/Scroll to a row/firstkey.swift`, `firstkey.out`):
 //  there Down selects the first row, Up the last, a typed letter the first row
 //  it names, and Home, End and the page keys only scroll, with a row selected
-//  or without. Where TUI differs the expectation is macOS's, under
-//  `withKnownIssue`; the analysis, the plan and what was built are in
+//  or without. TUI does as macOS does but for Home, End and the page keys,
+//  which select (the owner's A-FIRSTKEY-1, 2026-11-16, keeping APPFB-1): a
+//  deliberate deviation. A cursor the user placed (a key, a click, the pointer
+//  while the focus follows it, Space clearing the selection) is drawn; with
+//  none placed, no row is. The analysis, the rulings and what was built are in
 //  `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`.
 //
 //  Created by Wade Tregaskis
@@ -71,14 +74,6 @@ struct FirstKeyFromEmptySelectionTests {
         #expect(selected.single == 99)
     }
 
-    @Test("Home selects nothing")
-    func homeSelectsNothing() {
-        let selected = Selected()
-        let app = table(selected)
-        app.press(.home)
-        #expect(selected.single == nil)
-    }
-
     @Test("A letter that is not the cursor row's selects the first row it names")
     func typeSelectFindsTheFirstRow() {
         let selected = Selected()
@@ -88,16 +83,12 @@ struct FirstKeyFromEmptySelectionTests {
         #expect(selected.single == 2)
     }
 
-    // MARK: - Where TUI differs
-
     @Test("Down selects the first row")
     func downSelectsTheFirstRow() {
         let selected = Selected()
         let app = table(selected)
         app.press(.down)
-        withKnownIssue("The cursor starts on row 0, so the first Down moves it to row 1 and selects that") {
-            #expect(selected.single == 0)
-        }
+        #expect(selected.single == 0)
     }
 
     @Test("Down selects the first row of a list with a multiple selection")
@@ -111,9 +102,7 @@ struct FirstKeyFromEmptySelectionTests {
         }
         app.press(.tab)
         app.press(.down)
-        withKnownIssue("The cursor starts on row 0, so the first Down moves it to row 1 and selects that") {
-            #expect(selected.multiple == [0])
-        }
+        #expect(selected.multiple == [0])
     }
 
     @Test("The letter of the first row selects the first row")
@@ -122,43 +111,17 @@ struct FirstKeyFromEmptySelectionTests {
         let app = table(selected)
         app.press(.character("a"))
         app.advance(by: .milliseconds(20))
-        withKnownIssue("A first character searches after the cursor, which is on row 0 with nothing selected") {
-            #expect(selected.single == 0)
-        }
+        #expect(selected.single == 0)
     }
 
-    @Test("End selects nothing")
-    func endSelectsNothing() {
+    @Test("A selection the app clears is forgotten: Up selects the last row")
+    func clearedByTheAppUp() {
         let selected = Selected()
         let app = table(selected)
-        app.press(.end)
-        withKnownIssue("APPFB-1 has End select; on macOS it only scrolls (an owner question)") {
-            #expect(selected.single == nil)
-        }
-    }
-
-    @Test("Page Down selects nothing")
-    func pageDownSelectsNothing() {
-        let selected = Selected()
-        let app = table(selected)
-        app.press(.pageDown)
-        withKnownIssue("APPFB-1 has the page keys select; on macOS they only scroll (an owner question)") {
-            #expect(selected.single == nil)
-        }
-    }
-
-    @Test("Home leaves a selected row selected")
-    func homeKeepsTheSelection() {
-        let selected = Selected()
-        let app = table(selected)
-        app.press(.down)
-        app.press(.down)
-        app.press(.down)
-        let before = selected.single
-        app.press(.home)
-        withKnownIssue("APPFB-1 has Home select; on macOS it only scrolls (an owner question)") {
-            #expect(selected.single == before)
-        }
+        for _ in 0..<5 { app.press(.down) }
+        app.press(.character("j"))
+        app.press(.up)
+        #expect(selected.single == 99)
     }
 
     @Test("A selection the app clears is forgotten: Down selects the first row")
@@ -166,13 +129,11 @@ struct FirstKeyFromEmptySelectionTests {
         let selected = Selected()
         let app = table(selected)
         for _ in 0..<5 { app.press(.down) }
-        #expect(selected.single == 5)
+        #expect(selected.single == 4)
         app.press(.character("j"))
         #expect(selected.single == nil)
         app.press(.down)
-        withKnownIssue("The cursor stays on the row the selection left, and Down goes on from it") {
-            #expect(selected.single == 0)
-        }
+        #expect(selected.single == 0)
     }
 
     @Test("A selection the app starts with: Down selects the row after it")
@@ -193,5 +154,174 @@ struct FirstKeyFromEmptySelectionTests {
         #expect(selected.single == 5, "the arrow moves the cursor alone")
         app.press(.space)
         #expect(selected.single == 6)
+    }
+
+    // MARK: - Home, End and the page keys select (A-FIRSTKEY-1, a deliberate deviation)
+
+    // macOS's only scroll, with a row selected or without; the owner kept
+    // APPFB-1's reading on 2026-11-16, so that a keyboard user reaches the
+    // first and last rows in one key ("Deliberate deviations from SwiftUI.md").
+
+    @Test("From nothing, Home selects the first row")
+    func homeSelectsTheFirstRow() {
+        let selected = Selected()
+        let app = table(selected)
+        app.press(.home)
+        #expect(selected.single == 0)
+    }
+
+    @Test("From nothing, End selects the last row")
+    func endSelectsTheLastRow() {
+        let selected = Selected()
+        let app = table(selected)
+        app.press(.end)
+        #expect(selected.single == 99)
+    }
+
+    @Test("From nothing, Page Down selects the row a page on")
+    func pageDownSelectsAPageOn() {
+        let selected = Selected()
+        let app = table(selected)
+        app.press(.pageDown)
+        #expect(selected.single == 9)
+    }
+
+    @Test("Home moves a selection to the first row")
+    func homeMovesTheSelection() {
+        let selected = Selected()
+        let app = table(selected)
+        app.press(.down, times: 3)
+        #expect(selected.single == 2)
+        app.press(.home)
+        #expect(selected.single == 0)
+    }
+
+    // MARK: - A placed cursor is drawn; an unplaced one is not (the owner, 2026-11-16)
+
+    /// The names of the rows drawn unlike the others: the cursor row and the
+    /// selected rows. A row's styles in order up to its name, its text left
+    /// out, is what tells them apart (the scrollbar's thumb, after the name,
+    /// is on some rows and not others); the most common of those among the
+    /// rows of its parity is a plain row's (a table's rows are striped).
+    private func distinctRows(_ app: TestApp, among names: [String]) -> [String] {
+        let lines = app.screen.styledLines
+        var styles: [String: String] = [:]
+        for name in names {
+            guard let line = lines.first(where: { $0.contains(name) }), let end = line.range(of: name)?.upperBound
+            else { continue }
+            styles[name] = line[..<end].matches(of: /\u{1B}\[[0-9;:]*m/).map { String($0.output) }.joined()
+        }
+        let plain = (0..<2).map { parity in
+            let drawn = names.indices.filter { $0 % 2 == parity }.compactMap { styles[names[$0]] }
+            return Dictionary(grouping: drawn) { $0 }.max { $0.value.count < $1.value.count }?.key
+        }
+        return names.indices.filter { index in
+            styles[names[index]].map { $0 != plain[index % 2] } ?? false
+        }
+        .map { names[$0] }
+    }
+
+    private var firstNames: [String] { rows.prefix(8).map(\.name) }
+
+    @Test("From nothing, no row is drawn as the cursor's; the first Down draws it")
+    func nothingPlacedDrawsNoCursor() {
+        let selected = Selected()
+        let app = table(selected)
+        #expect(app.focusedID != nil)
+        #expect(distinctRows(app, among: firstNames).isEmpty, "\(app.screen)")
+        app.press(.down)
+        #expect(distinctRows(app, among: firstNames) == ["a-0-"], "\(app.screen)")
+    }
+
+    @Test("With nothing placed, the focus arriving scrolls nothing back to the first row")
+    func focusArrivingRevealsNothing() throws {
+        let selected = Selected()
+        let app = TestApp(width: 40, height: 12) {
+            VStack {
+                Button("Go") {}
+                Table(rows, selection: Binding(get: { selected.single }, set: { selected.single = $0 })) {
+                    TableColumn("Name", value: \Row.name)
+                }
+                .selectionFollowsCursor()
+            }
+        }
+        try app.scroll(.down, by: 10, over: "a-0-")
+        #expect(!app.screen.contains("a-0-"), "precondition: the wheel scrolled the rows")
+        app.press(.tab)
+        #expect(app.focusedID != nil)
+        #expect(!app.screen.contains("a-0-"), "\(app.screen)")
+        app.press(.down)
+        #expect(selected.single == 0)
+        #expect(app.screen.contains("a-0-"), "Down scrolls back to the row it selects")
+    }
+
+    @Test("A selection the app clears takes the drawn cursor with it")
+    func appClearHidesTheCursor() {
+        let selected = Selected()
+        let app = table(selected)
+        app.press(.down, times: 3)
+        #expect(distinctRows(app, among: firstNames) == ["c-2-"], "\(app.screen)")
+        app.press(.character("j"))
+        #expect(selected.single == nil)
+        #expect(distinctRows(app, among: firstNames).isEmpty, "\(app.screen)")
+    }
+
+    /// A-FIRSTKEY-3: Space clearing the selection is the user's own act, and
+    /// leaves the cursor where it is, drawn, for the next arrow to go on from.
+    @Test("After Space clears the selection the cursor is drawn on its row, and Down goes on from it")
+    func spaceClearKeepsTheCursor() {
+        let selected = Selected()
+        let app = table(selected)
+        app.press(.down, times: 3)
+        app.press(.space)
+        #expect(selected.single == nil)
+        #expect(distinctRows(app, among: firstNames) == ["c-2-"], "\(app.screen)")
+        app.press(.down)
+        #expect(selected.single == 3)
+    }
+
+    /// A-FIRSTKEY-2: a cursor the pointer parked, while the focus follows it,
+    /// is placed. (Focus Follows Pointer is a *nix idea; macOS has no such
+    /// cursor to compare with.)
+    @Test("A cursor the pointer parked is drawn on its row, and Down goes on from it")
+    func pointerParkedCursor() throws {
+        let selected = Selected()
+        let app = TestApp(PointerApp(selected: selected, rows: rows), width: 40, height: 12)
+        try app.hover(over: "c-2-")
+        #expect(app.focusedID != nil)
+        #expect(selected.single == nil, "the pointer selects nothing")
+        #expect(distinctRows(app, among: firstNames) == ["c-2-"], "\(app.screen)")
+        app.press(.down)
+        #expect(selected.single == 3)
+    }
+
+    /// The same on the first row, where the cursor stood, unplaced, already.
+    @Test("A cursor the pointer parked on the first row is drawn there")
+    func pointerParkedOnTheFirstRow() throws {
+        let selected = Selected()
+        let app = TestApp(PointerApp(selected: selected, rows: rows), width: 40, height: 12)
+        try app.hover(over: "a-0-")
+        #expect(distinctRows(app, among: firstNames) == ["a-0-"], "\(app.screen)")
+        app.press(.down)
+        #expect(selected.single == 1)
+    }
+}
+
+/// A table that follows the cursor, in a window whose focus follows the
+/// pointer.
+private struct PointerApp: App {
+    let selected: Selected
+    let rows: [Row]
+    init() { (selected, rows) = (Selected(), []) }
+    init(selected: Selected, rows: [Row]) { (self.selected, self.rows) = (selected, rows) }
+
+    var body: some Scene {
+        WindowGroup {
+            Table(rows, selection: Binding(get: { selected.single }, set: { selected.single = $0 })) {
+                TableColumn("Name", value: \Row.name)
+            }
+            .selectionFollowsCursor()
+        }
+        .focusFollowsPointer()
     }
 }

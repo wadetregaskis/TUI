@@ -83,6 +83,10 @@ struct SelectionFollowsCursorTests {
     func listMovementSelects() {
         let selection = Selection()
         let app = list(selection, follows: true)
+        // From nothing selected the first Down selects the first row, as on
+        // macOS ("The first key from an empty selection", 2026-11-16).
+        app.press(.down)
+        #expect(selection.single == "alpha")
         app.press(.down)
         #expect(selection.single == "bravo")
         app.press(.end)
@@ -125,8 +129,14 @@ struct SelectionFollowsCursorTests {
     func tableMovementSelectsAndSpaceToggles() {
         let selection = Selection()
         let app = table(selection)
+        // From nothing selected the first Down selects the first row, as on
+        // macOS ("The first key from an empty selection", 2026-11-16).
+        app.press(.down)
+        #expect(selection.single == "alpha")
         app.press(.down)
         #expect(selection.single == "bravo")
+        // Space clearing it is the user's own act: the cursor stays placed,
+        // and the next Down goes on from it (A-FIRSTKEY-3).
         app.press(.space)
         #expect(selection.single == nil)
         app.press(.down)
@@ -143,6 +153,10 @@ struct SelectionFollowsCursorTests {
             .selectionFollowsCursor()
         }
         app.press(.tab)
+        // From nothing selected the first Down selects the first row, as on
+        // macOS ("The first key from an empty selection", 2026-11-16).
+        app.press(.down)
+        #expect(selection.multiple == ["alpha"])
         app.press(.down)
         #expect(selection.multiple == ["bravo"])
         app.press(.down, modifiers: .shift)
@@ -169,6 +183,10 @@ struct SelectionFollowsCursorTests {
             .selectionFollowsCursor()
         }
         app.press(.tab)
+        // From nothing selected Down selects the first row, root ("The first
+        // key from an empty selection", 2026-11-16), and Right opens it.
+        app.press(.down)
+        #expect(selection.single == "root")
         app.press(.right)  // opens root; the cursor stays on it
         app.press(.down)
         #expect(selection.single == "leaf")

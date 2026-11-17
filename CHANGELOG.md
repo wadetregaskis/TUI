@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Under `.selectionFollowsCursor()` the first key from an empty selection does what macOS's does.** With nothing
+selected the cursor started on the first row, drawn there, so the first Down selected the second row and the first
+row's own letter skipped it. Now, with nothing selected and nothing having placed the cursor, no row is drawn as the
+cursor's and the focus arriving scrolls nothing; Down selects the first row, Up the last, a typed letter the first
+row it names. A selection the app empties takes the cursor with it, so the next arrow starts again from nothing;
+one Space empties keeps it, drawn, as does a row the pointer parked it on while the focus follows the pointer. Home,
+End and the page keys still select (on macOS they only scroll; deviation V8). Every `List`, `Table`, tree table,
+`OutlineGroup` and sidebar tab view keys through the one handler; pickers are unchanged.
+
 **A list or table starts with its keyboard cursor on the selection it starts with.** A selection the app had at
 the first frame left the cursor on the first row, so with the sixth row selected the first Down went to the second
 row (and under `.selectionFollowsCursor()` selected it), where macOS goes on to the seventh. The cursor now starts on

@@ -88,7 +88,9 @@ struct TableOutlineRowsTwinTests {
         let model = Model()
         let app = app(model)
         app.press(.tab)
-        app.press(.down, times: 4)  // root, alpha, alpha-one, alpha-two, deep
+        // From nothing selected the first Down selects the first row, as on
+        // macOS ("The first key from an empty selection", 2026-11-16).
+        app.press(.down, times: 5)  // root, alpha, alpha-one, alpha-two, deep
         #expect(model.selection == "deep")
         app.press(.left)
         #expect(model.selection == "alpha-two", "the row deep sits under")

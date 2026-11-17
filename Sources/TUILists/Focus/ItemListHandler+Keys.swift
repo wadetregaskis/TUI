@@ -66,7 +66,7 @@ extension ItemListHandler {
         // the one this file can afford, since the six of them are half this
         // switch's branches and none of them consults anything the branches
         // below do.
-        let cursor = focusedIndex
+        let cursor = cursorBeforeKey
         if let handled = handleCursorMovementKey(event) {
             followCursor(from: cursor)
             return handled
@@ -110,6 +110,12 @@ extension ItemListHandler {
     private func handleCursorMovementKey(_ event: KeyEvent) -> Bool? {
         switch event.key {
         case .up:
+            // From no row, Up comes in from below the list
+            // (``enterFromOutside(movingDown:)``).
+            if cursorIsUnplaced {
+                enterFromOutside(movingDown: false)
+                return true
+            }
             // A plain Up moves one row and wraps; Shift jumps by the multiplier
             // and clamps at the top (an accelerated move, not a cycle).
             if event.shift {
@@ -120,6 +126,10 @@ extension ItemListHandler {
             return true
 
         case .down:
+            if cursorIsUnplaced {
+                enterFromOutside(movingDown: true)
+                return true
+            }
             if event.shift {
                 moveFocus(by: max(1, shiftStepMultiplier), wrap: false)
             } else {

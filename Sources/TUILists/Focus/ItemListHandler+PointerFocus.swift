@@ -18,13 +18,16 @@ extension ItemListHandler {
     /// nothing scrolls: the row is on screen, under the pointer. `nil` — a
     /// section's header or footer, a scroll indicator, the border — and a row
     /// the cursor may not land on (`.selectionDisabled()`, ``isLandable(_:)``)
-    /// move nothing, as the arrows pass them by.
+    /// move nothing, as the arrows pass them by. A row the cursor already
+    /// stood on, but on no row (``cursorIsUnplaced``), is placed and drawn:
+    /// a cursor the pointer parked is a placed one, the next arrow going on
+    /// from it (the owner's A-FIRSTKEY-2, 2026-11-16).
     ///
     /// - Parameter drawing: The list's pictures, dropped when the cursor
     ///   moves, as for any input that moves a handler between frames.
     /// - Returns: Whether the cursor moved, and so a frame is wanted.
     package func followPointer(toRow row: Int?, drawing: HandlerDrawing) -> Bool {
-        guard let row, row != focusedIndex, isLandable(row) else { return false }
+        guard let row, row != focusedIndex || cursorIsUnplaced, isLandable(row) else { return false }
         focusedIndex = row
         drawing.changed()
         return true

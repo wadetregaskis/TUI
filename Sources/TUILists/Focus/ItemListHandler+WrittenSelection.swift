@@ -78,16 +78,31 @@ extension ItemListHandler {
             // Nothing seen yet is the first frame, which follows too.
             if case .single(let seen)? = seenSelection, seen == current { return }
             guard !opensAtTheTail else { return }
-            guard let current, id(at: focusedIndex) != current, let index = index(of: current) else { return }
+            guard let current else {
+                forgetCursor()
+                return
+            }
+            if id(at: focusedIndex) == current {
+                cursorIsPlaced = true
+                return
+            }
+            guard let index = index(of: current) else { return }
             moveCursor(toWritten: index)
         case .multi:
             let current = multiSelection?.wrappedValue ?? []
             defer { seenSelection = .multiple(current) }
             if case .multiple(let seen)? = seenSelection, seen == current { return }
             guard !opensAtTheTail else { return }
-            guard !current.isEmpty else { return }
+            guard !current.isEmpty else {
+                forgetCursor()
+                return
+            }
             func selected(_ index: Int) -> Bool { id(at: index).map(current.contains) ?? false }
-            guard !selected(focusedIndex), let index = (0..<itemCount).first(where: selected) else { return }
+            if selected(focusedIndex) {
+                cursorIsPlaced = true
+                return
+            }
+            guard let index = (0..<itemCount).first(where: selected) else { return }
             moveCursor(toWritten: index)
         }
     }
@@ -100,6 +115,14 @@ extension ItemListHandler {
     /// arriving scrolled the list to it.
     private var opensAtTheTail: Bool {
         seenSelection == nil && bottomFollowCursor != nil
+    }
+
+    /// The app emptied the selection (not the first frame, where nothing was
+    /// seen to empty): the cursor goes with it, as macOS's does, so under
+    /// `.selectionFollowsCursor()` the next Down selects the first row and Up
+    /// the last, not the rows beside the one the selection left.
+    private func forgetCursor() {
+        if seenSelection != nil { cursorIsPlaced = false }
     }
 
     /// Puts the cursor on `index` for a selection the app wrote, and the

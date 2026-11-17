@@ -177,7 +177,7 @@ extension ItemListHandler {
         // viewport back to whatever row the cursor is on. Detaching the cursor
         // from the anchor needs that reveal to know the anchor owns the offset;
         // until then the two move together.
-        focusedIndex = tailRowIndex
+        carryCursor(to: tailRowIndex)
         bottomFollowCursor = focusedIndex
     }
 
@@ -273,7 +273,7 @@ extension ItemListHandler {
         let shift = now - heldTopOrdinal
         scrollOffset = max(0, scrollOffset + shift)
         if focusedIndex >= heldTopOrdinal, itemCount > 0 {
-            focusedIndex = max(0, min(itemCount - 1, focusedIndex + shift))
+            carryCursor(to: max(0, min(itemCount - 1, focusedIndex + shift)))
         }
     }
 

@@ -39,12 +39,14 @@ extension ItemListHandler {
     /// The row `prefix` names: the first, starting at the cursor for a prefix
     /// of more than one character (still typing the same name) and after it
     /// for a first character (the next match), wrapping round, whose text
-    /// starts with the prefix — ignoring case. `nil` when none does.
+    /// starts with the prefix — ignoring case; from the first row when the
+    /// cursor is on none (``cursorIsUnplaced``), so the first row's own letter
+    /// finds it, as on macOS. `nil` when none does.
     ///
     /// - Parameter text: A row's type-select text, or `nil` for a row type
     ///   select passes over.
     func typeSelectMatch(_ prefix: String, text: (Int) -> String?) -> Int? {
-        TypeSelectBuffer.match(prefix, count: itemCount, current: focusedIndex) { index in
+        TypeSelectBuffer.match(prefix, count: itemCount, current: cursorBeforeKey) { index in
             isLandable(index) ? text(index) : nil
         }
     }
@@ -56,7 +58,7 @@ extension ItemListHandler {
         guard !measuring, let prefix = pendingTypeSelect else { return }
         pendingTypeSelect = nil
         guard let match = typeSelectMatch(prefix, text: text) else { return }
-        let cursor = focusedIndex
+        let cursor = cursorBeforeKey
         focusedIndex = match
         ensureFocusedItemVisible()
         followCursor(from: cursor)

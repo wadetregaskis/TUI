@@ -2358,6 +2358,24 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 | `SystemFormatStyle.DateReference` between the measured readings | keeps a time zone of its own; turns at a new year's first instant (measured) | uses the calendar's zone; turns half a second early | [B49](<../Historical/Text, editing and the clipboard/Formatting and live text.md#b49-systemformatstyle-where-the-rules-go-beyond-the-measurements>), **Lane** |
 | An attributed format interpolated into a key | (a custom style's colours: not measured) | draws the characters only | [B88](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b88-an-attributed-format-interpolated-into-a-key-draws-the-characters-only>), **Recorded** |
 
+### V8. Home, End and the page keys select under `.selectionFollowsCursor()`
+
+- **SwiftUI:** in a macOS `List` or `Table`, Home, End, Page Up and Page Down
+  only scroll: the selection stays where it was, or stays empty (measured,
+  macOS 15.8.3, `Tools/SwiftUIProbes/Scroll to a row/firstkey.out`,
+  2026-11-16).
+- **TUI:** under `.selectionFollowsCursor()` they move the cursor and select
+  the row it lands on, as the arrows do: Home the first row, End the last, a
+  page key the row a page on (from an empty selection, a page below the first
+  row). Without the modifier they move the cursor alone (V2).
+  `FirstKeyFromEmptySelectionTests` and
+  `SelectionFollowsCursorTests.listMovementSelects` pin it.
+- **Why:** APPFB-1 (2026-11-14) named them among the keys that select, and
+  the owner kept that on seeing macOS's answer: a keyboard user reaches the
+  first and last rows in one key, where scrolling alone leaves the next arrow
+  going on from a row the screen no longer shows.
+- **Decided:** [A-FIRSTKEY-1](<../Historical/Lists, tables and tabs/The first key from an empty selection.md#a-firstkey-1-home-end-and-the-page-keys-under-selectionfollowscursor-select-as-appfb-1-says-or-only-scroll-as-macos-does>). **Owner** (2026-11-16).
+
 ---
 
 ## Presentation and window chrome

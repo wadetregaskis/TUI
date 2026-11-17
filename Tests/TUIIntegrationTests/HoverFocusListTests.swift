@@ -136,7 +136,10 @@ struct HoverFocusListTests {
     /// `.selectionFollowsCursor()` makes the KEYS' moves select; the pointer
     /// moves the cursor without them, so it still selects nothing (HOVER-FOCUS
     /// b: never a value or a selection). The next arrow goes on from the row
-    /// the pointer left the cursor on, and selects where it lands.
+    /// the pointer left the cursor on, and selects where it lands: a cursor
+    /// the pointer parked counts as placed (the owner's A-FIRSTKEY-2,
+    /// 2026-11-16), where one nothing placed would have Down select the first
+    /// row.
     @Test(
         "With selectionFollowsCursor, the pointer still selects nothing; the next arrow selects from where it is",
         arguments: Kind.allCases)

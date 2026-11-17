@@ -53,12 +53,16 @@ extension ItemListHandler {
     /// or delete one.
     ///
     /// Nothing where the cursor did not move, so a Space that cleared the
-    /// selection is not undone by an arrow pressed against the end; nor in the
+    /// selection is not undone by an arrow pressed against the end — but a key
+    /// that started from no row (`previous` `nil`, ``cursorIsUnplaced``)
+    /// selects wherever it put the cursor, so Down onto the first row, or
+    /// Home there, selects it; nothing where it found no row to put it on. Nor
+    /// in the
     /// column of a collapsed split view, where choosing a row goes to the next
     /// column and the keys browse. A row's `NavigationLink` is not followed:
     /// moving through a list in a stack does not push each row.
-    func followCursor(from previous: Int) {
-        guard selectionFollowsCursor, focusedIndex != previous, compactColumnAdvance == nil,
+    func followCursor(from previous: Int?) {
+        guard selectionFollowsCursor, !cursorIsUnplaced, focusedIndex != previous, compactColumnAdvance == nil,
             let id = id(at: focusedIndex), !selectionDisabledRows.contains(focusedIndex)
         else { return }
         switch selectionMode {
@@ -343,11 +347,15 @@ extension ItemListHandler {
         }
     }
 
-    /// Returns whether the item at the given index is focused.
+    /// Returns whether the item at the given index is focused: drawn as the
+    /// cursor's row while the list holds the focus. None is from no row
+    /// (``cursorIsUnplaced``), as a macOS list with nothing selected draws
+    /// none: a placed cursor is always drawn, and an unplaced one never is
+    /// (the owner, 2026-11-16).
     ///
     /// - Parameter index: The item index.
     /// - Returns: True if the item is focused.
     package func isFocused(at index: Int) -> Bool {
-        focusedIndex == index
+        focusedIndex == index && !cursorIsUnplaced
     }
 }

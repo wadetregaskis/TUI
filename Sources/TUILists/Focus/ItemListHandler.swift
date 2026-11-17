@@ -1106,12 +1106,39 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _canBeFocused: Bool
 
-    /// The currently focused item index (keyboard cursor).
-    package var focusedIndex: Int { get { _focusedIndex } set { _focusedIndex = newValue } }
+    /// The currently focused item index (keyboard cursor). Setting it places
+    /// the cursor (``cursorIsPlaced``): every move of it is one the user or
+    /// the app made, but the list's own keeping it on its row as the rows
+    /// change, which goes through ``carryCursor(to:)``.
+    package var focusedIndex: Int {
+        get { _focusedIndex }
+        set {
+            _focusedIndex = newValue
+            cursorIsPlaced = true
+        }
+    }
 
     /// ``focusedIndex``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
     private var _focusedIndex: Int = 0
+
+    /// Whether anything has put the cursor where it is: a key, a click, a
+    /// swipe, the pointer while the focus follows it, a selection the app
+    /// wrote or started with. False at first, and again once the app empties
+    /// the selection (``followWrittenSelection()``); Space emptying it is the
+    /// user's own act, and leaves it placed (A-FIRSTKEY-3). Read only under
+    /// `.selectionFollowsCursor()`, where a cursor placed nowhere is on no row
+    /// (``cursorIsUnplaced``).
+    var cursorIsPlaced = false
+
+    /// Moves the cursor as the list keeps it on its row while the rows change
+    /// under it — the row followed by its id, a cursor past the last row
+    /// brought back, the starting row past a header, the top-row hold, the
+    /// Bottom anchor's tail — without placing it: none of those is anyone
+    /// putting it there, and a cursor on no row stays on none.
+    func carryCursor(to index: Int) {
+        _focusedIndex = index
+    }
 
     /// The identity of the row last drawn over a raised background — the
     /// focused, selected row of a `List` — or `nil` when there was none. Kept
@@ -2045,8 +2072,10 @@ extension ItemListHandler {
     /// opens at, or a `scrollTo` made before the user reaches the list, would
     /// otherwise be undone by the focus arriving, the cursor still on the row
     /// it started on (an app that opened on row 10 of a list showed row 0).
+    /// Nor a cursor on no row (``cursorIsUnplaced``): there is none to show,
+    /// and revealing row 0 scrolled a list the wheel had moved back to the top.
     package func onFocusReceived() {
-        guard cursorAtProgrammaticPlacement != focusedIndex else { return }
+        guard !cursorIsUnplaced, cursorAtProgrammaticPlacement != focusedIndex else { return }
         ensureFocusedItemVisible()
     }
 }

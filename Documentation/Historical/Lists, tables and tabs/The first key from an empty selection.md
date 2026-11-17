@@ -3,7 +3,8 @@
 *What the first Down, Up, Home, End, page key or typed letter does in a list,
 table, tree or picker with nothing selected, under `.selectionFollowsCursor()`
 and without it, beside macOS; where the code would change, and a staged plan.
-Ids: A-FIRSTKEY-1 to A-FIRSTKEY-3 (open).*
+Ids: A-FIRSTKEY-1 to A-FIRSTKEY-3, answered by the owner on 2026-11-16; stages 1
+and 2 built the same day.*
 
 ## In short
 
@@ -23,6 +24,12 @@ change there is a flag and five functions. Pickers key through a second
 handler, `RadioButtonGroupHandler`, and their macOS behaviour is unmeasured.
 About a day in all, most of it tests; the Home/End question is the owner's.
 
+**Since 2026-11-16** stages 1 and 2 are built: TUI does what macOS does from an
+empty selection, but for Home, End and the page keys, which the owner kept
+selecting (A-FIRSTKEY-1, now deviation
+[V8](<../../SwiftUI parity/Deliberate deviations from SwiftUI.md#v8-home-end-and-the-page-keys-select-under-selectionfollowscursor>)).
+A cursor something placed is drawn, and one nothing placed is not.
+
 ## How it unfolded
 
 1. **2026-11-14, APPFB-1.** The owner chose an opt-in
@@ -37,6 +44,9 @@ About a day in all, most of it tests; the Home/End question is the owner's.
    moving key and four starting states (`firstkey.swift`, `firstkey.out`),
    read the code paths, and pinned each difference in
    `Tests/TUITablesTests/FirstKeyFromEmptySelectionTests.swift`.
+4. **2026-11-16, the owner** answered A-FIRSTKEY-1 to 3 (below), and added a
+   rule: a placed cursor is always drawn, and an unplaced one never is. Lane
+   FIRSTKEY-BUILD built stages 1 and 2 ([What was built](#what-was-built)).
 
 ## The record
 
@@ -67,7 +77,7 @@ clears the cursor with it. A `List` is an `NSOutlineView` there
 deselects (⌘-click) rather than the app; a radio group or segmented picker
 whose selection matches none of its options.
 
-### What TUI does today
+### What TUI did before stages 1 and 2
 
 The list's cursor is `ItemListHandler.focusedIndex`, an `Int` that starts at
 0 and is moved by the keys, a click, the pointer while the focus follows it
@@ -155,6 +165,12 @@ shows macOS's never select, with a row selected or without. Options:
 
 A deliberate deviation needs the owner; not decided here.
 
+**Decided (owner, 2026-11-16): (a), keep them selecting.** APPFB-1 stands;
+recorded as deviation
+[V8](<../../SwiftUI parity/Deliberate deviations from SwiftUI.md#v8-home-end-and-the-page-keys-select-under-selectionfollowscursor>).
+From an empty selection they select too: Home the first row, End the last,
+Page Down the row a page below the first, Page Up the first.
+
 ### A-FIRSTKEY-2. Does a cursor the pointer parked count as placed?
 
 Lane-decided on 2026-11-16 under HOVER-FOCUS: the next arrow goes on from the
@@ -164,12 +180,22 @@ Recommended: keep it placed (the pointer is where the user is looking, and
 HOVER-FOCUS made the cursor follow it so the keys act there); the plan below
 assumes so.
 
+**Decided (owner, 2026-11-16): placed.** The next Down goes on from the row the
+pointer parked the cursor on, which is drawn as the cursor's, the first row
+included. Focus Follows Pointer is a *nix idea, not macOS's, so macOS has
+nothing to bind it to.
+
 ### A-FIRSTKEY-3. After the list's own Space clears the selection, is the cursor placed?
 
 `SelectionFollowsCursorTests.tableMovementSelectsAndSpaceToggles` has the next
 Down go on from it. macOS has no Space toggle; its ⌘-click deselect is
 unmeasured. Recommended: placed (only the app clearing it, which macOS
 measures, unplaces it), which keeps that test.
+
+**Decided (owner, 2026-11-16): placed.** The cursor stays on its row, drawn, and
+the next Down goes on from it. The distinction is who cleared it: the app's
+clear forgets the position, as macOS's does; the user's own (Space, or Escape
+in a multiple selection) keeps it.
 
 ### The plan
 
@@ -194,3 +220,58 @@ the safe spelling).
 **Recommended:** stages 1 and 2 as one landing stream (they are parity in
 cases macOS measures, with no deviation to decide), stage 3 when the owner
 answers A-FIRSTKEY-1, stages 4 and 5 after their probes.
+
+## What was built
+
+On 2026-11-16, in `ItemListHandler`, so in every `List`, `Table`, tree table,
+`OutlineGroup` and sidebar tab view at once. Pickers (stage 4) and Shift with
+an arrow (stage 5) are not built.
+
+**Stage 1, in both modes.** `followWrittenSelection()` treats the first frame,
+with nothing seen yet, as a selection the app wrote: the cursor goes onto a
+selection the list starts with, so with row 5 selected Down goes on to row 6
+(under the modifier, selecting it), and without the modifier the cursor the
+focus arrives with is row 5's, not row 0's. Not where a Bottom anchor
+(`.defaultScrollAnchor(.bottom)`) carried the cursor to the tail that frame:
+moved onto a selection above, the cursor ended the follow and the focus
+arriving scrolled the log off its newest rows
+(`ListRowSelectionValueCostTests.bottomAnchoredFollowAsksOnlyTheTail`), so
+the anchor keeps it. Three tests that started with a selection and expected
+the cursor on row 0 move it there first (`ListRowCarryTests`, two, and
+`BackgroundProminenceTests.selectionAwayFromTheCursorIsPlain`).
+
+**Stage 2, under `.selectionFollowsCursor()`.** A flag beside the cursor,
+`cursorIsPlaced`, which every write of `focusedIndex` sets: the keys, a click,
+a swipe, the pointer while the focus follows it, a selection the app writes or
+starts with. The list's own carrying of the cursor while the rows change (its
+row followed by id, a cursor past the last row brought back, the starting row
+past a header, the top-row hold, the Bottom anchor's tail) goes through
+`carryCursor(to:)`, which leaves the flag alone. With the modifier on and the
+flag off, the cursor is on no row (`cursorIsUnplaced`):
+
+| Key or event, from no row | Now | macOS |
+|---|---|---|
+| Down | selects the first row the cursor may land on, scrolling to it | the same |
+| Up | selects the last | the same |
+| A typed letter | selects the first row it names, the first row's own letter included | the same |
+| Home, End, Page Up, Page Down | select the first row, the last, a page below the first row, the first (V8) | scroll only |
+| The app empties the selection | the cursor is on no row again: the next Down selects the first row | the same |
+| Space or Escape empties it | the cursor stays, drawn, and the next Down goes on from it (A-FIRSTKEY-3) | no Space toggle |
+| The pointer parks the cursor | placed, drawn, the next Down goes on from it (A-FIRSTKEY-2) | no such cursor |
+| The list takes the focus | no row is drawn as the cursor's, and nothing is scrolled to | the same |
+
+`isFocused(at:)`, which both drawing twins ask through `isCursorRow(_:)`,
+answers no for every row while the cursor is on none: a placed cursor is always
+drawn and an unplaced one never is. `onFocusReceived()` reveals nothing then,
+since revealing row 0 scrolled a list the wheel had moved back to the top.
+
+Tests: `FirstKeyFromEmptySelectionTests` (the eight known issues now plain
+expectations, the three about Home, End and Page Down rewritten to V8, and the
+drawing rule pinned on the parked row, the row Space cleared and a list with
+nothing placed), and the existing tests that encoded the old first key, each
+with a comment citing the ruling: `SelectionFollowsCursorTests`
+(`listMovementSelects`, `tableMovementSelectsAndSpaceToggles`,
+`multipleSelection`, `treeLeftSelectsParent`),
+`TableOutlineRowsTwinTests.selectionAndParent`,
+`ScrollToLeavesTheCursorTests.nothingSelected` and
+`HoverFocusListTests.selectionFollowsCursorIgnoresPointer`.

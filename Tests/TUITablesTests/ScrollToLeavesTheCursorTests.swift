@@ -122,15 +122,11 @@ struct ScrollToLeavesTheCursorTests {
         #expect(app.screen.contains("row-1-"), "\(app.screen)")
     }
 
-    /// Known issue, not `scrollTo`'s: under `.selectionFollowsCursor()` the
-    /// cursor sits on row 0 with nothing selected, and the first Down moves it
-    /// to row 1 and selects that, where macOS selects row 0 (and Up from
-    /// nothing selects the last row). The same happens without a `scrollTo`,
-    /// and a `scrollTo` that moved the cursor would not change it. Fixing it
-    /// is the first arrow, Home and End from an empty selection in every list,
-    /// table, tree and picker that follows the cursor, not this file's: see
-    /// `FirstKeyFromEmptySelectionTests` and the plan in
-    /// `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`.
+    /// Under `.selectionFollowsCursor()` with nothing selected the cursor is on
+    /// no row, and the first Down selects row 0, as macOS's does, from
+    /// wherever `scrollTo` left the rows (stage 2 of
+    /// `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`,
+    /// 2026-11-16; it was a known issue here, the first Down selecting row 1).
     @Test("With nothing selected, Down after scrollTo selects the first row, not one in view")
     func nothingSelected() {
         let selected = Selected()
@@ -142,10 +138,8 @@ struct ScrollToLeavesTheCursorTests {
         app.press(.down)
         // It does scroll back to the cursor, not stay at row 50.
         #expect(!app.screen.contains("row-50-"), "\(app.screen)")
-        withKnownIssue("The first arrow from an empty selection moves the cursor before selecting") {
-            #expect(selected.single == 0)
-            #expect(app.screen.contains("row-0-"))
-        }
+        #expect(selected.single == 0)
+        #expect(app.screen.contains("row-0-"))
     }
 
     @Test("A cursor apart from the selection stays too: Down then Space selects row 1")

@@ -48,7 +48,7 @@ extension ItemListHandler {
         // The Bottom follow tells its own cursor from one the user moved by its
         // index: it moves with the row it named.
         if bottomFollowCursor == focusedIndex { bottomFollowCursor = found }
-        focusedIndex = found
+        carryCursor(to: found)
         return (found, remembered)
     }
 
@@ -61,7 +61,7 @@ extension ItemListHandler {
     /// ``followCursorRow(from:ownMovePending:)``.
     func keepCursorOnTheRows() {
         guard itemCount > 0, focusedIndex >= itemCount else { return }
-        focusedIndex = min(itemCount - 1, lastLandingRow(orElse: itemCount - 1))
+        carryCursor(to: min(itemCount - 1, lastLandingRow(orElse: itemCount - 1)))
     }
 
     /// Starts the cursor on the first row it can land on, once, on the first
@@ -79,7 +79,7 @@ extension ItemListHandler {
         hasPlacedStartingCursor = true
         guard !isInLandingSet(focusedIndex) else { return }
         let first = firstLandingRow(orElse: -1)
-        if first >= 0, isInLandingSet(first) { focusedIndex = first }
+        if first >= 0, isInLandingSet(first) { carryCursor(to: first) }
     }
 
     /// Remembers the cursor's row for the next frame's
