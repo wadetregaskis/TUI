@@ -17,10 +17,12 @@ extension RenderCache {
         let pending = link.drain()
         if pending.clearAll {
             clearAll()
+        } else if pending.identities.count == 1, let writer = pending.keptOnly.first {
+            clearAffected(by: writer, includingDescendants: false)
         } else if pending.identities.count == 1, let writer = pending.softOnly.first {
             clearAffected(softlyBy: writer)
-        } else if !pending.softOnly.isEmpty {
-            clearAffected(byEachOf: pending.identities, softly: pending.softOnly)
+        } else if !pending.softOnly.isEmpty || !pending.keptOnly.isEmpty {
+            clearAffected(byEachOf: pending.identities, softly: pending.softOnly, keptOnly: pending.keptOnly)
         } else if pending.identities.count == 1, let writer = pending.identities.first {
             clearAffected(by: writer)
         } else if !pending.identities.isEmpty {
@@ -195,7 +197,12 @@ extension RenderCache {
     /// identities have no chain to index, so while one is among the writers
     /// every entry takes the pairwise test against each writer, which is what
     /// the pairwise clears asked of it.
-    func clearAffected(byEachOf writers: Set<ViewIdentity>, softly soft: Set<ViewIdentity> = []) {
+    ///
+    /// A writer in `keptOnly` (``Link``'s kept-only report) takes itself and
+    /// what is above it, as every writer does, and nothing below.
+    func clearAffected(
+        byEachOf writers: Set<ViewIdentity>, softly soft: Set<ViewIdentity> = [], keptOnly: Set<ViewIdentity> = []
+    ) {
         sizeClearGeneration &+= writers.count
         stats.subtreeClears += writers.count
         let anyRawWriter = writers.contains(where: \.isRawRooted)
@@ -213,7 +220,7 @@ extension RenderCache {
         // that recorded what it was drawn from and under is kept, a suspect,
         // to be re-checked when it is looked up; one that did not is dropped.
         // Below a hard writer, everything goes, as below every writer before.
-        let hard = soft.isEmpty ? writers : writers.subtracting(soft)
+        let hard = soft.isEmpty && keptOnly.isEmpty ? writers : writers.subtracting(soft).subtracting(keptOnly)
         var belowHard = RetainedSubtreeIndex(roots: Array(hard))
         var belowSoft = RetainedSubtreeIndex(roots: Array(soft))
         func verdict(_ cached: ViewIdentity, stamped: Bool) -> DrainVerdict {

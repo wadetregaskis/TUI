@@ -120,4 +120,54 @@ struct SoftInvalidationTests {
         #expect(!pending.identities.isEmpty, "the write reached no scope")
         #expect(pending.softOnly == pending.identities)
     }
+
+    @Test("A kept-only report is the weakest: a soft or hard report of the same identity makes it that")
+    func keptOnlyLattice() {
+        let cache = RenderCache()
+        let link = cache.link
+        defer { withExtendedLifetime(cache) {} }
+        let a = ViewIdentity(path: "A")
+        let b = ViewIdentity(path: "B")
+        link.invalidateRenderForObservedChange(at: a, keptOnly: true)
+        link.invalidateRenderForObservedChange(at: a, keptOnly: true)
+        var pending = link.drain()
+        #expect(pending.identities == [a])
+        #expect(pending.keptOnly == [a] && pending.softOnly.isEmpty)
+
+        link.invalidateRenderForObservedChange(at: a, keptOnly: true)
+        link.invalidateRenderSoftly(for: a)
+        link.invalidateRenderSoftly(for: b)
+        link.invalidateRenderForObservedChange(at: b, keptOnly: true)
+        pending = link.drain()
+        #expect(pending.keptOnly.isEmpty)
+        #expect(pending.softOnly == [a, b])
+
+        link.invalidateRenderForObservedChange(at: a, keptOnly: true)
+        link.invalidateRender(for: a)
+        pending = link.drain()
+        #expect(pending.identities == [a])
+        #expect(pending.keptOnly.isEmpty && pending.softOnly.isEmpty)
+    }
+
+    /// A kept result's scope reads everything below it, and everything kept
+    /// below has a scope of its own, so its change drops what it kept and
+    /// what holds that, not what is below — alone in the queue or beside
+    /// another writer.
+    @Test("A kept-only writer drops itself and what holds it, and keeps what is below", arguments: [false, true])
+    func keptOnlyDrain(besideAnotherWriter: Bool) {
+        let cache = RenderCache()
+        let root = ViewIdentity(path: "Root")
+        let page = ViewIdentity(path: "Root/Page")
+        let row = ViewIdentity(path: "Root/Page/Row")
+        for identity in [root, page, row] {
+            cache.store(
+                identity: identity, view: 0, buffer: FrameBuffer(text: "cached"), contextWidth: 80, contextHeight: 24)
+        }
+        cache.link.invalidateRenderForObservedChange(at: page, keptOnly: true)
+        if besideAnotherWriter { cache.link.invalidateRender(for: ViewIdentity(path: "Elsewhere")) }
+        cache.beginRenderPass()
+        #expect(cache.lookup(identity: root, view: 0, contextWidth: 80, contextHeight: 24) == nil)
+        #expect(cache.lookup(identity: page, view: 0, contextWidth: 80, contextHeight: 24) == nil)
+        #expect(cache.lookup(identity: row, view: 0, contextWidth: 80, contextHeight: 24) != nil)
+    }
 }

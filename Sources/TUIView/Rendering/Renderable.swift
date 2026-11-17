@@ -457,19 +457,21 @@ package func observedChange(
     // values of the views it makes (Option C, §2.1). A kept result's scope
     // collects reads made anywhere beneath it, a control's core's included,
     // so its change stays hard: unless composites are memoized (`PlainMemo`),
-    // when there is one at every composite, a hard report fired at a page would
-    // take every row below it, and what a scope did not read itself has a scope
-    // of its own.
-    let softly =
-        kind == .bodyRender || kind == .bodyMeasure
-        || (cache?.plainMemo.isOn == true && (kind == .keptRender || kind == .keptMeasure))
+    // when there is one at every composite, and what a scope did not read
+    // itself has a scope of its own. Then it drops what it kept and what holds
+    // that, and nothing below (`keptOnly`): a hard report fired at a page took
+    // every row below it, and a soft one every result below that recorded
+    // nothing to be re-checked by — a hugging `List`'s width, walked over every
+    // row again for a clock a leaf beside it read (`ListHugKeptScopeTests`).
+    let softly = kind == .bodyRender || kind == .bodyMeasure
+    let keptOnly = !softly && cache?.plainMemo.isOn == true && (kind == .keptRender || kind == .keptMeasure)
     return { [link = cache?.link, identity = context.identity] in
         if let sentinel, sentinel.isRetired {
             registration?.cancel()
             return
         }
         registration?.fire()
-        reportObservedChange(at: identity, to: link, softly: softly)
+        reportObservedChange(at: identity, to: link, softly: softly, keptOnly: keptOnly)
     }
 }
 
@@ -576,15 +578,18 @@ private func rowBuildChange(
 ///   - identity: The identity whose body read the property.
 ///   - link: The link of the cache the body was drawn with; `nil` when it was
 ///     drawn with no cache.
+///   - softly: A parent's read (a body's): see
+///     ``RenderCache/Link/invalidateRenderForObservedChange(at:softly:keptOnly:)``.
+///   - keptOnly: A kept result's read, with a scope at every result below.
 ///   - fallback: What a change does to a render with no cache: asks the app
 ///     whose work made the change (``AmbientApp``), if any, for a frame drawn
 ///     from an empty cache. A parameter so a test can see it run.
 package func reportObservedChange(
-    at identity: ViewIdentity, to link: RenderCache.Link?, softly: Bool = false,
+    at identity: ViewIdentity, to link: RenderCache.Link?, softly: Bool = false, keptOnly: Bool = false,
     fallback: () -> Void = { AmbientApp.renderState?.setNeedsRenderWithCacheClear() }
 ) {
     if let link {
-        link.invalidateRenderForObservedChange(at: identity, softly: softly)
+        link.invalidateRenderForObservedChange(at: identity, softly: softly, keptOnly: keptOnly)
     } else {
         fallback()
     }

@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A hugging `List` keeps its width through a change it did not read.** When a view of an app's own was kept and a
+property read anywhere beneath it changed, everything kept below it that could not be re-checked was dropped with it,
+though each of those has its own watch on what it read. A sidebar `List` hugging its rows beside a clock that ticks
+every frame lost its width that way each time the page was tried for keeping again, about every 64 frames, and read
+all of its rows twice running to find it: 40% of the frame for 2,000 projects. Now such a change drops the view's
+own result and those that contain it, and leaves the rest to their own watches.
+
 **A `Table` measured more than once in a frame measures its border and header once.** A table sizes its chrome by
 measuring it around a stand-in for its rows, at the size the rows come to, so a second measure at another size
 asks the same thing; the frame's measure memo answered it only by luck, since the header line it was keyed by was
