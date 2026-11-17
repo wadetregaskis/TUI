@@ -58,8 +58,11 @@ struct EditorPointer {
         // click that horizontally scrolled the editor.
         let displayColumn =
             handler.scrollColumn + max(0, min(event.x, contentWidth - 1))
-        let line = handler.scrollLine + row
+        // Below the last line, on the last line, at the column clicked, as a
+        // wrapping editor's click below its last row lands on that row: read
+        // as an empty line, the column came out 0 wherever the click was.
         let allLines = handler.displayLines()
+        let line = min(handler.scrollLine + row, allLines.count - 1)
         let lineChars = allLines.indices.contains(line) ? allLines[line] : []
         let column = TabLayout.charIndex(
             forDisplayColumn: displayColumn, in: lineChars, tabWidth: tabWidth)

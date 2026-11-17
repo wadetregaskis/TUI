@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A click below the text of a `TextEditor` that scrolls sideways lands at the column clicked.** Under
+`.textEditorWrapsLines(false)`, a click in the empty rows below the last line put the caret at the start of that
+line wherever the click was. It now goes to the column clicked on the last line, as it does in an editor that wraps.
+
 **`ScrollView { OutlineGroup(…) }` draws its tree.** An outline with nothing to lay out its rows — a scroll view's
 whole content, the shape `OutlineGroup`'s own documentation shows, or a view's entire `body` — drew a blank screen,
 since it had no drawing of its own; inside a `VStack` it drew fine. It now stacks its rows as a `VStack` does, and in
