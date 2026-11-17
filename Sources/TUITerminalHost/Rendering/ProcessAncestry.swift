@@ -12,6 +12,8 @@ import Darwin
 import Glibc
 #elseif canImport(Musl)
 import Musl
+#elseif os(Windows)
+import WinSDK
 #endif
 
 /// A process's parents, as the kernel records them.
@@ -60,14 +62,54 @@ enum ProcessAncestry {
 
     /// This process's command names up to the root (``commandNames(from:limit:)``),
     /// or `nil` where they cannot be read: a WebAssembly guest has no
-    /// processes to walk, and Windows no walk here (see the `pid_t` API below).
+    /// processes to walk. Windows walks its own way (``windowsCommandNames(limit:)``).
     static func ownCommandNames() -> [String]? {
         #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
             return commandNames(from: getpid())
+        #elseif os(Windows)
+            return windowsCommandNames()
         #else
             return nil
         #endif
     }
+
+    #if os(Windows)
+        /// This process's command names up to the root, on Windows: its own
+        /// first, each its executable's file name less `.exe` — `sshd` for
+        /// OpenSSH's `sshd.exe`, as the kernel names it elsewhere — or `nil`
+        /// where the system will not list its processes.
+        ///
+        /// From one snapshot of every process (`CreateToolhelp32Snapshot`),
+        /// which records each one's parent by id. Windows does not keep a
+        /// parent alive for its children, so a parent that has exited ends the
+        /// chain where it is missing; and its id may since be another
+        /// process's, which can only make the chain longer, never pass over a
+        /// daemon still running. A cycle, which reuse could make, ends it too.
+        static func windowsCommandNames(limit: Int = 64) -> [String]? {
+            let snapshot = CreateToolhelp32Snapshot(DWORD(TH32CS_SNAPPROCESS), 0)
+            guard let snapshot, snapshot != INVALID_HANDLE_VALUE else { return nil }
+            defer { CloseHandle(snapshot) }
+            var processes: [DWORD: (parent: DWORD, name: String)] = [:]
+            var entry = PROCESSENTRY32W()
+            entry.dwSize = DWORD(MemoryLayout<PROCESSENTRY32W>.size)
+            var more = Process32FirstW(snapshot, &entry)
+            while more {
+                let name = withUnsafeBytes(of: entry.szExeFile) { raw in
+                    String(decodingCString: raw.bindMemory(to: UInt16.self).baseAddress!, as: UTF16.self)
+                }
+                processes[entry.th32ProcessID] = (entry.th32ParentProcessID, name)
+                more = Process32NextW(snapshot, &entry)
+            }
+            var names: [String] = []
+            var seen: Set<DWORD> = []
+            var id = GetCurrentProcessId()
+            while names.count < limit, seen.insert(id).inserted, let process = processes[id] {
+                names.append(process.name.lowercased().hasSuffix(".exe") ? String(process.name.dropLast(4)) : process.name)
+                id = process.parent
+            }
+            return names.isEmpty ? nil : names
+        }
+    #endif
 
     // The walk by process id. `pid_t` is POSIX's, and wasi-libc declares it
     // too (where every read below answers `nil`: a wasm guest has no

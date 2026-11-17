@@ -177,7 +177,7 @@ package enum SessionLocality {
     /// it is asked when a copy is made, never per frame. Outside tmux it reads
     /// the kernel only.
     package static func isLocal() -> Bool {
-        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl) || os(Windows)
         let inputs = Inputs.current()
         return isLocal(
             environment: inputs.environment, ownChain: inputs.ownChain, tmuxClientChains: inputs.tmuxClientChains,
@@ -185,8 +185,7 @@ package enum SessionLocality {
         #else
             // No processes to walk, so no positive evidence, so not local: a
             // wasm guest has none and no helper to run — the machine it runs
-            // on is a browser page's sandbox — and Windows has no ancestry
-            // walk here (``ProcessAncestry/ownCommandNames()``).
+            // on is a browser page's sandbox.
             return false
         #endif
     }
@@ -200,7 +199,7 @@ package enum SessionLocality {
         var tmuxClientChains: [[String]?]?
         var inTmux: Bool
 
-        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl) || os(Windows)
             static func current() -> Self {
                 let inTmux = TerminalHost.isTmux
                 let ownChain = ProcessAncestry.ownCommandNames()
