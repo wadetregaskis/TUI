@@ -78,8 +78,17 @@ struct StorageFailureTests {
     @Test("A failure handler may localize its own message")
     func handlerMayLocalize() {
         // Under `/dev/null`, so every write below it fails, and unique, so the
-        // handler can tell this service's reports from a parallel suite's.
-        let directory = "/dev/null/tuikit-unwritable-\(UUID().uuidString)"
+        // handler can tell this service's reports from a parallel suite's. On
+        // Windows `/dev/null` is an ordinary path (`C:\dev\null`) that can be
+        // made, so the folder goes under a file instead, which no folder can be.
+        #if os(Windows)
+            let file = NSTemporaryDirectory() + "tuikit-unwritable-\(UUID().uuidString)"
+            _ = FileManager.default.createFile(atPath: file, contents: Data())
+            defer { try? FileManager.default.removeItem(atPath: file) }
+            let directory = file + "/settings"
+        #else
+            let directory = "/dev/null/tuikit-unwritable-\(UUID().uuidString)"
+        #endif
         let unwritable = LocalizationService(configDirectoryPath: directory)
         let observed = Lock(initialState: String?.none)
         let previous = StorageDiagnostics.onFailure
