@@ -140,6 +140,10 @@ does nothing until ⌃F or Tab, so the field takes the focus there, as every
 searchable did before. A SwiftUI program behaves no differently for it: only
 the keys that would have done nothing reach the field.
 
+**Owner's ruling (2026-11-17):** approved, together with Escape handing the
+keyboard to the content (where macOS focuses no view). Both are recorded in
+`Deliberate deviations from SwiftUI.md`.
+
 **A document opened after launch** (2026-11-15, tuitree's M4 feedback, item
 1): a `DocumentGroup` draws a document opened through `openDocument(at:)` or
 Open… in its window in place of the last one, under a new identity, so every

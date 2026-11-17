@@ -102,8 +102,10 @@ struct SearchableModifier<Content: View> {
     /// empties it, ends the search and takes the focus out of it, empty or
     /// not (measured with SwiftUI on macOS 15.8, `Tools/SwiftUIProbes/Search
     /// field focus and Escape/`); there the focus goes to no view, which a
-    /// terminal's keyboard has no use for. Asked after the field, through
-    /// `onExitCommand`, so an open suggestions menu closes first.
+    /// terminal's keyboard has no use for. A deliberate deviation, approved by
+    /// the owner on 2026-11-17 (`Deliberate deviations from SwiftUI.md`). Asked
+    /// after the field, through `onExitCommand`, so an open suggestions menu
+    /// closes first.
     @ViewBuilder
     @MainActor private var fieldRow: some View {
         let dismissal = dismissal
@@ -122,7 +124,9 @@ struct SearchableModifier<Content: View> {
                 .environment(\.submitTriggerRole, .search)
                 // Not where the focus starts: the content's first control is,
                 // as on macOS, where the search field is in the toolbar and ⌘F
-                // reaches it (``AutomaticFocusDeclining``). ⌃F does here.
+                // reaches it (``AutomaticFocusDeclining``). ⌃F does here. With
+                // nothing else to focus the field takes it, where macOS focuses no
+                // view: a deliberate deviation the owner approved on 2026-11-17.
                 .environment(\.declinesAutomaticFocus, true)
             // A slot of its own after the field's, so the field stays the same
             // view as the button comes and goes.
