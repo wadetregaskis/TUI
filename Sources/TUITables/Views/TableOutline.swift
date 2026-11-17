@@ -757,8 +757,14 @@ where Label.TableRowValue == Content.TableRowValue {
     public typealias TableRowValue = Label.TableRowValue
     public typealias TableRowBody = Never
 
-    /// The row itself.
-    let label: Label
+    /// The row itself: its value, which is all a ``TableRow`` label holds.
+    ///
+    /// The value, not the label: the label's rows were found by building a
+    /// list of them, through generic code that looked up the list's metadata
+    /// at run time, for every branch of a tree on every pass, and its first
+    /// row taken. Its only initializer makes the label a `TableRow` of the
+    /// value, so the value is that row.
+    let value: Label.TableRowValue
 
     /// The rows beneath it.
     let content: () -> Content
@@ -778,7 +784,7 @@ where Label.TableRowValue == Content.TableRowValue {
         _ value: Value, isExpanded: Binding<Bool>? = nil,
         @TableRowBuilder<Value> content: @escaping () -> Content
     ) where Label == TableRow<Value>, Value == Content.TableRowValue {
-        self.label = TableRow(value)
+        self.value = value
         self.content = content
         self.isExpanded = isExpanded
     }
@@ -790,11 +796,10 @@ where Label.TableRowValue == Content.TableRowValue {
 extension DisclosureTableRow {
     /// Appends this row, with the rows disclosed beneath it.
     public static func _appendRows(_ row: Self, to rows: inout _TableRowList<Label.TableRowValue>) {
-        guard let value = tableRows(of: row.label).values.first else { return }
         let content = row.content
         rows.append(
             treeNode: _TableRowNode(
-                value: value, children: { tableRows(of: content()).branch },
+                value: row.value, children: { tableRows(of: content()).branch },
                 isExpanded: row.isExpanded))
     }
 }
