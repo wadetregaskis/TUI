@@ -590,6 +590,23 @@ flattens it again, building every open row's content, and `listed` counts the ro
 not (`_TableCore.resolveRows`). A `Table(_:children:)` keeps its outline from pass to pass and builds no row content
 to make it, so it lists none: `outline-table` is 0 throughout. Counting it moved no count of any recorded case.
 
+**`Table(_:children:)` counted too (2026-11-16).** It lists no row content, but it makes its kept outline again
+whenever its open branches change, and that work was invisible: tuitree's → and ← on 200,000 open rows cost 240 ms
+where ↓ cost 8 (finding M6-2), and every count of `outline-table` stayed flat. Now `listed` counts the rows each
+outline it makes lists (`_TableOutlineCache.listed`, added to the pass's `RowWork.listed`); a pass that changes
+neither its roots nor its open branches makes none and lists none. Re-recorded, on a clean debug build:
+
+| Case | Phase | Listed at n | Listed at 10n |
+|---|---|--:|--:|
+| `outline-table`, `outline-children-bound` | `open` | 0 → 1 | 0 → 1 |
+| | `key:oright` | 0 → 5,001 | 0 → 50,001 |
+| | `key:left` (2 steps) | 0 → 4,992 | 0 → 49,992 |
+| | `key:right` | 0 → 5,001 | 0 → 50,001 |
+
+`key:oright` opens every row from the root, so listing them is its change, at any build. `key:left` and `key:right`
+close and reopen one group of nine rows, and list every open row: M6-2, filed as both cases' known issue. No other
+count of any case moved.
+
 ## The outline cases (2026-11-16)
 
 Finding G1, from building tuitree, had two shapes left after `List(_:children:)` was windowed (a5b20c46f): a

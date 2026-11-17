@@ -44,6 +44,15 @@ enum CaseKnownIssues {
             ["listed"],
             "G1-rows, as outline-rows: every open row's row builders run on every pass that lays the table out"
         ),
+        "outline-table": (
+            ["key:oright listed", "key:left listed", "key:right listed"],
+            "Option-Right on the root opens all n rows, which is its change; and M6-2: one branch opened or closed "
+                + "makes a Table(_:children:)'s kept outline again whole, listing every open row"
+        ),
+        "outline-children-bound": (
+            ["key:oright listed", "key:left listed", "key:right listed"],
+            "as outline-table: Option-Right on the root opens all n rows, and M6-2 lists every open row a toggle"
+        ),
         "chat-lazy-follow": (
             ["bodies", "misses"],
             "PERFCASE-F3: at 10n the bottom-anchored lazy stack runs 21% more bodies and misses 29% more measures "

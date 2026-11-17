@@ -771,11 +771,18 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             }
         if let roots = rowTree.roots {
             // Kept from pass to pass: a pass that opens nothing and is handed
-            // the same roots makes no outline (decisions B-FP2-5).
-            let cache = context.stateStorage?.storage(
-                for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.outlineCache),
-                default: _TableOutlineCache<Value>())
-            return (cache?.value ?? _TableOutlineCache()).outline(of: roots, expansion: expansion)
+            // the same roots makes no outline (decisions B-FP2-5). The rows
+            // it lists when it makes one are counted as a list's row boxes
+            // are (see `RowWork.listed`).
+            let cache =
+                context.stateStorage?.storage(
+                    for: StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.outlineCache),
+                    default: _TableOutlineCache<Value>()
+                ).value ?? _TableOutlineCache()
+            let listedBefore = cache.listed
+            let outline = cache.outline(of: roots, expansion: expansion)
+            context.renderCache?.rowWork.listed += cache.listed - listedBefore
+            return outline
         }
         // A tree written as row content is flattened again every pass, every
         // open row's content built by the app's row builders (G1-rows), and

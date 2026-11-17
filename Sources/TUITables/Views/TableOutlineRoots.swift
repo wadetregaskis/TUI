@@ -135,6 +135,11 @@ final class _TableOutlineCache<Value: Identifiable> {
     private var outline: _TableOutline<Value>?
     private var expansionSeen: _TableOutlineExpansion<Value>.Reading?
 
+    /// The rows the outlines made here have listed, all told: what a pass
+    /// adds to `RowWork.listed`, so a perf case sees a kept outline made
+    /// again.
+    private(set) var listed = 0
+
     /// The outline of `roots` with the branches `expansion` opens: the one
     /// made last, where neither has changed since.
     func outline(of roots: _TableOutlineRoots<Value>, expansion: _TableOutlineExpansion<Value>) -> _TableOutline<Value> {
@@ -152,6 +157,7 @@ final class _TableOutlineCache<Value: Identifiable> {
             expansion: expansion)
         outline = made
         expansionSeen = reading
+        listed += made.values.count
         return made
     }
 }
