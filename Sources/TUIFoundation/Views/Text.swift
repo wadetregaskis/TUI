@@ -671,7 +671,7 @@ package struct TextStyle: Sendable, Equatable {
     package var isBold: Bool?
 
     /// Whether the text is italic, or `nil` if this `Text` never said.
-    var isItalic: Bool?
+    package var isItalic: Bool?
 
     /// The underline this `Text` stated: the outer `nil` means it never said,
     /// the inner `nil` that it said none, and a line how it is drawn.
@@ -680,7 +680,7 @@ package struct TextStyle: Sendable, Equatable {
     /// statement, or `Text(x).underline(false)` could not escape an inherited
     /// `.underline()`. Its line goes with it, so the nearest statement decides
     /// the shape and colour as well as whether there is a line at all.
-    var underline: Text.LineStyle?? {
+    package var underline: Text.LineStyle?? {
         get { statedUnderline.value }
         set { statedUnderline = StatedLine(newValue) }
     }
@@ -688,7 +688,7 @@ package struct TextStyle: Sendable, Equatable {
 
     /// The strikethrough this `Text` stated, as ``underline`` states the
     /// underline.
-    var strikethrough: Text.LineStyle?? {
+    package var strikethrough: Text.LineStyle?? {
         get { statedStrikethrough.value }
         set { statedStrikethrough = StatedLine(newValue) }
     }
@@ -726,7 +726,7 @@ package struct TextStyle: Sendable, Equatable {
     }
 
     /// Whether the text is dimmed, or `nil` if this `Text` never said.
-    var isDim: Bool?
+    package var isDim: Bool?
 
     /// The text scale this `Text` stated, or `nil` if it never said.
     var textScale: Text.Scale?
