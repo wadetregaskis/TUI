@@ -430,6 +430,8 @@ extension ItemListHandler {
         if isKeyboardMove, let handled = handleKeyboardMoveKey(event) { return handled }
         // Chords, so they work in either selection mode.
         guard let (action, accelerated) = shortcuts.action(for: event) else { return nil }
+        // From no row there is no row to carry or move: taken, and nothing moves.
+        if cursorIsUnplaced { return true }
         // Shift rides along as the coarse step, exactly as it does for the
         // cursor keys — same environment-configured multiplier.
         let step = accelerated ? max(1, shiftStepMultiplier) : 1

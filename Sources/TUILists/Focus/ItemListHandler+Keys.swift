@@ -21,9 +21,10 @@ extension ItemListHandler {
 
         // The row menu, on the cursor row — Shift+F10 or the Menu key, the
         // binding `.contextMenu` uses for a focused view, and the keyboard's
-        // only way to a menu a right-click opens.
+        // only way to a menu a right-click opens. None from no row
+        // (``cursorIsUnplaced``): taken, and nothing opens.
         if event.opensContextMenu, !event.ctrl, !event.alt, let openContextMenu {
-            return openContextMenu()
+            return cursorIsUnplaced || openContextMenu()
         }
 
         // A table's columns, picked from the keyboard: the chord that picks
@@ -209,7 +210,8 @@ extension ItemListHandler {
     /// actions there. The cursor stays on the row while the actions hold the
     /// keyboard, as it does while the row's menu is up.
     private func handleSwipeKey(_ event: KeyEvent) -> Bool? {
-        guard !isReordering, let edge = swipeEdge(for: event), swipeEdges[focusedIndex]?[edge] != nil
+        guard !isReordering, !cursorIsUnplaced, let edge = swipeEdge(for: event),
+            swipeEdges[focusedIndex]?[edge] != nil
         else { return nil }
         revealedSwipe = (focusedIndex, edge)
         focusLeavesForRowMenu = true

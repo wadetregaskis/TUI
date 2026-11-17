@@ -265,6 +265,19 @@ answers no for every row while the cursor is on none: a placed cursor is always
 drawn and an unplaced one never is. `onFocusReceived()` reveals nothing then,
 since revealing row 0 scrolled a list the wheel had moved back to the top.
 
+**The keys that act on the cursor's row act on none from no row** (a lane
+decision, the same day, following the owner's drawing rule): Space, Return,
+Delete, a tree's Left and Right, the row menu, the swipe keys and the reorder
+keys. Each acted on row 0, which is not drawn as the cursor's there, and
+Delete took it away unseen; a macOS list with nothing selected has no row for
+them either. Space and Return are taken, as before, and do nothing; Delete
+falls through, as in a list with nothing to delete; a tree keeps Left and
+Right. `FirstKeyFromEmptySelectionTests` (`spaceFromNothing`,
+`deleteFromNothing`, `rightFromNothing`) pins it;
+`TableOutlineRowsTwinTests.optionLeftClosesTheSubtree` presses Down before
+Option-Left, and `HoverFocusListTests` opens its outline with the pointer, not
+Tab and Right, when the list follows the cursor.
+
 Tests: `FirstKeyFromEmptySelectionTests` (the eight known issues now plain
 expectations, the three about Home, End and Page Down rewritten to V8, and the
 drawing rule pinned on the parked row, the row Space cleared and a list with

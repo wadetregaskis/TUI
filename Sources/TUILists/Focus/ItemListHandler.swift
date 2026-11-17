@@ -749,6 +749,9 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// nothing to close — leaves the subtree instead of the list.
     @MainActor
     func handleDisclosureKey(_ event: KeyEvent) -> Bool {
+        // From no row (``cursorIsUnplaced``) there is no branch to open or
+        // close, and no row to go on from; a tree still keeps the key.
+        guard !cursorIsUnplaced else { return outlineActivation != nil }
         if event.key == .right {
             if setFocusedRowExpanded(true, includingDescendants: event.alt) { return true }
             // Nothing opened — a leaf, or a branch already open. In a TREE the
@@ -814,7 +817,7 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// - Returns: Whether a row was deleted. `false` leaves Delete / Backspace
     ///   to fall through, so a plain list never swallows either.
     func deleteFocusedRow() -> Bool {
-        guard let onDelete, focusedIndex >= 0, focusedIndex < itemCount,
+        guard let onDelete, !cursorIsUnplaced, focusedIndex >= 0, focusedIndex < itemCount,
             // Which rows this one can be deleted among — `nil` for a row no
             // deletable `ForEach` produced (a header, a hand-written row, a row
             // of a list whose OTHER section is the editable one). Refusing here

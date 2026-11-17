@@ -98,7 +98,14 @@ struct HoverFocusListTests {
         app.advance(by: .milliseconds(20))
         if kind == .outline {
             // Open the one branch, from the keyboard, and give the focus back.
-            app.press(.tab)
+            // Following the cursor with nothing selected, the cursor is on no
+            // row and Right opens nothing ("The first key from an empty
+            // selection", 2026-11-16): the pointer parks it on the branch first.
+            if selectionFollowsCursor, follows {
+                try? app.hover(over: "Letters")
+            } else {
+                app.press(.tab)
+            }
             app.press(.right)
             app.press(.tab, modifiers: .shift)
         }

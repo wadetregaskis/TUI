@@ -23,6 +23,8 @@ extension ItemListHandler {
     @MainActor
     func handleSelectionKey(_ key: Key) {
         isExtendingSelection = false
+        // From no row (``cursorIsUnplaced``) there is no row to choose or open.
+        guard !cursorIsUnplaced else { return }
         if key == .enter, let primaryAction, let id = id(at: focusedIndex) {
             AmbientApp.renderState?.noteControlActivated()
             primaryAction(id)

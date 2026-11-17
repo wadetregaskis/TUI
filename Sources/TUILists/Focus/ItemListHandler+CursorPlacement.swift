@@ -7,7 +7,11 @@
 //  selects the first row, Up the last, a typed letter the first row it names
 //  (`Tools/SwiftUIProbes/Scroll to a row/firstkey.out`). It started on row 0,
 //  so the first Down selected row 1 and the first row's letter skipped it.
-//  What places it is on ``ItemListHandler/cursorIsPlaced``.
+//  What places it is on ``ItemListHandler/cursorIsPlaced``. The keys that act
+//  on the cursor's row — Space, Return, Delete, a tree's Left and Right, the
+//  row menu, the swipe and reorder keys — act on none from there, as a macOS
+//  list's do with nothing selected: the row they would have acted on is not
+//  drawn as the cursor's, and Delete took it away unseen.
 //
 //  Created by Wade Tregaskis
 //  License: MIT

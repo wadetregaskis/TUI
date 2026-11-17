@@ -39,6 +39,12 @@ private struct Row: Identifiable, Hashable, Sendable {
 private final class Selected {
     var single: Int?
     var multiple: Set<Int> = []
+    var names = ["kilo", "lima", "mike"]
+}
+
+private struct Node: Identifiable, Hashable, Sendable {
+    let id: String
+    var children: [Self]?
 }
 
 @MainActor
@@ -304,6 +310,54 @@ struct FirstKeyFromEmptySelectionTests {
         #expect(distinctRows(app, among: firstNames) == ["a-0-"], "\(app.screen)")
         app.press(.down)
         #expect(selected.single == 1)
+    }
+}
+
+extension FirstKeyFromEmptySelectionTests {
+    // MARK: - From no row, the keys that act on the cursor's row act on none
+
+    @Test("From nothing, Space selects nothing, and no cursor row is drawn")
+    func spaceFromNothing() {
+        let selected = Selected()
+        let app = table(selected)
+        app.press(.space)
+        #expect(selected.single == nil)
+        #expect(distinctRows(app, among: firstNames).isEmpty, "\(app.screen)")
+    }
+
+    @Test("From nothing, Delete deletes no row; after Down, the first")
+    func deleteFromNothing() {
+        let selected = Selected()
+        let app = TestApp(width: 40, height: 12) {
+            List(selection: Binding<String?>.constant(nil)) {
+                ForEach(selected.names, id: \.self) { Text($0) }
+                    .onDelete { offsets in
+                        for offset in offsets.reversed() { selected.names.remove(at: offset) }
+                    }
+            }
+            .selectionFollowsCursor()
+        }
+        app.press(.tab)
+        app.press(.delete)
+        #expect(selected.names == ["kilo", "lima", "mike"])
+        app.press(.down)
+        app.press(.delete)
+        #expect(selected.names == ["lima", "mike"])
+    }
+
+    @Test("From nothing, a tree's Right opens no branch")
+    func rightFromNothing() {
+        let tree = [Node(id: "root", children: [Node(id: "leaf")])]
+        let app = TestApp(width: 40, height: 12) {
+            Table(tree, children: \.children, selection: Binding<String?>.constant(nil)) {
+                TableColumn("Name", value: \Node.id)
+            }
+            .selectionFollowsCursor()
+        }
+        app.press(.tab)
+        app.press(.right)
+        #expect(!app.screen.contains("leaf"), "\(app.screen)")
+        #expect(app.focusedID != nil, "the tree keeps the key")
     }
 }
 

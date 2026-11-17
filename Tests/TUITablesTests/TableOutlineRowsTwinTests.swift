@@ -128,6 +128,10 @@ struct TableOutlineRowsTwinTests {
         let model = Model()
         let app = app(model)
         app.press(.tab)
+        // From nothing selected the cursor is on no row, and Left closes
+        // nothing ("The first key from an empty selection", 2026-11-16):
+        // Down puts it on root first.
+        app.press(.down)
         app.press(.left, modifiers: .option)
         #expect(model.closed == ["root", "alpha", "alpha-two"])
         app.advance(by: .milliseconds(20))

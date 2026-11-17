@@ -23,7 +23,8 @@ not yet saved were lost, and code after `App.main()` never ran. The teardown now
 selected the cursor started on the first row, drawn there, so the first Down selected the second row and the first
 row's own letter skipped it. Now, with nothing selected and nothing having placed the cursor, no row is drawn as the
 cursor's and the focus arriving scrolls nothing; Down selects the first row, Up the last, a typed letter the first
-row it names. A selection the app empties takes the cursor with it, so the next arrow starts again from nothing;
+row it names, and the keys that act on the cursor's row (Space, Return, Delete, a tree's Left and Right, the row
+menu, the swipe and reorder keys) act on none, where they acted on the first row unseen. A selection the app empties takes the cursor with it, so the next arrow starts again from nothing;
 one Space empties keeps it, drawn, as does a row the pointer parked it on while the focus follows the pointer. Home,
 End and the page keys still select (on macOS they only scroll; deviation V8). Every `List`, `Table`, tree table,
 `OutlineGroup` and sidebar tab view keys through the one handler; pickers are unchanged.
