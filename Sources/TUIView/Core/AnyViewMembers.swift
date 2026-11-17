@@ -44,6 +44,13 @@
     }
 
     public func staysWhole(in context: RenderContext) -> Bool {
+        // An `AnyView` of an `AnyView` asks the one it erases, so a chain of
+        // them asks down its whole length, a call or two a level. Out of stack,
+        // one is whole, and its draw is cut short under the draw's own guard
+        // (`renderToBuffer(context:)`). A chain of 20,000 built at run time
+        // overflowed a Windows thread's 1 MiB here (DepthLimitTests); an 8 MiB
+        // stack held it, and would not have held a longer one.
+        guard StackGuard.hasHeadroomUncounted() else { return true }
         guard let provider = erasedView as? ChildViewProvider else { return true }
         return provider.staysWhole(in: context)
     }
