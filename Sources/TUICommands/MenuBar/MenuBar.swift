@@ -29,7 +29,7 @@ struct _MenuBar: View {
 
     var body: some View {
         let about = (aboutPanel ?? AboutPanelInfo()).resolved(
-            bundle: Bundle.main.infoDictionary, processName: ProcessInfo.processInfo.processName)
+            bundle: Bundle.main.infoDictionary, processName: programName)
         _MenuBarCore(commands: commands) { showsAbout = true }
             .alert(Text(about.aboutTitle), isPresented: $showsAbout) {
             } message: {

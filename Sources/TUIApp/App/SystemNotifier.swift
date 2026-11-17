@@ -180,7 +180,7 @@ struct SystemNotifier: SystemNotificationBackend {
             helper: Helper.find(
                 environment: environment, isExecutable: { FileManager.default.isExecutableFile(atPath: $0) },
                 exists: { FileManager.default.fileExists(atPath: $0) }),
-            title: ProcessInfo.processInfo.processName,
+            title: programName,
             isLocal: { SessionLocality.isLocal() },
             launch: Self.launchProcess,
             perform: Self.performInBackground,

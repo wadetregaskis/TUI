@@ -148,7 +148,7 @@ extension EnvironmentValues {
     /// main bundle's Info.plist, and the process's name.
     var resolvedAboutPanel: ResolvedAboutPanel {
         (aboutPanel ?? AboutPanelInfo()).resolved(
-            bundle: Bundle.main.infoDictionary, processName: ProcessInfo.processInfo.processName)
+            bundle: Bundle.main.infoDictionary, processName: programName)
     }
 }
 

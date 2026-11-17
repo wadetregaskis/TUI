@@ -159,7 +159,7 @@ public struct NoTerminal {
     /// implement ``App/runWithoutTerminal(_:)`` gets, and the way out for
     /// situations an app that does has no answer to.
     public func reportFailure() -> Outcome {
-        let line = "\(ProcessInfo.processInfo.processName): \(message)\n"
+        let line = "\(programName): \(message)\n"
         StandardError.write(line)
         return 1
     }

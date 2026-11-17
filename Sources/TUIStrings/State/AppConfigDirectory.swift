@@ -31,6 +31,18 @@ package func sanitizedProcessName(_ name: String) -> String {
     return sanitized.isEmpty ? "app" : sanitized
 }
 
+/// This program's name as the person knows it: the process's name, less the
+/// `.exe` that every program's file has on Windows, which Foundation keeps there
+/// (`Example.exe`), and which would otherwise name its settings folder and
+/// appear in a question such as "Quit Example.exe?".
+package var programName: String {
+    let name = ProcessInfo.processInfo.processName
+    #if os(Windows)
+        if name.lowercased().hasSuffix(".exe") { return String(name.dropLast(4)) }
+    #endif
+    return name
+}
+
 // MARK: - Config Directory
 
 /// Returns the app-specific, platform-idiomatic configuration directory.
@@ -47,7 +59,7 @@ package func sanitizedProcessName(_ name: String) -> String {
 /// persisted configuration lives in one place rather than scattered across
 /// directories.
 package func appConfigDirectory() -> URL {
-    ConfigurationFolder.folder(named: sanitizedProcessName(ProcessInfo.processInfo.processName))
+    ConfigurationFolder.folder(named: sanitizedProcessName(programName))
 }
 
 // MARK: - Where a Configuration Folder Goes

@@ -225,6 +225,6 @@ extension QuitPrompt {
     static var applicationName: String {
         let bundle = Bundle.main.infoDictionary
         return bundle?["CFBundleDisplayName"] as? String ?? bundle?["CFBundleName"] as? String
-            ?? ProcessInfo.processInfo.processName
+            ?? programName
     }
 }
