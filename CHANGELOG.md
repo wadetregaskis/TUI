@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Canvas` beside a `TimelineView` is not drawn again on every frame of the timeline.** A game's board drawn
+beside the `TimelineView(.animation)` that runs its loop ran its renderer sixty times a second though nothing it read
+had changed: the timeline's entry drops what the cache keeps for the views around it, and nothing kept the canvas, so
+a board of 162 cells cost about 7 ms of every 16.7 ms frame. SwiftUI re-evaluates only the timeline's content on a
+tick. A `Canvas` is now memoized as a view of the app's own is, by its fields and its environment, so it is drawn
+again when its parent's `body` runs for a change it depends on, when its size or environment changes, or when
+something its renderer read is written, and not for a frame something beside it asked for. A renderer that reads
+what nothing tracks (a plain class, a global) keeps what it drew until one of those happens, as a `body` does.
+
 **A `Form`'s rows a `ForEach` over comparable data makes are drawn only when they change.** A form read its content
 into rows afresh every frame and drew each one through views nothing could compare, so every toggle of a form ran its
 body and was measured a dozen times a frame, whatever the frame changed: a slider step in a form of 50 toggles ran

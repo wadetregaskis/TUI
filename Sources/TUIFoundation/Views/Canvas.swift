@@ -38,8 +38,16 @@ import TUIView
 /// clear they show the cell behind them; a cell with no pixels at all is not
 /// drawn, and what is behind the canvas shows through it whole.
 ///
-/// The renderer runs on the main actor as the frame is drawn, each time the
-/// canvas's parent is. Drive one from a ``TimelineView`` to animate it.
+/// The renderer runs on the main actor as the frame is drawn: when the canvas
+/// is first drawn, when its parent's `body` runs again because something the
+/// parent depends on changed, when its environment or its size changes, and
+/// when something the renderer itself read (an `@Observable` property) is
+/// written. Not on a frame that something beside it asked for: a canvas beside a
+/// ``TimelineView`` is not drawn again at each of the timeline's entries, as in
+/// SwiftUI, which re-evaluates only the timeline's content on a tick. A renderer
+/// that reads what nothing tracks (a plain class, a global, the clock) is drawn
+/// as it was until one of those happens. Drive one from a ``TimelineView``, by
+/// putting the canvas inside its content, to animate it.
 nonisolated public struct Canvas<Symbols: View>: View {
     /// The views the renderer can draw by tag (``GraphicsContext/resolveSymbol(id:)``).
     public var symbols: Symbols
@@ -102,6 +110,12 @@ extension Canvas where Symbols == EmptyView {
             symbols: { EmptyView() })
     }
 }
+
+/// Memoized as an app's own view is, by its fields and its environment: the
+/// renderer is the app's work and the dearest part of a frame, and a timeline
+/// beside the canvas would otherwise run it on every frame of its own
+/// (``_PlainMemoizedFrameworkView``).
+extension Canvas: _PlainMemoizedFrameworkView {}
 
 // MARK: - The core
 

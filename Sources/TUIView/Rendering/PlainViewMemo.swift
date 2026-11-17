@@ -197,8 +197,9 @@ package final class PlainMemo {
     }
 
     /// The comparison for a composite of `V`, or `nil` when it is not memoized:
-    /// one of the framework's own (``FrameworkModules``), or holding something
-    /// that cannot be compared.
+    /// one of the framework's own (``FrameworkModules``) that is not a
+    /// ``_PlainMemoizedFrameworkView``, or holding something that cannot be
+    /// compared.
     @inline(__always)
     func comparison<V: View>(forRoot type: V.Type, plans: ValueHashPlans) -> ValueComparison? {
         if let known = roots[ObjectIdentifier(type)] { return known }
@@ -207,11 +208,32 @@ package final class PlainMemo {
 
     @inline(never)
     private func decide(_ type: Any.Type, plans: ValueHashPlans) -> ValueComparison? {
-        let made = FrameworkModules.declares(type) ? nil : plans.comparison(for: type)
+        let excluded = FrameworkModules.declares(type) && !(type is any _PlainMemoizedFrameworkView.Type)
+        let made = excluded ? nil : plans.comparison(for: type)
         roots[ObjectIdentifier(type)] = .some(made)
         return made
     }
 }
+
+/// A view of the framework's own that the plain memo takes as it takes an app's:
+/// ``FrameworkModules`` keeps the framework's composites out, and this lets one
+/// back in.
+///
+/// For a view whose drawing is the app's own work, dear, and a function of what
+/// the memo already watches: its fields, the environment it is drawn under, and
+/// what its deferred closure reads (observed at its identity). A `Canvas` is the
+/// one: its renderer is the app's, and a `Canvas` drawn beside a `TimelineView`
+/// ran it on every frame of the timeline, because the timeline's entry drops the
+/// timeline's ancestors and nothing below them kept the canvas (tuiarcade's
+/// feedback, 2026-11-17: 7 ms of a 16.7 ms frame for a canvas that never
+/// changed). SwiftUI runs only the timeline's content on a tick. Kept here, the
+/// canvas is a sibling of the timeline and survives its clear, and its renderer,
+/// a closure, is passed over in the comparison as an app's view's is, by the
+/// same argument: nothing above it wrote, so its parent built the same one.
+///
+/// Not for a view whose drawing reads what no key sees — a hover, a style's
+/// configuration, the focus — which is why the framework's composites stay out.
+package protocol _PlainMemoizedFrameworkView {}
 
 /// Where a plain composite's entries are filed beside a value memo's at the same
 /// identity, which a row and its content share (`RenderCache.scopedEntry`).
