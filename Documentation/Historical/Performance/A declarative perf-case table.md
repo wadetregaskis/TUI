@@ -907,7 +907,25 @@ and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
   on every frame: `Stress --session case:popover-values --steps 150 --verify --resize-every 37` fails 105 of 150
   frames, from step 14 (14 of 30 with no resizes). A memo serves that row, or its size, from before the second
   presentation. Found by `--selfcheck`'s verifier, not by a count; the case's script stops before the Escape until it
-  is fixed, so the gate's `--selfcheck` passes, and the fix puts it back.
+  is fixed, so the gate's `--selfcheck` passes, and the fix puts it back. **Fixed (2026-11-17):** not a row but the
+  whole list, and its layout: under `.scrollIndicatorPlacement(.overContent)` a list places its scrollbar beside its
+  rows while it holds the focus, and over them while it does not. Presented, the popover activates its section with
+  nothing focused, and the list, drawn that frame, finds no focus to ask about and keeps what it last decided
+  (`focusIsWithin`): the bar beside, the rows a cell narrower. Its drawing was stored, whole, in the value memo of the
+  view around it. The Tab into the popover moved the focus from nothing to its first control, and a focus move drops
+  the drawings of the controls at either end of it, which from nothing is only the one it lands on: the list's stored
+  drawing went on being served. Why the first presentation does not show it is not established. Now a view that
+  answers from what it last knew is noted by the focus manager with its answer (`noteDrawnAwaitingFocus`), and the
+  next focus move drops its drawings and those containing it where the answer was wrong: the focus landed outside a
+  view that drew as if it were inside (`FocusManager+UnlandedFocus.swift`). A view the focus lands in is dropped
+  already, as the destination's ancestor; dropped again, as a first try did, a `.fit` table beside the list that
+  takes the first focus read 5 cells more as `split-resize` and `nsplit-storm` open. The case's counts moved where
+  the stale list had been served: its Tab now lays the list out again for a bar over the rows (21 rows listed, 919
+  bytes, where 74 bytes wrote nothing of the list), and each Right lists the visible rows again and serves them from
+  their row memos (168 listed and 170 served over ten, where the stale list was served whole). Why the list laid out
+  again is not served whole on the Rights is not established. `PresentedAgainCacheTests` plays the script against an uncached twin, one
+  frame a step, for a popover, a sheet, an alert and a confirmation dialog: the popover failed from the second Tab,
+  the other three did not; all four pass. The case's script has its Escape back.
 
 Known already and named for the new cases: a `.fit` column reads every row as its table opens (PERFCASE-F5's class,
 `alert-table`, `table-fit-tiny`, and `nsplit-storm`'s resizes), and the bottom-anchored lazy stack's PERFCASE-F3
