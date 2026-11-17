@@ -1,10 +1,11 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  ItemListHandler+WrittenSelection.swift
 //
-//  A selection the app writes moves the cursor onto it. On macOS the cursor
-//  is the selection, so an app that selects a row — Duplicate selecting the
-//  copy, Find selecting a match — has the next arrow go on from there; here
-//  the cursor stayed where it was, and the next arrow went on from it.
+//  A selection the app writes moves the cursor onto it, and so does one it
+//  starts with. On macOS the cursor is the selection, so an app that selects
+//  a row — Duplicate selecting the copy, Find selecting a match, a list that
+//  opens on the row chosen last time — has the next arrow go on from there;
+//  here the cursor stayed where it was, and the next arrow went on from it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -42,14 +43,24 @@ extension ItemListHandler {
         seenSelection = .multiple(multiSelection.wrappedValue)
     }
 
-    /// Moves the cursor onto a selection the app wrote since the last frame:
-    /// for a single selection onto its row, and for a multiple one onto its
-    /// first row in the rows' order, unless the cursor is on a selected row
-    /// already — the rule the focus leaving puts it by
-    /// (``onFocusLost()``). A selection the list wrote itself
-    /// (``writeSingleSelection(_:)``), one emptied, and one whose rows are not
-    /// among the rows leave it where it is. Render pass only, once the
-    /// selection binding and the rows' ids are this frame's.
+    /// Moves the cursor onto a selection the app wrote since the last frame,
+    /// or started with (the first frame, with nothing seen yet): for a single
+    /// selection onto its row, and for a multiple one onto its first row in
+    /// the rows' order, unless the cursor is on a selected row already — the
+    /// rule the focus leaving puts it by (``onFocusLost()``). A selection the
+    /// list wrote itself (``writeSingleSelection(_:)``), one emptied, and one
+    /// whose rows are not among the rows leave it where it is. Render pass
+    /// only, once the selection binding and the rows' ids are this frame's.
+    ///
+    /// The first frame's is stage 1 of
+    /// `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`:
+    /// noted as seen and nothing more, a selection the app started with left
+    /// the cursor on row 0, so with row 5 selected the first Down went to
+    /// row 1 (and under `.selectionFollowsCursor()` selected it), where macOS's
+    /// goes to row 6. In both modes, since without the modifier the cursor
+    /// the focus arrives with was row 0, not the row the list showed chosen.
+    /// Not where a Bottom anchor carried the cursor to the tail that frame
+    /// (``opensAtTheTail``).
     ///
     /// With `.selectionFollowsCursor()` and without it: SwiftUI's next arrow
     /// goes on from the selection whoever wrote it, its cursor being the
@@ -64,18 +75,31 @@ extension ItemListHandler {
         case .single:
             let current = singleSelection?.wrappedValue
             defer { seenSelection = .single(current) }
-            guard case .single(let seen)? = seenSelection, seen != current, let current,
-                id(at: focusedIndex) != current, let index = index(of: current)
-            else { return }
+            // Nothing seen yet is the first frame, which follows too.
+            if case .single(let seen)? = seenSelection, seen == current { return }
+            guard !opensAtTheTail else { return }
+            guard let current, id(at: focusedIndex) != current, let index = index(of: current) else { return }
             moveCursor(toWritten: index)
         case .multi:
             let current = multiSelection?.wrappedValue ?? []
             defer { seenSelection = .multiple(current) }
-            guard case .multiple(let seen)? = seenSelection, seen != current, !current.isEmpty else { return }
+            if case .multiple(let seen)? = seenSelection, seen == current { return }
+            guard !opensAtTheTail else { return }
+            guard !current.isEmpty else { return }
             func selected(_ index: Int) -> Bool { id(at: index).map(current.contains) ?? false }
             guard !selected(focusedIndex), let index = (0..<itemCount).first(where: selected) else { return }
             moveCursor(toWritten: index)
         }
+    }
+
+    /// Whether this is the first frame of a list whose Bottom anchor carried
+    /// the cursor to its tail (``bottomFollowCursor``): the selection it
+    /// starts with leaves the cursor there. A `.defaultScrollAnchor(.bottom)`
+    /// log opens on its newest rows; moved onto a selection above them, the
+    /// cursor ended the follow (the cursor outranks the tail) and the focus
+    /// arriving scrolled the list to it.
+    private var opensAtTheTail: Bool {
+        seenSelection == nil && bottomFollowCursor != nil
     }
 
     /// Puts the cursor on `index` for a selection the app wrote, and the

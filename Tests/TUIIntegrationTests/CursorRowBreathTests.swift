@@ -46,8 +46,8 @@ private struct TranslucentWashPalette: Palette {
     let focusBackground = Color.rgb(60, 60, 200).opacity(0.5)
 }
 
-/// A `List` or a `Table` with `selection` selected, whose cursor lands on row 0 once
-/// it takes the focus — on the page, or on `surface` where one is given.
+/// A `List` or a `Table` with `selection` selected, whose cursor ``CursorRowBreathTests``
+/// puts on row 0 once it takes the focus — on the page, or on `surface` where one is given.
 private struct CursorRowBreathApp: App {
     static var palette: any Palette { PaletteRegistry.all[0] }
 
@@ -109,7 +109,12 @@ struct CursorRowBreathTests {
     }
 
     /// A loop over `app`, its runner (the seam a terminal focus report goes through)
-    /// and a clock, rendered twice so the control has taken the focus.
+    /// and a clock, rendered twice so the control has taken the focus, with Home
+    /// between: the cursor starts on the first row of the selection the control
+    /// starts with (stage 1 of
+    /// `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`,
+    /// 2026-11-16), and Home puts it on row 0, the row these tests read, without
+    /// selecting it (no `.selectionFollowsCursor()` here). It started on row 0.
     private func settled(_ app: CursorRowBreathApp) throws -> (
         runner: AppRunner<CursorRowBreathApp>, loop: RenderLoop<CursorRowBreathApp>, timer: CursorTimer,
         frame: Frame
@@ -119,6 +124,7 @@ struct CursorRowBreathTests {
         let loop = harness.loop(app)
         let timer = CursorTimer(renderNotifier: harness.appState)
         _ = try frame(loop, timer)
+        _ = harness.focusManager.dispatchKeyEvent(KeyEvent(key: .home))
         return (runner, loop, timer, try frame(loop, timer))
     }
 

@@ -2250,9 +2250,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   moves. `.selectionFollowsCursor()` (TUI's) gives macOS's behaviour where an
   app wants it: a key that moves the cursor of a list, table, radio group or
   segmented picker below it selects what it lands on. The other way round
-  matches: a selection the app writes moves the cursor onto it (a `Set`'s
-  first selected row, unless the cursor is on one already), with the modifier
-  and without it, so the next arrow goes on from there.
+  matches: a selection the app writes, or starts with, moves the cursor onto
+  it (a `Set`'s first selected row, unless the cursor is on one already), with
+  the modifier and without it, so the next arrow goes on from there.
 - **Why:** not recorded at first. Space toggling at the cursor is how the keyboard
   builds a selection ([§2.11](<SwiftUI compatibility guide.md#211-a-plain-click-on-the-selected-row-clears-a-single-selection-where-macos-keeps-it>)).
   The owner, APPFB-1 (2026-11-14): it is use-case dependent, some places needing

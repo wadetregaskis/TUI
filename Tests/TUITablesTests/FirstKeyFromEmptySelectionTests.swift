@@ -7,7 +7,7 @@
 //  there Down selects the first row, Up the last, a typed letter the first row
 //  it names, and Home, End and the page keys only scroll, with a row selected
 //  or without. Where TUI differs the expectation is macOS's, under
-//  `withKnownIssue`; the analysis and the plan are in
+//  `withKnownIssue`; the analysis, the plan and what was built are in
 //  `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`.
 //
 //  Created by Wade Tregaskis
@@ -43,14 +43,15 @@ private final class Selected {
 struct FirstKeyFromEmptySelectionTests {
     private let rows = (0..<100).map(Row.init)
 
-    /// A focused table of 100 rows that follows the cursor, whose `j` key
-    /// clears the selection, as an app's Deselect All does.
-    private func table(_ selected: Selected) -> TestApp {
+    /// A focused table of 100 rows that follows the cursor (unless `follows`
+    /// is false), whose `j` key clears the selection, as an app's Deselect All
+    /// does.
+    private func table(_ selected: Selected, follows: Bool = true) -> TestApp {
         let app = TestApp(width: 40, height: 12) {
             Table(rows, selection: Binding(get: { selected.single }, set: { selected.single = $0 })) {
                 TableColumn("Name", value: \Row.name)
             }
-            .selectionFollowsCursor()
+            .selectionFollowsCursor(follows)
             .onKeyPress("j") {
                 selected.single = nil
                 return .handled
@@ -180,8 +181,17 @@ struct FirstKeyFromEmptySelectionTests {
         selected.single = 5
         let app = table(selected)
         app.press(.down)
-        withKnownIssue("A selection there at the first frame is not one written since, so the cursor stays on row 0") {
-            #expect(selected.single == 6)
-        }
+        #expect(selected.single == 6)
+    }
+
+    @Test("Without the modifier too, the cursor starts on the selection the app starts with")
+    func startingSelectionWithoutTheModifier() {
+        let selected = Selected()
+        selected.single = 5
+        let app = table(selected, follows: false)
+        app.press(.down)
+        #expect(selected.single == 5, "the arrow moves the cursor alone")
+        app.press(.space)
+        #expect(selected.single == 6)
     }
 }

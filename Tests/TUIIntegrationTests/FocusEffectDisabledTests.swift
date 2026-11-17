@@ -63,9 +63,11 @@ struct FocusEffectDisabledTests {
 
     /// A subject and a sibling to park the focus on, rendered together so the
     /// focus manager has a real choice to make.
+    /// `keys` reach the focused control after the first frame, so `frames` has
+    /// to be at least 2 for the picture to show them.
     private func rendered(
         _ subject: some View, focusOnSubject: Bool, suppression: Suppression?, frames: Int = 1,
-        skippingRows: Int = 0, height: Int = 10
+        skippingRows: Int = 0, height: Int = 10, keys: [KeyEvent] = []
     ) -> [String] {
         // The animation services matter here: a control whose focus
         // indication is a PULSE produces none without them, and the sweep
@@ -90,7 +92,10 @@ struct FocusEffectDisabledTests {
         // its extent as its viewport, so its bar is an inert gutter that
         // indicates nothing either way. The last frame is the one compared.
         var buffer = FrameBuffer()
-        for _ in 0..<max(1, frames) {
+        for frame in 0..<max(1, frames) {
+            if frame == 1 {
+                for key in keys { _ = context.environment.focusManager?.dispatchKeyEvent(key) }
+            }
             // The pulse only advances inside a driven frame; without this the
             // cycle never animates and leaves no run.
             let scheduler = context.environment.animationScheduler
@@ -561,8 +566,13 @@ struct FocusEffectDisabledTests {
             ForEach(["a", "b"], id: \.self) { Text($0) }
         }
         .frame(width: 20, height: 4)
+        // The cursor starts on the selection the list starts with, "b" (stage 1
+        // of "The first key from an empty selection", 2026-11-16); Up takes it
+        // to "a", without selecting it. It started on "a". (Unfocused, where
+        // the cursor is not drawn, the sibling has the keys.)
         let unfocused = rendered(list, focusOnSubject: false, suppression: nil)
-        let inactive = rendered(list, focusOnSubject: true, suppression: .inactive)
+        let inactive = rendered(
+            list, focusOnSubject: true, suppression: .inactive, frames: 2, keys: [KeyEvent(key: .up)])
         let rowB: ([String]) -> String? = { $0.first { $0.stripped.contains("b") } }
         #expect(rowB(inactive) != nil && rowB(inactive) == rowB(unfocused), "\(inactive)")
         #expect(inactive != unfocused, "the cursor row went with the window")

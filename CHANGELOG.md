@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A list or table starts with its keyboard cursor on the selection it starts with.** A selection the app had at
+the first frame left the cursor on the first row, so with the sixth row selected the first Down went to the second
+row (and under `.selectionFollowsCursor()` selected it), where macOS goes on to the seventh. The cursor now starts on
+the selected row, or a multiple selection's first in the rows' order, with the modifier and without it; a list
+whose `.defaultScrollAnchor(.bottom)` opens it on its newest rows keeps the cursor there.
+
 **A hugging `List` keeps its width through a change it did not read.** When a view of an app's own was kept and a
 property read anywhere beneath it changed, everything kept below it that could not be re-checked was dropped with it,
 though each of those has its own watch on what it read. A sidebar `List` hugging its rows beside a clock that ticks

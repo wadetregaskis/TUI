@@ -99,6 +99,11 @@ struct BackgroundProminenceTests {
     func selectionAwayFromTheCursorIsPlain() {
         model.selection = "beta"
         _ = renderFrame()
+        // The cursor starts on the selection the list starts with (stage 1 of
+        // "The first key from an empty selection", 2026-11-16); Up takes it
+        // away, to alpha.
+        _ = (focusManager.currentFocused as? ItemListHandler<String>)?.handleKeyEvent(KeyEvent(key: .up))
+        _ = renderFrame()
         let lines = renderFrame()
         #expect(state(of: "alpha", in: lines) == "plain", "\(lines)")
         #expect(state(of: "beta", in: lines) == "plain", "\(lines)")

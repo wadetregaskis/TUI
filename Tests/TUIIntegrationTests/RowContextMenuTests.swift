@@ -340,6 +340,15 @@ private final class Harness {
         frame()
     }
 
+    /// Puts the cursor on row 0 (item1, unselected). Every shape starts with
+    /// rows 2 and 3 selected, and a list's cursor starts on the first row of
+    /// the selection it starts with — item2 — since stage 1 of
+    /// `Documentation/Historical/Lists, tables and tabs/The first key from an empty selection.md`
+    /// (2026-11-16, both modes; none of these lists uses
+    /// `.selectionFollowsCursor()`, so Up only moves the cursor). Before it the
+    /// cursor started on row 0, which these tests counted on.
+    func cursorToFirstRow() { key(KeyEvent(key: .up)) }
+
     /// Closes whatever menu is up.
     func escape() { key(KeyEvent(key: .escape)) }
 }
@@ -377,17 +386,25 @@ struct RowContextMenuTests {
 
     @Test("Shift+F10, and the Menu key, open the menu on the cursor row by the same rule")
     func keyboardOpens() throws {
-        // The cursor starts on row 0 (item1), which is not selected.
+        // The cursor starts on the selection's first row (item2, stage 1), so
+        // a fresh table's Shift+F10 acts on the selection.
+        let fresh = Harness(.selectionMenu)
+        fresh.key(KeyEvent(key: .f10, shift: true))
+        #expect(fresh.shows("sel [2, 3]"), "\(fresh.screen)")
+        // On row 0 (item1), which is not selected, it acts on that row.
         let first = Harness(.selectionMenu)
+        first.cursorToFirstRow()
         first.key(KeyEvent(key: .f10, shift: true))
         #expect(first.shows("sel [1]"), "\(first.screen)")
         let second = Harness(.selectionMenu)
+        second.cursorToFirstRow()
         second.key(KeyEvent(key: .down))
         second.key(KeyEvent(key: .f10, shift: true))
         #expect(second.shows("sel [2, 3]"), "\(second.screen)")
         // The Menu key, where the terminal reports it, is the same key; on a
         // list too.
         let third = Harness(.selectionMenu)
+        third.cursorToFirstRow()
         third.key(KeyEvent(key: .menu))
         #expect(third.shows("sel [1]"), "\(third.screen)")
         let list = Harness(.list)
@@ -399,6 +416,10 @@ struct RowContextMenuTests {
     @Test("primaryAction: Return on a selected cursor row acts on the selection, on another on that row; a double-click on its row")
     func primaryAction() throws {
         let harness = Harness(.selectionMenu)
+        // From row 0: without it the cursor starts on item2 (stage 1), the
+        // Down below lands on item3, and the two after it wrap past item4 to
+        // item1.
+        harness.cursorToFirstRow()
         harness.key(KeyEvent(key: .down))
         harness.key(KeyEvent(key: .enter))
         #expect(harness.rows.opened == [[2, 3]])
@@ -447,6 +468,7 @@ struct RowContextMenuTests {
     @Test("A list row's own context menu opens from the list's Shift+F10, and is no focus stop")
     func listRowMenuOpensFromTheList() throws {
         let harness = Harness(.listRowMenusOnly)
+        harness.cursorToFirstRow()
         harness.key(KeyEvent(key: .f10, shift: true))
         #expect(harness.shows("view 1"), "the cursor row's menu: \(harness.screen)")
         harness.escape()
@@ -502,6 +524,7 @@ struct RowContextMenuTests {
         harness.frame()
         #expect(!harness.shows("sel ["), "\(harness.screen)")
         // The table still takes its keys: no menu section holds the keyboard.
+        harness.cursorToFirstRow()
         harness.key(KeyEvent(key: .f10, shift: true))
         #expect(harness.shows("sel [1]"), "\(harness.screen)")
     }
@@ -678,6 +701,8 @@ struct RowContextMenuTests {
     @Test("Shift+F10 on a list hangs the menu under the cursor row")
     func listKeyboardMenuHangsUnderTheCursorRow() throws {
         let harness = Harness(.list)
+        // Up onto item1, past the header, then Down twice onto item3.
+        harness.cursorToFirstRow()
         harness.key(KeyEvent(key: .down))
         harness.key(KeyEvent(key: .down))
         let row = try harness.position(of: "item3")

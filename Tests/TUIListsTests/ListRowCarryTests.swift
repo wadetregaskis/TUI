@@ -72,7 +72,11 @@ struct ListRowCarryTests {
     func unselectedRowCarriesItself() {
         let board = Board(selection: ["c", "d"])
         let harness = InputChainHarness()
-        harness.play([pickUp, KeyEvent(key: .tab), KeyEvent(key: .enter)]) { lists(board) }
+        // The cursor starts on the selection the list starts with (stage 1 of
+        // "The first key from an empty selection", 2026-11-16): Up twice
+        // takes it to `a`, outside the selection.
+        let up = KeyEvent(key: .up)
+        harness.play([up, up, pickUp, KeyEvent(key: .tab), KeyEvent(key: .enter)]) { lists(board) }
         #expect(board.moved == ["a"])
     }
 
@@ -158,7 +162,10 @@ struct ListRowCarryTests {
             $0.typedClipboard = typed
         }
         let board = Board(selection: ["c", "d"])
-        harness.play([KeyEvent(key: .character("c"), ctrl: true)]) { lists(board) }
+        // The cursor starts on the selection (stage 1, 2026-11-16): Up twice
+        // takes it to `a`, outside it.
+        let up = KeyEvent(key: .up)
+        harness.play([up, up, KeyEvent(key: .character("c"), ctrl: true)]) { lists(board) }
         #expect(clipboard.writes == ["a"])
     }
 }
