@@ -98,10 +98,11 @@ private func frameChange(
     cache: RenderCache?, reader: Any.Type, kind: ObservationCensus.Kind, sentinel: ScopeSentinel?
 ) -> @Sendable () -> Void {
     if sentinel == nil { cache?.noteReads(reader) }
+    let cancellation = cache?.leases.cancellation(armedWith: sentinel)
     let registration = cache?.observationCensus?.arm(
         kind, unleased: sentinel == nil && cache?.leases.retirement != .never)
     return { [link = cache?.link] in
-        if let sentinel, sentinel.isRetired {
+        if let cancellation, cancellation.isRetired {
             registration?.cancel()
             return
         }

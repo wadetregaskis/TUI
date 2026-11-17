@@ -916,6 +916,22 @@ and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
   is the conservative answer, not a stale one. `grid-scroll` and `focus-tab-scaling`, `ForEach` rows memoised in a
   stack, open in three frames for the same reason; the fix belongs to the leases (keep scopes nested in an unleased
   one unleased too, or retire the first pass's leases with the clear the learning pass asks for), not to the form.
+  **Fixed (2026-11-17), in the leases:** neither of those. Keeping nested scopes unleased would leave every scope
+  armed under a learning scope uncancellable, and the first pass's leases are held by the frame on screen until the
+  second is drawn. Instead an unleased scope checks an expiry the cache marks at the end of the first pass that
+  began by dropping the whole cache after it armed — the pass its arm asked for — after which everything kept or
+  drawn was computed under leased scopes of its own, so its fire reports nothing
+  (`ObservationLeases.cancellation(armedWith:)`). The open phases of the form cases, `grid-scroll`,
+  `focus-tab-scaling` and the other pages that opened in three frames for this reason now draw two
+  (`ObservationLeaseOpeningTests`): 25 cases draw a frame fewer at open, 23 of them less work over the case. What
+  the third frame did that was not spurious moves to the first step (`nsplit-three`'s first `key:down` now
+  draws the 1,000 bodies its third open frame drew; the forms' `key:space` builds the 5 rows their `key:tab`
+  no longer does). Two cases do more over their steps: `grid-scroll`'s `wheel:+3` runs 984 more bodies and
+  1,996 more measure misses (n), because the plain memo's cooldown (`PlainMemo.noteMissed`, which takes the
+  pass a clear empties the cache in and the next as no evidence) now cools the page's composites from the
+  second scroll instead of the fourth, and a cooled composite there runs 1,469 bodies a step where an asked
+  one ran 977: not work the leases add, but the cooldown's timing against the case's five steps. And
+  `tabs-hover`'s hover runs 9 bodies, 80 cells and 22 misses more (net of its open, 6 bodies), not traced.
   **Fixed further (2026-11-17), the first try's regressions:** at rest `app-shapes/settings-form` is served whole by
   its page's memo, but the 374 entries the rows keep under it were each asked about by every frame's prune (373
   retained checks a frame, +51%). The render cache's prune now skips its walk when nothing was stored or marked

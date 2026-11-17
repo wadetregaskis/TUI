@@ -423,7 +423,8 @@ cancelled (`ObservationLeases`); or until every object it read from is
 deinitialized, when it is dropped without running anything. One armed and
 none of those is alive, holding its closure and what that captured; one armed
 before the cache knew its view type reads is `unleased`, and no lease can
-cancel it. The report gives each kind's registrations armed over the steps
+cancel it (it reports nothing when it fires once a pass that began by
+dropping the whole cache has ended, and is counted cancelled then). The report gives each kind's registrations armed over the steps
 and per step, fired, cancelled, dropped, and alive at the end (and after the
 finish), then one line of per-step counts — registrations armed, fired and
 cancelled; the leases' computations opened, leases made, kept results used

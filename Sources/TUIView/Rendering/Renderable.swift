@@ -444,13 +444,18 @@ package func observingBodyClosure<T>(
 /// closure idempotent, since a retirement racing a write on another thread
 /// can run it twice. A scope armed with no sentinel while scopes can be
 /// cancelled is counted unleased: its reader was not known to read, and this
-/// arm is what teaches the cache that it does.
+/// arm is what teaches the cache that it does. No lease cancels it, but it
+/// checks the expiry of such scopes instead
+/// (``ObservationLeases/cancellation(armedWith:)``): it collected the
+/// sentinels of the scopes nested in it, and a retirement that fires it once
+/// what it watched is gone is no change.
 @inline(__always)
 package func observedChange(
     of context: RenderContext, kind: ObservationCensus.Kind, reader: Any.Type, sentinel: ScopeSentinel?
 ) -> @Sendable () -> Void {
     let cache = context.renderCache
     if sentinel == nil { cache?.noteReads(reader) }
+    let cancellation = cache?.leases.cancellation(armedWith: sentinel)
     let registration = cache?.observationCensus?.arm(
         kind, unleased: sentinel == nil && cache?.leases.retirement != .never)
     // A body's read is a parent's: its body runs again, and with it the
@@ -466,7 +471,7 @@ package func observedChange(
     let softly = kind == .bodyRender || kind == .bodyMeasure
     let keptOnly = !softly && cache?.plainMemo.isOn == true && (kind == .keptRender || kind == .keptMeasure)
     return { [link = cache?.link, identity = context.identity] in
-        if let sentinel, sentinel.isRetired {
+        if let cancellation, cancellation.isRetired {
             registration?.cancel()
             return
         }
@@ -540,10 +545,11 @@ private func rowBuildChange(
     cache: RenderCache?, reader: Any.Type, parent: ViewIdentity, sentinel: ScopeSentinel?
 ) -> @Sendable () -> Void {
     if sentinel == nil { cache?.noteReads(reader) }
+    let cancellation = cache?.leases.cancellation(armedWith: sentinel)
     let registration = cache?.observationCensus?.arm(
         .bodyRender, unleased: sentinel == nil && cache?.leases.retirement != .never)
     return { [link = cache?.link] in
-        if let sentinel, sentinel.isRetired {
+        if let cancellation, cancellation.isRetired {
             registration?.cancel()
             return
         }

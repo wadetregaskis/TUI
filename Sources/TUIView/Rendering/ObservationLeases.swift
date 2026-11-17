@@ -27,6 +27,21 @@
 //  once the next is drawn — a cancel at re-arm, one frame late — and a scope a
 //  kept result still depends on is not cancelled until that result goes.
 //
+//  A scope armed before its reader's type was known to read reads no sentinel
+//  (reading one is reading something, and a scope that reads nothing must arm
+//  nothing), so no lease can cancel it. But a scope collects the reads of the
+//  scopes nested in it, their sentinels too, so a lease's retirement fires it,
+//  and having no sentinel of its own it cannot tell that from a change: a page
+//  whose kept scope was armed so in its first frame, above leased rows, asked
+//  for a third frame at the end of its second, when the first one's leases
+//  retired. What such a scope watched is gone once a pass that began by
+//  dropping the whole cache has ended — every type that arms one asks for that
+//  clear at the next pass (`RenderCache.noteReads`) — since everything kept
+//  and drawn since was computed in that pass or later, under scopes of its
+//  own. So the scope checks an expiry the cache marks then
+//  (``ObservationLeases/cancellation(armedWith:)``): one that fires after it
+//  reports nothing.
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
@@ -133,6 +148,18 @@ package final class ObservationLeases {
 
     /// Passes ended, for the naive rules.
     private var pass: UInt64 = 0
+
+    /// What a scope armed with no sentinel finds retired once what it watched
+    /// is gone (``cancellation(armedWith:)``): made when the first such scope
+    /// arms, and handed to every one after it until a pass begins by dropping
+    /// the whole cache.
+    private var unleasedExpiry: ScopeSentinel?
+
+    /// The expiries handed out before a pass began by dropping the whole
+    /// cache: retired at that pass's end (``endPass(isRetained:)``). Read by
+    /// no scope, so retiring one fires nothing; a scope that holds one and
+    /// fires after finds it retired.
+    private var expiring: [ScopeSentinel] = []
 
     /// What the bookkeeping did — what `Stress --census` prints, per pass.
     package struct Counts: Equatable, Sendable {
@@ -272,16 +299,52 @@ package final class ObservationLeases {
         }
     }
 
+    /// What the `onChange` of a scope armed with `sentinel` checks when it
+    /// runs: when it finds it retired, the scope was cancelled, not changed,
+    /// and reports nothing.
+    ///
+    /// The sentinel itself, when the scope read one. Otherwise — its reader was
+    /// not known to read when it began — the expiry of such scopes, retired at
+    /// the end of the first pass that begins by dropping the whole cache after
+    /// the scope armed, as the pass the arm asks for does. Nothing kept or
+    /// drawn from then on depends on what the scope saw, and a change to what
+    /// it read is seen by the scopes that pass and those after it armed, which
+    /// read it again; until then — while the screen shows a frame drawn before
+    /// — it reports as any scope does. `nil` under `never`, which cancels
+    /// nothing. Asked only where a scope arms, on the walk's thread.
+    package func cancellation(armedWith sentinel: ScopeSentinel?) -> ScopeSentinel? {
+        if let sentinel { return sentinel }
+        guard retirement != .never else { return nil }
+        if let unleasedExpiry { return unleasedExpiry }
+        let made = ScopeSentinel()
+        unleasedExpiry = made
+        return made
+    }
+
+    /// The cache was dropped whole as a pass began (`RenderCache.beginRenderPass`):
+    /// every scope armed with no sentinel before now expires as this pass ends.
+    package func noteClearedAtPassStart() {
+        guard let unleasedExpiry else { return }
+        expiring.append(unleasedExpiry)
+        self.unleasedExpiry = nil
+    }
+
     // MARK: Passes
 
     /// Ends a pass: the frame just drawn becomes the displayed one, and the
-    /// one before it — no longer on screen — lets go of what it held. Under
+    /// one before it — no longer on screen — lets go of what it held. A pass
+    /// that began by dropping the whole cache first expires the scopes armed
+    /// with no sentinel before it (``cancellation(armedWith:)``). Under
     /// `perReaderAndPrune`, a reader not armed in the pass and not retained is
     /// cancelled.
     ///
     /// - Parameter isRetained: Whether the pass kept an identity alive
     ///   without visiting it (the cache's retained subtrees).
     package func endPass(isRetained: (ViewIdentity) -> Bool) {
+        // First: letting go of the frame before retires leases whose
+        // sentinels such a scope collected, which fires it.
+        for expiry in expiring { expiry.retire() }
+        expiring.removeAll()
         if retirement == .perReaderAndPrune {
             var gone: [Int] = []
             for (key, reader) in readerSentinels where reader.pass != pass && !isRetained(reader.identity) {
@@ -320,4 +383,16 @@ package final class ObservationLeases {
 
     /// How many computations are open, the frame's included.
     package var depth: Int { unsafe state.stack.count }
+}
+
+extension RenderCache {
+    /// Drops every cached entry as a pass begins (`beginRenderPass`), and
+    /// tells the leases so: a scope armed with no sentinel before this expires
+    /// as the pass ends (``ObservationLeases/cancellation(armedWith:)``). Only
+    /// here, not in every ``clearAll()``: one made mid-pass leaves on screen
+    /// what the pass drew before it, which such a scope may still watch.
+    func clearAllAsPassBegins() {
+        clearAll()
+        leases.noteClearedAtPassStart()
+    }
 }

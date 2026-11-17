@@ -1324,7 +1324,7 @@ extension RenderCache {
             renderedUnderTerminalColorsGeneration = TerminalColors.generation
             renderedUnder = now
             clearsAtNextPass = false
-            clearAll()
+            clearAllAsPassBegins()
         }
 
         // Snapshot stats *before* the drain so the deferred clears it applies
