@@ -108,4 +108,23 @@ def stamp(fd, probe, use_alt):
                 timeout=5).stdout.strip()
         except Exception:
             pass
+    if platform.system() == "Windows":
+        # `platform.release()` says 10 on Windows 11 too; the build number is
+        # what tells them apart (22000 and up is 11).
+        out["os"] = f"Windows {platform.version()}"
+        if out["env"].get("WT_SESSION"):
+            version = _windows_terminal_version()
+            if version:
+                out["windows_terminal_version"] = version
     return out
+
+
+def _windows_terminal_version():
+    """Windows Terminal's package version, as `Get-AppxPackage` reports it."""
+    try:
+        return subprocess.run(
+            ["powershell.exe", "-NoProfile", "-Command",
+             "(Get-AppxPackage Microsoft.WindowsTerminal).Version"],
+            capture_output=True, text=True, timeout=20).stdout.strip() or None
+    except Exception:
+        return None
