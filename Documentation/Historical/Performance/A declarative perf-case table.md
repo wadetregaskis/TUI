@@ -672,6 +672,19 @@ both, `outline-rows-stacked` −55.9% and `outline-rows` −16.2%. What remains 
 row-builder question above), and in them generic metadata lookups (`swift_getGenericMetadata`, 19–21% of the frame
 inclusive, before and after) made by the unspecialised row content walk: a lead for another change.
 
+**The walk's generic costs (2026-11-16).** Followed up in five commits, each timed against the one before
+(`ab_bench.py`, release, cpu-per-frame, `outline-rows` / `outline-rows-stacked`): the outline's row places made
+top-level types rather than generic ones nested in `_TableOutline`, and its stack split into a generic and a
+non-generic half (−7.3% / −6.0%, and `outline-table` −11.6%); a `DisclosureTableRow` keeping its value rather than a
+label it flattened to find it (−4.5% / −4.1%); a branch of plain leaves listed whole, with no node made or pushed
+for each (−26.7% / −27.2%); a `ForEach` that reads ids directly no longer making a key path, which through a
+protocol requirement is made from its pattern every time even in specialised code (−8.1% / −10.6%); and a loop of
+rows walking an array's storage rather than a generic iterator boxed on the heap (−14.4% / −13.9%). Together:
+`outline-rows` −47.3%, `outline-rows-stacked` −47.4%, `outline-table` −10.1%, the flat table scenarios unchanged.
+Metadata lookups are still about a fifth of the shorter frame: per row in `TableRow`, `_ConditionalContent` and
+`_TableRowList.append`, and in the draw's index of rows by id. Making the walk `@inlinable` would specialise it in the
+app, but would put the row list's internals in the ABI; not done.
+
 ### G1-rows: why it is not fixed yet, and the options
 
 A `Table(_:children:)` keeps its outline because it can tell its tree has not changed: one array buffer of values

@@ -592,10 +592,23 @@ where
 
 extension ForEach where Content: TableRowContent {
     /// Appends the rows built for each element, in order.
+    ///
+    /// Through the data's contiguous storage where it has some, as an array
+    /// does: stepping through a collection of a type known only at run time
+    /// asks its index type's metadata at every step (`index(after:)`, a range
+    /// check), which a tree of rows paid for every row of every open branch
+    /// on every pass. A buffer's elements are reached by an `Int`.
     @MainActor
     public static func _appendRows(_ content: Self, to rows: inout _TableRowList<Content.TableRowValue>) {
+        let makeRows = content.content
+        let appended: Void? = content.data.withContiguousStorageIfAvailable { elements in
+            for index in elements.indices {
+                appendTableRows(makeRows(elements[index]), to: &rows)
+            }
+        }
+        guard appended == nil else { return }
         for element in content.data {
-            appendTableRows(content.content(element), to: &rows)
+            appendTableRows(makeRows(element), to: &rows)
         }
     }
 }

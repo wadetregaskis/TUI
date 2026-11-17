@@ -69,6 +69,14 @@ than a view under `View.disabled(_:)`, and it left `\.isEnabled` true: a label o
 `PrimitiveButtonStyle` whose body is `Button(configuration)` could still be pressed and clicked. Each now draws its
 label and its style's body with `\.isEnabled` false, as the view modifier does.
 
+**A hierarchical `Table` whose tree is row content lists its open rows in about half the time.** Flattening a tree
+written as `DisclosureTableRow` and `ForEach` row content runs over the app's row type in code that cannot be
+specialised for it, and it looked up type metadata, made nodes, and pushed and popped them one row at a time. A
+branch whose rows are all plain leaves is now listed whole, a loop of rows walks an array's storage directly, and the
+outline's bookkeeping no longer depends on the row type; a `Table(_:children:)` gains about a tenth. A `ForEach` over
+`Identifiable` elements or a range, of views, rows or tabs, no longer makes a key path to the elements' ids each time
+it is created: it never read it.
+
 **A table column of strings sorts `item2` before `item10` on Windows and Linux, as on a Mac.** Given no comparator,
 `TableColumn(_:value:)` and `TableColumn(_:value:content:)` over a `String` property sort as Finder lists names
 everywhere, where off Apple platforms they sorted by character codes (`Zebra` before `apple`, `item10` before
