@@ -652,6 +652,32 @@ extension String {
         withCursorForwardCompensation(erasingUnderGlyph: true, admittingSpacingMarks: true) { $0.xtermJSCursorAdvance }
     }
 
+    /// Returns a copy of this string with Windows Terminal's under-advances
+    /// (bare SMP pictographs, a lone regional indicator, SF Symbols) worked
+    /// around by `ECH` + glyph + `CUF` (``Character/windowsTerminalCursorAdvance``).
+    /// It paints a bare pictograph two cells wide from a one-cell advance, so
+    /// the `CUF` is what keeps the next character off its right half.
+    /// ANSI escape sequences are preserved.
+    public func withWindowsTerminalCursorCompensation() -> String {
+        withCursorForwardCompensation(erasingUnderGlyph: true) { $0.windowsTerminalCursorAdvance }
+    }
+
+    /// Returns a copy of this string with the classic Windows console's
+    /// (conhost's) divergences worked around as far as they can be
+    /// (``Character/windowsConsoleCursorAdvance``): `ECH` + glyph + `CUF` for
+    /// its one-cell bare pictographs and Unicode 16 emoji; a flag sent as its
+    /// two letters, which is what conhost draws of one anyway; and a cluster
+    /// it would advance past its claim respelled where a spelling fits
+    /// (``Character/windowsConsoleRespelling``). ZWJ joiners are dropped under
+    /// `.decomposedDroppingJoiners`, as on Warp and GNOME Terminal. What is
+    /// left over — a combining mark that composes with nothing — over-advances
+    /// and is documented. ANSI escape sequences are preserved.
+    public func withWindowsConsoleCursorCompensation() -> String {
+        withCursorForwardCompensation(
+            erasingUnderGlyph: true, flagsAsCountryCodes: true, respelling: { $0.windowsConsoleRespelling }
+        ) { $0.windowsConsoleCursorAdvance }
+    }
+
     /// Returns a copy of this string with tmux's cursor-advance divergences
     /// worked around by the same CUF injection the other hosts use: Plane-16
     /// PUA (SF Symbols), bare SMP pictographs — including the `Emoji=No`
@@ -756,12 +782,20 @@ extension String {
     ///   - flagsAsCountryCodes: Whether a flag goes out as the two letters its
     ///     regional indicators spell (`JP` for 🇯🇵): for a host that cannot
     ///     draw flags (``Character/regionalIndicatorCountryCode``).
+    ///   - respelling: A spelling of a character that the host advances
+    ///     exactly as far as its claim, where the character itself goes
+    ///     further: what is sent in its place, after the normalization above.
+    ///     It must claim what the character claims, so the layout and the rest
+    ///     of the walk see the same cells. A host given one has more to rewrite
+    ///     than the narrower gate admits (an accent composed into its letter),
+    ///     so the walk then takes every row that is not ASCII.
     ///   - advance: The host's cursor advance for a character.
     func withCursorForwardCompensation(
         erasingUnderGlyph: Bool = false,
         normalizing: Bool = true,
         flagsAsCountryCodes: Bool = false,
         admittingSpacingMarks: Bool = false,
+        respelling: ((Character) -> Character?)? = nil,
         advance: (Character) -> Int
     ) -> String {
         // Fast path: every quirk cluster is non-ASCII (same reasoning and
@@ -769,7 +803,7 @@ extension String {
         // keeps a box-drawing border off this path). A host that advances a
         // spacing vowel sign short needs more than the shared gate lets in.
         guard utf8ContainsNonASCII,
-            utf8MayNeedCompensation || (admittingSpacingMarks && utf8MayHoldSpacingMark)
+            respelling != nil || utf8MayNeedCompensation || (admittingSpacingMarks && utf8MayHoldSpacingMark)
         else { return self }
 
         let traits = TerminalWidthTraits.current
@@ -789,7 +823,8 @@ extension String {
                 result += code
                 return
             }
-            let c = normalizing ? (character.withoutRedundantToneVS16 ?? character) : character
+            let normalized = normalizing ? (character.withoutRedundantToneVS16 ?? character) : character
+            let c = respelling?(normalized) ?? normalized
             let claimed = c.terminalWidth
             let actual = advance(c)
             if claimed > actual, erasingUnderGlyph {
