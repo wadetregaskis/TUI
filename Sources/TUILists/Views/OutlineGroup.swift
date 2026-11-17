@@ -108,9 +108,38 @@ import TUIView
 /// That is why, like `ForEach`, this has no `body` of its own: it is not one
 /// view, it is a run of them.
 ///
-/// The expansion is the group's own, starting closed, exactly as in SwiftUI —
-/// ``DisclosureGroup`` is the one to reach for when something outside needs to
-/// drive it.
+/// The expansion is the group's own, starting closed, exactly as in SwiftUI,
+/// unless the app hands it one of its own (below).
+///
+/// ## The app's own expansion (TUI only)
+///
+/// SwiftUI's `OutlineGroup` takes no expansion: its branches start closed and
+/// only the user opens them. TUI's every view initializer also takes an
+/// `expansion:` binding, defaulted to `nil`, so a SwiftUI call site compiles
+/// and behaves as it does in SwiftUI. Handed one, the outline opens exactly the
+/// branches whose IDs are in the set, and the user's opening and closing —
+/// Right, Left, ⌥Right, ⌥Left, a click on a triangle, and Return or Space on
+/// a bare outline's triangle — writes it:
+///
+/// ```swift
+/// @State private var open: Set<File.ID> = [root.id]   // starts open
+///
+/// List(files, children: \.children, expansion: $open, selection: $selected) { file in
+///     Text(file.name)
+/// }
+///
+/// // Find: open a match's ancestors from code, then select it.
+/// open.formUnion(ancestors(of: match))
+/// selected = match.id
+/// ```
+///
+/// It exists because a tree that starts open, or that code opens, could
+/// otherwise only be drawn as nested ``DisclosureGroup``s, each bound to an
+/// expansion the app keeps, whose rows are every one built on every frame; an
+/// outline keeps its open rows between frames and a `List` builds only the
+/// rows it draws, with the outline's expansion or the app's alike. A SwiftUI
+/// port drops the argument and goes back to `DisclosureGroup`s. The same
+/// argument is on `List(_:children:)` and `Table(_:children:)`.
 ///
 /// - Note: SwiftUI's `OutlineGroup` carries five generic parameters; two of
 ///   them (`Parent` and `Subgroup`) are phantom — `Parent` is always `Leaf`,
@@ -137,6 +166,10 @@ nonisolated public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashabl
 
     /// Builds a node's label.
     package let content: (Data.Element) -> Leaf
+
+    /// The app's expansion, from an `expansion:` argument, or `nil` for the
+    /// outline to keep its own (``expansion(context:)``).
+    let appExpansion: Binding<Set<ID>>?
 
     /// Whether a `List` windows these rows (``windowedListRows(context:)``):
     /// `false` extracts every row on every pass, as a `Section` among other
@@ -286,7 +319,7 @@ final class OutlineActivation {
     ///   second Tab stop inside the row: it would take the row's Space with it,
     ///   and a tree of N branches would add N stops nobody asked for.
     func row(
-        for node: Node, expansion: StateBox<Set<ID>>, rowOwnsFocus: Bool = false
+        for node: Node, expansion: OutlineExpansion<ID>, rowOwnsFocus: Bool = false
     ) -> _OutlineRow<Data.Element, ID, Leaf> {
         _OutlineRow(
             element: node.element, id: node.id, depth: node.depth, isBranch: node.isBranch,
@@ -294,10 +327,11 @@ final class OutlineActivation {
             content: content)
     }
 
-    /// The persistent set of open node ids.
+    /// Where the open node ids are kept: the app's binding, where it handed
+    /// one, else the outline's own persistent set.
     ///
-    /// Kept in the render-pass `StateStorage` rather than in an `@State`
-    /// property, because neither path that draws an outline goes through
+    /// The outline's own is kept in the render-pass `StateStorage` rather than
+    /// in an `@State` property, because neither path that draws an outline goes through
     /// `body`: a container asks for ``childViews(context:)`` and a `List` for
     /// ``extractListRows(context:)``, and `@State` is bound during a view's own
     /// render, which never happens. Both of those hand over a context, which is
@@ -307,15 +341,20 @@ final class OutlineActivation {
     /// outlines in different places keep different sets. Two *siblings* of the
     /// same type in one container would share one — the same collision
     /// `ForEach` has for its rows' state, and for the same reason.
-    func expansion(context: RenderContext) -> StateBox<Set<ID>> {
+    func expansion(context: RenderContext) -> OutlineExpansion<ID> {
         let identity = context.withChildIdentity(erasedType: Self.self, key: "outline").identity
-        guard let storage = context.stateStorage else { return StateBox([]) }
+        guard let storage = context.stateStorage else {
+            return appExpansion.map { OutlineExpansion($0) } ?? OutlineExpansion(StateBox([]))
+        }
         // Nothing renders this identity, so nothing else will mark it — without
         // this the set is collected at the end of the pass that created it and
-        // every branch closes itself again on the next frame.
+        // every branch closes itself again on the next frame. Marked with the
+        // app's binding too: the kept rows (``OutlineVisibleNodes``) live here.
         storage.markActive(identity)
-        return storage.storage(
-            for: StateStorage.StateKey(identity: identity, propertyIndex: OutlineStateIndex.expansion), default: [])
+        if let appExpansion { return OutlineExpansion(appExpansion) }
+        return OutlineExpansion(
+            storage.storage(
+                for: StateStorage.StateKey(identity: identity, propertyIndex: OutlineStateIndex.expansion), default: []))
     }
 
     /// A node as it appears on screen (``OutlineNode``).
@@ -350,7 +389,7 @@ struct OutlineNode<Element, ID: Hashable> {
     /// node rather than its position.
     public func childViews(context: RenderContext) -> [ChildView] {
         let expansion = expansion(context: context)
-        return visibleNodes(expanded: expansion.value).map { node in
+        return visibleNodes(expanded: expansion.read().open).map { node in
             ChildView(
                 row(for: node, expansion: expansion),
                 identityType: _OutlineRow<Data.Element, ID, Leaf>.self,
@@ -388,11 +427,11 @@ struct _OutlineRow<Element, ID: Hashable, Leaf: View> {
     let isBranch: Bool
     let isExpanded: Bool
 
-    /// The outline's open-node set, held directly. It is the persistent box, so
-    /// writing to it from the button below outlives this frame and asks for the
-    /// next one — which is the whole reason the row carries it rather than a
-    /// snapshot of the value.
-    let expansion: StateBox<Set<ID>>
+    /// Where the outline keeps its open nodes, held directly: the persistent
+    /// box or the app's binding, so writing to it from the button below
+    /// outlives this frame and asks for the next one — which is the whole
+    /// reason the row carries it rather than a snapshot of the value.
+    let expansion: OutlineExpansion<ID>
 
     /// Whether the container owns this row's focus — see
     /// ``OutlineGroup/row(for:expansion:rowOwnsFocus:)``.
@@ -491,19 +530,15 @@ struct _OutlineRow<Element, ID: Hashable, Leaf: View> {
 
     /// Opens a closed node, or closes an open one.
     @MainActor private func toggle() {
-        setExpanded(!expansion.value.contains(id))
+        setExpanded(!expansion.read().open.contains(id))
     }
 
     /// Puts this node into a named state, and reports whether that changed
     /// anything — which is what decides if the key was used up.
     @discardableResult
     @MainActor private func setExpanded(_ open: Bool) -> Bool {
-        guard expansion.value.contains(id) != open else { return open }
-        if open {
-            expansion.value.insert(id)
-        } else {
-            expansion.value.remove(id)
-        }
+        guard expansion.read().open.contains(id) != open else { return open }
+        expansion.set(CollectionOfOne(id), open: open)
         return true
     }
 }
@@ -517,13 +552,18 @@ extension OutlineGroup where Leaf: View, Data.Element: Identifiable, ID == Data.
     /// - Parameters:
     ///   - root: The element at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label.
     public init<DataElement>(
         _ root: DataElement,
         children: KeyPath<DataElement, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (DataElement) -> Leaf
     ) where DataElement == Data.Element {
-        self.init(roots: [root], id: \.id, children: children, content: content)
+        self.init(roots: [root], id: \.id, children: children, expansion: expansion, content: content)
     }
 
     /// Creates an outline from a collection of top-level elements.
@@ -531,13 +571,18 @@ extension OutlineGroup where Leaf: View, Data.Element: Identifiable, ID == Data.
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label.
     public init<DataElement>(
         _ data: Data,
         children: KeyPath<DataElement, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (DataElement) -> Leaf
     ) where DataElement == Data.Element {
-        self.init(roots: Array(data), id: \.id, children: children, content: content)
+        self.init(roots: Array(data), id: \.id, children: children, expansion: expansion, content: content)
     }
 }
 
@@ -550,14 +595,19 @@ extension OutlineGroup where Leaf: View {
     ///   - root: The element at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label.
     public init<DataElement>(
         _ root: DataElement,
         id: KeyPath<DataElement, ID>,
         children: KeyPath<DataElement, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (DataElement) -> Leaf
     ) where DataElement == Data.Element {
-        self.init(roots: [root], id: id, children: children, content: content)
+        self.init(roots: [root], id: id, children: children, expansion: expansion, content: content)
     }
 
     /// Creates an outline from a collection of top-level elements, keyed by an
@@ -567,14 +617,19 @@ extension OutlineGroup where Leaf: View {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label.
     public init<DataElement>(
         _ data: Data,
         id: KeyPath<DataElement, ID>,
         children: KeyPath<DataElement, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (DataElement) -> Leaf
     ) where DataElement == Data.Element {
-        self.init(roots: Array(data), id: id, children: children, content: content)
+        self.init(roots: Array(data), id: id, children: children, expansion: expansion, content: content)
     }
 }
 
@@ -587,11 +642,13 @@ extension OutlineGroup {
         roots: [Data.Element],
         id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         content: @escaping (Data.Element) -> Leaf
     ) {
         self.roots = roots
         self.idKeyPath = id
         self.childrenKeyPath = children
+        self.appExpansion = expansion
         self.content = content
     }
 }

@@ -444,13 +444,12 @@ Table(of: File.self) {
 
 #### A tree that starts open
 
-`Table(_:children:)` and `OutlineGroup` start with every branch closed, as
-SwiftUI's do. SwiftUI's take no expansion of their own; TUI's
-`Table(_:children:)` takes one as an extra, defaulted argument, `expansion:`, a
-binding to the set of open branches' ids. Handed one, the table opens exactly
-the ids in the set, and Right, Left, ⌥Right, ⌥Left and a click on a triangle
-write it, so the app can open a root at launch, or a match's ancestors when
-Find lands on it:
+`Table(_:children:)`, `List(_:children:)` and `OutlineGroup` start with every
+branch closed, as SwiftUI's do. SwiftUI's take no expansion of their own; TUI's
+take one as an extra, defaulted argument, `expansion:`, a binding to the set of
+open branches' ids. Handed one, the table or list opens exactly the ids in the
+set, and Right, Left, ⌥Right, ⌥Left and a click on a triangle write it, so the
+app can open a root at launch, or a match's ancestors when Find lands on it:
 
 ```swift
 @State private var open: Set<File.ID> = [root.id]
@@ -469,12 +468,27 @@ ScrollViewReader { proxy in
 }
 ```
 
-This is the windowed way to a tree that starts open. The table keeps its outline
-between frames while the rows and the set are the same, and builds only the rows
-it draws, however many are open; a change to the set puts in or takes out only
-the rows beneath the branches that opened or closed. It
-is TUI's alone: a SwiftUI port drops the argument and writes its rows as below.
-`List(_:children:)` and `OutlineGroup` take no such argument yet.
+A list takes the same argument, in every form of `List(_:children:)` and of
+`OutlineGroup`, in a list's `Section` too:
+
+```swift
+List(files, children: \.children, expansion: $open, selection: $selection) { file in
+    Text(file.name)
+}
+
+List(selection: $selection) {
+    Section("Projects") {
+        OutlineGroup(projects, children: \.children, expansion: $openProjects) { Text($0.name) }
+    }
+}
+```
+
+This is the windowed way to a tree that starts open. The table or list keeps its
+outline between frames while the rows and the set are the same, and builds only
+the rows it draws, however many are open. A change to the set puts in or takes out
+only the rows beneath the branches that opened or closed in a table, and makes a
+list's outline once. It is TUI's alone: a SwiftUI port drops the argument and writes its rows
+as below (for a list, nested `DisclosureGroup`s bound to the set).
 
 The other way, SwiftUI's, is to write the rows yourself: a `TableRowContent` of
 your own that names itself for each branch's children, each branch a

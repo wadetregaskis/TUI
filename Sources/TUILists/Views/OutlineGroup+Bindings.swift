@@ -32,17 +32,23 @@ extension OutlineGroup where Leaf: View {
     /// - Parameters:
     ///   - root: A binding to the element at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label from a binding to the node.
     public init<C, E>(
         _ root: Binding<E>,
         children: WritableKeyPath<E, C?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (Binding<E>) -> Leaf
     )
     where
         Data == Binding<C>, ID == E.ID, C: MutableCollection, C: RandomAccessCollection, E: Identifiable,
         E == C.Element
     {
-        self.init(roots: [root], id: \.id, children: \.[outlineChildren: children], content: content)
+        self.init(
+            roots: [root], id: \.id, children: \.[outlineChildren: children], expansion: expansion, content: content)
     }
 
     /// Creates an outline of the top-level elements a binding holds, handing
@@ -51,17 +57,24 @@ extension OutlineGroup where Leaf: View {
     /// - Parameters:
     ///   - data: A binding to the elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label from a binding to the node.
     public init<C, E>(
         _ data: Binding<C>,
         children: WritableKeyPath<E, C?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (Binding<E>) -> Leaf
     )
     where
         Data == Binding<C>, ID == E.ID, C: MutableCollection, C: RandomAccessCollection, E: Identifiable,
         E == C.Element
     {
-        self.init(roots: Array(data), id: \.id, children: \.[outlineChildren: children], content: content)
+        self.init(
+            roots: Array(data), id: \.id, children: \.[outlineChildren: children], expansion: expansion,
+            content: content)
     }
 
     /// Creates an outline rooted at the element a binding holds, keyed by an
@@ -71,16 +84,21 @@ extension OutlineGroup where Leaf: View {
     ///   - root: A binding to the element at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label from a binding to the node.
     public init<C, E>(
         _ root: Binding<E>,
         id: KeyPath<E, ID>,
         children: WritableKeyPath<E, C?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (Binding<E>) -> Leaf
     ) where Data == Binding<C>, C: MutableCollection, C: RandomAccessCollection, E == C.Element {
         self.init(
             roots: [root], id: (\Binding<E>.wrappedValue).appending(path: id),
-            children: \.[outlineChildren: children], content: content)
+            children: \.[outlineChildren: children], expansion: expansion, content: content)
     }
 
     /// Creates an outline of the top-level elements a binding holds, keyed by
@@ -90,15 +108,20 @@ extension OutlineGroup where Leaf: View {
     ///   - data: A binding to the elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     outline to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - content: Builds a node's label from a binding to the node.
     public init<C, E>(
         _ data: Binding<C>,
         id: KeyPath<E, ID>,
         children: WritableKeyPath<E, C?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder content: @escaping (Binding<E>) -> Leaf
     ) where Data == Binding<C>, C: MutableCollection, C: RandomAccessCollection, E == C.Element {
         self.init(
             roots: Array(data), id: (\Binding<E>.wrappedValue).appending(path: id),
-            children: \.[outlineChildren: children], content: content)
+            children: \.[outlineChildren: children], expansion: expansion, content: content)
     }
 }

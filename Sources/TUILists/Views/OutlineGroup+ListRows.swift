@@ -46,21 +46,22 @@ final class OutlineVisibleNodes<Element, ID: Hashable> {
     /// told apart from another tree's (see above), and are not kept.
     private var roots: [Element]?
     private var keyPaths: [AnyKeyPath] = []
-    private var expansionSeen: Set<ID> = []
-    private var expansionBox: ObjectIdentifier?
+    private var expansionSeen: OutlineExpansion<ID>.Reading?
 
     /// Each row's index by the id the list knows it by, made by the first
     /// keystroke that asks after the nodes change, and the id type it is for.
     private var rowIndex: (type: ObjectIdentifier, indices: [AnyHashable: Int])?
 
-    /// The nodes of `roots` with `expansion`'s branches open: those of the
-    /// last call where nothing has changed since, else `flatten()`'s.
+    /// The nodes of `roots` with the branches `expansion` read open: those of
+    /// the last call where nothing has changed since, else `flatten()`'s. The
+    /// outline's own set and the app's are compared alike, so an unchanged set
+    /// keeps the rows, and a change flattens them again, once.
     func nodes(
-        roots: [Element], keyPaths: [AnyKeyPath], comparesByStorage: Bool, expansion: StateBox<Set<ID>>,
+        roots: [Element], keyPaths: [AnyKeyPath], comparesByStorage: Bool, expansion: OutlineExpansion<ID>.Reading,
         flatten: () -> [OutlineNode<Element, ID>]
     ) -> [OutlineNode<Element, ID>] {
         if let kept = self.roots, comparesByStorage, self.keyPaths == keyPaths, kept.count == roots.count,
-            expansionBox == ObjectIdentifier(expansion), expansionSeen == expansion.value,
+            expansionSeen == expansion,
             kept.withUnsafeBufferPointer({ mine in
                 roots.withUnsafeBufferPointer { theirs in unsafe mine.baseAddress == theirs.baseAddress }
             }) {
@@ -69,8 +70,7 @@ final class OutlineVisibleNodes<Element, ID: Hashable> {
         nodes = flatten()
         self.roots = comparesByStorage ? roots : nil
         self.keyPaths = keyPaths
-        expansionSeen = expansion.value
-        expansionBox = ObjectIdentifier(expansion)
+        expansionSeen = expansion
         rowIndex = nil
         return nodes
     }
@@ -151,7 +151,7 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
 
     /// The kept visible nodes, brought up to date for this pass.
     private func visibleNodes(
-        context: RenderContext, expansion: StateBox<Set<ID>>
+        context: RenderContext, expansion: OutlineExpansion<ID>
     ) -> OutlineVisibleNodes<Data.Element, ID> {
         let identity = context.withChildIdentity(erasedType: Self.self, key: "outline").identity
         let kept =
@@ -164,17 +164,20 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
         let comparesByStorage =
             MemoryLayout<Data.Element>.offset(of: childrenKeyPath) != nil
             && !(Data.Element.self is AnyObject.Type) && !(Data.self is AnyObject.Type)
+        // Read once for the pass: what the kept rows are compared with, and
+        // what a flattening opens.
+        let reading = expansion.read()
         _ = kept.nodes(
             roots: roots, keyPaths: [idKeyPath, childrenKeyPath], comparesByStorage: comparesByStorage,
-            expansion: expansion
-        ) { visibleNodes(expanded: expansion.value) }
+            expansion: reading
+        ) { visibleNodes(expanded: reading.open) }
         return kept
     }
 
     /// One row's box: its size and its drawing, both made only when the list
     /// asks for them.
     private func listRowContent(
-        for node: Node, expansion: StateBox<Set<ID>>, context: RenderContext
+        for node: Node, expansion: OutlineExpansion<ID>, context: RenderContext
     ) -> LazyListRowContent {
         context.renderCache?.rowWork.listed += 1  // see `RowWork.listed`
         let view = row(for: node, expansion: expansion, rowOwnsFocus: true)
@@ -206,7 +209,7 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
     /// kept nodes are read as they are when the key arrives: the ones the last
     /// pass drew, which the list's ids name.
     private func installActivation(
-        _ kept: OutlineVisibleNodes<Data.Element, ID>, names: any OutlineRowNaming, expansion: StateBox<Set<ID>>
+        _ kept: OutlineVisibleNodes<Data.Element, ID>, names: any OutlineRowNaming, expansion: OutlineExpansion<ID>
     ) {
         let branchesUnder = subtreeBranchWalk()
         activation.parentOf = { erased in
@@ -227,15 +230,11 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
             // A recursive gesture takes its DIRECTION from the node it was
             // aimed at, then imposes that one state on the whole subtree —
             // rather than toggling each branch to its own opposite, which
-            // would open half a tree and close the other half.
-            let wanted = target ?? !expansion.value.contains(node.id)
-            let before = expansion.value.count
-            if wanted {
-                expansion.value.formUnion(all)
-            } else {
-                expansion.value.subtract(all)
-            }
-            return expansion.value.count != before
+            // would open half a tree and close the other half. Read now, not
+            // at the pass: a key handled before the next frame sees what the
+            // one before it wrote, and the app's writes.
+            let wanted = target ?? !expansion.read().open.contains(node.id)
+            return expansion.set(all, open: wanted)
         }
     }
 }

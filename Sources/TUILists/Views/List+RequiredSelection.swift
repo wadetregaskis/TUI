@@ -76,17 +76,24 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row view for each node.
     @_disfavoredOverload
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<Data.Element.ID>>? = nil,
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
             Data.Element: Identifiable {
-        self.init(data, children: children, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
+        self.init(
+            data, children: children, expansion: expansion, selection: Binding<SelectionValue?>(selection),
+            rowContent: rowContent)
     }
 
     /// Creates a list of a tree keyed by an explicit id, with single selection
@@ -96,6 +103,10 @@ extension List where Footer == EmptyView {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - selection: A binding to the selected row's value.
     ///   - rowContent: Builds the row view for each node.
     @_disfavoredOverload
@@ -103,11 +114,13 @@ extension List where Footer == EmptyView {
         _ data: Data,
         id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         selection: Binding<SelectionValue>,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, ID, RowContent> {
         self.init(
-            data, id: id, children: children, selection: Binding<SelectionValue?>(selection), rowContent: rowContent)
+            data, id: id, children: children, expansion: expansion, selection: Binding<SelectionValue?>(selection),
+            rowContent: rowContent)
     }
 
     /// Creates a list over a binding to a collection of identifiable elements,

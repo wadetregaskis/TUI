@@ -1219,6 +1219,53 @@ private struct TableOutlineShapes: View {
     }
 }
 
+// MARK: - Hierarchical lists and outlines
+
+/// Every SwiftUI form of `List(_:children:)` and of the view `OutlineGroup`,
+/// alone and inside a `List` and a `Section`, so TUI's defaulted `expansion:`
+/// after `children:` is seen to leave each one resolving as it did.
+private struct ListOutlineShapes: View {
+    struct Node: Identifiable {
+        let id: Int
+        var name: String
+        var children: [Self]?
+    }
+
+    @State private var nodes: [Node] = []
+    @State private var selection: Node.ID?
+    @State private var required: Node.ID = 0
+    @State private var picked = Set<Node.ID>()
+
+    var body: some View {
+        VStack {
+            List(nodes, children: \.children) { Text($0.name) }
+            List(nodes, id: \.id, children: \.children) { Text($0.name) }
+            List(nodes, children: \.children, selection: $selection) { Text($0.name) }
+            List(nodes, children: \.children, selection: $picked) { Text($0.name) }
+            List(nodes, children: \.children, selection: $required) { Text($0.name) }
+            List(nodes, id: \.id, children: \.children, selection: $selection) { Text($0.name) }
+            List(nodes, id: \.id, children: \.children, selection: $picked) { Text($0.name) }
+            List(nodes, id: \.id, children: \.children, selection: $required) { Text($0.name) }
+            List(nodes, children: \.children, rowContent: { node in Text(node.name) })
+            ScrollView {
+                OutlineGroup(nodes, children: \.children) { Text($0.name) }
+                OutlineGroup(Node(id: 1, name: "root"), children: \.children) { Text($0.name) }
+                OutlineGroup(nodes, id: \.id, children: \.children) { Text($0.name) }
+                OutlineGroup(Node(id: 1, name: "root"), id: \.id, children: \.children) { Text($0.name) }
+                OutlineGroup(nodes, children: \.children, content: { node in Text(node.name) })
+            }
+            List(selection: $selection) {
+                OutlineGroup(nodes, children: \.children) { Text($0.name) }
+                Section("Tree") {
+                    OutlineGroup(nodes, children: \.children) { node in
+                        Label(node.name, systemImage: "folder")
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Outlines over a binding to a tree
 
 private struct BindingTreeShapes: View {

@@ -68,6 +68,14 @@ longer ago starts fresh. Before, every switch started the content over. SwiftUI'
 measured; macOS has no full-screen cover) keeps one state for every item instead, handing the content the new item;
 an app that wants that holds the state in the presenting view, or presents on a flag and reads the item in the content.
 
+**`List(_:children:)` and `OutlineGroup` can take the app's expansion too: `expansion: $openIDs`.** Every form of
+`List(_:children:)` (selection none, single, set; a tree of values or a binding to one; with and without `id:`) and
+every view form of `OutlineGroup` has `Table(_:children:)`'s defaulted argument after `children:`. Handed one, the list
+opens exactly the ids in the set, in a list of the outline alone, in a `Section`, or in a bare outline, and the user's
+Right, Left, ⌥Right, ⌥Left and clicks on a triangle write it. The list still keeps its open rows between frames and
+builds only the rows it draws. Without the argument a list behaves as before, and every SwiftUI call compiles
+unchanged.
+
 **`Table(_:children:)` can take the app's expansion: `expansion: $openIDs`.** Every hierarchical table initializer
 has a new, defaulted argument after `children:`, a binding to the set of open branches' ids. Handed one, the table
 opens exactly the ids in the set, and the user's Right, Left, ⌥Right, ⌥Left and clicks on a triangle write it, so an

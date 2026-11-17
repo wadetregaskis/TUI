@@ -761,6 +761,13 @@ extension List where Footer == EmptyView {
 // for a branch is to disclose it, unless a `primaryAction` claims Return), and
 // Right / Left open and close it regardless — held with Option, the whole
 // subtree at once.
+//
+// Each also takes TUI's `expansion:`, defaulted to `nil` and placed after
+// `children:` so every SwiftUI call compiles and resolves as it did: the app's
+// set of open branches, which the outline opens exactly and the keys and
+// clicks write, so a root can start open and a Find can open a match's
+// ancestors from code. SwiftUI's take none; see "The app's own expansion" on
+// ``OutlineGroup`` for why TUI's do.
 
 extension List where Footer == EmptyView, SelectionValue == Int {
     /// Creates a list of a tree, without selection.
@@ -768,13 +775,18 @@ extension List where Footer == EmptyView, SelectionValue == Int {
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<Data.Element.ID>>? = nil,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>, Data.Element: Identifiable {
-        self.init { OutlineGroup(data, children: children, content: rowContent) }
+        self.init { OutlineGroup(data, children: children, expansion: expansion, content: rowContent) }
     }
 
     /// Creates a list of a tree keyed by an explicit id, without selection.
@@ -783,14 +795,19 @@ extension List where Footer == EmptyView, SelectionValue == Int {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
         id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, ID, RowContent> {
-        self.init { OutlineGroup(data, id: id, children: children, content: rowContent) }
+        self.init { OutlineGroup(data, id: id, children: children, expansion: expansion, content: rowContent) }
     }
 }
 
@@ -800,17 +817,22 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<Data.Element.ID>>? = nil,
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
             Data.Element: Identifiable {
         self.init(selection: selection) {
-            OutlineGroup(data, children: children, content: rowContent)
+            OutlineGroup(data, children: children, expansion: expansion, content: rowContent)
         }
     }
 
@@ -819,17 +841,22 @@ extension List where Footer == EmptyView {
     /// - Parameters:
     ///   - data: The elements at the top of the tree.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, RowContent: View>(
         _ data: Data,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<Data.Element.ID>>? = nil,
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, Data.Element.ID, RowContent>,
             Data.Element: Identifiable {
         self.init(selection: selection) {
-            OutlineGroup(data, children: children, content: rowContent)
+            OutlineGroup(data, children: children, expansion: expansion, content: rowContent)
         }
     }
 
@@ -839,17 +866,22 @@ extension List where Footer == EmptyView {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - selection: A binding to the selected row's value (`nil` = none).
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
         id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         selection: Binding<SelectionValue?>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, ID, RowContent> {
         self.init(selection: selection) {
-            OutlineGroup(data, id: id, children: children, content: rowContent)
+            OutlineGroup(data, id: id, children: children, expansion: expansion, content: rowContent)
         }
     }
 
@@ -859,17 +891,22 @@ extension List where Footer == EmptyView {
     ///   - data: The elements at the top of the tree.
     ///   - id: A key path to each element's stable identity.
     ///   - children: A key path to an element's children, or `nil` for a leaf.
+    ///   - expansion: A binding to the set of open branches' IDs, for the app
+    ///     to keep and to open and close branches from code; `nil` for the
+    ///     list to keep it, as SwiftUI's does. TUI only (see "The app's own
+    ///     expansion" on ``OutlineGroup``).
     ///   - selection: A binding to the set of selected rows' values.
     ///   - rowContent: Builds the row view for each node.
     public init<Data: RandomAccessCollection, ID: Hashable, RowContent: View>(
         _ data: Data,
         id: KeyPath<Data.Element, ID>,
         children: KeyPath<Data.Element, Data?>,
+        expansion: Binding<Set<ID>>? = nil,
         selection: Binding<Set<SelectionValue>>?,
         @ViewBuilder rowContent: @escaping (Data.Element) -> RowContent
     ) where Content == OutlineGroup<Data, ID, RowContent> {
         self.init(selection: selection) {
-            OutlineGroup(data, id: id, children: children, content: rowContent)
+            OutlineGroup(data, id: id, children: children, expansion: expansion, content: rowContent)
         }
     }
 }
