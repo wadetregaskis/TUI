@@ -46,18 +46,26 @@ enum Synth {
     ]
     static let statuses = ["active", "idle", "queued", "failed", "paused", "syncing", "sealed"]
 
+    /// The entry of `table` that `h` picks. A function of its own, its types
+    /// stated: indexing inline, inside an interpolation, exceeded the
+    /// type-check guard's 2,000 solver scopes.
+    static func pick(_ table: [String], _ h: UInt64) -> String {
+        let index: UInt64 = h % UInt64(table.count)
+        return table[Int(index)]
+    }
+
     /// A two-word lowercase identifier-ish token, e.g. `"molten-buffer"`.
     static func slug(_ h: UInt64) -> String {
-        "\(adjectives[Int(h % UInt64(adjectives.count))])-\(nouns[Int((h >> 8) % UInt64(nouns.count))])"
+        pick(adjectives, h) + "-" + pick(nouns, h >> 8)
     }
 
     /// A `"First Surname"` display name.
     static func name(_ h: UInt64) -> String {
-        "\(firstNames[Int(h % UInt64(firstNames.count))]) \(surnames[Int((h >> 16) % UInt64(surnames.count))])"
+        pick(firstNames, h) + " " + pick(surnames, h >> 16)
     }
 
     static func status(_ h: UInt64) -> String {
-        statuses[Int((h >> 24) % UInt64(statuses.count))]
+        pick(statuses, h >> 24)
     }
 
     /// A sentence of `wordCount` recombined words, deterministic in `h`.
@@ -69,7 +77,7 @@ enum Synth {
             x = (x ^ (x >> 29)) &* 0xBF58_476D_1CE4_E5B9
             let pickAdjective = (x & 1) == 0
             let table = pickAdjective ? adjectives : nouns
-            out.append(table[Int((x >> 7) % UInt64(table.count))])
+            out.append(pick(table, x >> 7))
         }
         return out.joined(separator: " ")
     }

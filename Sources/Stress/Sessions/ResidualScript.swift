@@ -197,7 +197,12 @@ final class ResidualSession<Kind: ResidualRowKind>: StressSession {
             return "the second status line does not say \(extras)"
         }
         let left = screen[top].distance(from: screen[top].startIndex, to: found.lowerBound)
-        let bar = screen[(top + 2)...].firstIndex { $0.drop { $0 == " " }.hasPrefix("╭") } ?? screen.count
+        // Its closure's types stated: inferred, it exceeded the type-check
+        // guard's 2,000 solver scopes.
+        let border: Int? = screen[(top + 2)...].firstIndex { (line: String) -> Bool in
+            line.drop { $0 == " " }.hasPrefix("╭")
+        }
+        let bar = border ?? screen.count
         // A revealed help text is drawn over whatever is beside the focused
         // task, which the twin compares; the rows are read when none is shown.
         guard !screen.contains(where: { line in ResidualColumns.hints.contains { line.contains($0) } }) else {

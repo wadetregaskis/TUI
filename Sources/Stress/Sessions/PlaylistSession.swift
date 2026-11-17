@@ -228,7 +228,13 @@ final class PlaylistSession: StressSession {
         let order = playlist.tracks.map(\.id)
         // The lines drawn with no number in `range`: where the tracks whose
         // numbers are not drawn can be.
-        let spare = { (range: Range<Int>) in lines[range].filter { !$0.blank && $0.id == nil }.count }
+        // A function, its types stated: as a closure it exceeded the
+        // type-check guard's 2,000 solver scopes.
+        func spare(_ range: Range<Int>) -> Int {
+            var count = 0
+            for line in lines[range] where !line.blank && line.id == nil { count += 1 }
+            return count
+        }
         var previous: (at: Int, line: Int)?
         for (line, entry) in lines.enumerated() {
             guard let id = entry.id else { continue }

@@ -76,13 +76,25 @@ enum RecordedCounts {
     /// Writes `lines` to `path` under the file's explanation and header, in
     /// the order given.
     static func write(_ lines: [RecordedLine], to path: String) throws {
-        let rows = [header] + lines.map { [$0.key, $0.phase] + $0.counts.values.map(String.init) }
-        let widths = header.indices.map { column in rows.map { $0[column].count }.max() ?? 0 }
+        let widths = columnWidths(of: lines)
         let headerLine = zip(header, widths).map { $0.padding(toLength: $1, withPad: " ", startingAt: 0) }
             .joined(separator: "  ").trimmingCharacters(in: .whitespaces)
         let body = lines.map { $0.formatted(widths: widths) }
         let text = (preamble + [headerLine] + body).joined(separator: "\n") + "\n"
         try text.write(toFile: path, atomically: true, encoding: .utf8)
+    }
+
+    /// Each column's width over the header and `lines`, for
+    /// ``RecordedLine/formatted(widths:)``.
+    static func columnWidths(of lines: [RecordedLine]) -> [Int] {
+        // Typed in steps: as one expression it exceeded the type-check
+        // guard's 2,000 solver scopes.
+        var rows: [[String]] = [header]
+        for line in lines {
+            let counts: [String] = line.counts.values.map { String($0) }
+            rows.append([line.key, line.phase] + counts)
+        }
+        return header.indices.map { column -> Int in rows.map { $0[column].count }.max() ?? 0 }
     }
 
     /// What the file says about itself, above its header.

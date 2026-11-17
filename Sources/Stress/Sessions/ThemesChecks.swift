@@ -287,9 +287,14 @@ extension ThemesSession {
         let frame = ThemeFrame(
             lines: screen.map(\.stripped), cells: ScreenCells(screen), depth: depth, rootPalette: rootPalette,
             formPalette: formPalette, session: self)
-        return depthProblem(frame) ?? pageProblem(frame) ?? retiredProblem(frame)
-            ?? cursorProblem(frame, after: index)
-            ?? ContrastPromise.all.lazy.compactMap { $0.problem(in: frame) }.first
+        // Typed in steps: as one chain of `??` it exceeded the type-check
+        // guard's 2,000 solver scopes.
+        let first: String? = depthProblem(frame) ?? pageProblem(frame) ?? retiredProblem(frame)
+        if let first { return first }
+        if let cursor = cursorProblem(frame, after: index) { return cursor }
+        return ContrastPromise.all.lazy.compactMap { (promise: ContrastPromise) -> String? in
+            promise.problem(in: frame)
+        }.first
     }
 
     /// The list's cursor, shown exactly while the list holds the focus: one
@@ -380,13 +385,18 @@ extension ThemesSession {
         guard !retired.isEmpty, depth == .truecolor else { return nil }
         let tolerance = 10.0
         func roles(_ palette: any Palette) -> [(String, Color)] {
-            [
+            // Typed in steps: as one expression it exceeded the type-check
+            // guard's 2,000 solver scopes.
+            let all: [(String, Color)] = [
                 ("background", palette.background), ("foreground", palette.foreground),
                 ("secondary", palette.foregroundSecondary), ("tertiary", palette.foregroundTertiary),
                 ("accent", palette.accent), ("border", palette.border),
                 ("app header", palette.appHeaderBackground), ("status bar", palette.statusBarBackground),
                 ("focus", palette.focusBackground), ("field", palette.fieldBackground),
-            ].compactMap { role, colour in frame.drawn(colour).map { (role, $0) } }
+            ]
+            return all.compactMap { (role: String, colour: Color) -> (String, Color)? in
+                frame.drawn(colour).map { (role, $0) }
+            }
         }
         let inUse = palettesInUse.flatMap { roles($0).map(\.1) } + [board.tint].compactMap { $0.flatMap(frame.drawn) }
         var stale: [String: String] = [:]

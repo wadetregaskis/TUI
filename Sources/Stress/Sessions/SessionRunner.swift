@@ -322,10 +322,17 @@ enum SessionRunner {
     /// and footprint now, and the registrations alive by kind when a census
     /// is counting.
     private static func checkpoint(after steps: Int, census: ObservationCensus.Counts?) -> String {
-        let mb = { (bytes: UInt64?) in bytes.map { (Double($0) / 1_048_576).formatted(.fixed(1)) + "MB" } ?? "-" }
-        let live = census.map { "; live registrations: " + liveByKind($0) } ?? ""
-        return "checkpoint after \(steps) steps: rss=\(mb(ProcessMemory.currentResidentBytes())) "
-            + "footprint=\(mb(ProcessMemory.currentFootprintBytes()))" + live
+        // Typed in steps: as closures and one expression they exceeded the
+        // type-check guard's 2,000 solver scopes.
+        func mb(_ bytes: UInt64?) -> String {
+            guard let bytes else { return "-" }
+            let megabytes: Double = Double(bytes) / 1_048_576
+            return megabytes.formatted(.fixed(1)) + "MB"
+        }
+        let live: String = census.map { "; live registrations: " + liveByKind($0) } ?? ""
+        let rss: String = mb(ProcessMemory.currentResidentBytes())
+        let footprint: String = mb(ProcessMemory.currentFootprintBytes())
+        return "checkpoint after \(steps) steps: rss=\(rss) footprint=\(footprint)" + live
     }
 
     /// The registrations alive, by every kind that has any, and in all.

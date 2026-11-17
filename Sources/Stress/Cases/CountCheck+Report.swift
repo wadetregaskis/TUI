@@ -57,10 +57,7 @@ extension CountCheck {
             guard !rises.isEmpty else { return }
             let id = Self.caseID(of: new.key)
             failedCases.insert(id)
-            let widths = RecordedCounts.header.indices.map { column in
-                ([RecordedCounts.header] + [old, new].map { [$0.key, $0.phase] + $0.counts.values.map(String.init) })
-                    .map { $0[column].count }.max() ?? 0
-            }
+            let widths = RecordedCounts.columnWidths(of: [old, new])
             // Where nobody can re-record (CI's Linux lanes), the line a person
             // would paste to record this platform's counts apart.
             let suffix = RecordedCounts.platformSuffix

@@ -98,16 +98,17 @@ struct FileBrowserApp: View {
         _ files: [FileEntry], by order: [KeyPathComparator<FileEntry>]
     ) -> [FileEntry] {
         let ascending = order.first?.order != .reverse
+        // One generic function, its types stated: as a closure per case the
+        // type-check guard's 2,000 solver scopes were exceeded.
+        func decorated<Key: Comparable>(_ key: (FileEntry) -> Key) -> [FileEntry] {
+            let pairs: [(key: Key, file: FileEntry)] = files.map { (key($0), $0) }
+            let ordered = pairs.sorted { lhs, rhs -> Bool in ascending ? lhs.key < rhs.key : lhs.key > rhs.key }
+            return ordered.map(\.file)
+        }
         switch order.first?.keyPath {
-        case \FileEntry.bytes:
-            return files.map { ($0.bytes, $0) }
-                .sorted { ascending ? $0.0 < $1.0 : $0.0 > $1.0 }.map(\.1)
-        case \FileEntry.stamp:
-            return files.map { ($0.modified, $0) }
-                .sorted { ascending ? $0.0 < $1.0 : $0.0 > $1.0 }.map(\.1)
-        default:
-            return files.map { ($0.name, $0) }
-                .sorted { ascending ? $0.0 < $1.0 : $0.0 > $1.0 }.map(\.1)
+        case \FileEntry.bytes: return decorated(\.bytes)
+        case \FileEntry.stamp: return decorated(\.modified)
+        default: return decorated(\.name)
         }
     }
 }
@@ -401,11 +402,14 @@ struct CodeEditorApp: View {
         let h = mix(seed, index)
         let indent = String(repeating: " ", count: Int(h % 4) * 4)
         let keyword = ["let", "var", "func", "guard", "return", "if"][Int(h % 6)]
-        return indent
-            + "\u{1B}[35m\(keyword)\u{1B}[0m \(Synth.slug(h >> 4)): "
-            + "\u{1B}[36m\(Synth.nouns[Int((h >> 12) % UInt64(Synth.nouns.count))].capitalizedFirst)\u{1B}[0m = "
-            + "\u{1B}[32m\"\(Synth.sentence(h >> 20, words: 4))\"\u{1B}[0m"
-            + (h.isMultiple(of: 5) ? "  \u{1B}[90m// \(Synth.sentence(h >> 32, words: 8))\u{1B}[0m" : "")
+        // Typed in steps: as one expression it exceeded the type-check
+        // guard's 2,000 solver scopes.
+        let noun: String = Synth.pick(Synth.nouns, h >> 12).capitalizedFirst
+        let declaration: String = "\u{1B}[35m\(keyword)\u{1B}[0m \(Synth.slug(h >> 4)): "
+        let type: String = "\u{1B}[36m\(noun)\u{1B}[0m = "
+        let value: String = "\u{1B}[32m\"\(Synth.sentence(h >> 20, words: 4))\"\u{1B}[0m"
+        let comment: String = h.isMultiple(of: 5) ? "  \u{1B}[90m// \(Synth.sentence(h >> 32, words: 8))\u{1B}[0m" : ""
+        return indent + declaration + type + value + comment
     }
 }
 

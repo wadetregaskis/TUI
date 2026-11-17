@@ -136,8 +136,17 @@ final class ThemesSession: StressSession {
     /// The depth moved to another, named by where it goes, so a trace says
     /// which way.
     private func changeDepth() -> SessionStep {
-        let next = Self.depths[((Self.depths.firstIndex(of: depth) ?? 0) + 1 + random.below(2)) % Self.depths.count]
-        let name = next == .truecolor ? "truecolour" : next == .palette256 ? "256-colour" : "16-colour"
+        // Typed in steps: as two expressions they exceeded the type-check
+        // guard's 2,000 solver scopes.
+        let here: Int = Self.depths.firstIndex(of: depth) ?? 0
+        let step: Int = 1 + random.below(2)
+        let next: ColorDepth = Self.depths[(here + step) % Self.depths.count]
+        let name: String
+        switch next {
+        case .truecolor: name = "truecolour"
+        case .palette256: name = "256-colour"
+        default: name = "16-colour"
+        }
         return changeLook(name) { $0.depth = next }
     }
 

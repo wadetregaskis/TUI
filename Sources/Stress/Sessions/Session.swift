@@ -315,22 +315,26 @@ struct SessionDescriptor {
 
 /// Every session, in the order `--sessions` lists them.
 enum Sessions {
+    // Typed in steps, a statement a list: as one expression of four `+`s it
+    // exceeded the type-check guard's 2,000 solver scopes.
     @MainActor
-    static let all: [SessionDescriptor] = [
-        EditorSession.descriptor,
-        InboxSession.descriptor,
-        ProcessesSession.descriptor,
-        LogSession.descriptor,
-        SettingsSession.descriptor,
-        ChatSession.descriptor,
-        NotesSession.descriptor,
-        PlaylistSession.descriptor,
-        JobsSession.descriptor,
-        ResidualSession<EquatableRows>.descriptor,
-        ResidualSession<OpaqueRows>.descriptor,
-    ] + InboxVariant.allCases.map { InboxVariantSession.descriptor($0) }
-        + LogVariant.allCases.map { LogVariantSession.descriptor($0) }
-        + [
+    static let all: [SessionDescriptor] = {
+        let apps: [SessionDescriptor] = [
+            EditorSession.descriptor,
+            InboxSession.descriptor,
+            ProcessesSession.descriptor,
+            LogSession.descriptor,
+            SettingsSession.descriptor,
+            ChatSession.descriptor,
+            NotesSession.descriptor,
+            PlaylistSession.descriptor,
+            JobsSession.descriptor,
+            ResidualSession<EquatableRows>.descriptor,
+            ResidualSession<OpaqueRows>.descriptor,
+        ]
+        let inboxes: [SessionDescriptor] = InboxVariant.allCases.map { InboxVariantSession.descriptor($0) }
+        let logs: [SessionDescriptor] = LogVariant.allCases.map { LogVariantSession.descriptor($0) }
+        let pages: [SessionDescriptor] = [
             AccumulateSession.descriptor,
             ImageRowsSession.descriptor,
             MenusSession.descriptor,
@@ -340,7 +344,8 @@ enum Sessions {
             BigTextOpenSession.descriptor,
         ]
         // Last: every perf case, `case:<id>`, its script looped.
-        + CaseSession.descriptors
+        return apps + inboxes + logs + pages + CaseSession.descriptors
+    }()
 
     @MainActor
     static func byID(_ id: String) -> SessionDescriptor? {
