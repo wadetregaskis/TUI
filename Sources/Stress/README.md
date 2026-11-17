@@ -280,8 +280,10 @@ plays the same script with its render cache emptied before every frame, and
 every frame must match. A cache is right exactly when a frame drawn through it
 is the frame drawn without it, so any difference is a memo, a kept width or an
 invalidation serving something stale — the class of bug that static renders
-cannot see. `--selfcheck` plays every session a short way this way, the
-terminal resized under it, so CI does too.
+cannot see. `--selfcheck` plays every session a short way this way, 150 steps
+with the terminal resized under it every 37, so CI does too; a perf case's
+session it plays only as far as its script's last phase and its first resize
+(see "The cases in the rest of the harness").
 
 The oracle was checked the way a test is: with the kept all-rows width's
 challenge disabled (the fix of `65d3015f`), `--session editor --steps 1500
@@ -683,7 +685,15 @@ mistakes, exits 1. A case's session plays at the case's size whatever
 `--cols`/`--rows` say, a step a frame, its script starting again after its
 `open` once it ends; `--scale` multiplies its `n`. `--selfcheck` plays every
 case's session and renders every page of the `cases` matrix scenario,
-memo-verified, as it does every other session and variant.
+memo-verified, as it does every other session and variant, but plays a case's
+session only until every phase of its script has had a step and the terminal
+has been resized once: 38 steps for every case so far, not every other
+session's 150. A case's job is its counts, which `--check-counts` plays in
+full; what the selfcheck adds is the cache-cleared twin over each phase and a
+resize, and 150 steps of fifty-nine cases cost the gate about four minutes
+more, debug.
+`--selfcheck --full-cases` plays them 150 steps, as before; so does
+`--session case:<id> --verify --steps 150 --resize-every 37`, for one case.
 `Tools/Profiling/ab_bench.py --cases timed` (or `--tags table,memo`) times the
 cases' sessions, `sweep.py --cases` surveys them, and `frame_parity.py` and
 `ab_counters.py` take them as they take any session (`session/case:<id>`).

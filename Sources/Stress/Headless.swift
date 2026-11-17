@@ -237,10 +237,32 @@ enum Headless {
         }
     }
 
+    /// How many steps the selfcheck plays a session, verified against its
+    /// cache-cleared twin.
+    static let selfcheckSessionSteps = 150
+    /// The selfcheck resizes the terminal under a session every this many
+    /// steps.
+    static let selfcheckResizeEvery = 37
+
+    /// The steps the selfcheck plays `session`: 150, or for a perf case
+    /// (`fullLength` false) as far as reaches every phase of its script and
+    /// the first resize, which is 38 for every case so far. A case's job is
+    /// its counts, which `--check-counts` plays in full; what the selfcheck
+    /// adds is the cache-cleared twin over each phase and a resize, and the
+    /// 112 steps more of fifty-nine cases cost the gate about four minutes,
+    /// debug.
+    /// `--full-cases` plays them 150 too.
+    static func selfcheckSteps(of session: SessionDescriptor, fullLength: Bool) -> Int {
+        guard !fullLength, let reach = session.stepsToEveryPhase else { return selfcheckSessionSteps }
+        return min(selfcheckSessionSteps, max(reach, selfcheckResizeEvery + 1))
+    }
+
     /// Renders every scenario (and every variant) once at a fixed size; prints
     /// dimensions. Returns the number that produced an empty buffer (a failure).
+    /// `fullLength` plays the perf cases' sessions as long as every other's
+    /// (``selfcheckSteps(of:fullLength:)``).
     @MainActor
-    static func selfcheck(_ config: StressConfig) -> Int {
+    static func selfcheck(_ config: StressConfig, fullLength: Bool = false) -> Int {
         let clock = StressClock()
         var failures = 0
         let cases = selfcheckCases(config)
@@ -308,10 +330,10 @@ enum Headless {
         // the terminal resized under it: the one check here that a UI IN USE
         // draws what it should, frame after frame, and not only at rest.
         var sessionOptions = SessionRunner.Options()
-        sessionOptions.steps = 150
         sessionOptions.verify = true
-        sessionOptions.resizeEvery = 37
+        sessionOptions.resizeEvery = selfcheckResizeEvery
         for session in Sessions.all {
+            sessionOptions.steps = selfcheckSteps(of: session, fullLength: fullLength)
             let report = SessionRunner.run(session, config: config, options: sessionOptions.sized(for: session))
             let ok = report.passed
             if !ok { failures += 1 }

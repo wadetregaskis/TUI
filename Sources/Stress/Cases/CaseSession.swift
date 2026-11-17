@@ -51,7 +51,13 @@ final class CaseSession: StressSession {
         page = perfCase.page(rows: rows, count: count, seed: CasePlayer.seed)
             ?? AnyView(Text(verbatim: "Stress has no scenario \(perfCase.composition)"))
         size = (perfCase.size.width, perfCase.size.height)
-        steps = perfCase.phases.flatMap { phase -> [CaseStep] in
+        steps = Self.phaseSteps(of: perfCase).flatMap { $0 }
+    }
+
+    /// Each phase's steps as the session plays them: `open` none, since the
+    /// runner draws the page as it opens before its first step.
+    private static func phaseSteps(of perfCase: PerfCase) -> [[CaseStep]] {
+        perfCase.phases.map { phase -> [CaseStep] in
             let one: [CaseStep]
             switch phase.step {
             case .open: one = []
@@ -60,6 +66,15 @@ final class CaseSession: StressSession {
             }
             return (0..<phase.repeats).flatMap { _ in one }
         }
+    }
+
+    /// How many steps reach the first step of the script's last phase, so
+    /// every phase is played: what `--selfcheck` plays of a case, at least
+    /// (``SessionDescriptor/stepsToEveryPhase``).
+    static func stepsToEveryPhase(of perfCase: PerfCase) -> Int {
+        let phases = phaseSteps(of: perfCase).filter { !$0.isEmpty }
+        let beforeLast = phases.dropLast().reduce(0) { $0 + $1.count }
+        return beforeLast + (phases.isEmpty ? 0 : 1)
     }
 
     func step(_ index: Int) -> SessionStep {
@@ -107,7 +122,8 @@ final class CaseSession: StressSession {
                 make: { config, width, height, cold in
                     DrivenSession(CaseSession(perfCase, config: config), width: width, height: height, cold: cold)
                 },
-                size: (perfCase.size.width, perfCase.size.height))
+                size: (perfCase.size.width, perfCase.size.height),
+                stepsToEveryPhase: stepsToEveryPhase(of: perfCase))
         }
     }
 }

@@ -952,6 +952,32 @@ it is not rerun at 2n and `focus-tab-scaling` checks its class) and the form and
 (244 s; `nsplit-storm` 27 s at 200 rows and 9 s at 300, `dashboard-storm` 14 s, `form-grouped-tab` 14 s,
 `focus-tab-200` 13 s), of a whole selfcheck of 31 min; their pages at rest, seconds.
 
+## The selfcheck plays a case to its last phase (2026-11-17)
+
+**Why.** The gate runs `--selfcheck` on every batch, and the fifty-nine case sessions played 150 steps each, against
+their cache-cleared twins: a case's script is 5 to 30 steps (`focus-tab-200`'s and `mail-idle`'s, of one phase, are
+longer), so most of those steps played its loop a fourth or fifth time. A case's job is its counts, which
+`--check-counts` plays in full and is unchanged; what the selfcheck adds over it is the twin, over every phase and
+across a resize.
+
+**What.** The selfcheck plays a case's session until every phase of its script has had a step and the terminal has
+been resized once: `max(steps to the last phase's first, 38)`, at most 150 (`Headless.selfcheckSteps(of:fullLength:)`,
+from `SessionDescriptor.stepsToEveryPhase`). That is 38 for every case so far: no script reaches its last phase after
+step 37 (`sheet-item-walk`'s, the furthest, at 25). A script shorter than that loops, as it did at 150, so a case
+whose fault shows on the second time round (PERFCASE-F13's) still shows it. Every other session plays 150, as before.
+`--selfcheck --full-cases` plays the cases 150 steps too.
+
+**What it saved**, debug, while other lanes built and ran their own selfchecks: the whole selfcheck went from 1,629 s
+to 1,383 s, 246 s (load 6.8 at the start of both, 22 and 25 at their busiest). The case sessions take 92 s now (the
+slowest `list-search` and `mail-idle`, 11 s each), and took about 330 s at 150 steps by the same rate. What remains
+is not the cases': `session/bigtext-open`, one of the eighty-seven sessions, took 1,094 s of the 1,383, and
+`bigtext` 35 s.
+
+**It still finds F13.** With `;key:esc` put back at the end of `popover-values`' script, the case played as the
+selfcheck now plays it (`--session case:popover-values --verify --steps 38 --resize-every 37`) fails 21 of its 38
+frames, the first at step 14, the Tab into the popover presented a second time; at 150 steps it failed 105, from
+the same step.
+
 ## For a future reader
 
 - Counts are proxies. A clean `--check-counts` says the work did not change, not that the time did

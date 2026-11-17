@@ -311,6 +311,11 @@ struct SessionDescriptor {
     /// say, or `nil` for theirs: a perf case's, which is part of what the
     /// case is (``SessionRunner/Options/sized(for:)``).
     var size: (width: Int, height: Int)?
+    /// How many steps play every phase of a perf case's script, or `nil` for
+    /// a session that is not a case. `--selfcheck` plays a case this far, or
+    /// to its first resize if that is further, rather than every session's
+    /// 150 steps (``Headless/selfcheckSteps(of:fullLength:)``).
+    var stepsToEveryPhase: Int?
 }
 
 /// Every session, in the order `--sessions` lists them.
