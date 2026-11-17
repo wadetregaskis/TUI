@@ -7,18 +7,18 @@
   tests macOS 15 and 26 (Xcode 26) and macOS 27 (Xcode 27), and Swift
   6.2/6.3/6.4 Linux containers on x86_64 plus 6.3 on arm64, with
   nightly-toolchain lanes as advisory.
-  **Windows is a port in progress, and the goal is to keep it easy**: the
-  four lower modules (`TUICore`, `TUIStyling`, `TUIView`,
-  `TUIImage`) already build there and must keep building. POSIX-only APIs
-  (`termios`, `ioctl`, signals, `DispatchSource` on stdin) may live in
-  whichever module they belong to — no module is reserved for them — but
-  keep them isolated (in their own files, or behind `#if os(Windows)` arms
-  or a small protocol) so that a port has few, obvious places to fill in,
-  and never put them in a module that builds on Windows today. The
-  console layer — the run loop, the `Terminal` class and its `termios` raw
-  mode, the signal handlers, the stdin source — is `TUIApp`, a module of
-  its own since module split step B3, which has no Windows build. See
-  CONTRIBUTING.md for the blocker list.
+  **Windows is being ported, and every module builds there** (since
+  2026-11-16; Documentation/Windows port.md is the record): keep it so. A
+  POSIX-only API (`termios`, `ioctl`, signals, `poll`, `DispatchSource` on
+  stdin, `pid_t`, `setenv`) needs a Windows arm beside it — `#if
+  os(Windows)`, in the file or in a `+Windows` file of its own — or an
+  `#if !os(Windows)` with the reason, where Windows has no counterpart. The
+  console layer — the run loop, the `Terminal` class and its raw mode, the
+  signal handlers, the stdin source — is `TUIApp`; what is Windows's own
+  there is in `WindowsConsole.swift`, `SignalManager+Windows.swift` and
+  `FatalSignalTerminalRestore+Windows.swift`. On Windows the C library's
+  POSIX names (`isatty`, `getenv`, `write`, `close`) are deprecated, so a
+  call to one is a warning there; see those files for what to call instead.
 
 ### Architecture (non-negotiable)
 

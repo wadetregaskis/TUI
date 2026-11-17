@@ -20,7 +20,7 @@ To send a change, see [Pull Request Requirements](#pull-request-requirements). T
 | Requirement | Details |
 |-------------|---------|
 | **Swift 6.2** | `swift-tools-version: 6.2`. Language features up to 6.2 are fair game; nothing newer. |
-| **Cross-platform** | Must build and run on macOS and Linux. WebAssembly builds and runs (see below); Windows is a work in progress. |
+| **Cross-platform** | Must build and run on macOS and Linux. WebAssembly builds and runs (see below); Windows builds and runs, and its port is being finished (see below). |
 | **CI must pass** | All tests and linting must pass before merge. |
 
 ### What CI covers
@@ -202,22 +202,24 @@ and the two latent bugs it turned up in platform-independent code — is in
 
 ### Windows
 
-Windows is **not supported yet** — the package does not build there in full. It is to be fully
-supported at 1.0 (owner, 2026-11-09); [`Documentation/Windows port.md`](<Documentation/Windows port.md>) is
-the plan and the record of the port.
+Windows is **being ported**, and is to be fully supported at 1.0 (owner, 2026-11-09);
+[`Documentation/Windows port.md`](<Documentation/Windows port.md>) is the plan and the record of the port,
+with what each piece of the console layer became and why. Since 2026-11-16 the whole package builds there,
+the console layer included, and the Example runs under a pseudo console; what is left is in that file.
+
 The CI job is a **ratchet**: every step says for itself whether it is allowed
 to fail, so the job as a whole promises exactly *"everything that builds on
 Windows today still builds"*. That set can only grow — when a step goes green,
-delete its `continue-on-error` and it is binding from then on. When the console
-layer lands, the last flag goes and nothing staged is left in the file.
+delete its `continue-on-error` and it is binding from then on.
 
 The job is therefore **required** on released toolchains. Observed state:
 
 | Step | Status |
 |---|---|
-| Every library module from `TUICore` to `TUITabImages`, one step each, in dependency order | pass on all five jobs — **binding**. `TUICore`, `TUIStyling`, `TUIImage` and `TUIView` (6.3 on) were binding before; the rest, carved out by the module split in October 2026, were advisory with a 30-minute timeout until CI runs 99 and 100 (2026-11-09) saw every one green on every job, `TUIView` on 6.2 included, and are binding since 2026-11-10. Their history is in `git log` of this file and of `ci.yml`. |
+| Every library module from `TUICore` to `TUITabImages`, one step each, in dependency order | pass on all five jobs — **binding**. `TUICore`, `TUIStyling`, `TUIImage` and `TUIView` (6.3 on) were binding before; the rest, carved out by the module split in October 2026, were advisory with a 30-minute timeout until CI runs 99 and 100 (2026-11-09) saw every one green on every job, and are binding since 2026-11-10. Their history is in `git log` of this file and of `ci.yml`. |
 | The four lowest modules' test targets (`TUICoreTests` … `TUIImageTests`) | build on all five jobs — **binding** since the same date |
-| `TUI` (the umbrella), build-tests, test, smoke | fail until the console layer is ported: `TUIApp`, 43 errors in seven files on CI run 100, all POSIX names. Advisory, each with a timeout. `TUIApp` has no step of its own; nor have `TUICommands` and `TUIScenes`, which are built on it. |
+| `TUIApp`, `TUICommands`, `TUIScenes`, the Example | build on the Windows VM (2026-11-16, 6.3.3 on arm64); not yet seen by CI, so advisory, each with a timeout |
+| `TUI` (the umbrella), build-tests, test, smoke | build-tests builds on the VM; the suite's state is in Windows port.md, "The tests". Advisory, each with a timeout |
 
 Do not take the table on trust — it is a record of what CI did, and the whole
 point of binding the job is that it stays true. `TUIImage`'s failure went
@@ -232,45 +234,18 @@ neither module exists, so there was no `cos` to call. `StackGuard.swift` has the
 same two-armed ladder and builds fine, because every *use* there sits behind the
 same conditions — which is the distinction to check when adding one.
 
-The known blockers, in rough order of difficulty:
+What were the known blockers — the stdin wake-up, the resize notification, raw mode
+and VT output, the PTY smoke harness and the system clipboard — each have a Windows
+answer now: `ConsoleInput`, `WINDOW_BUFFER_SIZE_EVENT`, `ConsoleModes`,
+`Tools/Smoke/conpty.py` and the Win32 clipboard with a Toolhelp32 locality walk.
+Windows port.md, "The console layer", says which and why.
 
-1. **stdin wake-up.** `StdinArrivalStream` uses
-   `DispatchSource.makeReadSource(fileDescriptor: STDIN_FILENO,…)`.
-   swift-corelibs-libdispatch's Windows backend explicitly refuses console
-   handles (`FILE_TYPE_CHAR` → `WIN_PORT_ERROR()`), so the whole mechanism has
-   to be rebuilt around a thread blocking on `ReadConsoleInput`.
-2. **Resize notification.** Windows has neither `SIGWINCH` nor a
-   `TIOCGWINSZ` equivalent. Size changes arrive as `WINDOW_BUFFER_SIZE_EVENT`
-   records from `ReadConsoleInput`, which is the same call as (1) — so they
-   want designing together. Do not plan around the in-band resize escape
-   (`CSI ? 2048 h`); it is an unassigned backlog item on Windows Terminal.
-3. **Raw mode and VT output.** `GetConsoleMode`/`SetConsoleMode` replace
-   `termios`, and VT output must be opted into with
-   `ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN`.
-   `GetConsoleScreenBufferInfo` replaces `ioctl(TIOCGWINSZ)`.
-4. **The PTY smoke harness.** Everything in `Tools/Smoke/` — `tui_walk.py`,
-   `tui_screens.py`, `raw_probe.py`, `persistence_probe.py`,
-   `faded_palette_sweep.py` — uses `pty`/`termios`, so it is POSIX-only; a
-   Windows equivalent needs ConPTY. (`faded_palette_sweep.py` runs at `full`
-   depth only, and is 7 min 15 s of the 11 min 23 s that costs; §68 of
-   `Documentation/Colour and styling/Opacity as composition.md` explains what it catches that a
-   walk cannot.)
-   `Tools/Smoke/ci-pty-smoke.sh` is skipped on the Windows jobs for this
-   reason, and they run `Stress --selfcheck` alone.
-5. **The system clipboard.** `SystemClipboard` (TUIApp) runs this
-   machine's helper (`pbcopy`, `wl-copy`, `xclip`/`xsel`), and
-   `ClipboardLocality` (TUITerminalHost) allows it only when the user is
-   provably at this machine, from the ssh variables, the process chain and
-   tmux's clients. On Windows the locality test has no process walk and
-   answers "not local", so a copy goes by OSC 52 alone, and `SystemClipboard`
-   has no arm. A Win32 arm of each is part of the console layer's port:
-   `OpenClipboard` / `SetClipboardData(CF_UNICODETEXT)` / `GetClipboardData`
-   through `WinSDK`, with no subprocess, and locality from `SSH_CONNECTION`
-   (which OpenSSH for Windows sets) plus a Toolhelp32 walk of the parents.
-   Whether Windows Terminal writes OSC 52 is unmeasured. The clipboard
-   modifiers themselves (`copyable`, `cuttable`, `pasteDestination`,
-   `PasteButton`) and `ClipboardWriter` live in TUIFoundation and need
-   nothing more.
+To work on Windows: check the repository out with LF line endings, as CI does
+(`git config core.autocrlf false`, `git config core.eol lf`, then check out
+again) — several tests read source files and split them on `"\n"`, which a CR LF
+never matches, being one `Character` in Swift. Some file-panel tests make
+symbolic links, which a Windows user may do only with Developer Mode on or as an
+administrator (CI's containers run as one).
 
 Two things that are *not* blockers, despite looking like them: `@AppStorage`
 already falls back to JSON-file storage off Apple platforms, so the open

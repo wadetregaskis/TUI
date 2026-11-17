@@ -84,8 +84,9 @@ promised: TUI is a source package built with the app, without library evolution,
 
 macOS 15 and later, Linux, WebAssembly and Windows, all four fully supported from 1.0 (owner, 2026-11-09; the
 draft recommended WebAssembly as best effort and Windows later). As of this writing that is ahead of the code:
-WebAssembly builds and runs, but CI builds it without running the test suite there, and on Windows only the four
-lower modules build. Both are 1.0 work; Windows is the last large piece of it, done on a Windows VM.
+WebAssembly builds and runs, but CI builds it without running the test suite there; and Windows builds and runs
+(since 2026-11-16, on a Windows VM), but CI has yet to build all of it there, and its port is still being finished
+(`Windows port.md`). Both are 1.0 work.
 
 ## Minimum Swift and macOS
 
