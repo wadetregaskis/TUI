@@ -74,9 +74,15 @@ package enum DropdownMenu {
 
     /// The number of rows the popup can show at once: every row when they fit
     /// the overlay content area (minus the popup's own top/bottom border),
-    /// floored at 4 so a cramped terminal still shows a usable window.
+    /// and never fewer than one.
+    ///
+    /// Not floored at more than the area holds. It was floored at 4, "so a
+    /// cramped terminal still shows a usable window", and in a cramped
+    /// terminal that window was taller than the area: the compositor clamps an
+    /// overlay to the area, so the window's last rows were cut off, and a
+    /// highlight scrolled to the window's last row was out of sight.
     static func maxVisibleRows(rowCount: Int, context: RenderContext) -> Int {
-        min(rowCount, max(4, context.environment.overlayContentHeight - 2))
+        min(rowCount, max(1, context.environment.overlayContentHeight - 2))
     }
 
     /// Whether the popup overflows its window and therefore shows a scrollbar
@@ -182,10 +188,18 @@ package enum DropdownMenu {
         let scroll = config.scroll
         let maxVisible = maxVisibleRows(rowCount: rows.count, context: context)
 
+        // A window that changed size, or rows that changed in number — a
+        // terminal resized under an open menu, a suggestion list refiltered —
+        // leave the offset a valid number that now means something else, and
+        // the highlighted row can end up out of the window with nothing to
+        // bring it back: Return then chose a row nobody could see. So a
+        // re-layout follows the highlight as a keyboard move does, as little
+        // as it must; a wheel peek at an unchanged layout is left alone.
+        let relaidOut = scroll.viewportHeight != maxVisible || scroll.extent != rows.count
         scroll.extent = rows.count
         scroll.viewportHeight = maxVisible
         scroll.wheelEdgeHold.adopt(context.environment)
-        if config.followHighlight, let highlightedRow = config.highlightedRow {
+        if config.followHighlight || relaidOut, let highlightedRow = config.highlightedRow {
             // The follow margin keeps that many rows of context visible
             // beyond the highlight (see ScrollFollowMargin); the default
             // zero is the classic edge-triggered follow.

@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A menu open while the terminal shrinks keeps its highlighted row in sight.** A pop-up menu, a submenu, a context
+menu, a `Picker`'s drop-down and a text field's suggestions kept their rows scrolled where they were when their
+window of rows changed size, so the highlighted row could end up out of sight and Return chose a row nobody could
+see: 30×14 to 12×4 with Item 9 highlighted showed Items 0 to 2. The window now scrolls to the highlighted row, as
+little as it must, whenever it changes size or its rows change in number. In a terminal too short for four rows the
+window is no longer taller than the space it is drawn in, which cut its last rows off.
+
 **Tab to a `.draggable` or a `.dropDestination` in a scroll view scrolls it into sight.** The focus stop either
 modifier gives a view with none of its own was not revealed, as a `.focusable()` view's is: the focus could go below
 the fold and stay there unseen, and Copy or Paste there acted on a view the user could not see.
