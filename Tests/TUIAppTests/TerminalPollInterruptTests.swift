@@ -13,7 +13,8 @@
 //  License: MIT
 
 // wasip1 has no signals to interrupt a wait, and no second thread to send one.
-#if !canImport(WASILibc)
+// Windows has no `poll` and no signal to interrupt one.
+#if !canImport(WASILibc) && !os(Windows)
 
 import Dispatch
 import Foundation

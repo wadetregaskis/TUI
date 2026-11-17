@@ -8,7 +8,9 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-#if !canImport(WASILibc)
+// Windows pays the debt from an exception filter and a console handler instead
+// (FatalSignalTerminalRestore+Windows.swift), measured under ConPTY: Windows port.md.
+#if !canImport(WASILibc) && !os(Windows)
 
 import Foundation
 import Testing

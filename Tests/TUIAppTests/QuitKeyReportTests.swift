@@ -4,7 +4,8 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-#if !canImport(WASILibc)
+// Windows quits as Ctrl-Break does, with no signal to send: Windows port.md.
+#if !canImport(WASILibc) && !os(Windows)
 
 #if canImport(Darwin)
 import Darwin

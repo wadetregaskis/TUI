@@ -205,7 +205,7 @@ struct FilePanelColumnViewTests {
         #expect(!opened.contains("This folder is empty."), "\(opened)")
     }
 
-    #if !canImport(WASILibc)  // No mkfifo, and no second thread to be its writer.
+    #if !canImport(WASILibc) && !os(Windows)  // No mkfifo: wasip1 has no second thread to be its writer, and Windows no named pipe in the file system.
         /// On Linux a file's type is its extension's, so a named pipe called
         /// `x.log` is "text"; opened for its excerpt, it waited for a writer for
         /// good, holding a thread of the cooperative pool.

@@ -95,7 +95,9 @@ extension TerminalOutputTests {
 
 extension TerminalOutputTests {
 
-    #if !canImport(WASILibc)  // wasip1 has no pipe(2) and no second thread.
+    // wasip1 has no pipe(2) and no second thread; Windows writes its console
+    // through a handle that blocks (`Terminal.waitForRoom`).
+    #if !canImport(WASILibc) && !os(Windows)
         /// The real syscalls: a non-blocking pipe far smaller than what is
         /// written, drained by a reader on another thread, stands in for a
         /// terminal a crashed program left non-blocking.
@@ -141,7 +143,7 @@ extension TerminalOutputTests {
         }
     #endif
 
-    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+    #if !canImport(WASILibc) && !os(Windows)  // wasip1 has no pipe(2); Windows never waits for room.
         @Test("Waiting for room on a full descriptor nobody drains gives up at its deadline")
         func waitForRoomGivesUp() {
             var ends: [Int32] = [0, 0]
@@ -374,7 +376,7 @@ extension TerminalOutputTests {
     }
 }
 
-#if !canImport(WASILibc)  // the pipe test's reader, which wasip1 has no thread for
+#if !canImport(WASILibc) && !os(Windows)  // the pipe test's reader, which wasip1 has no thread for
 /// What a reader thread drained, handed to the test when it finishes.
 private final class DrainedCount: @unchecked Sendable {
     private let done = DispatchSemaphore(value: 0)

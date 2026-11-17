@@ -10,7 +10,9 @@
 
 // What wasip1's streams are is the host's to say, so `NoTerminal` asks nothing
 // there (no `current`), and the tests' terminals and pipes do not exist.
-#if !canImport(WASILibc)
+// Pipes and descriptors as POSIX has them; Windows asks its handles
+// (NoTerminal.swift's Windows arm), measured under ConPTY: Windows port.md.
+#if !canImport(WASILibc) && !os(Windows)
 
 import Foundation
 import Testing

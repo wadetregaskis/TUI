@@ -389,7 +389,7 @@ struct QuitConfirmationTests {
 }
 
 // The key and its watch are the watch thread's, which wasip1 has no thread for.
-#if !canImport(WASILibc)
+#if !canImport(WASILibc) && !os(Windows)  // Windows: no termios, driver, watch thread or watchdog (Windows port.md)
 
 // MARK: - The key among unread input
 

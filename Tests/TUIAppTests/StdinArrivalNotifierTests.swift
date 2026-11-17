@@ -36,7 +36,9 @@ import Testing
 /// one call — makes a descriptor at EOF that is nothing else's business.
 @Suite("StdinArrivalNotifier")
 struct StdinArrivalNotifierTests {
-    #if !canImport(WASILibc)  // for the pipe tests, which wasip1 cannot run
+    // For the pipe tests, which wasip1 cannot run, and which test the dispatch
+    // source Windows does not arm (its console's reader wakes the loop).
+    #if !canImport(WASILibc) && !os(Windows)
         /// Closes a pipe's write end, and returns once its read end reports the
         /// hang-up: `false` if it never does.
         ///
@@ -110,7 +112,7 @@ struct StdinArrivalNotifierTests {
         await waiter.value  // returns only because stop() resumed the waiter
     }
 
-    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+    #if !canImport(WASILibc) && !os(Windows)  // wasip1 has no pipe(2); Windows arms no source.
         /// A read source is level-triggered, so a descriptor at EOF is permanently
         /// "readable": the handler re-arms as it returns and fires again forever.
         /// Every firing used to wake the loop, so the demand-driven wait stopped
@@ -154,7 +156,7 @@ struct StdinArrivalNotifierTests {
         }
     #endif
 
-    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+    #if !canImport(WASILibc) && !os(Windows)  // wasip1 has no pipe(2); Windows arms no source.
         /// A count of 0 from the source is not end of file when the bytes were
         /// read before the count was taken: on Linux, libdispatch counts on its own
         /// thread after `epoll` wakes it, while the run loop reads the descriptor.
@@ -227,7 +229,7 @@ struct StdinArrivalNotifierTests {
         }
     #endif
 
-    #if !canImport(WASILibc)  // wasip1 has no pipe(2).
+    #if !canImport(WASILibc) && !os(Windows)  // wasip1 has no pipe(2); Windows arms no source.
         @Test("End of input is a descriptor that is readable with nothing to read")
         func endOfInputIsAskedOfTheDescriptor() throws {
             var fds: [Int32] = [-1, -1]

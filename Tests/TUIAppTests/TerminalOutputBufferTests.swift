@@ -30,6 +30,29 @@ import Testing
 /// and returns the captured bytes as a UTF-8 string.
 @MainActor
 private func captureStdout(_ body: () -> Void) -> String {
+    #if os(Windows)
+        // The C library's names for the same calls. Its `_dup2` onto descriptor 1
+        // points the standard output handle, which the terminal writes through
+        // (`StandardHandle`), at the pipe too. The pipe is large enough for every
+        // test here, as nothing reads it until the body is done.
+        var pipeFDs: [Int32] = [0, 0]
+        _ = _pipe(&pipeFDs, 1 << 20, _O_BINARY)
+        let savedStdout = _dup(1)
+        _ = _dup2(pipeFDs[1], 1)
+        body()
+        _ = _close(pipeFDs[1])
+        _ = _dup2(savedStdout, 1)
+        _ = _close(savedStdout)
+        var data = Data()
+        var readBuffer = [UInt8](repeating: 0, count: 4096)
+        while true {
+            let bytesRead = _read(pipeFDs[0], &readBuffer, UInt32(readBuffer.count))
+            if bytesRead <= 0 { break }
+            data.append(contentsOf: readBuffer.prefix(Int(bytesRead)))
+        }
+        _ = _close(pipeFDs[0])
+        return String(data: data, encoding: .utf8) ?? ""
+    #else
     var pipeFDs: [Int32] = [0, 0]
     unsafe pipe(&pipeFDs)
 
@@ -54,6 +77,7 @@ private func captureStdout(_ body: () -> Void) -> String {
     close(pipeFDs[0])
 
     return String(data: data, encoding: .utf8) ?? ""
+    #endif
 }
 
 // MARK: - Frame Buffer Tests

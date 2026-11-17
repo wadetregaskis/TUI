@@ -6,7 +6,9 @@
 
 // The system clipboard is a helper process, which wasip1 cannot start: its
 // `SystemClipboard` is a stub.
-#if !canImport(WASILibc)
+// Windows reaches its clipboard through the system's API, with no helper to run:
+// WindowsConsoleTests.swift.
+#if !canImport(WASILibc) && !os(Windows)
 
 import Foundation
 import Testing

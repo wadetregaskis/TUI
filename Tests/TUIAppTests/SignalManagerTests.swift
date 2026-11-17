@@ -6,7 +6,8 @@
 
 // wasip1 has no signals: its `SignalManager` is a stub that answers "nothing
 // happened" to every question.
-#if !canImport(WASILibc)
+// Windows has the console's control events instead: WindowsConsoleTests.swift.
+#if !canImport(WASILibc) && !os(Windows)
 
 import Testing
 

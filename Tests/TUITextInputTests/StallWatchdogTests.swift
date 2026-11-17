@@ -9,7 +9,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
-#if !canImport(WASILibc)
+#if !canImport(WASILibc) && !os(Windows)  // Windows: no termios, driver, watch thread or watchdog (Windows port.md)
 
 #if canImport(Darwin)
 import Darwin
