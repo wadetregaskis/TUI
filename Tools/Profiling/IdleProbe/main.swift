@@ -341,7 +341,9 @@ private struct KeyEcho: View {
 // `quit_key_smoke.py` asks whether the quit key ends the app's children as the
 // terminal driver's ⌃\ does: with `IDLE_PROBE_CHILD_PIDFILE` set, the probe
 // starts `sleep` in its own process group, as an app starts a helper, and
-// writes its own process ID and the child's to that file.
+// writes its own process ID and the child's to that file. POSIX's process
+// groups and `posix_spawn`, so not on Windows, which has neither.
+#if !os(Windows)
 if let path = ProcessInfo.processInfo.environment["IDLE_PROBE_CHILD_PIDFILE"] {
     var child: pid_t = 0
     let arguments: [UnsafeMutablePointer<CChar>?] = unsafe [strdup("/bin/sleep"), strdup("120"), nil]
@@ -351,6 +353,7 @@ if let path = ProcessInfo.processInfo.environment["IDLE_PROBE_CHILD_PIDFILE"] {
     }
     unsafe arguments.forEach { unsafe free($0) }
 }
+#endif
 
 await IdleProbeApp.main()
 

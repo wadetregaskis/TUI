@@ -45,13 +45,23 @@ enum CountCheck {
     static func pinEnvironment() {
         for name in ProcessInfo.processInfo.environment.keys
         where (name.hasPrefix("TUI_") || name.hasPrefix("TUIKIT_")) && name != recordVariable {
-            unsetenv(name)
+            set(name, to: nil)
         }
-        for name in ["NO_COLOR", "FORCE_COLOR", "CLICOLOR_FORCE", "COLUMNS", "LINES"] { unsetenv(name) }
-        setenv("LANGUAGE", "en", 1)
-        setenv("LC_ALL", "en_US.UTF-8", 1)
-        setenv("LANG", "en_US.UTF-8", 1)
-        setenv("TUI_CONFIG_DIR", NSTemporaryDirectory() + "stress-check-counts-has-no-settings", 1)
+        for name in ["NO_COLOR", "FORCE_COLOR", "CLICOLOR_FORCE", "COLUMNS", "LINES"] { set(name, to: nil) }
+        set("LANGUAGE", to: "en")
+        set("LC_ALL", to: "en_US.UTF-8")
+        set("LANG", to: "en_US.UTF-8")
+        set("TUI_CONFIG_DIR", to: NSTemporaryDirectory() + "stress-check-counts-has-no-settings")
+    }
+
+    /// Sets the environment variable `name`, or unsets it for `nil`: `setenv`
+    /// and `unsetenv`, or on Windows `_putenv_s`, where an empty value unsets.
+    private static func set(_ name: String, to value: String?) {
+        #if os(Windows)
+            _ = _putenv_s(name, value ?? "")
+        #else
+            if let value { setenv(name, value, 1) } else { unsetenv(name) }
+        #endif
     }
 
     // MARK: The check
