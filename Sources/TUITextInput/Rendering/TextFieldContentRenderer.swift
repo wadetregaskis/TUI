@@ -255,6 +255,9 @@ struct TextFieldContentRenderer: FieldTextLayout {
         private var ink: Color
         private var field: Color?
         private var isReversed = false
+        /// What the open run draws beside its colours, or `nil` for nothing: an
+        /// editor's styled text (``CellDecoration``).
+        private var decoration: CellDecoration?
         private var start = 0
         private var isOpen = false
 
@@ -270,9 +273,18 @@ struct TextFieldContentRenderer: FieldTextLayout {
         ///   same invariant `emitCaret` builds its own run's `offsetX` from.
         mutating func flush(atColumn column: Int) {
             guard isOpen else { return }
-            line += ANSIRenderer.colorize(
-                text, foreground: ink.opaqueSpelling, background: field?.opaqueSpelling,
-                inverted: isReversed)
+            if let decoration {
+                var style = TextStyle()
+                style.foregroundColor = ink.opaqueSpelling
+                style.backgroundColor = field?.opaqueSpelling
+                style.isInverted = isReversed
+                decoration.apply(to: &style)
+                line += ANSIRenderer.render(text, with: style)
+            } else {
+                line += ANSIRenderer.colorize(
+                    text, foreground: ink.opaqueSpelling, background: field?.opaqueSpelling,
+                    inverted: isReversed)
+            }
             claims +=
                 OpacityRegion.claim(
                     offsetX: start, width: column - start, height: 1, ink: ink, field: field)
@@ -289,15 +301,20 @@ struct TextFieldContentRenderer: FieldTextLayout {
         ///   (``FieldSelectionStyle``). Part of a run's identity, not a decoration on
         ///   it: a reversed cell and a plain one in the same two colours paint
         ///   opposite pictures.
+        /// - Parameter decoration: What the cell draws beside its colours, or
+        ///   `nil` for nothing. A run closes where it changes, as where a colour
+        ///   does.
         mutating func append(
             _ piece: Character, ink: Color, field: Color?, reversed: Bool = false,
-            atColumn column: Int
+            decoration: CellDecoration? = nil, atColumn column: Int
         ) {
-            if isOpen, ink != self.ink || field != self.field || reversed != isReversed {
+            if isOpen,
+                ink != self.ink || field != self.field || reversed != isReversed || decoration != self.decoration
+            {
                 flush(atColumn: column)
             }
             if !isOpen {
-                (self.ink, self.field, isReversed) = (ink, field, reversed)
+                (self.ink, self.field, isReversed, self.decoration) = (ink, field, reversed, decoration)
                 (start, isOpen) = (column, true)
             }
             text.append(piece)

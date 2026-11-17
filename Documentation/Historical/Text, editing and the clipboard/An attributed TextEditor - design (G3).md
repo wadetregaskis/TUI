@@ -204,6 +204,16 @@ A-ATTRED-1 is about.
 and closes a run where any of them changes. The selection replaces the colours and keeps the rest; a find match
 tints the field and keeps the rest; the caret flips its cell as today.
 
+*As built in L2 (2026-11-17):* a line's styles are `EditorStyledRun`s (columns of the line, an ink and a field
+that may be `nil` for the editor's own, and a `CellDecoration`: bold, faint, italic, an underline and a
+strikethrough as `Text.LineStyle`s). The handler reads them from `lineStyler`, the package seam L4's attributed
+source will fill, once a line drawn, into `EditorLineStyleCache` (B-ATTRED-2): an edit drops the lines it replaced
+and moves those after them, and a text replaced whole drops them all. A run with no decoration is spelled exactly
+as before (`ANSIRenderer.colorize`), so an editor with no styler draws the same bytes. Hidden text
+(`hidingGlyph`) draws no styles, whose colours would show where its words are. `CellDecoration.fitted(to:)` fits
+the lines to the terminal's `LineStyleSupport` (B-ATTRED-6); the source applies it when it makes the runs. Reading
+an `AttributedString`'s runs into these, fonts included (A-ATTRED-3's mapping), is L4's.
+
 ### B-ATTRED-6. An underline's shape falls back as `Text`'s does
 
 Through `LineStyleSupport`: curly, dotted, dashed and double where the host draws them, a straight line

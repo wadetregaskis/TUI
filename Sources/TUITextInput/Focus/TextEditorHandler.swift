@@ -185,6 +185,28 @@ final class TextEditorHandler: PersistedFocusable {
     /// never touches the real pasteboard; see ``ClipboardAccess``.
     var clipboard: ClipboardAccess
 
+    /// Where the styles of the lines drawn come from, given a line's index, or
+    /// `nil` for a text drawn in the editor's own ink (G3, B-ATTRED-2). Read
+    /// once a line, for the lines drawn (``styles(ofLine:)``). One that changes
+    /// is set with ``replaceLineStyler(_:)``, which forgets what the last read.
+    private(set) var lineStyler: ((Int) -> [EditorStyledRun])?
+
+    /// The styles read for the lines drawn, kept until an edit changes a line.
+    var lineStyleCache = EditorLineStyleCache()
+
+    /// Sets where the lines' styles come from, forgetting those already read.
+    func replaceLineStyler(_ styler: ((Int) -> [EditorStyledRun])?) {
+        lineStyler = styler
+        lineStyleCache.removeAll()
+    }
+
+    /// The styles `line` is drawn in: none for a text with no styler, or one
+    /// hidden (``isSecure``), whose colours would show where its words are.
+    func styles(ofLine line: Int) -> [EditorStyledRun] {
+        guard let lineStyler, !isSecure else { return [] }
+        return lineStyleCache.runs(ofLine: line, reading: lineStyler)
+    }
+
     /// The text and caret before each key that changed the text, for Ctrl-Z.
     var undoHistory = TextUndoHistory<String, TextEditorPosition>()
 
@@ -253,6 +275,8 @@ final class TextEditorHandler: PersistedFocusable {
         if let cachedLayout, cachedLayout.text == current { return cachedLayout }
         let fresh = EditorLayout(text: current)
         cachedLayout = fresh
+        // A text replaced whole: its lines are not the ones styled.
+        if lineStyler != nil { lineStyleCache.removeAll() }
         return fresh
     }
 
@@ -328,6 +352,9 @@ final class TextEditorHandler: PersistedFocusable {
             if text.wrappedValue == edit.text, edit.layout !== before {
                 edit.layout.adoptWrappings(of: before, for: edit)
                 cachedLayout = edit.layout
+                if lineStyler != nil {
+                    lineStyleCache.replaceLines(edit.replaced, withCount: edit.replacement.count)
+                }
             }
             return
         }
@@ -341,6 +368,7 @@ final class TextEditorHandler: PersistedFocusable {
         // them (``EditorLayout/segmented(_:)``).
         if text.wrappedValue == joined {
             cachedLayout = EditorLayout(text: joined, lines: lines.map(EditorLayout.segmented), lineEnding: ending)
+            if lineStyler != nil { lineStyleCache.removeAll() }
         }
     }
 

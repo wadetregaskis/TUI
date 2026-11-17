@@ -61,11 +61,13 @@ extension _TextEditorCore {
                     guard lower < upper else { return nil }
                     return layout.cells(inRow: rowInLine, before: lower) ..< layout.cells(inRow: rowInLine, before: upper)
                 }
+                // The line's styles, in this row's columns.
+                let styles = handler.styles(ofLine: line).compactMap { $0.clipped(toColumns: span.start, end) }
                 rendered = styledRow(
                     Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, width: rows.width,
                     caret: top + screenRow == caretRow && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
-                    selection: selection, matches: matches, styling: styling)
+                    selection: selection, matches: matches, styles: styles, styling: styling)
                 // On to the next row: the rest of this line's, then the next line's.
                 if rowInLine + 1 < layout.rows.count {
                     rowInLine += 1
@@ -136,7 +138,8 @@ extension _TextEditorCore {
                     // `buildTextWithCursor`).
                     caret: lineIndex == handler.cursorLine && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
-                    selection: selection, matches: matches, styling: styling)
+                    selection: selection, matches: matches, styles: handler.styles(ofLine: lineIndex),
+                    styling: styling)
             } else {
                 rendered = emptyRow(width: width, background: styling.background)
             }
@@ -250,9 +253,13 @@ extension _TextEditorCore {
         }
     }
 
+    /// `styles` are the line's own (``EditorStyledRun``), in the columns of
+    /// `chars`, ascending: a run's colours give way to the selection's, and
+    /// its field to a find match's; its decoration is drawn under both.
     func styledRow(
         _ chars: [Character], tabWidth: TabWidth, scrollColumn: Int, width: Int,
-        caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styling: RowStyling
+        caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styles: [EditorStyledRun] = [],
+        styling: RowStyling
     ) -> RenderedRow {
         let background = styling.background
         let textForeground = styling.text
@@ -273,8 +280,10 @@ extension _TextEditorCore {
         // is `outputCells`, which holds the next cell's column wherever a run opens
         // or flushes — mid-straddle included, where `outputCells` advances after.
         var runs = TextFieldContentRenderer.RunAccumulator(ink: textForeground, field: background)
+        // The decoration of the character being drawn, for every cell it takes.
+        var decoration: CellDecoration?
         func emit(_ character: Character, foreground: Color, background: Color?, reversed: Bool = false) {
-            runs.append(character, ink: foreground, field: background, reversed: reversed, atColumn: outputCells)
+            runs.append(character, ink: foreground, field: background, reversed: reversed, decoration: decoration, atColumn: outputCells)
         }
         func emitClipped(_ character: Character, cells: Int, foreground: Color, background: Color?, reversed: Bool = false) {
             let start = cellX
@@ -338,9 +347,13 @@ extension _TextEditorCore {
             outputCells += cells
         }
 
-        for character in chars {
+        // The style run of the character being drawn, found in one pass.
+        var styleCursor = 0
+        for (index, character) in chars.enumerated() {
             let cells = TabLayout.advance(from: cellX, over: character, tabWidth: tabWidth) - cellX
             let isSelected = selection.map { $0.contains(cellX) } ?? false
+            let styled = styles.isEmpty ? nil : EditorStyledRun.run(at: index, in: styles, cursor: &styleCursor)
+            decoration = styled?.decoration
             // The caret sits at a character's start cell (its column is
             // derived from a character index), so at most one element matches.
             // A blink-OFF frame comes through here too — it is a frame of the
@@ -369,10 +382,11 @@ extension _TextEditorCore {
                 }
                 continue
             }
-            let foreground = isSelected ? selectionStyle.foreground : textForeground
+            let foreground = isSelected ? selectionStyle.foreground : styled?.foreground ?? textForeground
             // A find match the selection is not on is tinted (decisions B81).
             let isMatched = !isSelected && styling.match != nil && matches.contains { $0.contains(cellX) }
-            let cellBackground = isSelected ? selectionStyle.background : isMatched ? styling.match : background
+            let cellBackground =
+                isSelected ? selectionStyle.background : isMatched ? styling.match : styled?.background ?? background
             let reversed = isSelected && selectionStyle.isReversed
             if character == "\t" {
                 // A tab is its stop run of spaces — emitted cell by cell so
@@ -391,6 +405,7 @@ extension _TextEditorCore {
                     background: cellBackground, reversed: reversed)
             }
         }
+        decoration = nil
         // The caret past the last character sits on its own cell.
         if let caret, caret.column == cellX {
             emitCaret(" ", cells: 1, cycle: caret.cycle, isSelected: false)
