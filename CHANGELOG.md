@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A debug build warns when a `List`'s selection can name none of its rows.** `List(games, selection: $selection)`
+with a `GameID?` selection over rows whose `id` is a `String` selects nothing, as in SwiftUI, and said nothing, as
+SwiftUI says nothing. A debug build now says so once, for the rows of a `ForEach`, naming both types, through TUI's
+runtime warnings (on stderr when the app gives the terminal back, or in `TUI_DIAGNOSTICS_FILE`). Nothing else
+changes.
+
 **A test can play a terminal that can do what it says, from the start.** `TestApp.terminalCapabilities` is settable,
 and `TerminalCapabilities(supported:unsupported:)` is public, so a test can present a terminal that reports key
 releases (the kitty keyboard protocol) before the first frame, as a running app learns its terminal before its first

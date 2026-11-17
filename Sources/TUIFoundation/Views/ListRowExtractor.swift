@@ -157,6 +157,10 @@ package protocol WindowedListRowExtractor {
     ///   type, and asking it again for each row cost a conformance test a row.
     func listRowID<ID: Hashable>(at index: Int, rowsPerElement: Int) -> ID?
 
+    /// The type the rows' elements are identified by (a `ForEach`'s `ID`):
+    /// what a debug build names when a list's selection can hold none of them.
+    var listRowIDType: Any.Type { get }
+
     /// Builds the deferred content for the row at `index` (0-based over the
     /// rows). Only called for rows that are actually shown.
     ///
@@ -347,6 +351,8 @@ extension ListRowsPassThrough {
     package func listRowID<RowID: Hashable>(at index: Int, rowsPerElement: Int) -> RowID? {
         rowID(at: index, rowsPerElement: rowsPerElement)
     }
+
+    package var listRowIDType: Any.Type { ID.self }
 
     /// The collection itself, when its elements can be compared: a `Range`,
     /// or an `Array` of `Equatable` elements. Boxed without copying.

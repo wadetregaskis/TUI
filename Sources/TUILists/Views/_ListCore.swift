@@ -4291,6 +4291,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                         windowed.makeListRowContent(at: index, rowsPerElement: rowsPerElement, context: context)
                     })
             }
+            #if DEBUG
+                warnSelectionNamesNoRow(identifiedBy: windowed.listRowIDType)
+            #endif
         }
 
         // An outline (`List(_:children:)`): windowed as a `ForEach` is, over the
