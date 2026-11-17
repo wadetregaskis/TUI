@@ -234,6 +234,37 @@ took 3.3 to 3.9 seconds.
 These are this machine's Foundation on macOS 15.8.3, outside TUI. swift-foundation on Linux is expected to be
 the same code, and macOS 26's `AttributedString` may differ; L0 measures both before L4 is built.
 
+### L0: what each platform's Foundation has (2026-11-17)
+
+Read from the interfaces, not run: this machine has no macOS 26 to run on and no Linux, and the static Linux SDK
+was off the disk. macOS from the macOS 26.2 SDK in Xcode 26.3 (`Foundation.swiftmodule` and `Swift.swiftmodule`);
+Linux from swift-foundation's `release/6.2` branch (`Sources/FoundationEssentials/AttributedString/`), whose
+`@available(FoundationPreview 6.2, *)` constrains Apple platforms only, so on Linux every 6.2 toolchain has it.
+
+| What L3 and L4 use | macOS (TUI deploys to 15) | Linux, Swift 6.2 | Windows, Swift 6.4 |
+|---|---|---|---|
+| `RangeSet` | macOS 15 (the standard library) | Yes | Yes |
+| `AttributedString.transform(updating:body:)`, its four forms: index tracking | macOS 26 | Yes (`AttributedString+IndexTracking.swift`) | Yes (swift-foundation from 6.2 on) |
+| `DiscontiguousAttributedSubstring`, `subscript(_: RangeSet<Index>)`, `removeSubranges(_:)` | macOS 26 | Yes | Yes |
+| `AttributedString.UTF8View` (`utf8`), the cheap way to an offset's index | macOS 26 | Yes | Yes |
+| `Index.isValid(within:)`, `Range.isValid(within:)` | macOS 26 | Yes | Yes |
+| `AttributedString.characters.replaceSubrange`, runs, `AttributeContainer` | macOS 12 | Yes | Yes |
+
+So what follows for the lanes:
+
+- **L3's selection type and its members build on macOS 15** except one: `subscript(_: AttributedTextSelection) ->
+  DiscontiguousAttributedSubstring`, whose result type is Foundation's macOS 26 type, carries
+  `@available(macOS 26, …)` on Apple platforms. TUI's other macOS 26 SwiftUI APIs (`ConcentricRectangle`,
+  `Edge.Corner`, the drag configurations) are declared with no gate, since TUI implements them itself; this is the
+  one that cannot be.
+- **`transform(updating:body:)` tracks through Foundation where it can** (macOS 26, Linux, Windows) and falls back
+  on macOS 15 to character offsets: the selection's offsets before the body, moved by the edit the body made, found
+  by the characters' common start and end, as TUI's own undo finds an edit (`TextEdit`). That is the study's
+  §7.3 fallback, and it is exact for one contiguous edit, which is what the editor's own transforms are.
+- **The cost probe is not rebuilt in this lane**: nothing in L1 to L3 depends on its numbers, and its one open
+  question, macOS 26's `AttributedString` and its UTF-8 view, needs a machine this one is not. It is L4's, before
+  B-ATTRED-4's price is written into the initializer's documentation.
+
 ## 5. Staged lanes
 
 One commit a step, the docs in the step whose behaviour they describe. Gates for every lane: the 6.2.4 build and
