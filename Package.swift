@@ -1047,15 +1047,18 @@ let package = Package(
         // The Example app's own views, where a test must hold the view the
         // app ships rather than a copy of its shape — a copy goes on passing
         // after the app's view is changed back. `@testable import Example`: an
-        // executable target can be imported by a test target on macOS and
-        // Linux, its `main.swift` left unrun. Elsewhere (WebAssembly) SwiftPM
+        // executable target can be imported by a test target on macOS, Linux
+        // and Windows (measured, 6.3.3 on arm64), its `main.swift` left unrun.
+        // Without the dependency on Windows the module was still found, from an
+        // earlier build of the Example, and the test bundle failed to link its
+        // symbols. Elsewhere (WebAssembly) SwiftPM
         // links the program's objects into the test bundle whole, and its
         // `main` collides with the test runner's, so the dependency is only
         // there; the tests are `#if canImport(Example)`.
         .testTarget(
             name: "ExampleTests",
             dependencies: [
-                .target(name: "Example", condition: .when(platforms: [.macOS, .linux])),
+                .target(name: "Example", condition: .when(platforms: [.macOS, .linux, .windows])),
                 "TUI", "TUIApp", "TUIChrome", "TUIFoundation", "TUITesting", "TUITestProcess",
             ]
         ),
