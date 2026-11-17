@@ -74,7 +74,7 @@ struct ForEachBindingTests {
         let forEach = ForEach(binding, id: \.self) { (name: Binding<String>) in
             Text(name.wrappedValue)
         }
-        let ids = forEach.data.map { $0[keyPath: forEach.idKeyPath] }
+        let ids = forEach.data.map { forEach.elementID(of: $0) }
         #expect(ids == ["alpha", "beta"], "ids read through to the elements: \(ids)")
     }
 

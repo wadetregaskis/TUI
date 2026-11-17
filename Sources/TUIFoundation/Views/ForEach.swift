@@ -64,15 +64,23 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     /// content from.
     public var data: Data
 
-    /// The key path to the unique ID of each element.
+    /// The key path to the unique ID of each element, when the loop was given
+    /// one: `nil` where ``directID`` reads the ID.
+    ///
+    /// Not made where it is not needed: `\Data.Element.id` names a protocol
+    /// requirement of a type known only at run time, so a key path to it is
+    /// made from its pattern, its types looked up by their mangled names,
+    /// every time the loop is made — and a loop is made again with every body
+    /// that holds it, as a tree of table rows makes one for every open branch
+    /// on every pass. Only ``elementID(of:)`` reads either.
     ///
     /// `@usableFromInline`, like ``directID``, for the `@inlinable`
-    /// ``init(storing:id:directID:content:)`` (module split step A3).
-    @usableFromInline let idKeyPath: KeyPath<Data.Element, ID>
+    /// ``init(storing:id:content:)`` (module split step A3).
+    @usableFromInline let idKeyPath: KeyPath<Data.Element, ID>?
 
-    /// Reads an element's ID directly, when the initializer knew what the key
-    /// path reads — `\.id` of an `Identifiable` element, or `\.self` — and
-    /// `nil` when only the path says; see ``elementID(of:)``.
+    /// Reads an element's ID directly, when the initializer knew what reads
+    /// it — `\.id` of an `Identifiable` element, or `\.self` — and `nil` when
+    /// only ``idKeyPath`` says; see ``elementID(of:)``.
     @usableFromInline let directID: ((Data.Element) -> ID)?
 
     /// A function to create content on demand using the underlying data.
@@ -100,11 +108,23 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     /// unspecialised (module split step A3).
     @inlinable
     package init(
-        storing data: Data, id: KeyPath<Data.Element, ID>, directID: ((Data.Element) -> ID)? = nil,
-        content: @escaping (Data.Element) -> Content
+        storing data: Data, id: KeyPath<Data.Element, ID>, content: @escaping (Data.Element) -> Content
     ) {
         self.data = data
         self.idKeyPath = id
+        self.directID = nil
+        self.content = content
+    }
+
+    /// Stores a loop whose elements' IDs `directID` reads: an `Identifiable`
+    /// element's `id`, or the element itself. No key path is made
+    /// (``idKeyPath``).
+    @inlinable
+    package init(
+        storing data: Data, directID: @escaping (Data.Element) -> ID, content: @escaping (Data.Element) -> Content
+    ) {
+        self.data = data
+        self.idKeyPath = nil
         self.directID = directID
         self.content = content
     }
@@ -118,6 +138,8 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     /// directly is a witness call.
     @MainActor package func elementID(of element: Data.Element) -> ID {
         if let directID { return directID(element) }
+        // Each initializer sets one of the two.
+        guard let idKeyPath else { preconditionFailure("A ForEach is given an ID key path or reads its IDs directly") }
         return element[keyPath: idKeyPath]
     }
 }
@@ -433,7 +455,7 @@ extension ForEach where Content: View, Data.Element: Identifiable, ID == Data.El
         _ data: Data,
         @ViewBuilder content: @escaping (Data.Element) -> Content
     ) {
-        self.init(storing: data, id: \Data.Element.id, directID: { $0.id }, content: content)
+        self.init(storing: data, directID: { $0.id }, content: content)
     }
 }
 
@@ -449,7 +471,7 @@ extension ForEach where Content: View, Data == Range<Int>, ID == Int {
         _ data: Range<Int>,
         @ViewBuilder content: @escaping (Int) -> Content
     ) {
-        self.init(storing: data, id: \.self, directID: { $0 }, content: content)
+        self.init(storing: data, directID: { $0 }, content: content)
     }
 }
 
