@@ -210,6 +210,7 @@ nonisolated package struct DraggableModifier<Content: View, Payload>: View {
             on: &buffer,
             context: context,
             dispatcher: dispatcher,
+            focusID: own.flatMap { stops == [$0.id] ? $0.id : nil },
             onDragBegin: { _, grab in
                 // A payload that turns out to be nothing — an `itemProvider`
                 // that vends `nil` — starts no drag: the gesture goes on, and
@@ -287,6 +288,10 @@ package enum _DragHandle {
     /// events stay localized to the ORIGINAL press region even when content
     /// re-renders mid-drag (the dispatcher's press capture).
     ///
+    /// - Parameter focusID: The focus stop the handle's region carries: a
+    ///   `.draggable`'s own, where its content has none, so a scroll view
+    ///   brings the view into sight when Tab reaches it, as it does a
+    ///   `.focusable()` view, whose region carries its stop too.
     /// - Returns: The handle's region's id.
     @MainActor
     @discardableResult
@@ -294,6 +299,7 @@ package enum _DragHandle {
         on buffer: inout FrameBuffer,
         context: RenderContext,
         dispatcher: MouseEventDispatcher,
+        focusID: String? = nil,
         onDragBegin: @escaping (MouseEvent, _ grab: (x: Int, y: Int)) -> Void,
         onDragMove: @escaping (MouseEvent) -> Void,
         onDragEnd: @escaping (MouseEvent) -> Void
@@ -409,7 +415,7 @@ package enum _DragHandle {
         // A pointer style in the content shows through the handle, which
         // takes the presses and hides nothing.
         dispatcher.fileSeeThroughPointerShapes(for: id, over: buffer.hitTestRegions, in: context)
-        buffer.hitTestRegions += buffer.frameHitRegions(handlerID: id)
+        buffer.hitTestRegions += buffer.frameHitRegions(handlerID: id, focusID: focusID)
         return id
     }
 }
@@ -491,7 +497,7 @@ nonisolated package struct DropDestinationModifier<Content: View, Payload>: View
                 guard !typed.isEmpty else { return false }
                 return action(typed, info)
             },
-            setTargeted: isTargeted, focusIDs: stops)
+            setTargeted: isTargeted, focusIDs: stops, ownFocusID: own.flatMap { stops == [$0.id] ? $0.id : nil })
         return buffer
     }
 }
@@ -523,6 +529,10 @@ package enum DropZone {
     ///   - focusIDs: The focus stops the destination answers on, which a
     ///     drag carried from the keyboard can be at; empty to take the stops
     ///     drawn inside it.
+    ///   - ownFocusID: The destination's own focus stop, where its content has
+    ///     none, which the zone's region carries, so a scroll view brings the
+    ///     destination into sight when Tab reaches it — a carried drag's Tab
+    ///     included — as it does a `.focusable()` view.
     @MainActor
     package static func install(
         on buffer: inout FrameBuffer, context: RenderContext,
@@ -532,7 +542,8 @@ package enum DropZone {
         hovering: ((_ x: Int, _ y: Int) -> Void)? = nil,
         hoveringInfo: ((DropInfo) -> Void)? = nil,
         proposedOperation: (() -> DropOperation?)? = nil,
-        focusIDs: [String] = []
+        focusIDs: [String] = [],
+        ownFocusID: String? = nil
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -550,7 +561,7 @@ package enum DropZone {
         // matches hit ids against the registered targets and skips
         // non-targets, so the zone is still found at any depth.
         let id = dispatcher.registerPassive(in: context) { _ in false }
-        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: id), at: 0)
+        buffer.hitTestRegions.insert(contentsOf: buffer.frameHitRegions(handlerID: id, focusID: ownFocusID), at: 0)
 
         // The THIRD per-frame write a destination makes. The handler above is
         // replayed and the region travels in the buffer, but the session's
