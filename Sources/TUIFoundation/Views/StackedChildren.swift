@@ -17,7 +17,7 @@ import TUIView
 /// one. Vertical for the reason `TupleView` stacks that way: it is what an
 /// un-laid-out run of sibling views means here.
 @MainActor
-func renderStackedVertically(_ children: [ChildView], context: RenderContext) -> FrameBuffer {
+package func renderStackedVertically(_ children: [ChildView], context: RenderContext) -> FrameBuffer {
     let width = context.availableWidth
     return FrameBuffer(
         verticallyStacking: children.map { child in
@@ -30,7 +30,7 @@ func renderStackedVertically(_ children: [ChildView], context: RenderContext) ->
 /// The size ``renderStackedVertically(_:context:)`` draws `children` at: the
 /// widest of them, and their heights summed.
 @MainActor
-func measureStackedVertically(
+package func measureStackedVertically(
     _ children: [ChildView], proposal: ProposedViewSize, context: RenderContext
 ) -> ViewSize {
     var width = 0

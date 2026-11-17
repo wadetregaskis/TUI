@@ -405,21 +405,9 @@ extension View {
     /// has. The stack is drawn at this loop's identity, its rows resolved from
     /// it there, so each row keeps the identity it has drawn whole.
     func windowedColumn(context: RenderContext) -> _VStackCore<Self>? {
-        guard context.scrollContentOriginDepth != 0,
-            context.environment.implicitColumnRowLayout?.windowsAnyCount == true
-                || data(in: context).count > _VStackCore<Self>.anchoredWindowThreshold,
-            Self.isWindowingContainersColumn(context.identity), !context.environment.drawsContainerRowsWhole,
-            // A `List` draws a section it cannot read as rows as one view,
-            // and keeps its own rows.
-            !context.environment.drawsListSectionChrome
-        else { return nil }
-        // The lazy stack's own alignment, spacing and pins, where the column
-        // of several stands in for one (`_VStackCore.lazyColumnOfSeveral`).
-        let layout = context.environment.implicitColumnRowLayout
-        return _VStackCore(
-            alignment: layout?.alignment ?? .leading, spacing: layout?.spacing ?? 0, overflow: .window,
-            pinnedViews: layout?.pinnedViews ?? [], estimatesWhateverItsCount: layout?.windowsAnyCount ?? false,
-            content: self)
+        .implicitColumn(
+            of: self, context: context, rowCount: data(in: context).count,
+            isContainersColumn: Self.isWindowingContainersColumn(context.identity))
     }
 
     /// Whether a windowing container (``WindowsItsImplicitColumn``) stands on
@@ -468,42 +456,79 @@ extension View {
         context.scrollContentOriginDepth != 0 && Self.isAmongColumnOfSeveral(context.identity)
             && windowedColumn(context: context) != nil
     }
+}
 
-    /// `column` drawn, or, for a measure that draws to find a size (a
-    /// `Section` drawn as one view measures so), a blank canvas the size the
-    /// column measures: a lazy stack drawn under a measure takes no window, and
-    /// would build every row that fits the height it is offered, which for a
-    /// measure is all of them.
-    func renderWindowed(_ column: _VStackCore<Self>, context: RenderContext) -> FrameBuffer {
-        Self.fileWindowedColumn(context: context)
-        guard context.isMeasuring else { return column.renderToBuffer(context: context) }
-        let size = windowedColumnSize(
-            column.sizeThatFits(proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context),
-            proposal: ProposedViewSize(width: context.availableWidth, height: nil), context: context)
+extension _VStackCore {
+    /// The lazy stack a column nothing lays out is drawn as — a windowing
+    /// container's loop (`ForEach.windowedColumn`), or any other view of rows
+    /// drawn on its own — in scroll content, when its `rowCount` rows are more
+    /// than a lazy stack draws whole; `nil` otherwise, and the column is
+    /// stacked whole. At the alignment, spacing and pins of the lazy stack a
+    /// column of several stands in for (``lazyColumnOfSeveral(context:)``),
+    /// else leading, with no spacing and nothing pinned, as the column drawn
+    /// whole stacks its rows. Shared, and `package`, so a view of rows in
+    /// another module windows exactly as a loop does.
+    @MainActor package static func implicitColumn(
+        of content: Content, context: RenderContext, rowCount: @autoclosure () -> Int,
+        isContainersColumn: @autoclosure () -> Bool = true
+    ) -> Self? {
+        let layout = context.environment.implicitColumnRowLayout
+        guard context.scrollContentOriginDepth != 0,
+            layout?.windowsAnyCount == true || rowCount() > anchoredWindowThreshold,
+            isContainersColumn(), !context.environment.drawsContainerRowsWhole,
+            // A `List` draws a section it cannot read as rows as one view,
+            // and keeps its own rows.
+            !context.environment.drawsListSectionChrome
+        else { return nil }
+        return Self(
+            alignment: layout?.alignment ?? .leading, spacing: layout?.spacing ?? 0, overflow: .window,
+            pinnedViews: layout?.pinnedViews ?? [], estimatesWhateverItsCount: layout?.windowsAnyCount ?? false,
+            content: content)
+    }
+
+    /// This stack drawn as the column ``implicitColumn(of:context:rowCount:isContainersColumn:)``
+    /// made it — or, for a measure that draws to find a size (a `Section`
+    /// drawn as one view measures so), a blank canvas the size the column
+    /// measures: a lazy stack drawn under a measure takes no window, and would
+    /// build every row that fits the height it is offered, which for a measure
+    /// is all of them.
+    @MainActor package func renderAsImplicitColumn(context: RenderContext) -> FrameBuffer {
+        let context = context.leavingImplicitColumnRowLayout()
+        Self.fileImplicitColumn(context: context)
+        guard context.isMeasuring else { return renderToBuffer(context: context) }
+        let proposal = ProposedViewSize(width: context.availableWidth, height: nil)
+        let size = implicitColumnSize(sizeThatFits(proposal: proposal, context: context), proposal: proposal, context: context)
         return FrameBuffer(emptyWithWidth: size.width, height: min(size.height, max(0, context.availableHeight)))
     }
 
-    /// Files the lazy stack drawn at this loop's identity as one that places
-    /// its rows against a request (``PullConsumers/noteLayout(_:places:)``),
-    /// before they are measured: they are siblings at the loop's identity,
+    /// The size ``renderAsImplicitColumn(context:)`` draws at.
+    @MainActor package func sizeAsImplicitColumn(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+        let context = context.leavingImplicitColumnRowLayout()
+        Self.fileImplicitColumn(context: context)
+        return implicitColumnSize(sizeThatFits(proposal: proposal, context: context), proposal: proposal, context: context)
+    }
+
+    /// Files the lazy stack drawn at the column's own identity as one that
+    /// places its rows against a request (``PullConsumers/noteLayout(_:places:)``),
+    /// before they are measured: they are siblings at the column's identity,
     /// whose type is no pulling container's, so a lazy stack in a row — a
     /// section's loop, its section drawn as a column of its parts — is
     /// pulled where it stands (`isPulledWhereItStands`) as a row of a lazy
     /// stack written out is. Unfiled, the rows were drawn whole, every row of
     /// each section in the band built (210 a page for a title over 300
     /// sections of 30).
-    static func fileWindowedColumn(context: RenderContext) {
+    @MainActor private static func fileImplicitColumn(context: RenderContext) {
         guard context.scrollContentOriginDepth != 0 else { return }
         context.renderCache?.pullConsumers.noteLayout(context.identity, places: true)
     }
 
-    /// The windowed column's `size` as the column draws it: the width it is
-    /// offered, as a lazy stack's band is drawn. A column drawn whole hugs its
-    /// widest row, which only every row measured can say; a sample's widest
-    /// would cut a wider row further down, and the widest drawn so far would
-    /// widen the container as the page scrolls. Asked its ideal width, it
-    /// answers the sample's, as a lazy stack does.
-    func windowedColumnSize(_ size: ViewSize, proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
+    /// The column's `size` as the column draws it: the width it is offered,
+    /// as a lazy stack's band is drawn. A column drawn whole hugs its widest
+    /// row, which only every row measured can say; a sample's widest would
+    /// cut a wider row further down, and the widest drawn so far would widen
+    /// the container as the page scrolls. Asked its ideal width, it answers
+    /// the sample's, as a lazy stack does.
+    private func implicitColumnSize(_ size: ViewSize, proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         guard proposal.width != nil || !context.asksIdealWidth else { return size }
         return ViewSize(
             width: max(size.width, proposal.width ?? context.availableWidth), height: size.height,

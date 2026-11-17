@@ -237,16 +237,14 @@ nonisolated public struct ForEach<Data: RandomAccessCollection, ID: Hashable, Co
     /// stack past its threshold, in scroll content (`ImplicitColumnWindowing.swift`).
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         if let column = windowedColumn(context: context) {
-            return renderWindowed(column, context: context.leavingImplicitColumnRowLayout())
+            return column.renderAsImplicitColumn(context: context)
         }
         return renderStackedVertically(childViews(context: context), context: context)
     }
 
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         if let column = windowedColumn(context: context) {
-            let rows = context.leavingImplicitColumnRowLayout()
-            Self.fileWindowedColumn(context: rows)
-            return windowedColumnSize(column.sizeThatFits(proposal: proposal, context: rows), proposal: proposal, context: rows)
+            return column.sizeAsImplicitColumn(proposal: proposal, context: context)
         }
         return measureStackedVertically(childViews(context: context), proposal: proposal, context: context)
     }
