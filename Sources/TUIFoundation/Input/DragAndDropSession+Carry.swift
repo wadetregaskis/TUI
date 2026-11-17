@@ -193,6 +193,14 @@ extension DragAndDropSession {
         return (drops ? service.string(for: LocalizationKey.StatusBar.dropCarried) : nil, putBack)
     }
 
+    /// Whether the drag under way is one the keyboard carries, its drop
+    /// included.
+    ///
+    /// A text control asks, to take a carried drop at its caret, where the
+    /// pointer's lands on the cell under it, and to take one while it is
+    /// not yet focused: a carry focuses each stop it goes to.
+    package var isKeyboardCarry: Bool { (carry != nil && active != nil) || isDroppingCarry }
+
     /// Whether the keyboard flips the operation of the carry under way.
     var carryFlipsOperation: Bool { carry?.flipsOperation == true }
 
@@ -289,6 +297,8 @@ extension DragAndDropSession {
                 return
             }
             self.carry = nil
+            isDroppingCarry = true
+            defer { isDroppingCarry = false }
             if !performDrop() { carry.focusManager?.focus(id: carry.origin) }
             return
         }

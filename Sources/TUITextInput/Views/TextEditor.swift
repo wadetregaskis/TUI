@@ -872,6 +872,13 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             HitTestRegion(
                 offsetX: 0, offsetY: 0, width: buffer.width, height: buffer.height,
                 handlerID: handlerID, focusID: focusID))
+        // Dropped text, focused or not, as SwiftUI's editor takes it
+        // (`TextDrop`): at the cell the pointer let go over, as a click there
+        // puts the caret, and with the focus left where it was.
+        TextDrop.install(on: &buffer, context: context, focusID: focusID, takesUnfocused: true) { text, cell in
+            let position = cell.map { pointer.textPosition(at: MouseEvent(button: .left, phase: .released, x: $0.x, y: $0.y)) }
+            return handler.dropText(text, at: position)
+        }
         // The pointer's coming and going, for a bar drawn over the text: in
         // front of the editor's own region, which would otherwise hide it.
         // The bar is the editor's own, shown whenever the text overflows.

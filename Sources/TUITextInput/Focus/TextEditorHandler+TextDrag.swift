@@ -8,9 +8,13 @@
 //  where it landed. A press inside the selection that does not move is a
 //  click: the caret goes there and the selection goes. (The owner's Text
 //  editing clip, 2026-10-27: "anywhere" dragged to the end of its line.)
+//  And text dropped from a drag elsewhere in the app, inserted where it lands
+//  (`TextDrop`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
+
+import TUIView
 
 extension TextEditorHandler {
     /// Starts carrying the selection, if `position` — where a plain press
@@ -71,6 +75,37 @@ extension TextEditorHandler {
             selectionAnchor = insertedAt
             return true
         }
+    }
+
+    /// Inserts text dropped from a drag at `position`, or at the caret for
+    /// `nil`, and selects it there, as an `NSTextView` leaves a drop, as one
+    /// step to undo. The selection is not replaced: a drop goes where it was
+    /// aimed. What the content type turns away is taken out first, as from a
+    /// paste, and a drop with nothing left leaves the caret and the selection
+    /// as they were. The focus is not moved: an editor takes a drop focused or
+    /// not, and leaves the focus where it was (`TextDrop`).
+    ///
+    /// - Returns: Whether the text changed.
+    @MainActor
+    func dropText(_ string: String, at position: TextEditorPosition?) -> Bool {
+        guard let kept = admitted(string) else { return false }
+        let saved = (cursor, selectionAnchor, block)
+        let dropped = recordingUndoStep {
+            let before = text.wrappedValue
+            clearSelection()
+            if let position { moveCursor(toLine: position.line, column: position.column) }
+            let insertedAt = cursor
+            insert(kept)
+            guard text.wrappedValue != before else { return false }
+            if cursor != insertedAt { selectionAnchor = insertedAt }
+            return true
+        }
+        if dropped {
+            publishSelection()
+        } else {
+            (cursor, selectionAnchor, block) = saved
+        }
+        return dropped
     }
 
     /// Where `position`, outside `span`, is once `span` is taken out of the

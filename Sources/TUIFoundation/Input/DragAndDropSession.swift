@@ -484,6 +484,10 @@ package final class DragAndDropSession {
     /// The drag the keyboard carries, while it does (`DragAndDropSession+Carry`).
     var carry: Carry?
 
+    /// Whether the drop under way is a carried drag's: set while Return drops
+    /// one, after ``carry`` has been let go (``isKeyboardCarry``).
+    var isDroppingCarry = false
+
     /// The drag in flight, or `nil`.
     package var active: ActiveDrag? { _active }
 

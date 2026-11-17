@@ -46,6 +46,8 @@ TextField("Notes", text: $notes, axis: .vertical)
 
 The usual editing keys work: the arrows, Home and End, Shift with an arrow to select, Control-V to paste, and Control-Z to undo. Control-U erases the field. ``TextField`` lists them all.
 
+A field you're typing in also takes text dragged onto it from a `draggable(_:)` view: the text goes in where you let go, as a copy, selected, and Control-Z takes it back out. As in SwiftUI, a field you aren't typing in takes no drop. A ``TextEditor`` takes one whether you're typing in it or not, and leaves the focus where it was. A drag carried from the keyboard (<doc:DragAndDrop>) goes in at the caret.
+
 ## Doing something on Return
 
 Add `onSubmit` to run code when someone presses Return in a field:

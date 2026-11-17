@@ -26,7 +26,8 @@ import TUIFoundation
 ///
 /// Shift-click extends the existing selection to the clicked column instead of
 /// starting a new one. The hover state machine (``entered`` / ``exited``) rides
-/// on the same region. Selection highlighting is handled by the content
+/// on the same region, and so does the field's drop zone for dragged text
+/// (``TextDrop``). Selection highlighting is handled by the content
 /// renderer, which uses explicit palette colours — never a bare reverse-video
 /// SGR.
 @MainActor
@@ -237,5 +238,14 @@ enum TextFieldMouseHandler {
                 focusID: persistedFocusID
             )
         )
+        // Dropped text, while the field is focused, as SwiftUI's field takes
+        // it (`TextDrop`): at the cell the pointer let go over, as a click
+        // there puts the caret.
+        TextDrop.install(
+            on: &buffer, context: context, focusID: persistedFocusID, takesUnfocused: false
+        ) { text, cell in
+            let offset = cell.map { caretOffset(MouseEvent(button: .left, phase: .released, x: $0.x, y: $0.y)) }
+            return handler.dropText(text, atOffset: offset)
+        }
     }
 }

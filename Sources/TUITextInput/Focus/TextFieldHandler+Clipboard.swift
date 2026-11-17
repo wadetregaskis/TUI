@@ -140,6 +140,38 @@ extension TextFieldHandler {
     }
 }
 
+// MARK: - Dropped Text
+
+extension TextFieldHandler {
+    /// Inserts dropped text at `offset`, or at the caret for `nil`, and
+    /// selects it there, as an `NSTextView` leaves a drop. The selection is
+    /// not replaced: a drop goes where it was aimed, between characters.
+    ///
+    /// Through ``insertText(_:)``, as a paste goes, so the text is filtered,
+    /// its line breaks kept or not, and its content type applied as a paste's
+    /// are, the binding written as for typed text, and the drop is one step to
+    /// undo. A drop the field turns away entirely leaves the caret and the
+    /// selection as they were.
+    ///
+    /// - Returns: Whether the text changed.
+    @MainActor
+    func dropText(_ string: String, atOffset offset: Int?) -> Bool {
+        let before = text.wrappedValue
+        let (caret, anchor) = (cursorPosition, selectionAnchor)
+        if let offset { cursorPosition = max(0, min(offset, before.count)) }
+        clearSelection()
+        let start = cursorPosition
+        insertText(string)
+        guard text.wrappedValue != before else {
+            (cursorPosition, selectionAnchor) = (caret, anchor)
+            return false
+        }
+        if cursorPosition > start { selectionAnchor = start }
+        publishSelection()
+        return true
+    }
+}
+
 extension TextFieldHandler {
     /// Copies text to the clipboard.
     fileprivate func copyToClipboard(_ text: String) {

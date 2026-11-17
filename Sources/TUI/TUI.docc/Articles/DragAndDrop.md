@@ -36,6 +36,18 @@ and `dropDestination` too, and on Apple platforms `onDrag` and `onDrop` work wit
 `NSItemProvider` as in SwiftUI. To let people reorder a list's rows, give its
 `ForEach` `onMove(perform:)` (<doc:ListAndTable>).
 
+## Dropping Text
+
+A `String` dropped on a ``TextField`` or a ``SecureField`` while it holds the
+focus, or on a ``TextEditor`` whether it does or not, goes into its text with no
+`dropDestination` of yours, as in SwiftUI: at the cell the pointer let go over,
+as a copy, selected where it landed, and as one step to undo. It is inserted as a
+paste is, so a content type, a binding that refuses the edit, and `onChange` all
+treat it as they treat pasted text. A field that does not hold the focus takes no
+drop, as SwiftUI's does not, and an editor that takes one leaves the focus where
+it was. A drag carried from the keyboard can stop at any of them, which focuses
+it, and Return drops it at the caret.
+
 ## Copy or Move
 
 A drop copies, unless it lands in the container the drag came from, where it
