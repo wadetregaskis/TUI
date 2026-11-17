@@ -15,7 +15,7 @@ enum PathCompletion {
     /// it is, anything else relative to `base`, the folder shown.
     static func resolve(_ typed: String, relativeTo base: URL, home: URL) -> URL {
         let path = expandingTilde(typed.trimmingCharacters(in: .whitespaces), home: home)
-        if path.hasPrefix("/") { return URL(fileURLWithPath: path).standardizedFileURL }
+        if isAbsolute(path) { return URL(fileURLWithPath: path).standardizedFileURL }
         return base.appendingPathComponent(path).standardizedFileURL
     }
 
@@ -28,7 +28,7 @@ enum PathCompletion {
     /// (a macOS volume ignores case). Hidden items match only a prefix that
     /// begins with a dot.
     static func complete(_ typed: String, relativeTo base: URL, home: URL) -> String {
-        let slash = typed.lastIndex(of: "/")
+        let slash = typed.lastIndex(where: isSeparator)
         let folderPart = slash.map { String(typed[...$0]) } ?? ""
         let prefix = slash.map { String(typed[typed.index(after: $0)...]) } ?? typed
         let folder =
@@ -51,8 +51,33 @@ enum PathCompletion {
     }
 
     /// `path` with a leading `~` (alone, or before a `/`) made `home`'s path.
+    /// Whether `path` is named from a root rather than from the folder shown:
+    /// `/…`, and on Windows a drive's `C:/…` or `C:\\…`, or a share's `\\\\…` — what
+    /// a home folder there expands to, which does not start with a slash.
+    static func isAbsolute(_ path: String) -> Bool {
+        if path.hasPrefix("/") { return true }
+        #if os(Windows)
+            if path.hasPrefix("\\") { return true }
+            let start = Array(path.prefix(3))
+            return start.count == 3 && start[0].isASCII && start[0].isLetter && start[1] == ":"
+                && isSeparator(start[2])
+        #else
+            return false
+        #endif
+    }
+
+    /// Whether `character` separates a path's components: `/`, and on Windows
+    /// its own `\\` as well.
+    static func isSeparator(_ character: Character) -> Bool {
+        #if os(Windows)
+            character == "/" || character == "\\"
+        #else
+            character == "/"
+        #endif
+    }
+
     private static func expandingTilde(_ path: String, home: URL) -> String {
-        guard path == "~" || path.hasPrefix("~/") else { return path }
+        guard path == "~" || (path.first == "~" && path.dropFirst().first.map(isSeparator) == true) else { return path }
         return home.standardizedFileURL.path + path.dropFirst()
     }
 
