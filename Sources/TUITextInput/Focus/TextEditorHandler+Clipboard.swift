@@ -84,11 +84,10 @@ extension TextEditorHandler {
     func killToStartOfLine() {
         clearSelection()
         guard cursorColumn > 0 else { return }
-        var lines = readLines()
-        if !isSecure { killRing = String(lines[cursorLine][..<cursorColumn]) }
-        lines[cursorLine].removeSubrange(..<cursorColumn)
+        if !isSecure { killRing = String(readLines()[cursorLine][..<cursorColumn]) }
+        let end = cursorColumn
         cursorColumn = 0
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(line: cursorLine, columns: 0..<end)])
         syncDesiredColumn()
     }
 
@@ -97,7 +96,7 @@ extension TextEditorHandler {
     /// staying on the cursor's line as Ctrl-U does.
     func killWordBackward() {
         clearSelection()
-        var lines = readLines()
+        let lines = readLines()
         // Hidden text's "word" is one character, and none of it is kept.
         let start =
             isSecure
@@ -105,9 +104,9 @@ extension TextEditorHandler {
             : StandInEditingCommand.wordRuboutStart(in: lines[cursorLine], before: cursorColumn)
         guard start < cursorColumn else { return }
         if !isSecure { killRing = String(lines[cursorLine][start..<cursorColumn]) }
-        lines[cursorLine].removeSubrange(start..<cursorColumn)
+        let end = cursorColumn
         cursorColumn = start
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(line: cursorLine, columns: start..<end)])
         syncDesiredColumn()
     }
 

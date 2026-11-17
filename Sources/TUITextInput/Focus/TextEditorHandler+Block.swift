@@ -121,20 +121,20 @@ extension TextEditorHandler {
     /// Takes the block's characters out of every row it spans, leaves the
     /// caret where its top-left corner was, and drops it.
     func deleteBlock(_ block: TextEditorBlock) {
-        var lines = readLines()
         let spans = blockSpans(block)
         // Last first, so each removal leaves the offsets of the ones still to
         // make where they were: a wrapped line's rows come in order.
-        for span in spans.reversed() where !span.characters.isEmpty {
-            lines[span.line].removeSubrange(span.characters)
+        let removed = spans.reversed().filter { !$0.characters.isEmpty }.map {
+            TextEditorReplacement(line: $0.line, columns: $0.characters)
         }
-        if let first = spans.first {
-            cursorLine = first.line
-            cursorColumn = min(first.characters.lowerBound, lines[first.line].count)
+        let lines = writeReplacing(removed) { lines in
+            if let first = spans.first {
+                cursorLine = first.line
+                cursorColumn = min(first.characters.lowerBound, lines[first.line].count)
+            }
+            self.block = nil
+            selectionAnchor = nil
         }
-        self.block = nil
-        selectionAnchor = nil
-        writeLines(lines)
         syncDesiredColumn(lines)
     }
 }

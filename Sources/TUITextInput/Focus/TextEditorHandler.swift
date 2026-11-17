@@ -292,13 +292,34 @@ final class TextEditorHandler: PersistedFocusable {
         String(text.map { $0.isNewline ? $0 : glyph })
     }
 
+    /// Makes `replacements`, in order, each on the lines the one before it
+    /// left, and writes the lines they leave (``writeLines(_:)``). Every edit
+    /// the editor makes to its text is made here, as the ranges it replaces
+    /// (``TextEditorReplacement``), except the two that replace the text
+    /// whole through ``write(_:)``: an undo or a redo, and the find bar's
+    /// Replace All.
+    ///
+    /// - Parameter prepare: Given the lines the replacements leave, before
+    ///   they are written: for an edit whose caret is placed by them.
+    /// - Returns: The lines written.
+    @discardableResult
+    func writeReplacing(
+        _ replacements: [TextEditorReplacement], beforeWriting prepare: ([[Character]]) -> Void = { _ in }
+    ) -> [[Character]] {
+        var lines = readLines()
+        for replacement in replacements { replacement.apply(to: &lines) }
+        prepare(lines)
+        writeLines(lines)
+        return lines
+    }
+
     /// Writes `lines`, an edit of the text's lines, to the bound text: spliced
     /// into the text's bytes where they differ from its lines
     /// (``EditorLayout/replacing(lines:)``), so a key costs the lines it
     /// changed, and the layout of the text written made from the one before,
     /// its wrappings with it. A text with more than one kind of line break is
     /// joined afresh, writing each as its ``EditorLayout/lineEnding``.
-    func writeLines(_ lines: [[Character]]) {
+    private func writeLines(_ lines: [[Character]]) {
         let before = layout()
         if let edit = before.replacing(lines: lines) {
             write(edit.text)
@@ -717,7 +738,7 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     private func insertWithoutRestore(_ string: String) {
-        var lines = readLines()
+        let lines = readLines()
         // Character-level: CRLF is ONE Character, so both it and a lone CR
         // compare directly. (No Foundation here, deliberately.)
         // Filter out control scalars (Cc), preserving \r, \n, and \t.
@@ -737,84 +758,64 @@ final class TextEditorHandler: PersistedFocusable {
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { Array($0) }
 
-        var line = lines[cursorLine]
-        let tail = Array(line[cursorColumn...])
-        line.removeSubrange(cursorColumn..<line.count)
-
+        let line = lines[cursorLine]
+        let caret = cursor
         // The caret's column as the string has the characters before it: a
         // combining mark, a vowel sign or a skin-tone modifier typed or pasted
         // merges into the character before it, and an array that kept it apart
         // put the caret a column late. The lines themselves are written as
         // their strings' characters (``EditorLayout/segmented(_:)``).
         if inserted.count == 1 {
-            let head = EditorLayout.segmented(line + inserted[0])
-            line = head + tail
-            cursorColumn = min(head.count, line.count)
-            lines[cursorLine] = line
+            let head = EditorLayout.segmented(Array(line[..<cursorColumn]) + inserted[0])
+            cursorColumn = min(head.count, head.count + line.count - cursorColumn)
         } else {
-            lines[cursorLine] = line + inserted[0]
-            var insertAt = cursorLine + 1
-            for middle in inserted[1..<(inserted.count - 1)] {
-                lines.insert(middle, at: insertAt)
-                insertAt += 1
-            }
             let head = inserted[inserted.count - 1]
-            let last = head + tail
-            cursorColumn = min(head.count, last.count)
-            lines.insert(last, at: insertAt)
-            cursorLine = insertAt
+            cursorColumn = min(head.count, head.count + line.count - cursorColumn)
+            cursorLine += inserted.count - 1
         }
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(from: caret, to: caret, with: inserted)])
         syncDesiredColumn()
     }
 
     /// Splits the current line at the cursor.
     private func insertNewline() {
-        var lines = readLines()
-        var line = lines[cursorLine]
-        let tail = Array(line[cursorColumn...])
-        line.removeSubrange(cursorColumn..<line.count)
-        lines[cursorLine] = line
-        lines.insert(tail, at: cursorLine + 1)
+        let caret = cursor
         cursorLine += 1
         cursorColumn = 0
         desiredColumn = 0
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(from: caret, to: caret, with: [[], []])])
     }
 
     /// Deletes the character before the cursor, joining with the previous line
     /// at column 0.
     private func deleteBackward() {
-        var lines = readLines()
+        let lines = readLines()
+        let end = cursor
         if cursorColumn > 0 {
-            lines[cursorLine].remove(at: cursorColumn - 1)
             cursorColumn -= 1
         } else if cursorLine > 0 {
-            let previousLength = lines[cursorLine - 1].count
-            lines[cursorLine - 1].append(contentsOf: lines[cursorLine])
-            lines.remove(at: cursorLine)
             cursorLine -= 1
-            cursorColumn = previousLength
+            cursorColumn = lines[cursorLine].count
         } else {
             return
         }
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(from: cursor, to: end)])
         syncDesiredColumn()
     }
 
     /// Deletes the character at the cursor, joining with the next line at the
     /// line end.
     private func deleteForward() {
-        var lines = readLines()
+        let lines = readLines()
+        let end: TextEditorPosition
         if cursorColumn < lines[cursorLine].count {
-            lines[cursorLine].remove(at: cursorColumn)
+            end = TextEditorPosition(line: cursorLine, column: cursorColumn + 1)
         } else if cursorLine < lines.count - 1 {
-            lines[cursorLine].append(contentsOf: lines[cursorLine + 1])
-            lines.remove(at: cursorLine + 1)
+            end = TextEditorPosition(line: cursorLine + 1, column: 0)
         } else {
             return
         }
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(from: cursor, to: end)])
         syncDesiredColumn()
     }
 
@@ -933,23 +934,20 @@ final class TextEditorHandler: PersistedFocusable {
             deleteBackward()  // join with the previous line
             return
         }
-        var lines = readLines()
-        let target = wordBoundaryLeft(lines[cursorLine], from: cursorColumn)
-        lines[cursorLine].removeSubrange(target..<cursorColumn)
-        cursorColumn = target
-        writeLines(lines)
+        let end = cursorColumn
+        cursorColumn = wordBoundaryLeft(readLines()[cursorLine], from: end)
+        writeReplacing([TextEditorReplacement(line: cursorLine, columns: cursorColumn..<end)])
         syncDesiredColumn()
     }
 
     private func deleteWordForward() {
-        var lines = readLines()
+        let lines = readLines()
         if cursorColumn >= lines[cursorLine].count {
             deleteForward()  // pull up the next line
             return
         }
         let target = wordBoundaryRight(lines[cursorLine], from: cursorColumn)
-        lines[cursorLine].removeSubrange(cursorColumn..<target)
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(line: cursorLine, columns: cursorColumn..<target)])
         syncDesiredColumn()
     }
 
@@ -958,18 +956,15 @@ final class TextEditorHandler: PersistedFocusable {
     /// Ctrl-K: kills from the cursor to the end of the line into the kill ring;
     /// at the end of a line it kills the newline (joining the next line).
     private func killToEndOfLine() {
-        var lines = readLines()
+        let lines = readLines()
         let line = lines[cursorLine]
         if cursorColumn < line.count {
             // Hidden text is deleted, and none of it kept (``isSecure``).
             if !isSecure { killRing = String(line[cursorColumn...]) }
-            lines[cursorLine].removeSubrange(cursorColumn..<line.count)
-            writeLines(lines)
+            writeReplacing([TextEditorReplacement(line: cursorLine, columns: cursorColumn..<line.count)])
         } else if cursorLine < lines.count - 1 {
             if !isSecure { killRing = "\n" }
-            lines[cursorLine].append(contentsOf: lines[cursorLine + 1])
-            lines.remove(at: cursorLine + 1)
-            writeLines(lines)
+            writeReplacing([TextEditorReplacement(from: cursor, to: TextEditorPosition(line: cursorLine + 1, column: 0))])
         }
         syncDesiredColumn()
     }
@@ -984,11 +979,13 @@ final class TextEditorHandler: PersistedFocusable {
     /// forward; at the end of a line it transposes the last two characters.
     /// The swap itself is ``TextEditingCommand/transpose(in:at:)``.
     private func transpose() {
-        var lines = readLines()
-        guard let column = TextEditingCommand.transpose(in: &lines[cursorLine], at: cursorColumn)
+        var line = readLines()[cursorLine]
+        guard let column = TextEditingCommand.transpose(in: &line, at: cursorColumn)
         else { return }
+        // The two characters swapped, which end where the caret steps to.
+        let swapped = (column - 2)..<column
         cursorColumn = column
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(line: cursorLine, columns: swapped, with: Array(line[swapped]))])
         syncDesiredColumn()
     }
 
@@ -999,13 +996,7 @@ final class TextEditorHandler: PersistedFocusable {
             bell?.ring()
             return
         }
-        var lines = readLines()
-        var line = lines[cursorLine]
-        let tail = Array(line[cursorColumn...])
-        line.removeSubrange(cursorColumn..<line.count)
-        lines[cursorLine] = line
-        lines.insert(tail, at: cursorLine + 1)
-        writeLines(lines)
+        writeReplacing([TextEditorReplacement(from: cursor, to: cursor, with: [[], []])])
     }
 }
 

@@ -108,33 +108,28 @@ extension TextEditorHandler {
     /// Removes the selected text, placing the cursor at the span's start and
     /// clearing the selection.
     func deleteSelection(_ span: SelectionSpan) {
-        var lines = readLines()
-        let (start, end) = clamped(span, in: lines)
+        let (start, end) = clamped(span, in: readLines())
         let startLine = start.line
-        let endLine = end.line
         let startColumn = start.column
-        let endColumn = end.column
-        if startLine == endLine {
-            // The per-line clamps can invert a corrupt span's columns once its
-            // lines collapse together; an inverted range must not trap.
-            lines[startLine].removeSubrange(min(startColumn, endColumn)..<max(startColumn, endColumn))
-        } else {
-            let head = Array(lines[startLine][..<startColumn])
-            let tail = Array(lines[endLine][endColumn...])
-            lines[startLine] = head + tail
-            lines.removeSubrange((startLine + 1)...endLine)
+        // The per-line clamps can invert a corrupt span's columns once its
+        // lines collapse together; an inverted range must not trap.
+        let removed =
+            start.line == end.line
+            ? TextEditorReplacement(
+                line: startLine, columns: min(startColumn, end.column)..<max(startColumn, end.column))
+            : TextEditorReplacement(from: start, to: end)
+        writeReplacing([removed]) { lines in
+            cursorLine = startLine
+            cursorColumn = startColumn
+            // NOT `desiredColumn = startColumn`: that is a character index, and
+            // the field is DISPLAY space. On a prefix holding a tab or a wide
+            // character the two differ, so Backspace over a drag selection and
+            // then Down / Page Down read the index as a screen column — "\tabc"
+            // minus "ab" left the caret on screen column 4 and sent Down to
+            // column 1. `lines` is already the post-delete array, and `startLine`
+            // indexes it in both branches, so no re-read.
+            syncDesiredColumn(lines)
+            selectionAnchor = nil
         }
-        cursorLine = startLine
-        cursorColumn = startColumn
-        // NOT `desiredColumn = startColumn`: that is a character index, and
-        // the field is DISPLAY space. On a prefix holding a tab or a wide
-        // character the two differ, so Backspace over a drag selection and
-        // then Down / Page Down read the index as a screen column — "\tabc"
-        // minus "ab" left the caret on screen column 4 and sent Down to
-        // column 1. `lines` is already the post-delete array, and `startLine`
-        // indexes it in both branches, so no re-read.
-        syncDesiredColumn(lines)
-        selectionAnchor = nil
-        writeLines(lines)
     }
 }

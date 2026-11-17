@@ -164,6 +164,14 @@ The 2026-10-04 design (R1) stands, and these decisions fit it to that editor:
 range, so an attributed edit keeps its neighbours' attributes. A second editor core would copy about 4,700 lines
 (the editor's views and handler files today), more than the 1,600 that ruled R2 out in October.
 
+*As built in L1 (2026-11-17):* every edit the handler makes is one or more `TextEditorReplacement`s (a range of
+line and column positions and the lines that take its place) made through `writeReplacing(_:)`, which applies
+them to the lines and writes those as before, so a `String`'s bytes and layout are made exactly as they were.
+Several in one write are made in order, each on the lines the one before left: a block's rows go last first.
+Only an undo or redo and the find bar's Replace All replace the text whole (B-ATTRED-4's path). The history is
+generic over its text (`TextUndoHistory<Text: UndoableText, Caret>`, `String` keeping `TextEdit`). The storage
+enum itself waits for L4, where its second case arrives: with one case it would be a switch with nothing to choose.
+
 ### B-ATTRED-2. Styles are read for the lines drawn, never for the document
 
 The layout keeps the `AttributedString` it was built from. A drawn line's runs are read from it when the line is
