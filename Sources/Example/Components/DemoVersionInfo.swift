@@ -45,6 +45,8 @@ extension DemoVersionInfo {
             return linuxDistroName
         #elseif os(WASI)
             return "WebAssembly"
+        #elseif os(Windows)
+            return "Windows"
         #else
             return "Unknown"
         #endif
@@ -56,6 +58,10 @@ extension DemoVersionInfo {
             return "\(version.majorVersion).\(version.minorVersion)"
         #elseif os(Linux)
             return linuxDistroVersion
+        #elseif os(Windows)
+            // Windows 11 still reports itself as 10.0; its builds start at 22000.
+            let version = ProcessInfo.processInfo.operatingSystemVersion
+            return version.majorVersion == 10 && version.patchVersion >= 22000 ? "11" : "\(version.majorVersion)"
         #else
             return ""
         #endif
