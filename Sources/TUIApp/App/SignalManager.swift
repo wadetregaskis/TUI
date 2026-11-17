@@ -10,7 +10,8 @@ import TUIFoundation
 // has neither — no `signal`, no libdispatch, and no process to send one — so
 // the file splits here rather than at a dozen call sites, and the arm at the
 // bottom answers the same questions with the only answers that platform has.
-#if !canImport(WASILibc)
+// Windows has the console's control events instead: SignalManager+Windows.swift.
+#if !canImport(WASILibc) && !os(Windows)
 
 import Dispatch
 
@@ -427,7 +428,7 @@ final class SignalManager {
     }
 }
 
-#else  // canImport(WASILibc)
+#elseif canImport(WASILibc)
 
 // MARK: - WebAssembly
 

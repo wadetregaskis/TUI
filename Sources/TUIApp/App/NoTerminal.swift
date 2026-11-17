@@ -19,6 +19,8 @@ import TUIFoundation
     import Darwin
 #elseif canImport(WASILibc)
     import WASILibc
+#elseif os(Windows)
+    import WinSDK
 #endif
 
 /// Why an app can't draw: what its standard input and output are connected to,
@@ -103,6 +105,11 @@ public struct NoTerminal {
         guard environment["TERM"] != "dumb" else { return false }
         #if canImport(WASILibc)
             return false
+        #elseif os(Windows)
+            // The process's console, as `/dev/tty` is its controlling terminal.
+            guard let console = Self.openConsole("CONOUT$") else { return false }
+            CloseHandle(console)
+            return true
         #else
             let terminal = unsafe open("/dev/tty", O_RDWR | O_NOCTTY)
             guard terminal >= 0 else { return false }
@@ -167,7 +174,88 @@ public struct NoTerminal {
 
 // MARK: - Finding out
 
-#if !canImport(WASILibc)
+#if os(Windows)
+extension NoTerminal {
+    /// The situation of a process whose stdin is `inputDescriptor` and whose
+    /// stdout is `outputDescriptor`, or `nil` where it can draw and read keys as
+    /// usual: the POSIX arm's, asked of the C library's descriptors' handles.
+    static func current(
+        input inputDescriptor: Int32 = 0, output outputDescriptor: Int32 = 1,
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> Self? {
+        let input = connection(of: inputDescriptor, environment: environment)
+        let output = connection(of: outputDescriptor, environment: environment)
+        guard input != .terminal || output != .terminal else { return nil }
+        return Self(
+            input: input == .dumbTerminal ? .terminal : input, output: output,
+            pipedInput: kept(inputDescriptor, input), pipedOutput: kept(outputDescriptor, output),
+            environment: environment)
+    }
+
+    /// What `descriptor` is connected to: a console is the terminal; otherwise
+    /// what its handle's file type says. A socket's handle says it is a pipe.
+    private static func connection(of descriptor: Int32, environment: [String: String]) -> Connection {
+        let raw = _get_osfhandle(descriptor)
+        guard raw != -1, raw != -2, let handle = HANDLE(bitPattern: raw) else { return .closed }
+        var mode: DWORD = 0
+        if GetConsoleMode(handle, &mode) { return environment["TERM"] == "dumb" ? .dumbTerminal : .terminal }
+        switch Int32(GetFileType(handle)) {
+        case FILE_TYPE_PIPE: return .pipe
+        case FILE_TYPE_DISK: return .file
+        case FILE_TYPE_CHAR: return .device
+        default: return .closed
+        }
+    }
+
+    /// `descriptor` under a number of its own, where it carries data, as
+    /// ``pipedInput`` and ``pipedOutput`` keep it.
+    private static func kept(_ descriptor: Int32, _ connection: Connection) -> FileHandle? {
+        guard connection == .pipe || connection == .file || connection == .socket else { return nil }
+        let copy = _dup(descriptor)
+        return copy >= 0 ? FileHandle(fileDescriptor: copy, closeOnDealloc: true) : nil
+    }
+
+    /// Opens one of the process's console's own devices, `CONIN$` or `CONOUT$`,
+    /// or `nil` where the process has no console.
+    fileprivate static func openConsole(_ name: String) -> HANDLE? {
+        let handle = name.withCString(encodedAs: UTF16.self) {
+            CreateFileW(
+                $0, DWORD(GENERIC_READ) | DWORD(GENERIC_WRITE), DWORD(FILE_SHARE_READ | FILE_SHARE_WRITE), nil,
+                DWORD(OPEN_EXISTING), 0, nil)
+        }
+        guard let handle, handle != INVALID_HANDLE_VALUE else { return nil }
+        return handle
+    }
+
+    /// Points whichever of stdin and stdout isn't a terminal at the process's
+    /// console, as ``Outcome/drawOnControllingTerminal`` asks: its standard
+    /// handle, which the console layer reads and writes, and the C library's
+    /// descriptor with it.
+    ///
+    /// - Returns: Whether it could: not with no console, or where `TERM` is
+    ///   `dumb`.
+    func pointStandardStreamsAtControllingTerminal() -> Bool {
+        guard environment["TERM"] != "dumb" else { return false }
+        if lacksInput, !Self.point(STD_INPUT_HANDLE, descriptor: 0, at: "CONIN$") { return false }
+        if lacksOutput, !Self.point(STD_OUTPUT_HANDLE, descriptor: 1, at: "CONOUT$") { return false }
+        return true
+    }
+
+    /// Points the standard handle `standard`, and the C library's `descriptor`,
+    /// at the console device `name`.
+    private static func point(_ standard: DWORD, descriptor: Int32, at name: String) -> Bool {
+        guard let console = openConsole(name) else { return false }
+        guard SetStdHandle(standard, console) else {
+            CloseHandle(console)
+            return false
+        }
+        let opened = _open_osfhandle(Int(bitPattern: console), 0)
+        if opened >= 0, opened != descriptor { _ = _dup2(opened, descriptor) }
+        return true
+    }
+}
+
+#elseif !canImport(WASILibc)
 extension NoTerminal {
     /// The situation of a process whose stdin is `inputDescriptor` and whose
     /// stdout is `outputDescriptor`, or `nil` where it can draw and read keys as usual.

@@ -6,9 +6,10 @@
 
 import TUIFoundation
 
-// Signal handlers are POSIX; wasip1 has none, and no crash to survive.
+// Signal handlers are POSIX; wasip1 has none, and no crash to survive. Windows
+// has its own ways to die: FatalSignalTerminalRestore+Windows.swift.
 import Synchronization
-#if !canImport(WASILibc)
+#if !canImport(WASILibc) && !os(Windows)
 
 #if canImport(Darwin)
 import Darwin
@@ -567,7 +568,7 @@ enum FatalSignalTerminalRestore {
     }
 }
 
-#else
+#elseif canImport(WASILibc)
 
 /// No signals on wasip1, so nothing can die of one with a debt outstanding.
 enum FatalSignalTerminalRestore {

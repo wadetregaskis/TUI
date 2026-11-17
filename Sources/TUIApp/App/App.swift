@@ -22,8 +22,12 @@ import TUIFoundation
 /// `TUI_DEBUG_FRAME_DUMP=1`, same convention as `TUI_DEBUG_FOCUS`.
 /// File-scope (the runner is generic, which forbids static stored properties)
 /// and read once: it's consulted per keystroke.
-private let frameDumpEnabled: Bool =
-    unsafe getenv("TUI_DEBUG_FRAME_DUMP").map { unsafe String(cString: $0) == "1" } ?? false
+#if os(Windows)
+    private let frameDumpEnabled: Bool = environmentValue("TUI_DEBUG_FRAME_DUMP") == "1"
+#else
+    private let frameDumpEnabled: Bool =
+        unsafe getenv("TUI_DEBUG_FRAME_DUMP").map { unsafe String(cString: $0) == "1" } ?? false
+#endif
 
 // MARK: - App Protocol
 
@@ -299,8 +303,9 @@ extension AppRunner {
                 // Job control, so POSIX-only: wasip1 has no process to signal
                 // and no shell to hand the terminal back to. Ctrl-Z there is a
                 // keystroke like any other, and an app that wants it can bind
-                // it; what it must not be is a crash.
-                #if !canImport(WASILibc)
+                // it; what it must not be is a crash. Nor has Windows job
+                // control: there ⌃Z is a key too.
+                #if !canImport(WASILibc) && !os(Windows)
                     kill(getpid(), SIGTSTP)
                 #endif
             },
@@ -549,6 +554,16 @@ extension AppRunner {
         // SIGPIPE to SIG_IGN. Each source's handler sets a flag the loop
         // drains and wakes the notifier. `await`s until every source is armed.
         await signals.install(wake: { [weak stdinArrival] in stdinArrival?.wake() })
+        #if os(Windows)
+            // The console's reader stands in for stdin's dispatch source and
+            // for SIGWINCH's: it wakes the loop for the bytes it read, and
+            // passes a resize record on. See `ConsoleInput`.
+            terminal.consoleInput.setHandlers(
+                ConsoleInput.Handlers(
+                    arrival: { [weak stdinArrival] in Task { @MainActor in stdinArrival?.wake() } },
+                    resize: { [weak signals = self.signals] in Task { @MainActor in signals?.noteResize() } }))
+            defer { terminal.consoleInput.setHandlers(nil) }
+        #endif
         terminal.enterAlternateScreen()
         // From here stderr is the screen being drawn, so a soft trap's report is
         // held until the terminal is handed back (`cleanup`, `suspendUntilContinued`).
@@ -901,7 +916,9 @@ extension AppRunner {
     /// to wake the loop for what it reads on its behalf. Returns what stops them.
     /// wasip1 has no driver to hand ⌃\ back to, and neither.
     private func startStallWatchdog(wakingLoop stdinArrival: StdinArrivalNotifier) -> () -> Void {
-        #if canImport(WASILibc)
+        // Nor has Windows, whose console raises Ctrl-Break however stalled the
+        // app (`FatalSignalTerminalRestore`).
+        #if canImport(WASILibc) || os(Windows)
             return {}
         #else
             let watchdog = StallWatchdog(gate: terminal.writeGate)
@@ -1159,7 +1176,7 @@ extension AppRunner {
         // The loop is reading its input: what tells the stall watchdog it is
         // not stalled. If it popped the kitty flags while the loop was, push
         // them back before reading what came in meanwhile.
-        #if !canImport(WASILibc)
+        #if !canImport(WASILibc) && !os(Windows)
             if terminal.writeGate.noteDrain() { terminal.recoverFromStall() }
         #endif
         guard !hold.isHolding else {
@@ -1331,7 +1348,11 @@ extension TerminalHost {
     /// - Parameter name: a `TERM_PROGRAM`-style name, as
     ///   ``nameFromDeviceAttributes(_:)`` returns.
     static func seedDiscoveredHost(_ name: String) {
-        unsafe setenv("TUI_TERM_PROGRAM", name, 1)
+        #if os(Windows)
+            _ = _putenv_s("TUI_TERM_PROGRAM", name)
+        #else
+            unsafe setenv("TUI_TERM_PROGRAM", name, 1)
+        #endif
     }
 }
 

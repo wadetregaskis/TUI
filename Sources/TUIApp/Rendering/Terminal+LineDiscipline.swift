@@ -11,8 +11,9 @@
 import TUIFoundation
 
 // wasip1 has no termios: a wasm program is handed a stream of bytes, with no
-// line discipline in front of it.
-#if !canImport(WASILibc)
+// line discipline in front of it. Nor has Windows, whose console has modes
+// instead (`ConsoleModes`).
+#if !canImport(WASILibc) && !os(Windows)
 
 #if canImport(Darwin)
 import Darwin

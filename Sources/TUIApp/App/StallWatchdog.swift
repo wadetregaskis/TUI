@@ -12,9 +12,10 @@
 import TUIFoundation
 
 // Threads, `poll` and a pipe are POSIX; wasip1 has no driver to hand the key
-// back to.
+// back to, and neither has Windows, whose console raises Ctrl-Break on a thread
+// of its own however stalled the app (`FatalSignalTerminalRestore`).
 import Synchronization
-#if !canImport(WASILibc)
+#if !canImport(WASILibc) && !os(Windows)
 
 import Foundation
 

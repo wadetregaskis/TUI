@@ -13,8 +13,10 @@ import Synchronization
 import TUIFoundation
 
 // Threads, `poll` and a process group to signal are POSIX; wasip1 has no driver
-// and no quit key.
-#if !canImport(WASILibc)
+// and no quit key. Windows has no driver either: its console is read on a
+// thread of its own already (`ConsoleInput`), and Ctrl-Break quits a hung app
+// without one.
+#if !canImport(WASILibc) && !os(Windows)
 
 import Foundation
 

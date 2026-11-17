@@ -13,6 +13,8 @@ import TUIFoundation
     import Glibc
 #elseif canImport(Musl)
     import Musl
+#elseif os(Windows)
+    import WinSDK
 #endif
 
 /// This machine's clipboard, reached through the platform's helper binaries
@@ -69,6 +71,78 @@ enum SystemClipboard {
 
     /// Always `nil`: there is nowhere to read from.
     static func paste() -> String? { nil }
+}
+
+#elseif os(Windows)
+
+/// The clipboard, on Windows: the system's own, through its API rather than a
+/// helper, as text (`CF_UNICODETEXT`).
+///
+/// Nothing here can hang the way a helper can: opening the clipboard fails at
+/// once while another program has it open, and is tried again for a moment
+/// (``open()``) before the copy or paste reports failure.
+///
+/// Line breaks are Windows's on the clipboard and the terminal's in the app: a
+/// copy writes CR LF for each line feed, as every Windows program expects to
+/// paste, and a paste reads CR LF back as a line feed.
+enum SystemClipboard {
+    /// Always: an interactive Windows session has a clipboard.
+    static let hasHelper = true
+
+    /// Copies `text` to the clipboard, and answers whether it took it.
+    @discardableResult
+    static func copy(_ text: String) -> Bool {
+        var units = Array(lineBreaks(text, as: "\r\n").utf16)
+        units.append(0)
+        let size = units.count * MemoryLayout<UInt16>.stride
+        guard let memory = GlobalAlloc(UINT(GMEM_MOVEABLE), SIZE_T(size)) else { return false }
+        guard let target = GlobalLock(memory) else {
+            GlobalFree(memory)
+            return false
+        }
+        units.withUnsafeBytes { target.copyMemory(from: $0.baseAddress!, byteCount: size) }
+        GlobalUnlock(memory)
+        guard open() else {
+            GlobalFree(memory)
+            return false
+        }
+        defer { CloseClipboard() }
+        EmptyClipboard()
+        // The clipboard owns the memory once it has taken it, and not before.
+        guard SetClipboardData(UINT(CF_UNICODETEXT), memory) != nil else {
+            GlobalFree(memory)
+            return false
+        }
+        return true
+    }
+
+    /// The clipboard's text, or `nil` when it holds none or cannot be opened.
+    static func paste() -> String? {
+        guard open() else { return nil }
+        defer { CloseClipboard() }
+        guard let memory = GetClipboardData(UINT(CF_UNICODETEXT)), let pointer = GlobalLock(memory) else {
+            return nil
+        }
+        defer { GlobalUnlock(memory) }
+        let text = String(decodingCString: pointer.assumingMemoryBound(to: UInt16.self), as: UTF16.self)
+        return lineBreaks(text, as: "\n")
+    }
+
+    /// `text` with each line break in it — a CR LF, or a line feed alone — as
+    /// `lineBreak`.
+    static func lineBreaks(_ text: String, as lineBreak: String) -> String {
+        text.replacingOccurrences(of: "\r\n", with: "\n").replacingOccurrences(of: "\n", with: lineBreak)
+    }
+
+    /// Opens the clipboard, trying for up to about 50 ms while another program
+    /// has it open.
+    private static func open() -> Bool {
+        for _ in 0..<10 {
+            if OpenClipboard(nil) { return true }
+            Sleep(5)
+        }
+        return false
+    }
 }
 
 #else

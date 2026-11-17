@@ -388,6 +388,15 @@ final class Terminal: HostStateKeeping {
                 return n
             }
         }
+    #elseif os(Windows)
+        /// Reads what the console's reader holds (``consoleInput``).
+        private lazy var byteSource: any TerminalByteSource = unsafe ClosureByteSource { [consoleInput] buffer in
+            consoleInput.read(into: buffer)
+        }
+
+        /// The console's input, read on a thread of its own while raw mode is
+        /// on: standard input on Windows, and the console's resizes.
+        let consoleInput = ConsoleInput()
     #else
         /// Reads stdin as it shares it with ``quitKeyWatch``, which may have
         /// read what is next.
@@ -423,8 +432,16 @@ final class Terminal: HostStateKeeping {
     /// in front of it. Everything else raw mode does — bracketed paste, the
     /// modifier-key mode, mouse tracking — is escape sequences, and those are
     /// the terminal's business rather than the kernel's, so they are sent on
-    /// every platform alike.
-    #if !canImport(WASILibc)
+    /// every platform alike. Windows has its console's modes instead, which
+    /// raw mode sets as it would `termios` (``ConsoleModes``).
+    #if os(Windows)
+        /// The console's modes as the shell had them, while this terminal has
+        /// the console in its own (``takeConsole()``): from the first write
+        /// that needs escape sequences interpreted to the hand-back, which
+        /// writes the last (``handBack(farewell:restoringStyling:)``). Longer
+        /// than raw mode, which the hand-back turns off before it writes.
+        private var originalConsoleModes: ConsoleModes?
+    #elseif !canImport(WASILibc)
         private var originalTermios: termios?
 
         /// The line discipline a scripted terminal (``exchangeTransport``)
@@ -454,7 +471,7 @@ final class Terminal: HostStateKeeping {
     /// watches for a hung app (``refreshStallWatch()``).
     private(set) var quitKeyConfirms = false
 
-    #if !canImport(WASILibc)
+    #if !canImport(WASILibc) && !os(Windows)
         /// The lock every write to standard output takes, shared with the
         /// stall watchdog (`StallWatchdog`), which pops the kitty keyboard
         /// protocol's flags under it while the main loop is stalled — never
@@ -639,6 +656,8 @@ extension Terminal {
         // `COLUMNS`/`LINES` — see `Documentation/WebAssembly port.md`.
         #if canImport(WASILibc)
             return nil
+        #elseif os(Windows)
+            return StandardHandle.windowSize()
         #else
             var windowSize = winsize()
 
@@ -657,7 +676,11 @@ extension Terminal {
     /// which walks the environment, where `ProcessInfo` would build a dictionary of
     /// all of it: this runs on every frame.
     func terminalDimension(fromEnvironment name: String) -> Int? {
-        unsafe getenv(name).flatMap { unsafe Self.terminalDimension(String(cString: $0)) }
+        #if os(Windows)
+            environmentValue(name).flatMap(Self.terminalDimension)
+        #else
+            unsafe getenv(name).flatMap { unsafe Self.terminalDimension(String(cString: $0)) }
+        #endif
     }
 
     /// An environment variable in `environment` as a terminal dimension, a question
@@ -690,10 +713,11 @@ extension Terminal {
     /// default. This self-corrects for the terminal + font + line spacing on the
     /// terminals that do report it, without any escape-sequence round trip.
     func cellPixelAspect() -> Double? {
-        #if canImport(WASILibc)
+        #if canImport(WASILibc) || os(Windows)
             // The pixel fields ride on the same `ioctl` the size does, so this
             // is unavailable for the same reason; callers keep their default
             // aspect, which is what they do on the terminals that report zero.
+            // The Windows console's buffer is counted in cells alone.
             return nil
         #else
         var windowSize = winsize()
@@ -731,7 +755,13 @@ extension Terminal {
         // A scripted terminal (``exchangeTransport``) has no line discipline
         // of its own, and the one on stdin then belongs to whatever runs the
         // tests (``lineDiscipline``).
-        #if !canImport(WASILibc)
+        #if os(Windows)
+            takeConsole()
+            if let original = originalConsoleModes {
+                ConsoleModes.raw(from: original).apply()
+                consoleInput.resume()
+            }
+        #elseif !canImport(WASILibc)
             if let lineDiscipline, let original = lineDiscipline.get() {
                 originalTermios = original
                 lineDiscipline.set(
@@ -844,7 +874,8 @@ extension Terminal {
         let maskChanged = masked != quitKeyMasked
         quitKeyMasked = masked
         refreshStallWatch()
-        #if !canImport(WASILibc)
+        // Windows has no driver to mask the key in: the chain reads it always.
+        #if !canImport(WASILibc) && !os(Windows)
             guard maskChanged, isRawMode, let lineDiscipline, let original = originalTermios else { return }
             lineDiscipline.set(Self.rawModeAttributes(from: original, maskingQuitKey: masked), TCSANOW)
         #endif
@@ -872,7 +903,7 @@ extension Terminal {
     /// the quit key's watch does the job instead: armed with raw mode on, for
     /// an app whose bindings leave the key's byte its own.
     func refreshStallWatch() {
-        #if !canImport(WASILibc)
+        #if !canImport(WASILibc) && !os(Windows)
             let unbound = isRawMode && quitKeyByte != nil && quitKeyBindings == .unbound
             writeGate.setArmed(unbound && keyboardFlagsPushed && !quitKeyConfirms)
             quitKeyWatch.setArmed(byte: unbound && quitKeyConfirms ? quitKeyByte : nil)
@@ -893,6 +924,11 @@ extension Terminal {
     var quitKeyByte: UInt8? {
         #if canImport(WASILibc)
             return nil
+        #elseif os(Windows)
+            // No driver, and so no user's setting of it: ⌃\, which the console
+            // sends as 0x1C, read by the chain (`QuitKeyReport`). Ctrl-Break is
+            // the console's own quit, raised whatever the app is doing.
+            return originalConsoleModes == nil ? nil : 0x1C
         #else
             return originalTermios.flatMap(Self.quitKeyByte(of:))
         #endif
@@ -927,7 +963,18 @@ extension Terminal {
 
         // Absent only where ``enableRawMode()`` left the termios alone: a
         // scripted terminal's.
-        #if !canImport(WASILibc)
+        #if os(Windows)
+            // The input back as the shell had it; the output's escape
+            // sequences stay interpreted until the hand-back's last write
+            // (``giveBackConsole()``).
+            if let original = originalConsoleModes {
+                consoleInput.pause()
+                var modes = ConsoleModes.raw(from: original)
+                modes.input = original.input
+                modes.inputCodePage = original.inputCodePage
+                modes.apply()
+            }
+        #elseif !canImport(WASILibc)
             if let original = originalTermios {
                 lineDiscipline?.set(original, TCSAFLUSH)
             }
@@ -1174,7 +1221,11 @@ extension Terminal {
                 exchangeTransport.armSignalRestore?(signalDebt, quitDebt)
                 return
             }
-            FatalSignalTerminalRestore.arm(owing: signalDebt, onQuit: quitDebt, restoring: originalTermios)
+            #if os(Windows)
+                FatalSignalTerminalRestore.arm(owing: signalDebt, onQuit: quitDebt, restoring: originalConsoleModes)
+            #else
+                FatalSignalTerminalRestore.arm(owing: signalDebt, onQuit: quitDebt, restoring: originalTermios)
+            #endif
         #endif
     }
 
@@ -1432,6 +1483,9 @@ extension Terminal {
 
     /// Switches to the alternate screen buffer.
     func enterAlternateScreen() {
+        #if os(Windows)
+            takeConsole()
+        #endif
         write(ANSIRenderer.enterAlternateScreen)
         isOnAlternateScreen = true
         armSignalRestore()
@@ -1465,7 +1519,35 @@ extension Terminal {
         disableRawMode()
         showCursor()
         exitAlternateScreen()
+        #if os(Windows)
+            giveBackConsole()
+        #endif
     }
+
+    #if os(Windows)
+        /// Puts the console in the modes this terminal runs in, keeping the
+        /// shell's to give back, unless it already has; and leaves it alone
+        /// for a scripted terminal (``exchangeTransport``), as raw mode leaves a
+        /// POSIX terminal's termios. A console whose output does not interpret
+        /// escape sequences — conhost's, unless something turned them on — would
+        /// print the first one, so this comes before it: the alternate screen,
+        /// before raw mode.
+        func takeConsole() {
+            guard exchangeTransport == nil, originalConsoleModes == nil, let original = ConsoleModes.current()
+            else { return }
+            originalConsoleModes = original
+            ConsoleModes.raw(from: original).apply()
+        }
+
+        /// Gives the console back in the modes the shell had it in, once the
+        /// last escape sequence is written. Writes after this are the shell's
+        /// text, as after a POSIX hand-back.
+        func giveBackConsole() {
+            guard let original = originalConsoleModes else { return }
+            original.apply()
+            originalConsoleModes = nil
+        }
+    #endif
 
     /// Removes `n` bytes from the front of the buffer and, if the
     /// resulting size fits back inside ``baselineCapacity``, shrinks
@@ -1532,6 +1614,10 @@ extension Terminal {
     ///   - deadline: When to give up.
     /// - Returns: `true` when the descriptor is readable, `false` on the
     ///   deadline or on any error that is not `EINTR`.
+    ///
+    /// Not on Windows, which has no `poll`: there the console's reader is
+    /// asked (``ConsoleInput/waitForInput(until:)``).
+    #if !os(Windows)
     nonisolated static func waitForInput(
         on descriptor: Int32 = STDIN_FILENO, until deadline: Date
     ) -> Bool {
@@ -1546,6 +1632,7 @@ extension Terminal {
             guard ready < 0, errno == EINTR else { return false }
         }
     }
+    #endif
 
     /// Asks the terminal to identify itself, and returns the
     /// `TERM_PROGRAM`-style name of the host if its answers name one.
@@ -1653,7 +1740,11 @@ extension Terminal {
     /// `write(2)` to standard output: what ``writeAll(_:_:through:waitingForRoom:)``
     /// writes through unless a test hands it another.
     nonisolated static func writeToStandardOutput(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
-        unsafe Foundation.write(STDOUT_FILENO, base, count)
+        #if os(Windows)
+            StandardHandle.write(base, count)
+        #else
+            unsafe Foundation.write(STDOUT_FILENO, base, count)
+        #endif
     }
 
     /// Waits until `descriptor` can take more bytes, or `deadline` passes:
@@ -1671,6 +1762,11 @@ extension Terminal {
     ///   deadline, on any error that is not `EINTR`, or when the descriptor
     ///   reports a hang-up or an error instead of room.
     nonisolated static func waitForRoom(on descriptor: Int32 = STDOUT_FILENO, until deadline: Date? = nil) -> Bool {
+        #if os(Windows)
+            // A console's handle blocks until it has taken a write, so it is
+            // never full; nothing on Windows makes it non-blocking.
+            return false
+        #else
         while true {
             var timeout: Int32 = -1
             if let deadline {
@@ -1685,6 +1781,7 @@ extension Terminal {
             // anything else can overwrite it.
             guard ready < 0, errno == EINTR else { return false }
         }
+        #endif
     }
 
     /// Writes a finished frame: all of it, or the parts either side of an
@@ -1781,7 +1878,7 @@ extension Terminal {
     /// Runs `body`, a write to standard output, holding ``writeGate``, so the
     /// stall watchdog's pop never lands inside it. wasip1 has no watchdog.
     fileprivate func withWriteGate(_ body: () -> Void) {
-        #if canImport(WASILibc)
+        #if canImport(WASILibc) || os(Windows)
             body()
         #else
             writeGate.withWriteLock(body)

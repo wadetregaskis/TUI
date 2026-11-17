@@ -53,9 +53,15 @@ extension Terminal {
         while !sawFence(collected) {
             // EINTR-aware, and against the same deadline throughout — see
             // ``Terminal/waitForInput(on:until:)``.
-            let ready =
-                exchangeTransport?.waitForInput(deadline)
-                ?? Self.waitForInput(until: deadline)
+            #if os(Windows)
+                let ready =
+                    exchangeTransport?.waitForInput(deadline)
+                    ?? consoleInput.waitForInput(until: deadline)
+            #else
+                let ready =
+                    exchangeTransport?.waitForInput(deadline)
+                    ?? Self.waitForInput(until: deadline)
+            #endif
             guard ready else { break }
             let read = chunk.withUnsafeMutableBufferPointer { unsafe readSource($0) }
             guard read > 0 else { break }

@@ -8,7 +8,7 @@
 //  License: MIT
 
 // NSCondition and threads: the watchers it serves are POSIX-only.
-#if !canImport(WASILibc)
+#if !canImport(WASILibc) && !os(Windows)
 
 import Foundation
 

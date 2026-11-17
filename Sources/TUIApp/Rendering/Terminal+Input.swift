@@ -713,7 +713,7 @@ extension Terminal {
             return true
         }
         // What the quit key's watch read for the loop, which stdin won't wake it for.
-        #if canImport(WASILibc)
+        #if canImport(WASILibc) || os(Windows)
             return false
         #else
             return quitKeyWatch.input.holdsInput

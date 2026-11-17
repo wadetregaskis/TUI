@@ -12,6 +12,8 @@
     import Darwin
 #elseif canImport(WASILibc)
     import WASILibc
+#elseif canImport(ucrt)
+    import ucrt
 #endif
 
 // MARK: - The bytes read from the terminal and not yet parsed

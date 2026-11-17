@@ -131,6 +131,10 @@ final class StdinArrivalNotifier {
     ///   reason, as `Terminal.readSource`.
     func start(descriptor: Int32 = STDIN_FILENO) {
         self.descriptor = descriptor
+        #if os(Windows)
+            // libdispatch refuses a console handle, so on Windows the console's
+            // own reader wakes the loop (`ConsoleInput`), and nothing is armed.
+        #else
         // Already at its end (`< /dev/null`, a finished pipe): nothing will
         // arrive, so nothing is watched. Not left to the source's first event,
         // which on Linux need not come for a hang-up that happened before it
@@ -161,6 +165,7 @@ final class StdinArrivalNotifier {
         }
         source = src
         src.activate()
+        #endif
     }
 
     /// One firing of the read source: wake the loop, unless the descriptor has
@@ -233,6 +238,11 @@ final class StdinArrivalNotifier {
     /// to be at the end, since a descriptor stdin can sensibly be that never
     /// counts its bytes is not one a person types into.
     nonisolated static func isAtEndOfInput(_ descriptor: Int32) -> Bool {
+        #if os(Windows)
+            // No source is armed on Windows (``start(descriptor:)``), so nothing
+            // asks.
+            return false
+        #else
         var probe = pollfd(fd: descriptor, events: Int16(POLLIN), revents: 0)
         guard unsafe poll(&probe, 1, 0) == 1 else { return false }
         var available: Int32 = 0
@@ -244,6 +254,7 @@ final class StdinArrivalNotifier {
             let result = unsafe ioctl(descriptor, 0x4004_667F, &available)
         #endif
         return result != 0 || available == 0
+        #endif
     }
 
     /// Tears the dispatch source down. Safe to call multiple

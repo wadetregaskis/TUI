@@ -82,8 +82,9 @@ extension AppRunner {
         // The stop itself, and the dance with the foreground process group that
         // follows it, are job control — POSIX, and absent on wasip1. The whole
         // path is unreachable there (nothing ever sets the suspend flag), but
-        // unreachable code still has to compile.
-        #if !canImport(WASILibc)
+        // unreachable code still has to compile. And on Windows, which has no
+        // job control either.
+        #if !canImport(WASILibc) && !os(Windows)
         raise(SIGSTOP)
         // ── stopped; `fg` resumes here ──
         #endif
@@ -146,7 +147,7 @@ extension AppRunner {
     /// Waits until this process is the terminal's foreground job, stopping
     /// again while it is not: the resume of a stop, by `fg` or `bg`.
     func waitUntilForeground() {
-        #if !canImport(WASILibc)
+        #if !canImport(WASILibc) && !os(Windows)
         // `bg` resumes a stopped job too, and a BACKGROUND process must not touch the terminal:
         // the escapes below would garble the shell's prompt, and grabbing raw
         // mode would steal the foreground shell's keystrokes. Re-stop until

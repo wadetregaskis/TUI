@@ -320,10 +320,11 @@ extension Terminal {
     /// plausible default rather than no picture (see
     /// ``EnvironmentValues/imageCellPixels``).
     func cellPixelSize() -> TerminalCellPixels? {
-        #if canImport(WASILibc)
+        #if canImport(WASILibc) || os(Windows)
             // wasip1 has no `ioctl`, so the pixel geometry is unavailable and
             // callers take the default cell — the same path a terminal that
-            // reports zeroes puts them on.
+            // reports zeroes puts them on. Nor has Windows: its console counts
+            // in cells alone.
             return nil
         #else
         var windowSize = winsize()

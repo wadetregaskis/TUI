@@ -10,8 +10,9 @@
 import TUIFoundation
 
 // Signals are POSIX; wasip1 has no process group to signal, and no driver to
-// stand in for.
-#if !canImport(WASILibc)
+// stand in for. Windows has no driver either, and quits as Ctrl-Break does: the
+// arm at the bottom.
+#if !canImport(WASILibc) && !os(Windows)
 
 #if canImport(Darwin)
 import Darwin
@@ -93,6 +94,34 @@ enum QuitKeyReport {
         unsafe pthread_sigmask(SIG_SETMASK, nil, &waiting)
         unsafe sigdelset(&waiting, SIGQUIT)
         while true { unsafe sigsuspend(&waiting) }
+    }
+}
+
+#elseif os(Windows)
+
+/// The user's quit key, ⌃\, reaching the input chain with nothing left to ask,
+/// on Windows: where no driver turns it into a signal, so the chain reads it
+/// from the console as the byte 0x1C (`Terminal.quitKeyByte`) and quits here.
+///
+/// As Ctrl-Break quits, which is what a hung app quits by: the settings an app
+/// stored flushed first, as on POSIX, then the quit's debt paid and the process
+/// ended (`FatalSignalTerminalRestore.quitNow()`).
+enum QuitKeyReport {
+
+    /// Quits as Ctrl-Break would, the settings saved first.
+    ///
+    /// - Parameters:
+    ///   - synchronize: Flushes stored settings to disk:
+    ///     `StorageDefaults.backend.synchronize()`, unless a test hands in
+    ///     another.
+    ///   - end: Pays the quit's debt and ends the process, unless a test hands
+    ///     in another.
+    static func quit(
+        synchronize: () -> Void = { StorageDefaults.backend.synchronize() },
+        end: () -> Void = { FatalSignalTerminalRestore.quitNow() }
+    ) {
+        synchronize()
+        end()
     }
 }
 

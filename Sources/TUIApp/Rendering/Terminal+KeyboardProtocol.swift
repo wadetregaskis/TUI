@@ -252,7 +252,7 @@ extension Terminal {
         // resume's own push. A pop it already made took this process's entry
         // off the terminal's stack, and stands for this one: a second would
         // take an entry this process never pushed.
-        #if !canImport(WASILibc)
+        #if !canImport(WASILibc) && !os(Windows)
             let poppedByWatchdog = writeGate.disarmForPop()
         #else
             let poppedByWatchdog = false
