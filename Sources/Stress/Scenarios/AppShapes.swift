@@ -340,5 +340,8 @@ enum AppShapeMatrix {
         variant("timeline-rows", "a two-axis lazy stack of 400 rows, each with a TimelineView on the animation schedule") {
             AnyView(TimelineRowsApp(rows: $0.sized(400), seed: $0.seed))
         },
+        variant("game-loop", "a game: two Canvases beside a TimelineView(.animation) stepping the rules each frame; the board moves once a second") {
+            AnyView(GameLoopApp(seed: $0.seed))
+        },
     ]
 }

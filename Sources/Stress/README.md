@@ -229,7 +229,11 @@ costs and a tick the view derives its content from invalidates nothing.
 timed region; its invalidations are paid in the frame); the interactive shell
 shows the view at rest. `timeline-rows` is a two-axis lazy stack of 400 rows
 each holding a `TimelineView(.animation)`, the shape a live timeline beside a
-kept width is priced on.
+kept width is priced on. `game-loop` is a game: a `Canvas` board and a `Canvas`
+preview written inline, with no `.equatable()`, beside a
+`TimelineView(.animation)` that steps the rules every frame, the board moving
+once a second; the perf case `game-loop` counts a second of it, the frames in
+which only the timeline moved drawing neither canvas.
 
 `table-api` is the first: 43 variants over seven axes — how a column gets its
 value (key path, closure, sort-by-one-display-another, non-`Equatable` rows,
