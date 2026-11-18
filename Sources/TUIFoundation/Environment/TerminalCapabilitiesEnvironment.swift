@@ -54,8 +54,9 @@ extension KeyboardReporting {
     /// it supports `true`, an unsupported or undetermined one `false`, as a
     /// terminal TUI never asked reads (``legacy``). The way back from
     /// ``TerminalCapabilities/keyboard(_:)``, for a public API that takes the
-    /// app's `\.terminalCapabilities`.
+    /// app's `\.terminalCapabilities`, which carries no kept chords.
     package init(_ capabilities: TerminalCapabilities) {
+        keptChords = []
         isEnhanced = capabilities.supportsAny(of: TerminalCapabilities.negotiatedKeyboard)
         disambiguatesKeys = capabilities.supports(.disambiguatedKeys)
         reportsShiftedKeys = capabilities.supports(.shiftedKeys)

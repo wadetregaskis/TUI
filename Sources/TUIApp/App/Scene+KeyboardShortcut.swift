@@ -106,7 +106,7 @@ extension ScenePresenter {
     /// menu bar, whose items only show them.
     func registerSceneShortcuts(
         in registry: KeyboardShortcutRegistry, commandKey: CommandKeyBinding, matchesCommand: Bool = false,
-        disambiguatesKeys: Bool = false
+        reporting: KeyboardReporting = .legacy
     ) {
         let service = LocalizationService.shared
         var keys: [(shortcut: KeyboardShortcut, title: (() -> String)?, action: () -> Void)] = []
@@ -118,9 +118,9 @@ extension ScenePresenter {
         }
         if let shortcut = settingsShortcut {
             // Named in the list of keys in force only where the terminal can
-            // send it (``arrives(_:commandKey:disambiguatesKeys:)``); bound
+            // send it (``arrives(_:commandKey:reporting:)``); bound
             // everywhere, for a terminal that sends it after all.
-            let arrives = Self.arrives(shortcut, commandKey: commandKey, disambiguatesKeys: disambiguatesKeys)
+            let arrives = Self.arrives(shortcut, commandKey: commandKey, reporting: reporting)
             keys.append((
                 shortcut, arrives ? { service.string(for: LocalizationKey.Menu.settings) } : nil,
                 { [weak self] in self?.presentSettings() }
@@ -157,15 +157,14 @@ extension ScenePresenter {
         }
     }
 
-    /// Whether the terminal can send `shortcut`, as `commandKey` resolves it:
-    /// any chord under the kitty keyboard protocol's disambiguate mode
-    /// (`disambiguatesKeys`), and otherwise one every terminal's legacy
-    /// encoding sends as itself, by the shared rule
-    /// (``KeyboardShortcut/isDeliverableInTerminal``). Never one the command
-    /// key leaves no chord for.
-    static func arrives(_ shortcut: KeyboardShortcut, commandKey: CommandKeyBinding, disambiguatesKeys: Bool) -> Bool {
+    /// Whether the terminal can send `shortcut`, as `commandKey` resolves it
+    /// (``KeyboardReporting/delivers(_:)``): any chord the host does not keep
+    /// for itself under the kitty keyboard protocol's disambiguate mode, and
+    /// otherwise one every terminal's legacy encoding sends as itself. Never
+    /// one the command key leaves no chord for.
+    static func arrives(_ shortcut: KeyboardShortcut, commandKey: CommandKeyBinding, reporting: KeyboardReporting) -> Bool {
         guard let resolved = shortcut.resolved(commandKey: commandKey) else { return false }
-        return disambiguatesKeys || resolved.isDeliverableInTerminal
+        return reporting.delivers(resolved)
     }
 
     /// The key the menu bar's Settings… shows, and F1's list names it by:
@@ -179,8 +178,7 @@ extension ScenePresenter {
     /// registered its keys.
     package func settingsMenuShortcut(in environment: EnvironmentValues) -> KeyboardShortcut? {
         guard let shortcut = settingsShortcut else { return nil }
-        let reporting = environment.keyboardReporting
-        if Self.arrives(shortcut, commandKey: environment.commandKey, disambiguatesKeys: reporting.disambiguatesKeys) {
+        if Self.arrives(shortcut, commandKey: environment.commandKey, reporting: environment.keyboardReporting) {
             return shortcut
         }
         guard let key = settingsPanelKey,

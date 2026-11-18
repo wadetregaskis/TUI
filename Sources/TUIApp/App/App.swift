@@ -414,12 +414,14 @@ extension AppRunner {
         hostQuitByteAliases = TerminalClient.quitByteAliases(TerminalClient.current.program)
     }
     /// Turns on the kitty keyboard protocol where the terminal speaks it, and
-    /// publishes what the terminal reports: to the environment
-    /// (`\.keyboardReporting`), and to the undo keys, which name in the status
-    /// bar the first of each command's keys this terminal can deliver.
+    /// publishes what the terminal reports, with the chords the host keeps for
+    /// itself: to the environment (`\.keyboardReporting`), and to the undo
+    /// keys, which name in the status bar the first of each command's keys
+    /// this terminal can deliver.
     private func negotiateKeyboardProtocol() {
         terminal.negotiateKeyboardProtocol()
-        tuiContext.keyboardReporting = KeyboardReporting(flags: terminal.keyboardEnhancement)
+        tuiContext.keyboardReporting = KeyboardReporting(
+            flags: terminal.keyboardEnhancement, keptChords: TerminalClient.keptChords(TerminalClient.current.program))
         tuiContext.undoKeys.reporting = tuiContext.keyboardReporting
     }
 

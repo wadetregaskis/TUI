@@ -207,7 +207,7 @@ These keys do something by themselves, once nothing else has taken them. All but
 | ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | F1 (fn-F1 on a Mac keyboard) | Show the list of the shortcuts in force, or take it down | Enabled by default; see "The List of Shortcuts" below |
-| F2 (fn-F2 on a Mac keyboard), or ⌃, | Open the settings panel, or close it | Enabled by default. ⌃, is the `Settings` scene's ⌘, through the command key, and arrives only under the kitty keyboard protocol; see "The Settings Panel" below |
+| F2 (fn-F2 on a Mac keyboard), or ⌃, | Open the settings panel, or close it | Enabled by default. ⌃, is the `Settings` scene's ⌘, through the command key, and arrives only under the kitty keyboard protocol, and never on Windows Terminal, which keeps it for its own settings; see "The Settings Panel" below |
 | ⌥ with the help key (⌥?), or ⇧F1 | Show every tooltip on the screen at once, or hide them (Help ▸ Show All Tooltips) | Enabled by default. ⇧F1 is for a terminal that doesn't send Option; Apple Terminal sends neither by default, so there the menu item is the way |
 | ⇧F10, or the PC keyboard's Menu key | Open the context menu of what has the focus, or close an open one | Where the focused view has a `.contextMenu`, or is a list, table or tab row with one. The Menu key arrives only under the kitty keyboard protocol |
 | `t` / `T` | Cycle to next color theme | Opt-in: requires `statusBarSystemItems(theme: true)` (or `showThemeItem = true`) |
@@ -648,8 +648,9 @@ scene's key, which a shortcut of your window's on the same chord comes before,
 and which the scene's `.keyboardShortcut(_:)` moves. ⌃, arrives only where the
 terminal speaks the kitty keyboard protocol, so the menu bar's Settings… and the
 list of shortcuts name it only there, by the rule
-``KeyboardShortcut/isDeliverableInTerminal`` states; elsewhere both show F2, the
-key the person can press instead. Move F2, or take it away, at the scene:
+``KeyboardShortcut/isDeliverableInTerminal`` states, and not on Windows Terminal,
+which keeps ⌃, for its own settings; elsewhere both show F2, the key the person
+can press instead. Move F2, or take it away, at the scene:
 
 ```swift
 WindowGroup { EditorView() }

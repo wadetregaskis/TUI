@@ -212,8 +212,10 @@ extension KeyboardShortcut {
     /// is a shifted character only where the terminal reports the shifted key
     /// (``KeyboardReporting/reportsShiftedKeys``) — a letter's capital is
     /// always known. An Option chord is taken as deliverable: the terminal
-    /// sends it where Option is Meta, which nothing can ask.
+    /// sends it where Option is Meta, which nothing can ask. Never one the
+    /// terminal keeps for itself (``KeyboardReporting/keptChords``).
     func isDeliverable(on reporting: KeyboardReporting) -> Bool {
+        guard !reporting.keptChords.contains(trigger) else { return false }
         guard case .key(let key, let modifiers) = trigger else { return true }
         guard modifiers.isDisjoint(with: [.command, .capsLock, .numericPad]) else { return false }
         let character = key.character

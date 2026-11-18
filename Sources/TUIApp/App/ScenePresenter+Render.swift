@@ -136,7 +136,7 @@ extension ScenePresenter {
             registerSceneShortcuts(
                 in: registry, commandKey: context.environment.commandKey,
                 matchesCommand: context.environment.keyboardShortcutsMatchCommand,
-                disambiguatesKeys: context.environment.keyboardReporting.disambiguatesKeys)
+                reporting: context.environment.keyboardReporting)
         }
         if windows.count > 1, window.closesInteractively {
             claimEscape(closing: window, at: escapeHandlerSlot, context: context)

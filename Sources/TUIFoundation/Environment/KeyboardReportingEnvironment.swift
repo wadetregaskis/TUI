@@ -77,11 +77,32 @@ package struct KeyboardReporting: Hashable, Sendable {
     /// main keyboard, so its modifiers include ``EventModifiers/numericPad``.
     package let reportsNumericPad: Bool
 
+    /// The chords the terminal keeps for its own bindings, which never reach
+    /// the app in any encoding: Windows Terminal's ⌃, (its settings), as
+    /// `TerminalClient.keptChords(_:)` lists them for each host. Empty where
+    /// none is known, as for a terminal not measured.
+    ///
+    /// Not carried by `\.terminalCapabilities`: a TUI record of the host, as
+    /// the quit byte's aliases are, and what TUI names keys by
+    /// (``delivers(_:)``).
+    package let keptChords: Set<KeyboardShortcut.Trigger>
+
     /// A terminal speaking only its legacy encodings: none of the above.
     package static let legacy = Self(flags: [])
 
-    /// What a terminal that took `flags` reports.
-    package init(flags: KittyKeyboardFlags) {
+    /// Whether the terminal sends `shortcut`, as a command key resolved it: a
+    /// chord it does not keep for itself (``keptChords``) and that arrives as
+    /// itself, any chord under the kitty keyboard protocol's disambiguate mode
+    /// and otherwise one every legacy encoding sends
+    /// (``KeyboardShortcut/isDeliverableInTerminal``).
+    package func delivers(_ shortcut: KeyboardShortcut) -> Bool {
+        !keptChords.contains(shortcut.trigger) && (disambiguatesKeys || shortcut.isDeliverableInTerminal)
+    }
+
+    /// What a terminal that took `flags` reports, and that keeps
+    /// `keptChords` for itself.
+    package init(flags: KittyKeyboardFlags, keptChords: Set<KeyboardShortcut.Trigger> = []) {
+        self.keptChords = keptChords
         isEnhanced = !flags.isEmpty
         disambiguatesKeys = flags.contains(.disambiguateEscapeCodes)
         reportsShiftedKeys =

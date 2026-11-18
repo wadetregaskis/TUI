@@ -284,6 +284,32 @@ struct SceneMenuBarTests {
         #expect(shortcutList(kitty).contains { $0.contains("⌃H") && $0.contains("Settings…") })
     }
 
+    @Test("Where the terminal keeps ⌃, for itself, as Windows Terminal does, Settings… and F1's list show F2 even under the kitty protocol")
+    mutating func keptSettingsKey() {
+        let app = launched(SettingsMenuApp(), height: 40)
+        app.keyboardReporting = KeyboardReporting(
+            flags: .requested, keptChords: TerminalClient.keptChords(.windowsTerminal))
+        frame(app)
+        let row = settingsRow(app)
+        #expect(row.contains("F2") && !row.contains("⌃,"), "\(row)")
+        let listed = shortcutList(app)
+        #expect(!listed.contains { $0.contains("⌃,") }, "\(listed.joined(separator: "\n"))")
+        #expect(listed.contains { $0.contains("F2") && $0.contains("Settings…") }, "\(listed.joined(separator: "\n"))")
+        // Still bound, for a person who has rebound the terminal's settings.
+        app.send(KeyEvent(key: .character(","), ctrl: true))
+        frame(app)
+        frame(app)
+        #expect(app.scenes.isPresentingSettings, "\(screen(app))")
+    }
+
+    @Test("Only Windows Terminal is taken to keep a chord TUI offers")
+    func keptChordsByHost() {
+        for program in TerminalClient.Program.allCases {
+            let kept = TerminalClient.keptChords(program)
+            #expect(kept == (program == .windowsTerminal ? [KeyboardShortcut(",", modifiers: .control).trigger] : []))
+        }
+    }
+
     // ⌃, has no byte of its own in a legacy encoding. Whether it can arrive
     // is `KeyboardShortcut.isDeliverableInTerminal`'s to say (the menus
     // lane's ebcbd35c1 makes it answer `false`), and the list follows that

@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**On Windows Terminal, Settings… shows F2, not ⌃,.** Windows Terminal 1.25 speaks the kitty keyboard protocol, so
+TUI offered ⌃, there, but the terminal keeps ⌃, for its own settings and the app never hears it. The menu bar's
+Settings… and F1's list now name F2 there, as they do in the classic console. ⌃, is still bound, for someone who has
+rebound the terminal's settings.
+
 **A click on the status bar's `⌃Q quit` quits.** Since quit moved to ⌃Q the item drew as a hint but was no click
 target; it is one again, and a click quits as the key does, a prevented quit included.
 

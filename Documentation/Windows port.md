@@ -208,9 +208,10 @@ Two things about the environment the runs needed:
 - **The rest of the mouse**: Shift-clicks, the other buttons and pointer shapes are unmeasured in both terminals.
 - **The console's font**: conhost's Consolas has no quadrants (`▖ ▗ ▘ ▝ ▙ ▛ ▜ ▟`), which shapes and canvases draw with;
   TUI cannot ask a terminal what its font has, so the Terminal Support article tells users to choose Cascadia Mono.
-- **Windows Terminal's own key bindings**: from 1.25 it speaks the kitty keyboard protocol, so TUI's menu bar offers
-  ⌃, for Settings…, which Windows Terminal binds to its own settings (and its defaults bind others: font size, tabs,
-  panes, find, paste). TUI has no way yet to say a host keeps a chord; the owner's call how far to go.
+- **Windows Terminal's other key bindings**: TUI now knows a host may keep a chord (`TerminalClient.keptChords`), and
+  takes Windows Terminal to keep ⌃, (its settings), so Settings… shows F2 there. Its other defaults (font size, tabs,
+  panes, find, paste) are not listed, as a person can rebind any of them; some meet keys TUI names (⌃- is one of the
+  undo keys, Alt-arrows and ⌃Tab are bound in places), so whether to list them is the owner's call.
 - **Keys under the kitty protocol in Windows Terminal**: the key record is the legacy encoding; what 1.25 sends for
   each key with the protocol on is unmeasured.
 
