@@ -80,6 +80,19 @@ package final class OpacityRowReuse {
         _ lines: inout [String], claims: [OpacityRegion], under inputs: Inputs,
         with rebuild: (Int, String, [OpacityRegion]) -> String?
     ) {
+        keeping(&lines, under: inputs, with: rebuild) { row in
+            let covering = claims.filter { $0.spans(row: row) }
+            return covering.isEmpty ? nil : covering
+        }
+    }
+
+    /// Rebuilds each of `lines` that `covering` gives claims for (`nil` leaves a
+    /// row alone, kept or not), keyed on its line and those claims: what every
+    /// use of the reuse shares.
+    private func keeping(
+        _ lines: inout [String], under inputs: Inputs, with rebuild: (Int, String, [OpacityRegion]) -> String?,
+        covering claimsOn: (Int) -> [OpacityRegion]?
+    ) {
         if inputs != self.inputs {
             self.inputs = inputs
             rows = []
@@ -87,8 +100,7 @@ package final class OpacityRowReuse {
         if rows.count > lines.count { rows.removeLast(rows.count - lines.count) }
         for row in lines.indices {
             let line = lines[row]
-            let covering = claims.filter { $0.spans(row: row) }
-            guard !covering.isEmpty else { continue }
+            guard let covering = claimsOn(row) else { continue }
             if rows.indices.contains(row), let kept = rows[row], kept.line == line, kept.covering == covering {
                 if let rebuilt = kept.rebuilt { lines[row] = rebuilt }
                 continue
