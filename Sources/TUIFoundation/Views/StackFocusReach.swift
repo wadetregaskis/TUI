@@ -318,6 +318,38 @@ import TUIView
         return neighbours
     }
 
+    /// The children of a pulled column the focus comes into the scroll content
+    /// at from outside the scroll view, by the edge it comes in by
+    /// (``ScrollContentWindow/focusEntry``): from that edge inward, each child
+    /// up to and including the first that had something to focus last frame
+    /// (``FocusManager/heldFocusableLastFrame(inSubtreeAt:)``), within the
+    /// probe's cap of children. A Tab coming in passes every child before that
+    /// one, so a lazy stack under a header with nothing to focus — `VStack {
+    /// Text("Header"); LazyVStack { … } }` — walks in from its edge as it does
+    /// when it is the content itself: handed only to the column's first child,
+    /// the edge reached the header, and Tab stopped on the scroll view. A
+    /// header with a control keeps the edge to itself, so the focus stays on
+    /// the control Tab landed on.
+    func entryChildren(_ edges: VerticalEdge.Set, frame: PulledColumnFrame, context: RenderContext)
+        -> [Int: VerticalEdge.Set]
+    {
+        let count = frame.rowCount
+        guard !edges.isEmpty, count > 1, let focusManager = context.environment.focusManager else {
+            return Self.edgeChildren(edges, count: count)
+        }
+        let reach = min(count, Self.focusReachProbeCap)
+        var children: [Int: VerticalEdge.Set] = [:]
+        for edge in VerticalEdge.allCases where edges.contains(VerticalEdge.Set(edge)) {
+            for step in 0..<reach {
+                let ordinal = edge == .top ? step : count - 1 - step
+                children[ordinal, default: []].insert(VerticalEdge.Set(edge))
+                let path = frame.child(at: ordinal).identity(under: frame.context).path
+                if focusManager.heldFocusableLastFrame(inSubtreeAt: path) { break }
+            }
+        }
+        return children
+    }
+
     /// A column's first child for its top edge, and its last for its bottom.
     static func edgeChildren(_ edges: VerticalEdge.Set, count: Int) -> [Int: VerticalEdge.Set] {
         var children: [Int: VerticalEdge.Set] = [:]

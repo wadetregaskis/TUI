@@ -75,6 +75,11 @@ struct LazyStackEdgeEntryTests {
     private struct Page: View {
         let lazy: Bool
         let rows: Rows
+        /// Whether the stack sits under a header and over a footer in the
+        /// scroll content, rather than being the content itself.
+        var framed = false
+        /// Whether that header is a button rather than a line of text.
+        var headerButton = false
 
         @ViewBuilder private var stack: some View {
             if lazy {
@@ -91,7 +96,18 @@ struct LazyStackEdgeEntryTests {
         var body: some View {
             VStack(alignment: .leading, spacing: 0) {
                 Button("top") {}.focusID("top")
-                ScrollView { stack }.frame(height: 6)
+                ScrollView {
+                    if framed {
+                        VStack(alignment: .leading, spacing: 0) {
+                            if headerButton { Button("head") {}.focusID("head") } else { Text("Header") }
+                            stack
+                            Text("Footer")
+                        }
+                    } else {
+                        stack
+                    }
+                }
+                .frame(height: 6)
                 Button("bottom") {}.focusID("bottom")
             }
         }
@@ -102,10 +118,12 @@ struct LazyStackEdgeEntryTests {
         Rows((0..<count).map { Item(id: $0, focusable: focusable($0)) })
     }
 
-    private func app(lazy: Bool, _ rows: Rows) -> TestApp {
+    private func app(lazy: Bool, _ rows: Rows, framed: Bool = false, headerButton: Bool = false) -> TestApp {
         Seen.builds = 0
         Seen.appeared = []
-        let app = TestApp(width: 30, height: 12) { Page(lazy: lazy, rows: rows) }
+        let app = TestApp(width: 30, height: 12) {
+            Page(lazy: lazy, rows: rows, framed: framed || headerButton, headerButton: headerButton)
+        }
         app.frame(atNanos: 16_666_667)
         return app
     }
@@ -143,6 +161,41 @@ struct LazyStackEdgeEntryTests {
         // Up from the top control: round to the bottom one, the scroll view's
         // own stop, then the stack's last focusable row.
         #expect(Array(lazy.prefix(4)) == ["bottom", "scroll", "b14", "b13"], "\(lazy)")
+    }
+
+    @Test("Under a header and over a footer, Tab and Shift-Tab walk into the stack as when it is the content")
+    func headerAndFooter() {
+        // Past 256 rows, so the column around the stack pulls it (a column of
+        // fewer draws its lazy stack whole). Tab from above, past a header and
+        // rows on screen with nothing to focus: the edge went to the header
+        // alone, and Tab stopped on the scroll view.
+        let down = { Self.rows(400, focusable: { $0 >= 300 }) }
+        let lazyDown = walk(app(lazy: true, down(), framed: true), times: 6)
+        #expect(lazyDown == walk(app(lazy: false, down(), framed: true), times: 6))
+        #expect(lazyDown.first == "b300", "\(lazyDown)")
+        // Shift-Tab from below, past a footer and rows on screen with nothing
+        // to focus.
+        let up = { Self.rows(400, focusable: { (100..<105).contains($0) }) }
+        let lazyUp = walk(app(lazy: true, up(), framed: true), backward: true, times: 6)
+        #expect(lazyUp == walk(app(lazy: false, up(), framed: true), backward: true, times: 6))
+        #expect(Array(lazyUp.prefix(4)) == ["bottom", "scroll", "b104", "b103"], "\(lazyUp)")
+        // And past a footer to the last focusable row off screen, where the
+        // rows on screen have something to focus.
+        let onScreen = { Self.rows(400, focusable: { $0 < 105 }) }
+        let lazyOn = walk(app(lazy: true, onScreen(), framed: true), backward: true, times: 6)
+        #expect(lazyOn == walk(app(lazy: false, onScreen(), framed: true), backward: true, times: 6))
+        #expect(Array(lazyOn.prefix(3)) == ["bottom", "scroll", "b104"], "\(lazyOn)")
+    }
+
+    @Test("A header with a control keeps Tab: the stack under it is not walked into past it")
+    func headerWithControl() {
+        // Tab from the header's button into the stack is a column's neighbour
+        // edge, which looks within 64 rows (`focusBeyond`), so the first
+        // focusable row is within them.
+        let make = { Self.rows(400, focusable: { $0 >= 25 }) }
+        let lazy = walk(app(lazy: true, make(), headerButton: true), times: 3)
+        #expect(lazy == walk(app(lazy: false, make(), headerButton: true), times: 3))
+        #expect(Array(lazy.prefix(2)) == ["head", "b25"], "\(lazy)")
     }
 
     @Test("A stack with nothing to focus is passed by as a VStack's, and walked once until its rows change")

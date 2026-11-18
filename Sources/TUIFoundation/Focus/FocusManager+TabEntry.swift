@@ -28,9 +28,10 @@ struct TabEntryState {
     /// render generation it was pressed in: read by the frame after it alone.
     var move: (forward: Bool, from: String, generation: UInt64)?
     /// The content the last move came into, or passed over, by `edge`, and the
-    /// row a stack in it found nearest that edge with something to focus:
-    /// where the end of the pass takes the focus.
-    var arrival: (content: String, edge: VerticalEdge, row: String?)?
+    /// rows the stacks in it found nearest that edge with something to focus:
+    /// the one of them first in the ring for the top edge, last for the
+    /// bottom, is where the end of the pass takes the focus.
+    var arrival: (content: String, edge: VerticalEdge, rows: [String])?
 }
 
 extension FocusManager {
@@ -74,7 +75,7 @@ extension FocusManager {
         var edges: VerticalEdge.Set = []
         if let edge = arrivalEdge(into: path, ownStopAt: stopPath, focused: focused, isInside: isInside) {
             edges.insert(VerticalEdge.Set(edge))
-            if tabEntry.arrival?.content != path { tabEntry.arrival = (path, edge, nil) }
+            if tabEntry.arrival?.content != path { tabEntry.arrival = (path, edge, []) }
         }
         guard !isInside(focused), let forward = lastFrameTabStep(.forward, from: focused),
             let backward = lastFrameTabStep(.backward, from: focused)
@@ -114,29 +115,48 @@ extension FocusManager {
 
     /// Notes that the stack at `stackPath` found `row`, its row nearest `edge`
     /// with something to focus: where a Tab coming into the content that
-    /// holds it by that edge goes on to. The topmost such stack's for the top
-    /// edge, the bottommost's for the bottom.
+    /// holds it by that edge may go on to. Several stacks of a column can
+    /// note one — two lazy stacks one above the other, the first with nothing
+    /// to focus on screen (`_VStackCore.entryChildren(_:frame:context:)`) —
+    /// and the end of the pass
+    /// takes the one first in the ring for the top edge, last for the bottom
+    /// (``resolveEdgeArrival()``): the order they are drawn in need not be.
     func noteEdgeStop(_ edge: VerticalEdge, row: String, stackPath: String) {
         guard let arrival = tabEntry.arrival, arrival.edge == edge,
-            Self.focusID(stackPath, addressesSubtreeAt: arrival.content)
+            Self.focusID(stackPath, addressesSubtreeAt: arrival.content), !arrival.rows.contains(row)
         else { return }
-        if edge == .bottom || arrival.row == nil { tabEntry.arrival?.row = row }
+        tabEntry.arrival?.rows.append(row)
+    }
+
+    /// Whether a control in the subtree at `path` could take the focus in last
+    /// frame's ring: where a Tab coming into a column of the scroll content
+    /// stops before it reaches the children past it
+    /// (`_VStackCore.entryChildren(_:frame:context:)`).
+    func heldFocusableLastFrame(inSubtreeAt path: String) -> Bool {
+        previousSections.contains { section in
+            section.focusables.contains {
+                $0.canBeFocused && Self.focusID(identityPath(of: $0.focusID), addressesSubtreeAt: path)
+            }
+        }
     }
 
     /// Takes the focus on to the row a stack found for a Tab that came into
     /// its content (``tabEntryEdges(intoSubtreeAt:ownStopAt:)``): its first
-    /// control for Tab, its last for Shift-Tab. Nothing moves when the focus
-    /// is in that row already, or no stack found one.
+    /// control for Tab, its last for Shift-Tab — of the rows found, the one
+    /// first in the ring for Tab, last for Shift-Tab. Nothing moves when the
+    /// focus is in that row already, or no stack found one.
     func resolveEdgeArrival() {
         guard let arrival = tabEntry.arrival else { return }
         tabEntry.arrival = nil
-        guard let row = arrival.row, let focused = currentFocusedID,
-            !Self.focusID(identityPath(of: focused), addressesSubtreeAt: row)
-        else { return }
-        let stops = sections.flatMap(\.focusables).filter {
-            $0.canBeFocused && Self.focusID(identityPath(of: $0.focusID), addressesSubtreeAt: row)
+        guard !arrival.rows.isEmpty, let focused = currentFocusedID else { return }
+        let row = { (focusID: String) in
+            let path = self.identityPath(of: focusID)
+            return arrival.rows.first { Self.focusID(path, addressesSubtreeAt: $0) }
         }
-        guard let target = arrival.edge == .top ? stops.first : stops.last else { return }
+        let stops = sections.flatMap(\.focusables).filter { $0.canBeFocused && row($0.focusID) != nil }
+        guard let target = arrival.edge == .top ? stops.first : stops.last, let targetRow = row(target.focusID),
+            !Self.focusID(identityPath(of: focused), addressesSubtreeAt: targetRow)
+        else { return }
         focus(id: target.focusID)
     }
 

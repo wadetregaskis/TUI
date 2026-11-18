@@ -309,7 +309,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   on the edge row of those it has made, TUI's Tab lands on the stack's first
   row with something to focus and Shift-Tab on its last, however far off
   screen and past however many rows with nothing to focus, scrolling it in,
-  as an eager stack's does; a stack with nothing to focus is passed by. The
+  as an eager stack's does; a stack with nothing to focus is passed by. So
+  it does where the stack is one of several views of the scroll content,
+  under a header or over a footer with nothing to focus. The
   rows walked to find it run no `onAppear` (LAZY-EDGE: `LazyStackEdgeEntryTests`,
   `LazyStackFocusSectionTests`).
 - **Why:** TUI rebuilds the tree each frame and keeps no view objects, so

@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Tab finds a `LazyVStack`'s first row under a header in its `ScrollView` too.** The way into a lazy stack from
+outside its scroll view (below) worked only where the stack was the scroll view's whole content. Under a header with
+nothing to focus — `ScrollView { VStack { Text("Header"); LazyVStack { … } } }` — Tab stopped on the scroll view when
+the rows on screen had nothing to focus, and landed on the first row on screen when they had, instead of going on to
+the stack's first row with something to focus; Shift-Tab past a footer likewise. Now a stack among other views of the
+scroll content is walked into as one that is the content is; a header or footer with a control keeps the focus on
+that control.
+
 **A disabled vertical `TextField` looks disabled wherever a one-line one does.** A disabled field drawn without
 colour, or in a palette whose dimmed text is its normal text at 16 colours, is drawn faint; a field made with
 `axis: .vertical` was not, and looked enabled there. It is now drawn exactly as a disabled one-line field is.

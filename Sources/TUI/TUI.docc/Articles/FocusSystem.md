@@ -102,7 +102,10 @@ scroll it in, so a walk started inside the stack reaches every row, in focus
 sections or not. Coming into the stack from outside its scroll view, Tab lands
 on the stack's first row with something to focus and Shift-Tab on its last,
 however far off screen, as they do in a `VStack`; SwiftUI's lazy stack lands on
-the first or last row it has made. To find that row the stack looks at its rows
+the first or last row it has made. The stack can be the scroll view's content or
+one of several views in it, under a header or over a footer: Tab passes a header
+with nothing to focus on its way in, and stops on one with a control, as it
+would anyway. To find the row it lands on the stack looks at its rows
 one by one from its edge, without running their `onAppear`, so a "load more" on
 the last row runs only once the row comes on screen: in the frame before the
 key when the rows on screen have something to focus, and otherwise in the

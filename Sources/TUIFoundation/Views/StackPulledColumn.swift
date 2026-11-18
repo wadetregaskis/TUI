@@ -262,7 +262,7 @@ private enum PulledPlace {
 
         frame.focusMark = context.environment.focusManager.map { ($0, $0.registrationMark()) }
         frame.focusBeyond = pulledFocusNeighbours(frame: frame, beyond: window.focusBeyond, context: context)
-        frame.focusEntry = Self.edgeChildren(window.focusEntry, count: frame.rowCount)
+        frame.focusEntry = entryChildren(window.focusEntry, frame: frame, context: context)
         var drawn = fillPulled(
             frame: frame, window: window, anchoredEdge: edge, seek: seeking?.handed, width: width,
             context: childContext)
