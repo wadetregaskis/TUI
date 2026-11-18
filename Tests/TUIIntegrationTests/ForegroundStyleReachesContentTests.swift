@@ -176,3 +176,48 @@ extension ForegroundStyleReachesContentTests {
         for cell in cells { #expect(cell.ink != Self.ink(Self.stated), "'\(cell.glyph)'") }
     }
 }
+
+// MARK: - Buttons and links
+
+extension ForegroundStyleProbe {
+    /// A button's label in every style, and what is built from buttons. macOS
+    /// draws its bordered buttons with AppKit, which ignores the style; iOS's,
+    /// and TUI's, take it (SwiftUI compatibility guide).
+    static let buttons: [Self] = [
+        Self("Button") { Button("Hello") {} },
+        Self("Button(.bordered)") { Button("Hello") {}.buttonStyle(.bordered) },
+        Self("Button(.borderedProminent)") { Button("Hello") {}.buttonStyle(.borderedProminent) },
+        Self("Button(.borderless)") { Button("Hello") {}.buttonStyle(.borderless) },
+        Self("Button(.plain)") { Button("Hello") {}.buttonStyle(.plain) },
+        Self("Button(.link)") { Button("Hello") {}.buttonStyle(.link) },
+        Self("A button's view label") { Button {} label: { Text("Hello") } },
+        Self("Link") { Link("Hello", destination: URL(string: "https://swift.org")!) },
+        Self("DisclosureGroup", ["Hello", "Body"]) {
+            DisclosureGroup("Hello", isExpanded: .constant(true)) { Text("Body") }
+        },
+        Self("NavigationLink in a List") {
+            NavigationStack { List { NavigationLink("Hello") { Text("x") } } }.frame(height: 4)
+        },
+    ]
+}
+
+extension ForegroundStyleReachesContentTests {
+    @Test("A button's label, and a link, take the style", arguments: ForegroundStyleProbe.buttons)
+    func buttons(_ probe: ForegroundStyleProbe) throws { try Self.expectStyled(probe) }
+
+    @Test("A destructive button keeps its role's colour under a style")
+    func destructiveKeepsItsColour() throws {
+        let cells = try #require(
+            Self.cells(of: "Hello", in: Self.rows(Button("Hello", role: .destructive) {}.buttonStyle(.plain))))
+        for cell in cells { #expect(cell.ink != Self.ink(Self.stated), "'\(cell.glyph)'") }
+    }
+
+    @Test("A button as a grouped form's value keeps its own colour, as a field does")
+    func buttonInAFormValueKeepsItsColour() throws {
+        let button = Button("Hello") {}.buttonStyle(.plain)
+        let form = Form { LabeledContent("Key") { button } }.formStyle(.grouped)
+        let inForm = try #require(Self.cells(of: "Hello", in: writtenRows(of: form, width: 50, height: 12)))
+        let alone = try #require(Self.cells(of: "Hello", in: writtenRows(of: button, width: 50, height: 12)))
+        #expect(inForm.map(\.ink) == alone.map(\.ink))
+    }
+}

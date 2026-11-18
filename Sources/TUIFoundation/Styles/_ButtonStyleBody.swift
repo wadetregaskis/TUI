@@ -48,6 +48,23 @@ struct _ButtonStyleBody: View, Renderable {
             isSized: true)
     }
 
+    /// The label colour the app stated for this button, or `nil` for the
+    /// style's own: a `.style(.control(.button))` cascade foreground, else the
+    /// ``View/foregroundStyle(_:)-(S)`` in force (one colour, a ramp's
+    /// representative), in that order, as a ``Text`` takes them. It is drawn as
+    /// stated in every button style, as SwiftUI's borderless, plain and link
+    /// buttons draw it on macOS and its bordered ones on iOS (macOS's bordered
+    /// buttons, AppKit's, do not; measured on macOS 15.8,
+    /// `Tools/SwiftUIProbes/Foreground style on controls (FGSWEEP)/fgsweep.out`).
+    /// A destructive role's error colour stays load-bearing, and wins over both.
+    private func statedForeground(_ cascaded: StyleAttributes, in environment: EnvironmentValues) -> Color? {
+        configuration.role == .destructive ? nil : cascaded.foreground ?? environment.statedForegroundStyle?.representative
+    }
+
+    /// The style-cascade scopes a button's label reads: `.control(.button)` and
+    /// this style's variant.
+    private var cascadeScopes: Set<StyleScope> { [.all, .text, .control(.button), .buttonVariant(appearance.variant)] }
+
     private func draw(context: RenderContext) -> FrameBuffer {
         // A `@ViewBuilder` label renders via view composition, preserving its own
         // styling; plain string labels keep the procedural path below unchanged.
@@ -78,13 +95,10 @@ struct _ButtonStyleBody: View, Renderable {
             : appearance.foregroundColor
 
         // Scoped style cascade for this button (.control(.button) + this style's
-        // variant). The label's colour/weight inherit it as soft overrides — but
-        // a destructive role's error colour stays load-bearing (not broadly
-        // overridable), so it's excluded from the cascade foreground.
-        let cascaded = context.environment.styleCascade.resolve(
-            for: [.all, .text, .control(.button), .buttonVariant(appearance.variant)])
-        let cascadeForeground: Color? =
-            configuration.role == .destructive ? nil : cascaded.foreground
+        // variant). The label's weight inherits it as a soft override, and its
+        // colour is the app's where one is stated (``statedForeground(_:in:)``).
+        let cascaded = context.environment.styleCascade.resolve(for: cascadeScopes)
+        let cascadeForeground = statedForeground(cascaded, in: context.environment)
 
         // Focused buttons render bold — this replaces the old explicit "focused
         // style" that was a bold variant of the normal style. A cascade `.bold`
@@ -518,12 +532,10 @@ struct _ButtonStyleBody: View, Renderable {
         // Both, for the reason given in the string path above.
         let isHovered = configuration.isHovered
 
-        let cascaded = context.environment.styleCascade.resolve(
-            for: [.all, .text, .control(.button), .buttonVariant(appearance.variant)])
         let baseForeground: Color? =
             configuration.role == .destructive ? Color.palette.error : appearance.foregroundColor
-        let cascadeForeground: Color? =
-            configuration.role == .destructive ? nil : cascaded.foreground
+        let cascadeForeground = statedForeground(
+            context.environment.styleCascade.resolve(for: cascadeScopes), in: context.environment)
 
         // Computed up front so the standard path can floor its default label
         // colour against the face it sits on; the plain path ignores it.

@@ -17,8 +17,9 @@ import Foundation
 /// opener is off unless the session is declared local (see ``OpenURLAction``
 /// for why), so the popover, and the OSC 8 hyperlink the label carries for a
 /// terminal that honours one, are what the user gets. The
-/// label is tinted with the accent colour and underlined so it reads as a link
-/// — regardless of the label form. Turn the underline off for a subtree with
+/// label is tinted with the accent colour — or the ``View/foregroundStyle(_:)-(S)``
+/// the app states, as in SwiftUI — and underlined so it reads as a link,
+/// regardless of the label form. Turn the underline off for a subtree with
 /// ``View/linkUnderline(_:)``.
 ///
 /// A right-click on the link — or Shift+F10 while it holds the focus — opens
@@ -404,12 +405,14 @@ private struct _Link<Label: View>: View {
         // `.underline(_:)` cascades to every Text in the label subtree, so a
         // string title, a `Label`, or an SF-Symbol label all underline together.
         //
-        // The accent arrives through the button's own text style rather than as
-        // a `.foregroundStyle` on the label. Both put the same colour on screen,
-        // but a colour written on the label wins over the one the style hands
-        // down — and it is the STYLE that knows whether the pointer is over the
-        // link. Routed this way, `.plain`'s hover lift applies to a link like
-        // any other plain button, which is the whole affordance a link has.
+        // The accent arrives as the link button style's own colour rather than
+        // as a `.foregroundStyle` on the label. Both put the same colour on
+        // screen, but a colour written on the label wins over the one the style
+        // hands down — and it is the STYLE that knows whether the pointer is
+        // over the link. Routed this way, `.plain`'s hover lift applies to a
+        // link like any other plain button, which is the whole affordance a
+        // link has, and a `.foregroundStyle(_:)` the app wrote on the link
+        // wins over the accent, as over any button's own colour.
         // The appearance breathes the words and reserves nothing, or falls back
         // to the plain button's bullet in two cells before them. Resolved here,
         // where the environment is readable, and carried into the style as a
@@ -438,8 +441,11 @@ private struct _Link<Label: View>: View {
             let text = resolvedLabel
                 // Beneath the label's own colour, as the button style's tint
                 // sits beneath it in the control form: a label that names
-                // a colour keeps it either way.
-                .foregroundStyle(.palette.accent)
+                // a colour keeps it either way, and a `.foregroundStyle(_:)`
+                // the app wrote on the link wins over the accent, as in
+                // SwiftUI (`Tools/SwiftUIProbes/Foreground style on controls
+                // (FGSWEEP)/fgsweep.out`).
+                .defaultForegroundStyle(.palette.accent)
                 .modifier(
                     TerminalHyperlinkModifier(destination: destination, enabled: terminalHyperlinks))
             guard isEnabled else { return AnyView(text) }
@@ -505,7 +511,6 @@ private struct _Link<Label: View>: View {
     private func linkControl(activate: @escaping () -> Void) -> some View {
         Button(action: activate, label: { resolvedLabel })
         .buttonStyle(_LinkButtonStyle(indicator: focusIndicator))
-        .style(.control(.button)) { $0.foreground = .palette.accent }
         // Outermost, so the link covers everything the button style drew —
         // its hover prefix included. The control IS the link; a hyperlink over
         // only the letters would leave the cells beside them inert while

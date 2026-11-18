@@ -87,6 +87,11 @@ nonisolated public struct DefaultButtonLabel: View {
 /// The default style renders a single-line bracketed button, `▐ Label ▌`.
 /// The ``PlainButtonStyle`` renders just the label with no brackets.
 ///
+/// The label is drawn in the ``View/foregroundStyle(_:)-(S)`` in force, in
+/// every style, as SwiftUI's borderless, plain and link buttons draw it, and its
+/// bordered ones on iOS (macOS draws those with AppKit, which ignores it); a
+/// destructive role's colour wins over it. Without one, each style's own colour.
+///
 /// # Basic Example
 ///
 /// ```swift

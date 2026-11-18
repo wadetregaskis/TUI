@@ -520,12 +520,13 @@ public struct _AppearanceButtonStyle: ButtonStyle, Equatable {
     }
 
     /// ``LinkButtonStyle``'s label goes through the view path, the one that can
-    /// carry an underline, tinted and underlined as ``Link``'s is.
+    /// carry an underline, underlined as ``Link``'s is; the accent is the
+    /// appearance's own colour (`_ButtonAppearance.link`).
     @MainActor
     private static func linkLabel(_ configuration: Configuration) -> Configuration {
         ButtonStyleConfiguration(
             title: "",
-            labelView: AnyView(configuration.label.underline().foregroundStyle(.palette.accent)),
+            labelView: AnyView(configuration.label.underline()),
             role: configuration.role,
             isPressed: configuration.isPressed,
             isFocused: configuration.isFocused,
@@ -586,9 +587,11 @@ struct _LinkButtonStyle: ButtonStyle, Equatable {
     let indicator: LinkFocusIndicator
 
     func makeBody(configuration: Configuration) -> some View {
-        _ButtonStyleBody(
-            configuration: configuration,
-            appearance: indicator == .bullet ? .borderless : .link)
+        // In the accent either way: the bullet's affordance is the borderless
+        // button's, the colour still the link's.
+        var appearance = indicator == .bullet ? _ButtonAppearance.borderless : .link
+        appearance.foregroundColor = _ButtonAppearance.link.foregroundColor
+        return _ButtonStyleBody(configuration: configuration, appearance: appearance)
     }
 }
 
@@ -709,8 +712,12 @@ struct _ButtonAppearance: Equatable {
     /// The variant stays `.plain`: it is what `.buttonVariant(_:)` scopes on,
     /// a link IS a plain button, and an app that styled plain
     /// buttons did not ask for links to fall out of that.
+    ///
+    /// Its label is in the accent, as the style's own colour, so a colour the
+    /// app states — a `.style(.control(.button))` foreground or a
+    /// `.foregroundStyle(_:)` — wins over it, as over any button's.
     static let link = Self(
-        foregroundColor: nil,
+        foregroundColor: Color.palette.accent,
         isBold: false,
         horizontalPadding: 0,
         isPlain: true,
