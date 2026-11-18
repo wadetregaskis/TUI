@@ -743,6 +743,12 @@ private struct _StatusBarCore: View, Renderable {
                         captureItem.execute()
                     } else if let triggerKey = captureItem.triggerKey {
                         captureSynthesizeKey?(KeyEvent(key: triggerKey))
+                    } else if captureItem.order == .quit {
+                        // The quit item spells a Control chord (⌃Q by
+                        // default), which no trigger key can carry: the
+                        // quit shortcut's own event, Control and all.
+                        let quit = statusBarState.quitShortcut
+                        captureSynthesizeKey?(KeyEvent(key: quit.key, ctrl: quit.ctrl))
                     } else {
                         captureItem.execute()
                     }
@@ -770,13 +776,16 @@ private struct _StatusBarCore: View, Renderable {
     /// because it has an explicit action closure, or because
     /// it has a triggerKey that the keyboard handler chain
     /// already responds to. The latter covers system items
-    /// like "Back" (esc), "Quit" (q), "Show" (enter), and the
+    /// like "Back" (esc), "Show" (enter), and the
     /// page-level "back" item that pages register as a label
     /// for the global ESC handler: each has a triggerKey but
     /// no inline action, and the mouse handler dispatches the
     /// key event through ``keyEventDispatcher`` so a click is
-    /// equivalent to pressing the key.
+    /// equivalent to pressing the key. And the quit item, whose
+    /// ⌃Q no trigger key carries: a click on it sends the quit
+    /// shortcut's own event (`StatusBarState.quitShortcut`).
     private func itemIsClickable(_ item: any StatusBarItemProtocol) -> Bool {
+        if item.order == .quit { return true }
         if let concrete = item as? StatusBarItem {
             return concrete.hasAction || concrete.triggerKey != nil
         }
