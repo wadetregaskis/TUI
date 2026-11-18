@@ -1776,8 +1776,8 @@ picker shows all stay in AppKit's colours there. In TUI each of them is a button
 of the framework's own, and takes the style as its label, as SwiftUI's buttons do
 on iOS: the rule above asks for it, and a program that wrote the style asked for
 the colour. A `DisclosureGroup`'s triangle sits in its button's label and takes
-the style with it, where macOS's chevron keeps its grey. Not ruled on by the
-owner; listed here so it can be.
+the style with it, where macOS's chevron keeps its grey. The owner approved this on
+2026-11-18 (recorded in *Deliberate deviations*, Lists, tables and controls).
 
 **Where TUI leaves its own colours, as macOS does.** A `TabView`'s tab labels; a
 `DatePicker`'s field; a segmented picker's selected segment, which keeps the

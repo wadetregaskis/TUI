@@ -56,6 +56,8 @@ struct _ButtonStyleBody: View, Renderable {
     /// buttons draw it on macOS and its bordered ones on iOS (macOS's bordered
     /// buttons, AppKit's, do not; measured on macOS 15.8,
     /// `Tools/SwiftUIProbes/Foreground style on controls (FGSWEEP)/fgsweep.out`).
+    /// Colouring the bordered ones too is a deliberate deviation from macOS,
+    /// approved by the owner on 2026-11-18 (*Deliberate deviations*).
     /// A destructive role's error colour stays load-bearing, and wins over both.
     private func statedForeground(_ cascaded: StyleAttributes, in environment: EnvironmentValues) -> Color? {
         configuration.role == .destructive ? nil : cascaded.foreground ?? environment.statedForegroundStyle?.representative
