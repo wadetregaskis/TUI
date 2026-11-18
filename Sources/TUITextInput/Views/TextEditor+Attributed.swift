@@ -1,0 +1,75 @@
+//  🖥️ TUI — A Terminal UI framework for Swift
+//  TextEditor+Attributed.swift
+//
+//  `TextEditor(text:selection:)` over an `AttributedString` (G3 L4).
+//
+//  Created by Wade Tregaskis
+//  License: MIT
+
+import Foundation
+import TUIFoundation
+
+extension TextEditor {
+    /// Creates a text editor over an attributed string — mirrors SwiftUI's
+    /// `init(text:selection:)` for an `AttributedString`.
+    ///
+    /// ```swift
+    /// @State private var text = AttributedString("Hello")
+    /// @State private var selection = AttributedTextSelection()
+    ///
+    /// TextEditor(text: $text, selection: $selection)
+    /// Button("Bold") {
+    ///     text.transformAttributes(in: &selection) { $0.font = .body.bold() }
+    /// }
+    /// ```
+    ///
+    /// The text is drawn in its attributes as a ``Text`` of it draws them:
+    /// foreground and background colour, a font's tier and weight as bold or
+    /// faint (semibold and heavier bold, light and lighter faint), italic,
+    /// underline and strikethrough, a link in the accent and underlined. What
+    /// a cell cannot show — a font's size and family, kerning, tracking, a
+    /// baseline offset — is not drawn.
+    ///
+    /// The editor edits the value in place, so every character it does not
+    /// touch keeps its attributes. Typed text takes the attributes macOS's
+    /// text system gives it: those of the character before the caret, or of a
+    /// paragraph's first character at its start, or of a selection's first
+    /// character typed over; or those the app gave an insertion point with
+    /// ``AttributedTextSelection/init(insertionPoint:typingAttributes:)``,
+    /// until the caret moves. Undo brings back the attributes with the
+    /// characters. The selection is written to `selection` as it moves, and a
+    /// selection the app writes moves it; an editor selects one range, so a
+    /// selection of several selects its first.
+    ///
+    /// **What a value the app writes costs.** The editor's own edits cost
+    /// nothing to recognise when the binding hands them back. A value the app
+    /// writes — after recolouring the text in `onChange`, or loading another —
+    /// is taken whole, as it is in a `String` editor: its characters are read
+    /// and compared with the editor's, about 0.2 ns a character (0.5 ms for a
+    /// 2.4 MB text of 640,000 runs, measured on macOS 15.8.3), the text is laid
+    /// out afresh if they changed, and the styles of the lines on screen are
+    /// read again. Foundation gives no cheaper way to learn that only the
+    /// attributes changed.
+    ///
+    /// SwiftUI's is macOS 26; TUI's is on every platform TUI is, with
+    /// ``AttributedTextSelection``'s approximations on macOS 15.
+    ///
+    /// - Parameters:
+    ///   - text: The attributed text to edit.
+    ///   - selection: The current selection, or `nil` to keep it to the
+    ///     editor.
+    public init(text: Binding<AttributedString>, selection: Binding<AttributedTextSelection>? = nil) {
+        self.init(text: Self.characters(of: text))
+        attributed = AttributedTextBinding(text: text, selection: selection)
+    }
+
+    /// A binding over the characters of `text`'s value: what the editor's
+    /// view reads before its handler has a source (the find bar's matches).
+    /// Written, the characters it changes take the attributes typing there
+    /// would.
+    private static func characters(of text: Binding<AttributedString>) -> Binding<String> {
+        Binding(
+            get: { AttributedTextSource.characters(of: text.wrappedValue) },
+            set: { AttributedTextSource(AttributedTextBinding(text: text, selection: nil)).write($0) })
+    }
+}

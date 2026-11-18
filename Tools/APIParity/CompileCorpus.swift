@@ -620,6 +620,30 @@ private struct AttributedTextSelectionShapes {
     }
 }
 
+/// SwiftUI's rich-text editor with a bold toggle, as WWDC25's "Code-along:
+/// Cook up a rich text experience in SwiftUI with AttributedString" writes it
+/// (G3 L4).
+@available(macOS 15, *)
+private struct RichTextBoldToggle: View {
+    @State private var text = AttributedString()
+    @State private var selection = AttributedTextSelection()
+    @Environment(\.fontResolutionContext) private var fontResolutionContext
+
+    var body: some View {
+        VStack {
+            TextEditor(text: $text, selection: $selection)
+            TextEditor(text: $text)
+            Button("Bold") {
+                text.transformAttributes(in: &selection) { container in
+                    let currentFont = container.font ?? .default
+                    let resolved = currentFont.resolve(in: fontResolutionContext)
+                    container.font = currentFont.bold(!resolved.isBold)
+                }
+            }
+        }
+    }
+}
+
 /// Text fields on either axis, in each initialiser shape, as SwiftUI's
 /// documentation writes them.
 @MainActor

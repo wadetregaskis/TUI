@@ -74,7 +74,7 @@
       "match": [
         "AttributedTextFormatting*"
       ],
-      "why": "macOS 26's rich-text editing: a TextEditor over an AttributedString and the definitions constraining what an edit may set. It waits on an attributed TextEditor, which Text(AttributedString) now makes possible (decisions A42)."
+      "why": "macOS 26's rich-text editing: the definitions constraining what an edit of a TextEditor over an AttributedString may set. The attributed TextEditor itself has landed (G3 L4); its formatting definitions are the G3 design's lane L7 (decisions A42)."
     },
     {
       "match": [
@@ -777,7 +777,7 @@
       "why": "The preference key that publishes anchored Text.Layout values to ancestors. TextRenderer, Text.Layout and customAttribute ship (the owner's TEXT-EFFECTS ruling, 2026-10-28); this is phase 3 of the TextRenderer design study (O16), after the effects and their A/B."
     },
     "TextFormattingCommands": {
-      "why": "Its Font and Text submenus format the selection of a rich-text editor. TUI's text controls hold plain text until the rich-text TextEditor (decisions A42) lands, so the commands would do nothing (rule 2). Owed with A42: the menu bar (TUICommands) takes it as it takes TextEditingCommands, with the chords open question A42-Q8 decides."
+      "why": "Its Font and Text submenus format the selection of a rich-text editor. TUI's TextEditor over an AttributedString (G3 L4) has no formatting commands yet, so these would do nothing (rule 2). Owed with A42's formatting menu (the G3 design's lane L6): the menu bar (TUICommands) takes it as it takes TextEditingCommands, with the chords open question A42-Q8 decides."
     },
     "TextInputFormattingControlPlacement": {
       "why": "Names the OS surfaces (the keyboard's accessory bar, an inspector, a menu) where the system's rich-text formatting controls appear, for `textInputFormattingControlVisibility`. A terminal app has no OS-drawn chrome on its fields: every cell on screen is written by the process itself."

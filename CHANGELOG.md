@@ -19,6 +19,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`TextEditor` edits an `AttributedString`.** `TextEditor(text:selection:)` takes a `Binding<AttributedString>` and an
+optional `Binding<AttributedTextSelection>`, as SwiftUI's does on macOS 26. The text is drawn in its attributes as a
+`Text` of it draws them: colours, bold for semibold and heavier fonts, faint for light and lighter ones, italic,
+underline and strikethrough, a link in the accent and underlined. Every edit is made in the value in place, so the
+characters around it keep their attributes; typed text takes those of the character before the caret (a paragraph's
+first character's at its start, a selection's first character's over it), or the typing attributes the app gave an
+insertion point; undo brings attributes back with the characters. A value the app writes, such as one it recoloured,
+is taken whole: its characters are read and compared with the editor's, about 0.2 ns a character, and the lines on
+screen are styled again. A paragraph's alignment and line height are not drawn yet.
+
 **`AttributedTextSelection` and `AttributedString`'s selection members arrive, ahead of the attributed `TextEditor`.**
 SwiftUI's selection in attributed text, with its four initializers, `indices(in:)`, `affinity(in:)`,
 `typingAttributes(in:)` and `attributes(in:)`, and the `AttributedString` members that keep a selection in step with
@@ -28,7 +38,7 @@ takes the attributes macOS's text system gives (the character before the caret's
 its start, a selection's first character's over it). On macOS 26, Linux and Windows the selection is tracked through
 a change by Foundation itself. macOS 15's Foundation cannot track, so there the change is found by comparing the text
 before and after: exact for one contiguous change, approximate for several in one `transform`, at about
-3 ms for a 3 MB text. The editor that takes the selection is still to come.
+3 ms for a 3 MB text.
 
 **A debug build warns when a `List`'s selection can name none of its rows.** `List(games, selection: $selection)`
 with a `GameID?` selection over rows whose `id` is a `String` selects nothing, as in SwiftUI, and said nothing, as

@@ -132,6 +132,27 @@ import Foundation
         }
     }
 
+    /// What `run` draws in its cells as a `Text` of it draws them with nothing
+    /// else said: its colours, unresolved; bold, faint and italic from its
+    /// font's tier and weight (``Font``: semibold and up bold, light and down
+    /// faint) under what it states itself; and its lines. For a `TextEditor`
+    /// drawing the same value (G3 L4, A-ATTRED-3), so the two agree. `run`
+    /// is a stretch drawn alike, as `style(of:)` reads one.
+    ///
+    /// - Parameter environmentFont: The font a `Font.default` stands for.
+    nonisolated package static func cellStyle(
+        of run: AttributedSubstring, environmentFont: Font?
+    ) -> AttributedRunCellStyle {
+        let style = style(of: run)
+        let font = style.font.flatMap { $0 }?.resolvingDefault(against: environmentFont)
+        let base = font?.defaultAttributes ?? StyleAttributes()
+        return AttributedRunCellStyle(
+            foreground: style.foregroundColor, background: style.backgroundColor,
+            isBold: style.isBold ?? base.bold ?? false, isDim: style.isDim ?? base.dim ?? false,
+            isItalic: style.isItalic ?? base.italic ?? false,
+            underline: style.underline.flatMap { $0 }, strikethrough: style.strikethrough.flatMap { $0 })
+    }
+
     /// What `run` states, as a run's own style: only what it states, so the
     /// text's modifiers and the environment fill in the rest. `run` is drawn
     /// alike throughout, so each attribute it reads has one value over it.
@@ -164,4 +185,18 @@ import Foundation
         #endif
         return style
     }
+}
+
+/// What a run of an `AttributedString` draws in its cells, as a `Text` of it
+/// draws them with nothing else said (``Text/cellStyle(of:environmentFont:)``).
+package struct AttributedRunCellStyle: Equatable, Sendable {
+    /// The run's own ink, unresolved, or `nil` for the drawer's.
+    package var foreground: Color?
+    /// The run's own field, unresolved, or `nil` for the drawer's.
+    package var background: Color?
+    package var isBold: Bool
+    package var isDim: Bool
+    package var isItalic: Bool
+    package var underline: Text.LineStyle?
+    package var strikethrough: Text.LineStyle?
 }

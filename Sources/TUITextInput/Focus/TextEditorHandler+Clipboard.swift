@@ -147,7 +147,7 @@ extension TextEditorHandler {
     /// the manager before the next key.
     @MainActor
     func forgetHistoryIfReplaced() {
-        undoHistory.forgetIfReplaced(current: text.wrappedValue)
+        undoHistory.forgetIfReplaced(current: undoText)
         forgetDroppedSteps()
     }
 
@@ -162,8 +162,14 @@ extension TextEditorHandler {
     /// Restores `state`, as an undo or a redo does: the text alone, off the
     /// screen, where no caret is drawn and laying the text out would cost the
     /// whole document.
-    private func restore(_ state: (text: String, caret: TextEditorPosition)) {
-        write(state.text)
+    private func restore(_ state: (text: EditorUndoText, caret: TextEditorPosition)) {
+        switch state.text {
+        case .plain(let text): write(text)
+        // The value the step kept, its attributes with it.
+        case .attributed(let value):
+            attributedSource?.stageWhole(value)
+            write(AttributedTextSource.characters(of: value))
+        }
         guard !isOffScreen else { return }
         selectionAnchor = nil
         cursor = state.caret
@@ -184,15 +190,15 @@ extension TextEditorHandler: AppUndoableText {
         // the history here without touching the manager (see
         // `TextFieldHandler.undoOwnStep`); the steps it drops leave the
         // manager at the next frame.
-        undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        guard let previous = undoHistory.undo(from: (text.wrappedValue, cursor), mark: mark) else { return false }
+        undoHistory.forgetIfReplaced(current: undoText)
+        guard let previous = undoHistory.undo(from: (undoText, cursor), mark: mark) else { return false }
         restore(previous)
         return true
     }
 
     func redoOwnStep(mark: TextUndoMark?) -> Bool {
-        undoHistory.forgetIfReplaced(current: text.wrappedValue)
-        guard let next = undoHistory.redo(from: (text.wrappedValue, cursor), mark: mark) else { return false }
+        undoHistory.forgetIfReplaced(current: undoText)
+        guard let next = undoHistory.redo(from: (undoText, cursor), mark: mark) else { return false }
         restore(next)
         return true
     }
@@ -217,7 +223,7 @@ extension TextEditorHandler: OffScreenUndoKeeping {
         let isNext =
             undo.map { TextUndoBridge.isNewestStep($0, on: undoManager) } == true
             || redo.map { TextUndoBridge.isNewestRedo($0, on: undoManager) } == true
-        if isNext, undoHistory.forgetIfReplaced(current: text.wrappedValue) { forgetDroppedSteps() }
+        if isNext, undoHistory.forgetIfReplaced(current: undoText) { forgetDroppedSteps() }
         return !undoHistory.allMarks.isEmpty
     }
 }

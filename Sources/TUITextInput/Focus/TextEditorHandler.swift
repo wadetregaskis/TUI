@@ -27,6 +27,15 @@ final class TextEditorHandler: PersistedFocusable {
     var canBeFocused: Bool
     var text: Binding<String>
 
+    /// The `AttributedString` an editor bound to one edits, whose characters
+    /// ``text`` is a binding over (``AttributedTextSource/plainText``), or
+    /// `nil` for an editor bound to a `String` (G3 L4).
+    var attributedSource: AttributedTextSource?
+
+    /// What an attributed editor's lines' styles were last read under
+    /// (``adoptAttributed(_:environment:)``).
+    var attributedStyling: EditorAttributedStyling?
+
     /// When the editor first drew, for a flash of its scroll bar on appearing
     /// (`scrollIndicatorsFlash`).
     var indicatorFlash = ScrollIndicatorFlash()
@@ -208,7 +217,13 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     /// The text and caret before each key that changed the text, for Ctrl-Z.
-    var undoHistory = TextUndoHistory<String, TextEditorPosition>()
+    var undoHistory = TextUndoHistory<EditorUndoText, TextEditorPosition>()
+
+    /// The text as the undo history keeps it: the `String`, or the
+    /// `AttributedString` of an editor bound to one.
+    var undoText: EditorUndoText {
+        attributedSource.map { .attributed($0.currentValue) } ?? .plain(text.wrappedValue)
+    }
 
     /// The app's undo manager, which the editor's edits are registered with —
     /// set each frame from `\.undoManager`; `nil` outside a running app.
@@ -331,6 +346,8 @@ final class TextEditorHandler: PersistedFocusable {
         _ replacements: [TextEditorReplacement], beforeWriting prepare: ([[Character]]) -> Void = { _ in }
     ) -> [[Character]] {
         var lines = readLines()
+        // The same edit in an attributed editor's value, in place (B-ATTRED-3).
+        attributedSource?.stage(replacements, in: layout())
         for replacement in replacements { replacement.apply(to: &lines) }
         prepare(lines)
         writeLines(lines)
@@ -385,7 +402,14 @@ final class TextEditorHandler: PersistedFocusable {
         text.wrappedValue = newText
         let kept = text.wrappedValue
         if kept == previous, newText != previous { refusedWrite = true }
-        undoHistory.noteWritten(kept)
+        if let attributedSource {
+            undoHistory.noteWritten(.attributed(attributedSource.value))
+            // The app's selection was made in the value before: written anew
+            // with the caret, however little it moved (``publishSelection()``).
+            exchangedSelection = nil
+        } else {
+            undoHistory.noteWritten(.plain(kept))
+        }
     }
 
     /// The caret, the selection and the column the caret keeps, as an edit
@@ -543,16 +567,17 @@ final class TextEditorHandler: PersistedFocusable {
     @MainActor
     func recordingUndoStep(typing: Bool = false, continuingTyping: Bool = false, _ edit: () -> Bool) -> Bool {
         let textBefore = text.wrappedValue
+        let undoBefore = attributedSource.map { EditorUndoText.attributed($0.value) } ?? .plain(textBefore)
         let caretBefore = cursor
         let handled = edit()
         if text.wrappedValue != textBefore {
             if continuingTyping { undoHistory.endTypingRun(unlessNewestIn: undoManager) }
-            if let mark = undoHistory.record(text: textBefore, caret: caretBefore, continuingTyping: continuingTyping),
+            if let mark = undoHistory.record(text: undoBefore, caret: caretBefore, continuingTyping: continuingTyping),
                 let undoManager
             {
                 TextUndoBridge.registerEdit(of: self, mark: mark, on: undoManager)
             }
-            if typing { undoHistory.noteTyped(text: text.wrappedValue, caret: cursor) }
+            if typing { undoHistory.noteTyped(text: undoText, caret: cursor) }
         }
         forgetDroppedSteps()
         return handled
@@ -573,6 +598,10 @@ final class TextEditorHandler: PersistedFocusable {
         // A selection, however it was made, is consumed by the next edit
         // (delete, or delete-then-insert) and cleared by any other key.
         if let span = selectionRange {
+            // Typed over, it gives what replaces it its first character's
+            // attributes (B-ATTRED-16).
+            if attributedSource != nil { holdTypingAttributes(over: span) }
+            defer { attributedSource?.heldTypingAttributes = nil }
             if !event.ctrl, !event.alt, let handled = replace(with: event.key, removing: { deleteSelection(span) }) {
                 return handled
             }

@@ -39,10 +39,16 @@ struct CellDecoration: Equatable, Sendable {
     /// (B-ATTRED-6), as `Text` fits its own (``TextStyle/fittingLines(to:)``).
     @MainActor
     func fitted(to environment: EnvironmentValues) -> Self {
+        fitted(to: environment.lineStyleSupport, palette: environment.palette)
+    }
+
+    /// The decoration as a terminal with `support` draws it, its lines'
+    /// colours resolved by `palette` (``fitted(to:)-(EnvironmentValues)``).
+    func fitted(to support: LineStyleSupport, palette: any Palette) -> Self {
         guard underline != nil || strikethrough != nil else { return self }
         var style = TextStyle()
         apply(to: &style)
-        style = style.fittingLines(to: environment.lineStyleSupport).resolved(with: environment.palette)
+        style = style.fittingLines(to: support).resolved(with: palette)
         var fitted = self
         fitted.underline = style.underline.flatMap { $0 }
         fitted.strikethrough = style.strikethrough.flatMap { $0 }

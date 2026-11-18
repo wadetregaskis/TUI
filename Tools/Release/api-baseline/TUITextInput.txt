@@ -67,6 +67,7 @@ TextEditor.body | @ViewBuilder @MainActor var body: some View { get }
 TextEditor.disabled(_:) | func disabled(_ disabled: Bool = true) -> TextEditor
 TextEditor.focusID(_:) | func focusID(_ id: String) -> TextEditor
 TextEditor.init(text:) | init(text: Binding<String>)
+TextEditor.init(text:selection:) | init(text: Binding<AttributedString>, selection: Binding<AttributedTextSelection>? = nil)
 TextEditor.init(text:selection:) | init(text: Binding<String>, selection: Binding<TextSelection?>)
 TextEditorStyle | protocol TextEditorStyle : Sendable
 TextEditorStyle.Body | associatedtype Body : View

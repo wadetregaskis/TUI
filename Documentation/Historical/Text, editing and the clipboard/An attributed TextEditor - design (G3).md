@@ -14,7 +14,8 @@ owner), B-ATTRED-1 to 7 (decided here).*
 that replaces it is [Highlighting a large source in TextEditor: design (G3,
 A-ATTRED-1)](<Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>) (A-ATTRED-5 to 7). The
 caret's side at a run's edge and at a wrap, measured on macOS, is §8 (A-ATTRED-8 and 9, B-ATTRED-16 to 18). L3, the selection API, is built (§5),
-and what its macOS 15 fallbacks cost is §9.*
+and what its macOS 15 fallbacks cost is §9. L4's editor is built but for alignment and line height (§5), and
+B-ATTRED-4's price is measured there.*
 
 ## In short
 
@@ -321,6 +322,56 @@ priced in §9. Tests: `AttributedTextSelectionTests` and `AttributedStringSelect
 tracking cases through the platform's path and through the fallback directly, and on macOS 26, Linux and Windows hold
 the fallback to Foundation's answers over 400 random single changes.
 
+*As built in L4 (2026-11-17), the first part:* `TextEditor(text: Binding<AttributedString>, selection:
+Binding<AttributedTextSelection>? = nil)`, the macOS 26.2 SDK's one attributed initializer, in
+`Sources/TUITextInput/Views/TextEditor+Attributed.swift`. The storage enum of B-ATTRED-1 became an optional source
+on the handler rather than an enum in the core: `AttributedTextSource` keeps the value and the `String` of its
+characters, and the handler edits that `String` through a binding over the source exactly as it edits a bound
+`String`, so the keys, the layout, the wrapping and the drawing are the one code. A write of that binding hands the app
+the value the edit made in place (B-ATTRED-3: `stage(_:in:)` makes each `TextEditorReplacement` in the value, the
+inserted text taking B-ATTRED-16's typing attributes, held across a selection's removal when typed over it; Ctrl-T
+swaps two characters with their own attributes). An undo hands the value its step kept: the history's text is
+`EditorUndoText`, a `String` kept as byte edits as before, or an `AttributedString` kept whole, which shares with the
+value every part an edit did not touch. A text with mixed line breaks, which the editor joins afresh, and the find
+bar's Replace are made as one replacement between the old and new text's common start and end. The lines' styles are
+read through L2's seam with `Text(AttributedString)`'s own mapping (`Text.cellStyle(of:environmentFont:)`, so the
+two agree): colours, a font's tier and weight as bold or faint, italic, the lines fitted to the terminal, a link in the
+accent and underlined. The selection binding is a `_TextSelectionChannel` over the source, rewritten after every
+edit, since the app's indices belong to the value before it. Tests: `RichTextEditorTests`; the compile corpus has
+WWDC25's bold toggle.
+
+**B-ATTRED-4's price, measured** (2026-11-17, macOS 15.8.3, Xcode 26.3's Swift 6.2.4 at -O, the L0 probe rebuilt
+in the scratchpad, not kept: 40,002 lines of JSON records, 2,373,383 characters, 320,002 tokens each coloured, 640,003
+runs; best of five):
+
+| | Time | A character |
+|---|---|---|
+| `==`, the same storage | 0.001 ms | |
+| `==`, equal values in different storage, plain | 300 ms | 126 ns |
+| `==`, equal values in different storage, coloured | 858 ms | 362 ns |
+| `==`, one recoloured at its end or its start | 0.001 ms | |
+| `characters.elementsEqual`, different storage | 562 ms | 237 ns |
+| `String(text.characters)` | 312 ms | 132 ns |
+| `String(text.characters[...])`, a slice | 0.45 ms | 0.2 ns |
+| `String(text[whole range].characters)` | 347 ms | 146 ns |
+| `String ==`, different storage | 0.044 ms | |
+| One character inserted mid-text, unshared and shared | 0.011, 0.016 ms | |
+
+So the editor never asks `==` of a value the app wrote: an equal value rebuilt in new storage, which is what an app
+recolouring after each key often writes, costs it a character at a time. It tells its own write read back by the one
+reference an `AttributedString` holds (`AttributedTextSource.isIdentical`, a bit comparison, `==` where Foundation
+lays the type out otherwise), and reads any other value's characters through a slice of the character view, which
+copies the storage's chunks: about 0.2 ns a character, 0.5 ms for this text, then a fresh layout if the characters
+changed (as a `String` editor's) and a screenful's styles read again (0.25 ms, B-ATTRED-2). That is the price the
+initializer's documentation states. The three-quarters of a second a key of §4 was `elementsEqual`'s; the slice makes
+the comparison three orders of magnitude cheaper, and leaves the fresh layout of a changed text, which the `String`
+editor pays as well, as what a large source costs.
+
+**Not yet built (L4's remainder):** a paragraph's alignment and a line height (§7's ruling), which need TUI's
+attribute scope to carry `alignment` and `lineHeight` first (it leaves them out so that setting one fails to compile,
+and on Apple platforms they are Core Text's macOS 26 types, absent on Linux); and Stress's `text-editor-rich` and
+`bigtext-rich` cases.
+
 ## 6. Questions for the owner
 
 ### A-ATTRED-1. Colouring a large source: SwiftUI's API alone, or a per-line styler too
@@ -550,6 +601,10 @@ call it. Dropping macOS 15 deletes the file and those arms. Linux and Windows ne
 | `transform(updating:body:)` (index tracking) | Runs the body, finds the one span between the longest common start and end of the text before and after, and moves the bounds through it by Foundation's rules (`IndexTracking.swift`'s prepare and finalize steps) | Exact for one contiguous change. Several disjoint changes count as one span, so a bound between them closes up to the span's start or end. A change whose text repeats its neighbours' is placed as late as possible. A change that writes back the same text is not seen. A body that assigns a whole new text is still compared, where Foundation loses track | One copy of the text's storage made shared, so the body's first change copies its path through the tree (0.01 to 0.02 ms for one inserted character here; §4 measured 2.9 ms for an insert into shared storage); both texts read into `String`s; one pass over their UTF-8. Measured on a 3.07 MB document shaped as `bigtext`'s, -O, best of five: 2.6 ms for an insert near the start, 2.9 ms in the middle and at the end, where Foundation's work is per change and bound |
 | `removeSubranges(_:)`, and tracking for `replaceSelection` | Removes the ranges from the last, inserts at the first's offset, finds the caret by offset | Nothing: the change is known | A scalar offset to an index for each bound and two more (0.013 ms at the end of 3.07 MB) |
 | Tracking in `transformAttributes(in:body:)` | Sets the runs' attributes and keeps the indices | Nothing: setting attributes moves no character, and a macOS 15 index is its offset | None |
+
+**L4 adds no fallback.** The attributed editor reads the app's selection through `indices(in:)`, whose validity on
+macOS 15 is the bounds check above, and finds an offset's index through the character view, which costs a
+microsecond there (below). Its edits are made by offset, not tracked, so they need no tracking fallback.
 
 **The offset-to-index walk** (the owner's question): on macOS 15.8.3 Foundation's `AttributedString` finds an index
 from a character or scalar offset through its rope, so no walk happens. Without the UTF-8 view, on a

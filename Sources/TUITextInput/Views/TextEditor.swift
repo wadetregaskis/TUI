@@ -145,6 +145,11 @@ public struct TextEditor {
     /// `nil` for none.
     var selection: _TextSelectionChannel?
 
+    /// The bindings of an editor made over an `AttributedString`, or `nil`
+    /// for one over a `String`; ``text`` is then a binding over the
+    /// characters of its value.
+    var attributed: AttributedTextBinding?
+
     /// Creates a text editor over a string binding.
     ///
     /// - Parameter text: The multi-line text to edit.
@@ -211,7 +216,7 @@ public struct TextEditor {
                 }
                 _TextEditorCore(
                     text: text, focusID: focusID, isDisabled: isDisabled,
-                    selection: finding ? findChannel : selection, menuTarget: menuTarget,
+                    selection: finding ? findChannel : selection, menuTarget: menuTarget, attributed: attributed,
                     opensFindOnControlF: !findIsOff,
                     // Every match tinted while the bar is up, the current one
                     // selected over it, as macOS's find bar marks them.
@@ -351,6 +356,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     var selection: _TextSelectionChannel?
     /// Where the editor's context menu finds the handler.
     let menuTarget: TextEditingMenuTarget
+    /// An attributed editor's bindings (``TextEditor/attributed``).
+    var attributed: AttributedTextBinding?
     /// Whether the editor has a find bar for Ctrl-F to open
     /// (``TextEditorHandler/yieldsControlFToFind``).
     var opensFindOnControlF = false
@@ -433,7 +440,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 focusID: persistedFocusID, text: text, canBeFocused: !isDisabled,
                 clipboard: context.environment.clipboardAccess))
         let handler = handlerBox.value
-        handler.text = text
+        if let attributed {
+            handler.adoptAttributed(attributed, environment: context.environment)
+        } else {
+            handler.text = text
+        }
         handler.canBeFocused = !isDisabled
         // Redacted, the editor hides its text as a SecureField does
         // (``TextEditorHandler/isSecure``).
@@ -467,7 +478,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         handler.textContentType = context.environment.textContentType
         handler.bell = context.environment.terminalBell
         handler.clampCursor()
-        handler.selectionChannel = selection
+        handler.selectionChannel = selection ?? handler.attributedSelectionChannel
         handler.selectionAffinity = context.environment.textSelectionAffinity
         // The app's selection is taken by the render that draws it: a measure
         // moves no caret.
@@ -732,7 +743,12 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     func layout(context: RenderContext) -> EditorLayout {
         let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
         let box: StateBox<TextEditorHandler>? = context.stateStorage?.existingStorage(for: key)
-        let current = text.wrappedValue
+        // An attributed editor's characters as its source keeps them, while
+        // they are this view's value's: no reading them again.
+        let current =
+            attributed.flatMap { attributed in
+                box?.value.attributedSource?.string(for: attributed.text.wrappedValue)
+            } ?? text.wrappedValue
         // As drawn: a hidden text's glyphs (``TextEditorHandler/displayLayout(of:)``).
         let glyph = Self.hidingGlyph(in: context)
         if let handler = box?.value {
