@@ -82,6 +82,9 @@ WindowGroup { LogView() }
 Where a copy goes depends on where the user is: by OSC 52 to a terminal that
 writes it, to this machine's clipboard only when the terminal is on this
 machine, and otherwise nowhere — and the status bar says which.
+Windows Terminal and the Windows console drop an OSC 52 copy of more than
+24,567 bytes of text, so a larger one goes to this machine's clipboard there,
+and over ssh is not sent, the status bar saying it was too large.
 A terminal that speaks kitty's clipboard protocol, OSC 5522, is sent every
 form a copy has beside its text — a link's Copy Link as a URI list, its
 Copy as Markdown as Markdown, a screen selection with its colours, weight

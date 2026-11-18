@@ -29,6 +29,10 @@ package enum ClipboardWriteResult: Equatable, Sendable {
     /// Not copied: this machine's clipboard helper was run and failed.
     case failed
 
+    /// Not copied: the terminal drops an OSC 52 write this large, and this
+    /// machine's clipboard is not the user's.
+    case tooLarge
+
     /// Nothing was sent, because there was nothing to copy.
     case nothingToCopy
 
@@ -44,6 +48,7 @@ package enum ClipboardWriteResult: Equatable, Sendable {
         case .sentToTerminal: .sentToTerminalClipboard
         case .unavailable: .notCopiedNoClipboard
         case .failed: .notCopiedHelperFailed
+        case .tooLarge: .notCopiedTooLarge
         case .nothingToCopy: nil
         }
     }
@@ -62,25 +67,33 @@ enum ClipboardRoute: Equatable, Sendable {
     /// Nowhere the user would find it.
     case none
 
+    /// Nowhere: the terminal would take an OSC 52 write, but not one this
+    /// large (``TerminalClient/ClipboardDelivery/largestWrite``), and this
+    /// machine's clipboard is not the user's.
+    case tooLarge
+
     /// The rule, posed on its inputs. In order:
     ///
     /// 1. A terminal that writes OSC 52 by default is sent it — over ssh
-    ///    too, which is the point: the terminal is on the user's machine.
+    ///    too, which is the point: the terminal is on the user's machine —
+    ///    if the write `fits` what the terminal takes.
     /// 2. Otherwise this machine's clipboard, but only on positive evidence
     ///    that the user is at this machine, and only where it has a helper.
-    /// 3. Otherwise a terminal that MAY write OSC 52 is sent it, and the copy
-    ///    is reported as sent rather than made.
-    /// 4. Otherwise nothing is copied, and that is reported.
+    /// 3. Otherwise a terminal that MAY write OSC 52 is sent it, if it fits,
+    ///    and the copy is reported as sent rather than made.
+    /// 4. Otherwise nothing is copied, and that is reported: as too large
+    ///    where only the write's size kept it from the terminal.
     ///
     /// One route per copy, never two: this machine's clipboard is written
     /// only when it is the user's, and then it is the surer of the two.
     static func choose(
-        terminal: TerminalClient.ClipboardWriteSupport, hasSystemHelper: Bool, isLocal: () -> Bool
+        terminal: TerminalClient.ClipboardWriteSupport, fits: Bool = true, hasSystemHelper: Bool,
+        isLocal: () -> Bool
     ) -> Self {
-        if terminal == .honoured { return .terminal(confirmed: true) }
+        if terminal == .honoured, fits { return .terminal(confirmed: true) }
         if hasSystemHelper, isLocal() { return .system }
-        if terminal == .unconfirmed { return .terminal(confirmed: false) }
-        return .none
+        if terminal == .unconfirmed, fits { return .terminal(confirmed: false) }
+        return terminal == .unsupported ? .none : .tooLarge
     }
 }
 
@@ -384,24 +397,30 @@ package final class ClipboardWriter {
             }
         } else {
             let delivery = terminal()
+            // Non-nil: the text is not empty. Through a keeper's passthrough
+            // the text alone: its other types are a write of their own (OSC
+            // 5522) that the passthroughs are not measured to carry.
+            let carriesTypes = delivery.passthrough == .none && mimeSupport()
+            let sequence =
+                carriesTypes
+                ? ClipboardSequence.write(text, representations: representations)
+                : ClipboardSequence.write(text, through: delivery.passthrough)
+            // The limit is one OSC 52 write's; OSC 5522 goes in packets of
+            // its own size.
+            let fits =
+                carriesTypes || delivery.largestWrite.map { (sequence?.utf8.count ?? 0) <= $0 } ?? true
             let route = ClipboardRoute.choose(
-                terminal: delivery.support, hasSystemHelper: hasSystemHelper, isLocal: isLocal)
+                terminal: delivery.support, fits: fits, hasSystemHelper: hasSystemHelper, isLocal: isLocal)
             switch route {
             case .terminal(let confirmed):
-                // Non-nil: the text is not empty. Through a keeper's
-                // passthrough the text alone: its other types are a write of
-                // their own (OSC 5522) that the passthroughs are not measured
-                // to carry.
-                let sequence =
-                    delivery.passthrough == .none && mimeSupport()
-                    ? ClipboardSequence.write(text, representations: representations)
-                    : ClipboardSequence.write(text, through: delivery.passthrough)
                 if let sequence { pending.append(sequence) }
                 result = confirmed ? .copied : .sentToTerminal
             case .system:
                 result = system.write(text) ? .copied : .failed
             case .none:
                 result = .unavailable
+            case .tooLarge:
+                result = .tooLarge
             }
         }
         if result != .nothingToCopy, !text.isEmpty { lastCopy = text }

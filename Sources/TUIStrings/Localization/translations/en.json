@@ -246,6 +246,7 @@
   "statusbar.sentToTerminalClipboard": "Sent to the terminal's clipboard",
   "statusbar.notCopiedNoClipboard": "Not copied: no clipboard reachable from here",
   "statusbar.notCopiedHelperFailed": "Not copied: the clipboard helper failed",
+  "statusbar.notCopiedTooLarge": "Not copied: too large for the terminal's clipboard",
   "statusbar.pasteWithTerminal": "Nothing to paste here: use the terminal's paste",
   "statusbar.pastedAppCopy": "Pasted this app's last copy: for your clipboard, use the terminal's paste",
   "statusbar.menu.open": "open %@",

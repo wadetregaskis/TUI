@@ -70,11 +70,42 @@ extension TerminalClient {
         /// How the write is wrapped on its way.
         package var passthrough: ClipboardPassthrough
 
-        package init(_ support: ClipboardWriteSupport, passthrough: ClipboardPassthrough = .none) {
+        /// The most bytes one OSC 52 write may take, its `ESC ] 52 ; c ;` and
+        /// `ESC \` included, for the terminal to put it on the clipboard: a
+        /// larger one it drops, leaving the clipboard as it was
+        /// (``largestClipboardWrite(of:)``). `nil` where no limit is measured.
+        package var largestWrite: Int?
+
+        package init(
+            _ support: ClipboardWriteSupport, passthrough: ClipboardPassthrough = .none, largestWrite: Int? = nil
+        ) {
             self.support = support
             self.passthrough = passthrough
+            self.largestWrite = largestWrite
         }
     }
+
+    /// The most bytes one OSC 52 write to `program` may take for the
+    /// clipboard to get it (``ClipboardDelivery/largestWrite``), or `nil`
+    /// where none is measured.
+    ///
+    /// Windows Terminal and conhost drop a larger write whole and say nothing,
+    /// so a copy over it would be one the user believes they made. Measured
+    /// with `clipboard_probe.py` (`PROBE_CEILING_KIB`); see the survey's
+    /// "Windows Terminal and the classic console".
+    static func largestClipboardWrite(of program: Program) -> Int? {
+        switch program {
+        case .windowsTerminal, .windowsConsole: windowsClipboardWriteBytes
+        default: nil
+        }
+    }
+
+    /// ``largestClipboardWrite(of:)`` for Windows Terminal and conhost:
+    /// `ESC ] 52 ; c ;`, 32,756 bytes of base64 (24,567 of text) and `ESC \`.
+    /// Measured to the byte (2026-11-17, Windows Terminal 1.25.3131.0 and
+    /// conhost build 26300, the same in both): that write arrives whole, and
+    /// the next base64 can be, 32,760 bytes, leaves the clipboard as it was.
+    static let windowsClipboardWriteBytes = 7 + 32_756 + 2
 
     /// Whether `program` is known to put an OSC 52 write on the clipboard by
     /// default.
@@ -94,8 +125,8 @@ extension TerminalClient {
     /// | Host | Writes | Evidence |
     /// |---|---|---|
     /// | Ghostty | yes | `clipboard-write = allow` is its default (its OSC 52 page and config reference); measured 2026-10-19, 1.3.1 |
-    /// | Windows Terminal | yes | measured 2026-11-16, 1.24.12741.0: ST, BEL and an empty selector all arrive, 8 KiB whole and 64 KiB not |
-    /// | conhost | yes | measured 2026-11-16, build 26300: as Windows Terminal, the same codebase |
+    /// | Windows Terminal | yes, up to a size | measured 2026-11-16, 1.24.12741.0: ST, BEL and an empty selector all arrive; a write over ``windowsClipboardWriteBytes`` is dropped (``largestClipboardWrite(of:)``, measured 2026-11-17, 1.25.3131.0) |
+    /// | conhost | yes, up to a size | measured 2026-11-16 and 2026-11-17, build 26300: as Windows Terminal, the same codebase |
     /// | iTerm2 | only with a setting | "Applications in terminal may access clipboard", off by default; measured both ways 2026-10-19, 3.7.6 |
     /// | tmux | only with `set-clipboard on`, or through its passthrough | `external`, the default, ignores an application's write; `on` keeps it as a buffer and passes it on; under `allow-passthrough` TUI wraps the write and tmux passes it on (measured, 3.7c) |
     /// | GNU screen | through its passthrough | it drops a bare OSC 52 and passes one on inside its DCS passthrough, which TUI sends; recognised by `STY`, whatever terminal is named (measured, 4.00.03) |
@@ -120,7 +151,8 @@ extension TerminalClient {
     static func support(of program: Program) -> ClipboardWriteSupport {
         switch program {
         // Both write it (measured 2026-11-16, 1.24.12741.0 and build 26300):
-        // ST, BEL and an empty selector alike, 8 KiB whole, 64 KiB not.
+        // ST, BEL and an empty selector alike, up to a size
+        // (`largestClipboardWrite(of:)`).
         case .ghostty, .windowsTerminal, .windowsConsole: .honoured
         // Whether tmux passes the write on is its `set-clipboard` option, which
         // the ladder asks tmux for; this is the answer for "on".
@@ -183,8 +215,11 @@ extension TerminalClient {
         let environment = ProcessInfo.processInfo.environment
         let program = current.program
         if let override = clipboardWriteSupport {
+            let passthrough = screenPassthrough(environment: environment, program: program)
             return override
-                ? ClipboardDelivery(.honoured, passthrough: screenPassthrough(environment: environment, program: program))
+                ? ClipboardDelivery(
+                    .honoured, passthrough: passthrough,
+                    largestWrite: passthrough == .none ? largestClipboardWrite(of: program) : nil)
                 : ClipboardDelivery(.unsupported)
         }
         let setClipboard = program == .tmux ? TerminalHost.tmuxOption("set-clipboard") : nil
@@ -279,7 +314,9 @@ extension TerminalClient {
     ) -> ClipboardDelivery {
         let screen = screenPassthrough(environment: environment, program: program)
         switch environment["TUI_OSC52"] {
-        case "1": return ClipboardDelivery(.honoured, passthrough: screen)
+        case "1":
+            return ClipboardDelivery(
+                .honoured, passthrough: screen, largestWrite: screen == .none ? largestClipboardWrite(of: program) : nil)
         case "0": return ClipboardDelivery(.unsupported)
         default: break
         }
@@ -306,7 +343,7 @@ extension TerminalClient {
         {
             support = .unconfirmed
         }
-        return ClipboardDelivery(support)
+        return ClipboardDelivery(support, largestWrite: largestClipboardWrite(of: program))
     }
 
     /// Whether GNU screen is known to stand between this tmux pane and the

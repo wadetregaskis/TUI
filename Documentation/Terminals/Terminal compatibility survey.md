@@ -2868,7 +2868,7 @@ says, monochrome.
 
 | Feature | Windows Terminal | conhost | Evidence |
 |---|---|---|---|
-| OSC 52 clipboard write | **yes** | **yes** | ST, BEL and an empty selector all arrive; 1 KiB and 8 KiB whole, a 64 KiB write left the clipboard as it was (`clipboard_probe.py`) |
+| OSC 52 clipboard write | **yes, up to a size** | **yes, up to a size** | ST, BEL and an empty selector all arrive. **A write's base64 of 32,756 bytes (24,567 of text) arrives whole, and one of 32,760 leaves the clipboard as it was**, the same in both (`clipboard_probe.py` with `PROBE_CEILING_KIB`, 2026-11-17: 8 to 20 KiB whole, 24 KiB dropped, then to the byte). TUI sends neither a larger write (`largestClipboardWrite(of:)`): such a copy goes to this machine's clipboard at the desk, and is reported as not copied over ssh |
 | OSC 5522 MIME clipboard | no | no | not asked: neither names it |
 | OSC 9;4 progress | **yes, drawn** | no | a ring on the tab and the taskbar button (seen) |
 | OSC 9 / OSC 777 notification | no | no | neither posts one; a bell marks the tab |

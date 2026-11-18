@@ -246,6 +246,7 @@
   "statusbar.sentToTerminalClipboard": "Inviato agli appunti del terminale",
   "statusbar.notCopiedNoClipboard": "Non copiato: nessun appunti raggiungibile da qui",
   "statusbar.notCopiedHelperFailed": "Non copiato: lo strumento degli appunti non è riuscito",
+  "statusbar.notCopiedTooLarge": "Non copiato: troppo grande per gli appunti del terminale",
   "statusbar.pasteWithTerminal": "Niente da incollare qui: usa l'incolla del terminale",
   "statusbar.pastedAppCopy": "Incollata l'ultima copia dell'app: per i tuoi appunti, usa l'incolla del terminale",
   "statusbar.menu.open": "apri %@",

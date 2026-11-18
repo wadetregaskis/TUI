@@ -614,6 +614,9 @@ public enum LocalizationKey {
         case notCopiedNoClipboard = "statusbar.notCopiedNoClipboard"
         /// This machine's clipboard helper ran and failed.
         case notCopiedHelperFailed = "statusbar.notCopiedHelperFailed"
+        /// The terminal drops an OSC 52 write this large, and this machine's
+        /// clipboard is not the user's.
+        case notCopiedTooLarge = "statusbar.notCopiedTooLarge"
         /// A paste chord found neither this machine's clipboard (it is not the
         /// user's) nor a copy of the app's own: the terminal's paste is the
         /// way in.

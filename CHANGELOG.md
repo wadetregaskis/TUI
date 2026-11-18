@@ -15,6 +15,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A copy too large for Windows Terminal or the Windows console is no longer lost.** Both drop an OSC 52 copy of
+more than 24,567 bytes of text and say nothing, so TUI used to report such a copy as made. It now goes to this
+machine's clipboard where the user is at it, and otherwise is not sent, the status bar saying "Not copied: too large
+for the terminal's clipboard" (`statusbar.notCopiedTooLarge`, in every language TUI ships).
+
 **On Windows a deep page draws whole.** A Windows program's threads get 1 MiB of stack unless it was linked asking
 for more, and a deep page drawn in a debug build needs more than that: TUI drew its deepest views empty rather than
 crash, so parts of a page went missing. Each frame is now drawn on an 8 MiB stack TUI provides, a fiber on the same

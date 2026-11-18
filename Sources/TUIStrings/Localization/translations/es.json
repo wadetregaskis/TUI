@@ -246,6 +246,7 @@
   "statusbar.sentToTerminalClipboard": "Enviado al portapapeles del terminal",
   "statusbar.notCopiedNoClipboard": "No copiado: no hay portapapeles accesible desde aquí",
   "statusbar.notCopiedHelperFailed": "No copiado: falló el asistente del portapapeles",
+  "statusbar.notCopiedTooLarge": "No copiado: demasiado grande para el portapapeles del terminal",
   "statusbar.pasteWithTerminal": "Nada que pegar aquí: usa el pegado del terminal",
   "statusbar.pastedAppCopy": "Pegada la última copia de la app: para tu portapapeles, usa el pegado del terminal",
   "statusbar.menu.open": "abrir %@",
