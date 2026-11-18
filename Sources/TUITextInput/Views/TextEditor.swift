@@ -108,6 +108,14 @@ import TUIFoundation
 /// vertical scroll indicator appears in the trailing column when the text is
 /// taller than the view, so it's clear there's content out of view.
 ///
+/// The text is drawn in the ``View/foregroundStyle(_:)-(S)`` in force, as
+/// SwiftUI's is, or the palette's foreground; a gradient or other paint gives
+/// its one representative colour. In an editor over an `AttributedString`, a
+/// run's own `foregroundColor` wins over it, as in a ``Text`` of the value. The
+/// selection, the caret and the find bar's matches keep their own colours, and
+/// a disabled editor draws its text in the palette's tertiary tier, as a
+/// disabled ``TextField`` draws its own.
+///
 /// Long lines **wrap** at the editor's width, as SwiftUI's do, by the macOS
 /// text system's rules (measured on an `NSTextView`, macOS 15.8): a row breaks
 /// after a run of spaces or a tab, which hangs at the end of the row it breaks,
@@ -519,7 +527,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             : (context.environment.surfaceBackground.map { palette.fieldBackground(on: $0) }
                 ?? palette.fieldBackground).resolve(with: palette)
 
-        let styling = RowStyling(palette: palette, isDisabled: isDisabled, background: fieldBackground)
+        // In the `.foregroundStyle(_:)` in force (``RowStyling/init(in:isDisabled:background:)``).
+        let styling = RowStyling(in: context.environment, isDisabled: isDisabled, background: fieldBackground)
 
         // The caret, drawn only while focused — see `rowCaret(column:styling:background:context:)`.
         let caret = isFocused
@@ -570,7 +579,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             context: context, buffer: &buffer, handler: handler,
             contentWidth: contentWidth, height: height, overflows: window.hasVerticalOverflow,
             focusID: persistedFocusID, isDisabled: isDisabled)
-        return buffer.fadedTextInput(if: isDisabled, text: nil, context: context)
+        return buffer.fadedTextInput(if: isDisabled, text: styling.stated, context: context)
     }
 
     /// The caret a focused editor draws at `column` of its line or row.

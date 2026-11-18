@@ -225,6 +225,8 @@ extension _TextEditorCore {
     struct RowStyling {
         let background: Color?
         let text: Color
+        /// The ink stated for the text, enabled, or `nil` for the palette's.
+        let stated: Color?
         let selection: FieldSelectionStyle
         /// The field a find match is tinted with: the selection's, a third of the
         /// way over the well — a match that is not the current one, marked
@@ -232,13 +234,33 @@ extension _TextEditorCore {
         /// where the selection is a reversal, which has no colour to fade.
         let match: Color?
 
+        /// The colours an editor drawn in `environment` paints with.
+        ///
+        /// The text takes the `.foregroundStyle(_:)` in force, as SwiftUI's
+        /// TextEditor's does: one colour, a ramp's representative (a ramp is not
+        /// laid across an editor's rows). A run's own colour, in an attributed
+        /// editor, wins over it, as in a `Text` of the value; the selection, the
+        /// caret and a find match derive from it as a TextField's do from its
+        /// entered text's ink.
         @MainActor
-        init(palette: any Palette, isDisabled: Bool, background: Color?) {
+        init(in environment: EnvironmentValues, isDisabled: Bool, background: Color?) {
+            self.init(
+                palette: environment.palette, isDisabled: isDisabled, background: background,
+                stated: environment.foregroundStyle?.representative)
+        }
+
+        /// - Parameter stated: The ink stated for the text, or `nil` for the
+        ///   palette's.
+        @MainActor
+        init(palette: any Palette, isDisabled: Bool, background: Color?, stated: Color? = nil) {
             self.background = background
+            self.stated = stated
             // A disabled editor's text CLAIMS its tint's alpha, as a disabled
             // TextField's does — not §31.3's spend, which is the slider's own
             // dimming composite; the editor has no composite to spend through.
-            let ink = (isDisabled ? palette.foregroundTertiary : palette.foreground)
+            // Disabled, the tertiary tier wins over a stated ink, as a disabled
+            // TextField's entered text does.
+            let ink = (isDisabled ? palette.foregroundTertiary : stated ?? palette.foreground)
                 .resolve(with: palette)
             text = ink
             // The row's own ink goes with the question: a selection whose highlight

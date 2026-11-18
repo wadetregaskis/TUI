@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextEditor`'s text takes the `.foregroundStyle` in force.** It was drawn in the palette's foreground whatever
+`.foregroundStyle(_:)` said, over a `String` or an `AttributedString`; now it is drawn in that style, as SwiftUI's is
+(a gradient gives its one representative colour). In an editor over an `AttributedString` a run's own
+`foregroundColor` still wins, as in a `Text` of the value. The selection, the caret and the find bar's matches keep
+their own colours, and a disabled editor still draws its text in the palette's tertiary tier.
+
 **`.border()` hugs what it borders: padding is the inset, as in SwiftUI.** A border used to put a blank cell of its
 own between the content and the line, on the left and the right, so `Text("Hi").border()` was 6 cells wide and
 `.padding(1).border()` could not give one cell of room — it gave two. That cell is gone (the owner, 2026-11-17):
