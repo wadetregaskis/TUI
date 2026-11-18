@@ -9,6 +9,7 @@ import Testing
 
 @testable import TUIApp
 @testable import TUIAppTestSupport
+@testable import TUICore
 @testable import TUIFoundation
 import TUISearch
 @testable import TUIStrings
@@ -139,6 +140,19 @@ struct SearchableTests {
         harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: row))
         #expect(box.query.isEmpty)
         #expect(!screen().contains { $0.contains("✗") })
+    }
+
+    /// Its `.foregroundStyle(.secondary)` was dropped while a button's label took
+    /// only the style cascade's colour; a button takes a stated style now.
+    @Test("The ✗ is drawn in the secondary ink")
+    func clearButtonIsSecondary() throws {
+        let box = QueryBox()
+        box.query = "abc"
+        let cross = try #require(sgrState(of: "✗", in: render(Text("body").searchable(text: binding(box)))))
+        let secondary = try #require(sgrState(of: "Alice", in: render(Text("Alice").foregroundStyle(.secondary))))
+        let primary = try #require(sgrState(of: "Alice", in: render(Text("Alice"))))
+        #expect(secondary.foregroundColour != primary.foregroundColour, "precondition: the two inks differ")
+        #expect(cross.foregroundColour == secondary.foregroundColour)
     }
 
     @Test("A custom prompt is displayed")

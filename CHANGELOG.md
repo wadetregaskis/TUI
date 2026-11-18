@@ -34,8 +34,8 @@ its bordered buttons do on iOS. A `.style(.control(.button))` foreground still w
 colour over both. What is built from buttons follows: a `DisclosureGroup`'s label, a `Menu`'s, a `.button` toggle's,
 a `.menu` picker's value and a `NavigationLink`. Hover still lifts the colour in force, and a disabled button still
 draws in the tertiary tier. A button in a form value's place keeps its own colour under the value's secondary tier,
-as a field does. macOS draws its bordered buttons, menus and pop-ups with AppKit, which ignores the style; the
-compatibility guide lists them.
+as a field does. The search field's ✗ is drawn in the secondary ink it always asked for. macOS draws its bordered
+buttons, menus and pop-ups with AppKit, which ignores the style; the compatibility guide lists them.
 
 **A `TextField`'s and a `SecureField`'s text take the `.foregroundStyle` in force.** What was typed (or its bullets)
 was drawn in the palette's foreground whatever `.foregroundStyle(_:)` said, in every field style and in a vertical
