@@ -42,6 +42,7 @@ package final class VolatileReadTracker {
         var unkeyedReads = 0
         var clockedReads = 0
         var windowedMeasures = 0
+        var timelineWakes = 0
         var clockMovesAt: Date?
     }
 
@@ -269,6 +270,19 @@ package final class VolatileReadTracker {
     /// ``replayableEffects``.
     public func recordReplayableEffect() {
         unsafe counts.replayableEffects &+= 1
+    }
+
+    /// Monotonic count of the wakes a `TimelineView` drawn in the scope asked
+    /// for: its next entry is still ahead, and it will be drawn again then.
+    /// Recorded beside the wake's ``sideEffects``, which it does not replace,
+    /// and in no gate: it says only that a timeline is live below. The
+    /// composites above such a timeline keep their bodies across its entries
+    /// by it (`FrameBodyKeep`), since no buffer of theirs can be kept.
+    package var timelineWakes: Int { unsafe counts.timelineWakes }
+
+    /// Records a live timeline's wake: see ``timelineWakes``.
+    package func recordTimelineWake() {
+        unsafe counts.timelineWakes &+= 1
     }
 
     /// Records that a windowed stack was measured: see ``windowedMeasures``.

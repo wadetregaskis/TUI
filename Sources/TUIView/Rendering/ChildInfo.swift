@@ -962,6 +962,10 @@ private func measureCompositeBody<V: View>(
     // the render path puts it back (`StateStorage.restoreEnvironments(to:)`).
     let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
     defer { context.stateStorage?.restoreEnvironments(to: restoreDepth) }
+    // Kept from the last frame above a live timeline (`FrameBodyKeep`).
+    if let kept = frameKeptBody(of: view, context: context) {
+        return measureChild(kept, proposal: proposal, context: childContext)
+    }
     // Evaluated once a walk and kept (`BodyKeep`), and so always observed, since
     // the draw that takes it evaluates nothing to be observed under.
     if let cache = context.renderCache, cache.bodyKeep.isSlow(V.self), cache.bodyKeep.mayKeep(view, plan: plan) {

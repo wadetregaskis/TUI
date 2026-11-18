@@ -483,7 +483,7 @@ RenderCache.beginRenderPass() | func beginRenderPass()
 RenderCache.bodyMutationDiagnostic | var bodyMutationDiagnostic: BodyMutationDiagnostic? { get set }
 RenderCache.childViewsMemoBypasses | var childViewsMemoBypasses: Int { get }
 RenderCache.childViewsMemoTotals | var childViewsMemoTotals: (hits: Int, misses: Int) { get }
-RenderCache.clearAffected(by:keepingSizes:includingDescendants:) | func clearAffected(by identity: ViewIdentity, keepingSizes: Bool = false, includingDescendants: Bool = true)
+RenderCache.clearAffected(by:keepingSizes:includingDescendants:includingAncestors:) | func clearAffected(by identity: ViewIdentity, keepingSizes: Bool = false, includingDescendants: Bool = true, includingAncestors: Bool = true)
 RenderCache.clearAll() | func clearAll()
 RenderCache.clearGeneration | var clearGeneration: Int { get }
 RenderCache.count | var count: Int { get }

@@ -19,6 +19,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TimelineView`'s entry runs the timeline's content, and nothing above or beside it that has not changed.** At
+each entry of a running timeline TUI ran the `body` of every view above it, up to the app's (and whatever their
+initialisers made, sixty times a second under `.animation`); drew again the view a timeline in its `.background` or
+`.overlay` is drawn behind or over, `.equatable()` or not; and handed a slower timeline's content a new date whenever
+anything else drew, so `.animation(minimumInterval: 0.2)` beside a 60 Hz timeline stepped at 60 Hz. Now, as in
+SwiftUI, the views above a live timeline keep what their bodies built from one entry to the next while their values,
+environment, state and what they read are unchanged; a timeline's entry drops only what is drawn inside it; and an
+animation schedule's content sees the date of its current entry until the next one. `TUI_KEEP_TIMELINE_ANCESTORS=0`
+runs the bodies above a timeline at every entry again, to compare.
+
 **A `Table`'s column titles take the `.foregroundStyle` in force.** They were drawn in the palette's secondary tier
 whatever the style said, while the cells below took it; now the titles take it too, as SwiftUI's header does (measured
 on macOS 15.8). A chosen column's title keeps the selected row's colours.

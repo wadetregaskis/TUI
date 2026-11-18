@@ -259,9 +259,33 @@ private func renderComposite<V: View>(_ view: V, context: RenderContext) -> Fram
     // while the body's content is drawn, and is put back after: a load
     // and a compare when it handed none (`StateStorage.restoreEnvironments(to:)`).
     let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
-    let body = keptBody(of: view, context: context) ?? evaluateCompositeBody(of: view, context: context)
+    // Above a live timeline the body is kept from the last frame, and the
+    // walk goes on from what it built (`FrameBodyKeep`). Looked at only
+    // while some timeline is live.
+    var wakesBefore: Int?
+    var keptAcrossFrames = false
+    let body: V.Body
+    if context.renderCache?.plainMemo.frameBodies.timelinesLive == true {
+        wakesBefore = timelineWakesSoFar(context)
+        if let kept = frameKeptBody(of: view, context: context) {
+            body = kept
+            keptAcrossFrames = true
+        } else if let kept = keptBody(of: view, context: context) {
+            body = kept
+        } else if let plan = beginFrameBody(of: view, context: context) {
+            body = evaluateCompositeBody(of: view, context: context)
+            keptAcrossFrames = keepFrameBody(body, plan: plan, context: context)
+        } else {
+            body = evaluateCompositeBody(of: view, context: context)
+        }
+    } else {
+        body = keptBody(of: view, context: context) ?? evaluateCompositeBody(of: view, context: context)
+    }
     let buffer = TUIView.renderToBuffer(body, context: childContext)
     context.stateStorage?.restoreEnvironments(to: restoreDepth)
+    if wakesBefore != nil {
+        noteFrameBody(of: V.self, at: context, timelineWakesBefore: wakesBefore, kept: keptAcrossFrames)
+    }
     // What the body drew is all this view draws: a transition on the root of a
     // `body` leaves its picture a step below the address a `nil` claims.
     context.noteDepartureDrawnWhole(of: V.Body.self, at: childContext.identity, by: V.self)

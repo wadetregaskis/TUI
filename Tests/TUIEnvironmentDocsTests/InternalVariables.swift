@@ -16,6 +16,7 @@ enum InternalVariables {
         "TUI_DEBUG_FOCUS": "Its log is of the focus system's own workings, which only TUI's developers read.",
         "TUI_HEADLESS_STREAM": "It feeds TUI's own output tools.",
         "TUI_KEEP_BODIES": "It turns an optimisation off to compare with it, and `all` is for a run of TUI's tests.",
+        "TUI_KEEP_TIMELINE_ANCESTORS": "It turns an optimisation off to compare with it.",
         "TUI_OBSERVATION_RETIREMENT": "It picks between implementations, to compare them.",
         "TUI_OPTION_C": "It turns an optimisation off to compare with it.",
         "TUI_PLAIN_TEXT": "The owner ruled (2026-11-01) that nothing should encourage an ASCII-only mode except for testing.",

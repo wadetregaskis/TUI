@@ -230,6 +230,23 @@ package final class BodyKeep {
         return made
     }
 
+    /// Whether a composite of `V` may keep its body from one frame to the next
+    /// (`FrameBodyKeep`): an app's own, whose properties read nothing the walk
+    /// decides. Unlike ``mayKeep(_:plan:)`` a model object is no reason not to:
+    /// what makes one a reason is a measure's preparation differing from a
+    /// draw's, and a kept body is prepared again, on the view drawn now, at
+    /// every walk that takes it; an object compares by identity, so a
+    /// different one is a different value.
+    @inline(__always)
+    func mayKeepAcrossFrames<V: View>(_: V.Type) -> Bool {
+        if let known = acrossFramesVerdicts[ObjectIdentifier(V.self)] { return known }
+        let made = !FrameworkModules.declares(V.self) && !Self.readsTheWalk(V.self)
+        acrossFramesVerdicts[ObjectIdentifier(V.self)] = made
+        return made
+    }
+
+    private var acrossFramesVerdicts: [ObjectIdentifier: Bool] = [:]
+
     private static func readsTheWalk(_ type: Any.Type) -> Bool {
         if type is any _DecidedDuringTheWalk.Type { return true }
         if type is any DynamicProperty.Type { return !(type is any _BoundFromTheWalk.Type || type is any _ComparedOpaquely.Type) }

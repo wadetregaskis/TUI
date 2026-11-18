@@ -79,6 +79,7 @@ import TUICore
     /// | -220… | SCROLL-FIT's parallel pull: `_HStackCore`'s pulled row (-220), `_ZStackCore`'s pulled layers (-221), `_LayoutCore`'s pulled layout (-222), `_GridCore`'s pulled grid (-223) |
     /// | -230… | `_FormLayout`: a windowed columns form's kept widths (-230, `FormColumnsWindowing.swift`), and the version of what its content walk read, which its loop rows are memoised under (-231, `FormRowMemo.swift`) |
     /// | -240… | `_TextEditorCore`'s first frame: the layout its measures make before its handler exists (a tracked value) |
+    /// | -250… | `_TimelineViewCore`: the animation entry it shows until its next wake (a tracked value) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with

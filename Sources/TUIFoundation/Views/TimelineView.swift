@@ -25,7 +25,16 @@ import TUIView
 /// The date is the schedule's *entry*, not the instant of the render: with
 /// ``TimelineSchedule/everyMinute`` it is the top of the current minute however
 /// late in that minute the frame lands, so a clock never shows a time that
-/// disagrees with the boundary it was drawn for.
+/// disagrees with the boundary it was drawn for. And a render between two
+/// entries — one something else on the screen asked for — sees the same entry:
+/// a `.animation(minimumInterval: 0.2)` timeline's content sees five dates a
+/// second, whatever else draws.
+///
+/// An entry re-evaluates the content and nothing else that has not changed:
+/// the views above a running timeline keep what their bodies built from one
+/// entry to the next, and the views beside it are served from their memos, as
+/// in SwiftUI (see the Render Cycle article, "Bodies Above a Running
+/// Timeline").
 ///
 /// A ``TimelineView`` costs nothing between entries. It declares one wake — the
 /// next entry — and the run loop sleeps until then, so a clock ticking once a
@@ -108,6 +117,34 @@ extension TimelineView: View where Content: View {
 
 // MARK: - Core
 
+/// The core's slot at its identity, in the reserved range
+/// (`StateStorage.StateKey`): its content is drawn at the same identity, and
+/// a composite content's `@State` counts from 0.
+private enum StateIndex {
+    /// The animation entry being shown (``HeldAnimationEntry``), a tracked value.
+    static let heldEntry = -250
+}
+
+/// An animation schedule's entry, and the end of the lattice period it is the
+/// entry of: the instant, on the frame clock, the timeline's next wake is.
+///
+/// A class, tracked once and changed in place: a tracked value set again tells
+/// the state storage's prune that something changed, and a timeline sets its
+/// entry at every frame it moves.
+private final class HeldAnimationEntry {
+    var periodEnd: Int64
+    var frameTicks: Int
+    var entry: Date
+    var next: Date?
+
+    init(periodEnd: Int64, frameTicks: Int, entry: Date, next: Date?) {
+        self.periodEnd = periodEnd
+        self.frameTicks = frameTicks
+        self.entry = entry
+        self.next = next
+    }
+}
+
 /// Resolves the schedule against the clock, declares the next wake, and renders
 /// the content the schedule's current entry produces.
 private struct _TimelineViewCore<Schedule: TimelineSchedule, Content: View>: View, Renderable,
@@ -165,7 +202,7 @@ private struct _TimelineViewCore<Schedule: TimelineSchedule, Content: View>: Vie
     private func timelineContext(
         now: Date, noting context: RenderContext
     ) -> (TimelineViewDefaultContext, next: Date?, content: RenderContext) {
-        let (entry, next) = resolve(now: now)
+        let (entry, next) = heldResolution(now: now, context: context)
         var contentContext = context
         contentContext.environmentApplicationDepth += 1
         if let entry, let cache = context.renderCache,
@@ -173,9 +210,63 @@ private struct _TimelineViewCore<Schedule: TimelineSchedule, Content: View>: Vie
                 entry, identity: context.identity, keyPath: \TimelineViewDefaultContext.date,
                 depth: context.environmentApplicationDepth)
         {
-            cache.clearAffected(by: context.identity)
+            // The content and what is below it, not what contains it: an
+            // ancestor drawn with this timeline asked for its wake, which no
+            // memo stores, so none holds a picture of the entry that moved. A
+            // view sharing an ancestor's identity — the base of the
+            // `.background` this timeline is drawn in — did not draw the
+            // entry at all, and was dropped and drawn again at every entry.
+            cache.clearAffected(by: context.identity, includingAncestors: false)
         }
         return (TimelineViewDefaultContext(date: entry ?? now, cadence: .live), next, contentContext)
+    }
+
+    /// ``resolve(now:)``, held between an animation schedule's entries.
+    ///
+    /// An animation schedule's entries count from the date they are asked
+    /// from, so resolved afresh at every render its first entry is that
+    /// render's own date: a `.animation(minimumInterval: 0.2)` timeline beside
+    /// a 60 Hz one, or below anything else drawn sixty times a second, saw a
+    /// new date at every frame, and its content stepped at the faster rate
+    /// (tuiarcade's TUI-FEEDBACK.md, M2 item 4). SwiftUI hands the content the
+    /// schedule's current entry, and a re-evaluation between two entries sees
+    /// the same date. So the entry a render resolves is kept at this identity
+    /// with the end of the lattice period it fell in — the instant the
+    /// timeline's wake is asked for — and every render before that instant is
+    /// handed it again. A schedule that counts from an anchor of its own
+    /// (`periodic`, `everyMinute`) or names its dates (`explicit`) resolves to
+    /// the same entry anywhere between two of them, and is resolved as it
+    /// stands.
+    private func heldResolution(now: Date, context: RenderContext) -> (entry: Date?, next: Date?) {
+        guard let frameTicks = (schedule as? AnimationTimelineSchedule)?.frameTicks,
+            context.renderCache?.frameDate != nil, let storage = context.stateStorage
+        else { return resolve(now: now) }
+        let periodEnd = AnimationClock.nanoseconds(
+            ofNextTickMultiple: frameTicks, after: context.environment.frameNowNanos)
+        let key = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.heldEntry)
+        let held: HeldAnimationEntry? = storage.trackedValue(for: key)
+        // Held while the frame clock is inside the period AND the wall clock
+        // has not reached the entry after it: a harness that stamps dates on
+        // a frame clock that stands still (`Stress --bench`) froze the date,
+        // and a size kept until the next entry lapsed at every frame.
+        if let held, held.periodEnd == periodEnd, held.frameTicks == frameTicks,
+            held.next.map({ now < $0 }) ?? true
+        {
+            return (held.entry, held.next)
+        }
+        let fresh = resolve(now: now)
+        guard let entry = fresh.entry else { return fresh }
+        if let held {
+            held.periodEnd = periodEnd
+            held.frameTicks = frameTicks
+            held.entry = entry
+            held.next = fresh.next
+        } else {
+            storage.setTrackedValue(
+                HeldAnimationEntry(periodEnd: periodEnd, frameTicks: frameTicks, entry: entry, next: fresh.next),
+                for: key)
+        }
+        return fresh
     }
 
     /// The instant the schedule is resolved against: the FRAME's wall clock,
@@ -235,6 +326,12 @@ private struct _TimelineViewCore<Schedule: TimelineSchedule, Content: View>: Vie
         let (timeline, next, contentContext) = timelineContext(now: now, noting: context)
         if context.isMeasuring { declareMeasure(next: next, context: context) }
         if let next {
+            // Said apart from the wake's side effect, so the composites above
+            // keep their bodies to this entry from the last (`FrameBodyKeep`).
+            if !context.isMeasuring {
+                context.environment.volatileReadTracker?.recordTimelineWake()
+                context.renderCache?.plainMemo.frameBodies.noteLiveTimeline()
+            }
             // One wake, for the next entry only. The frame it produces declares
             // the one after it, so an irregular schedule stays exact and a
             // finished one stops asking.

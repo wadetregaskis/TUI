@@ -117,6 +117,11 @@ package final class PlainMemo {
         package var cooled = 0
     }
 
+    /// The bodies above live timelines, kept across frames by the plain
+    /// memo's key: see ``FrameBodyKeep``. Dropped with everything the cache
+    /// clears (``noteCleared()``).
+    package let frameBodies = FrameBodyKeep()
+
     package init() {}
 
     /// Whether a composite of `V` inside a value memo goes to the memo.
@@ -143,6 +148,7 @@ package final class PlainMemo {
     /// Starts a pass.
     func beginPass() {
         sampler.beginPass()
+        frameBodies.beginPass()
         pass &+= 1
         if pass.isMultiple(of: 64), !gates.isEmpty { gates = gates.filter { $0.value.until >= pass - 64 || $0.value.stored >= pass - 64 } }
     }
@@ -163,6 +169,7 @@ package final class PlainMemo {
     /// clock that changes every frame, asked on 1 frame in 3 and were never served.
     func noteCleared() {
         clearedAt = pass
+        frameBodies.dropAll()
     }
 
     /// Whether the composite filed under `hash` is left out of the memo this pass.

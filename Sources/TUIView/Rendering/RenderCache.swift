@@ -1517,6 +1517,7 @@ extension RenderCache {
     public func reset() {
         entries.removeAll()
         sizeEntries.removeAll()
+        plainMemo.frameBodies.dropAll()
         leases.reset()
         activeIdentities.removeAll()
         retainedSubtreeRoots.removeAll()
@@ -1531,9 +1532,7 @@ extension RenderCache {
     }
 
     /// Resets the cumulative statistics counters to zero.
-    public func resetStats() {
-        stats = Stats()
-    }
+    public func resetStats() { stats = Stats() }
 
     /// Logs a per-frame summary to stderr if debug logging is enabled.
     ///

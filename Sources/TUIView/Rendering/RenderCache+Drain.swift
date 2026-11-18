@@ -53,10 +53,19 @@ extension RenderCache {
     ///     that CONTAIN it go. A focus move onto a scroll view, whose content
     ///     learns nothing of its focus, used to drop every row the content had
     ///     measured and drawn, and the next frame rebuilt them all.
+    ///   - includingAncestors: `false` when no buffer that contains `identity`
+    ///     can hold what the change moves: then only `identity` and what is
+    ///     below it go. A `TimelineView`'s entry moving, whose ancestors drew
+    ///     it with a wake asked for, which no memo stores: dropping them
+    ///     dropped a view that shares an ancestor's identity too, such as the
+    ///     base of the `.background` the timeline is drawn in, at every entry.
     public func clearAffected(
-        by identity: ViewIdentity, keepingSizes: Bool = false, includingDescendants: Bool = true
+        by identity: ViewIdentity, keepingSizes: Bool = false, includingDescendants: Bool = true,
+        includingAncestors: Bool = true
     ) {
-        clearEntries(by: identity, keepingSizes: keepingSizes, includingDescendants: includingDescendants)
+        clearEntries(
+            by: identity, keepingSizes: keepingSizes, includingDescendants: includingDescendants,
+            includingAncestors: includingAncestors)
         // And what is drawn here but cached elsewhere: a subview a container
         // puts in this subtree draws at its declarer's identity, under this
         // subtree's environment (``noteHostedMember(_:host:)``). A worklist, so
@@ -66,23 +75,28 @@ extension RenderCache {
         var pending = membersHosted(under: identity)
         while let member = pending.popLast() {
             guard visited.insert(member).inserted else { continue }
-            clearEntries(by: member, keepingSizes: keepingSizes, includingDescendants: true)
+            clearEntries(by: member, keepingSizes: keepingSizes, includingDescendants: true, includingAncestors: true)
             pending += membersHosted(under: member)
         }
     }
 
     /// ``clearAffected(by:keepingSizes:includingDescendants:)`` without the
     /// hosted members.
-    private func clearEntries(by identity: ViewIdentity, keepingSizes: Bool, includingDescendants: Bool) {
+    private func clearEntries(
+        by identity: ViewIdentity, keepingSizes: Bool, includingDescendants: Bool, includingAncestors: Bool
+    ) {
         if !keepingSizes { sizeClearGeneration &+= 1 }
         stats.subtreeClears += 1
+        // A body kept across frames goes with its view and what is below it,
+        // never with what is above: nothing below a view changes its body.
+        plainMemo.frameBodies.drop(at: identity, includingDescendants: includingDescendants)
         // The hashes of `identity` and every ancestor of it, so "is the cached
         // identity `identity` or above it" is a set lookup per entry (confirmed
         // structurally on a hit) rather than a climb of `identity`'s chain per
         // entry. "Is it below" still climbs the cached chain to `identity`'s
         // depth, which is one hop per level of difference and a hash compare.
         var chain = Set<Int>()
-        var cursor: ViewIdentity? = identity
+        var cursor: ViewIdentity? = includingAncestors ? identity : nil
         while let node = cursor {
             chain.insert(node.structuralHash)
             cursor = node.parent
@@ -93,10 +107,11 @@ extension RenderCache {
             // sees it.
             if identity.isRawRooted || cached.isRawRooted {
                 return cached == identity
-                    || cached.isAncestor(of: identity)
+                    || (includingAncestors && cached.isAncestor(of: identity))
                     || (includingDescendants && identity.isAncestor(of: cached))
             }
             if cached.depth <= identity.depth {
+                guard includingAncestors else { return cached == identity }
                 return chain.contains(cached.structuralHash)
                     && (cached == identity || cached.isAncestor(of: identity))
             }
@@ -125,6 +140,7 @@ extension RenderCache {
     func clearAffected(softlyBy writer: ViewIdentity) {
         sizeClearGeneration &+= 1
         stats.subtreeClears += 1
+        plainMemo.frameBodies.drop(at: writer, includingDescendants: true)
         var chain = Set<Int>()
         var cursor: ViewIdentity? = writer
         while let node = cursor {
@@ -208,6 +224,7 @@ extension RenderCache {
     ) {
         sizeClearGeneration &+= writers.count
         stats.subtreeClears += writers.count
+        for writer in writers { plainMemo.frameBodies.drop(at: writer, includingDescendants: !keptOnly.contains(writer)) }
         let anyRawWriter = writers.contains(where: \.isRawRooted)
         // Every writer and every ancestor of one, by hash. A chain stops where
         // it meets one already indexed, whose ancestors are indexed too.
