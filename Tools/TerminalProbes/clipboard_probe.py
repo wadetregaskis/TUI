@@ -21,6 +21,7 @@ Run INSIDE the terminal under test. Nothing here needs TUI built.
 
 Writes JSON to $PROBE_OUT (default ./clipboard_probe.json) and prints a
 summary. `PROBE_ALT=1` runs on the alternate screen, where TUI draws.
+`PROBE_CEILING_KIB` names the ceiling's sizes (see `CEILING_KIB`).
 
 **Self-verifying where it can be.** On the machine whose clipboard the
 terminal writes, the read-back is `pbpaste` (macOS), `wl-paste` (Wayland), or
@@ -98,7 +99,11 @@ STATUS_REPLY = re.compile(rb"\x1b\[0n")
 ST = b"\x1b\\"
 BEL = b"\x07"
 SETTLE = 0.3  # seconds a host gets to hand the write to its pasteboard
-CEILING_KIB = [1, 8, 64, 100, 256, 512, 1024]
+# The sizes the ceiling tries, in KiB, smallest first; it stops at the first that
+# does not arrive. `PROBE_CEILING_KIB=8,12,16,24,32,48,64` narrows a ceiling
+# an earlier run bracketed.
+CEILING_KIB = [int(kib) for kib in os.environ.get("PROBE_CEILING_KIB", "").split(",") if kib] or [
+    1, 8, 64, 100, 256, 512, 1024]
 
 
 def read_until(fd, pattern, timeout=TIMEOUT):
