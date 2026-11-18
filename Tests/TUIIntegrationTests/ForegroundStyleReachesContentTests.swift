@@ -239,3 +239,22 @@ extension ForegroundStyleReachesContentTests {
         #expect(plain.map(\.ink) == secondary.map(\.ink))
     }
 }
+
+// MARK: - Table
+
+/// A row of a table.
+private struct StyledRow: Identifiable {
+    let id: Int
+    let name: String
+}
+
+extension ForegroundStyleReachesContentTests {
+    @Test("A Table's column titles take the style, as its cells do")
+    func tableHeader() throws {
+        try Self.expectStyled(
+            ForegroundStyleProbe("Table", ["Name", "Hello"]) {
+                Table([StyledRow(id: 1, name: "Hello")]) { TableColumn("Name", value: \StyledRow.name) }
+                    .frame(height: 4)
+            })
+    }
+}

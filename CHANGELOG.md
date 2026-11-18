@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Table`'s column titles take the `.foregroundStyle` in force.** They were drawn in the palette's secondary tier
+whatever the style said, while the cells below took it; now the titles take it too, as SwiftUI's header does (measured
+on macOS 15.8). A chosen column's title keeps the selected row's colours.
+
 **A `ColorPicker`'s label takes the `.foregroundStyle` in force.** It was always drawn in the palette's secondary tier;
 it still is where no style is stated, and takes the style where one is, as SwiftUI's label does (measured on macOS
 15.8).

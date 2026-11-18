@@ -1740,6 +1740,52 @@ SwiftUI's does the same (measured: a column moved at even steps, its colours
 stepping exactly as a `LinearGradient`'s stops beside it), and a mesh that
 changes shape snaps.
 
+### Closed: `.foregroundStyle` on a control reaches the text in it
+
+`.claude/CLAUDE.md` makes it a rule: a `.foregroundStyle(_:)` written on a control
+colours its content. Swept on 2026-11-17 across every control that draws text the
+app supplied or the user typed (`ForegroundStyleReachesContentTests`, one case a
+control), against what SwiftUI does on macOS 15.8
+(`Tools/SwiftUIProbes/Foreground style on controls (FGSWEEP)/fgsweep.out`, which
+reads back the pixels of each control drawn with and without the style).
+
+**Now as in SwiftUI.** A `TextField`'s and a `SecureField`'s typed text, in every
+field style and in a vertical field, and so the search field; a borderless, plain
+or link-styled button's label; a `Link`; a `DisclosureGroup`'s label; a
+`ColorPicker`'s label; a `Table`'s column titles. Each drew in its own colour
+whatever the style said. The prompt of an empty field keeps its own colour, as
+SwiftUI's does. A value in a grouped form or a list's row is in the secondary
+tier until a style is stated, and then takes it whole, as SwiftUI's does (it took
+a secondary level of it); a field or a button in a value's place keeps its own
+colour under the tier, as in SwiftUI, where only the value's text greys. That
+tier is a container's default (`defaultForegroundStyle(_:)`, marked by
+`EnvironmentValues.foregroundStyleIsDefault`): a `Text` draws in it, and a
+control's own drawing reads only a style the app stated
+(`statedForegroundStyle`). Already as in SwiftUI, and pinned by the same test: `Text`,
+`Label`, a `Toggle`'s label (switch and checkbox, not the switch or the box), the
+label and the options of a radio-group or inline `Picker`, the labels of
+`Stepper`, `Slider`, `DatePicker`, `ProgressView` and `Gauge`, a `TextEditor`'s
+text, `List` rows and section headers, `Table` cells, `Form` rows, a `GroupBox`'s
+title and content, and both halves of a `LabeledContent`.
+
+**Where TUI colours more than macOS.** macOS draws some controls with AppKit,
+which does not read the style: the label of an automatic, bordered or
+bordered-prominent button, a `.button` toggle, a `NavigationLink` outside a list
+(drawn as such a button), a `Menu`'s label in any style, and the value a `.menu`
+picker shows all stay in AppKit's colours there. In TUI each of them is a button
+of the framework's own, and takes the style as its label, as SwiftUI's buttons do
+on iOS: the rule above asks for it, and a program that wrote the style asked for
+the colour. A `DisclosureGroup`'s triangle sits in its button's label and takes
+the style with it, where macOS's chevron keeps its grey. Not ruled on by the
+owner; listed here so it can be.
+
+**Where TUI leaves its own colours, as macOS does.** A `TabView`'s tab labels; a
+`DatePicker`'s field; a segmented picker's selected segment, which keeps the
+colour that says it is selected (the others take the style; macOS's segments
+take none). A `Stepper`'s value between its arrows has no SwiftUI counterpart
+and keeps its own tier. Focus and selection colours, and a disabled control's
+tertiary tier, keep their own rules everywhere.
+
 ---
 
 ## 4. No overlap

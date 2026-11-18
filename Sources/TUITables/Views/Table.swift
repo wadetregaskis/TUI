@@ -6443,6 +6443,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
 
     // MARK: - Header Rendering
 
+    /// The titles are drawn in the ``View/foregroundStyle(_:)-(S)`` in force,
+    /// as the cells are and as SwiftUI's header is (measured on macOS 15.8,
+    /// `Tools/SwiftUIProbes/Foreground style on controls (FGSWEEP)/fgsweep.out`):
+    /// one colour, a ramp's representative. Without one, the palette's tier.
+    ///
     /// - Parameter emphasised: Whether the titles take the primary ink rather
     ///   than the secondary — under `.tableStyle(.surface)`, whose header is a
     ///   step stronger.
@@ -6450,7 +6455,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         columnWidths: [Int], gutter: Int, palette: any Palette, context: RenderContext,
         picking handler: ItemListHandler<Value.ID>? = nil, emphasised: Bool = false
     ) -> ClaimingRow {
-        let ink = emphasised ? palette.foreground : palette.foregroundSecondary
+        let ink =
+            context.environment.foregroundStyle?.representative.resolve(with: palette)
+            ?? (emphasised ? palette.foreground : palette.foregroundSecondary)
         let pickedColumn = handler.flatMap(pickedColumn)
         // Through `ClaimingRow` so the header's own colour states its opaque spelling
         // and sends its alpha up as a region. `foregroundSecondary` is a re-spelling of
