@@ -470,7 +470,7 @@ package func observedChange(
     // row again for a clock a leaf beside it read (`ListHugKeptScopeTests`).
     let softly = kind == .bodyRender || kind == .bodyMeasure
     let keptOnly = !softly && cache?.plainMemo.isOn == true && (kind == .keptRender || kind == .keptMeasure)
-    return { [link = cache?.link, identity = context.identity] in
+    return { [link = observationLink(of: context), identity = context.identity] in
         if let cancellation, cancellation.isRetired {
             registration?.cancel()
             return
@@ -536,19 +536,20 @@ package func observingRowBuild<T>(
             sentinel?.touch()
             return build()
         },
-        onChange: rowBuildChange(cache: cache, reader: reader, parent: parent, sentinel: sentinel))
+        onChange: rowBuildChange(
+            cache: cache, link: observationLink(of: context), reader: reader, parent: parent, sentinel: sentinel))
 }
 
 /// ``observingRowBuild(of:parent:context:_:)``'s change: a soft invalidation
 /// at `parent`, unless the lease retired the scope.
 private func rowBuildChange(
-    cache: RenderCache?, reader: Any.Type, parent: ViewIdentity, sentinel: ScopeSentinel?
+    cache: RenderCache?, link: RenderCache.Link?, reader: Any.Type, parent: ViewIdentity, sentinel: ScopeSentinel?
 ) -> @Sendable () -> Void {
     if sentinel == nil { cache?.noteReads(reader) }
     let cancellation = cache?.leases.cancellation(armedWith: sentinel)
     let registration = cache?.observationCensus?.arm(
         .bodyRender, unleased: sentinel == nil && cache?.leases.retirement != .never)
-    return { [link = cache?.link] in
+    return { [link] in
         if let cancellation, cancellation.isRetired {
             registration?.cancel()
             return
@@ -556,6 +557,27 @@ private func rowBuildChange(
         registration?.fire()
         reportObservedChange(at: parent, to: link, softly: true)
     }
+}
+
+/// The link a scope armed under `context` reports its change to: its render
+/// cache's, or, for a walk drawn with none in an app that has one, the app's.
+///
+/// A walk whose pictures are thrown away is drawn with no render cache, so
+/// that nothing it measures or draws is kept or served: a presentation's first
+/// frame walks its content once to collect its toolbar items
+/// (`PresentationToolbarItems.hosting`), a scroll to a key searches rows
+/// (`NestedSeek`), a click on a tree table measures a cell. Its bodies are
+/// still evaluated under observation, at the identities the drawn walk uses,
+/// and with the app's state storage, which holds the app's cache's link, as
+/// every `@State` box it hands out does. Reported through the fallback
+/// instead, a write to what such a walk read cleared the app's whole render
+/// cache: the first keystroke in a sheet's search field redrew the page behind
+/// the sheet (PERFCASE-F15). Through the storage's link it invalidates where
+/// the body was drawn, as the drawn walk's own scope does. Only a render with
+/// no cache anywhere, its storage's included, is left the whole-cache fallback.
+@inline(__always)
+package func observationLink(of context: RenderContext) -> RenderCache.Link? {
+    context.renderCache?.link ?? context.stateStorage?.renderCacheLink
 }
 
 /// Where an observed body's change goes: to the cache the body was drawn
@@ -583,7 +605,8 @@ private func rowBuildChange(
 /// - Parameters:
 ///   - identity: The identity whose body read the property.
 ///   - link: The link of the cache the body was drawn with; `nil` when it was
-///     drawn with no cache.
+///     drawn with no cache, its state storage's included
+///     (``observationLink(of:)``).
 ///   - softly: A parent's read (a body's): see
 ///     ``RenderCache/Link/invalidateRenderForObservedChange(at:softly:keptOnly:)``.
 ///   - keptOnly: A kept result's read, with a scope at every result below.

@@ -11,9 +11,17 @@
 //  prefix no row starts with asks every row for its text (`TypeSelectScanTests`).
 //  The last test pins that routing, which is what the perf case now steps past.
 //
+//  PERFCASE-F15: the first keystroke in a sheet's search field cleared the
+//  whole render cache, and the page behind the sheet was drawn again. The
+//  presentation's first frame walks its content once, with no render cache, to
+//  collect its toolbar items, and the bodies that walk evaluated were observed
+//  with no cache to report to: the query's first write fell back to the
+//  whole-cache clear (`observationLink(of:)`).
+//
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 
 @testable import TUI
@@ -29,6 +37,34 @@ private final class SearchedRows {
 
     var shown: [SearchedEntry] { query.isEmpty ? entries : entries.filter { $0.name.contains(query) } }
     var binding: Binding<String> { Binding(get: { self.query }, set: { self.query = $0 }) }
+}
+
+/// ``SearchedRows``, observed: what a view reads of it is invalidated where it
+/// was read.
+@MainActor
+@Observable
+private final class ObservedSearch {
+    var query = ""
+    @ObservationIgnored let entries = (0..<200).map(SearchedEntry.init)
+
+    var shown: [SearchedEntry] { query.isEmpty ? entries : entries.filter { $0.name.contains(query) } }
+    var binding: Binding<String> { Binding(get: { self.query }, set: { self.query = $0 }) }
+}
+
+/// How often the page behind a sheet has been drawn.
+@MainActor
+private final class BehindDraws {
+    var drawn = 0
+}
+
+/// The page behind the sheet, counting its draws.
+private struct Behind: View {
+    let draws: BehindDraws
+
+    var body: some View {
+        draws.drawn += 1
+        return Text(verbatim: "behind")
+    }
 }
 
 private struct SearchedEntry: Identifiable, Hashable {
@@ -111,6 +147,29 @@ struct SearchKeystrokeCostTests {
         #expect(model.query == "17", "the keys reached the field")
         #expect(model.cells > 0, "nothing was drawn, so this proved nothing")
         #expect(model.cells <= 2 * Self.height, "\(model.cells) cells read for two keystrokes")
+    }
+
+    @Test("The first keystroke in a sheet's search field leaves the page behind the sheet drawn as it was")
+    func firstKeystrokeKeepsThePageBehind() {
+        let model = ObservedSearch()
+        let behind = BehindDraws()
+        let app = TestApp(width: 60, height: Self.height) {
+            Behind(draws: behind).sheet(isPresented: .constant(true)) {
+                List { ForEach(model.shown) { SearchedRow(entry: $0) } }.searchable(text: model.binding)
+            }
+        }
+        _ = app.screen
+        #expect(behind.drawn > 0, "the page behind was never drawn, so this proved nothing")
+        app.press(.character("f"), modifiers: .control)
+        // Frames with nothing changed, past the memo's cooldown of a page
+        // drawn unserved as the app opened: from here the page is served.
+        for _ in 0..<16 { app.advance(by: .milliseconds(17)) }
+        behind.drawn = 0
+        app.type("1")
+        #expect(model.query == "1", "the key reached the field")
+        #expect(behind.drawn == 0, "the first keystroke drew the page behind the sheet \(behind.drawn) times")
+        app.type("7")
+        #expect(behind.drawn == 0, "the second keystroke drew the page behind the sheet \(behind.drawn) times")
     }
 
     @Test("In a sheet the list holds the first focus: a key typed before Find is its type select, not a query")

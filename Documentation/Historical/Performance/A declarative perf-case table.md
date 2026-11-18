@@ -1011,6 +1011,27 @@ and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
   (not a newly learned reading type, not the environment snapshot); the Find's frame clears no more than subtrees.
   Not seen: which write asks for that clear (`setNeedsRenderWithCacheClear()` or an observed change made while a
   transaction waits, `walkPendingChanges(keepingNothing:)`), nor what the Find's focus move drops of the page behind.
+  **The clear (2026-11-17):** the query's first write, through an observation armed with no render cache. A
+  presentation's first frame walks its content once, measuring, with no render cache, to collect its toolbar items
+  (`PresentationToolbarItems.hosting`'s seed: nothing it measures or draws may be served to the drawn walk). The
+  bodies it evaluates are still observed, and a scope armed with no cache reports through the whole-cache fallback
+  (`reportObservedChange`), asked of the app whose work made the change: the searchable's body and the case's leaf
+  view, which read the query, armed six such scopes as the sheet came up, and the first keystroke fired them. The
+  second found them spent. Not necessary: the drawn walk evaluates the same bodies at the same identities, under the
+  app's cache, and its own scopes invalidate what the write changes. Now a scope armed under a walk with no cache
+  reports to the cache of the walk's state storage, which a throwaway walk shares with the app, as every `@State`
+  box it hands out already did (`observationLink(of:)`): a soft invalidation where the body was drawn. Only a render
+  with no cache anywhere keeps the fallback. The same holds for the other walks drawn with no cache, a scroll to a key
+  (`NestedSeek`) and a tree table's click probe. `type:ab` now reads no cell of the table behind and builds 76 rows,
+  where it read 245 and built 95 (bodies 216 to 210, served 1 to 2, misses 338 to 336, the bytes the same); the first
+  backspace builds 74, where it built 76. `SearchKeystrokeCostTests` types into a sheet's field over a page that counts
+  its draws: the first keystroke drew it once before, and not at all now. **The Find's 245 is not the focus move:**
+  nothing is dropped. The page behind (a plain-memoized composite) was drawn unserved twice as the app opened, which
+  cools its memo down for four passes (`PlainViewMemo.noteMissed`), and the Find's frame is the first after the
+  cooldown, which draws and stores it; three idle frames between the present and the Find move the 245 cells to the
+  idle frames and leave the Find none. Why the open's walks store nothing of the page is not established (its first
+  frame walks twice, a write in the wrapped table between), nor whether an opening frame's misses should count toward
+  a cooldown at all: left open, and the case's `key:find` line keeps its 245.
 
 Known already and named for the new cases: a `.fit` column reads every row as its table opens (PERFCASE-F5's class,
 `alert-table`, `table-fit-tiny`, and `nsplit-storm`'s resizes), and the bottom-anchored lazy stack's PERFCASE-F3
