@@ -203,6 +203,16 @@ extension MenusSession {
         return nil
     }
 
+    /// How a row's label is painted, as the highlight check tells rows apart:
+    /// its field, and whether it is reversed — which, at no colour (`NO_COLOR`
+    /// set), is the highlight's only mark.
+    private struct RowPaint: Equatable {
+        let field: Color?
+        let isReversed: Bool
+
+        var name: String { ScreenCell.name(field) + (isReversed ? " reversed" : "") }
+    }
+
     /// The open menu's highlight, read from how its rows are painted: the row
     /// the session walked to painted apart from the others, or none apart
     /// when it walked to none.
@@ -211,21 +221,22 @@ extension MenusSession {
         let rows = selectableRows(menu.kind)
         let stripped = screen.map(\.stripped)
         let cells = ScreenCells(screen)
-        // The field each drawn row's label is painted on.
-        var fields: [(row: Int, field: Color?)] = []
+        // How each drawn row's label is painted.
+        var fields: [(row: Int, field: RowPaint)] = []
         for (row, label) in rows.enumerated() {
             guard let (x, y) = Self.popupRow(label, on: stripped) else { continue }
-            fields.append((row, cells.cell(row: y, column: x + label.count / 2)?.background))
+            let cell = cells.cell(row: y, column: x + label.count / 2)
+            fields.append((row, RowPaint(field: cell?.background, isReversed: cell?.isReversed ?? false)))
         }
         guard fields.count > 1 else { return nil }
-        let painted = fields.map { "\(rows[$0.row]) on \(ScreenCell.name($0.field))" }.joined(separator: ", ")
+        let painted = fields.map { "\(rows[$0.row]) on \($0.field.name)" }.joined(separator: ", ")
         if let highlight = menu.highlight, highlight < rows.count {
             guard let lit = fields.first(where: { $0.row == highlight }) else { return nil }
             if fields.contains(where: { $0.row != highlight && $0.field == lit.field }) {
                 return "\(describe(menu.kind)) should highlight \"\(rows[highlight])\", but its row is painted as "
                     + "another is: \(painted)"
             }
-        } else if Set(fields.map { ScreenCell.name($0.field) }).count > 1 {
+        } else if Set(fields.map(\.field.name)).count > 1 {
             return "\(describe(menu.kind)) should highlight nothing, but a row is painted apart: \(painted)"
         }
         return nil

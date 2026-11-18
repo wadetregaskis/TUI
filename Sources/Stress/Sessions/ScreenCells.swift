@@ -24,6 +24,10 @@ struct ScreenCell: Equatable {
     var background: Color?
     var isBold = false
     var isDim = false
+    /// Whether reverse video was in force. Its colours are already swapped
+    /// into ``foreground`` and ``background``, but at no colour at all there
+    /// are none to swap, and this is all that sets a reversed cell apart.
+    var isReversed = false
 
     /// Whether the cell shows ink: a character that is not a space.
     var hasInk: Bool {
@@ -128,7 +132,8 @@ private struct CellParser {
                 spellings[spelling] = cells.count
             }
             let cell = ScreenCell(
-                character: first, foreground: ink?.0, background: field?.0, isBold: bold, isDim: dim)
+                character: first, foreground: ink?.0, background: field?.0, isBold: bold, isDim: dim,
+                isReversed: reversed)
             cells.append(cell)
             for _ in 1..<max(1, first.terminalWidth) {
                 var continuation = cell
