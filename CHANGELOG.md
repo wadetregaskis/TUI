@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A disabled vertical `TextField` looks disabled wherever a one-line one does.** A disabled field drawn without
+colour, or in a palette whose dimmed text is its normal text at 16 colours, is drawn faint; a field made with
+`axis: .vertical` was not, and looked enabled there. It is now drawn exactly as a disabled one-line field is.
+
 **A `TextField` or `SecureField` written directly in a `Form` puts its title in the label column.** It was a plain
 row, drawn full width, whose title was only the empty field's hint, so the row lost its title as soon as anything was
 typed. Now `TextField("Name", text: $name)` in a form is a field row, as in SwiftUI's form on macOS: the title in the

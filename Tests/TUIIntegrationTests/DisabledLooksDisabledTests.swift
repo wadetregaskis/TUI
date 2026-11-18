@@ -82,4 +82,36 @@ struct DisabledLooksDisabledTests {
             }
         }
     }
+
+    /// The row a field holding "Go" draws, below a button that holds the focus.
+    private func fieldRow(axis: Axis, palette: any Palette, disabled: Bool) -> String {
+        let app = TestApp(width: 40, height: 6) {
+            VStack(alignment: .leading) {
+                Button("Anchor") {}
+                TextField("Name", text: .constant("Go"), axis: axis).disabled(disabled)
+            }
+            .palette(palette)
+        }
+        return app.screen.styledLines.dropFirst().first ?? ""
+    }
+
+    @Test("A disabled vertical TextField is drawn as a disabled one-line field is, at every depth")
+    func verticalFieldFadesAsOneLineFieldDoes() {
+        // A vertical field of one row draws the cells a one-line field does. It
+        // missed the fade a disabled one-line field gets where colour can't say
+        // so (`fadedTextInput`), so without colour, and in a palette whose
+        // tertiary tier is its foreground at 16 colours, it looked enabled.
+        for depth in [ColorDepth.noColor, .basic16, .palette256, .truecolor] {
+            for palette in PaletteRegistry.phosphorPresets + PaletteRegistry.appleTerminalProfiles {
+                ColorDepth.withCurrent(depth) {
+                    let oneLine = fieldRow(axis: .horizontal, palette: palette, disabled: true)
+                    let vertical = fieldRow(axis: .vertical, palette: palette, disabled: true)
+                    #expect(vertical == oneLine, "\(palette.name) at \(depth)")
+                    #expect(
+                        vertical != fieldRow(axis: .vertical, palette: palette, disabled: false),
+                        "\(palette.name) at \(depth): the disabled vertical field looks enabled")
+                }
+            }
+        }
+    }
 }

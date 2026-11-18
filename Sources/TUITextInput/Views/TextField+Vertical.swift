@@ -183,7 +183,9 @@ extension _TextFieldCore {
         if let suggestionMenu, suggestionMenu.isOpen {
             TextFieldSuggestions.attach(menu: suggestionMenu, to: &buffer, handler: handler, context: context)
         }
-        return buffer
+        // Faint where a one-line field is (`renderToBuffer(context:)`): without
+        // colour, and where the tertiary tier draws as the enabled text's colour.
+        return buffer.fadedTextInput(if: isDisabled, text: renderer.contentForeground, context: context)
     }
 
     /// The rows between their caps, with every row's caret run and claims moved
