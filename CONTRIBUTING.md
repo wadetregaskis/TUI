@@ -257,7 +257,9 @@ side by side, each putting itself on the user's `PATH` and in `SDKROOT`; the fir
 `PATH` compiles, and `SDKROOT` names the last installed, so set both for the one you mean.
 With two installed, 6.4's SwiftPM stops before building ("platform 'windows' already
 registered"): its default build system reads every platform in the install, so build
-with `--build-system native` there, or keep one toolchain installed.
+with `--build-system native` there, or keep one toolchain installed. An older toolchain does
+not install beside a newer one: its installer finds its packages obsolete, installs nothing,
+and reports success. Windows port.md, "Toolchain", says how 6.2.4 was unpacked instead.
 
 Two things that are *not* blockers, despite looking like them: `@AppStorage`
 already falls back to JSON-file storage off Apple platforms, so the open

@@ -82,15 +82,32 @@ Visual Studio 2022 Build Tools 17.14, installed with `winget install Swift.Toolc
   keeps shared plugin code behind symlinks, and for the file-panel tests that make links. Until the owner turned it
   on (2026-11-16) the VM worked round the checkout by telling git to write links as files for SwiftPM's process
   (`GIT_CONFIG_COUNT=1`, `core.symlinks=false`); CI's containers run as administrator and need neither.
-- **Toolchains install side by side** (6.3.3, then 6.4.2 and 6.2.4, each by `winget install Swift.Toolchain
+- **Toolchains install side by side** (6.3.3, then 6.4.2, each by `winget install Swift.Toolchain
   --version …`), each adding itself to the user's `PATH` and setting `SDKROOT`: the first on the `PATH` compiles and
   `SDKROOT` names the last installed, so a build sets both for the one it means. With more than one installed,
   6.4's SwiftPM stops before building ("platform 'windows' already registered from …\Platforms\6.3.3"): its default
   build system reads every platform in the install. `--build-system native`, deprecated, builds. A test runner needs
   the same toolchain's runtime first on its `PATH`, or it stops at launch with `0xC0000139`, an entry point not found.
+- **Side by side goes upward only.** 6.2.4's installer, run with 6.3.3 and 6.4.2 installed, finds its packages
+  "Obsolete" against theirs, installs nothing and reports success. It was measured unpacked instead, registered with
+  nothing: the bundle's payload cabinet cut out of the `.exe` by its `MSCF` header (7-Zip reads only the first one),
+  its files named from the bundle's manifest, and `msiexec /a <package>.msi TARGETDIR=…` for the runtime, the build
+  tools, the compiler and the Windows platform. A short `TARGETDIR` (`%LOCALAPPDATA%\S624`): the toolchain's own paths
+  are deep, and under the session's scratch folder they passed 260 characters (error 1304). The runtime's DLLs land at
+  the top of `TARGETDIR`.
+- **A full disk can look like a crashing compiler.** A debug build of the package and its tests takes about 4 GB per
+  toolchain. Builds here crashed `swift-frontend` in IRGen, or with exception 5, in module after module, until one
+  said "no space on device"; once space was freed, the same builds were clean. Check the disk before the compiler.
 - **6.4.2 sees `_RegexParser`'s `String.init` beside the standard library's**, so `String(cells.map { … ? "." : "#" })`,
   literals that may be Strings or Characters, is ambiguous there (2aa30a83a). And it checks strict memory safety, which
   6.2 and 6.3 build without: a Win32 handle is a raw pointer in Swift, so the Windows arms needed `unsafe` (3b8bc906a).
+- **6.4.2 warns about its own SDK on a cold module cache.** A clean build prints "reference to type 'wchar_t' broken
+  by a context change; 'wchar_t' was expected to be in '_Builtin_stddef', but now a candidate is found only in
+  'SwiftShims'", raised at `WinSDK.swiftmodule:1:1` (59 times in one clean build of the package), with a note that
+  WinSDK was built in Swift 5.10. It names no line of TUI's, one file that raised it (`TUIEnvironmentDocsTool`'s
+  `main.swift`, plain Foundation) does not raise it again when rebuilt with the cache warm, and a one-line program
+  importing WinSDK or Foundation does not raise it at all. 6.2.4 and 6.3.3 do not print it. It is the toolchain's;
+  TUI has nothing to change.
 - **A Windows Terminal started before a toolchain was installed** has the old `PATH` in every tab and window it
   opens: a program built since stops at launch, "The code execution cannot proceed because
   `swift_StringProcessing.dll` was not found" (CONTRIBUTING).
