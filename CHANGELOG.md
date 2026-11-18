@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextField` or `SecureField` written directly in a `Form` puts its title in the label column.** It was a plain
+row, drawn full width, whose title was only the empty field's hint, so the row lost its title as soon as anything was
+typed. Now `TextField("Name", text: $name)` in a form is a field row, as in SwiftUI's form on macOS: the title in the
+label column, right-aligned with the others (leading the row in a grouped form), and the field in the value column,
+the same row `LabeledContent("Name") { TextField("", text: $name) }` draws. As in SwiftUI, the title is then not also
+the hint: an empty field shows its prompt, or nothing. A field with an empty title sits in the value column, and
+`.labelsHidden()` hides the title altogether.
+
 **Tab into a `LazyVStack` from outside its `ScrollView` lands on the stack's first row, and Shift-Tab on its
 last.** Coming in from the control before the scroll view, the focus landed on the first row on screen, and Shift-Tab
 from the scroll view or the control after it on the last row on screen, then went round only those rows, as SwiftUI's

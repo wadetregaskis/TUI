@@ -234,6 +234,13 @@ public struct TextField<Label: View> {
     /// for none — the `selection:` initialisers.
     var selection: _TextSelectionChannel?
 
+    /// Whether the title stands in for a missing prompt while the field is
+    /// empty (``fieldPrompt(_:title:titleIsPlaceholder:)``): `false` in a ``Form``, whose label
+    /// column draws the title (``FormFieldControl``), so only a prompt is a
+    /// placeholder there, as in SwiftUI's form (measured,
+    /// `Tools/SwiftUIProbes/Form rows/textfield-title.out`).
+    var titleIsPlaceholder = true
+
     /// Where the field's context menu finds its handler — the same object
     /// frame after frame, so the menu and a memo of it see one value.
     @State private var menuTarget = TextEditingMenuTarget()
@@ -244,7 +251,7 @@ public struct TextField<Label: View> {
         if let formatting {
             _FormattedFieldBody(
                 formatting: formatting,
-                prompt: fieldPrompt(prompt, title: label),
+                prompt: fieldPrompt(prompt, title: label, titleIsPlaceholder: titleIsPlaceholder),
                 label: label,
                 focusID: focusID,
                 isDisabled: isDisabled,
@@ -256,7 +263,7 @@ public struct TextField<Label: View> {
                 content: _TextFieldCore(
                     label: label,
                     text: text,
-                    prompt: fieldPrompt(prompt, title: label),
+                    prompt: fieldPrompt(prompt, title: label, titleIsPlaceholder: titleIsPlaceholder),
                     focusID: focusID,
                     isDisabled: isDisabled,
                     onSubmitAction: onSubmitAction,
@@ -278,11 +285,12 @@ extension TextField: View {}
 /// as placeholder text, depending on whether the initializer provided a
 /// prompt". A title of the app's own views, or an empty one — the
 /// `LabeledContent("Name") { TextField("", …) }` a form row is written with —
-/// gives none.
+/// gives none, and so does any title where `titleIsPlaceholder` is `false`: in
+/// a ``Form``, which draws the title in its label column.
 @MainActor
-func fieldPrompt<Title: View>(_ prompt: Text?, title: Title) -> Text? {
+func fieldPrompt<Title: View>(_ prompt: Text?, title: Title, titleIsPlaceholder: Bool = true) -> Text? {
     if let prompt { return prompt }
-    guard let title = title as? Text, !title.content.isEmpty else { return nil }
+    guard titleIsPlaceholder, let title = title as? Text, !title.content.isEmpty else { return nil }
     return title
 }
 

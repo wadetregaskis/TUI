@@ -93,6 +93,9 @@ struct _FormattedFieldBody<Label: View>: View {
         // it runs. The commit is not a submit action: a field with none still
         // lets Return go on to a dialog's default button.
         field.returnCommitAction = commit
+        // `prompt` is the placeholder already chosen, title or not: the
+        // field's title must not come back in where a form left it out.
+        field.titleIsPlaceholder = false
         if let onSubmitAction { field = field.onSubmit(onSubmitAction) }
         field = field
             .onEditingChanged { isEditing in

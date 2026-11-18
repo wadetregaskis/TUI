@@ -831,8 +831,14 @@ messages cite that path), and what cites it.
   a checkbox and as a switch, a `Slider`, a `Stepper`, a `Button`, a `LabeledContent`, a `TextField` — directly and
   as the whole body of a `struct` of the app's own, and a picker two such views deep and under a modifier: every
   one lays out exactly as written bare, label and row frames and drawn extent alike, in both styles.
+  `textfield-title.swift` (`textfield-title.out`) asks what becomes of a bare `TextField`'s title and prompt, and a
+  `SecureField`'s, reading the AppKit field SwiftUI made: in either style the title is the row's label (the field
+  starts right of the label column; with an empty title or `.labelsHidden()` it starts further left, beside no label)
+  and no longer the placeholder, which is the prompt or nothing; outside a form the placeholder is the prompt,
+  else the title.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4; `modified.swift` 2026-10-14, `rows.swift` 2026-10-19,
-  `unlabelled.swift`, `more-modifiers.swift` and `appview.swift` 2026-10-19.
+  `unlabelled.swift`, `more-modifiers.swift` and `appview.swift` 2026-10-19; `textfield-title.swift` 2026-11-17 on
+  macOS 15.8.3, Xcode 26.3.
 - **Was:** `PROBES-1014/labeledcontent/` (`p3-modified-rows.swift`) and `FORMS/probes/` (`p4-form-rows.swift`,
   `p5/unlabelled.swift`, `p5/modifiers2.swift`).
 - **Cited by:** `Sources/TUIForms/Views/FormContentExtraction.swift`,
@@ -842,8 +848,9 @@ messages cite that path), and what cites it.
   `ContextMenuModifier.swift`, `OverlayModifier.swift`, `FocusPathModifier.swift`, `DragAndDrop+Form.swift`,
   `TransitionModifier.swift`, the presentation modifiers and beside them), `Sources/TUIFoundation/Views/FormControlRow.swift`
   and the labelled controls' conformances (`Sources/TUIPickers/Views/Picker+Form.swift`,
-  `Sources/TUINumericControls/Views/NumericControls+Form.swift`, `Sources/TUIColorPicker/Views/ColorPicker.swift`),
-  `Tests/TUIIntegrationTests/FormModifiedRowTests.swift`, `Tests/TUIIntegrationTests/FormLabelledControlTests.swift`;
+  `Sources/TUINumericControls/Views/NumericControls+Form.swift`, `Sources/TUIColorPicker/Views/ColorPicker.swift`,
+  `Sources/TUITextInput/Views/TextField+Form.swift`), `Tests/TUIIntegrationTests/FormModifiedRowTests.swift`,
+  `Tests/TUIIntegrationTests/FormLabelledControlTests.swift`, `Tests/TUIIntegrationTests/FormTextFieldRowTests.swift`;
   `Documentation/SwiftUI parity/SwiftUI compatibility guide.md` (Containers, `Form`);
   `Documentation/Historical/SwiftUI parity process/The semantic audit of August 2026.md` (item 8, and the verifiers' finding on labelled
   controls).

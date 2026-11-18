@@ -112,6 +112,10 @@ public struct SecureField<Label: View> {
     /// Action to perform when the user submits (presses Enter).
     var onSubmitAction: (() -> Void)?
 
+    /// Whether the title stands in for a missing prompt while the field is
+    /// empty: `false` in a ``Form``, as for a ``TextField``.
+    var titleIsPlaceholder = true
+
     /// Where the field's context menu finds its handler — see ``TextField``.
     @State private var menuTarget = TextEditingMenuTarget()
 
@@ -120,7 +124,7 @@ public struct SecureField<Label: View> {
         _StyledFieldFrame(
             content: _SecureFieldCore(
                 text: text,
-                prompt: fieldPrompt(prompt, title: label),
+                prompt: fieldPrompt(prompt, title: label, titleIsPlaceholder: titleIsPlaceholder),
                 focusID: focusID,
                 isDisabled: isDisabled,
                 onSubmitAction: onSubmitAction,
