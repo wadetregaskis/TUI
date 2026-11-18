@@ -38,7 +38,7 @@ after `PROBE_WAIT` seconds (default 6) and records nothing arrived. Ctrl-C
 ends the run early. Writes JSON to $PROBE_OUT (default ./key_probe.json), with
 the shared provenance stamp, and prints a summary.
 """
-import json, os, select, sys, termios, time, tty
+import json, os, re, select, sys, termios, time, tty
 
 import probe_stamp
 
@@ -112,15 +112,25 @@ def decode(raw):
     return prefix + (f"{modifier}+{name}" if modifier else name)
 
 
+# An SGR mouse report. The probe asks for no mouse reporting, but the Windows
+# console's raw mode (TUI's, which `windows/termios.py` copies) takes mouse input,
+# and Windows Terminal then reports the pointer's motion unasked: a report is
+# never a key, so it is dropped and the wait goes on.
+MOUSE_REPORT = re.compile(rb"\x1b\[<\d+;\d+;\d+[Mm]")
+
+
 def read_key(fd):
     """The bytes of one key, or b"" when nothing arrived within the wait."""
-    if not select.select([fd], [], [], WAIT)[0]:
-        return b""
-    raw = os.read(fd, 64)
-    deadline = time.monotonic() + TAIL
-    while (left := deadline - time.monotonic()) > 0 and select.select([fd], [], [], left)[0]:
-        raw += os.read(fd, 64)
-    return raw
+    give_up = time.monotonic() + WAIT
+    while (left := give_up - time.monotonic()) > 0 and select.select([fd], [], [], left)[0]:
+        raw = os.read(fd, 64)
+        deadline = time.monotonic() + TAIL
+        while (left := deadline - time.monotonic()) > 0 and select.select([fd], [], [], left)[0]:
+            raw += os.read(fd, 64)
+        raw = MOUSE_REPORT.sub(b"", raw)
+        if raw:
+            return raw
+    return b""
 
 
 def main():
