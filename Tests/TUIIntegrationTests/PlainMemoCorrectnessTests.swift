@@ -556,6 +556,41 @@ struct PlainMemoCorrectnessTests {
         #expect(Probe.take("changes") == 0)
     }
 
+    /// The gate's evidence is a frame's drawn walk, once (PERFCASE-F15): an
+    /// app's first frame draws its page while measuring, where nothing is
+    /// stored, and walks it twice, and counted per draw that one frame was two
+    /// failures running.
+    @Test("A draw while measuring is no evidence for the gate")
+    func measuringIsNoEvidence() {
+        let memo = PlainMemo()
+        let hash = 0x51
+        memo.beginPass()
+        memo.noteDrawn(at: hash, served: false, measuring: true)
+        memo.lastStored = hash
+        memo.noteDrawn(at: hash, served: false, measuring: false)
+        // The store did no good: the next frame misses, and stores nothing.
+        memo.beginPass()
+        memo.lastStored = 0
+        memo.noteDrawn(at: hash, served: false, measuring: false)
+        memo.beginPass()
+        #expect(!memo.isCoolingDown(hash), "one failed frame cooled it")
+    }
+
+    @Test("A frame walked again counts once for the gate")
+    func rewalkCountsOnce() {
+        let memo = PlainMemo()
+        let hash = 0x52
+        memo.beginPass()
+        memo.noteDrawn(at: hash, served: false, measuring: false)
+        memo.noteDrawn(at: hash, served: false, measuring: false)
+        memo.beginPass()
+        #expect(!memo.isCoolingDown(hash), "one frame, walked twice, cooled it")
+        // A second frame that fails is two running.
+        memo.noteDrawn(at: hash, served: false, measuring: false)
+        memo.beginPass()
+        #expect(memo.isCoolingDown(hash))
+    }
+
     /// `session/glides` empties the cache on each animated change, and a page whose
     /// glides keep it from being stored asked again after every one.
     @Test("Emptying the cache leaves what has stopped asking where it was")

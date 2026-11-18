@@ -1032,6 +1032,24 @@ and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
   idle frames and leave the Find none. Why the open's walks store nothing of the page is not established (its first
   frame walks twice, a write in the wrapped table between), nor whether an opening frame's misses should count toward
   a cooldown at all: left open, and the case's `key:find` line keeps its 245.
+  **The residue (2026-11-18):** not the opening frames. The memo's gate counted misses per draw, and an app's first
+  frame draws its page more than once: while measuring (where nothing is ever stored, `RenderCache.isStorable`),
+  then in the drawn walk, and again in a walk made again (`FrameSettling`). That one frame was two failures
+  running, and every composite of the page was cooled from pass 1 to pass 5, through the open and the sheet's two
+  frames. Now what a frame says is what its drawn walk says, once: a draw while measuring is no evidence unless it
+  served, and a pass counts once (`PlainMemo.noteDrawn(at:served:measuring:)`; either rule alone leaves a case
+  cooled: counted once, the measure's miss stood for the pass where the drawn walk stored). Why the open's frames
+  store nothing is principled: with the sheet dismissed the table holds the focus, and a focused registration
+  cannot be replayed (`FocusRegistration.declare`), so neither it nor anything above it stores; under the sheet it
+  draws unfocused (the backdrop's focus manager) and is stored in the sheet's first frame, stored again in its
+  second (the cache is emptied at the end of the first, as a type is first seen to read), and served from then on.
+  Counts, re-recorded: `sheet-search`'s `key:find` reads 0 cells where it read 245, and its `present` 490
+  where 735; `sheet-item-walk`'s `key:right` 0 where 245; `alert-table`'s `present` 372 where 557; `grid-scroll`'s
+  `wheel:+3` runs 6,361 bodies where 6,853; over every case's phases at n, bodies −574, cells −1,000, measure misses
+  −1,067, bytes the same. The price: a composite that cannot be stored (a live page holding the focus) asks a frame
+  longer before it is cooled, so `built` (rows composed, an ask that missed among them) is +737 over the cases,
+  `open` +4 to +12 a case; and two phases run a few more bodies, the cooldowns falling on other passes
+  (`nsplit-three`'s `key:down#2` +7 of 1,088, `split-hover`'s `hover:+1` +8 of 223).
 
 Known already and named for the new cases: a `.fit` column reads every row as its table opens (PERFCASE-F5's class,
 `alert-table`, `table-fit-tiny`, and `nsplit-storm`'s resizes), and the bottom-anchored lazy stack's PERFCASE-F3

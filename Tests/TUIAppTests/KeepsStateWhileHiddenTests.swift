@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Observation
 import Testing
 import TUICore
 
@@ -19,6 +20,11 @@ import TUITesting
 @MainActor
 @Suite("keepsStateWhileHidden")
 struct KeepsStateWhileHiddenTests {
+    // Observed, as an app's model would be: the page switch reaches the view
+    // through observation, not a frame that happens to redraw everything. A
+    // plain class written behind TUI's back is not an input the render memo
+    // can see, as it is not one SwiftUI's diffing can see either.
+    @Observable
     final class Box: @unchecked Sendable {
         var page = 0
     }

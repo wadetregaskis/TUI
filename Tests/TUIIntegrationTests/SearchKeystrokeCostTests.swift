@@ -67,6 +67,25 @@ private struct Behind: View {
     }
 }
 
+/// Whether the sheet is up.
+@MainActor
+@Observable
+private final class Presenting {
+    var isPresented = false
+    var binding: Binding<Bool> { Binding(get: { self.isPresented }, set: { self.isPresented = $0 }) }
+}
+
+/// A live page behind the sheet, counting its draws: its list takes the first
+/// focus, and a focused list cannot be stored.
+private struct FocusedBehind: View {
+    let draws: BehindDraws
+
+    var body: some View {
+        draws.drawn += 1
+        return List { ForEach(0..<40, id: \.self) { Text(verbatim: "row \($0)") } }
+    }
+}
+
 private struct SearchedEntry: Identifiable, Hashable {
     let id: Int
     var name: String { "entry \(id)" }
@@ -161,15 +180,38 @@ struct SearchKeystrokeCostTests {
         _ = app.screen
         #expect(behind.drawn > 0, "the page behind was never drawn, so this proved nothing")
         app.press(.character("f"), modifiers: .control)
-        // Frames with nothing changed, past the memo's cooldown of a page
-        // drawn unserved as the app opened: from here the page is served.
-        for _ in 0..<16 { app.advance(by: .milliseconds(17)) }
         behind.drawn = 0
         app.type("1")
         #expect(model.query == "1", "the key reached the field")
         #expect(behind.drawn == 0, "the first keystroke drew the page behind the sheet \(behind.drawn) times")
         app.type("7")
         #expect(behind.drawn == 0, "the second keystroke drew the page behind the sheet \(behind.drawn) times")
+    }
+
+    /// PERFCASE-F15's residue: the memo's gate counted its misses per draw,
+    /// and an app's first frame draws its page more than once (while measuring,
+    /// then the drawn walk, then the walk made again). A live page whose list
+    /// holds the focus cannot be stored, so that one frame was two failures
+    /// running, and the page was left out of the memo through the sheet's
+    /// opening frames, where it could have been stored: the first key after
+    /// them drew it again.
+    @Test("Find, the first key after a sheet opens, leaves the page behind the sheet drawn as it was")
+    func findKeepsThePageBehind() {
+        let model = ObservedSearch()
+        let presenting = Presenting()
+        let behind = BehindDraws()
+        let app = TestApp(width: 60, height: Self.height) {
+            FocusedBehind(draws: behind).sheet(isPresented: presenting.binding) {
+                List { ForEach(model.shown) { SearchedRow(entry: $0) } }.searchable(text: model.binding)
+            }
+        }
+        _ = app.screen
+        presenting.isPresented = true
+        _ = app.screen
+        #expect(behind.drawn > 0, "the page behind was never drawn, so this proved nothing")
+        behind.drawn = 0
+        app.press(.character("f"), modifiers: .control)
+        #expect(behind.drawn == 0, "Find drew the page behind the sheet \(behind.drawn) times")
     }
 
     @Test("In a sheet the list holds the first focus: a key typed before Find is its type select, not a query")

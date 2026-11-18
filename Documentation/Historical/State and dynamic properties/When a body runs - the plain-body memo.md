@@ -261,7 +261,10 @@ What changed from the study, and why:
   to derive from. Stamps fell from 56% to 25% of `session/notes` under the
   memo.
 - **The gate:** two failures running stop a composite asking for 4, 8 … 64
-  passes; a serve ends it, and emptying the cache forgets the count. It is
+  passes; a serve ends it, and emptying the cache forgets the count. A
+  failure is a frame's: a pass counts once, and a draw while measuring, where
+  nothing is stored, is no evidence (2026-11-18, PERFCASE-F15 in
+  `Historical/Performance/A declarative perf-case table.md`). It is
   not a hit rate or a subtree cost, for §28's reasons. `session/notes`, memo
   off → on, across the builds:
 

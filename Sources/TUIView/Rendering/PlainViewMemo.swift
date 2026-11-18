@@ -50,8 +50,8 @@ package final class PlainMemo {
     private var pass = 0
 
     /// The identity of the entry stored last, by its filed hash: whether the memo
-    /// that just drew stored what it drew (``noteDrawn(at:)``), as nothing else
-    /// below it can have stored last.
+    /// that just drew stored what it drew (``noteDrawn(at:served:measuring:)``),
+    /// as nothing else below it can have stored last.
     var lastStored = 0
 
     /// How many value memos (`.equatable()`, a `ForEach` row) are drawing or
@@ -94,6 +94,8 @@ package final class PlainMemo {
         var until = 0
         /// The pass it last stored in.
         var stored = -1
+        /// The pass whose miss last counted in ``run``: a pass counts once.
+        var counted = -1
     }
 
     /// What stores earn nothing. A composite that has to be drawn every frame (its
@@ -174,12 +176,26 @@ package final class PlainMemo {
     /// or could not. A store is no evidence until the next pass says whether it was
     /// any use, which is the pass after a cooldown ends too, so that a composite
     /// that has settled is served again.
+    ///
+    /// What a frame says is what its drawn walk says, once. A draw while
+    /// `measuring` is no evidence unless it served: nothing drawn there is ever
+    /// stored (`RenderCache.isStorable`), so its miss says nothing of whether
+    /// the drawn walk would be served. And a pass counts once, as a cooldown is
+    /// counted in passes: a walk made again within it (`FrameSettling`) draws
+    /// what the walk before it wrote over, and its miss is the same frame's.
+    /// Counted per draw, an app's first frame, which measures by drawing and
+    /// walks twice, was two failures running before it had drawn a second
+    /// frame, and cooled its page through the frames after: `sheet-search`'s
+    /// table behind the sheet was left out of the memo for the sheet's two
+    /// opening frames, where it could have been stored, and Find drew it
+    /// (PERFCASE-F15).
     @inline(__always)
-    func noteDrawn(at hash: Int, served: Bool) {
+    func noteDrawn(at hash: Int, served: Bool, measuring: Bool) {
         if served {
             if !gates.isEmpty { gates[hash] = nil }
             return
         }
+        if measuring { return }
         noteMissed(at: hash)
     }
 
@@ -187,9 +203,10 @@ package final class PlainMemo {
     private func noteMissed(at hash: Int) {
         var gate = gates[hash] ?? Gate()
         let storedNow = lastStored == hash
-        let evidence = (!storedNow || gate.stored == pass - 1) && pass > clearedAt &+ 1
+        let evidence = (!storedNow || gate.stored == pass - 1) && pass > clearedAt &+ 1 && gate.counted != pass
         if storedNow { gate.stored = pass }
         if evidence {
+            gate.counted = pass
             gate.run += 1
             if gate.run >= 2 { gate.until = pass + min(64, 1 << min(gate.run, 6)) }
         }
@@ -312,7 +329,7 @@ func renderPlainMemoized<V: View>(
         viewType: V.self, context: context, slot: plainMemoSlot,
         build: { PlainRow(view: view, comparison: comparison, plans: plans) },
         render: { render($0.view, $1) })
-    unsafe memo.noteDrawn(at: hash, served: cache.rowWork.rendered == renderedBefore)
+    unsafe memo.noteDrawn(at: hash, served: cache.rowWork.rendered == renderedBefore, measuring: context.isMeasuring)
     return buffer
 }
 
