@@ -360,9 +360,20 @@ enum Headless {
     /// One frame of `view`: the walk, the scene root's geometry correction,
     /// what the frame owes its geometry observers, the effects, and the walk
     /// made again while they wrote state (`FrameSettling`) — the part of
-    /// `RenderLoop.render` a headless walk still needs.
+    /// `RenderLoop.render` a headless walk still needs — on the stack
+    /// `RenderLoop` draws a frame on (`LargeStack`). On Windows's 1 MiB thread
+    /// stack the selfcheck's `deep` scenario was cut 28 times (6.3.3,
+    /// 2026-11-17), as the app's frames would have been.
     @MainActor
     private static func renderFrame(
+        _ view: AnyView, context: RenderContext, channels: HeadlessInputChannels, cols: Int, rows: Int
+    ) -> FrameBuffer {
+        LargeStack.run { renderFrameHere(view, context: context, channels: channels, cols: cols, rows: rows) }
+    }
+
+    /// ``renderFrame(_:context:channels:cols:rows:)``, on the stack it is given.
+    @MainActor
+    private static func renderFrameHere(
         _ view: AnyView, context: RenderContext, channels: HeadlessInputChannels, cols: Int, rows: Int
     ) -> FrameBuffer {
         let storage = context.environment.stateStorage
@@ -516,7 +527,7 @@ enum Headless {
         let valueHashPlans = ValueHashPlans.tui()
         var warm = makeContext(cols: cols, rows: rows, channels: channels, valueHashPlans: valueHashPlans)
         stampFrameDate(warm, date: frameChecksums ? checksumDate(tick: 0) : nil)
-        _ = renderToBuffer(view, context: warm)
+        _ = LargeStack.run { renderToBuffer(view, context: warm) }
 
         var tally = FrameTally()
         var blankFrames = 0
