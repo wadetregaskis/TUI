@@ -17,7 +17,7 @@ This page is for when you want to know what your users will see.
 | Warp | Yes | Yes, whole pictures only | Yes | Millions |
 | Apple's Terminal | Yes, see below | No, text characters | No | 256 |
 | GNOME Terminal | Yes | No, text characters | No | Millions |
-| Windows Terminal | Yes | Yes, through Sixel | No | Millions |
+| Windows Terminal | Yes | Yes, through Sixel | Yes, from version 1.25 | Millions |
 | The Windows console (conhost) | Yes | No, text characters | No | Millions |
 | tmux | Passed on | No, text characters | No | Millions |
 | A web browser, through xterm.js | Yes | No, text characters | Yes | Millions |

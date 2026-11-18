@@ -2877,13 +2877,14 @@ says, monochrome.
 | SGR-Pixels mouse (1016) | not recognised | not recognised | DECRQM |
 | Focus reports (1004), SGR mouse (1006), bracketed paste (2004) | recognised | recognised | DECRQM |
 | win32-input-mode (9001) | recognised | recognised | DECRQM; TUI does not set it |
-| kitty keyboard protocol | no answer | no answer | `CSI ? u` unanswered before the fence |
+| kitty keyboard protocol | **yes, from 1.25** | no answer | 1.25.3131.0 (2026-11-17): `CSI ? u` answers `CSI ? 0 u`, takes all 31 flags TUI pushes, and pops back to 0 (`keyboard_protocol_probe.py`), so TUI reads its keys in the protocol's encoding; 1.24.12741.0 (2026-11-16) left the query unanswered before the fence, as conhost does. Its own key bindings take their chords first: ⌃, (its settings) arrived as nothing, pressed without the protocol; with it, unmeasured. TUI's menu bar, seeing disambiguate mode, offers ⌃, for Settings… there |
 | Sixel | yes (DA1 `4`) | no (DA1 has no `4`) | `sixel_probe.py` in Windows Terminal: `CSI 16 t` answers a cell of 10 × 20, as its source says |
 
 ### Keys (measured 2026-11-17, both)
 
 `key_probe.py` on the alternate screen, keys pressed by hand on a Mac keyboard into the
-VM. Every key the probe asks arrives as xterm's legacy spelling: Home `CSI H`, End
+VM, with no keyboard protocol pushed: what conhost always sends, and Windows Terminal
+before 1.25, which TUI now drives in the kitty protocol (Capabilities). Every key the probe asks arrives as xterm's legacy spelling: Home `CSI H`, End
 `CSI F`, Page Up and Down `CSI 5 ~` and `CSI 6 ~`, the arrows `CSI A`/`CSI B`, ⌃↑ ⌃↓
 `CSI 1;5A`/`B`, ⇧↑ `CSI 1;2A`, Alt-↑ (the Mac's Option) `CSI 1;3A`, F10 `CSI 21 ~`,
 ⇧F1 `CSI 1;2P`, Alt-F `ESC f`, F1 and F2 `SS3 P` and `SS3 Q` (with fn or without). Three
@@ -2894,8 +2895,8 @@ pass it on.
 
 conhost (build 26300, the same day) sends the same spellings, but for three: **⌃,
 arrives as `0x0C`**, the comma masked to a control character as a legacy console masks
-a letter, so an app reads ⌃L (TUI binds ⌃, only under the kitty protocol, which neither
-host speaks, and shows F2 for the settings panel in both); the "Option-F"
+a letter, so an app reads ⌃L (TUI binds ⌃, only under the kitty protocol, which conhost
+does not speak, and shows F2 for the settings panel there); the "Option-F"
 prompt was answered with `CSI 1;3P` (Alt-F1), which may have been the key pressed
 rather than conhost's spelling of Alt-F; and fn-F1, like ⌃F1, arrived as nothing within
 the run's 10-second wait.
