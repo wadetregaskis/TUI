@@ -221,7 +221,7 @@ The job is therefore **required** on released toolchains. Observed state:
 | Every library module from `TUICore` to `TUITabImages`, one step each, in dependency order | pass on all five jobs — **binding**. `TUICore`, `TUIStyling`, `TUIImage` and `TUIView` (6.3 on) were binding before; the rest, carved out by the module split in October 2026, were advisory with a 30-minute timeout until CI runs 99 and 100 (2026-11-09) saw every one green on every job, and are binding since 2026-11-10. Their history is in `git log` of this file and of `ci.yml`. |
 | The four lowest modules' test targets (`TUICoreTests` … `TUIImageTests`) | build on all five jobs — **binding** since the same date |
 | `TUIApp`, `TUICommands`, `TUIScenes`, the Example | build on the Windows VM (2026-11-16, 6.3.3 on arm64); not yet seen by CI, so advisory, each with a timeout |
-| `TUI` (the umbrella), build-tests, test, smoke | build-tests builds on the VM; the suite's state is in Windows port.md, "The tests". Advisory, each with a timeout |
+| `TUI` (the umbrella), build-tests, test, smoke | pass on the VM as CI runs them (2026-11-17 and 18): `swift test` after build-tests, all 15,667 tests, on 6.3.3 in one process and on 6.4.2 under its default build system, a process a target; and `swift run Stress --selfcheck` on 6.2.4, 6.3.3 and 6.4.2. Windows port.md, "The tests", has the details. Not yet seen by CI, so advisory, each with a timeout |
 
 Do not take the table on trust — it is a record of what CI did, and the whole
 point of binding the job is that it stays true. `TUIImage`'s failure went

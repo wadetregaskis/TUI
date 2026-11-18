@@ -185,7 +185,7 @@ stepped the year 23 times; its tests now repeat on a `TestClock` and wait for ea
 Stress --selfcheck` with `TUI_VERIFY_RENDER_MEMO=1`, failed `deep` (the stack guard cut it: Stress drew its frames on
 the thread's 1 MiB, not on the fiber, which it now does) and, with `NO_COLOR` set as it is in this VM's tool
 environment, the menus session (its check read a highlight by colour alone, where at no colour it is reverse video).
-Both fixed; all 158 cases and 43 sessions pass.
+Both fixed; all 158 cases and 43 sessions pass, on 6.2.4 and 6.4.2 too (2026-11-18).
 
 **The stack a frame is drawn on.** A Windows thread gets the stack its executable names, 1 MiB unless the program was
 linked asking for more: an app's main thread, and the libdispatch workers Swift Testing runs a `@MainActor` test on.
