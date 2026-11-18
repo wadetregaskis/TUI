@@ -46,7 +46,8 @@ import TUI
 // Two modes serve `Tools/Smoke/quit_key_smoke.py` instead, which wants the
 // smallest app for a different question — what the terminal driver does with
 // the Control keys while TUI runs: `keys` shows each key the app hears,
-// and `hang` blocks its main thread once on screen; in `keys`,
+// and `hang` blocks its main thread once on screen (`crash` traps there
+// instead, for what the crash handlers hand back); in `keys`,
 // `IDLE_PROBE_SHORTCUTS` binds Control shortcuts and `IDLE_PROBE_STALL_KEY`
 // names a key that stalls the main thread for three seconds (`KeyEcho`). So does
 // `IDLE_PROBE_CHILD_PIDFILE`, in any mode: a child in the app's process group
@@ -85,6 +86,10 @@ enum ProbeMode: String {
     /// app stuck in a loop or a blocking call: what the user's quit key, `⌃\`,
     /// has to end anyway.
     case hang
+    /// A main thread that traps once the first frame is up, as an app's
+    /// `fatalError` or a force-unwrapped nil does: what the crash handlers
+    /// (`FatalSignalTerminalRestore`) have to hand the terminal back from.
+    case crash
     /// One control, whose action disables it: what two presses read in one
     /// batch do. See ``Presses``.
     case presses
@@ -179,6 +184,14 @@ private struct ProbeContent: View {
                     // After the frame is drawn, not during it.
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         while true { Thread.sleep(forTimeInterval: 1) }
+                    }
+                }
+        case .crash:
+            Text("idle probe — crashing")
+                .onAppear {
+                    // After the frame is drawn, and a second to see it.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        fatalError("idle probe — crashing on cue")
                     }
                 }
         case .presses:
