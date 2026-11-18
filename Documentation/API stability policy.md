@@ -94,7 +94,8 @@ passed there. Both are 1.0 work.
 Today: `swift-tools-version: 6.2` and macOS 15, with Linux and Windows supported (Windows since 2026-11-20,
 with Swift 6.2, 6.3 and 6.4). Raising either minimum stops some apps building, so the policy has to say which release may do it.
 The two notes in `Documentation/Swift language` (raising the floor to macOS 26, raising the minimum Swift to 6.4)
-are the evidence for the next such raise.
+are the evidence for the next such raise. What keeping today's floors costs is kept in a running ledger beside them, [Cost of supporting
+Swift 6.2 and macOS 15](<Swift language/Cost of supporting Swift 6.2 and macOS 15.md>).
 
 | Option | What it means | For | Against |
 |---|---|---|---|

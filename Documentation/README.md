@@ -35,7 +35,7 @@ how something came to be, and the decisions behind it, is in [Historical](<Histo
 | [Layout and scrolling](<Layout and scrolling/>) | The layout constraint system, scroll anchoring, resizable views, locating things without drawing them, `List` and `Table` on `ScrollView`. |
 | [Performance](<Performance/>) | Profiles and passes, what makes a page slow, output diffing and scroll regions, optimisations that did not pay, benchmark coverage. |
 | [SwiftUI parity](<SwiftUI parity/>) | The SwiftUI compatibility guide, the deliberate deviations, the API completion plan, and design studies. |
-| [Swift language](<Swift language/>) | Language and toolchain notes and studies: static tables, closures, raising the macOS floor and the Swift minimum. |
+| [Swift language](<Swift language/>) | Language and toolchain notes and studies: static tables, closures, raising the macOS floor and the Swift minimum, and the [ledger of what the Swift 6.2 and macOS 15 floors cost](<Swift language/Cost of supporting Swift 6.2 and macOS 15.md>). |
 | [Terminals](<Terminals/>) | The terminal compatibility survey (the canonical record of measured terminal behaviour) and the Ghostty adoption study. |
 | [Investigations](<Investigations/>) | One-page summaries of questions that took measuring or probing to answer. |
 | [Reviews](<Reviews/>) | The full logs of the review batches (their stories are in Historical), the SwiftLint rule review, and the upstream review ledger. |
