@@ -135,3 +135,44 @@ struct ForegroundStyleReachesContentTests {
         arguments: ForegroundStyleProbe.formValues)
     func formValues(_ probe: ForegroundStyleProbe) throws { try Self.expectStyled(probe) }
 }
+
+// MARK: - Fields
+
+extension ForegroundStyleProbe {
+    /// What a field's user typed, in every field style.
+    static let fields: [Self] = [
+        Self("TextField", ["typed"]) { TextField("hint", text: .constant("typed")) },
+        Self("TextField(.plain)", ["typed"]) { TextField("hint", text: .constant("typed")).textFieldStyle(.plain) },
+        Self("TextField(.roundedBorder)", ["typed"]) {
+            TextField("hint", text: .constant("typed")).textFieldStyle(.roundedBorder)
+        },
+        Self("TextField(.squareBorder)", ["typed"]) {
+            TextField("hint", text: .constant("typed")).textFieldStyle(.squareBorder)
+        },
+        Self("TextField(axis: .vertical)", ["typed"]) { TextField("hint", text: .constant("typed"), axis: .vertical) },
+        Self("SecureField", [String(repeating: TerminalSymbols.maskBullet, count: 5)]) {
+            SecureField("hint", text: .constant("typed"))
+        },
+        Self("A TextField in a Form", ["typed"]) { Form { TextField("Label", text: .constant("typed")) } },
+        Self("A TextField as a grouped form's value", ["Email", "typed"]) {
+            Form { LabeledContent("Email") { TextField("", text: .constant("typed")) } }.formStyle(.grouped)
+        },
+        Self("The search field", ["query", "Body"]) {
+            NavigationStack { Text("Body").searchable(text: .constant("query")) }.frame(height: 6)
+        },
+    ]
+}
+
+extension ForegroundStyleReachesContentTests {
+    @Test("A field's typed text takes the style", arguments: ForegroundStyleProbe.fields)
+    func fields(_ probe: ForegroundStyleProbe) throws { try Self.expectStyled(probe) }
+
+    @Test("A field's prompt keeps its own colour under a style, as SwiftUI's does", arguments: [false, true])
+    func promptKeepsItsColour(secure: Bool) throws {
+        let field =
+            secure
+            ? AnyView(SecureField("hint", text: .constant(""))) : AnyView(TextField("hint", text: .constant("")))
+        let cells = try #require(Self.cells(of: "hint", in: Self.rows(field)))
+        for cell in cells { #expect(cell.ink != Self.ink(Self.stated), "'\(cell.glyph)'") }
+    }
+}

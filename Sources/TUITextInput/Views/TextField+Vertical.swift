@@ -146,11 +146,11 @@ extension _TextFieldCore {
         // Scroll state is the render pass's to keep, never a measure's.
         if !context.isMeasuring { handler.scrollRow = firstRow }
 
-        let cascaded = context.environment.styleCascade.resolve(for: [.all, .text, .control(.textField)])
+        let stated = TextFieldContentRenderer.statedContentForeground(for: .textField, in: context.environment)
         let renderer = TextFieldContentRenderer(
             prompt: prompt, isDisabled: isDisabled,
             displayCharacter: TextFieldHandler.verticalDisplayCharacter, surface: chrome.surface,
-            contentForeground: cascaded.foreground,
+            contentForeground: stated,
             cursorSpeed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
             appearsActive: context.environment.appearsActive,
             legibilityWeight: context.environment.legibilityWeight, promptSpelling: context.textSpelling)

@@ -46,10 +46,25 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// See ``TextFieldStyle``.
     var surface: Color?
 
-    /// A scoped style-cascade override for the entered text's colour
-    /// (`.style(.control(.textField)) { … }`), or `nil` to use the palette foreground.
+    /// The entered text's colour, or `nil` to use the palette foreground: what
+    /// ``statedContentForeground(for:in:)`` reads from the field's environment.
     /// The cursor, selection, and (dim) prompt keep their own colours.
     var contentForeground: Color?
+
+    /// The colour stated for a field's entered text in `environment`, or `nil`
+    /// for the palette foreground: a `.style(.control(control))` cascade
+    /// foreground, else the ``View/foregroundStyle(_:)-(S)`` in force, as
+    /// SwiftUI's TextField and SecureField take it (measured on macOS 15.8,
+    /// `Tools/SwiftUIProbes/Foreground style on controls (FGSWEEP)/fgsweep.out`).
+    /// The order is a `Text`'s: a cascade entry wins over the environment's
+    /// style. A field's text is one colour, so a ramp gives its representative.
+    /// A container's default for the text it holds — a form value's secondary
+    /// tier — is not the app's, and the field keeps its own colour under it
+    /// (``EnvironmentValues/statedForegroundStyle``).
+    static func statedContentForeground(for control: ControlKind, in environment: EnvironmentValues) -> Color? {
+        environment.styleCascade.resolve(for: [.all, .text, .control(control)]).foreground
+            ?? environment.statedForegroundStyle?.representative
+    }
 
     /// How fast the caret animates: the speed set for the text cursor, which a
     /// field reads from its environment as

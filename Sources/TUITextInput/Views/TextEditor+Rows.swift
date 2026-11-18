@@ -246,7 +246,7 @@ extension _TextEditorCore {
         init(in environment: EnvironmentValues, isDisabled: Bool, background: Color?) {
             self.init(
                 palette: environment.palette, isDisabled: isDisabled, background: background,
-                stated: environment.foregroundStyle?.representative)
+                stated: environment.statedForegroundStyle?.representative)
         }
 
         /// - Parameter stated: The ink stated for the text, or `nil` for the

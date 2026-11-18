@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextField`'s and a `SecureField`'s text take the `.foregroundStyle` in force.** What was typed (or its bullets)
+was drawn in the palette's foreground whatever `.foregroundStyle(_:)` said, in every field style and in a vertical
+field; now it is drawn in that style, as SwiftUI's is (measured on macOS 15.8). A `.style(.control(.textField))` or
+`.style(.control(.secureField))` foreground still wins over it. The prompt, the caret and the selection keep their own
+colours, as SwiftUI's prompt does, and a disabled field still draws its text in the palette's tertiary tier. A field
+as a form value keeps its own colour under the value's secondary tier, as SwiftUI's does. A `TextEditor` keeps its own
+there too.
+
 **A form value takes a stated `.foregroundStyle` whole.** A `LabeledContent`'s value in a grouped `Form` or a list's
 row is drawn in the secondary tier; under a `.foregroundStyle(_:)` it took a secondary level of that style, and now it
 takes the style itself, as SwiftUI's value does (measured on macOS 15.8). Without one it is still the secondary tier.

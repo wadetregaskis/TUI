@@ -29,6 +29,14 @@ import TUIFoundation
 /// Focused, with text:   [ john.d█e           ]   (cursor in text)
 /// ```
 ///
+/// The entered text is drawn in the ``View/foregroundStyle(_:)-(S)`` in force,
+/// as SwiftUI's is (a gradient gives its one representative colour), or the
+/// palette's foreground; a `.style(.control(.textField))` foreground wins over
+/// it, as a cascade entry does over a ``Text``'s inherited style. The prompt,
+/// the caret and the selection keep their own colours, as SwiftUI's prompt
+/// does, and a disabled field still draws its text in the palette's tertiary
+/// tier.
+///
 /// ## Keyboard Controls
 ///
 /// | Key | Action |
@@ -823,9 +831,9 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             suggestionMenu != nil ? max(minContentWidth, contentWidth - 2) : contentWidth
 
         // Build the text field content using shared renderer. The entered text
-        // honours a `.control(.textField)` cascade foreground (`.style(.control(.textField))`).
-        let cascaded = context.environment.styleCascade.resolve(
-            for: [.all, .text, .control(.textField)])
+        // takes a `.style(.control(.textField))` cascade foreground, else the
+        // `.foregroundStyle(_:)` in force.
+        let stated = TextFieldContentRenderer.statedContentForeground(for: .textField, in: context.environment)
         // A text field draws what was typed, mapping tabs to spaces, and control
         // characters and line breaks to replacement characters (\u{FFFD}) — or, redacted, a
         // glyph for every character, as a SecureField masks.
@@ -837,7 +845,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
             isDisabled: isDisabled,
             displayCharacter: displayCharacter,
             surface: chrome.surface,
-            contentForeground: cascaded.foreground,
+            contentForeground: stated,
             cursorSpeed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
             appearsActive: context.environment.appearsActive,
             legibilityWeight: context.environment.legibilityWeight,
@@ -906,7 +914,7 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
                 menu: suggestionMenu, to: &buffer, handler: handler, context: context)
         }
 
-        return buffer.fadedTextInput(if: isDisabled, text: cascaded.foreground, context: context)
+        return buffer.fadedTextInput(if: isDisabled, text: stated, context: context)
     }
 
     /// Fetches (or creates) the persistent editing handler from StateStorage

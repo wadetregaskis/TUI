@@ -26,6 +26,11 @@ import TUIFoundation
 /// Focused, with text:   ❙ ●●●●█●●●            ❙ (bullets + cursor)
 /// ```
 ///
+/// The bullets are drawn in the ``View/foregroundStyle(_:)-(S)`` in force, as
+/// SwiftUI's are, by ``TextField``'s rules: a `.style(.control(.secureField))`
+/// foreground wins over it, and the prompt, the caret and the selection keep
+/// their own colours.
+///
 /// ## Keyboard Controls
 ///
 /// | Key | Action |
@@ -439,14 +444,15 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
         let isHovered = !isDisabled && hoverBox.value
 
         // Build the secure field content using shared renderer
-        let cascaded = context.environment.styleCascade.resolve(
-            for: [.all, .text, .control(.secureField)])
+        // The entered text takes a `.style(.control(.secureField))` cascade
+        // foreground, else the `.foregroundStyle(_:)` in force, as a TextField's does.
+        let stated = TextFieldContentRenderer.statedContentForeground(for: .secureField, in: context.environment)
         let renderer = TextFieldContentRenderer(
             prompt: prompt,
             isDisabled: isDisabled,
             displayCharacter: { _ in TerminalSymbols.maskBullet },
             surface: chrome.surface,
-            contentForeground: cascaded.foreground,
+            contentForeground: stated,
             cursorSpeed: context.environment.indicatorAnimationSpeeds.speed(for: .textCursor),
             appearsActive: context.environment.appearsActive,
             legibilityWeight: context.environment.legibilityWeight,
@@ -514,6 +520,6 @@ private struct _SecureFieldCore: View, Renderable, Layoutable {
                 leadingCapWidth: chrome.leadingCells)
         }
 
-        return buffer.fadedTextInput(if: isDisabled, text: cascaded.foreground, context: context)
+        return buffer.fadedTextInput(if: isDisabled, text: stated, context: context)
     }
 }
