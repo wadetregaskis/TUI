@@ -1,20 +1,28 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  BackgroundBeneathBorderInset.swift
 //
-//  A border's inset takes the background of the view it borders. SwiftUI's
+//  A bordered box's inset takes the background of the view it borders. SwiftUI's
 //  `.border()` is drawn inside the view's frame, over the edge of whatever is
 //  there, so a background always reaches the line. TUI's cannot draw over
-//  content (it would cover text), so it adds a ring of its own: a blank cell
-//  either side of the content, then the line. That inset exists only because
-//  of the border, so it belongs to the bordered box, and a background on the
-//  content fills it: `.background(m).border()` draws `m` up to the line, as
-//  SwiftUI does, and `.border().background(m)` beneath the line as well. The
+//  content (it would cover text), so its line goes round the content instead.
+//  The framework's own bordered chrome (`Box`, a menu, a popover, a toast)
+//  adds a blank cell either side of the content inside the line as well. That
+//  inset exists only because of the box, so it belongs to the box, and a
+//  background the content ends in fills it: a popover's surface reaches its
+//  line, as SwiftUI's background does. The
 //  owner's answer to GLASS-BORDER-GAP, option (a), 2026-10-27, where a
 //  material stopped a cell short of a dialog's border and the photograph
 //  behind showed through the gap.
 //
-//  `.backgroundStopsAtContent()` keeps the inset clear, for a border that
-//  should stand apart from what it surrounds.
+//  An app's `.border()` has had no inset since 2026-11-17 (the owner: padding
+//  is the inset, as in SwiftUI), so a background reaches its line already, and
+//  the app says where its padding goes: `.padding(.horizontal, 1).background(m)`
+//  before the border fills it, `.background(m).padding(.horizontal, 1)` leaves
+//  it clear.
+//
+//  `.backgroundStopsAtContent()` kept that inset clear when `.border()` had
+//  one; it now reaches nothing an app can put inside chrome, and is kept only
+//  until the owner rules on removing it (API baselines change at a release).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -22,9 +30,10 @@
 import TUICore
 import TUIView
 
-/// A view whose outermost layer paints a background behind the rest: a
-/// border around it puts its inset beneath that background, so the background
-/// reaches the line (`BackgroundBeneathBorderInset.swift`).
+/// A view whose outermost layer paints a background behind the rest: the
+/// framework's bordered chrome around it puts its inset beneath that
+/// background, so the background reaches the line
+/// (`BackgroundBeneathBorderInset.swift`).
 protocol BackgroundBeneathBorderInset {
     /// This view with `insets` of padding between its content and its
     /// background.
@@ -54,7 +63,8 @@ extension BackgroundLayerModifier: BackgroundBeneathBorderInset {
 // MARK: - Keeping the inset clear
 
 /// A view whose background stops at its content: not a
-/// ``BackgroundBeneathBorderInset``, so a border's inset around it stays clear.
+/// ``BackgroundBeneathBorderInset``, so a bordered box's inset around it stays
+/// clear.
 nonisolated struct _BackgroundStopsAtContent<Content: View>: View {
     let content: Content
 
@@ -64,16 +74,16 @@ nonisolated struct _BackgroundStopsAtContent<Content: View>: View {
 extension View {
     /// Keeps a border's inset around this view clear of its background.
     ///
-    /// A border draws a blank cell either side of what it borders, so text
-    /// does not run up against the line, and by default a background on the
-    /// bordered view fills that inset too, reaching the line as SwiftUI's
-    /// does. Say this between the two for a border that stands apart from
-    /// what it surrounds:
+    /// Until 2026-11-17 `.border()` drew a blank cell either side of what it
+    /// bordered, and a background on the bordered view filled it; this kept
+    /// it clear. `.border()` has no inset now — padding is the inset, as in
+    /// SwiftUI — so this changes nothing: put the padding where the
+    /// background should stop instead.
     ///
     /// ```swift
     /// Text("Draft")
     ///     .background(.yellow)
-    ///     .backgroundStopsAtContent()
+    ///     .padding(.horizontal, 1)   // clear: the background stops at the text
     ///     .border()
     /// ```
     ///

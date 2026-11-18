@@ -135,9 +135,9 @@ struct ScreenSelectionTextFrameTests {
             #expect(repainted(row, before: before[row], after: after[row]) == highlighted(row, in: harness))
         }
         // Copied as ever: the padding a row starts with is read with it.
-        #expect(harness.tui.screenSelection.current?.text == "Ada Lovelace\n   12 St James's Square\n   ada@example.com")
+        #expect(harness.tui.screenSelection.current?.text == "Ada Lovelace\n  12 St James's Square\n  ada@example.com")
         #expect(harness.press(KeyEvent(key: .character("c"), ctrl: true)))
-        #expect(log.writes == ["Ada Lovelace\n   12 St James's Square\n   ada@example.com"])
+        #expect(log.writes == ["Ada Lovelace\n  12 St James's Square\n  ada@example.com"])
     }
 
     @Test("Two texts side by side: each highlighted, the gap between them not, though it is copied")
@@ -165,7 +165,7 @@ struct ScreenSelectionTextFrameTests {
         // are not.
         #expect(highlighted(first.y, in: harness) == Array(first.x..<(first.x + 11)))
         #expect(highlighted(second.y, in: harness) == Array(second.x..<(second.x + 11)))
-        #expect(harness.tui.screenSelection.current?.text == "alpha beta\n   gamma delta")
+        #expect(harness.tui.screenSelection.current?.text == "alpha beta\n  gamma delta")
     }
 
     @Test("A row served from the memo carries its text's frame")

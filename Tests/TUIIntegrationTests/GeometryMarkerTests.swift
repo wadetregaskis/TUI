@@ -162,8 +162,8 @@ struct GeometryMarkerTests {
     @Test("A marker comes out of .border() inside the rule")
     func throughBorder() {
         let buffer = Frames().render(MarkerProbe().border())
-        // Inside the rule, past the space the border pads with.
-        #expect(onlyMarker(in: buffer) == CellPoint(x: 2, y: 1))
+        // Just inside the rule: a border hugs its content (2026-11-17).
+        #expect(onlyMarker(in: buffer) == CellPoint(x: 1, y: 1))
         #expect(onlyMarker(in: buffer) == drawnProbe(in: buffer))
     }
 

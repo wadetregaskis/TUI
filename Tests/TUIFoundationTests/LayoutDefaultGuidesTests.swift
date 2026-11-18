@@ -129,6 +129,6 @@ struct LayoutDefaultGuidesTests {
         let first = renderToBuffer(view, context: makeRenderContext(width: 20, height: 6)).lines.map(\.stripped)
         let second = renderToBuffer(view, context: makeRenderContext(width: 20, height: 6)).lines.map(\.stripped)
         #expect(first == second)
-        #expect(first == ["a much wider line", "        ╭───────╮", "        │ ab cd │", "        ╰───────╯"])
+        #expect(first == ["a much wider line", "          ╭─────╮", "          │ab cd│", "          ╰─────╯"])
     }
 }

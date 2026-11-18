@@ -379,7 +379,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `.onAppear`, and an environment write, whose content is asked in the
   context the write lays it out in, so a guide under `.lineLimit(1)` is found
   where the limited content draws it. `.border()` moves the guide in by
-  its ring — a line and a blank cell across, a line down — and a
+  its ring — one line across and one down (the blank cell across went on
+  2026-11-17, L20) — and a
   `.toolbar`, a list row's insets or colours and a `BufferModifier` of the
   app's own that does not state `_keepsContentGeometry` stop it.
   `layoutValue(key:value:)` and `layoutPriority(_:)` are read through every
@@ -547,6 +548,33 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   lanes P1–P9, turned on in P7 (2026-11-14). It replaces
   [TABLE-IN-SCROLL-HEIGHT](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-morning-page-answered-2026-11-11>)
   (2026-11-11). **Owner.**
+
+### L20. A border is drawn round its content, not over its edge
+
+- **SwiftUI:** `.border(_:width:)` strokes the line inside the view's bounds,
+  over the edge of whatever the view draws there, and takes no room: the
+  bordered view is the size of its content, and `content.padding(n).border(…)`
+  is how a SwiftUI program puts room between the two (Apple's documentation;
+  the semantic audit's layoutmods probe, "Considered and refuted").
+- **TUI:** the line takes a cell on every side of the content, outside it,
+  so a ring adds 2 columns and 2 rows (`Text("Hi").border()` is 4 × 3, and
+  `width: 2` nests a second ring round the first). Nothing else is added:
+  padding is the inset, as in SwiftUI, and `.padding(.horizontal, 1).border()`
+  is the look `.border()` had before 2026-11-17, when it put a blank cell
+  either side of the content inside its line
+  (`BorderHugsContentTests`). The framework's own boxes built on the same
+  path — a menu, a popover, a notification, a `GroupBox`'s box, a grouped
+  `Form`'s sections, the `.roundedBorder` and `.squareBorder` fields — keep that
+  cell (`bordered(…, insetsContent: true)`), so only an app's `.border` call
+  changed.
+- **Why:** a cell is either a glyph of the line or a glyph of the content: a
+  line drawn over the content's edge would hide its first and last columns
+  and rows of text. The extra blank cell the border used to add was not
+  forced by the terminal, and made `.padding(1).border()` give two cells of
+  room where a SwiftUI program asks for one.
+- **Decided:** the owner, 2026-11-17: `.border` drops its blank cell, padding
+  is the inset as in SwiftUI, the line stays outside the content, and no
+  inset parameter is added. **Owner.**
 
 ## State and data flow
 

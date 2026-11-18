@@ -84,11 +84,14 @@
 /// ## Rendering
 ///
 /// `Box` is a **composite view** — it does not conform to `Renderable`.
-/// Instead, it uses `body` to delegate to `content.border(...)`, which
+/// Instead, it uses `body` to delegate to the border's own path, which
 /// creates a `ContainerView` without title or footer. This is intentional:
-/// `Box` is purely compositional sugar and carries no rendering logic.
+/// `Box` is purely compositional sugar and carries no rendering logic. It
+/// keeps the blank cell either side that `.border()` dropped on 2026-11-17
+/// (`insetsContent`), as the framework's chrome does.
 ///
-/// - Note: This is an internal type. Use `.border()` modifier directly instead.
+/// - Note: This is an internal type. An app writes
+///   `.padding(.horizontal, 1).border()` for the same look.
 nonisolated package struct Box<Content: View>: View {
     /// The content of the box.
     let content: Content
@@ -116,7 +119,8 @@ nonisolated package struct Box<Content: View>: View {
     }
 
     @MainActor package var body: some View {
-        content.bordered(style: borderStyle, colour: borderColor.map(AnimatedColor.init), width: 1)
+        content.bordered(
+            style: borderStyle, colour: borderColor.map(AnimatedColor.init), width: 1, insetsContent: true)
     }
 }
 

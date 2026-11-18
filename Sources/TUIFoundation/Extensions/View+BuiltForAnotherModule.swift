@@ -37,26 +37,35 @@ import TUIView
 /// path where that costs less than the lookup it saves, which is every path the
 /// lookup would run on.
 extension View {
-    /// Draws this view with a border of `style` (`border(style:)`), at
-    /// `context`'s identity.
+    /// Draws this view in the framework chrome's box of `style` — the line and
+    /// a blank cell either side inside it (`bordered(…, insetsContent: true)`,
+    /// which an app's `border(style:)` no longer adds) — at `context`'s
+    /// identity.
     ///
     /// For a view of another module that draws a border inside its own
     /// `renderToBuffer(context:)`, as a styled text field does: where it named
     /// `border(style:)` itself, the lookup sat at the top of the function, so
     /// every field paid it on every frame, bordered or not.
     package func renderBordered(style: BorderStyle?, context: RenderContext) -> FrameBuffer {
-        TUIView.renderToBuffer(border(style: style), context: context)
+        TUIView.renderToBuffer(chromeBox(style: style), context: context)
     }
 
-    /// Measures this view with a border of `style` (`border(style:)`): the
+    /// Measures this view in the framework chrome's box of `style`: the
     /// measure twin of ``renderBordered(style:context:)``.
     package func measureBordered(style: BorderStyle?, proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        measureChild(border(style: style), proposal: proposal, context: context)
+        measureChild(chromeBox(style: style), proposal: proposal, context: context)
     }
 
-    /// This view with a border (`border()`), erased.
+    /// This view in the framework chrome's box, erased: a grouped `Form`'s
+    /// section.
     package func erasedBorder() -> AnyView {
-        AnyView(border())
+        AnyView(chromeBox(style: nil))
+    }
+
+    /// The framework chrome's box: the line, and the blank cell either side
+    /// inside it that `.border()` drew until 2026-11-17 and the chrome keeps.
+    private func chromeBox(style: BorderStyle?) -> some View {
+        bordered(style: style, colour: nil, width: 1, insetsContent: true)
     }
 
     /// This view identified by `id` (`id(_:)`), erased.

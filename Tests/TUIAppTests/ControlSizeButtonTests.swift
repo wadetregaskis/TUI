@@ -481,8 +481,8 @@ struct ControlSizeButtonTests {
         let box = drawn(Text("Hi").border().appearance(.braille(thickness: thickness)))
         let expected =
             thickness == 1
-            ? ["⡏⠉⠉⠉⠉⢹", "⡇ Hi ⢸", "⣇⣀⣀⣀⣀⣸"]
-            : ["⣿⠛⠛⠛⠛⣿", "⣿ Hi ⣿", "⣿⣤⣤⣤⣤⣿"]
+            ? ["⡏⠉⠉⢹", "⡇Hi⢸", "⣇⣀⣀⣸"]
+            : ["⣿⠛⠛⣿", "⣿Hi⣿", "⣿⣤⣤⣿"]
         #expect(box == expected)
     }
 

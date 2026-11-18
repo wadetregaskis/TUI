@@ -31,8 +31,8 @@ struct BorderViaContainerViewTests {
 
         // border = top + content + bottom = 3 lines minimum
         #expect(buffer.height >= 3)
-        // Width = content width + 2 (left + right border) + 2 (padding)
-        #expect(buffer.width >= 6)  // "Hi" (2) + borders (2) + padding (2)
+        // Width = content width + 2 (left + right border); no padding of its own
+        #expect(buffer.width == 4)  // "Hi" (2) + borders (2)
     }
 
     @Test(".border() with VStack renders multiple lines")

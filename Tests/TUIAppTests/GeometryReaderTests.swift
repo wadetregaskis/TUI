@@ -298,7 +298,7 @@ struct GeometryReaderTests {
             .frame(width: 4, height: 1)
             .border(),
             context: makeRenderContext(width: 10, height: 3))
-        #expect(buffer.lines.dropFirst().first?.stripped == "│ 0XXX │", "\(buffer.lines.map(\.stripped))")
+        #expect(buffer.lines.dropFirst().first?.stripped == "│0XXX│", "\(buffer.lines.map(\.stripped))")
         #expect(GeometryProxy(width: 8, height: 1).containerCornerInsets == RectangleCornerInsets())
     }
 }

@@ -152,12 +152,14 @@ public protocol View {
     static var _fillsItsOffer: Bool { get }
 
     /// Static witness: whether this view paints its own surface to its edges
-    /// — a `TextEditor`'s field — or wraps one that does, so a border around
-    /// it needs no blank cell inside it: the surface keeps the content off the
-    /// line. `false` for every view but those, and the single-content
-    /// wrappers around them, which forward their content's answer.
+    /// — a `TextEditor`'s field — or wraps one that does, so the framework's
+    /// own bordered chrome (a `GroupBox`'s box, a menu's) puts no blank cell
+    /// inside its line: the surface keeps the content off the line. An app's
+    /// `.border()` puts none round anything since 2026-11-17. `false` for
+    /// every view but those, and the single-content wrappers around them,
+    /// which forward their content's answer.
     ///
-    /// A witness rather than a cast, as ``_providesZIndex`` is: `.border()`
+    /// A witness rather than a cast, as ``_providesZIndex`` is: a border
     /// asks every time a body builds one, and a walk of casts down the
     /// wrappers, the value boxed to start it, was 2% of a frame of bordered
     /// views (Stress `anyview`, cold, 2026-10-17).

@@ -182,8 +182,8 @@ struct GeometryPredictionTests {
                 "padding", AnyView(reader(told, in: .named("s")).padding(.leading, 2).padding(.top, 1)),
                 CellRect(x: 2, y: 1, width: 4, height: 1)
             ),
-            // Inside the wall, and the cell of padding a border keeps.
-            ("border", AnyView(reader(told, in: .named("s")).border()), CellRect(x: 2, y: 1, width: 4, height: 1)),
+            // Inside the wall: a border hugs its content (2026-11-17).
+            ("border", AnyView(reader(told, in: .named("s")).border()), CellRect(x: 1, y: 1, width: 4, height: 1)),
             (
                 "titled borderless container",
                 AnyView(

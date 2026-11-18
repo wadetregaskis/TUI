@@ -917,7 +917,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
 // MARK: - Inside a border
 
 @MainActor extension TextEditor {
-    /// Its field reaches its edges, so `.border()` draws on them, with no
-    /// blank cell of page between.
+    /// Its field reaches its edges, so the framework's bordered chrome (a
+    /// `GroupBox`) draws its line on them, with no blank cell of page between.
+    /// `.border()` puts none round any view (the owner, 2026-11-17).
     nonisolated public static var _paintsToItsEdges: Bool { true }
 }

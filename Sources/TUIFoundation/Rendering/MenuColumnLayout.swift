@@ -66,7 +66,8 @@ func renderMenuColumn(
         .asChrome()
         .frame(height: max(1, capHeight - 2))
         .bordered(
-            style: nil, colour: borderColor.map(AnimatedColor.init), width: 1, keepsSelectionInside: false)
+            style: nil, colour: borderColor.map(AnimatedColor.init), width: 1, keepsSelectionInside: false,
+            insetsContent: true)
     return renderToBuffer(
         scrolled, context: plan.sized.withAvailableHeight(capHeight).withBranchIdentity("scrolled"))
 }
@@ -123,7 +124,8 @@ private func menuColumnBody(_ items: some View) -> some View {
 private func menuColumnFrame(_ items: some View, borderColor: Color?) -> some View {
     menuColumnBody(items)
         .bordered(
-            style: nil, colour: borderColor.map(AnimatedColor.init), width: 1, keepsSelectionInside: false)
+            style: nil, colour: borderColor.map(AnimatedColor.init), width: 1, keepsSelectionInside: false,
+            insetsContent: true)
 }
 
 /// Where a menu column sits and how big it is — the one owner of the hug

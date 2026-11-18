@@ -109,9 +109,8 @@ struct CoordinateSpaceTests {
                 }
             }
             .padding(1))
-        // Padding 1, the second row, past "two:" and the border's rule and
-        // the space it pads with.
-        #expect(seen.frame == CellRect(x: 1 + 4 + 2, y: 1 + 1 + 1, width: 10, height: 2))
+        // Padding 1, the second row, past "two:" and the border's rule.
+        #expect(seen.frame == CellRect(x: 1 + 4 + 1, y: 1 + 1 + 1, width: 10, height: 2))
     }
 
     // MARK: - Probe M3: .scrollView

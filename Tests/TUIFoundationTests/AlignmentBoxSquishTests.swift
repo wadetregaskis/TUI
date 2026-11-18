@@ -12,13 +12,16 @@ import Testing
 @MainActor
 private func renderRow(width: Int) -> (lines: [String], height: Int) {
     // Mirrors the "Content Alignment" demo in ContainersPage.swift: three
-    // bordered VStacks share a row evenly via `.frame(maxWidth: .infinity)`.
+    // bordered VStacks share a row evenly via `.frame(maxWidth: .infinity)`,
+    // each padded a cell inside its line (`.border()` adds none since
+    // 2026-11-17).
     let view = HStack(spacing: 1) {
         VStack(alignment: .leading) {
             Text("Leading align")
             Text("short")
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 1)
         .border()
 
         VStack(alignment: .center) {
@@ -26,6 +29,7 @@ private func renderRow(width: Int) -> (lines: [String], height: Int) {
             Text("short")
         }
         .frame(maxWidth: .infinity, alignment: .center)
+        .padding(.horizontal, 1)
         .border()
 
         VStack(alignment: .trailing) {
@@ -33,6 +37,7 @@ private func renderRow(width: Int) -> (lines: [String], height: Int) {
             Text("short")
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.horizontal, 1)
         .border()
     }
 
@@ -107,6 +112,7 @@ struct AlignmentBoxSquishTests {
                     Text("Secondary text (foregroundSecondary)")
                     Text("Tertiary text (foregroundTertiary)")
                 }
+                .padding(.horizontal, 1)
                 .border()
             }
             let alignment = VStack(alignment: .leading) {
@@ -117,6 +123,7 @@ struct AlignmentBoxSquishTests {
                         Text("short")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 1)
                     .border()
 
                     VStack(alignment: .center) {
@@ -124,6 +131,7 @@ struct AlignmentBoxSquishTests {
                         Text("short")
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 1)
                     .border()
 
                     VStack(alignment: .trailing) {
@@ -131,6 +139,7 @@ struct AlignmentBoxSquishTests {
                         Text("short")
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 1)
                     .border()
                 }
             }
@@ -176,6 +185,7 @@ struct AlignmentBoxSquishTests {
                     Text("Secondary text (foregroundSecondary)")
                     Text("Tertiary text (foregroundTertiary)")
                 }
+                .padding(.horizontal, 1)
                 .border()
             }
 
@@ -187,6 +197,7 @@ struct AlignmentBoxSquishTests {
                         Text("short")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 1)
                     .border()
 
                     VStack(alignment: .center) {
@@ -194,6 +205,7 @@ struct AlignmentBoxSquishTests {
                         Text("short")
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 1)
                     .border()
 
                     VStack(alignment: .trailing) {
@@ -201,6 +213,7 @@ struct AlignmentBoxSquishTests {
                         Text("short")
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 1)
                     .border()
                 }
             }
@@ -241,6 +254,7 @@ struct AlignmentBoxSquishTests {
                 Text("short")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 1)
             .border()
 
             VStack(alignment: .center) {
@@ -248,6 +262,7 @@ struct AlignmentBoxSquishTests {
                 Text("short")
             }
             .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 1)
             .border()
 
             VStack(alignment: .trailing) {
@@ -255,6 +270,7 @@ struct AlignmentBoxSquishTests {
                 Text("short")
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.horizontal, 1)
             .border()
         }
 
@@ -265,6 +281,7 @@ struct AlignmentBoxSquishTests {
                 Text("Secondary text (foregroundSecondary)")
                 Text("Tertiary text (foregroundTertiary)")
             }
+            .padding(.horizontal, 1)
             .border()
 
             alignmentRow
@@ -314,6 +331,7 @@ struct AlignmentBoxSquishTests {
                 Text("short")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 1)
             .border()
 
             VStack(alignment: .center) {
@@ -321,6 +339,7 @@ struct AlignmentBoxSquishTests {
                 Text("short")
             }
             .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 1)
             .border()
 
             VStack(alignment: .trailing) {
@@ -328,6 +347,7 @@ struct AlignmentBoxSquishTests {
                 Text("short")
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(.horizontal, 1)
             .border()
         }
 
@@ -363,6 +383,7 @@ struct AlignmentBoxSquishTests {
             Text("short")
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
+        .padding(.horizontal, 1)
         .border()
 
         // Width 17 ← inner is 17 - 2 border - 2 padding = 13. "Trailing

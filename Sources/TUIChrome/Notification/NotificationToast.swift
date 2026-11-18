@@ -75,7 +75,9 @@ struct NotificationToast: View {
             }
         }
         .frame(width: max(1, width - Self.chromeWidth), alignment: .leading)
-        .border(entry.style.colour)
+        // The framework's chrome keeps the blank cell inside its line that an
+        // app's `.border()` no longer draws (the owner, 2026-11-17).
+        .bordered(style: nil, colour: AnimatedColor(entry.style.colour), width: 1, insetsContent: true)
         // An emoji is drawn in colours of its own, which no fade reaches, so
         // it would stand at full strength while the rest fades in round it.
         // It waits for the fade-in to finish and goes as the fade-out starts,

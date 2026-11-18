@@ -9,15 +9,25 @@
 extension View {
     /// Adds a border around this view.
     ///
-    /// Content is inset by 1 character on each side so text doesn't touch
-    /// the border characters. The total width overhead is 4 characters
-    /// (2 for borders + 2 for inner padding). A `TextEditor` is not inset: its
-    /// field reaches its edges and keeps the text off the line, and the inset
-    /// would be a strip of the page between the two — the border sits on its
-    /// edges, as SwiftUI's does on any view's.
+    /// The line hugs the content: each ring is one cell on every side, so the
+    /// overhead is 2 cells across and 2 down per ring. Padding is the inset,
+    /// as in SwiftUI — say how much room the text should have from the line
+    /// with `.padding` before the border:
+    ///
+    /// ```swift
+    /// Text("Hello").border()                          // │Hello│
+    /// Text("Hello").padding(.horizontal, 1).border()  // │ Hello │
+    /// ```
+    ///
+    /// The line itself still sits OUTSIDE the content, where SwiftUI strokes
+    /// it over the view's edge: a terminal cannot draw a line over text
+    /// without hiding it (deviations L20). Until 2026-11-17 the border also
+    /// put a blank cell of its own either side of the content; the owner
+    /// dropped it that day, so `.padding(.horizontal, 1).border()` is the
+    /// old `.border()`, cell for cell.
     ///
     /// Internally this creates a `ContainerView` without title or footer,
-    /// ensuring consistent padding and rendering across all bordered views.
+    /// ensuring consistent rendering across all bordered views.
     ///
     /// # Example
     ///
@@ -123,32 +133,51 @@ extension View {
     ///
     /// `keepsSelectionInside` is off for a control's own box — a menu's —
     /// whose presses are the control's (``ContainerConfig/keepsSelectionInside``).
+    ///
+    /// `insetsContent` is the framework's own chrome adding its padding — a
+    /// menu, a popover, a toast, `Box`, a grouped `Form`'s sections, the
+    /// bordered text field styles — so that it keeps the look it has
+    /// always had: a blank cell either side of the content inside each line.
+    /// An app's `.border()` passes `false` and hugs its content (the owner,
+    /// 2026-11-17); its padding is its own `.padding`. The chrome's is given
+    /// here rather than as a `.padding` in front because it is not quite one:
+    /// it goes beneath a background the content ends in, and is left out for
+    /// content that paints its own surface to its edges (`ring`).
     @ViewBuilder
-    nonisolated func bordered(
-        style: BorderStyle?, colour: AnimatedColor?, width: Int, keepsSelectionInside: Bool = true
+    nonisolated package func bordered(
+        style: BorderStyle?, colour: AnimatedColor?, width: Int, keepsSelectionInside: Bool = true,
+        insetsContent: Bool = false
     ) -> some View {
         if width <= 0 {
             self
         } else {
             _BorderRings<Self>(
                 rings: (1..<max(1, width)).reduce(
-                    ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside)
+                    ring(
+                        style: style, colour: colour, keepsSelectionInside: keepsSelectionInside,
+                        insetsContent: insetsContent)
                 ) { inner, _ in
-                    inner.ring(style: style, colour: colour, keepsSelectionInside: keepsSelectionInside)
+                    inner.ring(
+                        style: style, colour: colour, keepsSelectionInside: keepsSelectionInside,
+                        insetsContent: insetsContent)
                 })
         }
     }
 
-    /// One border, drawn as the titleless container it has always been: a
-    /// blank cell either side of the content, so text does not run up against
-    /// the line — and none for content that paints its own surface to its
-    /// edges (``View/_paintsToItsEdges``), whose blank cells were strips of the page
-    /// between the border and the surface. That one is SwiftUI's own border,
-    /// which is drawn on the view's edge with no inset at all.
+    /// One border, drawn as a titleless container: the line round the
+    /// content, and nothing between them — SwiftUI's own border, but outside
+    /// the view's edge rather than over it.
     ///
-    /// The inset goes beneath a background the content ends in, which then
-    /// reaches the line (`BackgroundBeneathBorderInset.swift`).
-    nonisolated private func ring(style: BorderStyle?, colour: AnimatedColor?, keepsSelectionInside: Bool) -> AnyView {
+    /// With `insetsContent` (the framework's chrome), a blank cell either side
+    /// of the content as well, so text does not run up against the line — and
+    /// none for content that paints its own surface to its edges
+    /// (``View/_paintsToItsEdges``), whose blank cells were strips of the page
+    /// between the border and the surface. That inset goes beneath a
+    /// background the content ends in, which then reaches the line
+    /// (`BackgroundBeneathBorderInset.swift`).
+    nonisolated private func ring(
+        style: BorderStyle?, colour: AnimatedColor?, keepsSelectionInside: Bool, insetsContent: Bool
+    ) -> AnyView {
         let style = ContainerStyle(
             showHeaderSeparator: false,
             showFooterSeparator: false,
@@ -157,7 +186,7 @@ extension View {
             keepsSelectionInside: keepsSelectionInside
         )
         let inset = EdgeInsets(horizontal: 1, vertical: 0)
-        if Self._paintsToItsEdges {
+        if !insetsContent || Self._paintsToItsEdges {
             return AnyView(ContainerView(style: style, padding: EdgeInsets()) { self })
         }
         if let backed = self as? any BackgroundBeneathBorderInset {

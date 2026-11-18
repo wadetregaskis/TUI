@@ -345,11 +345,14 @@ nonisolated package struct PopoverPresentationModifier<Content: View, Popover: V
     private func panelView(context: RenderContext) -> some View {
         let padded = popover.padding(EdgeInsets(horizontal: 1, vertical: 0))
         if let background = withPresentationBackground(padded, from: popover) {
-            background.border(context.environment.palette.border)
+            background.bordered(
+                style: nil, colour: AnimatedColor(context.environment.palette.border), width: 1, insetsContent: true)
         } else {
             padded
                 .background(context.environment.palette.background)
-                .border(context.environment.palette.border)
+                .bordered(
+                    style: nil, colour: AnimatedColor(context.environment.palette.border), width: 1,
+                    insetsContent: true)
         }
     }
 

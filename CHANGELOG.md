@@ -19,6 +19,18 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`.border()` hugs what it borders: padding is the inset, as in SwiftUI.** A border used to put a blank cell of its
+own between the content and the line, on the left and the right, so `Text("Hi").border()` was 6 cells wide and
+`.padding(1).border()` could not give one cell of room — it gave two. That cell is gone (the owner, 2026-11-17):
+every bordered view loses one cell inside its line on each side, and the padding before the border is the only room
+between them, as SwiftUI's `content.padding(n).border(...)` reads. **To keep the old look, add `.padding(.horizontal,
+1)` before `.border`** — `Text("Hi").padding(.horizontal, 1).border()` draws exactly what `Text("Hi").border()` did.
+Each ring of `width:` is now just its line. The line still goes round the content rather than over its edge, since a
+terminal cannot stroke a line over text. TUI's own chrome — menus, popovers, notifications, a `GroupBox`'s box, a
+grouped `Form`'s sections, the bordered text field styles — keeps its room and looks as it did.
+`.backgroundStopsAtContent()`, which kept the old cell clear of a background, has nothing left to keep clear: put the
+padding outside the background instead.
+
 **A frame that changes nothing under a fade no longer blends the fade again.** The rows under a translucent layer
 that is blended at the screen itself (a `.opacity`, a translucent colour, a `Color.clear` under a `TimelineView`)
 were taken apart and blended on every frame the app wrote, changed or not. A game's loop that asks for a frame sixty times a second

@@ -111,14 +111,14 @@ struct OrderMatters: View {
 }
 ```
 
-The first `Text` gets padding, and the border goes around the padded text. The second gets a border, and the padding goes outside it, as a blank cell between the border and its neighbours. (A border also keeps one column clear on each side of what it holds.)
+The first `Text` gets padding, and the border goes around the padded text. The second gets a border, and the padding goes outside it, as a blank cell between the border and its neighbours. (A border hugs what it holds: the padding is the only room between the text and the line, as in SwiftUI.)
 
 ```text
-╭──────╮
-│      │  ╭────╮
-│  Hi  │  │ Hi │
-│      │  ╰────╯
-╰──────╯
+╭────╮
+│    │  ╭──╮
+│ Hi │  │Hi│
+│    │  ╰──╯
+╰────╯
 ```
 
 So read a chain of modifiers from the inside out, as layers added one at a time. A modifier on a container reaches everything inside it: `VStack { … }.foregroundStyle(.red)` colours every `Text` in the stack.

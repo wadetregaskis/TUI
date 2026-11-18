@@ -396,6 +396,7 @@ struct PlacementOverflowTests {
                 Text(marker).alignmentGuide(.leading) { $0[.trailing] }
                 Text(String(repeating: "a", count: 16))
             }
+            .padding(.horizontal, 1)
             .border()
         }
         var screen = Screen(width: 20, height: 4)

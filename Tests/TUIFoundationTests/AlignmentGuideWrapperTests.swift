@@ -101,9 +101,11 @@ struct AlignmentGuideWrapperTests {
     @Test("A border reports its content's guide moved in by its rings")
     func borderTranslatesByItsRings() {
         // SwiftUI strokes inside the view and reports 5; a terminal border
-        // takes a line and a blank cell each side across, a line down.
-        #expect(leadingReported(leadingFive().border()) == 7)
-        #expect(leadingReported(leadingFive().border(width: 2)) == 9)
+        // takes a line each side, across and down (deviations L20).
+        #expect(leadingReported(leadingFive().border()) == 6)
+        #expect(leadingReported(leadingFive().border(width: 2)) == 7)
+        // Padding is the inset, and moves the guide by its own width.
+        #expect(leadingReported(leadingFive().padding(.horizontal, 1).border()) == 7)
         #expect(topReported(topFive().border()) == 6)
     }
 

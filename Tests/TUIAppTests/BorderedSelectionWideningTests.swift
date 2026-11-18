@@ -183,7 +183,8 @@ struct BorderedSelectionWideningTests {
         let page = Page()
         let harness = harness(page)
         let ada = try find("Ada", in: harness, page)
-        // The card's right border: its padding stands between it and the name.
+        // The card's right border, straight after the longer of its lines (a
+        // border hugs its content since 2026-11-17).
         let row = harness.frame(page).lines[ada.y].stripped
         let border = try #require(row.lastIndex(of: "│").map { row.distance(from: row.startIndex, to: $0) })
         drag(harness, page, from: ada, through: [(border + 5, ada.y)])
@@ -191,7 +192,7 @@ struct BorderedSelectionWideningTests {
         let fresh = self.harness(page)
         drag(fresh, page, from: ada, through: [(border + 6, ada.y)])
         let text = try #require(selected(fresh))
-        #expect(text.contains("Ada Lovelace │"), "not widened: \(text)")
+        #expect(text.contains("Ada Lovelace│"), "not widened: \(text)")
     }
 
     @Test("A card inside a card widens to the outer card's interior first, then to the page")
