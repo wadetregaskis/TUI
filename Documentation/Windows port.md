@@ -88,7 +88,13 @@ Visual Studio 2022 Build Tools 17.14, installed with `winget install Swift.Toolc
   --version …`), each adding itself to the user's `PATH` and setting `SDKROOT`: the first on the `PATH` compiles and
   `SDKROOT` names the last installed, so a build sets both for the one it means. With more than one installed,
   6.4's SwiftPM stops before building ("platform 'windows' already registered from …\Platforms\6.3.3"): its default
-  build system reads every platform in the install. `--build-system native`, deprecated, builds. A test runner needs
+  build system reads every platform in the install. `--build-system native`, deprecated, builds. To build with the
+  default (Swift Build), as CI's 6.4 lanes do, give 6.4.2 an install of its own: its `Toolchains`, `Platforms` and
+  `Runtimes` folders mirrored by hard links under another root (no disk spent), with `PATH` and `SDKROOT` pointed
+  there. Junctions do not serve: Swift Build follows them back to the shared install. So built on 2026-11-18, the
+  whole package and its tests had no diagnostics, and `swift test`, which runs each test target in a process of its
+  own under Swift Build, passed all 15,667 tests in 16 minutes. Its build folder holds paths past 260 characters
+  (macro expansions), which PowerShell 5.1's `Remove-Item` cannot delete; `rmdir /s /q "\?\C:\…"` can. A test runner needs
   the same toolchain's runtime first on its `PATH`, or it stops at launch with `0xC0000139`, an entry point not found.
 - **Side by side goes upward only.** 6.2.4's installer, run with 6.3.3 and 6.4.2 installed, finds its packages
   "Obsolete" against theirs, installs nothing and reports success. It was measured unpacked instead, registered with
