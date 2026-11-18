@@ -13,7 +13,7 @@ starting point for the session that does it, on a Windows VM, and the record it 
   `TUICommands`, `TUIScenes` and the Example are advisory until it has.
 - **The test suite passes** on all three, one module at a time (see "The tests"), and on x86_64 too: built with
   6.3.3 for `x86_64-unknown-windows-msvc` with no warnings, and run under Windows 11's emulation with x64's own
-  runtime, every module passes; the Example runs there and quits by its menu.
+  runtime, every module passes and so does the smoke check; the Example runs there and quits by its menu.
 - **The Example runs in Windows Terminal and in the classic console (conhost)**, both measured with
   `Tools/TerminalProbes/` and both known hosts since 2026-11-16 (`TerminalClient.Program.windowsTerminal`,
   `.windowsConsole`; the terminal survey's "Windows Terminal and the classic console"). Driven by the mouse in each:
@@ -185,7 +185,9 @@ stepped the year 23 times; its tests now repeat on a `TestClock` and wait for ea
 Stress --selfcheck` with `TUI_VERIFY_RENDER_MEMO=1`, failed `deep` (the stack guard cut it: Stress drew its frames on
 the thread's 1 MiB, not on the fiber, which it now does) and, with `NO_COLOR` set as it is in this VM's tool
 environment, the menus session (its check read a highlight by colour alone, where at no colour it is reverse video).
-Both fixed; all 158 cases and 43 sessions pass, on 6.2.4 and 6.4.2 too (2026-11-18).
+Both fixed; all 158 cases and 43 sessions pass, on 6.2.4 and 6.4.2 too (2026-11-18), and on x86_64 (6.3.3, built
+for `x86_64-unknown-windows-msvc` and run under emulation, in 40 minutes), where every module
+passes again with those fixes in.
 
 **The stack a frame is drawn on.** A Windows thread gets the stack its executable names, 1 MiB unless the program was
 linked asking for more: an app's main thread, and the libdispatch workers Swift Testing runs a `@MainActor` test on.
