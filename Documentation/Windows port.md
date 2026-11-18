@@ -172,6 +172,15 @@ earlier runs under load: "a cancelled timeout never resumes a later waiter (no c
 **6.2.4** (2026-11-17): every module passes, all 35, with frames drawn on the fiber, from the toolchain unpacked
 beside the others (see "Toolchain").
 
+**As CI runs them** (6.3.3, 2026-11-17): `swift test`, the whole suite in one process after `swift build
+--build-tests`, ran 15,667 tests in 19 minutes, its build adding a minute and a half, within the Test step's 30. One
+failed, under that load only: a date picker's ▲, held through one yield, outlived the repeat's initial delay and
+stepped the year 23 times; its tests now repeat on a `TestClock` and wait for each step. CI's smoke step, `swift run
+Stress --selfcheck` with `TUI_VERIFY_RENDER_MEMO=1`, failed `deep` (the stack guard cut it: Stress drew its frames on
+the thread's 1 MiB, not on the fiber, which it now does) and, with `NO_COLOR` set as it is in this VM's tool
+environment, the menus session (its check read a highlight by colour alone, where at no colour it is reverse video).
+Both fixed; all 158 cases and 43 sessions pass.
+
 **The stack a frame is drawn on.** A Windows thread gets the stack its executable names, 1 MiB unless the program was
 linked asking for more: an app's main thread, and the libdispatch workers Swift Testing runs a `@MainActor` test on.
 The stack guard keeps 256 KiB in reserve (`StackGuard.reserveBytes`), and the Example's whole Animation page, drawn in
