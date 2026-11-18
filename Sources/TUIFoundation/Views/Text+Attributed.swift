@@ -21,9 +21,10 @@ import Foundation
     ///
     /// Each run of the string becomes a run of this text, drawn with the
     /// attributes of ``AttributeScopes/SwiftUIAttributes``:
-    /// foreground and background colour, semantic font, and a single underline
-    /// or strikethrough. Where Foundation has `inlinePresentationIntent` (on
-    /// Apple platforms), its strong emphasis draws bold, its emphasis italic and
+    /// foreground and background colour, semantic font (bold from semibold up,
+    /// faint from light down, italic), and an underline or strikethrough.
+    /// Where Foundation has `inlinePresentationIntent` (on Apple platforms),
+    /// its strong emphasis draws bold, its emphasis italic and
     /// its strikethrough struck through, so a string parsed from Markdown there
     /// draws as it does in SwiftUI; its code spans are already monospaced.
     ///
@@ -38,7 +39,10 @@ import Foundation
     /// destination shown in a popover, and ``Link``'s menu on Shift+F10 or a
     /// right-click — unless ``View/linkDisplay(_:)`` writes the destination out,
     /// the text is disabled, or it is in a list's row, where it is none.
-    /// Every other attribute is ignored, as SwiftUI ignores them.
+    /// A paragraph's `alignment` places each of its lines within the text's
+    /// width (its widest line), as ``View/multilineTextAlignment(_:)`` places
+    /// a text's lines, and wins over that modifier for its own lines. Every
+    /// other attribute is ignored, as SwiftUI ignores them.
     ///
     /// The string's attributes take precedence over the text's modifiers, which
     /// is SwiftUI's rule: in
@@ -72,7 +76,9 @@ import Foundation
     /// is attributed (`FormattedTimeSource`), which reads it off the main actor.
     nonisolated static func styledRuns(of string: AttributedString) -> [Run]? {
         let runs = runs(of: string)
-        return runs.count > 1 || runs.first.map({ $0.style != TextStyle() || $0.link != nil }) == true ? runs : nil
+        return runs.count > 1
+            || runs.first.map({ $0.style != TextStyle() || $0.link != nil || $0.alignment != nil }) == true
+            ? runs : nil
     }
 
     /// The runs of `string`, neighbours drawn alike merged into one.
@@ -94,22 +100,33 @@ import Foundation
             var gathered = ""
             var gatheredStyle = TextStyle()
             var gatheredLink: URL?
+            var gatheredAlignment: AttributedString.TextAlignment?
             var index = string.startIndex
             while index < string.endIndex {
                 let next = string.characters.index(after: index)
                 let piece = string[index..<next]
                 let style = Self.style(of: piece)
                 let link = piece.link
-                if gathered.isEmpty || style != gatheredStyle || link != gatheredLink {
-                    if !gathered.isEmpty { result.append(Run(text: gathered, style: gatheredStyle, link: gatheredLink)) }
+                let alignment = piece.alignment
+                if gathered.isEmpty || style != gatheredStyle || link != gatheredLink
+                    || alignment != gatheredAlignment
+                {
+                    if !gathered.isEmpty {
+                        result.append(
+                            Run(text: gathered, style: gatheredStyle, link: gatheredLink, alignment: gatheredAlignment))
+                    }
                     gathered = ""
                     gatheredStyle = style
                     gatheredLink = link
+                    gatheredAlignment = alignment
                 }
                 gathered.append(contentsOf: piece.characters)
                 index = next
             }
-            if !gathered.isEmpty { result.append(Run(text: gathered, style: gatheredStyle, link: gatheredLink)) }
+            if !gathered.isEmpty {
+                result.append(
+                    Run(text: gathered, style: gatheredStyle, link: gatheredLink, alignment: gatheredAlignment))
+            }
         #else
             for run in string.runs {
                 append(string[run.range], to: &result)
@@ -125,10 +142,13 @@ import Foundation
         guard !text.isEmpty else { return }
         let style = Self.style(of: piece)
         let link = piece.link
-        if let last = runs.last, last.style == style, last.link == link, last.live == nil {
-            runs[runs.count - 1] = Run(text: last.text + text, style: style, link: link)
+        let alignment = piece.alignment
+        if let last = runs.last, last.style == style, last.link == link, last.live == nil,
+            last.alignment == alignment
+        {
+            runs[runs.count - 1] = Run(text: last.text + text, style: style, link: link, alignment: alignment)
         } else {
-            runs.append(Run(text: text, style: style, link: link))
+            runs.append(Run(text: text, style: style, link: link, alignment: alignment))
         }
     }
 

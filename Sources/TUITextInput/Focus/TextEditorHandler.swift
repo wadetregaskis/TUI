@@ -132,6 +132,12 @@ final class TextEditorHandler: PersistedFocusable {
     /// the vertical keys move by the rows on screen.
     var wrapWidth: Int?
 
+    /// The width an editor that scrolls sideways last drew its text in, or
+    /// `nil` where it wraps — synced by the rendering core each frame, so a
+    /// paragraph's alignment places its line where it was drawn
+    /// (``alignmentCells(ofLine:characters:)``).
+    var sidewaysWidth: Int?
+
     /// How tabs are laid out — synced from the environment by the rendering
     /// core each frame, so vertical motion and the renderer agree on where a
     /// tab puts the columns after it.
@@ -148,7 +154,7 @@ final class TextEditorHandler: PersistedFocusable {
     /// Remembers the cursor's display column for vertical motion.
     func syncDesiredColumn(_ lines: EditedLines? = nil) {
         if let rows = wrappedRows() {
-            desiredColumn = caretColumnInRow(in: rows)
+            desiredColumn = caretScreenColumn(in: rows)
             return
         }
         // The column is the one drawn: a hidden text's glyphs, not its tabs
@@ -160,8 +166,8 @@ final class TextEditorHandler: PersistedFocusable {
             desiredColumn = cursorColumn
             return
         }
-        desiredColumn = TabLayout.displayColumn(
-            ofCharIndex: cursorColumn, in: lines[cursorLine], tabWidth: tabWidth)
+        desiredColumn = TabLayout.displayColumn(ofCharIndex: cursorColumn, in: lines[cursorLine], tabWidth: tabWidth)
+            + alignmentCells(ofLine: cursorLine, characters: lines[cursorLine])
     }
 
     /// Top visible line — the core advances it to follow the cursor.
@@ -848,8 +854,7 @@ final class TextEditorHandler: PersistedFocusable {
         let target = cursorLine + delta
         guard target >= 0, target < lines.count else { return }
         cursorLine = target
-        cursorColumn = TabLayout.charIndex(
-            forDisplayColumn: desiredColumn, in: lines[cursorLine], tabWidth: tabWidth)
+        cursorColumn = characterIndex(atColumn: desiredColumn, inLine: target, of: lines)
     }
 
     /// Moves the cursor up/down a screenful (Page Up / Page Down, Ctrl-V).
@@ -862,8 +867,7 @@ final class TextEditorHandler: PersistedFocusable {
         let lines = displayLines()
         let target = min(max(0, cursorLine + pages * step), lines.count - 1)
         cursorLine = target
-        cursorColumn = TabLayout.charIndex(
-            forDisplayColumn: desiredColumn, in: lines[cursorLine], tabWidth: tabWidth)
+        cursorColumn = characterIndex(atColumn: desiredColumn, inLine: target, of: lines)
     }
 
     // MARK: - Line / document motion

@@ -252,7 +252,18 @@ first character's at its start, a selection's first character's over it), or the
 insertion point; text moved by a drag keeps its own, as an `NSTextView`'s does; undo brings attributes back with the
 characters. A value the app writes, such as one it recoloured,
 is taken whole: its characters are read and compared with the editor's, about 0.2 ns a character, and the lines on
-screen are styled again. A paragraph's alignment and line height are not drawn yet.
+screen are styled again. A paragraph's line height is not drawn yet.
+
+**A paragraph's `alignment` in an `AttributedString` is drawn.** `string.alignment = .center` (or `.left`, `.right`)
+compiles as it does in SwiftUI on macOS 26, on every platform, macOS 15 and Linux included: TUI declares the attribute
+and `AttributedString.TextAlignment` under Core Text's names. Like Core Text's, it belongs to a whole paragraph: set on
+a word, it is set on the word's paragraph, and text typed into the paragraph takes it. A `Text` aligns each of the
+paragraph's lines within its own width, as `.multilineTextAlignment` aligns all of them, and wins over that modifier
+for its own lines. A `TextEditor` centres or right-aligns each row of the paragraph within its width (the last cell
+kept for the caret), or each line narrower than the editor where it scrolls sideways; the caret, clicks, drags, an
+Option-drag's block and the Up and Down keys go by the cells as drawn. On macOS, Core Text's declarations are visible
+too wherever it is loaded, so spell the value without its type (`.center`): naming `AttributedString.TextAlignment` is
+ambiguous there.
 
 **`AttributedTextSelection` and `AttributedString`'s selection members arrive, ahead of the attributed `TextEditor`.**
 SwiftUI's selection in attributed text, with its four initializers, `indices(in:)`, `affinity(in:)`,

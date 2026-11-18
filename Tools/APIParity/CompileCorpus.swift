@@ -644,6 +644,33 @@ private struct RichTextBoldToggle: View {
     }
 }
 
+/// A paragraph's alignment, set as SwiftUI (macOS 26) sets it, the value's
+/// type inferred: in this file, which imports AppKit, Core Text's
+/// `AttributedString.TextAlignment` is visible beside TUI's, and naming the
+/// type would be ambiguous (see `AttributeScopes.CoreTextAttributes`). G3 L4,
+/// the owner's ruling A-ATTRED-3.
+@available(macOS 15, *)
+private struct ParagraphAttributeShapes: View {
+    @State private var text: AttributedString = {
+        var text = AttributedString("Chapter One\nIt was a dark and stormy night.")
+        text[text.range(of: "Chapter One")!].alignment = .center
+        return text
+    }()
+
+    var body: some View {
+        VStack {
+            Text(text)
+            TextEditor(text: $text)
+            Button("Right") {
+                var container = AttributeContainer()
+                container.alignment = .right
+                text.mergeAttributes(container)
+            }
+            Text(text.runs.first?.alignment == .center ? "centred" : "not")
+        }
+    }
+}
+
 /// Text fields on either axis, in each initialiser shape, as SwiftUI's
 /// documentation writes them.
 @MainActor

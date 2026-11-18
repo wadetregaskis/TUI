@@ -14,7 +14,7 @@ owner), B-ATTRED-1 to 7 (decided here).*
 that replaces it is [Highlighting a large source in TextEditor: design (G3,
 A-ATTRED-1)](<Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>) (A-ATTRED-5 to 7). The
 caret's side at a run's edge and at a wrap, measured on macOS, is §8 (A-ATTRED-8 and 9, B-ATTRED-16 to 18). L3, the selection API, is built (§5),
-and what its macOS 15 fallbacks cost is §9. L4's editor is built but for alignment and line height (§5), and
+and what its macOS 15 fallbacks cost is §9. L4's editor is built but for line height (§5), and
 B-ATTRED-4's price is measured there.*
 
 ## In short
@@ -137,7 +137,7 @@ as gaps (`Tools/APIParity/baseline.json`).
 | `link` | Styled as a link; OSC 8 where the host honours it | A link and a control (B85) | Styled, no OSC 8: the terminal would take ⌘-click inside an editable field (the 2026-10-04 design, kept) |
 | `inlinePresentationIntent` (Darwin) | Bold, italic, strikethrough | Drawn | Drawn |
 | `kern`, `tracking`, `baselineOffset`, `lineHeight` | No: the grid fixes them | Ignored | Ignored |
-| `alignment` (a paragraph's) | Could be drawn per line in a wrapping editor | Not read | Ignored (A-ATTRED-3) |
+| `alignment` (a paragraph's) | Drawn per line (A-ATTRED-3, as built in L4) | Each line aligned within the text's width | Each row aligned within the editor's width |
 | `adaptiveImageGlyph` | No | Ignored | Ignored |
 
 So everything tuitree asks for is in the drawable half: colours per token, and an underline (curly where the
@@ -367,10 +367,64 @@ initializer's documentation states. The three-quarters of a second a key of §4 
 the comparison three orders of magnitude cheaper, and leaves the fresh layout of a changed text, which the `String`
 editor pays as well, as what a large source costs.
 
-**Not yet built (L4's remainder):** a paragraph's alignment and a line height (§7's ruling), which need TUI's
-attribute scope to carry `alignment` and `lineHeight` first (it leaves them out so that setting one fails to compile,
-and on Apple platforms they are Core Text's macOS 26 types, absent on Linux); and Stress's `text-editor-rich` and
-`bigtext-rich` cases.
+*As built in L4 (2026-11-17), a paragraph's alignment (§7, A-ATTRED-3):* SwiftUI's scope declares
+`alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute`, whose value is Core Text's
+`AttributedString.TextAlignment` (`left`, `center`, `right`; macOS 26, read from the 26.2 SDK's Core Text interface).
+TUI declares both under those names itself, in `Sources/TUIFoundation/Views/AttributeScopes+CoreText.swift`, so they
+exist on macOS 15, Linux and Windows and need no gate; the key is bounded by paragraphs
+(`runBoundaries = .paragraph`), as a paragraph attribute is, so setting it on a word sets it on the word's paragraph
+and typed text takes it. Its `name` is TUI's own (`"TUI.TextAlignment"`): Core Text's interface does not show its
+name, and a value carrying Core Text's attribute stays invisible to TUI's key rather than read as the wrong type.
+
+**The one cost of declaring them (measured, not decided):** on macOS, Core Text's `AttributedString.TextAlignment` is
+visible beside TUI's wherever Core Text is loaded, and TUI loads it (`TUIStrings`' SF Symbols table), so an app that
+NAMES the type (`let a: AttributedString.TextAlignment`) gets "ambiguous type name" unless it builds with
+`MemberImportVisibility` and imports none of AppKit, SwiftUI and Core Text; `internal import CoreText` in `TUIStrings`
+does not hide it. Setting the attribute (`string.alignment = .center`, `container.alignment = .right`, reading
+`run.alignment`) binds to TUI's even with AppKit imported, as the colours' subscripts do; the compile corpus checks
+it beside AppKit. TUI's own test targets, built without `MemberImportVisibility`, hit it at once (they name a
+stand-in instead). Linux and Windows have no second declaration. This is the scope type's own caveat (decisions B84)
+reaching `TextAlignment` and `CoreTextAttributes`, and the lead's brief said to stop and write up any ambiguity: it is written up here for the
+lead, who may prefer the alternative, Core Text's own types on Apple platforms (gated to macOS 26, as SwiftUI's are)
+and TUI's elsewhere. That alternative costs macOS 15 the attribute, and Core Text's `LineHeight` has no public
+accessor to read a factor back from (only `==` against made values), which matters for line height.
+
+A `Text` aligns each line of the paragraph within its own width (the widest line), as
+`multilineTextAlignment` aligns all of them, and a paragraph's alignment wins over that modifier for its own lines:
+`Text.Run` carries the paragraph's alignment, and `Text+ParagraphStyle.swift` finds each wrapped line's paragraph
+from the paragraphs' wrapped line counts (`TextWrapping.paragraphLineCounts`), which only a text whose runs state an
+alignment asks for. The editor reads a line's alignment from its paragraph's first character (its newline, where it
+is empty), once a line, kept with its styles in `EditorLineStyleCache` and dropped with them
+(`TextEditorHandler+Alignment.swift`). A wrapping editor centres or right-aligns each row within its width less the
+caret's margin cell, counting a wrapped row's text without the spaces left hanging at its end; one that scrolls
+sideways aligns a line that fits in that width and leaves a longer one to scroll. The row is drawn after that many
+blank cells in the well's field (`styledRow`'s `leadingCells`: the window starts that many cells before the line, so
+the caret's, the selection's, the matches' and the tab stops' columns stay the line's own). The caret's parked
+cell, a click, a drag, a Shift-click, an Option-drag's block and Up, Down and the page keys go by the cells as drawn:
+the column the vertical keys keep is across the editor, not in the row. Tests: `TextParagraphAlignmentTests`
+(TUIFoundation) and `RichTextEditorAlignmentTests`.
+
+**Fonts (§7, checked in L4):** the mapping L4 shares with `Text` (`Text.cellStyle`, through `Font.defaultAttributes`)
+already is the ruling's: a semantic style draws as its tier (titles and headline bold, footnotes and captions faint),
+a weight from semibold up bold and from light down faint (`.weight(_:)`, `.bold()`, `Font.system(_:design:weight:)`),
+and `.italic()` italic, in a font value set as the `font` attribute as in a `font(_:)` modifier. Nothing was missing
+that TUI's `Font` can carry: it has no size, family, width or leading to ignore (`Font.system(size:)` and
+`Font.custom` do not exist here), its `design` is ignored, and `monospaced()` returns the font unchanged, every cell
+being one already. Kerning, tracking and a baseline offset stay out of the scope, so setting one does not compile.
+
+**Not yet built (L4's remainder):** a paragraph's line height (§7's ruling); and Stress's `text-editor-rich` and
+`bigtext-rich` cases. Line height is unlike alignment in one way that matters for a large text: a paragraph's blank
+rows move every row after it, so the editor's rows (`WrappedRows.rowStarts`, which the scroll, the scroll bar's extent,
+the caret's row and every click go through) need every paragraph's line height, where alignment needs only the lines
+drawn. The way in that keeps B-ATTRED-2: `LineHeightAttribute` bounded by paragraphs like alignment, so
+`value.runs[LineHeightAttribute.self]` yields one run per stretch of paragraphs that share a value (one run for a text
+that sets none); `WrappedRows` keeping a rows-per-row factor per line, made from those runs when a value is taken whole
+and from the edited lines' paragraphs after an edit; `location(ofRow:)` flooring a blank row to the row above (the
+ruling's "belong to the row above"), Up and Down stepping by drawn rows, and the top row rounded up off a blank one so
+the caret's row stays on screen. Not yet measured: what that runs walk costs on `bigtext`'s 640,003 runs, which a
+recolour without a character change would pay on every write (a probe building that text with per-token attributes
+did not finish inside five minutes and was stopped). `Text` would interleave a paragraph's blank rows as
+`lineSpacing`'s are (`LineSpacingRows`), in its measure as in its drawing.
 
 ## 6. Questions for the owner
 
@@ -604,7 +658,8 @@ call it. Dropping macOS 15 deletes the file and those arms. Linux and Windows ne
 
 **L4 adds no fallback.** The attributed editor reads the app's selection through `indices(in:)`, whose validity on
 macOS 15 is the bounds check above, and finds an offset's index through the character view, which costs a
-microsecond there (below). Its edits are made by offset, not tracked, so they need no tracking fallback.
+microsecond there (below). Its edits are made by offset, not tracked, so they need no tracking fallback. A paragraph's alignment adds none
+either: TUI declares the attribute and its value type itself, so macOS 15 has them as macOS 26 does (§5, as built).
 
 **The offset-to-index walk** (the owner's question): on macOS 15.8.3 Foundation's `AttributedString` finds an index
 from a character or scalar offset through its rope, so no walk happens. Without the UTF-8 view, on a

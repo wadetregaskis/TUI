@@ -38,6 +38,11 @@ import TUIStyling
         /// The fragment's custom attributes (`customAttribute(_:)`), for a
         /// text renderer; `nil` for none.
         var attributes: TextAttributes?
+
+        /// The alignment of the paragraph the fragment is in, from an
+        /// attributed string's `alignment`, or `nil` for the text's own
+        /// (``View/multilineTextAlignment(_:)``). See `Text+ParagraphStyle.swift`.
+        var alignment: AttributedString.TextAlignment?
     }
 }
 
@@ -59,7 +64,9 @@ extension Text.Run {
     /// This run with `base` beneath it: the run's own attributes win, the
     /// base fills anything it left unset.
     func rebased(on base: TextStyle) -> Self {
-        Self(text: text, style: style.merged(over: base), live: live, link: link, attributes: attributes)
+        Self(
+            text: text, style: style.merged(over: base), live: live, link: link, attributes: attributes,
+            alignment: alignment)
     }
 }
 

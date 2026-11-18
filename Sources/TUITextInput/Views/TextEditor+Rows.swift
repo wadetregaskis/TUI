@@ -42,11 +42,13 @@ extension _TextEditorCore {
                     cell += layout.cellWidth(at: end)
                     end += 1
                 }
-                // A block's columns are this row's cells already.
+                // The blank cells its paragraph's alignment puts in front.
+                let aligned = handler.alignmentCells(line: line, rowInLine: rowInLine, in: rows)
+                // A block's columns are the grid's, this row's cells after them.
                 let selection: Range<Int>? =
                     !showsSelection
                     ? nil
-                    : handler.blockCells(onRow: top + screenRow)
+                    : handler.blockCells(onRow: top + screenRow).map { ($0.lowerBound - aligned)..<($0.upperBound - aligned) }
                         ?? handler.selectedColumns(inLine: line, lineLength: lines[line].count).flatMap { selected in
                             let lower = max(selected.lowerBound, span.start)
                             let upper = min(selected.upperBound, end)
@@ -64,7 +66,8 @@ extension _TextEditorCore {
                 // The line's styles, in this row's columns.
                 let styles = handler.styles(ofLine: line).compactMap { $0.clipped(toColumns: span.start, end) }
                 rendered = styledRow(
-                    Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, width: rows.width,
+                    Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, leadingCells: aligned,
+                    width: rows.width,
                     caret: top + screenRow == caretRow && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
                     selection: selection, matches: matches, styles: styles, styling: styling)
@@ -114,15 +117,17 @@ extension _TextEditorCore {
             let rendered: RenderedRow
             if lineIndex < displayLines.count {
                 let lineChars = displayLines[lineIndex]
+                // The blank cells its paragraph's alignment puts in front.
+                let aligned = handler.alignmentCells(ofLine: lineIndex, characters: lineChars)
                 // The handler's selection is character-indexed; the row is painted
                 // in display cells, so convert the bounds (a char range maps to a
                 // contiguous display range — expansion is monotonic — and a
                 // selected tab highlights its whole span, as in any editor).
-                // A block's columns are this line's display columns already.
+                // A block's columns are the grid's, this line's after them.
                 let selection: Range<Int>? =
                     !showsSelection
                     ? nil
-                    : handler.blockCells(onRow: lineIndex)
+                    : handler.blockCells(onRow: lineIndex).map { ($0.lowerBound - aligned)..<($0.upperBound - aligned) }
                         ?? handler.selectedColumns(inLine: lineIndex, lineLength: lineChars.count).map {
                             TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
                                 ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
@@ -132,7 +137,8 @@ extension _TextEditorCore {
                         ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
                 }
                 rendered = styledRow(
-                    lineChars, tabWidth: tabWidth, scrollColumn: handler.scrollColumn, width: width,
+                    lineChars, tabWidth: tabWidth, scrollColumn: handler.scrollColumn, leadingCells: aligned,
+                    width: width,
                     // No caret while text is selected, as on a Mac: the
                     // selection is what typing replaces (see the field's
                     // `buildTextWithCursor`).
@@ -307,19 +313,22 @@ extension _TextEditorCore {
     /// `styles` are the line's own (``EditorStyledRun``), in the columns of
     /// `chars`, ascending: a run's colours give way to the selection's, and
     /// its field to a find match's; its decoration is drawn under both.
+    ///
+    /// `leadingCells` are blank cells the line is drawn after, its
+    /// paragraph's alignment (A-ATTRED-3): scrolled with it, in the well's
+    /// field. The caret's, the selection's and the matches' columns stay the
+    /// line's own, and so do its tab stops.
     func styledRow(
-        _ chars: [Character], tabWidth: TabWidth, scrollColumn: Int, width: Int,
+        _ chars: [Character], tabWidth: TabWidth, scrollColumn: Int, leadingCells: Int = 0, width: Int,
         caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styles: [EditorStyledRun] = [],
         styling: RowStyling
     ) -> RenderedRow {
         // Disabled, the runs fade with the rest (``RowStyling/RunFade``).
         let styles = styling.runFade.map { fade in styles.map { fade($0) } } ?? styles
-        let background = styling.background
-        let textForeground = styling.text
-        // Not `selection`, which is this row's selected COLUMNS.
-        let selectionStyle = styling.selection
-        let windowStart = scrollColumn
-        let windowEnd = scrollColumn + width
+        // `selectionStyle`, not `selection`, which is this row's selected COLUMNS.
+        let (background, textForeground, selectionStyle) = (styling.background, styling.text, styling.selection)
+        // In the line's own cells: an aligned line starts `leadingCells` in.
+        let (windowStart, windowEnd) = (scrollColumn - leadingCells, scrollColumn - leadingCells + width)
 
         // Walks the line in cell space, clipping each element against the
         // window: fully inside → emitted whole; straddling an edge → spaces
@@ -399,6 +408,11 @@ extension _TextEditorCore {
             cellX += cells
             outputCells += cells
         }
+
+        // The blank cells in front of an aligned line, as far as they show.
+        let padding = min(width, max(0, -windowStart))
+        for _ in 0..<padding { emit(" ", foreground: textForeground, background: background) }
+        outputCells += padding
 
         // The style run of the character being drawn, found in one pass.
         var styleCursor = 0

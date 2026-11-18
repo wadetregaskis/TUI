@@ -56,16 +56,18 @@ struct EditorPointer {
         // landed on the first off-screen character and followCursor
         // immediately scrolled the text one column right — a scrollbar
         // click that horizontally scrolled the editor.
-        let displayColumn =
-            handler.scrollColumn + max(0, min(event.x, contentWidth - 1))
         // Below the last line, on the last line, at the column clicked, as a
         // wrapping editor's click below its last row lands on that row: read
         // as an empty line, the column came out 0 wherever the click was.
         let allLines = handler.displayLines()
         let line = min(handler.scrollLine + row, allLines.count - 1)
         let lineChars = allLines.indices.contains(line) ? allLines[line] : []
+        // After the line's alignment, where its paragraph states one.
+        let displayColumn =
+            handler.scrollColumn + max(0, min(event.x, contentWidth - 1))
+            - handler.alignmentCells(ofLine: line, characters: lineChars)
         let column = TabLayout.charIndex(
-            forDisplayColumn: displayColumn, in: lineChars, tabWidth: tabWidth)
+            forDisplayColumn: max(0, displayColumn), in: lineChars, tabWidth: tabWidth)
         handler.moveCursor(toLine: line, column: column)
     }
 

@@ -447,7 +447,9 @@ private struct _TextLinksCore: View, Renderable {
         let run = runs[index]
         var style = run.style
         style.foregroundColor = colour
-        runs[index] = Run(text: run.text, style: style, live: run.live, link: run.link, attributes: run.attributes)
+        runs[index] = Run(
+            text: run.text, style: style, live: run.live, link: run.link, attributes: run.attributes,
+            alignment: run.alignment)
         var recoloured = self
         recoloured.runs = runs
         return recoloured

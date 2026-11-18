@@ -210,6 +210,19 @@ package enum TextWrapping {
         return Wrapped(lines: lines, widths: widths, brokeAWord: brokeAWord)
     }
 
+    /// How many lines each paragraph of `text` wraps to at `width`, as
+    /// ``wrapMeasured(_:width:)`` wraps them: for a text whose paragraphs are
+    /// aligned each their own way (an attributed string's `alignment`), which
+    /// needs to know whose each line is. Not memoized: only such a text asks.
+    package static func paragraphLineCounts(_ text: String, width: Int) -> [Int] {
+        let paragraphs = text.split(
+            omittingEmptySubsequences: false,
+            whereSeparator: { $0 == "\n" || $0 == "\r\n" || $0 == "\r" }
+        )
+        guard width > 0 else { return paragraphs.map { _ in 1 } }
+        return paragraphs.map { wrapParagraph(String($0), width: width).lines.count }
+    }
+
     /// Lays `text` into at most `maxLines` lines of at most `width` cells.
     ///
     /// Wraps (see ``wrap(_:width:)``); then, if the result overflows the budget,

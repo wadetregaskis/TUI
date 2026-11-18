@@ -121,6 +121,7 @@ extension _TextEditorCore {
             let caretColumn = TabLayout.displayColumn(ofCharIndex: handler.cursorColumn, in: line, tabWidth: tabWidth)
             if follows {
                 handler.wrapWidth = nil
+                handler.sidewaysWidth = width
                 let caretCells =
                     handler.cursorColumn >= 0 && handler.cursorColumn < line.count
                     ? (line[handler.cursorColumn] == "\t" ? 1 : max(1, line[handler.cursorColumn].terminalWidth)) : 1
@@ -136,6 +137,7 @@ extension _TextEditorCore {
         let rows = handler.displayLayout().wrapped(width: width, tabWidth: tabWidth)
         if follows {
             handler.wrapWidth = width
+            handler.sidewaysWidth = nil
             (handler.scrollLine, handler.scrollRowInLine) = rows.location(ofRow: min(top, max(0, rows.rowCount - 1)))
             handler.scrollColumn = 0
         }

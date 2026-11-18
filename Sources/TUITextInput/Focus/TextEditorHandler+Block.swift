@@ -94,7 +94,11 @@ extension TextEditorHandler {
                 let (line, rowInLine) = rows.location(ofRow: row)
                 let layout = rows.lines[line]
                 let span = layout.rows[rowInLine]
-                let inside = (span.start..<span.end).filter { columns.contains(layout.cells(inRow: rowInLine, before: $0)) }
+                // In the grid's columns: after the row's alignment.
+                let aligned = alignmentCells(line: line, rowInLine: rowInLine, in: rows)
+                let inside = (span.start..<span.end).filter {
+                    columns.contains(aligned + layout.cells(inRow: rowInLine, before: $0))
+                }
                 return (line, (inside.first ?? span.start)..<((inside.last ?? span.start - 1) + 1))
             }
         }
@@ -102,8 +106,9 @@ extension TextEditorHandler {
         return block.rows.compactMap { line in
             guard line < lines.count else { return nil }
             let characters = lines[line]
+            let aligned = alignmentCells(ofLine: line, characters: characters)
             let inside = characters.indices.filter {
-                columns.contains(TabLayout.displayColumn(ofCharIndex: $0, in: characters, tabWidth: tabWidth))
+                columns.contains(aligned + TabLayout.displayColumn(ofCharIndex: $0, in: characters, tabWidth: tabWidth))
             }
             return (line, (inside.first ?? 0)..<((inside.last ?? -1) + 1))
         }

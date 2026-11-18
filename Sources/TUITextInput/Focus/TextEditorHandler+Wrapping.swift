@@ -87,8 +87,11 @@ extension TextEditorHandler {
     private func moveToRow(_ row: Int, in rows: WrappedRows) {
         let (line, rowInLine) = rows.location(ofRow: row)
         cursorLine = line
+        // The column kept is across the editor; the row's text starts after
+        // its paragraph's alignment puts it.
         cursorColumn = rows.lines[line].offset(
-            inRow: rowInLine, atColumn: desiredColumn, affinity: selectionAffinity)
+            inRow: rowInLine, atColumn: desiredColumn - alignmentCells(line: line, rowInLine: rowInLine, in: rows),
+            affinity: selectionAffinity)
     }
 
     /// Keeps the caret's row on screen, moving the top row as little as it
@@ -115,6 +118,7 @@ extension TextEditorHandler {
     /// caret offset past its text.
     func position(atScreenRow row: Int, column: Int, in rows: WrappedRows) -> (line: Int, column: Int) {
         let (line, rowInLine) = rows.location(ofRow: topRow(in: rows) + row)
+        let column = column - alignmentCells(line: line, rowInLine: rowInLine, in: rows)
         return (line, rows.lines[line].offset(inRow: rowInLine, atColumn: column, affinity: selectionAffinity))
     }
 
@@ -125,6 +129,7 @@ extension TextEditorHandler {
     /// (``SoftWrapLayout/selectionOffset(inRow:atColumn:affinity:)``).
     func selectionPosition(atScreenRow row: Int, column: Int, in rows: WrappedRows) -> TextEditorPosition {
         let (line, rowInLine) = rows.location(ofRow: topRow(in: rows) + row)
+        let column = column - alignmentCells(line: line, rowInLine: rowInLine, in: rows)
         let offset = rows.lines[line].selectionOffset(inRow: rowInLine, atColumn: column, affinity: selectionAffinity)
         return TextEditorPosition(line: line, column: offset)
     }
@@ -153,14 +158,19 @@ extension TextEditorHandler {
     ///
     /// - Parameters:
     ///   - column: The caret's display column: in its row where the
-    ///     editor wraps (`rows`), in its line where it scrolls sideways.
+    ///     editor wraps (`rows`), in its line where it scrolls sideways —
+    ///     before its paragraph's alignment, which this adds.
     ///   - rows: The wrapped rows, or `nil` where the editor scrolls sideways.
     ///   - width: The columns the text is drawn in, a scroll bar's left out.
     ///   - height: The rows drawn.
     func drawnInsertionPoint(column: Int, rows: WrappedRows?, width: Int, height: Int) -> CellPoint? {
         let point =
-            rows.map { CellPoint(x: column, y: caretRow(in: $0) - topRow(in: $0)) }
-            ?? CellPoint(x: column - scrollColumn, y: cursorLine - scrollLine)
+            rows.map {
+                let caret = caretRow(in: $0)
+                return CellPoint(x: column + alignmentCells(ofRow: caret, in: $0), y: caret - topRow(in: $0))
+            }
+            ?? CellPoint(
+                x: column - scrollColumn + sidewaysAlignmentCells(ofLine: cursorLine), y: cursorLine - scrollLine)
         guard (0..<width).contains(point.x), (0..<height).contains(point.y) else { return nil }
         return point
     }

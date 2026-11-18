@@ -146,11 +146,17 @@ AppStorage.projectedValue | var projectedValue: Binding<Value> { get }
 AppStorage.resolveEnvironment(_:) | func resolveEnvironment(_ environment: EnvironmentValues)
 AppStorage.wrappedValue | var wrappedValue: Value { get nonmutating set }
 Appearance.localizedName | var localizedName: String { get }
+AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.CoreTextAttributes.TextAlignmentAttribute>) -> AttributeScopes.CoreTextAttributes.TextAlignmentAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute>) -> AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.SwiftUIAttributes.FontAttribute>) -> AttributeScopes.SwiftUIAttributes.FontAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.SwiftUIAttributes.ForegroundColorAttribute>) -> AttributeScopes.SwiftUIAttributes.ForegroundColorAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.SwiftUIAttributes.StrikethroughStyleAttribute>) -> AttributeScopes.SwiftUIAttributes.StrikethroughStyleAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute>) -> AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute { get }
+AttributeScopes.CoreTextAttributes | struct CoreTextAttributes
+AttributeScopes.CoreTextAttributes.TextAlignmentAttribute | @frozen enum TextAlignmentAttribute
+AttributeScopes.CoreTextAttributes.TextAlignmentAttribute.Value | typealias Value = AttributedString.TextAlignment
+AttributeScopes.CoreTextAttributes.TextAlignmentAttribute.name | static let name: String
+AttributeScopes.CoreTextAttributes.TextAlignmentAttribute.runBoundaries | static let runBoundaries: AttributedString.AttributeRunBoundaries?
 AttributeScopes.SwiftUIAttributes | struct SwiftUIAttributes
 AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute | @frozen enum BackgroundColorAttribute
 AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute.Value | typealias Value = Color
@@ -169,6 +175,7 @@ AttributeScopes.SwiftUIAttributes.StrikethroughStyleAttribute.name | static let 
 AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute | @frozen enum UnderlineStyleAttribute
 AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute.Value | typealias Value = Text.LineStyle
 AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute.name | static let name: String
+AttributeScopes.SwiftUIAttributes.alignment | let alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
 AttributeScopes.SwiftUIAttributes.backgroundColor | let backgroundColor: AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute
 AttributeScopes.SwiftUIAttributes.font | let font: AttributeScopes.SwiftUIAttributes.FontAttribute
 AttributeScopes.SwiftUIAttributes.foregroundColor | let foregroundColor: AttributeScopes.SwiftUIAttributes.ForegroundColorAttribute
@@ -176,6 +183,11 @@ AttributeScopes.SwiftUIAttributes.foundation | let foundation: AttributeScopes.F
 AttributeScopes.SwiftUIAttributes.strikethroughStyle | let strikethroughStyle: AttributeScopes.SwiftUIAttributes.StrikethroughStyleAttribute
 AttributeScopes.SwiftUIAttributes.underlineStyle | let underlineStyle: AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute
 AttributeScopes.swiftUI | var swiftUI: AttributeScopes.SwiftUIAttributes.Type { get }
+AttributedString.TextAlignment | enum TextAlignment
+AttributedString.TextAlignment.center | case center
+AttributedString.TextAlignment.init(from:) | init(from decoder: any Decoder) throws
+AttributedString.TextAlignment.left | case left
+AttributedString.TextAlignment.right | case right
 AutoRepeatTimer.defaultInitialDelayMs | nonisolated static let defaultInitialDelayMs: Int
 AutoRepeatTimer.init(initialDelayMs:repeatIntervalMs:clock:) | @MainActor init(initialDelayMs: Int = AutoRepeatTimer.defaultInitialDelayMs, repeatIntervalMs: Int = 80, clock: any Clock<Duration> = SuspendingClock())
 AutoRepeatTimer.initialDelayMs | @MainActor let initialDelayMs: Int

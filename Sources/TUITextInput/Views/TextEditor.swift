@@ -702,6 +702,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             if follows { handler.wrapWidth = nil }
             let overflows = lines.count > height
             let contentWidth = overflows ? max(1, width - barWidth) : width
+            if follows { handler.sidewaysWidth = contentWidth }
             // In DISPLAY columns, the space the scroll window and the caret cell
             // live in (a tab makes the display column run ahead of the index).
             let caretColumn = TabLayout.displayColumn(
@@ -736,6 +737,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // nobody sees.
         if follows {
             handler.wrapWidth = contentWidth
+            handler.sidewaysWidth = nil
             if handler.isWheelScrolled {
                 handler.clampWheelScroll(rowCount: rows.rowCount, height: height, in: rows)
             } else {

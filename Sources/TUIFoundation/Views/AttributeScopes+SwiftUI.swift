@@ -27,14 +27,16 @@ extension AttributeScopes {
     ///
     /// Each of these has a cell to go in: a foreground and a background colour,
     /// a semantic font (which a terminal draws as an intensity — see ``Font``),
-    /// and a single underline or strikethrough. Foundation's own attributes come
-    /// along through ``foundation``, and a `Text` draws the `link` among them.
+    /// and a single underline or strikethrough. A paragraph's ``alignment``
+    /// places its lines across the width, as SwiftUI's does (the owner's ruling
+    /// A-ATTRED-3, 2026-11-17). Foundation's own attributes come along through
+    /// ``foundation``, and a `Text` draws the `link` among them.
     ///
     /// SwiftUI's sub-cell typography is not here — `kern`, `tracking`,
-    /// `baselineOffset`, the paragraph's `lineHeight` and `alignment`, and the
-    /// `adaptiveImageGlyph` — so setting one fails to compile instead of being
-    /// dropped on the way to the screen. Nor is `accessibility`: the
-    /// Accessibility framework's scope does not exist on Linux or Windows.
+    /// `baselineOffset` and the `adaptiveImageGlyph` — so setting one fails to
+    /// compile instead of being dropped on the way to the screen. Nor is
+    /// `accessibility`: the Accessibility framework's scope does not exist on
+    /// Linux or Windows.
     ///
     /// > Important: On macOS, SwiftUI's scope of the same name is visible to
     /// > an app too, because TUI imports AppKit and AppKit loads SwiftUICore.
@@ -58,6 +60,10 @@ extension AttributeScopes {
 
         /// A property for accessing an underline style attribute.
         public let underlineStyle: UnderlineStyleAttribute
+
+        /// A property for accessing a paragraph's alignment
+        /// (``AttributedString/TextAlignment``).
+        public let alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
 
         /// A property for accessing attributes defined by the Foundation
         /// framework. Of those, a ``Text`` draws `link` (and, where
@@ -156,5 +162,15 @@ extension AttributeDynamicLookup {
         >
     ) -> AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute {
         self[AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute.self]
+    }
+
+    /// The ``AttributeScopes/SwiftUIAttributes/alignment`` attribute, as
+    /// `string.alignment`.
+    public subscript(
+        dynamicMember keyPath: KeyPath<
+            AttributeScopes.SwiftUIAttributes, AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
+        >
+    ) -> AttributeScopes.CoreTextAttributes.TextAlignmentAttribute {
+        self[AttributeScopes.CoreTextAttributes.TextAlignmentAttribute.self]
     }
 }

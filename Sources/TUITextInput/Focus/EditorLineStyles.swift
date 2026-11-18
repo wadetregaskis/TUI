@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import TUIFoundation
 
 /// What a cell draws beside its colours: bold, faint, italic, and its lines.
@@ -118,6 +119,10 @@ struct EditorStyledRun: Equatable {
 /// a line never drawn is never read, so a large document costs a screenful.
 struct EditorLineStyleCache {
     private var kept: [Int: [EditorStyledRun]] = [:]
+    /// Each read line's paragraph alignment (A-ATTRED-3), `nil` inside for a
+    /// line whose paragraph states none: read for the lines drawn, and for
+    /// those the caret, a click or a vertical key reaches.
+    private var alignments: [Int: AttributedString.TextAlignment?] = [:]
 
     /// How many lines' styles are kept.
     var count: Int { kept.count }
@@ -130,22 +135,42 @@ struct EditorLineStyleCache {
         return runs
     }
 
+    /// `line`'s paragraph alignment: that kept, or `read`'s, kept from now on.
+    mutating func alignment(
+        ofLine line: Int, reading read: (Int) -> AttributedString.TextAlignment?
+    ) -> AttributedString.TextAlignment? {
+        if let alignment = alignments[line] { return alignment }
+        let alignment = read(line)
+        alignments[line] = .some(alignment)
+        return alignment
+    }
+
     /// An edit replaced the lines `replaced` with `count` others: their styles
     /// go, those before stay, and those after move with their lines.
     mutating func replaceLines(_ replaced: Range<Int>, withCount count: Int) {
-        guard !kept.isEmpty else { return }
+        kept = Self.moving(kept, replacing: replaced, withCount: count)
+        alignments = Self.moving(alignments, replacing: replaced, withCount: count)
+    }
+
+    /// `kept`'s lines, those `replaced` gone and those after moved by the lines
+    /// that took their place.
+    private static func moving<Value>(
+        _ kept: [Int: Value], replacing replaced: Range<Int>, withCount count: Int
+    ) -> [Int: Value] {
+        guard !kept.isEmpty else { return kept }
         let shift = count - replaced.count
-        var moved: [Int: [EditorStyledRun]] = [:]
+        var moved: [Int: Value] = [:]
         moved.reserveCapacity(kept.count)
-        for (line, runs) in kept where !replaced.contains(line) {
-            moved[line >= replaced.upperBound ? line + shift : line] = runs
+        for (line, value) in kept where !replaced.contains(line) {
+            moved[line >= replaced.upperBound ? line + shift : line] = value
         }
-        kept = moved
+        return moved
     }
 
     /// Forgets every line's styles: the text was replaced whole, or the styles
     /// came from somewhere else.
     mutating func removeAll() {
         kept.removeAll()
+        alignments.removeAll()
     }
 }

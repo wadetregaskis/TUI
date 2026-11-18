@@ -190,7 +190,9 @@ final class LiveTextBox: Sendable, Hashable {
         let count = ladders.map(\.count).max() ?? 1
         return (0..<count).map { rung in
             let read = zip(runs, ladders).map { run, ladder in
-                Run(text: ladder[min(rung, ladder.count - 1)], style: run.style, link: run.link, attributes: run.attributes)
+                Run(
+                    text: ladder[min(rung, ladder.count - 1)], style: run.style, link: run.link,
+                    attributes: run.attributes, alignment: run.alignment)
             }
             var text = Text(verbatim: read.map(\.text).joined())
             text.style = style

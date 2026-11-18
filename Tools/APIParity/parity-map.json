@@ -51,10 +51,9 @@
         "AttributeScopes.SwiftUIAttributes.TrackingAttribute*",
         "AttributeScopes.SwiftUIAttributes.baselineOffset",
         "AttributeScopes.SwiftUIAttributes.BaselineOffsetAttribute*",
-        "AttributeScopes.SwiftUIAttributes.lineHeight",
-        "AttributeScopes.SwiftUIAttributes.alignment"
+        "AttributeScopes.SwiftUIAttributes.lineHeight"
       ],
-      "why": "Sub-cell typography, as the View modifiers of the same names (decisions C8): a cell grid has one advance per cell, one baseline and one line height, so kerning, tracking, a baseline offset or a line height have nowhere to go. A run's paragraph alignment has no carrier either: a Text aligns its lines as one block (multilineTextAlignment), never paragraph by paragraph. Omitted so setting one fails to compile."
+      "why": "Sub-cell typography, as the View modifiers of the same names (decisions C8): a cell grid has one advance per cell, one baseline and one line height, so kerning, tracking, a baseline offset or a line height have nowhere to go. Omitted so setting one fails to compile. (A paragraph's alignment ships since 2026-11-17, the owner's ruling A-ATTRED-3: a Text and a TextEditor align each paragraph's lines its own way.)"
     },
     {
       "match": [

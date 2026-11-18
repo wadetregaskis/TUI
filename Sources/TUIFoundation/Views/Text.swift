@@ -1159,38 +1159,17 @@ package struct TextStyle: Sendable, Equatable {
         // The words as shown: a link's destination written out where
         // `.linkDisplay` asks for it, as the measure counted it.
         let shown = shownWords(in: context.environment)
+        let displayed = Self.displayString(shown.content, textCase: effectiveCase, redaction: redaction, context: context)
         let wrapped = TextWrapping.fitMeasured(
-            Self.displayString(shown.content, textCase: effectiveCase, redaction: redaction, context: context),
-            width: maxWidth, maxLines: maxHeight, mode: mode, atWordBoundary: atWordBoundary)
+            displayed, width: maxWidth, maxLines: maxHeight, mode: mode, atWordBoundary: atWordBoundary)
 
         let knownWidth = wrapped.widths.max() ?? 0
 
-        // `multilineTextAlignment`: for `.center` / `.trailing` over more than
-        // one line, pad each line into the block's own width (the widest line)
-        // so shorter lines shift right or centre relative to it — SwiftUI's
-        // line-to-line alignment. `.leading` (the default) and single-line text
-        // keep the ragged, unpadded lines exactly as before (no snapshot churn;
-        // the padding would be invisible trailing space anyway), and the block
-        // width the measure pass reported is unchanged in every case.
-        let alignment = context.environment.multilineTextAlignment
-        let plainLines: [String]
-        let lineWidths: [Int]
-        if alignment != .leading, wrapped.lines.count > 1, knownWidth > 0 {
-            var aligned: [String] = []
-            aligned.reserveCapacity(wrapped.lines.count)
-            for (line, lineWidth) in zip(wrapped.lines, wrapped.widths) {
-                let leadingPad = alignment.leadingPad(lineWidth: lineWidth, blockWidth: knownWidth)
-                let trailingPad = max(0, knownWidth - lineWidth - leadingPad)
-                aligned.append(
-                    String.spaces(leadingPad) + line
-                        + String.spaces(trailingPad))
-            }
-            plainLines = aligned
-            lineWidths = Array(repeating: knownWidth, count: aligned.count)
-        } else {
-            plainLines = wrapped.lines
-            lineWidths = wrapped.widths
-        }
+        // `multilineTextAlignment`, and an attributed string's paragraph
+        // `alignment`, line by line (`Text+ParagraphStyle.swift`).
+        let (plainLines, lineWidths) = Self.aligned(
+            wrapped, blockWidth: knownWidth, runs: shown.runs, text: displayed, width: maxWidth,
+            alignment: context.environment.multilineTextAlignment)
 
         // Apply styling to each line. ANSI escapes occupy zero visible cells, so
         // the styled lines have exactly the same per-line widths as the plain
