@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Arrows Follow Layout goes through a scroll view's content before leaving it.** With `TUI_ARROW_FOCUS=geometric`,
+Up from the top row on screen in a `ScrollView` went to a button above the scroll view instead of the row just above
+the viewport, in a `VStack` or a `LazyVStack` alike, and Down at the bottom or Left and Right at the sides did the
+same wherever the control outside lay as near: a row out of sight lies, on screen, where the controls around the
+scroll view are drawn. An arrow now prefers a control in the same scroll views as the focused one, out of sight or
+not, and scrolls it in; it leaves the scroll view only when nothing in its content lies that way.
+
 **`TextEditor` edits an `AttributedString`.** `TextEditor(text:selection:)` takes a `Binding<AttributedString>` and an
 optional `Binding<AttributedTextSelection>`, as SwiftUI's does on macOS 26. The text is drawn in its attributes as a
 `Text` of it draws them: colours, bold for semibold and heavier fonts, faint for light and lighter ones, italic,

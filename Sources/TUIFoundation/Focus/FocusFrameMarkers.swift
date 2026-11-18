@@ -28,6 +28,12 @@ extension HitTestRegion.HandlerID {
 
     /// The marker one cell past a clipped focusable control's bottom-right.
     package static let focusFrameEnd = Self(geometryMarkerBit | 0x3FFF_FFFF_FFFF_FFF7)
+
+    /// The marker a scroll view leaves at its viewport's top-left for each
+    /// focusable control in its content, on screen or not, carrying the
+    /// control's focus id: which scroll views a control lies in, for the
+    /// geometric arrows (``Swift/Array/appendScrollMembership(of:)``).
+    package static let focusScrollMember = Self(geometryMarkerBit | 0x3FFF_FFFF_FFFF_FFF5)
 }
 
 extension RenderContext {
@@ -85,6 +91,32 @@ extension Array where Element == HitTestRegion {
                 HitTestRegion(
                     offsetX: right, offsetY: bottom, width: 0, height: 0,
                     handlerID: .focusFrameEnd, focusID: region.focusID))
+        }
+    }
+
+    /// Appends, for each focus id among `regions` — a scroll view's whole
+    /// content, on screen or not — one ``HitTestRegion/HandlerID/focusScrollMember``
+    /// marker at the viewport's top-left (`0`, `0`), carrying that id.
+    ///
+    /// A control scrolled out of sight has a frame past the viewport's edge, in
+    /// screen coordinates where the controls around the scroll view are drawn:
+    /// the row just above the viewport lies level with a button just above the
+    /// scroll view. Geometry alone cannot tell them apart, and the arrows must
+    /// (GEO-SCROLL-EDGE): ↑ from the top row on screen goes on to the row above
+    /// it, scrolling it in, before it leaves the scroll view. These say which
+    /// scroll views each control lies in. Being geometry markers they ride every
+    /// later shift and clip to the screen's root, where each scroll view's
+    /// members carry a marker at one point, its viewport's corner; a control in
+    /// a scroll view inside another carries one for each. Two scroll views
+    /// whose viewports share a corner are told apart by how many markers a
+    /// control carries there.
+    package mutating func appendScrollMembership(of regions: [HitTestRegion]) {
+        var members: Set<String> = []
+        for region in regions {
+            guard let focusID = region.focusID, members.insert(focusID).inserted else { continue }
+            append(
+                HitTestRegion(
+                    offsetX: 0, offsetY: 0, width: 0, height: 0, handlerID: .focusScrollMember, focusID: focusID))
         }
     }
 }

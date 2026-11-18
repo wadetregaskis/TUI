@@ -25,14 +25,17 @@ to the nearest focusable control in its direction, on screen or scrolled out of 
 
 1. **Candidates** are the section's focusable controls the last frame laid out, drawn or clipped by a scroll view,
    whose frames lie wholly beyond the focused control's edge in that direction (touching counts).
-2. **Beam first.** A candidate overlapping the focused control on the other axis (its columns for ↑ ↓, its rows for
+2. **The scroll views first.** A candidate in more of the scroll views around the focused control beats one in fewer,
+   before anything below: the arrow goes on through a scroll view's content, out of sight or not, before it leaves
+   it ([Scroll views first](#scroll-views-first)).
+3. **Beam next.** A candidate overlapping the focused control on the other axis (its columns for ↑ ↓, its rows for
    ← →) beats any that doesn't, however far.
-3. **Then distance**: the squared distance between the nearest edges, a row counting as two columns, since a terminal
+4. **Then distance**: the squared distance between the nearest edges, a row counting as two columns, since a terminal
    cell is about twice as tall as it is wide.
-4. **Then Tab order**, so the choice depends on the layout alone.
-5. **No wrap**: with no candidate, the focus stays, at the end of a row or the foot of a column, wherever Tab order
+5. **Then Tab order**, so the choice depends on the layout alone.
+6. **No wrap**: with no candidate, the focus stays, at the end of a row or the foot of a column, wherever Tab order
    would go next ([The edges](#the-edges-no-wrap)).
-6. **Fallback**, only where geometry cannot decide: nothing focused, the focused control not laid out, or no candidate
+7. **Fallback**, only where geometry cannot decide: nothing focused, the focused control not laid out, or no candidate
    while the next (→ ↓) or previous (← ↑) control in Tab order has no frame, so could lie that way. Then the arrow does
    what it does today, and goes to that control.
 
@@ -81,10 +84,14 @@ second path.
 **Lazy stacks: the honest limit.** Nothing is computed for rows a lazy stack has not built: no index-to-position
 arithmetic, no measuring on demand. It isn't needed for the moves an arrow makes: the next row each way is always
 built (the margin past the viewport, and the focused row's neighbours), and an arrow goes to the nearest control, which
-in a grid or a column is in the next row. Where the next row holds no control (a header, a blank row), the one after
-it may be unbuilt: geometry then has no candidate that way, and the arrow stops, as Tab order would short of the
-unbuilt rows too. A lazy stack whose rows hold controls only every second row or more can stop an arrow
-short; a uniform grid or list of controls cannot.
+in a grid or a column is in the next row. Where the next row holds no control (a caption, a blank row), the stack also
+draws the nearest row past it that does, for the focus ring (`StackFocusReach.swift`), so the arrow finds it.
+The stack finds the focused row by the identity path in its focus id, though, and a control given an explicit
+`.focusID(_:)` has none: then neither the focused row's neighbours nor the rows past a run that holds no control
+are drawn for it, and the next row can be missing from the frame the arrow goes by. Measured 2026-11-17 on
+a `LazyVStack` of `Button("rN").focusID("rN")` a line apart in a five-row `ScrollView`: ↓ from the bottom row on screen went to
+the button below the scroll view, then back into it. The rows' default focus ids walk every row
+(`GeometricArrowScrollingTests.columnEdges`).
 
 **Tests** (`GeometricArrowScrollingTests`): twenty rows of twenty buttons in a 30 × 10 `ScrollView` that scrolls both
 ways, as a `VStack` of `HStack`s, a `LazyVStack` of them and a `LazyVGrid` of twenty fixed columns. From the top-left,
@@ -92,6 +99,36 @@ ways, as a `VStack` of `HStack`s, a `LazyVStack` of them and a `LazyVGrid` of tw
 hundred, each one drawn whole on screen once focused. Through a horizontal scroll view inside a vertical one, ↓ from a
 button at the top goes to the button below it at the end of the inner row, past both views' edges, and both scroll to
 show it.
+
+### Scroll views first
+
+GEO-SCROLL-EDGE (2026-11-17, found by `LazyStackFocusSectionTests`): in a `ScrollView` of rows with a button above it,
+↑ from the row at the viewport's top went to that button, not to the row just above the viewport, in a `VStack` and a
+`LazyVStack` alike. A control out of sight has its frame past the viewport's edge in screen coordinates, which is
+where the controls around the scroll view are drawn: the row above the viewport lay level with the button, the two
+tied on distance, and the button came first in Tab order. Rows a line apart lost outright, the button being nearer;
+↓ at the bottom and ← → at the sides fail the same way wherever the control outside lies as near.
+
+Geometry alone cannot tell the row from the button, so the scroll view says which controls lie in it: under
+`TUI_ARROW_FOCUS=geometric` its clip leaves, for each focus id in its content, on screen or not, one more marker at
+the viewport's top-left (`HitTestRegion.HandlerID.focusScrollMember`, `appendScrollMembership(of:)`), which every
+later shift and clip carries to the root as it does the corners. A control's scroll views are its markers' points; a
+control in a scroll view inside another has one for each, and two scroll views whose viewports share a corner give
+the point twice, so counting shared points, each as often as both give it, counts shared scroll views. The marker is
+no part of the control's frame. Rule 2 ranks by that count before the beam: the arrow goes on through the scroll
+view's content, scrolling the next control in, and leaves the scroll view only when nothing in it lies that way.
+
+No measurement backs the choice: `Tools/SwiftUIProbes` has no arrow-focus probe, and the mode was designed without
+one. It follows the owner's 2026-11-08 words above (arrows alone suffice to move through a grid in a much smaller
+scroll view, scrolling as necessary), and it is how tvOS's focus engine and Android's `RecyclerView` behave as
+recalled, not measured: a directional move stays in the scrolling container while its content goes on that way.
+
+A windowed lazy stack needs nothing more: the rows it draws off its band for the focus ring, the focused row's nearest
+focusable neighbour each way past any rows that register nothing (`StackFocusReach.swift`), are the rows an arrow
+goes to next, and they carry the markers like any other row. Not for a row whose control has an explicit
+`.focusID(_:)`: see the lazy stacks' limit above. Tests: `GeometricArrowScrollingTests.columnEdges` (rows a line apart
+or each over a caption, eager and lazy, ↓ and ↑ past both edges) and `.rowEdges` (← at a scroll view across), and
+`LazyStackFocusSectionTests.arrowWalk`.
 
 ### The edges: no wrap
 
@@ -103,7 +140,7 @@ That fallback was itself a wrap wherever the Tab order turns a corner: → at th
 start, and in a grid laid out as columns ↓ at the foot of one went to the top of the next, exactly the move ruled out.
 It existed to reach controls the frame had not drawn; once controls scrolled out of sight are candidates, at an edge of
 the layout the Tab-order neighbour is almost always a control geometry can place, lying some other way. So at an edge
-the focus now stays, and Tab order is the fallback only to a control with no frame, which might lie that way (rule 6).
+the focus now stays, and Tab order is the fallback only to a control with no frame, which might lie that way (rule 7).
 One arrow alone now walks one row or one column; the four together reach every control, in a grid on screen or one
 far larger than its scroll view (`GeometricArrowFocusTests.noWrap`, `.reachable`; `GeometricArrowFallbackTests`;
 `GeometricArrowScrollingTests`).

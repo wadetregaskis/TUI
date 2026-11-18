@@ -14,8 +14,6 @@
 //  stack from outside its scroll view lands on the band's edge row, not the
 //  stack's (SwiftUI's lazy stack does the same, measured in
 //  `Tools/SwiftUIProbes/Focus sections in a lazy stack (1117L)`).
-//  GEO-SCROLL-EDGE: geometric Up at the viewport's top edge leaves the scroll
-//  view, eager and lazy alike.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -242,17 +240,14 @@ struct LazyStackFocusSectionTests {
         let eager = walk(eagerApp, .tab, times: into) + walk(eagerApp, .down, times: 50)
             + walk(eagerApp, .up, times: 50)
         #expect(!lazy.contains { $0.hasSuffix("!") }, "lazy focused off screen: \(lazy.filter { $0.hasSuffix("!") })")
-        // Geometric Up from the row at the viewport's top edge goes to the
-        // button above the scroll view, lazy and eager alike (the eager one
-        // then bounces between that button and every second row up, the lazy
-        // one stays on it). Likely cause: the row above, off screen, stands level with the
-        // button, and the tie goes to the earlier in Tab order. Down has no
-        // such tie: the row below comes before the button below. A section
-        // keeps the arrows in it, so only the plain rows meet this.
-        withKnownIssue("GEO-SCROLL-EDGE: geometric Up at a scroll view's top edge leaves it") {
-            #expect(lazy == eager, "\(Self.diff(lazy, eager))\nlazy: \(lazy)\neager: \(eager)")
-        } when: {
-            shape == .plain && arrows == .geometric
+        #expect(lazy == eager, "\(Self.diff(lazy, eager))\nlazy: \(lazy)\neager: \(eager)")
+        // Geometric Up from the row at the viewport's top edge goes on to the
+        // row above it, out of sight, not to the button above the scroll view,
+        // which lies level with that row on screen (GEO-SCROLL-EDGE): the walk
+        // up reaches the stack's first row before it leaves.
+        if shape == .plain, arrows == .geometric {
+            let up = lazy.suffix(50).prefix { $0 != "top" }
+            #expect(up.contains("b00"), "Up left the scroll view before its first row: \(lazy.suffix(50))")
         }
     }
 }

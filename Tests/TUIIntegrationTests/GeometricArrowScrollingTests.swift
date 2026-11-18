@@ -6,7 +6,8 @@
 //  showed it, and the scroll views around it bring it into view — a grid much
 //  larger than its viewport is walked with the arrows alone, as a stack of
 //  rows, a `LazyVStack` of them, a `LazyVGrid`, and through a scroll view
-//  inside another.
+//  inside another — and the arrow goes on through a scroll view's content
+//  before it leaves for a control outside it that lies as near (GEO-SCROLL-EDGE).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -99,11 +100,12 @@ struct GeometricArrowScrollingTests {
     }
 
     /// Whether `id` is drawn whole on screen: a region the control drew, and no
-    /// corner a scroll view left where it cut it.
+    /// corner a scroll view left where it cut it (a scroll view's mark that the
+    /// control lies in it is no cut).
     private func isShownWhole(_ id: String, in app: TestApp) -> Bool {
         let regions = app.services.mouseEventDispatcher.regions.filter { $0.focusID == id }
         return regions.contains { !$0.isGeometryMarker && $0.width > 0 }
-            && !regions.contains(where: \.isGeometryMarker)
+            && !regions.contains { $0.handlerID == .focusFrameStart || $0.handlerID == .focusFrameEnd }
     }
 
     /// Whether `id` is out of sight but laid out: only the corners a scroll
@@ -235,5 +237,102 @@ struct GeometricArrowScrollingTests {
         let plain = TestApp { StackGrid() }
         plain.press(.right)
         #expect(!plain.services.mouseEventDispatcher.regions.contains { $0.handlerID == .focusFrameStart })
+        #expect(!plain.services.mouseEventDispatcher.regions.contains { $0.handlerID == .focusScrollMember })
+    }
+
+    /// A button above a scroll view of rows a blank line apart, or each over a
+    /// caption, and a button below it: the row just past either edge of the
+    /// viewport lies a line further than the button outside it, in screen
+    /// coordinates. With captions, the row past either edge lies past one that
+    /// holds no control, which a lazy stack draws for the focus ring
+    /// (`StackFocusReach.swift`). The rows keep their default focus ids: a lazy
+    /// stack finds the focused row, and so its neighbours, by the path in the
+    /// id, which an explicit `.focusID(_:)` has none of.
+    private struct Column: View {
+        let lazy: Bool
+        let captions: Bool
+
+        @ViewBuilder private func row(_ index: Int) -> some View {
+            Button("r\(index)") {}
+            if captions { Text("c\(index)") }
+        }
+
+        @ViewBuilder private var rows: some View {
+            if lazy {
+                LazyVStack(alignment: .leading, spacing: captions ? 0 : 1) {
+                    ForEach(0..<12, id: \.self) { row($0) }
+                }
+            } else {
+                VStack(alignment: .leading, spacing: captions ? 0 : 1) {
+                    ForEach(0..<12, id: \.self) { row($0) }
+                }
+            }
+        }
+
+        var body: some View {
+            VStack(alignment: .leading, spacing: 0) {
+                Button("above") {}.focusID("above")
+                ScrollView { rows }.frame(width: 20, height: 5)
+                Button("below") {}.focusID("below")
+            }
+        }
+    }
+
+    /// Presses `key` `times` times, and gives the focused control after each,
+    /// each marked `!` where it was not shown whole: a row of ``Column`` as
+    /// `r` and its index, which its default focus id ends in, the scroll view
+    /// as `scroll`, and any other by its id.
+    private func steps(_ app: TestApp, _ key: Key, times: Int) -> [String] {
+        (0..<times).map { _ in
+            app.press(key)
+            let focused = app.focusedID ?? "nil"
+            var name = focused
+            if focused.hasPrefix("scrollview") {
+                name = "scroll"
+            } else if let index = focused.matches(of: /\[(\d+)\]/).last?.1 {
+                name = "r\(index)"
+            }
+            return isShownWhole(focused, in: app) ? name : name + "!"
+        }
+    }
+
+    @Test("Down and Up go through every row of a scroll view before the buttons outside it",
+          arguments: [false, true], [false, true])
+    func columnEdges(lazy: Bool, captions: Bool) {
+        let column = app { Column(lazy: lazy, captions: captions) }
+        #expect(column.focusedID == "above")
+        // Down to the last row, past the viewport's bottom edge each time from
+        // r2 on; Up to the first, past its top edge each time from r9 down,
+        // and out; Down again through every row, and out at the bottom.
+        let rows = (0..<12).map { "r\($0)" }
+        #expect(steps(column, .down, times: 12) == rows)
+        #expect(steps(column, .up, times: 12) == rows.dropLast().reversed() + ["above"])
+        #expect(steps(column, .down, times: 13) == rows + ["below"])
+    }
+
+    /// A button either side of a scroll view across of buttons with no gap
+    /// between them: the button just past the viewport's left edge ends where
+    /// the button outside it does.
+    private struct Row: View {
+        var body: some View {
+            HStack(spacing: 0) {
+                Button("left") {}.focusID("left")
+                ScrollView(.horizontal) {
+                    HStack(spacing: 0) {
+                        ForEach(0..<12, id: \.self) { Button("c\($0)") {}.focusID("c\($0)") }
+                    }
+                }
+                .frame(width: 24)
+                Button("right") {}.focusID("right")
+            }
+        }
+    }
+
+    @Test("Right and Left go through every button of a scroll view across before the buttons outside it")
+    func rowEdges() {
+        let row = app { Row() }
+        #expect(row.focusedID == "left")
+        #expect(steps(row, .right, times: 13) == (0..<12).map { "c\($0)" } + ["right"])
+        #expect(steps(row, .left, times: 13) == (0..<12).reversed().map { "c\($0)" } + ["left"])
     }
 }

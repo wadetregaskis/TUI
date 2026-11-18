@@ -128,7 +128,10 @@ extension FocusManager {
     /// focused control on the other axis (its *beam*: the columns it spans for
     /// ↑ and ↓, the rows for ← and →) beats one that does not, however far;
     /// then the nearer wins; then the earlier in Tab order, so the choice never
-    /// depends on anything but the layout.
+    /// depends on anything but the layout. Before all of these, a candidate in
+    /// more of the scroll views around the focused control beats one in fewer:
+    /// the arrow goes on through a scroll view's content, out of sight or not,
+    /// before it leaves it (``ScrollMembership``).
     ///
     /// The active section is all it looks in, as the Tab-order arrows are: a
     /// sheet's, an alert's or a popover's section keeps the arrows inside it.
@@ -143,13 +146,16 @@ extension FocusManager {
     private func moveFocusGeometrically(for key: Key) -> GeometricMove {
         guard arrows.mode == .geometric, let section = activeSection, let currentID = currentFocusedID
         else { return .undecided }
-        let frames = Self.focusFrames(in: arrows.laidOutRegions)
+        let (frames, scrollViews) = Self.focusFrames(in: arrows.laidOutRegions)
         guard let origin = frames[currentID] else { return .undecided }
+        let originScrollViews = scrollViews[currentID] ?? ScrollMembership()
         var best: (control: Focusable, rank: ArrowRank)?
         for (order, control) in section.focusables.enumerated()
         where control.focusID != currentID && control.canBeFocused {
             guard let frame = frames[control.focusID],
-                let rank = ArrowRank(from: origin, to: frame, key: key, order: order)
+                let rank = ArrowRank(
+                    from: origin, to: frame, key: key, order: order,
+                    sharedScrollViews: originScrollViews.shared(with: scrollViews[control.focusID]))
             else { continue }
             if best.map({ rank < $0.rank }) ?? true { best = (control, rank) }
         }
@@ -171,17 +177,56 @@ extension FocusManager {
     /// a scroll view left where it clipped it, so a control half or wholly out
     /// of sight is its whole frame, where it lies off the viewport's edge. A
     /// control drawn in pieces — a wrapped label, a border's rule — is one
+    /// frame. And the scroll views each lies in, by the markers they left
+    /// (``Swift/Array/appendScrollMembership(of:)``), which are no part of its
     /// frame.
-    private static func focusFrames(in regions: [HitTestRegion]) -> [String: CellFrame] {
+    private static func focusFrames(
+        in regions: [HitTestRegion]
+    ) -> (frames: [String: CellFrame], scrollViews: [String: ScrollMembership]) {
         var frames: [String: CellFrame] = [:]
+        var scrollViews: [String: ScrollMembership] = [:]
         for region in regions where (region.width > 0 && region.height > 0) || region.isGeometryMarker {
             guard let focusID = region.focusID else { continue }
+            if region.handlerID == .focusScrollMember {
+                scrollViews[focusID, default: ScrollMembership()].corners.append(
+                    CellPoint(x: region.offsetX, y: region.offsetY))
+                continue
+            }
             let frame = CellFrame(
                 minX: region.offsetX, minY: region.offsetY,
                 maxX: region.offsetX + region.width, maxY: region.offsetY + region.height)
             frames[focusID] = frames[focusID].map { $0.union(frame) } ?? frame
         }
-        return frames
+        return (frames, scrollViews)
+    }
+}
+
+/// The scroll views a control lies in, each by its viewport's top-left corner,
+/// where it left the control a marker (``Swift/Array/appendScrollMembership(of:)``).
+///
+/// A row scrolled out of sight lies, in screen coordinates, where the controls
+/// around the scroll view are drawn: the row above the viewport level with the
+/// button above the scroll view, and so as near the top row on screen. Which of
+/// the two is in the scroll view geometry cannot say, and the arrows must go on
+/// through the scroll view's content, scrolling it, before they leave it
+/// (GEO-SCROLL-EDGE).
+private struct ScrollMembership {
+    /// One corner per scroll view; two scroll views whose viewports share a
+    /// corner give it twice.
+    var corners: [CellPoint] = []
+
+    /// How many scroll views this and `other` both lie in: the corners they
+    /// share, each counted as often as both give it.
+    func shared(with other: Self?) -> Int {
+        guard let other, !corners.isEmpty, !other.corners.isEmpty else { return 0 }
+        var theirs = other.corners
+        var count = 0
+        for corner in corners {
+            guard let match = theirs.firstIndex(of: corner) else { continue }
+            theirs.remove(at: match)
+            count += 1
+        }
+        return count
     }
 }
 
@@ -201,6 +246,9 @@ private struct CellFrame {
 
 /// How good a candidate is for an arrow: lower is better.
 private struct ArrowRank: Comparable {
+    /// How many of the scroll views around the focused control the candidate
+    /// lies in too: more is better, before anything else.
+    let sharedScrollViews: Int
     /// Whether the candidate lies outside the focused control's beam.
     let outsideBeam: Bool
     /// The squared distance between the two frames' nearest edges, a row
@@ -215,7 +263,7 @@ private struct ArrowRank: Comparable {
 
     /// `nil` unless `frame` lies wholly beyond `origin`'s edge in `key`'s
     /// direction (touching counts), or `key` is not an arrow.
-    init?(from origin: CellFrame, to frame: CellFrame, key: Key, order: Int) {
+    init?(from origin: CellFrame, to frame: CellFrame, key: Key, order: Int, sharedScrollViews: Int) {
         // How far beyond the edge, along the arrow, and how far apart across
         // it (0 inside the beam), in cells; and whether the spans across it
         // cross, not merely touch.
@@ -238,12 +286,14 @@ private struct ArrowRank: Comparable {
         let vertical = key == .down || key == .up
         let dy: Int = (vertical ? along : across) * Self.rowAspect
         let dx: Int = vertical ? across : along
+        self.sharedScrollViews = sharedScrollViews
         outsideBeam = !overlaps
         distance = dy * dy + dx * dx
         self.order = order
     }
 
     static func < (lhs: Self, rhs: Self) -> Bool {
+        if lhs.sharedScrollViews != rhs.sharedScrollViews { return lhs.sharedScrollViews > rhs.sharedScrollViews }
         if lhs.outsideBeam != rhs.outsideBeam { return !lhs.outsideBeam }
         if lhs.distance != rhs.distance { return lhs.distance < rhs.distance }
         return lhs.order < rhs.order
