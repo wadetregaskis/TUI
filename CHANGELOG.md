@@ -15,6 +15,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A click on the status bar's `⌃Q quit` quits.** Since quit moved to ⌃Q the item drew as a hint but was no click
+target; it is one again, and a click quits as the key does, a prevented quit included.
+
 **A copy too large for Windows Terminal or the Windows console is no longer lost.** Both drop an OSC 52 copy of
 more than 24,567 bytes of text and say nothing, so TUI used to report such a copy as made. It now goes to this
 machine's clipboard where the user is at it, and otherwise is not sent, the status bar saying "Not copied: too large
