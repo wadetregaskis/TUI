@@ -2894,7 +2894,8 @@ pass it on.
 
 conhost (build 26300, the same day) sends the same spellings, but for three: **⌃,
 arrives as `0x0C`**, the comma masked to a control character as a legacy console masks
-a letter, so an app reads ⌃L and a ⌃, binding cannot be pressed there; the "Option-F"
+a letter, so an app reads ⌃L (TUI binds ⌃, only under the kitty protocol, which neither
+host speaks, and shows F2 for the settings panel in both); the "Option-F"
 prompt was answered with `CSI 1;3P` (Alt-F1), which may have been the key pressed
 rather than conhost's spelling of Alt-F; and fn-F1, like ⌃F1, arrived as nothing within
 the run's 10-second wait.
@@ -6670,7 +6671,7 @@ the menu bar's Settings… and `SettingsLink` besides. The design note is
 | Key | What a host sends | Evidence | Verdict |
 |---|---|---|---|
 | **F2** | `ESC O Q` in every legacy encoding (xterm's ctlseqs); `CSI Q` or `CSI 1 Q` under the kitty keyboard protocol | **Not pressed, and no host's bindings read.** TUI decodes each form as it does F1's. On a Mac keyboard it is fn-F2 unless the function keys are standard keys, as for F1 above; macOS's Control-F2 (the menu bar's keyboard focus) is a different chord and isn't used | **Chosen**: beside F1 |
-| **⌃,** | **Nothing distinct in any legacy encoding**: there is no C0 byte for Control with a comma, so a host sends a plain `,` or nothing. `CSI 44;5u` under the kitty keyboard protocol's disambiguate mode (flag 1), which TUI asks for at startup | Read from the encodings (xterm's ctlseqs; the kitty protocol's spec). **Not pressed** | **Also bound**, as the `Settings` scene's ⌘, through the command key; shown by the menu bar's Settings… and listed among the keys in force (F1) only where the terminal took disambiguate mode (`KeyboardReporting.disambiguatesKeys`) or `KeyboardShortcut.isDeliverableInTerminal` says the chord arrives; elsewhere both show F2 (2026-11-10) |
+| **⌃,** | **Nothing distinct in any legacy encoding**: there is no C0 byte for Control with a comma, so a host sends a plain `,` or nothing — or, the Windows console, `0x0C`, the comma masked as a letter is, which reads as ⌃L (pressed 2026-11-17, "Windows Terminal and the classic console"; Windows Terminal keeps ⌃, for its settings). `CSI 44;5u` under the kitty keyboard protocol's disambiguate mode (flag 1), which TUI asks for at startup | Read from the encodings (xterm's ctlseqs; the kitty protocol's spec). **Not pressed** | **Also bound**, as the `Settings` scene's ⌘, through the command key; shown by the menu bar's Settings… and listed among the keys in force (F1) only where the terminal took disambiguate mode (`KeyboardReporting.disambiguatesKeys`) or `KeyboardShortcut.isDeliverableInTerminal` says the chord arrives; elsewhere both show F2 (2026-11-10) |
 
 *To measure, with a person at the keyboard:* in each host's default profile,
 `PROBE_KEYS=f2,fn_f2,ctrl_comma python3 Tools/TerminalProbes/key_probe.py`
