@@ -233,7 +233,12 @@ kept width is priced on. `game-loop` is a game: a `Canvas` board and a `Canvas`
 preview written inline, with no `.equatable()`, beside a
 `TimelineView(.animation)` that steps the rules every frame, the board moving
 once a second; the perf case `game-loop` counts a second of it, the frames in
-which only the timeline moved drawing neither canvas.
+which only the timeline moved drawing neither canvas. `timeline-beside` is a
+launcher at rest: an `.equatable()` canvas board with a 60 Hz timeline in its
+`.background`, a `List` and a `Button` of canvas previews, and a 5 Hz preview
+timeline, under two composites whose bodies sort; the perf case of the same
+name counts a second of it, in which neither composite's body runs, no canvas
+is drawn, and the preview's content changes five times.
 
 `table-api` is the first: 43 variants over seven axes — how a column gets its
 value (key path, closure, sort-by-one-display-another, non-`Equatable` rows,

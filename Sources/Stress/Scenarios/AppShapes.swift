@@ -343,5 +343,8 @@ enum AppShapeMatrix {
         variant("game-loop", "a game: two Canvases beside a TimelineView(.animation) stepping the rules each frame; the board moves once a second") {
             AnyView(GameLoopApp(seed: $0.seed))
         },
+        variant("timeline-beside", "a launcher: an .equatable() Canvas over a 60 Hz timeline, a List and a Button of canvases, a 5 Hz timeline") {
+            AnyView(TimelineBesideApp(seed: $0.seed))
+        },
     ]
 }
