@@ -30,6 +30,12 @@ shortcuts' key").
 `PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1` for the list of shortcuts' alone, and
 `PROBE_KEYS=f2,fn_f2,ctrl_comma` for the settings panel's.
 
+`PROBE_KITTY=<flags>` pushes the kitty keyboard protocol's flags first (`CSI >
+flags u`, popped at the end), so a host that speaks it is read in its encoding:
+`PROBE_KITTY=31` asks for what TUI asks for (`KittyKeyboardFlags.requested`).
+A release report, and a modifier or lock key's own report, are dropped and the
+wait goes on, so each prompt records the key's press.
+
 Run INSIDE the terminal under test, from its DEFAULT profile, once on each
 screen: TUI draws on the alternate screen (`PROBE_ALT=1`), and a host's
 scrollback keys can behave differently there from the primary screen, where
@@ -43,6 +49,7 @@ import json, os, re, select, sys, termios, time, tty
 import probe_stamp
 
 WAIT = float(os.environ.get("PROBE_WAIT", "6"))
+KITTY = int(os.environ.get("PROBE_KITTY", "0"))
 # After the first byte, how long the rest of a sequence may take to follow.
 TAIL = 0.15
 
@@ -87,9 +94,63 @@ def render(raw):
         for b in raw)
 
 
+# The kitty protocol's modifier bits, after its offset of one.
+KITTY_MODIFIERS = ["shift", "option", "control", "super", "hyper", "meta", "caps_lock", "num_lock"]
+# Its functional keys' code points, for those the probe asks for or may meet.
+KITTY_KEYS = {9: "tab", 13: "return", 27: "escape", 127: "backspace", 57358: "caps_lock",
+              57359: "scroll_lock", 57360: "num_lock"}
+KITTY_REPORT = re.compile(r"\[([\d:;]*)([u~A-DFHPQRS])")
+
+
+def kitty_report(text):
+    """A kitty report's (key code or tilde number, modifier bits, event type,
+    final) — or None for a sequence of another shape."""
+    match = KITTY_REPORT.fullmatch(text)
+    if not match:
+        return None
+    fields = match.group(1).split(";") if match.group(1) else []
+    key = fields[0].split(":")[0] if fields else ""
+    mods = fields[1].split(":") if len(fields) > 1 else ["1"]
+    return (int(key) if key.isdigit() else 1, int(mods[0] or "1") - 1,
+            int(mods[1]) if len(mods) > 1 and mods[1].isdigit() else 1, match.group(2))
+
+
+def kitty_name(text):
+    """A kitty report's name, or None."""
+    report = kitty_report(text)
+    if report is None:
+        return None
+    key, bits, event, final = report
+    if final == "u":
+        name = KITTY_KEYS.get(key) or (chr(key) if 32 < key < 57344 else f"key {key}")
+    elif final == "~":
+        name = TILDES.get(key) or f"~{key}"
+    else:
+        name = FINALS[final]
+    mods = [m for i, m in enumerate(KITTY_MODIFIERS) if bits & (1 << i)]
+    events = {2: " (repeat)", 3: " (release)"}
+    return "+".join(mods + [name]) + events.get(event, "")
+
+
+def kitty_noise(match):
+    """Whether a report is one the probe drops: a release, or a modifier or
+    lock key's own (57441 to 57452, and Caps, Scroll and Num Lock)."""
+    report = kitty_report(match.group(0).decode("latin-1"))
+    if report is None:
+        return False
+    key, _, event, final = report
+    return event == 3 or (final == "u" and (57441 <= key <= 57452 or 57358 <= key <= 57360))
+
+
+KITTY_SEQUENCE = re.compile(rb"\[[\d:;]*[u~A-DFHPQRS]")
+
+
 def decode(raw):
-    """A legacy key sequence's name, or None."""
+    """A key sequence's name — the kitty protocol's where it was pushed, else
+    the legacy spellings' — or None."""
     text = raw.decode("latin-1")
+    if KITTY and (name := kitty_name(text)):
+        return name
     if len(text) == 2 and text[0] == "\x1b" and text[1].isalpha():
         return "option+" + text[1]
     prefix = ""
@@ -128,6 +189,8 @@ def read_key(fd):
         while (left := deadline - time.monotonic()) > 0 and select.select([fd], [], [], left)[0]:
             raw += os.read(fd, 64)
         raw = MOUSE_REPORT.sub(b"", raw)
+        if KITTY:
+            raw = KITTY_SEQUENCE.sub(lambda m: b"" if kitty_noise(m) else m.group(0), raw)
         if raw:
             return raw
     return b""
@@ -149,6 +212,9 @@ def main():
         if use_alt:
             os.write(fd, b"\x1b[?1049h")
         result["stamp"] = probe_stamp.stamp(fd, "key_probe", use_alt)
+        result["kitty_flags"] = KITTY
+        if KITTY:
+            os.write(fd, f"[>{KITTY}u".encode())
         os.write(fd, b"\x1b[2J\x1b[H")
         for key, label in keys:
             os.write(fd, f"\r\nPress {label} once (waiting {WAIT:g} s; Ctrl-C ends): ".encode())
@@ -159,6 +225,8 @@ def main():
                 "raw": render(raw), "decoded": decode(raw) if raw else None, "arrived": bool(raw)}
             os.write(fd, (render(raw) or "(nothing)").encode())
     finally:
+        if KITTY:
+            os.write(fd, b"[<u")
         if use_alt:
             os.write(fd, b"\x1b[?1049l")
         termios.tcsetattr(fd, termios.TCSADRAIN, old)
@@ -169,7 +237,8 @@ def main():
         json.dump(result, handle, indent=1, ensure_ascii=False)
     env = result["stamp"]["env"]
     print(f"{env.get('TERM_PROGRAM', '?')} {env.get('TERM_PROGRAM_VERSION', '')} "
-          f"on the {'alternate' if use_alt else 'primary'} screen")
+          f"on the {'alternate' if use_alt else 'primary'} screen"
+          + (f", kitty flags {KITTY}" if KITTY else ""))
     for key, label in keys:
         reading = result["keys"].get(key)
         if reading is None:
