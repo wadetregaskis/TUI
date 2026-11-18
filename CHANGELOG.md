@@ -28,8 +28,10 @@ between them, as SwiftUI's `content.padding(n).border(...)` reads. **To keep the
 Each ring of `width:` is now just its line. The line still goes round the content rather than over its edge, since a
 terminal cannot stroke a line over text. TUI's own chrome — menus, popovers, notifications, a `GroupBox`'s box, a
 grouped `Form`'s sections, the bordered text field styles — keeps its room and looks as it did.
-`.backgroundStopsAtContent()`, which kept the old cell clear of a background, has nothing left to keep clear: put the
-padding outside the background instead.
+`.backgroundStopsAtContent()` is gone: it kept the border's blank cell clear of a background, and there is no such
+cell left to keep clear. With `.padding(.horizontal, 1)` before `.border()` for the old look, a background written
+after the padding reaches the line as the padding's own, and one written before it stops at the content:
+`.background(m).padding(.horizontal, 1).border()` is what `.backgroundStopsAtContent()` drew.
 
 **A frame that changes nothing under a fade no longer blends the fade again.** The rows under a translucent layer
 that is blended at the screen itself (a `.opacity`, a translucent colour, a `Color.clear` under a `TimelineView`)

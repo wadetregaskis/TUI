@@ -81,4 +81,17 @@ struct BorderHugsContentTests {
         #expect(lines[1].ansiSGRStateAt(visibleColumn: 2).namesBackground)
         #expect(!lines[1].ansiSGRStateAt(visibleColumn: 0).namesBackground, "not the line itself")
     }
+
+    @Test("The order of padding and background says whether the background reaches the line")
+    func paddingOrderDecidesTheFill() {
+        // Padding first: the background is the padding's too, up to the line.
+        let filled = draw(Text("ab").padding(.horizontal, 1).background(Color.red).border()).lines[1]
+        #expect(filled.stripped == "│ ab │")
+        #expect(filled.ansiSGRStateAt(visibleColumn: 1).namesBackground)
+        // Background first: it stops at the text, and the padding is clear.
+        let clear = draw(Text("ab").background(Color.red).padding(.horizontal, 1).border()).lines[1]
+        #expect(clear.stripped == "│ ab │")
+        #expect(!clear.ansiSGRStateAt(visibleColumn: 1).namesBackground)
+        #expect(clear.ansiSGRStateAt(visibleColumn: 2).namesBackground, "the text keeps it")
+    }
 }

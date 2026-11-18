@@ -4,9 +4,8 @@
 //  The framework's bordered chrome (`bordered(…, insetsContent: true)`: a
 //  menu, a popover, a toast, `Box`) puts its inset beneath the background of
 //  the view it borders, so the background reaches the line as SwiftUI's does
-//  (GLASS-BORDER-GAP (a), 2026-10-27); `.backgroundStopsAtContent()` keeps it
-//  clear. An app's `.border()` has no inset since 2026-11-17
-//  (`BorderHugsContentTests`).
+//  (GLASS-BORDER-GAP (a), 2026-10-27). An app's `.border()` has no inset since
+//  2026-11-17 (`BorderHugsContentTests`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -45,13 +44,6 @@ struct BorderInsetBackgroundTests {
         let view = boxed(Text("ab").background { Color.blue })
         #expect(filled(view, column: 1))
         #expect(filled(view, column: 4))
-    }
-
-    @Test("Stopped at the content, the background leaves the inset clear")
-    func stopsAtContent() {
-        let view = boxed(Text("ab").background(Color.red).backgroundStopsAtContent())
-        #expect(!filled(view, column: 1))
-        #expect(filled(view, column: 2), "the content keeps it")
     }
 
     @Test("The bordered view is as wide as before")

@@ -3832,7 +3832,6 @@ View.background(alignment:content:) | nonisolated func background<V>(alignment: 
 View.background(in:fillStyle:) | nonisolated func background<S>(in shape: S, fillStyle: FillStyle = FillStyle()) -> some View where S : Shape
 View.backgroundPreferenceValue(_:_:) | nonisolated func backgroundPreferenceValue<Key, T>(_ key: Key.Type = Key.self, @ViewBuilder _ transform: @escaping (Key.Value) -> T) -> some View where Key : PreferenceKey, T : View
 View.backgroundPreferenceValue(_:alignment:_:) | nonisolated func backgroundPreferenceValue<K, V>(_ key: K.Type, alignment: Alignment = .center, @ViewBuilder _ transform: @escaping (K.Value) -> V) -> some View where K : PreferenceKey, V : View
-View.backgroundStopsAtContent() | nonisolated func backgroundStopsAtContent() -> some View
 View.backgroundStyle(_:) | nonisolated func backgroundStyle(_ style: Color) -> some View
 View.backgroundStyle(_:) | nonisolated func backgroundStyle<S>(_ style: S) -> some View where S : ShapeStyle
 View.badge(_:) | nonisolated func badge(_ count: Int) -> some View

@@ -18,11 +18,8 @@
 //  is the inset, as in SwiftUI), so a background reaches its line already, and
 //  the app says where its padding goes: `.padding(.horizontal, 1).background(m)`
 //  before the border fills it, `.background(m).padding(.horizontal, 1)` leaves
-//  it clear.
-//
-//  `.backgroundStopsAtContent()` kept that inset clear when `.border()` had
-//  one; it now reaches nothing an app can put inside chrome, and is kept only
-//  until the owner rules on removing it (API baselines change at a release).
+//  it clear. (`.backgroundStopsAtContent()`, which kept `.border()`'s old
+//  inset clear, went with that inset.)
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -57,41 +54,5 @@ extension BackgroundLayerModifier: BackgroundBeneathBorderInset {
             AnyView(BackgroundLayerModifier<V, Background>(base: padded, background: background, alignment: alignment))
         }
         return rewrapping(base.padding(insets))
-    }
-}
-
-// MARK: - Keeping the inset clear
-
-/// A view whose background stops at its content: not a
-/// ``BackgroundBeneathBorderInset``, so a bordered box's inset around it stays
-/// clear.
-nonisolated struct _BackgroundStopsAtContent<Content: View>: View {
-    let content: Content
-
-    @MainActor var body: some View { content }
-}
-
-extension View {
-    /// Keeps a border's inset around this view clear of its background.
-    ///
-    /// Until 2026-11-17 `.border()` drew a blank cell either side of what it
-    /// bordered, and a background on the bordered view filled it; this kept
-    /// it clear. `.border()` has no inset now — padding is the inset, as in
-    /// SwiftUI — so this changes nothing: put the padding where the
-    /// background should stop instead.
-    ///
-    /// ```swift
-    /// Text("Draft")
-    ///     .background(.yellow)
-    ///     .padding(.horizontal, 1)   // clear: the background stops at the text
-    ///     .border()
-    /// ```
-    ///
-    /// TUI-specific: SwiftUI's border is drawn over the view's edge, with no
-    /// inset to fill.
-    ///
-    /// - Returns: A view whose background a border around it does not extend.
-    nonisolated public func backgroundStopsAtContent() -> some View {
-        _BackgroundStopsAtContent(content: self)
     }
 }
