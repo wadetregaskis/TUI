@@ -38,11 +38,10 @@ if shift_escape:
     os.write(1, b"\x1b[>1s")
 term = os.environ.get("TERM_PROGRAM", "?")
 version = os.environ.get("TERM_PROGRAM_VERSION", "?")
-# Windows has no tty names (`windows/run.py` runs this there); the console is the terminal.
-tty_name = os.ttyname(fd) if hasattr(os, "ttyname") else "console"
+# Windows Terminal sets no TERM_PROGRAM; WT_SESSION names it.
 if "WT_SESSION" in os.environ:
     term = "WindowsTerminal"
-out.write(f"--- start tty={tty_name} term={term} {version} shift_escape={shift_escape} ---\n")
+out.write(f"--- start tty={os.ttyname(fd)} term={term} {version} shift_escape={shift_escape} ---\n")
 last_beat = time.time()
 try:
     while True:
