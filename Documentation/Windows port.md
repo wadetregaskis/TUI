@@ -94,7 +94,7 @@ Visual Studio 2022 Build Tools 17.14, installed with `winget install Swift.Toolc
   there. Junctions do not serve: Swift Build follows them back to the shared install. So built on 2026-11-18, the
   whole package and its tests had no diagnostics, and `swift test`, which runs each test target in a process of its
   own under Swift Build, passed all 15,667 tests in 16 minutes. Its build folder holds paths past 260 characters
-  (macro expansions), which PowerShell 5.1's `Remove-Item` cannot delete; `rmdir /s /q "\?\C:\…"` can. A test runner needs
+  (macro expansions), which PowerShell 5.1's `Remove-Item` cannot delete; `rmdir /s /q "\\?\C:\…"` can. A test runner needs
   the same toolchain's runtime first on its `PATH`, or it stops at launch with `0xC0000139`, an entry point not found.
 - **Side by side goes upward only.** 6.2.4's installer, run with 6.3.3 and 6.4.2 installed, finds its packages
   "Obsolete" against theirs, installs nothing and reports success. It was measured unpacked instead, registered with
