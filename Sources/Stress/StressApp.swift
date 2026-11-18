@@ -17,7 +17,11 @@ import TUI
 @Observable
 final class StressClock {
     var tick: Int = 0
-    var autopilot: Bool = false
+    var autopilot: Bool
+
+    init(autopilot: Bool = false) {
+        self.autopilot = autopilot
+    }
 }
 
 // MARK: - App
@@ -49,7 +53,7 @@ struct StressApp: App {
 private struct RootView: View {
     let config: StressConfig
 
-    @State private var clock = StressClock()
+    @State private var clock: StressClock
     @State private var scale: Int
     @State private var menuIndex = 0
     /// The currently-open scenario id, or `nil` for the menu.
@@ -60,6 +64,9 @@ private struct RootView: View {
 
     init(config: StressConfig) {
         self.config = config
+        // Autopilot's state from the first frame, so the task below starts
+        // with it rather than restarting once `onAppear` would have set it.
+        _clock = State(wrappedValue: StressClock(autopilot: config.autopilot))
         _scale = State(wrappedValue: config.scale)
     }
 
@@ -74,10 +81,16 @@ private struct RootView: View {
         content
             .environment(clock)
             .onAppear {
-                clock.autopilot = config.autopilot
                 if activeView == nil, let id = config.initialScenario { open(id) }
             }
-            .task { [clock] in
+            // Restarted whenever autopilot is switched (`a`), and over at once
+            // while it is off: a loop left running then woke the process about
+            // 30 times a second to do nothing. Reading the flag here makes the
+            // root observe it, so a switch re-renders the root once; the tick,
+            // which changes every frame, is still read only in the leaf
+            // (`AutopilotStatus`, and the note in `content`).
+            .task(id: clock.autopilot) { [clock, isOn = clock.autopilot] in
+                guard isOn else { return }
                 // Keep the demand-driven loop busy while autopilot is on. The
                 // flag and counter both live on the (Sendable) clock; mutate on
                 // the main actor so it's serialised with rendering.
