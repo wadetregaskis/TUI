@@ -257,6 +257,7 @@ struct LayoutPage: View {
                     }
                 }
             }
+            .padding(.horizontal, 1)
             .border(.palette.border)
         }
     }
@@ -291,6 +292,7 @@ struct LayoutPage: View {
                     Text("\(L("page.layout.item")) 2")
                     Text("\(L("page.layout.item")) 3")
                 }
+                .padding(.horizontal, 1)
                 .border(.palette.border)
             }
 
@@ -300,6 +302,7 @@ struct LayoutPage: View {
                     Text("page.layout.center")
                     Text("page.layout.right")
                 }
+                .padding(.horizontal, 1)
                 .border()
             }
 
@@ -309,6 +312,7 @@ struct LayoutPage: View {
                     Spacer()
                     Text("page.layout.end")
                 }
+                .padding(.horizontal, 1)
                 .border()
             }
 
@@ -345,6 +349,7 @@ struct LayoutPage: View {
                         Text("[ \(L("page.layout.signOut")) ]")
                     }
                 }
+                .padding(.horizontal, 1)
                 .border(.palette.border)
             }
 
@@ -376,6 +381,7 @@ struct LayoutPage: View {
                         Text("page.layout.guideItem")
                         Text("page.layout.guideItem2")
                     }
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
 
                     // 2 — A guide that is a plain NUMBER, driven by a stepper.
@@ -398,6 +404,7 @@ struct LayoutPage: View {
                             .alignmentGuide(.leading) { _ in Double(-guideOffset) }
                         Text("page.layout.guideFixed2")
                     }
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
 
                     // 3 — A CUSTOM alignment: a line of one's own.
@@ -442,6 +449,7 @@ struct LayoutPage: View {
                             }
                         }
                     }
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
 
                     // 5 — A guide across a VERTICAL alignment, which is where
@@ -474,6 +482,7 @@ struct LayoutPage: View {
                                 }
                         }
                     }
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
                 }
             }
@@ -507,6 +516,7 @@ struct LayoutPage: View {
                         }
                     }
                     .frame(height: 2)
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
                 }
             }
@@ -526,6 +536,7 @@ struct LayoutPage: View {
                             Text(" \(chip) ").inverted()
                         }
                     }
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
                 }
             }
@@ -538,6 +549,7 @@ struct LayoutPage: View {
                     Divider(character: "═")
                     Text("page.layout.below")
                 }
+                .padding(.horizontal, 1)
                 .border(.palette.border)
             }
 
@@ -598,6 +610,7 @@ struct LayoutPage: View {
                         Text("\(L("page.layout.col")) 2")
                         Text("\(L("page.layout.col")) 3")
                     }
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
                 }
             }

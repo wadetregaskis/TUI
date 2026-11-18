@@ -45,6 +45,7 @@ struct ImageDemoLayout<Content: View>: View {
             // are bare characters. Tab or a click reaches the field.
             ImageRenderingControls(settings: $settings)
                 .prefersDefaultFocus(in: page)
+                .padding(.horizontal, 1)
                 .border(.palette.border)
                 .frame(width: Self.paneWidth)
         }

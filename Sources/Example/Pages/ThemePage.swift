@@ -189,6 +189,7 @@ struct ThemePage: View {
                         }
                         keyDemoRow("Text(verbatim:)") { Text(verbatim: "button.save") }
                     }
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
                 }
 

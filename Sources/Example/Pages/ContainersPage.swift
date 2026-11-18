@@ -69,6 +69,7 @@ struct SettingsAndAlignmentRow: View, Equatable {
                         Text("page.containers.short").foregroundStyle(.palette.foregroundSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 1)
                     .border()
 
                     VStack(alignment: .center) {
@@ -76,6 +77,7 @@ struct SettingsAndAlignmentRow: View, Equatable {
                         Text("page.containers.short").foregroundStyle(.palette.foregroundSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.horizontal, 1)
                     .border()
 
                     VStack(alignment: .trailing) {
@@ -83,6 +85,7 @@ struct SettingsAndAlignmentRow: View, Equatable {
                         Text("page.containers.short").foregroundStyle(.palette.foregroundSecondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
+                    .padding(.horizontal, 1)
                     .border()
                 }
             }

@@ -25,6 +25,7 @@ struct LayoutRoomDemo: View {
                         .foregroundStyle(.palette.accent)
                 }
                 .frame(width: 50, alignment: .leading)
+                .padding(.horizontal, 1)
                 .border(.palette.border)
 
                 Text("page.layout.room.fixedSize").bold()
@@ -37,6 +38,7 @@ struct LayoutRoomDemo: View {
                         .foregroundStyle(.palette.accent)
                 }
                 .frame(width: 30, alignment: .leading)
+                .padding(.horizontal, 1)
                 .border(.palette.border)
 
                 Text("page.layout.room.zIndex").bold()
@@ -70,6 +72,7 @@ struct LayoutRoomDemo: View {
                     .foregroundStyle(.palette.accent)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .onGeometryChange(for: Int.self, of: { $0.size.width }, action: { reportedWidth = $0 })
+                    .padding(.horizontal, 1)
                     .border(.palette.border)
             }
         }
