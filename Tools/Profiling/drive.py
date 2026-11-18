@@ -486,7 +486,22 @@ def main():
     # returns once a burst has been read, and the startup exchanges are still
     # running then. Kept as it is so that the moment the scenario starts, and
     # with it every byte count, matches the numbers taken before.
+    #
+    # That first output is also the driver's only sign that the app has
+    # claimed the terminal: TUI writes its alternate-screen switch a few
+    # syscalls before it puts stdin in raw mode (`App.swift`, before
+    # `enableRawMode`), and every scenario's first step drains at least 0.1 s
+    # before it writes, so by then the line discipline is the app's. If the
+    # deadline passes with nothing read, the keys may still meet the PTY's
+    # cooked defaults — echoed into the stream, ⌃Q taken as XON, and what is
+    # queued thrown away by raw mode's TCSAFLUSH — so say so rather than
+    # print numbers for a run that may not have been the scenario.
     drain(args.settle)
+    if total == 0:
+        print(f"[drive] WARNING: the app wrote nothing within --settle {args.settle} s; "
+              "keys sent before it enters raw mode are echoed or lost. "
+              "A longer --settle costs nothing: the wait ends at the first output.",
+              file=sys.stderr)
 
     xctrace = None
     ktraces_before = leftover_ktraces()

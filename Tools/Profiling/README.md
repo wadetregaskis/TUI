@@ -483,6 +483,18 @@ Escapes — one may only close a combo field's suggestions — and quits the app
 with ⌃Q from there; an app that does not quit is reported as an error (exit
 2), since the scenario's keys went somewhere it did not mean them to.
 
+It starts the scenario at the app's first output, or at `--settle` seconds
+(0.6 by default) if nothing comes: a deadline, not a pause. That first output
+is its sign the app has claimed the terminal (TUI switches to the alternate
+screen just before it enters raw mode, and every scenario's first step drains
+at least 0.1 s before it writes). If the deadline passes with nothing read it
+warns (`[drive] WARNING: the app wrote nothing within --settle …`), since keys
+sent to a PTY still in its cooked defaults are echoed into the stream, ⌃Q is
+taken as XON, and raw mode's TCSAFLUSH discards whatever was queued. A longer
+`--settle` costs nothing when the app is quick. `test_drive.py`'s stand-ins
+write a marker once they are in raw mode, for the same reason, and pass a
+30 s settle.
+
 The app runs with `TUI_CONFIG_DIR` set to a fresh temporary directory,
 deleted when the run ends, so a profile neither reads nor writes your own
 settings and every run starts from the defaults. Set `TUI_CONFIG_DIR`

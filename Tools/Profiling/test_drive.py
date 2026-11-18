@@ -35,11 +35,25 @@ import unittest
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _DRIVE = os.path.join(_HERE, "drive.py")
 
+# What a stand-in writes once it has put the terminal in raw mode, as the real
+# app's first output tells `drive.py` it has claimed the terminal. Until then
+# the PTY is in its cooked defaults: a key sent early is echoed into the
+# stream, a ⌃Q is taken as XON, and raw mode's TCSAFLUSH throws away whatever
+# is queued. A stand-in that wrote nothing before reading left the driver only
+# its settle deadline, and under load a Python start outran it: the Lists
+# shortcut came back as a bare `-`, echoed, in place of its hex.
+_READY = b"<raw>"
+# A deadline, not a pause: `drive.py`'s settle ends at the first output, so
+# this costs nothing when the stand-in is quick and is never reached by one
+# that is merely slow.
+_SETTLE = "30"
+_PRELUDE = f"READY = {_READY!r}\n"
+
 # The stand-in app. It records the configuration directory it was given —
 # and whether that directory existed — then writes a setting into it the way
 # `JSONFileStorage` would, and runs until the driver's closing `q`, so the run
 # ends the way a real one does rather than by the driver killing it.
-_STUB = """\
+_STUB = _PRELUDE + """\
 import json, os, sys, tty
 config = os.environ.get("TUI_CONFIG_DIR", "")
 with open(os.environ["DRIVE_TEST_REPORT"], "w") as report:
@@ -49,6 +63,7 @@ if config:
     with open(os.path.join(config, "Example", "settings.json"), "w") as settings:
         settings.write("{}")
 tty.setraw(0)
+os.write(1, READY)
 while True:
     data = os.read(0, 4096)
     if not data or b"\\x11" in data:
@@ -74,7 +89,7 @@ class TestConfigIsolation(unittest.TestCase):
             env["TUI_CONFIG_DIR"] = config_dir
         # `list` is the shortest scenario that types anything: ~2 s.
         subprocess.run(
-            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "0.1", "--quiet"],
+            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", _SETTLE, "--quiet"],
             env=env, check=True, timeout=60)
         with open(report) as handle:
             return json.load(handle)
@@ -106,12 +121,13 @@ class TestConfigIsolation(unittest.TestCase):
 
 
 # A stand-in that answers every byte it reads with that byte in hex, and
-# writes nothing else, so the stream the driver dumps is a known function of
-# what the driver sent: the reply to a step begins exactly where the hex of
-# every earlier step ends.
-_ECHO_STUB = """\
+# writes nothing else but `_READY` first, so the stream the driver dumps is a
+# known function of what the driver sent: the reply to a step begins exactly
+# where the hex of every earlier step ends.
+_ECHO_STUB = _PRELUDE + """\
 import os, sys, tty
 tty.setraw(0)
+os.write(1, READY)
 while True:
     data = os.read(0, 4096)
     if not data:
@@ -148,7 +164,7 @@ class TestStepMarkers(unittest.TestCase):
         dump = os.path.join(self.scratch, "list.ansi")
         env = dict(os.environ, TUI_CONFIG_DIR=self.scratch)
         subprocess.run(
-            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "0.1",
+            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", _SETTLE,
              "--rows", "30", "--cols", "90", "--dump", dump, "--quiet"],
             env=env, check=True, timeout=60)
         with open(dump, "rb") as handle:
@@ -159,8 +175,9 @@ class TestStepMarkers(unittest.TestCase):
         script = drive.build_scenario("list", 30, 90)
         payloads = [payload for _, payload in script]
         # The stream is still exactly the app's: the markers live beside it,
-        # and the stub's only output is the hex of what it was sent.
-        self.assertEqual(stream, b"".join(payloads).hex().encode())
+        # and the stub's only output, after `_READY`, is the hex of what it
+        # was sent.
+        self.assertEqual(stream, _READY + b"".join(payloads).hex().encode())
         self.assertEqual(markers["total"], len(stream))
         self.assertEqual(
             (markers["scenario"], markers["rows"], markers["cols"], markers["loops"]),
@@ -179,7 +196,7 @@ class TestStepMarkers(unittest.TestCase):
         # No marker is late: the reply to a step cannot begin before the
         # step's own marker, because the marker is taken before the write.
         # Step k's reply begins after the hex of every earlier step.
-        echoed = 0
+        echoed = len(_READY)
         answered = 0
         for step, payload in zip(steps[1:], payloads):
             self.assertLessEqual(step["offset"], echoed, f"step {step['index']}")
@@ -243,7 +260,7 @@ class TestAnswerFence(unittest.TestCase):
         report = os.path.join(self.scratch, "fence.json")
         env = dict(os.environ, TUI_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report)
         subprocess.run(
-            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "1",
+            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", _SETTLE,
              "--quiet", *flags],
             env=env, check=True, timeout=60)
         with open(report) as handle:
@@ -314,7 +331,7 @@ class TestNoTraceIsAnError(unittest.TestCase):
                    DRIVE_TEST_REPORT=os.path.join(scratch, "report.json"),
                    PATH=bin_dir + os.pathsep + os.environ.get("PATH", ""))
         run = subprocess.run(
-            [sys.executable, _DRIVE, stub, "--scenario", "list", "--settle", "0.1",
+            [sys.executable, _DRIVE, stub, "--scenario", "list", "--settle", _SETTLE,
              "--trace", trace],
             env=env, capture_output=True, text=True, timeout=60)
         self.assertEqual(run.returncode, 3, run.stderr)
@@ -350,7 +367,7 @@ class TestAnswerFenceWhileTracing(unittest.TestCase):
         env = dict(os.environ, TUI_CONFIG_DIR=self.scratch, DRIVE_TEST_REPORT=report,
                    PATH=self.bin + os.pathsep + os.environ.get("PATH", ""))
         subprocess.run(
-            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", "1",
+            [sys.executable, _DRIVE, self.stub, "--scenario", "list", "--settle", _SETTLE,
              "--trace", os.path.join(self.scratch, "unused.trace"), "--answer-fence", "--quiet"],
             env=env, check=True, timeout=60)
         with open(report) as handle:
