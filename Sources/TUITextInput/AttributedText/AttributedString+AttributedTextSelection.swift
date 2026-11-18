@@ -38,31 +38,42 @@ extension AttributedString {
     ) throws(E) where E: Error {
         let resolved = selection.resolvedRanges(in: self)
         let tracked: [Range<Index>]?
-        if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-            tracked = try transform(updating: resolved.ranges, body: body)
-        } else {
+        // Index tracking is not in a macOS 15 SDK's Foundation, whatever macOS
+        // runs the program (see `AttributedTextSelection+MacOS15Fallbacks.swift`).
+        #if !canImport(Darwin) || canImport(FoundationModels)
+            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                tracked = try transform(updating: resolved.ranges, body: body)
+            } else {
+                tracked = try AttributedTextSelectionMacOS15Fallbacks.transform(
+                    &self, updating: resolved.ranges, body: body)
+            }
+        #else
             tracked = try AttributedTextSelectionMacOS15Fallbacks.transform(
                 &self, updating: resolved.ranges, body: body)
-        }
+        #endif
         guard let tracked else { return }
         selection.moveTo(tracked: tracked, wasInsertion: resolved.isInsertion)
     }
 
-    /// The selected text — mirrors SwiftUI's `subscript(_:)` with a
-    /// selection.
-    ///
-    /// Empty for an insertion point. Foundation's
-    /// `DiscontiguousAttributedSubstring` is macOS 26 on Apple platforms, so this
-    /// is too, as SwiftUI's is.
-    ///
-    /// - Parameter selection: The selection.
-    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
-    public subscript(selection: AttributedTextSelection) -> DiscontiguousAttributedSubstring {
-        switch selection.indices(in: self) {
-        case .insertionPoint: self[RangeSet<Index>()]
-        case .ranges(let ranges): self[ranges]
+    // Absent when built against a macOS 15 SDK, whose Foundation has no
+    // `DiscontiguousAttributedSubstring` (see the fallbacks' file).
+    #if !canImport(Darwin) || canImport(FoundationModels)
+        /// The selected text — mirrors SwiftUI's `subscript(_:)` with a
+        /// selection.
+        ///
+        /// Empty for an insertion point. Foundation's
+        /// `DiscontiguousAttributedSubstring` is macOS 26 on Apple platforms, so this
+        /// is too, as SwiftUI's is.
+        ///
+        /// - Parameter selection: The selection.
+        @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+        public subscript(selection: AttributedTextSelection) -> DiscontiguousAttributedSubstring {
+            switch selection.indices(in: self) {
+            case .insertionPoint: self[RangeSet<Index>()]
+            case .ranges(let ranges): self[ranges]
+            }
         }
-    }
+    #endif
 
     /// Changes the attributes at a selection — mirrors SwiftUI's
     /// `transformAttributes(in:body:)`.
@@ -95,16 +106,22 @@ extension AttributedString {
                 changes.append((run.range, attributes))
             }
         }
-        if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-            // Setting attributes moves no character, so the ranges read before
-            // stay right; tracking renews the selection's indices for the text.
-            let tracked = transform(updating: resolved.ranges) { text in
-                for change in changes { text[change.range].setAttributes(change.attributes) }
+        // Not in a macOS 15 SDK's Foundation (see the fallbacks' file).
+        #if !canImport(Darwin) || canImport(FoundationModels)
+            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                // Setting attributes moves no character, so the ranges read
+                // before stay right; tracking renews the selection's indices
+                // for the text.
+                let tracked = transform(updating: resolved.ranges) { text in
+                    for change in changes { text[change.range].setAttributes(change.attributes) }
+                }
+                if let tracked { selection.moveTo(tracked: tracked, wasInsertion: false) }
+            } else {
+                AttributedTextSelectionMacOS15Fallbacks.setAttributes(changes, in: &self)
             }
-            if let tracked { selection.moveTo(tracked: tracked, wasInsertion: false) }
-        } else {
+        #else
             AttributedTextSelectionMacOS15Fallbacks.setAttributes(changes, in: &self)
-        }
+        #endif
     }
 
     /// Replaces the selected text with characters, which take the selection's
@@ -137,32 +154,40 @@ extension AttributedString {
     ) {
         let resolved = selection.resolvedRanges(in: self)
         let caret: Index
-        if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-            caret = replacing(resolved.ranges, isInsertion: resolved.isInsertion, with: newContent)
-        } else {
+        // Not in a macOS 15 SDK's Foundation (see the fallbacks' file).
+        #if !canImport(Darwin) || canImport(FoundationModels)
+            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+                caret = replacing(resolved.ranges, isInsertion: resolved.isInsertion, with: newContent)
+            } else {
+                caret = AttributedTextSelectionMacOS15Fallbacks.replace(resolved.ranges, in: &self, with: newContent)
+            }
+        #else
             caret = AttributedTextSelectionMacOS15Fallbacks.replace(resolved.ranges, in: &self, with: newContent)
-        }
+        #endif
         // A new caret, with no typing attributes, leaning upstream as an edit
         // leaves it (`CaretLean`).
         selection = AttributedTextSelection(insertionPoint: caret)
     }
 
-    /// Removes `ranges` and inserts `newContent` where the first began,
-    /// Foundation tracking the caret: it stays put while text after it goes,
-    /// and then moves past the text inserted at it.
-    ///
-    /// - Returns: The caret after the inserted text.
-    @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
-    private mutating func replacing(
-        _ ranges: [Range<Index>], isInsertion: Bool, with newContent: some AttributedStringProtocol
-    ) -> Index {
-        var caret = ranges[0].lowerBound..<ranges[0].lowerBound
-        if !isInsertion {
-            let removed = RangeSet(ranges)
-            caret = transform(updating: caret) { $0.removeSubranges(removed) } ?? caret
+    // Not in a macOS 15 SDK's Foundation (see the fallbacks' file).
+    #if !canImport(Darwin) || canImport(FoundationModels)
+        /// Removes `ranges` and inserts `newContent` where the first began,
+        /// Foundation tracking the caret: it stays put while text after it goes,
+        /// and then moves past the text inserted at it.
+        ///
+        /// - Returns: The caret after the inserted text.
+        @available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *)
+        private mutating func replacing(
+            _ ranges: [Range<Index>], isInsertion: Bool, with newContent: some AttributedStringProtocol
+        ) -> Index {
+            var caret = ranges[0].lowerBound..<ranges[0].lowerBound
+            if !isInsertion {
+                let removed = RangeSet(ranges)
+                caret = transform(updating: caret) { $0.removeSubranges(removed) } ?? caret
+            }
+            let position = caret.lowerBound
+            caret = transform(updating: caret) { $0.insert(newContent, at: position) } ?? caret
+            return caret.lowerBound
         }
-        let position = caret.lowerBound
-        caret = transform(updating: caret) { $0.insert(newContent, at: position) } ?? caret
-        return caret.lowerBound
-    }
+    #endif
 }

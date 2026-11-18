@@ -103,7 +103,8 @@ takes the attributes macOS's text system gives (the character before the caret's
 its start, a selection's first character's over it). On macOS 26, Linux and Windows the selection is tracked through
 a change by Foundation itself. macOS 15's Foundation cannot track, so there the change is found by comparing the text
 before and after: exact for one contiguous change, approximate for several in one `transform`, at about
-3 ms for a 3 MB text.
+3 ms for a 3 MB text. A build against a macOS 15 SDK (Command Line Tools 16.x), whose Foundation declares none of
+this, takes that path on every macOS and has no `subscript(_:)` with a selection.
 
 **A debug build warns when a `List`'s selection can name none of its rows.** `List(games, selection: $selection)`
 with a `GameID?` selection over rows whose `id` is a `String` selects nothing, as in SwiftUI, and said nothing, as

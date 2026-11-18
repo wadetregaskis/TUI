@@ -20,6 +20,16 @@ import Foundation
 /// Every member is called only from an `if #available(macOS 26, …)`'s `else`,
 /// and builds everywhere, so a test runs it on any platform.
 ///
+/// Built against a macOS 15 SDK (the Command Line Tools 16.x carry one), every
+/// member is the only path, whatever macOS the program runs on: that SDK's
+/// Foundation does not declare the macOS 26 members at all, so `#available`
+/// cannot reach them, and each call site's macOS 26 arm sits under
+/// `#if !canImport(Darwin) || canImport(FoundationModels)` (FoundationModels
+/// arrives with the macOS 26 SDK; off Darwin the toolchain's own Foundation
+/// is the one in use). That SDK is unsupported (owner ruling SDK15-CI (c),
+/// 2026-10-26) but kept building, because a downstream app builds with it
+/// (row S4 of "Cost of supporting Swift 6.2 and macOS 15").
+///
 /// Positions are counted in Unicode scalars, where they must be counted:
 /// macOS 15's `AttributedString` finds an index from a scalar or character
 /// offset through its rope, in about a microsecond at the end of a 3 MB text
