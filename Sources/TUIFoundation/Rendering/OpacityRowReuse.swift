@@ -36,7 +36,11 @@ import TUIStyling
 ///
 /// Owned by the run loop's diff writer, and dropped with the rest of its caches
 /// when the writer forgets what it drew: one instance for one app's screen,
-/// never shared.
+/// never shared. Where a layer is up the page is resolved before it is drawn
+/// over, by the overlay compositing, which keeps its rows the same way in an
+/// instance of its own, and its modals' veils theirs (``OverlayRowReuse``,
+/// §116): a veil is a rewrite of every row that reads nothing of the row but
+/// its line, so it keys on the line alone (``rewritingEvery(_:under:with:)``).
 package final class OpacityRowReuse {
 
     /// Everything a rebuilt row reads besides its line and the claims over it.
@@ -45,6 +49,9 @@ package final class OpacityRowReuse {
         var defaultForeground: Color
         var statingTheSurface: Bool
         var fillingStatedTerminalField: Bool
+        /// The colour a modal's veil moves the page toward, for the rows a veil
+        /// rewrote (``rewritingEvery(_:under:with:)``); `nil` for a resolution's.
+        var scrim: Color?
         // Read by the blend from where they are kept for the whole process, so
         // taken here, as the blend will find them.
         var depth = ColorDepth.current
@@ -84,6 +91,20 @@ package final class OpacityRowReuse {
             let covering = claims.filter { $0.spans(row: row) }
             return covering.isEmpty ? nil : covering
         }
+    }
+
+    /// Rewrites every one of `lines` with `rewrite`, or with what it made of the
+    /// same line last time: a modal's veil (``FrameBuffer/veiledAsBackdrop(by:surface:palette:images:reusing:)``),
+    /// which reads nothing of a row but its line and `inputs`, the scrim among
+    /// them.
+    ///
+    /// - Parameters:
+    ///   - lines: The buffer's lines, each replaced by its rewrite where it has one.
+    ///   - inputs: What the rewrite reads besides; a row kept under other ones is
+    ///     not used, and none is kept past them.
+    ///   - rewrite: A row's rewrite, or `nil` where it leaves the line alone.
+    func rewritingEvery(_ lines: inout [String], under inputs: Inputs, with rewrite: (String) -> String?) {
+        keeping(&lines, under: inputs, with: { _, line, _ in rewrite(line) }, covering: { _ in [] })
     }
 
     /// Rebuilds each of `lines` that `covering` gives claims for (`nil` leaves a

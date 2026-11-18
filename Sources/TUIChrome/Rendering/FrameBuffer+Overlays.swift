@@ -36,11 +36,13 @@ extension FrameBuffer {
     /// without them, a layer over a picture is blended as if the picture's
     /// cells were colours. What the screen root runs.
     package func compositingOverlays(
-        maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?
+        maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?,
+        reusing rows: OverlayRowReuse? = nil
     ) -> FrameBuffer {
         var unasked: [AnimatedCellRun] = []
         return compositingOverlays(
-            maxWidth: maxWidth, maxHeight: maxHeight, palette: palette, images: images, punching: &unasked)
+            maxWidth: maxWidth, maxHeight: maxHeight, palette: palette, images: images, punching: &unasked,
+            reusing: rows)
     }
 
     /// ``compositingOverlays(maxWidth:maxHeight:palette:images:)``, gathering in
@@ -54,16 +56,24 @@ extension FrameBuffer {
     /// moved up from there only as far as `maxHeight` needs
     /// (``OverlayLayer/placed(maxWidth:maxHeight:centringHeight:)``): the
     /// window's content area with no tooltip in its status bar.
+    ///
+    /// `rows` is what this site's compositing made of each row last frame: the
+    /// page's resolution and each modal's veil answer an unchanged row from it,
+    /// as the screen root's resolution does (``OverlayRowReuse``,
+    /// `Opacity as composition.md` §116). `nil` rebuilds every row.
     package func compositingOverlays(
         maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?,
-        punching punched: inout [AnimatedCellRun], centringHeight: Int? = nil
+        punching punched: inout [AnimatedCellRun], centringHeight: Int? = nil, reusing rows: OverlayRowReuse? = nil
     ) -> FrameBuffer {
         // The page's OWN opacity resolves first, before anything is drawn over
         // it. This is the screen root, so nothing is behind the page but the
         // surface — and if a region were still pending when a layer composited
         // over it, the region would go on naming those cells and the LAYER's
         // cells would be faded at the root instead of the page's.
-        var result = resolvingOpacity(surface: palette.background, palette: palette, images: images)
+        var result = resolvingOpacity(
+            surface: palette.background, palette: palette, images: images, reusing: rows?.resolution)
+        // Which of the frame's veils comes next, for the rows it keeps.
+        var veils = 0
         // ONE queue, re-sorted every time a layer is drawn. A layer nested in
         // another layer's content — an alert presented from inside a sheet —
         // is lifted into `overlays` only when its host composites, and a pass
@@ -138,7 +148,9 @@ extension FrameBuffer {
                         result = result.replacingLines(expanded)
                     }
                     result = result.veiledAsBackdrop(
-                        by: palette.overlayBackground, surface: palette.background, palette: palette, images: images)
+                        by: palette.overlayBackground, surface: palette.background, palette: palette, images: images,
+                        reusing: rows?.veil(veils))
+                    veils += 1
                 }
                 let placed = layer.placed(
                     maxWidth: maxWidth, maxHeight: maxHeight, centringHeight: centringHeight ?? maxHeight)

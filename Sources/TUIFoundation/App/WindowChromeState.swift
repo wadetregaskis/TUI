@@ -305,6 +305,13 @@ package final class WindowChromeState {
     /// accessor (CONTRIBUTING.md, "Crossing a module boundary").
     private var _presentationsOverPage: [PresentedSurface] = []
 
+    /// What compositing the layers over the page made of its rows last frame,
+    /// for this frame's unchanged ones (``OverlayRowReuse``).
+    package let pageLayerRows = OverlayRowReuse()
+
+    /// The same for the menu bar's open menu, composited over the whole window.
+    package let windowLayerRows = OverlayRowReuse()
+
     /// The window's title: the OUTERMOST `.navigationTitle` the window's
     /// content declared this walk (see ``offer(_:as:at:)``) — kept until the
     /// next walk begins.

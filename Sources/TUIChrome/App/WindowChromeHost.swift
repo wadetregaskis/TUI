@@ -211,7 +211,7 @@ nonisolated package struct _WindowChromeHost<Content: View>: View, Renderable {
             page = page.compositingOverlays(
                 maxWidth: width, maxHeight: contentHeight, palette: palette,
                 images: context.environment.terminalImageStore, punching: &punched,
-                centringHeight: restingHeight)
+                centringHeight: restingHeight, reusing: chrome?.pageLayerRows)
             // What the layers punched and show differently from step to step: a
             // render at each of its steps draws those cells as they are then, as a
             // compositor inside the tree asks (`Opacity as composition.md` §109).

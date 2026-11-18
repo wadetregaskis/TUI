@@ -92,8 +92,14 @@ extension FrameBuffer {
     /// the page's colours are, toward `scrim` in linear light
     /// (`OpacityBlend+Pictures.swift`), where without them it keeps its own
     /// brightness. What the screen root runs.
+    ///
+    /// - Parameter rows: What this veil made of each row the last time it was
+    ///   drawn, to answer a row that has not changed from without rewriting it,
+    ///   and to keep this one's for the next frame (``OpacityRowReuse``). `nil`
+    ///   rewrites every row.
     package func veiledAsBackdrop(
-        by scrim: Color, surface: Color, palette: any Palette, images: TerminalImageStore?
+        by scrim: Color, surface: Color, palette: any Palette, images: TerminalImageStore?,
+        reusing rows: OpacityRowReuse? = nil
     ) -> FrameBuffer {
         guard !isEmpty else { return self }
         let scrim = scrim.resolve(with: palette).opaqueSpelling
@@ -155,9 +161,22 @@ extension FrameBuffer {
             return result
         }
         let row = { (line: String) in veiled(line, startingWith: lineDefaults, afterAReset: lineDefaults) }
+        var lines = page.lines
+        if let rows {
+            // A row's rewrite reads its line and these alone (the scrim decides
+            // `faint`, and with the ink, the surface and the depth every escape
+            // above), but for a picture's cells, which the reuse never keeps.
+            rows.rewritingEvery(
+                &lines,
+                under: OpacityRowReuse.Inputs(
+                    surface: surface, defaultForeground: ink, statingTheSurface: false,
+                    fillingStatedTerminalField: false, scrim: scrim),
+                with: row)
+        } else {
+            lines = lines.map(row)
+        }
         page = page.replacingLines(
-            page.lines.map(row), width: page.width, uniformWidth: page.linesAreUniformWidth,
-            lineWidths: page.lineWidths)
+            lines, width: page.width, uniformWidth: page.linesAreUniformWidth, lineWidths: page.lineWidths)
         // As `restyleRuns` does, but with the frame's rewrite apart from the
         // records'.
         page.animatedCells = page.animatedCells.map { run in

@@ -7808,4 +7808,29 @@ kept: its blend asks the image store for a copy of the picture, which a kept
 answer would skip.
 
 Only the root's resolution keeps rows. A compositor inside the tree resolves
-over a destination of its own, which the reuse would have to key on too.
+over a destination of its own, which the reuse would have to key on too. (The
+resolution of a page under a layer is the root's too, and keeps its rows since §116.)
+
+## 116. The overlay compositing keeps its rows too (2026-11-17)
+
+Where a layer is up, the root's resolution (§115) has nothing left to do: the
+overlay compositing (`FrameBuffer.compositingOverlays`) resolves the page first,
+as the root would, before anything is drawn over it, and a modal then veils
+every row below it (§112). Both were done afresh on every frame a sheet or an
+alert was up, changed or not: the veil, a rewrite of every colour each row names,
+was 12% of a frame of Stress's `case:sheet-present` and 8% of `case:alert-list`.
+
+Both keep their rows the way the root does (`OverlayRowReuse`, one per site of
+the compositing, owned by the window's chrome state): the page's resolution with
+an `OpacityRowReuse` of its own, keyed as the root's is; each veil with another,
+keyed on the row's line alone, since a veil reads nothing of a row but its line,
+the scrim, the page's surface and ink, the colour depth and the terminal's
+reported colours, all of which the reuse keys on as well. A row drawing a
+picture is never kept, as at the root. The veils are told apart by their order
+in the frame: an alert over a sheet veils the veiled page and the sheet, which a
+reuse shared with the sheet's veil would trade away on every frame.
+
+Nothing about a layer itself is kept. Its place, its content and its own fades
+are what the veil does not read (the page is veiled before the layer is drawn
+over it), so a sheet that moves, grows, or animates in leaves every kept row of
+the page good; what changes is drawn over them as before.

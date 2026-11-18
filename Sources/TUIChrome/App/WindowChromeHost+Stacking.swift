@@ -43,7 +43,8 @@ import TUIFoundation
         if let layers = bars.menu?.overlays, !layers.isEmpty {
             chrome.presentationsOverPage += Self.presentations(in: layers)
             frame.overlays = layers
-            frame = frame.compositingOverlays(maxWidth: width, maxHeight: height, palette: palette)
+            frame = frame.compositingOverlays(
+                maxWidth: width, maxHeight: height, palette: palette, images: nil, reusing: chrome.windowLayerRows)
         }
         return frame
     }

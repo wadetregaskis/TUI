@@ -52,7 +52,9 @@ after the padding reaches the line as the padding's own, and one written before 
 that is blended at the screen itself (a `.opacity`, a translucent colour, a `Color.clear` under a `TimelineView`)
 were taken apart and blended on every frame the app wrote, changed or not. A game's loop that asks for a frame sixty times a second
 over a board that moves once a second spent over a third of each frame there. Each row's result is now kept and used
-again while its line and the claims over it are what they were; what is written to the terminal is unchanged.
+again while its line and the claims over it are what they were; what is written to the terminal is unchanged. The
+same now holds under a sheet or an alert: the page below it is veiled, and its fades blended, only where a row
+changed, where every row of it was veiled again on every frame the dialog was up (about a tenth of such a frame).
 
 **Arrows Follow Layout goes through a scroll view's content before leaving it.** With `TUI_ARROW_FOCUS=geometric`,
 Up from the top row on screen in a `ScrollView` went to a button above the scroll view instead of the row just above
