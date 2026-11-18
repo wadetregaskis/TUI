@@ -208,14 +208,11 @@ Two things about the environment the runs needed:
 - **The rest of the mouse**: Shift-clicks, the other buttons and pointer shapes are unmeasured in both terminals.
 - **The console's font**: conhost's Consolas has no quadrants (`▖ ▗ ▘ ▝ ▙ ▛ ▜ ▟`), which shapes and canvases draw with;
   TUI cannot ask a terminal what its font has, so the Terminal Support article tells users to choose Cascadia Mono.
-- **Windows Terminal's other key bindings**: TUI now knows a host may keep a chord (`TerminalClient.keptChords`), and
-  takes Windows Terminal to keep ⌃, (its settings), so Settings… shows F2 there. Its other defaults (font size, tabs,
-  panes, find, paste) are not listed, as a person can rebind any of them; some meet keys TUI names (⌃- is one of the
-  undo keys, Alt-arrows and ⌃Tab are bound in places), so whether to list them is the owner's call.
 - **Keys under the kitty protocol in Windows Terminal**: the key record is the legacy encoding; what 1.25 sends for
   each key with the protocol on is unmeasured.
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays
-the debt), the mouse's clicks and wheel in both, the keys in both, and copies too large for the terminal (over a
-measured 24,567 bytes of text: sent to this machine's clipboard at the desk, reported as not copied over ssh), and
-x86_64.
+the debt), the mouse's clicks and wheel in both, the keys in both, Windows Terminal's ⌃, (TUI takes it to be kept, so
+Settings… shows F2 there; its other default bindings are not listed, the owner's ruling of 2026-11-17: "Just ⌃, for
+now"), and copies too large for the terminal (over a measured 24,567 bytes of text: sent to this machine's clipboard
+at the desk, reported as not copied over ssh), and x86_64.

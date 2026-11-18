@@ -22,8 +22,8 @@ extension TerminalClient {
     ///   binding is matched before the key is encoded at all. Its other
     ///   default bindings (⌃=, ⌃- and ⌃0 for the font size, ⌃V, the ⌃⇧ chords
     ///   for tabs, panes and find, Alt-arrows for panes) are not listed: a
-    ///   person can rebind any of them, so a list could be wrong for them, and
-    ///   whether to list them is the owner's call (Windows port.md).
+    ///   person can rebind any of them, so a list could be wrong for them
+    ///   (the owner, 2026-11-17: "Just ⌃, for now").
     ///
     /// Every other host is taken to keep none: a chord it does keep is still
     /// bound, and named where nothing arrives.
