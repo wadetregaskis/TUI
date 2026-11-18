@@ -100,11 +100,6 @@ enum CaseKnownIssues {
             "PERFCASE-F8: a TabView measures its hidden tab (an eager grid of n rows) as it opens and again at every "
                 + "resize that narrows it; and the narrowing resizes list and build 7 rows more at 10n (PERFCASE-F12)"
         ),
-        "sheet-search": (
-            ["type:ab listed", "type:ab built", "type:ab bodies", "type:ab misses", "open cells"],
-            "PERFCASE-F11: a searchable List in a sheet builds every row on the keystroke that first filters it; and "
-                + "the wrapped table behind reads 20 more cell values as it opens at 10n (PERFCASE-F12)"
-        ),
         "sheet-item-walk": (
             ["open cells"],
             "PERFCASE-F12: the wrapped table behind reads 10 more cell values as it opens at 10n than at n = 1,000"

@@ -957,10 +957,25 @@ and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
 - **PERFCASE-F11. A searchable `List` in a sheet builds every row as the first keystroke filters it.**
   `sheet-search`'s `type:ab` builds 524 rows of 500 (5,024 at 10n), where `list-search`, the same list on a page,
   builds 45; the backspaces after it build 2. Not seen: what about the first filtering in a sheet asks for every row.
+  **Not a search (2026-11-17):** nothing was filtered. The case typed into the list, not the field: a `.searchable`
+  field leaves the first focus to the content (since 2026-11-15, `53fe8c40a`, as a macOS window opens with its list
+  focused), and in a sheet a Tab from the list goes to the sheet's Resize stop, not round to the field as it does on
+  a page, so no key of the script reached the query (its backspaces wrote 2 bytes). A key typed into a focused list
+  is type select, and `ab`, which no row starts with, asked each of the 500 rows for its text; a `CaseListRow` is a
+  view the app built, which type select can only draw as a measure to read (`TypeSelectScanTests`: by design, and
+  `linear`). The search itself, reached with Find (⌃F), builds what the filtered list shows, in a sheet as on a page.
+  The case now steps `key:find` first (the step's new key) and two Escapes at the end, the first ending the search
+  and the second dismissing the sheet; at n = 2,000 rather than 500, since at 500 the rows holding `ab` (`stable`)
+  fill the sheet at 10n but not at n, and every count but the open's `cells` moved with it (and those are flat from
+  2,000 on, PERFCASE-F12, so the case's known entry goes). Its `type:ab` lists 74 rows and builds 95 at n and at
+  10n, where it listed 537 and built 524 (5,037 and 5,024 at 10n). Type select's scan has cases of its own, `linear`:
+  `list-typeselect` (1,002 rows built for `ab` over 1,000, 2,002 over 2,000) and `table-typeselect` (10,618 cell
+  values over 10,000 rows, 20,618 over 20,000: the first column of each row, and the window's five columns).
 - **PERFCASE-F12. A few counts move by a constant at 10n.** `list-tiny` misses 4 more measures as it opens in 20x6
   (359, 363), `split-tiny` 4 fewer at its resize (384, 380), `resize-storm`'s narrowing resizes list and build 7 more
   rows (425, 432) and `nsplit-three` builds 2 more as it opens; a wrapped table reads 1,115 cell values as it opens
-  at 500 rows (`sheet-search`), 1,125 at 1,000 (`sheet-item-walk`) and 1,135 from 2,000 on.
+  at 500 rows (`sheet-search`, until F11's case moved to 2,000), 1,125 at 1,000 (`sheet-item-walk`) and 1,135 from
+  2,000 on.
   None grows with n; their causes are not seen.
 - **PERFCASE-F13. A list row behind a popover presented a second time is drawn a cell off.** With `;key:esc` at the
   end of `popover-values`' script, its session's loop presents the popover again, and from the Tab after that the
@@ -987,6 +1002,15 @@ and an editor now, `flat`; the forms are 5 and 10 rows, the splits 300 to 500.
   again is not served whole on the Rights is not established. `PresentedAgainCacheTests` plays the script against an uncached twin, one
   frame a step, for a popover, a sheet, an alert and a confirmation dialog: the popover failed from the second Tab,
   the other three did not; all four pass. The case's script has its Escape back.
+- **PERFCASE-F15. Find and the first keystroke in a sheet's search field redraw the page behind.** Seen once
+  `sheet-search` searched (F11): `key:find` reads 245 cell values of the wrapped table behind the sheet, and the
+  first character of `type:ab` 245 more and 19 of its rows, where the second character, the backspaces and an idle
+  frame read none (`editor-sheet-typing`'s keys in a sheet's editor cost the list behind nothing either). Flat in n,
+  about a window of the page behind each time. Seen with `TUI_DEBUG_RENDER=1` and a print at each whole-cache clear:
+  the first character's frame begins by clearing the whole render cache through `AppState.consumeNeedsCacheClear()`
+  (not a newly learned reading type, not the environment snapshot); the Find's frame clears no more than subtrees.
+  Not seen: which write asks for that clear (`setNeedsRenderWithCacheClear()` or an observed change made while a
+  transaction waits, `walkPendingChanges(keepingNothing:)`), nor what the Find's focus move drops of the page behind.
 
 Known already and named for the new cases: a `.fit` column reads every row as its table opens (PERFCASE-F5's class,
 `alert-table`, `table-fit-tiny`, and `nsplit-storm`'s resizes), and the bottom-anchored lazy stack's PERFCASE-F3

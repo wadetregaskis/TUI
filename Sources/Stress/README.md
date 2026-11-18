@@ -547,7 +547,7 @@ every row can then use it.
   | `open` | The first frame. Always the first phase, and only that |
   | `idle` | A frame with nothing changed |
   | `wheel:+k`, `wheel:-k` | Scrolls down or up by k over the screen's middle |
-  | `key:<name>` | Presses `pgdn`, `pgup`, `end`, `home`, `up`, `down`, `left`, `right`, `tab`, `enter`, `space`, `esc` or `bksp`; `oright` and `oleft` are Option-Right and Option-Left, which open and close a whole subtree |
+  | `key:<name>` | Presses `pgdn`, `pgup`, `end`, `home`, `up`, `down`, `left`, `right`, `tab`, `enter`, `space`, `esc` or `bksp`; `oright` and `oleft` are Option-Right and Option-Left, which open and close a whole subtree; `find` is Find (⌃F), which puts the keyboard in a `.searchable` field: the field leaves the first focus to the content, where a typed key is type select, not a query |
   | `type:<text>` | Types a character, draws its frames, then types the next. Printable ASCII, no spaces |
   | `hover:+k`, `hover:-k` | Moves the pointer down or up by k rows |
   | `resize:WxH` | Resizes the terminal |

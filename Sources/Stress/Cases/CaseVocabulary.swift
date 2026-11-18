@@ -263,6 +263,10 @@ enum CaseKey: String, CaseIterable, Sendable {
     /// Option-Right and Option-Left: an outline's open and close of a whole
     /// subtree.
     case oright, oleft
+    /// Find (⌃F, ⌘F's stand-in): puts the keyboard in a `.searchable` field,
+    /// which leaves the first focus to the content — a typed key there is the
+    /// list's type select, not a query.
+    case find
 
     /// The event the key sends.
     var event: KeyEvent {
@@ -282,6 +286,7 @@ enum CaseKey: String, CaseIterable, Sendable {
         case .bksp: KeyEvent(key: .backspace)
         case .oright: KeyEvent(key: .right, alt: true)
         case .oleft: KeyEvent(key: .left, alt: true)
+        case .find: KeyEvent(key: .character("f"), ctrl: true)
         }
     }
 }
