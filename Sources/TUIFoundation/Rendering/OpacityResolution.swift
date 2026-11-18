@@ -196,7 +196,14 @@ extension FrameBuffer {
         func rebuild(
             _ row: Int, _ line: String, substituting: (OpacityRegion) -> FrameBuffer.CellAlpha?
         ) -> String? {
-            let covering = translucent.filter { $0.spans(row: row) }
+            rebuildCovered(row, line, translucent.filter { $0.spans(row: row) }, substituting: substituting)
+        }
+        // The same, given the claims on the row, for a caller that has already
+        // narrowed them to it.
+        func rebuildCovered(
+            _ row: Int, _ line: String, _ covering: [OpacityRegion],
+            substituting: (OpacityRegion) -> FrameBuffer.CellAlpha?
+        ) -> String? {
             guard !covering.isEmpty else { return nil }
             // A row drawing an image is left alone. Its FOREGROUND is not a
             // colour, it is the image's id (see
