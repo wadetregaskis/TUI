@@ -15,6 +15,7 @@ import TUIApp
 @testable import TUIFoundation
 import TUIPickers
 @testable import TUITestSupport
+import TUITesting
 
 /// Shows what the configuration carries.
 private struct ReportingStyle: DatePickerStyle {
@@ -210,6 +211,12 @@ struct StepperFieldAndCompactDatePickerTests {
         var binding: Binding<Date> { Binding(get: { self.date }, set: { self.date = $0 }) }
     }
 
+    /// The clock the stepper's held arrows repeat on, which moves only when
+    /// told: on the real one a press waited on under a loaded suite outlived
+    /// the repeat's initial delay, and ▲ stepped the year 23 times (a Windows
+    /// VM, the whole suite in one `swift test`, 2026-11-17).
+    private let clock = TestClock()
+
     private func picker(
         _ selection: Selection, style: some DatePickerStyle, components: DatePickerComponents = .date,
         stepper: Bool? = nil, disabled: Bool = false
@@ -226,6 +233,7 @@ struct StepperFieldAndCompactDatePickerTests {
         .datePickerStyle(style)
         .environment(\.calendar, calendar)
         .environment(\.timeZone, calendar.timeZone)
+        .environment(\.autoRepeatClock, clock)
     }
 
     /// The column `glyph` is drawn at on the first row of `buffer`.
@@ -251,12 +259,22 @@ struct StepperFieldAndCompactDatePickerTests {
         #expect(field == "2026-10-03", "only a stepper field has a stepper")
     }
 
-    /// A click on one of the stepper's arrows: the press acts on the next
-    /// main-actor turn (the arrows repeat while held, as a `Stepper`'s do), so
-    /// a yield before the release — not a sleep, which a timed wake can lose.
-    private func click(_ harness: InputChainHarness, at x: Int, row: Int = 0) async {
+    /// A click on one of the stepper's arrows that steps `selection`: the
+    /// press acts on a later main-actor turn (the arrows repeat while held, as
+    /// a `Stepper`'s do), so the release waits for the step — the edge itself,
+    /// not a yield or a sleep, which a loaded suite can outrun.
+    private func click(_ harness: InputChainHarness, at x: Int, row: Int = 0, stepping selection: Selection) async {
+        let before = selection.date
         harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
-        await Task.yield()
+        await TUITestSupport.settle(until: { selection.date != before })
+        harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: row))
+    }
+
+    /// A click that should step nothing: the press gets its chance to act — a
+    /// budget, which can only weaken the assertion that nothing moved.
+    private func clickSteppingNothing(_ harness: InputChainHarness, at x: Int, row: Int = 0) async {
+        harness.mouse(MouseEvent(button: .left, phase: .pressed, x: x, y: row))
+        await yieldToSpawnedWork()
         harness.mouse(MouseEvent(button: .left, phase: .released, x: x, y: row))
     }
 
@@ -277,15 +295,15 @@ struct StepperFieldAndCompactDatePickerTests {
             return
         }
         // The button has the focus; the year is the field's selected component.
-        await click(harness, at: up, row: 1)
+        await click(harness, at: up, row: 1, stepping: selection)
         #expect(selection.date == date(2027, 10, 3))
         #expect(harness.focusManager.currentFocusedID?.hasPrefix("datepicker") == true, "the field did not take the focus")
         // Right twice to the day, then ▼ twice.
         harness.play([KeyEvent(key: .right), KeyEvent(key: .right)], build)
         harness.frame(build())
-        await click(harness, at: up + 1, row: 1)
+        await click(harness, at: up + 1, row: 1, stepping: selection)
         harness.frame(build())
-        await click(harness, at: up + 1, row: 1)
+        await click(harness, at: up + 1, row: 1, stepping: selection)
         #expect(selection.date == date(2027, 10, 1))
     }
 
@@ -294,7 +312,7 @@ struct StepperFieldAndCompactDatePickerTests {
         let selection = Selection(date(2026, 10, 3))
         let harness = InputChainHarness(width: 40, height: 3)
         let buffer = harness.frame(picker(selection, style: .stepperField, stepper: true, disabled: true))
-        await click(harness, at: column(of: "▲", in: buffer) ?? 0)
+        await clickSteppingNothing(harness, at: column(of: "▲", in: buffer) ?? 0)
         #expect(selection.date == date(2026, 10, 3))
     }
 
