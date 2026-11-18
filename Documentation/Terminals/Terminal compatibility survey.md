@@ -2880,7 +2880,7 @@ says, monochrome.
 | kitty keyboard protocol | no answer | no answer | `CSI ? u` unanswered before the fence |
 | Sixel | yes (DA1 `4`) | no (DA1 has no `4`) | `sixel_probe.py` in Windows Terminal: `CSI 16 t` answers a cell of 10 × 20, as its source says |
 
-### Keys (measured 2026-11-17, Windows Terminal 1.25.3131.0)
+### Keys (measured 2026-11-17, both)
 
 `key_probe.py` on the alternate screen, keys pressed by hand on a Mac keyboard into the
 VM. Every key the probe asks arrives as xterm's legacy spelling: Home `CSI H`, End
@@ -2890,7 +2890,14 @@ VM. Every key the probe asks arrives as xterm's legacy spelling: Home `CSI H`, E
 arrived as nothing: fn-F10; ⌃, which Windows Terminal keeps for its settings (a default
 binding); and ⌃F1, which the Mac host may keep for itself ("Turn keyboard access on or
 off") before the VM sees it, so this record cannot say whether Windows Terminal would
-pass it on. conhost's keys are unmeasured: its run had no one at the keyboard.
+pass it on.
+
+conhost (build 26300, the same day) sends the same spellings, but for three: **⌃,
+arrives as `0x0C`**, the comma masked to a control character as a legacy console masks
+a letter, so an app reads ⌃L and a ⌃, binding cannot be pressed there; the "Option-F"
+prompt was answered with `CSI 1;3P` (Alt-F1), which may have been the key pressed
+rather than conhost's spelling of Alt-F; and fn-F1, like ⌃F1, arrived as nothing within
+the run's 10-second wait.
 
 The console's raw mode, as TUI sets it, takes mouse input, and with it Windows Terminal
 reports the pointer's motion (`CSI < 35;…M`) even where nothing turned mouse reporting
@@ -2913,8 +2920,8 @@ alternate screen, as a crash leaves it on POSIX, the cursor is shown, the consol
 modes are back (the shell reads its line), and the pointer moved over the window types
 nothing at the shell's prompt, so mouse reporting was turned off.
 
-Not measured: conhost's keys, the keys' other modifiers, pointer shapes, scroll regions,
-and a cell's size in points for either.
+Not measured: the keys' other modifiers, pointer shapes, scroll regions, and a cell's
+size in points for either.
 
 ---
 

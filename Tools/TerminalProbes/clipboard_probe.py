@@ -102,7 +102,10 @@ SETTLE = 0.3  # seconds a host gets to hand the write to its pasteboard
 # The sizes the ceiling tries, in KiB, smallest first; it stops at the first that
 # does not arrive. `PROBE_CEILING_KIB=8,12,16,24,32,48,64` narrows a ceiling
 # an earlier run bracketed.
-CEILING_KIB = [int(kib) for kib in os.environ.get("PROBE_CEILING_KIB", "").split(",") if kib] or [
+# A fraction finds a limit to the byte: 23.994140625 KiB is 24,570 bytes.
+CEILING_KIB = [
+    int(kib) if kib.isdigit() else float(kib) for kib in os.environ.get("PROBE_CEILING_KIB", "").split(",") if kib
+] or [
     1, 8, 64, 100, 256, 512, 1024]
 
 
@@ -363,7 +366,8 @@ def ceiling(fd, board):
     largest = None
     for kib in CEILING_KIB:
         head = nonce(f"ceiling-{kib}k")
-        text = (head + "-" + "x" * (kib * 1024))[: kib * 1024]
+        size = int(kib * 1024)
+        text = (head + "-" + "x" * size)[:size]
         result = write_and_read(fd, board, text, f"{kib} KiB")
         result["base64_bytes"] = len(base64.b64encode(text.encode()))
         sizes[f"{kib}KiB"] = result
