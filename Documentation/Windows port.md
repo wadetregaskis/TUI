@@ -7,11 +7,11 @@ starting point for the session that does it, on a Windows VM, and the record it 
 
 ## Where it stands (2026-11-17, on the VM)
 
-- **The whole package builds on Windows** with Swift 6.3.3 and 6.4.2, every library, tool and test target, with no
-  warnings (`swift build --build-tests`), on a Windows 11 arm64 VM. 6.2 is not yet measured: 6.2.4's installer stopped at the Python installer it bundles, which waits for a click. CI has not seen it yet: its steps for
-  `TUIApp`, `TUICommands`, `TUIScenes` and the Example are advisory until it has.
-- **The test suite passes** on 6.3.3, one module at a time; and on 6.4.2 but for one Example test that the stack
-  guard's budget on Windows decides (see "The tests").
+- **The whole package builds on Windows** with Swift 6.2.4, 6.3.3 and 6.4.2, every library, tool and test target,
+  with no warnings in its code (`swift build --build-tests`, each from a clean scratch path), on a Windows 11 arm64
+  VM; 6.4.2 also warns about its own SDK (see "Toolchain"). CI has not seen it yet: its steps for `TUIApp`,
+  `TUICommands`, `TUIScenes` and the Example are advisory until it has.
+- **The test suite passes** on all three, one module at a time (see "The tests").
 - **The Example runs in Windows Terminal and in the classic console (conhost)**, both measured with
   `Tools/TerminalProbes/` and both known hosts since 2026-11-16 (`TerminalClient.Program.windowsTerminal`,
   `.windowsConsole`; the terminal survey's "Windows Terminal and the classic console"). Driven by the mouse in each:
@@ -153,19 +153,31 @@ Measured under a pseudo console (`Tools/Smoke/conpty.py`, 2026-11-16, debug buil
 
 Run on the VM, one test module at a time (a test that crashes takes its process down), debug builds.
 
-**6.3.3** (2026-11-17): every module passes, all 35. One test has failed in earlier runs under load: "a cancelled
-timeout never resumes a later waiter (no cascade spin)" (`StdinArrivalNotifierTests`), which counts completions in a
-real-time window, and which passes alone.
+Of the 35 modules, `TUIFilePanelsAppKitTests` has no tests outside macOS; run alone, its filter matches none, and
+Swift Testing exits with `ERROR_NOT_FOUND` (`0x490`), as it does on Windows when no test is found.
 
-**6.4.2** (2026-11-17): every module passes but `ExampleTests`, where one test fails every run: "On the page itself,
-Show / hide fades the panel out" (`AnimationPageShowHideTests.swift:330`). It is the stack guard. Swift Testing on
-Windows runs a `@MainActor` test on a libdispatch worker thread, with 1 MiB of stack, and the guard keeps 256 KiB of it
-in reserve (`StackGuard.reserveBytes`); the Example's whole Animation page, drawn in a debug build, needs more than the
-768 KiB left. Counted (`StackGuard.truncationCount`) over the frame that starts the removal: 110 cuts on 6.3.3, where
-none falls on what the test reads, and 285 on 6.4.2, whose debug frames are larger, where the panel is one of them. A
-Windows program's main thread has 1 MiB too unless it is linked with more (`/STACK`). What to change is the owner's
-call: a smaller reserve on Windows, a larger stack for TUI's executables (which reaches an app's main thread, not a
-test's), or less stack a level.
+**6.3.3** (2026-11-17): every module passes, all 35, with frames drawn on the fiber (below). One test has failed in
+earlier runs under load: "a cancelled timeout never resumes a later waiter (no cascade spin)"
+(`StdinArrivalNotifierTests`), which counts completions in a real-time window, and which passes alone.
+
+**6.4.2** (2026-11-17): every module passes, all 35, with frames drawn on the fiber.
+
+**6.2.4** (2026-11-17): every module passes, all 35, with frames drawn on the fiber, from the toolchain unpacked
+beside the others (see "Toolchain").
+
+**The stack a frame is drawn on.** A Windows thread gets the stack its executable names, 1 MiB unless the program was
+linked asking for more: an app's main thread, and the libdispatch workers Swift Testing runs a `@MainActor` test on.
+The stack guard keeps 256 KiB in reserve (`StackGuard.reserveBytes`), and the Example's whole Animation page, drawn in
+a debug build, needs more than the 768 KiB left: on 6.4.2 "On the page itself, Show / hide fades the panel out"
+(`AnimationPageShowHideTests.swift:330`) failed every run. Counted (`StackGuard.truncationCount`) over the frame that
+starts the removal: 110 cuts on 6.3.3, none of them on what the test reads, and 285 on 6.4.2, whose debug frames are
+larger, the panel among them. Linking with `/STACK` would have mended TUI's own programs and left every app to link
+with it too, which TUI should not ask (owner, 2026-11-17). So a frame is drawn on a stack TUI provides
+(`LargeStack`, in TUICore): on Windows, where the thread's stack is smaller than 8 MiB, `RenderLoop.render` and
+`renderOnce`'s walk run on a fiber with 8 MiB reserved (committed as it is used), switched to and back on the same
+thread, so thread-locals, the running task and the main actor's checks see nothing different. Windows reports the
+fiber's stack to `GetCurrentThreadStackLimits` while it runs, so the guard measures 8 MiB. Two tests that set the
+guard's floor by hand, or sized a chain to the thread's stack, now do so on the stack the walk runs on.
 
 What the runs found, and fixed, on the way (each its own commit): the stack guard had no Windows arm, so too
 deep a tree overflowed rather than being cut short; `AnyView.staysWhole(in:)` walked a chain of `AnyView`s with no
@@ -185,9 +197,6 @@ Two things about the environment the runs needed:
 
 ## Still to do
 
-- **The stack guard's budget on Windows** (the 6.4.2 failure above): the owner's decision, then the change.
-- **Swift 6.2**: 6.2.4's installer stopped at the Python 3.10.11 installer it bundles, which waits for a click; once
-  it is in, a build with no warnings and a run of the suite, as for 6.3.3 and 6.4.2.
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
 - **A crash under Windows Terminal and conhost**, to see the exception filter pay the debt: nothing in the Example
   crashes on cue.
