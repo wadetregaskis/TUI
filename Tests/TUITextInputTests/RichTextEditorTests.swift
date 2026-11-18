@@ -134,6 +134,31 @@ struct RichTextEditorTests {
         #expect(String(text.value.characters) == "a")
     }
 
+    @Test("Text moved by a drag keeps its own runs where it lands, and undo puts it back with them")
+    func dragMoveKeepsAttributes() {
+        let text = Box(Runs.runs([("aaa", Runs.red), ("bbb", Runs.blue)]) + AttributedString("ccc"))
+        let drawn = editor(text)
+        // "ab", a red character and a blue one, carried to the end of the line.
+        drawn.handler.moveCursor(toLine: 0, column: 2)
+        drawn.handler.selectionAnchor = drawn.handler.cursor
+        drawn.handler.moveCursor(toLine: 0, column: 4)
+        #expect(drawn.handler.beginTextDrag(at: TextEditorPosition(line: 0, column: 3)))
+        drawn.handler.dragText(to: TextEditorPosition(line: 0, column: 9))
+        #expect(drawn.handler.endTextDrag(clickedAt: TextEditorPosition(line: 0, column: 3)))
+        #expect(String(text.value.characters) == "aabbcccab")
+        #expect(inks(text.value) == [Runs.red, Runs.red, Runs.blue, Runs.blue, nil, nil, nil, Runs.red, Runs.blue])
+        // Typed next to it, text takes the typing attributes again, the moved
+        // text's no longer held.
+        drawn.handler.clearSelection()
+        drawn.handler.moveCursor(toLine: 0, column: 4)
+        type("x", into: drawn.handler)
+        #expect(inks(text.value)[4] == Runs.blue, "the character before the caret's")
+        _ = drawn.handler.handleKeyEvent(KeyEvent(key: .character("z"), ctrl: true))
+        _ = drawn.handler.handleKeyEvent(KeyEvent(key: .character("z"), ctrl: true))
+        #expect(String(text.value.characters) == "aaabbbccc")
+        #expect(inks(text.value) == [Runs.red, Runs.red, Runs.red, Runs.blue, Runs.blue, Runs.blue, nil, nil, nil])
+    }
+
     @Test("Ctrl-T swaps two characters with their own attributes")
     func transposeKeepsAttributes() {
         let text = Box(Runs.runs([("a", Runs.red), ("b", Runs.blue)]))

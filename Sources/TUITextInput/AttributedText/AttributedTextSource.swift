@@ -57,6 +57,13 @@ final class AttributedTextSource {
     /// (B-ATTRED-16), until the next insertion or key.
     var heldTypingAttributes: AttributeContainer?
 
+    /// Text carried somewhere else in the editor — the selection moved by a
+    /// drag — with its own runs: an insertion of its characters takes it
+    /// whole rather than the typing attributes, as an `NSTextView` keeps the
+    /// attributes of the text it moves. Held from before the text is removed
+    /// until it is inserted again, and spent by that insertion.
+    var heldInsertion: AttributedString?
+
     /// Told when a value is taken whole, and whether it has the characters of
     /// the one before: the lines' styles are read afresh.
     var onTakenWhole: ((_ sameCharacters: Bool) -> Void)?
@@ -165,7 +172,7 @@ final class AttributedTextSource {
             let inserted = replacement.replacement.map { String($0) }.joined(separator: layout.lineEnding)
             text.replaceSubrange(lower..<upper, with: insertion(inserted, replacing: lower..<upper, in: text))
             // Held for the insertion after a selection's removal, and spent by it.
-            if !inserted.isEmpty { heldTypingAttributes = nil }
+            if !inserted.isEmpty { (heldTypingAttributes, heldInsertion) = (nil, nil) }
         }
         staged = (text, false)
     }
@@ -193,6 +200,8 @@ final class AttributedTextSource {
             }
         }
         guard !string.isEmpty else { return AttributedString() }
+        // Moved text keeps its runs.
+        if let heldInsertion, Self.characters(of: heldInsertion) == string { return heldInsertion }
         return AttributedString(string, attributes: typingAttributes(replacing: range, in: text))
     }
 
@@ -228,6 +237,16 @@ final class AttributedTextSource {
             index < text.endIndex
         else { return }
         heldTypingAttributes = AttributedTextSelection.attributes(ofCharacterAt: index, in: text)
+    }
+
+    /// Holds the characters from `offsets` of the value, with their runs, for
+    /// their insertion somewhere else (``heldInsertion``).
+    func holdInsertion(ofCharacters offsets: Range<Int>) {
+        let text = value
+        guard let lower = text.characters.index(text.startIndex, offsetBy: offsets.lowerBound, limitedBy: text.endIndex),
+            let upper = text.characters.index(lower, offsetBy: offsets.count, limitedBy: text.endIndex)
+        else { return }
+        heldInsertion = AttributedString(text[lower..<upper])
     }
 
     /// The value with its characters made `newString`, as one replacement

@@ -57,7 +57,9 @@ extension TextEditorHandler {
     /// Moves the selected text to `target`, a position in the text as it is,
     /// and selects it there, as one step to undo. Nothing happens where
     /// `target` is inside the selection or on either of its ends: the text
-    /// would land where it is.
+    /// would land where it is. In an editor over an `AttributedString` the
+    /// text keeps its own runs where it lands, as an `NSTextView`'s moved text
+    /// does, rather than taking the typing attributes there.
     ///
     /// - Returns: Whether the text moved.
     @MainActor
@@ -66,6 +68,8 @@ extension TextEditorHandler {
         let (start, end) = clamped(span, in: readLines())
         guard target < start || target > end else { return false }
         let moved = selectedText((start, end))
+        if attributedSource != nil { holdMovedText((start, end)) }
+        defer { attributedSource?.heldInsertion = nil }
         return recordingUndoStep {
             let landing = Self.position(target, afterRemoving: (start, end))
             deleteSelection((start, end))

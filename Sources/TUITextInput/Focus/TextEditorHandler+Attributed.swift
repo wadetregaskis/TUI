@@ -103,6 +103,14 @@ extension TextEditorHandler {
         attributedSource?.holdTypingAttributes(ofCharacterAt: start)
     }
 
+    /// Holds `span`'s text, with its runs, for its insertion where it is moved
+    /// to (``AttributedTextSource/heldInsertion``).
+    func holdMovedText(_ span: SelectionSpan) {
+        let layout = layout()
+        let (start, end) = (layout.characterOffset(of: span.start), layout.characterOffset(of: span.end))
+        attributedSource?.holdInsertion(ofCharacters: min(start, end)..<max(start, end))
+    }
+
     /// The channel an attributed editor exchanges its selection with the app's
     /// `AttributedTextSelection` binding by, in character offsets; `nil` with
     /// no binding.
