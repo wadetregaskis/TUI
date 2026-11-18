@@ -105,7 +105,8 @@ however far off screen, as they do in a `VStack`; SwiftUI's lazy stack lands on
 the first or last row it has made. The stack can be the scroll view's content or
 one of several views in it, under a header or over a footer: Tab passes a header
 with nothing to focus on its way in, and stops on one with a control, as it
-would anyway. To find the row it lands on the stack looks at its rows
+would anyway, then goes on from that control to the stack's first row with
+something to focus, however far down. To find the row it lands on the stack looks at its rows
 one by one from its edge, without running their `onAppear`, so a "load more" on
 the last row runs only once the row comes on screen: in the frame before the
 key when the rows on screen have something to focus, and otherwise in the

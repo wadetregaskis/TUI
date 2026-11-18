@@ -75,18 +75,59 @@ extension FocusManager {
         var edges: VerticalEdge.Set = []
         if let edge = arrivalEdge(into: path, ownStopAt: stopPath, focused: focused, isInside: isInside) {
             edges.insert(VerticalEdge.Set(edge))
-            if tabEntry.arrival?.content != path { tabEntry.arrival = (path, edge, []) }
+            noteArrival(into: path, by: edge)
         }
+        return edges.union(lastFrameTabEdges(intoSubtreeAt: path))
+    }
+
+    /// The first question of ``tabEntryEdges(intoSubtreeAt:ownStopAt:)``
+    /// alone, asked before the key: would the next Tab (`.top`) or Shift-Tab
+    /// (`.bottom`) from the focused control, outside the subtree at `path`,
+    /// come into it, played over last frame's ring? Also asked by a stack
+    /// beside the focus in a pulled column (``ScrollContentWindow/focusBeyond``),
+    /// which walks in from that edge only then: where the rows on screen have
+    /// nothing to focus, the frame after a Tab that passed over it walks in
+    /// instead (``noteArrival(into:by:)``).
+    func lastFrameTabEdges(intoSubtreeAt path: String) -> VerticalEdge.Set {
+        guard let focused = currentFocusedID, !path.isEmpty else { return [] }
+        let isInside = { (focusID: String) in Self.focusID(self.identityPath(of: focusID), addressesSubtreeAt: path) }
         guard !isInside(focused), let forward = lastFrameTabStep(.forward, from: focused),
             let backward = lastFrameTabStep(.backward, from: focused)
-        else { return edges }
+        else { return [] }
         let comesIn = { (step: (landing: Focusable?, passed: [FocusSection])) in
             step.landing.map { isInside($0.focusID) } == true
                 || step.passed.contains { Self.focusID($0.id, addressesSubtreeAt: path) }
         }
+        var edges: VerticalEdge.Set = []
         if comesIn(forward) { edges.insert(.top) }
         if comesIn(backward) { edges.insert(.bottom) }
         return edges
+    }
+
+    /// The Tab (`forward`) or Shift-Tab pressed just before this frame, and
+    /// the control it left: what a pulled column asks to see whether it
+    /// passed over the children beside that control
+    /// (`_VStackCore.entryChildren(_:frame:context:)`). `nil` in any other
+    /// frame.
+    var tabMoveIntoThisFrame: (forward: Bool, from: String)? {
+        guard let move = tabEntry.move, move.generation &+ 1 == focusRenderGeneration else { return nil }
+        return (move.forward, move.from)
+    }
+
+    /// Notes that the Tab pressed just before this frame came into the
+    /// subtree at `path` by `edge`, or passed over it: the stacks in it walk in
+    /// from that edge, and the end of the pass takes the focus on to the row
+    /// they find (``resolveEdgeArrival()``). Kept across the drawings of one
+    /// frame, so the rows noted by an earlier one stay.
+    /// An arrival already noted for a subtree holding this one, by the same
+    /// edge, is kept: a column outside drew first, and its rows count too.
+    func noteArrival(into path: String, by edge: VerticalEdge) {
+        if let arrival = tabEntry.arrival,
+            arrival.content == path || (arrival.edge == edge && Self.focusID(path, addressesSubtreeAt: arrival.content))
+        {
+            return
+        }
+        tabEntry.arrival = (path, edge, [])
     }
 
     /// The edge the Tab pressed just before this frame came into the subtree
@@ -153,11 +194,30 @@ extension FocusManager {
             let path = self.identityPath(of: focusID)
             return arrival.rows.first { Self.focusID(path, addressesSubtreeAt: $0) }
         }
-        let stops = sections.flatMap(\.focusables).filter { $0.canBeFocused && row($0.focusID) != nil }
+        let ring = sections.flatMap(\.focusables).filter(\.canBeFocused)
+        let stops = ring.filter { row($0.focusID) != nil }
         guard let target = arrival.edge == .top ? stops.first : stops.last, let targetRow = row(target.focusID),
-            !Self.focusID(identityPath(of: focused), addressesSubtreeAt: targetRow)
+            !Self.focusID(identityPath(of: focused), addressesSubtreeAt: targetRow),
+            isNearer(target.focusID, than: focused, in: ring)
         else { return }
         focus(id: target.focusID)
+    }
+
+    /// Whether the key that moved the focus to `focused` would have gone to
+    /// `target` had the ring held it then: the key goes to the nearest stop in
+    /// its direction from the control it left. A Shift-Tab from a footer's
+    /// button that a column walked in by its child above (a custom `Layout`
+    /// holding a `tail` button and a lazy stack, `PulledLayoutReachTests`)
+    /// lands on `tail`, after the stack's last row, and stays there. True when
+    /// the control the key left is not in the ring, as before this was asked.
+    private func isNearer(_ target: String, than focused: String, in ring: [Focusable]) -> Bool {
+        guard let move = tabEntry.move, let from = ring.firstIndex(where: { $0.focusID == move.from }),
+            let to = ring.firstIndex(where: { $0.focusID == focused }),
+            let candidate = ring.firstIndex(where: { $0.focusID == target })
+        else { return true }
+        let count = ring.count
+        let distance = { (index: Int) in move.forward ? (index - from + count) % count : (from - index + count) % count }
+        return distance(candidate) < distance(to)
     }
 
     /// The identity path the control `focusID` names last registered at, or

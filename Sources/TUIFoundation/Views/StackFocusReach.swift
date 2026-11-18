@@ -25,9 +25,11 @@ import TUIView
 
 @MainActor extension _VStackCore {
     /// How far past the focused row the continuation probe reaches, per
-    /// direction. A run of more than this many consecutive non-focusable
-    /// rows stops the Tab walk at the run (focus then wraps) — pathological,
-    /// and the cap keeps the per-frame probe bounded.
+    /// direction, when the focus is IN the stack. A run of more than this many
+    /// consecutive non-focusable rows stops the Tab walk at the run (focus
+    /// then wraps) — pathological, and the cap keeps the per-frame probe
+    /// bounded. The walk in from an edge, when the focus stands just outside
+    /// the stack, has no cap (``edgeFocusStop(_:count:child:width:viewportHeight:state:rows:context:)``).
     static var focusReachProbeCap: Int { 64 }
 
     /// The nearest row beyond `origin` in `direction` (+1 down, −1 up) that
@@ -129,10 +131,10 @@ import TUIView
     /// (``focusRingContinuations(focusedOrdinal:count:child:width:viewportHeight:context:)``),
     /// and the rows the focus comes into this stack at from just past its
     /// edges (``RingEdges``) — its last focusable row past its end, its first
-    /// before its top: within the probe's cap of a pulled column's neighbour
-    /// (``ScrollContentWindow/focusBeyond``), however far from outside the
-    /// scroll view (``ScrollContentWindow/focusEntry``,
-    /// ``edgeFocusStop(_:count:child:width:viewportHeight:state:rows:context:)``).
+    /// before its top, however far, from a pulled column's neighbour
+    /// (``ScrollContentWindow/focusBeyond``) or from outside the scroll view
+    /// (``ScrollContentWindow/focusEntry``) alike, by the one walk
+    /// (``edgeFocusStop(_:count:child:width:viewportHeight:state:rows:context:)``).
     func focusRingStops(
         focusedOrdinal: Int?, edges: RingEdges,
         count: Int, child: (Int) -> ChildView, width: Int, viewportHeight: Int, context: RenderContext
@@ -140,17 +142,26 @@ import TUIView
         var stops = focusRingContinuations(
             focusedOrdinal: focusedOrdinal, count: count, child: child, width: width,
             viewportHeight: viewportHeight, context: context)
-        for edge in VerticalEdge.allCases where edges.beyond.subtracting(edges.entry).contains(VerticalEdge.Set(edge)) {
-            stops += focusRingContinuations(
-                focusedOrdinal: edge == .top ? -1 : count, count: count, child: child, width: width,
-                viewportHeight: viewportHeight, context: context)
+        // A neighbour's edge walks in as far as the way in from outside the
+        // scroll view does (LAZY-EDGE, owner 2026-11-17: no cap) — Tab from a
+        // header's button went no further than 64 rows into the stack under
+        // it — and, like it, before the key only where last frame's Tab order
+        // says the key comes in: where the rows on screen have nothing to
+        // focus, the frame after a Tab that passed over the stack walks in
+        // (`entryChildren`), or a button over ten thousand lines of text
+        // walked them all on the frame it was first focused.
+        var walked = edges.entry
+        let beyond = edges.beyond.subtracting(edges.entry)
+        if !beyond.isEmpty, let focusManager = context.environment.focusManager {
+            walked.formUnion(beyond.intersection(focusManager.lastFrameTabEdges(intoSubtreeAt: context.identity.path)))
         }
-        for edge in VerticalEdge.allCases where edges.entry.contains(VerticalEdge.Set(edge)) {
-            if let stop = edgeFocusStop(
+        for edge in VerticalEdge.allCases where walked.contains(VerticalEdge.Set(edge)) {
+            guard let stop = edgeFocusStop(
                 edge, count: count, child: child, width: width, viewportHeight: viewportHeight,
                 state: edges.state, rows: edges.rows, context: context)
-            {
-                stops.append(stop)
+            else { continue }
+            stops.append(stop)
+            if edges.entry.contains(VerticalEdge.Set(edge)) {
                 // Where a Tab that came into the content by this edge goes on to.
                 context.environment.focusManager?.noteEdgeStop(
                     edge, row: child(stop).identity(under: context).path, stackPath: context.identity.path)
@@ -160,7 +171,8 @@ import TUIView
     }
 
     /// The focusable row nearest this stack's `edge`, which the focus comes
-    /// into the stack at from just past that edge, or `nil` when no row has
+    /// into the stack at from just past that edge — from outside the scroll
+    /// view or from a neighbour in a pulled column — or `nil` when no row has
     /// anything to focus.
     ///
     /// Walked in from the edge row by row, with no cap, however far the first
@@ -318,34 +330,54 @@ import TUIView
         return neighbours
     }
 
-    /// The children of a pulled column the focus comes into the scroll content
-    /// at from outside the scroll view, by the edge it comes in by
-    /// (``ScrollContentWindow/focusEntry``): from that edge inward, each child
-    /// up to and including the first that had something to focus last frame
-    /// (``FocusManager/heldFocusableLastFrame(inSubtreeAt:)``), within the
-    /// probe's cap of children. A Tab coming in passes every child before that
+    /// The children of a pulled column the focus comes into by an edge of
+    /// theirs (``ScrollContentWindow/focusEntry``), each walked inward from
+    /// it: from outside the scroll view, by the column's own edge; and in the
+    /// frame after a Tab (Shift-Tab) that left a control in one of its
+    /// children for one outside that child, by the top (bottom) of the
+    /// children after (before) it. From that edge inward, each child up to
+    /// and including the first that had something to focus last frame
+    /// (``FocusManager/heldFocusableLastFrame(inSubtreeAt:)``), however many
+    /// children that passes (LAZY-EDGE, owner 2026-11-17: no cap; the walk is
+    /// over the column's children, a finite range, and asks only last frame's
+    /// ring, never builds one). A Tab coming in passes every child before that
     /// one, so a lazy stack under a header with nothing to focus — `VStack {
     /// Text("Header"); LazyVStack { … } }` — walks in from its edge as it does
     /// when it is the content itself: handed only to the column's first child,
     /// the edge reached the header, and Tab stopped on the scroll view. A
     /// header with a control keeps the edge to itself, so the focus stays on
-    /// the control Tab landed on.
+    /// the control Tab landed on; a Tab from that control that passed over the
+    /// stack, its rows on screen with nothing to focus, walks in after the key
+    /// and the end of the pass takes the focus on to the row found
+    /// (``FocusManager/resolveEdgeArrival()``), as from outside the scroll
+    /// view. Before the key, the stack beside the focus walks in itself
+    /// (``ScrollContentWindow/focusBeyond``).
     func entryChildren(_ edges: VerticalEdge.Set, frame: PulledColumnFrame, context: RenderContext)
         -> [Int: VerticalEdge.Set]
     {
         let count = frame.rowCount
-        guard !edges.isEmpty, count > 1, let focusManager = context.environment.focusManager else {
+        guard count > 0, let focusManager = context.environment.focusManager else {
             return Self.edgeChildren(edges, count: count)
         }
-        let reach = min(count, Self.focusReachProbeCap)
         var children: [Int: VerticalEdge.Set] = [:]
-        for edge in VerticalEdge.allCases where edges.contains(VerticalEdge.Set(edge)) {
-            for step in 0..<reach {
-                let ordinal = edge == .top ? step : count - 1 - step
+        let inward = { (start: Int, edge: VerticalEdge) in
+            var ordinal = start
+            while (0..<count).contains(ordinal) {
                 children[ordinal, default: []].insert(VerticalEdge.Set(edge))
                 let path = frame.child(at: ordinal).identity(under: frame.context).path
                 if focusManager.heldFocusableLastFrame(inSubtreeAt: path) { break }
+                ordinal += edge == .top ? 1 : -1
             }
+        }
+        if edges.contains(.top) { inward(0, .top) }
+        if edges.contains(.bottom) { inward(count - 1, .bottom) }
+        if let move = focusManager.tabMoveIntoThisFrame,
+            let left = pulledChild(holding: move.from, frame: frame, context: context),
+            focusManager.currentFocusedID.flatMap({ pulledChild(holding: $0, frame: frame, context: context) }) != left
+        {
+            let edge: VerticalEdge = move.forward ? .top : .bottom
+            inward(move.forward ? left + 1 : left - 1, edge)
+            focusManager.noteArrival(into: context.identity.path, by: edge)
         }
         return children
     }

@@ -311,7 +311,9 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   screen and past however many rows with nothing to focus, scrolling it in,
   as an eager stack's does; a stack with nothing to focus is passed by. So
   it does where the stack is one of several views of the scroll content,
-  under a header or over a footer with nothing to focus. The
+  under a header or over a footer with nothing to focus, past however many
+  such views; and Tab from a control in a header above the stack, or
+  Shift-Tab from one in a footer below it, walks into it however far too. The
   rows walked to find it run no `onAppear` (LAZY-EDGE: `LazyStackEdgeEntryTests`,
   `LazyStackFocusSectionTests`).
 - **Why:** TUI rebuilds the tree each frame and keeps no view objects, so
@@ -327,7 +329,10 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   have nothing to focus, last frame's order cannot say whether the stack has
   anything, and the walk is made in the frame after a Tab that passed over it,
   which takes the focus on to the row found: made before, it walked every row
-  of a long list of text whenever the focus stood beside it.
+  of a long list of text whenever the focus stood beside it. The same goes for
+  a control beside the stack in the scroll content, and the walk past the
+  views over or under the stack: neither has a cap either (2026-11-17; the
+  first stopped 64 rows into the stack, the second 64 views short of it).
   **Recorded.**
 
 ### L8. A lazy stack lays its sections out whole

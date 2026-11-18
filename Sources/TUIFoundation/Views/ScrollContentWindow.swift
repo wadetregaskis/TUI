@@ -207,15 +207,20 @@ struct ScrollContentWindow: Hashable {
     /// the view then draws its focusable nearest that edge off its band, so
     /// that Shift-Tab from a button below a stack whose last rows are off
     /// screen goes to the stack's last row, as it does when every row is drawn,
-    /// rather than to the last row on screen. Looked for within a few dozen
-    /// rows of that edge, as the focused row's own continuations are.
+    /// rather than to the last row on screen. Looked for however far from that
+    /// edge, as for ``focusEntry`` (LAZY-EDGE, owner 2026-11-17), where last
+    /// frame's Tab order says the key comes in; where the rows on screen have
+    /// nothing to focus, the column walks the stack in by ``focusEntry`` in the
+    /// frame after a Tab that passed over it.
     var focusBeyond: VerticalEdge.Set = []
 
     /// The edges the focus is coming into the scroll content by from outside
     /// the scroll view (``FocusManager/tabEntryEdges(intoSubtreeAt:ownStopAt:)``),
-    /// set by the scroll view and handed on by a column to its first or last
-    /// child: a stack walks in from such an edge to its first focusable row,
-    /// however far (LAZY-EDGE, owner 2026-11-17).
+    /// set by the scroll view and handed on by a column to its children from
+    /// that edge inward, up to the first with something to focus
+    /// (`_VStackCore.entryChildren(_:frame:context:)`): a stack walks in from
+    /// such an edge to its first focusable row, however far (LAZY-EDGE, owner
+    /// 2026-11-17).
     var focusEntry: VerticalEdge.Set = []
 
     /// The scroll content's lines above the stack that consumes this window,

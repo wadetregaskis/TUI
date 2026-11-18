@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Tab from a control above a `LazyVStack` in the same `ScrollView` reaches the stack's first row however far
+down.** With a button over the stack — `ScrollView { VStack { Button(…); LazyVStack { … } } }` — Tab from the button
+looked no further than 64 rows into the stack for a row with something to focus, and past more rows with nothing to
+focus it left for the scroll view; Shift-Tab from a button under the stack likewise. And Tab from outside the scroll
+view passed no more than 64 views with nothing to focus over the stack. Both now go however far, as in a `VStack`.
+
 **Tab finds a `LazyVStack`'s first row under a header in its `ScrollView` too.** The way into a lazy stack from
 outside its scroll view (below) worked only where the stack was the scroll view's whole content. Under a header with
 nothing to focus — `ScrollView { VStack { Text("Header"); LazyVStack { … } } }` — Tab stopped on the scroll view when
