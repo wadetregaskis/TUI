@@ -58,9 +58,10 @@ extension FrameBuffer {
     /// window's content area with no tooltip in its status bar.
     ///
     /// `rows` is what this site's compositing made of each row last frame: the
-    /// page's resolution and each modal's veil answer an unchanged row from it,
-    /// as the screen root's resolution does (``OverlayRowReuse``,
-    /// `Opacity as composition.md` §116). `nil` rebuilds every row.
+    /// page's resolution, each modal's veil and each layer's splice answer an
+    /// unchanged row from it, as the screen root's resolution does
+    /// (``OverlayRowReuse``, `Opacity as composition.md` §116, §117). `nil`
+    /// rebuilds every row.
     package func compositingOverlays(
         maxWidth: Int, maxHeight: Int, palette: any Palette, images: TerminalImageStore?,
         punching punched: inout [AnimatedCellRun], centringHeight: Int? = nil, reusing rows: OverlayRowReuse? = nil
@@ -72,8 +73,10 @@ extension FrameBuffer {
         // cells would be faded at the root instead of the page's.
         var result = resolvingOpacity(
             surface: palette.background, palette: palette, images: images, reusing: rows?.resolution)
-        // Which of the frame's veils comes next, for the rows it keeps.
+        // Which of the frame's veils comes next, and which of its layers' splices,
+        // for the rows each keeps.
         var veils = 0
+        var splices = 0
         // ONE queue, re-sorted every time a layer is drawn. A layer nested in
         // another layer's content — an alert presented from inside a sheet —
         // is lifted into `overlays` only when its host composites, and a pass
@@ -199,9 +202,16 @@ extension FrameBuffer {
                 // to step is punched here as a `ZStack` punches one, and is owed a
                 // render at its steps (§109).
                 punched += result.runsShowingThrough(content, at: (x: placed.x, y: placed.y))
+                //
+                // A surface's splice keeps the pieces it cut each row of what is below
+                // into, while the row and the width of the layer's line on it are what
+                // they were (§117): under a sheet the veiled page's rows are the veil's
+                // kept ones, and cutting each of them round the sheet again, whatever
+                // the sheet drew, was 10% of a frame.
                 result = result.compositedResolvingOpacity(
                     with: content, at: (x: placed.x, y: placed.y), palette: palette,
-                    overlayIsPainted: layer.isOpaque, images: images)
+                    overlayIsPainted: layer.isOpaque, images: images, reusing: rows?.splice(splices))
+                splices += 1
             }
             // What this layer's content carried, lifted by the composite: into
             // the queue, not the next pass.

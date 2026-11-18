@@ -81,6 +81,9 @@ over a board that moves once a second spent over a third of each frame there. Ea
 again while its line and the claims over it are what they were; what is written to the terminal is unchanged. The
 same now holds under a sheet or an alert: the page below it is veiled, and its fades blended, only where a row
 changed, where every row of it was veiled again on every frame the dialog was up (about a tenth of such a frame).
+And the dialog is drawn into the rows below it without taking each of them apart again: where it lands on a row is
+worked out once and kept while the row and the width of the dialog's line on it are what they were, whatever the
+dialog draws there, which was another tenth of a frame under a sheet.
 
 **Arrows Follow Layout goes through a scroll view's content before leaving it.** With `TUI_ARROW_FOCUS=geometric`,
 Up from the top row on screen in a `ScrollView` went to a button above the scroll view instead of the row just above

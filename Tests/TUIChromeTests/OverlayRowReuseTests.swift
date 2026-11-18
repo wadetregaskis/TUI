@@ -138,5 +138,95 @@ struct OverlayRowReuseTests {
         #expect(rows.veil(1) !== first)
         #expect(rows.veil(0) === first)
         #expect(rows.resolution !== rows.veil(0))
+        let firstSplice = rows.splice(0)
+        #expect(rows.splice(1) !== firstSplice)
+        #expect(rows.splice(0) === firstSplice)
+        #expect(rows.splice(OverlayRowReuse.keptSplices) == nil)
+    }
+
+    /// A layer that does not dim the page (a popover) at `x`, `y`, `rows` tall.
+    private func popover(x: Int, y: Int = 1, text: String = "pop", rows: Int = 2) -> OverlayLayer {
+        OverlayLayer(
+            offsetX: x, offsetY: y, content: FrameBuffer(lines: [text] + Array(repeating: "body", count: rows - 1)),
+            level: .popover)
+    }
+
+    /// Every input of a splice's row, each changed alone: the column (the popover
+    /// moved across, its rows and lines the same), the width the rows are padded
+    /// to (a page row grew, the popover's rows untouched), the layer's line (its
+    /// text changed, as wide and wider: the first keeps the cut, the second must
+    /// not), the page's line under it, and the layer reaching a row it did not. Each frame must be the one a fresh compositing draws: take any of
+    /// them out of the splice's key and a kept row is served stale.
+    @Test("A layer's splice through the reuse draws what a fresh one draws, as each of its inputs changes")
+    func reusedSplicesFollowEveryInput() {
+        let palette = makeRenderContext(width: width, height: height).environment.palette
+        let rows = OverlayRowReuse()
+        let frames: [FrameBuffer] = [
+            page(layers: [popover(x: 1)]),
+            page(layers: [popover(x: 1)]),
+            // Across alone: the same rows, the same lines, another column.
+            page(layers: [popover(x: 3)]),
+            // A row of the page grows past the others: every row is padded wider.
+            page(row4: "row four, and longer", layers: [popover(x: 3)]),
+            page(row4: "row four, and longer", layers: [popover(x: 3)]),
+            // The layer's text, as wide and then wider, and the page's line under it.
+            page(row4: "row four, and longer", layers: [popover(x: 3, text: "poP")]),
+            page(row4: "row four, and longer", layers: [popover(x: 3, text: "popover")]),
+            page(row4: "row four, and longer", layers: [popover(x: 3, text: "poP")]),
+            page(label: "fadeD", row4: "row four, and longer", layers: [popover(x: 3, y: 0, text: "poP")]),
+            // Taller: it reaches a row it did not.
+            page(label: "fadeD", layers: [popover(x: 3, y: 0, text: "poP", rows: 4)]),
+            // Two layers, then the second alone in the first's place.
+            page(layers: [popover(x: 1), sheet()]),
+            page(layers: [sheet()]),
+            page(layers: [sheet(x: 1)]),
+        ]
+        for (index, buffer) in frames.enumerated() {
+            #expect(composited(buffer, palette, rows) == composited(buffer, palette, nil), "frame \(index)")
+        }
+    }
+
+    @Test("A splice cuts only the rows whose line or layer width changed, never a picture's, and keeps no layer line")
+    func spliceCutsOnlyChangedRows() {
+        let reuse = OpacityRowReuse()
+        let inputs = OpacityRowReuse.Inputs(
+            surface: .rgb(0, 0, 0), defaultForeground: .rgb(255, 255, 255), statingTheSurface: true,
+            fillingStatedTerminalField: false, splice: OpacityRowReuse.Splice(column: 1, width: 8))
+        // The pieces name what they were cut from, so a row joined from stale ones
+        // shows it.
+        func cut(_ line: String, _ width: Int?) -> OverlayRowPieces {
+            OverlayRowPieces(head: line + "<", tail: width.map { ">\($0)" })
+        }
+        func cuts(_ lines: [String], layer: [String?]) -> [String] {
+            var asked: [String] = []
+            var composed = lines
+            reuse.splicing(
+                &composed, layer: { layer[$0] }, under: inputs,
+                with: { line, width in
+                    asked.append(line)
+                    return cut(line, width)
+                })
+            let fresh = lines.indices.map {
+                cut(lines[$0], layer[$0]?.strippedLength).joined(around: layer[$0] ?? "")
+            }
+            #expect(composed == fresh)
+            return asked
+        }
+        #expect(cuts(["a", "b", "c"], layer: [nil, "x", nil]) == ["a", "b", "c"])
+        #expect(cuts(["a", "b", "c"], layer: [nil, "x", nil]).isEmpty)
+        // The layer draws something else as wide: every cut is kept, the new line
+        // joined into it.
+        #expect(cuts(["a", "b", "c"], layer: [nil, "y", nil]).isEmpty)
+        // Wider on one row, and on a row it was not on.
+        #expect(cuts(["a", "b", "c"], layer: [nil, "yy", "y"]) == ["b", "c"])
+        // The row's own line.
+        #expect(cuts(["a", "B", "c"], layer: [nil, "yy", "y"]) == ["B"])
+        // A row drawing a picture is cut every time; one under a picture of the
+        // layer's is not, as nothing of the layer's line is kept.
+        let picture = String(Character(Unicode.Scalar.terminalImagePlaceholder)) + "p"
+        #expect(cuts(["a", picture, "c"], layer: [nil, "yy", "y"]) == [picture])
+        #expect(cuts(["a", picture, "c"], layer: [nil, "yy", "y"]) == [picture])
+        #expect(cuts(["a", picture, "c"], layer: [nil, "yy", "y" + picture]) == [picture, "c"])
+        #expect(cuts(["a", picture, "c"], layer: [nil, "yy", "y" + picture]) == [picture])
     }
 }

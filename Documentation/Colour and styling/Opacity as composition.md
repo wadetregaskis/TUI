@@ -7834,3 +7834,59 @@ Nothing about a layer itself is kept. Its place, its content and its own fades
 are what the veil does not read (the page is veiled before the layer is drawn
 over it), so a sheet that moves, grows, or animates in leaves every kept row of
 the page good; what changes is drawn over them as before.
+
+## 117. A layer's splice keeps the cuts it made (2026-11-18)
+
+With the page's resolution and its veil kept (§116), what was left of the
+overlay compositing under a sheet was the layer's own splice
+(`FrameBuffer.compositedResolvingOpacity`): 12% of a frame of Stress's
+`case:sheet-present` and 3% of `case:alert-list`. None of it was the layer's
+resolution, which a painted sheet has next to nothing left for; it was the
+composite. Every row of the result is the base's line padded to the result's
+width, and on each row the layer reaches, that line is cut round the layer's
+columns (`String.ansiOverlaySplit`, one scan of every escape in it) and the
+layer's line put between the pieces. Under a modal the base is the veiled page,
+whose every cell is restated, so the cut was the dearest scan of the frame, made
+again on every frame for rows that had not changed.
+
+A painted layer (a surface, `OverlayLayer.isOpaque`, painted onto the page's
+colour before it is composited) states every field it needs, so it is inserted
+as it is: the row is the base's prefix and a reset, the layer's line, and a
+reset, the styling restored for the suffix and the suffix (`OverlayRowPieces`).
+The pieces either side read the base's line, the column, the width every row is
+padded to and how wide the layer's line is, and nothing of the line itself. So
+each layer's splice keeps the pieces it cut each row into, the way the root's
+resolution keeps its rows: `OpacityRowReuse.splicing` keys each row on its line
+and the width of the layer's line on it, and its inputs on the column, the
+padded width, the colour depth, the terminal's reported ink (what a layer cell
+over a reversal of it is drawn on, §107) and its width traits; the layer's line
+is joined into the kept pieces afresh on every frame. A sheet whose list
+scrolls, over a page that does not move, keeps every row's cut: it is the
+page's rows that are the same, and they are the veil's kept ones (§116).
+`OverlayRowReuse` holds one such reuse for each layer of a frame, by the layer's
+order in it, for the first eight; a frame can draw hundreds of small layers (a
+panel's shadow, content past a region), and each would keep a screen of rows.
+Order is enough to tell them apart, since a cut kept for one layer is as good
+for another at the same column and widths.
+
+What is kept is the cut and nothing else. The layer's own resolution is still
+done every frame, since it reads what is behind it; so are the lifted layers,
+the punched runs and claims, and everything else the composite carries up. A
+layer that is not painted is spliced as before, since the field under each of
+its cells is painted into its line from the cut, and so is one at a negative
+column, whose line is cut first. A row of the base drawing a picture is never
+kept, as everywhere else; nothing of the layer's line is kept at all, so a
+picture in it is drawn afresh as it always was.
+
+A sheet that moves across changes the column, and every row is forgotten; one
+that moves down or grows reaches rows it did not and leaves others, and one that
+narrows changes the width of its line on the rows it is on: those rows are cut
+again, and the rest keep their cuts.
+
+Keying a kept row on the layer's line as well, the first form this took, kept
+almost nothing in `sheet-present`: its script scrolls the sheet's list, so the
+sheet's lines change on most frames over a page that does not, and the splice
+stayed at 9.6% of a frame. Keyed on the width, it is 1.5% (the overlay
+compositing 7.3% of a frame, from 17.7%), and a frame of `sheet-present` costs
+13% less CPU, `editor-sheet-typing` 23%, `sheet-search` and `sheet-item-switch`
+11–12%, an alert over a list or a table 3%; the bytes written are unchanged.

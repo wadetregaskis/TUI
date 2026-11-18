@@ -797,8 +797,21 @@ extension FrameBuffer {
     /// cell reversed on the terminal's own ink is drawn on. Asked only under such a
     /// cell. Without an answer such a cell is drawn reversed itself
     /// (``String/paintedOver(fieldsReversing:)``), the one other spelling.
+    ///
+    /// `composingRows`, where given, puts a painted overlay's rows together itself:
+    /// it is handed the base's line on every row of the result ("" past the base's
+    /// end), the overlay's line on a row (`nil` where it has none), and the function
+    /// that cuts a row's base line into the pieces either side of an overlay line so
+    /// wide (``OverlayRowPieces``), and must leave each row as those pieces joined
+    /// round the overlay's line. It may join pieces it kept from an earlier
+    /// composite of the same base line, column, width and line width
+    /// (`OpacityRowReuse`, `Opacity as composition.md` §117). Not asked for an
+    /// overlay that is not painted, or one at a negative column.
     package func composited(
-        with overlay: Self, at position: (x: Int, y: Int), overlayIsPainted: Bool, terminalForeground: () -> SGRState.Colour? = { nil }) -> Self {
+        with overlay: Self, at position: (x: Int, y: Int), overlayIsPainted: Bool,
+        terminalForeground: () -> SGRState.Colour? = { nil },
+        composingRows: ((inout [String], (Int) -> String?, (String, Int?) -> OverlayRowPieces) -> Void)? = nil
+    ) -> Self {
         guard !overlay.isEmpty else {
             // Nothing visible to draw, but the overlay may still carry its
             // own nested layers / hit-test regions that need to be
@@ -881,8 +894,12 @@ extension FrameBuffer {
         }
 
         var result = (0..<resultHeight).map { $0 < lines.count ? lines[$0] : "" }
-        for row in result.indices {
-            result[row] = composedRow(row, result[row])
+        if insertsInPieces, let composingRows {
+            composingRows(&result, overlayLine(onRow:), pieces(_:overlayWidth:))
+        } else {
+            for row in result.indices {
+                result[row] = composedRow(row, result[row])
+            }
         }
 
         var composited = Self(lines: result)

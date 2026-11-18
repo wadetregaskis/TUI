@@ -708,21 +708,45 @@ extension FrameBuffer {
     ///     a floating surface, painted onto the page's colour — so it is
     ///     composited without asking what it lands on
     ///     (``FrameBuffer/composited(with:at:overlayIsPainted:)``).
+    ///   - rows: The pieces this site's splice cut each row into last time, to
+    ///     splice a painted overlay's line into a row whose line, and whose overlay
+    ///     line's width, are what they were without cutting the row again
+    ///     (``OpacityRowReuse/splicing(_:layer:under:with:)``, `Opacity as
+    ///     composition.md` §117). The overlay's own resolution is done every time: it
+    ///     reads what is behind it. An overlay that is not painted, and `nil`, cut
+    ///     every row.
     package func compositedResolvingOpacity(
         with overlay: Self,
         at position: (x: Int, y: Int),
         palette: any Palette,
         surface: Color? = nil,
         overlayIsPainted: Bool = false,
-        images: TerminalImageStore? = nil
+        images: TerminalImageStore? = nil,
+        reusing rows: OpacityRowReuse? = nil
     ) -> Self {
-        composited(
-            with: overlay.resolvingOpacity(
-                over: self, at: position, surface: surface ?? palette.background, palette: palette,
-                statingTheSurface: true, fillingStatedTerminalField: !overlayIsPainted, buildingRuns: true,
-                images: images),
-            at: position, overlayIsPainted: overlayIsPainted,
-            terminalForeground: { Self.reportedTerminalForegroundField })
+        let surface = surface ?? palette.background
+        let resolved = overlay.resolvingOpacity(
+            over: self, at: position, surface: surface, palette: palette,
+            statingTheSurface: true, fillingStatedTerminalField: !overlayIsPainted, buildingRuns: true,
+            images: images)
+        let terminalForeground = { Self.reportedTerminalForegroundField }
+        guard let rows, overlayIsPainted else {
+            return composited(
+                with: resolved, at: position, overlayIsPainted: overlayIsPainted,
+                terminalForeground: terminalForeground)
+        }
+        // The pieces read the terminal's reported ink (`terminalForeground`) at the
+        // depth in force, both of which the inputs carry; the surface and the ink
+        // below say nothing to them, and are there because every use keys on them.
+        let inputs = OpacityRowReuse.Inputs(
+            surface: surface.resolve(with: palette), defaultForeground: palette.foreground.resolve(with: palette),
+            statingTheSurface: true, fillingStatedTerminalField: false,
+            splice: OpacityRowReuse.Splice(column: position.x, width: Swift.max(width, position.x + resolved.width)))
+        return composited(
+            with: resolved, at: position, overlayIsPainted: true, terminalForeground: terminalForeground
+        ) { lines, layer, pieces in
+            rows.splicing(&lines, layer: layer, under: inputs, with: pieces)
+        }
     }
 
     /// The terminal's own foreground as an RGB field, where the terminal has reported
