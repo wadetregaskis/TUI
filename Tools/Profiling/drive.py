@@ -371,6 +371,27 @@ def leftover_ktraces():
         return set()
 
 
+def trace_problem(trace, returncode):
+    """Why `trace` is not a recorded trace, or `None` when it is.
+
+    A `.trace` is a bundle (a directory); one with no bytes in it holds no
+    recording. xctrace's exit status is reported too, though its 0 alone
+    proves nothing.
+    """
+    if not os.path.exists(trace):
+        return f"the bundle does not exist (xctrace exited {returncode})"
+    if os.path.isdir(trace):
+        size = sum(os.path.getsize(os.path.join(root, name))
+                   for root, _, names in os.walk(trace) for name in names)
+    else:
+        size = os.path.getsize(trace)
+    if size == 0:
+        return f"the bundle is empty (xctrace exited {returncode})"
+    if returncode != 0:
+        return f"xctrace exited {returncode}"
+    return None
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -522,10 +543,19 @@ def main():
         if drain(0.05) < 0:
             break
 
+    trace_failure = None
     if xctrace:
-        out, _ = xctrace.communicate(timeout=180)
-        if not args.quiet:
-            print("\n".join("[xctrace] " + l for l in out.strip().splitlines()[-6:]))
+        try:
+            out, _ = xctrace.communicate(timeout=180)
+        except subprocess.TimeoutExpired:
+            xctrace.kill()
+            out, _ = xctrace.communicate()
+            trace_failure = "xctrace did not finish within 180 s of its time limit and was killed"
+        tail = "\n".join("[xctrace] " + l for l in (out or "").strip().splitlines()[-6:])
+        if trace_failure is None:
+            trace_failure = trace_problem(args.trace, xctrace.returncode)
+        if not args.quiet or trace_failure:
+            print(tail, file=sys.stderr if trace_failure else sys.stdout)
         # xctrace leaves its raw recording (`instruments*.ktrace`, often hundreds of MB) in the
         # user's temp directory once the .trace is written; on 2026-11-15 a day's recordings held
         # ~3.2 GB of a disk that filled. Remove the ones this recording made.
@@ -587,6 +617,19 @@ def main():
         dump.close()
         write_steps(steps_path(args.dump), args.scenario, args.rows, args.cols,
                     args.loops, markers, total)
+
+    if trace_failure:
+        # Checked after the app is gone, so a failed recording leaves no child
+        # behind. xctrace exits 0 or not with nothing written (no Xcode under
+        # `xcrun`, an attach the system denied, a template it does not know),
+        # and "trace written" said so regardless.
+        hint = ""
+        if not os.environ.get("DEVELOPER_DIR"):
+            hint = ("; is DEVELOPER_DIR an Xcode? `xcode-select -p` may name the Command Line "
+                    "Tools, which have no xctrace (record.sh picks an Xcode itself)")
+        print(f"[drive] ERROR: no trace recorded at {args.trace}: {trace_failure}{hint}",
+              file=sys.stderr)
+        raise SystemExit(3)
 
     if not quit_on_q:
         # An app still running after Escape, Escape, `q` is not on the menu, so

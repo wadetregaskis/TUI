@@ -46,7 +46,11 @@ malloc/CPU counters for regression guards (benchmarks are opt-in behind the
 
 ## Prerequisites
 
-- macOS with Xcode / Command Line Tools (`xcrun xctrace` — Instruments).
+- macOS with Xcode (`xcrun xctrace` — Instruments). The Command Line Tools
+  have no `xctrace`: where `xcode-select -p` names them, `xcrun xctrace`
+  fails ("unable to find utility"), so point `DEVELOPER_DIR` at an Xcode
+  (`export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`) for
+  the hand-run commands below. `record.sh` does this itself.
 - `python3` (standard library only).
 - Run from the repository root.
 
@@ -420,6 +424,17 @@ under the Time Profiler, then analyzes the trace.
 `record.sh [scenario] [seconds] [rows] [cols]`.
 `PROFILE_PRODUCT` builds and drives another product in Example's place.
 
+It builds with Xcode's toolchain, not whatever `swift` is first on PATH (often
+swiftly's, which may not build main, and a build with one compiler after
+another's flips the whole `.build` between them). The Xcode is the caller's
+`DEVELOPER_DIR` if set; else `xcode-select -p` if that is an Xcode (not the
+Command Line Tools); else `/Applications/Xcode.app`; else the first
+`/Applications/Xcode*.app`. `record.sh` exports that `DEVELOPER_DIR`, so the
+`xctrace` calls in `drive.py` and `analyze_timeprofile.py` use the same
+Instruments, and builds with its `xcrun --find swift`. `PROFILE_SWIFT` names
+another `swift` to build with:
+`PROFILE_SWIFT=$HOME/.swiftly/bin/swift Tools/Profiling/record.sh still 5`.
+
 With `PROFILE_PRODUCT=Stress`, `record.sh` turns Stress's autopilot on
 (`TUI_STRESS_AUTOPILOT=1`) unless the caller set it. Without it, a `still`
 recording of a Stress scenario was all but empty: Stress's interactive shell
@@ -454,6 +469,12 @@ python3 Tools/Profiling/drive.py \
     "$(swift build -c release --product Example --show-bin-path)/Example" \
     --scenario mouse
 ```
+
+With `--trace`, it fails (exit 3, `[drive] ERROR: no trace recorded at …`,
+xctrace's last lines on stderr) when the `.trace` bundle is missing or empty
+or xctrace exited non-zero: xctrace can write nothing (no Xcode under `xcrun`,
+an attach the system denied, an unknown template) and the run would otherwise
+look like any other.
 
 Keyboard input is raw terminal bytes (arrows = `ESC[A/B/C/D`, page jumps
 = the `ContentView` shortcut chars). Mouse input is SGR 1006 reports

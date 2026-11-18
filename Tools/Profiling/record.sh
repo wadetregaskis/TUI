@@ -26,8 +26,11 @@
 #   PROFILE_PRODUCT=Stress TUI_STRESS_AUTOPILOT=0 TUI_STRESS_SCENARIO=app-shapes \
 #       TUI_STRESS_VARIANT=game-loop Tools/Profiling/record.sh still 12 24 80
 #
-# Requires: a macOS toolchain with `xcrun xctrace` (Instruments) and
-# python3. Run from the repository root.
+# PROFILE_SWIFT names the `swift` to build with; by default it is Xcode's
+# (see below), not PATH's. DEVELOPER_DIR, if set, names the Xcode.
+#
+# Requires: Xcode (for `xcrun xctrace`, Instruments) and python3. Run from
+# the repository root.
 set -euo pipefail
 
 SCENARIO="${1:-tour}"
@@ -53,9 +56,48 @@ if [ "$PRODUCT" = "Stress" ]; then
     export TUI_STRESS_AUTOPILOT="${TUI_STRESS_AUTOPILOT:-1}"
 fi
 
-echo "==> Building $PRODUCT (release, with debug symbols)…"
-swift build -c release --product "$PRODUCT" -Xswiftc -g
-BIN="$(swift build -c release --product "$PRODUCT" --show-bin-path)/$PRODUCT"
+# Which Xcode, and with it which `swift` and which `xctrace`. NOT whatever is
+# first on PATH: there that is often swiftly's toolchain, which may not build
+# main at all, and a build with one compiler after another's flips the whole
+# .build between them. Nor `xcode-select -p` taken as it is: it may name the
+# Command Line Tools, which have no `xctrace` ("unable to find utility").
+# A caller's DEVELOPER_DIR wins; else the selected developer directory if it
+# is an Xcode; else /Applications/Xcode.app; else any /Applications/Xcode*.app.
+# Exported, so drive.py's `xcrun xctrace record` and analyze_timeprofile.py's
+# `xcrun xctrace export` find the same Instruments.
+if [ "$(uname -s)" = "Darwin" ] && [ -z "${DEVELOPER_DIR:-}" ]; then
+    selected="$(xcode-select -p 2>/dev/null || true)"
+    case "$selected" in
+        *.app/Contents/Developer) DEVELOPER_DIR="$selected" ;;
+        *)
+            for app in /Applications/Xcode.app /Applications/Xcode*.app; do
+                if [ -d "$app/Contents/Developer" ]; then
+                    DEVELOPER_DIR="$app/Contents/Developer"
+                    break
+                fi
+            done
+            ;;
+    esac
+    if [ -n "${DEVELOPER_DIR:-}" ]; then
+        export DEVELOPER_DIR
+    else
+        echo "warning: no Xcode found; xctrace needs one (set DEVELOPER_DIR)" >&2
+    fi
+fi
+
+# PROFILE_SWIFT names the `swift` to build with, overriding the choice below:
+# the developer directory's (`xcrun --find swift`) on macOS, PATH's elsewhere.
+if [ -n "${PROFILE_SWIFT:-}" ]; then
+    SWIFT="$PROFILE_SWIFT"
+elif [ "$(uname -s)" = "Darwin" ] && SWIFT="$(xcrun --find swift 2>/dev/null)"; then
+    :
+else
+    SWIFT="swift"
+fi
+
+echo "==> Building $PRODUCT (release, with debug symbols) with $SWIFT…"
+"$SWIFT" build -c release --product "$PRODUCT" -Xswiftc -g
+BIN="$("$SWIFT" build -c release --product "$PRODUCT" --show-bin-path)/$PRODUCT"
 [ -x "$BIN" ] || { echo "build did not produce $BIN" >&2; exit 1; }
 
 OUTDIR="$REPO_ROOT/profiling-traces"

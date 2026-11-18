@@ -279,6 +279,49 @@ while b"\\x11" not in got:
 """
 
 
+def _write_xcrun_stub(directory, writes_trace):
+    """An `xcrun` that exits 0 at once, with a token bundle at its `--output`
+    or with nothing, as a real one does when it finds no `xctrace`."""
+    body = ('while [ $# -gt 0 ]; do\n'
+            '  if [ "$1" = --output ]; then mkdir -p "$2" && echo x > "$2/token"; fi\n'
+            '  shift\n'
+            'done\n') if writes_trace else ''
+    xcrun = os.path.join(directory, "xcrun")
+    with open(xcrun, "w") as handle:
+        handle.write(f"#!/bin/sh\n{body}exit 0\n")
+    os.chmod(xcrun, os.stat(xcrun).st_mode | stat.S_IXUSR)
+
+
+class TestNoTraceIsAnError(unittest.TestCase):
+    """`--trace` with nothing recorded fails instead of saying it was written.
+
+    xctrace can exit 0 and write nothing; the driver printed "trace written"
+    regardless, and record.sh went on to analyze a trace that did not exist.
+    """
+
+    def test_a_missing_trace_fails_the_run(self):
+        scratch = tempfile.mkdtemp(prefix="test-drive-notrace-")
+        self.addCleanup(shutil.rmtree, scratch, ignore_errors=True)
+        stub = os.path.join(scratch, "Example")
+        with open(stub, "w") as handle:
+            handle.write(f"#!{sys.executable}\n{_STUB}")
+        os.chmod(stub, os.stat(stub).st_mode | stat.S_IXUSR)
+        bin_dir = os.path.join(scratch, "bin")
+        os.makedirs(bin_dir)
+        _write_xcrun_stub(bin_dir, writes_trace=False)
+        trace = os.path.join(scratch, "missing.trace")
+        env = dict(os.environ, TUI_CONFIG_DIR=scratch,
+                   DRIVE_TEST_REPORT=os.path.join(scratch, "report.json"),
+                   PATH=bin_dir + os.pathsep + os.environ.get("PATH", ""))
+        run = subprocess.run(
+            [sys.executable, _DRIVE, stub, "--scenario", "list", "--settle", "0.1",
+             "--trace", trace],
+            env=env, capture_output=True, text=True, timeout=60)
+        self.assertEqual(run.returncode, 3, run.stderr)
+        self.assertIn(f"no trace recorded at {trace}", run.stderr)
+        self.assertNotIn("trace written", run.stdout)
+
+
 class TestAnswerFenceWhileTracing(unittest.TestCase):
     """`--answer-fence` answers through `--trace`'s warm-up too.
 
@@ -286,8 +329,9 @@ class TestAnswerFenceWhileTracing(unittest.TestCase):
     before it drives. It slept through them, after a settle that ends at the
     app's first burst, so a status request sent in that window, by the
     exchanges after the first, went unread until the deadline had passed.
-    `xcrun` is a stand-in here that exits at once: what is under test is the
-    driver's reading, not Instruments.
+    `xcrun` is a stand-in here that writes a token bundle at its `--output`
+    and exits at once: what is under test is the driver's reading, not
+    Instruments.
     """
 
     def setUp(self):
@@ -299,10 +343,7 @@ class TestAnswerFenceWhileTracing(unittest.TestCase):
         os.chmod(self.stub, os.stat(self.stub).st_mode | stat.S_IXUSR)
         self.bin = os.path.join(self.scratch, "bin")
         os.makedirs(self.bin)
-        xcrun = os.path.join(self.bin, "xcrun")
-        with open(xcrun, "w") as handle:
-            handle.write("#!/bin/sh\nexit 0\n")
-        os.chmod(xcrun, os.stat(xcrun).st_mode | stat.S_IXUSR)
+        _write_xcrun_stub(self.bin, writes_trace=True)
 
     def test_a_request_during_the_warm_up_is_answered(self):
         report = os.path.join(self.scratch, "fence.json")
