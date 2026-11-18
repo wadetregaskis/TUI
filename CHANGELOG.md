@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A frame that changes nothing under a fade no longer blends the fade again.** The rows under a translucent layer
+that is blended at the screen itself (a `.opacity`, a translucent colour, a `Color.clear` under a `TimelineView`)
+were taken apart and blended on every frame the app wrote, changed or not. A game's loop that asks for a frame sixty times a second
+over a board that moves once a second spent over a third of each frame there. Each row's result is now kept and used
+again while its line and the claims over it are what they were; what is written to the terminal is unchanged.
+
 **Arrows Follow Layout goes through a scroll view's content before leaving it.** With `TUI_ARROW_FOCUS=geometric`,
 Up from the top row on screen in a `ScrollView` went to a button above the scroll view instead of the row just above
 the viewport, in a `VStack` or a `LazyVStack` alike, and Down at the bottom or Left and Right at the sides did the

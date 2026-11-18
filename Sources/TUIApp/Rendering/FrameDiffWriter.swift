@@ -139,6 +139,11 @@ final class FrameDiffWriter {
 
     private var contentReuse = LineReuseCache()
 
+    /// What the screen root's opacity resolution made of each row, for the next
+    /// frame's to answer an unchanged row from (``OpacityRowReuse``). Here because
+    /// it is this screen's, as the built lines are, and goes when they go.
+    let opacityRows = OpacityRowReuse()
+
     /// The previous frame taken apart into cells, so a row is
     /// decomposed ONCE: the row this frame diffs as "new" is the row the next
     /// frame diffs as "previous", and doing both sides every frame doubles the
@@ -834,6 +839,7 @@ extension FrameDiffWriter {
     func invalidate() {
         previousContentLines = []
         contentReuse = LineReuseCache()
+        opacityRows.removeAll()
         contentCells = CellCache()
         // The cached frames are gone, so the next pass writes whole lines.
         // A built row states its BACKGROUND, not a reset, so the belief is

@@ -84,10 +84,17 @@ extension FrameBuffer {
     /// ``resolvingOpacity(over:at:surface:palette:)`` at the screen root, knowing
     /// the pictures the app has put in the terminal: a faded picture draws a copy
     /// of itself mixed toward what is behind it (`OpacityBlend+Pictures.swift`).
-    package func resolvingOpacity(surface: Color, palette: any Palette, images: TerminalImageStore?) -> Self {
+    ///
+    /// - Parameter rows: What this screen's previous resolutions made of each row,
+    ///   to answer a row that has not changed from without rebuilding it, and to keep
+    ///   this one's for the next frame (``OpacityRowReuse``). `nil` rebuilds every
+    ///   row, as every other resolution does.
+    package func resolvingOpacity(
+        surface: Color, palette: any Palette, images: TerminalImageStore?, reusing rows: OpacityRowReuse? = nil
+    ) -> Self {
         resolvingOpacity(
             over: Self(), at: (x: 0, y: 0), surface: surface, palette: palette, statingTheSurface: true,
-            fillingStatedTerminalField: false, buildingRuns: true, images: images)
+            fillingStatedTerminalField: false, buildingRuns: true, images: images, reusing: rows)
     }
 
     /// ``resolvingOpacity(over:at:surface:palette:)``, saying whether a covered cell the
@@ -116,7 +123,7 @@ extension FrameBuffer {
     func resolvingOpacity(
         over destination: Self, at position: (x: Int, y: Int), surface: Color, palette: any Palette,
         statingTheSurface: Bool, fillingStatedTerminalField: Bool, buildingRuns: Bool,
-        images: TerminalImageStore? = nil
+        images: TerminalImageStore? = nil, reusing kept: OpacityRowReuse? = nil
     ) -> Self {
         // A run may be the only thing on the buffer with anything to say: a blinking
         // caret over a faded well claims nothing statically, because no one rectangle
@@ -279,9 +286,23 @@ extension FrameBuffer {
         }
 
         var rewritten = lines
-        for row in rewritten.indices {
-            if let rebuilt = rebuild(row, rewritten[row], substituting: { $0.cellAlpha }) {
-                rewritten[row] = rebuilt
+        // Over nothing, a row's answer is its line's and its claims' alone, given
+        // what the blend reads besides (``OpacityRowReuse``): one the screen's last
+        // resolution made of the same line under the same claims is this one's.
+        if let kept, destination.isEmpty {
+            kept.rebuild(
+                &rewritten, claims: translucent,
+                under: OpacityRowReuse.Inputs(
+                    surface: resolvedSurface, defaultForeground: resolvedForeground,
+                    statingTheSurface: statingTheSurface, fillingStatedTerminalField: fillingStatedTerminalField)
+            ) { row, line, covering in
+                rebuildCovered(row, line, covering, substituting: { $0.cellAlpha })
+            }
+        } else {
+            for row in rewritten.indices {
+                if let rebuilt = rebuild(row, rewritten[row], substituting: { $0.cellAlpha }) {
+                    rewritten[row] = rebuilt
+                }
             }
         }
 

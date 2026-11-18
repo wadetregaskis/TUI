@@ -1364,7 +1364,8 @@ extension RenderLoop {
         // left for this one.
         let palette = environment.palette
         let buffer = buffer.resolvingOpacity(
-            surface: palette.background, palette: palette, images: tuiContext.terminalImageStore)
+            surface: palette.background, palette: palette, images: tuiContext.terminalImageStore,
+            reusing: diffWriter.opacityRows)
 
         let outputLines = diffWriter.buildReusingOutputLines(
             buffer: buffer,

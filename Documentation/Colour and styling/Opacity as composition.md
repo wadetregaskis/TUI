@@ -7783,3 +7783,29 @@ it the fold leaves less: a composite keeps its base's closing escapes behind the
 overlay and adds its own, so one composite per layer ended each row in thirty layers'
 worth of escapes that draw nothing. `BlendedLayerFoldTests` draws its stacks both ways
 and compares every cell.
+
+## 115. The screen root keeps the rows it resolved (2026-11-17)
+
+A claim that reaches the root is spent there on every frame, and spending it
+rebuilds every row it covers: the line taken apart into cells, blended, spelled
+and spliced back. A page whose claims reach the root on every frame paid that
+for every covered row of every frame, whether anything in the row had changed or
+not. `app-shapes`'s `game-loop` does: a `Color.clear` under a `TimelineView`
+claims the board's rows (§104's claim at alpha 0), the timeline asks for a frame
+sixty times a second, and the board moves once a second. Its write was 38% of a
+frame, nearly all of it this resolution.
+
+So the root's resolution keeps, per row, the line it was given, the claims that
+covered it and what it made of them (`OpacityRowReuse`, owned by the diff
+writer), and a row whose line and claims are equal to the kept ones takes the
+kept answer. That answer is exactly what a rebuild would give, because over
+nothing a row's rebuild reads only those two and a handful of inputs the reuse
+keys on as well: the surface and the terminal's ink it resolves against, how a
+field is stated, the colour depth, the terminal's reported colours, its width
+traits and whether hairlines are drawn. Any of those changing forgets every row,
+as does the writer forgetting what it drew. A row drawing a picture is never
+kept: its blend asks the image store for a copy of the picture, which a kept
+answer would skip.
+
+Only the root's resolution keeps rows. A compositor inside the tree resolves
+over a destination of its own, which the reuse would have to key on too.
