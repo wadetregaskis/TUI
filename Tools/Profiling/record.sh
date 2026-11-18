@@ -19,8 +19,12 @@
 # PROFILE_PRODUCT names another executable product to build and drive in
 # Example's place: Stress, booted straight into a scenario by its own
 # variables, which the driven app inherits, and left alone (`still`):
-#   PROFILE_PRODUCT=Stress TUI_STRESS_SCENARIO=app-shapes TUI_STRESS_VARIANT=game-loop \
-#       Tools/Profiling/record.sh still 12 24 80
+#   PROFILE_PRODUCT=Stress TUI_STRESS_SCENARIO=fanout Tools/Profiling/record.sh still 12 24 80
+# Stress runs under its autopilot (TUI_STRESS_AUTOPILOT=1) unless the caller
+# says otherwise: see below. A page that draws its own frames is profiled with
+# it off, so the profile is the page's loop alone:
+#   PROFILE_PRODUCT=Stress TUI_STRESS_AUTOPILOT=0 TUI_STRESS_SCENARIO=app-shapes \
+#       TUI_STRESS_VARIANT=game-loop Tools/Profiling/record.sh still 12 24 80
 #
 # Requires: a macOS toolchain with `xcrun xctrace` (Instruments) and
 # python3. Run from the repository root.
@@ -35,6 +39,20 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$REPO_ROOT"
 
 PRODUCT="${PROFILE_PRODUCT:-Example}"
+
+# Stress's interactive shell shows a scenario at rest: nothing on a static page
+# changes between steps, so under `still` (no input at all) it draws its first
+# frame and then sleeps, and the Time Profiler had nothing of the app's to
+# sample — 4 ms in the Stress module over 12 s of `fanout` (2026-11-17), the
+# rest kernel wake-ups. Its autopilot bumps the frame counter every 33 ms, so a
+# frame is drawn ~30 times a second: the scenarios that read the counter churn
+# their content, and the rest redraw the footer that shows it through the whole
+# pipeline. Example needs nothing of the kind: its pages breathe a focus ring.
+# A caller's own value is kept: 0 for a page that animates by itself.
+if [ "$PRODUCT" = "Stress" ]; then
+    export TUI_STRESS_AUTOPILOT="${TUI_STRESS_AUTOPILOT:-1}"
+fi
+
 echo "==> Building $PRODUCT (release, with debug symbols)…"
 swift build -c release --product "$PRODUCT" -Xswiftc -g
 BIN="$(swift build -c release --product "$PRODUCT" --show-bin-path)/$PRODUCT"

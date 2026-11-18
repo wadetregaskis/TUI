@@ -62,9 +62,12 @@ Tools/Profiling/record.sh                 # 'tour', 15s, 50x160
 Tools/Profiling/record.sh emoji 20        # hammer the 1212-row emoji list
 Tools/Profiling/record.sh idle 12         # steady-state per-frame cost
 Tools/Profiling/record.sh list 15 24 80   # List page in an 80x24 terminal
-# Another product in Example's place, booted into a page by its own variables:
-PROFILE_PRODUCT=Stress TUI_STRESS_SCENARIO=app-shapes TUI_STRESS_VARIANT=game-loop \
-    Tools/Profiling/record.sh still 12 24 80
+# Another product in Example's place, booted into a page by its own variables
+# (Stress runs under its autopilot; see `record.sh` below):
+PROFILE_PRODUCT=Stress TUI_STRESS_SCENARIO=fanout Tools/Profiling/record.sh still 12 24 80
+# A page that draws its own frames, with the autopilot off so it is profiled alone:
+PROFILE_PRODUCT=Stress TUI_STRESS_AUTOPILOT=0 TUI_STRESS_SCENARIO=app-shapes \
+    TUI_STRESS_VARIANT=game-loop Tools/Profiling/record.sh still 12 24 80
 ```
 
 Traces land in `profiling-traces/` (git-ignored). `xctrace` also leaves its raw recording, an `instruments*.ktrace` of often hundreds of MB, in
@@ -415,6 +418,24 @@ read a difference inside the per-rep spread as none. Not a CI gate.
 Builds `Example` in release with `-g`, drives the chosen scenario
 under the Time Profiler, then analyzes the trace.
 `record.sh [scenario] [seconds] [rows] [cols]`.
+`PROFILE_PRODUCT` builds and drives another product in Example's place.
+
+With `PROFILE_PRODUCT=Stress`, `record.sh` turns Stress's autopilot on
+(`TUI_STRESS_AUTOPILOT=1`) unless the caller set it. Without it, a `still`
+recording of a Stress scenario was all but empty: Stress's interactive shell
+shows a scenario at rest, so with no input nothing changes, the app draws its
+first frame and then sleeps, and the Time Profiler has nothing of the app's to
+sample. `fanout` for 12 s at 80x24 (2026-11-17) gave 4 ms of main-thread samples
+in the Stress module, the rest kernel wake-ups; with the autopilot, 556 ms in
+Stress and 1,809 ms on the main thread. The autopilot bumps Stress's frame
+counter every 33 ms and its footer reads the counter, so a frame is drawn about
+30 times a second: a scenario that reads the counter too changes its content
+each frame, and one that does not is redrawn around an unchanged page, which is
+a memoized frame's cost, not a cold one's (`--bench --cold` is that). Example
+needs nothing like it: its pages breathe a focus ring, which draws frames on its
+own. Set `TUI_STRESS_AUTOPILOT=0` for a page that animates by itself
+(`app-shapes/game-loop`), so the profile is its own loop and not the footer's
+too.
 
 ### `drive.py` — PTY driver
 Launches a binary inside a pseudo-terminal (so raw mode + `TIOCGWINSZ`
