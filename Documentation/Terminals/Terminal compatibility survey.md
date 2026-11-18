@@ -2880,9 +2880,41 @@ says, monochrome.
 | kitty keyboard protocol | no answer | no answer | `CSI ? u` unanswered before the fence |
 | Sixel | yes (DA1 `4`) | no (DA1 has no `4`) | `sixel_probe.py` in Windows Terminal: `CSI 16 t` answers a cell of 10 × 20, as its source says |
 
-Not measured: keys and their modifiers (the probes that read keys need someone at the
-keyboard), mouse reports, pointer shapes, scroll regions, and a cell's size in points
-for either.
+### Keys (measured 2026-11-17, Windows Terminal 1.25.3131.0)
+
+`key_probe.py` on the alternate screen, keys pressed by hand on a Mac keyboard into the
+VM. Every key the probe asks arrives as xterm's legacy spelling: Home `CSI H`, End
+`CSI F`, Page Up and Down `CSI 5 ~` and `CSI 6 ~`, the arrows `CSI A`/`CSI B`, ⌃↑ ⌃↓
+`CSI 1;5A`/`B`, ⇧↑ `CSI 1;2A`, Alt-↑ (the Mac's Option) `CSI 1;3A`, F10 `CSI 21 ~`,
+⇧F1 `CSI 1;2P`, Alt-F `ESC f`, F1 and F2 `SS3 P` and `SS3 Q` (with fn or without). Three
+arrived as nothing: fn-F10; ⌃, which Windows Terminal keeps for its settings (a default
+binding); and ⌃F1, which the Mac host may keep for itself ("Turn keyboard access on or
+off") before the VM sees it, so this record cannot say whether Windows Terminal would
+pass it on. conhost's keys are unmeasured: its run had no one at the keyboard.
+
+The console's raw mode, as TUI sets it, takes mouse input, and with it Windows Terminal
+reports the pointer's motion (`CSI < 35;…M`) even where nothing turned mouse reporting
+on: `key_probe.py` drops mouse reports so they are not read as keys.
+
+### Mouse (measured 2026-11-17, both)
+
+`mouse_probe.py` with XTSHIFTESCAPE, the clicks and the wheel driven by synthetic input.
+In both, a click is SGR press and release (`CSI < 0;x;y M`, then `m`); one wheel notch is
+one report, 65 down and 64 up, and a scroll of three notches given as one event was one
+report too. In Windows Terminal, the click that only brought the window forward was not
+reported. Shift-clicks, the other buttons and pointer shapes are unmeasured.
+
+### A crash (measured 2026-11-17, both)
+
+`IdleProbe` with `IDLE_PROBE_MODE=crash`, a `fatalError` a second after its first frame
+(6.3.3, debug): the process ends with `STATUS_ILLEGAL_INSTRUCTION`, and the
+unhandled-exception filter pays a crash's debt in both: the frame stays up on the
+alternate screen, as a crash leaves it on POSIX, the cursor is shown, the console's
+modes are back (the shell reads its line), and the pointer moved over the window types
+nothing at the shell's prompt, so mouse reporting was turned off.
+
+Not measured: conhost's keys, the keys' other modifiers, pointer shapes, scroll regions,
+and a cell's size in points for either.
 
 ---
 
