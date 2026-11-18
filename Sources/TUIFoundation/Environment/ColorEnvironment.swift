@@ -39,6 +39,29 @@ extension EnvironmentValues {
         get { self[ForegroundStyleKey.self] }
         set { self[ForegroundStyleKey.self] = newValue }
     }
+
+    /// Whether ``foregroundStyle`` is a container's default for the text it
+    /// holds rather than a style the app stated: a form value's secondary tier
+    /// (`View.defaultForegroundStyle(_:)`), which a `Text` draws in and a
+    /// control's own drawing — a field's typed text, a button's label — does
+    /// not, as in SwiftUI, where a grouped form greys a value's text and not a
+    /// field's (measured on macOS 15.8,
+    /// `Tools/SwiftUIProbes/Foreground style on controls (FGSWEEP)/fgsweep.out`).
+    package var foregroundStyleIsDefault: Bool {
+        get { self[ForegroundStyleIsDefaultKey.self] }
+        set { self[ForegroundStyleIsDefaultKey.self] = newValue }
+    }
+
+    /// The foreground style the app stated, which a control's own drawing
+    /// takes: ``foregroundStyle``, unless that is only a container's default
+    /// (``foregroundStyleIsDefault``).
+    package var statedForegroundStyle: Paint? {
+        foregroundStyleIsDefault ? nil : foregroundStyle
+    }
+}
+
+private struct ForegroundStyleIsDefaultKey: EnvironmentKey {
+    static let defaultValue = false
 }
 
 // MARK: - View Extension for foregroundStyle
@@ -90,6 +113,19 @@ extension View {
     nonisolated public func foregroundStyle(_ style: Color) -> some View {
         _StyleEnvironmentView(
             content: self, style: style, slot: \.foregroundStyle, fades: true, clearsLevels: true)
+    }
+
+    /// `color` as the foreground style where the app states none: a control's
+    /// or a container's own ink for text the app supplied — a link's accent, a
+    /// caption's or a form value's secondary tier — which a
+    /// ``View/foregroundStyle(_:)-(S)`` the app writes wins over, as it does in
+    /// SwiftUI. It is a default (``EnvironmentValues/foregroundStyleIsDefault``):
+    /// a `Text` below draws in it, and a control's own drawing — a field's typed
+    /// text, a button's label — keeps its own colour, as it would with none.
+    nonisolated package func defaultForegroundStyle(_ color: Color) -> some View {
+        _StyleEnvironmentView(
+            content: self, style: color, slot: \.foregroundStyle, fades: true, clearsLevels: true,
+            keepsStated: true)
     }
 }
 
@@ -187,11 +223,21 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
     /// ``View/backgroundStyle(_:)-(S)``, as SwiftUI documents and draws it.
     var implicitIsBackground = false
 
+    /// Whether a style already in force in the slot wins over this one, which
+    /// then applies only where none is stated: a control's own default ink for
+    /// text the app supplied (`View.defaultForegroundStyle(_:)`).
+    var keepsStated = false
+
     @MainActor var body: Never {
         fatalError("_StyleEnvironmentView renders via Renderable")
     }
 
     @MainActor private func childContext(_ context: RenderContext) -> RenderContext {
+        // A stated style stays as it is, and its own wrapper above already
+        // tells the memos below when it changes.
+        if keepsStated, context.environment[keyPath: slot] != nil, !context.environment.foregroundStyleIsDefault {
+            return context
+        }
         // The same bookkeeping `EnvironmentModifier` does, and it is not
         // optional: a memoizing view below this one keys on the VIEW value,
         // which does not change when a style applied above it does, so without
@@ -253,6 +299,10 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
             // there is no change for a memo below to be told of.
             childContext.environment.secondaryForegroundStyle = nil
             childContext.environment.tertiaryForegroundStyle = nil
+            // A primary foreground — the only style that clears the levels — is
+            // the app's, or a container's default the controls below keep their
+            // own colours under (``EnvironmentValues/statedForegroundStyle``).
+            childContext.environment.foregroundStyleIsDefault = keepsStated
         }
         childContext.environmentApplicationDepth += 1
         return childContext
@@ -286,7 +336,7 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
     func rewrapping<V: View>(_ view: V) -> any View {
         _StyleEnvironmentView<V, S>(
             content: view, style: style, slot: slot, fades: fades, clearsLevels: clearsLevels,
-            implicitIsBackground: implicitIsBackground)
+            implicitIsBackground: implicitIsBackground, keepsStated: keepsStated)
     }
 }
 

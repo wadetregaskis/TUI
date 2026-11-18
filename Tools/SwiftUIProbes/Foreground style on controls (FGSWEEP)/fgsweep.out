@@ -1,0 +1,60 @@
+Text: styled red=185 x=9...38 y=11...20 minG=0.18 | plain red=0
+Label: styled red=285 x=9...62 y=9...22 minG=0.17 | plain red=0
+Button.automatic: styled red=0 | plain red=0
+Button.bordered: styled red=0 | plain red=0
+Button.borderedProminent: styled red=0 | plain red=0
+Button.borderless: styled red=185 x=9...38 y=11...20 minG=0.18 | plain red=0
+Button.plain: styled red=185 x=9...38 y=11...20 minG=0.18 | plain red=0
+Button.link: styled red=185 x=9...38 y=11...20 minG=0.18 | plain red=0
+Toggle.switch: styled red=185 x=9...38 y=14...23 minG=0.18 | plain red=0
+Toggle.switch labelsHidden: styled red=0 | plain red=0
+Toggle.checkbox: styled red=185 x=28...57 y=11...20 minG=0.18 | plain red=0
+Toggle.checkbox labelsHidden: styled red=0 | plain red=0
+Toggle.button: styled red=0 | plain red=0
+Picker.menu: styled red=185 x=9...38 y=13...22 minG=0.18 | plain red=0
+Picker.menu labelsHidden: styled red=0 | plain red=0
+Picker.segmented labelsHidden: styled red=0 | plain red=0
+Picker.radioGroup labelsHidden: styled red=241 x=27...50 y=11...40 minG=0.17 | plain red=0
+Picker.inline labelsHidden: styled red=241 x=27...50 y=11...40 minG=0.17 | plain red=0
+Stepper: styled red=185 x=9...38 y=13...22 minG=0.18 | plain red=0
+Stepper labelsHidden: styled red=0 | plain red=0
+Slider: styled red=185 x=9...38 y=13...22 minG=0.18 | plain red=0
+Slider labelsHidden: styled red=0 | plain red=0
+TextField text: styled red=185 x=13...42 y=13...22 minG=0.18 | plain red=0
+TextField placeholder: styled red=0 | plain red=0
+TextField.plain text: styled red=153 x=9...38 y=11...20 minG=0.17 | plain red=0
+TextField.roundedBorder text: styled red=185 x=20...49 y=14...23 minG=0.18 | plain red=0
+TextField.squareBorder text: styled red=185 x=13...42 y=13...22 minG=0.18 | plain red=0
+SecureField text: styled red=85 x=13...50 y=15...20 minG=0.18 | plain red=0
+SecureField placeholder: styled red=0 | plain red=0
+TextEditor: styled red=144 x=14...39 y=8...17 minG=0.17 | plain red=0
+DatePicker: styled red=185 x=9...38 y=15...24 minG=0.18 | plain red=0
+DatePicker labelsHidden: styled red=0 | plain red=0
+ColorPicker: styled red=185 x=9...38 y=14...24 minG=0.18 | plain red=0
+ColorPicker labelsHidden: styled red=0 | plain red=0
+Link: styled red=185 x=9...38 y=11...20 minG=0.18 | plain red=0
+Menu: styled red=0 | plain red=0
+Menu.borderlessButton: styled red=0 | plain red=0
+Menu.button: styled red=0 | plain red=0
+DisclosureGroup: styled red=185 x=20...49 y=15...24 minG=0.18 | plain red=0
+DisclosureGroup label blue: styled red=0 | plain red=0
+List row: styled red=185 x=25...54 y=25...34 minG=0.18 | plain red=0
+List section header (row blue): styled red=162 x=25...63 y=17...25 minG=0.17 | plain red=0
+Table cells and header: styled red=314 x=25...55 y=18...62 minG=0.17 | plain red=0
+Table header (cells blue): styled red=129 x=27...55 y=18...25 minG=0.17 | plain red=0
+Form.grouped TextField label: styled red=364 x=39...281 y=41...50 minG=0.17 | plain red=0
+Form.grouped LabeledContent Text value (x>=150): styled red=158 x=252...281 y=41...50 minG=0.17 darkest=0.38 | plain red=0 darkest=0.55
+Form.grouped LabeledContent TextField value (x>=150): styled red=106 x=259...281 y=41...50 minG=0.17 darkest=0.38 | plain red=0 darkest=0.02
+Form.columns Toggle: styled red=185 x=28...58 y=11...20 minG=0.17 | plain red=0
+GroupBox (content blue): styled red=100 x=18...40 y=10...18 minG=0.18 | plain red=0
+GroupBox (title blue): styled red=186 x=14...43 y=33...45 minG=0.18 | plain red=0
+LabeledContent: styled red=324 x=77...138 y=11...23 minG=0.18 | plain red=0
+LabeledContent (key blue): styled red=191 x=107...138 y=11...20 minG=0.18 | plain red=0
+ProgressView label: styled red=185 x=9...38 y=11...20 minG=0.18 | plain red=0
+ProgressView labelsHidden: styled red=0 | plain red=0
+Gauge: styled red=185 x=93...122 y=11...20 minG=0.18 | plain red=0
+Gauge labelsHidden: styled red=185 x=93...122 y=11...20 minG=0.18 | plain red=0
+TabView labels (content blue): styled red=0 | plain red=0
+NavigationLink: styled red=0 | plain red=0
+NavigationLink in List: styled red=185 x=25...54 y=25...34 minG=0.18 | plain red=0
+searchable (content blue): styled red=148 x=219...248 y=22...31 minG=0.17 | plain red=0

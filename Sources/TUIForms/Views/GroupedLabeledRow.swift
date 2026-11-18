@@ -73,7 +73,12 @@ private struct _GroupedLabeledRowCore: View, Renderable, Layoutable {
                 collapsingLabel.frame(width: start, alignment: .leading)
             }
             content
-                .foregroundStyle(.secondary)
+                // A value's text in the secondary tier, unless the app states a
+                // style, which it then takes whole; a field's or a button's own
+                // drawing keeps its own colour either way, as in SwiftUI
+                // (`Tools/SwiftUIProbes/Foreground style on controls
+                // (FGSWEEP)/fgsweep.out`).
+                .defaultForegroundStyle(.palette.foregroundSecondary)
                 .environment(\.unstatedMultilineTextAlignment, fills ? .leading : .trailing)
                 .frame(width: max(0, width - start), alignment: .trailing)
         }

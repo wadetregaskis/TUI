@@ -1536,3 +1536,28 @@ messages cite that path), and what cites it.
 - **Was:** written here.
 - **Cited by:** `Sources/TUITextInput/Focus/TextFieldHandler+Clipboard.swift`;
   `Tests/TUITextInputTests/PastedLineBreakTests.swift`.
+
+### Foreground style on controls (FGSWEEP)
+
+- **Asks:** which parts of each control a `.foregroundStyle(_:)` written on it colours: the label, the value, the
+  chrome, the typed text and the prompt of every control that draws text the app supplied or the user typed — `Text`,
+  `Label`, every button style, toggles, pickers, steppers, sliders, fields, editors, date and colour pickers, `Link`,
+  `Menu`, `DisclosureGroup`, list rows and section headers, a table's header and cells, form rows and values,
+  `GroupBox`, `LabeledContent`, `ProgressView`, `Gauge`, tab labels, `NavigationLink`, the search field
+  (`fgsweep.swift`, with `common.swift`; `fgsweep.out`). Each is drawn on white with and without a pure red style
+  and its pixels read back (`cacheDisplay`, which reaches AppKit's controls and SwiftUI's own drawing only over an
+  opaque background): how many are red, where, and how full a red; `labelsHidden` variants and parts pinned blue
+  isolate a control's own parts from its label.
+- **Answers:** the text of every control takes it, as do a borderless, plain or link button's label, a `Link`, a
+  `ColorPicker`'s label, a table's titles and a grouped form's value (whole, not a secondary level of it); the prompt
+  of an empty field does not. What macOS draws with AppKit does not: an automatic, bordered or bordered-prominent
+  button's label, a `.button` toggle, every `Menu` style, a `.menu` picker's value, a segmented picker, a date
+  picker's field, tab labels, a `NavigationLink` outside a list, and every control's chrome. In a grouped form a
+  value's text is secondary and a field's is not.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-17.
+- **Was:** written here.
+- **Cited by:** `Sources/TUITextInput/Rendering/TextFieldContentRenderer.swift`,
+  `Sources/TUIFoundation/Styles/_ButtonStyleBody.swift`, `Sources/TUIFoundation/Environment/ColorEnvironment.swift`,
+  `Sources/TUIForms/Styles/LabeledContentStyle.swift`, `Sources/TUITables/Views/Table.swift`;
+  `Tests/TUIIntegrationTests/ForegroundStyleReachesContentTests.swift`; the SwiftUI compatibility guide's "Closed:
+  `.foregroundStyle` on a control reaches the text in it".

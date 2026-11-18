@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A form value takes a stated `.foregroundStyle` whole.** A `LabeledContent`'s value in a grouped `Form` or a list's
+row is drawn in the secondary tier; under a `.foregroundStyle(_:)` it took a secondary level of that style, and now it
+takes the style itself, as SwiftUI's value does (measured on macOS 15.8). Without one it is still the secondary tier.
+
 **Tab from a control above a `LazyVStack` in the same `ScrollView` reaches the stack's first row however far
 down.** With a button over the stack — `ScrollView { VStack { Button(…); LazyVStack { … } } }` — Tab from the button
 looked no further than 64 rows into the stack for a row with something to focus, and past more rows with nothing to
