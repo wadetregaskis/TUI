@@ -11,7 +11,9 @@ starting point for the session that does it, on a Windows VM, and the record it 
   with no warnings in its code (`swift build --build-tests`, each from a clean scratch path), on a Windows 11 arm64
   VM; 6.4.2 also warns about its own SDK (see "Toolchain"). CI has not seen it yet: its steps for `TUIApp`,
   `TUICommands`, `TUIScenes` and the Example are advisory until it has.
-- **The test suite passes** on all three, one module at a time (see "The tests").
+- **The test suite passes** on all three, one module at a time (see "The tests"), and on x86_64 too: built with
+  6.3.3 for `x86_64-unknown-windows-msvc` with no warnings, and run under Windows 11's emulation with x64's own
+  runtime, every module passes; the Example runs there and quits by its menu.
 - **The Example runs in Windows Terminal and in the classic console (conhost)**, both measured with
   `Tools/TerminalProbes/` and both known hosts since 2026-11-16 (`TerminalClient.Program.windowsTerminal`,
   `.windowsConsole`; the terminal survey's "Windows Terminal and the classic console"). Driven by the mouse in each:
@@ -95,6 +97,11 @@ Visual Studio 2022 Build Tools 17.14, installed with `winget install Swift.Toolc
   tools, the compiler and the Windows platform. A short `TARGETDIR` (`%LOCALAPPDATA%\S624`): the toolchain's own paths
   are deep, and under the session's scratch folder they passed 260 characters (error 1304). The runtime's DLLs land at
   the top of `TARGETDIR`.
+- **x86_64 from the arm64 VM.** The arm64 toolchain's SDK has x86_64's Swift libraries, and the Build Tools and
+  Windows SDK have x64's, so `swift build --build-tests --triple x86_64-unknown-windows-msvc` builds it; the platform
+  ships x64 Testing and XCTest DLLs too (`usr\bin64`, beside arm64's `bin64a`). The x64 runtime is not in the arm64
+  installer: it was cut from swift.org's x64 6.3.3 installer as 6.2.4 was (its `rtl.msi`, `msiexec /a` to
+  `%LOCALAPPDATA%\S633x64`, registered with nothing), and put first on the test runner's `PATH`.
 - **A full disk can look like a crashing compiler.** A debug build of the package and its tests takes about 4 GB per
   toolchain. Builds here crashed `swift-frontend` in IRGen, or with exception 5, in module after module, until one
   said "no space on device"; once space was freed, the same builds were clean. Check the disk before the compiler.
@@ -198,13 +205,16 @@ Two things about the environment the runs needed:
 ## Still to do
 
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
-- **A crash under Windows Terminal and conhost**, to see the exception filter pay the debt: nothing in the Example
-  crashes on cue.
-- **Keys and the mouse, measured**: `Tools/TerminalProbes/`' key and mouse probes need someone at the keyboard, so how
-  each terminal encodes modifiers, how many wheel reports a notch sends, and which pointer shapes it takes are
-  unmeasured. The Example was driven by clicks and the wheel only.
+- **The rest of the mouse**: Shift-clicks, the other buttons and pointer shapes are unmeasured in both terminals.
 - **The console's font**: conhost's Consolas has no quadrants (`▖ ▗ ▘ ▝ ▙ ▛ ▜ ▟`), which shapes and canvases draw with;
   TUI cannot ask a terminal what its font has, so the Terminal Support article tells users to choose Cascadia Mono.
-- **An OSC 52 write over 8 KiB** left the clipboard as it was in both terminals; TUI sends a copy whole, whatever its
-  size, so a larger one is lost there. Unaddressed.
-- **Windows x86_64**: reasoned, not measured, where it differs (the enum witnesses); CI's lanes are x86_64.
+- **Windows Terminal's own key bindings**: from 1.25 it speaks the kitty keyboard protocol, so TUI's menu bar offers
+  ⌃, for Settings…, which Windows Terminal binds to its own settings (and its defaults bind others: font size, tabs,
+  panes, find, paste). TUI has no way yet to say a host keeps a chord; the owner's call how far to go.
+- **Keys under the kitty protocol in Windows Terminal**: the key record is the legacy encoding; what 1.25 sends for
+  each key with the protocol on is unmeasured.
+
+Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays
+the debt), the mouse's clicks and wheel in both, the keys in both, and copies too large for the terminal (over a
+measured 24,567 bytes of text: sent to this machine's clipboard at the desk, reported as not copied over ssh), and
+x86_64.
