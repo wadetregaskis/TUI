@@ -831,7 +831,6 @@ extension FrameBuffer {
         let resultWidth = max(width, position.x + overlay.width)
         let resultHeight = max(height, position.y + overlay.height)
 
-        var result: [String] = []
         // The fields each overlay row was painted over, for the overlay's runs to
         // record — kept only when it carries any, and when it was painted over them.
         // See `shiftedRuns(groundedOn:byX:y:)`.
@@ -839,31 +838,51 @@ extension FrameBuffer {
             overlay.animatedCells.isEmpty || overlayIsPainted
             ? nil : [FieldsUnderOverlay](repeating: .none, count: overlay.lines.count)
 
-        for row in 0..<resultHeight {
-            var baseLine =
-                row < lines.count
-                ? lines[row].padToVisibleWidth(resultWidth)
-                : String.spaces(resultWidth)
-
-            // Check if this row has overlay content
+        // The overlay's line on a row of the result, where it has one with anything
+        // on it.
+        func overlayLine(onRow row: Int) -> String? {
             let overlayRow = row - position.y
-            if overlayRow >= 0 && overlayRow < overlay.lines.count {
-                let overlayLine = overlay.lines[overlayRow]
-                if !overlayLine.isEmpty {
-                    // Insert overlay content at the x position
-                    let inserted = Self.insertOverlay(
-                        base: baseLine,
-                        overlay: overlayLine,
-                        atColumn: position.x,
-                        overlayIsPainted: overlayIsPainted,
-                        terminalForeground: terminalForeground
-                    )
-                    baseLine = inserted.line
-                    fields?[overlayRow] = inserted.fields
-                }
-            }
+            guard overlayRow >= 0, overlayRow < overlay.lines.count, !overlay.lines[overlayRow].isEmpty
+            else { return nil }
+            return overlay.lines[overlayRow]
+        }
+        // A painted overlay's row, in its pieces (`OverlayRowPieces`): the base's
+        // line padded, and cut round the overlay's line where it has one of
+        // `overlayWidth` cells on the row.
+        func pieces(_ base: String, overlayWidth: Int?) -> OverlayRowPieces {
+            Self.paintedOverlayPieces(
+                base: base.padToVisibleWidth(resultWidth), atColumn: position.x, overlayWidth: overlayWidth,
+                terminalForeground: terminalForeground)
+        }
+        // A painted overlay is inserted as it is, between the pieces of the base
+        // either side of it; at a negative column it is cut first, below.
+        let insertsInPieces = overlayIsPainted && position.x >= 0
 
-            result.append(baseLine)
+        // One row of the result from the base's line on it ("" past the base's
+        // end, which pads to a blank row): the line padded to the result's width,
+        // with the overlay's line on that row, if it has one, inserted.
+        func composedRow(_ row: Int, _ base: String) -> String {
+            if insertsInPieces {
+                let line = overlayLine(onRow: row)
+                return pieces(base, overlayWidth: line?.strippedLength).joined(around: line ?? "")
+            }
+            let baseLine = base.padToVisibleWidth(resultWidth)
+            guard let overlayLine = overlayLine(onRow: row) else { return baseLine }
+            let overlayRow = row - position.y
+            let inserted = Self.insertOverlay(
+                base: baseLine,
+                overlay: overlayLine,
+                atColumn: position.x,
+                overlayIsPainted: overlayIsPainted,
+                terminalForeground: terminalForeground
+            )
+            fields?[overlayRow] = inserted.fields
+            return inserted.line
+        }
+
+        var result = (0..<resultHeight).map { $0 < lines.count ? lines[$0] : "" }
+        for row in result.indices {
+            result[row] = composedRow(row, result[row])
         }
 
         var composited = Self(lines: result)
@@ -1486,47 +1505,7 @@ extension FrameBuffer {
         overlayIsPainted: Bool = false
     ) -> String {
         let afterOverlayColumn = split.suffixDropColumns
-
-        // Either split point can land in the MIDDLE of a wide character
-        // (emoji, CJK): the split drops the straddling character whole, so
-        // the prefix comes back short and the suffix starts late. Pad each
-        // shortfall with spaces (a wide glyph can't be half-drawn — the gap is
-        // the standard treatment), otherwise every base row with a straddling
-        // wide character composites the overlay one cell left and pulls the
-        // rest of the row in behind it — ragged pop-up borders next to emoji.
-        let prefix = split.prefixWidth < column
-            ? split.prefix + String.spaces(column - split.prefixWidth)
-            : split.prefix
-        var suffix = split.suffix
-        let expectedSuffixWidth = max(0, split.totalWidth - afterOverlayColumn)
-        let suffixShortfall = expectedSuffixWidth - split.suffixWidth
-        if suffixShortfall > 0 {
-            suffix = String.spaces(suffixShortfall) + suffix
-        }
-        // A caller that wants the line to reach a column past everything the
-        // base had (a run's end, when its frame is narrower than the run) gets
-        // the extra cells as plain spaces AFTER the suffix — where a pad of the
-        // base before the split would have put them.
-        let trailing = minimumTotalWidth - max(split.totalWidth, afterOverlayColumn)
-        if trailing > 0 {
-            suffix += String.spaces(trailing)
-        }
-
-        // Restore the styling ACTIVE at the suffix's start column (not the line's
-        // leading state). A uniform background set up at the leading is still in
-        // force there, so it's preserved; but inline text decorations the prefix
-        // turned on and then RESET (e.g. an underlined `DemoSection` header
-        // followed by plain padding) are NOT carried onto the suffix — the bug
-        // where the cell just past a composited overlay inherited the underline.
-        // The split nets the escapes before the column, so an open+reset pair
-        // leaves nothing while a persistent background (and its lone trailing BG
-        // code) nets to the background.
-        //
-        // Reading that state off the PADDED base rather than the unpadded
-        // original is not a shortcut: padding only ever appends plain spaces
-        // after every escape the line has, so the set of SGRs before any column
-        // is the same in both. (It used to be passed in separately, which cost a
-        // whole extra scan to reach the same answer.)
+        let seams = Self.seams(of: split, atColumn: column, minimumTotalWidth: minimumTotalWidth)
 
         // A cell has a glyph AND a field, and an overlay cell that states no
         // background of its own has said nothing about the field — so it keeps
@@ -1556,14 +1535,10 @@ extension FrameBuffer {
                     width: afterOverlayColumn - split.fieldsUnderOverlay.column)
             }
 
-        // Build: [prefix] + [reset] + [overlay] + [reset + base style restore] + [suffix]
-        var result = prefix
-        result += Self.ansiReset
+        // Build: [prefix + reset] + [overlay] + [reset + base style restore + suffix]
+        var result = seams.head
         result += overlay
-        result += Self.ansiReset
-        result += split.styleBeforeSuffix
-        result += suffix
-
+        result += seams.tail
         return result
     }
 }
