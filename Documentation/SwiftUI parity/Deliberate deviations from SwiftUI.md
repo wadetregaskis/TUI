@@ -304,15 +304,28 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `Tools/SwiftUIProbes/Focus sections in a lazy stack (1117L)`; LAZY-TAB).
   TUI's goes further: from a row, Tab and Shift-Tab step on into the next
   row off the window, scrolling it in, so a walk started inside the stack
-  reaches every row, in a row's focus section or the stack's alike. Coming
-  into the stack from outside its scroll view, the focus lands on the edge
-  row of those on screen, as SwiftUI's does (LAZY-EDGE, open:
+  reaches every row, in a row's focus section or the stack's alike. And
+  coming into the stack from outside its scroll view, where SwiftUI's lands
+  on the edge row of those it has made, TUI's Tab lands on the stack's first
+  row with something to focus and Shift-Tab on its last, however far off
+  screen and past however many rows with nothing to focus, scrolling it in,
+  as an eager stack's does; a stack with nothing to focus is passed by. The
+  rows walked to find it run no `onAppear` (LAZY-EDGE: `LazyStackEdgeEntryTests`,
   `LazyStackFocusSectionTests`).
 - **Why:** TUI rebuilds the tree each frame and keeps no view objects, so
   for it creating a view is drawing it. The widest placed row is a steadier
-  width than the first row's.
+  width than the first row's. On the way in, a `LazyVStack` should be
+  reached as a `VStack` is, and a program written for SwiftUI only gains:
+  the focus lands where the eager stack would put it.
 - **Decided:** [§2.8](<SwiftUI compatibility guide.md#28-lazy-stacks-window-the-render-list-is-the-scalable-container>),
   [LazyGrids.swift](../../Sources/TUIGrid/Views/LazyGrids.swift#L246-L249).
+  LAZY-EDGE approved by the owner on 2026-11-17: the stack walks in from the
+  edge by last frame's Tab order, synchronously and with no cap, and keeps
+  "nothing to focus" until its rows' data changes. Where the rows on screen
+  have nothing to focus, last frame's order cannot say whether the stack has
+  anything, and the walk is made in the frame after a Tab that passed over it,
+  which takes the focus on to the row found: made before, it walked every row
+  of a long list of text whenever the focus stood beside it.
   **Recorded.**
 
 ### L8. A lazy stack lays its sections out whole

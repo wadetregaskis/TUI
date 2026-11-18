@@ -99,10 +99,18 @@ Three more modifiers shape the order that Tab follows:
 A `LazyVStack` in a `ScrollView` draws only the rows on screen, but Tab and
 Shift-Tab from one of its rows still step on to the next row off screen and
 scroll it in, so a walk started inside the stack reaches every row, in focus
-sections or not. Coming into the stack from outside its scroll view, the focus
-lands on the first or last row on screen, not the stack's first or last row,
-as it does in SwiftUI's lazy stack. Where the focus must enter at the stack's
-own first or last row, use a `VStack`, which draws every row each frame.
+sections or not. Coming into the stack from outside its scroll view, Tab lands
+on the stack's first row with something to focus and Shift-Tab on its last,
+however far off screen, as they do in a `VStack`; SwiftUI's lazy stack lands on
+the first or last row it has made. To find that row the stack looks at its rows
+one by one from its edge, without running their `onAppear`, so a "load more" on
+the last row runs only once the row comes on screen: in the frame before the
+key when the rows on screen have something to focus, and otherwise in the
+frame after a Tab that passed over the stack, which then takes the focus on to
+the row it finds. A stack with nothing to focus is passed by, and looked
+through once until its rows' data changes: a row that gains a control with the
+data unchanged, say one enabled by state outside the rows, is not seen until
+then. Rows with explicit `focusID(_:)`s walk the same way.
 
 ## When a Control Loses Focus
 

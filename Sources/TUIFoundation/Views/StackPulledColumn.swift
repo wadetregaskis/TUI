@@ -262,6 +262,7 @@ private enum PulledPlace {
 
         frame.focusMark = context.environment.focusManager.map { ($0, $0.registrationMark()) }
         frame.focusBeyond = pulledFocusNeighbours(frame: frame, beyond: window.focusBeyond, context: context)
+        frame.focusEntry = Self.edgeChildren(window.focusEntry, count: frame.rowCount)
         var drawn = fillPulled(
             frame: frame, window: window, anchoredEdge: edge, seek: seeking?.handed, width: width,
             context: childContext)
@@ -475,7 +476,8 @@ private enum PulledPlace {
             offset: 0, viewportHeight: window.viewportHeight,
             contentIdentity: frame.child(at: ordinal).identity(under: context), reply: ScrollContentReply())
         request.isPulled = true
-        request.focusBeyond = frame.focusBeyond[ordinal]
+        request.focusBeyond = frame.focusBeyond[ordinal] ?? []
+        request.focusEntry = frame.focusEntry[ordinal] ?? []
         request.reportsTargetLayout = frame.asksTargetLayout
         switch place {
         case .top(let y):
@@ -552,7 +554,7 @@ private enum PulledPlace {
                 targetOrdinal(for: $0, children: frame.children, state: frame.state, context: context)
             }
             // And the children beside the focus, for the focusable nearest it.
-            ordinals = Array(Set(ordinals + frame.focusBeyond.keys)).filter {
+            ordinals = Array(Set(ordinals + frame.focusBeyond.keys + frame.focusEntry.keys)).filter {
                 $0 < first.ordinal || $0 > last.ordinal
             }.sorted()
         }
@@ -596,7 +598,8 @@ private enum PulledPlace {
             contentIdentity: frame.child(at: ordinal).identity(under: context), reply: ScrollContentReply())
         request.isPulled = true
         request.edge = .top
-        request.focusBeyond = frame.focusBeyond[ordinal]
+        request.focusBeyond = frame.focusBeyond[ordinal] ?? []
+        request.focusEntry = frame.focusEntry[ordinal] ?? []
         let rowContext = handing(request, to: request.contentIdentity!, frame: frame, context: context)
         return frame.child(at: ordinal).render(
             width: width, height: max(context.availableHeight, window.viewportHeight * 4), context: rowContext)

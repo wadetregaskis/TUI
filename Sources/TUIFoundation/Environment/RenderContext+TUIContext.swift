@@ -178,6 +178,21 @@ extension RenderContext {
         return copy
     }
 
+    /// A copy whose views' `onAppear`, `onDisappear` and `.task` go to a
+    /// lifecycle of their own that runs none of them, for a render of a view
+    /// nobody sees: a windowed stack's row drawn off screen only so the focus
+    /// ring can step to it, or looked at to find one (`StackFocusReach.swift`).
+    /// SwiftUI's lazy stack makes no such row, so none of its effects run;
+    /// one the focus then lands on is scrolled into view and appears then, in
+    /// the live lifecycle. Its presence is not recorded in the live one either,
+    /// so a row on screen last frame that is drawn only this way now
+    /// disappears, as it has from the screen.
+    func withThrowawayLifecycle() -> Self {
+        var copy = self
+        copy.environment.lifecycle = LifecycleManager(firesEffects: false)
+        return copy
+    }
+
     /// Renders `body` with the two channels for asking that the loop keep
     /// rendering swapped for throwaways — for a render whose buffer is
     /// discarded ENTIRELY.

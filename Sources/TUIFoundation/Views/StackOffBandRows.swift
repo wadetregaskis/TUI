@@ -62,15 +62,19 @@ import TUIView
 
     /// Those of the uniform path's off-band `rows` that lie above `band` (or
     /// below it), each drawn off the band (``drawOffBandRow(_:width:viewportHeight:context:)``)
-    /// with its ordinal, in the context `rowContext` gives its ordinal and width.
+    /// with its ordinal, in the context `rowContext` gives its ordinal and width
+    /// — under a throwaway lifecycle for those drawn only for the focus ring,
+    /// `unseen` (``RenderContext/withThrowawayLifecycle()``).
     func drawOffBandRows(
         _ rows: [UniformBandRow], above: Bool, band: [UniformBandRow], width: Int, viewportHeight: Int,
-        rowContext: (Int, Int) -> RenderContext
+        unseen: Set<Int>, rowContext: (Int, Int) -> RenderContext
     ) -> [(ordinal: Int, drawn: FrameBuffer)] {
         let bandStart = band.first?.ordinal ?? Int.max
         return rows.filter { ($0.ordinal < bandStart) == above }.map { row in
-            (row.ordinal, drawOffBandRow(
-                row.child, width: width, viewportHeight: viewportHeight, context: rowContext(row.ordinal, row.width)))
+            let context = rowContext(row.ordinal, row.width)
+            return (row.ordinal, drawOffBandRow(
+                row.child, width: width, viewportHeight: viewportHeight,
+                context: unseen.contains(row.ordinal) ? context.withThrowawayLifecycle() : context))
         }
     }
 

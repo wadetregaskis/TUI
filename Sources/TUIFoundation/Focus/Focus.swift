@@ -358,6 +358,10 @@ public final class FocusManager {
     /// land, while ``endRenderPass()`` here is what resumes it.
     var pendingSubtreeJump: (path: String, jump: SubtreeFocusJump)?
 
+    /// The last Tab or Shift-Tab, and a lazy stack's row it is to be taken on
+    /// to: see `FocusManager+TabEntry.swift`.
+    var tabEntry = TabEntryState()
+
     /// Callback triggered when focus changes (element or section).
     public var onFocusChange: (() -> Void)?
 
@@ -1600,6 +1604,9 @@ extension FocusManager {
                 element.onFocusReceived()
             }
         }
+
+        // A Tab that passed over a lazy stack it should have come into.
+        resolveEdgeArrival()
 
         // Resume a Home/End that ran out of laid-out rows to travel through.
         // Here, because this is the moment this pass's rows have registered —

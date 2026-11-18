@@ -684,7 +684,9 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         // the gap would materialise as O(distance) blank lines — so it is
         // grafted out-of-band instead; classic mode keeps it inline in the
         // full-height canvas.
-        var grafts: [(ordinal: Int, y: Int)] = []
+        // Each with whether it is drawn only for the ring, which nobody sees
+        // (``RenderContext/withThrowawayLifecycle()``).
+        var grafts: [(ordinal: Int, y: Int, unseen: Bool)] = []
         if let focusManager = context.environment.focusManager {
             let anchorY = window.offset - frame.anchor.within
             let estimate = state.estimatedPitch(spacing: spacing)
@@ -704,7 +706,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
                 if window.reply == nil {
                     placed.append((ordinal, max(0, estimatedY)))
                 } else {
-                    grafts.append((ordinal, max(0, estimatedY)))
+                    grafts.append((ordinal, max(0, estimatedY), false))
                 }
             }
         }
@@ -717,20 +719,21 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         let focusedOrdinal = targetOrdinal(
             for: context.environment.focusManager?.currentFocusedID,
             children: children, state: state, context: context)
-        if focusedOrdinal != nil || window.focusBeyond != nil {
+        let edges = RingEdges(window, state: state, rows: children.dataSignature)
+        if focusedOrdinal != nil || !edges.isEmpty {
             let anchorY = window.offset - frame.anchor.within
             let estimate = state.estimatedPitch(spacing: spacing)
             let covered = Set(placed.map(\.ordinal)).union(grafts.map(\.ordinal))
             for stop in focusRingStops(
-                focusedOrdinal: focusedOrdinal, beyond: window.focusBeyond, count: children.count,
-                child: { frame.child(at: $0) }, width: width,
+                focusedOrdinal: focusedOrdinal, edges: edges,
+                count: children.count, child: { frame.child(at: $0) }, width: width,
                 viewportHeight: window.viewportHeight, context: childContext)
             where !covered.contains(stop) {
                 let estimatedY = anchorY + (stop - frame.anchor.ordinal) * estimate
                 if window.reply == nil {
                     placed.append((stop, max(0, estimatedY)))
                 } else {
-                    grafts.append((stop, max(0, estimatedY)))
+                    grafts.append((stop, max(0, estimatedY), true))
                 }
             }
         }
@@ -765,7 +768,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     /// — their exact place is unknowable without the prefix sum nobody
     /// computes (§3).
     private func assembleAnchoredBuffer(
-        placed: [(ordinal: Int, y: Int)], grafts: [(ordinal: Int, y: Int)],
+        placed: [(ordinal: Int, y: Int)], grafts: [(ordinal: Int, y: Int, unseen: Bool)],
         lastPlaced: Int, bottomY: Int,
         frame: AnchoredWindowFrame, window: ScrollContentWindow, width: Int,
         context: RenderContext
@@ -786,15 +789,15 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             width: width,
             height: max(1, frame.children.count * state.estimatedPitch(spacing: spacing)
                 - (frame.children.count > 1 ? spacing : 0)))
-        let drawGraft = { (ordinal: Int, y: Int) in
+        let drawGraft = { (ordinal: Int, y: Int, unseen: Bool) in
             self.drawAnchoredGraft(
                 frame.child(at: ordinal), measuredWidth: frame.measuredWidth(of: ordinal), y: y,
-                gradient: gradientFrame, width: width, viewportHeight: window.viewportHeight, context: context)
+                gradient: gradientFrame, width: width, viewportHeight: window.viewportHeight, context: unseen ? context.withThrowawayLifecycle() : context)
         }
         // Drawn ahead of the band, as each stands above it (`drawOffBandRow`).
         let firstPlaced = sorted.first?.ordinal ?? .min
         let drawnAbove = Dictionary(
-            grafts.filter { $0.ordinal < firstPlaced }.map { ($0.ordinal, drawGraft($0.ordinal, $0.y)) },
+            grafts.filter { $0.ordinal < firstPlaced }.map { ($0.ordinal, drawGraft($0.ordinal, $0.y, $0.unseen)) },
             uniquingKeysWith: { first, _ in first })
 
         var result = FrameBuffer()
@@ -873,7 +876,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         if window.reportsIDAt != nil, sampledOrdinal == nil {
             sampledOrdinal = sorted.last?.ordinal
         }
-        for (ordinal, y) in grafts {
+        for (ordinal, y, unseen) in grafts {
             // The graft's y is an ESTIMATE (ordinal distance × running pitch
             // average), and on this path's whole domain — variable-height
             // rows — it can land INSIDE the rendered band, where the grafted
@@ -896,7 +899,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
                 // ambiguous: out of the band is the contract either way.
                 bandLocalY = max(bandLocalY, bandHeight)
             }
-            graftOffBandRow(drawnAbove[ordinal] ?? drawGraft(ordinal, y), into: &result, bandLocalY: bandLocalY)
+            graftOffBandRow(drawnAbove[ordinal] ?? drawGraft(ordinal, y, unseen), into: &result, bandLocalY: bandLocalY)
             if let key = frame.children.key(at: ordinal) { memo[key] = ordinal }
         }
         state.rowOrdinalMemo = memo

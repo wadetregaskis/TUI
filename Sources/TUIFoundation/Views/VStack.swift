@@ -1019,6 +1019,9 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // snap), and a move past this band lands on placeholders.
         window.reply?.drawnLines = Self.drawnLines(of: slots, renders: rendersRow)
         reportTargetLayout(slots: slots, window: window, context: context)
+        // The rows drawn only for the ring, which nobody sees
+        // (``RenderContext/withThrowawayLifecycle()``).
+        var ringOnly: Set<Int> = []
         if let focusManager = context.environment.focusManager {
             for target in [focusManager.currentFocusedID, focusManager.pendingFocusID] {
                 guard let index = rowIndex(addressedBy: target, slots: slots, context: childContext)
@@ -1027,19 +1030,12 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
                     rendersRow[neighbour] = true
                 }
             }
-            // Ring continuation (see StackFocusReach.swift): a disabled
-            // neighbour registers nothing, so the nearest focusable row past
-            // it must render too or Tab dead-ends at the run. The sweep
-            // below renders ascending, so the ring stays in data order.
-            for stop in focusRingContinuations(
-                focusedOrdinal: rowIndex(
-                    addressedBy: focusManager.currentFocusedID, slots: slots,
-                    context: childContext),
-                count: slots.count, child: { slots[$0].child },
-                width: width, viewportHeight: window.viewportHeight, context: childContext)
-            {
-                rendersRow[stop] = true
-            }
+            // Ring continuation, and the way in from an edge (see
+            // StackFocusReach.swift). The sweep below renders ascending, so the
+            // ring stays in data order.
+            ringOnly = markRingStops(
+                &rendersRow, slots: slots, focusedID: focusManager.currentFocusedID, window: window, width: width,
+                context: context, childContext: childContext)
         }
 
         // Which rows this walk draws, for a live sheet docked over the page to
@@ -1094,7 +1090,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             // empty rows the content height and scrollbar accounted for).
             var rendered = child.render(
                 width: width, height: slot.height,
-                context: childContext.placingChild(
+                context: (ringOnly.contains(index) ? childContext.withThrowawayLifecycle() : childContext).placingChild(
                     gradient: gradientFrame,
                     x: guideRun.map { $0.offsets[index] }
                         ?? Self.gradientX(

@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Tab into a `LazyVStack` from outside its `ScrollView` lands on the stack's first row, and Shift-Tab on its
+last.** Coming in from the control before the scroll view, the focus landed on the first row on screen, and Shift-Tab
+from the scroll view or the control after it on the last row on screen, then went round only those rows, as SwiftUI's
+lazy stack does. It now lands on the stack's first or last row with something to focus, however far off screen and
+past however many rows with nothing to focus, and scrolls it in, as in a `VStack`; a stack with nothing to focus is
+passed by. The rows looked at on the way run no `onAppear`, so a "load more" on the last row runs only once it is on
+screen. Rows whose controls have an explicit `.focusID(_:)` are now walked like any others: the arrows and Tab could
+leave the stack for a control outside it before reaching its last row.
+
 **A `TextEditor`'s text takes the `.foregroundStyle` in force.** It was drawn in the palette's foreground whatever
 `.foregroundStyle(_:)` said, over a `String` or an `AttributedString`; now it is drawn in that style, as SwiftUI's is
 (a gradient gives its one representative colour). In an editor over an `AttributedString` a run's own

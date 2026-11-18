@@ -10,10 +10,11 @@
 //  drawn for the ring that frame and scrolled in; these hold that the walk is
 //  the eager one, step for step, and that every control it lands on is on
 //  screen. Sections change nothing here: each shape walks as its eager twin
-//  does, but for two known issues. LAZY-EDGE: the focus coming into the
-//  stack from outside its scroll view lands on the band's edge row, not the
-//  stack's (SwiftUI's lazy stack does the same, measured in
-//  `Tools/SwiftUIProbes/Focus sections in a lazy stack (1117L)`).
+//  does, the way in from outside its scroll view included, where the focus
+//  lands on the stack's first or last row, not the band's (LAZY-EDGE, owner
+//  2026-11-17; SwiftUI's lazy stack lands on the band's, measured in
+//  `Tools/SwiftUIProbes/Focus sections in a lazy stack (1117L)`, and
+//  `LazyStackEdgeEntryTests` holds the rest of it).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -49,9 +50,18 @@ struct LazyStackFocusSectionTests {
         var testDescription: String { rawValue }
     }
 
+    /// An arrow mode, with the rows' naming: an explicit id is found by
+    /// where its control registered, so the arrows walk those rows too.
+    enum ArrowMode: String, CaseIterable, CustomTestStringConvertible {
+        case tabOrder, geometric, tabOrderExplicit, geometricExplicit
+        var arrows: ArrowFocus { self == .tabOrder || self == .tabOrderExplicit ? .tabOrder : .geometric }
+        var naming: Naming { self == .tabOrder || self == .geometric ? .automatic : .explicit }
+        var testDescription: String { rawValue }
+    }
+
     static let rowCount = 40
 
-    private static func pad(_ index: Int) -> String { index < 10 ? "0\(index)" : "\(index)" }
+    static func pad(_ index: Int) -> String { index < 10 ? "0\(index)" : "\(index)" }
 
     private struct Row: View {
         let index: Int
@@ -180,41 +190,30 @@ struct LazyStackFocusSectionTests {
             + " eager \(eager[from..<min(eager.count, first.offset + 4)])"
     }
 
-    /// The steps of a Tab walk from the page's first control that run through
-    /// the stack once: into it, every row, and out.
-    private static let throughSteps = 2 * rowCount + 3
-
     @Test("Tab walks every row of the lazy stack, drawn or not, as the eager one, and lands on screen",
-          arguments: Shape.allCases)
-    func tabWalk(_ shape: Shape) {
+          arguments: Shape.allCases, Naming.allCases)
+    func tabWalk(_ shape: Shape, _ naming: Naming) {
         let steps = 2 * Self.rowCount + 8
-        let lazy = walk(app(lazy: true, shape, .automatic), .tab, times: steps)
-        let eager = walk(app(lazy: false, shape, .automatic), .tab, times: steps)
-        let through = Array(lazy.prefix(Self.throughSteps))
-        let eagerThrough = Array(eager.prefix(Self.throughSteps))
-        #expect(through == eagerThrough, "\(Self.diff(through, eagerThrough))\nlazy: \(lazy)\neager: \(eager)")
+        let lazy = walk(app(lazy: true, shape, naming), .tab, times: steps)
+        let eager = walk(app(lazy: false, shape, naming), .tab, times: steps)
         #expect(!lazy.contains { $0.hasSuffix("!") }, "lazy focused off screen: \(lazy.filter { $0.hasSuffix("!") })")
-        // Round past the end and into the stack again from the control above
+        // Round past the end and into the stack again from the control before
         // its scroll view, the band now at the stack's end: the lazy stack is
-        // entered at the band's first row (b33), the eager one at b00.
-        withKnownIssue("LAZY-EDGE: Tab into the stack from outside its scroll view lands on the band's first row") {
-            #expect(lazy == eager, "\(Self.diff(lazy, eager))")
-        }
+        // entered at its first row, b00, as the eager one is, not at the
+        // band's first (b33), as SwiftUI's would be (LAZY-EDGE).
+        #expect(lazy == eager, "\(Self.diff(lazy, eager))\nlazy: \(lazy)\neager: \(eager)")
     }
 
     @Test("Shift-Tab into the lazy stack from below its scroll view enters at its last row, as the eager one",
-          arguments: Shape.allCases)
-    func shiftTabWalk(_ shape: Shape) {
+          arguments: Shape.allCases, Naming.allCases)
+    func shiftTabWalk(_ shape: Shape, _ naming: Naming) {
         let steps = 2 * Self.rowCount + 8
-        // From the first control, round to the last and up into the stack:
-        // the lazy one is entered at the band's last row (t06), and Shift-Tab
-        // then goes round rows 6 to 0 and the controls outside, never further.
-        let lazy = walk(app(lazy: true, shape, .automatic), .tab, modifiers: .shift, times: steps)
-        let eager = walk(app(lazy: false, shape, .automatic), .tab, modifiers: .shift, times: steps)
+        // From the first control, round to the last and up into the stack: at
+        // its last row, t39, not the band's (t06), and on up every row.
+        let lazy = walk(app(lazy: true, shape, naming), .tab, modifiers: .shift, times: steps)
+        let eager = walk(app(lazy: false, shape, naming), .tab, modifiers: .shift, times: steps)
         #expect(!lazy.contains { $0.hasSuffix("!") }, "lazy focused off screen: \(lazy.filter { $0.hasSuffix("!") })")
-        withKnownIssue("LAZY-EDGE: Shift-Tab into the stack lands on the band's last row, and goes round the band") {
-            #expect(lazy == eager, "\(Self.diff(lazy, eager))\nlazy: \(lazy)\neager: \(eager)")
-        }
+        #expect(lazy == eager, "\(Self.diff(lazy, eager))\nlazy: \(lazy)\neager: \(eager)")
     }
 
     @Test("Tab down, Shift-Tab back up past the rows scrolled off above, as the eager stack",
@@ -229,10 +228,11 @@ struct LazyStackFocusSectionTests {
     }
 
     @Test("Arrow Down and Up walk the lazy stack as the eager one, in either arrow mode",
-          arguments: Shape.allCases, [ArrowFocus.tabOrder, .geometric])
-    func arrowWalk(_ shape: Shape, _ arrows: ArrowFocus) {
-        let lazyApp = app(lazy: true, shape, .automatic, arrows: arrows)
-        let eagerApp = app(lazy: false, shape, .automatic, arrows: arrows)
+          arguments: Shape.allCases, ArrowMode.allCases)
+    func arrowWalk(_ shape: Shape, _ mode: ArrowMode) {
+        let arrows = mode.arrows
+        let lazyApp = app(lazy: true, shape, mode.naming, arrows: arrows)
+        let eagerApp = app(lazy: false, shape, mode.naming, arrows: arrows)
         // Into the stack first: one Tab (two past the side section).
         let into = shape == .stackSection ? 2 : 1
         let lazy = walk(lazyApp, .tab, times: into) + walk(lazyApp, .down, times: 50)

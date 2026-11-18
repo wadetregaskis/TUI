@@ -136,6 +136,21 @@ extension _ScrollViewCore {
         return contentContext.markingScrollContentOrigin()
     }
 
+    /// The edges the focus is about to come into the content by, from a
+    /// control outside this scroll view
+    /// (``ScrollContentWindow/focusBeyond``): a windowed stack that is the
+    /// content draws its first or last focusable row for the ring, so Tab
+    /// lands there and not on the first or last row on screen (LAZY-EDGE,
+    /// owner 2026-11-17). By last frame's Tab order
+    /// (``FocusManager/tabEntryEdges(intoSubtreeAt:ownStopAt:)``), with this
+    /// view's own stop at its own identity. Rows are a vertical view's: a
+    /// purely horizontal one's content has none.
+    func focusEntryEdges(content: RenderContext, context: RenderContext) -> VerticalEdge.Set {
+        guard !context.isMeasuring, axes.contains(.vertical), let focusManager = context.environment.focusManager
+        else { return [] }
+        return focusManager.tabEntryEdges(intoSubtreeAt: content.identity.path, ownStopAt: context.identity.path)
+    }
+
     /// The content's natural extents at a candidate viewport, WITHOUT building a
     /// buffer — the same measures `renderedContent` uses to size its render, so the
     /// scrollbar-reservation decision matches what will actually be drawn.
@@ -464,6 +479,8 @@ extension _ScrollViewCore {
                     ScrollContentWindow.ColumnReport(
                         offset: horizontalScrollOffset, viewportWidth: contentWidth, unitX: $0.columnUnitX)
                 },
+            // The edges the focus is about to come into the content by.
+            focusEntry: focusEntryEdges(content: measureContext, context: context),
             // The rows of a marked stack, for a behaviour to settle on.
             reportsTargetLayout: handler?.scrollTargeting != nil,
             // Any stack's rows, and their ids, for the visibility observers.

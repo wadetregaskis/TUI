@@ -28,7 +28,7 @@ struct ScrollContentWindow: Hashable {
             lhs.reportsIDAt == rhs.reportsIDAt, lhs.seek == rhs.seek, lhs.columnSeek == rhs.columnSeek,
             lhs.columnReport == rhs.columnReport,
             lhs.linesAbove == rhs.linesAbove, lhs.linesBelow == rhs.linesBelow, lhs.edge == rhs.edge,
-            lhs.isPulled == rhs.isPulled, lhs.focusBeyond == rhs.focusBeyond, lhs.holdsDesignatedRow == rhs.holdsDesignatedRow
+            lhs.isPulled == rhs.isPulled, lhs.focusBeyond == rhs.focusBeyond, lhs.focusEntry == rhs.focusEntry, lhs.holdsDesignatedRow == rhs.holdsDesignatedRow
         else { return false }
         return lhs.reportsTargetLayout == rhs.reportsTargetLayout
             && lhs.reportsTargetVisibility == rhs.reportsTargetVisibility && lhs.topRowHold == rhs.topRowHold
@@ -51,6 +51,7 @@ struct ScrollContentWindow: Hashable {
         hasher.combine(reportsTargetVisibility)
         hasher.combine(topRowHold)
         hasher.combine(focusBeyond)
+        hasher.combine(focusEntry)
         hasher.combine(holdsDesignatedRow)
     }
 
@@ -200,14 +201,22 @@ struct ScrollContentWindow: Hashable {
     /// it as the outermost stack does (`StackPulledColumn.swift`).
     var holdsDesignatedRow = false
 
-    /// The edge of a pulled view the focused control stands just past — the
+    /// The edges of a pulled view the focused control stands just past — the
     /// control is the next one after the view's last, or the one before its
-    /// first — or `nil`. Set by the column above (`StackPulledColumn.swift`):
+    /// first — or none. Set by the column above (`StackPulledColumn.swift`):
     /// the view then draws its focusable nearest that edge off its band, so
     /// that Shift-Tab from a button below a stack whose last rows are off
     /// screen goes to the stack's last row, as it does when every row is drawn,
-    /// rather than to the last row on screen.
-    var focusBeyond: VerticalEdge?
+    /// rather than to the last row on screen. Looked for within a few dozen
+    /// rows of that edge, as the focused row's own continuations are.
+    var focusBeyond: VerticalEdge.Set = []
+
+    /// The edges the focus is coming into the scroll content by from outside
+    /// the scroll view (``FocusManager/tabEntryEdges(intoSubtreeAt:ownStopAt:)``),
+    /// set by the scroll view and handed on by a column to its first or last
+    /// child: a stack walks in from such an edge to its first focusable row,
+    /// however far (LAZY-EDGE, owner 2026-11-17).
+    var focusEntry: VerticalEdge.Set = []
 
     /// The scroll content's lines above the stack that consumes this window,
     /// and below it: a `Section`'s header and footer, which the section draws

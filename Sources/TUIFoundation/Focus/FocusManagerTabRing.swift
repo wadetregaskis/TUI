@@ -24,6 +24,7 @@ extension FocusManager {
     /// `.focusSection`, a split view's columns, a pushed navigation screen — and
     /// Tab goes round those as it goes round a page's.
     public func focusNext() {
+        noteTabMove(forward: true)
         let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
         if ring.count > 1 {
             let moved = moveFocusInSection(direction: .forward, wrap: false)
@@ -44,6 +45,7 @@ extension FocusManager {
     /// within it (wrapping), and so it does where no other section has anything
     /// to focus.
     public func focusPrevious() {
+        noteTabMove(forward: false)
         let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
         if ring.count > 1 {
             let moved = moveFocusInSection(direction: .backward, wrap: false)

@@ -34,9 +34,12 @@ final class PulledColumnFrame {
     private var pulledRows: [Int: Bool] = [:]
     private var built: [Int: ChildView] = [:]
     private(set) var sawSpacer = false
-    /// The children beside the focused control, by the edge of theirs it
+    /// The children beside the focused control, by the edges of theirs it
     /// stands past (``ScrollContentWindow/focusBeyond``).
-    var focusBeyond: [Int: VerticalEdge] = [:]
+    var focusBeyond: [Int: VerticalEdge.Set] = [:]
+    /// The children the focus comes into the scroll content at from outside
+    /// the scroll view, by that edge (``ScrollContentWindow/focusEntry``).
+    var focusEntry: [Int: VerticalEdge.Set] = [:]
     /// The requests this frame handed its pulled children, by identity.
     var handed: [ViewIdentity: ScrollContentWindow] = [:]
     /// Whether the pulled children are asked for the rows of a stack marked

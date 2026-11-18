@@ -328,6 +328,7 @@ enum PulledParallel {
             reply: ScrollContentReply())
         request.isPulled = true
         request.focusBeyond = window.focusBeyond
+        request.focusEntry = window.focusEntry
         return request
     }
 }

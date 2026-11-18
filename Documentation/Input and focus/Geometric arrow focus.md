@@ -86,12 +86,13 @@ arithmetic, no measuring on demand. It isn't needed for the moves an arrow makes
 built (the margin past the viewport, and the focused row's neighbours), and an arrow goes to the nearest control, which
 in a grid or a column is in the next row. Where the next row holds no control (a caption, a blank row), the stack also
 draws the nearest row past it that does, for the focus ring (`StackFocusReach.swift`), so the arrow finds it.
-The stack finds the focused row by the identity path in its focus id, though, and a control given an explicit
-`.focusID(_:)` has none: then neither the focused row's neighbours nor the rows past a run that holds no control
-are drawn for it, and the next row can be missing from the frame the arrow goes by. Measured 2026-11-17 on
-a `LazyVStack` of `Button("rN").focusID("rN")` a line apart in a five-row `ScrollView`: ↓ from the bottom row on screen went to
-the button below the scroll view, then back into it. The rows' default focus ids walk every row
-(`GeometricArrowScrollingTests.columnEdges`).
+The stack finds the focused row by the identity path in its focus id, and a control given an explicit
+`.focusID(_:)` has none, so until 2026-11-17 neither the focused row's neighbours nor the rows past a run that holds
+no control were drawn for it, and the next row could be missing from the frame the arrow went by. Measured on a
+`LazyVStack` of `Button("rN").focusID("rN")` a line apart in a five-row `ScrollView`: ↓ from the bottom row on screen
+went to the button below the scroll view, then back into it. Such a row is now found by the identity path its
+control registered at (`_VStackCore.focusAddress`), and walks as a default id's does
+(`GeometricArrowScrollingTests.columnEdges`, `LazyStackEdgeEntryTests.explicitIDs`).
 
 **Tests** (`GeometricArrowScrollingTests`): twenty rows of twenty buttons in a 30 × 10 `ScrollView` that scrolls both
 ways, as a `VStack` of `HStack`s, a `LazyVStack` of them and a `LazyVGrid` of twenty fixed columns. From the top-left,
@@ -125,8 +126,8 @@ recalled, not measured: a directional move stays in the scrolling container whil
 
 A windowed lazy stack needs nothing more: the rows it draws off its band for the focus ring, the focused row's nearest
 focusable neighbour each way past any rows that register nothing (`StackFocusReach.swift`), are the rows an arrow
-goes to next, and they carry the markers like any other row. Not for a row whose control has an explicit
-`.focusID(_:)`: see the lazy stacks' limit above. Tests: `GeometricArrowScrollingTests.columnEdges` (rows a line apart
+goes to next, and they carry the markers like any other row, explicit `.focusID(_:)`s included (see the lazy
+stacks' limit above). Tests: `GeometricArrowScrollingTests.columnEdges` (rows a line apart
 or each over a caption, eager and lazy, ↓ and ↑ past both edges) and `.rowEdges` (← at a scroll view across), and
 `LazyStackFocusSectionTests.arrowWalk`.
 

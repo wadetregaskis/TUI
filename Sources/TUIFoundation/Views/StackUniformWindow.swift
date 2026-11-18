@@ -211,6 +211,21 @@ final class StackWindowState {
         /// when the rows change.
         let rowsVersion = DataVersion()
 
+        /// The rows a walk in from an edge found nothing to focus in — their
+        /// version (``rowsVersion``), their data and how many — or `nil`: the
+        /// focus passes this stack by, as it passes an eager stack of rows with
+        /// nothing to focus, without walking every row again on every Tab
+        /// until the rows change, and then only the rows they gained when
+        /// they grew (`_VStackCore.edgeFocusStop`). Rows with no data
+        /// signature are kept by their count alone.
+        var focuslessRows: (version: DataVersion.Token?, rows: AnyEquatableBox?, count: Int)?
+
+        /// The rows the last walks in from each edge found (`nil`, nothing),
+        /// kept for the frame they were walked in (the focus manager's render
+        /// generation) so the content drawn again within it does not walk
+        /// again (`_VStackCore.edgeFocusStop`).
+        var edgeStopsOfFrame: (frame: UInt64, count: Int, stops: [VerticalEdge: Int?])?
+
         /// The rows the last band render DREW — the viewport's rows, not the
         /// focus targets rendered beside them. After a write, the challenge
         /// re-measures these with the row the record names as its widest
@@ -383,7 +398,9 @@ final class StackWindowState {
     /// The `ForEach` key of the row a (default, path-derived) focus ID
     /// addresses below this stack, parsed straight out of the ID — the row's
     /// path component is `TypeName[key]` immediately after the stack's path.
-    /// Explicit `.focusID("…")` strings embed no path and return `nil`.
+    /// Explicit `.focusID("…")` strings embed no path and return `nil`: their
+    /// row is found by the path their control registered at instead
+    /// (`focusAddress(_:belowStackPath:context:)`).
     static func rowKey(inFocusID id: String, belowStackPath stackPath: String) -> String? {
         guard !stackPath.isEmpty, let range = id.range(of: stackPath) else { return nil }
         let rest = id[range.upperBound...]
@@ -490,11 +507,12 @@ final class StackWindowState {
             focusedOrdinal: targetOrdinal(
                 for: context.environment.focusManager?.currentFocusedID,
                 children: children, state: state, context: context),
-            beyond: window.focusBeyond, count: count, child: { children[$0] },
+            edges: RingEdges(window, state: state, rows: children.dataSignature), count: count, child: { children[$0] },
             width: width, viewportHeight: window.viewportHeight, context: childContext)
-        let offBand = Set(candidates.offBand)
-            .union(continuations.filter { !candidates.band.contains($0) })
-            .sorted()
+        let offBand = Set(candidates.offBand).union(continuations.filter { !candidates.band.contains($0) }).sorted()
+        // The stops drawn off the band only for the ring, which nobody sees
+        // (``RenderContext/withThrowawayLifecycle()``).
+        let ringOnly = Set(continuations).subtracting(candidates.band).subtracting(candidates.offBand)
         // Classic mode (no reply channel) keeps every row inline in the
         // full-height canvas, exactly at its y. Band mode must NOT stretch
         // the band to reach a far focus target: the gap would materialise as
@@ -532,7 +550,8 @@ final class StackWindowState {
         // injection), the classic full-height buffer is emitted.
         let rowContext = uniformRowPlacement(childContext, width: width, pitch: pitch, totalHeight: totalHeight)
         // Drawn ahead of the band, as each stands above it (`drawOffBandRow`).
-        let drawnAbove = drawOffBandRows(graftRows, above: true, band: rows, width: width, viewportHeight: window.viewportHeight, rowContext: rowContext)
+        let drawnAbove = drawOffBandRows(
+            graftRows, above: true, band: rows, width: width, viewportHeight: window.viewportHeight, unseen: ringOnly, rowContext: rowContext)
 
         var result = FrameBuffer()
         let sliceOrigin = window.reply != nil ? (rows.first.map { $0.ordinal * pitch } ?? 0) : 0
@@ -551,7 +570,7 @@ final class StackWindowState {
         }
         // And those below it after, where they stand.
         let drawn = drawnAbove + drawOffBandRows(
-            graftRows, above: false, band: rows, width: width, viewportHeight: window.viewportHeight, rowContext: rowContext)
+            graftRows, above: false, band: rows, width: width, viewportHeight: window.viewportHeight, unseen: ringOnly, rowContext: rowContext)
         for (ordinal, drawn) in drawn {
             graftOffBandRow(drawn, into: &result, bandLocalY: ordinal * pitch - sliceOrigin)
             if let key = children.key(at: ordinal) { memo[key] = ordinal }
