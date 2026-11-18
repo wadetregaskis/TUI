@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `ColorPicker`'s label takes the `.foregroundStyle` in force.** It was always drawn in the palette's secondary tier;
+it still is where no style is stated, and takes the style where one is, as SwiftUI's label does (measured on macOS
+15.8).
+
 **A button's label, and a `Link`, take the `.foregroundStyle` in force.** A button's label was drawn in its style's own
 colour whatever `.foregroundStyle(_:)` said, in every button style, and a `Link` in the accent; now the label is drawn
 in the style, as SwiftUI's borderless, plain and link buttons and its `Link` draw it (measured on macOS 15.8), and as

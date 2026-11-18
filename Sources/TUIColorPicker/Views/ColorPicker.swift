@@ -170,7 +170,11 @@ public struct ColorPicker {
                         }
                     }
                     .frame(width: labelWidth, alignment: .leading)
-                    .foregroundStyle(.palette.foregroundSecondary)
+                    // The secondary tier unless the app states a style, which
+                    // the label takes, as SwiftUI's does (measured on macOS
+                    // 15.8, `Tools/SwiftUIProbes/Foreground style on controls
+                    // (FGSWEEP)/fgsweep.out`).
+                    .defaultForegroundStyle(.palette.foregroundSecondary)
                 }
                 swatch
                 if !channelsHidden {

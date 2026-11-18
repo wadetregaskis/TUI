@@ -221,3 +221,21 @@ extension ForegroundStyleReachesContentTests {
         #expect(inForm.map(\.ink) == alone.map(\.ink))
     }
 }
+
+// MARK: - Colour picker
+
+extension ForegroundStyleReachesContentTests {
+    @Test("A ColorPicker's label takes the style, and is secondary without one")
+    func colorPickerLabel() throws {
+        try Self.expectStyled(ForegroundStyleProbe("ColorPicker") { ColorPicker("Hello", selection: .constant(.blue)) })
+        let plain = try #require(
+            Self.cells(
+                of: "Hello",
+                in: writtenRows(of: ColorPicker("Hello", selection: .constant(.blue)), width: 50, height: 12)))
+        let secondary = try #require(
+            Self.cells(
+                of: "Hello",
+                in: writtenRows(of: Text("Hello").foregroundStyle(.palette.foregroundSecondary), width: 50, height: 12)))
+        #expect(plain.map(\.ink) == secondary.map(\.ink))
+    }
+}
