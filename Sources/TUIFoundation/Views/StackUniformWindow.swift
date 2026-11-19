@@ -226,6 +226,27 @@ final class StackWindowState {
         /// again (`_VStackCore.edgeFocusStop`).
         var edgeStopsOfFrame: (frame: UInt64, count: Int, stops: [VerticalEdge: Int?])?
 
+        /// The row the last walk in from each edge found, by the rows' version
+        /// (``rowsVersion``) and count, so a walk asked again on every frame
+        /// the focus stands beside the stack asks only that row again
+        /// (`_VStackCore.edgeFocusStop`). Nothing for rows with no data
+        /// signature.
+        var edgeStopsByVersion: [VerticalEdge: (version: DataVersion.Token, count: Int, stop: Int)] = [:]
+
+        /// Where a walk into a pulled column's children begins: the child,
+        /// and the edge it comes in by.
+        struct EntryWalkStart: Hashable {
+            let start: Int
+            let edge: VerticalEdge
+        }
+
+        /// The children each walk into this pulled column reached
+        /// (`_VStackCore.entryWalk`), by where it began, kept for the version
+        /// of the children's data (``rowsVersion``): asked on every frame the
+        /// focus stands beside the column, and walked again only when the
+        /// data changes. Nothing for children with no data signature.
+        var entryWalks: (version: DataVersion.Token, walks: [EntryWalkStart: [Int]])?
+
         /// The rows the last band render DREW — the viewport's rows, not the
         /// focus targets rendered beside them. After a write, the challenge
         /// re-measures these with the row the record names as its widest

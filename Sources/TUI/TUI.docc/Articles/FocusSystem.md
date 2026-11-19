@@ -108,19 +108,21 @@ with nothing to focus on its way in, and stops on one with a control, as it
 would anyway, then goes on from that control to the stack's first row with
 something to focus, however far down. To find the row it lands on the stack looks at its rows
 one by one from its edge, without running their `onAppear`, so a "load more" on
-the last row runs only once the row comes on screen: in the frame before the
-key when the rows on screen have something to focus, and otherwise in the
-frame after a Tab that passed over the stack, which then takes the focus on to
-the row it finds before it is written: the key leaves the focus on the scroll
-view or the control past the stack, but no frame shows it there, and neither
-an `onChange(of:)` of a `@FocusState` nor a `@FocusedValue` sees it there. The
-key itself does move it there first, so a control there is told it has the
-focus and loses it again (a text field's `onEditingChanged`), and a key read
-behind the Tab before that frame, typed in the same instant, goes to it. A
-stack with nothing to focus is passed by, and looked
-through once until its rows' data changes: a row that gains a control with the
-data unchanged, say one enabled by state outside the rows, is not seen until
-then. Rows with explicit `focusID(_:)`s walk the same way.
+the last row runs only once the row comes on screen. It does so in the frame
+before the key, whenever the focus stands where Tab or Shift-Tab would come
+into the stack or pass over it, so the key lands on the row and no control on
+the way is given the focus. A stack with nothing to focus is passed by, and
+looked through once until its rows' data changes, as is the way to a row found:
+a row that gains a control with the data unchanged, say one enabled by state
+outside the rows, is not seen until then. So a button over ten thousand lines
+of text has all of them looked through once, on the first frame it is focused,
+whether or not Tab is pressed. A Tab the frame before could not foresee — the
+first key after launch, or one behind another key typed in the same instant
+that moved the focus — lands on the scroll view or the control past the stack,
+and the frame after it takes the focus on to the row before it is drawn, so no
+frame shows it on the way; but a text field there is told it has the focus and
+loses it again (`onEditingChanged`). Rows with explicit `focusID(_:)`s walk the
+same way.
 
 ## When a Control Loses Focus
 

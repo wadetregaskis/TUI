@@ -146,10 +146,10 @@ import TUIView
         // scroll view does (LAZY-EDGE, owner 2026-11-17: no cap) — Tab from a
         // header's button went no further than 64 rows into the stack under
         // it — and, like it, before the key only where last frame's Tab order
-        // says the key comes in: where the rows on screen have nothing to
-        // focus, the frame after a Tab that passed over the stack walks in
-        // (`entryChildren`), or a button over ten thousand lines of text
-        // walked them all on the frame it was first focused.
+        // says the key comes in. Where the rows on screen have nothing to
+        // focus, the column hands the stack the edge as an entry instead,
+        // where Tab from the focused control would pass over it
+        // (`entryChildren`; owner, 2026-11-18: "(b)").
         var walked = edges.entry
         let beyond = edges.beyond.subtracting(edges.entry)
         if !beyond.isEmpty, let focusManager = context.environment.focusManager {
@@ -195,6 +195,15 @@ import TUIView
     ///   layout's lines) are kept by their count, since nothing else names
     ///   them: walked again on every frame, a flow of 10,000 items under a
     ///   focused scroll view built all 10,000 for every wheel step.
+    /// - A row found is kept for the rows' data too
+    ///   (``StackWindowState/edgeStopsByVersion``): the walk is asked on every
+    ///   frame the focus stands beside the stack (owner, 2026-11-18: "(b)", the
+    ///   walk made before the key), and walked each time it went from the edge
+    ///   to the row again. Only that row is asked again, to see it still has
+    ///   something to focus; a row before it that comes to have something with
+    ///   the data unchanged is not seen until the data changes, as for a stack
+    ///   with nothing to focus. Rows with no data signature are walked each
+    ///   time.
     /// - The scroll view may draw its content more than once in a frame (a
     ///   reveal, a band that did not cover the offset), and each drawing asks
     ///   again: the answer is kept for the frame
@@ -218,10 +227,22 @@ import TUIView
         {
             return stop
         }
-        let stop = nearestFocusableRow(
-            from: edge == .top ? known - 1 : count, direction: edge == .top ? 1 : -1, within: known..<count, cap: nil,
-            child: child, width: width, viewportHeight: viewportHeight, isolated: probeContext(context))
+        let isolated = probeContext(context)
+        let direction = edge == .top ? 1 : -1
+        var stop: Int?
+        if let version, let kept = state.edgeStopsByVersion[edge], kept.version == version, kept.count == count {
+            // The row found for these rows, if it still has something to focus.
+            stop = nearestFocusableRow(
+                from: kept.stop - direction, direction: direction, within: kept.stop..<(kept.stop + 1), cap: 1,
+                child: child, width: width, viewportHeight: viewportHeight, isolated: isolated)
+        }
+        if stop == nil {
+            stop = nearestFocusableRow(
+                from: edge == .top ? known - 1 : count, direction: direction, within: known..<count, cap: nil,
+                child: child, width: width, viewportHeight: viewportHeight, isolated: isolated)
+        }
         if stop == nil { state.focuslessRows = (version, rows, count) }
+        state.edgeStopsByVersion[edge] = version.flatMap { version in stop.map { (version, count, $0) } }
         if let frame {
             var kept = state.edgeStopsOfFrame.flatMap { $0.frame == frame && $0.count == count ? $0 : nil }
                 ?? (frame: frame, count: count, stops: [:])
@@ -331,46 +352,47 @@ import TUIView
     }
 
     /// The children of a pulled column the focus comes into by an edge of
-    /// theirs (``ScrollContentWindow/focusEntry``), each walked inward from
-    /// it: from outside the scroll view, by the column's own edge; and in the
-    /// frame after a Tab (Shift-Tab) that left a control in one of its
-    /// children for one outside that child, by the top (bottom) of the
-    /// children after (before) it. From that edge inward, each child up to
-    /// and including the first that had something to focus last frame
-    /// (``FocusManager/heldFocusableLastFrame(inSubtreeAt:)``), however many
-    /// children that passes (LAZY-EDGE, owner 2026-11-17: no cap; the walk is
-    /// over the column's children, a finite range, and asks only last frame's
-    /// ring, never builds one). A Tab coming in passes every child before that
-    /// one, so a lazy stack under a header with nothing to focus — `VStack {
-    /// Text("Header"); LazyVStack { … } }` — walks in from its edge as it does
-    /// when it is the content itself: handed only to the column's first child,
-    /// the edge reached the header, and Tab stopped on the scroll view. A
-    /// header with a control keeps the edge to itself, so the focus stays on
-    /// the control Tab landed on; a Tab from that control that passed over the
-    /// stack, its rows on screen with nothing to focus, walks in after the key
-    /// and the end of the pass takes the focus on to the row found
-    /// (``FocusManager/resolveEdgeArrival()``), as from outside the scroll
-    /// view. Before the key, the stack beside the focus walks in itself
-    /// (``ScrollContentWindow/focusBeyond``).
-    func entryChildren(_ edges: VerticalEdge.Set, frame: PulledColumnFrame, context: RenderContext)
-        -> [Int: VerticalEdge.Set]
-    {
+    /// theirs (``ScrollContentWindow/focusEntry``), walked inward from it
+    /// (``entryWalk(from:_:frame:viewportHeight:focusManager:)``): from
+    /// outside the scroll view, by the column's own edge; past the child the
+    /// focus lies in, by the top (bottom) of the children after (before) it,
+    /// where last frame's ring says Tab (Shift-Tab) from the focused control
+    /// leaves that child (owner, 2026-11-18: "(b)", the walk made before the
+    /// key); and in the frame after a Tab that left a control in one of its
+    /// children for one outside that child, likewise. A Tab coming in passes
+    /// every child with nothing to focus, so a lazy stack under a header with
+    /// nothing to focus — `VStack { Text("Header"); LazyVStack { … } }` — walks
+    /// in from its edge as it does when it is the content itself: handed only
+    /// to the column's first child, the edge reached the header, and Tab
+    /// stopped on the scroll view. A header with a control keeps the edge to
+    /// itself, so the focus stays on the control Tab lands on; and from that
+    /// control the stack below is handed the edge before the next Tab, which
+    /// lands on the row it finds.
+    func entryChildren(
+        _ edges: VerticalEdge.Set, frame: PulledColumnFrame, viewportHeight: Int, context: RenderContext
+    ) -> [Int: VerticalEdge.Set] {
         let count = frame.rowCount
         guard count > 0, let focusManager = context.environment.focusManager else {
             return Self.edgeChildren(edges, count: count)
         }
         var children: [Int: VerticalEdge.Set] = [:]
         let inward = { (start: Int, edge: VerticalEdge) in
-            var ordinal = start
-            while (0..<count).contains(ordinal) {
+            for ordinal in self.entryWalk(
+                from: start, edge, frame: frame, viewportHeight: viewportHeight, focusManager: focusManager)
+            {
                 children[ordinal, default: []].insert(VerticalEdge.Set(edge))
-                let path = frame.child(at: ordinal).identity(under: frame.context).path
-                if focusManager.heldFocusableLastFrame(inSubtreeAt: path) { break }
-                ordinal += edge == .top ? 1 : -1
             }
         }
         if edges.contains(.top) { inward(0, .top) }
         if edges.contains(.bottom) { inward(count - 1, .bottom) }
+        if let focused = focusManager.currentFocusedID,
+            let holder = pulledChild(holding: focused, frame: frame, context: context)
+        {
+            let exits = focusManager.lastFrameTabExits(
+                fromSubtreeAt: frame.child(at: holder).identity(under: frame.context).path)
+            if exits.contains(.top) { inward(holder + 1, .top) }
+            if exits.contains(.bottom) { inward(holder - 1, .bottom) }
+        }
         if let move = focusManager.tabMoveIntoThisFrame,
             let left = pulledChild(holding: move.from, frame: frame, context: context),
             focusManager.currentFocusedID.flatMap({ pulledChild(holding: $0, frame: frame, context: context) }) != left
@@ -380,6 +402,69 @@ import TUIView
             focusManager.noteArrival(into: context.identity.path, by: edge)
         }
         return children
+    }
+
+    /// The children of a pulled column a Tab coming in by `edge` reaches from
+    /// `start` inward, up to and including the first with something to focus:
+    /// one that had something last frame
+    /// (``FocusManager/heldFocusableLastFrame(inSubtreeAt:)``), or one asked
+    /// as a row of a stack's walk is (``nearestFocusableRow``). A pulled child
+    /// is handed the edge, to walk its own rows in from it, and the walk goes
+    /// on past it when it had nothing to focus last frame; a child with
+    /// nothing to focus is passed by and not drawn. However many children
+    /// that passes (LAZY-EDGE, owner 2026-11-17: no cap).
+    ///
+    /// Kept for the children's data (``StackWindowState/entryWalks``, by
+    /// ``StackWindowState/rowsVersion``), since it is asked on every frame the
+    /// focus stands beside the column: a column of ten thousand lines of text
+    /// under a focused button asked each of them every frame. A child that
+    /// comes to have something to focus with the data unchanged is not seen
+    /// until the data changes, as for a stack's rows (``edgeFocusStop``).
+    /// Children with no data signature, a column of a few views, are walked
+    /// each time.
+    private func entryWalk(
+        from start: Int, _ edge: VerticalEdge, frame: PulledColumnFrame, viewportHeight: Int,
+        focusManager: FocusManager
+    ) -> [Int] {
+        let state = frame.state
+        let version = frame.children.dataSignature.map { state.rowsVersion.token(for: $0) }
+        let key = StackWindowState.EntryWalkStart(start: start, edge: edge)
+        if let version, let kept = state.entryWalks, kept.version == version, let walk = kept.walks[key] {
+            return walk
+        }
+        let count = frame.rowCount
+        let step = edge == .top ? 1 : -1
+        var isolated: RenderContext?
+        var reached: [Int] = []
+        var ordinal = start
+        while (0..<count).contains(ordinal) {
+            let path = frame.child(at: ordinal).identity(under: frame.context).path
+            if focusManager.heldFocusableLastFrame(inSubtreeAt: path) {
+                reached.append(ordinal)
+                break
+            }
+            if frame.isPulled(ordinal) {
+                reached.append(ordinal)
+            } else {
+                let probe = isolated ?? probeContext(frame.context)
+                isolated = probe
+                if nearestFocusableRow(
+                    from: ordinal - step, direction: step, within: ordinal..<(ordinal + 1), cap: 1,
+                    child: { frame.child(at: $0) }, width: frame.proposal.width ?? frame.context.availableWidth,
+                    viewportHeight: viewportHeight, isolated: probe) != nil
+                {
+                    reached.append(ordinal)
+                    break
+                }
+            }
+            ordinal += step
+        }
+        if let version {
+            var walks = state.entryWalks.flatMap { $0.version == version ? $0.walks : nil } ?? [:]
+            walks[key] = reached
+            state.entryWalks = (version, walks)
+        }
+        return reached
     }
 
     /// A column's first child for its top edge, and its last for its bottom.

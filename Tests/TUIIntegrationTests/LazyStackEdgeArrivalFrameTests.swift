@@ -2,13 +2,16 @@
 //  LazyStackEdgeArrivalFrameTests.swift
 //
 //  Every frame written across one Tab into a lazy stack whose rows on screen
-//  have nothing to focus (LAZY-EDGE, deviation L7). Last frame's ring sends
-//  the key to an interim control — the scroll view's stop, or the control past
-//  the stack — and the frame answering the key walks the stack in from that
-//  edge and takes the focus on to the row it finds. That has to happen before
-//  the frame is written: once it was taken on at the end of the pass, one frame
-//  showed the focus on the interim control, `.onChange(of:)` of a
-//  `@FocusState` saw it pass through there, and a `@FocusedValue` read it.
+//  have nothing to focus (LAZY-EDGE, deviation L7). The frame before the key
+//  walks the stack in from the edge the key would pass it by, so the key goes
+//  to the row found (owner, 2026-11-18: "(b)"). Where it could not foresee the
+//  key — the first key after launch, read before a second frame — last frame's
+//  ring sends the key to an interim control, the scroll view's stop or the
+//  control past the stack, and the frame answering the key walks the stack in
+//  and takes the focus on to the row before the frame is written: once it was
+//  taken on at the end of the pass, one frame showed the focus on the interim
+//  control, `.onChange(of:)` of a `@FocusState` saw it pass through there, and
+//  a `@FocusedValue` read it.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -248,12 +251,12 @@ struct LazyStackEdgeArrivalFrameTests {
         expectArrival(written, at: "b100", driver)
     }
 
-    /// What the frame cannot hide: the key moves the focus to the interim
-    /// control before any frame, so what the focus manager tells a control at
-    /// once — a text field's `onEditingChanged` — fires for it, and a key read
-    /// behind the Tab in the same batch goes to it. Deviation L7 names this as
-    /// the limit that remains. A known issue: this fails once it is fixed.
-    @Test("At the key, the interim control is told it has the focus (known limit)")
+    /// At the key itself: the frame before it walked the stack in from the
+    /// edge the key passes over (owner, 2026-11-18: "(b)"), so the key goes
+    /// straight to the row, and no interim control is told it has the focus —
+    /// a text field's `onEditingChanged` — nor gets a key read behind the Tab
+    /// in the same batch. Both did when the walk was made after the key.
+    @Test("At the key, no interim control is told it has the focus, nor gets the next key")
     func keyTimeInterim() {
         let driver = Driver(firstButton: 100, topField: true)
         driver.drawFrames()
@@ -264,9 +267,7 @@ struct LazyStackEdgeArrivalFrameTests {
         driver.log.reset()
         let written = driver.send(KeyEvent(key: .tab, shift: true))
         expectArrival(written, at: "b100", driver)
-        withKnownIssue("LAZY-EDGE: the key's interim control is told before the frame finds the row") {
-            #expect(driver.log.editing.isEmpty, "\(driver.log.editing)")
-        }
+        #expect(driver.log.editing.isEmpty, "\(driver.log.editing)")
 
         let batched = Driver(firstButton: 100)
         batched.drawFrames()
@@ -275,8 +276,6 @@ struct LazyStackEdgeArrivalFrameTests {
         batched.send(KeyEvent(key: .tab, shift: true))
         batched.log.reset()
         batched.send(KeyEvent(key: .tab, shift: true), KeyEvent(key: .enter))
-        withKnownIssue("LAZY-EDGE: a key read behind the Tab in one batch goes to the interim control") {
-            #expect(batched.log.pressed == ["b100"], "\(batched.log.pressed)")
-        }
+        #expect(batched.log.pressed == ["b100"], "\(batched.log.pressed)")
     }
 }

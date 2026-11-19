@@ -14,9 +14,12 @@
 //  question is put to last frame's ring instead (owner, 2026-11-17: "use last
 //  frame's Tab order"): it differs from this frame's only by what this frame
 //  has added or dropped, which is the rows the stack is about to draw. Where
-//  the rows on screen have nothing to focus, last frame's ring cannot say
-//  whether the stack has anything at all, and the frame after the Tab takes
-//  the focus on into it instead (`tabEntryEdges`).
+//  the rows on screen have nothing to focus, the ring has nothing of the
+//  stack's, and it is the control the key would land on past it that says the
+//  key passes over it: the stack then walks in all the same, before the key
+//  (owner, 2026-11-18: "(b)"), so the key lands on the row it finds. A Tab
+//  last frame's ring could not foresee is still taken on by the frame after it
+//  (`tabEntryEdges`).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -41,31 +44,34 @@ extension FocusManager {
     ///
     /// Two questions, one asked before the key and one after:
     ///
-    /// - **Before** (owner, 2026-11-17: "use last frame's Tab order"): would
-    ///   the next Tab (`.top`) or Shift-Tab (`.bottom`) from the focused
-    ///   control, outside the subtree, come into it? It would when, played
-    ///   over last frame's ring, it lands on a control in the subtree, or
-    ///   passes over a focus section of it with nothing to focus (a section's
-    ///   derived id names its path). The stack then draws that row for the
-    ///   ring, and the key lands on it.
-    /// - **After**: did the Tab just pressed come in from outside, or pass over
-    ///   the subtree because the rows on screen had nothing to focus? Landing
-    ///   in it, or Tab onto the scroll view's own stop, which registers just
-    ///   after its content — or Shift-Tab off that stop to a control outside —
-    ///   where the content has no focus section of its own to file its rows
-    ///   in. The stack then walks in from that edge, and once the walk is done
-    ///   the focus is taken on to the row it finds (``resolveEdgeArrival()``),
-    ///   unless it is in that row already, and the frame walked again before
-    ///   it is written.
+    /// - **Before** (owner, 2026-11-17: "use last frame's Tab order"; and
+    ///   2026-11-18: "(b)"): would the next Tab (`.top`) or Shift-Tab
+    ///   (`.bottom`) from the focused control, outside the subtree, come into
+    ///   it, or pass over it? Played over last frame's ring
+    ///   (``lastFrameTabEdges(intoSubtreeAt:ownStopAt:)``), it lands on a
+    ///   control in the subtree, passes over a focus section of it with
+    ///   nothing to focus (a section's derived id names its path), or —
+    ///   where the rows on screen have nothing to focus, and the ring nothing
+    ///   of the subtree's — Tab lands on the scroll view's own stop, which
+    ///   registers just after its content, or Shift-Tab leaves that stop for
+    ///   a control outside. The stack then walks in from that edge and draws
+    ///   the row it finds for the ring, and the key lands on it: no control
+    ///   is given the focus on the way.
+    /// - **After**: did the Tab just pressed come in from outside, or pass
+    ///   over the subtree, by the same rules played over the move it made?
+    ///   Only a Tab last frame's ring could not foresee needs it: one behind
+    ///   another key in the same batch of input that moved the focus or
+    ///   changed the rows. The stack then walks in from that edge, and once
+    ///   the walk is done the focus is taken on to the row it finds
+    ///   (``resolveEdgeArrival()``), unless it is in that row already, and the
+    ///   frame walked again before it is written.
     ///
-    /// The second is what a stack with nothing to focus on screen gets: only
-    /// a walk can tell whether it has anything at all, and a walk made before
-    /// every Tab that might pass over it — whenever the focus stood on the
-    /// scroll view, or on a search field above a list of ten thousand lines
-    /// of text — walked every row of such a stack on the frame it was first
-    /// drawn, and again whenever its rows changed. Asked after, it walks only
-    /// when a Tab actually passes over it. It also covers the first key after
-    /// launch, when there is no last frame's ring to go by.
+    /// Asked before, a stack with nothing to focus is walked whenever the focus
+    /// stands beside it — on the scroll view, or on a search field above a
+    /// list of ten thousand lines of text — so its answer is kept until its
+    /// rows' data changes (`_VStackCore.edgeFocusStop`): all its rows are
+    /// walked once a change of data, on the first frame the focus stands
+    /// beside it.
     ///
     /// The scroll view's own stop is named by where it registers, `stopPath`:
     /// a drawing of the content made again later in the frame has no handle
@@ -78,7 +84,7 @@ extension FocusManager {
             edges.insert(VerticalEdge.Set(edge))
             noteArrival(into: path, by: edge)
         }
-        return edges.union(lastFrameTabEdges(intoSubtreeAt: path))
+        return edges.union(lastFrameTabEdges(intoSubtreeAt: path, ownStopAt: stopPath))
     }
 
     /// The first question of ``tabEntryEdges(intoSubtreeAt:ownStopAt:)``
@@ -89,7 +95,7 @@ extension FocusManager {
     /// which walks in from that edge only then: where the rows on screen have
     /// nothing to focus, the frame after a Tab that passed over it walks in
     /// instead (``noteArrival(into:by:)``).
-    func lastFrameTabEdges(intoSubtreeAt path: String) -> VerticalEdge.Set {
+    func lastFrameTabEdges(intoSubtreeAt path: String, ownStopAt stopPath: String? = nil) -> VerticalEdge.Set {
         guard let focused = currentFocusedID, !path.isEmpty else { return [] }
         let isInside = { (focusID: String) in Self.focusID(self.identityPath(of: focusID), addressesSubtreeAt: path) }
         guard !isInside(focused), let forward = lastFrameTabStep(.forward, from: focused),
@@ -102,13 +108,50 @@ extension FocusManager {
         var edges: VerticalEdge.Set = []
         if comesIn(forward) { edges.insert(.top) }
         if comesIn(backward) { edges.insert(.bottom) }
+        // A Tab that would pass over the content, its rows on screen with
+        // nothing to focus, as the scroll view's own stop says: it registers
+        // just after the content, so Tab onto it from a control outside, or
+        // Shift-Tab off it to one, passes the place the content's rows would
+        // be in the ring (owner, 2026-11-18: "(b)", walk before the key).
+        // Content filing its rows in a focus section of its own is seen by
+        // the section instead (`comesIn`).
+        if let stopPath, !previousSections.contains(where: { Self.focusID($0.id, addressesSubtreeAt: path) }) {
+            let isOwnStop = { (focusID: String) in self.renderedIdentity(ofFocusID: focusID)?.path == stopPath }
+            if forward.landing.map({ isOwnStop($0.focusID) }) == true { edges.insert(.top) }
+            if isOwnStop(focused), let landing = backward.landing, !isOwnStop(landing.focusID) {
+                edges.insert(.bottom)
+            }
+        }
+        return edges
+    }
+
+    /// The edges by which Tab (`.top`) and Shift-Tab (`.bottom`) from the
+    /// focused control, inside the subtree at `path`, would leave it for the
+    /// views after it (before it), played over last frame's ring: the edge
+    /// each of those views is come into by. Asked by a pulled column of the
+    /// child the focus lies in (`_VStackCore.entryChildren(_:frame:viewportHeight:context:)`),
+    /// whose children past it walk in from that edge before the key, up to
+    /// the first with something to focus: a lazy stack under a header's
+    /// button, its rows on screen with nothing to focus, is passed over by a
+    /// Tab from the button, and only a walk finds its first row that has.
+    func lastFrameTabExits(fromSubtreeAt path: String) -> VerticalEdge.Set {
+        guard let focused = currentFocusedID, !path.isEmpty else { return [] }
+        let isInside = { (focusID: String) in Self.focusID(self.identityPath(of: focusID), addressesSubtreeAt: path) }
+        guard isInside(focused) else { return [] }
+        var edges: VerticalEdge.Set = []
+        if let landing = lastFrameTabStep(.forward, from: focused)?.landing, !isInside(landing.focusID) {
+            edges.insert(.top)
+        }
+        if let landing = lastFrameTabStep(.backward, from: focused)?.landing, !isInside(landing.focusID) {
+            edges.insert(.bottom)
+        }
         return edges
     }
 
     /// The Tab (`forward`) or Shift-Tab pressed just before this frame, and
     /// the control it left: what a pulled column asks to see whether it
     /// passed over the children beside that control
-    /// (`_VStackCore.entryChildren(_:frame:context:)`). `nil` in any other
+    /// (`_VStackCore.entryChildren(_:frame:viewportHeight:context:)`). `nil` in any other
     /// frame.
     var tabMoveIntoThisFrame: (forward: Bool, from: String)? {
         guard let move = tabEntry.move, move.generation &+ 1 == focusRenderGeneration else { return nil }
@@ -159,7 +202,7 @@ extension FocusManager {
     /// with something to focus: where a Tab coming into the content that
     /// holds it by that edge may go on to. Several stacks of a column can
     /// note one — two lazy stacks one above the other, the first with nothing
-    /// to focus on screen (`_VStackCore.entryChildren(_:frame:context:)`) —
+    /// to focus on screen (`_VStackCore.entryChildren(_:frame:viewportHeight:context:)`) —
     /// and the end of the pass
     /// takes the one first in the ring for the top edge, last for the bottom
     /// (``resolveEdgeArrival()``): the order they are drawn in need not be.
@@ -173,7 +216,7 @@ extension FocusManager {
     /// Whether a control in the subtree at `path` could take the focus in last
     /// frame's ring: where a Tab coming into a column of the scroll content
     /// stops before it reaches the children past it
-    /// (`_VStackCore.entryChildren(_:frame:context:)`).
+    /// (`_VStackCore.entryChildren(_:frame:viewportHeight:context:)`).
     func heldFocusableLastFrame(inSubtreeAt path: String) -> Bool {
         previousSections.contains { section in
             section.focusables.contains {

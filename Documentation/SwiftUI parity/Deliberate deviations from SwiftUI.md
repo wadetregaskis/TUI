@@ -325,32 +325,39 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [LazyGrids.swift](../../Sources/TUIGrid/Views/LazyGrids.swift#L246-L249).
   LAZY-EDGE approved by the owner on 2026-11-17: the stack walks in from the
   edge by last frame's Tab order, synchronously and with no cap, and keeps
-  "nothing to focus" until its rows' data changes. Where the rows on screen
-  have nothing to focus, last frame's order cannot say whether the stack has
-  anything, and the walk is made in the frame after a Tab that passed over it,
-  which takes the focus on to the row found: made before, it walked every row
-  of a long list of text whenever the focus stood beside it. The same goes for
-  a control beside the stack in the scroll content, and the walk past the
-  views over or under the stack: neither has a cap either (2026-11-17; the
-  first stopped 64 rows into the stack, the second 64 views short of it).
-  The focus is taken on once that frame's walk is done and before it is
-  written, and the frame walked again, what the first walk's views did (an
-  `onChange(of:)`, an `onAppear`) dropped (`FrameSettling`, 2026-11-18): taken
-  on at the end of the pass, one frame showed the focus on the control the key
-  left it on, the scroll view's stop or the control past the stack, and an
-  `onChange(of:)` of a `@FocusState` and a `@FocusedValue` saw it there. The
-  second walk is made only in the frame after such a Tab, and does not walk
-  the rows again. **The limit that remains:** the key itself moves the focus
-  to that control, before any frame, so the focus manager tells it at once —
-  a text field's `onEditingChanged(true)`, then `false` — and a key read
-  behind the Tab before the frame, in the same batch of input, goes to it: a
-  Return typed with a Shift-Tab off the scroll view's stop presses the button
-  above the scroll view (`LazyStackEdgeArrivalFrameTests.keyTimeInterim`, a
-  known issue). Knowing at
-  the key that the stack has a row to take the focus on to takes the walk the
-  frame makes; holding back the control's notice, or the input behind the
-  key, for every Tab that might pass over a lazy stack would need a second
-  way of telling those Tabs apart at the key, which this does not add.
+  "nothing to focus" until its rows' data changes. The same goes for a control
+  beside the stack in the scroll content, and the walk past the views over or
+  under the stack: neither has a cap either (2026-11-17; the first stopped 64
+  rows into the stack, the second 64 views short of it). Where the rows on
+  screen have nothing to focus, last frame's order holds nothing of the
+  stack's, and says only that the key would pass over it: Tab from the
+  focused control lands on the scroll view's own stop, which registers just
+  after its content, or Shift-Tab leaves that stop for a control outside, or
+  Tab leaves the view of the scroll content the focus is in, a header's
+  button, for one past the stack. Since 2026-11-18 (the owner: "Try (b)") the
+  frame walks the stack in from that edge then, before the key, and draws the
+  row found for the ring, so the key goes straight to it: no control on the
+  way is told it has the focus, and a key read behind the Tab in the same
+  batch of input goes to the row (`LazyStackEdgeArrivalFrameTests.keyTimeInterim`).
+  The walk is made on every frame the focus stands beside such a stack, so its
+  answer is kept for the rows' data: a stack with nothing to focus is walked
+  once until its data changes, a row found is asked again alone, and a column
+  of the scroll content keeps the views it walked past likewise. **The cost:**
+  every row of a stack with nothing to focus is asked once per change of its
+  data, on the first frame the focus stands beside it, even when no Tab
+  follows: a button over 10,000 lines of text builds 10,014 rows on its second
+  frame (the first has no order to go by), then none
+  (`LazyStackEdgeWalkCostTests`); a `DisclosureGroup` of 10,000 lines, its
+  button focused, 10,072 rows on its second frame where it built 72. Made after the key instead
+  (2026-11-17 to 11-18), the walk ran only in the frame after a Tab that
+  passed over the stack, which took the focus on to the row before it was
+  written (`FrameSettling`), but the key had moved the focus to the control
+  past the stack first: a text field there saw `onEditingChanged(true)` then
+  `false`, and a Return typed with a Shift-Tab off the scroll view's stop
+  pressed the button above the scroll view. That path remains for a Tab last
+  frame's order could not foresee, and there so does that limit: the first key
+  after launch, read before a second frame is drawn, and a Tab behind another
+  key in the same batch that moved the focus or changed the rows.
   **Recorded.**
 
 ### L8. A lazy stack lays its sections out whole

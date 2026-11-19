@@ -179,6 +179,15 @@ struct WindowedContainersTests {
     /// bounded whatever the count. A flow's first frame measures every item
     /// to break its lines (A-SCROLLFIT-5 (a)); its steps measure none again.
     /// (Before P8, every row on every frame: 10,000 a step.)
+    ///
+    /// A disclosure group's focused button stands beside its rows: Tab from
+    /// it would pass over every one of them, none having anything to focus,
+    /// so the frame after the first, the first with a ring to go by, asks
+    /// each row once whether it has (LAZY-EDGE, deviation L7; owner,
+    /// 2026-11-18: "(b)", the walk made before the key). That frame is drawn
+    /// here before the first count is read: 72 rows and the walk's one a row
+    /// (10,072 and 2,072; 72 before the walk was made before the key). The
+    /// answer is kept until the rows' data changes, so no page step asks again.
     @Test("Around 10,000 rows, a page builds fewer than 100 rows, the same as around 2,000",
           arguments: Shape.allCases)
     func builtRowsIndependentOfRowCount(_ shape: Shape) {
@@ -188,6 +197,9 @@ struct WindowedContainersTests {
         #expect(tenThousand.dropFirst() == twoThousand.dropFirst(), "\(shape): \(twoThousand) \(tenThousand)")
         if shape == .flow {
             #expect(tenThousand[0] < 4 * 10_000, "\(shape): \(tenThousand)")
+        } else if shape == .disclosureGroup || shape == .headedDisclosureGroup {
+            #expect(tenThousand[0] - 10_000 < 150 && tenThousand[0] - 10_000 == twoThousand[0] - 2_000,
+                    "\(shape): \(twoThousand) \(tenThousand)")
         } else {
             #expect(tenThousand[0] < 150 && tenThousand[0] == twoThousand[0], "\(shape): \(twoThousand) \(tenThousand)")
         }

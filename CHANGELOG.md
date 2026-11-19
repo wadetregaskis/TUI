@@ -59,12 +59,16 @@ there too.
 row is drawn in the secondary tier; under a `.foregroundStyle(_:)` it took a secondary level of that style, and now it
 takes the style itself, as SwiftUI's value does (measured on macOS 15.8). Without one it is still the secondary tier.
 
-**No frame shows the focus on the way into a `LazyVStack`.** Where a Tab or Shift-Tab went into a lazy stack whose
-rows on screen had nothing to focus (below), one frame was written with the focus on the scroll view or the control
-past the stack before the next showed it on the row found, and an `.onChange(of:)` of a `@FocusState`, and a
-`@FocusedValue`, saw it pass through there. The frame is now drawn again with the focus on the row before it is
-written. The key still moves the focus there first, so a text field there sees `onEditingChanged` fire and a key typed
-in the same instant as the Tab goes to it.
+**The focus goes straight to a `LazyVStack`'s row on the way in.** Where a Tab or Shift-Tab went into a lazy stack
+whose rows on screen had nothing to focus (below), the key moved the focus to the scroll view or the control past the
+stack, and only the frame after it found the row and took the focus on: one frame showed it on the way, an
+`.onChange(of:)` of a `@FocusState`, and a `@FocusedValue`, saw it pass through there, a text field there saw
+`onEditingChanged` fire, and a key typed in the same instant as the Tab went to it. Now the frame before the key walks
+the stack in wherever the focus stands beside it, so the key lands on the row. The price: a stack with nothing to
+focus has all its rows asked once, on the first frame the focus stands beside it, and again only when its data
+changes (a button over 10,000 lines of text: 10,014 rows built on that frame). The first key after launch, read before
+a second frame is drawn, and a Tab behind another key in the same batch that moved the focus, still go the old way,
+with no frame showing the focus on the way.
 
 **Tab from a control above a `LazyVStack` in the same `ScrollView` reaches the stack's first row however far
 down.** With a button over the stack — `ScrollView { VStack { Button(…); LazyVStack { … } } }` — Tab from the button
