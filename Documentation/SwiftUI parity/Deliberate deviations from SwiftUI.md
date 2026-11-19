@@ -358,6 +358,13 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   frame's order could not foresee, and there so does that limit: the first key
   after launch, read before a second frame is drawn, and a Tab behind another
   key in the same batch that moved the focus or changed the rows.
+  The walk finds a text's links, which are focus stops (B85), as it finds a
+  control: Tab and Shift-Tab come in at a link 300 rows down a `LazyVStack` of
+  `Text` as a `VStack`'s do. Until 2026-11-19 they passed it, because the walk
+  draws its rows with no mouse dispatcher, so that no row it only looks at
+  leaves a click region or a hover in the live one, and a link was a stop only
+  where there was a dispatcher; now the focus system alone makes it one
+  (`LazyStackTextLinkWalkTests`).
   **Recorded.**
 
 ### L8. A lazy stack lays its sections out whole

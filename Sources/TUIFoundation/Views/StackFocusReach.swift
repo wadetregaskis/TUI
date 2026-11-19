@@ -121,6 +121,10 @@ import TUIView
     /// row to land on (LAZY-EDGE, owner 2026-11-17).
     func probeContext(_ context: RenderContext) -> RenderContext {
         var isolated = context.withThrowawayKeyChannels().withThrowawayLifecycle()
+        // No click region or hover for a row nobody sees, and none of what a
+        // dispatcher brings with it (a drop target filed in the live drag
+        // session). What registers a focus stop needs none: a text's links
+        // are stops here as on the page (`TextLinkStops.render`).
         isolated.environment.mouseEventDispatcher = nil
         // A row's `.toolbar` too: its items are drawn by the window's bars,
         // which would draw them live for a row the frame never shows.

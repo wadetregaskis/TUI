@@ -108,7 +108,9 @@ with nothing to focus on its way in, and stops on one with a control, as it
 would anyway, then goes on from that control to the stack's first row with
 something to focus, however far down. To find the row it lands on the stack looks at its rows
 one by one from its edge, without running their `onAppear`, so a "load more" on
-the last row runs only once the row comes on screen. It does so in the frame
+the last row runs only once the row comes on screen. A link inside a row's
+`Text` counts as something to focus, as it does in a `VStack`, and the rows
+looked at leave no click region or hover behind. It does so in the frame
 before the key, whenever the focus stands where Tab or Shift-Tab would come
 into the stack or pass over it, so the key lands on the row and no control on
 the way is given the focus. A stack with nothing to focus is passed by, and

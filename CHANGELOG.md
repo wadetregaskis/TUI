@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Tab reaches a link in a `Text` far down a `LazyVStack`.** A link inside a `Text` is a focus stop, and an eager
+`VStack`'s Tab and Shift-Tab land on one however far off screen, but a lazy stack's way in passed it by: the rows it
+looks through for something to focus are drawn with no mouse handling, and a link was a stop only where there was
+some. Tab from a button over a thousand lines of text went to the scroll view, not to the link on line 300. A link is
+now a stop wherever there is a focus system, as a button is; one on screen takes a click and shows the pointing hand
+as before.
+
 **A menu opened from the keyboard keeps its highlight until the pointer moves.** A pop-up menu, a context menu, a
 submenu, a picker's drop-down or a field's suggestions opened by a key under a pointer resting where it last moved to
 lit its first row, and then took the row under the pointer, so Down and Return went on from a row the keyboard never

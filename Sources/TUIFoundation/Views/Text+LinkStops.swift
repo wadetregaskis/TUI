@@ -120,11 +120,20 @@ enum TextLinkStops {
     /// - in a list's or table's row, where the list is the stop and the row
     ///   reports to it (as a context menu in a row does);
     /// - outside a running app, with no focus system to be stops in.
+    ///
+    /// A focus system is what makes them stops, as it is for a `Button`: not
+    /// a mouse dispatcher, which only the pointer's regions need
+    /// (`_TextLinksCore.pointerRegions`). The lazy stack's walk for the row
+    /// Tab lands on draws its rows with the dispatcher taken away
+    /// (`_VStackCore.probeContext`), so no row it merely looks at leaves a
+    /// click region or a hover in the live one; while a link was a stop only
+    /// where there was a dispatcher, that walk never found one, and Tab passed
+    /// a link 300 rows down a `LazyVStack` that a `VStack`'s Tab lands on.
     static func render(_ text: Text, runs: [Text.Run], context: RenderContext) -> FrameBuffer? {
         guard !context.isMeasuring, runs.contains(where: { $0.link != nil }) else { return nil }
         let environment = context.environment
         guard environment.linkDisplay == .popover, environment.isEnabled, !environment.isFocusSuppressed,
-            environment.focusManager != nil, environment.mouseEventDispatcher != nil, context.stateStorage != nil,
+            environment.focusManager != nil, context.stateStorage != nil,
             environment.listRowEditRestrictions?.currentRowIndex == nil
         else { return nil }
         // A child identity for the links' state: the text is a leaf, and
@@ -295,7 +304,12 @@ private struct _TextLinksCore: View, Renderable {
         guard !context.isMeasuring, let runs = text.runs else { return drawn.filingTextFrame(context: context) }
         // The page beneath an open menu is a picture drawn unfocused into a
         // throwaway focus system: what it says is not where the focus is.
+        // Nor is a draw with no mouse dispatcher, which no pointer reaches: a
+        // lazy stack's walk looking for a row to focus (`probeContext`), into a
+        // focus system of its own, or the menu bar's unseen commands. Either
+        // would leave its own spans and no focused link for the menu.
         let live = context.environment.focusManager?.isBackdrop != true
+            && context.environment.mouseEventDispatcher != nil
         var focused: Int?
         var regions: [HitTestRegion] = []
         for run in spans.byRun.keys.sorted() {
