@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Toggle`'s subtitle takes a stated `.foregroundStyle`.** The second view of a toggle's label, the subtitle
+under its title, was always drawn in the palette's secondary tier, over any style the app stated: under
+`.foregroundStyle(.red)` the title was red and the subtitle grey. It is now secondary only where no style is stated,
+and takes a stated one whole, as the title does, as SwiftUI's does on macOS 15.8 (checkbox and switch, bare and in a
+grouped `Form`; under `.foregroundStyle(.red, .blue)` both lines are red).
+
 **A click after a Tab into a `LazyVStack` keeps the focus where it was clicked.** Where a Tab into a lazy stack in a
 `ScrollView` and a click on one of its rows were read in the same batch of input, before a frame between them, the
 frame after took the focus back from the clicked row to the stack's first row, the row the Tab alone would have

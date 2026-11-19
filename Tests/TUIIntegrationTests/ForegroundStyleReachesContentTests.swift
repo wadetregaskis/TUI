@@ -281,3 +281,52 @@ extension ForegroundStyleReachesContentTests {
         for glyph in cell { #expect(glyph.ink == Self.ink(Self.stated), "'\(glyph.glyph)' of Hello") }
     }
 }
+
+// MARK: - Toggle subtitle
+
+extension ForegroundStyleReachesContentTests {
+    /// A toggle with a title and a subtitle, a checkbox or a switch, bare or in
+    /// a grouped form: the four places SwiftUI's probe measured.
+    static func subtitledToggle(switch isSwitch: Bool, inForm: Bool) -> AnyView {
+        let toggle = Toggle(isOn: .constant(false)) {
+            Text("Title")
+            Text("Subtitle")
+        }
+        let styled = isSwitch ? AnyView(toggle.toggleStyle(.switch)) : AnyView(toggle.toggleStyle(.checkbox))
+        return inForm ? AnyView(Form { styled }.formStyle(.grouped)) : styled
+    }
+
+    @Test("A toggle's subtitle takes a stated style whole, and a pair's first style, as the title does",
+        arguments: [false, true], [false, true])
+    func toggleSubtitle(pair: Bool, isSwitch: Bool) throws {
+        for inForm in [false, true] {
+            let toggle = Self.subtitledToggle(switch: isSwitch, inForm: inForm)
+            // SwiftUI on macOS 15.8.3: the subtitle draws the stated style's
+            // primary level, the title's pixel; under `(.red, .blue)` blue
+            // never appears (`Tools/SwiftUIProbes/Disabled editor ink and
+            // toggle subtitles (1119)/notes.md`).
+            let styled = pair
+                ? AnyView(toggle.foregroundStyle(Self.stated, Color.rgb(17, 99, 222)))
+                : AnyView(toggle.foregroundStyle(Self.stated))
+            let drawn = writtenRows(of: styled, width: 50, height: 12)
+            for word in ["Title", "Subtitle"] {
+                let cells = try #require(Self.cells(of: word, in: drawn), "\(word) not on screen")
+                for cell in cells {
+                    #expect(cell.ink == Self.ink(Self.stated), "form \(inForm): '\(cell.glyph)' of \(word)")
+                }
+            }
+        }
+    }
+
+    @Test("A toggle's subtitle is secondary where no style is stated", arguments: [false, true])
+    func toggleSubtitleUnstyled(isSwitch: Bool) throws {
+        let secondary = try #require(
+            Self.cells(
+                of: "Subtitle",
+                in: writtenRows(
+                    of: Text("Subtitle").foregroundStyle(.palette.foregroundSecondary), width: 50, height: 12)))
+        let drawn = writtenRows(of: Self.subtitledToggle(switch: isSwitch, inForm: false), width: 50, height: 12)
+        let cells = try #require(Self.cells(of: "Subtitle", in: drawn))
+        #expect(cells.map(\.ink) == secondary.map(\.ink))
+    }
+}

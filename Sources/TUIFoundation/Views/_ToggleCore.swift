@@ -531,7 +531,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
     /// checkbox; the others use the checkbox glyph.
     private func builtInStyleBuffer(
         isSwitch: Bool, isOnValue: Bool, isDisabled: Bool, isFocused: Bool, isHovered: Bool,
-        labelContext: RenderContext, palette: any Palette, context: RenderContext
+        labelContext: RenderContext, restingLabelContext: RenderContext, context: RenderContext
     ) -> (buffer: FrameBuffer, clickWidth: Int, clickHeight: Int, indent: Int) {
         let styledIndicator =
             isSwitch
@@ -544,7 +544,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
 
         let composed = composeLabelBuffer(
             indicator: styledIndicator.text, labelContext: labelContext,
-            isDisabled: isDisabled, palette: palette)
+            restingLabelContext: restingLabelContext, isDisabled: isDisabled, palette: context.environment.palette)
         var buffer = composed.buffer
         // The indicator opens the toggle's first row, so its run needs no
         // shifting. Handing it to the run loop is what lets the focus indicator
@@ -579,15 +579,17 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
     /// there. A label closure holding two or more views is the SwiftUI "title +
     /// explanatory text" form: the first view becomes the clickable title beside
     /// the indicator, and the rest become an explanatory subtitle on the line(s)
-    /// below — indented to the title column and drawn in the secondary colour, the
-    /// macOS checkbox-with-help-text convention. The subtitle is not a click
-    /// target.
+    /// below — indented to the title column and drawn in the secondary colour
+    /// where the app states no foreground style (and in the stated style, whole,
+    /// where it does), the macOS checkbox-with-help-text convention. The subtitle
+    /// is not a click target.
     ///
     /// - Returns: the composed buffer, plus the width and row count of the
     ///   clickable title (the indicator's row, and the rows its title wraps
     ///   onto) for the hit-test region.
     private func composeLabelBuffer(
-        indicator: String, labelContext: RenderContext, isDisabled: Bool, palette: any Palette
+        indicator: String, labelContext: RenderContext, restingLabelContext: RenderContext, isDisabled: Bool,
+        palette: any Palette
     ) -> (buffer: FrameBuffer, titleWidth: Int, titleRows: Int) {
         // `.labelsHidden()` leaves the indicator alone — the box IS the
         // control — and takes the separating space with the words, so the
@@ -625,10 +627,19 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
 
         // Subtitle = the remaining label views: secondary, and indented to the
         // title column (past "<indicator> ") so it left-aligns to the label, not
-        // the box. A disabled toggle keeps the inherited dimmed colour.
-        var subtitleContext = labelContext
+        // the box. A disabled toggle keeps the inherited dimmed colour. The
+        // secondary tier is only the default: under a style the app states the
+        // subtitle takes it whole, as the title does — its primary level, not a
+        // secondary level of it and not a pair's second style — as SwiftUI's
+        // does (measured on macOS 15.8.3, checkbox and switch, bare and in a
+        // grouped form: `Tools/SwiftUIProbes/Disabled editor ink and toggle
+        // subtitles (1119)/notes.md`).
+        // `restingLabelContext` is the label's without the hover's lift: the
+        // subtitle is no click target, so it does not answer the pointer, and
+        // the lift, a stated style, would otherwise reach it as the app's.
+        var subtitleContext = restingLabelContext
         subtitleContext.environment.controlKind = nil
-        if !isDisabled {
+        if !isDisabled, subtitleContext.environment.statedForegroundStyle == nil {
             subtitleContext = subtitleContext.settingNotedEnvironment(
                 \.foregroundStyle,
                 to: subtitleContext.environment.foregroundStyle.keepingShadows(on: .color(palette.foregroundSecondary)), paint: true)
@@ -836,7 +847,11 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
                         on: .color(
                             palette.foregroundTertiary.opacity(
                                 ViewConstants.disabledForeground, over: palette.background))), paint: true)
-            } else if isHovered {
+            }
+            // The subtitle is no click target, so it takes no lift: it draws
+            // from the label's context as it was before the hover's.
+            let restingLabelContext = labelContext
+            if !isDisabled, isHovered {
                 // The whole row answers the pointer, not just the indicator: the
                 // whole row is what the click hits. Whatever colour is in force
                 // is what gets lifted — the app's own included, since the lift
@@ -854,7 +869,7 @@ struct _ToggleCore<Label: View>: View, Renderable, Layoutable {
 
             let built = builtInStyleBuffer(
                 isSwitch: toggleStyle is SwitchToggleStyle, isOnValue: isOnValue, isDisabled: isDisabled, isFocused: isFocused,
-                isHovered: isHovered, labelContext: labelContext, palette: palette,
+                isHovered: isHovered, labelContext: labelContext, restingLabelContext: restingLabelContext,
                 context: context)
             // The label only: which part of a mark or a switch is lit says whether
             // the toggle is on, and reversing it would say the opposite. Where the

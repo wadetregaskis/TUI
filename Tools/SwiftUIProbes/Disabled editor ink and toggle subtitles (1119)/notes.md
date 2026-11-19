@@ -105,6 +105,10 @@ So under `.foregroundStyle(.red)` TUI draws a red title over a grey subtitle,
 where SwiftUI draws both red. Under `(.red, .blue)` TUI draws grey, where
 SwiftUI draws red.
 
+**Since fixed (2026-11-19):** the secondary tier applies only where no style is
+stated (`statedForegroundStyle == nil`), so TUI now draws as SwiftUI does in all
+four places; `ForegroundStyleReachesContentTests` pins it.
+
 ## A side finding, not acted on
 
 Under `.foregroundStyle(.red, .blue)`, SwiftUI's `Text.foregroundStyle(.secondary)`

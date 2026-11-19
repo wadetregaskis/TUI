@@ -516,6 +516,26 @@ struct ToggleHoverTests {
             "the subtitle row does not: \(after[1])")
     }
 
+    @Test("Under a stated style, hovering a toggle leaves its subtitle as it was")
+    func hoverLeavesAStyledSubtitle() throws {
+        // The lift is a style the toggle states for its label, and the subtitle
+        // takes a stated style whole (`ForegroundStyleReachesContentTests`), so
+        // it must draw from the label's context before the lift, or it lights
+        // up with the clickable title though the pointer cannot click it.
+        let context = createTestContext()
+        let (before, after) = beforeAndAfterHover(
+            Toggle(isOn: .constant(false)) {
+                Text("Title")
+                Text("Explanatory subtitle")
+            }
+            .foregroundStyle(.red),
+            context: context)
+
+        try #require(before.count >= 2 && after.count >= 2, "expected a title and a subtitle row: \(after)")
+        #expect(after[0] != before[0], "the title row lifts: \(after[0])")
+        #expect(after[1] == before[1], "the subtitle row does not: \(after[1])")
+    }
+
     @Test("A disabled toggle has nothing to hover")
     func disabledNeverHovers() {
         let context = createTestContext()
