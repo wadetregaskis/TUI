@@ -6,7 +6,8 @@ because a line's styling can depend on the lines above it (a string or a comment
 real editors highlight large documents, then proposes how TUI should. Written 2026-11-17 against `main` at
 2b23a75b5. Nothing here is built. The costs come from a standalone probe on this machine (macOS 15.8.3, Xcode's
 Swift 6.2.4, `-O`; see "For a future reader"). Ids: A-ATTRED-5 to 7 (for the owner), B-ATTRED-8 to 15 (decided
-here).*
+here). The owner ruled on A-ATTRED-5 to 7 on 2026-11-18; §8 explores the rulings (B-ATTRED-19 to 26, and
+A-ATTRED-10 to 12 for the owner).*
 
 ## In short
 
@@ -32,6 +33,10 @@ carries them through its own edits. TUI ships JSON and XML lexers in an opt-in m
 On tuitree's 3.2 MB JSON, a byte lexer handles the whole document in 7 ms, a screenful in 3 µs, and an edit that
 opens a comment in the middle (60,000 lines to re-lex) in 2.5 ms. So a key stays at today's 2.6 ms, and a slow
 lexer only ever costs the lines drawn. About 7 lane-days, after SwiftUI's API (A-ATTRED-2).
+
+**2026-11-18:** the owner's rulings (explore the public seam and a worker; no lexers in TUI) are explored in §8.
+The seam becomes a push model behind `@_spi` first, the catch-up moves to a worker while the lines on screen are
+still lexed in the frame, and the lexers go to a package of their own: about 6¼ lane-days in TUI.
 
 ## 1. How editors do it
 
@@ -336,6 +341,10 @@ days** (it can bring its own lexer, or take H5's at 1½ more).
 languages. The seam costs a day, and it leaves room for a tree where a language needs one, without TUI owning a
 parser. **Default if unanswered:** (a), since (b) adds a public protocol.
 
+**Ruled 2026-11-18: explore (b).** Be wary of excessive complexity and of binary size, and think hard about what the
+public API implies: it can bring big benefits, but what are its risks and downsides? §8.1 explores it and recommends
+(b) with the seam behind `@_spi` until a second real styler exists (A-ATTRED-10).
+
 ### A-ATTRED-6. What TUI ships
 
 - **(a) No lexers.** Apps write their own. **Price:** none; tuitree writes a JSON and an XML lexer itself.
@@ -347,6 +356,10 @@ parser. **Default if unanswered:** (a), since (b) adds a public protocol.
 
 ★ (b): the two formats the driver needs, written as byte lexers (7 ms for 3.2 MB), and a worked example of the
 protocol for any app's own lexer. **Default:** (a).
+
+**Ruled 2026-11-18: a variant of (a).** TUI ships no lexers. JSON, XML and others go in their own repository, so
+that apps such as tuitree can use them. They do not feel core to TUI, unless a use case is being missed. §8.2 finds
+none, and proposes the package's shape (A-ATTRED-12).
 
 ### A-ATTRED-7. Where the catch-up runs
 
@@ -360,6 +373,386 @@ protocol for any app's own lexer. **Default:** (a).
 ★ (a): with the catch-up capped at a screen past the viewport, the main actor's share is small, and the protocol
 already requires `Sendable`, so (b) can come later without an API change. **Default:** (a).
 
+**Ruled 2026-11-18: explore (b).** Keep the main actor free even of slices, for responsiveness and to use a second
+core, and weigh that against complexity and safety. §8.3 does, and recommends (b), with the lines on screen still
+lexed in the frame (B-ATTRED-23).
+
+## 8. Rulings of 2026-11-18 and what exploring them found
+
+The owner ruled on A-ATTRED-5 to 7 on 2026-11-18 (recorded under each in §7). This section explores the three, against
+`main` at fcbdef3ee, with three new probes (§"For a future reader") on the same machine as §4 (macOS 15.8.3, Apple M4
+Max virtual machine, 14 cores, Xcode's Swift 6.2.4, `-O`). New ids: B-ATTRED-19 to 26 (decided here), A-ATTRED-10
+to 12 (for the owner).
+
+**In short.**
+
+- **A-ATTRED-7 (b) shapes A-ATTRED-5 (b),** so it comes first (§8.3 before §8.1). If the catch-up runs off the main
+  actor, the seam no longer needs "work under a deadline": a styler runs in its own task and pushes results into a
+  store the editor owns. So no third-party code runs while a frame draws, and a slow or hung styler can leave lines
+  unstyled but cannot stall the editor. That is simpler and safer than the pull seam of B-ATTRED-14.
+- **A snapshot is free.** The editor never edits its `String` in place: each edit splices a new one
+  (`EditorLayout.replacing(lines:)`), and the attributed editor keeps that same `String` beside its value
+  (`AttributedTextSource.string`). A snapshot is two retains (41 ns), and the next edit costs the same with one held
+  (459–510 µs either way at 3.2 MB).
+- **The worker costs the main actor almost nothing:** 42–83 ns to read a screen's states under the lock, 1.5 µs for
+  an edit to splice them. A worker lexing beside 20 edits slowed them by 4% at most (9.23–10.75 ms alone, 9.57–9.81 ms
+  together), and both finished in 61–62 ms of wall clock against about 75 ms one after the other.
+- **The seam: (b), but behind `@_spi` until a second real styler exists** (A-ATTRED-10). The line lexer, which tuitree
+  needs, is public. The seam's code is about 21 KB of unspecialised object code, dead-stripped where unused. What it
+  costs is the promise: once public, its push model, its line-granular changes, its UTF-8 units and its isolation are
+  fixed until a major release, and today no conformer outside TUI exists to prove them.
+- **No lexers in TUI** (A-ATTRED-6): no use in TUI needs one (block Markdown is out of scope, owner 2026-10-27). A
+  separate `TUILexers` package depends on `TUITextInput` (A-ATTRED-12). TUI's tests, Stress and the Example keep a
+  small JSONC lexer of their own, because the Example cannot depend on a package that depends on TUI.
+- **About 6¼ lane-days in TUI** for H0–H4, H6 and H7 (§8.5), against 7 for H0–H6 before. The lexers move to their
+  own repository, about 1½ days there.
+
+### 8.1 A-ATTRED-5 (b): the public seam
+
+#### The API
+
+The line lexer stays as B-ATTRED-9 has it, and is public in (a) and (b) alike. The seam is what (b) adds. Both are
+sketched below, type-checked under Swift 6 with strict concurrency and strict memory safety (the second probe). The
+names are for lane H4 to settle.
+
+```swift
+// Public in (a) and (b): the line lexer and its tokens.
+public protocol TextEditorLexer: Sendable {
+    associatedtype State: Hashable & Sendable
+    associatedtype Token: Hashable & Sendable
+    var initialState: State { get }
+    func lex(_ line: Substring.UTF8View, from state: State, into tokens: inout TextEditorTokens<Token>) -> State
+    func resynchronizationState(for line: Substring.UTF8View) -> State?          // default: nil
+}
+public struct TextEditorTokens<Token: Hashable & Sendable>: Sendable {
+    public init()
+    @inlinable public mutating func append(_ token: Token, at utf8Offset: Int)  // inlined into the lexer's module
+}
+extension View {
+    public func textEditorHighlighting<L: TextEditorLexer>(
+        _ lexer: L, style: @escaping @MainActor (L.Token) -> AttributeContainer) -> some View
+}
+
+// What (b) adds: the seam (A-ATTRED-10 asks whether `public` or `@_spi(TextEditorHighlighting) public`).
+public protocol TextEditorHighlighter: Sendable {
+    associatedtype Token: Hashable & Sendable
+    /// Runs off the main actor for as long as the editor shows this highlighter; cancelled when it stops.
+    func highlight(_ session: TextEditorHighlightSession<Token>) async
+}
+public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Sendable {
+    public func nextUpdate() async -> TextEditorHighlightUpdate?   // nil once the editor has gone
+    public var visibleLines: Range<Int> { get }                   // a hint: what to do first
+    @discardableResult                                            // false: stale version or bad line, kept nowhere
+    public func publish(_ tokens: TextEditorTokens<Token>, forLine line: Int, of version: Int) -> Bool
+    public func checkpoint() async throws                         // cancellation, and a yield (WebAssembly)
+}
+public struct TextEditorHighlightUpdate: Sendable {
+    public var text: TextEditorText                               // the latest text only
+    public var change: TextEditorTextChange?                      // every edit since the last update, as one; nil: all new
+}
+public struct TextEditorText: Sendable {                          // immutable: a snapshot is two retains
+    public let version: Int                                       // the editor's edit count
+    public let string: String
+    public var lineCount: Int { get }
+    public func line(_ line: Int) -> Substring.UTF8View           // without its break
+    public func utf8Offset(ofLine line: Int) -> Int
+}
+public struct TextEditorTextChange: Sendable, Equatable {         // by whole lines, as the editor's splice is
+    public var oldLines: Range<Int>, newLines: Range<Int>
+    public var oldUTF8: Range<Int>, newUTF8: Range<Int>
+}
+extension View {
+    public func textEditorHighlighter<H: TextEditorHighlighter>(
+        _ highlighter: H, style: @escaping @MainActor (H.Token) -> AttributeContainer) -> some View
+}
+```
+
+TUI's own engine is a `TextEditorHighlighter`: its worker is `highlight(_:)`, and publishes through the same store a
+tree-sitter bridge would, so the seam is exercised by every highlighted editor, not only by a test. The one thing the
+engine has that the seam lacks is the synchronous lexing of the lines on screen (B-ATTRED-23). That stays internal,
+because it calls the app's pure line function in the frame, which the seam is designed never to do.
+
+#### Decided here
+
+- **B-ATTRED-19. A styler sees the editor's `String`, on both editors.** The snapshot is the version, the `String`
+  and its line starts. B-ATTRED-14 assumed the attributed editor would build each line from its characters, because
+  `AttributedString` has no UTF-8 view before macOS 26. L4 made that unnecessary: `AttributedTextSource` keeps the
+  value's characters as a `String`, written by the same splice as the plain editor's. A `String` of the whole value
+  would cost 410–422 ms at 3.2 MB (probe), so the value itself is never read by a styler.
+- **B-ATTRED-20. The seam pushes; the editor never waits on a styler.** The store (a `Mutex` in the session) holds
+  the latest text, the coalesced change not yet taken, the lines on screen and the tokens published. A frame reads
+  tokens under the lock and runs no styler code. `publish` validates on the styler's thread: offsets that go
+  backwards or past the line are clamped, a line out of range or a stale version is refused. It asks for a frame only
+  when a line on screen changed. The store keeps tokens for the lines on screen and a screen either side, as the
+  drawn lines' cache does (B-ATTRED-11), however much a styler publishes.
+- **B-ATTRED-21. Changes are by whole lines, coalesced, and only the latest text is kept.** A change is what
+  `EditorLayout.Edit` already has (lines replaced, lines in their place, and their bytes). Edits that arrive while a
+  styler is busy fold into one change, so a slow styler holds one old text alive, never a queue of 3 MB texts. That
+  is enough for tree-sitter (one `ts_tree_edit` with points at column 0, then a reparse of slightly more than the
+  edit) and for an LSP client (one ranged change with the new lines' text). A value the app writes whole arrives as
+  an update with no change.
+- **B-ATTRED-24. Stale results.** The line engine drops a slice whose version has passed and starts again from the
+  new frontier. For a styler that lags (an LSP server answers in tens of milliseconds), tokens of lines an edit kept
+  move with their lines, and tokens of a line edited in place (as many lines after the edit as before) are kept as
+  provisional until the styler publishes again. So a lagging styler's colours neither vanish nor flicker while
+  typing.
+- **B-ATTRED-25. A lexer or highlighter of the same type is the same one** across body evaluations, unless it is
+  `Equatable` and unequal, as `.task(id:)` restarts only on a new id. Otherwise every body evaluation would restart
+  highlighting.
+- **B-ATTRED-26. Units.** Lines split at LF, CRLF and a lone CR, as `EditorLayout` splits them, numbered from 0.
+  Offsets are UTF-8 bytes from the line's start. These match tree-sitter's points (rows, byte columns), except that
+  tree-sitter does not count a lone CR as a line break, which a bridge maps. LSP counts lines as TUI does, and
+  columns in UTF-16 unless a server agrees to UTF-8 (3.17's `positionEncoding`), which a bridge converts per line.
+  The line parameter is `Substring.UTF8View`: `Span` would be better, but `String`'s span needs macOS 26 (cost
+  ledger M3, M4). Adding a `Span` requirement later is additive, with each requirement's default calling the other,
+  as `Collection`'s do.
+
+#### Risks and costs
+
+| Concern | What it costs or risks | How the design answers it |
+|---|---|---|
+| **API stability** | Before 1.0, nothing. After 1.0 (policy decisions B and 7), a public protocol that apps *conform to* is harder to evolve than one they call. A minor release can add requirements only with defaults. It cannot change a requirement's signature, the protocol's isolation (`Sendable` and off the main actor), whether `highlight` is `async`, or the meaning of an update. The push model, line-granular changes, UTF-8 units and line numbering are fixed until 2.0, and so is the session's lifetime: one session per editor, cancelled when it goes | Strict first: requiring `Sendable` now can be relaxed later without breaking a conformer, never the other way. The session is a final class, so members can be added in a minor release. `@_spi` until a second conformer exists (A-ATTRED-10) |
+| **What it commits TUI to** | Line-granular edits forever (finer edits can be added, coarser cannot be taken back); `version` as an edit count; a text snapshot per version (cheap only while the editor never edits its `String` in place: an in-place edit would make the first edit after a snapshot copy the text, 184–204 µs at 3.2 MB in the probe instead of 28–32 µs) | The editor builds a new `String` per edit today, and TUI needs the snapshot for its own worker whatever the seam does |
+| **A slow or hung styler** | With the pull seam (B-ATTRED-14), it ran in the frame and stalled the editor | It runs only in its own task. Lines it has not styled are drawn in the editor's ink (or provisionally, B-ATTRED-24). On WebAssembly, a styler that never reaches `checkpoint()` holds the only thread, as any task can. That is documented, and cannot be defended against |
+| **A buggy styler** | Offsets out of order or out of range, lines past the end, results for an old text, a flood of results | Clamped, refused, refused, and bounded to the window of B-ATTRED-20; frames requested only for lines on screen, and coalesced by the frame pacer |
+| **Testability** | A third party cannot make a session (its initialiser is internal), so cannot test a bridge without an editor | When public: a driveable session in `TUITesting` (apply an edit, read what was published), about ½ day. TUI's own tests drive the engine's slice function directly, with the budget seam, and never race |
+| **Documentation** | A DocC article: the lexer (a page) and the seam (a page more: the push model, the units, cancellation, `checkpoint()` on WebAssembly, B-ATTRED-25); symbol documentation; the Example's page in seven languages for the lexer | About ½ day of H4 for the seam's half |
+| **SwiftUI parity** | SwiftUI has no highlighting API for `TextEditor` (§2). Both modifiers are TUI extensions under their own names, and shadow nothing (CLAUDE.md, "Extending SwiftUI's API"). If SwiftUI adds one (TextKit 2 has rendering attributes, so it could), TUI would adopt SwiftUI's spelling and deprecate its own: one deprecation cycle, ending at the next major | Distinct base names (`textEditorHighlighting`, `textEditorHighlighter`), so no overload set grows and neither can make a SwiftUI call ambiguous |
+| **Binary size** | Lexer protocol and tokens: 2.3 KB of object code. The seam, with a minimal catch-up adapter: 23.7 KB (17.3 KB of `__text`), unspecialised, `-O -wmo` (probe 2). The real engine is (a)'s cost either way | An app that never highlights loses it to `DeadStripUnusedAPI`; one that does carries about 20 KB more for (b) |
+| **Compile time** | The sketch's 250 lines compile in 0.29 s more than the lexer's alone (0.20 s, 0.49 s). In apps: one generic modifier per entry point, and a style closure that is a `switch` | In the noise for `TUITextInput`. No overloads, so no new type-checking at existing call sites |
+| **No conformer yet** | Nobody has asked for tree-sitter or an LSP styler. A seam designed with no second user is the likeliest to be wrong (the rule of three) | Keep it `@_spi` until one is written against it; promote in a minor release, which is additive |
+
+**The alternatives.** `package` access does not cross packages, so a seam made `package` could be used only inside
+TUI, and a tree-sitter bridge would then have to live in TUI too. `@_spi(TextEditorHighlighting) public` reaches
+another package that asks for it (`@_spi(TextEditorHighlighting) import TUITextInput`). The API stability policy
+already leaves SPI outside the promise ("and `@_spi` (there is none)"). Two small costs: DocC leaves SPI symbols out
+of the catalog, so the seam would be documented in its doc comments only; and `api_baseline.py` must skip SPI
+declarations, which needs checking. Swift's own packages use SPI this way (swift-syntax, swift-nio), and SwiftUI
+has its own (`@_spi(SwiftUI)`, cited in `TUIView`).
+
+**Recommendation: (b), with the seam `@_spi` first** (A-ATTRED-10). TUI's engine is built behind the seam anyway,
+because the worker of §8.3 needs the same store, so the seam costs about ½ day more, not the day H6 priced. Its
+promise waits for the first real bridge.
+
+### 8.2 A-ATTRED-6: no lexers in TUI
+
+**Confirmed: no use in TUI needs a built-in lexer.** Checked:
+
+- **Markdown code blocks.** TUI parses inline Markdown only (`InlineMarkdownParser` in `TUIStrings`). Block
+  Markdown, code blocks included, was ruled out of TUI on 2026-10-27 (MARKDOWN-SCOPE: a separate package atop TUI).
+  An inline code span has no language to highlight.
+- **DocC.** DocC highlights the catalog's code itself.
+- **The file dialog's preview** shows a text file's opening lines as `Text(verbatim:)`
+  (`FilePanelPreview.swift`). Highlighting them would be new behaviour, not a need. Quick Look shows source as
+  plain text too.
+- **The terminal compatibility survey, Stress, the Example, the tests.** The survey has no highlighting. The
+  others need a lexer only to exercise and show the feature.
+
+**The separate package (A-ATTRED-12).** A `TUILexers` package, in its own repository beside TUI's:
+
+- **Products per language, à la carte:** `TUIJSONLexer` (JSON, JSONC, JSON5's comments) and `TUIXMLLexer` (XML,
+  with property lists' conventions) first. An app links only the languages it imports.
+- **Each lexer** is a `TextEditorLexer` with a public `Token` enum, a one- or two-byte `State`, and a default style
+  (`JSONLexer.Token.defaultStyle`, from the palette's semantic colours) that an app can replace.
+- **It depends on TUI's `TUITextInput` product only,** for `TextEditorLexer` and `TextEditorTokens`. An app that
+  uses it already depends on TUI. A dependency-free core, with an adapter product for TUI, would let a non-TUI
+  program use the lexers too. It would cost an adapter and about ½ day more, so it waits for such a program.
+- **Versions** follow TUI's major (TUILexers 1.x needs TUI 1.x), and its CI builds against TUI's `main` and latest
+  release.
+- **Tests:** samples from the JSON and XML test suites; a fuzz test that every token offset is in range and that
+  lexing never traps; a throughput benchmark in MB/s.
+
+**What TUI keeps.** SwiftPM refuses a dependency cycle between packages, so TUI's Example and Stress cannot use
+`TUILexers`. They need a lexer to show and to measure the feature (the Example's Text Input page, Stress's
+`bigtext-highlighted`). So TUI keeps one small JSONC byte lexer, about 150 lines (the probe's), in an internal target
+that is not a product, as `TUIWidthCorpus` is. Tests, Stress and the Example use it, and no package consumer ever
+builds it. The engine's tests use toy lexers written in the tests: a block-comment lexer for convergence, one whose
+state never converges (B-ATTRED-15), and a fake tree styler for the seam (H6).
+
+### 8.3 A-ATTRED-7 (b): the catch-up off the main actor
+
+#### What a snapshot costs (probe 1)
+
+A pretty-printed JSON of 3,200,067 bytes and 172,714 lines, shorter lines than §4's 119,774, lexed by the same kind
+of one-byte-state JSONC lexer. Two runs each; the second ran at a load average of 7, because other lanes were
+building.
+
+| | Time |
+|---|---|
+| A full pass, states only, on the main actor | 3.31–3.38 ms |
+| The same pass in a `@concurrent` task, awaited from the main actor | 3.52–3.69 ms |
+| Starting a `@concurrent` task and awaiting its value | 41–351 µs (latency under load, not main-actor work) |
+| A snapshot: the version, the `String` and its line starts (two retains) | 41–42 ns |
+| The editor's own edit (a new `String` spliced from the old), no snapshot held | 459–487 µs |
+| The same, with a snapshot held | 462–510 µs: the same |
+| An in-place `String` insert in the middle, unique / with a snapshot held | 28–32 µs / 184–204 µs (the copy) |
+| An in-place `[Int]` line-starts splice, unique / with a snapshot held | 15–18 µs / 105–109 µs |
+| `AttributedString` (24,674 runs): a snapshot / an insert, unique / with a snapshot held | 292 ns / 19–21 µs / 19–21 µs (its rope copies only the path it changes) |
+| A `String` of the whole `AttributedString` | 410–422 ms |
+| The worker, in slices of 4,096 lines, each published under a `Mutex` / of 512 lines with a yield each | 3.28–4.69 ms (43 slices) / 5.62–6.87 ms (338) |
+| The main actor reading a screen's 60 states and the frontier under that lock | 42–83 ns |
+| The main actor splicing an edit into the store under that lock | 1.5 µs |
+| 20 editor edits alone / while a worker made 20 full passes / those passes alone | 9.23–10.75 ms / 9.57–9.81 ms / 65.0–65.8 ms |
+| Wall clock for both at once (about 75 ms one after the other) | 61.3–62.3 ms |
+| `/*` typed mid-document: every line below re-lexed, without the cap | 0.89–0.90 ms |
+
+So copy-on-write never costs the editor anything today, because nothing it snapshots is mutated in place: the
+`String` and both start arrays are built afresh by each edit. If a later change made those edits in place, the
+first edit after a snapshot would copy, at a tenth of a millisecond to a fifth. The worker would let go of its
+snapshot at its next slice, so only edits made while it holds one would pay.
+
+**A lead the probe turned up (not this design's business):** rebuilding a 172,714-entry start array the way
+`EditorLayout.replacing(lines:)` does (a prefix, then the rest shifted through `lazy.map`) took 2.64–3.67 ms. An
+in-place splice took 15–18 µs. The editor rebuilds two such arrays a key. This was measured in the probe, not in
+TUI. It is worth a profile of the `bigtext` key before anyone relies on it.
+
+#### The design
+
+```
+ main actor                                            worker (a task on the global concurrent executor)
+ ─────────                                             ──────────────────────────────────────────────────
+ an edit: splice the store's states, version += 1  ─┐   loop: take the latest text, change and frontier (lock)
+          move the frontier, ring the doorbell      ├─►       lex from the frontier for 3 ms, unlocked, on the snapshot
+ a frame: lines on screen lexed in the frame from  ─┘       publish the slice's states (lock): dropped if the version moved
+          the nearest known state (B-ATTRED-23),           a line on screen changed? hop to the main actor (StateBox
+          reading the store under the lock (42-83 ns)        write, as AsyncImage does): memo invalidated, frame asked
+                                                            checkpoint(): cancelled? yield; up to the viewport + a screen
+```
+
+- **B-ATTRED-22. The worker is an ordinary task.** It is started through `LifecycleManager.startTask(token:priority:
+  name:operation:)` with a `@concurrent` operation, `.userInitiated` (as `AsyncImage`'s load) and a name
+  ("TextEditor highlighting", which macOS 15 drops: cost ledger M7). It is cancelled when the editor disappears or
+  B-ATTRED-25 sees a new lexer. Snapshot renders start no tasks (`firesEffects`), so golden snapshots draw only what
+  the frame lexes, and stay deterministic. It needs no change to the run loop: (a)'s slices would have needed a
+  main-actor task interleaved with input, which is about as much code.
+- **Slices are bounded by time, not lines** (3 ms, Neovim's segment), so a regex-speed lexer's slice is as short as a
+  byte lexer's. At each slice's end the worker publishes, checks the version, and calls `checkpoint()`. An edit
+  therefore wastes at most one slice of the worker's work, and never waits for it.
+- **Results come back without a hitch.** They are written into the store by the worker, under the lock, a slice's
+  states in one copy. The main actor merges nothing: the next frame reads them. Only when a line on screen changed
+  does the worker hop to the main actor, for one `StateBox` write that invalidates the editor's memo and asks for a
+  frame. That is `AsyncImage`'s pattern (`await MainActor.run { guard !Task.isCancelled … }`), so no new route to a
+  frame is invented.
+- **Ordering.** The version is the only clock. An edit bumps it under the lock, and a publish checks it under the same
+  lock, so a slice lexed from an old text can never land on a new one. A frame request that arrives late draws the
+  current state, which is harmless.
+- **Interning off the main actor.** Interning each line's end state under the lock would cost a lock a line, which
+  would double a full pass. The worker interns only where a line's state differs from the line above's (rare: a
+  comment's start or end), and does it at publish.
+- **Swift 6.2.** The lexer is a `Sendable` value, the snapshot is values, the store is a `Mutex` in a `Sendable` final
+  class, and the worker is `@concurrent`, so the compiler proves the sharing. **Measured (probe 3):** an app module
+  built with Swift 6.2's default main-actor isolation and Xcode 26's approachable-concurrency features
+  (`InferIsolatedConformances`, `NonisolatedNonsendingByDefault`) conforms a plain `struct JSONLexer: TextEditorLexer`
+  without `nonisolated` and without a diagnostic, and TUI can call it off the main actor. A lexer that touches
+  main-actor state is refused at compile time ("main actor-isolated var … can not be mutated from a nonisolated
+  context"). So the protocol costs an app nothing in such a module, and the compiler catches the one real mistake.
+- **The lexer runs on two threads at once:** the main actor's lines on screen, and the worker's catch-up. A
+  `Sendable` value with a pure `lex` (its documented contract) makes that safe. An `@unchecked Sendable` lexer with
+  hidden mutable state is the app's own race.
+- **Platforms.** Linux and Windows run the worker on the global executor's thread pool, and `Mutex` is in
+  `Synchronization` everywhere (`AppStorage` already uses it). `TUITextInput` does not build on Windows yet, and
+  nothing here adds POSIX. **WebAssembly** (wasip1) has one thread: the "worker" runs on the cooperative executor
+  between the run loop's 8 ms stdin polls (WebAssembly port, `StdinArrivalNotifier`). Each 3 ms slice ends in
+  `checkpoint()`, so input waits at most one slice. That is exactly (a), with the same code and no `#if`.
+- **Priority inversion and memory.** The main actor waits on the lock only while the worker copies a slice's states
+  (microseconds), and Darwin's `Mutex` donates priority. A snapshot held by the worker keeps one old text alive (3.2
+  MB, and 1.4 MB of start array, here) until its next slice.
+
+**B-ATTRED-23. The lines on screen are still lexed in the frame, on the main actor.** This is what the line engine
+keeps from (a), and the one place app code runs in a frame. Without it, every key would draw its line with the old
+tokens shifted, or unstyled, for a frame (16.7 ms or more), until the worker's answer came. So would every line a
+scroll brings into view. Typing a `"` that opens a string would colour the rest of the line one frame late. VS Code
+keeps a viewport tokenizer on the UI thread beside its worker (`tokenizeHeuristically` [3]). Neon makes it the point of its
+synchronous providers [22]. The price is a screenful: 3.0–3.4 µs with a byte lexer (§4), and the 2 ms budget of
+B-ATTRED-12 at worst. If the owner prefers no lexing at all on the main actor, the cost is that flash after each key
+and each scroll. Third-party stylers behind the seam always work without the frame's help (B-ATTRED-24).
+
+#### What (b) buys, honestly
+
+With the cap of B-ATTRED-12, the catch-up after an edit is at most the lines down to a screen past the viewport:
+microseconds with a byte lexer. So for TUI's byte lexers on today's files, (b) saves the main actor little. It
+matters:
+
+1. **After a jump** far ahead: the gap is caught up on another core (3.3–4.7 ms at 3.2 MB with a byte lexer, about
+   10 s with a regex-speed one), while the main actor draws and takes keys.
+2. **For slow lexers** in general: a regex lexer's slices never take main-actor time.
+3. **For stylers behind the seam:** a tree-sitter parse of a large file, or an LSP round trip, is long or
+   asynchronous by nature.
+4. **If the cap is lifted** (A-ATTRED-11): running to the document's end becomes background work.
+
+**The risks it brings,** and their answers: data races (the compiler proves the sharing, and version stamps stop
+stale writes); nondeterministic tests (the slice function is driven directly with the budget seam, as the
+timed-wake lesson wants; one stress test runs the real worker under the thread sanitizer); a second core's energy
+(bounded by the cap); and a held snapshot's memory (one old text).
+
+**Complexity against (a).** (a)'s H2 is about 150 lines (a main-actor slice task and its budget). (b) adds the
+locked store and versions (about 80 lines), the worker loop and its lifecycle (about 70), and publishing with the
+hop (about 50): about 200 lines more, and about 300 lines of tests (deterministic stepping, a stale slice dropped,
+an edit mid-slice, cancellation, and the sanitizer run). **H2 and H7 together: 2 lane-days, against H2's 1.**
+
+**Recommendation: (b),** with B-ATTRED-23. It costs a day more than (a). It keeps the main actor's share to the
+lines it draws, uses a second core where there is one, and degrades to (a) on WebAssembly by itself. It also makes
+the seam of §8.1 simpler and safer. Without the worker, the seam would have had to run third-party code in the
+frame.
+
+### 8.4 For the owner
+
+#### A-ATTRED-10. How the seam ships
+
+*The `TextEditorHighlighter` seam of §8.1: a tree-sitter or LSP styler plugs into the editor through it.*
+
+- **(a) Public at once.** **Price:** about ½ day (H6) plus ½ day for a driveable session in `TUITesting`, and from 1.0
+  on, the push model, line-granular changes, UTF-8 units, isolation and session lifetime are fixed until 2.0, before
+  any styler has been written against them.
+- **(b) ★ `@_spi(TextEditorHighlighting) public` until a second real styler exists,** then public in a minor release
+  (additive). **Price:** the same ½ day. Also: `api_baseline.py` must skip SPI (to check, about ¼ day), the API
+  stability policy's "there is none" line changes, and the seam is documented in doc comments only (DocC leaves SPI
+  out). Users write `@_spi(TextEditorHighlighting) import TUITextInput` and accept that it may change.
+- **(c) Internal (`package`).** **Price:** saves ½ day. No other package can use it, so a tree-sitter bridge would
+  have to live in TUI.
+
+★ (b): the engine is built behind the seam either way. It is the promise, not the code, that wants a user first.
+**Default if unanswered:** (b), since it promises nothing.
+
+#### A-ATTRED-11. How far the catch-up goes, now that it is off the main actor
+
+- **(a) ★ As B-ATTRED-12: to a screen past the viewport.** A jump far ahead draws one provisional screen, corrected
+  when the worker reaches it (3.3–4.7 ms at 3.2 MB with a byte lexer). **Price:** none.
+- **(b) To the document's end after every edit that changes an end state.** No provisional screens with a byte
+  lexer, and every line's state known (a minimap or an outline could use them). **Price:** a background core for
+  0.9–4.7 ms per such edit with a byte lexer; with a regex-speed lexer, about 10 s, restarted by each key typed
+  while a comment is open.
+- **(c) To the end only for a lexer measured fast** (its last catch-up's MB/s over a threshold), else (a). **Price:**
+  about ½ day, and behaviour that depends on a measurement.
+
+★ (a): with a byte lexer the difference is one frame after a jump. (b) or (c) can come when an app wants a minimap,
+without an API change. **Default:** (a).
+
+#### A-ATTRED-12. The lexers' package
+
+- **(a) ★ `TUILexers`, a repository beside TUI's,** with a product per language (`TUIJSONLexer`, `TUIXMLLexer`),
+  depending on `TUITextInput` (§8.2). **Price:** H5's 1½ days, moved there, and a repository for the owner to create
+  (repository names are held for the owner).
+- **(b) The same, with a dependency-free core** and an adapter product for TUI. **Price:** about ½ day more. Pays
+  only if a program without TUI wants the lexers.
+- **(c) In tuitree for now,** extracted when a second app wants them. **Price:** none now. Only tuitree has them.
+
+★ (a): the ruling asked for a repository other apps can use, and every user named so far uses TUI. **Default:** (a)
+once the owner names the repository, else (c).
+
+### 8.5 The lanes, as they now stand
+
+| Lane | Change | Days |
+|---|---|---|
+| H0, H1, H3 | As §6 | 1, ½, 1 |
+| H2 + H7 | One lane: the viewport in the frame (B-ATTRED-23), the worker, the locked store and versions (B-ATTRED-20 to 25) | 2 |
+| H4 | As §6, with the lexer public and the seam as A-ATTRED-10 rules | 1 |
+| H5 | Moves to `TUILexers` (1½ days there); TUI keeps the internal JSONC lexer target (§8.2) | ¼ in TUI |
+| H6 | The seam over the engine's store, its SPI or public attribute, the fake tree styler | ½ |
+
+**About 6¼ lane-days in TUI**, against 7 before. The 11-17 plan's H0–H6 is now H0–H4, H6 and H7, with H5's lexers
+in their own repository.
+
 ## For a future reader
 
 - **The probe** (not kept in the repository, per this folder's habit): a Swift file that builds a pretty-printed
@@ -368,6 +761,23 @@ already requires `Sendable`, so (b) can come later without an API change. **Defa
   pass with states only, a full pass keeping tokens, a 60-line screenful, a key that converges at once, `/*`
   inserted in the middle until convergence, and the document joined into one line. Built with `xcrun swiftc -O`
   and run twice. A lane can rebuild it in an hour.
+- **The 2026-11-18 probes** (§8; in the scratchpad, not the repository). Each rebuilds in minutes from its
+  description, with Xcode's toolchain (`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`, or the
+  maintainers' `slot.py`, which sets it):
+  1. *Snapshot and worker* (`probe.swift`, about 330 lines): builds the 3.2 MB JSON (records of seven lines), the
+     one-byte-state JSONC lexer, the editor's splice edit, and a worker that lexes in slices and publishes each into
+     a `Mutex` store stamped with a generation. Times every row of §8.3's table, as medians of 9 to 51 runs. Built
+     with `xcrun swiftc -O -swift-version 6 -parse-as-library probe.swift -o probe`.
+  2. *The seam sketch* (`Lexer.swift` and `Seam.swift`, about 250 lines): §8.1's declarations, with a session
+     store, change coalescing and a minimal catch-up adapter. It was type-checked and compiled with `-swift-version
+     6 -O -wmo -strict-memory-safety -target arm64-apple-macosx15.0 -emit-object`, and sized with `size -m`, once
+     with the lexer file alone and once with both. It is not tested: `followed(by:)`'s composition of two changes,
+     in particular, is for lane H6 to test.
+  3. *Isolation* (`Seam.swift` declaring a `Sendable` lexer protocol and a function that calls it in a
+     `@concurrent` task; `App.swift` with `struct JSONLexer: LineLexer`; `App3.swift` with a lexer that writes a
+     global): the module emitted with `-emit-module`, then each app file type-checked with `-default-isolation
+     MainActor -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature
+     NonisolatedNonsendingByDefault`, and without them.
 - **The cap on catch-up** (B-ATTRED-12) is the decision most likely to be revisited. If an app wants the whole
   document styled (a minimap, an outline drawn from tokens), the engine can run to the end in slices on request.
   It is not the default, because an edit that opens a comment would then cost the document.
