@@ -237,7 +237,10 @@ struct GeometricArrowScrollingTests {
         let plain = TestApp { StackGrid() }
         plain.press(.right)
         #expect(!plain.services.mouseEventDispatcher.regions.contains { $0.handlerID == .focusFrameStart })
-        #expect(!plain.services.mouseEventDispatcher.regions.contains { $0.handlerID == .focusScrollMember })
+        #expect(
+            !plain.services.mouseEventDispatcher.regions.contains {
+                $0.handlerID == .focusVerticalScrollMember || $0.handlerID == .focusHorizontalScrollMember
+            })
     }
 
     /// A button above a scroll view of rows a blank line apart, or each over a
@@ -334,5 +337,38 @@ struct GeometricArrowScrollingTests {
         #expect(row.focusedID == "left")
         #expect(steps(row, .right, times: 13) == (0..<12).map { "c\($0)" } + ["right"])
         #expect(steps(row, .left, times: 13) == (0..<12).reversed().map { "c\($0)" } + ["left"])
+    }
+
+    /// A vertical scroll view of rows, its first row short and one far down
+    /// indented past it, and a button beside the scroll view, level with the
+    /// first row.
+    private struct Beside: View {
+        var body: some View {
+            HStack(alignment: .top, spacing: 1) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Button("top") {}.focusID("top")
+                        ForEach(0..<8, id: \.self) { Text("line \($0)") }
+                        Button("deep") {}.focusID("deep").padding(.leading, 12)
+                    }
+                }
+                .frame(width: 20, height: 4)
+                Button("beside") {}.focusID("beside")
+            }
+        }
+    }
+
+    @Test("Right from a row of a vertical scroll view goes to the button beside it, not to one far down the list")
+    func acrossAVerticalScrollView() {
+        let beside = app { Beside() }
+        // The scroll view is a stop of its own, first in Tab order.
+        for _ in 0..<3 where beside.focusedID != "top" { beside.press(.tab) }
+        #expect(beside.focusedID == "top")
+        // `deep` lies right of `top` too, out of sight below the fold, in the
+        // same scroll view; but the scroll view scrolls only up and down, so
+        // across it the beam decides, and `beside` is level with `top`.
+        #expect(isOutOfSight("deep", in: beside))
+        beside.press(.right)
+        #expect(beside.focusedID == "beside")
     }
 }

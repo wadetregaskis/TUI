@@ -731,13 +731,13 @@ extension _ScrollViewCore {
         // What the clip cut, the geometric arrows still need to find: where
         // each control scrolled out of sight is, so an arrow can go to it and
         // the reveal bring it in; and which controls lie in this scroll view,
-        // so an arrow goes on through its content before leaving it. A second
-        // pass, and only in that mode.
+        // so an arrow along an axis it scrolls goes on through its content
+        // before leaving it. A second pass, and only in that mode.
         if keepsFocusFrames {
             visibleRegions.appendFocusFrameCorners(
                 of: full.hitTestRegions.map { $0.shifted(byX: dx, y: -scrollOffset) },
                 clippedTo: 0..<viewportWidth, rows: 0..<viewportHeight)
-            visibleRegions.appendScrollMembership(of: full.hitTestRegions)
+            visibleRegions.appendScrollMembership(of: full.hitTestRegions, along: axes)
         }
 
         // Animated runs are a claim about single rows, so unlike a region they

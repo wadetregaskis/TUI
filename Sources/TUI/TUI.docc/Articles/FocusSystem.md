@@ -22,10 +22,11 @@ Follow Layout in the settings panel (F2) or the View menu, which wins until the
 app quits, an arrow moves the focus to the nearest control in its direction
 instead, on screen or scrolled out of sight, so Down goes to the button below
 rather than the next one in Tab order; where there is none the focus stays. In a
-`ScrollView` an arrow goes on through the scroll view's content, scrolling the
-next control into sight, before it leaves for a control outside the scroll view:
-Up from the top row on screen goes to the row above it, not to a button above the
-scroll view. Tab is unchanged, and the arrows still stay inside the active focus
+`ScrollView` an arrow along an axis it scrolls goes on through the scroll view's
+content, scrolling the next control into sight, before it leaves for a control
+outside the scroll view: Up from the top row on screen goes to the row above it,
+not to a button above the scroll view, while Right from a row of a vertical one
+goes to the button beside it. Tab is unchanged, and the arrows still stay inside the active focus
 section.
 
 F6 moves the focus to the newest toast that has a button, again to the next

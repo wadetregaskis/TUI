@@ -25,9 +25,10 @@ to the nearest focusable control in its direction, on screen or scrolled out of 
 
 1. **Candidates** are the section's focusable controls the last frame laid out, drawn or clipped by a scroll view,
    whose frames lie wholly beyond the focused control's edge in that direction (touching counts).
-2. **The scroll views first.** A candidate in more of the scroll views around the focused control beats one in fewer,
-   before anything below: the arrow goes on through a scroll view's content, out of sight or not, before it leaves
-   it ([Scroll views first](#scroll-views-first)).
+2. **The scroll views first.** A candidate in more of the scroll views around the focused control that scroll along
+   the arrow's axis beats one in fewer, before anything below: the arrow goes on through a scroll view's content, out
+   of sight or not, before it leaves it ([Scroll views first](#scroll-views-first)). Across a scroll view's axis
+   (← → in a vertical one) it counts for nothing.
 3. **Beam next.** A candidate overlapping the focused control on the other axis (its columns for ↑ ↓, its rows for
    ← →) beats any that doesn't, however far.
 4. **Then distance**: the squared distance between the nearest edges, a row counting as two columns, since a terminal
@@ -112,7 +113,8 @@ tied on distance, and the button came first in Tab order. Rows a line apart lost
 
 Geometry alone cannot tell the row from the button, so the scroll view says which controls lie in it: under
 `TUI_ARROW_FOCUS=geometric` its clip leaves, for each focus id in its content, on screen or not, one more marker at
-the viewport's top-left (`HitTestRegion.HandlerID.focusScrollMember`, `appendScrollMembership(of:)`), which every
+the viewport's top-left for each axis it scrolls along (`HitTestRegion.HandlerID.focusVerticalScrollMember` and
+`.focusHorizontalScrollMember`, `appendScrollMembership(of:along:)`), which every
 later shift and clip carries to the root as it does the corners. A control's scroll views are its markers' points; a
 control in a scroll view inside another has one for each, and two scroll views whose viewports share a corner give
 the point twice, so counting shared points, each as often as both give it, counts shared scroll views. The marker is
@@ -123,6 +125,16 @@ No measurement backs the choice: `Tools/SwiftUIProbes` has no arrow-focus probe,
 one. It follows the owner's 2026-11-08 words above (arrows alone suffice to move through a grid in a much smaller
 scroll view, scrolling as necessary), and it is how tvOS's focus engine and Android's `RecyclerView` behave as
 recalled, not measured: a directional move stays in the scrolling container while its content goes on that way.
+
+**Only along the scroll view's axes** (2026-11-19, found in review): the rule first counted every shared scroll view
+whatever the arrow, so → from a short row at the top of a vertical `ScrollView` passed over a button beside the scroll
+view, level with the row, for a control far down the list, out of sight, that happened to lie further right. A
+scroll view hides content only past its viewport along the axes it scrolls, so only there is a row out of sight
+confused with a control outside; across them the beam and the distance already tell the two apart. Each scroll view
+now leaves one marker per axis it scrolls, and an arrow counts only the markers of its own axis: ↑ ↓ the vertical
+scroll views', ← → the horizontal ones', and a scroll view that scrolls both ways counts for all four. That is also
+the containers' behaviour recalled above: a vertical list's container holds ↑ ↓, not ← →. Test:
+`GeometricArrowScrollingTests.acrossAVerticalScrollView`.
 
 A windowed lazy stack needs nothing more: the rows it draws off its band for the focus ring, the focused row's nearest
 focusable neighbour each way past any rows that register nothing (`StackFocusReach.swift`), are the rows an arrow

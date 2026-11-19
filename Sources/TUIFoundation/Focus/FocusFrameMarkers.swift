@@ -29,11 +29,17 @@ extension HitTestRegion.HandlerID {
     /// The marker one cell past a clipped focusable control's bottom-right.
     package static let focusFrameEnd = Self(geometryMarkerBit | 0x3FFF_FFFF_FFFF_FFF7)
 
-    /// The marker a scroll view leaves at its viewport's top-left for each
-    /// focusable control in its content, on screen or not, carrying the
-    /// control's focus id: which scroll views a control lies in, for the
-    /// geometric arrows (``Swift/Array/appendScrollMembership(of:)``).
-    package static let focusScrollMember = Self(geometryMarkerBit | 0x3FFF_FFFF_FFFF_FFF5)
+    /// The marker a scroll view that scrolls up and down leaves at its
+    /// viewport's top-left for each focusable control in its content, on
+    /// screen or not, carrying the control's focus id: which such scroll views
+    /// a control lies in, for the geometric arrows' ↑ and ↓
+    /// (``Swift/Array/appendScrollMembership(of:along:)``).
+    package static let focusVerticalScrollMember = Self(geometryMarkerBit | 0x3FFF_FFFF_FFFF_FFF5)
+
+    /// The marker a scroll view that scrolls across leaves, as
+    /// ``focusVerticalScrollMember`` does, for ← and →. A scroll view that
+    /// scrolls both ways leaves both.
+    package static let focusHorizontalScrollMember = Self(geometryMarkerBit | 0x3FFF_FFFF_FFFF_FFF4)
 }
 
 extension RenderContext {
@@ -95,8 +101,11 @@ extension Array where Element == HitTestRegion {
     }
 
     /// Appends, for each focus id among `regions` — a scroll view's whole
-    /// content, on screen or not — one ``HitTestRegion/HandlerID/focusScrollMember``
-    /// marker at the viewport's top-left (`0`, `0`), carrying that id.
+    /// content, on screen or not — a marker at the viewport's top-left (`0`,
+    /// `0`), carrying that id, for each axis in `axes`:
+    /// ``HitTestRegion/HandlerID/focusVerticalScrollMember`` for `.vertical`,
+    /// ``HitTestRegion/HandlerID/focusHorizontalScrollMember`` for
+    /// `.horizontal`.
     ///
     /// A control scrolled out of sight has a frame past the viewport's edge, in
     /// screen coordinates where the controls around the scroll view are drawn:
@@ -110,13 +119,23 @@ extension Array where Element == HitTestRegion {
     /// a scroll view inside another carries one for each. Two scroll views
     /// whose viewports share a corner are told apart by how many markers a
     /// control carries there.
-    package mutating func appendScrollMembership(of regions: [HitTestRegion]) {
+    ///
+    /// Only along the axes the scroll view scrolls: the controls it hides lie
+    /// past its viewport that way and no other, so a vertical list's rows are
+    /// no reason for → to pass over the button beside a row for a control far
+    /// down the list that happens to lie further right.
+    package mutating func appendScrollMembership(of regions: [HitTestRegion], along axes: Axis.Set) {
+        var handlers: [HitTestRegion.HandlerID] = []
+        if axes.contains(.vertical) { handlers.append(.focusVerticalScrollMember) }
+        if axes.contains(.horizontal) { handlers.append(.focusHorizontalScrollMember) }
+        guard !handlers.isEmpty else { return }
         var members: Set<String> = []
         for region in regions {
             guard let focusID = region.focusID, members.insert(focusID).inserted else { continue }
-            append(
-                HitTestRegion(
-                    offsetX: 0, offsetY: 0, width: 0, height: 0, handlerID: .focusScrollMember, focusID: focusID))
+            for handler in handlers {
+                append(
+                    HitTestRegion(offsetX: 0, offsetY: 0, width: 0, height: 0, handlerID: handler, focusID: focusID))
+            }
         }
     }
 }

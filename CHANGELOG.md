@@ -185,7 +185,9 @@ Up from the top row on screen in a `ScrollView` went to a button above the scrol
 the viewport, in a `VStack` or a `LazyVStack` alike, and Down at the bottom or Left and Right at the sides did the
 same wherever the control outside lay as near: a row out of sight lies, on screen, where the controls around the
 scroll view are drawn. An arrow now prefers a control in the same scroll views as the focused one, out of sight or
-not, and scrolls it in; it leaves the scroll view only when nothing in its content lies that way.
+not, and scrolls it in; it leaves the scroll view only when nothing in its content lies that way. Only along the axes
+the scroll view scrolls: Right from a row of a vertical list goes to the button beside it, not to a control far down
+the list that lies further right.
 
 **`TextEditor` edits an `AttributedString`.** `TextEditor(text:selection:)` takes a `Binding<AttributedString>` and an
 optional `Binding<AttributedTextSelection>`, as SwiftUI's does on macOS 26. The text is drawn in its attributes as a
