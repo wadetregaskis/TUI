@@ -2,7 +2,7 @@
 
 *Submenus in a pop-up `Menu` and a `.contextMenu`, type-ahead in menus and
 drop-downs, and the modifiers an alert keeps on its buttons. Ids:
-B-MENUS-1 to 3. The menu engine's design is live, in
+B-MENUS-1 to 4. The menu engine's design is live, in
 [Unifying the menu implementations](<../../Controls and presentation/Unifying the menu implementations.md>).*
 
 ## In short
@@ -11,7 +11,8 @@ A `Menu` or a `Picker` inside a pop-up menu is a submenu, opened by Right and
 closed by Left or Escape, in the one engine every pop-up menu shares. Type
 select in an open drop-down or menu follows the list's rule. An alert keeps
 `.disabled` and `.keyboardShortcut` on its buttons, and its default button
-answers Return.
+answers Return. A menu the keyboard opens takes no row from a resting pointer
+until it moves.
 
 ## How it unfolded
 
@@ -182,3 +183,34 @@ any menu is open, so not done in passing.
 pop-up button does (choosing the option without opening the menu) — unmeasured,
 about two hours with a probe, and a change to what a character does on a
 focused picker, so not done silently.
+
+### B-MENUS-4. A menu the keyboard opens takes no row from a resting pointer until it moves
+
+*`MenuHighlight.noteOpened(byKeyboard:)`, `MenuHighlight.pointerStillSince(in:)`,
+`MouseEventDispatcher.pointerMoves`, `DropdownMenu`'s row handler,
+`RenderLoop.owesPointerFrame`, `AppRunner.frameDrawn(renderer:hold:)`*
+
+**Lead decision, 2026-11-18 (owner may revisit).** Found by the Stress `menus`
+session at 1,500 steps (step 419, and step 803's Return; debug and release
+alike, the cache-cleared twin agreeing). The pointer rested where a drag had
+left it; a menu opened from the keyboard appeared under it and drew its first
+row lit; then, as the frame published its hit regions, the hover's reconcile
+entered the row under the resting pointer and moved the highlight there,
+undrawn. Down went on from that row, and Return ran a row the screen had not
+lit.
+
+**Shipped, two fixes.** (1) A menu the keyboard opens — a pop-up `Menu`, a
+`.contextMenu`, a submenu entered with Right, a menu bar's or a toolbar's menu,
+a `Picker`'s drop-down, a text field's suggestions — takes no row from a pointer
+resting over it until the pointer is reported at another cell. A report at the
+cell it rests on is not a move. Its first move lights the row under it, whether
+it moves within the row it rests on or onto another. A menu the pointer opened
+follows the pointer as before. This is what a macOS menu opened from the keyboard
+does — it keeps its keyboard highlight until the mouse moves — known from use,
+not measured with a probe here; nothing recorded before said otherwise. (2) In
+general: a frame whose hit regions change what it shows under the pointer after
+it is drawn (a menu's highlight, a hover lit) owes the frame that draws it, and
+that frame is drawn before the next input is handled — the run loop holds its
+reading for it as for a control's action, under the same backlog limit
+(`ActivationHold.frameOwesAnother(atNanos:)`), and `HeadlessApp` draws it as the
+next event arrives — so a key never acts on a state the screen has not drawn.

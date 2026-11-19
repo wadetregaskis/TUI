@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A menu opened from the keyboard keeps its highlight until the pointer moves.** A pop-up menu, a context menu, a
+submenu, a picker's drop-down or a field's suggestions opened by a key under a pointer resting where it last moved to
+lit its first row, and then took the row under the pointer, so Down and Return went on from a row the keyboard never
+chose. It now takes no row from the pointer until the pointer moves, as a macOS menu does; the first move lights the
+row under it, the row it rested on included. A menu the pointer opens follows it as before.
+
 **What a frame changes under the resting pointer after it is drawn is drawn before the next key.** A frame's hit
 regions re-resolve the hover under a pointer that has not moved, and what that changed — a menu's highlight moved to
 the row under the pointer, a hover lit — waited for a frame while a key already waiting was handled first: Return

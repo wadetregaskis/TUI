@@ -70,12 +70,16 @@ extension DropdownMenu {
         /// to that pair of braces.
         package var isEnabled = true
 
+        /// The pointer's move count the rows wait to see pass, for a menu the
+        /// keyboard opened (``Configuration/pointerStillSince``).
+        package var pointerStillSince: Int?
+
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUIPickers makes these, for a `Picker`'s menu,
         /// and TUITextInput, for a text field's suggestions.
         package init(
             entries: [Entry], highlightedOption: Int?, scroll: ScrollAxis, followHighlight: Bool,
-            autoRepeatToken: String, isEnabled: Bool = true
+            autoRepeatToken: String, isEnabled: Bool = true, pointerStillSince: Int? = nil
         ) {
             self.entries = entries
             self.highlightedOption = highlightedOption
@@ -83,6 +87,7 @@ extension DropdownMenu {
             self.followHighlight = followHighlight
             self.autoRepeatToken = autoRepeatToken
             self.isEnabled = isEnabled
+            self.pointerStillSince = pointerStillSince
         }
     }
 
@@ -175,14 +180,16 @@ extension DropdownMenu {
             rowByOrdinal.indices.contains($0) ? rowByOrdinal[$0] : nil
         }
 
+        var configuration = Configuration(
+            rows: rows,
+            highlightedRow: highlightedRow,
+            innerWidth: innerWidth(for: menu.entries, context: context),
+            scroll: menu.scroll,
+            followHighlight: menu.followHighlight,
+            autoRepeatToken: menu.autoRepeatToken)
+        configuration.pointerStillSince = menu.pointerStillSince
         var popup = popup(
-            Configuration(
-                rows: rows,
-                highlightedRow: highlightedRow,
-                innerWidth: innerWidth(for: menu.entries, context: context),
-                scroll: menu.scroll,
-                followHighlight: menu.followHighlight,
-                autoRepeatToken: menu.autoRepeatToken),
+            configuration,
             context: context,
             onHover: { row in ordinalByRow[row].map(onHover) },
             onActivate: { row in

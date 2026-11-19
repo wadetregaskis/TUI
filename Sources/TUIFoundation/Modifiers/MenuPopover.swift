@@ -146,6 +146,8 @@ func renderMenuPopup(
         followHighlight: controller.highlight.consumeFollowPending(),
         autoRepeatToken: "menu-popup-scrollbar-\(context.identity.path)")
     configuration.attachesBackdrop = false
+    configuration.pointerStillSince = controller.highlight.pointerStillSince(
+        in: context.environment.mouseEventDispatcher)
     let popup = DropdownMenu.popup(
         configuration,
         context: context,

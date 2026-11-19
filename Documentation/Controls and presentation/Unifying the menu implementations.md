@@ -142,6 +142,16 @@ nothing to scroll to.
 not been demonstrated end to end — the hover state machine did not fire in the
 test harness, and it is not claimed until it does.
 
+*Since 2026-11-18:* the pointer over a row lights it as it enters the row and as
+it moves within one that is not lit, and a menu the keyboard opened — a pop-up
+`Menu`, a `.contextMenu`, a submenu, a `Picker`'s drop-down, a field's
+suggestions — takes no row from a pointer resting over it until the pointer moves
+to another cell (`MenuHighlight.noteOpened(byKeyboard:)`,
+`MouseEventDispatcher.pointerMoves`), as a macOS menu opened from the keyboard
+does: lead decision, 2026-11-18, owner may revisit (B-MENUS-4 in
+[Pop-up menus](<../Historical/Menus, toolbars and chrome/Pop-up menus - submenus, type select and an alert's buttons.md>)).
+A menu the pointer opened follows it as before.
+
 ## Chrome parity, once the assemblies agree
 
 Measured *before* the renderer merge: for identical labels and no key equivalent

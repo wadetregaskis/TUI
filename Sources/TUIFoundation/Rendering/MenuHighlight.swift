@@ -163,6 +163,47 @@ package final class MenuHighlight {
         return followPending
     }
 
+    // MARK: - The pointer, where the keyboard opened the menu
+
+    /// Whether the keyboard opened the menu, so that a pointer resting over it
+    /// takes no row until it moves (``noteOpened(byKeyboard:)``).
+    private var openedByKeyboard = false
+
+    /// The pointer's move count as the first frame drew the menu the keyboard
+    /// opened (`MouseEventDispatcher.pointerMoves`), or `nil` before that
+    /// frame.
+    private var pointerMovesAtOpen: Int?
+
+    /// Records how the menu was opened, which says how its rows answer a
+    /// pointer that rests over them.
+    ///
+    /// Opened by the keyboard, they answer it only once it has moved: a menu
+    /// that opens under a pointer resting where a drag or a move last left it
+    /// keeps the row the keyboard highlighted, as a macOS menu opened from the
+    /// keyboard does until the mouse moves (lead decision, 2026-11-18, owner
+    /// may revisit; `Pop-up menus - submenus, type select and an alert's
+    /// buttons.md`, B-MENUS-4). Taken, the row under the pointer was lit by
+    /// the hover's reconcile after the frame that drew the first row lit, and
+    /// Return ran a row the screen had not lit (the Stress menus session, at
+    /// step 419). Opened by the pointer, they answer it as before.
+    package func noteOpened(byKeyboard: Bool) {
+        openedByKeyboard = byKeyboard
+        pointerMovesAtOpen = nil
+    }
+
+    /// The count the rows compare the pointer's moves against
+    /// (`MouseEventDispatcher.pointerHasMoved(since:)`), or `nil` when the
+    /// pointer has its way with them at once: a menu the pointer opened, or
+    /// no pointer at all. Taken from `dispatcher` by the first frame that
+    /// draws the menu, and kept: a move counted after it is one the menu was
+    /// up for.
+    package func pointerStillSince(in dispatcher: MouseEventDispatcher?) -> Int? {
+        guard openedByKeyboard, let dispatcher else { return nil }
+        if let pointerMovesAtOpen { return pointerMovesAtOpen }
+        pointerMovesAtOpen = dispatcher.pointerMoves
+        return pointerMovesAtOpen
+    }
+
     // MARK: - The walk
 
     /// Moves the highlight for `event`, or reports that the key was not one of

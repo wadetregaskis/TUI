@@ -252,9 +252,13 @@ package final class MenuPopupController {
     /// on 15.8, `Tools/SwiftUIProbes/Menu keyboard walk (1110E)`), and the
     /// frame that opens the menu draws it lit. Until then nothing is
     /// highlighted, but the menu counts as entered (``isEntered``).
+    ///
+    /// Opened with a selection — by the keyboard — a pointer resting over it
+    /// takes no row until it moves (``MenuHighlight/noteOpened(byKeyboard:)``).
     package func opened(withSelection: Bool) {
         closeSubmenu()
         highlight.move(to: nil)
+        highlight.noteOpened(byKeyboard: withSelection)
         highlightsFirstRow = withSelection
     }
 
@@ -262,6 +266,7 @@ package final class MenuPopupController {
     package func closed() {
         closeSubmenu()
         highlight.move(to: nil)
+        highlight.noteOpened(byKeyboard: false)
         highlightsFirstRow = false
     }
 

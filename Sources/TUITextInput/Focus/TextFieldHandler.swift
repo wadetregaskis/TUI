@@ -790,6 +790,9 @@ extension TextFieldHandler {
     /// at the caret for the mouse to take over.
     private func openSuggestions(preferFirstRow: Bool) {
         suggestionsOpen = true
+        // Opened by the keyboard, a pointer resting over the menu takes no row
+        // until it moves (`MenuHighlight.noteOpened(byKeyboard:)`).
+        suggestionHighlighting.noteOpened(byKeyboard: preferFirstRow)
         suggestionHighlighting.adopt(count: suggestionChoices.count)
         let current = text.wrappedValue
         suggestionHighlighting.move(

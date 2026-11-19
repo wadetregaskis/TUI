@@ -286,6 +286,22 @@ package final class MouseEventDispatcher {
     /// known: see ``restingPosition``. `nil` before it has reported any.
     package var restingPointer: (x: Int, y: Int)? { restingPosition }
 
+    /// How many times the pointer has been reported moving to a cell other
+    /// than the one it rested on (``restingPosition``): a move or a drag
+    /// reported anywhere else, or anywhere at all while where it rests is not
+    /// known. A report at the cell it rests on is not motion.
+    ///
+    /// What a menu the keyboard opened compares against the count it took as
+    /// it opened, to know whether the pointer has moved since
+    /// (``pointerHasMoved(since:)``, `MenuHighlight.pointerStillSince(in:)`).
+    package private(set) var pointerMoves = 0
+
+    /// Whether the pointer has moved since ``pointerMoves`` was `count`;
+    /// `true` when there is no count to compare with.
+    package func pointerHasMoved(since count: Int?) -> Bool {
+        count.map { $0 != pointerMoves } ?? true
+    }
+
     /// Per-frame feature requests posted by view modifiers that
     /// genuinely need a higher mouse-tracking level than the base
     /// configuration provides (e.g. an ``.onHover`` modifier asks
@@ -957,9 +973,11 @@ extension MouseEventDispatcher {
     /// drag's moves arrive as `.dragged`, never as `.moved`. A press, a release
     /// or a wheel tick at another cell is not motion, but it says the pointer
     /// has left the cell it rested on, unreported: from there it rests nowhere
-    /// known.
+    /// known. A report of motion at another cell counts as a move
+    /// (``pointerMoves``).
     private func notePointerReport(_ event: MouseEvent) {
         if event.phase == .moved || event.phase == .dragged {
+            if restingPosition.map({ $0.x != event.x || $0.y != event.y }) ?? true { pointerMoves &+= 1 }
             restingPosition = (event.x, event.y)
         } else if let resting = restingPosition, resting.x != event.x || resting.y != event.y {
             restingPosition = nil

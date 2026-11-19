@@ -106,6 +106,8 @@ final class _PickerMenuHandler: PersistedFocusable {
             // focus navigation.
             guard event.key == .enter || event.key == .space else { return false }
             highlight.move(to: itemValues.firstIndex(of: selection.wrappedValue) ?? 0)
+            // A pointer resting over the drop-down takes no row until it moves.
+            highlight.noteOpened(byKeyboard: true)
             isOpen = true
             return true
         }

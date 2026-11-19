@@ -624,7 +624,9 @@ enum TextFieldSuggestions {
                 highlightedOption: handler.suggestionHighlight,
                 scroll: handler.suggestionScroll,
                 followHighlight: handler.suggestionHighlighting.consumeFollowPending(),
-                autoRepeatToken: "textfield-suggestions-\(context.identity.path)"),
+                autoRepeatToken: "textfield-suggestions-\(context.identity.path)",
+                pointerStillSince: handler.suggestionHighlighting.pointerStillSince(
+                    in: context.environment.mouseEventDispatcher)),
             to: &buffer,
             context: context,
             // The pointer is already looking at the row it is over, so a hover

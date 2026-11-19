@@ -141,6 +141,12 @@ package enum DropdownMenu {
         /// on a click outside (`attachDismissBackdrop`). A submenu does not:
         /// the menu it opened from has one already.
         var attachesBackdrop = true
+
+        /// The pointer's move count the rows wait to see pass before they
+        /// answer it, for a menu the keyboard opened
+        /// (`MenuHighlight.pointerStillSince(in:)`); `nil` for one they
+        /// answer at once.
+        var pointerStillSince: Int?
     }
 
     /// How this frame's rows are windowed — one answer, worked out once and
@@ -167,7 +173,9 @@ package enum DropdownMenu {
     ///   - config: The rows, highlight, width, and scroll state.
     ///   - context: The current render context.
     ///   - onHover: Called with the row index when the cursor enters an
-    ///     option row.
+    ///     option row, or moves within one that is not lit — in a menu the
+    ///     keyboard opened, only once the pointer has moved since
+    ///     (``Configuration/pointerStillSince``).
     ///   - onActivate: Called with the row index when an option row is
     ///     clicked; answers whether that CHOSE something — which ends a
     ///     press-and-hold gesture, closing the menu — rather than opening a
@@ -462,7 +470,7 @@ package enum DropdownMenu {
         onWheel: @escaping (MouseEvent) -> Bool,
         tracks: @escaping (MouseButton) -> Bool,
         mouseDispatcher: MouseEventDispatcher,
-        onHover: @escaping (Int) -> Void,
+        pointerOver: @escaping (_ row: Int, _ within: Bool) -> Bool,
         onActivate: @escaping (Int) -> Bool,
         onDismiss: @escaping () -> Void
     ) -> HitTestRegion.HandlerID {
@@ -478,8 +486,12 @@ package enum DropdownMenu {
             case .entered:
                 // Hover follows the cursor across the popup: whichever
                 // option row is under the cursor becomes highlighted.
-                onHover(index)
-                return true
+                return pointerOver(index, false)
+            case .moved:
+                // And within a row, where it is not the one lit: a menu the
+                // keyboard opened under a resting pointer, which the hover
+                // entered unheeded, is taken by the pointer's first move.
+                return pointerOver(index, true)
             case .exited:
                 // Leave the highlight where it is when the cursor leaves.
                 return true
@@ -487,7 +499,7 @@ package enum DropdownMenu {
                 // The same thing with the button held — a Mac menu tracks
                 // press-and-hold, and a terminal reports a held move as a
                 // DRAG, not as motion, so `.entered` never fires for it.
-                onHover(index)
+                _ = pointerOver(index, false)
                 return true
             case .pressed where tracks(event.button):
                 // The press is not the commitment — the release is. Handing
@@ -820,6 +832,22 @@ package enum DropdownMenu {
         let scroll = config.scroll
         let innerWidth = config.innerWidth
         let contentInner = window.wantsBar ? max(1, innerWidth - 1) : innerWidth
+        // The pointer over a row lights it: as it enters the row, and as it
+        // moves within one that is not the row lit (a key moved the highlight
+        // off it, or the pointer rested there unheeded). But in a menu the
+        // keyboard opened, only once the pointer has moved since
+        // (`MenuHighlight.pointerStillSince(in:)`): until then a pointer
+        // resting where the menu opened is not a choice of row. `within` is
+        // a move inside the row.
+        let stillSince = config.pointerStillSince
+        let lit = config.highlightedRow
+        let pointerOver: (_ row: Int, _ within: Bool) -> Bool = { [weak mouseDispatcher] row, within in
+            guard mouseDispatcher?.pointerHasMoved(since: stillSince) ?? true, !(within && row == lit) else {
+                return false
+            }
+            onHover(row)
+            return true
+        }
 
         // Wheel over the popup's CHROME — its border, its scrollbar column, the
         // empty space past the last row — scrolls the window and nothing else:
@@ -891,7 +919,7 @@ package enum DropdownMenu {
             let mouseHandlerID = rowHandler(
                 index: index, context: context, onWheel: onWheel,
                 tracks: tracks, mouseDispatcher: mouseDispatcher,
-                onHover: onHover, onActivate: onActivate, onDismiss: onDismiss)
+                pointerOver: pointerOver, onActivate: onActivate, onDismiss: onDismiss)
             buffer.hitTestRegions.append(
                 HitTestRegion(
                     offsetX: 1,

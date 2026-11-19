@@ -366,6 +366,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 focusManager?.focus(id: persistedFocusID)
                 handler.isOpen = shouldOpen
                 if shouldOpen {
+                    handler.highlight.noteOpened(byKeyboard: false)
                     handler.highlightedIndex =
                         handler.itemValues.firstIndex(
                             of: handler.selection.wrappedValue) ?? 0
@@ -425,7 +426,9 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
                 scroll: handler.menuScroll,
                 followHighlight: handler.highlight.consumeFollowPending(),
                 autoRepeatToken: "picker-menu-scrollbar-\(context.identity.path)",
-                isEnabled: !isDisabled),
+                isEnabled: !isDisabled,
+                pointerStillSince: handler.highlight.pointerStillSince(
+                    in: context.environment.mouseEventDispatcher)),
             to: &buffer,
             context: context,
             // The pointer is already looking at the row it is over, so a hover
