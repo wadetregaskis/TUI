@@ -263,27 +263,52 @@ extension EditorLayout {
         // Where the lines start: the kept ones before as they were, the new
         // ones where their bytes went, the kept ones after moved by as much
         // as the edit grew or shrank the text.
-        var starts = Array(lineStarts[..<first])
-        var characters = Array(characterStarts[..<first])
-        starts.reserveCapacity(newLines.count)
-        characters.reserveCapacity(newLines.count)
+        var newStarts: [Int] = []
+        var newCharacters: [Int] = []
+        newStarts.reserveCapacity(replacement.count)
+        newCharacters.reserveCapacity(replacement.count)
         var characterStart =
             first < old.count ? characterStarts[first] : characterStarts[old.count - 1] + old[old.count - 1].count + 1
         for (line, length) in zip(newLines[replacement], lengths) {
-            starts.append(firstStart)
-            characters.append(characterStart)
+            newStarts.append(firstStart)
+            newCharacters.append(characterStart)
             firstStart += length + ending.count
             characterStart += line.count + 1
         }
-        if kept > 0 {
-            let byteShift = firstStart - lineStarts[replaced.upperBound]
-            let characterShift = characterStart - characterStarts[replaced.upperBound]
-            starts += lineStarts[replaced.upperBound...].lazy.map { $0 + byteShift }
-            characters += characterStarts[replaced.upperBound...].lazy.map { $0 + characterShift }
-        }
+        // Nothing follows the replaced lines unless some were kept after them.
+        let byteShift = kept > 0 ? firstStart - lineStarts[replaced.upperBound] : 0
+        let characterShift = kept > 0 ? characterStart - characterStarts[replaced.upperBound] : 0
+        let starts = Self.splicing(lineStarts, replaced, with: newStarts, shiftingRestBy: byteShift)
+        let characters = Self.splicing(characterStarts, replaced, with: newCharacters, shiftingRestBy: characterShift)
         let layout = EditorLayout(
             text: newText, lines: newLines, lineEnding: lineEnding, lineStarts: starts, characterStarts: characters)
         return Edit(text: newText, layout: layout, replaced: replaced, replacement: replacement)
+    }
+
+    /// `starts` with its entries in `replaced` giving way to `inserted`, and
+    /// those after them moved by `shift`: one buffer, the entries kept copied
+    /// into it as blocks and the moved ones shifted where they landed.
+    ///
+    /// Not the prefix copied into an array, that array grown (copied again)
+    /// and the rest appended an entry at a time through a lazy map, as both
+    /// of a key's line-start arrays were made until 2026-11-19: 3.6% of the
+    /// `bigtext` session's time then, 1.4% so. Still a copy of the whole
+    /// array, not a splice in place: the layout before keeps its own, as it
+    /// keeps its wrappings (``adoptWrappings(of:for:)``), until the binding
+    /// takes the edit, and one it refuses leaves that layout the handler's.
+    static func splicing(_ starts: [Int], _ replaced: Range<Int>, with inserted: [Int], shiftingRestBy shift: Int)
+        -> [Int]
+    {
+        var spliced: [Int] = []
+        spliced.reserveCapacity(starts.count - replaced.count + inserted.count)
+        spliced += starts[..<replaced.lowerBound]
+        spliced += inserted
+        let moved = spliced.count
+        spliced += starts[replaced.upperBound...]
+        if shift != 0 {
+            for index in moved..<spliced.count { spliced[index] += shift }
+        }
+        return spliced
     }
 
     /// `line` as its string's characters. An edit that takes characters out

@@ -73,6 +73,49 @@ struct EditorLayoutEditTests {
         }
     }
 
+    /// Each random edit made from the layout the edit before it left, as the
+    /// editor makes a run of keys, and checked against the text's layout
+    /// made afresh: the line starts spliced (``EditorLayout/splicing(_:_:with:shiftingRestBy:)``)
+    /// must be the ones a full rebuild finds, in bytes and in characters,
+    /// for edits within a line, across lines, at the start and at the end.
+    @Test("A run of random edits keeps the line starts a full rebuild finds", arguments: ["\n", "\r\n", "\r"])
+    func randomEditsMatchARebuild(ending: String) throws {
+        let pieces: [Character] = ["a", "b", " ", "é", "e\u{301}", "🇦🇺", "\t", "語"]
+        var random = SplitMix(state: UInt64(ending.utf8.reduce(0) { $0 &* 31 &+ Int($1) }))
+        func line(_ max: Int) -> [Character] {
+            (0..<Int.random(in: 0...max, using: &random)).map { _ in pieces.randomElement(using: &random)! }
+        }
+        func position(in lines: [[Character]]) -> TextEditorPosition {
+            // The ends a third of the time each way: where an edit is likeliest wrong.
+            let roll = Int.random(in: 0..<6, using: &random)
+            if roll == 0 { return TextEditorPosition(line: 0, column: 0) }
+            if roll == 1 { return TextEditorPosition(line: lines.count - 1, column: lines[lines.count - 1].count) }
+            let index = Int.random(in: 0..<lines.count, using: &random)
+            return TextEditorPosition(line: index, column: Int.random(in: 0...lines[index].count, using: &random))
+        }
+        for round in 0..<40 {
+            // Empty lines among them, and now and then an empty text.
+            let count = round.isMultiple(of: 10) ? 1 : Int.random(in: 1...12, using: &random)
+            var layout = EditorLayout(text: (0..<count).map { _ in String(line(6)) }.joined(separator: ending))
+            for step in 0..<25 {
+                let comment: Comment = "\(ending.debugDescription) round \(round) step \(step)"
+                let a = position(in: layout.lines)
+                let b = position(in: layout.lines)
+                // One to three lines put in: a deletion, typing, a paste of lines.
+                let inserted = (0..<Int.random(in: 1...3, using: &random)).map { _ in line(3) }
+                var lines = layout.lines
+                TextEditorReplacement(from: min(a, b), to: max(a, b), with: inserted).apply(to: &lines)
+                let made = try #require(layout.replacing(lines: lines), comment)
+                let fresh = EditorLayout(text: lines.map { String($0) }.joined(separator: layout.lineEnding))
+                #expect(Array(made.text.utf8) == Array(fresh.text.utf8), comment)
+                #expect(made.layout.lines == fresh.lines, comment)
+                #expect(made.layout.lineStarts == fresh.lineStarts, comment)
+                #expect(made.layout.characterStarts == fresh.characterStarts, comment)
+                layout = made.layout
+            }
+        }
+    }
+
     @Test("A text with more than one kind of line break is joined afresh")
     func mixedEndingsAreNotSpliced() {
         let layout = EditorLayout(text: "a\nb\r\nc")
