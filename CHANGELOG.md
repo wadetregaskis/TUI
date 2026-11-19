@@ -60,6 +60,15 @@ prominence, while the list learned whether its rows overflow, and again when the
 previews that was one row in eight drawn again every frame, 5% of the frame. The row is now raised before it is
 first drawn.
 
+**`Text`'s own `foregroundStyle(_:)` takes any `ShapeStyle` and returns a `Text`, as SwiftUI's does, and its
+`.secondary` is a level of the style above it.** It took only a `Color`, so `Text("x").foregroundStyle(.secondary)`
+was `Color.secondary`, the palette's fixed secondary tier, whatever style was stated above; SwiftUI draws the stated
+style at the secondary level there (red at half strength under `.foregroundStyle(.red)`, measured). The content levels
+(`.primary` … `.quinary`) now resolve where the text is drawn, against the style in force: with none stated they are
+the palette's tiers, as before. A level named by `foregroundStyle(_:_:)` plays no part in a text's own, as in SwiftUI.
+Any other style — `.tint`, `.foreground`, a gradient — keeps the result a `Text`, so it can be interpolated into
+another; a gradient on one fragment bands across the text. A `Text` is no bigger and no slower for it.
+
 **An outline `List` whose selection cannot name its rows draws them.** A `List(_:children:selection:)`, or a
 `List` holding an `OutlineGroup`, whose selection's type was not its nodes' id type drew no rows at all, where a flat
 list's rows are drawn and select nothing. The outline's rows are now drawn the same way, and a debug build warns

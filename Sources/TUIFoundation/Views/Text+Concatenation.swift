@@ -87,7 +87,8 @@ extension TextStyle {
     /// instead of falling through to the base's font.
     func merged(over base: TextStyle) -> TextStyle {
         var result = self
-        result.foregroundColor = foregroundColor ?? base.foregroundColor
+        // The statement, so a content level falls through or wins as a colour does.
+        if foregroundInk == .unstated { result.foregroundInk = base.foregroundInk }
         result.backgroundColor = backgroundColor ?? base.backgroundColor
         result.font = font ?? base.font
         result.isBold = isBold ?? base.isBold

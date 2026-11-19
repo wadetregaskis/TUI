@@ -220,7 +220,7 @@ package final class LocalizedTextSource: Equatable, Sendable {
             guard language != localization.language else { return nil }
             var read = Text(frameworkKey: localization.key.key, language: language)
             read.style = style
-            return read
+            return read.keepingWholeTextShape(of: self)
         }
         var locale = localization.locale
         if !localization.key.numberArguments.isEmpty {
@@ -232,7 +232,7 @@ package final class LocalizedTextSource: Equatable, Sendable {
             localization.key, tableName: localization.tableName, bundle: localization.bundle, language: language,
             locale: locale)
         read.style = style
-        return read
+        return read.keepingWholeTextShape(of: self)
     }
 
     /// This text as it reads under `context`: ``relocalized(in:)``'s reading

@@ -252,22 +252,7 @@ nonisolated public struct Text: View, Equatable, Sendable {
 // MARK: - Text Modifiers
 
 extension Text {
-    /// Sets the text foreground style.
-    ///
-    /// > Note: The colour is kept in the text's own value, not painted by a
-    ///   modifier, so a change to it inside ``withAnimation(_:_:)`` happens at
-    ///   once, where ``View/foregroundStyle(_:)-(S)``'s fades: nothing here asks the
-    ///   animator, and asking it would cost a lookup in every `Text` on every
-    ///   frame. Wrap the text — `VStack { Text(…) }.foregroundStyle(…)` — to
-    ///   fade it (Deliberate deviations T10, decisions WL-Q1).
-    ///
-    /// - Parameter style: The desired foreground color.
-    /// - Returns: A new text with the applied style.
-    public func foregroundStyle(_ style: Color) -> Text {
-        var copy = self
-        copy.style.foregroundColor = style
-        return copy
-    }
+    // `foregroundStyle(_:)` is in `Text+ForegroundStyle.swift`.
 
     // Each of these takes SwiftUI's `isActive`, and `false` is a STATEMENT
     // rather than a shrug: it beats a `.bold()` cascaded from an ancestor,
@@ -606,7 +591,8 @@ package struct TextStyle: Sendable, Equatable {
     /// is deliberately opaque so the compositor has a real colour to blend from.
     package var opaqueColours: Self {
         var copy = self
-        copy.foregroundColor = foregroundColor?.opaqueSpelling
+        // A level is left as it is: it has no spelling until it is resolved.
+        if let foregroundColor { copy.foregroundColor = foregroundColor.opaqueSpelling }
         copy.backgroundColor = backgroundColor?.opaqueSpelling
         return copy
     }
@@ -641,12 +627,16 @@ package struct TextStyle: Sendable, Equatable {
     }
     private var statedLineLimit = StatedLineLimit.unstated
 
-    /// The foreground color of the text.
+    /// The foreground color of the text: `nil` when it stated none, or stated
+    /// a content level (``foregroundInk``), which is no colour until it is
+    /// drawn.
     package var foregroundColor: Color? {
-        get { statedForegroundColor.value }
-        set { statedForegroundColor = StatedColor(newValue) }
+        get { foregroundInk.value }
+        set { foregroundInk = StatedInk(newValue) }
     }
-    private var statedForegroundColor = StatedColor.unstated
+
+    /// What the text stated for its ink: a colour, a content level, or nothing.
+    var foregroundInk = StatedInk.unstated
 
     /// The background color of the text.
     package var backgroundColor: Color? {
@@ -803,7 +793,7 @@ package struct TextStyle: Sendable, Equatable {
             scopes.insert(.font(font.textStyle))
         }
         if let role = Self.semanticRole(
-            explicit: style.foregroundColor, environment: context.environment) {
+            explicit: explicitRoleInk(in: context.environment), environment: context.environment) {
             scopes.insert(.semanticColor(role))
         }
         if let chromeRole {
@@ -943,6 +933,10 @@ package struct TextStyle: Sendable, Equatable {
         // with runs can be live, so a plain one pays a nil check.
         if runs != nil, let read = readingLive(declaringIn: context, measuring: true) {
             return read.ownSize(proposal: proposal, context: context)
+        }
+        // Measured as it is drawn: the plain text (`drawn`).
+        if runs != nil, let (plain, _) = wholeTextShape() {
+            return plain.ownSize(proposal: proposal, context: context)
         }
         // Text has a fixed size based on its content.
         // If a width is proposed, we may word-wrap.
@@ -1129,7 +1123,7 @@ package struct TextStyle: Sendable, Equatable {
         // everything downstream that wants one colour (the measure pass, the
         // semantic-role lookup, an attributed run) has one.
         let ramp = Self.resolveForeground(
-            into: &effectiveStyle, stated: style.foregroundColor, cascade: cascade,
+            into: &effectiveStyle, stated: style.foregroundInk, cascade: cascade,
             cascaded: cascaded, context: context, shadowing: &shadowing)
         if effectiveStyle.backgroundColor == nil {
             effectiveStyle.backgroundColor = cascaded.background
@@ -1188,7 +1182,7 @@ package struct TextStyle: Sendable, Equatable {
             linkSpans?.note(plainLines, runTexts: runTexts, runs: runs)
             let concatenated = concatenatedLines(
                 plainLines, runs: runs, runTexts: runTexts, blockWidth: lineWidths.max() ?? 0,
-                effectiveStyle: effectiveStyle, font: font, ramp: ramp, context: context)
+                effectiveStyle: effectiveStyle, font: font, ink: (ramp, cascaded.foreground), context: context)
             styledLines = concatenated.lines
             perLineClaims = concatenated.claims
         } else if let ramp, !context.isMeasuring {
@@ -1366,15 +1360,29 @@ package struct TextStyle: Sendable, Equatable {
     ///   - blockWidth: The widest line, for a ramp's own rectangle.
     ///   - effectiveStyle: This text's resolved attributes, cascade included.
     ///   - font: This text's font, for deciding which fragments re-cascade.
-    ///   - ramp: The gradient in force, when there is one.
+    ///   - ink: The gradient in force, when there is one; and the style
+    ///     cascade's colour for this text, if it gives one.
     ///   - context: The render context.
     /// - Returns: One styled string per line.
     private func concatenatedLines(
         _ plainLines: [String], runs: [Text.Run], runTexts: [String], blockWidth: Int,
-        effectiveStyle: TextStyle, font: Font?, ramp: Paint?, context: RenderContext
+        effectiveStyle: TextStyle, font: Font?, ink: (ramp: Paint?, cascaded: Color?), context: RenderContext
     ) -> (lines: [String], claims: [[OpacityRegion]]) {
         // Read once for every run, not copied out of the environment per run.
         let palette = context.environment.palette
+        // What `.primary` is for a run that states a content level: the style
+        // this text draws in, as stated rather than defaulted, so that with
+        // none stated the run draws the palette's tier
+        // (``Text/Run/styleResolvingInk(over:in:)``).
+        let levelPrimary = style.foregroundColor.map(Paint.color)
+            ?? ink.cascaded.map(Paint.color) ?? context.environment.foregroundStyle
+        // A ramp a fragment states for itself, banded across this text as an
+        // inherited one is, where none is inherited (`Text.Run.statedRamp`).
+        // The styles the runs carry, each image among them asked for its
+        // pixels once (`TextShapePaints`).
+        var paints = TextShapePaints(context)
+        let ownRamp = ink.ramp == nil ? Run.firstStatedRamp(in: runs, paints: &paints) : nil
+        let ramp = ink.ramp ?? ownRamp
         // Whether the ramp arm at the end runs. Only it reads `runTakesRamp`,
         // so without one that array is not built at all.
         let paintsRamp = ramp != nil && !context.isMeasuring
@@ -1386,8 +1394,12 @@ package struct TextStyle: Sendable, Equatable {
         var runTakesRamp: [Bool] = []
         if paintsRamp { runTakesRamp.reserveCapacity(runs.count) }
         for run in runs {
-            // What the run states, with what being a link adds beneath that.
-            let own = run.styleStatingLink(in: context.environment)
+            // What the run states, its ink resolved here, with what being a
+            // link adds beneath that.
+            let own = run.statingLink(
+                on: run.styleResolvingInk(over: levelPrimary, in: &paints), in: context.environment)
+            // Under a fragment's own ramp, the fragments that state it take it.
+            let takesOwnRamp = ownRamp.map { run.statedRamp(in: &paints) == $0 }
             var runStyle: TextStyle
             if own.font.map({ $0 != font }) == true || own.textScale != nil {
                 // A fragment that brought its own font resolves its OWN cascade
@@ -1406,7 +1418,7 @@ package struct TextStyle: Sendable, Equatable {
                 // The colours were resolved once, at text level (the
                 // semantic-role remapping there reads this text's own
                 // foreground); a fragment states its own or takes those.
-                if paintsRamp { runTakesRamp.append(runStyle.foregroundColor == nil) }
+                if paintsRamp { runTakesRamp.append(takesOwnRamp ?? (runStyle.foregroundColor == nil)) }
                 runStyle.foregroundColor =
                     runStyle.foregroundColor ?? effectiveStyle.foregroundColor
                 runStyle.backgroundColor =
@@ -1415,7 +1427,7 @@ package struct TextStyle: Sendable, Equatable {
                 // The run's own attributes sit above the base this Text resolved
                 // (its own style + the cascade); anything the run left unset
                 // falls through to that.
-                if paintsRamp { runTakesRamp.append(own.foregroundColor == nil) }
+                if paintsRamp { runTakesRamp.append(takesOwnRamp ?? (own.foregroundColor == nil)) }
                 runStyle = own.merged(over: effectiveStyle)
             }
             resolvedRunStyles.append(
@@ -1460,47 +1472,6 @@ package struct TextStyle: Sendable, Equatable {
             blockWidth: blockWidth, frame: context.gradientFrame, paint: ramp,
             depth: ColorDepth.current, cellAspect: context.environment.imageCellAspect)
         return (lines: painted.lines, claims: painted.claims)
-    }
-
-    /// Fills in `style`'s foreground, and reports a gradient if that is what
-    /// the environment supplied.
-    ///
-    /// Precedence: an explicit *concrete* colour on this Text wins; an explicit
-    /// *semantic* colour may be remapped by a same-role `.semanticColor(role)`
-    /// cascade entry; otherwise a scoped cascade colour > the broad
-    /// `.foregroundStyle` environment value > the palette default.
-    ///
-    /// A ramp comes back separately rather than in the style, because a
-    /// `TextStyle` names one colour and the whole point of a ramp is that it
-    /// does not. The style still gets the ramp's representative so that
-    /// anything asking for one colour has one. A shadowed environment paint
-    /// comes back in `shadowing`, its shadows being the drawn letters' to cast.
-    private static func resolveForeground(
-        into style: inout TextStyle,
-        stated: Color?,
-        cascade: StyleCascade,
-        cascaded: StyleAttributes,
-        context: RenderContext,
-        shadowing: inout Paint?
-    ) -> Paint? {
-        if let stated {
-            if case .semantic(let role) = stated.value {
-                style.foregroundColor =
-                    cascade.resolve(for: [.semanticColor(role)]).foreground ?? stated
-            }
-            return nil
-        }
-        if let cascadedForeground = cascaded.foreground {
-            style.foregroundColor = cascadedForeground
-            return nil
-        }
-        guard let paint = context.environment.foregroundStyle else {
-            style.foregroundColor = context.environment.palette.foreground
-            return nil
-        }
-        style.foregroundColor = paint.representative
-        if paint.castsAnything { shadowing = paint }
-        return paint.solid == nil ? paint.unshadowed : nil
     }
 
     /// The palette role this text draws with, used to match `.semanticColor`

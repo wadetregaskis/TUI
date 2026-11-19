@@ -1,0 +1,79 @@
+macOS 15.8.3, drawn at 3x, Aqua
+swatch .red over white: #FF3B30
+swatch .blue over white: #007AFF
+swatch .green over white: #28CD41
+swatch .accentColor over white: #007AFF
+swatch .primary over white: #272727
+swatch .secondary over white: #808080
+swatch .tertiary over white: #BDBDBD
+swatch .quaternary over white: #E6E6E6
+swatch .red.secondary over white: #FF9C97
+swatch .red.tertiary over white: #FFCECB
+swatch .red.quaternary over white: #FFDCDA
+swatch .blue.secondary over white: #7FBCFF
+swatch .green.secondary over white: #93E6A0
+swatch .secondary.secondary over white: #808080
+
+no style:
+  Text.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  Text.foregroundStyle(.quaternary): y=77...89 n=2537 core=#E6E6E6 over #FFFFFF
+  Text(clear) + Text.foregroundStyle(.secondary): y=99...111 n=2897 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tint): y=120...131 n=1095 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.foreground): y=142...155 n=3372 core=#272727 over #FFFFFF
+.foregroundStyle(.red):
+  Text.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  Text.foregroundStyle(.quaternary): y=77...89 n=2707 core=#FFDBD9 over #FFFFFF
+  Text(clear) + Text.foregroundStyle(.secondary): y=99...111 n=2868 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.tint): y=120...131 n=1095 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.foreground): y=142...155 n=3391 core=#FF3B2F over #FFFFFF
+.foregroundStyle(.red, .blue):
+  Text.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  Text.foregroundStyle(.quaternary): y=77...89 n=2707 core=#FFDBD9 over #FFFFFF
+  Text(clear) + Text.foregroundStyle(.secondary): y=99...111 n=2868 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.tint): y=120...131 n=1095 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.foreground): y=142...155 n=3391 core=#FF3B2F over #FFFFFF
+.foregroundStyle(.red, .blue, .green):
+  Text.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  Text.foregroundStyle(.quaternary): y=77...89 n=2707 core=#FFDBD9 over #FFFFFF
+  Text(clear) + Text.foregroundStyle(.secondary): y=99...111 n=2868 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.tint): y=120...131 n=1095 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.foreground): y=142...155 n=3391 core=#FF3B2F over #FFFFFF
+View.foregroundStyle(.secondary):
+  Text.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  Text.foregroundStyle(.quaternary): y=77...89 n=2537 core=#E6E6E6 over #FFFFFF
+  Text(clear) + Text.foregroundStyle(.secondary): y=99...111 n=2897 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tint): y=120...131 n=1095 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.foreground): y=143...155 n=3234 core=#808080 over #FFFFFF
+View.foregroundStyle(.red.secondary):
+  Text.foregroundStyle(.primary): y=11...23 n=2027 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2729 core=#FFCDCA over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1698 core=#FFE5E4 over #FFFFFF
+  Text.foregroundStyle(.quaternary): y=77...89 n=2382 core=#FFEDEB over #FFFFFF
+  Text(clear) + Text.foregroundStyle(.secondary): y=99...111 n=2627 core=#FFCDCA over #FFFFFF
+  Text.foregroundStyle(.tint): y=120...131 n=1095 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.foreground): y=143...155 n=3146 core=#FF9C96 over #FFFFFF
+.tint(.green):
+  Text.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  Text.foregroundStyle(.quaternary): y=77...89 n=2537 core=#E6E6E6 over #FFFFFF
+  Text(clear) + Text.foregroundStyle(.secondary): y=99...111 n=2897 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tint): y=120...131 n=1148 core=#28CD3F over #FFFFFF
+  Text.foregroundStyle(.foreground): y=142...155 n=3372 core=#272727 over #FFFFFF
+
+Two of Text's own styles, under .foregroundStyle(.red) and .tint(.green):
+  Text.foregroundStyle(.red).foregroundStyle(.blue): y=10...23 n=2720 core=#FF3B2F over #FFFFFF
+  Text.foregroundStyle(.secondary).foregroundStyle(.blue): y=33...45 n=4187 core=#7FBBFF over #FFFFFF
+  Text.foregroundStyle(.blue).foregroundStyle(.secondary): y=55...67 n=4516 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.tint).foregroundStyle(.blue): y=76...89 n=2652 core=#28CD3F over #FFFFFF
+  Text.foregroundStyle(.blue).foregroundStyle(.tint): y=98...111 n=2487 core=#0079FF over #FFFFFF

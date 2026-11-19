@@ -41,6 +41,11 @@ package struct TextAttributes: Hashable, @unchecked Sendable {  // swiftlint:dis
 
     package var isEmpty: Bool { values.isEmpty }
 
+    /// Whether the attribute of type `T` is the only one.
+    func holdsOnly<T: TextAttribute>(_ type: T.Type) -> Bool {
+        values.count == 1 && values[ObjectIdentifier(T.self)] != nil
+    }
+
     /// These attributes with `value` added, replacing one of its type.
     package func adding<T: TextAttribute>(_ value: T) -> Self {
         var copy = self

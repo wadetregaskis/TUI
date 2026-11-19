@@ -1688,22 +1688,42 @@ axis with the vertical derived through `imageCellAspect`, so a circle looks
 like one. `EllipticalGradient` is the geometry that follows the box's own
 shape, and takes no such correction for the same reason.
 
-One spelling stays out, because a terminal cannot honour it and the rule is
-that what cannot be honoured must not compile:
+**`Text.foregroundStyle<S: ShapeStyle>(_:) -> Text` ships** (lane TXTFG,
+2026-11-19). It stayed out while a run's stored attributes named one colour, on
+the grounds that a gradient on one fragment would be quietly lost; and with only
+a `Color` overload on `Text`, `Text("a").foregroundStyle(.secondary)` was
+`Color.secondary`, the palette's fixed tier, where SwiftUI draws the style above
+at the secondary level. What ships, measured against SwiftUI on macOS 15.8.3
+(`Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/`):
 
-- **`Text.foregroundStyle<S>` returning `Text`.** A gradient on a `Text` works
-  — it returns `some View` through the `View` modifier. What cannot be had
-  is a gradient on one fragment: `Text("a").foregroundStyle(gradient)` is a view,
-  not a `Text`, so `+` refused it, and interpolating it takes the catch-all
-  `appendInterpolation(_:)`, which writes a value's description and warns
-  that it does, deprecated as SwiftUI's is (DEPR-CATCHALL, 2026-10-24). A ramp given to the
-  whole text now bands across its fragments, cell by cell, so the
-  original reason ("a run carries one colour") no longer holds; what still
-  does is that a run's stored attributes name ONE colour, and a ramp on one
-  FRAGMENT would need a paint per run rather than a style per run. Until that
-  exists, the spelling that would quietly lose the gradient is the one that
-  fails. (`Text("a").foregroundStyle(.secondary)` therefore takes `Color`'s
-  `.secondary` — the palette tier — rather than the level of a style above.)
+- **A content level** (`.primary` … `.quinary`) on a `Text` is kept in the
+  text's value — in the colour statement's spare values, so a `Text` is no
+  bigger — and resolved where it is drawn: the style the text would draw in had
+  it stated none, at the level's strength, or the palette's tier with none
+  stated above. Under `.foregroundStyle(.red, .blue)` a text's own `.secondary`
+  is the secondary red, not blue (SwiftUI: #FF9C96), where `View`'s
+  `.foregroundStyle(.secondary)` draws the named blue: a level that
+  `foregroundStyle(_:_:)` names plays no part in a text's own. The same holds
+  for a text interpolated into another (SwiftUI's `+`, measured).
+- **Any other style** — `.tint`, `.foreground`, a gradient, `.red.secondary` —
+  is kept on the text's runs, as a custom attribute is, and resolved where the
+  text is drawn; the result is a `Text`, so it interpolates into another. A
+  whole text in a gradient draws as `View.foregroundStyle` draws it. A
+  gradient on one fragment bands across the text's block, as a gradient from
+  above does (SwiftUI's extent for a fragment's gradient is not measured). One
+  ramp per text: where the text already draws in a gradient from above, or a
+  second fragment states a different one, such a fragment draws in its
+  gradient's representative colour.
+- The `Color` overload stays beside the generic one, disfavoured as `View`'s
+  `Color` twin is, so a leading dot still finds `Color`'s own statics
+  (`.palette.accent`, `.rgb(…)`); every call SwiftUI accepts resolves to the
+  generic overload.
+
+Still open: when a `Text` states its own style twice, TUI keeps the **last**
+written, and SwiftUI the **first** (measured: `Text("x").foregroundStyle(.red)
+.foregroundStyle(.blue)` is red; `.foregroundStyle(.secondary).foregroundStyle(.blue)`
+is blue at the secondary level, #7FBBFF; `.foregroundStyle(.tint)
+.foregroundStyle(.blue)` is the tint). Not yet put to the owner.
 
 Two used to stay out with it and no longer do. `HierarchicalShapeStyle` was
 declined because a second `.secondary` beside `Color.secondary` was expected to

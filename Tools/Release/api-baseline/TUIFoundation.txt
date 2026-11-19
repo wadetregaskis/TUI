@@ -3450,6 +3450,7 @@ Text.font(_:) | func font(_ font: Font?) -> Text
 Text.fontDesign(_:) | func fontDesign(_ design: Font.Design?) -> Text
 Text.fontWeight(_:) | func fontWeight(_ weight: FontWeight?) -> Text
 Text.foregroundStyle(_:) | func foregroundStyle(_ style: Color) -> Text
+Text.foregroundStyle(_:) | func foregroundStyle<S>(_ style: S) -> Text where S : ShapeStyle
 Text.init(_:) | init(_ image: Image)
 Text.init(_:) | init<S>(_ content: S) where S : StringProtocol
 Text.init(_:) | nonisolated init(_ attributedContent: AttributedString)

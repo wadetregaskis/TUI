@@ -135,6 +135,31 @@ struct ImagePaintTests {
         #expect(fields(letters, rows: 1, ink: true) == ["RRGGRRGG"])
     }
 
+    /// `Text`'s own `foregroundStyle` keeps the style in the text's value; it
+    /// drew nothing for a picture, whose pixels nothing asked for, until the
+    /// text asked for them where it is drawn as the view modifier does.
+    @Test("A text's own image paint draws as the view modifier's, and on a fragment")
+    func textsOwnPaint() {
+        let paint = ImagePaint(image: Self.image)
+        func drawn(_ view: some View) -> FrameBuffer {
+            let tui = TUIContext()
+            tui.stateStorage.beginRenderPass()
+            defer { tui.stateStorage.endRenderPass() }
+            return ColorDepth.withCurrent(.truecolor) {
+                renderToBuffer(view.imageCellPoints(Self.cell), context: Self.context(tui, columns: 8, rows: 1))
+            }
+        }
+        let own = drawn(Text("########").foregroundStyle(paint))
+        #expect(own == drawn(Group { Text("########") }.foregroundStyle(paint)))
+        // A fragment's picture bands across the text, over that fragment alone,
+        // and a second fragment carrying it takes the same tiles.
+        let fragments = Text("##\(Text("##").foregroundStyle(paint))##\(Text("##").foregroundStyle(paint))")
+            .imageCellPoints(Self.cell)
+        let ink = fields(fragments, rows: 1, ink: true)[0].map(String.init)
+        #expect([ink[2], ink[3], ink[6], ink[7]] == ["G", "G", "G", "G"], "\(ink)")
+        #expect(!ink[0].contains("G") && !ink[4].contains("R"), "\(ink)")
+    }
+
     @Test("A fade draws the picture at its strength")
     func faded() {
         let paint = ImagePaint(image: Self.image).paint(in: EnvironmentValues()).faded(0.5)
@@ -161,8 +186,15 @@ struct ImagePaintTests {
             .imageCellPoints(Self.cell)
         let backgrounds = Text("      ").background(.image(Self.image)).padding(.horizontal, 1)
             .background(.image(Self.white)).imageCellPoints(Self.cell)
+        // Two pictures on two fragments of one text: each asks at a step of
+        // its own, the first banding across its fragment, the second drawn in
+        // its mean colour, as a second gradient is.
+        let fragments = Text(
+            "\(Text("####").foregroundStyle(.image(Self.image)))\(Text("####").foregroundStyle(.image(Self.white)))"
+        ).imageCellPoints(Self.cell)
         let cases: [(view: AnyView, ink: String?, field: String)] = [
             (AnyView(letters), "RRGGRRGG", "WWWWWWWW"), (AnyView(backgrounds), nil, "WRRGGRRW"),
+            (AnyView(fragments), "RRGGWWWW", "........"),
         ]
         for (view, ink, field) in cases {
             let tui = TUIContext()

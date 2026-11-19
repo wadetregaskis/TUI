@@ -116,6 +116,12 @@ struct AllBytesDefinedTests {
             { unsafe $0.pointee = .custom(CustomCurveID(index: 7)) },
         ]),
         unsafe Conformer(StatedColor.self, [{ unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .stated(.rgb(1, 2, 3)) }]),
+        unsafe Conformer(StatedInk.self, [
+            { unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .stated(.rgb(1, 2, 3)) },
+            { unsafe $0.pointee = .primaryLevel }, { unsafe $0.pointee = .secondaryLevel },
+            { unsafe $0.pointee = .tertiaryLevel }, { unsafe $0.pointee = .quaternaryLevel },
+            { unsafe $0.pointee = .quinaryLevel },
+        ]),
         unsafe Conformer(StatedLineLimit.self, [
             { unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .stated(.lines(4)) },
             { unsafe $0.pointee = .stated(.range(LineRange(minimum: 2, maximum: 5))) },

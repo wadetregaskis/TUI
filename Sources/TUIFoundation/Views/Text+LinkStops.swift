@@ -91,6 +91,12 @@ final class TextLinkSpans {
         if routesLinks, let runs, let routed = TextLinkStops.render(self, runs: runs, context: context) {
             return routed
         }
+        // A style of the whole text that is neither a colour nor a level
+        // (`Text+ForegroundStyle.swift`): the plain text, drawn with it in
+        // force. A text with no runs pays a nil check.
+        if runs != nil, let (plain, styled) = inWholeTextShape(context) {
+            return plain.rendered(context: styled, linkSpans: linkSpans, routesLinks: routesLinks)
+        }
         var shadowing: Paint?
         let buffer = drawn(context: context, shadowing: &shadowing, linkSpans: linkSpans, routesLinks: routesLinks)
         guard let shadowing else { return buffer }

@@ -39,6 +39,56 @@ enum StatedColor: Hashable, _AllBytesDefined {
     }
 }
 
+/// The ink a `Text` stated for itself: nothing, a colour, or one of the content
+/// levels (`.primary` … `.quinary`), which is resolved where the text is drawn,
+/// against the style in force there (`Text.foregroundStyle(_:)`).
+///
+/// A `StatedColor` with five more cases, and the same five bytes: the levels
+/// carry no payload, so they are spelled in the colour's spare values, as
+/// `unstated` is, and a `Text` is no bigger for being able to say one. Its own
+/// enum rather than `StatedColor`'s, because a background has no levels.
+enum StatedInk: Hashable, _AllBytesDefined {
+    case unstated
+    case stated(Color)
+    case primaryLevel
+    case secondaryLevel
+    case tertiaryLevel
+    case quaternaryLevel
+    case quinaryLevel
+
+    init(_ color: Color?) {
+        if let color { self = .stated(color) } else { self = .unstated }
+    }
+
+    /// The statement of content level `level`, 0 (primary) through 4 (quinary).
+    init(level: Int) {
+        switch level {
+        case 0: self = .primaryLevel
+        case 1: self = .secondaryLevel
+        case 2: self = .tertiaryLevel
+        case 3: self = .quaternaryLevel
+        default: self = .quinaryLevel
+        }
+    }
+
+    var value: Color? {
+        if case .stated(let color) = self { color } else { nil }
+    }
+
+    /// The content level stated, 0 (primary) through 4 (quinary), or `nil` for
+    /// a colour or nothing.
+    var level: Int? {
+        switch self {
+        case .unstated, .stated: nil
+        case .primaryLevel: 0
+        case .secondaryLevel: 1
+        case .tertiaryLevel: 2
+        case .quaternaryLevel: 3
+        case .quinaryLevel: 4
+        }
+    }
+}
+
 /// A `LineLimit?` a `TextStyle` stores: see the note above.
 enum StatedLineLimit: Equatable, _AllBytesDefined {
     case unstated

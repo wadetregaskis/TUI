@@ -49,6 +49,10 @@ struct TextLayoutPaddingTests {
         // it was read from (`localization`, lane PARITYMISC, 2026-10-18): one
         // word, between the runs and the style, so still no padding.
         #expect(MemoryLayout<TextStyle>.size == 40, "\(MemoryLayout<TextStyle>.size)")
+        // A text's ink can be a content level (`Text.foregroundStyle(.secondary)`,
+        // TXTFG, 2026-11-19) at no cost: the levels are spelled in the colour's
+        // spare values, so the ink is the five bytes a colour statement is.
+        #expect(MemoryLayout<StatedInk>.size == MemoryLayout<StatedColor>.size, "\(MemoryLayout<StatedInk>.size)")
         // Words are 4 bytes on wasm32: a `Text` is 60 there (WasmKit, 2026-11-10).
         #if _pointerBitWidth(_64)
             #expect(MemoryLayout<Text>.size == 72, "\(MemoryLayout<Text>.size)")

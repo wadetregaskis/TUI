@@ -24,9 +24,15 @@ extension Text.Run {
     /// TUI's, for the reason ``Link`` gives: a link in a terminal has no
     /// pointer affordance, so the line is what marks it.
     func styleStatingLink(in environment: EnvironmentValues) -> TextStyle {
-        guard link != nil else { return style }
-        var stated = style
-        if stated.foregroundColor == nil {
+        statingLink(on: style, in: environment)
+    }
+
+    /// `own` — this run's style, or that with its ink resolved — with what
+    /// being a link adds beneath it (``styleStatingLink(in:)``).
+    func statingLink(on own: TextStyle, in environment: EnvironmentValues) -> TextStyle {
+        guard link != nil else { return own }
+        var stated = own
+        if stated.foregroundInk == .unstated {
             stated.foregroundColor = Color.palette.accent
         }
         if stated.isUnderlined == nil, environment.linkUnderline {

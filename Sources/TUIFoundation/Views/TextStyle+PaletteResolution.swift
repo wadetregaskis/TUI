@@ -18,7 +18,9 @@ extension TextStyle {
     /// - Returns: A copy with all colors resolved to concrete values.
     package func resolved(with palette: any Palette) -> TextStyle {
         var copy = self
-        copy.foregroundColor = foregroundColor?.resolve(with: palette)
+        // A content level is resolved against the style in force, not the
+        // palette alone (`Text.resolveForeground`), so it is left as it is.
+        if let foregroundColor { copy.foregroundColor = foregroundColor.resolve(with: palette) }
         copy.backgroundColor = backgroundColor?.resolve(with: palette)
         copy.underline = underline.map { $0?.resolved(with: palette) }
         copy.strikethrough = strikethrough.map { $0?.resolved(with: palette) }

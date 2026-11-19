@@ -1490,16 +1490,22 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [AppearanceAndColors](../../Sources/TUI/TUI.docc/Articles/AppearanceAndColors.md#L237-L241).
   **Medium.**
 
-### C3. `Text("a").foregroundStyle(.secondary)` is the palette's tier
+### C3. `Text("a").foregroundStyle(.secondary)` was the palette's tier (closed 2026-11-19)
 
-- **SwiftUI:** the hierarchical level, derived from any foreground style above
-  (Apple's documentation).
-- **TUI:** on a `Text` it binds `Color`'s `.secondary`, the palette's
-  secondary tier. On any other view `.secondary` is the level, as in SwiftUI.
-- **Why:** `Text.foregroundStyle` returning `Text` takes only a `Color`, so that
-  a gradient on one fragment of a concatenation fails to compile rather than
-  being lost.
-- **Decided:** [B22](<../Historical/Colour and styling/Content levels, foreground styles and legibility weight.md#b22-the-content-levels-and-the-two--and-three-style-foregroundstyle>), [§3](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>). **Lane.**
+- **SwiftUI:** the hierarchical level, resolved against the foreground style
+  above, not a level `foregroundStyle(_:_:)` names: under
+  `.foregroundStyle(.red, .blue)` it is red at the secondary level, #FF9C96
+  (measured, macOS 15.8.3, `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/`).
+- **TUI, until 2026-11-19:** on a `Text` it bound `Color`'s `.secondary`, the
+  palette's secondary tier, because `Text.foregroundStyle` returning `Text`
+  took only a `Color`, so that a gradient on one fragment of a concatenation
+  failed to compile rather than being lost.
+- **Closed:** lane TXTFG gave `Text` SwiftUI's generic
+  `foregroundStyle<S: ShapeStyle>(_:) -> Text`. A level is resolved where the
+  text is drawn, as SwiftUI resolves it, at no cost in a `Text`'s size; a
+  gradient on a fragment bands across the text, one ramp per text
+  ([§3](<SwiftUI compatibility guide.md#closed-foregroundstyle-takes-some-shapestyle>)).
+  Was [B22](<../Historical/Colour and styling/Content levels, foreground styles and legibility weight.md#b22-the-content-levels-and-the-two--and-three-style-foregroundstyle>). **Lane.**
 
 ### C4. Images size by cells, and are read once
 

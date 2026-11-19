@@ -1599,3 +1599,20 @@ messages cite that path), and what cites it.
 - **Was:** written here.
 - **Cited by:** `Sources/TUIFoundation/Views/AttributeScopes+CoreText.swift`, `Sources/TUI/Exports.swift`,
   `Tools/APIParity/CompileCorpusMemberImportVisibility.swift`; the G3 design §5; Deliberate deviations T14.
+
+### Text foregroundStyle levels (TXTFG)
+
+- **Asks:** what a `Text`'s own `foregroundStyle(_:) -> Text` draws for each content level, for `.tint` and for
+  `.foreground`, under no style, `.red`, a two- and a three-style `foregroundStyle`, a view's `.secondary` and
+  `.red.secondary`, and a `.tint`; for a text joined into another; and which of two of a text's own styles wins
+  (`levels.swift`, `levels.out`, `notes.md`). The 1119 probe's method: each sample drawn real and blank, the core
+  pixel of each line read back.
+- **Answers:** a text's own level is the style above at macOS's label strengths (under `.red`, `.secondary` is
+  #FF9C96), with no part for a level that `foregroundStyle(_:_:)` names; under a view's `.secondary` the levels are as
+  with no style. `.tint` and `.foreground` resolve where the text is drawn. Of two styles on one text the first written
+  wins, and a level written first is a level of the style after it.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-19.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Views/Text+ForegroundStyle.swift`;
+  `Tests/TUIFoundationTests/TextForegroundStyleTests.swift`; the SwiftUI compatibility guide's "Closed:
+  `foregroundStyle` takes `some ShapeStyle`"; Deliberate deviations C3.
