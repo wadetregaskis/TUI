@@ -238,7 +238,13 @@ launcher at rest: an `.equatable()` canvas board with a 60 Hz timeline in its
 `.background`, a `List` and a `Button` of canvas previews, and a 5 Hz preview
 timeline, under two composites whose bodies sort; the perf case of the same
 name counts a second of it, in which neither composite's body runs, no canvas
-is drawn, and the preview's content changes five times.
+is drawn, and the preview's content changes five times. `timeline-list` is a
+`List` of eight three-line rows, each an animated `Canvas` in its own
+`TimelineView(.animation)` beside a title, the first row selected: every row
+changes every frame, so no memo serves one, and it prices what the list spends
+drawing its rows, each of which it should draw once a frame; the perf case of
+the same name counts a second of it with the list holding the focus, which a
+`--bench` of the scenario does not give it.
 
 `table-api` is the first: 43 variants over seven axes — how a column gets its
 value (key path, closure, sort-by-one-display-another, non-`Equatable` rows,
