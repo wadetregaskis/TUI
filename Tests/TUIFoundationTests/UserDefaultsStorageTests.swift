@@ -319,4 +319,12 @@ struct UserDefaultsStorageTests {
         }
     }
     #endif
+
+    #if os(Windows)
+        @Test("On Windows a suite's name is made a file name: no stream after a colon, no folder after a slash")
+        func windowsSuiteFileName() {
+            #expect(UserDefaultsStorage.fileNamePart("group.com.example") == "group.com.example")
+            #expect(UserDefaultsStorage.fileNamePart(#"a:b/c\d*e?"#) == "a_b_c_d_e_")
+        }
+    #endif
 }

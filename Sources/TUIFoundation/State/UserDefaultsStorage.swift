@@ -440,13 +440,26 @@ import TUICore
             // Use suite name in filename if provided
             let filename: String
             if let suite = suiteName {
-                filename = "UserDefaults-\(suite).json"
+                filename = "UserDefaults-\(fileNamePart(suite)).json"
             } else {
                 filename = "UserDefaults.json"
             }
 
             let fileURL = appDir.appendingPathComponent(filename)
             return JSONFileStorage(fileURL: fileURL)
+        }
+
+        /// `suite` as part of a file's name. On Windows, each character a file
+        /// name cannot hold is `_`: a `:` named an alternate data stream of the
+        /// file before it (`UserDefaults-a:b.json` wrote a stream `b.json` of
+        /// `UserDefaults-a`), and a `\` or `/` a folder that does not exist.
+        /// Elsewhere as it is, so a file already written keeps its name.
+        static func fileNamePart(_ suite: String) -> String {
+            #if os(Windows)
+                String(suite.map { #"<>:"/\|?*"#.contains($0) || $0.asciiValue.map { $0 < 32 } == true ? "_" : $0 })
+            #else
+                suite
+            #endif
         }
     }
 #endif

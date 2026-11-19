@@ -124,7 +124,11 @@ enum SystemClipboard {
             return nil
         }
         defer { unsafe GlobalUnlock(memory) }
-        let text = unsafe String(decodingCString: pointer.assumingMemoryBound(to: UInt16.self), as: UTF16.self)
+        // Up to its terminator, and never past the memory's end: a program
+        // that put its text there without one would have it read beyond.
+        let units = unsafe UnsafeBufferPointer(
+            start: pointer.assumingMemoryBound(to: UInt16.self), count: Int(unsafe GlobalSize(memory)) / 2)
+        let text = unsafe String(decoding: units.prefix { $0 != 0 }, as: UTF16.self)
         return lineBreaks(text, as: "\n")
     }
 
