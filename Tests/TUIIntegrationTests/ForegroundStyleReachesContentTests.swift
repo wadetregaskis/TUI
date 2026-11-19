@@ -257,4 +257,27 @@ extension ForegroundStyleReachesContentTests {
                     .frame(height: 4)
             })
     }
+
+    @Test("A Table's column titles keep their own colour under a container's default style, which its cells take")
+    func tableHeaderUnderADefaultStyle() throws {
+        // `defaultForegroundStyle(_:)` is how a container — a grouped form's
+        // value, a link — styles the text it holds without stating a style for
+        // the controls in it (`statedForegroundStyle`).
+        func screen(defaulted: Bool) -> [[PaintedCell]] {
+            let table = Table([StyledRow(id: 1, name: "Hello")]) { TableColumn("Name", value: \StyledRow.name) }
+                .frame(height: 4)
+            return writtenRows(
+                of: VStack(alignment: .leading) {
+                    Button("Anchor") {}
+                    if defaulted { VStack { table }.defaultForegroundStyle(Self.stated) } else { VStack { table } }
+                }, width: 50, height: 12)
+        }
+        let defaulted = screen(defaulted: true)
+        let title = try #require(Self.cells(of: "Name", in: defaulted))
+        let ownTitle = try #require(Self.cells(of: "Name", in: screen(defaulted: false)))
+        #expect(title.map(\.ink) == ownTitle.map(\.ink))
+        #expect(title.allSatisfy { $0.ink != Self.ink(Self.stated) })
+        let cell = try #require(Self.cells(of: "Hello", in: defaulted))
+        for glyph in cell { #expect(glyph.ink == Self.ink(Self.stated), "'\(glyph.glyph)' of Hello") }
+    }
 }

@@ -6447,6 +6447,10 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// as the cells are and as SwiftUI's header is (measured on macOS 15.8,
     /// `Tools/SwiftUIProbes/Foreground style on controls (FGSWEEP)/fgsweep.out`):
     /// one colour, a ramp's representative. Without one, the palette's tier.
+    /// Only a style the app stated (``EnvironmentValues/statedForegroundStyle``),
+    /// as every control's own drawing reads it: a container's default for the
+    /// text it holds, such as a grouped form value's secondary tier, greys the
+    /// cells' text and leaves the titles their own colour.
     ///
     /// - Parameter emphasised: Whether the titles take the primary ink rather
     ///   than the secondary — under `.tableStyle(.surface)`, whose header is a
@@ -6456,7 +6460,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         picking handler: ItemListHandler<Value.ID>? = nil, emphasised: Bool = false
     ) -> ClaimingRow {
         let ink =
-            context.environment.foregroundStyle?.representative.resolve(with: palette)
+            context.environment.statedForegroundStyle?.representative.resolve(with: palette)
             ?? (emphasised ? palette.foreground : palette.foregroundSecondary)
         let pickedColumn = handler.flatMap(pickedColumn)
         // Through `ClaimingRow` so the header's own colour states its opaque spelling

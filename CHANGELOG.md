@@ -75,7 +75,9 @@ runs the bodies above a timeline at every entry again, to compare.
 
 **A `Table`'s column titles take the `.foregroundStyle` in force.** They were drawn in the palette's secondary tier
 whatever the style said, while the cells below took it; now the titles take it too, as SwiftUI's header does (measured
-on macOS 15.8). A chosen column's title keeps the selected row's colours.
+on macOS 15.8). A chosen column's title keeps the selected row's colours. Only a style the app states: a container's
+default for its text, such as a grouped form value's secondary tier, leaves the titles their own colour, as it leaves a
+button's label or a field's text.
 
 **A `ColorPicker`'s label takes the `.foregroundStyle` in force.** It was always drawn in the palette's secondary tier;
 it still is where no style is stated, and takes the style where one is, as SwiftUI's label does (measured on macOS
