@@ -109,11 +109,26 @@ SwiftUI draws red.
 stated (`statedForegroundStyle == nil`), so TUI now draws as SwiftUI does in all
 four places; `ForegroundStyleReachesContentTests` pins it.
 
-## A side finding, not acted on
+## A side finding, for the owner
 
-Under `.foregroundStyle(.red, .blue)`, SwiftUI's `Text.foregroundStyle(.secondary)`
-(the overload that returns `Text`) draws a secondary red (#FF9C96), while
-`View.foregroundStyle(.secondary)` draws blue. TUI's `Text` has only a `Color`
-overload (`Sources/TUIFoundation/Views/Text.swift`), so `Text("x").foregroundStyle(.secondary)`
-goes through `View`'s and presumably draws the stated secondary (blue). That is
-not checked in TUI here.
+Under `.foregroundStyle(.red)` and under `.foregroundStyle(.red, .blue)`,
+SwiftUI's `Text.foregroundStyle(.secondary)` (the overload that returns `Text`,
+generic over `ShapeStyle`) draws a secondary red (#FF9C96), while
+`View.foregroundStyle(.secondary)` draws red at the secondary level under `.red`
+and blue under the pair (section 2's comparison rows, `ink.out`).
+
+**TUI (measured 2026-11-19, a throwaway test reading back the written cells):**
+`Text`'s only overload takes a `Color` (`Sources/TUIFoundation/Views/Text.swift`),
+and it wins the leading dot, so `.secondary` there is `Color.secondary`, the
+palette's fixed secondary tier: TUI draws that tier with no style, under `.red`
+and under `(.red, .blue)` alike, where SwiftUI draws a secondary red under both.
+`View.foregroundStyle(.secondary)` matches SwiftUI: red at the secondary level
+under `.red`, the pair's second style under the pair.
+
+Making `Text`'s match needs SwiftUI's own `foregroundStyle<S: ShapeStyle>(_:) -> Text`
+on `Text`, a public API change, so it is put to the owner rather than made here:
+a SwiftUI program needs no change for it (it is SwiftUI's signature); TUI would
+keep the hierarchical style in the text's value and resolve it against the
+environment where the text draws, a cost on the most-drawn view. Until then a
+program that wants SwiftUI's colour names it, `.foregroundStyle(.red.secondary)`
+(which takes the `View` form).
