@@ -8,7 +8,7 @@
 //  SwiftUI, whose lazy stack lands on a row it has made). The scroll view
 //  tells the stack, by last frame's Tab order, that the focus is about to come
 //  in; the stack walks in from that edge until a row registers a focusable
-//  (`StackFocusReach.swift`). A stack with nothing to focus is passed by, as a
+//  (`StackEdgeFocusStop.swift`). A stack with nothing to focus is passed by, as a
 //  `VStack`'s is, and walked once, not on every Tab, until its rows change.
 //  The rows the walk looks at, and the row it draws off screen for the ring,
 //  run no `onAppear`. And a row whose control has an explicit `.focusID(_:)`

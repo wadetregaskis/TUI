@@ -8,7 +8,7 @@
 //  Tab coming into it from the control before the scroll view landed on the
 //  first row on screen rather than the stack's first row (LAZY-EDGE). The
 //  stack can draw its first or last focusable row off screen for the ring
-//  (`StackFocusReach.swift`), but only if something tells it, before it draws,
+//  (`StackEdgeFocusStop.swift`), but only if something tells it, before it draws,
 //  that the focus is about to come in. Tab moves through the ring the frame
 //  registers, which is not complete until the frame has been drawn, so the
 //  question is put to last frame's ring instead (owner, 2026-11-17: "use last
