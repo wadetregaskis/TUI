@@ -20,7 +20,7 @@ struct HandOffDemo: View {
     var body: some View {
         DemoSection("page.terminal.handOffSection") {
             VStack(alignment: .leading, spacing: 1) {
-                Text("page.terminal.handOffExplain")
+                Text(Self.explanation)
                     .foregroundStyle(.palette.foregroundSecondary)
                 ValueDisplayRow("page.terminal.handOffNote", note)
                 Button(L("page.terminal.handOffEdit")) { edit() }
@@ -30,6 +30,15 @@ struct HandOffDemo: View {
             }
         }
     }
+
+    /// What the section says it does. Windows' editor when none is set is
+    /// `edit`, and Ctrl-Break, not ⌃Z, is the other key the program has there:
+    /// ⌃Z is a key like any other in a Windows console.
+    #if os(Windows)
+        private static let explanation: LocalizedStringKey = "page.terminal.handOffExplainWindows"
+    #else
+        private static let explanation: LocalizedStringKey = "page.terminal.handOffExplain"
+    #endif
 
     /// Writes the note to a file, hands the terminal to the editor on it, and
     /// reads it back if the editor ended well.
