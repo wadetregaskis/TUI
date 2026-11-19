@@ -11,6 +11,9 @@ its replies does.
 
 `PROBE_OUT` names the record a probe writes, as on POSIX. The console's code page
 is set to UTF-8 for the run, so what a probe prints is what it means.
+`PROBE_MOUSE_INPUT=0` leaves the console's mouse input off, for a probe of keys
+alone (`termios.setraw`). `console_records_probe.py` beside this is Windows's own:
+it logs the console's input records themselves, not the bytes.
 """
 import os
 import runpy

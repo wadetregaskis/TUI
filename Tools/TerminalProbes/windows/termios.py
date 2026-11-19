@@ -106,10 +106,19 @@ def tcsetattr(fd, when, attributes):
 
 
 def setraw(fd):
-    """Raw mode, the console's way: as TUI's `ConsoleModes.raw(from:)` sets it."""
+    """Raw mode, the console's way: as TUI's `ConsoleModes.raw(from:)` sets it.
+
+    `PROBE_MOUSE_INPUT=0` leaves the console's mouse input off, for a probe that
+    wants keys alone: with it on, Windows Terminal reports the pointer's motion
+    even where nothing turned mouse reporting on, and a moved pointer fills the
+    record with reports."""
     input_mode, output_mode, _, _ = tcgetattr(fd)
     input_mode &= ~(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_QUICK_EDIT_MODE)
-    input_mode |= ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT
+    input_mode |= ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_WINDOW_INPUT
+    if os.environ.get("PROBE_MOUSE_INPUT") == "0":
+        input_mode &= ~ENABLE_MOUSE_INPUT
+    else:
+        input_mode |= ENABLE_MOUSE_INPUT
     output_mode |= ENABLE_PROCESSED_OUTPUT | ENABLE_VIRTUAL_TERMINAL_PROCESSING | DISABLE_NEWLINE_AUTO_RETURN
     kernel32.SetConsoleMode(_handle(fd), input_mode | ENABLE_EXTENDED_FLAGS)
     kernel32.SetConsoleMode(_output_handle(), output_mode)
