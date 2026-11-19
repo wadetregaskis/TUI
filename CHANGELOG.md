@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `ZStack` beside a running `TimelineView` no longer composites its layers again at each entry when none moved.** A
+launcher's animated preview, a picture with its loop's timeline in a `ZStack`, was put together cell by cell at every
+frame of every preview on the page. While a timeline is live the composite is now kept with everything it was made
+from and served while none of it has changed. `TUI_KEEP_TIMELINE_ANCESTORS=0` turns this off with the rest of the
+timeline's keeping, to compare.
+
 **A `.frame(width:height:)` no longer measures what it holds.** A frame pinned on both axes is its pins whatever its
 content measures, and its measure now says so without asking the content. Beside a running `TimelineView` this is most
 of what an entry cost: a timeline's measure reads the clock, so every measure above it was taken again at each entry,

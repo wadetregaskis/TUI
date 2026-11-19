@@ -4,8 +4,9 @@
 //  An `.overlay` or a `.background` that holds a running `TimelineView` does
 //  not composite its two layers again at the timeline's entries when neither
 //  changed: the composite is served from the last frame's
-//  (`LayerCompositeKeep`). And when either changes, the new one is drawn: a
-//  layer whose content moves, a base whose model does.
+//  (`LayerCompositeKeep`). Nor does a `ZStack` of a picture and a timeline
+//  beside it, as a launcher's preview is drawn. And when a layer changes, the
+//  new composite is drawn: a layer whose content moves, a base whose model does.
 //
 //  Counted, not compared: a picture served and one composited again look the
 //  same. `composited` is the composites made while a timeline was live.
@@ -56,6 +57,8 @@ private enum Shape {
     case overlay
     /// The timeline the base, the board in its background.
     case timelineAsBase
+    /// The board and the timeline as a `ZStack`'s two layers.
+    case zstack
 }
 
 private struct Host: View {
@@ -66,6 +69,11 @@ private struct Host: View {
         case .background: Board().equatable().frame(width: 10, height: 3).background { Loop() }
         case .overlay: Board().equatable().frame(width: 10, height: 3).overlay { Loop() }
         case .timelineAsBase: Loop().frame(width: 10, height: 3).background { Board().equatable() }
+        case .zstack:
+            ZStack(alignment: .topLeading) {
+                Board().equatable().frame(width: 10, height: 3)
+                Loop().frame(width: 0, height: 0)
+            }
         }
     }
 }
@@ -86,6 +94,30 @@ private struct Blinking: View {
 @Observable
 private final class Label {
     var text = "one"
+}
+
+/// A `ZStack` whose top layer moves at every entry, over a text.
+private struct BlinkingStack: View {
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Text(verbatim: "ab").frame(width: 4, height: 1)
+            TimelineView(.animation) { timeline in
+                Text(verbatim: Int(timeline.date.timeIntervalSinceReferenceDate * 60).isMultiple(of: 2) ? "x" : "y")
+            }
+        }
+    }
+}
+
+/// A `ZStack` of a text drawn from a model, with the timeline beside it.
+private struct LabelledStack: View {
+    let label: Label
+
+    var body: some View {
+        ZStack(alignment: .topLeading) {
+            Text(verbatim: label.text).frame(width: 6, height: 1)
+            Loop().frame(width: 0, height: 0)
+        }
+    }
 }
 
 /// A base drawn from a model, with the timeline behind it.
@@ -141,6 +173,49 @@ struct TimelineLayerCompositeTests {
         app.advance(by: .seconds(1))
         #expect(boardRenders == renders, "the board in the background reads nothing that moved")
         #expect(app.headless.renderCache.plainMemo.layerComposites.counts.composited == counts.composited)
+    }
+
+    @Test("A ZStack of a picture and a timeline is not composited again at each entry")
+    func zstackCompositeServed() {
+        boardRenders = 0
+        let app = page(.zstack)
+        let renders = boardRenders
+        let counts = app.headless.renderCache.plainMemo.layerComposites.counts
+        let screen = app.headless.screen
+        app.advance(by: .seconds(1))
+        let after = app.headless.renderCache.plainMemo.layerComposites.counts
+        #expect(after.composited == counts.composited, "60 entries; no layer moved")
+        #expect(after.served - counts.served >= 55)
+        #expect(boardRenders == renders)
+        #expect(app.headless.screen == screen)
+    }
+
+    @Test("A ZStack layer that moves at every entry is composited at every entry")
+    func movingStackLayerComposited() {
+        let app = TestApp(width: 8, height: 1) { BlinkingStack() }
+        _ = app.screen
+        app.advance(by: .milliseconds(100))
+        var seen: Set<String> = []
+        for _ in 0..<6 {
+            app.advance(by: .microseconds(16_667))
+            seen.insert(app.screen.text.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        #expect(seen == ["xb", "yb"], "the top layer in turn over the text: \(seen)")
+    }
+
+    @Test("A ZStack layer that changes beside a running timeline is drawn changed")
+    func changedStackLayerComposited() {
+        let label = Label()
+        let app = TestApp(width: 8, height: 1) { LabelledStack(label: label) }
+        _ = app.screen
+        app.advance(by: .milliseconds(200))
+        #expect(app.headless.screen.joined().contains("one"))
+        label.text = "two"
+        app.advance(by: .milliseconds(50))
+        #expect(app.headless.screen.joined().contains("two"))
+        label.text = "one"
+        app.advance(by: .milliseconds(50))
+        #expect(app.headless.screen.joined().contains("one"), "the first composite is kept no longer than its layer")
     }
 
     @Test("A layer that moves at every entry is composited at every entry")

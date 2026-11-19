@@ -5,7 +5,7 @@
 label's content is "drawn again at every frame". Commit d4808499d fixed the app's own views beside and
 above a timeline (`FrameBodyKeep`) and left this, with the diagnosis that framework controls have no memo
 of their own and that a focused `List` registers focus in a way the memo cannot replay. Ids:
-B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (the owner ruled F0, 2026-11-19).*
+B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (the owner ruled F0, 2026-11-19); B-TLCTRL-2 to B-TLCTRL-4, added below.*
 
 ## In short
 
@@ -250,7 +250,50 @@ else moved, in the cases with a frame pinned on both axes (`timeline-tiles` over
 body kept (`FrameBodyKeep`, whose keys and environment stamps were 12% of a frame of `timeline-tiles` after this
 change), its children's buffers fetched or drawn and stacked again. The re-assembly is small by now (`assembleColumn`
 0.8%, padding 1.4%), with one exception: the preview's `ZStack`, which composites its two layers again at each entry
-(`FrameBuffer.layered`, 7.4%).
+(`FrameBuffer.layered`, 7.4%; B-TLCTRL-4, below).
+
+## The composite of a ZStack beside a live timeline (B-TLCTRL-4)
+
+*Added 2026-11-19, with B-TLCTRL-3 built.* A launcher's preview is a `ZStack` of the picture and the timeline that
+moves it, the timeline beside the picture rather than behind it (tuiarcade's `AttractPreview`). The walk reaches the
+stack at every frame, since it is an ancestor of a live timeline, and `FrameBuffer.layered` composited its layers onto
+a blank canvas again, cell by cell (`composedRow`, `insertOverlay`), though at a frame of `timeline-tiles` one
+preview's picture at most had moved and the other layer is a zero-size `Color.clear`.
+
+**What changed.** The same keep as a layer modifier's (B-TLCTRL-2): a stack's composite is a function of its layers,
+each where it lands, the canvas's size, whether a layer past the canvas is drawn past it, and what the environment
+says about blending. While a timeline is live, `_ZStackCore` keeps its composite in `LayerCompositeKeep` with all of
+those (`Direction.stacked(width:height:splitsOverhang:)`, the layers in drawing order) and serves it while every one
+compares equal. Not kept: a composite one of whose layers carries animated runs, which may ask for a wake (a later
+layer showing an earlier one's field asks for the run's steps), and one that may have drawn into the image store. The
+layers are drawn, or served by their own memos, before the keep is asked, so everything they register is registered
+as before; a served composite skips only the cell arithmetic. `TUI_VERIFY_RENDER_MEMO` makes a composite that would be
+served again and compares the two; `TUI_KEEP_TIMELINE_ANCESTORS=0` turns it off with the rest.
+
+Time Profiler, `Stress --bench --scenario session/case:timeline-tiles` (release, `-g`), 8 s attached,
+`analyze_timeprofile.py --thread main`, inclusive:
+
+| Frame | Before (B-TLCTRL-3 built) | After |
+|---|---|---|
+| `FrameBuffer.layered` (the previews' `ZStack`s composited) | 7.4% | 1.0% |
+| `composedRow` in `FrameBuffer.composited` (within it) | 3.6% | 0.6% |
+| `_CanvasCore.renderToBuffer` (the moved preview drawn) | 8.8% | 10.5% |
+| `EnvironmentStamps.stamp(of:)` (the bodies' keys above the timelines) | 12.2% | 13.7% |
+
+Measured (`Tools/Profiling/ab_bench.py`, release, CPU per frame, 10 paired reps, against B-TLCTRL-3 built):
+`app-shapes/timeline-tiles` 376.3 → 298.2 µs, −20.4% (95% CI −22.9% to −19.3%); `session/case:timeline-tiles` 1087.0 →
+1003.1 µs, −7.6% (−9.0% to −6.7%); `timeline-beside`, `game-loop` and `timeline-rows`, which hold no `ZStack` beside a
+timeline, indistinguishable but for `session/case:game-loop`, −0.6% (−3.5% to −0.2%). The quick sweep (7 scenarios, none
+with a live timeline): 6 indistinguishable, `modifiers` +0.7% (+0.0% to +1.3%), where the change is a load and a branch
+per `ZStack` drawn. `Stress --check-counts`: no count moved, as for B-TLCTRL-2; bytes unchanged (95 of 95 sessions'
+`TUI_HEADLESS_STREAM` identical). With B-TLCTRL-3, a frame of `timeline-tiles` went from 647.2 to 298.2 µs (−54%) and a
+step of its perf case from 1404.6 to 1003.1 µs (−29%).
+
+**What is left.** The walk through the ancestors itself, which none of these memos can skip without serving a picture
+that holds the timeline: each is drawn at each entry, its body kept (`FrameBodyKeep`, whose keys and their environment
+stamps are now the largest single cost, 13.7%), its context copied and its children fetched. Under the owner's ruling
+A-TLCTRL-1 = F0 the focused tile is drawn at each entry in any case. The stamps are a separate question: an environment
+no derivation reaches is stamped flat, its keys hashed and sorted, at each pass.
 
 ## Decisions
 
@@ -298,3 +341,11 @@ compare and the buffers' retention at every layer modifier the walk reaches, for
 the offer, without the content's measure, which its arithmetic does not read; except under a `scrollTo` search's
 measure. Everywhere, not only beside a live timeline: the answer is the same, and the content's measure was only cost.
 Above a live timeline it is what lets the measures above a pinned frame be kept across entries.
+
+### B-TLCTRL-4. A ZStack's composite is kept across frames while a timeline is live
+
+*Decided here, 2026-11-19, and built.* `_ZStackCore` keeps its `FrameBuffer.layered` composite in `LayerCompositeKeep`
+with its layers, their places, the canvas and the environment's blending inputs, and serves it while a timeline is
+live and all compare equal; one whose layers carry animated runs or may draw into the image store is not kept. A pure
+function's memo, as B-TLCTRL-2's. The other users of `FrameBuffer.layered` (a stack's glide, a windowed stack's z
+order, a pulled `ZStack`'s band) are left as they were: none was measured beside a live timeline.

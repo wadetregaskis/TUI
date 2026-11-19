@@ -53,6 +53,42 @@ struct KeptLayerComposite {
         self.context = context
     }
 
+    /// A stack's layers, composited on a blank `width` × `height` canvas
+    /// (`FrameBuffer.layered`): `nil` when no timeline is live, on a measure,
+    /// or with no cache.
+    ///
+    /// - Parameters:
+    ///   - layers: Each layer's picture and where it lands, in drawing order.
+    ///   - width: The canvas's width.
+    ///   - height: The canvas's height.
+    ///   - splitsOverhang: Whether a layer past the canvas is drawn past it.
+    ///   - context: The stack's context.
+    ///   - stackType: The stack's own type: with the identity, the place kept at.
+    init?(
+        stacking layers: [(buffer: FrameBuffer, x: Int, y: Int)], width: Int, height: Int, splitsOverhang: Bool,
+        _ context: RenderContext, _ stackType: Any.Type
+    ) {
+        guard !context.isMeasuring, let cache = context.renderCache, cache.plainMemo.frameBodies.timelinesLive,
+            cache.plainMemo.frameBodies.isOn
+        else { return nil }
+        let composite = CompositeEnvironment(context.environment)
+        store = cache.plainMemo.layerComposites
+        slot = context.identity.structuralHash ^ ObjectIdentifier(stackType).hashValue
+        inputs = LayerCompositeKeep.Inputs(
+            .stacked(width: width, height: height, splitsOverhang: splitsOverhang),
+            placed: layers.map { LayerCompositeKeep.Placed($0.buffer, x: $0.x, y: $0.y) },
+            palette: composite.palette, linearLight: composite.linearLight, images: composite.images)
+        self.context = context
+    }
+
+    /// Whether a composite of these inputs may ask for a wake: one does where
+    /// a later layer shows a field of an earlier one's animated runs, which no
+    /// layer without runs has. A cheap superset, for a composite that does not
+    /// say whether it asked.
+    var mayAskForAWake: Bool {
+        inputs.placed.contains { !$0.buffer.animatedCells.isEmpty }
+    }
+
     /// The composite of these inputs the last frame made, or `nil`.
     mutating func served() -> FrameBuffer? {
         guard let kept = store.served(at: slot, inputs) else { return nil }

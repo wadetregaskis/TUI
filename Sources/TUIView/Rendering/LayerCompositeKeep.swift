@@ -28,6 +28,12 @@
 //  claim, with a store to draw its faded copy into), whose registrations a
 //  serve would not make.
 //
+//  A `ZStack`'s layers are one composite too, of all of them at once on a blank
+//  canvas, and are kept the same way: a launcher tile's preview, a picture with
+//  its loop's `TimelineView` beside it in a `ZStack`, was composited again at
+//  every entry of the loop and at every entry of the other tiles' loops, 7% of
+//  a frame of Stress's `timeline-tiles`, though only one picture had moved.
+//
 //  Only while a timeline asked for a wake this pass or the last, and only while
 //  `FrameBodyKeep` is on: `TUI_KEEP_TIMELINE_ANCESTORS=0` turns this off with
 //  it. A page with no live timeline composites as it did, beyond one load.
@@ -53,10 +59,14 @@ package final class LayerCompositeKeep {
 
     package var counts = Counts()
 
-    /// Which way the layer goes: over the base or under it.
-    package enum Direction {
+    /// Which way the layer goes: over the base or under it; or, for a stack's
+    /// layers, each over the one before on a blank canvas of this size, a layer
+    /// past its edges drawn past them where `splitsOverhang`
+    /// (`FrameBuffer.layered`).
+    package enum Direction: Equatable {
         case over
         case under
+        case stacked(width: Int, height: Int, splitsOverhang: Bool)
     }
 
     /// One picture a composite is made of, and where it lands.
@@ -76,7 +86,8 @@ package final class LayerCompositeKeep {
     package struct Inputs {
         package let direction: Direction
         /// The pictures composited, each where it lands: the base at the
-        /// origin, then the layer inside the base's frame.
+        /// origin, then the layer inside the base's frame; or a stack's layers
+        /// in the order they are drawn.
         package let placed: [Placed]
         package let palette: any Palette
         package let linearLight: Bool
@@ -89,6 +100,17 @@ package final class LayerCompositeKeep {
         ) {
             self.direction = direction
             self.placed = [Placed(base, x: 0, y: 0), Placed(layer, x: offset.x, y: offset.y)]
+            self.palette = palette
+            self.linearLight = linearLight
+            self.images = images
+        }
+
+        /// A stack's layers, drawn in order on a canvas `direction` sizes.
+        package init(
+            _ direction: Direction, placed: [Placed], palette: any Palette, linearLight: Bool, images: AnyObject?
+        ) {
+            self.direction = direction
+            self.placed = placed
             self.palette = palette
             self.linearLight = linearLight
             self.images = images

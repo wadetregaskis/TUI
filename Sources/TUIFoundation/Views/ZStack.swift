@@ -193,9 +193,16 @@ struct _ZStackCore<Content: View>: View, Renderable {
         {
             return gliding
         }
-        return FrameBuffer.layered(
+        // Served from the last frame while a timeline is live, when no layer
+        // moved (`LayerCompositeKeep`).
+        var kept = KeptLayerComposite(
+            stacking: layers, width: drawnWidth, height: drawnHeight, splitsOverhang: overhangs, context, Self.self)
+        if let served = kept?.served() { return served }
+        let result = FrameBuffer.layered(
             layers, width: drawnWidth, height: drawnHeight, splitsOverhang: overhangs,
             wakeToken: "zstack-base-run-\(context.identity.path)", context: context)
+        if let kept { kept.keep(result, askedForAWake: kept.mayAskForAWake) }
+        return result
     }
 }
 
