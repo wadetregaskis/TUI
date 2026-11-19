@@ -1561,3 +1561,21 @@ messages cite that path), and what cites it.
   `Sources/TUIForms/Styles/LabeledContentStyle.swift`, `Sources/TUITables/Views/Table.swift`;
   `Tests/TUIIntegrationTests/ForegroundStyleReachesContentTests.swift`; the SwiftUI compatibility guide's "Closed:
   `.foregroundStyle` on a control reaches the text in it".
+
+### Disabled editor ink and toggle subtitles (1119)
+
+- **Asks:** whether `.disabled(true)` fades or recolours a `TextEditor`'s text: the default ink, a
+  `.foregroundStyle(.red)`, and an attributed editor's runs (macOS 26 API). A `TextField` and an attributed `Text`
+  are drawn beside it. And what colour a `Toggle`'s subtitle (the second view of its label) takes under
+  `.foregroundStyle(.red)` and `.foregroundStyle(.red, .blue)`: checkbox and switch, bare and in a `.grouped` `Form`
+  (`ink.swift`, `ink.out`, `notes.md`). Each sample is drawn at 3x twice, real and blank, and the core pixel of
+  each text line is printed in 8-bit sRGB.
+- **Answers:** a disabled `TextEditor`'s text keeps its exact colour (#000000, a red's #FF3B30). Clicks stop
+  reaching it, but its `NSTextView`'s colours are untouched. A `TextField` does fade (grey #262626 → #A7A7A7,
+  red → #FF847D). The attributed editor could not run on macOS 15 and is unmeasured. With no style a toggle's
+  subtitle is `.secondary` (#808080). Under a stated style it takes the style's primary at full strength (#FF3B2F,
+  as the title), and `(.red, .blue)` draws no blue. This is the same in all four placements. `notes.md` compares
+  TUI's behaviour.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-19.
+- **Was:** written here.
+- **Cited by:** nothing yet; the owner decides TUI's behaviour from `notes.md`.

@@ -1,0 +1,49 @@
+macOS 15.8.3, drawn at 3x, Aqua
+swatch .red over white: #FF3B30
+swatch .blue over white: #007AFF
+swatch .primary over white: #272727
+swatch .secondary over white: #808080
+swatch .tertiary over white: #BDBDBD
+swatch .red.secondary over white: #FF9C97
+
+# 1. TextEditor, enabled vs disabled
+TextEditor default enabled: y=8...17 n=2047 core=#000000 over #FFFFFF
+  NSTextView editable=true selectable=true textColor=catalog textColor sRGB(0.000 0.000 0.000 a1.00) storage[0].foregroundColor=catalog textColor sRGB(0.000 0.000 0.000 a1.00)
+  hitTest(centre)=PlatformTextView makeFirstResponder(textView)=true
+TextEditor .foregroundStyle(.red) enabled: y=8...17 n=2079 core=#FF3B30 over #FFFFFF
+  NSTextView editable=true selectable=true textColor=NSColorType(rawValue: 0) sRGB(1.000 0.231 0.188 a1.00) storage[0].foregroundColor=NSColorType(rawValue: 0) sRGB(1.000 0.231 0.188 a1.00)
+  hitTest(centre)=PlatformTextView makeFirstResponder(textView)=true
+TextEditor default disabled: y=8...17 n=2047 core=#000000 over #FFFFFF
+  NSTextView editable=true selectable=true textColor=catalog textColor sRGB(0.000 0.000 0.000 a1.00) storage[0].foregroundColor=catalog textColor sRGB(0.000 0.000 0.000 a1.00)
+  hitTest(centre)=NSHostingView<AnyView> makeFirstResponder(textView)=true
+TextEditor .foregroundStyle(.red) disabled: y=8...17 n=2079 core=#FF3B30 over #FFFFFF
+  NSTextView editable=true selectable=true textColor=NSColorType(rawValue: 0) sRGB(1.000 0.231 0.188 a1.00) storage[0].foregroundColor=NSColorType(rawValue: 0) sRGB(1.000 0.231 0.188 a1.00)
+  hitTest(centre)=NSHostingView<AnyView> makeFirstResponder(textView)=true
+TextEditor(text: Binding<AttributedString>, selection:): unavailable before macOS 26, not run
+
+# 1, for comparison: TextField and an attributed Text
+TextField default enabled: y=13...23 n=2314 core=#262626 over #FFFFFF
+TextField .foregroundStyle(.red) enabled: y=13...23 n=2383 core=#FF3B30 over #FFFFFF
+Text(AttributedString) red run enabled: y=10...21 n=1592 core=#FF3B2F over #FFFFFF
+TextField default disabled: y=13...23 n=2266 core=#A7A7A7 over #FFFFFF
+TextField .foregroundStyle(.red) disabled: y=13...23 n=2366 core=#FF847D over #FFFFFF
+Text(AttributedString) red run disabled: y=10...21 n=1592 core=#FF3B2F over #FFFFFF
+
+# 2, for comparison: a VStack: a Text; Text.foregroundStyle(.secondary); a Text under View.foregroundStyle(.secondary); a Rectangle filled .secondary
+VStack no style: y=10...21 n=1340 core=#272727 over #FFFFFF | y=27...37 n=2317 core=#808080 over #FFFFFF | y=43...53 n=2317 core=#808080 over #FFFFFF | y=64...69 n=2160 core=#808080 over #FFFFFF
+VStack .foregroundStyle(.red): y=10...21 n=1350 core=#FF3B2F over #FFFFFF | y=27...37 n=2279 core=#FF9C96 over #FFFFFF | y=43...53 n=2279 core=#FF9C96 over #FFFFFF | y=64...69 n=2160 core=#FF9C97 over #FFFFFF
+VStack .foregroundStyle(.red, .blue): y=10...21 n=1350 core=#FF3B2F over #FFFFFF | y=27...37 n=2279 core=#FF9C96 over #FFFFFF | y=42...53 n=2493 core=#0079FF over #FFFFFF | y=64...69 n=2160 core=#007AFF over #FFFFFF
+
+# 2. Toggle { Text("Title"); Text("Subtitle") }, off; bands are title then subtitle
+bare .checkbox no style: y=10...21 n=1340 core=#272727 over #FFFFFF | y=28...36 n=1761 core=#808080 over #FFFFFF
+bare .checkbox .foregroundStyle(.red): y=10...21 n=1350 core=#FF3B2F over #FFFFFF | y=27...36 n=1843 core=#FF3B2F over #FFFFFF
+bare .checkbox .foregroundStyle(.red, .blue): y=10...21 n=1350 core=#FF3B2F over #FFFFFF | y=27...36 n=1843 core=#FF3B2F over #FFFFFF
+bare .switch no style: y=10...21 n=1340 core=#272727 over #FFFFFF | y=28...36 n=1761 core=#808080 over #FFFFFF
+bare .switch .foregroundStyle(.red): y=10...21 n=1350 core=#FF3B2F over #FFFFFF | y=27...36 n=1843 core=#FF3B2F over #FFFFFF
+bare .switch .foregroundStyle(.red, .blue): y=10...21 n=1350 core=#FF3B2F over #FFFFFF | y=27...36 n=1843 core=#FF3B2F over #FFFFFF
+Form.grouped .checkbox no style: y=40...51 n=1340 core=#252525 over #F2F2F2 | y=58...66 n=1761 core=#797979 over #F2F2F2
+Form.grouped .checkbox .foregroundStyle(.red): y=40...51 n=1350 core=#FF3B2F over #F2F2F2 | y=57...66 n=1843 core=#FF3B2F over #F2F2F2
+Form.grouped .checkbox .foregroundStyle(.red, .blue): y=40...51 n=1350 core=#FF3B2F over #F2F2F2 | y=57...66 n=1843 core=#FF3B2F over #F2F2F2
+Form.grouped .switch no style: y=40...51 n=1340 core=#252525 over #F2F2F2 | y=58...67 n=1776 core=#797979 over #F2F2F2
+Form.grouped .switch .foregroundStyle(.red): y=40...51 n=1350 core=#FF3B2F over #F2F2F2 | y=58...67 n=1874 core=#FF3B2F over #F2F2F2
+Form.grouped .switch .foregroundStyle(.red, .blue): y=40...51 n=1350 core=#FF3B2F over #F2F2F2 | y=58...67 n=1874 core=#FF3B2F over #F2F2F2
