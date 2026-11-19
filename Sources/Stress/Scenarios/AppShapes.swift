@@ -349,5 +349,8 @@ enum AppShapeMatrix {
         variant("timeline-list", "a List of 8 three-line rows, each an animated Canvas in its own TimelineView(.animation), the first selected") {
             AnyView(TimelineListApp(rows: $0.sized(8), seed: $0.seed))
         },
+        variant("timeline-tiles", "a tile launcher: two focusable bordered tiles, each a Canvas beside its own 10 or 5 Hz TimelineView") {
+            AnyView(TimelineTilesApp(seed: $0.seed))
+        },
     ]
 }

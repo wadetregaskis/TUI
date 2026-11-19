@@ -245,6 +245,15 @@ changes every frame, so no memo serves one, and it prices what the list spends
 drawing its rows, each of which it should draw once a frame; the perf case of
 the same name counts a second of it with the list holding the focus, which a
 `--bench` of the scenario does not give it.
+`timeline-tiles` is a
+tile launcher written as tuiarcade's is: two focusable tiles in a row, each a
+bordered column of a `Canvas` preview in a `.frame(width:height:)` over its
+name, a score and a blurb, the preview a `ZStack` of the picture and its own
+`TimelineView(.animation(minimumInterval:))`, ten entries a second for the
+tile that holds the focus and five for the other, each entry moving a demo's
+board on a row; the perf case of the same name counts a second of it. What an
+entry costs there beyond the moved preview's own drawing is the tiles around
+it.
 
 `table-api` is the first: 43 variants over seven axes — how a column gets its
 value (key path, closure, sort-by-one-display-another, non-`Equatable` rows,
