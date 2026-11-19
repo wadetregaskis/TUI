@@ -99,6 +99,8 @@ Read only by those two executables, for clips, sweeps and measuring. `Sources/St
 | `TUI_EXAMPLE_PICTURE` | A picture's name, in any case | The picture the image page opens on, for a clip of one in particular. |
 | `TUI_EXAMPLE_PALETTE_ALPHA` | `0` to `1` | Fades the whole palette, to run the faded-palette sweep (`Tools/Smoke/faded_palette_sweep.py`). |
 | `TUI_EXAMPLE_GROUND_ALPHA` | `0` to `1` | Fades the ground alone, to show that the framework survives a ground with nothing behind it. |
+| `VISUAL` | A program, and its arguments after it | The editor the Example's hand-off section opens its note in, before `EDITOR`. Elsewhere a shell expands it; on Windows the first word is the program and the rest its arguments. TUI itself reads it nowhere: `handOffTerminal(running:)` runs what an app gives it. |
+| `EDITOR` | A program, and its arguments after it | The editor the Example's hand-off section opens its note in where `VISUAL` is not set; with neither, `vi`, or `edit` on Windows. |
 | `TUI_STRESS_SCALE` | A whole number | How much of each scenario to build. |
 | `TUI_STRESS_SEED` | A whole number | The seed of the scenario's random data. |
 | `TUI_STRESS_AUTOPILOT` | `1` or `true` | Runs the scenario without input. |

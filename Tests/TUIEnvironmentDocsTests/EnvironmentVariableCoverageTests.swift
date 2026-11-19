@@ -72,7 +72,7 @@ struct EnvironmentVariableCoverageTests {
     @Test("A variable read in the sources is in the table or the internal list")
     func everyReadIsListed() {
         let known = Self.table.union(InternalVariables.all).union(InternalVariables.compileConditions)
-            .union(InternalVariables.notVariables)
+            .union(InternalVariables.notVariables).union(InternalVariables.everyProgramsOwn.keys)
         let unlisted = Self.tuiNamesInSources().union(Self.literalsInReadingFiles()).subtracting(known)
         #expect(
             unlisted.isEmpty,
@@ -105,7 +105,7 @@ struct EnvironmentVariableCoverageTests {
         #expect(stale.isEmpty, "\(stale.sorted()) are in the table, and nothing in the sources reads them.")
         // The internal names are checked against their own places.
         let staleInternal = Set(InternalVariables.framework.keys).union(InternalVariables.exampleAndStress.keys)
-            .subtracting(read)
+            .union(InternalVariables.everyProgramsOwn.keys).subtracting(read)
         #expect(staleInternal.isEmpty, "\(staleInternal.sorted()) are listed, and nothing in the sources reads them.")
     }
 
@@ -118,6 +118,8 @@ struct EnvironmentVariableCoverageTests {
         let testsAndTools = Set(InternalVariables.testsAndTools.keys)
         #expect(Self.table.isDisjoint(with: InternalVariables.all))
         #expect(Self.table.isDisjoint(with: InternalVariables.compileConditions))
+        #expect(Self.table.isDisjoint(with: InternalVariables.everyProgramsOwn.keys))
+        #expect(InternalVariables.all.isDisjoint(with: InternalVariables.everyProgramsOwn.keys))
         #expect(framework.isDisjoint(with: exampleAndStress))
         #expect(framework.isDisjoint(with: testsAndTools))
         #expect(exampleAndStress.isDisjoint(with: testsAndTools))
@@ -127,6 +129,7 @@ struct EnvironmentVariableCoverageTests {
     func internalVariablesHaveReasons() {
         let reasons = InternalVariables.framework.merging(InternalVariables.exampleAndStress) { first, _ in first }
             .merging(InternalVariables.testsAndTools) { first, _ in first }
+            .merging(InternalVariables.everyProgramsOwn) { first, _ in first }
         for (name, reason) in reasons {
             #expect(reason.hasSuffix(".") && reason.count > 10, "\(name) needs a sentence saying why it's internal")
         }

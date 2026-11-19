@@ -57,7 +57,16 @@ enum InternalVariables {
         "TUI_WASM_TOOLCHAIN": "The web demo's build script alone reads it.",
     ]
 
-    /// Every name above.
+    /// Not TUI's: the variables every program reads alike, which the Example reads
+    /// for what they mean to all of them. Neither table documents them, and the
+    /// developers' page, whose scan finds only `TUI_` names, says what the Example
+    /// does with them.
+    static let everyProgramsOwn: [String: String] = [
+        "EDITOR": "The editor the Example's hand-off section opens its note in; the framework reads neither.",
+        "VISUAL": "The editor the Example's hand-off section opens its note in; the framework reads neither.",
+    ]
+
+    /// Every name above but ``everyProgramsOwn``.
     static let all = Set(framework.keys).union(exampleAndStress.keys).union(testsAndTools.keys)
 
     /// What looks like a variable and isn't: compile-time conditions, set with `-D`, and
