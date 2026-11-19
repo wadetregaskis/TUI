@@ -148,7 +148,7 @@ it moves within one that is not lit, and a menu the keyboard opened — a pop-up
 suggestions — takes no row from a pointer resting over it until the pointer moves
 to another cell (`MenuHighlight.noteOpened(byKeyboard:)`,
 `MouseEventDispatcher.pointerMoves`), as a macOS menu opened from the keyboard
-does: lead decision, 2026-11-18, owner may revisit (B-MENUS-4 in
+does: lead decision, 2026-11-18, confirmed by the owner on 2026-11-19 (B-MENUS-4 in
 [Pop-up menus](<../Historical/Menus, toolbars and chrome/Pop-up menus - submenus, type select and an alert's buttons.md>)).
 A menu the pointer opened follows it as before.
 

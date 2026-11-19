@@ -5,7 +5,7 @@
 label's content is "drawn again at every frame". Commit d4808499d fixed the app's own views beside and
 above a timeline (`FrameBodyKeep`) and left this, with the diagnosis that framework controls have no memo
 of their own and that a focused `List` registers focus in a way the memo cannot replay. Ids:
-B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (for the owner).*
+B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (the owner ruled F0, 2026-11-19).*
 
 ## In short
 
@@ -22,7 +22,7 @@ Two cases, two answers:
   their own identity as an app's view is, while a timeline is live and only then
   (`_PlainMemoizedBesideTimelines`). It is the memo the app's view above the control already stores the
   same subtree in, so it is no less safe; outside a live timeline nothing changes.
-- **A control that holds the focus** (not built, A-TLCTRL-1). Its registration still declines every memo
+- **A control that holds the focus** (not built; the owner ruled F0, A-TLCTRL-1). Its registration still declines every memo
   around it, so a focused `List` beside a timeline is still drawn at each entry. Making it replayable
   changes what a served frame may skip for a focused control, with an audit behind it, priced below.
 
@@ -196,10 +196,18 @@ unchanged (92 of 92 sessions' `TUI_HEADLESS_STREAM` identical).
 
 ### A-TLCTRL-1. A focused control beside a live timeline: replayable, or drawn?
 
-*For the owner.* Whether to build F1 (a focused `List`'s and `Button`'s registration replayable at their own
+*Put to the owner, who ruled below.* Whether to build F1 (a focused `List`'s and `Button`'s registration replayable at their own
 memo while a timeline is live, every input dropping the focused control's buffers, its focused-only claims
 journalled), or to stay at F0. What a SwiftUI program would change: nothing either way; under F0 a launcher
 whose list holds the focus pays for the list's draw at each of its loop's entries.
+
+**Ruled 2026-11-19: F0, (a).** Measured first on tuiarcade's launcher at 7e050123a (release, 100×30, 10 s):
+the launcher itself has no `List` any more (focusable tiles, about 4% of a core idling); a `List` with the
+previews beside it and a `Button` to Tab to costs 3.8–4.1% focused against 3.7% unfocused, so F1 would save
+at most about 0.25% of a core; a `List` whose rows hold the previews changes under its focused row's tint at
+every entry, so a kept picture would be stale and F1 could serve nothing. The owner chose F0, as F1's benefit
+is insignificant. What that `List`-of-previews shape does cost is each visible row drawn twice a frame
+(`rowsOverflow`, then `composeRowLines`), a separate fix.
 
 ### B-TLCTRL-1. List and Button are memoized at their own identity while a timeline is live
 

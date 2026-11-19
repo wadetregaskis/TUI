@@ -180,9 +180,9 @@ package final class MenuHighlight {
     /// Opened by the keyboard, they answer it only once it has moved: a menu
     /// that opens under a pointer resting where a drag or a move last left it
     /// keeps the row the keyboard highlighted, as a macOS menu opened from the
-    /// keyboard does until the mouse moves (lead decision, 2026-11-18, owner
-    /// may revisit; `Pop-up menus - submenus, type select and an alert's
-    /// buttons.md`, B-MENUS-4). Taken, the row under the pointer was lit by
+    /// keyboard does until the mouse moves (lead decision, 2026-11-18,
+    /// confirmed by the owner 2026-11-19; `Pop-up menus - submenus, type
+    /// select and an alert's buttons.md`, B-MENUS-4). Taken, the row under the pointer was lit by
     /// the hover's reconcile after the frame that drew the first row lit, and
     /// Return ran a row the screen had not lit (the Stress menus session, at
     /// step 419). Opened by the pointer, they answer it as before.

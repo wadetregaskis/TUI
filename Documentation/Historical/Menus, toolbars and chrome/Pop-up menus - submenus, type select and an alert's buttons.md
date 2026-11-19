@@ -190,7 +190,9 @@ focused picker, so not done silently.
 `MouseEventDispatcher.pointerMoves`, `DropdownMenu`'s row handler,
 `RenderLoop.owesPointerFrame`, `AppRunner.frameDrawn(renderer:hold:)`*
 
-**Lead decision, 2026-11-18 (owner may revisit).** Found by the Stress `menus`
+**Lead decision, 2026-11-18; confirmed by the owner, 2026-11-19:** a menu opened from the
+keyboard keeps the row the keyboard chose though it happens to open under the pointer, and the
+pointer takes the highlight as usual once it moves. Found by the Stress `menus`
 session at 1,500 steps (step 419, and step 803's Return; debug and release
 alike, the cache-cleared twin agreeing). The pointer rested where a drag had
 left it; a menu opened from the keyboard appeared under it and drew its first
