@@ -198,6 +198,20 @@ package protocol WindowedListRowExtractor {
     var listRowsPerElement: Int? { get }
 }
 
+extension WindowedListRowExtractor {
+    /// ``listRowIDType``, when a list whose selection holds `RowID` can name
+    /// none of these rows: row 0's id will not cast, which decides every row
+    /// (``listRowID(at:rowsPerElement:)``). `nil` where it can, where there
+    /// are no rows, and where the rows vary (``listRowsPerElement`` is `nil`),
+    /// which only building them would tell.
+    package func listRowIDTypeNamingNone<RowID: Hashable>(_: RowID.Type) -> Any.Type? {
+        guard let rowsPerElement = listRowsPerElement, listRowCount > 0,
+            (listRowID(at: 0, rowsPerElement: rowsPerElement) as RowID?) == nil
+        else { return nil }
+        return listRowIDType
+    }
+}
+
 // MARK: - Seeing Through a Group or an if/else
 
 /// A view that stands between a `List` (or a `Section`) and its rows without

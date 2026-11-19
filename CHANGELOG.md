@@ -212,11 +212,11 @@ before and after: exact for one contiguous change, approximate for several in on
 3 ms for a 3 MB text. A build against a macOS 15 SDK (Command Line Tools 16.x), whose Foundation declares none of
 this, takes that path on every macOS and has no `subscript(_:)` with a selection.
 
-**A debug build warns when a `List`'s selection can name none of its rows.** `List(games, selection: $selection)`
-with a `GameID?` selection over rows whose `id` is a `String` selects nothing, as in SwiftUI, and said nothing, as
-SwiftUI says nothing. A debug build now says so once, for the rows of a `ForEach`, naming both types, through TUI's
-runtime warnings (on stderr when the app gives the terminal back, or in `TUI_DIAGNOSTICS_FILE`). Nothing else
-changes.
+**A debug build warns when a `List`'s selection can name none of its rows.** `List(games, selection: $selection)` with a
+`GameID?` selection over rows whose `id` is a `String` selects nothing, as in SwiftUI, and said nothing, as SwiftUI says
+nothing. A debug build now says so once, for the rows of a `ForEach`, of an outline (`List(_:children:selection:)`) and
+of a section's `ForEach` (a `ForEach` of `Section`s), naming both types, through TUI's runtime warnings (on stderr when
+the app gives the terminal back, or in `TUI_DIAGNOSTICS_FILE`). Nothing else changes.
 
 **A test can play a terminal that can do what it says, from the start.** `TestApp.terminalCapabilities` is settable,
 and `TerminalCapabilities(supported:unsupported:)` is public, so a test can present a terminal that reports key

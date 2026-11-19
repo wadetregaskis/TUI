@@ -60,4 +60,11 @@ package protocol WindowedOutlineListRows {
     /// to neither the node's id nor its index), and the eager path, which
     /// draws such rows as it can, takes them instead.
     func windowedListRows<RowID: Hashable>(context: RenderContext) -> OutlineListRows<RowID>?
+
+    /// The type the nodes are identified by, when a list whose selection holds
+    /// `RowID` can name none of them, by a node's id or by its index; `nil`
+    /// where it can, or where there are no nodes. Asked of the type and the
+    /// first node alone, so it builds and installs nothing: what a debug build
+    /// names in its warning (`_ListCore.warnSelectionNamesNoRow`).
+    func listRowIDTypeNamingNone<RowID: Hashable>(_: RowID.Type) -> Any.Type?
 }

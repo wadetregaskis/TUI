@@ -132,6 +132,15 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
         return rows
     }
 
+    /// `ID`, when a list whose selection holds `RowID` names the first node by
+    /// neither its id nor its index (``OutlineRowNames/typed(_:_:)``'s two
+    /// ways): every node's id is an `ID`, so the first speaks for all.
+    package func listRowIDTypeNamingNone<RowID: Hashable>(_: RowID.Type) -> Any.Type? {
+        guard let first = roots.first, (first[keyPath: idKeyPath] as? RowID) == nil, (0 as? RowID) == nil
+        else { return nil }
+        return ID.self
+    }
+
     /// The rows that show, as the list reads them, with the disclosure
     /// installed for this pass's rows.
     func listRows<RowID: Hashable>(context: RenderContext) -> OutlineListRows<RowID> {

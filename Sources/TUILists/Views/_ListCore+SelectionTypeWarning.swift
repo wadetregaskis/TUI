@@ -30,6 +30,20 @@ extension _ListCore {
         SoftTrap.warn(Self.selectionNamesNoRowMessage(idType: idType))
     }
 
+    /// ``warnSelectionNamesNoRow(identifiedBy:)`` for `content`, when it is a
+    /// `ForEach` or an outline (`List(_:children:selection:)`) whose rows this
+    /// list's selection can name none of: a list's whole content, or one
+    /// section's (a `ForEach` of `Section`s, or sections written out), where
+    /// the rows are not windowed and so are not asked about where the flat
+    /// `ForEach`'s are. A debug build only (the caller's `#if DEBUG`).
+    func warnIfSelectionNamesNoRow(of content: Any) {
+        let idType =
+            (content as? any WindowedListRowExtractor)?.listRowIDTypeNamingNone(SelectionValue.self)
+            ?? (content as? any WindowedOutlineListRows)?.listRowIDTypeNamingNone(SelectionValue.self)
+        guard let idType else { return }
+        warnSelectionNamesNoRow(identifiedBy: idType)
+    }
+
     /// The words of ``warnSelectionNamesNoRow(identifiedBy:)``.
     static func selectionNamesNoRowMessage(idType: Any.Type) -> String {
         "List's selection holds \(SelectionValue.self), but its rows are identified by \(idType): "
