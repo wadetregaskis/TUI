@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A click forgets where the pointer last moved to when it lands elsewhere.** TUI counted the pointer as resting on
+the cell of its last reported move until the next one, so with the moves between unreported, a menu opened by a click
+on its trigger could light the row under that old cell as it opened: Down then went to the row after it, and Return
+ran that. A press, a release or a wheel tick at another cell now says the pointer has left it.
+
 **A `TimelineView`'s entry runs the timeline's content, and nothing above or beside it that has not changed.** At
 each entry of a running timeline TUI ran the `body` of every view above it, up to the app's (and whatever their
 initialisers made, sixty times a second under `.animation`); drew again the view a timeline in its `.background` or

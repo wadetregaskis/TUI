@@ -256,6 +256,13 @@ package final class MouseEventDispatcher {
     /// opened under the pointer, a pointer-opened menu with its first item
     /// highlighted (the Stress menus session).
     ///
+    /// But one reported at ANOTHER cell forgets it: the pointer has left the
+    /// cell it rested on without a report of the way (a script, a terminal
+    /// that dropped the moves), and kept, that cell went on counting as under
+    /// the pointer. A menu dragged from and then clicked open again from its
+    /// trigger lit, as it opened, the row the drag had ended on, so Down went
+    /// to the row below it (the Stress menus session again, at step 181).
+    ///
     /// Forgotten when the terminal's reporting stops covering motion (a
     /// frame-final support without it, ``setActiveSupport(_:isFrameFinal:)``)
     /// and when it stops reporting the pointer at all (a suspend,
@@ -945,6 +952,20 @@ extension MouseEventDispatcher {
             && pressPopup != nil && !pointerMovedSincePress
     }
 
+    /// Updates where the pointer rests (``restingPosition``) from any report:
+    /// every report of its motion says where it is, a dropped one too — a
+    /// drag's moves arrive as `.dragged`, never as `.moved`. A press, a release
+    /// or a wheel tick at another cell is not motion, but it says the pointer
+    /// has left the cell it rested on, unreported: from there it rests nowhere
+    /// known.
+    private func notePointerReport(_ event: MouseEvent) {
+        if event.phase == .moved || event.phase == .dragged {
+            restingPosition = (event.x, event.y)
+        } else if let resting = restingPosition, resting.x != event.x || resting.y != event.y {
+            restingPosition = nil
+        }
+    }
+
     /// Updates the press-and-hold bookkeeping ``endsHeldGesture(_:)`` reads.
     ///
     /// Called for every event the dispatcher accepts, before any routing, so the
@@ -1028,10 +1049,7 @@ extension MouseEventDispatcher {
                 """)
         }
 
-        // Every report of the pointer's motion says where it is, a dropped one
-        // too: a drag's moves arrive as `.dragged`, never as `.moved`
-        // (`restingPosition`).
-        if event.phase == .moved || event.phase == .dragged { restingPosition = (event.x, event.y) }
+        notePointerReport(event)
         noteInput()
 
         // Honour the active MouseSupport configuration: drop events
