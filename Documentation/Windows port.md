@@ -151,7 +151,7 @@ code, which is unchanged. What each piece became, and why:
 | `isatty`, `getenv`, `setenv` | `GetConsoleMode` on the descriptor's handle; `GetEnvironmentVariableW`; `_putenv_s` | The C library's POSIX names are deprecated on Windows, and its `isatty` says yes to `NUL` |
 | `/dev/tty` | `CONIN$` / `CONOUT$`, with `SetStdHandle` and the descriptor `_dup2`'d | What `NoTerminal` points a redirected stream at |
 | `pbcopy`, `wl-copy`, `xclip` | `OpenClipboard`, `SetClipboardData(CF_UNICODETEXT)`, CR LF on the clipboard and LF in the app | No helper to run, so nothing can hang; locality from the ssh variables and a Toolhelp32 walk of the parents |
-| `open`, `xdg-open` | `ShellExecuteW` | The user's default program for the scheme |
+| `open`, `xdg-open` | `ShellExecuteW`, for a URL that names a scheme | The user's default program for the scheme. A bare name (`calc`) the shell would run as a program |
 
 Measured under a pseudo console (`Tools/Smoke/conpty.py`, 2026-11-16, debug build):
 

@@ -43,8 +43,13 @@ struct SystemURLOpener: URLOpenerBackend {
         #elseif os(Windows)
             // The shell's own opener, as `open` is macOS's: the user's
             // default program for the URL's scheme, with no console of its own
-            // to write into this one.
-            let result = url.absoluteString.withCString(encodedAs: UTF16.self) { target in
+            // to write into this one. Only a URL with a scheme: without one
+            // the shell takes the text for a program and looks for it in the
+            // working directory, `PATH` and its App Paths, so a link to `calc`
+            // started the calculator, where `open` and `xdg-open` look only for
+            // a file of that name.
+            guard let target = Self.shellTarget(for: url) else { return false }
+            let result = target.withCString(encodedAs: UTF16.self) { target in
                 "open".withCString(encodedAs: UTF16.self) { verb in
                     unsafe ShellExecuteW(nil, verb, target, nil, nil, SW_SHOWNORMAL)
                 }
@@ -63,5 +68,12 @@ struct SystemURLOpener: URLOpenerBackend {
         }
         return false
         #endif
+    }
+
+    /// What the Windows shell is handed for `url`: its text, where it names a
+    /// scheme, and `nil` where it does not (``open(_:)``).
+    static func shellTarget(for url: URL) -> String? {
+        guard let scheme = url.scheme, !scheme.isEmpty else { return nil }
+        return url.absoluteString
     }
 }

@@ -38,6 +38,9 @@ such as `pagefile.sys`, and a protected folder link such as `Application Data` i
 listed as a visible file with no size and no date, which could not be opened. Their hidden attributes, sizes and dates
 are now read from the folder itself, which also lists a folder 3 to 8 times faster.
 
+**On Windows, a link with no scheme no longer starts a program.** Windows takes a bare name, such as `calc`, for a
+program to run. Opening a URL now hands Windows only one that names a scheme, such as `https:` or `mailto:`.
+
 **In the classic Windows console, a stepper's and a slider's arrows no longer draw as boxes.** Consolas, its
 default font, has no `◀` or `▶`, and the console draws a character its font lacks as a box when it stands alone in a
 colour of its own, as those arrows do. Where the console's font lacks them, TUI now sends `◄` and `►` in their

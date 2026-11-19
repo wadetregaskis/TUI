@@ -270,4 +270,14 @@ struct URLOpenerBackendTests {
             }
         }
     #endif
+
+    @Test("The Windows shell is handed only a URL with a scheme, never a bare name it would run as a program")
+    func shellTargetNeedsAScheme() throws {
+        #expect(SystemURLOpener.shellTarget(for: try #require(URL(string: "calc"))) == nil)
+        #expect(SystemURLOpener.shellTarget(for: try #require(URL(string: "docs/readme"))) == nil)
+        #expect(
+            SystemURLOpener.shellTarget(for: try #require(URL(string: "https://example.com/a")))
+                == "https://example.com/a")
+        #expect(SystemURLOpener.shellTarget(for: try #require(URL(string: "mailto:a@example.com"))) != nil)
+    }
 }
