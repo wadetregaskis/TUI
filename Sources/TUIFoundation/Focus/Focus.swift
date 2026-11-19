@@ -1605,7 +1605,10 @@ extension FocusManager {
             }
         }
 
-        // A Tab that passed over a lazy stack it should have come into.
+        // A Tab that passed over a lazy stack it should have come into: taken
+        // on once the walk was done, before the frame was written, by a driver
+        // that settles its frame with this manager (`FrameSettling`); here for
+        // one that does not, and to let go of what the last walk noted.
         resolveEdgeArrival()
 
         // Resume a Home/End that ran out of laid-out rows to travel through.

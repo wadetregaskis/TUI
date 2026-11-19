@@ -59,6 +59,13 @@ there too.
 row is drawn in the secondary tier; under a `.foregroundStyle(_:)` it took a secondary level of that style, and now it
 takes the style itself, as SwiftUI's value does (measured on macOS 15.8). Without one it is still the secondary tier.
 
+**No frame shows the focus on the way into a `LazyVStack`.** Where a Tab or Shift-Tab went into a lazy stack whose
+rows on screen had nothing to focus (below), one frame was written with the focus on the scroll view or the control
+past the stack before the next showed it on the row found, and an `.onChange(of:)` of a `@FocusState`, and a
+`@FocusedValue`, saw it pass through there. The frame is now drawn again with the focus on the row before it is
+written. The key still moves the focus there first, so a text field there sees `onEditingChanged` fire and a key typed
+in the same instant as the Tab goes to it.
+
 **Tab from a control above a `LazyVStack` in the same `ScrollView` reaches the stack's first row however far
 down.** With a button over the stack — `ScrollView { VStack { Button(…); LazyVStack { … } } }` — Tab from the button
 looked no further than 64 rows into the stack for a row with something to focus, and past more rows with nothing to

@@ -416,7 +416,7 @@ enum Headless {
         func walk() -> FrameBuffer {
             FrameSettling.settle(
                 storage: storage, cache: context.environment.renderCache, lifecycle: context.environment.lifecycle,
-                appState: nil,
+                appState: nil, focusManager: context.environment.focusManager,
                 walk: { effects in
                     channels.drawSettlingRootGeometry(
                         width: cols, height: rows, stateStorage: storage, effects: effects

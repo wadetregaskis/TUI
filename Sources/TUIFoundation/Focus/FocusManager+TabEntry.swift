@@ -53,9 +53,10 @@ extension FocusManager {
     ///   in it, or Tab onto the scroll view's own stop, which registers just
     ///   after its content — or Shift-Tab off that stop to a control outside —
     ///   where the content has no focus section of its own to file its rows
-    ///   in. The stack then walks in from that edge, and the end of the pass
-    ///   takes the focus on to the row it finds (``resolveEdgeArrival()``),
-    ///   unless the focus is in that row already.
+    ///   in. The stack then walks in from that edge, and once the walk is done
+    ///   the focus is taken on to the row it finds (``resolveEdgeArrival()``),
+    ///   unless it is in that row already, and the frame walked again before
+    ///   it is written.
     ///
     /// The second is what a stack with nothing to focus on screen gets: only
     /// a walk can tell whether it has anything at all, and a walk made before
@@ -186,10 +187,18 @@ extension FocusManager {
     /// control for Tab, its last for Shift-Tab — of the rows found, the one
     /// first in the ring for Tab, last for Shift-Tab. Nothing moves when the
     /// focus is in that row already, or no stack found one.
-    func resolveEdgeArrival() {
-        guard let arrival = tabEntry.arrival else { return }
+    ///
+    /// Asked once the frame's walk is done, before it is written
+    /// (`FrameSettling`), which walks the frame again when this moves the
+    /// focus, so no frame shows it where the key left it; and again at the
+    /// end of the pass, for a driver that does not ask.
+    ///
+    /// - Returns: Whether the focus moved.
+    @discardableResult
+    func resolveEdgeArrival() -> Bool {
+        guard let arrival = tabEntry.arrival else { return false }
         tabEntry.arrival = nil
-        guard !arrival.rows.isEmpty, let focused = currentFocusedID else { return }
+        guard !arrival.rows.isEmpty, let focused = currentFocusedID else { return false }
         let row = { (focusID: String) in
             let path = self.identityPath(of: focusID)
             return arrival.rows.first { Self.focusID(path, addressesSubtreeAt: $0) }
@@ -199,8 +208,12 @@ extension FocusManager {
         guard let target = arrival.edge == .top ? stops.first : stops.last, let targetRow = row(target.focusID),
             !Self.focusID(identityPath(of: focused), addressesSubtreeAt: targetRow),
             isNearer(target.focusID, than: focused, in: ring)
-        else { return }
+        else { return false }
+        // The walk that found the row drew it, and what it publishes: the
+        // walk made again with the focus on it reads that, above the row.
+        focusedValues.carryWalkForward()
         focus(id: target.focusID)
+        return currentFocusedID == target.focusID
     }
 
     /// Whether the key that moved the focus to `focused` would have gone to

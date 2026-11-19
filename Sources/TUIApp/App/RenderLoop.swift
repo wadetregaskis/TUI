@@ -642,7 +642,7 @@ extension RenderLoop {
         var reservation: (top: WindowChromeState.Bar, bottom: WindowChromeState.Bar)?
         let walk = FrameSettling.settle(
             storage: tuiContext.stateStorage, cache: tuiContext.renderCache, lifecycle: tuiContext.lifecycle,
-            appState: tuiContext.appState,
+            appState: tuiContext.appState, focusManager: focusManager,
             walk: { effects in
                 walkScene(
                     size: (terminalWidth, terminalHeight), pulsePhase: pulsePhase, cursorTimer: cursorTimer,

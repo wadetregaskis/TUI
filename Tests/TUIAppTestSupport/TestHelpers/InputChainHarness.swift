@@ -169,6 +169,7 @@ final class InputChainHarness {
             // app's body is evaluated for each.
             FrameSettling.settle(
                 storage: tui.stateStorage, cache: tui.renderCache, lifecycle: tui.lifecycle, appState: tui.appState,
+                focusManager: focusManager,
                 walk: { effects in walk(view(), walks: walks, context: frameContext, effects: effects) },
                 endWalk: { geometry.endFrame(frame: $0, retainedBy: tui.stateStorage) },
                 beginRewalk: { beginSceneRender() })

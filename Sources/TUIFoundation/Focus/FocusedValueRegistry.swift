@@ -135,6 +135,18 @@ package final class FocusedValueRegistry {
         return table
     }
 
+    /// Lets what the walk just made published answer the readers of the walk
+    /// made again in its place, ahead of their publishers, over what the last
+    /// pass published: the walk after a Tab into a lazy stack, which found the
+    /// row the focus goes on to and drew it, publishing its values, before
+    /// the frame is walked again with the focus there
+    /// (`FocusManager.resolveEdgeArrival()`). Read from the last pass's alone,
+    /// a reader drawn above the row read nothing for it, and only the frame
+    /// after showed its value.
+    func carryWalkForward() {
+        previous.merge(current) { _, new in new }
+    }
+
     /// Ends the pass: keeps what its last walk published, and asks for one
     /// more frame if a reader was handed something the frame then changed.
     func endPass(focusedAt focused: ViewIdentity?) {

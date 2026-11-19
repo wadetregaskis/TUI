@@ -333,6 +333,24 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   a control beside the stack in the scroll content, and the walk past the
   views over or under the stack: neither has a cap either (2026-11-17; the
   first stopped 64 rows into the stack, the second 64 views short of it).
+  The focus is taken on once that frame's walk is done and before it is
+  written, and the frame walked again, what the first walk's views did (an
+  `onChange(of:)`, an `onAppear`) dropped (`FrameSettling`, 2026-11-18): taken
+  on at the end of the pass, one frame showed the focus on the control the key
+  left it on, the scroll view's stop or the control past the stack, and an
+  `onChange(of:)` of a `@FocusState` and a `@FocusedValue` saw it there. The
+  second walk is made only in the frame after such a Tab, and does not walk
+  the rows again. **The limit that remains:** the key itself moves the focus
+  to that control, before any frame, so the focus manager tells it at once —
+  a text field's `onEditingChanged(true)`, then `false` — and a key read
+  behind the Tab before the frame, in the same batch of input, goes to it: a
+  Return typed with a Shift-Tab off the scroll view's stop presses the button
+  above the scroll view (`LazyStackEdgeArrivalFrameTests.keyTimeInterim`, a
+  known issue). Knowing at
+  the key that the stack has a row to take the focus on to takes the walk the
+  frame makes; holding back the control's notice, or the input behind the
+  key, for every Tab that might pass over a lazy stack would need a second
+  way of telling those Tabs apart at the key, which this does not add.
   **Recorded.**
 
 ### L8. A lazy stack lays its sections out whole

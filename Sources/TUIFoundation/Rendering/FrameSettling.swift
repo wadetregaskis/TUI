@@ -71,12 +71,19 @@ package enum FrameSettling {
     ///     the root's drawing still open, so what they do joins its effects.
     ///   - beginRewalk: What the driver resets for a walk made again, beyond
     ///     what this resets.
+    ///   - focusManager: The focus manager the frame's controls register
+    ///     with. A walk after which it takes the focus on, for a Tab that
+    ///     passed over a lazy stack's rows (``FocusManager/resolveEdgeArrival()``),
+    ///     is thrown away with what its views did, and the frame walked again
+    ///     with the focus where it went. Without one the focus is taken on at
+    ///     the end of the pass, after this frame is written.
     /// - Returns: The last walk.
     package static func settle<Walk>(
         storage: StateStorage?,
         cache: RenderCache?,
         lifecycle: LifecycleManager?,
         appState: AppState?,
+        focusManager: FocusManager? = nil,
         walk: (ProvisionalEffects) -> Walk,
         endWalk: (Walk) -> Void,
         beginRewalk: () -> Void = {}
@@ -91,6 +98,29 @@ package enum FrameSettling {
             // every time it runs three times a frame.
             let writes = cache?.link.writeCount
             endWalk(drawn)
+            if let cache, rewalks < maxRewalks, focusManager?.resolveEdgeArrival() == true {
+                // A Tab that passed over a lazy stack whose rows on screen had
+                // nothing to focus left the focus on the control past it — the
+                // scroll view's stop, or the control after the stack — for this
+                // walk to find the stack's row (LAZY-EDGE), and the focus has
+                // just been taken on to it. The walk drew the focus where the
+                // key left it, and its `onChange(of:)`s, `onAppear`s and
+                // `@FocusedValue` readers saw it there: never shown, so what
+                // its views did is dropped, as the scene root's correction
+                // drops a walk (`discard`, then kept with nothing held, as
+                // every drawing must be), and the frame walked again. Not a
+                // pass of its own for the animation stores or the lifecycle,
+                // as a walk whose effects ran is: nothing of it ran. The walk
+                // in from the stack's edge is not made again: its answer is
+                // kept for the frame (`StackWindowState.edgeStopsOfFrame`).
+                effects.discard()
+                effects.keep()
+                rewalks += 1
+                appState?.didRender()
+                cache.beginRewalk()
+                beginRewalk()
+                continue
+            }
             effects.keep()
             guard let cache, cache.link.writeCount != writes else {
                 note(rewalks: rewalks, stillWriting: false, storage: storage, cache: cache)

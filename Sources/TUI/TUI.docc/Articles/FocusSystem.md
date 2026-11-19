@@ -111,7 +111,13 @@ one by one from its edge, without running their `onAppear`, so a "load more" on
 the last row runs only once the row comes on screen: in the frame before the
 key when the rows on screen have something to focus, and otherwise in the
 frame after a Tab that passed over the stack, which then takes the focus on to
-the row it finds. A stack with nothing to focus is passed by, and looked
+the row it finds before it is written: the key leaves the focus on the scroll
+view or the control past the stack, but no frame shows it there, and neither
+an `onChange(of:)` of a `@FocusState` nor a `@FocusedValue` sees it there. The
+key itself does move it there first, so a control there is told it has the
+focus and loses it again (a text field's `onEditingChanged`), and a key read
+behind the Tab before that frame, typed in the same instant, goes to it. A
+stack with nothing to focus is passed by, and looked
 through once until its rows' data changes: a row that gains a control with the
 data unchanged, say one enabled by state outside the rows, is not seen until
 then. Rows with explicit `focusID(_:)`s walk the same way.
