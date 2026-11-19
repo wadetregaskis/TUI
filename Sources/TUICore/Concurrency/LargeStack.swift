@@ -47,8 +47,9 @@ package enum LargeStack {
 }
 
 #if os(Windows)
-    /// One thread's fiber and what it is to run: kept for the thread in a
-    /// thread-local slot, made the first time the thread asks.
+    /// One thread's fiber and what it is to run: kept in a fiber-local slot of
+    /// the thread's own fiber, made the first time the thread asks, and let go
+    /// of, the large fiber deleted, when the thread ends.
     ///
     /// The fibers are kept as their addresses' bits: a fiber is a raw pointer
     /// in Swift, and this class's storage then has nothing unsafe in it.
@@ -68,7 +69,25 @@ package enum LargeStack {
         /// The slot each thread's instance is kept in. A process-wide index of
         /// the operating system's, private, through which nothing outside this
         /// file can see one thread's instance from another.
-        private static let slot: DWORD = TlsAlloc()
+        ///
+        /// Fiber-local, not thread-local, for its callback: when the thread
+        /// ends, Windows hands ``release`` what the slot holds on the fiber the
+        /// thread ends on, its own, and the large fiber's stack — 8 MiB
+        /// reserved, and as much committed as the deepest walk used — goes
+        /// with the thread. A thread-local slot has no such callback, and a
+        /// libdispatch worker that drew a frame and later ended left its stack
+        /// behind. Read from the large fiber, the slot is that fiber's and
+        /// empty, so a nested ask finds no instance and runs where it is.
+        private static let slot: DWORD = unsafe FlsAlloc(release)
+
+        /// What the slot's callback does with a thread's instance as the
+        /// thread ends: deletes the large fiber, which is not running, as the
+        /// thread ends on its own, and lets go of the instance.
+        private static let release: PFLS_CALLBACK_FUNCTION = { value in
+            guard let value = unsafe value else { return }
+            let stack = unsafe Unmanaged<FiberStack>.fromOpaque(value).takeRetainedValue()
+            unsafe DeleteFiber(UnsafeMutableRawPointer(bitPattern: stack.largeFiber))
+        }
 
         /// Whether a walk on this thread needs the large stack: its own is
         /// smaller than ``LargeStack/bytes``.
@@ -80,7 +99,9 @@ package enum LargeStack {
         }
 
         static func run<T>(_ body: () -> T) -> T {
-            guard slot != TLS_OUT_OF_INDEXES, threadStackIsSmall else { return body() }
+            // `FLS_OUT_OF_INDEXES`, which the SDK spells with a cast Swift
+            // does not import.
+            guard slot != DWORD.max, threadStackIsSmall else { return body() }
             guard let stack = current(), !stack.running else { return body() }
             var result: T?
             withoutActuallyEscaping(body) { body in
@@ -99,7 +120,7 @@ package enum LargeStack {
         /// thread is a fiber already, of someone else's, or a fiber cannot be
         /// made, and the walk then runs where it is.
         private static func current() -> FiberStack? {
-            if let existing = unsafe TlsGetValue(slot) {
+            if let existing = unsafe FlsGetValue(slot) {
                 return unsafe Unmanaged<FiberStack>.fromOpaque(existing).takeUnretainedValue()
             }
             guard !IsThreadAFiber() else { return nil }
@@ -117,8 +138,8 @@ package enum LargeStack {
             stack.threadFiber = UInt(bitPattern: thread)
             stack.largeFiber = UInt(bitPattern: large)
             // Kept for the thread's life, retained by the slot, as the fiber
-            // that refers to it is.
-            _ = unsafe TlsSetValue(slot, opaque)
+            // that refers to it is, until ``release`` lets go of both.
+            _ = unsafe FlsSetValue(slot, opaque)
             return stack
         }
 
