@@ -28,6 +28,10 @@ Linux.
 **On Windows, a paste of over a megabyte arrives whole.** TUI dropped everything past the first megabyte it held for
 the app. It now leaves the rest with the console until the app has read what it holds.
 
+**On Windows, Ctrl-Break leaves nothing of a frame on the shell's screen.** The console runs Ctrl-Break's quit on a
+thread of its own, which could write its teardown while a frame was still being written, so the rest of the frame
+landed after it. The quit now waits for the frame, for up to a quarter of a second.
+
 **On Windows, a thread that drew a frame gives back its stack when it ends.** Each thread that drew a frame kept an
 8 MiB stack reserved for it after the thread ended.
 

@@ -245,4 +245,33 @@ struct WindowsStandardOutputTests {
     }
 }
 
+@Suite("A quit and the frame being written, on Windows")
+struct WindowsQuitWriteGateTests {
+    @Test("With no write under way, a quit waits for nothing")
+    func noWrite() {
+        #expect(FatalSignalTerminalRestore.awaitWrites(within: .seconds(5)))
+    }
+
+    @Test("A quit waits for the write under way, and not for ever for one that does not end")
+    func waitsForTheWrite() {
+        let started = DispatchSemaphore(value: 0)
+        let release = DispatchSemaphore(value: 0)
+        let finished = DispatchSemaphore(value: 0)
+        Thread.detachNewThread {
+            FatalSignalTerminalRestore.duringWrite {
+                started.signal()
+                release.wait()
+            }
+            finished.signal()
+        }
+        started.wait()
+        // Held: the wait gives up.
+        #expect(!FatalSignalTerminalRestore.awaitWrites(within: .milliseconds(50)))
+        // Let go while it waits: the wait ends with it.
+        DispatchQueue.global().asyncAfter(deadline: .now() + .milliseconds(30)) { release.signal() }
+        #expect(FatalSignalTerminalRestore.awaitWrites(within: .seconds(5)))
+        finished.wait()
+    }
+}
+
 #endif

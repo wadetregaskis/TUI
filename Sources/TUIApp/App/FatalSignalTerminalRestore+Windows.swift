@@ -120,8 +120,12 @@ enum FatalSignalTerminalRestore {
     /// DLL's detach code under the loader's lock, and a hung app is what this
     /// is for: a main thread stuck holding that lock, or the C runtime's,
     /// would leave the quit waiting on it for ever. The debt is written and
-    /// the modes put back first, so nothing is owed.
+    /// the modes put back first, so nothing is owed: after the terminal's
+    /// write under way, if one is, so the debt follows the frame rather than
+    /// landing inside it (``duringWrite(_:)``).
     static func quitNow() -> Never {
+        quitting.store(true, ordering: .sequentiallyConsistent)
+        _ = awaitWrites(within: writeWait)
         pay(asQuit: true, waiting: true)
         _ = unsafe TerminateProcess(GetCurrentProcess(), UINT(bitPattern: Self.controlCExit))
         ExitProcess(UINT(bitPattern: Self.controlCExit))
@@ -130,6 +134,60 @@ enum FatalSignalTerminalRestore {
     /// `STATUS_CONTROL_C_EXIT`, what a console process ended by Ctrl-C or
     /// Ctrl-Break exits with when nothing handles the event.
     private static let controlCExit: Int32 = Int32(bitPattern: 0xC000_013A)
+
+    // MARK: - A quit and the frame in flight
+
+    /// How many of the terminal's writes are under way (``duringWrite(_:)``).
+    private static let writes = Atomic<Int>(0)
+
+    /// Whether a quit is paying its debt: a write that begins from then on
+    /// waits for the process to end instead.
+    private static let quitting = Atomic(false)
+
+    /// The longest a quit waits for a write under way before it pays its debt
+    /// regardless: a write blocked for good — a conhost window with text being
+    /// selected holds every write until the selection ends — must not stop
+    /// the quit.
+    static let writeWait: Duration = .milliseconds(250)
+
+    /// Runs `body`, one of the terminal's writes, so that a quit's debt never
+    /// lands inside it (`Terminal.withWriteGate`).
+    ///
+    /// Ctrl-Break's handler runs on a thread of the console's while the main
+    /// thread writes on. Its debt written in the middle of a frame — inside an
+    /// escape sequence, or with the rest of the frame following it onto the
+    /// shell's screen — would be the mess it is there to clear up. So a quit
+    /// waits for the write under way, up to ``writeWait``, and a write begun
+    /// once the quit has begun waits for the process to end.
+    ///
+    /// What POSIX's `TerminalWriteGate` is to the stall watchdog, made of two
+    /// atomics rather than a lock: a write costs two read-modify-writes and a
+    /// load, and a quit can give up on a write that never ends, which no
+    /// lock's waiter can. Each side stores its own flag and then reads the
+    /// other's, sequentially consistent, so at least one of them sees the
+    /// other: the write waits, or the quit does.
+    static func duringWrite(_ body: () -> Void) {
+        writes.wrappingAdd(1, ordering: .sequentiallyConsistent)
+        if quitting.load(ordering: .sequentiallyConsistent) {
+            writes.wrappingSubtract(1, ordering: .sequentiallyConsistent)
+            // The quit ends the process; nothing here is to run before it does.
+            while true { Sleep(INFINITE) }
+        }
+        body()
+        writes.wrappingSubtract(1, ordering: .sequentiallyConsistent)
+    }
+
+    /// Waits until no write is under way (``duringWrite(_:)``), or `limit`
+    /// has passed: whether the writes finished.
+    static func awaitWrites(within limit: Duration) -> Bool {
+        let clock = ContinuousClock()
+        let deadline = clock.now + limit
+        while writes.load(ordering: .sequentiallyConsistent) > 0 {
+            guard clock.now < deadline else { return false }
+            Sleep(1)
+        }
+        return true
+    }
 
     @MainActor
     private static func installIfNeeded() {

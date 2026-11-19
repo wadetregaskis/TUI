@@ -1877,9 +1877,14 @@ extension Terminal {
 
     /// Runs `body`, a write to standard output, holding ``writeGate``, so the
     /// stall watchdog's pop never lands inside it. wasip1 has no watchdog.
+    /// Windows has none either, and its gate is a quit's: Ctrl-Break pays its
+    /// debt on another thread, which waits for the write
+    /// (`FatalSignalTerminalRestore.duringWrite(_:)`).
     fileprivate func withWriteGate(_ body: () -> Void) {
-        #if canImport(WASILibc) || os(Windows)
+        #if canImport(WASILibc)
             body()
+        #elseif os(Windows)
+            FatalSignalTerminalRestore.duringWrite(body)
         #else
             writeGate.withWriteLock(body)
         #endif
