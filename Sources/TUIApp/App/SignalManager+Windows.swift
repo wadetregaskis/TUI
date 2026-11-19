@@ -24,7 +24,10 @@ import WinSDK
 ///   it does `SIGINT` and `SIGTERM`. For the last three the system ends the
 ///   process as soon as the handler returns, so the handler waits for the
 ///   loop's teardown, which ends the process itself, up to the five seconds
-///   the system allows.
+///   the system allows. The last two never come to a process with
+///   `user32.dll` loaded, as a TUI app has, so a hidden window hears of a
+///   logoff or a shutdown instead, and sends the same shutdown
+///   (`SessionEndWatch`).
 /// - **Resize** is no control event: the console sends it as an input record,
 ///   which its reader passes on (``noteResize()``; `ConsoleInput`).
 /// - **Ctrl-Break** is the quit key's, handled where the debt is
@@ -51,7 +54,7 @@ final class SignalManager {
     /// The handler is a C function, which can capture nothing, so it finds its
     /// way here through a process-wide value, as a POSIX signal handler does
     /// (`FatalSignalTerminalRestore`, "Why a process-wide global").
-    private static let route = Mutex<(@Sendable () -> Void)?>(nil)
+    nonisolated private static let route = Mutex<(@Sendable () -> Void)?>(nil)
 
     /// Returns and clears the resize flag.
     func consumeResizeFlag() -> Bool {
@@ -112,6 +115,16 @@ final class SignalManager {
             }
         }
         _ = SetConsoleCtrlHandler(Self.handler, true)
+        SessionEndWatch.start()
+    }
+
+    /// Sends the installed manager's shutdown, for a session that is ending
+    /// (`SessionEndWatch`), on the window's thread: whether one was installed
+    /// to send it to.
+    nonisolated static func routeSessionEnd() -> Bool {
+        guard let route = route.withLock({ $0 }) else { return false }
+        route()
+        return true
     }
 
     /// Stops taking them. Idempotent.

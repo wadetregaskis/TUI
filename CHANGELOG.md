@@ -28,6 +28,10 @@ Linux.
 **On Windows, a paste of over a megabyte arrives whole.** TUI dropped everything past the first megabyte it held for
 the app. It now leaves the rest with the console until the app has read what it holds.
 
+**On Windows, a logoff or a shutdown quits the app in order.** The console never tells a program that has loaded
+`user32.dll` of either, and a TUI app has, so the system ended it without its teardown. A hidden window now hears of
+the session's end and shuts the app down, as `SIGTERM` does on macOS and Linux.
+
 **On Windows, Ctrl-Break leaves nothing of a frame on the shell's screen.** The console runs Ctrl-Break's quit on a
 thread of its own, which could write its teardown while a frame was still being written, so the rest of the frame
 landed after it. The quit now waits for the frame, for up to a quarter of a second.

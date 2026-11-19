@@ -140,7 +140,8 @@ code, which is unchanged. What each piece became, and why:
 | Reading while running | The reader reads only while raw mode is on | So a hand-off's program keeps its keys |
 | `write(2)` to stdout | `WriteFile` on the standard output handle | The C library's descriptor 1 is in text mode and would turn each line feed into CR LF |
 | `TIOCGWINSZ` | `GetConsoleScreenBufferInfo`'s window | The buffer is often far taller than the window; the pixel fields have no counterpart, so the cell's pixel size falls back to its default, as on a terminal that reports zeros |
-| `SIGINT`, `SIGTERM`, `SIGHUP` | `SetConsoleCtrlHandler`: `CTRL_C_EVENT` (sent, or the key outside raw mode), `CTRL_CLOSE_EVENT`, logoff and shutdown set `shouldShutdown`; for the last three the handler waits up to 5 s for the teardown, as the system ends the process when it returns | An orderly quit, as on POSIX. But logoff and shutdown never come: the system does not send them to a process that has loaded `user32.dll` (`SetConsoleCtrlHandler`'s documentation), and the clipboard and the shell's opener load it (the Example has it loaded, 2026-11-18). See "Still to do" |
+| `SIGINT`, `SIGTERM`, `SIGHUP` | `SetConsoleCtrlHandler`: `CTRL_C_EVENT` (sent, or the key outside raw mode), `CTRL_CLOSE_EVENT`, logoff and shutdown set `shouldShutdown`; for the last three the handler waits up to 5 s for the teardown, as the system ends the process when it returns | An orderly quit, as on POSIX. But logoff and shutdown never come: the system does not send them to a process that has loaded `user32.dll` (`SetConsoleCtrlHandler`'s documentation), and the clipboard and the shell's opener load it (the Example has it loaded, 2026-11-18) |
+| The same, for a logoff or a shutdown | A hidden top-level window on a thread of its own (`SessionEndWatch`): `WM_QUERYENDSESSION` answered yes, and `WM_ENDSESSION` for a session that is ending sets `shouldShutdown` and waits up to 5 s for the teardown | How the system tells a process with `user32.dll` loaded; a message-only window gets no broadcast. Tested by sending the window the messages; a real logoff is unmeasured |
 | Job control | None | Nothing suspends a Windows process from its console; ⌃Z is a key |
 | A hand-off ignoring `SIGINT` and `SIGQUIT`, as `system(3)` does | While the console is handed over, both handlers take ⌃C and Ctrl-Break and do nothing (`SignalManager.isHandingOff`) | The console raises them in every process sharing it, the app included: ⌃C shut the app down when the program returned, and Ctrl-Break ended it |
 | `posix_spawn` for `handOffTerminal(running:)` | `CreateProcessW` in the app's console, no handles inherited, waited on; its exit code is the ending, as there are no signals | The program shares the console as a POSIX one shares the foreground group |
@@ -224,9 +225,8 @@ Two things about the environment the runs needed:
 
 ## Still to do
 
-- **Logoff and shutdown**: never sent to the console handler of a process with `user32.dll` loaded, which TUI's
-  is; such a process is told by a window's `WM_QUERYENDSESSION` and `WM_ENDSESSION`, which would need a hidden window
-  and a thread to pump its messages. Until then a logoff or shutdown ends the app with no teardown (unmeasured).
+- **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
+  logging the session off would end the test with it. Worth a run in a virtual machine.
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
 - **The rest of the mouse**: Shift-clicks, the other buttons and pointer shapes are unmeasured in both terminals.
 - **Keys under the kitty protocol in Windows Terminal**: the key record is the legacy encoding; what 1.25 sends for

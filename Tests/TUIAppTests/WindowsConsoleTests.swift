@@ -231,6 +231,46 @@ struct WindowsHandOffControlEventTests {
     }
 }
 
+/// A logoff or a shutdown, told to the hidden window as the system tells it.
+/// Serialized: the window and the route it sends through are the process's.
+@MainActor
+@Suite("A session's end on Windows", .serialized)
+struct WindowsSessionEndTests {
+    /// The watch's window's bits, once it is made.
+    private func window() async throws -> UInt {
+        for _ in 0..<500 where SessionEndWatch.window == 0 { try await Task.sleep(nanoseconds: 10_000_000) }
+        let window = SessionEndWatch.window
+        try #require(window != 0, "no window was made")
+        return window
+    }
+
+    @Test("Asked whether the session may end, the app says yes, and stays up")
+    func queryAnswered() async throws {
+        let signals = SignalManager()
+        await signals.install(wake: {})
+        defer { signals.stop() }
+        let window = try await window()
+        #expect(unsafe SendMessageW(HWND(bitPattern: window), UINT(WM_QUERYENDSESSION), 0, 0) == 1)
+        // A session another program kept from ending.
+        _ = unsafe SendMessageW(HWND(bitPattern: window), UINT(WM_ENDSESSION), 0, 0)
+        for _ in 0..<10 { await Task.yield() }
+        #expect(!signals.shouldShutdown)
+    }
+
+    @Test("A session that is ending shuts the app down in order")
+    func endShutsDown() async throws {
+        let signals = SignalManager()
+        await signals.install(wake: {})
+        defer { signals.stop() }
+        let window = try await window()
+        // Posted, as the window then waits for a teardown that, here, never
+        // ends the process.
+        _ = unsafe PostMessageW(HWND(bitPattern: window), UINT(WM_ENDSESSION), 1, 0)
+        for _ in 0..<500 where !signals.shouldShutdown { try await Task.sleep(nanoseconds: 10_000_000) }
+        #expect(signals.shouldShutdown)
+    }
+}
+
 @Suite("Standard output's writes on Windows")
 struct WindowsStandardOutputTests {
     @Test("A failed write sets errno as write(2) would, not leaving a stale EINTR to retry on")
