@@ -33,6 +33,16 @@ struct CellDecoration: Equatable, Sendable {
         if let strikethrough { style.strikethrough = .some(strikethrough) }
     }
 
+    /// The decoration with its lines' own colours put through `transform`:
+    /// faded, in a disabled editor (``EditorStyledRun/mappingColors(_:)``).
+    func mappingLineColors(_ transform: (Color) -> Color) -> Self {
+        guard underline != nil || strikethrough != nil else { return self }
+        var mapped = self
+        mapped.underline = underline?.mappingColor(transform)
+        mapped.strikethrough = strikethrough?.mappingColor(transform)
+        return mapped
+    }
+
     /// The decoration as a terminal with `environment`'s line styles draws
     /// it, its lines' colours resolved by `environment`'s palette: each shape
     /// the terminal lacks a single line, each colour it lacks the text's own
@@ -70,6 +80,17 @@ struct EditorStyledRun: Equatable {
     /// Its field, or `nil` for the editor's own.
     var background: Color?
     var decoration = CellDecoration()
+
+    /// The run with every colour it states put through `transform` — its ink,
+    /// its field and its lines' — and its attributes as they were: how a
+    /// disabled editor fades it (``_TextEditorCore/RowStyling/runFade``).
+    func mappingColors(_ transform: (Color) -> Color) -> Self {
+        var mapped = self
+        mapped.foreground = foreground.map(transform)
+        mapped.background = background.map(transform)
+        mapped.decoration = decoration.mappingLineColors(transform)
+        return mapped
+    }
 
     /// The run as a row starting at `start` of its line and ending before
     /// `end` holds it, in that row's columns, or `nil` where it is not on it.

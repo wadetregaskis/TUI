@@ -114,4 +114,109 @@ struct TextEditorForegroundStyleTests {
             }
         }
     }
+
+    // MARK: - A disabled editor's runs (A-DISED-1)
+
+    final class Flag: @unchecked Sendable {
+        var value: Bool
+        init(_ value: Bool) { self.value = value }
+    }
+
+    /// A run's colour drawn disabled: faded toward the page by the disabled
+    /// dim, keeping its hue, as a disabled slider's accent track is.
+    private static func faded(_ colour: Color, in context: RenderContext) -> Color {
+        let palette = context.environment.palette
+        return colour.opacity(ViewConstants.disabledForeground, over: palette.background.resolve(with: palette))
+    }
+
+    /// The field a cell drawn on `colour` states.
+    private static func field(_ colour: Color) -> SGRState {
+        var style = TextStyle()
+        style.backgroundColor = colour.opaqueSpelling
+        var state = SGRState()
+        if let sequence = ANSIRenderer.styleSequence(for: style) { state.apply(sequence) }
+        return state
+    }
+
+    /// The underline colour a cell underlined in `colour` states.
+    private static func line(_ colour: Color) -> SGRState {
+        var style = TextStyle()
+        style.underline = .some(Text.LineStyle(color: colour.opaqueSpelling))
+        var state = SGRState()
+        if let sequence = ANSIRenderer.styleSequence(for: style) { state.apply(sequence) }
+        return state
+    }
+
+    /// Cells 1 and 2 of `row` — past the caret's cell 0, a run's — drawn in
+    /// `ink` on `field`, and underlined in `underline` where one is given.
+    private func expectRun(
+        _ row: [(character: Character, state: SGRState)], ink: Color, field: Color, underline: Color? = nil,
+        _ comment: String
+    ) {
+        for cell in row[1..<3] {
+            #expect(cell.state.foregroundColour == Self.ink(ink).foregroundColour, "\(cell.character) ink, \(comment)")
+            #expect(
+                cell.state.backgroundColour == Self.field(field).backgroundColour, "\(cell.character) field, \(comment)")
+            if let underline {
+                #expect(
+                    cell.state.underlineColour == Self.line(underline).underlineColour,
+                    "\(cell.character) line, \(comment)")
+            }
+        }
+    }
+
+    @Test("A disabled attributed editor fades its runs' ink and field; enabled, and enabled again, they are as stated")
+    func disabledFadesAttributedRuns() throws {
+        try withColorDepth(.truecolor) {
+            var run = AttributedString("ab")
+            run.foregroundColor = Runs.red
+            run.backgroundColor = Runs.blue
+            let text = AttributedString("x") + run + AttributedString("cd")
+            let disabled = Flag(false)
+            let context = makeRenderContext(width: 20, height: 3)
+            @MainActor func row() throws -> [(character: Character, state: SGRState)] {
+                let view = TextEditor(text: .constant(text)).disabled(disabled.value).frame(width: 20, height: 3)
+                return cells(try #require(renderToBuffer(view, context: context).lines.first))
+            }
+            expectRun(try row(), ink: Runs.red, field: Runs.blue, "enabled")
+            disabled.value = true
+            let faded = (ink: Self.faded(Runs.red, in: context), field: Self.faded(Runs.blue, in: context))
+            try #require(faded.ink != Runs.red && faded.field != Runs.blue, "the premise: the fade shows")
+            expectRun(try row(), ink: faded.ink, field: faded.field, "disabled")
+            disabled.value = false
+            expectRun(try row(), ink: Runs.red, field: Runs.blue, "enabled again")
+        }
+    }
+
+    @Test("A disabled editor fades a line styler's runs: ink, field and the underline's colour")
+    func disabledFadesStyledRuns() throws {
+        try withColorDepth(.truecolor) {
+            var decoration = CellDecoration()
+            decoration.underline = Text.LineStyle(color: Runs.green)
+            let styled = EditorStyledRun(
+                columns: 1..<3, foreground: Runs.red, background: Runs.blue, decoration: decoration)
+            let disabled = Flag(false)
+            let context = makeRenderContext(width: 20, height: 3)
+            @MainActor func render() -> FrameBuffer {
+                renderToBuffer(
+                    TextEditor(text: .constant("xabcd")).disabled(disabled.value).frame(width: 20, height: 3),
+                    context: context)
+            }
+            _ = render()
+            let handler = try #require(
+                context.environment.focusManager?.activeSection?.focusables
+                    .compactMap { $0 as? TextEditorHandler }.first)
+            handler.replaceLineStyler { $0 == 0 ? [styled] : [] }
+            @MainActor func row() throws -> [(character: Character, state: SGRState)] {
+                cells(try #require(render().lines.first))
+            }
+            expectRun(try row(), ink: Runs.red, field: Runs.blue, underline: Runs.green, "enabled")
+            disabled.value = true
+            expectRun(
+                try row(), ink: Self.faded(Runs.red, in: context), field: Self.faded(Runs.blue, in: context),
+                underline: Self.faded(Runs.green, in: context), "disabled")
+            disabled.value = false
+            expectRun(try row(), ink: Runs.red, field: Runs.blue, underline: Runs.green, "enabled again")
+        }
+    }
 }

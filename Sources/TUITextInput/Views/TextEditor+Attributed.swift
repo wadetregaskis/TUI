@@ -28,7 +28,10 @@ extension TextEditor {
     /// faint (semibold and heavier bold, light and lighter faint), italic,
     /// underline and strikethrough, a link in the accent and underlined. What
     /// a cell cannot show — a font's size and family, kerning, tracking, a
-    /// baseline offset — is not drawn.
+    /// baseline offset — is not drawn. Disabled, the editor fades its runs'
+    /// colours toward the page, keeping their hue, where SwiftUI's fades
+    /// nothing: a deliberate deviation the owner approved on 2026-11-19
+    /// (ruling A-DISED-1; see ``TextEditor``).
     ///
     /// The editor edits the value in place, so every character it does not
     /// touch keeps its attributes. Typed text takes the attributes macOS's

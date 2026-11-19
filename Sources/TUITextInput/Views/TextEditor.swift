@@ -116,6 +116,16 @@ import TUIFoundation
 /// a disabled editor draws its text in the palette's tertiary tier, as a
 /// disabled ``TextField`` draws its own.
 ///
+/// **A disabled editor fades everything it draws** — a deliberate deviation
+/// from SwiftUI, whose disabled `TextEditor` fades nothing (measured, macOS
+/// 15.8.3), approved by the owner on 2026-11-19 (ruling A-DISED-1; Deliberate
+/// deviations from SwiftUI, T13). A run with colours of its own, in an editor
+/// over an `AttributedString` or one with highlighting, keeps its hue, faded
+/// toward the page as a disabled `Slider`'s accent is: its ink, its
+/// background and its lines' colours. A terminal draws no greyed-out chrome,
+/// so the text is what says the editor is off, and runs left at full strength
+/// read as live. Enabled again, they are drawn as stated.
+///
 /// Long lines **wrap** at the editor's width, as SwiftUI's do, by the macOS
 /// text system's rules (measured on an `NSTextView`, macOS 15.8): a row breaks
 /// after a run of spaces or a tab, which hangs at the end of the row it breaks,

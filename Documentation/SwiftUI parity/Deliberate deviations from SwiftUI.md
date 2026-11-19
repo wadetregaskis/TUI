@@ -1382,6 +1382,32 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** [HIDDEN-TEXT](<../Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md#the-api-polish-questions-answered-2026-11-10>).
   **Owner** (2026-11-10).
 
+### T13. A disabled `TextEditor` fades everything it draws, its runs' colours included
+
+- **SwiftUI (measured, macOS 15.8.3, 2026-11-19):** `.disabled(true)` changes
+  no pixel of a `TextEditor`'s text: the default ink and a stated
+  `.foregroundStyle(.red)` draw exactly as enabled, and the `NSTextView`'s
+  colours are unchanged; only clicks stop reaching it. A `TextField` beside it
+  does fade (grey #262626 to #A7A7A7, red #FF3B30 to a paler #FF847D). The
+  attributed editor, macOS 26 API, was not measured
+  (`Tools/SwiftUIProbes/Disabled editor ink and toggle subtitles (1119)/notes.md`).
+- **TUI:** a disabled editor draws its plain text in the palette's tertiary
+  tier, a stated `.foregroundStyle` included, as a disabled `TextField` does;
+  and every run with colours of its own — an attributed editor's runs and a
+  line styler's — keeps its hue faded toward the page by
+  `ViewConstants.disabledForeground`, the fade a disabled slider gives its
+  accent track: its ink, its field and its underline's or strikethrough's
+  colour. Its bold, italic and lines stay. Enabled, the runs are drawn as
+  stated, at no extra cost (`_TextEditorCore.RowStyling.RunFade`;
+  `TextEditorForegroundStyleTests`).
+- **Why:** a terminal has no greyed-out window chrome to say an editor is
+  off, so its text is what says it, as every other disabled control's does.
+  Fading the plain text alone left an attributed or highlighted editor half
+  faded, its coloured runs reading as live; fading their hue rather than
+  greying them keeps highlighted code legible as code.
+- **Decided:** the owner's ruling A-DISED-1, option (b), 2026-11-19.
+  **Owner.**
+
 ---
 
 ## Colour and drawing

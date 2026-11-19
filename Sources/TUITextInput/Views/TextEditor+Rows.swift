@@ -233,6 +233,32 @@ extension _TextEditorCore {
         /// fainter than the selection, as macOS's find bar marks them. `nil`
         /// where the selection is a reversal, which has no colour to fade.
         let match: Color?
+        /// How a disabled editor fades its lines' own styles, or `nil` while it
+        /// is enabled, where the runs are drawn as they are and cost nothing more.
+        let runFade: RunFade?
+
+        /// A disabled editor fades everything it draws, its runs' colours too
+        /// (the owner's ruling A-DISED-1, 2026-11-19, a deliberate deviation:
+        /// SwiftUI's disabled TextEditor fades nothing). Its plain text is in
+        /// the tertiary tier; a run keeps its hue, faded toward the page by
+        /// ``ViewConstants/disabledForeground`` — the expression a disabled
+        /// slider fades its accent track by, and how macOS's disabled
+        /// TextField fades a stated red to a paler red rather than a grey. So
+        /// highlighted code stays legible as code, and no run reads as live.
+        struct RunFade {
+            /// What the runs fade toward: the page a disabled editor, which
+            /// draws no well, is drawn on.
+            let ground: Color
+            let palette: any Palette
+
+            /// `run` with its ink, its field and its lines' colours faded.
+            @MainActor
+            func callAsFunction(_ run: EditorStyledRun) -> EditorStyledRun {
+                run.mappingColors {
+                    $0.resolve(with: palette).opacity(ViewConstants.disabledForeground, over: ground)
+                }
+            }
+        }
 
         /// The colours an editor drawn in `environment` paints with.
         ///
@@ -241,7 +267,7 @@ extension _TextEditorCore {
         /// laid across an editor's rows). A run's own colour, in an attributed
         /// editor, wins over it, as in a `Text` of the value; the selection, the
         /// caret and a find match derive from it as a TextField's do from its
-        /// entered text's ink.
+        /// entered text's ink. Disabled, the runs fade too (``RunFade``).
         @MainActor
         init(in environment: EnvironmentValues, isDisabled: Bool, background: Color?) {
             self.init(
@@ -255,6 +281,9 @@ extension _TextEditorCore {
         init(palette: any Palette, isDisabled: Bool, background: Color?, stated: Color? = nil) {
             self.background = background
             self.stated = stated
+            runFade =
+                isDisabled
+                ? RunFade(ground: (background ?? palette.background).resolve(with: palette), palette: palette) : nil
             // A disabled editor's text CLAIMS its tint's alpha, as a disabled
             // TextField's does — not §31.3's spend, which is the slider's own
             // dimming composite; the editor has no composite to spend through.
@@ -283,6 +312,8 @@ extension _TextEditorCore {
         caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styles: [EditorStyledRun] = [],
         styling: RowStyling
     ) -> RenderedRow {
+        // Disabled, the runs fade with the rest (``RowStyling/RunFade``).
+        let styles = styling.runFade.map { fade in styles.map { fade($0) } } ?? styles
         let background = styling.background
         let textForeground = styling.text
         // Not `selection`, which is this row's selected COLUMNS.

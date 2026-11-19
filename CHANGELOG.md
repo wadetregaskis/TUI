@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A disabled `TextEditor` fades its coloured runs too.** Its plain text went to the palette's tertiary tier, but a
+run's own colour, in an editor over an `AttributedString` or one with highlighting, kept its full strength, so the
+editor was half faded and its coloured words looked live. Now each run's ink, background and line colours keep their
+hue faded toward the page, as a disabled slider's accent is; re-enabled, they are drawn as stated. SwiftUI's disabled
+`TextEditor` (macOS 15) fades nothing at all; this is a deliberate difference, the owner's ruling of 2026-11-19
+(Deliberate deviations from SwiftUI, T13).
+
 **A focused `List` draws its selected row once a frame.** The row under the cursor of a focused list, where it
 was selected, was drawn twice on every frame on which nothing could serve it: once at the standard background
 prominence, while the list learned whether its rows overflow, and again when the list raised it. In a list of live

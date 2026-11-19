@@ -99,6 +99,15 @@
             return Self(pattern: pattern, color: color.resolve(with: palette))
         }
 
+        /// This line with its own colour, where it states one, put through
+        /// `transform`; a line in the text's colour is left as it is, since it
+        /// follows the text. A disabled `TextEditor` fades a run's lines with
+        /// its ink this way (the owner's ruling A-DISED-1, 2026-11-19).
+        package func mappingColor(_ transform: (Color) -> Color) -> Self {
+            guard let color else { return self }
+            return Self(pattern: pattern, color: transform(color))
+        }
+
         /// This line as an UNDERLINE in a terminal that draws `support`: its
         /// shape, the single line where the terminal lacks it, and its colour
         /// only where the terminal draws one.
