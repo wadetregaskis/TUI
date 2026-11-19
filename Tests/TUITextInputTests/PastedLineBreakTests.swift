@@ -30,8 +30,9 @@ struct PastedLineBreakTests {
 
     /// What a paste of `pasted` binds in an empty field on one line, a
     /// TextField or a SecureField with an `onSubmit`, through the input chain
-    /// as a terminal's bracketed paste arrives, and how many times it submitted.
-    private func paste(_ pasted: String, secure: Bool) -> (text: String, submits: Int) {
+    /// as a terminal's bracketed paste arrives, how many times it submitted,
+    /// and the row the field draws on the frame after.
+    private func paste(_ pasted: String, secure: Bool) -> (text: String, submits: Int, row: String) {
         let box = Box()
         let binding = Binding(get: { box.text }, set: { box.text = $0 })
         let harness = InputChainHarness()
@@ -47,7 +48,8 @@ struct PastedLineBreakTests {
         harness.frame(view())
         harness.frame(view())
         _ = harness.press(KeyEvent(key: .paste(pasted)))
-        return (box.text, box.submits)
+        let row = harness.frame(view()).lines.first?.stripped ?? ""
+        return (box.text, box.submits, row)
     }
 
     /// Pasted, then bound: each break as one newline whatever convention it
@@ -72,10 +74,22 @@ struct PastedLineBreakTests {
         }
     }
 
-    @Test("A field on one line draws a line break as one replacement mark, the text after it in view")
+    /// A newline in a field's text drew as a mark before the paste kept one
+    /// (it is a control character, which a field always drew as one), so only
+    /// a pasted one says anything: until the paste kept it, the row read
+    /// "abcd".
+    @Test("A pasted newline draws in the field's row as one mark, not as the words run together")
+    func pastedNewlineDrawsAsAMark() {
+        let row = paste("ab\ncd", secure: false).row
+        #expect(row.contains("ab\u{FFFD}cd"), "drew \(row.debugDescription)")
+    }
+
+    /// The separators, which are not control characters, drew raw until the
+    /// field drew every line break as a mark.
+    @Test("A field on one line draws a line separator as one replacement mark, the text after it in view")
     func breakDrawsAsAMark() {
         let context = makeRenderContext(width: 20, height: 1)
-        for text in ["ab\ncd", "ab\u{2028}cd", "ab\u{2029}cd"] {
+        for text in ["ab\u{2028}cd", "ab\u{2029}cd"] {
             let drawn = renderToBuffer(TextField("", text: .constant(text)), context: context)
             let row = drawn.lines.first?.stripped ?? ""
             #expect(row.contains("ab\u{FFFD}cd"), "\(text.debugDescription) drew \(row.debugDescription)")
