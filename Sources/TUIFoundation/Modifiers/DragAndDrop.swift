@@ -121,6 +121,15 @@ nonisolated package struct DraggableModifier<Content: View, Payload>: View {
     }
 }
 
+/// `DraggableModifier`'s `StateStorage` slots, by name.
+private enum DraggableStateIndex {
+    // Negative: the modifier renders its content at its own identity, and
+    // 0... belongs to a composite content view's own @State. Range -180 in
+    // `StateStorage.StateKey`'s reserved-range table.
+    /// The focus id of its own stop, for Copy (`TransferKeys.ownStop`).
+    static let ownStop = -180
+}
+
 @MainActor extension DraggableModifier: Renderable, Layoutable {
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -130,7 +139,10 @@ nonisolated package struct DraggableModifier<Content: View, Payload>: View {
         // The keyboard's way to the payload: Copy while the view holds the
         // focus (`TransferKeys`), on a stop of the content's or one of its own.
         let keys = TransferKeys.applies(in: context)
-        let own = keys ? TransferKeys.ownStop(prefix: "draggable", propertyIndex: -180, context: context) : nil
+        let own =
+            keys
+            ? TransferKeys.ownStop(prefix: "draggable", propertyIndex: DraggableStateIndex.ownStop, context: context)
+            : nil
         var contentContext = context
         if let own { FocusRegistration.publishIsFocused(own.isFocused, context: context, into: &contentContext) }
         var buffer = TUIView.renderToBuffer(content, context: contentContext)
@@ -456,6 +468,15 @@ nonisolated package struct DropDestinationModifier<Content: View, Payload>: View
     }
 }
 
+/// `DropDestinationModifier`'s `StateStorage` slots, by name.
+private enum DropDestinationStateIndex {
+    // Negative: the modifier renders its content at its own identity, and
+    // 0... belongs to a composite content view's own @State. Range -190 in
+    // `StateStorage.StateKey`'s reserved-range table.
+    /// The focus id of its own stop, for Paste (`TransferKeys.ownStop`).
+    static let ownStop = -190
+}
+
 @MainActor extension DropDestinationModifier: Renderable, Layoutable {
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
@@ -466,7 +487,11 @@ nonisolated package struct DropDestinationModifier<Content: View, Payload>: View
         // focus (`TransferKeys`), of what a focused `.draggable` copied, or
         // of text that reads as `Payload`.
         let keys = isEnabled && TransferKeys.applies(in: context)
-        let own = keys ? TransferKeys.ownStop(prefix: "dropdestination", propertyIndex: -190, context: context) : nil
+        let own =
+            keys
+            ? TransferKeys.ownStop(
+                prefix: "dropdestination", propertyIndex: DropDestinationStateIndex.ownStop, context: context)
+            : nil
         var contentContext = context
         if let own { FocusRegistration.publishIsFocused(own.isFocused, context: context, into: &contentContext) }
         var buffer = TUIView.renderToBuffer(content, context: contentContext)
