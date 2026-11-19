@@ -95,7 +95,7 @@ else
     SWIFT="swift"
 fi
 
-echo "==> Building $PRODUCT (release, with debug symbols) with $SWIFT…"
+echo "==> Building $PRODUCT (release, with debug symbols) with ${SWIFT}…"
 "$SWIFT" build -c release --product "$PRODUCT" -Xswiftc -g
 BIN="$("$SWIFT" build -c release --product "$PRODUCT" --show-bin-path)/$PRODUCT"
 [ -x "$BIN" ] || { echo "build did not produce $BIN" >&2; exit 1; }
