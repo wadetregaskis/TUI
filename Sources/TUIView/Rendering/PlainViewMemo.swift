@@ -44,7 +44,14 @@ package final class PlainMemo {
 
     /// Each type asked about: how its values compare, or `nil` for one that is
     /// not memoized.
-    private var roots: [ObjectIdentifier: ValueComparison?] = [:]
+    private var roots: [ObjectIdentifier: Root] = [:]
+
+    /// What ``roots`` holds for a type: its comparison, and whether it is
+    /// memoized only while a timeline is live (``_PlainMemoizedBesideTimelines``).
+    private struct Root {
+        let comparison: ValueComparison?
+        let onlyBesideTimelines: Bool
+    }
 
     /// The passes begun: what a cooldown is counted in.
     private var pass = 0
@@ -224,17 +231,24 @@ package final class PlainMemo {
     /// one of the framework's own (``FrameworkModules``) that is not a
     /// ``_PlainMemoizedFrameworkView``, or holding something that cannot be
     /// compared.
+    ///
+    /// A ``_PlainMemoizedBesideTimelines`` control is memoized only while a
+    /// timeline is live (``FrameBodyKeep/timelinesLive``), and only while
+    /// ``FrameBodyKeep/isOn``.
     @inline(__always)
     func comparison<V: View>(forRoot type: V.Type, plans: ValueHashPlans) -> ValueComparison? {
-        if let known = roots[ObjectIdentifier(type)] { return known }
-        return decide(type, plans: plans)
+        let root = roots[ObjectIdentifier(type)] ?? decide(type, plans: plans)
+        if root.onlyBesideTimelines, !(frameBodies.timelinesLive && frameBodies.isOn) { return nil }
+        return root.comparison
     }
 
     @inline(never)
-    private func decide(_ type: Any.Type, plans: ValueHashPlans) -> ValueComparison? {
-        let excluded = FrameworkModules.declares(type) && !(type is any _PlainMemoizedFrameworkView.Type)
-        let made = excluded ? nil : plans.comparison(for: type)
-        roots[ObjectIdentifier(type)] = .some(made)
+    private func decide(_ type: Any.Type, plans: ValueHashPlans) -> Root {
+        let framework = FrameworkModules.declares(type)
+        let besideTimelines = framework && type is any _PlainMemoizedBesideTimelines.Type
+        let excluded = framework && !besideTimelines && !(type is any _PlainMemoizedFrameworkView.Type)
+        let made = Root(comparison: excluded ? nil : plans.comparison(for: type), onlyBesideTimelines: besideTimelines)
+        roots[ObjectIdentifier(type)] = made
         return made
     }
 }
@@ -258,6 +272,31 @@ package final class PlainMemo {
 /// Not for a view whose drawing reads what no key sees — a hover, a style's
 /// configuration, the focus — which is why the framework's composites stay out.
 package protocol _PlainMemoizedFrameworkView {}
+
+/// A control of the framework's own that the plain memo takes as it takes an
+/// app's view while a `TimelineView` is live, and only then: a `List`, a
+/// `Button`.
+///
+/// No buffer above a live timeline can be kept (its draw asks for the wake of
+/// its next entry), so at every entry the walk goes down from the app's root
+/// to the timeline, and draws again every framework composite it passes that
+/// has no memo of its own. The app's composites are served there, or walked
+/// from the body they kept (``FrameBodyKeep``), but a control beside the
+/// timeline drew itself whole: a `List` listed and laid out its rows, and a
+/// `Button` resolved its style and drew its label, at every entry, their
+/// rows' and labels' content served from their own memos (tuiarcade's
+/// TUI-FEEDBACK.md, M2 item 3). SwiftUI runs only the timeline's content.
+///
+/// The control's memo is the one an app's view gets, with its journal, its
+/// leases, its store gates and its invalidations, so it is as safe as the
+/// app's memo above it, which stores the same subtree whenever nothing beside
+/// the control declines: the control's value and the environment it is drawn
+/// under are keyed; its `@State` and its handler's drawn state invalidate;
+/// a `Binding` it reads is observed by the kept render; and a control that
+/// holds the focus declines to be stored, as it does inside the app's memo.
+/// Outside a live timeline the app's memo above decides for the whole, as it
+/// always has, and the control pays for no key.
+package protocol _PlainMemoizedBesideTimelines {}
 
 /// Where a plain composite's entries are filed beside a value memo's at the same
 /// identity, which a row and its content share (`RenderCache.scopedEntry`).

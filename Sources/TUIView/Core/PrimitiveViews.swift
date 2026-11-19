@@ -150,6 +150,23 @@ nonisolated public struct AnyView: View {
     /// structure (a `Form`'s rows) to see through the erasure, as it sees
     /// through a `Group`.
     @MainActor package var erasedView: any View { view }
+
+    /// Whether two erased views compare equal: the same type erased, and the
+    /// two values equal by that type's comparison (``ValueHashPlans/comparison(for:)``),
+    /// or `false` when it has none.
+    ///
+    /// Not a conformance to ``_ValueComparing``, which would make every view
+    /// holding an `AnyView` comparable, and so memoized, at once: a type that
+    /// holds one asks here for its own field (a `Button`'s label).
+    package nonisolated static func valuesEqual(
+        _ lhs: Self, _ rhs: Self, strict: Bool, plans: ValueHashPlans
+    ) -> Bool {
+        func same<T: View>(_ left: T) -> Bool {
+            guard let right = rhs.view as? T else { return false }
+            return plans.comparison(for: T.self)?.equal(left, right, strict: strict, plans: plans) ?? false
+        }
+        return same(lhs.view)
+    }
 }
 
 // MARK: - ConditionalView's Value

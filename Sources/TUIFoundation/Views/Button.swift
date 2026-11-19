@@ -391,6 +391,38 @@ nonisolated public struct Button: View {
     }
 }
 
+/// Memoized as an app's own view is while a `TimelineView` is live, so a
+/// button beside the timeline is not drawn again at each of its entries
+/// (``_PlainMemoizedBesideTimelines``).
+extension Button: _PlainMemoizedBesideTimelines {}
+
+/// How two buttons compare for the plain memo (``_PlainMemoizedBesideTimelines``):
+/// by their fields, as an app's view compares, except that the label a
+/// `@ViewBuilder` made, erased in an `AnyView`, is compared by the view it
+/// erases (``AnyView/valuesEqual(_:_:strict:plans:)``), where an existential
+/// field would leave the button with no comparison at all. The action is a
+/// closure, which a strict comparison counts as changed and any other ignores.
+extension Button: _ValueComparing {
+    package static var comparedPayloads: [Any.Type] { [] }
+
+    package static func valuesEqual(
+        _ lhs: UnsafeRawPointer, _ rhs: UnsafeRawPointer, strict: Bool, plans: ValueHashPlans
+    ) -> Bool {
+        let left = unsafe lhs.assumingMemoryBound(to: Self.self).pointee
+        let right = unsafe rhs.assumingMemoryBound(to: Self.self).pointee
+        guard !strict, left.label == right.label, left.localizedTitle == right.localizedTitle,
+            left.role == right.role, left.focusID == right.focusID, left.triggeredMenu === right.triggeredMenu,
+            left.isDisabled == right.isDisabled
+        else { return false }
+        switch (left.labelView, right.labelView) {
+        case (nil, nil): return true
+        case (let leftLabel?, let rightLabel?):
+            return AnyView.valuesEqual(leftLabel, rightLabel, strict: strict, plans: plans)
+        default: return false
+        }
+    }
+}
+
 // Here, not in `Button+LocalizedTitle.swift`: it sets ``localizedTitle``,
 // whose setter is this file's.
 extension Button {

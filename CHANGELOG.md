@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `List` or a `Button` beside a running `TimelineView` is no longer drawn at each of its entries.** Their rows'
+and labels' content was already served, but the controls themselves drew again whole at every entry: a list listed,
+laid out and composed its rows, and a button measured and drew its label, about a fifth of each frame of a launcher
+of previews beside a 60 Hz loop. Now, while a timeline is live, each is memoized at its own identity as a view of the
+app's own is, and served while its value, its environment and what it reads are unchanged, as in SwiftUI. A control
+that holds the focus is still drawn at each entry, as it was. `TUI_KEEP_TIMELINE_ANCESTORS=0` turns this off with the
+rest of the timeline's keeping, to compare.
+
 **Tab reaches a link in a `Text` far down a `LazyVStack`.** A link inside a `Text` is a focus stop, and an eager
 `VStack`'s Tab and Shift-Tab land on one however far off screen, but a lazy stack's way in passed it by: the rows it
 looks through for something to focus are drawn with no mouse handling, and a link was a stop only where there was

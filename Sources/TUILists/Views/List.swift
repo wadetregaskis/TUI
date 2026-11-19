@@ -168,6 +168,11 @@ nonisolated public struct List<SelectionValue: Hashable & Sendable, Content: Vie
     }
 }
 
+/// Memoized as an app's own view is while a `TimelineView` is live, so a list
+/// beside the timeline does not list and draw its rows again at each of its
+/// entries (``_PlainMemoizedBesideTimelines``).
+extension List: _PlainMemoizedBesideTimelines {}
+
 // MARK: - Single Selection Initializers (with Footer)
 
 extension List {

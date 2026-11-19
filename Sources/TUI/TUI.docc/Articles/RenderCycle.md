@@ -667,7 +667,12 @@ A canvas beside a ``TimelineView`` used to run its renderer at every entry of th
 timeline, since the entry drops the timeline's ancestors and nothing below them
 kept the canvas: 7 ms of a game's 16.7 ms frame for a board that had not
 changed. Kept as an app's view is, it is a sibling of the timeline and survives
-its clear, as in SwiftUI, which runs only the timeline's content on a tick. Nor is a cheap one inside a `ForEach` row or an
+its clear, as in SwiftUI, which runs only the timeline's content on a tick. A `List` and a `Button` are memoized
+the same way while a timeline is live, and only then (`_PlainMemoizedBesideTimelines`): no memo above a live timeline
+can store, so the walk reaches a control beside it at every entry, and without a memo of its own a `List` listed and
+laid out its rows and a `Button` drew its label there, though nothing they read had changed. A control that holds the
+focus still declines to be stored, so a focused list beside a timeline is still drawn at each entry (see
+`Documentation/Historical/Performance/Framework controls beside a live timeline.md`). Nor is a cheap one inside a `ForEach` row or an
 `.equatable()`, whose value already says whether what's in it changed: asking costs
 more than its `body`, so inside one, a composite asks only once it has been seen to
 take real time. `TUI_RUN_BODY_ON_EVERY_FRAME=1` turns this memo off, for a program

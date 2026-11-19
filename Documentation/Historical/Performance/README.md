@@ -9,4 +9,5 @@ record of each decision below it in the words of the day. The current tools are 
 
 | Story | What it covers |
 |---|---|
+| [Framework controls beside a live timeline](<Framework controls beside a live timeline.md>) | Why a `List` and a `Button` beside a running `TimelineView` drew themselves whole at every entry (profiled 2026-11-19: about a fifth of a launcher's frame), the memo at their own identity built for an unfocused control (B-TLCTRL-1), and the options for a focused one. **Open:** A-TLCTRL-1. |
 | [A declarative perf-case table](<A declarative perf-case table.md>) | The design (2026-11-14) for stating hundreds of performance cases as rows (composition, container, size, count, script) run by `Stress`, every case counted in the gate against recorded counts and only marked cases timed, five lanes. **Open:** A-PERFCASE-1 to 3. |
