@@ -80,6 +80,7 @@ internal final class ClientCapabilityRefresher {
                 blockElementsFillTheLine: TerminalHost.blockElementsFillTheLine,
                 cornerTrianglesFillTheCell: TerminalHost.cornerTrianglesFillTheCell,
                 fontHasQuadrants: TerminalClient.fontHasQuadrants(TerminalHost.program),
+                glyphStandIns: TerminalClient.glyphStandIns(TerminalHost.program),
                 drawsProgressBars: true,
                 mayImproveShortly: false)
         }
@@ -172,6 +173,7 @@ internal final class ClientCapabilityRefresher {
                 || reading.blockElementsFillTheLine != current?.blockElementsFillTheLine
                 || reading.cornerTrianglesFillTheCell != current?.cornerTrianglesFillTheCell
                 || reading.fontHasQuadrants != current?.fontHasQuadrants
+                || reading.glyphStandIns != current?.glyphStandIns
             current = reading
             if drawsDifferently {
                 onChange()

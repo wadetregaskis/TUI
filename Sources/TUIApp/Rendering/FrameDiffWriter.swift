@@ -66,6 +66,17 @@ final class FrameDiffWriter {
     /// this writer before the next frame is built.
     var tmuxSkinToneScope: String.SkinToneFallbackScope = .all
 
+    /// Glyphs the terminal's font lacks, each with a glyph of the same shape
+    /// and cells that it has, written in its place (`▶` as `►`): the classic
+    /// Windows console's, where its font can be asked
+    /// (``TerminalClient/glyphStandIns(_:)``), and empty everywhere else.
+    ///
+    /// Per-frame config, set by `RenderLoop` from the push-refreshed client
+    /// capabilities, on the same terms as ``tmuxSkinToneScope``: a change
+    /// arrives via the refresher's `onChange`, which invalidates this writer
+    /// before the next frame is built.
+    var glyphStandIns: [Character: Character] = [:]
+
     /// The model the caches were last built under, so a change of it can be
     /// noticed. `TerminalClient.simulated` and `.simulatedQuirks` can change
     /// between frames, and a row whose BYTES happen not to change would
@@ -660,6 +671,11 @@ extension FrameDiffWriter {
         // terminal's other shortcomings are made up for. The result is ASCII, one cell
         // to a byte, which no advance model has anything to say about.
         if sendsPlainText { return PlainTerminalText.folding(text) }
+        // A stand-in takes the cells its glyph was laid out in, so it goes in
+        // before the advance model reads the row.
+        let text =
+            glyphStandIns.isEmpty
+            ? text : PlainTerminalText.replacingCharacters(in: text) { glyphStandIns[$0].map(String.init) }
         switch model {
         case .custom(let quirks):
             return text.withCursorCompensation(for: quirks)

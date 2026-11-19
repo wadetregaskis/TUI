@@ -147,6 +147,27 @@ struct ClientCapabilityRefresherTests {
         #expect(refresher.resolve().fontHasQuadrants)
     }
 
+    @Test("A font change that brings other stand-ins redraws the screen")
+    func standInChangeFiresOnChange() async throws {
+        let standIns = Mutable<[Character: Character]>(["\u{25B6}": "\u{25BA}"])
+        nonisolated(unsafe) var changes = 0
+        let refresher = ClientCapabilityRefresher(
+            isRefreshable: true,
+            probe: {
+                ClientCapabilities(
+                    emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true,
+                    cornerTrianglesFillTheCell: false, glyphStandIns: standIns.value, drawsProgressBars: true,
+                    mayImproveShortly: false)
+            },
+            onChange: { unsafe changes += 1 })
+        #expect(refresher.resolve().glyphStandIns == ["\u{25B6}": "\u{25BA}"])
+        standIns.value = [:]  // the person chose Cascadia Mono, which has ▶
+        refresher.refresh()
+        try await waitUntilSettled(refresher)
+        unsafe #expect(changes == 1, "the glyphs sent for ▶ change on every row that has one")
+        #expect(refresher.resolve().glyphStandIns.isEmpty)
+    }
+
     @Test("The answer is re-asked under tmux and in the classic Windows console, and nowhere else")
     func refreshableHosts() {
         #expect(ClientCapabilityRefresher.isRefreshable(tmux: true, program: .tmux))

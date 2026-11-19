@@ -90,17 +90,26 @@ package enum PlainTerminalText {
     /// `row` with every character that isn't ASCII replaced by ASCII of the same width.
     /// What isn't a character, the escape sequences, is passed along untouched.
     static func folding(_ row: String) -> String {
+        replacingCharacters(in: row) { $0.isASCII ? nil : folded($0) }
+    }
+
+    /// `row` with each character `replacement` answers for replaced by what it
+    /// answers, and the escape sequences passed along untouched, so a link's
+    /// address or a colour is never rewritten as if it were text. A row that is
+    /// all ASCII comes back without a walk: what is replaced is never ASCII.
+    ///
+    /// The walk ``folding(_:)`` makes, and the classic Windows console's stand-ins
+    /// for glyphs its font lacks (`FrameDiffWriter.glyphStandIns`).
+    static func replacingCharacters(in row: String, _ replacement: (Character) -> String?) -> String {
         guard row.utf8.contains(where: { $0 >= 0x80 }) else { return row }
         var result = ""
         result.reserveCapacity(row.utf8.count)
         var escape = EscapeState.none
         for character in row {
-            if escape.consumes(character) {
-                result.append(character)
-            } else if character.isASCII {
-                result.append(character)
+            if !escape.consumes(character), let replaced = replacement(character) {
+                result += replaced
             } else {
-                result += folded(character)
+                result.append(character)
             }
         }
         return result

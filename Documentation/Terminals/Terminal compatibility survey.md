@@ -2886,6 +2886,22 @@ terminal that shows only ASCII gets), and the footer reads `Return choose` and
 `^Q quit`. `TUI_PLAIN_TEXT=0` keeps the symbols, for someone who has chosen a font with
 them.
 
+No font the console offers has them (GDI, as above, 2026-11-18): Consolas, Lucida Console,
+Cascadia Mono, Cascadia Code, Courier New, NSimSun and SimSun-ExtB have none of
+`⌃ ⌥ ⇧ ⌘ ↩ ⎋ ⌫`, and MS Gothic lacks `⌃ ⌥ ⎋ ⌫` (asked by that name, without checking
+that GDI chose it). So the keys are spelled by the console, not by its font.
+
+**Stand-ins.** Three of TUI's own glyphs are missing in Consolas and Lucida Console:
+`◀ ▶`, a stepper's, a slider's, a disclosure's and a panel toggle's pointers, and `◯`, an
+unselected radio button. Both fonts have a glyph of the same shape for each, `◄ ► ○`;
+Cascadia Mono has both kinds. In the Example's Sliders and Radio Buttons pages, each
+slider's and stepper's arrow, a run of its own in the accent colour, was a boxed question
+mark. So where the console's font lacks the one and has the other, TUI sends the stand-in
+in its place (`ConsoleFont.standIns`, `FrameDiffWriter.glyphStandIns`). It does this at
+output, so the stand-in takes the cells its glyph was laid out in, and asks again on each
+resize, as for the quadrants. Seen in the Sliders page: every arrow `◄ ►` in Consolas, and
+`◀ ▶` once the running console's font was set to Cascadia Mono from another process.
+
 **The Example, run in each.** Built 2026-11-17 and driven by the mouse alone: in
 Windows Terminal it draws, its pictures in real pixels (Sixel), the emoji page's
 treatment rows each closing their brackets where TUI put them, a click selects and

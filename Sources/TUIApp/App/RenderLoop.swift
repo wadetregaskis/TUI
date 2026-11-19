@@ -1159,6 +1159,9 @@ extension RenderLoop {
         // line-reuse cache from serving lines stripped under the old policy.
         diffWriter.tmuxSkinToneScope =
             capabilities.skinTonesSafe ? .keepingTmuxMerged : .all
+        // The same terms: a font change that brings other stand-ins arrives
+        // via that onChange too.
+        diffWriter.glyphStandIns = capabilities.glyphStandIns
 
         // Whether the person sees the progress bar: under tmux it follows the
         // clients attached, so it is published from the same answer, before

@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**In the classic Windows console, a stepper's and a slider's arrows no longer draw as boxes.** Consolas, its
+default font, has no `◀` or `▶`, and the console draws a character its font lacks as a box when it stands alone in a
+colour of its own, as those arrows do. Where the console's font lacks them, TUI now sends `◄` and `►` in their
+place, which it has, in the same cells, and `○` for `◯`, wherever TUI or the app draws them. In Cascadia Mono, which
+has them, nothing changes, and changing the font while the app runs redraws it.
+
 **In the classic Windows console, shapes no longer draw boxes in its default font.** Consolas has none of the
 quarter blocks TUI cuts a shape's corners with, so each corner showed as a box. TUI now asks the console which font
 it is using, and where that font has none of them, it cuts a shape's and a solid button's corners in whole cells, as

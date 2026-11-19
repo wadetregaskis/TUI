@@ -1,7 +1,8 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
-//  TerminalClient+FontQuadrants.swift
+//  TerminalClient+ConsoleFont.swift
 //
-//  Whether the font each terminal draws in has the quadrants.
+//  What the font each terminal draws in lacks: the quadrants, and glyphs that
+//  have a stand-in of the same shape.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -30,6 +31,26 @@ extension TerminalClient {
         case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .windowsTerminal, .tmux,
             .unidentified:
             return true
+        }
+    }
+
+    /// The glyphs the font `program` draws in lacks, each with one of the same
+    /// shape and cells it has, which the writer sends in its place
+    /// (`FrameDiffWriter.glyphStandIns`): in the classic Windows console,
+    /// `◀ ▶ ◯` as `◄ ► ○` where its font is Consolas (``ConsoleFont/standIns``),
+    /// and none for every other terminal, whose font is not asked. Asked again
+    /// on each resize, as ``fontHasQuadrants(_:)`` is.
+    static func glyphStandIns(_ program: Program) -> [Character: Character] {
+        switch program {
+        case .windowsConsole:
+            #if os(Windows)
+            return ConsoleFont.standIns
+            #else
+            return [:]
+            #endif
+        case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .windowsTerminal, .tmux,
+            .unidentified:
+            return [:]
         }
     }
 }

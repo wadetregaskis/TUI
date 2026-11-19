@@ -3,7 +3,7 @@
 //
 //  What GDI says a console font has: Consolas, the classic Windows console's
 //  default and on every Windows, has the half blocks and none of the
-//  quadrants (measured 2026-11-18, build 26300).
+//  quadrants, and `◄ ► ○` and not `◀ ▶ ◯` (measured 2026-11-18, build 26300).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -27,6 +27,13 @@ struct ConsoleFontTests {
     @Test("A face that is not installed cannot be told about, rather than being another's")
     func missingFace() {
         #expect(ConsoleFont.has(["▖"], face: "No Such Console Font") == nil)
+        #expect(ConsoleFont.standIns(face: "No Such Console Font").isEmpty)
+    }
+
+    @Test("Consolas lacks ◀ ▶ ◯ and has ◄ ► ○, so each is the other's stand-in")
+    func consolasStandIns() {
+        #expect(ConsoleFont.missing(["◀", "◄", "▶", "►", "◯", "○"], face: "Consolas") == ["◀", "▶", "◯"])
+        #expect(ConsoleFont.standIns(face: "Consolas") == ["◀": "◄", "▶": "►", "◯": "○"])
     }
 }
 

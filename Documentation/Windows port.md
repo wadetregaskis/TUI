@@ -232,4 +232,5 @@ Settings… shows F2 there; its other default bindings are not listed, the owner
 now"), and copies too large for the terminal (over a measured 24,567 bytes of text: sent to this machine's clipboard
 at the desk, reported as not copied over ssh), x86_64, and the console's font (conhost names it, and where it has no
 quadrants, as Consolas has none, shapes cut their corners in whole cells and a canvas draws half blocks; asked again
-on each resize, which a font change sends; the survey's "conhost's font").
+on each resize, which a font change sends; the survey's "conhost's font"), and the glyphs it lacks of TUI's own
+(`◀ ▶ ◯`, sent as `◄ ► ○` where the font has those; the survey's "Stand-ins").

@@ -36,7 +36,8 @@ Two terminals keep some of the mouse for themselves:
 The Windows console, the window a program opens where Windows Terminal isn't the default, is the oldest of these, and does less:
 
 - **Emoji are monochrome**, and a family or a skin tone is drawn as its parts, side by side. TUI lays them out that way there, so nothing after them moves.
-- **Key symbols are spelled out**, `Ctrl-Q` rather than `⌃Q`, because its default font has none of them.
+- **Key symbols are spelled out**, `Ctrl-Q` rather than `⌃Q`, because none of the fonts it offers has them.
+- **Arrows are an older shape** in Consolas, which has no `◀` or `▶`: a stepper's and a slider's are `◄` and `►`. In a font that has them, Cascadia Mono among them, they're drawn as everywhere else.
 - **Shapes are coarser** in its default font, Consolas, which has none of the quarter blocks that shapes and canvases are drawn with. TUI asks the console which font it is using, and where it has none of them it rounds a shape's corners in whole cells and draws a canvas in half blocks. Choose Cascadia Mono in the window's Properties, under Font, for the finer shapes: TUI notices the change and redraws. A ``CanvasGrain/quadrants`` canvas or a ``SpinnerStyle/blockWedge`` spinner still draws in quarter blocks, which show as boxes in Consolas.
 
 A few more things depend on the terminal, and fall back quietly where it can't:
