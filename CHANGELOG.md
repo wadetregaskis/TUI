@@ -28,6 +28,16 @@ Linux.
 **On Windows, a paste of over a megabyte arrives whole.** TUI dropped everything past the first megabyte it held for
 the app. It now leaves the rest with the console until the app has read what it holds.
 
+**On Windows, a file panel can show a drive's root.** Going up from `C:\Users`, typing `D:\` or `D:`, or clicking the
+drive in the path bar opened a folder named `C:` inside the working folder, which could not be listed. The path bar now
+starts at the drive, written `C:`. A network share (`\\server\share`) is still out of reach: Foundation loses the first
+backslash of its path.
+
+**On Windows, a file panel lists system files and old profile folders as what they are.** A file Windows holds open,
+such as `pagefile.sys`, and a protected folder link such as `Application Data` in a profile could not be read. Each was
+listed as a visible file with no size and no date, which could not be opened. Their hidden attributes, sizes and dates
+are now read from the folder itself, which also lists a folder 3 to 8 times faster.
+
 **In the classic Windows console, a stepper's and a slider's arrows no longer draw as boxes.** Consolas, its
 default font, has no `◀` or `▶`, and the console draws a character its font lacks as a box when it stands alone in a
 colour of its own, as those arrows do. Where the console's font lacks them, TUI now sends `◄` and `►` in their

@@ -69,7 +69,7 @@ struct DirectoryListingFailure: Error, Sendable, Equatable {
 enum DirectoryListing {
     /// What a listing reads of each item, in one pass the file system can
     /// answer from the directory itself: `contentsOfDirectory` prefetches them.
-    private static var keys: [URLResourceKey] {
+    static var keys: [URLResourceKey] {
         var keys: [URLResourceKey] = [
             .isDirectoryKey, .isPackageKey, .isHiddenKey, .isSymbolicLinkKey, .fileSizeKey,
             .contentModificationDateKey,
@@ -98,21 +98,14 @@ enum DirectoryListing {
     static func read(
         _ directory: URL, rule: FileChoiceRule, isCancelled: () -> Bool = { false }
     ) -> Result<[FileEntry], DirectoryListingFailure> {
-        let urls: [URL]
+        let items: [(name: String, facts: ItemFacts)]
         do {
             #if os(Windows)
-                // By name, each item's values then read one by one (`entry`): on
-                // Windows `contentsOfDirectory(at:)` throws "The file doesn't
-                // exist" for the whole folder when one item in it is a link that
-                // leads nowhere, with its keys prefetched or not (Swift 6.3.3,
-                // measured), while the names list and the link's own values
-                // read.
-                urls = try FileManager.default.contentsOfDirectory(atPath: directory.path).map {
-                    directory.appendingPathComponent($0)
-                }
+                items = try windowsItems(of: directory)
             #else
-                urls = try FileManager.default.contentsOfDirectory(
-                    at: directory, includingPropertiesForKeys: keys, options: [])
+                items = try FileManager.default.contentsOfDirectory(
+                    at: directory, includingPropertiesForKeys: keys, options: []
+                ).map { ($0.lastPathComponent, ItemFacts(try? $0.resourceValues(forKeys: Set(keys)))) }
             #endif
         } catch {
             return .failure(
@@ -124,12 +117,45 @@ enum DirectoryListing {
         // ten types (106 ms of 1.32 s, debug) before it was kept.
         var kinds: [String: FileKind] = [:]
         var entries: [FileEntry] = []
-        entries.reserveCapacity(urls.count)
-        for (index, url) in urls.enumerated() {
+        entries.reserveCapacity(items.count)
+        for (index, item) in items.enumerated() {
             if index % 256 == 255, isCancelled() { break }
-            entries.append(entry(for: url, in: directory, rule: rule, formats: formats, kinds: &kinds))
+            entries.append(
+                entry(named: item.name, facts: item.facts, in: directory, rule: rule, formats: formats, kinds: &kinds))
         }
         return .success(entries)
+    }
+
+    /// What a row is made of, as the listing read it of an item: the values
+    /// `contentsOfDirectory` prefetched, or on Windows the folder's own
+    /// enumeration (``windowsItems(of:)``).
+    struct ItemFacts {
+        var isDirectory = false
+        var isPackage = false
+        var isHidden = false
+        var isSymbolicLink = false
+        var size: Int64?
+        var modified: Date?
+        /// The type the system names, on Apple platforms.
+        var contentType: UTType?
+        /// The system's words for the type, on Apple platforms.
+        var typeDescription: String?
+
+        init() {}
+
+        /// From prefetched values; all defaults where they could not be read.
+        init(_ values: URLResourceValues?) {
+            isDirectory = values?.isDirectory ?? false
+            isPackage = values?.isPackage ?? false
+            isHidden = values?.isHidden ?? false
+            isSymbolicLink = values?.isSymbolicLink ?? false
+            size = values?.fileSize.map(Int64.init)
+            modified = values?.contentModificationDate
+            #if canImport(UniformTypeIdentifiers)
+                contentType = values?.contentType
+                typeDescription = values?.localizedTypeDescription
+            #endif
+        }
     }
 
     /// The name a panel calls a folder by: its last component, or `/` for the
@@ -139,20 +165,20 @@ enum DirectoryListing {
         return name.isEmpty ? folder.path : name
     }
 
-    /// One item's row, from what the listing prefetched.
+    /// One item's row, from what the listing read of it.
     ///
     /// The row's URL is the folder's with the item's name appended, not the one
     /// the listing returned, which can spell the folder differently: on macOS
     /// it resolves the folder's own path (`/var/…` lists as `/private/var/…`),
     /// and a panel hands back what its user navigated to.
     private static func entry(
-        for listed: URL, in directory: URL, rule: FileChoiceRule, formats: Formats, kinds: inout [String: FileKind]
+        named name: String, facts: ItemFacts, in directory: URL, rule: FileChoiceRule, formats: Formats,
+        kinds: inout [String: FileKind]
     ) -> FileEntry {
-        let values = try? listed.resourceValues(forKeys: Set(keys))
-        let url = directory.appendingPathComponent(listed.lastPathComponent)
-        let isSymbolicLink = values?.isSymbolicLink ?? false
-        let isPackage = values?.isPackage ?? false
-        var isDirectory = values?.isDirectory ?? false
+        let url = directory.appendingPathComponent(name)
+        let isSymbolicLink = facts.isSymbolicLink
+        let isPackage = facts.isPackage
+        var isDirectory = facts.isDirectory
         if isSymbolicLink {
             // A link to a folder opens as one: the link's own values describe
             // the link, so ask what it leads to. `fileExists(atPath:isDirectory:)`
@@ -165,19 +191,19 @@ enum DirectoryListing {
                 && leadsToDirectory.boolValue
         }
         let isFolder = isDirectory && (!isPackage || rule.enumeratesPackages)
-        let type = contentType(of: url, values: values, isFolder: isFolder)
-        let size = isFolder ? nil : values?.fileSize.map(Int64.init)
+        let type = contentType(of: url, facts: facts, isFolder: isFolder)
+        let size = isFolder ? nil : facts.size
         var isChoosable = rule.allows(type, isFolder: isFolder)
         if isChoosable, let predicate = rule.urlEnabled {
             isChoosable = (try? predicate.evaluate(url)) ?? false
         }
-        let isHidden = (values?.isHidden ?? false) || url.lastPathComponent.hasPrefix(".")
+        let isHidden = facts.isHidden || url.lastPathComponent.hasPrefix(".")
         return FileEntry(
             url: url, name: url.lastPathComponent, isFolder: isFolder, isHidden: isHidden,
             isSymbolicLink: isSymbolicLink,
-            contentType: type, size: size, modified: values?.contentModificationDate,
-            sizeText: size.map(formats.size) ?? "--", modifiedText: values?.contentModificationDate.map(formats.date) ?? "",
-            kind: kind(of: type, values: values, isFolder: isFolder), isChoosable: isChoosable,
+            contentType: type, size: size, modified: facts.modified,
+            sizeText: size.map(formats.size) ?? "--", modifiedText: facts.modified.map(formats.date) ?? "",
+            kind: kind(of: type, facts: facts, isFolder: isFolder), isChoosable: isChoosable,
             fileKind: fileKind(of: type, isFolder: isFolder, isSymbolicLink: isSymbolicLink, kinds: &kinds))
     }
 
@@ -197,21 +223,17 @@ enum DirectoryListing {
     /// (Apple platforms read it from Launch Services, which knows a package
     /// and a file with no extension), else a folder for a folder and the type
     /// its extension names for a file, as `UTType(filenameExtension:)` names it.
-    private static func contentType(of url: URL, values: URLResourceValues?, isFolder: Bool) -> UTType {
+    private static func contentType(of url: URL, facts: ItemFacts, isFolder: Bool) -> UTType {
         if isFolder { return .folder }
-        #if canImport(UniformTypeIdentifiers)
-            if let type = values?.contentType { return type }
-        #endif
+        if let type = facts.contentType { return type }
         return url.pathExtension.isEmpty ? .data : UTType(filenameExtension: url.pathExtension) ?? .data
     }
 
     /// An item's kind, in words: the system's description where it has one
     /// (localized, on Apple platforms), the type's own (English) where it
     /// does not, else the extension in capitals ("TOML") or "Document".
-    private static func kind(of type: UTType, values: URLResourceValues?, isFolder: Bool) -> String {
-        #if canImport(UniformTypeIdentifiers)
-            if let description = values?.localizedTypeDescription { return description }
-        #endif
+    private static func kind(of type: UTType, facts: ItemFacts, isFolder: Bool) -> String {
+        if let description = facts.typeDescription { return description }
         if isFolder { return LocalizationService.shared.string(for: .kindFolder) }
         if !type.isDynamic, let description = type.localizedDescription { return description }
         if let name = type.preferredFilenameExtension { return name.uppercased() }

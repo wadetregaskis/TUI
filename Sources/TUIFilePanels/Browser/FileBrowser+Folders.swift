@@ -25,7 +25,7 @@ extension FileBrowser {
     /// finding the folder "being read", went away too: a column selected,
     /// left and selected again drew "Loading…" until it was left once more.
     func loadFolder(_ folder: URL) async {
-        let path = folder.standardizedFileURL.path
+        let path = folder.panelStandardized.path
         guard folderListings[path] == nil, path != directory.path else { return }
         // A read begun before the folder shown was read again is not this
         // generation's: it publishes nothing, so this ask reads afresh.
@@ -135,8 +135,8 @@ extension FileBrowser {
     /// loading delay has elapsed. Recursion goes only as deep as folders have
     /// been read, so a link that leads back up ends where the reading did.
     private func branch(of folder: URL) -> [FileEntry] {
-        guard let items = folderRows[folder.standardizedFileURL.path] else {
-            if foldersShowingLoading.contains(folder.standardizedFileURL.path) {
+        guard let items = folderRows[folder.panelStandardized.path] else {
+            if foldersShowingLoading.contains(folder.panelStandardized.path) {
                 // Indexed, so the selection finds it dimmed and refuses it.
                 let placeholder = FileEntry.placeholder(in: folder)
                 folderIndex[placeholder.url] = placeholder
@@ -172,17 +172,17 @@ extension FileBrowser {
             folderListings[directory.path] = listed.entries
             folderRows[directory.path] = rows
         }
-        let target = folder.standardizedFileURL.path
-        let inside = target.hasSuffix("/") ? target : target + "/"
+        let target = folder.panelStandardized.path
+        let inside = FolderPath.withSlash(target)
         let isKeptPath: (String) -> Bool = { path in
-            path == target || path == "/" || target.hasPrefix(path + "/") || path.hasPrefix(inside)
+            path == target || path == "/" || target.hasPrefix(FolderPath.withSlash(path)) || path.hasPrefix(inside)
         }
         folderListings = folderListings.filter { isKeptPath($0.key) }
         folderFailures = folderFailures.filter { isKeptPath($0.key) }
         folderRows = folderRows.filter { isKeptPath($0.key) }
         folderIndex = folderIndex.filter { entry in
             let folder = entry.value.isPlaceholder ? entry.value.placeholderFolder : entry.key.deletingLastPathComponent()
-            return isKeptPath(folder.standardizedFileURL.path)
+            return isKeptPath(folder.panelStandardized.path)
         }
         for (path, timer) in folderLoadingTimers where !isKeptPath(path) {
             timer.cancel()

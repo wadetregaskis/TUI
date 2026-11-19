@@ -169,7 +169,7 @@ enum FileMove {
         for file in files {
             let destination = folder.appendingPathComponent(file.lastPathComponent)
             // Already there: nothing to move, and `moveItem` would refuse.
-            if destination.standardizedFileURL.path == file.standardizedFileURL.path {
+            if destination.panelStandardized.path == file.panelStandardized.path {
                 moved.append(file)
                 continue
             }

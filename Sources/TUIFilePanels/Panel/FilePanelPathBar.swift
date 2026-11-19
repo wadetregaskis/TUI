@@ -151,8 +151,8 @@ struct FilePanelPathBar: View {
 
     /// `folder`'s path as a shell prompt writes it: the home folder as `~`.
     nonisolated static func displayPath(of folder: URL, home: URL) -> String {
-        let path = folder.standardizedFileURL.path
-        let homePath = home.standardizedFileURL.path
+        let path = folder.panelStandardized.path
+        let homePath = home.panelStandardized.path
         guard homePath.count > 1 else { return path }
         if path == homePath { return "~" }
         if path.hasPrefix(homePath + "/") { return "~" + path.dropFirst(homePath.count) }
@@ -179,20 +179,27 @@ struct FilePanelPathSegment: Equatable {
     /// The segments of `folder`'s path, from the root, or from `home`, which
     /// is written `~`, when the folder is in it.
     static func all(of folder: URL, home: URL, spelling: TextSpelling = .asWritten) -> [Self] {
-        let path = folder.standardizedFileURL.path
-        let homePath = home.standardizedFileURL.path
+        let path = folder.panelStandardized.path
+        let homePath = home.panelStandardized.path
         var segments: [Self]
         var rest: Substring
         if homePath.count > 1, path == homePath || path.hasPrefix(homePath + "/") {
             segments = [Self(label: "~", path: homePath)]
             rest = path.dropFirst(homePath.count)
         } else {
-            segments = [Self(label: "/", path: "/")]
-            rest = Substring(path)
+            #if os(Windows)
+                // A drive's root first, `C:`, as Windows writes a drive.
+                let root = FolderPath.driveRoot(of: path) ?? "/"
+                segments = [Self(label: root == "/" ? root : String(root.dropLast()), path: root)]
+                rest = path.dropFirst(root == "/" ? 0 : root.count)
+            #else
+                segments = [Self(label: "/", path: "/")]
+                rest = Substring(path)
+            #endif
         }
         var walked = segments[0].path == "/" ? "" : segments[0].path
         for name in rest.split(separator: "/") {
-            walked += "/" + name
+            walked = (walked.isEmpty ? "/" : FolderPath.withSlash(walked)) + name
             segments.append(Self(label: TextTransliteration.spelled(String(name), as: spelling), path: walked))
         }
         return segments

@@ -137,7 +137,7 @@ final class FileBrowser {
         clock: any Clock<Duration> = ContinuousClock()
     ) {
         self.clock = clock
-        self.directory = directory.standardizedFileURL
+        self.directory = directory.panelStandardized
         self.rule = rule
         self.showsHiddenFiles = showsHiddenFiles
         self.sortOrder = [Self.nameOrder]
@@ -188,7 +188,7 @@ final class FileBrowser {
     /// the new one, stay read (the column view's columns), and the rest go;
     /// a folder already read shows at once.
     func open(_ folder: URL) {
-        let folder = folder.standardizedFileURL
+        let folder = folder.panelStandardized
         guard folder.path != directory.path else { return }
         openBranches.removeAll()
         keepFolders(onTheWayTo: folder)
@@ -212,9 +212,7 @@ final class FileBrowser {
 
     /// Shows the folder that holds this one; at the root, does nothing.
     func goUp() {
-        let parent = directory.deletingLastPathComponent()
-        // The root's parent is the root again.
-        if parent.standardizedFileURL.path != directory.path { open(parent) }
+        if let parent = FolderPath.parent(of: directory) { open(parent) }
     }
 
     /// Reads the folder again, as it is now, and every other folder as it is
@@ -238,7 +236,7 @@ final class FileBrowser {
     /// Whether the folder shown is the file system's root, which has no folder
     /// above it.
     var isAtRoot: Bool {
-        directory.deletingLastPathComponent().standardizedFileURL.path == directory.path
+        FolderPath.parent(of: directory) == nil
     }
 
     // MARK: - Reading and sorting
@@ -297,7 +295,7 @@ final class FileBrowser {
         rowIndex = arranged.rowIndex
         hiddenCount = arranged.hiddenCount
         state = .loaded
-        let toLoad = openBranches.filter { folderListings[$0.standardizedFileURL.path] == nil }
+        let toLoad = openBranches.filter { folderListings[$0.panelStandardized.path] == nil }
         if !toLoad.isEmpty {
             let tasks = toLoad.map { branch in
                 Task { await self.loadFolder(branch) }
@@ -359,7 +357,7 @@ final class FileBrowser {
         var beneath: [FileEntry] = []
         // Only the branches beneath the folder shown: the column view reads
         // the folders above it too, which no selection here is in.
-        let base = directory.path == "/" ? "/" : directory.path + "/"
+        let base = FolderPath.withSlash(directory.path)
         for url in urls {
             if let index = rowIndex[url] {
                 shown.append(index)

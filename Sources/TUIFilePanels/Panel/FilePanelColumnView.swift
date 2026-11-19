@@ -121,12 +121,12 @@ struct FilePanelColumnView: View {
     /// `deepest` where that is below it — the way back down, after going up.
     static func trail(selected: URL?, deepest: String?) -> [String] {
         guard let selected else { return [] }
-        let folder = selected.standardizedFileURL.path
+        let folder = selected.panelStandardized.path
         guard let deepest, deepest != folder, isAtOrBelow(deepest, folder) else { return [folder] }
         var paths = [folder]
         var current = folder
         for component in deepest.dropFirst(folder.count).split(separator: "/") {
-            current += "/" + component
+            current = FolderPath.withSlash(current) + component
             paths.append(current)
         }
         return paths
@@ -134,7 +134,7 @@ struct FilePanelColumnView: View {
 
     /// Whether the folder at `path` is `folder` or inside it.
     static func isAtOrBelow(_ path: String, _ folder: String) -> Bool {
-        path == folder || path.hasPrefix(folder.hasSuffix("/") ? folder : folder + "/")
+        path == folder || path.hasPrefix(FolderPath.withSlash(folder))
     }
 
     /// The columns, each the same kind of view whether or not it is the
@@ -226,7 +226,7 @@ struct FilePanelColumnView: View {
         .listStyle(.plain)
         .listEmptyPlaceholder(emptyText(of: path))
         .modifier(RevealingFolderOnTheWay(target: next.flatMap { next in
-            items(of: path).first { $0.url.standardizedFileURL.path == next }?.url
+            items(of: path).first { $0.url.panelStandardized.path == next }?.url
         }))
         .focused(focus, equals: .column(path))
         .onAppear {
@@ -300,7 +300,7 @@ struct FilePanelColumnView: View {
         let singleSelection = singleSelection
         let multiple = allowsMultipleSelection
         return Binding(
-            get: { next.flatMap { next in rows.first { $0.url.standardizedFileURL.path == next }?.url } },
+            get: { next.flatMap { next in rows.first { $0.url.panelStandardized.path == next }?.url } },
             set: { url in
                 guard let url, let entry = rows.first(where: { $0.url == url }) else { return }
                 if entry.isFolder {

@@ -12,11 +12,18 @@ import Foundation
 /// What a panel's go-to field makes of the path typed into it.
 enum PathCompletion {
     /// `typed` as a location: `~` and `~/…` from `home`, an absolute path as
-    /// it is, anything else relative to `base`, the folder shown.
+    /// it is, anything else relative to `base`, the folder shown. On Windows a
+    /// drive alone, `D:`, is that drive's root, not a folder `D:` in the one
+    /// shown.
     static func resolve(_ typed: String, relativeTo base: URL, home: URL) -> URL {
-        let path = expandingTilde(typed.trimmingCharacters(in: .whitespaces), home: home)
-        if isAbsolute(path) { return URL(fileURLWithPath: path).standardizedFileURL }
-        return base.appendingPathComponent(path).standardizedFileURL
+        var path = expandingTilde(typed.trimmingCharacters(in: .whitespaces), home: home)
+        #if os(Windows)
+            if path.count == 2, path.last == ":", let drive = path.first, drive.isASCII, drive.isLetter {
+                path += "/"
+            }
+        #endif
+        if isAbsolute(path) { return URL(fileURLWithPath: path).panelStandardized }
+        return base.appendingPathComponent(path).panelStandardized
     }
 
     /// `typed` with its last component completed among the items of the
@@ -78,7 +85,7 @@ enum PathCompletion {
 
     private static func expandingTilde(_ path: String, home: URL) -> String {
         guard path == "~" || (path.first == "~" && path.dropFirst().first.map(isSeparator) == true) else { return path }
-        return home.standardizedFileURL.path + path.dropFirst()
+        return home.panelStandardized.path + path.dropFirst()
     }
 
     /// The longest start `a` and `b` share, by character.
