@@ -695,6 +695,51 @@ Capture both a **driven** trace (page switches + scrolling: layout +
 diff heavy) and an **idle** trace (`idle` scenario: steady-state per-frame
 cost) — they stress different paths.
 
+## On Windows — `sample_windows.py`
+
+Windows has no Instruments, and its own samplers (WPR, the Visual Studio
+profiler) trace the kernel, which needs an administrator. `sample_windows.py`
+samples a running app from another process instead, with nothing but Python's
+standard library: it suspends each thread in turn, reads its registers,
+unwinds its stack with `dbghelp`'s `StackWalk64` (Swift keeps no frame-pointer
+chain on Windows, so the unwind reads each image's `.pdata`), and resumes it.
+It names the frames afterwards with the toolchain's `llvm-symbolizer` (the
+DWARF Swift writes into a PE) and `swift-demangle`, and a DLL without debug
+information by the nearest name in its export table, which is right for a
+system DLL's exported functions and approximate for `dispatch.dll`'s.
+
+Run it with the toolchain's own Python, which is a native ARM64 one on an ARM64
+machine; an emulated x64 Python cannot read an ARM64 thread's registers:
+
+```powershell
+$root = "$env:LOCALAPPDATA\Programs\Swift"
+& "$root\Python-3.10.1\usr\bin\python.exe" Tools\Profiling\sample_windows.py `
+    --pid (Get-Process Example).Id --seconds 10 --toolchain "$root\Toolchains\6.3.3+Asserts" --stacks 5
+```
+
+A thread is sampled only when it has spent more than `--min-cycles` since the
+last round (`QueryThreadCycleTime`), so a waiting thread adds nothing; most of
+what is left is threads that ran and are back in a wait when looked at, so the
+self-time table is mostly `ZwWaitForSingleObject` and its kin. The table to
+read for cost is the last, **Cycles by thread**: each thread's own cycle count
+over the run, and the frame nearest its start that is not the system's or the
+dispatch pool's (`AppRunner.runLoop()` for the run loop's). `--within NAME`
+keeps the samples with that frame on the stack, and `--stacks N` prints the
+commonest whole stacks.
+
+What it found the first time (2026-11-18, the Example in conhost, release
+build): at rest on the menu, 81 million cycles a second, 10 of them the run
+loop's and 56 libdispatch's manager thread, which runs the dispatch timers
+`Task.sleep` waits on, and which spent a tenth of its samples in
+`ZwQuerySystemInformation` (a query of the whole system, called from
+`dispatch.dll` through ADVAPI32). An idle Swift program awaiting one long sleep
+costs nothing; one waking 60 times a second costs 25 million, the same thread
+and the same query among them. It is libdispatch's, not TUI's: what TUI can do
+about it is wake less.
+
+Build the app being profiled with `-c release -Xswiftc -g`, so its frames have
+names.
+
 ## Recording results
 
 Profiling that motivates a change is recorded **in the commit message**,
