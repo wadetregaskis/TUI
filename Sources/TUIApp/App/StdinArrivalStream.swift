@@ -296,7 +296,13 @@ final class StdinArrivalNotifier {
             // all paths into `signal()` are MainActor-isolated.
             if let timeoutNanoseconds {
                 timeoutTask = Task { [weak self] in
-                    try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+                    #if os(Windows)
+                        // `Task.sleep` there wakes on the clock's 15.6 ms tick,
+                        // up to two late: a frame due in 16.7 ms came in 31.2.
+                        await PreciseSleep.sleep(nanoseconds: timeoutNanoseconds)
+                    #else
+                        try? await Task.sleep(nanoseconds: timeoutNanoseconds)
+                    #endif
                     // A cancelled timeout must NOT signal. `signal()` always
                     // cancels `timeoutTask` before it resumes a waiter, so a
                     // cancelled timeout is one whose waiter was already resumed

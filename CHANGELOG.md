@@ -28,6 +28,10 @@ Linux.
 **On Windows, a paste of over a megabyte arrives whole.** TUI dropped everything past the first megabyte it held for
 the app. It now leaves the rest with the console until the app has read what it holds.
 
+**On Windows, an animation's frames come when they are due.** `Task.sleep` there wakes on the clock's 15.6 ms tick,
+so a frame came as much as a tick late: one due 16.7 ms after the last drew 31.2 ms after it. The run loop now waits for
+its next frame on a high-resolution timer, which wakes within about a millisecond of when it is due.
+
 **On Windows, a file panel can show a drive's root.** Going up from `C:\Users`, typing `D:\` or `D:`, or clicking the
 drive in the path bar opened a folder named `C:` inside the working folder, which could not be listed. The path bar now
 starts at the drive, written `C:`. A network share (`\\server\share`) is still out of reach: Foundation loses the first

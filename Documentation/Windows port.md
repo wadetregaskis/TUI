@@ -152,6 +152,7 @@ code, which is unchanged. What each piece became, and why:
 | `/dev/tty` | `CONIN$` / `CONOUT$`, with `SetStdHandle` and the descriptor `_dup2`'d | What `NoTerminal` points a redirected stream at |
 | `pbcopy`, `wl-copy`, `xclip` | `OpenClipboard`, `SetClipboardData(CF_UNICODETEXT)`, CR LF on the clipboard and LF in the app | No helper to run, so nothing can hang; locality from the ssh variables and a Toolhelp32 walk of the parents |
 | `open`, `xdg-open` | `ShellExecuteW`, for a URL that names a scheme | The user's default program for the scheme. A bare name (`calc`) the shell would run as a program |
+| `Task.sleep` for the loop's timed wait | A high-resolution waitable timer, waited on by the thread pool (`PreciseSleep`) | Every wait on libdispatch's timers keeps the clock's 15.6 ms tick, whatever `timeBeginPeriod` says: 16 ms took 30–31 ms, so a frame due in 16.7 ms came in 31.2. The timer takes 16.4–16.5 and needs no change to the clock |
 
 Measured under a pseudo console (`Tools/Smoke/conpty.py`, 2026-11-16, debug build):
 
