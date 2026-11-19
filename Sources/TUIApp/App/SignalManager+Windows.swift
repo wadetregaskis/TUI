@@ -30,8 +30,11 @@ import WinSDK
 /// - **Ctrl-Break** is the quit key's, handled where the debt is
 ///   (`FatalSignalTerminalRestore`).
 /// - **Job control** does not exist: nothing suspends a Windows process from
-///   its console, so the suspend and continue flags are never set and a
-///   hand-off has nothing to share.
+///   its console, so the suspend and continue flags are never set.
+/// - **A hand-off** (``beginHandOff()``) has the console's ⌃C and Ctrl-Break
+///   ignored, as `system(3)` ignores `SIGINT` and `SIGQUIT`: the console
+///   raises them in every process attached to it, the app among them, and
+///   they are meant for the other program.
 @MainActor
 final class SignalManager {
 
@@ -65,11 +68,29 @@ final class SignalManager {
     /// A no-op: no job control.
     func expectSelfResume() {}
 
-    /// A no-op: there is no foreground group to share events with.
-    func beginHandOff() {}
+    /// Whether the console is handed to another program
+    /// (``beginHandOff()``): read by the console's handlers, on threads of
+    /// their own, so process-wide, as their route is.
+    nonisolated static let isHandingOff = Atomic(false)
 
-    /// A no-op, as ``beginHandOff()`` is.
-    func endHandOff() {}
+    /// Sets the console's events up for it being handed to another program
+    /// (`AppRunner.handOffTerminal`). With raw mode off the console's own
+    /// input mode is back, ⌃C and Ctrl-Break are its control events again,
+    /// and the console raises them in every process attached to it, the app
+    /// included (`SetConsoleCtrlHandler`'s documentation: a console's control
+    /// events go to all the processes that share it).
+    /// They are meant for the other program, so the app takes them and does
+    /// nothing, as `system(3)` ignores `SIGINT` and `SIGQUIT` while its child
+    /// runs: neither ends the app, nor shuts it down once the closure returns.
+    /// A closed window, a logoff or a shutdown still shuts it down.
+    func beginHandOff() {
+        Self.isHandingOff.store(true, ordering: .sequentiallyConsistent)
+    }
+
+    /// Takes them back, as the app takes the console back.
+    func endHandOff() {
+        Self.isHandingOff.store(false, ordering: .sequentiallyConsistent)
+    }
 
     /// The console's window changed size: called by the console's reader, on
     /// the main actor.
@@ -101,9 +122,12 @@ final class SignalManager {
     }
 
     /// The console's control handler: a shutdown for the events above, and
-    /// nothing for the rest, which go on to the next handler.
-    private static let handler: @convention(c) (DWORD) -> WindowsBool = { event in
+    /// nothing for the rest, which go on to the next handler. ⌃C during a
+    /// hand-off is taken and ignored (``beginHandOff()``).
+    static let handler: @convention(c) (DWORD) -> WindowsBool = { event in
         switch Int32(event) {
+        case CTRL_C_EVENT where isHandingOff.load(ordering: .sequentiallyConsistent):
+            return true
         case CTRL_C_EVENT, CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT:
             guard let route = SignalManager.route.withLock({ $0 }) else { return false }
             route()

@@ -42,10 +42,21 @@ struct HandOffDemo: View {
         // person's own editor, arguments and all, as git does.
         let ended: HandOffTerminalAction.Termination
         do {
-            ended = try handOffTerminal(
-                running: .path("/bin/sh"),
-                arguments: ["-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"", "sh", file.path]
-            )
+            #if os(Windows)
+                // No shell to split the setting: its first word is the program,
+                // the rest its arguments. `edit` is Windows' own console editor.
+                let environment = ProcessInfo.processInfo.environment
+                let editor = (environment["VISUAL"] ?? environment["EDITOR"] ?? "edit").split(separator: " ")
+                ended = try handOffTerminal(
+                    running: .name(editor.first.map(String.init) ?? "edit"),
+                    arguments: editor.dropFirst().map(String.init) + [file.path]
+                )
+            #else
+                ended = try handOffTerminal(
+                    running: .path("/bin/sh"),
+                    arguments: ["-c", "${VISUAL:-${EDITOR:-vi}} \"$1\"", "sh", file.path]
+                )
+            #endif
         } catch {
             outcome = L("page.terminal.handOffUnavailable")
             return

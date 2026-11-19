@@ -15,6 +15,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**On Windows, `handOffTerminal(running:arguments:)` runs the program.** It threw `.unsupported` there. It now
+starts the program in the app's console and waits for it, and reports how it ended as `.exit` with its exit code:
+Windows has no signals, so a program ended by ⌃C exits with `0xC000013A`. A name is looked up as Windows looks one
+up, with `.exe` added. There is no shell to split `%EDITOR%`: run `cmd.exe /c` for a command line.
+
+**On Windows, ⌃C or Ctrl-Break in a program the app has handed the console to no longer ends the app.** The console
+sends both to every program sharing it. ⌃C shut the app down when the program returned, and Ctrl-Break ended it at
+once. While the console is handed over, the app now ignores both, as it ignores `SIGINT` and `SIGQUIT` on macOS and
+Linux.
+
 **In the classic Windows console, a stepper's and a slider's arrows no longer draw as boxes.** Consolas, its
 default font, has no `◀` or `▶`, and the console draws a character its font lacks as a box when it stands alone in a
 colour of its own, as those arrows do. Where the console's font lacks them, TUI now sends `◄` and `►` in their

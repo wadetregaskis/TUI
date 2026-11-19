@@ -150,9 +150,13 @@ enum FatalSignalTerminalRestore {
     }
 
     /// The console's control handler, for Ctrl-Break alone: the rest are
-    /// `SignalManager`'s, and this passes them on.
-    private static let controlHandler: @convention(c) (DWORD) -> WindowsBool = { event in
+    /// `SignalManager`'s, and this passes them on. During a hand-off the
+    /// Ctrl-Break is the other program's, which the console raises here too,
+    /// and is taken and ignored, as `SIGQUIT` is on POSIX
+    /// (`SignalManager.beginHandOff()`).
+    static let controlHandler: @convention(c) (DWORD) -> WindowsBool = { event in
         guard event == DWORD(CTRL_BREAK_EVENT) else { return false }
+        if SignalManager.isHandingOff.load(ordering: .sequentiallyConsistent) { return true }
         Self.quitNow()
     }
 

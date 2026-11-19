@@ -47,6 +47,15 @@ extension HandOffTerminalAction {
     /// of its own: the terminal treats that as a background job, and stops an
     /// editor that reads the keyboard (`SIGTTIN`).
     ///
+    /// On Windows the program is started in the app's console
+    /// (`CreateProcessW`), which it shares as a POSIX program shares the app's
+    /// process group, and a name is looked up as `CreateProcessW` looks it up:
+    /// with `.exe` added where it has no extension, in the app's folder, the
+    /// working directory, the system's folders and then `PATH`. There is no
+    /// shell to split `%EDITOR%` for it: run `cmd.exe /c` for a command line.
+    /// Windows has no signals, so a program always ends with an exit status:
+    /// `0xC000013A` (`STATUS_CONTROL_C_EXIT`) where ⌃C or Ctrl-Break ended it.
+    ///
     /// - Parameters:
     ///   - executable: The program: a path, or a name looked up in `PATH`.
     ///   - arguments: Its arguments, after its name, which it is given first.
@@ -61,14 +70,12 @@ extension HandOffTerminalAction {
         running executable: Executable,
         arguments: [String] = []
     ) throws(LaunchError) -> Termination {
-        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl) || os(Windows)
             try self { () throws(LaunchError) -> Termination in
                 try ForegroundProgram.run(executable, arguments: arguments)
             }
         #else
-            // WebAssembly (WASI) has no processes to start; Windows starts them
-            // with `CreateProcess`, which a Windows port of the run loop would
-            // bring with the console it hands over.
+            // WebAssembly (WASI) has no processes to start.
             throw .unsupported
         #endif
     }
@@ -113,14 +120,16 @@ extension HandOffTerminalAction {
     /// Why a program could not be run.
     public enum LaunchError: Error, Hashable, Sendable {
         /// It could not be started: the `errno` code says why, `ENOENT` for
-        /// a program not found, `EACCES` for one that may not be run.
+        /// a program not found, `EACCES` for one that may not be run. On
+        /// Windows, the Windows error read as the nearest of these (`ENOEXEC`
+        /// for a file that is no program, `EINVAL` for the rest).
         case couldNotStart(errno: Int32)
         /// It started, and could not be waited for: the `errno` code says
         /// why, `ECHILD` where the app has set `SIGCHLD` to be ignored, which
         /// makes the system reap its programs as they end.
         case couldNotWait(errno: Int32)
         /// No program can be started here: on WebAssembly, which has no
-        /// processes, and on Windows, which has no port of the run loop yet.
+        /// processes.
         case unsupported
     }
 }

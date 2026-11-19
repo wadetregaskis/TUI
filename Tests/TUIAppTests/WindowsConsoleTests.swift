@@ -169,4 +169,45 @@ struct WindowsSignalManagerTests {
     }
 }
 
+/// The console's ⌃C and Ctrl-Break during a hand-off, which the console raises
+/// in the app as well as in the program it handed the console to. Serialized:
+/// whether the app is handing off is process-wide, as the handlers are.
+@MainActor
+@Suite("A hand-off's control events on Windows", .serialized)
+struct WindowsHandOffControlEventTests {
+    @Test("⌃C during a hand-off is the other program's: taken, and no shutdown")
+    func controlCIgnored() async {
+        let signals = SignalManager()
+        await signals.install(wake: {})
+        defer { signals.stop() }
+        signals.beginHandOff()
+        #expect(SignalManager.handler(DWORD(CTRL_C_EVENT)).boolValue)
+        signals.endHandOff()
+        await Task.yield()
+        #expect(!signals.shouldShutdown)
+    }
+
+    @Test("⌃C after the hand-off shuts the app down again")
+    func controlCAfter() async {
+        let signals = SignalManager()
+        await signals.install(wake: {})
+        defer { signals.stop() }
+        signals.beginHandOff()
+        signals.endHandOff()
+        #expect(SignalManager.handler(DWORD(CTRL_C_EVENT)).boolValue)
+        // The route hops to the main actor to set the flag.
+        for _ in 0..<100 where !signals.shouldShutdown { await Task.yield() }
+        #expect(signals.shouldShutdown)
+    }
+
+    @Test("Ctrl-Break during a hand-off is the other program's: taken, and the app lives")
+    func breakIgnored() {
+        let signals = SignalManager()
+        signals.beginHandOff()
+        defer { signals.endHandOff() }
+        // Were it not ignored, this would end the test's process.
+        #expect(FatalSignalTerminalRestore.controlHandler(DWORD(CTRL_BREAK_EVENT)).boolValue)
+    }
+}
+
 #endif
