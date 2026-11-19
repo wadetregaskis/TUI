@@ -17,13 +17,15 @@ extension TerminalClient {
     ///
     /// - Windows Terminal: ⌃, opens its settings, a default binding. Pressed
     ///   without the kitty keyboard protocol, 2026-11-17, it arrived as
-    ///   nothing (Terminal compatibility survey.md, "Keys"); with
-    ///   the protocol on it is unmeasured, and taken to be kept too, as a
-    ///   binding is matched before the key is encoded at all. Its other
+    ///   nothing, and with all 31 flags, 2026-11-19 (1.25.3131.0), as
+    ///   Control's own press and release alone (Terminal compatibility
+    ///   survey.md, "Keys" and "Keys under the kitty protocol"). Its other
     ///   default bindings (⌃=, ⌃- and ⌃0 for the font size, ⌃V, the ⌃⇧ chords
-    ///   for tabs, panes and find, Alt-arrows for panes) are not listed: a
-    ///   person can rebind any of them, so a list could be wrong for them
-    ///   (the owner, 2026-11-17: "Just ⌃, for now").
+    ///   for tabs, panes and find, Alt-arrows and ⌥⇧- for panes) are not
+    ///   listed: a person can rebind any of them, so a list could be wrong for
+    ///   them (the owner, 2026-11-17: "Just ⌃, for now"). ⌃- and ⌥⇧- were
+    ///   kept in that run too: ⌃-'s release alone arrived, and ⌥⇧-'s
+    ///   modifiers.
     ///
     /// Every other host is taken to keep none: a chord it does keep is still
     /// bound, and named where nothing arrives.

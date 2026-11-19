@@ -228,15 +228,15 @@ Two things about the environment the runs needed:
 - **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
   logging the session off would end the test with it. Worth a run in a virtual machine.
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
-- **The rest of the mouse**: Shift-clicks, the other buttons and pointer shapes are unmeasured in both terminals.
-- **Keys under the kitty protocol in Windows Terminal**: the key record is the legacy encoding; what 1.25 sends for
-  each key with the protocol on is unmeasured.
 
-Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays
-the debt), the mouse's clicks and wheel in both, the keys in both, Windows Terminal's ⌃, (TUI takes it to be kept, so
-Settings… shows F2 there; its other default bindings are not listed, the owner's ruling of 2026-11-17: "Just ⌃, for
-now"), and copies too large for the terminal (over a measured 24,567 bytes of text: sent to this machine's clipboard
-at the desk, reported as not copied over ssh), x86_64, and the console's font (conhost names it, and where it has no
-quadrants, as Consolas has none, shapes cut their corners in whole cells and a canvas draws half blocks; asked again
-on each resize, which a font change sends; the survey's "conhost's font"), and the glyphs it lacks of TUI's own
-(`◀ ▶ ◯`, sent as `◄ ► ○` where the font has those; the survey's "Stand-ins").
+Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
+debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal
+hands the app, and no pointer shapes in either, as TUI assumed), the keys in both, and in Windows Terminal under the
+kitty protocol too (the survey's "Keys under the kitty protocol": every key as the specification has it; ⌃-, ⌥⇧-, ⌃, and
+⌃⇧V kept by its own bindings), Windows Terminal's ⌃, (TUI takes it to be kept, so Settings… shows F2 there; its other
+default bindings are not listed, the owner's ruling of 2026-11-17: "Just ⌃, for now"), and copies too large for the
+terminal (over a measured 24,567 bytes of text: sent to this machine's clipboard at the desk, reported as not copied
+over ssh), x86_64, and the console's font (conhost names it, and where it has no quadrants, as Consolas has none, shapes
+cut their corners in whole cells and a canvas draws half blocks; asked again on each resize, which a font change sends;
+the survey's "conhost's font"), and the glyphs it lacks of TUI's own (`◀ ▶ ◯`, sent as `◄ ► ○` where the font has those;
+the survey's "Stand-ins").

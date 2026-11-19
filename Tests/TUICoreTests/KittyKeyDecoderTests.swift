@@ -12,8 +12,9 @@ import Testing
 ///
 /// The shapes are the specification's
 /// (<https://sw.kovidgoyal.net/kitty/keyboard-protocol/>), as a terminal with
-/// flags 1, 2, 4, 8 and 16 pushed sends them. No terminal has been captured
-/// sending them yet; see `Documentation/Terminals/Terminal compatibility survey.md`.
+/// flags 1, 2, 4, 8 and 16 pushed sends them; Ghostty's Option chords and
+/// Windows Terminal's whole run of keys are as captured (see
+/// `Documentation/Terminals/Terminal compatibility survey.md`).
 @Suite("Kitty keyboard protocol decoding")
 struct KittyKeyDecoderTests {
 
@@ -225,6 +226,91 @@ struct KittyKeyDecoderTests {
         #expect(
             keysInTurn(["97;65;65u", "97;65:3u", "97;1:3u"]).last
                 == key(KeyEvent(key: .character("a"), phase: .release)))
+    }
+
+    /// Windows Terminal 1.25.3131.0 with all 31 flags, measured by the owner
+    /// (2026-11-19, `keyboard_events_probe.py`, a Mac keyboard into a Windows
+    /// 11 VM), report by report, the paste's text left out. Its own bindings
+    /// took three chords' presses: ⌃- (its font size) and ⌃⇧V (its paste)
+    /// arrive as their releases alone, and ⌃, (its settings) and ⌥⇧- (a
+    /// split pane) as their modifiers alone. The terminal's ⌃ press before F1
+    /// is the one ⌃, left behind, its release taken by the settings tab.
+    @Test("Windows Terminal's keys, as it sent them")
+    func windowsTerminalCapture() {
+        let a = KeyEvent(key: .character("a"))
+        let capitalA = KeyEvent(key: .character("A"), shift: true)
+        let bang = KeyEvent(character: "!")
+        let capsA = KeyEvent(key: .character("A"), shift: true, capsLock: true)
+        let z = KeyEvent(key: .character("Z"), ctrl: true, shift: true)
+        let underscore = KeyEvent(key: .character("_"), ctrl: true)
+        let v = KeyEvent(key: .character("V"), ctrl: true, shift: true)
+        func ctrl(_ letter: Character) -> KeyEvent { KeyEvent(key: .character(letter), ctrl: true) }
+        func up(_ event: KeyEvent) -> KeyEvent {
+            KeyEvent(
+                key: event.key, ctrl: event.ctrl, alt: event.alt, shift: event.shift, phase: .release,
+                capsLock: event.capsLock)
+        }
+        let control = (press: "57442;5u", release: "57442;1:3u")
+        var reports: [(String, KeyEvent?)] = [
+            ("97;;97u", a), ("97;1:3u", up(a)),
+            ("57447;2u", nil), ("97:65;2;65u", capitalA), ("97:65;2:3u", up(capitalA)), ("57447;1:3u", nil),
+            ("57447;2u", nil), ("49:33;2;33u", bang), ("49:33;2:3u", up(bang)), ("57447;1:3u", nil),
+            ("57358;65u", nil), ("57358;65:3u", nil), ("97;65;65u", capsA), ("97;65:3u", up(capsA)),
+            ("57358u", nil), ("57358;1:3u", nil),
+        ]
+        for letter: Character in ["h", "i", "m", "[", "q", "\\"] {
+            let code = Int(letter.unicodeScalars.first!.value)
+            reports += [
+                (control.press, nil), ("\(code);5u", ctrl(letter)), ("\(code);5:3u", up(ctrl(letter))),
+                (control.release, nil),
+            ]
+        }
+        reports += [
+            ("27u", KeyEvent(key: .escape)), ("27;1:3u", KeyEvent(key: .escape, phase: .release)),
+            (control.press, nil), ("57441;6u", nil), ("122:90;6u", z), ("122:90;6:3u", up(z)),
+            ("57442;2:3u", nil), ("57441;1:3u", nil),
+            // ⌃-: the font size's.
+            (control.press, nil), ("45;5:3u", up(ctrl("-"))), (control.release, nil),
+            (control.press, nil), ("57441;6u", nil), ("45:95;6u", underscore), ("45:95;6:3u", up(underscore)),
+            ("57441;5:3u", nil), (control.release, nil),
+            // ⌥⇧-: a split pane's.
+            ("57443;3u", nil), ("57441;4u", nil), ("57441;1:3u", nil), ("57443;3u", nil), ("57443;1:3u", nil),
+            // ⌃,: the settings'.
+            (control.press, nil), (control.release, nil), (control.press, nil),
+        ]
+        for (press, key) in [("P", Key.f1), ("Q", .f2), ("H", .home), ("F", .end)] {
+            reports += [(press, KeyEvent(key: key)), ("1;1:3\(press)", KeyEvent(key: key, phase: .release))]
+        }
+        for (number, key) in [(21, Key.f10), (5, .pageUp)] {
+            reports += [("\(number)~", KeyEvent(key: key)), ("\(number);1:3~", KeyEvent(key: key, phase: .release))]
+        }
+        for (number, key) in [(9, Key.tab), (13, .enter), (127, .backspace)] {
+            reports += [("\(number)u", KeyEvent(key: key)), ("\(number);1:3u", KeyEvent(key: key, phase: .release))]
+        }
+        reports += [(control.press, nil), (control.release, nil), ("B", KeyEvent(key: .down))]
+        reports += Array(repeating: ("1;1:2B", KeyEvent(key: .down, phase: .repeat)), count: 18)
+        reports += [
+            ("1;1:3B", KeyEvent(key: .down, phase: .release)),
+            // ⌃⇧V: the paste's, its text between the presses and the release.
+            (control.press, nil), ("57441;6u", nil), ("118:86;6:3u", up(v)), ("57441;5:3u", nil),
+            (control.release, nil),
+            (control.press, nil), ("99;5u", ctrl("c")),
+        ]
+        let decoded = decodeInTurn(reports.map(\.0))
+        for ((body, expected), inputs) in zip(reports, decoded) {
+            #expect(inputs != nil, "\(body) is a key report")
+            #expect(
+                (inputs ?? []).compactMap(\.keyEvent) == (expected.map { [$0] } ?? []), "\(body)")
+        }
+        // ⌃C's report leaves Control held, as it is, and nothing else.
+        var memory = KittyKeyMemory()
+        var last: ModifierKeyState?
+        for body in reports.map(\.0) {
+            for input in KittyKeyDecoder.decode(Array("\u{1B}[\(body)".utf8), memory: &memory) ?? [] {
+                if case .modifierKeys(let state) = input { last = state }
+            }
+        }
+        #expect(last == ModifierKeyState(control: true))
     }
 
     // MARK: Modifier state across reports

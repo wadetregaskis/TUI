@@ -2922,7 +2922,7 @@ says, monochrome.
 | SGR-Pixels mouse (1016) | not recognised | not recognised | DECRQM |
 | Focus reports (1004), SGR mouse (1006), bracketed paste (2004) | recognised | recognised | DECRQM |
 | win32-input-mode (9001) | recognised | recognised | DECRQM; TUI does not set it |
-| kitty keyboard protocol | **yes, from 1.25** | no answer | 1.25.3131.0 (2026-11-17): `CSI ? u` answers `CSI ? 0 u`, takes all 31 flags TUI pushes, and pops back to 0 (`keyboard_protocol_probe.py`), so TUI reads its keys in the protocol's encoding; 1.24.12741.0 (2026-11-16) left the query unanswered before the fence, as conhost does. Its own key bindings take their chords first: ⌃, (its settings) arrived as nothing, pressed without the protocol; with it, unmeasured. TUI takes ⌃, to be kept with it too (`TerminalClient.keptChords`), so Settings… and F1's list show F2 there, as in conhost, though ⌃, stays bound |
+| kitty keyboard protocol | **yes, from 1.25** | no answer | 1.25.3131.0 (2026-11-17): `CSI ? u` answers `CSI ? 0 u`, takes all 31 flags TUI pushes, and pops back to 0 (`keyboard_protocol_probe.py`), so TUI reads its keys in the protocol's encoding; 1.24.12741.0 (2026-11-16) left the query unanswered before the fence, as conhost does. Its own key bindings take their chords first: ⌃, (its settings) arrived as nothing, pressed without the protocol, and as Control's own press and release alone with it ("Keys under the kitty protocol"). TUI takes ⌃, to be kept with it too (`TerminalClient.keptChords`), so Settings… and F1's list show F2 there, as in conhost, though ⌃, stays bound |
 | Sixel | yes (DA1 `4`) | no (DA1 has no `4`) | `sixel_probe.py` in Windows Terminal: `CSI 16 t` answers a cell of 10 × 20, as its source says |
 
 ### Keys (measured 2026-11-17, both)
@@ -2950,13 +2950,68 @@ The console's raw mode, as TUI sets it, takes mouse input, and with it Windows T
 reports the pointer's motion (`CSI < 35;…M`) even where nothing turned mouse reporting
 on: `key_probe.py` drops mouse reports so they are not read as keys.
 
+### Keys under the kitty protocol (measured 2026-11-19, Windows Terminal)
+
+`keyboard_events_probe.py` on the alternate screen in Windows Terminal 1.25.3131.0, all
+31 flags taken, keys pressed by the owner on a Mac keyboard into the VM, with the
+console's mouse input off (`PROBE_MOUSE_INPUT=0`: with it on, a moved pointer fills the
+record with motion reports). Every key is reported as the specification has it, and
+`KittyKeyDecoderTests` replays the run report by report:
+
+- **Text and its case.** `a` is `CSI 97;;97u`, the modifier field empty; ⇧A
+  `CSI 97:65;2;65u` and ⇧1 `CSI 49:33;2;33u`, shifted key and text both; with Caps Lock
+  on, `a` is `CSI 97;65;65u` (bit 64, text `A`, no shifted key). Caps Lock's own key is
+  `CSI 57358;65u` going on and `CSI 57358u` going off, its bit the state it leaves.
+- **Releases and repeats.** Every key's release is reported (`:3`), modifiers included,
+  and a held ↓ repeated as `CSI 1;1:2B`, 18 times before its release.
+- **Modifier keys.** Each press and release of Shift, Control and Option (Alt) is its
+  own report, the bit the state it leaves (`CSI 57442;5u`, `CSI 57442;1:3u`); left and
+  right Shift are told apart (57441, 57447).
+- **The legacy bytes spent elsewhere** arrive as themselves: ⌃H `CSI 104;5u`, ⌃I, ⌃M,
+  ⌃[ `CSI 91;5u`, ⌃\ `CSI 92;5u`, ⌃Q `CSI 113;5u`, ⌃C `CSI 99;5u`; Escape `CSI 27u`, Tab
+  `CSI 9u`, Return `CSI 13u`, Backspace `CSI 127u`.
+- **Functional keys** in their legacy forms: F1 `CSI P`, F2 `CSI Q`, Home `CSI H`, End
+  `CSI F`, F10 `CSI 21 ~`, Page Up `CSI 5 ~`, their releases `CSI 1;1:3P` and the like.
+- **Chords:** ⌃⇧Z `CSI 122:90;6u`, ⌃⇧- `CSI 45:95;6u`.
+- **What the terminal keeps** (its default bindings, matched before a key is encoded):
+  ⌃, (its settings) arrives as Control's own press and release alone; ⌥⇧- (a split
+  pane) as its modifiers alone; ⌃- (the font size) and ⌃⇧V (its paste) as their
+  releases alone (`CSI 45;5:3u`, `CSI 118:86;6:3u`), the press taken. A release whose
+  press the app never saw is decoded and dropped by the input chain, as every release
+  bound to nothing is. ⌃, opened the settings in a tab of their own, which took
+  Control's release: the next key's report (F1, no modifiers) says it is up.
+- **A paste** with mouse reporting and bracketed paste off arrived as its text, outside
+  any report.
+- Not pressed: a dead key, ⌘ (the Windows key, taken by the system), the keypad.
+
 ### Mouse (measured 2026-11-17, both)
 
 `mouse_probe.py` with XTSHIFTESCAPE, the clicks and the wheel driven by synthetic input.
 In both, a click is SGR press and release (`CSI < 0;x;y M`, then `m`); one wheel notch is
 one report, 65 down and 64 up, and a scroll of three notches given as one event was one
 report too. In Windows Terminal, the click that only brought the window forward was not
-reported. Shift-clicks, the other buttons and pointer shapes are unmeasured.
+reported.
+
+The rest, by hand on a Mac trackpad into the VM, 2026-11-19 (Windows Terminal 1.25.3131.0,
+conhost of build 26300), the same in both but where noted:
+
+- **The other buttons**: a right-click is button 2 (`CSI < 2;x;y M`, `m`), a middle-click
+  button 1. Neither terminal kept the right-click for a menu or a paste.
+- **Modifiers**: an Option (Alt) click carries 8 (`CSI < 8;…`), and the Ctrl-wheel 16
+  (`CSI < 81;…`, `CSI < 80;…`): neither terminal took it for its zoom. A Ctrl-click
+  arrived as button 2, which is the Mac turning it into a right-click before the VM sees
+  it, not the terminal.
+- **A drag** is a press, a `CSI < 32;…` report per cell crossed, and a release.
+- **Shift is never reported**: neither honours XTSHIFTESCAPE ("Shift-clicks reaching the
+  app"). In Windows Terminal a Shift-click selects text and a Shift-wheel arrives as
+  nothing; in conhost a Shift-click drew no selection and arrived once as a plain press
+  and drag, once as nothing.
+- **conhost's first click**, the one that brought its window forward, arrived as its
+  release alone (`CSI < 0;x;y m`), its press taken.
+- **The console's mouse input** (`ENABLE_MOUSE_INPUT`) is not what makes Windows Terminal
+  report the mouse: with it off, the clicks and the wheel still came, and with it on and no
+  mouse mode asked for, the pointer's motion came unasked (above). conhost needs it on
+  (`ConsoleModes.raw`), and TUI has a mouse mode on whenever raw mode is, so it is kept.
 
 ### A crash (measured 2026-11-17, both)
 
@@ -2967,8 +3022,8 @@ alternate screen, as a crash leaves it on POSIX, the cursor is shown, the consol
 modes are back (the shell reads its line), and the pointer moved over the window types
 nothing at the shell's prompt, so mouse reporting was turned off.
 
-Not measured: the keys' other modifiers, pointer shapes, scroll regions, and a cell's
-size in points for either.
+Not measured: the keys' other modifiers, scroll regions, and a cell's size in points for
+either. Pointer shapes: neither terminal draws them ("Pointer shapes (OSC 22)").
 
 ---
 
@@ -7128,7 +7183,8 @@ amounts, and shares one setting with 1006 (the last mode set wins); see
 
 ## Shift-clicks reaching the app (XTSHIFTESCAPE)
 
-**Status: sent since 2026-10-18; every host UNMEASURED.**
+**Status: sent since 2026-10-18; Windows Terminal and conhost MEASURED 2026-11-19 (neither honours it); every
+other host UNMEASURED.**
 
 **What TUI does.** Whenever it turns mouse reporting on it sends
 XTSHIFTESCAPE, `CSI > 1 s`, asking the terminal to report Shift-modified
@@ -7156,6 +7212,8 @@ measured here:
 | kitty, xterm | xterm defines it (`shiftEscape`); kitty unknown | — | UNMEASURED |
 | Apple Terminal | not sent | reported, +4 (no bypass; the Shift-drag note above) | UNMEASURED |
 | tmux | unknown whether it forwards it | — | UNMEASURED |
+| Windows Terminal | ignored | **not reported**: a Shift-click selects text, and a Shift-wheel reaches the app as nothing | 1.25.3131.0, 2026-11-19, by hand: a lone Shift-click and a lone Shift-wheel each left the log empty |
+| conhost | ignored | **not reported as one**: once a press and drag without the Shift bit (no selection drawn), once nothing but a bare mouse record for the release, which TUI's console reader skips (`console_records_probe.py`) | build 26300, 2026-11-19, by hand |
 
 **To measure**, by hand, since a probe cannot press Shift on a click:
 `PROBE_SHIFT_ESCAPE=1 python3 Tools/TerminalProbes/mouse_probe.py` in each
@@ -7207,6 +7265,8 @@ documentation and its source (copies under the lane's notes, `O12/docs`):
 | xterm | patch #367 (its changelog) | the X11 cursor font | empty | empty: the `pointerShape` resource's default | `XTERM_VERSION`, where no other terminal is named | UNMEASURED |
 | Apple Terminal | — | documents none | — | — | not sent | — |
 | Warp | — | documents none | — | — | not sent | — |
+| Windows Terminal | — | documents none | — | — | not sent | 1.25.3131.0, 2026-11-19 (`pointer_shape_card.py --names css`): the pointer never changed over any box |
+| conhost | — | documents none | — | — | not sent | build 26300, 2026-11-19, the same card: the pointer never changed |
 | tmux | — | unknown whether it forwards OSC 22; the hypothesis is that it drops it | — | — | not sent | UNMEASURED |
 | GNU screen, zellij | — | unknown whether either forwards OSC 22; like tmux, each draws its panes itself, and `TERM_PROGRAM` inside names the terminal outside | — | — | not sent (`STY`; `ZELLIJ`, `ZELLIJ_SESSION_NAME`) | UNMEASURED |
 
