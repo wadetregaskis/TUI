@@ -43,13 +43,21 @@ struct HandOffTerminalActionRunningWindowsTests {
         ]
         let line = HandOffTerminalAction.ForegroundProgram.commandLine(words)
         // Windows' own parser, whose rules a program's C runtime follows.
-        var count: Int32 = 0
-        let parsed: [String] = line.withCString(encodedAs: UTF16.self) { line in
-            guard let argv = CommandLineToArgvW(line, &count) else { return [] }
-            defer { _ = LocalFree(argv) }
-            return (0..<Int(count)).map { String(decodingCString: argv[$0]!, as: UTF16.self) }
-        }
+        let parsed = unsafe line.withCString(encodedAs: UTF16.self, Self.parsed)
         #expect(parsed == words)
+    }
+
+    /// `line`'s words as `CommandLineToArgvW` reads them.
+    private static func parsed(_ line: UnsafePointer<UInt16>) -> [String] {
+        var count: Int32 = 0
+        guard let argv = unsafe CommandLineToArgvW(line, &count) else { return [] }
+        defer { _ = unsafe LocalFree(argv) }
+        var words: [String] = []
+        for index in 0..<Int(count) {
+            guard let word = unsafe argv[index] else { continue }
+            words.append(unsafe String(decodingCString: word, as: UTF16.self))
+        }
+        return words
     }
 
     @Test("The command line quotes only what needs it, as the C runtime reads it back")

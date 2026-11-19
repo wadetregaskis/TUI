@@ -26,6 +26,18 @@ struct DirectoryListingWindowsTests {
         return folder
     }
 
+    /// `file`'s path as Windows writes it.
+    private static func nativePath(of file: URL) -> String {
+        file.path.replacingOccurrences(of: "/", with: "\\")
+    }
+
+    /// Opens the file at `path` for reading, sharing it with no one, as the
+    /// system holds `pagefile.sys`: its handle's bits.
+    private static func openSharingNothing(_ path: UnsafePointer<UInt16>) -> UInt {
+        unsafe UInt(
+            bitPattern: CreateFileW(path, GENERIC_READ, 0, nil, DWORD(OPEN_EXISTING), DWORD(FILE_ATTRIBUTE_NORMAL), nil))
+    }
+
     private static func listed(_ folder: URL) throws -> [String: FileEntry] {
         let entries = try DirectoryListing.read(folder, rule: FileChoiceRule()).get()
         return Dictionary(uniqueKeysWithValues: entries.map { ($0.name, $0) })
@@ -37,13 +49,10 @@ struct DirectoryListingWindowsTests {
         defer { try? FileManager.default.removeItem(at: folder) }
         let file = folder.appendingPathComponent("held.bin")
         try Data(repeating: 7, count: 1234).write(to: file)
-        let handle = file.withUnsafeFileSystemRepresentation { path in
-            String(cString: path!).withCString(encodedAs: UTF16.self) {
-                CreateFileW($0, GENERIC_READ, 0, nil, DWORD(OPEN_EXISTING), DWORD(FILE_ATTRIBUTE_NORMAL), nil)
-            }
-        }
-        #expect(handle != INVALID_HANDLE_VALUE)
-        defer { _ = CloseHandle(handle) }
+        let bits = unsafe Self.nativePath(of: file).withCString(encodedAs: UTF16.self, Self.openSharingNothing)
+        // `INVALID_HANDLE_VALUE`, as its bits.
+        #expect(bits != UInt.max)
+        defer { _ = unsafe CloseHandle(HANDLE(bitPattern: bits)) }
         let row = try #require(try Self.listed(folder)["held.bin"])
         #expect(row.size == 1234)
         #expect(row.modified != nil)
@@ -55,14 +64,12 @@ struct DirectoryListingWindowsTests {
     func hiddenAttribute() throws {
         let folder = try Self.folder()
         defer { try? FileManager.default.removeItem(at: folder) }
-        let file = folder.appendingPathComponent("secret.txt")
+        var file = folder.appendingPathComponent("secret.txt")
         try Data("x".utf8).write(to: file)
-        let set = file.withUnsafeFileSystemRepresentation { path in
-            String(cString: path!).withCString(encodedAs: UTF16.self) {
-                SetFileAttributesW($0, DWORD(FILE_ATTRIBUTE_HIDDEN))
-            }
-        }
-        #expect(set)
+        // The attribute, set as Foundation sets it on Windows.
+        var values = URLResourceValues()
+        values.isHidden = true
+        try file.setResourceValues(values)
         #expect(try Self.listed(folder)["secret.txt"]?.isHidden == true)
     }
 

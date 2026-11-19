@@ -18,9 +18,9 @@ extension HandOffTerminalAction {
     enum ForegroundProgram {
         /// Starts `executable` with `arguments` and waits for it to end.
         static func run(_ executable: Executable, arguments: [String]) throws(LaunchError) -> Termination {
-            let process = try start(executable, arguments: arguments)
-            defer { _ = CloseHandle(process) }
-            guard WaitForSingleObject(process, INFINITE) == WAIT_OBJECT_0 else {
+            let process = unsafe HANDLE(bitPattern: try start(executable, arguments: arguments))
+            defer { _ = unsafe CloseHandle(process) }
+            guard unsafe WaitForSingleObject(process, INFINITE) == WAIT_OBJECT_0 else {
                 throw .couldNotWait(errno: errno(for: GetLastError()))
             }
             var code = DWORD(0)
@@ -38,16 +38,18 @@ extension HandOffTerminalAction {
         /// the system's folders and then `PATH`. A path is used as given. No
         /// handles inherited: a console program finds the console it shares
         /// without them, and the app's own files stay its own.
-        private static func start(_ executable: Executable, arguments: [String]) throws(LaunchError) -> HANDLE {
+        /// As the handle's bits, as a raw pointer is kept everywhere it is
+        /// handed on in TUI.
+        private static func start(_ executable: Executable, arguments: [String]) throws(LaunchError) -> UInt {
             var line = Array(commandLine([executable.spelling] + arguments).utf16) + [0]
-            var startup = STARTUPINFOW()
-            startup.cb = DWORD(MemoryLayout<STARTUPINFOW>.size)
-            var information = PROCESS_INFORMATION()
+            var startup = unsafe STARTUPINFOW()
+            unsafe startup.cb = DWORD(MemoryLayout<STARTUPINFOW>.size)
+            var information = unsafe PROCESS_INFORMATION()
             let started = unsafe CreateProcessW(
                 nil, &line, nil, nil, false, DWORD(CREATE_UNICODE_ENVIRONMENT), nil, nil, &startup, &information)
             guard started else { throw .couldNotStart(errno: errno(for: GetLastError())) }
-            _ = CloseHandle(information.hThread)
-            return information.hProcess
+            _ = unsafe CloseHandle(information.hThread)
+            return unsafe UInt(bitPattern: information.hProcess)
         }
 
         /// `words` as one command line, each quoted so that the C runtime's

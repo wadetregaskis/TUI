@@ -34,28 +34,42 @@ extension DirectoryListing {
     /// reports one; whether it leads to a folder is asked of where it leads,
     /// as for every platform's link (`entry`).
     ///
+    /// Each pointer is handed to a function by name rather than to a closure:
+    /// Swift 6.2 and 6.3 count a closure taking a pointer as an unsafe
+    /// expression and 6.4 does not, so no spelling of one is clean on all
+    /// three, and a function's reference is unsafe to every one of them.
+    ///
     /// - Throws: Foundation's error for the folder, where it cannot be listed,
     ///   so the panel's message reads as it does on every platform.
     static func windowsItems(of directory: URL) throws -> [(name: String, facts: ItemFacts)] {
-        let pattern = directory.withUnsafeFileSystemRepresentation { path -> String? in
-            guard let path = unsafe path else { return nil }
-            let native = unsafe String(cString: path)
-            return native.hasSuffix("\\") || native.hasSuffix("/") ? native + "*" : native + "\\*"
-        }
-        guard let pattern else { return try foundationItems(of: directory) }
-        var data = WIN32_FIND_DATAW()
-        let handle = pattern.withCString(encodedAs: UTF16.self) { pattern in
-            unsafe FindFirstFileExW(
-                pattern, FindExInfoBasic, &data, FindExSearchNameMatch, nil, DWORD(FIND_FIRST_EX_LARGE_FETCH))
-        }
-        guard let handle, handle != INVALID_HANDLE_VALUE else {
+        guard let pattern = unsafe directory.withUnsafeFileSystemRepresentation(searchPattern),
+            let items = unsafe pattern.withCString(encodedAs: UTF16.self, find)
+        else {
             // Foundation's error says why in the words every platform's does.
             return try foundationItems(of: directory)
         }
-        defer { _ = FindClose(handle) }
+        return items
+    }
+
+    /// What finds every item in the folder at `path`, its native path:
+    /// `C:\Users\*` for `C:\Users`.
+    private static func searchPattern(_ path: UnsafePointer<CChar>?) -> String? {
+        guard let path = unsafe path else { return nil }
+        let native = unsafe String(cString: path)
+        return native.hasSuffix("\\") || native.hasSuffix("/") ? native + "*" : native + "\\*"
+    }
+
+    /// The items `pattern` finds, less `.` and `..`; `nil` where the folder
+    /// cannot be read.
+    private static func find(_ pattern: UnsafePointer<UInt16>) -> [(name: String, facts: ItemFacts)]? {
+        var data = WIN32_FIND_DATAW()
+        let found = unsafe FindFirstFileExW(
+            pattern, FindExInfoBasic, &data, FindExSearchNameMatch, nil, DWORD(FIND_FIRST_EX_LARGE_FETCH))
+        guard let handle = unsafe found, unsafe handle != INVALID_HANDLE_VALUE else { return nil }
+        defer { _ = unsafe FindClose(handle) }
         var items: [(name: String, facts: ItemFacts)] = []
         repeat {
-            let name = Self.name(of: &data)
+            let name = Self.name(of: data)
             if name != ".", name != ".." { items.append((name, Self.facts(of: data))) }
         } while unsafe FindNextFileW(handle, &data)
         return items
@@ -79,13 +93,14 @@ extension DirectoryListing {
     }
 
     /// The item's name, from the record's fixed array of UTF-16 code units.
-    private static func name(of data: inout WIN32_FIND_DATAW) -> String {
-        let capacity = MemoryLayout.size(ofValue: data.cFileName) / MemoryLayout<WCHAR>.size
-        return unsafe withUnsafePointer(to: &data.cFileName) { tuple in
-            unsafe tuple.withMemoryRebound(to: WCHAR.self, capacity: capacity) { units in
-                unsafe String(decoding: UnsafeBufferPointer(start: units, count: capacity).prefix { $0 != 0 }, as: UTF16.self)
-            }
-        }
+    private static func name(of data: WIN32_FIND_DATAW) -> String {
+        let units = unsafe withUnsafeBytes(of: data.cFileName, codeUnits)
+        return String(decoding: units.prefix { $0 != 0 }, as: UTF16.self)
+    }
+
+    /// `bytes` as UTF-16 code units.
+    private static func codeUnits(_ bytes: UnsafeRawBufferPointer) -> [UInt16] {
+        unsafe Array(bytes.bindMemory(to: UInt16.self))
     }
 
     /// A `FILETIME`, 100-nanosecond ticks since 1601, as a date; `nil` for
