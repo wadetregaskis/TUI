@@ -246,6 +246,18 @@ func frameKeptBody<V: View>(of view: V, context: RenderContext) -> V.Body? {
     return body
 }
 
+/// A measure of the body kept across frames at `context`'s identity, or `nil`
+/// when none is kept for `view`. Out of line, so the measure of a composite
+/// with nothing kept asks the runtime for no `V.Body?` metadata.
+@inline(never)
+@MainActor
+func measureFrameKeptBody<V: View>(
+    _ view: V, proposal: ProposedViewSize, context: RenderContext, childContext: RenderContext
+) -> ViewSize? {
+    guard let kept = frameKeptBody(of: view, context: context) else { return nil }
+    return measureChild(kept, proposal: proposal, context: childContext)
+}
+
 /// Where a draw is to keep the body it evaluates: a view a live timeline was
 /// drawn below last frame. Opens the computation the body's scopes are leased
 /// to, which ``keepFrameBody(_:plan:context:)`` closes.

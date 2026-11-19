@@ -962,9 +962,14 @@ private func measureCompositeBody<V: View>(
     // the render path puts it back (`StateStorage.restoreEnvironments(to:)`).
     let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
     defer { context.stateStorage?.restoreEnvironments(to: restoreDepth) }
-    // Kept from the last frame above a live timeline (`FrameBodyKeep`).
-    if let kept = frameKeptBody(of: view, context: context) {
-        return measureChild(kept, proposal: proposal, context: childContext)
+    // Kept from the last frame above a live timeline (`FrameBodyKeep`). Asked
+    // only where something is kept here, and out of line, as the draw's is
+    // (`renderCompositeWhileTimelinesLive`): its `V.Body?` is generic metadata
+    // asked of the runtime.
+    if let cache = context.renderCache, cache.plainMemo.frameBodies.holds(context.identity),
+        let size = measureFrameKeptBody(view, proposal: proposal, context: context, childContext: childContext)
+    {
+        return size
     }
     // Evaluated once a walk and kept (`BodyKeep`), and so always observed, since
     // the draw that takes it evaluates nothing to be observed under.

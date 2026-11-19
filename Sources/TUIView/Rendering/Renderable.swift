@@ -253,41 +253,59 @@ private func renderResolved<V: View>(_ view: V, context: RenderContext) -> Frame
 @inline(__always)
 @MainActor
 private func renderComposite<V: View>(_ view: V, context: RenderContext) -> FrameBuffer {
+    // Above a live timeline the body is kept from the last frame, and the
+    // walk goes on from what it built (`FrameBodyKeep`): a function of its
+    // own, NOT a branch here. As a branch its locals (a `FrameBodyPlan<V>?`,
+    // a `V.Body` from four paths) asked the runtime for their generic
+    // metadata on every unspecialised composite's draw, timeline or none:
+    // 1-4% of a frame with no timeline in it (the commit that moved it out
+    // has the profile and the A/B).
+    if context.renderCache?.plainMemo.frameBodies.timelinesLive == true {
+        return renderCompositeWhileTimelinesLive(view, context: context)
+    }
     let childContext = context.withChildIdentity(type: V.Body.self)
     // What the body's walk hands the `@Environment`s inside a class
     // property it holds, as other than the object's first holder, lasts
     // while the body's content is drawn, and is put back after: a load
     // and a compare when it handed none (`StateStorage.restoreEnvironments(to:)`).
     let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
-    // Above a live timeline the body is kept from the last frame, and the
-    // walk goes on from what it built (`FrameBodyKeep`). Looked at only
-    // while some timeline is live.
-    var wakesBefore: Int?
+    let body = keptBody(of: view, context: context) ?? evaluateCompositeBody(of: view, context: context)
+    let buffer = TUIView.renderToBuffer(body, context: childContext)
+    context.stateStorage?.restoreEnvironments(to: restoreDepth)
+    // What the body drew is all this view draws: a transition on the root of a
+    // `body` leaves its picture a step below the address a `nil` claims.
+    context.noteDepartureDrawnWhole(of: V.Body.self, at: childContext.identity, by: V.self)
+    return buffer
+}
+
+/// ``renderComposite(_:context:)`` while some timeline asked for a wake this
+/// pass or the last (`FrameBodyKeep.timelinesLive`): the body is taken from
+/// the last frame where one was kept, and kept where a live timeline was drawn
+/// below. Out of line, so a frame with no live timeline pays for none of it.
+@inline(never)
+@MainActor
+private func renderCompositeWhileTimelinesLive<V: View>(_ view: V, context: RenderContext) -> FrameBuffer {
+    let childContext = context.withChildIdentity(type: V.Body.self)
+    let restoreDepth = context.stateStorage?.environmentRestoreDepth ?? 0
+    let wakesBefore = timelineWakesSoFar(context)
     var keptAcrossFrames = false
     let body: V.Body
-    if context.renderCache?.plainMemo.frameBodies.timelinesLive == true {
-        wakesBefore = timelineWakesSoFar(context)
-        if let kept = frameKeptBody(of: view, context: context) {
-            body = kept
-            keptAcrossFrames = true
-        } else if let kept = keptBody(of: view, context: context) {
-            body = kept
-        } else if let plan = beginFrameBody(of: view, context: context) {
-            body = evaluateCompositeBody(of: view, context: context)
-            keptAcrossFrames = keepFrameBody(body, plan: plan, context: context)
-        } else {
-            body = evaluateCompositeBody(of: view, context: context)
-        }
+    if let kept = frameKeptBody(of: view, context: context) {
+        body = kept
+        keptAcrossFrames = true
+    } else if let kept = keptBody(of: view, context: context) {
+        body = kept
+    } else if let plan = beginFrameBody(of: view, context: context) {
+        body = evaluateCompositeBody(of: view, context: context)
+        keptAcrossFrames = keepFrameBody(body, plan: plan, context: context)
     } else {
-        body = keptBody(of: view, context: context) ?? evaluateCompositeBody(of: view, context: context)
+        body = evaluateCompositeBody(of: view, context: context)
     }
     let buffer = TUIView.renderToBuffer(body, context: childContext)
     context.stateStorage?.restoreEnvironments(to: restoreDepth)
     if wakesBefore != nil {
         noteFrameBody(of: V.self, at: context, timelineWakesBefore: wakesBefore, kept: keptAcrossFrames)
     }
-    // What the body drew is all this view draws: a transition on the root of a
-    // `body` leaves its picture a step below the address a `nil` claims.
     context.noteDepartureDrawnWhole(of: V.Body.self, at: childContext.identity, by: V.self)
     return buffer
 }
