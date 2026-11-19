@@ -174,10 +174,11 @@ struct WindowedContainersTests {
     /// A page step builds fewer than 100 rows, the same around 2,000 rows as
     /// around 10,000. A first frame builds a screenful and the measure
     /// ladder's sixteen-row samples, as a lazy stack's does (pinned under 150
-    /// in `ScrollFitBaselineTests`); a disclosure group's also the rows its
-    /// focused button's continuation probe looks through (`focusRingStops`),
-    /// bounded whatever the count. A flow's first frame measures every item
-    /// to break its lines (A-SCROLLFIT-5 (a)); its steps measure none again.
+    /// in `ScrollFitBaselineTests`); a disclosure group's also every row once,
+    /// asked by the walk in from its focused button (`focusRingStops`), which
+    /// has had no cap since LAZY-EDGE (below; until then it stopped at 64
+    /// rows). A flow's first frame measures every item to break its lines
+    /// (A-SCROLLFIT-5 (a)); its steps measure none again.
     /// (Before P8, every row on every frame: 10,000 a step.)
     ///
     /// A disclosure group's focused button stands beside its rows: Tab from
