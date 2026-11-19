@@ -739,6 +739,13 @@ kept. Both layers are still drawn, or served by their own memos, so everything
 they register is registered as before. `TUI_KEEP_TIMELINE_ANCESTORS=0` turns it
 off too.
 
+A timeline's measure declines its size (below), so every measure above it is
+taken again at each entry, unless something between cannot move with the
+timeline's size. A frame pinned on both axes, `.frame(width:height:)`, is its
+pins whatever it holds, and its measure does not ask its content: a timeline in
+one, as a launcher's animated preview is, leaves the measures above the frame to
+be kept.
+
 ### What Declines the Cache
 
 A buffer is only *stored* when serving it again would be safe. The render

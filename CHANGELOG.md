@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `.frame(width:height:)` no longer measures what it holds.** A frame pinned on both axes is its pins whatever its
+content measures, and its measure now says so without asking the content. Beside a running `TimelineView` this is most
+of what an entry cost: a timeline's measure reads the clock, so every measure above it was taken again at each entry,
+and a launcher's row of bordered tiles, each with an animated preview in a fixed frame, measured every tile through
+its focus modifiers and its border at every frame of every preview. Now the measures above a pinned frame are kept.
+What the frame holds is drawn as before.
+
 **A disabled `TextEditor` fades its coloured runs too.** Its plain text went to the palette's tertiary tier, but a
 run's own colour, in an editor over an `AttributedString` or one with highlighting, kept its full strength, so the
 editor was half faded and its coloured words looked live. Now each run's ink, background and line colours keep their

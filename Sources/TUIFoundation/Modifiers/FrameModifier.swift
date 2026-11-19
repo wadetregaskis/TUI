@@ -656,6 +656,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
         let availableWidth = proposal.width ?? context.availableWidth
         let availableHeight = proposal.height ?? context.availableHeight
         let (widthAxis, heightAxis) = (self.widthAxis, self.heightAxis)
+        if let pinned = pinnedSize(widthAxis, heightAxis, availableWidth, availableHeight, context) { return pinned }
 
         // Offered no width — the ideal-width ask, ``RenderContext/asksIdealWidth``
         // — the frame offers its content its ideal width, or nothing; and
@@ -712,6 +713,39 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
                 reported: width, wanted: wantedWidth, contentFlexible: contentSize.isWidthFlexible),
             isHeightFlexible: heightAxis.isFlexible(
                 reported: height, wanted: wantedHeight, contentFlexible: contentSize.isHeightFlexible))
+    }
+}
+
+// MARK: - A frame pinned on both axes
+
+@MainActor extension FlexibleFrameView {
+    /// The size of a frame pinned on both axes (`.frame(width:height:)`): its
+    /// pins, held to what it is offered, without measuring its content.
+    /// ``measureAnalytically(proposal:context:)``'s arithmetic for two pinned
+    /// axes reads nothing the content reports (``FlexibleFrameAxis/pinnedExtent``).
+    /// `nil` for any other frame, and under a `scrollTo` search's measure
+    /// (`ScrollKeyLocate`), which measures to find a view and must reach the
+    /// content.
+    ///
+    /// Not only the content's measure saved. A measure of a live
+    /// `TimelineView` declares the clock it reads
+    /// (`VolatileReadTracker.recordClockedRead(movingAt:)`), and every measure
+    /// memo that contains it declines: a tile launcher's preview, a timeline
+    /// in a `.frame(width: 34, height: 8)`, made every tile, and the row and
+    /// the stacks above them, measure again at each of its entries, though no
+    /// size above the frame could move. The render still draws the content,
+    /// and measures it there as it needs.
+    fileprivate func pinnedSize(
+        _ widthAxis: FlexibleFrameAxis, _ heightAxis: FlexibleFrameAxis, _ availableWidth: Int,
+        _ availableHeight: Int, _ context: RenderContext
+    ) -> ViewSize? {
+        guard let pinnedWidth = widthAxis.pinnedExtent, let pinnedHeight = heightAxis.pinnedExtent,
+            ScrollKeyLocate.search(in: context) == nil
+        else { return nil }
+        let width = min(pinnedWidth, availableWidth)
+        let height = min(pinnedHeight, availableHeight)
+        return ViewSize(
+            width: width, height: height, isWidthFlexible: width < pinnedWidth, isHeightFlexible: height < pinnedHeight)
     }
 }
 

@@ -192,6 +192,66 @@ modifier, indistinguishable (+0.9%, −0.5% to +1.7%). The default sweep (36 sce
 `Stress --check-counts`: no count moved, since the keep touches none of the counters the cases read; bytes
 unchanged (92 of 92 sessions' `TUI_HEADLESS_STREAM` identical).
 
+## What the ancestors of a live timeline cost at each entry (B-TLCTRL-3)
+
+*Added 2026-11-19, against 77894861f (the above built).* What was left: no buffer above a live timeline can be stored,
+so at each entry every view between the root and the timeline is walked, measured and laid out again, even though
+only the timeline's subtree changed and its siblings are served from their own memos. Measured on the shape that asked
+(tuiarcade's launcher, Stress's new `timeline-tiles`: two focusable bordered tiles in a row, each a `Canvas` preview in
+a `.frame(width: 34, height: 8)`, the preview a `ZStack` of the picture and its own
+`TimelineView(.animation(minimumInterval:))`), the frame was not mostly drawing. Time Profiler,
+`Stress --bench --scenario session/case:timeline-tiles` (release, `-g`), 8 s attached,
+`analyze_timeprofile.py --thread main`, inclusive:
+
+| Frame | Before | After |
+|---|---|---|
+| `ChildView.measure` (every measure a stack asks of a child) | 35.9% | 6.0% |
+| `_HStackCore.resolvedLayout` (the row of tiles measuring its tiles) | 30.5% | 3.0% |
+| `FocusableModifier.sizeThatFits` (a tile's measure, below its focus modifiers) | 25.4% | 1.4% |
+| `_BorderRings.sizeThatFits` | 18.1% | 1.0% |
+| `FlexibleFrameView.measureAnalytically` (the preview's frame measuring the preview) | 15.4% | not in the top 400 |
+| `_CanvasCore.renderToBuffer` (the preview whose demo moved, drawn) | 7.4% | 8.8% |
+
+**What re-ran.** A measure of a live timeline declares the clock it reads (`recordClockedRead(movingAt:)`): its size is
+its current entry's, and the clock moves the entry. Every measure memo containing it then declines, so each tile, the
+row above it and the column above that measured their whole subtrees again at each entry, through the focus
+modifiers, the border's rings, the container, the column, down to the preview's frame and through it to the timeline,
+whose measure was the cause. But the preview's frame is pinned on both axes, and a frame pinned on both axes is its
+pins whatever it holds: `measureAnalytically`'s arithmetic for two pinned axes (`FlexibleFrameAxis.extent`,
+`extentOfferedNothing`, `isFlexible`) reads nothing the content reports. Nothing above the frame could have moved.
+
+**What changed.** A frame pinned on both axes (`.frame(width:height:)`, or `minWidth`, `idealWidth` and `maxWidth` one
+number, and the same of the heights) answers its measure from its pins, held to what it is offered, without measuring
+its content (`FlexibleFrameView.pinnedSize`). Its render still draws the content, and measures it there as the content
+needs. Under a `scrollTo` search's measure (`ScrollKeyLocate`), which measures to find a view, it still measures the
+content. A pure function of the frame's own fields and the offer, so nothing to invalidate and nothing to go stale; no
+registration moves, since a measure registers nothing. With the timeline's clocked read sealed below the frame, the
+measures above it are kept by the memos that keep any other measure.
+
+**Where it applies.** Every frame pinned on both axes, timeline or not: elsewhere it saves the content's measure, which
+a memo at or below the frame often served anyway, for the cost of reading the frame's six fields. A timeline's size
+change still propagates where it can: a timeline outside a pinned frame is measured at each entry as before, and one
+inside a pinned frame is drawn inside the pins, as it always was (`TimelinePinnedFrameMeasureTests` pins both, and that
+a frame pinned on one axis still measures its content).
+
+Measured (`Tools/Profiling/ab_bench.py`, release, CPU per frame, 10 paired reps, against 75e461955):
+`app-shapes/timeline-tiles` 647.2 → 374.6 µs, −40.3% (95% CI −44.2% to −39.4%); `session/case:timeline-tiles` 1404.6 →
+1074.5 µs, −22.8% (−23.4% to −17.1%); `app-shapes/game-loop`, whose board is in a pinned frame, 92.7 → 82.6 µs, −5.5%
+(−10.9% to −0.1%), and its case −3.2% (−6.6% to −2.6%); `app-shapes/timeline-beside` −2.2% (−2.9% to −0.8%);
+`timeline-rows` and `session/case:timeline-beside` indistinguishable. The default sweep (36 scenarios, none with a live
+timeline, on a busy box, load 4.8): 32 indistinguishable, `table-churn` −8.2% faster; `scrolleager` +3.2%, `table-tail`
++1.5% and `texteffects` +1.0% read slower, and again at 20 reps +0.7% (−0.9% to +1.3%), +1.0% (−0.5% to +2.8%) and −1.6%
+(−2.9% to −0.2%): two indistinguishable and one faster. `Stress --check-counts`: `bodies` and `misses` fell, and nothing
+else moved, in the cases with a frame pinned on both axes (`timeline-tiles` over its second, `bodies` 4538 → 1997 and
+`misses` 12253 → 3056; `game-loop`, `timeline-beside` and four form cases by less); bytes unchanged (95 of 95 sessions'
+`TUI_HEADLESS_STREAM` identical).
+
+**What an entry still costs.** The walk itself. Each ancestor of a live timeline is still drawn at each entry: its
+body kept (`FrameBodyKeep`, whose keys and environment stamps were 12% of a frame of `timeline-tiles` after this
+change), its children's buffers fetched or drawn and stacked again. The re-assembly is small by now (`assembleColumn`
+0.8%, padding 1.4%), with one exception: the preview's `ZStack`, which composites its two layers again at each entry
+(`FrameBuffer.layered`, 7.4%).
+
 ## Decisions
 
 ### A-TLCTRL-1. A focused control beside a live timeline: replayable, or drawn?
@@ -231,3 +291,10 @@ Known limit, as for an app's view: an environment holding a value that is not `E
 for a wake or may have drawn into the image store is not kept. A pure function's memo, so no question for the owner:
 it changes nothing a frame shows or registers. Not extended to frames with no live timeline, where it would cost a
 compare and the buffers' retention at every layer modifier the walk reaches, for a gain not measured.
+
+### B-TLCTRL-3. A frame pinned on both axes does not measure its content
+
+*Decided here, 2026-11-19, and built.* `FlexibleFrameView`'s measure of a frame pinned on both axes is its pins held to
+the offer, without the content's measure, which its arithmetic does not read; except under a `scrollTo` search's
+measure. Everywhere, not only beside a live timeline: the answer is the same, and the content's measure was only cost.
+Above a live timeline it is what lets the measures above a pinned frame be kept across entries.

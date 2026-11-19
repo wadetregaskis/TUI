@@ -61,6 +61,16 @@ struct FlexibleFrameAxis {
         return false
     }
 
+    /// The extent the axis is pinned to (`minimum`, `ideal` and `maximum` one
+    /// number, as `.frame(width:)` makes them), or `nil`. A pinned axis's
+    /// ``extent(content:offer:)`` and ``extentOfferedNothing(content:)`` are
+    /// that number whatever the content measures, and its
+    /// ``isFlexible(reported:wanted:contentFlexible:)`` never reads the content.
+    var pinnedExtent: Int? {
+        guard let ideal, minimum == ideal, case .fixed(ideal)? = maximum else { return nil }
+        return Swift.max(0, ideal)
+    }
+
     /// The finite maximum, if the frame has one.
     var finiteMaximum: Int? {
         if case .fixed(let value)? = maximum { return value }
