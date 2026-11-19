@@ -1518,6 +1518,7 @@ extension RenderCache {
         entries.removeAll()
         sizeEntries.removeAll()
         plainMemo.frameBodies.dropAll()
+        plainMemo.layerComposites.dropAll()
         leases.reset()
         activeIdentities.removeAll()
         retainedSubtreeRoots.removeAll()

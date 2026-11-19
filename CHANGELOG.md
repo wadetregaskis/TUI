@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A view with a running `TimelineView` in its `.background` or `.overlay` no longer composites the two again at each
+entry.** The view itself was already served, but the modifier put it over (or under) the timeline's layer afresh at
+every entry, cell by cell: three quarters of each frame of a game board with its loop in its background, for the
+picture the entry before had made. Now, while a timeline is live, the composite is kept with everything it was made
+from and served while none of it has changed. `TUI_KEEP_TIMELINE_ANCESTORS=0` turns this off with the rest of the
+timeline's keeping, to compare.
+
 **A `List` or a `Button` beside a running `TimelineView` is no longer drawn at each of its entries.** Their rows'
 and labels' content was already served, but the controls themselves drew again whole at every entry: a list listed,
 laid out and composed its rows, and a button measured and drew its label, about a fifth of each frame of a launcher

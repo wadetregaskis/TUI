@@ -63,7 +63,7 @@ work around content that was served: the list lists, measures and lays out its r
 lines; the button's style measures its label by drawing it and then draws it again. The rest of the frame
 is the board's `.background { TimelineView }` composite, 58% (`FrameBuffer.prepared`) before and 74%
 after, a cost of the layer modifier above the timeline and not of any control: a separate fix, not this
-one.
+one (B-TLCTRL-2, below).
 
 ## Why the framework's composites had no memo
 
@@ -118,6 +118,80 @@ contained, but it widens what a served frame skips for a focused control, the cl
 repository has paid for before (`memo-verifier-blind-to-side-effects`: two live stale-frame bugs under a
 clean verifier run), so it should be the owner's call, with the storm tests written first.
 
+## The composite of a layer modifier around a timeline (B-TLCTRL-2)
+
+*Added 2026-11-19, against aa3becdd6 (the above built).* With the controls served, three quarters of each frame of
+`timeline-beside` was the board's `.background { TimelineView(.animation) { … Color.clear … } }`, and none of it the
+timeline's own work. Time Profiler, `Stress --bench --scenario app-shapes --variant timeline-beside` (release, `-g`),
+8 s attached, `analyze_timeprofile.py --thread main`, inclusive:
+
+| Frame | Before | After |
+|---|---|---|
+| `BackgroundLayerModifier.renderToBuffer` | 86.5% | 11.9% |
+| `compositeLayer(_:under:…)` | 86.3% | 10.8% |
+| `FrameBuffer.prepared(_:at:in:)` (of which `resolvingOpacity`'s `rebuildCovered` 52.0%, `settlingClaims` 36.3%) | 75.0% | not in the top 400 |
+| `placeLayer` (the layer drawn: the timeline and its content) | 1.2% | 9.4% |
+| `_TimelineViewCore.renderToBuffer` (both of the page's timelines) | 1.5% | 10.8% |
+
+(The second column is a share of a much cheaper frame, so the same work is a larger part of it.)
+
+**What re-ran at each entry.** Not the board, which is an `.equatable()` canvas served from its memo, and not its
+measure: the layer modifier's base renders at the modifier's identity, which the entry's clear does not reach
+(d4808499d). What ran was the composite of the two layers. The walk reaches the `BackgroundLayerModifier` at every
+entry, since no memo above a live timeline can store, and it is a framework modifier with no memo of its own; so it
+drew its layer (the timeline, whose content is a `Color.clear`) and composited the base over it, again. A
+`Color.clear` is a field claim at alpha 0 over every cell (the claim is what routes the cells through the blend, so a
+clear fill leaves what is behind it: see `ColorAsView.swift`), and under the base that claim is settled cell by cell:
+the board's 300 cells, each of a named colour, split into cells, resolved against the claim, and rebuilt into lines,
+for the picture the entry before made. A timeline that draws something under the base would pay the same.
+
+**What changed.** A layer composite is a function of what it composites: the two buffers, the layer's offset, which
+way it goes, and the environment's say about spending claims (the palette, linear light, the image store). The
+process-wide inputs it reads besides (the colour depth, the terminal's reported colours, the graphics protocols)
+clear the render cache when they move. So, while a timeline is live, `compositeDrawnLayer` (the half of `.overlay`,
+`.background`, a shadow and a glass composite that follows the layer's placement) keeps each composite with all of
+its inputs (`LayerCompositeKeep`, owned by the plain memo beside `FrameBodyKeep`) and serves it when every input
+compares equal: the buffers as `FrameBuffer`'s `==` compares them, and the layout hints a composite takes a path by
+besides. A served base buffer is the stored one, so its compare is an identity check; the redrawn layer is compared
+line by line. No invalidation has to find a kept composite, and none could make it stale: anything that moved either
+layer (a write, a hover, a focus move, an entry whose content draws differently) moved an input.
+
+**What a serve skips, and why that is safe.** The composite has two side effects, and a composite that made either is
+not kept: a wake asked for a run of one layer that shows through the other (asked again whenever the composite is
+made), and a registration in the image store (a frosting claim's backdrop, or a faded copy of a picture under a
+claim, when there is a store). Every registration the two layers make (focus, hit regions' handlers, the status
+bar's claims, a tooltip candidate) is made, or replayed, by the layers' own walks, which still run: the keep sits
+after both are drawn. So nothing a focused or interactive view does is skipped: a control in either layer is drawn,
+or served by its own memo, exactly as before, and only the cell arithmetic of putting the two pictures together is
+not done again. `TUI_VERIFY_RENDER_MEMO` makes a composite that would be served again and compares the two.
+
+**Where it applies.** Only while a timeline asked for a wake this pass or the last (`FrameBodyKeep.timelinesLive`),
+and only on a draw: a page with no live timeline composites as it did, beyond a load and a branch, and
+`TUI_KEEP_TIMELINE_ANCESTORS=0` turns it off with the rest. Off a timeline the same keep would serve a layer modifier
+the walk reaches for a sibling's change; it is left off there, where nothing measured asks for it.
+
+**The timeline as the base.** A timeline used as the base of a layer modifier was said to clear the views in its
+background at each entry. It does not, in this tree: the timeline's core draws at its body's identity, a child of
+the modifier's, and its entry clears that and what is below it, of which the layer, at the modifier's other child,
+is not part. `TimelineLayerCompositeTests` pins it (a board in the background of a timeline renders once over a
+second of entries, and is composited once).
+
+**What an entry still costs.** The timelines' own content, and the layout and drawing of the composites and stacks
+between the root and the timeline: their bodies are kept (`FrameBodyKeep`) but no buffer above a live timeline can
+be stored, so each is measured and laid out and its children's pictures stacked again (the `_HStackCore` and
+`_VStackCore` draws and measures are most of the frame now). That is the next cost, and a structural one: a stack
+above a timeline would have to keep its layout and splice the timeline's region into its last picture.
+
+Measured (`Tools/Profiling/ab_bench.py`, release, CPU per frame, 10 paired reps, against aa3becdd6):
+`app-shapes/timeline-beside` 940.0 → 109.3 µs, −88.3% (95% CI −88.6% to −88.1%); `app-shapes/game-loop`, a board with
+its loop in its `.background` too, 668.2 → 87.9 µs, −86.7% (−86.8% to −86.6%); `session/case:timeline-beside` 1414.8 →
+553.8 µs, −61.3% (−63.5% to −59.3%); `app-shapes/timeline-rows`, whose timelines are in rows and not in a layer
+modifier, indistinguishable (+0.9%, −0.5% to +1.7%). The default sweep (36 scenarios, none with a live timeline):
+33 indistinguishable, `texteffects` −0.8% faster, `scrollfollow` +1.0% (+0.3% to +2.2%) and `table-churn-wrapped`
++0.2% (+0.0% to +1.0%) slower on a busy box (load 3), where the change is a load and a branch per layer composite.
+`Stress --check-counts`: no count moved, since the keep touches none of the counters the cases read; bytes
+unchanged (92 of 92 sessions' `TUI_HEADLESS_STREAM` identical).
+
 ## Decisions
 
 ### A-TLCTRL-1. A focused control beside a live timeline: replayable, or drawn?
@@ -141,3 +215,11 @@ known to read nothing the key and the invalidations above miss.
 
 Known limit, as for an app's view: an environment holding a value that is not `Equatable` (a custom
 `ButtonStyle` that is not, say) has no stamp, and nothing drawn under it is memoized.
+
+### B-TLCTRL-2. A layer composite is kept across frames while a timeline is live
+
+*Decided here, 2026-11-19, and built.* `compositeDrawnLayer` keeps each composite with everything it was made from
+(`LayerCompositeKeep`) and serves it while a timeline is live when every input compares equal; a composite that asked
+for a wake or may have drawn into the image store is not kept. A pure function's memo, so no question for the owner:
+it changes nothing a frame shows or registers. Not extended to frames with no live timeline, where it would cost a
+compare and the buffers' retention at every layer modifier the walk reaches, for a gain not measured.

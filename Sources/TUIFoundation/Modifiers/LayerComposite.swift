@@ -290,6 +290,10 @@ func compositeDrawnLayer(
     _ overlayBuffer: FrameBuffer, at offset: (x: Int, y: Int), over baseBuffer: FrameBuffer,
     context: RenderContext, modifierType: Any.Type
 ) -> FrameBuffer {
+    let composite = CompositeEnvironment(context.environment)
+    // Served from the last frame while a timeline is live, when nothing it is made of moved.
+    var kept = KeptLayerComposite(.over, layer: overlayBuffer, at: offset, base: baseBuffer, composite, context, modifierType)
+    if let served = kept?.served() { return served }
     // Composite the overlay onto the base, asking for a render at each step of a
     // run of the base whose field the overlay shows and whose frames turn it: the
     // composite punches the run there.
@@ -301,10 +305,10 @@ func compositeDrawnLayer(
     }
     // What the layer draws past the base's frame rides among its floating
     // layers, lifted after the base's: over whatever the base floats past it.
-    return clampedToBase(
-        baseBuffer.compositedCarryingClaimsOverNothing(
-            with: overlayBuffer, at: offset, in: CompositeEnvironment(context.environment)),
-        baseBuffer)
+    let result = clampedToBase(
+        baseBuffer.compositedCarryingClaimsOverNothing(with: overlayBuffer, at: offset, in: composite), baseBuffer)
+    kept?.keep(result, askedForAWake: !showingThrough.isEmpty)
+    return result
 }
 
 /// `layer` laid out in `baseBuffer`'s frame, by `alignment`, with the base
@@ -364,6 +368,9 @@ func compositeDrawnLayer(
     // for a render at each step of a run of the layer whose field the base
     // shows and whose frames turn it.
     let composite = CompositeEnvironment(context.environment)
+    // Served from the last frame while a timeline is live, when nothing it is made of moved.
+    var kept = KeptLayerComposite(.under, layer: layerBuffer, at: offset, base: baseBuffer, composite, context, modifierType)
+    if let served = kept?.served() { return served }
     var result = FrameBuffer(emptyWithWidth: baseBuffer.width, height: baseBuffer.height)
     // What the layer draws past the base's frame rides among its floating
     // layers, lifted before the base's: under whatever the base floats past
@@ -377,7 +384,9 @@ func compositeDrawnLayer(
     }
     result.compositeCarryingClaimsOverNothing(
         with: baseBuffer, at: (x: 0, y: 0), in: composite)
-    return clampedToBase(result, baseBuffer)
+    let clamped = clampedToBase(result, baseBuffer)
+    kept?.keep(clamped, askedForAWake: !showingThrough.isEmpty)
+    return clamped
 }
 
 /// The size of a base with `layer` laid in its frame: the base's, flexibility

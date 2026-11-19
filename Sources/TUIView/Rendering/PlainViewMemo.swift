@@ -129,6 +129,9 @@ package final class PlainMemo {
     /// clears (``noteCleared()``).
     package let frameBodies = FrameBodyKeep()
 
+    /// The layer composites kept across frames beside live timelines (`LayerCompositeKeep`).
+    package let layerComposites = LayerCompositeKeep()
+
     package init() {}
 
     /// Whether a composite of `V` inside a value memo goes to the memo.
@@ -156,6 +159,7 @@ package final class PlainMemo {
     func beginPass() {
         sampler.beginPass()
         frameBodies.beginPass()
+        layerComposites.beginPass()
         pass &+= 1
         if pass.isMultiple(of: 64), !gates.isEmpty { gates = gates.filter { $0.value.until >= pass - 64 || $0.value.stored >= pass - 64 } }
     }
@@ -177,6 +181,7 @@ package final class PlainMemo {
     func noteCleared() {
         clearedAt = pass
         frameBodies.dropAll()
+        layerComposites.dropAll()
     }
 
     /// Whether the composite filed under `hash` is left out of the memo this pass.

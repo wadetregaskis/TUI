@@ -727,6 +727,18 @@ volatile, is kept, and only once a frame has drawn a live timeline below it; an
 app with no timeline walks as before. `TUI_KEEP_TIMELINE_ANCESTORS=0` turns it
 off, and `TUI_RUN_BODY_ON_EVERY_FRAME=1` with the plain memo.
 
+For the same reason the walk reaches the `.overlay` or `.background` a timeline
+is drawn in at every entry, and that modifier composited its two layers again,
+cell by cell, though its base was served and its layer drew what it drew last
+time. While a timeline is live a layer composite is kept with everything it was
+made from, the two buffers, the layer's place and what the environment says
+about blending, and served when all of them compare equal
+(`LayerCompositeKeep`): a function's memo, which nothing has to invalidate. A
+composite that asked for a wake, or may have drawn into the image store, is not
+kept. Both layers are still drawn, or served by their own memos, so everything
+they register is registered as before. `TUI_KEEP_TIMELINE_ANCESTORS=0` turns it
+off too.
+
 ### What Declines the Cache
 
 A buffer is only *stored* when serving it again would be safe. The render
