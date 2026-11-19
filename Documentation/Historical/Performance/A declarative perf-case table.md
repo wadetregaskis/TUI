@@ -195,7 +195,7 @@ Spaces may not appear inside a column.
 | Column | Meaning | Values |
 |---|---|---|
 | `id` | Stable, kebab-case; the session or variant id is `case:<id>` | unique |
-| `composition` | What the page is built from: a name from `CaseComposition`, with dotted options | `list.plain`, `list.search`, `table.fit5`, `table.wrap5`, `chat.lazy`, `chat.eager`, `editor.wrap`, `tabs(list.plain,table.fit5)`, `split(list.plain,table.fit5)`, `follows(list.plain)` (in a scene whose focus follows the pointer; added 2026-11-16), … ; `stress:<scenario>[/<variant>]` adopts an existing one |
+| `composition` | What the page is built from: a name from `CaseComposition`, with dotted options | `list.plain`, `list.search`, `table.fit5`, `table.wrap5`, `chat.lazy`, `chat.eager`, `editor.wrap`, `editor.rich` (an attributed editor; added 2026-11-19), `tabs(list.plain,table.fit5)`, `split(list.plain,table.fit5)`, `follows(list.plain)` (in a scene whose focus follows the pointer; added 2026-11-16), … ; `stress:<scenario>[/<variant>]` adopts an existing one |
 | `in` | The container around it: `CaseContainer`, a superset of `ScrollFitSituation` | `alone`, `title` (in a `ScrollView` under a title), `bottom` (bottom-anchored `ScrollView`), `sheet`, `fixed`, `stacked` (under a title in a `VStack` that fills the page), `-` for an adopted scenario |
 | `size` | The terminal, in cells | `80x24`, `120x40`, `200x60`, `40x12` |
 | `n` | The data count, synthesised from the case's seed by `Synth` | an integer |
@@ -848,7 +848,7 @@ measures: what broke a case's class is filed below as a finding and named in `Ca
 | `Controls.swift` | `grid-scroll`, `grid-edit`, `form-grouped-tab`, `form-columns-tab`, `focus-tab-200`, `focus-tab-scaling`, `values-stepper`, `values-slider`, `values-date`, `form-slider`, `menu-walk` |
 | `Pointer.swift` | `table-hover`, `split-hover`, `outline-hover`, `tabs-hover` (focus follows the pointer) |
 | `Storms.swift` | `resize-storm` (a list beside tabs of a table and a grid), `nsplit-storm`, `dashboard-storm` (the `dashboard` scenario, adopted) |
-| `Editors.swift` | `editor-mid-typing` (300 lines in 80x24), `editor-sheet-typing` |
+| `Editors.swift` | `editor-mid-typing` (300 lines in 80x24), `editor-sheet-typing`, `editor-rich-typing` (`editor-mid-typing` in an attributed editor; added 2026-11-19) |
 
 **Timed:** `resize-storm` and `dashboard-storm` (a resize redraws every cell, which no count weighs),
 `editor-mid-typing` (a keystroke's cost is in the text storage and the wrap) and `form-grouped-tab` (a form's

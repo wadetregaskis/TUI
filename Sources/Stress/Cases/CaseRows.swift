@@ -71,6 +71,49 @@ final class CaseRows {
     var document = ""
     /// Whether ``document`` is kept: only a page with an editor reads it.
     let keepsDocument: Bool
+
+    /// ``document`` as an `AttributedString`, every third word coloured, for
+    /// an attributed editor: made the first time it is read after the
+    /// document changes, outside the editor's work, and kept with the
+    /// document it was made from.
+    var richDocument: AttributedString {
+        get {
+            if let rich, rich.document == document { return rich.value }
+            let value = Self.coloured(document)
+            // The caret at the start, the first time, as a `String` editor's
+            // is: `AttributedTextSelection()` is the text's end.
+            if rich == nil { richSelection = AttributedTextSelection(insertionPoint: value.startIndex) }
+            rich = (document, value)
+            return value
+        }
+        set {
+            document = String(newValue.characters[...])
+            rich = (document, newValue)
+        }
+    }
+    @ObservationIgnored private var rich: (document: String, value: AttributedString)?
+    /// The attributed editor's selection, which the editor writes as its
+    /// caret moves: read by the editor alone, so not observed.
+    @ObservationIgnored var richSelection = AttributedTextSelection()
+
+    /// `text` with every third word in a colour of its own.
+    private static func coloured(_ text: String) -> AttributedString {
+        var result = AttributedString(text)
+        var word = 0
+        var start = result.startIndex
+        var index = start
+        while index < result.endIndex {
+            let next = result.characters.index(after: index)
+            if result.characters[index] == " " || result.characters[index] == "\n" {
+                if word.isMultiple(of: 3), start < index { result[start..<index].foregroundColor = .cyan }
+                word += 1
+                start = next
+            }
+            index = next
+        }
+        return result
+    }
+
     /// The rows as a tree, for an outline: made when the case is, and only for
     /// a page with an outline, so neither a body nor another case pays for it.
     /// Not rebuilt by the writes: no case writes to an outline's rows.

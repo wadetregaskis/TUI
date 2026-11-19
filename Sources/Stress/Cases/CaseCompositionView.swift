@@ -118,14 +118,28 @@ private struct CaseLeafView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(rows.rows) { row in CaseMessage(text: rows.message(row), leading: row.id.isMultiple(of: 2)) }
                 })
-        case .editorWrap:
-            AnyView(TextEditor(text: Binding(get: { rows.document }, set: { rows.document = $0 })))
+        // One arm for both: an arm of its own nests the switch's other arms a
+        // level deeper (see `default`).
+        case .editorWrap, .editorRich:
+            editor
         default:
             // The outlines, and the controls, in views of their own: an arm
             // each nested the switch's content a level deeper for every leaf,
             // and moved the other cases' measure-memo misses.
             outlineOrControl
         }
+    }
+
+    /// The rows' text in a `TextEditor`: as a `String`, or as the
+    /// `AttributedString` ``CaseRows/richDocument`` colours.
+    private var editor: AnyView {
+        if leaf == .editorRich {
+            return AnyView(
+                TextEditor(
+                    text: Binding(get: { rows.richDocument }, set: { rows.richDocument = $0 }),
+                    selection: Binding(get: { rows.richSelection }, set: { rows.richSelection = $0 })))
+        }
+        return AnyView(TextEditor(text: Binding(get: { rows.document }, set: { rows.document = $0 })))
     }
 
     /// An outline's page, or a control leaf's.

@@ -35,6 +35,9 @@ enum CaseLeaf: String, CaseIterable, Sendable {
     case chatEager = "chat.eager"
     /// A `TextEditor` over the rows as lines of text, wrapping.
     case editorWrap = "editor.wrap"
+    /// The same over an `AttributedString` of the lines, every third word
+    /// coloured (``CaseRows/richDocument``).
+    case editorRich = "editor.rich"
     /// A selectable `List(_:children:)` of the rows as a tree
     /// (``CaseRows/tree``): one root, a branch every
     /// ``CaseRows/outlineFanOut`` rows, the rest leaves.
@@ -178,7 +181,7 @@ indirect enum CaseComposition: Equatable, Sendable, CustomStringConvertible {
 
     /// Whether any part of the page shows the rows' text in a `TextEditor`.
     var hasEditor: Bool {
-        if case .leaf(let leaf) = self { return leaf == .editorWrap }
+        if case .leaf(let leaf) = self { return leaf == .editorWrap || leaf == .editorRich }
         return parts.contains(where: \.hasEditor)
     }
 

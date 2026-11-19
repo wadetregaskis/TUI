@@ -57,7 +57,8 @@ final class BigTextSession: StressSession {
     /// Records in the document: forty thousand at the default scale, 3.2 MB.
     static func records(_ config: StressConfig) -> Int { config.sized(40_000) }
 
-    /// The document's records, one a line (``BigTextRecord``).
+    /// The document's records, one a line (``BigTextRecord``): `bigtext-rich`
+    /// colours the same ones.
     static func documentRecords(_ config: StressConfig) -> [BigTextRecord] {
         let seed = config.seed
         return (0..<Self.records(config)).map { index in
@@ -117,7 +118,8 @@ struct BigTextRecord {
 
 // MARK: - The script
 
-/// The keys `bigtext` plays, and the length they leave.
+/// The keys `bigtext` and `bigtext-rich` play, and the length they leave: one
+/// script, so the two sessions type the same keys into the same characters.
 struct BigTextScript {
     private var random: SessionRandom
     /// Characters left in the run being typed.
