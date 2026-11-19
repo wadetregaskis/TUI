@@ -573,7 +573,7 @@ Unchanged from lane LEAN: upstream at the end of the earlier row, downstream at 
 
 ★ (a): the owner asked TUI to mimic macOS, and macOS has no such side. A source editor, the driver here, never
 types into a token's attributes, since highlighting is a layer (B-ATTRED-8 in the highlighting design).
-**Default:** (a).
+**Default:** (a). **Ruled 2026-11-18: (a), "for now".** No side at a run's edge, as macOS; the owner may revisit it.
 
 ### A-ATTRED-9. Showing the typing attributes, or a side
 
@@ -586,7 +586,7 @@ types into a token's attributes, since highlighting is a layer (B-ATTRED-8 in th
 - **(c) An edge glyph for the side,** only with A-ATTRED-8 (b) or (c): ▕ on the cell before, ▎ on the cell after.
   **Price:** ½ day, and a row in the terminal compatibility survey for U+2595 in each terminal's fonts.
 
-★ (a): it is how macOS shows typing attributes, and it keeps the caret's one focus identity. **Default:** (a).
+★ (a): it is how macOS shows typing attributes, and it keeps the caret's one focus identity. **Default:** (a). **Ruled 2026-11-18: (a).** L6's context menu checks Bold, Italic, Underline and Strikethrough from the typing attributes; the caret keeps its one focus ink.
 
 ## 9. What macOS 15 costs (L3)
 
