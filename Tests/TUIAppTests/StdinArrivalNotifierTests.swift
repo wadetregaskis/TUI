@@ -396,12 +396,14 @@ struct StdinArrivalNotifierTests {
         let counter = Counter()
 
         let loop = Task { @MainActor in
-            // Each wait is 50 ms; in the ~300 ms window below a correct notifier
-            // completes only a handful (timeouts + the explicit wakes).
+            // Each wait's timeout is long enough never to run out here, even
+            // on a machine so loaded that a wake takes seconds to land: the
+            // cascade is in a CANCELLED timeout, which ends at once whatever
+            // its length, so a correct notifier completes one wait per wake.
             for _ in 0..<10_000 {
                 if counter.stop { break }
                 counter.entered += 1
-                await notifier.waitForArrival(timeoutNanoseconds: 50_000_000)
+                await notifier.waitForArrival(timeoutNanoseconds: 30_000_000_000)
                 counter.completed += 1
             }
         }
@@ -427,10 +429,11 @@ struct StdinArrivalNotifierTests {
         notifier.wake()  // release the final wait so the loop exits
         await loop.value
 
-        // Correct behaviour completes ~one wait per wake (≈40) plus any 50 ms
-        // timeouts a starved actor let run out — well under 100. The cascade instead spins between wakes; the
-        // pre-fix code recorded 300+. The wide gap keeps the bound robust under
-        // load while still failing decisively on a regression.
+        // Correct behaviour completes one wait per wake (41) — well under 100.
+        // The cascade instead spins between wakes; the pre-fix code recorded
+        // 300+. With 50 ms timeouts a parallel run on Windows, its main actor
+        // starved, let enough run out to pass 100 (152 and 157, 2026-11-18);
+        // with timeouts that never run out, the count is the wakes'.
         #expect(counter.completed < 100)
     }
 }

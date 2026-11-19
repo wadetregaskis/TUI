@@ -31,10 +31,12 @@ struct PreciseSleepTests {
     func cancelled() async {
         let clock = ContinuousClock()
         let started = clock.now
-        let task = Task { await PreciseSleep.sleep(nanoseconds: 10_000_000_000) }
+        let task = Task { await PreciseSleep.sleep(nanoseconds: 120_000_000_000) }
         task.cancel()
         await task.value
-        #expect(clock.now - started < .seconds(5))
+        // Far sooner than the sleep, with room for a loaded machine's
+        // scheduling: a parallel run once took 7 s to get to the task at all.
+        #expect(clock.now - started < .seconds(60))
     }
 
     @Test("Many sleeps in turn each end, and leave nothing waiting")
