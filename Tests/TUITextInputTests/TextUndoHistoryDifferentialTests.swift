@@ -134,8 +134,9 @@ private struct SnapshotUndoHistory<Caret: Equatable> {
     }
 }
 
-/// A seeded generator, so a failing run can be replayed.
-private struct SplitMix: RandomNumberGenerator {
+/// A seeded generator, so a failing run can be replayed. Shared with
+/// `EditorLayoutEditTests`' random edits.
+struct SplitMix: RandomNumberGenerator {
     var state: UInt64
     mutating func next() -> UInt64 {
         state &+= 0x9E37_79B9_7F4A_7C15
