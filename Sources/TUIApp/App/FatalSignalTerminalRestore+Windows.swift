@@ -114,8 +114,16 @@ enum FatalSignalTerminalRestore {
     /// Pays a quit's debt and ends the process as Ctrl-Break does: the user's
     /// quit key, read by the input chain with nothing left to ask
     /// (`QuitKeyReport`).
+    ///
+    /// Ended by `TerminateProcess`, as POSIX ends a quit by `SIGQUIT`'s default
+    /// action: nothing else runs. Not `ExitProcess`, which then runs every
+    /// DLL's detach code under the loader's lock, and a hung app is what this
+    /// is for: a main thread stuck holding that lock, or the C runtime's,
+    /// would leave the quit waiting on it for ever. The debt is written and
+    /// the modes put back first, so nothing is owed.
     static func quitNow() -> Never {
         pay(asQuit: true, waiting: true)
+        _ = unsafe TerminateProcess(GetCurrentProcess(), UINT(bitPattern: Self.controlCExit))
         ExitProcess(UINT(bitPattern: Self.controlCExit))
     }
 
