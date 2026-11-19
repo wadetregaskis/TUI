@@ -51,6 +51,31 @@ extension TextEditor {
     /// read again. Foundation gives no cheaper way to learn that only the
     /// attributes changed.
     ///
+    /// **Bound to a stored property of an `@Observable` model, every key pays
+    /// for a comparison.** The macro's setter compares the value written with
+    /// the one before (`==`, so an equal write notifies no one), and
+    /// `AttributedString`'s `==` reads two values a character at a time up to
+    /// where they differ: for a key, up to the edit. Typing into a 40,000-line,
+    /// 3.2 MB document, that was 98.7% of the time spent (Time Profiler,
+    /// 2026-11-19); the editor's own work was hidden under it. A model that
+    /// holds a large text can leave the check out for that one property by
+    /// writing the accessors the macro would write, less the comparison:
+    ///
+    /// ```swift
+    /// @Observable final class Document {
+    ///     var text: AttributedString {
+    ///         get { access(keyPath: \.text); return storedText }
+    ///         set { withMutation(keyPath: \.text) { storedText = newValue } }
+    ///     }
+    ///     @ObservationIgnored private var storedText = AttributedString()
+    /// }
+    /// ```
+    ///
+    /// `access(keyPath:)` and `withMutation(keyPath:_:)` are what the macro
+    /// adds to the class. A write then notifies the text's observers even when
+    /// it is equal to the one before; a binding through `@Bindable` writes
+    /// through the same setter, so it needs nothing else.
+    ///
     /// SwiftUI's is macOS 26; TUI's is on every platform TUI is, with
     /// ``AttributedTextSelection``'s approximations on macOS 15.
     ///
