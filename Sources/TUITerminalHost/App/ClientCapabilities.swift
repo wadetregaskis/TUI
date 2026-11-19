@@ -31,7 +31,7 @@
 /// One probe's answer — what the attached clients can render — plus whether
 /// it might improve on a short retry.
 ///
-/// Five capabilities, because they genuinely differ per terminal (measured):
+/// Six capabilities, because they genuinely differ per terminal (measured):
 /// - `emojiChrome`: all clients draw tmux's re-emission of the ⬛︎/⬜︎ VS-15
 ///   chrome correctly (Apple Terminal, iTerm2, Warp — NOT Ghostty, whose
 ///   native support depends on a compensation that cannot cross tmux).
@@ -53,6 +53,12 @@
 ///   `TerminalHost.cornerTrianglesFillTheCell`). When false, a double-width
 ///   scrollbar's arrows are `▲▲` and `▼▼` rather than one triangle across both
 ///   cells.
+/// - `fontHasQuadrants`: the font the terminal draws in has the quadrants
+///   `▘ ▝ ▖ ▗ ▚ ▞ ▙ ▛ ▜ ▟` (all but the classic Windows console in Consolas,
+///   its default, which has none and draws a box for each — the console's
+///   own answer, read where it is the host, `TerminalClient.fontHasQuadrants`
+///   in TUIApp). When false, a shape's corners and a solid face are cut in
+///   whole cells, and a canvas at its automatic grain draws half blocks.
 /// - `drawsProgressBars`: every client has tmux's `progressbar` feature, so
 ///   tmux passes a pane's progress bar on to it (iTerm2's, by its XTVERSION
 ///   answer; not Ghostty's, Apple Terminal's or Warp's unless the user gives
@@ -73,19 +79,23 @@ package struct ClientCapabilities: Equatable, Sendable {
     package let skinTonesSafe: Bool
     package let blockElementsFillTheLine: Bool
     package let cornerTrianglesFillTheCell: Bool
+    package let fontHasQuadrants: Bool
     package let drawsProgressBars: Bool
     package let mayImproveShortly: Bool
 
     /// The memberwise initializer, spelled out because the synthesized one is
     /// internal and the run loop (TUIApp, since step B3) makes these values.
+    /// `fontHasQuadrants` is `true` but where the classic Windows console says
+    /// otherwise: no tmux client is one.
     package init(
         emojiChrome: Bool, skinTonesSafe: Bool, blockElementsFillTheLine: Bool, cornerTrianglesFillTheCell: Bool,
-        drawsProgressBars: Bool, mayImproveShortly: Bool
+        fontHasQuadrants: Bool = true, drawsProgressBars: Bool, mayImproveShortly: Bool
     ) {
         self.emojiChrome = emojiChrome
         self.skinTonesSafe = skinTonesSafe
         self.blockElementsFillTheLine = blockElementsFillTheLine
         self.cornerTrianglesFillTheCell = cornerTrianglesFillTheCell
+        self.fontHasQuadrants = fontHasQuadrants
         self.drawsProgressBars = drawsProgressBars
         self.mayImproveShortly = mayImproveShortly
     }

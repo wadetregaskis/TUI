@@ -12,8 +12,17 @@ internal final class ClientCapabilityRefresher {
     private(set) var current: ClientCapabilities?
 
     /// Whether ``refresh()`` does anything. Off tmux the answer cannot change,
-    /// so refreshing is a no-op (`false` there).
+    /// so refreshing is a no-op (`false` there), but for the classic Windows
+    /// console, whose font can (``isRefreshable(tmux:program:)``).
     private let isRefreshable: Bool
+
+    /// Whether the answer can change while the app runs: under tmux, where
+    /// clients come and go, and in the classic Windows console, whose font
+    /// the person can change from its window's menu
+    /// (``TerminalClient/fontHasQuadrants(_:)``).
+    nonisolated static func isRefreshable(tmux: Bool, program: TerminalClient.Program) -> Bool {
+        tmux || program == .windowsConsole
+    }
 
     /// Produces the answer, or `nil` when the question could not be asked (a
     /// wedged tmux, the probe's deadline). `nil` is NOT "no clients" — a failed
@@ -63,11 +72,14 @@ internal final class ClientCapabilityRefresher {
             // Likewise the progress bar: nothing between the app and the
             // terminal holds it back, and whether the terminal draws one is
             // the table's question (`RenderLoop.sendsProgressReports`).
+            // The font is the console's own answer in the classic Windows
+            // console, which can change while the app runs.
             return ClientCapabilities(
                 emojiChrome: TerminalHost.supportsEmojiChrome,
                 skinTonesSafe: true,
                 blockElementsFillTheLine: TerminalHost.blockElementsFillTheLine,
                 cornerTrianglesFillTheCell: TerminalHost.cornerTrianglesFillTheCell,
+                fontHasQuadrants: TerminalClient.fontHasQuadrants(TerminalHost.program),
                 drawsProgressBars: true,
                 mayImproveShortly: false)
         }
@@ -126,7 +138,8 @@ internal final class ClientCapabilityRefresher {
 
     /// Re-probes asynchronously; frames keep rendering with ``current`` while
     /// the probe is in flight, and `onChange` fires if the landed answer
-    /// differs. No-op when the answer cannot change (off tmux).
+    /// differs. No-op when the answer cannot change (off tmux, but for the
+    /// classic Windows console).
     func refresh() {
         guard isRefreshable else { return }
         retriesRemaining = retryDelaysNanos.count
@@ -158,6 +171,7 @@ internal final class ClientCapabilityRefresher {
                 || reading.skinTonesSafe != current?.skinTonesSafe
                 || reading.blockElementsFillTheLine != current?.blockElementsFillTheLine
                 || reading.cornerTrianglesFillTheCell != current?.cornerTrianglesFillTheCell
+                || reading.fontHasQuadrants != current?.fontHasQuadrants
             current = reading
             if drawsDifferently {
                 onChange()

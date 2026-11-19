@@ -280,7 +280,7 @@ internal final class RenderLoop<A: App> {
     /// — a generic `self` in the closure would drag the non-Sendable `A.Type`
     /// into the refresher's detached task.
     private lazy var clientCapabilities = ClientCapabilityRefresher(
-        isRefreshable: TerminalHost.isTmux,
+        isRefreshable: ClientCapabilityRefresher.isRefreshable(tmux: TerminalHost.isTmux, program: TerminalHost.program),
         probe: probeClientCapabilities,
         onChange: { [diffWriter, appState = tuiContext.appState] in
             // Every glyph on screen could differ (■ vs ⬛ change cell widths):
@@ -1147,6 +1147,7 @@ extension RenderLoop {
         environment.supportsEmojiChrome = capabilities.emojiChrome
         environment.blockElementsFillTheLine = capabilities.blockElementsFillTheLine
         environment.cornerTrianglesFillTheCell = capabilities.cornerTrianglesFillTheCell
+        environment.fontHasQuadrants = capabilities.fontHasQuadrants
         // Not per tmux client: tmux re-spells line styles for each client
         // itself (`TerminalHost.lineStyles`).
         environment.lineStyleSupport = TerminalHost.lineStyles

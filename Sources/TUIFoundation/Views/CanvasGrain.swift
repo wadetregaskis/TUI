@@ -23,7 +23,8 @@ public struct CanvasGrain: Equatable, Sendable {
     /// The finest the terminal offers: the terminal's own pixels where it
     /// places pictures in its cell grid (``View/terminalGraphics(_:)`` and
     /// ``View/gradientGraphics(_:)`` can turn them off), otherwise
-    /// ``quadrants``, which every terminal's font has.
+    /// ``quadrants``, or ``halfBlocks`` where the terminal's font has no
+    /// quadrants: the classic Windows console in its default font, Consolas.
     public static let automatic = Self(kind: nil)
 
     /// One colour a cell.
@@ -52,6 +53,15 @@ public struct CanvasGrain: Equatable, Sendable {
 
     /// The glyphs this grain draws in, ``automatic``'s being ``quadrants``.
     var resolvedKind: Kind { kind ?? .quadrants }
+
+    /// This grain where the terminal `environment` describes draws it in
+    /// cells: ``automatic`` is ``halfBlocks`` where the font has no quadrants
+    /// (``EnvironmentValues/fontHasQuadrants``), and every grain asked for by
+    /// name is itself, as a grain the font may lack is asked for, never
+    /// assumed.
+    func inCells(of environment: EnvironmentValues) -> CanvasGrain {
+        kind == nil && !environment.fontHasQuadrants ? .halfBlocks : self
+    }
 }
 
 private struct CanvasGrainKey: EnvironmentKey {

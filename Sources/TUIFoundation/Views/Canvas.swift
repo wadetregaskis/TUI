@@ -141,8 +141,9 @@ private struct _CanvasCore<Symbols: View>: View, Renderable, Layoutable {
             let blank = String(repeating: " ", count: columns)
             return FrameBuffer(lines: Array(repeating: blank, count: rows), width: columns, lineWidths: Array(repeating: columns, count: rows))
         }
-        let grain = context.environment.canvasGrain
-        if grain == .automatic, let picture = picture(columns: columns, rows: rows, context: context) { return picture }
+        let asked = context.environment.canvasGrain
+        if asked == .automatic, let picture = picture(columns: columns, rows: rows, context: context) { return picture }
+        let grain = asked.inCells(of: context.environment)
         let surface = run(columns: columns, rows: rows, grid: grain.cellPixels, grain: grain, context: context)
         let monochrome = ColorDepth.current == .noColor
         let cells = surface.hasPaint || isOpaque ? surface.pixelCells(monochrome: monochrome) : ShapeCells(width: columns, height: rows)

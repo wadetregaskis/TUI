@@ -56,7 +56,8 @@ import Foundation
 ///   whose edges land on cell boundaries, draws in the terminal's own
 ///   vocabulary: a stroke is a box of line glyphs, `┌` where a corner's radius
 ///   is zero and `╭` where it is not; a fill is cells of the paint, its rounded
-///   corners cut in quadrants, one row ending in the caps `▐ ▌`. A wide or
+///   corners cut in quadrants (in whole cells where the terminal's font has
+///   none), one row ending in the caps `▐ ▌`. A wide or
 ///   dashed stroke is drawn by the rasterizer instead.
 /// - **Everything else** — ``Circle``, ``Ellipse``, a ``Path``, a shape of your
 ///   own, a transformed or trimmed shape — is rasterized: each cell's two halves

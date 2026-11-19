@@ -15,6 +15,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**In the classic Windows console, shapes no longer draw boxes in its default font.** Consolas has none of the
+quarter blocks TUI cuts a shape's corners with, so each corner showed as a box. TUI now asks the console which font
+it is using, and where that font has none of them, it cuts a shape's and a solid button's corners in whole cells, as
+on Apple Terminal, and draws a canvas at `CanvasGrain.automatic` in half blocks. Corners are coarser for it: a
+`cornerRadius: 1` comes out square. In Cascadia Mono, or another font that has them, nothing changes, and changing
+the font while the app runs redraws it. A canvas asked for in `.quadrants`, or a `.blockWedge` spinner, still draws
+quarter blocks.
+
 **On Windows Terminal, Settings… shows F2, not ⌃,.** Windows Terminal 1.25 speaks the kitty keyboard protocol, so
 TUI offered ⌃, there, but the terminal keeps ⌃, for its own settings and the app never hears it. The menu bar's
 Settings… and F1's list now name F2 there, as they do in the classic console. ⌃, is still bound, for someone who has

@@ -28,7 +28,8 @@
 ///   three rows each is its shape drawn in quadrants — a capsule's corners
 ///   curve in two steps (`▗▟`), a rounded rectangle's in one (`▟`), radius
 ///   zero's not at all — or, on a terminal that draws block elements short of
-///   the line (Apple Terminal), in whole cells.
+///   the line (Apple Terminal) or whose font has no quadrants (the classic
+///   Windows console in Consolas), in whole cells.
 /// - **Braille** — `.braille`, and `.braille(thickness:)` for bolder dots: a
 ///   dotted outline of the shape itself, at any size and any label's length —
 ///   on one row its ends (`⢎ OK ⡱` a capsule, `⣏ OK ⣹` a rectangle), on three

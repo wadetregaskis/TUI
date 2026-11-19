@@ -88,7 +88,7 @@ extension GraphicsContext {
                 CGFloat(width + Self.reach.columns), CGFloat(height + Self.reach.rows))
             frame = (width, height)
             unitsPerRow = 1
-            grain = context.environment.canvasGrain
+            grain = context.environment.canvasGrain.inCells(of: context.environment)
             grid = grain.cellPixels
             views = CanvasViews(context: context, unitsPerRow: 1)
             symbolValues = []

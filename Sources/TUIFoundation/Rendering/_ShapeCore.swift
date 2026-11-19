@@ -151,7 +151,7 @@ struct _ShapeCore<Content: Shape, Style: ShapeStyle>: View, Renderable, Layoutab
         let drawn = resolvedDrawing(of: shape, as: drawing, in: context, columns: columns, rows: rows)
         let cells = ShapeCells.drawing(
             drawn.shape, as: drawn.drawing, frame: ShapeFrame(columns: columns, rows: rows, aspect: aspect),
-            painter: painter, monochrome: monochrome, wholeCells: !environment.blockElementsFillTheLine,
+            painter: painter, monochrome: monochrome, blocks: BlockElementDrawing(environment),
             spellsASCII: context.textSpelling.isASCII)
         // A shadowed style's shadows, cast from the cells the shape drew — its
         // fill's, or its stroke's (``ShapeStyle/shadow(_:)``).
@@ -174,10 +174,11 @@ extension ShapeCells {
     /// `shape` drawn as `drawing` in `frame`, by whichever tier it qualifies
     /// for: the box-drawing one for the rectangle family, the rasterizer for
     /// everything else. Where text is spelled in ASCII (`spellsASCII`), a
-    /// one-row fill's rounded ends are `(` `)` (``ShapeBoxCells``).
+    /// one-row fill's rounded ends are `(` `)` (``ShapeBoxCells``). Where
+    /// `blocks` draws no quadrants, a fill's corners are cut in whole cells.
     static func drawing(
         _ shape: any Shape, as drawing: ShapeDrawing, frame: ShapeFrame, painter: ShapePainter, monochrome: Bool,
-        wholeCells: Bool, spellsASCII: Bool
+        blocks: BlockElementDrawing, spellsASCII: Bool
     ) -> ShapeCells {
         let (rect, columns, rows, aspect) = (frame.rect, frame.columns, frame.rows, frame.aspect)
         if let box = shape as? any BoxDrawnShape, let radii = box.boxCorners(in: rect) {
@@ -185,11 +186,13 @@ extension ShapeCells {
             switch drawing {
             case .fill:
                 // Two samples a cell where the paint changes down a column and
-                // the halves draw to the line's edges (decisions B95).
-                let halves = wholeCells || monochrome || !painter.variesDownColumn ? nil : painter.pixelColour
+                // the halves draw to the line's edges (decisions B95): a font
+                // with no quadrants has the half blocks still.
+                let halves = !blocks.fillTheLine || monochrome || !painter.variesDownColumn ? nil : painter.pixelColour
                 var cells = ShapeBoxCells.fill(
                     shape.path(in: rect), columns: columns, rows: rows, aspect: aspect, corners: corners,
-                    wholeCells: wholeCells, spellsASCII: spellsASCII, colour: painter.cellColour, halves: halves)
+                    wholeCells: !blocks.drawsQuadrants, spellsASCII: spellsASCII, colour: painter.cellColour,
+                    halves: halves)
                 if monochrome { cells.dropColours() }
                 return cells
             case .stroke(let style, _) where style.dash.isEmpty && style.lineWidth > 0 && style.lineWidth <= 1:

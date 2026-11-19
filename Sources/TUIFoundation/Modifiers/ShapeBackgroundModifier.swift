@@ -68,7 +68,7 @@ nonisolated struct _ShapeBackground<Content: View, S: Shape, Style: ShapeStyle>:
         // cells have always covered those.
         let cells = ShapeCells.drawing(
             drawn.shape, as: drawn.drawing, frame: ShapeFrame(columns: columns, rows: rows, aspect: aspect),
-            painter: painter, monochrome: false, wholeCells: !environment.blockElementsFillTheLine,
+            painter: painter, monochrome: false, blocks: BlockElementDrawing(environment),
             spellsASCII: context.textSpelling.isASCII)
         return base.claimsShowingGlyphs(of: cells)
     }

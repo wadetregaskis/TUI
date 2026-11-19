@@ -62,9 +62,11 @@ struct RoundedCorners: Equatable, Sendable {
 /// `)` (``TerminalSymbols/ASCII/roundOpenCap``), as the stroke's are, since
 /// folded at output a half block is `#`. Where the terminal draws Block
 /// Elements short of the line (Apple
-/// Terminal, ``EnvironmentValues/blockElementsFillTheLine``), a corner is a
-/// whole cell — drawn where at least half covered — as a solid button face's
-/// is there, and only the one-row caps are glyphs. A single cell is every
+/// Terminal, ``EnvironmentValues/blockElementsFillTheLine``), or its font has
+/// no quadrants (the classic Windows console in Consolas,
+/// ``EnvironmentValues/fontHasQuadrants``), a corner is a whole cell — drawn
+/// where at least half covered — as a solid button face's is there, and only
+/// the one-row caps are glyphs. A single cell is every
 /// corner at once, and cut at each it would be nothing: it is its coverage
 /// alone on every terminal, so a one-cell capsule is a block, a status dot.
 enum ShapeBoxCells {
@@ -115,7 +117,8 @@ enum ShapeBoxCells {
     ///
     /// - Parameters:
     ///   - wholeCells: Whether a cut corner is a whole cell rather than
-    ///     quadrants, for a terminal that draws Block Elements short of the line.
+    ///     quadrants, for a terminal that draws Block Elements short of the
+    ///     line or whose font has no quadrants.
     ///   - halves: The paint at half cell (`x`, `y`), `y` counting half rows,
     ///     for a paint that changes down a column on a terminal whose Block
     ///     Elements fill the line: a cell the shape covers whole is then its

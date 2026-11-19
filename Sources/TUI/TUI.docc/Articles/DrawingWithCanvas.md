@@ -32,13 +32,13 @@ The initializer's other parameters are SwiftUI's too: `opaque: true` starts ever
 Paths and images land on pixels, and what a pixel is depends on the terminal:
 
 - Where the terminal places pictures in its cell grid, a canvas is a picture, in the terminal's own pixels. ``View/terminalGraphics(_:)`` and ``View/gradientGraphics(_:)`` turn this off for a subtree.
-- Anywhere else, each cell draws a glyph in two colours: by default a quadrant, two pixels by two, which every font has.
+- Anywhere else, each cell draws a glyph in two colours: by default a quadrant, two pixels by two, which nearly every font has. The Windows console's default font, Consolas, has none, and there a canvas draws half blocks, two pixels a cell, one above the other.
 
 ``View/canvasGrain(_:)`` chooses a vocabulary of glyphs instead, for a look or to reach further on a terminal you know has them. It's a TUI addition.
 
 | ``CanvasGrain`` | Pixels a cell | Glyphs |
 |---|---|---|
-| ``CanvasGrain/automatic`` | the terminal's, or 2 × 2 | a picture, or quadrants |
+| ``CanvasGrain/automatic`` | the terminal's, 2 × 2, or 1 × 2 | a picture, or quadrants (half blocks where the font has none) |
 | ``CanvasGrain/cells`` | 1 × 1 | a colour |
 | ``CanvasGrain/halfBlocks`` | 1 × 2 | `▀ ▄`, as a ``Shape`` is rasterized |
 | ``CanvasGrain/quadrants`` | 2 × 2 | `▘ ▝ ▖ ▗ ▚ ▞` and so on |

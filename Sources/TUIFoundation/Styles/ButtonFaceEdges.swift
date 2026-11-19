@@ -358,32 +358,16 @@ extension _ButtonAppearance {
     }
 }
 
-// MARK: - The terminal's block elements
-
-/// Whether the terminal draws Block Elements glyphs the full height of the
-/// line; `true` where nothing has said otherwise (headless, tests).
-private struct BlockElementsFillTheLineKey: EnvironmentKey {
-    static let defaultValue = true
-}
-
-extension EnvironmentValues {
-    /// Whether the terminal draws a Block Elements glyph (U+2580–259F) the
-    /// full height of its line, so that a half block meets the row above or
-    /// below it. Set by the run loop from `TerminalHost`, per tmux client
-    /// where there are any; read by a three-row button face, which is built
-    /// of half blocks and quadrants and comes apart where they fall short.
-    package var blockElementsFillTheLine: Bool {
-        get { self[BlockElementsFillTheLineKey.self] }
-        set { self[BlockElementsFillTheLineKey.self] = newValue }
-    }
-}
+// MARK: - The solid face's raster
 
 /// How finely a three-row solid face is drawn: what the terminal draws to
 /// the edges of its cells.
 enum SolidRaster: Equatable, Sendable {
     /// Whole cells of the face, no Block Elements glyph: a terminal that
     /// draws them short of the line (``EnvironmentValues/blockElementsFillTheLine``,
-    /// Apple Terminal).
+    /// Apple Terminal), or whose font has no quadrants
+    /// (``EnvironmentValues/fontHasQuadrants``, the classic Windows console in
+    /// Consolas).
     case wholeCells
     /// Quadrants, a cell's four quarters: Block Elements drawn the full
     /// line, the corner triangles not to the cell's edges (Warp).
@@ -393,10 +377,11 @@ enum SolidRaster: Equatable, Sendable {
     /// Ghostty and iTerm2).
     case cornerTriangles
 
-    /// The raster for a terminal that draws Block Elements the full line or
-    /// not, and the corner triangles to the cell's edges or not.
-    init(blockElementsFillTheLine: Bool, cornerTrianglesFillTheCell: Bool) {
-        self = !blockElementsFillTheLine ? .wholeCells : cornerTrianglesFillTheCell ? .cornerTriangles : .quadrants
+    /// The raster for a terminal whose quadrants draw as quadrants or not
+    /// (``BlockElementDrawing/drawsQuadrants``), and whose corner triangles
+    /// reach the cell's edges or not.
+    init(drawsQuadrants: Bool, cornerTrianglesFillTheCell: Bool) {
+        self = !drawsQuadrants ? .wholeCells : cornerTrianglesFillTheCell ? .cornerTriangles : .quadrants
     }
 
     /// The raster the terminal `environment` describes draws; in whole cells
@@ -414,7 +399,7 @@ enum SolidRaster: Equatable, Sendable {
             return
         }
         self.init(
-            blockElementsFillTheLine: environment.blockElementsFillTheLine,
+            drawsQuadrants: BlockElementDrawing(environment).drawsQuadrants,
             cornerTrianglesFillTheCell: environment.cornerTrianglesFillTheCell)
     }
 }

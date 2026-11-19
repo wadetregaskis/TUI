@@ -2839,10 +2839,39 @@ no strikethrough at all.
 
 **conhost's font.** The quadrants matter: TUI inks a cell's quarters with them
 (`TerminalSymbols.quadrants`) for shapes, canvases and solid button faces. Consolas,
-conhost's default, has none. Choosing Cascadia Mono (installed with Windows 11) in the
-console's properties draws them. TUI has no way to ask a terminal which glyphs its font
-has, so this is a note for users (the Terminal Support article), not something TUI
-adapts to.
+conhost's default, has none, and conhost draws each as a box. Choosing Cascadia Mono
+(installed with Windows 11) in the console's properties draws them.
+
+A terminal cannot be asked which glyphs its font has, but conhost can, being the
+console a program runs in (measured 2026-11-18, build 26300, with a PowerShell probe
+calling the same APIs):
+
+- `GetCurrentConsoleFontEx` on standard output names the face: `Consolas`, 8×16 cells,
+  family 54, weight 400. Changed with `SetCurrentConsoleFontEx` to Cascadia Mono, the
+  next call names `Cascadia Mono`, 7×16. Nothing of the change was written to
+  `HKCU\Console`.
+- GDI's `GetGlyphIndicesW` with `GGI_MARK_NONEXISTING_GLYPHS`, on a font made by that
+  name, marks as missing in Consolas exactly the ten quadrants `▖ ▗ ▘ ▝ ▙ ▛ ▜ ▟ ▚ ▞`, and
+  finds the half blocks `▀ ▄ ▌ ▐` and `█`; Lucida Console the same; Cascadia Mono none
+  missing. That matches what conhost drew.
+- A font change sends `WINDOW_BUFFER_SIZE_EVENT`, with the window's cells unchanged
+  (120 wide both times): the record TUI already reads as a resize. Opening the window's
+  menu sends `MENU_EVENT` (278, then 287) and focus records, and nothing else.
+- In Windows Terminal the same call names `Consolas` too, at a width and a weight of 0:
+  the pseudo console's placeholder, whatever the terminal draws in. Only conhost's
+  answer means anything.
+
+So TUI asks, in conhost alone (`ConsoleFont`, `TerminalClient.fontHasQuadrants(_:)`),
+at launch and again on each resize. Where the font lacks the quadrants, a shape's
+corners and a solid face are cut in whole cells, as on Apple Terminal, while the half
+blocks are kept: a ramp down a shape is still two samples a cell. A canvas at its
+automatic grain draws half blocks there. A grain or a spinner asked for by name in
+quadrants still draws them, boxes and all. Seen in the Example's Shapes page: with
+whole-cell corners, `cornerRadius: 1` comes out square. With the Example running, its
+console's font set to Cascadia Mono from another process (`AttachConsole`, then
+`SetCurrentConsoleFontEx`), the page redrew with quadrant corners. Seen, not measured:
+conhost leaves a hairline seam where a Cascadia Mono quadrant meets the cell beside or
+below it, at 7×16.
 
 **And its fallback works only within a run.** conhost does draw a glyph its font lacks
 from another font, but only when the run of text it draws it in — the characters of one

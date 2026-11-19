@@ -126,6 +126,46 @@ struct ClientCapabilityRefresherTests {
         #expect(refresher.resolve().emojiChrome, "frames after the change draw the new answer")
     }
 
+    @Test("A change of font alone, its quadrants come or gone, fires onChange")
+    func fontChangeFiresOnChange() async throws {
+        let hasQuadrants = Mutable(false)
+        nonisolated(unsafe) var changes = 0
+        let refresher = ClientCapabilityRefresher(
+            isRefreshable: true,
+            probe: {
+                ClientCapabilities(
+                    emojiChrome: false, skinTonesSafe: true, blockElementsFillTheLine: true,
+                    cornerTrianglesFillTheCell: false, fontHasQuadrants: hasQuadrants.value, drawsProgressBars: true,
+                    mayImproveShortly: false)
+            },
+            onChange: { unsafe changes += 1 })
+        #expect(refresher.resolve().fontHasQuadrants == false)
+        hasQuadrants.value = true  // the person chose Cascadia Mono
+        refresher.refresh()
+        try await waitUntilSettled(refresher)
+        unsafe #expect(changes == 1, "a font with the quadrants redraws every shape")
+        #expect(refresher.resolve().fontHasQuadrants)
+    }
+
+    @Test("The answer is re-asked under tmux and in the classic Windows console, and nowhere else")
+    func refreshableHosts() {
+        #expect(ClientCapabilityRefresher.isRefreshable(tmux: true, program: .tmux))
+        #expect(ClientCapabilityRefresher.isRefreshable(tmux: false, program: .windowsConsole))
+        #expect(!ClientCapabilityRefresher.isRefreshable(tmux: false, program: .windowsTerminal))
+        #expect(!ClientCapabilityRefresher.isRefreshable(tmux: false, program: .appleTerminal))
+    }
+
+    @Test("Every host but the classic Windows console is taken to have the quadrants")
+    func quadrantsByHost() {
+        for program in [TerminalClient.Program.appleTerminal, .iTerm2, .ghostty, .warp, .windowsTerminal, .tmux] {
+            #expect(TerminalClient.fontHasQuadrants(program), "\(program)")
+        }
+        #if !os(Windows)
+        // Off Windows there is no console to ask.
+        #expect(TerminalClient.fontHasQuadrants(.windowsConsole))
+        #endif
+    }
+
     @Test("A FAILED refresh probe keeps the previous answer — no flip, no onChange")
     func failedProbeKeepsLastAnswer() async throws {
         // The failure this guards: a transient probe failure (a slow tmux under

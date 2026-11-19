@@ -223,8 +223,6 @@ Two things about the environment the runs needed:
 
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
 - **The rest of the mouse**: Shift-clicks, the other buttons and pointer shapes are unmeasured in both terminals.
-- **The console's font**: conhost's Consolas has no quadrants (`▖ ▗ ▘ ▝ ▙ ▛ ▜ ▟`), which shapes and canvases draw with;
-  TUI cannot ask a terminal what its font has, so the Terminal Support article tells users to choose Cascadia Mono.
 - **Keys under the kitty protocol in Windows Terminal**: the key record is the legacy encoding; what 1.25 sends for
   each key with the protocol on is unmeasured.
 
@@ -232,4 +230,6 @@ Done since the list was first written: a crash in both terminals (the survey's "
 the debt), the mouse's clicks and wheel in both, the keys in both, Windows Terminal's ⌃, (TUI takes it to be kept, so
 Settings… shows F2 there; its other default bindings are not listed, the owner's ruling of 2026-11-17: "Just ⌃, for
 now"), and copies too large for the terminal (over a measured 24,567 bytes of text: sent to this machine's clipboard
-at the desk, reported as not copied over ssh), and x86_64.
+at the desk, reported as not copied over ssh), x86_64, and the console's font (conhost names it, and where it has no
+quadrants, as Consolas has none, shapes cut their corners in whole cells and a canvas draws half blocks; asked again
+on each resize, which a font change sends; the survey's "conhost's font").
