@@ -159,9 +159,13 @@ extension MenusSession {
         // Not to a document the command itself took off the list — a promotion
         // out of the filter, a deletion: there is nowhere to go back to. Nor
         // from nowhere: with no focus to go back to, TUI gives it to the
-        // first focus stop, as it does on any page that has none.
+        // first focus stop, as it does on any page that has none. Nor to a
+        // document the screen does not draw — a terminal too short for the
+        // list to show a row — where only its `▸` could say it has the focus.
         if let (focus, from) = focusAfterClose, index == from, let shown = Self.focus(on: screen), shown != focus,
-            focus != "none", !focus.hasPrefix("row ") || desk.shown.contains(where: { "row \($0.id)" == focus })
+            focus != "none",
+            !focus.hasPrefix("row ")
+                || desk.shown.contains(where: { "row \($0.id)" == focus && showsDocument($0.id, on: screen) })
         {
             return "a menu closed, and the focus went to \(shown), not back to \(focus)"
         }
