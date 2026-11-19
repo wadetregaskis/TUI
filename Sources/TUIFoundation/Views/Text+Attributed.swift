@@ -84,16 +84,32 @@ import Foundation
     /// export, so the metadata the inlined `Runs` needs is a symbol no library
     /// defines (`Documentation/Windows port.md`, "Toolchain"). A character's own
     /// substring reads its attributes through Foundation's code, which links,
-    /// and the merge below makes the runs of the characters.
+    /// and the characters drawn alike are gathered into one run. Gathered in a
+    /// string of their own and added once: merged into the last run a character
+    /// at a time, as ``append(_:to:)`` merges, each character copied the run so
+    /// far, and an 80,000-character text took 2 s (measured, `-O`).
     nonisolated static func runs(of string: AttributedString) -> [Run] {
         var result: [Run] = []
         #if os(Windows)
+            var gathered = ""
+            var gatheredStyle = TextStyle()
+            var gatheredLink: URL?
             var index = string.startIndex
             while index < string.endIndex {
                 let next = string.characters.index(after: index)
-                append(string[index..<next], to: &result)
+                let piece = string[index..<next]
+                let style = Self.style(of: piece)
+                let link = piece.link
+                if gathered.isEmpty || style != gatheredStyle || link != gatheredLink {
+                    if !gathered.isEmpty { result.append(Run(text: gathered, style: gatheredStyle, link: gatheredLink)) }
+                    gathered = ""
+                    gatheredStyle = style
+                    gatheredLink = link
+                }
+                gathered.append(contentsOf: piece.characters)
                 index = next
             }
+            if !gathered.isEmpty { result.append(Run(text: gathered, style: gatheredStyle, link: gatheredLink)) }
         #else
             for run in string.runs {
                 append(string[run.range], to: &result)

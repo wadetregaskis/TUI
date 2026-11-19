@@ -41,6 +41,9 @@ are now read from the folder itself, which also lists a folder 3 to 8 times fast
 **On Windows, a link with no scheme no longer starts a program.** Windows takes a bare name, such as `calc`, for a
 program to run. Opening a URL now hands Windows only one that names a scheme, such as `https:` or `mailto:`.
 
+**On Windows, an `AttributedString` of thousands of characters draws without a pause.** Its text was copied once for
+each character, so 80,000 characters took 2 seconds to make into runs. It is now copied once.
+
 **In the classic Windows console, a stepper's and a slider's arrows no longer draw as boxes.** Consolas, its
 default font, has no `◀` or `▶`, and the console draws a character its font lacks as a box when it stands alone in a
 colour of its own, as those arrows do. Where the console's font lacks them, TUI now sends `◄` and `►` in their
