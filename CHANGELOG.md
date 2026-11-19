@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**An outline `List` whose selection cannot name its rows draws them.** A `List(_:children:selection:)`, or a
+`List` holding an `OutlineGroup`, whose selection's type was not its nodes' id type drew no rows at all, where a flat
+list's rows are drawn and select nothing. The outline's rows are now drawn the same way, and a debug build warns
+about the mismatch as it does for a flat list.
+
 **A `Toggle`'s subtitle takes a stated `.foregroundStyle`.** The second view of a toggle's label, the subtitle
 under its title, was always drawn in the palette's secondary tier, over any style the app stated: under
 `.foregroundStyle(.red)` the title was red and the subtitle grey. It is now secondary only where no style is stated,

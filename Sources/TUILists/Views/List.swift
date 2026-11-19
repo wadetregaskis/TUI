@@ -47,10 +47,10 @@ import TUIFoundation
 /// A row's value for the selection is its `.tag(_:)`, else its element's id,
 /// so the selection's type must be the rows' id type: a `String?` above, for
 /// items whose `id` is a `String`. Over a `ForEach`, an outline or a
-/// section's `ForEach` whose rows it cannot name, the selection selects
-/// nothing, as in SwiftUI, and a debug build says so once, naming both types,
-/// through TUI's runtime warnings (on stderr when the app gives the terminal
-/// back, or in `TUI_DIAGNOSTICS_FILE`).
+/// section's `ForEach` whose rows it cannot name, the rows are drawn and the
+/// selection selects nothing, as in SwiftUI, and a debug build says so once,
+/// naming both types, through TUI's runtime warnings (on stderr when the app
+/// gives the terminal back, or in `TUI_DIAGNOSTICS_FILE`).
 ///
 /// ## The cursor row where the terminal decides the colours
 ///

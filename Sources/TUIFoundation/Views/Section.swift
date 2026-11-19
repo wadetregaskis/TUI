@@ -751,8 +751,9 @@ package struct SectionHeaderActions {
         }
         // An outline that is the section's whole content hands its rows over
         // windowed: a list whose content is this section builds only the rows
-        // it draws (``SectionContentRows/windowed``). One the list's ids cannot
-        // name, or whose windowing is off, is extracted below.
+        // it draws (``SectionContentRows/windowed``); rows the list's ids cannot
+        // name among them, unselectable. One whose windowing is off is
+        // extracted below.
         if let outline = content as? any WindowedOutlineListRows,
             let rows: OutlineListRows<RowID> = outline.windowedListRows(context: context) {
             return SectionContentRows(windowed: rows, rowsContent: content)

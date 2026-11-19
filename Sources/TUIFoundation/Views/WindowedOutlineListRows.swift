@@ -38,10 +38,11 @@ package struct OutlineListRows<RowID: Hashable> {
     }
 
     /// Every row, each with its box, in order: what the eager rows are. A row
-    /// whose id the list cannot name is left out, as the eager rows leave it.
+    /// whose id the list cannot name is kept, unselectable, as a `ForEach`'s
+    /// is: it draws, and selects nothing.
     @MainActor
     package var all: [ListRow<RowID>] {
-        (0..<count).compactMap { index in rowID(index).map { ListRow(id: $0, content: make(index)) } }
+        (0..<count).map { index in ListRow(id: rowID(index), content: make(index)) }
     }
 
     /// These rows, each drawn through `transform`.
@@ -56,9 +57,9 @@ package struct OutlineListRows<RowID: Hashable> {
 /// `OutlineGroup`.
 @MainActor
 package protocol WindowedOutlineListRows {
-    /// The rows, or `nil` when the list's ids cannot name them (row 0 answers
-    /// to neither the node's id nor its index), and the eager path, which
-    /// draws such rows as it can, takes them instead.
+    /// The rows, or `nil` when the outline's windowing is off and the eager
+    /// path takes them instead. Rows the list's ids cannot name are rows all
+    /// the same, drawn and unselectable (``OutlineListRows/rowID``).
     func windowedListRows<RowID: Hashable>(context: RenderContext) -> OutlineListRows<RowID>?
 
     /// The type the nodes are identified by, when a list whose selection holds

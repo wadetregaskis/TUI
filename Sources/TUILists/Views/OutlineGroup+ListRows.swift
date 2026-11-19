@@ -123,13 +123,13 @@ struct OutlineRowNames<RowID: Hashable>: OutlineRowNaming {
 
 @MainActor extension OutlineGroup: WindowedOutlineListRows where Leaf: View {
     package func windowedListRows<RowID: Hashable>(context: RenderContext) -> OutlineListRows<RowID>? {
+        // Rows the list's ids cannot name are windowed too, and drawn
+        // unselectable, as a `ForEach`'s are. This returned `nil` for them, to
+        // an eager path that then left every row out, so a `List(_:children:
+        // selection:)` whose selection type was not the nodes' id type drew
+        // nothing at all.
         guard windowsListRows else { return nil }
-        let rows: OutlineListRows<RowID> = listRows(context: context)
-        // Row 0's answer decides the whole list, as a `ForEach`'s does: every
-        // node's id is of one type, so the cast that works for one works for all.
-        // swiftlint:disable:next empty_count
-        guard rows.count == 0 || rows.rowID(0) != nil else { return nil }  // `count` is an Int, not a Collection's
-        return rows
+        return listRows(context: context)
     }
 
     /// `ID`, when a list whose selection holds `RowID` names the first node by
@@ -292,7 +292,8 @@ struct SectionOutlines: OutlineRowActivating {
     /// outline alone, or of one `Section` holding it, asks
     /// ``windowedListRows(context:)``, and builds only the rows it draws.
     ///
-    /// A row whose id the list cannot name is left out, as it always was here.
+    /// A row whose id the list cannot name is kept, and drawn unselectable,
+    /// as a `ForEach`'s is (``OutlineListRows/all``).
     package func extractListRows<RowID: Hashable>(context: RenderContext) -> [ListRow<RowID>] {
         let rows: OutlineListRows<RowID> = listRows(context: context)
         return rows.all

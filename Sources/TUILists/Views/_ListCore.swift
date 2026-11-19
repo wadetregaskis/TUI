@@ -4300,18 +4300,17 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // nodes its open branches show, which it counts and keeps itself. Each
         // row's box is made only when the overflow check or the window walks
         // to it, so a tree of thousands of open rows costs a screenful of rows
-        // a frame (finding G1). An outline whose rows the selection cannot
-        // name falls through to the eager path below, which leaves them out.
-        if let outline = content as? any WindowedOutlineListRows {
-            if let rows: OutlineListRows<SelectionValue> = outline.windowedListRows(context: context) {
-                return RowSource(
-                    count: rows.count, allContent: true,
-                    typeAt: { index in rows.rowID(index).map { .content(id: $0) } ?? .unselectable },
-                    make: rows.make)
-            }
+        // a frame (finding G1). Rows the selection cannot name are drawn and
+        // select nothing, as a `ForEach`'s are, and a debug build says so.
+        if let outline = content as? any WindowedOutlineListRows,
+            let rows: OutlineListRows<SelectionValue> = outline.windowedListRows(context: context) {
             #if DEBUG
                 warnIfSelectionNamesNoRow(of: outline)
             #endif
+            return RowSource(
+                count: rows.count, allContent: true,
+                typeAt: { index in rows.rowID(index).map { .content(id: $0) } ?? .unselectable },
+                make: rows.make)
         }
 
         // Eager ListRowExtractor (e.g. a ForEach whose ids couldn't all resolve).
