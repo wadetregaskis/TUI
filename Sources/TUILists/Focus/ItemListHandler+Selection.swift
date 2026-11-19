@@ -340,7 +340,13 @@ extension ItemListHandler {
     /// - Returns: True if the item is selected.
     package func isSelected(at index: Int) -> Bool {
         guard let itemID = id(at: index) else { return false }
+        return isSelected(id: itemID)
+    }
 
+    /// Returns whether the item with the given id is selected: the half of
+    /// ``isSelected(at:)`` that needs no index, for a caller that has the id
+    /// from somewhere other than ``id(at:)``.
+    package func isSelected(id itemID: SelectionValue) -> Bool {
         switch selectionMode {
         case .single:
             return singleSelection?.wrappedValue == itemID

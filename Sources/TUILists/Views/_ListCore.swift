@@ -131,6 +131,11 @@ final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeci
     /// window (or re-read by the compose pass) is built — and rendered — once.
     private var materialized: [Int: SelectableListRow<SelectionValue>] = [:]
 
+    /// The box ``_ListCore`` raised before its overflow walk, on its guess at
+    /// the row the raise settles on, for the raise to lower again where the
+    /// guess was wrong. `nil` where it raised none.
+    var provisionallyRaised: LazyListRowContent?
+
     /// Content boxes ``content(at:)`` built for a question that needed no row
     /// type, until ``row(at:)`` promotes one into ``materialized``. Empty on
     /// every frame that asks no such question.
@@ -1267,15 +1272,19 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// hand-written row beside a loop, or a section's, as a looped row is
     /// (since lane LISTS2) — so each is raised; only a section's header and
     /// footer arrive drawn, and neither can be selected.
+    ///
+    /// Settles the guess ``raiseProvisionally(source:handler:focusID:context:)``
+    /// made before the overflow walk: a row it raised that is not this one is
+    /// lowered again, and so drawn again, which a frame on which the focus or
+    /// the cursor moved can need and no other frame does.
     private func raiseBackgroundProminence(
         source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>,
         listHasFocus: Bool, context: RenderContext
     ) {
-        let index = handler.focusedIndex
-        let raised: LazyListRowContent? =
-            listHasFocus && index < source.count && handler.isCursorRow(index)
-                && handler.isSelected(at: index)
-            ? source.content(at: index) : nil
+        let raised = raisedRow(source: source, handler: handler, listHasFocus: listHasFocus)
+        if let provisional = source.provisionallyRaised, provisional !== raised {
+            provisional.backgroundProminence = .standard
+        }
         raised?.backgroundProminence = .increased
         let identity = raised?.rowIdentity
         guard !context.isMeasuring, identity != handler.raisedProminenceRow else { return }
@@ -1287,6 +1296,50 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // served the render just cleared.
         source.discardRenders(of: changed)
         handler.raisedProminenceRow = identity
+    }
+
+    /// The row ``raiseBackgroundProminence(source:handler:listHasFocus:context:)``
+    /// raises: the cursor's, while the list has the focus, where it is selected.
+    ///
+    /// `idFromSource` asks this frame's `source` for the row's id instead of
+    /// the handler: before the list has wired the handler's ids to this
+    /// frame's rows (``raiseProvisionally(source:handler:focusID:context:)``),
+    /// its `idAt` still reads last frame's source while its `itemCount` is
+    /// already this frame's, so a list that grew would ask the old source for
+    /// a row past its end.
+    private func raisedRow(
+        source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>, listHasFocus: Bool,
+        idFromSource: Bool = false
+    ) -> LazyListRowContent? {
+        let index = handler.focusedIndex
+        guard listHasFocus, index < source.count, handler.isCursorRow(index) else { return nil }
+        let isSelected: Bool
+        if idFromSource {
+            guard case .content(let id) = source.type(at: index) else { return nil }
+            isSelected = handler.isSelected(id: id)
+        } else {
+            isSelected = handler.isSelected(at: index)
+        }
+        return isSelected ? source.content(at: index) : nil
+    }
+
+    /// Raises the row the raise will settle on BEFORE the overflow walk draws
+    /// the rows, as far as the focus manager can say before the list has
+    /// registered for this frame: the box keeps its render only while its
+    /// prominence does not change, so a row drawn by the walk at the standard
+    /// prominence and raised after it was drawn again — the focused, selected
+    /// row twice on every frame on which it could not be served, a list of
+    /// live previews' every frame (one row in eight of `app-shapes/timeline-list`,
+    /// about 5% of its frame). The raise itself settles the guess
+    /// (``raiseBackgroundProminence(source:handler:listHasFocus:context:)``).
+    private func raiseProvisionally(
+        source: RowSource<SelectionValue>, handler: ItemListHandler<SelectionValue>, focusID: String,
+        context: RenderContext
+    ) {
+        let hasFocus = context.indicatesFocus(FocusRegistration.isFocused(context: context, focusID: focusID))
+        let raised = raisedRow(source: source, handler: handler, listHasFocus: hasFocus, idFromSource: true)
+        raised?.backgroundProminence = .increased
+        source.provisionallyRaised = raised
     }
 
     /// Drops the cached render of the row whose swipe actions were revealed
@@ -2030,6 +2083,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // there, and under auto-scroll the answer it would otherwise use was
         // resolved against the previous frame's rows.
         handler.carryReorderTargetThroughAutoScroll()
+        // The row the raise will settle on, raised before the walk below can
+        // draw it at the prominence it is not drawn at (see
+        // `raiseProvisionally`).
+        raiseProvisionally(source: source, handler: handler, focusID: persistedFocusID, context: context)
         // A list only scrolls (and shows indicators) when its rows — plus that
         // borrowed line — don't all fit in the content area.
         let overflowing = rowsOverflow(

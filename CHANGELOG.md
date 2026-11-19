@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A focused `List` draws its selected row once a frame.** The row under the cursor of a focused list, where it
+was selected, was drawn twice on every frame on which nothing could serve it: once at the standard background
+prominence, while the list learned whether its rows overflow, and again when the list raised it. In a list of live
+previews that was one row in eight drawn again every frame, 5% of the frame. The row is now raised before it is
+first drawn.
+
 **An outline `List` whose selection cannot name its rows draws them.** A `List(_:children:selection:)`, or a
 `List` holding an `OutlineGroup`, whose selection's type was not its nodes' id type drew no rows at all, where a flat
 list's rows are drawn and select nothing. The outline's rows are now drawn the same way, and a debug build warns

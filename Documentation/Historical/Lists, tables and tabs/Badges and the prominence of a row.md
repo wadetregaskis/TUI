@@ -88,6 +88,18 @@ row fills were chosen to carry. The list clears the raised row's cached renders
 on the frame the raise moves, since the value reaches the row through its
 environment and no memo below the row would notice it.
 
+The raise comes before the row is first drawn. The list's overflow walk draws
+rows to sum their heights before the list has registered for the focus, so the
+row the focus manager says will be raised is raised first, and the raise after
+registration settles the guess, lowering a row it got wrong (which a frame on
+which the focus or the cursor moves can need). Until 2026-11-19 the walk drew
+that row at the standard prominence and the raise drew it again, on every
+frame on which no memo could serve it: one row in eight of a list of live
+previews (`app-shapes/timeline-list`). A `Table` decides its raise before it
+draws any cell, and its multi-line overflow walk takes its view cells'
+heights from a measuring pass, in which a canvas draws nothing, so it drew no
+row twice.
+
 Raised: every row the list builds lazily — the rows of a `ForEach` and an
 `OutlineGroup`, which is every data-driven list — and, since 2026-10-19 (lane
 LISTS2), a hand-written row beside them (`List { Text("All"); ForEach(items)
