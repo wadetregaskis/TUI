@@ -41,7 +41,7 @@ struct TextEditorReplacement: Equatable {
     /// Makes the replacement in `lines`: the text before ``start`` on its
     /// line, then the replacement's lines, then the text after ``end`` on
     /// its line. The lines it does not reach keep their storage, which is
-    /// how ``EditorLayout/replacing(lines:)`` tells them unchanged at once.
+    /// how ``EditorLayout/replacing(_:)`` tells them unchanged at once.
     func apply(to lines: inout [[Character]]) {
         var spliced = replacement
         spliced[0] = Array(lines[start.line][..<start.column]) + spliced[0]

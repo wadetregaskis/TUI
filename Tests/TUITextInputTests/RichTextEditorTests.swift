@@ -275,4 +275,77 @@ struct RichTextEditorTests {
         #expect(!AttributedTextSource.isIdentical(text, copy))
         #expect(!AttributedTextSource.isIdentical(text, AttributedString("abc")), "equal, but other storage")
     }
+
+    /// Every character of the value carries an ink of its own, and the test
+    /// keeps the straightforward model beside the editor: an array of
+    /// characters and inks, a typed character taking the ink of the one
+    /// before it (B-ATTRED-16; the caret is never put at a paragraph's start,
+    /// where another rule picks), a Backspace taking one out. After every key
+    /// the value must be the model, character for character and ink for ink,
+    /// and the lines drawn from the styles the editor read must be the
+    /// model's: what an edit made in the value in place, or a layout spliced
+    /// from the one before, gets wrong shows up as a character in the wrong
+    /// ink or in the wrong place.
+    @Test("Random keys keep every character's own attributes, as a model of the value does")
+    func randomKeysKeepAttributes() {
+        var random = SplitMix(state: 0xA77E)
+        let inkCount = 64
+        func ink(_ index: Int) -> Color { .rgb(UInt8(index % 251), UInt8((index / 251) % 251), 7) }
+        var lines: [String] = []
+        for line in 0..<12 {
+            let word = String("abcdefgh".prefix(1 + line % 8))
+            lines.append(String(repeating: word, count: 1 + line % 3))
+        }
+        var model: [(character: Character, ink: Color)] = []
+        for (offset, character) in lines.joined(separator: "\n").enumerated() {
+            model.append((character, ink(offset % inkCount)))
+        }
+        var start = AttributedString()
+        for part in model {
+            var piece = AttributedString(String(part.character))
+            piece.foregroundColor = part.ink
+            start += piece
+        }
+        let text = Box(start)
+        let drawn = editor(text, width: 40)
+        for step in 0..<400 {
+            // The caret after a character that is not a line break.
+            let places = model.indices.filter { model[$0].character != "\n" }.map { $0 + 1 }
+            let offset = places.randomElement(using: &random)!
+            let breaks: [Int] = model[..<offset].indices.filter { model[$0].character == "\n" }
+            let lead: Int = (breaks.last ?? -1) + 1
+            let line: Int = breaks.count
+            drawn.handler.moveCursor(toLine: line, column: offset - lead)
+            switch Int.random(in: 0..<10, using: &random) {
+            case 0..<6:
+                let typed: Character = ["x", "y", " ", "é"].randomElement(using: &random)!
+                _ = drawn.handler.handleKeyEvent(KeyEvent(key: .character(typed)))
+                model.insert((typed, model[offset - 1].ink), at: offset)
+            case 6..<9:
+                _ = drawn.handler.handleKeyEvent(KeyEvent(key: .backspace))
+                model.remove(at: offset - 1)
+            default:
+                _ = drawn.handler.handleKeyEvent(KeyEvent(key: .enter))
+                model.insert(("\n", model[offset - 1].ink), at: offset)
+            }
+            _ = drawn.render()
+            let characters = String(model.map(\.character))
+            let modelInks: [Color?] = model.map(\.ink)
+            #expect(String(text.value.characters) == characters, "step \(step)")
+            #expect(inks(text.value) == modelInks, "step \(step)")
+            let layout = drawn.handler.layout()
+            #expect(layout.text == characters, "step \(step)")
+            // The styles every line is drawn in, as the editor keeps them read:
+            // a run's ink in each of its columns, every column covered.
+            for index in layout.lines.indices {
+                var drawnInks: [Color?] = Array(repeating: nil, count: layout.lines[index].count)
+                for run in drawn.handler.styles(ofLine: index) {
+                    for column in run.columns where column < drawnInks.count { drawnInks[column] = run.foreground }
+                }
+                let first: Int = layout.characterStarts[index]
+                let expected: [Color?] = Array(modelInks[first..<(first + layout.lines[index].count)])
+                #expect(drawnInks == expected, "step \(step) line \(index)")
+            }
+        }
+    }
 }

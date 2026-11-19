@@ -49,7 +49,7 @@ struct WrappedRows {
     /// Replaces the lines `replaced` with `newLines`, wrapped, and moves the
     /// rows of the lines after them by as many rows as that adds or takes
     /// away: an edit's lines wrapped again, and no other
-    /// (``EditorLayout/adoptWrappings(of:for:)``). In place, where the rows
+    /// (``EditorLayout/laidOut(_:reusingStorage:)``). In place, where the rows
     /// are this value's alone.
     mutating func replaceLines(_ replaced: Range<Int>, with newLines: ArraySlice<[Character]>, tabWidth: TabWidth) {
         let layouts = newLines.map { Self.layout(of: $0, width: width, tabWidth: tabWidth) }

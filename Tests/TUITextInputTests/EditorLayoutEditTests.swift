@@ -20,6 +20,12 @@ import Testing
 @MainActor
 @Suite("Editor layout: an edit spliced into the text")
 struct EditorLayoutEditTests {
+    /// The edit of `layout`'s lines to `newLines`, every line given as
+    /// replaced, so the scans for what changed run from the ends.
+    private static func replacing(_ layout: EditorLayout, with newLines: [[Character]]) -> EditorLayout.Edit? {
+        layout.replacing(EditedLines(base: layout.lines, replacing: 0..<layout.lines.count, with: newLines))
+    }
+
     /// `lines` joined, as the editor wrote every edit before.
     private static func joined(_ lines: [[Character]], _ ending: String) -> String {
         lines.map { String($0) }.joined(separator: ending)
@@ -33,24 +39,24 @@ struct EditorLayoutEditTests {
         let wrapped = [before.wrapped(width: 7, tabWidth: .periodic(4)), before.wrapped(width: 3, tabWidth: .periodic(4))]
         #expect(wrapped.count == 2)
         let newLines = edit(before.lines)
-        let made = try #require(before.replacing(lines: newLines), comment)
+        let made = try #require(Self.replacing(before, with: newLines), comment)
         let fresh = EditorLayout(text: Self.joined(newLines, before.lineEnding))
         #expect(made.text == fresh.text, comment)
         #expect(Array(made.text.utf8) == Array(fresh.text.utf8), comment)
-        #expect(made.layout.lines == fresh.lines, comment)
-        #expect(made.layout.lineStarts == fresh.lineStarts, comment)
-        #expect(made.layout.characterStarts == fresh.characterStarts, comment)
-        made.layout.adoptWrappings(of: before, for: made)
+        let after = before.laidOut(made, reusingStorage: false)
+        #expect(after.lines == fresh.lines, comment)
+        #expect(after.lineStarts == fresh.lineStarts, comment)
+        #expect(after.characterStarts == fresh.characterStarts, comment)
         // No change is the layout before, which wrapped at both widths.
-        let wraps = made.layout === before ? 2 : 0
-        #expect(made.layout.wrapsMade == wraps, comment)
+        let wraps = after === before ? 2 : 0
+        #expect(after.wrapsMade == wraps, comment)
         for width in [7, 3] {
-            let kept = made.layout.wrapped(width: width, tabWidth: .periodic(4))
+            let kept = after.wrapped(width: width, tabWidth: .periodic(4))
             let anew = fresh.wrapped(width: width, tabWidth: .periodic(4))
             #expect(kept.lines == anew.lines, "\(comment) at \(width)")
             #expect(kept.rowStarts == anew.rowStarts, "\(comment) at \(width)")
         }
-        #expect(made.layout.wrapsMade == wraps, "both widths kept: \(comment)")
+        #expect(after.wrapsMade == wraps, "both widths kept: \(comment)")
     }
 
     @Test("An edit anywhere is the text its lines joined make, byte for byte, laid out the same")
@@ -75,7 +81,7 @@ struct EditorLayoutEditTests {
 
     /// Each random edit made from the layout the edit before it left, as the
     /// editor makes a run of keys, and checked against the text's layout
-    /// made afresh: the line starts spliced (``EditorLayout/splicing(_:_:with:shiftingRestBy:)``)
+    /// made afresh: the line starts spliced (``EditorLayout/splice(_:_:with:shiftingRestBy:)``)
     /// must be the ones a full rebuild finds, in bytes and in characters,
     /// for edits within a line, across lines, at the start and at the end.
     @Test("A run of random edits keeps the line starts a full rebuild finds", arguments: ["\n", "\r\n", "\r"])
@@ -105,13 +111,14 @@ struct EditorLayoutEditTests {
                 let inserted = (0..<Int.random(in: 1...3, using: &random)).map { _ in line(3) }
                 var lines = layout.lines
                 TextEditorReplacement(from: min(a, b), to: max(a, b), with: inserted).apply(to: &lines)
-                let made = try #require(layout.replacing(lines: lines), comment)
+                let made = try #require(Self.replacing(layout, with: lines), comment)
                 let fresh = EditorLayout(text: lines.map { String($0) }.joined(separator: layout.lineEnding))
                 #expect(Array(made.text.utf8) == Array(fresh.text.utf8), comment)
-                #expect(made.layout.lines == fresh.lines, comment)
-                #expect(made.layout.lineStarts == fresh.lineStarts, comment)
-                #expect(made.layout.characterStarts == fresh.characterStarts, comment)
-                layout = made.layout
+                let after = layout.laidOut(made, reusingStorage: step.isMultiple(of: 2))
+                #expect(after.lines == fresh.lines, comment)
+                #expect(after.lineStarts == fresh.lineStarts, comment)
+                #expect(after.characterStarts == fresh.characterStarts, comment)
+                layout = after
             }
         }
     }
@@ -120,7 +127,7 @@ struct EditorLayoutEditTests {
     func mixedEndingsAreNotSpliced() {
         let layout = EditorLayout(text: "a\nb\r\nc")
         #expect(!layout.hasOneLineEnding)
-        #expect(layout.replacing(lines: [["a"], ["b"], ["c", "!"]]) == nil)
+        #expect(Self.replacing(layout, with: [["a"], ["b"], ["c", "!"]]) == nil)
     }
 
     /// The whole document wrapped again was most of a key's cost in a large

@@ -146,14 +146,14 @@ final class TextEditorHandler: PersistedFocusable {
     var bell: TerminalBell?
 
     /// Remembers the cursor's display column for vertical motion.
-    func syncDesiredColumn(_ lines: [[Character]]? = nil) {
+    func syncDesiredColumn(_ lines: EditedLines? = nil) {
         if let rows = wrappedRows() {
             desiredColumn = caretColumnInRow(in: rows)
             return
         }
         // The column is the one drawn: a hidden text's glyphs, not its tabs
         // and wide characters.
-        let lines = isSecure ? displayLines() : lines ?? readLines()
+        let lines = isSecure ? EditedLines(displayLines()) : lines ?? EditedLines(readLines())
         guard cursorLine < lines.count else {
             // Out-of-bounds cursor (stale state, normalised elsewhere): fall
             // back to the raw index rather than reading a missing line.
@@ -329,64 +329,6 @@ final class TextEditorHandler: PersistedFocusable {
     /// (``TextFieldHandler/redactedDisplay(_:keepingLineBreaks:)``).
     nonisolated static func hiding(_ text: String, with glyph: Character) -> String {
         String(text.map { $0.isNewline ? $0 : glyph })
-    }
-
-    /// Makes `replacements`, in order, each on the lines the one before it
-    /// left, and writes the lines they leave (``writeLines(_:)``). Every edit
-    /// the editor makes to its text is made here, as the ranges it replaces
-    /// (``TextEditorReplacement``), except the two that replace the text
-    /// whole through ``write(_:)``: an undo or a redo, and the find bar's
-    /// Replace All.
-    ///
-    /// - Parameter prepare: Given the lines the replacements leave, before
-    ///   they are written: for an edit whose caret is placed by them.
-    /// - Returns: The lines written.
-    @discardableResult
-    func writeReplacing(
-        _ replacements: [TextEditorReplacement], beforeWriting prepare: ([[Character]]) -> Void = { _ in }
-    ) -> [[Character]] {
-        var lines = readLines()
-        // The same edit in an attributed editor's value, in place (B-ATTRED-3).
-        attributedSource?.stage(replacements, in: layout())
-        for replacement in replacements { replacement.apply(to: &lines) }
-        prepare(lines)
-        writeLines(lines)
-        return lines
-    }
-
-    /// Writes `lines`, an edit of the text's lines, to the bound text: spliced
-    /// into the text's bytes where they differ from its lines
-    /// (``EditorLayout/replacing(lines:)``), so a key costs the lines it
-    /// changed, and the layout of the text written made from the one before,
-    /// its wrappings with it. A text with more than one kind of line break is
-    /// joined afresh, writing each as its ``EditorLayout/lineEnding``.
-    private func writeLines(_ lines: [[Character]]) {
-        let before = layout()
-        if let edit = before.replacing(lines: lines) {
-            write(edit.text)
-            // Unless the binding kept something else: that is laid out afresh
-            // by the next read.
-            if text.wrappedValue == edit.text, edit.layout !== before {
-                edit.layout.adoptWrappings(of: before, for: edit)
-                cachedLayout = edit.layout
-                if lineStyler != nil {
-                    lineStyleCache.replaceLines(edit.replaced, withCount: edit.replacement.count)
-                }
-            }
-            return
-        }
-        let ending = before.lineEnding
-        let joined = lines.map { String($0) }.joined(separator: ending)
-        write(joined)
-        // The lines just written are the layout of the text just written —
-        // unless the binding kept something else (one that transforms what it
-        // is given), which the next read lays out afresh.
-        // Each line as its string's characters, as an edit spliced in keeps
-        // them (``EditorLayout/segmented(_:)``).
-        if text.wrappedValue == joined {
-            cachedLayout = EditorLayout(text: joined, lines: lines.map(EditorLayout.segmented), lineEnding: ending)
-            if lineStyler != nil { lineStyleCache.removeAll() }
-        }
     }
 
     /// Writes `newText` to the bound text. Every edit the editor makes goes
@@ -795,7 +737,6 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     private func insertWithoutRestore(_ string: String) {
-        let lines = readLines()
         // Character-level: CRLF is ONE Character, so both it and a lone CR
         // compare directly. (No Foundation here, deliberately.)
         // Filter out control scalars (Cc), preserving \r, \n, and \t.
@@ -815,7 +756,7 @@ final class TextEditorHandler: PersistedFocusable {
             .split(separator: "\n", omittingEmptySubsequences: false)
             .map { Array($0) }
 
-        let line = lines[cursorLine]
+        let line = readLines()[cursorLine]
         let caret = cursor
         // The caret's column as the string has the characters before it: a
         // combining mark, a vowel sign or a skin-tone modifier typed or pasted
@@ -846,13 +787,12 @@ final class TextEditorHandler: PersistedFocusable {
     /// Deletes the character before the cursor, joining with the previous line
     /// at column 0.
     private func deleteBackward() {
-        let lines = readLines()
         let end = cursor
         if cursorColumn > 0 {
             cursorColumn -= 1
         } else if cursorLine > 0 {
             cursorLine -= 1
-            cursorColumn = lines[cursorLine].count
+            cursorColumn = readLines()[cursorLine].count
         } else {
             return
         }
@@ -863,11 +803,11 @@ final class TextEditorHandler: PersistedFocusable {
     /// Deletes the character at the cursor, joining with the next line at the
     /// line end.
     private func deleteForward() {
-        let lines = readLines()
+        let (length, count) = (readLines()[cursorLine].count, lineCount)
         let end: TextEditorPosition
-        if cursorColumn < lines[cursorLine].count {
+        if cursorColumn < length {
             end = TextEditorPosition(line: cursorLine, column: cursorColumn + 1)
-        } else if cursorLine < lines.count - 1 {
+        } else if cursorLine < count - 1 {
             end = TextEditorPosition(line: cursorLine + 1, column: 0)
         } else {
             return

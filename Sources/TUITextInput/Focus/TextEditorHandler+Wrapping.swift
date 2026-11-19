@@ -75,7 +75,7 @@ extension TextEditorHandler {
             let lines = readLines()
             cursorLine = target < 0 ? 0 : lines.count - 1
             cursorColumn = target < 0 ? 0 : lines[cursorLine].count
-            syncDesiredColumn(lines)
+            syncDesiredColumn(EditedLines(lines))
             return
         }
         moveToRow(target, in: rows)

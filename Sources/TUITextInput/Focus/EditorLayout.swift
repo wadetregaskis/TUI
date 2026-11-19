@@ -15,25 +15,26 @@ import TUIFoundation
 /// An untouched document costs one string comparison a frame — `String ==`
 /// answers from the storage when the binding hands back the same string — and
 /// an edit, which the editor writes itself, is made from the layout before it
-/// (``replacing(lines:)``): the lines it changed are spliced into the text's
-/// bytes and wrapped again, and the rest are kept as they are, so a key costs
-/// the lines it touched and not the document (tuitree's M4 feedback, item 3).
+/// (``replacing(_:)``, ``laidOut(_:reusingStorage:)``): the lines it changed
+/// are spliced into the text's bytes and wrapped again, and the rest are kept
+/// as they are, so a key costs the lines it touched and not the document
+/// (tuitree's M4 feedback, item 3).
 final class EditorLayout {
     /// The text laid out.
-    let text: String
+    private(set) var text: String
 
     /// Its lines, as characters, a newline between each and the next. Never
     /// empty: an empty text is one empty line.
-    let lines: [[Character]]
+    private(set) var lines: [[Character]]
 
     /// The line ending separator detected from the text ("\n", "\r\n", or "\r").
     let lineEnding: String
 
     /// Where each line starts in the text, in UTF-8 bytes.
-    let lineStarts: [Int]
+    private(set) var lineStarts: [Int]
 
     /// Where each line starts in the text, in characters: a line break is one.
-    let characterStarts: [Int]
+    private(set) var characterStarts: [Int]
 
     /// Whether every line break in the text is ``lineEnding``, so the text is
     /// its lines joined by it, byte for byte, and an edit can be spliced into
@@ -78,8 +79,8 @@ final class EditorLayout {
         self.characterStarts = Self.characterStarts(of: self.lines)
     }
 
-    /// A layout made by ``replacing(lines:)``, with its parts worked out
-    /// there.
+    /// A layout made by ``laidOut(_:reusingStorage:)``, with its parts
+    /// worked out there.
     private init(
         text: String, lines: [[Character]], lineEnding: String, lineStarts: [Int], characterStarts: [Int]
     ) {
@@ -150,55 +151,75 @@ final class EditorLayout {
 // MARK: - An edit
 
 extension EditorLayout {
-    /// An edit to a layout's lines, as ``replacing(lines:)`` makes it: the
-    /// text it leaves, and what of the layout it changed.
+    /// An edit to a layout's lines, as ``replacing(_:)`` makes it: the text it
+    /// leaves, and what of the lines it changed, to be laid out
+    /// (``laidOut(_:reusingStorage:)``) once the binding has taken the text.
     struct Edit {
         /// The text with the edit made.
         let text: String
-        /// Its layout.
-        let layout: EditorLayout
         /// The lines of the layout before it that the edit replaced
         /// (``EditorLayout/lines`` indices), and those of the layout after it
         /// that took their place.
         let replaced: Range<Int>
         let replacement: Range<Int>
+        /// The lines in ``replacement``, each as its string's characters.
+        let lines: [[Character]]
+        /// Where they start in the text, in bytes and in characters.
+        fileprivate let lineStarts: [Int]
+        fileprivate let characterStarts: [Int]
+        /// How far the lines after them moved, in bytes and in characters.
+        fileprivate let byteShift: Int
+        fileprivate let characterShift: Int
+
+        /// Whether the edit changed no line: its layout is the one before.
+        var isUnchanged: Bool { replaced.isEmpty && replacement.isEmpty }
     }
 
-    /// The text `newLines` are, and its layout, made from this layout's: the
-    /// lines that differ from this layout's, at its start and its end, are
-    /// spliced into its text's bytes, and the rest is kept, so an edit costs
-    /// the lines it changed and a copy of the bytes, not the whole document
-    /// read again as characters. `nil` where the text has more than one kind
-    /// of line break (``hasOneLineEnding``): there every break is written as
+    /// The text `edited` is, made from this layout's: the lines that differ
+    /// from this layout's, at its start and its end, are spliced into its
+    /// text's bytes, and the rest is kept, so an edit costs the lines it
+    /// changed and a copy of the bytes, not the whole document read again as
+    /// characters. `nil` where the text has more than one kind of line break
+    /// (``hasOneLineEnding``): there every break is written as
     /// ``lineEnding``, as joining the lines writes it.
     ///
-    /// The layout's wrappings are not carried over until the text is known to
-    /// be written (``adoptWrappings(of:for:)``): a binding can refuse it.
+    /// `edited`'s base must be this layout's ``lines``: every line outside
+    /// the span it replaced is taken as this layout's own, unchanged, so the
+    /// scans for the first and last line that differ start at that span's
+    /// edges rather than at the document's ends. They find the lines a scan
+    /// from the ends would: a line that is the base's own is the same line.
+    ///
+    /// Nothing of this layout changes: the binding can refuse the text, and
+    /// the layout of the text it keeps is this one.
     ///
     /// Each line the edit replaced is laid out as its string's characters
     /// (``segmented(_:)``), whatever characters the edit put together.
-    func replacing(lines newLines: [[Character]]) -> Edit? {
-        guard hasOneLineEnding, !newLines.isEmpty else { return nil }
-        var newLines = newLines
+    func replacing(_ edited: EditedLines) -> Edit? {
+        // Never empty from an editor's lines: an empty text is one empty line.
+        guard hasOneLineEnding, edited.count >= 1 else { return nil }
         let old = lines
-        let shorter = min(old.count, newLines.count)
-        var first = 0
-        while first < shorter, Self.same(old[first], newLines[first]) { first += 1 }
-        if first == old.count, first == newLines.count {
-            return Edit(text: text, layout: self, replaced: first..<first, replacement: first..<first)
+        let newCount = edited.count
+        let shorter = min(old.count, newCount)
+        var first = min(edited.replaced.lowerBound, shorter)
+        while first < shorter, Self.same(old[first], edited[first]) { first += 1 }
+        if first == old.count, first == newCount {
+            return Edit(
+                text: text, replaced: first..<first, replacement: first..<first, lines: [], lineStarts: [],
+                characterStarts: [], byteShift: 0, characterShift: 0)
         }
-        var kept = 0
-        while kept < shorter - first, Self.same(old[old.count - 1 - kept], newLines[newLines.count - 1 - kept]) {
+        var kept = min(old.count - edited.replaced.upperBound, shorter - first)
+        while kept < shorter - first, Self.same(old[old.count - 1 - kept], edited[newCount - 1 - kept]) {
             kept += 1
         }
         let replaced = first..<(old.count - kept)
-        let replacement = first..<(newLines.count - kept)
+        let replacement = first..<(newCount - kept)
         // Copied only where one changes, which an edit rarely makes one do.
         // Compared character by character, not by count: regional indicators
         // can pair afresh and keep it — "🇺" before "🇸🇬" is "🇺🇸" and "🇬".
-        for index in replacement {
-            let segmented = Self.segmented(newLines[index])
-            if !Self.same(segmented, newLines[index]) { newLines[index] = segmented }
+        let newLines = replacement.map { index in
+            let line = edited[index]
+            let segmented = Self.segmented(line)
+            return Self.same(segmented, line) ? line : segmented
         }
         let ending = Array(lineEnding.utf8)
         let total = text.utf8.count
@@ -214,7 +235,7 @@ extension EditorLayout {
         if kept > 0 {
             span = lineStarts[replaced.lowerBound]..<lineStarts[replaced.upperBound]
             firstStart = span.lowerBound
-            for line in newLines[replacement] {
+            for line in newLines {
                 let utf8 = String(line).utf8
                 lengths.append(utf8.count)
                 bytes += utf8
@@ -228,7 +249,7 @@ extension EditorLayout {
                 span = lineStarts[first]..<total
             }
             firstStart = span.lowerBound
-            for (index, line) in newLines[replacement].enumerated() {
+            for (index, line) in newLines.enumerated() {
                 if index > 0 { bytes += ending }
                 let utf8 = String(line).utf8
                 lengths.append(utf8.count)
@@ -238,27 +259,14 @@ extension EditorLayout {
             // Lines added at the end.
             span = total..<total
             firstStart = total + ending.count
-            for line in newLines[replacement] {
+            for line in newLines {
                 let utf8 = String(line).utf8
                 lengths.append(utf8.count)
                 bytes += ending
                 bytes += utf8
             }
         }
-
-        // Copied from the text's contiguous bytes, as a block: through its
-        // UTF-8 view, a byte at a time, the copy was most of a key's cost.
-        var source = text
-        let newText = source.withUTF8 { old in
-            var spliced: [UInt8] = []
-            spliced.reserveCapacity(total - span.count + bytes.count)
-            unsafe spliced.append(contentsOf: old[..<span.lowerBound])
-            spliced += bytes
-            unsafe spliced.append(contentsOf: old[span.upperBound...])
-            // Bytes, not `Data`: the text's own UTF-8 around whole lines'.
-            // swiftlint:disable:next optional_data_string_conversion
-            return String(decoding: spliced, as: UTF8.self)
-        }
+        let newText = Self.splicing(text, bytes: span, with: bytes)
 
         // Where the lines start: the kept ones before as they were, the new
         // ones where their bytes went, the kept ones after moved by as much
@@ -269,46 +277,96 @@ extension EditorLayout {
         newCharacters.reserveCapacity(replacement.count)
         var characterStart =
             first < old.count ? characterStarts[first] : characterStarts[old.count - 1] + old[old.count - 1].count + 1
-        for (line, length) in zip(newLines[replacement], lengths) {
+        for (line, length) in zip(newLines, lengths) {
             newStarts.append(firstStart)
             newCharacters.append(characterStart)
             firstStart += length + ending.count
             characterStart += line.count + 1
         }
         // Nothing follows the replaced lines unless some were kept after them.
-        let byteShift = kept > 0 ? firstStart - lineStarts[replaced.upperBound] : 0
-        let characterShift = kept > 0 ? characterStart - characterStarts[replaced.upperBound] : 0
-        let starts = Self.splicing(lineStarts, replaced, with: newStarts, shiftingRestBy: byteShift)
-        let characters = Self.splicing(characterStarts, replaced, with: newCharacters, shiftingRestBy: characterShift)
+        return Edit(
+            text: newText, replaced: replaced, replacement: replacement, lines: newLines, lineStarts: newStarts,
+            characterStarts: newCharacters,
+            byteShift: kept > 0 ? firstStart - lineStarts[replaced.upperBound] : 0,
+            characterShift: kept > 0 ? characterStart - characterStarts[replaced.upperBound] : 0)
+    }
+
+    /// The layout `edit`, which ``replacing(_:)`` made from this layout,
+    /// leaves: this layout's lines and line starts with the edit's spliced
+    /// in, and its wrappings, the lines the edit replaced wrapped again
+    /// (``WrappedRows/replaceLines(_:with:tabWidth:)``), so a key wraps the
+    /// lines it touched and not the document. Made once the binding has taken
+    /// the edit's text: this layout keeps no wrappings, being the layout of a
+    /// text no longer there.
+    ///
+    /// - Parameter reusingStorage: Whether to make the edit in this layout's
+    ///   own arrays, in place, leaving it the layout of an empty text: for a
+    ///   layout nothing else holds, whose arrays nothing else shares. Without
+    ///   it they are copied and this layout keeps its lines. A copy of forty
+    ///   thousand lines, and their release with this layout, were 26.8% of
+    ///   the `bigtext` session's time until 2026-11-19.
+    func laidOut(_ edit: Edit, reusingStorage: Bool) -> EditorLayout {
+        if edit.isUnchanged { return self }
+        var (newLines, starts, characters) = (lines, lineStarts, characterStarts)
+        if reusingStorage {
+            // Let go, so the arrays above are the only references to them.
+            (text, lines, lineStarts, characterStarts) = ("", [[]], [0], [0])
+        }
+        newLines.replaceSubrange(edit.replaced, with: edit.lines)
+        Self.splice(&starts, edit.replaced, with: edit.lineStarts, shiftingRestBy: edit.byteShift)
+        Self.splice(&characters, edit.replaced, with: edit.characterStarts, shiftingRestBy: edit.characterShift)
         let layout = EditorLayout(
-            text: newText, lines: newLines, lineEnding: lineEnding, lineStarts: starts, characterStarts: characters)
-        return Edit(text: newText, layout: layout, replaced: replaced, replacement: replacement)
+            text: edit.text, lines: newLines, lineEnding: lineEnding, lineStarts: starts, characterStarts: characters)
+        if !wrappings.isEmpty {
+            var taken = wrappings
+            wrappings = []
+            for index in taken.indices {
+                taken[index].rows.replaceLines(
+                    edit.replaced, with: newLines[edit.replacement], tabWidth: taken[index].tabWidth)
+            }
+            layout.wrappings = taken
+            layout.frame = frame
+        }
+        return layout
+    }
+
+    /// `text` with the bytes in `span` given way to `inserted`: the bytes kept
+    /// copied once, as blocks, into a string made the size it ends up.
+    ///
+    /// Not the bytes spliced into an array and decoded, as an edit was made
+    /// until 2026-11-19: that copied the text twice and checked every byte of
+    /// it was UTF-8, which the text's own bytes are, and was 17.9% of the
+    /// `bigtext` session's time. Only the inserted lines' bytes are decoded.
+    static func splicing(_ text: String, bytes span: Range<Int>, with inserted: [UInt8]) -> String {
+        var source = text
+        // Bridged text read as UTF-8 once, so the offsets below are bytes.
+        source.makeContiguousUTF8()
+        let utf8 = source.utf8
+        let lower = utf8.index(utf8.startIndex, offsetBy: span.lowerBound)
+        let upper = utf8.index(utf8.startIndex, offsetBy: span.upperBound)
+        var spliced = String()
+        spliced.reserveCapacity(utf8.count - span.count + inserted.count)
+        spliced.append(contentsOf: source[..<lower])
+        // Bytes, not `Data`: whole lines' UTF-8, from their characters.
+        // swiftlint:disable:next optional_data_string_conversion
+        spliced.append(contentsOf: String(decoding: inserted, as: UTF8.self))
+        spliced.append(contentsOf: source[upper...])
+        return spliced
     }
 
     /// `starts` with its entries in `replaced` giving way to `inserted`, and
-    /// those after them moved by `shift`: one buffer, the entries kept copied
-    /// into it as blocks and the moved ones shifted where they landed.
+    /// those after them moved by `shift`, in place: in the array itself where
+    /// nothing else shares it (``laidOut(_:reusingStorage:)``), else in its
+    /// copy.
     ///
     /// Not the prefix copied into an array, that array grown (copied again)
     /// and the rest appended an entry at a time through a lazy map, as both
     /// of a key's line-start arrays were made until 2026-11-19: 3.6% of the
-    /// `bigtext` session's time then, 1.4% so. Still a copy of the whole
-    /// array, not a splice in place: the layout before keeps its own, as it
-    /// keeps its wrappings (``adoptWrappings(of:for:)``), until the binding
-    /// takes the edit, and one it refuses leaves that layout the handler's.
-    static func splicing(_ starts: [Int], _ replaced: Range<Int>, with inserted: [Int], shiftingRestBy shift: Int)
-        -> [Int]
-    {
-        var spliced: [Int] = []
-        spliced.reserveCapacity(starts.count - replaced.count + inserted.count)
-        spliced += starts[..<replaced.lowerBound]
-        spliced += inserted
-        let moved = spliced.count
-        spliced += starts[replaced.upperBound...]
-        if shift != 0 {
-            for index in moved..<spliced.count { spliced[index] += shift }
-        }
-        return spliced
+    /// `bigtext` session's time then.
+    static func splice(_ starts: inout [Int], _ replaced: Range<Int>, with inserted: [Int], shiftingRestBy shift: Int) {
+        starts.replaceSubrange(replaced, with: inserted)
+        guard shift != 0 else { return }
+        for index in (replaced.lowerBound + inserted.count)..<starts.count { starts[index] += shift }
     }
 
     /// `line` as its string's characters. An edit that takes characters out
@@ -340,22 +398,6 @@ extension EditorLayout {
         #endif
         if shared { return true }
         return zip(a, b).allSatisfy { $0.utf8.elementsEqual($1.utf8) }
-    }
-
-    /// Takes `old`'s wrappings for this layout, which `edit` made from it:
-    /// the lines it replaced wrapped again, the rest kept, so a key wraps the
-    /// lines it touched and not the document. `old` keeps none: it is the
-    /// layout of a text no longer there.
-    func adoptWrappings(of old: EditorLayout, for edit: Edit) {
-        guard edit.layout === self, old !== self, !old.wrappings.isEmpty else { return }
-        var taken = old.wrappings
-        old.wrappings = []
-        for index in taken.indices {
-            taken[index].rows.replaceLines(
-                edit.replaced, with: lines[edit.replacement], tabWidth: taken[index].tabWidth)
-        }
-        wrappings = taken
-        frame = old.frame
     }
 }
 

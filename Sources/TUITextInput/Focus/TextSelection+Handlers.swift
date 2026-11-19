@@ -63,7 +63,7 @@ extension TextEditorHandler {
         selectionAnchor = wanted.isEmpty ? nil : layout.position(ofCharacter: wanted.lowerBound)
         cursorLine = caret.line
         cursorColumn = caret.column
-        syncDesiredColumn(layout.lines)
+        syncDesiredColumn(EditedLines(layout.lines))
         // As the macOS text system leans a selection set from outside it.
         caretLean = .upstream
         exchangedSelection = wanted

@@ -43,7 +43,7 @@ extension TextEditorHandler {
         selectionAnchor = TextEditorPosition(line: 0, column: 0)
         cursorLine = lines.count - 1
         cursorColumn = lines[cursorLine].count
-        syncDesiredColumn(lines)
+        syncDesiredColumn(EditedLines(lines))
     }
 
     /// Drops the selection, and a block, without moving the cursor.
