@@ -25,6 +25,9 @@ sends both to every program sharing it. ⌃C shut the app down when the program 
 once. While the console is handed over, the app now ignores both, as it ignores `SIGINT` and `SIGQUIT` on macOS and
 Linux.
 
+**On Windows, a paste of over a megabyte arrives whole.** TUI dropped everything past the first megabyte it held for
+the app. It now leaves the rest with the console until the app has read what it holds.
+
 **In the classic Windows console, a stepper's and a slider's arrows no longer draw as boxes.** Consolas, its
 default font, has no `◀` or `▶`, and the console draws a character its font lacks as a box when it stands alone in a
 colour of its own, as those arrows do. Where the console's font lacks them, TUI now sends `◄` and `►` in their

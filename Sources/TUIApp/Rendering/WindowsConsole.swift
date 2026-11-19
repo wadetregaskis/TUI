@@ -118,9 +118,27 @@ enum StandardHandle {
     /// were written, or -1. `WriteFile` rather than the C library's `write`,
     /// which opens descriptor 1 in text mode and would turn every line feed a
     /// frame writes into a carriage return and a line feed.
+    ///
+    /// A failure sets `errno` as `write` would, which `WriteFile` does not:
+    /// `Terminal.writeAll` reads it to tell an interrupted write, which it
+    /// retries, from a real error, and found whatever an earlier call had left
+    /// there, so a stale `EINTR` retried a write to a closed console for ever.
+    /// `EPIPE` where the other end has gone (a pipe, a closed pseudo console),
+    /// `EIO` for the rest; never `EINTR` or `EAGAIN`, which nothing here means.
     static func write(_ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
+        unsafe write(to: output, base, count)
+    }
+
+    /// ``write(_:_:)`` to `handle`, which a test hands one that fails.
+    static func write(to handle: HANDLE?, _ base: UnsafePointer<UInt8>, _ count: Int) -> Int {
         var written: DWORD = 0
-        guard unsafe WriteFile(output, base, DWORD(clamping: count), &written, nil) else { return -1 }
+        guard unsafe WriteFile(handle, base, DWORD(clamping: count), &written, nil) else {
+            switch Int32(GetLastError()) {
+            case ERROR_BROKEN_PIPE, ERROR_NO_DATA, ERROR_PIPE_NOT_CONNECTED: errno = EPIPE
+            default: errno = EIO
+            }
+            return -1
+        }
         return Int(written)
     }
 
@@ -208,8 +226,18 @@ final class ConsoleInput: @unchecked Sendable {
     /// (``waitForInput(until:)``) sleeps on.
     private let condition = NSCondition()
 
-    /// What the reader has read and the loop has not, oldest first.
+    /// What the reader has read, oldest first: the loop has read the first
+    /// ``head`` bytes, and not the rest (``held``).
     private var queued: [UInt8] = []
+
+    /// How much of ``queued`` the loop has read. An index rather than removing
+    /// what was read from the front, which moved everything behind it each
+    /// time: a paste read 4 KiB at a time was copied over and over, under the
+    /// lock the reader waits on.
+    private var head = 0
+
+    /// How many bytes are held for the loop.
+    private var held: Int { queued.count - head }
 
     /// Whether the reader may read: raw mode is on.
     private var reading = false
@@ -229,9 +257,12 @@ final class ConsoleInput: @unchecked Sendable {
     /// This class alone creates the event and closes it. 0 if none was made.
     private let changedEvent: UInt
 
-    /// The most held for the loop: far more than any burst of keys or a
-    /// terminal's replies, and a paste past it waits in the console's own queue.
-    private static let holdLimit = 1 << 20
+    /// How much the reader holds for the loop before it stops reading: far
+    /// more than any burst of keys or a terminal's replies. A paste past it
+    /// waits in the console's own queue until the loop has read some, as a
+    /// pty's buffer holds a writer back, rather than being dropped. One read
+    /// of records may take it past this; nothing is ever dropped.
+    static let holdLimit = 1 << 20
 
     init() {
         changedEvent = unsafe UInt(bitPattern: CreateEventW(nil, false, false, nil))
@@ -266,7 +297,11 @@ final class ConsoleInput: @unchecked Sendable {
 
     /// Stops reading until ``resume()``. What is held stays held.
     func pause() {
-        condition.withLock { reading = false }
+        condition.withLock {
+            reading = false
+            // A reader waiting for room: it looks at `reading` again.
+            condition.broadcast()
+        }
         if let changed = unsafe changed { unsafe SetEvent(changed) }
     }
 
@@ -275,19 +310,38 @@ final class ConsoleInput: @unchecked Sendable {
     func read(into buffer: UnsafeMutableBufferPointer<UInt8>) -> Int {
         guard let base = buffer.baseAddress else { return 0 }
         return condition.withLock {
-            let count = min(queued.count, buffer.count)
+            let count = min(held, buffer.count)
             guard count > 0 else { return 0 }
-            queued.withUnsafeBufferPointer { unsafe base.update(from: $0.baseAddress!, count: count) }
-            queued.removeFirst(count)
+            let wasFull = held >= Self.holdLimit
+            queued.withUnsafeBufferPointer { unsafe base.update(from: $0.baseAddress! + head, count: count) }
+            head += count
+            if head == queued.count {
+                queued.removeAll(keepingCapacity: true)
+                head = 0
+            } else if head >= 1 << 16, head >= held {
+                // Read past more than is left: drop it, moving the rest once.
+                queued.removeFirst(head)
+                head = 0
+            }
+            // A reader waiting for room has some.
+            if wasFull, held < Self.holdLimit { condition.broadcast() }
             return count
         }
+    }
+
+    /// Whether bytes are held for the loop: the console's counterpart of a
+    /// read source that would fire again, for `Terminal.hasPendingInput`. The
+    /// reader announces bytes once, as it reads them, and a drain that stops
+    /// short of them would otherwise sleep until the next key.
+    var isHolding: Bool {
+        condition.withLock { held > 0 }
     }
 
     /// Whether bytes are held, or arrive before `deadline`.
     func waitForInput(until deadline: Date) -> Bool {
         condition.withLock {
-            while queued.isEmpty {
-                guard condition.wait(until: deadline) else { return !queued.isEmpty }
+            while held == 0 {
+                guard condition.wait(until: deadline) else { return held > 0 }
             }
             return true
         }
@@ -300,9 +354,18 @@ final class ConsoleInput: @unchecked Sendable {
         var decoder = KeyRecordDecoder()
         var records = [INPUT_RECORD](repeating: INPUT_RECORD(), count: 128)
         while true {
-            let (reading, resize) = condition.withLock { (self.reading, self.handlers?.resize) }
+            let (reading, resize, full) = condition.withLock {
+                (self.reading, self.handlers?.resize, held >= Self.holdLimit)
+            }
             guard reading else {
                 if let changed = unsafe changed { unsafe WaitForSingleObject(changed, INFINITE) }
+                continue
+            }
+            // Full: leave the rest in the console's queue until the loop reads.
+            guard !full else {
+                condition.withLock {
+                    while self.reading, held >= Self.holdLimit { condition.wait() }
+                }
                 continue
             }
             var handles: [HANDLE?] = unsafe [console, changed]
@@ -341,13 +404,13 @@ final class ConsoleInput: @unchecked Sendable {
         }
     }
 
-    /// Holds `bytes` for the loop, up to ``holdLimit``, and tells it they are
-    /// there. What the reader does with what it read: internal, so a test can
-    /// stand in for a console.
+    /// Holds `bytes` for the loop, all of them, and tells it they are there.
+    /// What the reader does with what it read: internal, so a test can stand
+    /// in for a console.
     func receive(_ bytes: [UInt8]) {
         guard !bytes.isEmpty else { return }
         let handlers = condition.withLock {
-            queued.append(contentsOf: bytes.prefix(max(0, Self.holdLimit - queued.count)))
+            queued.append(contentsOf: bytes)
             condition.broadcast()
             return self.handlers
         }

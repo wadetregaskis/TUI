@@ -713,8 +713,12 @@ extension Terminal {
             return true
         }
         // What the quit key's watch read for the loop, which stdin won't wake it for.
-        #if canImport(WASILibc) || os(Windows)
+        #if canImport(WASILibc)
             return false
+        #elseif os(Windows)
+            // What the console's reader still holds: it wakes the loop once per
+            // read, where a POSIX read source fires again while bytes wait.
+            return consoleInput.isHolding
         #else
             return quitKeyWatch.input.holdsInput
         #endif

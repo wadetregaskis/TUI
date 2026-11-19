@@ -125,6 +125,27 @@ struct WindowsConsoleTests {
         #expect(third == 0)
     }
 
+    @Test("A paste past the hold's limit is kept whole, and read back in order")
+    func largePaste() {
+        let input = ConsoleInput()
+        let size = ConsoleInput.holdLimit + 123_457
+        let paste = (0..<size).map { UInt8(truncatingIfNeeded: $0 &* 31 &+ $0 >> 9) }
+        // Received in reads of a console's size, as the reader receives them.
+        for start in stride(from: 0, to: size, by: 512) {
+            input.receive(Array(paste[start..<min(start + 512, size)]))
+        }
+        #expect(input.isHolding)
+        var read: [UInt8] = []
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while true {
+            let count = buffer.withUnsafeMutableBufferPointer { unsafe input.read(into: $0) }
+            guard count > 0 else { break }
+            read += buffer[..<count]
+        }
+        #expect(read == paste)
+        #expect(!input.isHolding)
+    }
+
     @Test("What the reader received is announced to the loop")
     func arrival() {
         let input = ConsoleInput()
@@ -207,6 +228,20 @@ struct WindowsHandOffControlEventTests {
         defer { signals.endHandOff() }
         // Were it not ignored, this would end the test's process.
         #expect(FatalSignalTerminalRestore.controlHandler(DWORD(CTRL_BREAK_EVENT)).boolValue)
+    }
+}
+
+@Suite("Standard output's writes on Windows")
+struct WindowsStandardOutputTests {
+    @Test("A failed write sets errno as write(2) would, not leaving a stale EINTR to retry on")
+    func failedWriteSetsErrno() {
+        let bytes: [UInt8] = Array("x".utf8)
+        errno = EINTR
+        let written = bytes.withUnsafeBufferPointer {
+            unsafe StandardHandle.write(to: INVALID_HANDLE_VALUE, $0.baseAddress!, $0.count)
+        }
+        #expect(written == -1)
+        #expect(errno == EIO)
     }
 }
 
