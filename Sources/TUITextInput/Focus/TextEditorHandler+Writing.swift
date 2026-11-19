@@ -82,9 +82,11 @@ extension TextEditorHandler {
         // unless a caller still holds it: that one's arrays are copied, and it
         // keeps its lines.
         cachedLayout = nil
-        // Asked first, not as the call's argument: `before` borrowed for the
-        // call and passed `inout` within it is a conflict Xcode 26's 6.2.4
-        // takes down at -O (an ownership verification failure).
+        // Asked first, not as the call's argument: as the argument, Xcode 26's
+        // 6.2.4 aborts the -O build ("Load borrow invalidated by a local
+        // write"; Tools/CompilerBugs, `UniquenessCheckAsArgument`), and an
+        // unoptimised build's check counts the reference the call holds, so
+        // it never says unshared.
         let unshared = isKnownUniquelyReferenced(&before)
         let after = before.laidOut(edit, reusingStorage: unshared)
         cachedLayout = after

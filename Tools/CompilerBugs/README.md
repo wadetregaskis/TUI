@@ -1,6 +1,6 @@
 # Compiler bugs TUI has hit
 
-Seven Swift bugs the framework works around. Each has a self-contained repro here
+Eight Swift bugs the framework works around. Each has a self-contained repro here
 so the workaround can be checked against a new toolchain and deleted the moment
 it stops being needed — and so they can be reported upstream without anyone
 having to build TUI.
@@ -15,7 +15,8 @@ builds the tests with **Swift 6.4** (`swift-6.4-RELEASE`). It is the only one
 here that swift.org's 6.2.4 — the local default, and so the compiler every other
 entry was found with — does not show at all. The seventh was found in September
 2026 and is the only one that is not a crash or wrong code: it is a false
-diagnostic, and every toolchain here reports it.
+diagnostic, and every toolchain here reports it. The eighth was found in November
+2026, by a release build with Xcode 26's 6.2.4.
 
 ---
 
@@ -704,3 +705,118 @@ practice. **Workaround:** take the collection as ONE opaque generic parameter
 `ForEach.listRowsSignature` is spelled and why that one never warned. The
 behaviour is unchanged either way, and `TableFitColumnMemoTests` renders a table
 of un-comparable rows and counts the scans to prove the cast really does fail.
+
+
+---
+
+## 8. `UniquenessCheckAsArgument` — `isKnownUniquelyReferenced(&x)` as the argument of a call on `x`
+
+```
+tcs=~/Library/Developer/Toolchains
+cd UniquenessCheckAsArgument && ./variants.sh \
+    /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain \
+    "$tcs/swift-6.2.4-RELEASE.xctoolchain"
+```
+
+```
+                                                Xcode 6.2.4   6.2.4 +a
+Crash.swift: the check as the argument          ABORTS        ABORTS
+Crash.swift, -Onone                             ok            ok
+WORKAROUND: the check asked first               ok            ok
+no guard between the var and the call           ok            ok
+the method stores an Int, not a String          ok            ok
+the method stores an Array                      ABORTS        ABORTS
+a free function given the var and the check     ABORTS        ABORTS
+TUI's shape: returns a new object               ABORTS        ABORTS
+run: the check as the argument                  false         false
+run: the check asked first                      true          true
+```
+
+`+a` marks a compiler built with assertions, though both columns stop the same
+way: the failure is the SIL verifier's, which every build runs on a function
+just before its ownership is lowered. Each variant is compiled to an object at
+`-O` unless its label says otherwise. The `run` rows build a small program at
+`-Onone` and print what the check answered.
+
+`Crash.swift` is a class and one function:
+
+```swift
+final class Box {
+    var name = ""
+
+    func reset(_ unshared: Bool) {
+        if unshared { name = "" }
+    }
+}
+
+func edit(_ box: Box, _ flag: Bool) {
+    var before = box
+    guard flag else { return }
+    before.reset(isKnownUniquelyReferenced(&before))
+}
+```
+
+```
+SIL verification failed: Load borrow invalidated by a local write
+Verifying instruction:
+->   %10 = is_unique %4 : $*Box
+...
+4.	While running pass #987 SILFunctionTransform "OwnershipModelEliminator" on SILFunction "@$s4null4edityyAA3BoxC_SbtF".
+5.	Found verification error when verifying before lowering ownership. Please re-run with -sil-verify-all to identify the actual pass that introduced the verification error.
+```
+
+`-Onone` compiles it. With `-Xfrontend -sil-verify-all` the failure moves to
+`EarlyPerfInliner`, and printing the function after each pass
+(`-Xllvm -sil-print-function=…`) shows how it gets there. SILGen loads `before`
+with a `load [copy]` for the call's `self`, then passes it `inout` to
+`isKnownUniquelyReferenced`. Once that call is specialized,
+`CopyToBorrowOptimization` turns the copy into a `load_borrow` whose scope
+still contains the specialized call, as if the call did not write `before`.
+`EarlyPerfInliner` then inlines it, which puts a bare `is_unique` of `before`
+inside the borrow, and the verifier counts `is_unique` as a write.
+
+Three things are needed, each isolated by a row above:
+
+1. **The check as an argument of a call that also borrows the variable:** a
+   method called on it, or a function given it beside the check. Asking first
+   and passing the answer is fine.
+2. **Control flow between the variable's initialization and the call.** One
+   `guard` does it. Without one, the store is forwarded to the load and no
+   load is left to turn into a borrow.
+3. **A callee that may release something:** one that stores a `String` or an
+   `Array` into the class. One that stores an `Int` is fine.
+
+**As the argument, the check can never say "unshared" anyway.** At `-Onone`,
+the `self` the call borrows is a copy taken before the check runs, so the check
+counts two references to an object that has only one. Both `run` rows hold one
+reference to a fresh `Box`: as the argument the check says `false`, asked
+first it says `true`. So the workaround is not only what compiles; it is also
+the only spelling that asks the question.
+
+### Affected versions
+
+Observed on macOS (arm64) on 2026-11-19, with `Crash.swift` and the variants
+above:
+
+| Toolchain | Build config | `Crash.swift` at `-O` |
+|---|---|---|
+| Xcode 26's 6.2.4 (`swiftlang-6.2.4.1.4`) | no assertions | aborts |
+| swift.org 6.2.4 (`swift-6.2.4-RELEASE`) | +assertions | aborts |
+
+These were the only toolchains installed. swiftly had no 6.3, 6.4 or trunk
+toolchain then, and the `swift-latest` link pointed at a removed snapshot, so
+whether a later compiler fixes it is unknown. Run `variants.sh` with those
+toolchains to find out.
+
+**Upstream.** Not looked for, and nothing filed.
+
+**Where TUI hit it:** `TextEditorHandler.writeSpliced(_:)`
+(`Sources/TUITextInput/Focus/TextEditorHandler+Writing.swift`), written for
+e4474d8b7 as `before.laidOut(edit, reusingStorage:
+isKnownUniquelyReferenced(&before))`, with the `guard` that keeps a refused
+edit's layout between `var before = layout()` and that call. A release build
+of `TUITextInput` with Xcode's 6.2.4 aborted in that function, with this
+signature. **Workaround:** the table's WORKAROUND row:
+`let unshared = isKnownUniquelyReferenced(&before)` on the line before the
+call. It is safe on every toolchain, and it is the spelling that gives the
+right answer.
