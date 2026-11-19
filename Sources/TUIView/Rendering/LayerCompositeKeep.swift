@@ -59,13 +59,25 @@ package final class LayerCompositeKeep {
         case under
     }
 
+    /// One picture a composite is made of, and where it lands.
+    package struct Placed {
+        package let buffer: FrameBuffer
+        package let x: Int
+        package let y: Int
+
+        package init(_ buffer: FrameBuffer, x: Int, y: Int) {
+            self.buffer = buffer
+            self.x = x
+            self.y = y
+        }
+    }
+
     /// Everything a composite is made from.
     package struct Inputs {
         package let direction: Direction
-        /// The layer, inside the base's frame at `offset`.
-        package let layer: FrameBuffer
-        package let offset: (x: Int, y: Int)
-        package let base: FrameBuffer
+        /// The pictures composited, each where it lands: the base at the
+        /// origin, then the layer inside the base's frame.
+        package let placed: [Placed]
         package let palette: any Palette
         package let linearLight: Bool
         /// The image store, compared by identity.
@@ -76,9 +88,7 @@ package final class LayerCompositeKeep {
             palette: any Palette, linearLight: Bool, images: AnyObject?
         ) {
             self.direction = direction
-            self.layer = layer
-            self.offset = offset
-            self.base = base
+            self.placed = [Placed(base, x: 0, y: 0), Placed(layer, x: offset.x, y: offset.y)]
             self.palette = palette
             self.linearLight = linearLight
             self.images = images
@@ -86,9 +96,14 @@ package final class LayerCompositeKeep {
 
         /// Whether these make the composite `other` makes.
         func makesTheSameComposite(as other: Self) -> Bool {
-            direction == other.direction && offset == other.offset && linearLight == other.linearLight
-                && images === other.images && LayerCompositeKeep.same(base, other.base)
-                && LayerCompositeKeep.same(layer, other.layer) && palette.isSamePalette(as: other.palette)
+            guard direction == other.direction, placed.count == other.placed.count, linearLight == other.linearLight,
+                images === other.images
+            else { return false }
+            for (mine, theirs) in zip(placed, other.placed) {
+                guard mine.x == theirs.x, mine.y == theirs.y, LayerCompositeKeep.same(mine.buffer, theirs.buffer)
+                else { return false }
+            }
+            return palette.isSamePalette(as: other.palette)
         }
     }
 

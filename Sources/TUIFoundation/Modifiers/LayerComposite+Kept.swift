@@ -71,8 +71,7 @@ struct KeptLayerComposite {
                 viewType: "layer composite (\(inputs.direction))", served: verifying, fresh: result,
                 identity: context.identity.path)
         }
-        guard !askedForAWake, !Self.mayDrawIntoTheImageStore(inputs.layer, inputs.images),
-            !Self.mayDrawIntoTheImageStore(inputs.base, inputs.images)
+        guard !askedForAWake, !inputs.placed.contains(where: { Self.mayDrawIntoTheImageStore($0.buffer, inputs.images) })
         else { return }
         store.keep(result, at: slot, inputs)
     }
