@@ -72,9 +72,13 @@ extension RenderLoop {
     ///     returned this frame.
     ///   - nowNanos: The frame's instant.
     ///   - scheduler: Where the next frame is asked for.
+    /// - Returns: Whether the reshape changed what the frame shows under the
+    ///   pointer after it was drawn — a held menu's highlight moved, a control
+    ///   lit or unlit — so the next frame must be drawn before the next input
+    ///   is handled (``RenderLoop/owesPointerFrame``).
     func publishHitTestRegions(
         _ regions: [HitTestRegion], tooltipMovedThePage: Bool, nowNanos: Int64, scheduler: AnimationScheduler?
-    ) {
+    ) -> Bool {
         let tooltips = tuiContext.tooltipState
         let dispatcher = tuiContext.mouseEventDispatcher
         let popoverDrawn = Self.popoverText(tooltips.resolved(nowNanos: nowNanos))
@@ -98,9 +102,11 @@ extension RenderLoop {
         tooltips.endReshape(
             tooltipRows: windowChrome.tooltipRows, pointerRow: dispatcher.restingPointer?.y,
             reaching: { dispatcher.reachesHoverObserver($0) }, region: { dispatcher.regionRect(for: $0) })
-        guard Self.popoverText(tooltips.resolved(nowNanos: nowNanos)) != popoverDrawn else { return }
-        // A wake an instant after this frame: the next frame the cap allows.
-        scheduler?.requestWake("tooltip-popover", at: nowNanos &+ 1)
+        if Self.popoverText(tooltips.resolved(nowNanos: nowNanos)) != popoverDrawn {
+            // A wake an instant after this frame: the next frame the cap allows.
+            scheduler?.requestWake("tooltip-popover", at: nowNanos &+ 1)
+        }
+        return !reshaped.isEmpty
     }
 
     /// The text of `showing` when it is drawn as a popover, `nil` otherwise.

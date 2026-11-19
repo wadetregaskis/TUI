@@ -20,7 +20,9 @@
 ///
 /// So after an action the loop stops reading (`drainTerminalEvents`), gives a
 /// `Task` the action started its first slice, draws, and carries on from the next
-/// event. Nothing is dropped, and nothing but an action stops the reading:
+/// event. Nothing is dropped, and nothing but an action, or a frame whose own
+/// hit regions changed what it shows (``frameOwesAnother(atNanos:)``), stops
+/// the reading:
 /// typing, arrow keys, scrolling, a drag and a paste stay one batch and one frame
 /// (``AppState/noteControlActivated()`` says what notes one).
 ///
@@ -73,6 +75,19 @@ struct ActivationHold {
         guard now &- since <= Self.backlogLimitNanos else { return false }
         isHolding = true
         return true
+    }
+
+    /// The frame just drawn changed what it shows under the resting pointer
+    /// after it drew (`RenderLoop.owesPointerFrame`): a menu's highlight moved
+    /// to the row a reshape put under the pointer, say. The reading stops for
+    /// the frame that draws it, as for an action's, so the key behind it acts
+    /// on what the screen shows: read first, Return ran a menu row the screen
+    /// had not lit (the Stress menus session). Under the same backlog limit:
+    /// a frame that owed one on every frame would otherwise starve the input.
+    ///
+    /// - Returns: Whether the reading stops for a frame.
+    mutating func frameOwesAnother(atNanos now: UInt64) -> Bool {
+        actionRan(atNanos: now)
     }
 
     /// The reading found nothing more waiting: the loop is not behind.

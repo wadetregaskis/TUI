@@ -810,7 +810,12 @@ extension AppRunner {
             // next, with no wait. Bytes already read would wake nothing, and the
             // wait would be the input poll's, for nothing.
             let rendered = pacer.renderIfDue(now: now, renderOneFrame)
-            if rendered, hold.frameDrawn() { continue }
+            //
+            // A frame whose hit regions changed what it shows under the resting
+            // pointer after it drew — a menu's highlight — is followed by the
+            // frame that draws that before any input is read
+            // (`RenderLoop.owesPointerFrame`).
+            if rendered, frameDrawn(renderer: renderer, hold: &hold) { continue }
 
             // What is owed between frames — the progress bar, sent again where
             // it is due — and then how long to wait, or nil to block until woken.
@@ -948,6 +953,23 @@ extension AppRunner {
         guard terminal.consumeWindowSizeReport() else { return false }
         renderer.invalidateDiffCache()
         return true
+    }
+
+    /// Tells `hold` a frame has been drawn, and stops the reading of input
+    /// again for the frame that one owes, where its hit regions changed what
+    /// it shows under the resting pointer after it drew
+    /// (`RenderLoop.owesPointerFrame`, ``ActivationHold/frameOwesAnother(atNanos:)``),
+    /// asking for that frame. The first frame, drawn before the loop, owes
+    /// none: no pointer has reported anything yet, so nothing rests under one.
+    ///
+    /// - Returns: Whether the reading was holding for the frame drawn
+    ///   (``ActivationHold/frameDrawn()``), so what is behind it goes next.
+    func frameDrawn(renderer: RenderLoop<A>, hold: inout ActivationHold) -> Bool {
+        let waited = hold.frameDrawn()
+        if renderer.takeOwedPointerFrame(), hold.frameOwesAnother(atNanos: MonotonicClock.nowNanoseconds) {
+            appState.setNeedsRender()
+        }
+        return waited
     }
 
     /// Folds this iteration's reasons to render into one flag.

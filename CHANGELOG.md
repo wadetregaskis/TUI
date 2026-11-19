@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**What a frame changes under the resting pointer after it is drawn is drawn before the next key.** A frame's hit
+regions re-resolve the hover under a pointer that has not moved, and what that changed — a menu's highlight moved to
+the row under the pointer, a hover lit — waited for a frame while a key already waiting was handled first: Return
+could run a menu row the screen had not lit. The run loop now draws that frame before it reads on.
+
 **A click forgets where the pointer last moved to when it lands elsewhere.** TUI counted the pointer as resting on
 the cell of its last reported move until the next one, so with the moves between unreported, a menu opened by a click
 on its trigger could light the row under that old cell as it opened: Down then went to the row after it, and Return

@@ -284,6 +284,7 @@ package final class HeadlessApp {
     /// - Returns: Whether some layer consumed it.
     @discardableResult
     package func send(_ event: KeyEvent) -> Bool {
+        drawOwedPointerFrame()
         defer { endUndoEvent() }
         focusManager.noteInputSource(.keyboard)
         tuiContext.mouseEventDispatcher.noteInput()
@@ -301,11 +302,23 @@ package final class HeadlessApp {
     /// - Returns: Whether a handler consumed it.
     @discardableResult
     package func send(_ event: MouseEvent) -> Bool {
+        drawOwedPointerFrame()
         defer { endUndoEvent() }
         focusManager.noteInputSource(.pointer)
         return AmbientApp.$renderState.withValue(tuiContext.appState) {
             tuiContext.mouseEventDispatcher.dispatch(event, noting: focusManager)
         }
+    }
+
+    /// Draws the frame the last one owes, where its hit regions changed what
+    /// it shows under the resting pointer after it drew — a menu's highlight
+    /// moved to the row a reshape put under it — at the last frame's instant,
+    /// as the run loop draws it before it reads the next input
+    /// (`AppRunner.frameDrawn(renderer:hold:)`). Handled first, a key acted on a
+    /// highlight the screen had not drawn.
+    private func drawOwedPointerFrame() {
+        guard renderer.takeOwedPointerFrame() else { return }
+        frame(atNanos: lastFrameNanos, date: lastFrameDate)
     }
 
     /// Ends the undo manager's group for the event just handled, as a running
@@ -531,6 +544,7 @@ private protocol HeadlessRendering: AnyObject {
     func invalidateDiffCache()
     func handBackHostState() -> String
     func keepHostStateAlive(atNanos now: Int64)
+    func takeOwedPointerFrame() -> Bool
     var diffWriter: FrameDiffWriter { get }
     var scenes: ScenePresenter { get }
     var hostState: TerminalHostState { get }

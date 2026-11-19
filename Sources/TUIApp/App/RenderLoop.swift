@@ -144,6 +144,23 @@ internal final class RenderLoop<A: App> {
     /// gives.
     var statusBarTooltipText: String?
 
+    /// Whether the last frame, once drawn, changed what it shows under the
+    /// resting pointer — its hit regions moved a menu's highlight, lit a
+    /// control the reshape slid under the pointer — and so owes the frame that
+    /// draws it (``publishHitTestRegions(_:tooltipMovedThePage:nowNanos:scheduler:)``).
+    ///
+    /// The run loop and ``HeadlessApp`` draw that frame before they handle
+    /// the next input (``takeOwedPointerFrame()``): read first, a key acted on
+    /// a highlight the screen had not drawn — Return ran a menu row the screen
+    /// had not lit (the Stress menus session, at its step 803).
+    private(set) var owesPointerFrame = false
+
+    /// Reads and clears ``owesPointerFrame``.
+    func takeOwedPointerFrame() -> Bool {
+        defer { owesPointerFrame = false }
+        return owesPointerFrame
+    }
+
     /// What the last render reported, so the run loop can decide whether an
     /// animation tick can be replayed without rendering again.
     private(set) var lastActivity = RenderActivity(
@@ -674,7 +691,7 @@ extension RenderLoop {
         // drawn into the frame with the page, so nothing is translated. A
         // hover tooltip is held through a reshape the bar's rows for it
         // caused (`RenderLoop+StatusBar.swift`).
-        publishHitTestRegions(
+        owesPointerFrame = publishHitTestRegions(
             buffer.hitTestRegions, tooltipMovedThePage: tooltipMovedThePage, nowNanos: frameNowNanos,
             scheduler: animationScheduler)
         // And where each control is, for arrows that go by the screen
