@@ -74,6 +74,18 @@ struct RowShortcutsTests {
         #expect(replaced.hint(for: .selectAll) == "⌃B", "…unless it is gone")
     }
 
+    /// The owner, 2026-11-19: a key that does not work in the terminal is not
+    /// named, the one that does is.
+    @Test("On a terminal, the hint names only a key it sends as itself")
+    func hintOnTerminal() {
+        let shiftA = KeyboardShortcut("a", modifiers: [.control, .shift])
+        let table = RowShortcuts([.selectAll: .only(shiftA, KeyboardShortcut("b", modifiers: .control))])
+        // A legacy encoding sends ⌃⇧A as ⌃A.
+        #expect(table.hint(for: .selectAll, on: .nothingKnown) == "⌃B")
+        #expect(RowShortcuts([.selectAll: .only(shiftA)]).hint(for: .selectAll, on: .nothingKnown) == nil)
+        #expect(RowShortcuts.default.hint(for: .selectAll, on: .nothingKnown) == "⌃A")
+    }
+
     /// The arrow keys had no `KeyEquivalent` at all until the nudge needed one,
     /// so a chord on them could not be written, let alone fired. They print as
     /// macOS's symbols for them — the private-use scalar behind `.upArrow`

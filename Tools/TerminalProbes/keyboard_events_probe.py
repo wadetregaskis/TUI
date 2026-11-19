@@ -4,7 +4,7 @@ does each key the user presses actually send?
 
 Pushes `CSI > 31 u` (all five enhancements, as TUI asks for them), asks
 what the terminal took, then logs every read raw and decoded, until Ctrl-C
-(in any encoding) or two minutes of silence. Pops the flags on the way out,
+(in any encoding) or two minutes of silence (`PROBE_IDLE` seconds). Pops the flags on the way out,
 including on an exception.
 
 The decoder here is written from the specification
@@ -24,7 +24,8 @@ Run INSIDE the terminal under test. Writes to $PROBE_OUT (default
 import os, re, select, signal, sys, termios, time, tty
 
 REQUESTED = 31
-IDLE_LIMIT = 120.0
+# `PROBE_IDLE` seconds of silence end the run (default two minutes).
+IDLE_LIMIT = float(os.environ.get("PROBE_IDLE", "120"))
 
 MODIFIERS = [(1, "shift"), (2, "alt"), (4, "ctrl"), (8, "super"), (16, "hyper"),
              (32, "meta"), (64, "caps_lock"), (128, "num_lock")]

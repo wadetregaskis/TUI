@@ -228,10 +228,31 @@ public struct RowShortcuts: Hashable, Sendable {
     /// that reaches another action.
     ///
     /// Adding an alias should not quietly rename the hint the user has learned.
+    ///
+    /// Whatever the terminal can send: ``hint(for:on:commandKey:)`` names only
+    /// a key that arrives.
     public func hint(
         for action: RowAction, commandKey: CommandKeyBinding = .control
     ) -> String? {
         hint(for: action, among: shortcuts(for: action, commandKey: commandKey), commandKey: commandKey)
+    }
+
+    /// The chord to *show* for `action` on a terminal whose keyboard is as
+    /// `terminal` says (an app passes its `\.terminalCapabilities`; a keyboard
+    /// feature not known to be supported counts as missing): as
+    /// ``hint(for:commandKey:)`` chooses, but among the keys such a terminal
+    /// sends as themselves, so a key it would turn into another (⌃⇧T arrives
+    /// as ⌃T in a legacy encoding) is passed over for one that works; `nil`
+    /// where none does. The rest stay bound.
+    ///
+    /// - Note: TUI-specific, as the table is; undo's is
+    ///   `UndoShortcuts.hint(for:on:commandKey:)`.
+    public func hint(
+        for action: RowAction, on terminal: TerminalCapabilities, commandKey: CommandKeyBinding = .control
+    ) -> String? {
+        let reporting = KeyboardReporting(terminal)
+        let shortcuts = shortcuts(for: action, commandKey: commandKey).filter(reporting.delivers)
+        return hint(for: action, among: shortcuts, commandKey: commandKey)
     }
 
     /// The chord → action map the key handler dispatches through, built once

@@ -40,7 +40,7 @@ import TUIFoundation
 /// survey's "Keys a sheet's grabber uses"). Under the kitty keyboard protocol they all arrive. So the panel's
 /// typed keys — Backspace, `~`, `/`, `+` and Escape — stay its portable
 /// route, and the status bar names these chords only where the protocol is
-/// on (``FilePanel/statusItems(viewMode:createsFolders:chords:)``).
+/// on (``FilePanel/statusItems(viewMode:createsFolders:commandKey:reporting:)``).
 enum FilePanelCommand: CaseIterable {
     case listView, columnsView, togglePreview, enclosingFolder, openSelection, goToFolder
     case home, desktop, downloads, documents, applications, newFolder, toggleHiddenFiles, cancel
@@ -97,10 +97,13 @@ enum FilePanelCommand: CaseIterable {
         return trigger
     }
 
-    /// The first chord as the status bar names it under `commandKey` (`⌃⇧P`),
-    /// or `nil` where no key stands in for ⌘.
-    func displayString(commandKey: CommandKeyBinding) -> String? {
-        shortcuts.first?.resolved(commandKey: commandKey)?.displayString
+    /// The first chord the terminal `reporting` sends as itself, as the
+    /// status bar names it under `commandKey` (`⌃⇧P`); `nil` where none
+    /// arrives, or no key stands in for ⌘. Still bound where it does not: the
+    /// bar names only a key that works (the owner, 2026-11-19).
+    func shownShortcut(commandKey: CommandKeyBinding, reporting: KeyboardReporting) -> String? {
+        shortcuts.lazy.compactMap { $0.resolved(commandKey: commandKey) }.first(where: reporting.delivers)?
+            .displayString
     }
 
     /// The folder a Go chord goes to — in `home`, or for Applications the

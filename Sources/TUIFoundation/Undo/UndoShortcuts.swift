@@ -176,7 +176,7 @@ public struct UndoShortcuts: Hashable, Sendable {
     func hintShortcuts(
         for command: UndoCommand, on reporting: KeyboardReporting, commandKey: CommandKeyBinding
     ) -> [KeyboardShortcut] {
-        let deliverable = shortcuts(for: command, commandKey: commandKey).filter { $0.isDeliverable(on: reporting) }
+        let deliverable = shortcuts(for: command, commandKey: commandKey).filter(reporting.delivers)
         return rankedHintShortcuts(for: command, among: deliverable, commandKey: commandKey)
     }
 
@@ -194,48 +194,6 @@ extension UndoShortcuts: ShortcutTable {
     // `ShortcutTable` must be.
     @usableFromInline
     package static var modifierName: String { "undoShortcuts" }
-}
-
-// MARK: - What a terminal can deliver
-
-extension KeyboardShortcut {
-    /// Whether a terminal that reports keys as `reporting` says can deliver
-    /// this chord as itself — not as another key that matches some other
-    /// binding, and not as nothing.
-    ///
-    /// Narrower than ``isDeliverableInTerminal``, which asks only whether a
-    /// chord can be named at all. In a legacy encoding a Control chord is a C0
-    /// byte, which has no case and exists only for the letters (bar Ctrl-H, I,
-    /// J and M, which are other keys) and for minus (0x1F): Ctrl-Shift-Z
-    /// arrives as Ctrl-Z, Ctrl-_ and Ctrl-/ as Ctrl-minus. Under the kitty
-    /// keyboard protocol every Control chord arrives as itself, one whose key
-    /// is a shifted character only where the terminal reports the shifted key
-    /// (``KeyboardReporting/reportsShiftedKeys``) — a letter's capital is
-    /// always known. An Option chord is taken as deliverable: the terminal
-    /// sends it where Option is Meta, which nothing can ask. Never one the
-    /// terminal keeps for itself (``KeyboardReporting/keptChords``).
-    func isDeliverable(on reporting: KeyboardReporting) -> Bool {
-        guard !reporting.keptChords.contains(trigger) else { return false }
-        guard case .key(let key, let modifiers) = trigger else { return true }
-        guard modifiers.isDisjoint(with: [.command, .capsLock, .numericPad]) else { return false }
-        let character = key.character
-        let shifted = modifiers.contains(.shift) || Self.shiftedSymbols.contains(character)
-        if modifiers.contains(.control) {
-            guard reporting.disambiguatesKeys else {
-                return !shifted && (Self.controlLetters.contains(character) || character == "-")
-            }
-            return !shifted || character.isLetter || reporting.reportsShiftedKeys
-        }
-        // Shift without Control is a case, and only a letter has one.
-        return !modifiers.contains(.shift) || character.isLetter
-    }
-
-    /// The letters whose Control chord a legacy encoding sends as that chord.
-    private static let controlLetters = Set("abcdefgklnopqrstuvwxyz")
-
-    /// The characters a US layout types with Shift, which a Control chord can
-    /// name only where the terminal reports the shifted key.
-    private static let shiftedSymbols = Set("~!@#$%^&*()_+{}|:\"<>?")
 }
 
 // MARK: - The app's undo keys, between frames

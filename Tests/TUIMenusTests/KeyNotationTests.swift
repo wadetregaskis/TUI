@@ -174,15 +174,18 @@ struct KeyNotationTests {
         #expect(appAsked.terminal.writtenOutput.joined().stripped.contains("Esc back"), "the scene's own ask")
     }
 
-    @Test("A menu row writes its shortcut in the notation in force")
+    @Test("A menu row writes its shortcut in the notation in force, where the terminal sends it")
     func menuRows() {
-        func drawn(_ notation: KeyNotation) -> String {
+        func drawn(_ notation: KeyNotation, reporting: KeyboardReporting = KeyboardReporting(flags: .requested)) -> String {
             let tui = TUIContext()
             let focusManager = FocusManager()
             var environment = EnvironmentValues()
             environment.focusManager = focusManager
             environment.applyRuntimeServices(from: tui)
             environment.keyNotation = notation
+            // Under the kitty keyboard protocol, where ⌃⇧X arrives as itself
+            // and so is named: a legacy encoding sends it as ⌃X.
+            environment.keyboardReporting = reporting
             let context = RenderContext(
                 availableWidth: 40, availableHeight: 12, environment: environment, tuiContext: tui)
             let view = Text("Right-click me").contextMenu {
@@ -207,6 +210,9 @@ struct KeyNotationTests {
         #expect(symbols.contains("Cut") && symbols.contains("⌃⇧X"), "\(symbols)")
         let names = drawn(.spelledOut)
         #expect(names.contains("Cut") && names.contains("Ctrl-Shift-X"), "\(names)")
+        // Where it would arrive as ⌃X, it is not named (the owner, 2026-11-19).
+        let legacy = drawn(.symbols, reporting: .legacy)
+        #expect(legacy.contains("Cut") && !legacy.contains("⌃"), "\(legacy)")
     }
 }
 

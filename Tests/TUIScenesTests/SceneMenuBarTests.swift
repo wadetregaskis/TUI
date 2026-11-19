@@ -306,7 +306,12 @@ struct SceneMenuBarTests {
     func keptChordsByHost() {
         for program in TerminalClient.Program.allCases {
             let kept = TerminalClient.keptChords(program)
-            #expect(kept == (program == .windowsTerminal ? [KeyboardShortcut(",", modifiers: .control).trigger] : []))
+            let windowsTerminals: Set<KeyboardShortcut.Trigger> = Set(
+                [
+                    KeyboardShortcut(",", modifiers: .control), KeyboardShortcut("-", modifiers: .control),
+                    KeyboardShortcut("_", modifiers: .option), KeyboardShortcut("v", modifiers: [.control, .shift]),
+                ].map(\.trigger))
+            #expect(kept == (program == .windowsTerminal ? windowsTerminals : []))
         }
     }
 

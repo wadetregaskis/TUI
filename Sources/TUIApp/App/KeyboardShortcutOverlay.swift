@@ -98,9 +98,11 @@ extension InputHandler {
         let service = LocalizationService.shared
         var listing = ShortcutOverlayListing()
         let page = service.string(for: LocalizationKey.Menu.shortcutsOnThisScreen)
+        // Only the keys this terminal sends as themselves: the undo keys hold
+        // what it reports, kept current as the app's environment is.
         let shortcuts = keyboardShortcuts.listing(
             activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
-            modalSection: focusManager.activeModalSectionID)
+            modalSection: focusManager.activeModalSectionID, reporting: undoKeys.reporting)
         // Every key in the case the status bar draws a letter pressed alone
         // in (`K` or `k`; `⇧K` either way), so the list and the bar beside it
         // name a key one way.

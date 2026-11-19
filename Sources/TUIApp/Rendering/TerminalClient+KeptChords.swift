@@ -15,23 +15,34 @@ extension TerminalClient {
     /// (``KeyboardReporting/keptChords``), offering another where it has one
     /// (Settings… shows F2).
     ///
-    /// - Windows Terminal: ⌃, opens its settings, a default binding. Pressed
-    ///   without the kitty keyboard protocol, 2026-11-17, it arrived as
-    ///   nothing, and with all 31 flags, 2026-11-19 (1.25.3131.0), as
-    ///   Control's own press and release alone (Terminal compatibility
-    ///   survey.md, "Keys" and "Keys under the kitty protocol"). Its other
-    ///   default bindings (⌃=, ⌃- and ⌃0 for the font size, ⌃V, the ⌃⇧ chords
-    ///   for tabs, panes and find, Alt-arrows and ⌥⇧- for panes) are not
-    ///   listed: a person can rebind any of them, so a list could be wrong for
-    ///   them (the owner, 2026-11-17: "Just ⌃, for now"). ⌃- and ⌥⇧- were
-    ///   kept in that run too: ⌃-'s release alone arrived, and ⌥⇧-'s
-    ///   modifiers.
+    /// A chord listed here is never shown where the app names its keys (the
+    /// menu bar, the status bar, F1's list): one that works is shown instead,
+    /// or none (the owner, 2026-11-19: a shortcut that does not work in a
+    /// terminal is not listed there, and the one that does is). Each is a
+    /// default binding of the host's that took the chord in a measured run,
+    /// whatever the app had pressed it for; a binding the host gives up when
+    /// it has nothing to do (Windows Terminal's Alt-arrows, which move between
+    /// panes, arrived where there was one pane) is not listed. A person can
+    /// rebind any of them, which this cannot see.
+    ///
+    /// - Windows Terminal 1.25.3131.0, with all 31 kitty flags, 2026-11-19
+    ///   (Terminal compatibility survey.md, "Keys under the kitty protocol"):
+    ///   ⌃, (its settings) arrived as Control's own press and release alone,
+    ///   as it arrived as nothing without the protocol, 2026-11-17 ("Keys");
+    ///   ⌥⇧- (a split pane) as its modifiers alone; ⌃- (the font size) and
+    ///   ⌃⇧V (its paste) as their releases alone. ⌃- is one of undo's keys and
+    ///   ⌥⇧- one of redo's, so their hints name ⌃Z and ⌃⇧Z there.
     ///
     /// Every other host is taken to keep none: a chord it does keep is still
-    /// bound, and named where nothing arrives.
+    /// bound, and named, as nothing here knows it does not arrive.
     static func keptChords(_ program: Program) -> Set<KeyboardShortcut.Trigger> {
         switch program {
-        case .windowsTerminal: [KeyboardShortcut(",", modifiers: .control).trigger]
+        case .windowsTerminal:
+            Set(
+                [
+                    KeyboardShortcut(",", modifiers: .control), KeyboardShortcut("-", modifiers: .control),
+                    KeyboardShortcut("_", modifiers: .option), KeyboardShortcut("v", modifiers: [.control, .shift]),
+                ].map(\.trigger))
         case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .windowsConsole, .tmux,
             .unidentified:
             []

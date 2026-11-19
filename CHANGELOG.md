@@ -15,6 +15,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A menu, F1's list of shortcuts and the file panel's status bar name only keys that work in the terminal.** A chord
+the terminal cannot send as itself, such as ⌃⇧S where a legacy encoding sends ⌃S, or one the terminal keeps for a
+binding of its own, is no longer shown beside its command, where pressing it would do something else or nothing. It
+stays bound. Where the command has another key that does arrive, that one is shown, as undo's and redo's hints
+already were. `RowShortcuts.hint(for:on:commandKey:)` chooses a list row's hint the same way.
+
+**In Windows Terminal, undo and redo name ⌃Z and ⌃⇧Z.** Windows Terminal keeps ⌃- for its font size and ⌥⇧- for
+splitting a pane, so those two of undo's and redo's keys never reach the app there.
+
 **On Windows, `handOffTerminal(running:arguments:)` runs the program.** It threw `.unsupported` there. It now
 starts the program in the app's console and waits for it, and reports how it ended as `.exit` with its exit code:
 Windows has no signals, so a program ended by ⌃C exits with `0xC000013A`. A name is looked up as Windows looks one

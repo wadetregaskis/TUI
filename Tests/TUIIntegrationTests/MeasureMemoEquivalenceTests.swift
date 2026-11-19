@@ -301,7 +301,7 @@ struct MeasureMemoEquivalenceTests {
         let menu = Menu {
             ForEach(0..<6, id: \.self) { index in
                 Button("Delete Everything \(index)") {}
-                    .keyboardShortcut(KeyEquivalent("\u{7F}"))
+                    .keyboardShortcut("d")  // ⌃D, a key every terminal sends, so its hint is drawn
             }
         } label: {
             Text("Edit")

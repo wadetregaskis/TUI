@@ -78,9 +78,10 @@ package struct KeyboardReporting: Hashable, Sendable {
     package let reportsNumericPad: Bool
 
     /// The chords the terminal keeps for its own bindings, which never reach
-    /// the app in any encoding: Windows Terminal's ⌃, (its settings), as
-    /// `TerminalClient.keptChords(_:)` lists them for each host. Empty where
-    /// none is known, as for a terminal not measured.
+    /// the app in any encoding: Windows Terminal's ⌃, (its settings) and ⌃-
+    /// (its font size) among them, as `TerminalClient.keptChords(_:)` lists
+    /// them for each host. Empty where none is known, as for a terminal not
+    /// measured.
     ///
     /// Not carried by `\.terminalCapabilities`: a TUI record of the host, as
     /// the quit byte's aliases are, and what TUI names keys by
@@ -90,14 +91,47 @@ package struct KeyboardReporting: Hashable, Sendable {
     /// A terminal speaking only its legacy encodings: none of the above.
     package static let legacy = Self(flags: [])
 
-    /// Whether the terminal sends `shortcut`, as a command key resolved it: a
-    /// chord it does not keep for itself (``keptChords``) and that arrives as
-    /// itself, any chord under the kitty keyboard protocol's disambiguate mode
-    /// and otherwise one every legacy encoding sends
-    /// (``KeyboardShortcut/isDeliverableInTerminal``).
+    /// Whether the terminal sends `shortcut`, as a command key resolved it, as
+    /// itself — not as another key that matches some other binding, and not
+    /// as nothing: the one rule for whether a key is named anywhere the app
+    /// lists its keys (a menu's key column, the status bar, F1's list), which
+    /// names one that does arrive in its place where there is one (the owner,
+    /// 2026-11-19).
+    ///
+    /// Never a chord the terminal keeps for itself (``keptChords``). Under the
+    /// kitty keyboard protocol's disambiguate mode every chord arrives as
+    /// itself, but for one that needs a modifier no key carries
+    /// (``EventModifiers/command`` until a command key resolves it,
+    /// ``EventModifiers/capsLock``, ``EventModifiers/numericPad``), and a
+    /// Control chord on a shifted character (⌃_), which only a terminal that
+    /// reports the shifted key (``reportsShiftedKeys``) tells apart from its
+    /// unshifted key's — a letter's capital is always known. Otherwise, one
+    /// every legacy encoding sends as itself
+    /// (``KeyboardShortcut/isDeliverableInTerminal``): Ctrl-Shift-Z arrives as
+    /// Ctrl-Z, and Ctrl-/ as Ctrl-minus.
     package func delivers(_ shortcut: KeyboardShortcut) -> Bool {
-        !keptChords.contains(shortcut.trigger) && (disambiguatesKeys || shortcut.isDeliverableInTerminal)
+        guard !keptChords.contains(shortcut.trigger) else { return false }
+        guard disambiguatesKeys else { return shortcut.isDeliverableInTerminal }
+        guard case .key(let key, let modifiers) = shortcut.trigger else { return true }
+        guard modifiers.isDisjoint(with: [.command, .capsLock, .numericPad]) else { return false }
+        let character = key.character
+        guard modifiers.contains(.control), !character.isLetter else { return true }
+        let shifted = modifiers.contains(.shift) || Self.shiftedSymbols.contains(character)
+        return !shifted || reportsShiftedKeys
     }
+
+    /// Whether the terminal sends a shortcut that fires on `trigger`
+    /// (``delivers(_:)``): for a list of what is bound, which holds triggers.
+    package func delivers(_ trigger: KeyboardShortcut.Trigger) -> Bool {
+        switch trigger {
+        case .defaultAction, .cancelAction: true
+        case .key(let key, let modifiers): delivers(KeyboardShortcut(key, modifiers: modifiers))
+        }
+    }
+
+    /// The characters a US layout types with Shift, which a Control chord can
+    /// name only where the terminal reports the shifted key.
+    private static let shiftedSymbols = Set("~!@#$%^&*()_+{}|:\"<>?")
 
     /// What a terminal that took `flags` reports, and that keeps
     /// `keptChords` for itself.

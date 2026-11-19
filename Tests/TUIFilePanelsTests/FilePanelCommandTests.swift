@@ -180,13 +180,22 @@ struct FilePanelCommandTests {
 
     @Test("The status bar names the preview's and the views' chords only where they can arrive")
     func statusItems() {
-        let enhanced = FilePanel.statusItems(viewMode: .list, createsFolders: false, chords: .control).map(\.shortcut)
+        func items(_ commandKey: CommandKeyBinding, _ reporting: KeyboardReporting) -> [String] {
+            FilePanel.statusItems(viewMode: .list, createsFolders: false, commandKey: commandKey, reporting: reporting)
+                .map(\.shortcut)
+        }
+        let enhanced = items(.control, KeyboardReporting(flags: .requested))
         #expect(enhanced.contains("⌃⇧P"), "\(enhanced)")
         #expect(enhanced.contains("⌃2|⌃3"), "\(enhanced)")
-        let legacy = FilePanel.statusItems(viewMode: .list, createsFolders: false, chords: nil).map(\.shortcut)
-        #expect(!legacy.contains("⌃⇧P"), "\(legacy)")
+        let legacy = items(.control, .legacy)
+        #expect(!legacy.contains("⌃⇧P") && !legacy.contains("⌃2|⌃3"), "\(legacy)")
         // No stand-in for ⌘, no chords.
-        let none = FilePanel.statusItems(viewMode: .list, createsFolders: false, chords: .unavailable).map(\.shortcut)
-        #expect(none == legacy)
+        #expect(items(.unavailable, KeyboardReporting(flags: .requested)) == legacy)
+        // A chord the terminal keeps for itself is not named either.
+        let keepsPreview = items(
+            .control,
+            KeyboardReporting(
+                flags: .requested, keptChords: [KeyboardShortcut("p", modifiers: [.control, .shift]).trigger]))
+        #expect(!keepsPreview.contains("⌃⇧P") && keepsPreview.contains("⌃2|⌃3"), "\(keepsPreview)")
     }
 }

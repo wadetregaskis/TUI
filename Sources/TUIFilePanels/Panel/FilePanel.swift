@@ -344,8 +344,8 @@ struct FilePanel: View {
             // button (`StatusBarState.keepPresentationItem`).
             .statusBarItems(
                 Self.statusItems(
-                    viewMode: viewMode, createsFolders: createsFolders,
-                    chords: keyboardReporting.isEnhanced ? commandKey : nil))
+                    viewMode: viewMode, createsFolders: createsFolders, commandKey: commandKey,
+                    reporting: keyboardReporting))
     }
 
     /// The keys to the enclosing folder in the view shown.

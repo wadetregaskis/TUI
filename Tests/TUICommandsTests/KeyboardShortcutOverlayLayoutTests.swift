@@ -123,6 +123,10 @@ struct KeyboardShortcutOverlayScreenTests {
 
     private func shown(width: Int, height: Int) -> TestApp {
         let app = TestApp(MenusApp(), width: width, height: height)
+        // Under the kitty keyboard protocol, where ⌃H, ⌃I and ⌃M arrive as
+        // themselves, and so are listed: a legacy encoding sends them as
+        // Backspace, Tab and Return.
+        app.headless.keyboardReporting = KeyboardReporting(flags: .requested)
         app.advance(by: .milliseconds(40))
         app.press(KeyEvent(key: .f1))
         app.advance(by: .milliseconds(40))

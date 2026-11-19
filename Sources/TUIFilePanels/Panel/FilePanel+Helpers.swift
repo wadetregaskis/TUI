@@ -62,13 +62,14 @@ extension FilePanel {
     /// Escape item, which presses the Cancel button
     /// (`StatusBarState.keepPresentationItem`): to the enclosing folder in
     /// the view `viewMode` shows, home, the go-to field, and New Folder where
-    /// the panel `createsFolders`; and where `chords` names the key that
-    /// stands in for ⌘, the most used of the chords (``FilePanelCommand``):
-    /// the preview's and the views'. The panel passes none where they cannot
-    /// arrive as themselves.
+    /// the panel `createsFolders`; and the most used of the chords
+    /// (``FilePanelCommand``), the preview's and the views', ⌘ resolved
+    /// through `commandKey`, where the terminal `reporting` sends one of them
+    /// as itself (``FilePanelCommand/shownShortcut(commandKey:reporting:)``).
     @StatusBarItemBuilder
     static func statusItems(
-        viewMode: FilePanelViewMode, createsFolders: Bool, chords: CommandKeyBinding?
+        viewMode: FilePanelViewMode, createsFolders: Bool, commandKey: CommandKeyBinding,
+        reporting: KeyboardReporting
     ) -> [any StatusBarItemProtocol] {
         StatusBarItem(
             shortcut: viewMode == .list ? Shortcut.backspace : Shortcut.arrowLeft,
@@ -84,13 +85,13 @@ extension FilePanel {
                 shortcut: "+",
                 label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusNewFolder))
         }
-        if let chords, let preview = FilePanelCommand.togglePreview.displayString(commandKey: chords) {
+        if let preview = FilePanelCommand.togglePreview.shownShortcut(commandKey: commandKey, reporting: reporting) {
             StatusBarItem(
                 shortcut: preview,
                 label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusPreview))
         }
-        if let chords, let list = FilePanelCommand.listView.displayString(commandKey: chords),
-            let columns = FilePanelCommand.columnsView.displayString(commandKey: chords)
+        if let list = FilePanelCommand.listView.shownShortcut(commandKey: commandKey, reporting: reporting),
+            let columns = FilePanelCommand.columnsView.shownShortcut(commandKey: commandKey, reporting: reporting)
         {
             // Either key, as the bar writes `c|C`.
             StatusBarItem(

@@ -389,19 +389,37 @@ struct AppUndoTests {
         let kitty = KeyboardReporting(flags: .requested)
         let noShifted = KeyboardReporting(flags: [.disambiguateEscapeCodes])
         let chord = { (key: KeyEquivalent, modifiers: EventModifiers) in KeyboardShortcut(key, modifiers: modifiers) }
-        #expect(chord("z", .control).isDeliverable(on: legacy))
-        #expect(chord("-", .control).isDeliverable(on: legacy))
-        #expect(!chord("/", .control).isDeliverable(on: legacy), "arrives as Ctrl-minus")
-        #expect(!chord("_", .control).isDeliverable(on: legacy))
-        #expect(!chord("z", [.control, .shift]).isDeliverable(on: legacy), "arrives as Ctrl-Z")
-        #expect(!chord("h", .control).isDeliverable(on: legacy), "arrives as Backspace")
-        #expect(chord("_", .option).isDeliverable(on: legacy))
-        #expect(chord("/", .control).isDeliverable(on: kitty))
-        #expect(chord("_", .control).isDeliverable(on: kitty))
-        #expect(chord("z", [.control, .shift]).isDeliverable(on: kitty))
-        #expect(!chord("_", .control).isDeliverable(on: noShifted), "the shifted key is not reported")
-        #expect(chord("z", [.control, .shift]).isDeliverable(on: noShifted), "a letter's capital is always known")
-        #expect(!chord("z", .command).isDeliverable(on: kitty))
+        #expect(chord("z", .control).delivered(on: legacy))
+        #expect(chord("-", .control).delivered(on: legacy))
+        #expect(!chord("/", .control).delivered(on: legacy), "arrives as Ctrl-minus")
+        #expect(!chord("_", .control).delivered(on: legacy))
+        #expect(!chord("z", [.control, .shift]).delivered(on: legacy), "arrives as Ctrl-Z")
+        #expect(!chord("h", .control).delivered(on: legacy), "arrives as Backspace")
+        #expect(chord("_", .option).delivered(on: legacy))
+        #expect(chord("/", .control).delivered(on: kitty))
+        #expect(chord("_", .control).delivered(on: kitty))
+        #expect(chord("z", [.control, .shift]).delivered(on: kitty))
+        #expect(!chord("_", .control).delivered(on: noShifted), "the shifted key is not reported")
+        #expect(chord("z", [.control, .shift]).delivered(on: noShifted), "a letter's capital is always known")
+        #expect(!chord("z", .command).delivered(on: kitty))
+        // Windows Terminal keeps undo's ⌃- and redo's ⌥⇧- for its font size
+        // and its panes, so the hints name ⌃Z and ⌃⇧Z there.
+        let windowsTerminal = KeyboardReporting(
+            flags: .requested, keptChords: TerminalClient.keptChords(.windowsTerminal))
+        #expect(!chord("-", .control).delivered(on: windowsTerminal))
+        #expect(!chord("_", .option).delivered(on: windowsTerminal))
+        #expect(chord("_", .control).delivered(on: windowsTerminal))
+        let shortcuts = UndoShortcuts.default
+        #expect(shortcuts.hintShortcut(for: .undo, on: windowsTerminal, commandKey: .control) == chord("z", .control))
+        #expect(
+            shortcuts.hintShortcut(for: .redo, on: windowsTerminal, commandKey: .control)
+                == chord("z", [.control, .shift]))
+        #expect(
+            !shortcuts.hintShortcuts(for: .undo, on: windowsTerminal, commandKey: .control)
+                .contains(chord("-", .control)))
+        #expect(
+            !shortcuts.hintShortcuts(for: .redo, on: windowsTerminal, commandKey: .control)
+                .contains(chord("_", .option)))
     }
 
     @Test("An app can turn the items off")
@@ -421,4 +439,10 @@ private struct SuspendingApp: App {
         WindowGroup { Text("page") }
             .undoShortcuts([.undo: .only(KeyboardShortcut("-", modifiers: .control))])
     }
+}
+
+extension KeyboardShortcut {
+    /// Whether `reporting`'s terminal sends this chord as itself
+    /// (`KeyboardReporting.delivers(_:)`), read the other way round.
+    fileprivate func delivered(on reporting: KeyboardReporting) -> Bool { reporting.delivers(self) }
 }

@@ -326,15 +326,20 @@ package final class KeyboardShortcutRegistry {
     /// fires by, so each key appears once, under whatever a press would reach.
     ///
     /// Only what registers here. An `onKeyPress` or `onKeyEvent` handler is a
-    /// closure that nothing can ask what it answers to.
+    /// closure that nothing can ask what it answers to. And only a key the
+    /// terminal sends as itself (`reporting`, ``KeyboardReporting/delivers(_:)``):
+    /// one that does not is still bound, but the list names only keys that
+    /// work here (the owner, 2026-11-19).
     package func listing(
-        activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil
+        activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil,
+        reporting: KeyboardReporting? = nil
     ) -> [ListedShortcut] {
         var triggers = Set(actions.keys).union(defaults.keys).union(hints.keys)
         if let activePane {
             if let own = paneActions[activePane] { triggers.formUnion(own.keys) }
             if let own = paneDefaults[activePane] { triggers.formUnion(own.keys) }
         }
+        if let reporting { triggers = triggers.filter(reporting.delivers) }
         var named: [(trigger: KeyboardShortcut.Trigger, name: Name)] = []
         for trigger in triggers {
             let app = appEntry(

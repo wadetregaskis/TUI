@@ -520,6 +520,18 @@ CommandMenu("Node") {
 
 SwiftUI has no such modifier: a menu item there shows the key it binds.
 
+**A key is named only where the terminal sends it.** A menu item's key column,
+the list of shortcuts (F1) and the file panel's status bar leave out a chord the
+terminal cannot send as itself — ⌃⇧S, which a legacy encoding sends as ⌃S, or a
+chord the terminal keeps for a binding of its own, as Windows Terminal keeps ⌃,
+⌃- and ⌥⇧- — since pressing it would do something else, or nothing. The chord
+stays bound, for a person who has rebound the terminal's key. Where a command has
+another key that does arrive, that one is named instead: Settings… shows F2,
+undo ⌃Z, and ``RowShortcuts/hint(for:on:commandKey:)`` picks a list row's key
+the same way. So bind a command to a key every terminal sends where you can
+(``KeyboardShortcut/isDeliverableInTerminal``); a Control chord on a shifted or
+punctuation key goes unnamed outside the kitty keyboard protocol.
+
 ## Framework Shortcuts
 
 A few controls bind keys of their own, the way SwiftUI's built-in menu items do.

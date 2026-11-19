@@ -134,7 +134,7 @@ struct MenuHeightCeilingTests {
         // could not see.
         let items = ForEach(0..<6, id: \.self) { index in
             Button("Delete Everything \(index)") {}
-                .keyboardShortcut(KeyEquivalent("\u{7F}"))
+                .keyboardShortcut("d")  // ⌃D, a key every terminal sends, so its hint is drawn
         }
         // Width 26 is the band that matters. Narrower and the labels wrap
         // during the HUG too, so the hug height clears the cap on its own and

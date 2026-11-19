@@ -201,7 +201,7 @@ private struct SheetApp: App {
             Button("Behind") {}
                 .keyboardShortcut("b", modifiers: .control)
                 .sheet(isPresented: .constant(true)) {
-                    Button("In Sheet") {}.keyboardShortcut("i", modifiers: [.control, .option])
+                    Button("In Sheet") {}.keyboardShortcut("e", modifiers: [.control, .option])
                 }
         }
     }
@@ -360,7 +360,7 @@ struct KeyboardShortcutOverlayTests {
     func overASheet() {
         let app = launched(SheetApp())
         press(f1, in: app)
-        #expect(row("In Sheet", in: app)?.contains("⌃⌥I") == true)
+        #expect(row("In Sheet", in: app)?.contains("⌃⌥E") == true)
         #expect(!app.screen.text.contains("⌃B"))
         press(KeyEvent(key: .escape), in: app)
         #expect(!app.screen.contains(heading))
