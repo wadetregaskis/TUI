@@ -89,7 +89,9 @@ extension SessionLocality {
     /// it is asked when something is about to say where the user is (a file
     /// panel as it is presented), off the main actor, never per frame.
     package static func judgement() -> Judgement {
-        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl)
+        // Windows too: its chain is read from a process snapshot, as
+        // `isLocal()`'s is, and an ssh server there sets `SSH_CONNECTION`.
+        #if canImport(Darwin) || canImport(Glibc) || canImport(Musl) || os(Windows)
             let inputs = Inputs.current()
             return judgement(
                 environment: inputs.environment, ownChain: inputs.ownChain,

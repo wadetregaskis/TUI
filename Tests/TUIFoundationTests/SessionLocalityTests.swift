@@ -208,4 +208,17 @@ struct SessionJudgementTests {
         #expect(
             judge(chain: pane, clients: [["tmux", "zsh", "SCREEN", "sshd", "launchd"]], inTmux: true) == .unknown)
     }
+
+    #if os(Windows)
+        @Test("On Windows the judgement walks this process's chain, as isLocal() does, rather than giving up")
+        func windowsJudgement() {
+            let inputs = SessionLocality.Inputs.current()
+            #expect(inputs.ownChain != nil)
+            #expect(
+                SessionLocality.judgement()
+                    == SessionLocality.judgement(
+                        environment: inputs.environment, ownChain: inputs.ownChain,
+                        tmuxClientChains: inputs.tmuxClientChains, inTmux: inputs.inTmux))
+        }
+    #endif
 }
