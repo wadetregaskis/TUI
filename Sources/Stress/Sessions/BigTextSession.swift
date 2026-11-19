@@ -42,7 +42,7 @@ struct BigTextPage: View {
     }
 }
 
-// MARK: - The script
+// MARK: - The session
 
 /// Someone editing a record in the middle of a 3 MB JSON file, as tuitree's
 /// source pane is (its M4 feedback, item 3): runs of typing, corrections, a
@@ -52,6 +52,73 @@ struct BigTextPage: View {
 @MainActor
 final class BigTextSession: StressSession {
     private let document: BigTextDocument
+    private var script: BigTextScript
+
+    /// Records in the document: forty thousand at the default scale, 3.2 MB.
+    static func records(_ config: StressConfig) -> Int { config.sized(40_000) }
+
+    /// The document's records, one a line (``BigTextRecord``).
+    static func documentRecords(_ config: StressConfig) -> [BigTextRecord] {
+        let seed = config.seed
+        return (0..<Self.records(config)).map { index in
+            let h = mix(seed, index)
+            return BigTextRecord(
+                id: index, name: Synth.sentence(h, words: 2 + Int(h % 3)), size: h % 100_000, ok: h & 1 == 0)
+        }
+    }
+
+    /// The document: a JSON array of ``records(_:)`` records, one a line.
+    /// `bigtext-open` opens the same one.
+    static func documentText(_ config: StressConfig) -> String {
+        "[\n" + documentRecords(config).map(\.line).joined(separator: "\n") + "\n]"
+    }
+
+    init(config: StressConfig) {
+        document = BigTextDocument(text: Self.documentText(config))
+        script = BigTextScript(seed: config.seed, bytes: document.text.utf8.count)
+    }
+
+    var page: BigTextPage { BigTextPage(document: document) }
+
+    func step(_ index: Int) -> SessionStep {
+        script.step(index, bytes: document.text.utf8.count) { offset in
+            let text = document.text
+            document.selection = TextSelection(insertionPoint: text.utf8.index(text.startIndex, offsetBy: offset))
+        }
+    }
+
+    /// The status line says the length the keys left, and so does the model.
+    func check(_ screen: [String], after index: Int) -> String? {
+        script.check(screen, bytes: document.text.utf8.count)
+    }
+
+    static let descriptor = SessionDescriptor(
+        id: "bigtext",
+        summary: "a TextEditor holding 3.2 MB of JSON, typed into in the middle",
+        exercises: "a key's edit, the text written back and laid out again, against the size of the document",
+        make: { config, width, height, cold in
+            DrivenSession(BigTextSession(config: config), width: width, height: height, cold: cold)
+        })
+}
+
+// MARK: - A record
+
+/// One record of the document, a line of it.
+struct BigTextRecord {
+    let id: Int
+    let name: String
+    let size: UInt64
+    let ok: Bool
+
+    var line: String {
+        "  {\"id\": \(id), \"name\": \"\(name)\", \"size\": \(size), \"ok\": \(ok)},"
+    }
+}
+
+// MARK: - The script
+
+/// The keys `bigtext` plays, and the length they leave.
+struct BigTextScript {
     private var random: SessionRandom
     /// Characters left in the run being typed.
     private var run = 0
@@ -61,31 +128,16 @@ final class BigTextSession: StressSession {
     /// what the status line and the model must say.
     private var expectedBytes: Int
 
-    /// Records in the document: forty thousand at the default scale, 3.2 MB.
-    static func records(_ config: StressConfig) -> Int { config.sized(40_000) }
-
-    /// The document: a JSON array of ``records(_:)`` records, one a line.
-    /// `bigtext-open` opens the same one.
-    static func documentText(_ config: StressConfig) -> String {
-        let seed = config.seed
-        let text = (0..<Self.records(config)).map { index in
-            let h = mix(seed, index)
-            let name = Synth.sentence(h, words: 2 + Int(h % 3))
-            return "  {\"id\": \(index), \"name\": \"\(name)\", \"size\": \(h % 100_000), \"ok\": \(h & 1 == 0)},"
-        }.joined(separator: "\n")
-        return "[\n" + text + "\n]"
+    init(seed: UInt64, bytes: Int) {
+        random = SessionRandom(seed: seed)
+        expectedBytes = bytes
     }
 
-    init(config: StressConfig) {
-        document = BigTextDocument(text: Self.documentText(config))
-        expectedBytes = document.text.utf8.count
-        random = SessionRandom(seed: config.seed)
-    }
-
-    var page: BigTextPage { BigTextPage(document: document) }
-
-    func step(_ index: Int) -> SessionStep {
-        if index == 0 { return jump(to: document.text.utf8.count / 2) }
+    /// Step `index`'s keys, for a text `bytes` long. A jump has the app put the
+    /// caret at a byte offset (`placeCaret`) and sends no key: the text is
+    /// ASCII, so a byte is a character.
+    mutating func step(_ index: Int, bytes: Int, placeCaret: (Int) -> Void) -> SessionStep {
+        if index == 0 { return jump(to: bytes / 2, placeCaret) }
         if run > 0 {
             run -= 1
             return typed()
@@ -109,13 +161,12 @@ final class BigTextSession: StressSession {
             return SessionStep(action: "move", keys: Array(repeating: KeyEvent(key: key), count: random.within(1...3)))
         default:
             // Into the middle half, so no key reaches either end.
-            let bytes = document.text.utf8.count
-            return jump(to: bytes / 4 + random.below(bytes / 2))
+            return jump(to: bytes / 4 + random.below(bytes / 2), placeCaret)
         }
     }
 
     /// The next character typed: letters, and a space every so often.
-    private func typed() -> SessionStep {
+    private mutating func typed() -> SessionStep {
         expectedBytes += 1
         let roll = random.below(26 + 5)
         let key = roll < 26 ? KeyEvent(key: .character(Character(UnicodeScalar(UInt8(97 + roll))))) : KeyEvent(key: .space)
@@ -124,35 +175,24 @@ final class BigTextSession: StressSession {
 
     /// Backspace, which takes a byte: the text is ASCII, and the caret is
     /// never at its start.
-    private func erase() -> SessionStep {
+    private mutating func erase() -> SessionStep {
         expectedBytes -= 1
         return SessionStep(action: "backspace", keys: [KeyEvent(key: .backspace)])
     }
 
-    /// The caret put at the `offset`th byte, by the app: the text is ASCII,
-    /// so a byte is a character.
-    private func jump(to offset: Int) -> SessionStep {
-        let text = document.text
-        let place = text.utf8.index(text.startIndex, offsetBy: max(1, offset))
-        document.selection = TextSelection(insertionPoint: place)
+    /// The caret put at the `offset`th byte, by the app.
+    private func jump(to offset: Int, _ placeCaret: (Int) -> Void) -> SessionStep {
+        placeCaret(max(1, offset))
         return SessionStep(action: "jump")
     }
 
-    /// The status line says the length the keys left, and so does the model.
-    func check(_ screen: [String], after index: Int) -> String? {
-        let bytes = document.text.utf8.count
+    /// The status line says the length the keys left, and so does the model,
+    /// whose text is `bytes` long.
+    func check(_ screen: [String], bytes: Int) -> String? {
         guard bytes == expectedBytes else { return "the text is \(bytes) bytes, not the \(expectedBytes) the keys left" }
         guard screen.first?.hasPrefix("\(bytes) bytes") == true else {
             return "the status line does not say \(bytes) bytes"
         }
         return nil
     }
-
-    static let descriptor = SessionDescriptor(
-        id: "bigtext",
-        summary: "a TextEditor holding 3.2 MB of JSON, typed into in the middle",
-        exercises: "a key's edit, the text written back and laid out again, against the size of the document",
-        make: { config, width, height, cold in
-            DrivenSession(BigTextSession(config: config), width: width, height: height, cold: cold)
-        })
 }
