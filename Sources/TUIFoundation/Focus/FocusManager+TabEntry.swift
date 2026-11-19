@@ -27,9 +27,11 @@
 /// What the focus manager keeps between a Tab and the frame after it, for a
 /// lazy stack the Tab should have come into (``FocusManager/tabEntryEdges(intoSubtreeAt:ownStopAt:)``).
 struct TabEntryState {
-    /// The last Tab (`forward`) or Shift-Tab, the control it left, and the
-    /// render generation it was pressed in: read by the frame after it alone.
-    var move: (forward: Bool, from: String, generation: UInt64)?
+    /// The last Tab (`forward`) or Shift-Tab, the control it left, the render
+    /// generation it was pressed in, and the control it left the focus on
+    /// (`to`, once it has moved it): read by the frame after it alone, and
+    /// only while the focus is still on `to` (``FocusManager/freshTabMove``).
+    var move: (forward: Bool, from: String, generation: UInt64, to: String?)?
     /// The content the last move came into, or passed over, by `edge`, and the
     /// rows the stacks in it found nearest that edge with something to focus:
     /// the one of them first in the ring for the top edge, last for the
@@ -61,7 +63,9 @@ extension FocusManager {
     ///   over the subtree, by the same rules played over the move it made?
     ///   Only a Tab last frame's ring could not foresee needs it: one behind
     ///   another key in the same batch of input that moved the focus or
-    ///   changed the rows. The stack then walks in from that edge, and once
+    ///   changed the rows. Not one followed by a click, an arrow or a
+    ///   `@FocusState` write that moved the focus on (``freshTabMove``): the
+    ///   focus is then where that put it. The stack then walks in from that edge, and once
     ///   the walk is done the focus is taken on to the row it finds
     ///   (``resolveEdgeArrival()``), unless it is in that row already, and the
     ///   frame walked again before it is written.
@@ -153,8 +157,19 @@ extension FocusManager {
     /// passed over the children beside that control
     /// (`_VStackCore.entryChildren(_:frame:viewportHeight:context:)`). `nil` in any other
     /// frame.
-    var tabMoveIntoThisFrame: (forward: Bool, from: String)? {
-        guard let move = tabEntry.move, move.generation &+ 1 == focusRenderGeneration else { return nil }
+    var tabMoveIntoThisFrame: (forward: Bool, from: String)? { freshTabMove }
+
+    /// The Tab or Shift-Tab pressed just before this frame, while the focus is
+    /// still on the control it left it on (or the row ``resolveEdgeArrival()``
+    /// took it on to): `nil` in any other frame, and once something after the
+    /// Tab in the same batch of input — a click, an arrow, a `@FocusState`
+    /// write — moved the focus elsewhere. That focus is where it was put, and
+    /// no Tab's to carry on: a click on row 5 after a Tab into a lazy stack
+    /// was taken back to row 0, the row the Tab would have landed on.
+    var freshTabMove: (forward: Bool, from: String)? {
+        guard let move = tabEntry.move, move.generation &+ 1 == focusRenderGeneration,
+            move.to == currentFocusedID
+        else { return nil }
         return (move.forward, move.from)
     }
 
@@ -180,8 +195,7 @@ extension FocusManager {
     private func arrivalEdge(
         into path: String, ownStopAt stopPath: String, focused: String, isInside: (String) -> Bool
     ) -> VerticalEdge? {
-        guard let move = tabEntry.move, move.generation &+ 1 == focusRenderGeneration, !isInside(move.from)
-        else { return nil }
+        guard let move = freshTabMove, !isInside(move.from) else { return nil }
         let isOwnStop = { (focusID: String) in self.renderedIdentity(ofFocusID: focusID)?.path == stopPath }
         // Rows filed in focus sections of their own are not the stop's
         // neighbours: Tab onto the stop came from the control before it.
@@ -195,7 +209,14 @@ extension FocusManager {
     /// Notes the Tab or Shift-Tab about to move the focus, for the frame after
     /// it (``tabEntryEdges(intoSubtreeAt:ownStopAt:)``).
     func noteTabMove(forward: Bool) {
-        tabEntry.move = currentFocusedID.map { (forward, $0, focusRenderGeneration) }
+        tabEntry.move = currentFocusedID.map { (forward, $0, focusRenderGeneration, nil) }
+    }
+
+    /// Notes the control the Tab or Shift-Tab just noted (``noteTabMove(forward:)``)
+    /// left the focus on: the frame after it carries the Tab on only while the
+    /// focus is still there (``freshTabMove``).
+    func noteTabLanded() {
+        tabEntry.move?.to = currentFocusedID
     }
 
     /// Notes that the stack at `stackPath` found `row`, its row nearest `edge`
@@ -256,7 +277,11 @@ extension FocusManager {
         // walk made again with the focus on it reads that, above the row.
         focusedValues.carryWalkForward()
         focus(id: target.focusID)
-        return currentFocusedID == target.focusID
+        guard currentFocusedID == target.focusID else { return false }
+        // The Tab's own landing now, for the walk made again with the focus
+        // on it (``freshTabMove``).
+        tabEntry.move?.to = target.focusID
+        return true
     }
 
     /// Whether the key that moved the focus to `focused` would have gone to

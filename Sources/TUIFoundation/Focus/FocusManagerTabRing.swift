@@ -25,6 +25,7 @@ extension FocusManager {
     /// Tab goes round those as it goes round a page's.
     public func focusNext() {
         noteTabMove(forward: true)
+        defer { noteTabLanded() }
         let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
         if ring.count > 1 {
             let moved = moveFocusInSection(direction: .forward, wrap: false)
@@ -46,6 +47,7 @@ extension FocusManager {
     /// to focus.
     public func focusPrevious() {
         noteTabMove(forward: false)
+        defer { noteTabLanded() }
         let ring = activeModalSectionID.map { sections(presentedIn: $0) } ?? sections
         if ring.count > 1 {
             let moved = moveFocusInSection(direction: .backward, wrap: false)
