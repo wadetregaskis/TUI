@@ -138,7 +138,7 @@ enum DirectoryListing {
         var modified: Date?
         /// The type the system names, on Apple platforms.
         var contentType: UTType?
-        /// The system's words for the type, on Apple platforms.
+        /// The system's words for the type, on Apple platforms and Windows.
         var typeDescription: String?
 
         init() {}
@@ -230,7 +230,7 @@ enum DirectoryListing {
     }
 
     /// An item's kind, in words: the system's description where it has one
-    /// (localized, on Apple platforms), the type's own (English) where it
+    /// (localized, on Apple platforms and Windows), the type's own (English) where it
     /// does not, else the extension in capitals ("TOML") or "Document".
     private static func kind(of type: UTType, facts: ItemFacts, isFolder: Bool) -> String {
         if let description = facts.typeDescription { return description }
