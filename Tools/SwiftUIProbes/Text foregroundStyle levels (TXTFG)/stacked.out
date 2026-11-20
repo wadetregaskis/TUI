@@ -1,0 +1,73 @@
+macOS 15.8.3, drawn at 3x, Aqua
+
+foregroundColor(.red).foregroundColor(.blue): first; first and last differ in 3999 px
+foregroundColor(nil).foregroundColor(.blue): first; first and last differ in 3999 px
+foregroundColor(.red).foregroundStyle(.blue): first; first and last differ in 3999 px
+foregroundStyle(.red).foregroundColor(.blue): first; first and last differ in 3999 px
+foregroundStyle(.red).foregroundStyle(.blue): first; first and last differ in 3999 px
+foregroundStyle(gradient).foregroundStyle(.blue): first; first and last differ in 3999 px
+foregroundStyle(.blue).foregroundStyle(gradient): first; first and last differ in 3999 px
+(Text + Text).foregroundStyle(.red).foregroundStyle(.blue): first; first and last differ in 3999 px
+font(.title).font(.caption): first; first and last differ in 10596 px
+font(nil).font(.title): first; first and last differ in 10839 px
+font(.title).font(nil): first; first and last differ in 10839 px
+fontWeight(.heavy).fontWeight(.ultraLight): first; first and last differ in 5697 px
+fontWeight(nil).fontWeight(.heavy): first; first and last differ in 5769 px
+fontWeight(.heavy).fontWeight(nil): first; first and last differ in 5769 px
+bold(true).bold(false): first; first and last differ in 5448 px
+bold(false).bold(true): first; first and last differ in 5448 px
+bold().fontWeight(.ultraLight): last; first and last differ in 5372 px
+fontWeight(.ultraLight).bold(): first; first and last differ in 5372 px
+bold(false).fontWeight(.heavy): first; first and last differ in 5769 px
+fontWeight(.heavy).bold(false): first; first and last differ in 5769 px
+bold(false).fontWeight(.ultraLight): last; first and last differ in 4412 px
+fontWeight(.ultraLight).bold(false): first; first and last differ in 4412 px
+bold(true).fontWeight(.regular): first; first and last differ in 5448 px
+fontWeight(.regular).bold(true): first; first and last differ in 5448 px
+bold(true).fontWeight(nil): first; first and last differ in 5448 px
+fontWeight(nil).bold(true): first; first and last differ in 5448 px
+font(.body.bold()).fontWeight(.regular): last; first and last differ in 5111 px
+font(.body.bold()).fontWeight(nil): first; first and last differ in 5111 px
+fontWeight(.heavy).font(.title): neither (14311 px from first, 13301 from last); first and last differ in 11556 px
+italic(true).italic(false): first; first and last differ in 4052 px
+italic(false).italic(true): first; first and last differ in 4052 px
+underline(true).underline(false): first; first and last differ in 838 px
+underline(false).underline(true): first; first and last differ in 838 px
+underline(color: .red).underline(color: .blue): first; first and last differ in 840 px
+underline(pattern: .dot).underline(pattern: .solid): first; first and last differ in 492 px
+strikethrough(true).strikethrough(false): first; first and last differ in 1080 px
+strikethrough(false).strikethrough(true): first; first and last differ in 1080 px
+strikethrough(color: .red).strikethrough(color: .blue): first; first and last differ in 1080 px
+textScale(.secondary).textScale(.default): first; first and last differ in 4754 px
+textScale(.default).textScale(.secondary): first; first and last differ in 4754 px
+monospaced(true).monospaced(false): first; first and last differ in 5364 px
+monospaced(false).monospaced(true): first; first and last differ in 5364 px
+fontDesign(.serif).fontDesign(.monospaced): first; first and last differ in 5588 px
+fontWidth(.compressed).fontWidth(.expanded): first; first and last differ in 5733 px
+kerning(6).kerning(0): first; first and last differ in 5507 px
+tracking(6).tracking(0): first; first and last differ in 5507 px
+baselineOffset(8).baselineOffset(0): both (first and last draw alike); first and last differ in 0 px
+lineLimit(1).lineLimit(3): first; first and last differ in 15853 px
+truncationMode(.head).truncationMode(.tail): first; first and last differ in 11484 px
+
+foregroundStyle(.secondary).foregroundStyle(.blue) draws exactly as foregroundStyle(Color.blue.secondary)
+foregroundStyle(.tertiary).foregroundStyle(.blue) draws exactly as foregroundStyle(Color.blue.tertiary)
+foregroundStyle(.secondary).foregroundStyle(.tint) under .tint(.green) draws exactly as foregroundStyle(Color.green.secondary)
+foregroundStyle(.secondary).foregroundStyle(gradient) draws exactly as foregroundStyle(gradient.secondary)
+foregroundStyle(.secondary).foregroundStyle(gradient) draws unlike (3825 px) foregroundStyle(gradient)
+
+{ fontWeight(nil) } under View.fontWeight(.heavy): first; first and last differ in 5769 px
+{ fontWeight(nil) } under View.font(.body.bold()): last; first and last differ in 5111 px
+{ fontWeight(nil) } under View.bold(): first; first and last differ in 5448 px
+{ fontWeight(.regular) } under View.font(.body.bold()): first; first and last differ in 5111 px
+{ font(nil) } under View.font(.title): first; first and last differ in 10839 px
+{ bold(false) } under View.bold(): first; first and last differ in 5448 px
+{ bold(false) } under View.fontWeight(.heavy): first; first and last differ in 5769 px
+{ bold() } under View.fontWeight(.ultraLight): last; first and last differ in 5372 px
+{ fontWeight(.ultraLight) } under View.bold(): first; first and last differ in 5372 px
+{ foregroundColor(nil) } under View.foregroundStyle(.red): first; first and last differ in 3999 px
+{ italic(false) } under View.italic(): first; first and last differ in 4052 px
+{ underline(false) } under View.underline(): first; first and last differ in 838 px
+
+customAttribute(Tag(first)).customAttribute(Tag(last)): the runs' Tags read ["last", "last"]
+(Text(a).customAttribute(Tag(fragment)) + Text(b)).customAttribute(Tag(whole)): the runs' Tags read ["whole", "whole", "whole", "whole"]

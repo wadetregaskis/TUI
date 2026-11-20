@@ -96,6 +96,9 @@ extension TextStyle {
         result.underline = underline ?? base.underline
         result.strikethrough = strikethrough ?? base.strikethrough
         result.isDim = isDim ?? base.isDim
+        // The font's own weight, stated beneath, holds unless a weight is
+        // stated here (one always states the faint attribute, on or off).
+        result.weightIsFonts = weightIsFonts || (base.weightIsFonts && isDim == nil)
         result.isBlink = isBlink || base.isBlink
         result.isInverted = isInverted || base.isInverted
         result.truncationMode = truncationMode ?? base.truncationMode

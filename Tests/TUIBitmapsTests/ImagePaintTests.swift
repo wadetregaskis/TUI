@@ -138,9 +138,10 @@ struct ImagePaintTests {
     /// `Text`'s own `foregroundStyle` keeps the style in the text's value; it
     /// drew nothing for a picture, whose pixels nothing asked for, until the
     /// text asked for them where it is drawn as the view modifier does.
-    @Test("A text's own image paint draws as the view modifier's, and on a fragment")
+    @Test("A text's own image paint draws as the view modifier's, at a level, and on a fragment")
     func textsOwnPaint() {
         let paint = ImagePaint(image: Self.image)
+        // The whole buffer: a faded picture's strength is in its alpha claims.
         func drawn(_ view: some View) -> FrameBuffer {
             let tui = TUIContext()
             tui.stateStorage.beginRenderPass()
@@ -151,6 +152,10 @@ struct ImagePaintTests {
         }
         let own = drawn(Text("########").foregroundStyle(paint))
         #expect(own == drawn(Group { Text("########") }.foregroundStyle(paint)))
+        // A level written first is a level of the picture.
+        let level = drawn(Text("########").foregroundStyle(.secondary).foregroundStyle(paint))
+        #expect(level == drawn(Group { Text("########") }.foregroundStyle(paint.secondary)))
+        #expect(level != own, "precondition: the secondary picture is not the picture")
         // A fragment's picture bands across the text, over that fragment alone,
         // and a second fragment carrying it takes the same tiles.
         let fragments = Text("##\(Text("##").foregroundStyle(paint))##\(Text("##").foregroundStyle(paint))")

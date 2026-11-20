@@ -65,6 +65,39 @@ sRGB. The calibration swatches match Apple's light-mode values.
 view modifier nearer the view does; a level written first is a level of the
 style written after it (#7FBBFF is `.blue.secondary`'s swatch, #7FBCFF).
 
+## 3. Every other modifier of one kind: the first written wins
+
+`stacked.swift` (`stacked.out`, same machine, 2026-11-19) draws `Text(s).a.b`,
+`Text(s).a` and `Text(s).b` alone and says which of the two single ones the
+stacked one's pixels equal.
+
+- **The first wins** for `foregroundColor` and `foregroundStyle` in any mix
+  (a gradient included, and on a `Text + Text`), `font` (`font(nil)` too: it
+  is a statement), `fontWeight` (`nil` too), `bold`, `italic`, `underline`
+  (its pattern and colour with it), `strikethrough`, `textScale`,
+  `monospaced`, `fontDesign`, `fontWidth`, `kerning` and `tracking`; and for
+  the `View` modifiers `lineLimit` and `truncationMode`, the nearer
+  environment value. (`baselineOffset` drew alike both ways in this frame and
+  says nothing.)
+- **A bold and a weight:** a `bold` applies to the weight below it.
+  `bold().fontWeight(.ultraLight)` is ultralight and
+  `bold().fontWeight(.regular)` bold; `bold(false).fontWeight(.heavy)` is
+  regular and `bold(false).fontWeight(.ultraLight)` ultralight; a weight first
+  wins outright (`fontWeight(.ultraLight).bold()` is ultralight).
+- **`fontWeight(nil)` is the font's own weight:** it wins over a weight or a
+  bold written after it, and over a view's `.fontWeight(.heavy)` or `.bold()`
+  above it, but `.font(.body.bold())` keeps it bold, and a `bold()` before it
+  still makes it bold.
+- **A level written first is a level of the style written after it,** exactly:
+  `.foregroundStyle(.secondary).foregroundStyle(.blue)` draws the pixels of
+  `Color.blue.secondary`, `.tertiary` of `.blue.tertiary`, and with `.tint`
+  under `.tint(.green)` those of `Color.green.secondary`; with a gradient,
+  those of the gradient's `.secondary`.
+- **`customAttribute` keeps the last:** a renderer reads the attribute written
+  last, and a whole concatenation's over a fragment's own.
+- A text's own `bold()` under a view's `.fontWeight(.ultraLight)` is
+  ultralight: the view's weight, the bold applying to it.
+
 ## TUI
 
 **Before (main at cbbcbbfc3):** `Text` had only `foregroundStyle(_: Color) -> Text`,
@@ -83,7 +116,24 @@ Not matched: under `View.foregroundStyle(.secondary)` TUI's environment holds
 the style already resolved to a colour, so a text's own `.secondary` there is
 that colour at half strength, a paler grey than SwiftUI's #808080.
 
-Section 2 is not matched: TUI keeps the **last** style a text states (before
-and after this lane), so `.foregroundStyle(.red).foregroundStyle(.blue)` is blue
-and `.foregroundStyle(.secondary).foregroundStyle(.blue)` plain blue. Recorded
-in the compatibility guide for the owner.
+Section 2 was not matched by lane TXTFG: TUI kept the **last** style a text
+stated, so `.foregroundStyle(.red).foregroundStyle(.blue)` was blue and
+`.foregroundStyle(.secondary).foregroundStyle(.blue)` plain blue.
+
+**After lane TXTFG-ORDER (2026-11-19):** sections 2 and 3 match. A `Text`'s own
+modifiers keep the first of two statements of one kind
+(`Sources/TUIFoundation/Views/Text+StatementOrder.swift`; pinned by
+`Tests/TUIFoundationTests/TextModifierOrderTests.swift` and
+`TextForegroundStyleTests`): the foreground style, `font`, `fontWeight`,
+`bold`, `italic`, `underline`, `strikethrough`, `textScale`, `lineLimit`,
+`truncationMode`, and TUI's own `dim`. A level written first is a level of the
+colour, tint or gradient written after it; a bold before a weight applies to it
+as above; `fontWeight(nil)` is the font's own weight, over a weight or bold
+after it or above it; `customAttribute` keeps the last. `monospaced`,
+`fontDesign` and `monospacedDigit` change nothing in a terminal, and TUI's
+`Text` has no `fontWidth`, `kerning`, `tracking` or `baselineOffset`.
+
+Not matched: a text's own `bold()` under a view's `.fontWeight(.ultraLight)`
+draws bold and faint, where SwiftUI's is ultralight (TUI's faint is not only a
+weight: `.dim()`, a caption's tier); this is a text against what is above it,
+not an order on one text, and is left as it was.

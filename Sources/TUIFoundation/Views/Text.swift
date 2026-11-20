@@ -262,6 +262,12 @@ extension Text {
     //
     // `bold()` / `italic()` keep their no-argument spellings because SwiftUI
     // declares both, not merely a defaulted parameter.
+    //
+    // Of two of one kind on one text, the FIRST written wins, as in SwiftUI
+    // (measured): `Text("x").bold(false).bold(true)` is not bold, and
+    // `.font(.title).font(.caption)` is a title. A later one fills in only what
+    // no earlier one said. Where a bold and a weight meet, see
+    // `Text+StatementOrder.swift`.
 
     /// Makes the text bold.
     ///
@@ -277,7 +283,7 @@ extension Text {
     /// - Returns: A new text with the bold setting applied.
     public func bold(_ isActive: Bool) -> Text {
         var copy = self
-        copy.style.isBold = isActive
+        copy.style.stateBold(isActive)
         return copy
     }
 
@@ -294,6 +300,7 @@ extension Text {
     ///   ancestor's ``View/italic(_:)``.
     /// - Returns: A new text with the italic setting applied.
     public func italic(_ isActive: Bool) -> Text {
+        guard style.isItalic == nil else { return self }
         var copy = self
         copy.style.isItalic = isActive
         return copy
@@ -324,6 +331,8 @@ extension Text {
     ///   - color: The line's colour, or `nil` for the text's own.
     /// - Returns: A new text with the underline setting applied.
     public func underline(_ isActive: Bool = true, pattern: LineStyle.Pattern, color: Color? = nil) -> Text {
+        // The line, its pattern and its colour are one statement.
+        guard style.underline == nil else { return self }
         var copy = self
         copy.style.underline = .some(isActive ? LineStyle(pattern: pattern, color: color) : nil)
         return copy
@@ -357,6 +366,7 @@ extension Text {
     ///   - color: The line's colour, or `nil` for the text's own.
     /// - Returns: A new text with the strikethrough setting applied.
     public func strikethrough(_ isActive: Bool = true, pattern: LineStyle.Pattern, color: Color? = nil) -> Text {
+        guard style.strikethrough == nil else { return self }
         var copy = self
         copy.style.strikethrough = .some(isActive ? LineStyle(pattern: pattern, color: color) : nil)
         return copy
@@ -380,7 +390,7 @@ extension Text {
     /// - Returns: A new text with the dim setting applied.
     public func dim(_ isActive: Bool = true) -> Text {
         var copy = self
-        copy.style.isDim = isActive
+        copy.style.stateDim(isActive)
         return copy
     }
 
@@ -395,7 +405,7 @@ extension Text {
     ///   - isEnabled: Whether to apply it; `false` leaves the text as it was.
     /// - Returns: A new text with the scale applied.
     public func textScale(_ scale: Scale, isEnabled: Bool = true) -> Text {
-        guard isEnabled else { return self }
+        guard isEnabled, style.textScale == nil else { return self }
         var copy = self
         copy.style.textScale = scale
         return copy
@@ -420,6 +430,8 @@ extension Text {
     ///   which, inside a `.font(...)` subtree, is how this one text opts out.
     /// - Returns: A new text with the font applied.
     public func font(_ font: Font?) -> Text {
+        // `font(nil)` is a statement too: the outer optional is the "said".
+        guard style.font == nil else { return self }
         var copy = self
         copy.style.font = .some(font)
         return copy
@@ -436,15 +448,20 @@ extension Text {
     /// two compose in either order: `.font(.caption).fontWeight(.bold)` and
     /// `.fontWeight(.bold).font(.caption)` are both a bold caption.
     ///
-    /// - Parameter weight: The weight to apply, or `nil` to leave the inherited
-    ///   weight alone — SwiftUI's meaning for `nil` here, and
-    ///   ``View/fontWeight(_:)``'s.
+    /// The first weight written wins, as in SwiftUI. A ``bold(_:)`` written
+    /// before it applies to it: `.bold().fontWeight(.light)` is light, and
+    /// `.bold().fontWeight(.regular)` bold (measured, macOS 15.8.3,
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/stacked.out`).
+    ///
+    /// - Parameter weight: The weight to apply, or `nil` for the font's own:
+    ///   what the text's font makes it, over any weight or bold stated around
+    ///   it — SwiftUI's meaning for `nil` on a `Text` (measured: under
+    ///   `.fontWeight(.heavy)` or `.bold()`, `Text("x").fontWeight(nil)` is
+    ///   regular, and `.font(.body.bold())` keeps it bold).
     /// - Returns: A new text at the corresponding intensity.
     public func fontWeight(_ weight: FontWeight?) -> Text {
-        guard let attributes = weight?.styleAttributes else { return self }
         var copy = self
-        copy.style.isBold = attributes.bold
-        copy.style.isDim = attributes.dim
+        copy.style.stateWeight(weight)
         return copy
     }
 
@@ -520,6 +537,7 @@ extension Text {
     /// - Parameter mode: Which part of the text to keep when truncating.
     /// - Returns: A new text with the truncation mode applied.
     public func truncationMode(_ mode: TruncationMode) -> Text {
+        guard style.truncationMode == nil else { return self }
         var copy = self
         copy.style.truncationMode = mode
         return copy
@@ -552,7 +570,8 @@ extension Text {
     /// absorbs the remaining content and is truncated with an ellipsis.
     /// Passing `nil` removes the limit — including one that
     /// ``View/lineLimit(_:)-(Int?)`` cascaded from above, since a limit stated here
-    /// always wins for this one view.
+    /// always wins for this one view. Of two written on one text, the first
+    /// wins, as the nearer of two `View` modifiers does in SwiftUI.
     ///
     /// ```swift
     /// Text(longParagraph)
@@ -562,6 +581,7 @@ extension Text {
     /// - Parameter limit: The maximum number of lines, or `nil` for no limit.
     /// - Returns: A new text with the line limit applied.
     public func lineLimit(_ limit: Int?) -> Text {
+        guard style.lineLimit == nil else { return self }
         var copy = self
         copy.style.lineLimit = LineLimit(limit)
         return copy
@@ -716,7 +736,20 @@ package struct TextStyle: Sendable, Equatable {
     }
 
     /// Whether the text is dimmed, or `nil` if this `Text` never said.
-    package var isDim: Bool?
+    package var isDim: Bool? {
+        get { statedDim.isDim }
+        set { statedDim = StatedDim(isDim: newValue, weightIsFonts: weightIsFonts) }
+    }
+
+    /// Whether the text stated its font's own weight, `fontWeight(nil)`: the
+    /// weight its font gives it, whatever weight or bold is stated around it
+    /// (``Text/fontWeight(_:)``). Kept in ``isDim``'s byte, so a `Text` is no
+    /// bigger for it.
+    var weightIsFonts: Bool {
+        get { statedDim.weightIsFonts }
+        set { statedDim = StatedDim(isDim: isDim, weightIsFonts: newValue) }
+    }
+    private var statedDim = StatedDim.unstated
 
     /// The text scale this `Text` stated, or `nil` if it never said.
     var textScale: Text.Scale?
@@ -849,14 +882,27 @@ package struct TextStyle: Sendable, Equatable {
     /// since such a fragment resolves its own cascade and must fold the result
     /// in the same way.
     private func applyingCascadedEmphasis(
-        to own: TextStyle, _ cascaded: StyleAttributes, context: RenderContext
+        to own: TextStyle, _ cascaded: StyleAttributes, font: Font?, context: RenderContext
     ) -> TextStyle {
         var result = own
-        result.isBold = own.isBold ?? cascaded.bold
+        if own.weightIsFonts {
+            // `fontWeight(nil)`: the weight `font` gives the text, whatever
+            // weight or bold the cascade states (SwiftUI's, measured). A bold
+            // the text stated before it makes that weight bold, unless it is
+            // light, as `bold()` before a light `fontWeight` does
+            // (`Text+StatementOrder.swift`).
+            let weight = font?.defaultAttributes
+            let light = weight?.dim == true
+            result.isBold = own.isBold.map { $0 && !light } ?? (weight?.bold == true)
+            result.isDim = own.isDim ?? light
+            result.weightIsFonts = false
+        } else {
+            result.isBold = own.isBold ?? cascaded.bold
+            result.isDim = own.isDim ?? cascaded.dim
+        }
         result.isItalic = own.isItalic ?? cascaded.italic
         result.underline = own.underline ?? cascaded.underlineLine
         result.strikethrough = own.strikethrough ?? cascaded.strikethroughLine
-        result.isDim = own.isDim ?? cascaded.dim
         // A secondary scale steps the RESOLVED intensity down one tier, so it
         // is applied after everything else has had its say: bold → plain,
         // plain → faint, faint stays faint.
@@ -1106,7 +1152,7 @@ package struct TextStyle: Sendable, Equatable {
         let cascade = context.environment.styleCascade
         let font = resolvedFont(stating: style.font, context: context)
         let cascaded = cascadedAttributes(context: context, font: font)
-        var effectiveStyle = applyingCascadedEmphasis(to: style, cascaded, context: context)
+        var effectiveStyle = applyingCascadedEmphasis(to: style, cascaded, font: font, context: context)
             .fittingLines(to: context.environment.lineStyleSupport)
         let effectiveCase = cascaded.effectiveTextCase
 
@@ -1411,10 +1457,11 @@ package struct TextStyle: Sendable, Equatable {
                 // not the text's. So does one that states a scale: the scale
                 // steps the intensity it RESOLVES, which the text's resolved
                 // intensity has already been stepped by the text's own.
+                let runFont = own.font ?? font
                 runStyle = applyingCascadedEmphasis(
                     to: own.merged(over: style),
-                    cascadedAttributes(context: context, font: own.font ?? font),
-                    context: context)
+                    cascadedAttributes(context: context, font: runFont),
+                    font: runFont?.resolvingDefault(against: context.environment.font), context: context)
                 // The colours were resolved once, at text level (the
                 // semantic-role remapping there reads this text's own
                 // foreground); a fragment states its own or takes those.

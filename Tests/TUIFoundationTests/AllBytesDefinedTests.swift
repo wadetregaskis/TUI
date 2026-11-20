@@ -122,6 +122,11 @@ struct AllBytesDefinedTests {
             { unsafe $0.pointee = .tertiaryLevel }, { unsafe $0.pointee = .quaternaryLevel },
             { unsafe $0.pointee = .quinaryLevel },
         ]),
+        unsafe Conformer(StatedDim.self, [
+            { unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .on }, { unsafe $0.pointee = .off },
+            { unsafe $0.pointee = .fontsWeight }, { unsafe $0.pointee = .fontsWeightOn },
+            { unsafe $0.pointee = .fontsWeightOff },
+        ]),
         unsafe Conformer(StatedLineLimit.self, [
             { unsafe $0.pointee = .unstated }, { unsafe $0.pointee = .stated(.lines(4)) },
             { unsafe $0.pointee = .stated(.range(LineRange(minimum: 2, maximum: 5))) },

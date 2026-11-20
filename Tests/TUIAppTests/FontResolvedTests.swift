@@ -69,7 +69,9 @@ struct FontResolvedTests {
         func line(_ view: some View) -> String {
             InputChainHarness(width: 10, height: 1).frame(view).lines.first ?? ""
         }
-        let inherited = line(Text("Hi").font(.default).font(.headline))
+        // The headline is a view's, above the text: of two fonts on one `Text`
+        // the first written wins, as in SwiftUI, so `.font(.default)` would.
+        let inherited = line(VStack { Text("Hi").font(.default) }.font(.headline))
         #expect(inherited == line(Text("Hi").font(.headline)), "\(inherited.debugDescription)")
         #expect(line(Text("Hi").font(.default)) == line(Text("Hi")))
     }

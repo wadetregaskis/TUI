@@ -60,6 +60,17 @@ prominence, while the list learned whether its rows overflow, and again when the
 previews that was one row in eight drawn again every frame, 5% of the frame. The row is now raised before it is
 first drawn.
 
+**Of two of a `Text`'s own modifiers of one kind, the first written wins, as in SwiftUI.** TUI kept the last:
+`Text("x").foregroundStyle(.red).foregroundStyle(.blue)` drew blue where SwiftUI draws red, and the same went for
+`font`, `fontWeight`, `bold`, `italic`, `underline`, `strikethrough`, `textScale`, `dim`, `lineLimit` and
+`truncationMode` (measured on macOS 15.8.3). A level written first is now a level of the style written after it
+(`.foregroundStyle(.secondary).foregroundStyle(.blue)` is the secondary blue), and a `bold()` before a weight applies
+to it (`.bold().fontWeight(.light)` is light). `fontWeight(nil)` is the font's own weight, over a weight or bold
+stated after it or above it, as in SwiftUI, where it was no statement at all. `customAttribute(_:)` goes the other
+way, as SwiftUI's does: the last of a type written wins, a whole concatenation's over a fragment's own. An app that
+restyled a `Text` by writing a second modifier after the first should write the one it wants first, or put the
+second on a view around it.
+
 **`Text`'s own `foregroundStyle(_:)` takes any `ShapeStyle` and returns a `Text`, as SwiftUI's does, and its
 `.secondary` is a level of the style above it.** It took only a `Color`, so `Text("x").foregroundStyle(.secondary)`
 was `Color.secondary`, the palette's fixed secondary tier, whatever style was stated above; SwiftUI draws the stated

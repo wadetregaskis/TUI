@@ -38,9 +38,12 @@ extension Text {
     /// .foregroundStyle(.red)
     /// ```
     ///
-    /// When a text states its style twice, the last one written wins. SwiftUI
-    /// keeps the first (measured, the same probe), which is recorded in the
-    /// compatibility guide as a difference not yet decided.
+    /// When a text states its style twice, the first one written wins, as in
+    /// SwiftUI (measured, the same probe): `.foregroundStyle(.red)
+    /// .foregroundStyle(.blue)` is red. A level written first is a level of
+    /// the style written after it, as of a style above:
+    /// `.foregroundStyle(.secondary).foregroundStyle(.blue)` is the secondary
+    /// blue (`Color.blue.secondary`, measured).
     ///
     /// > Note: The style is kept in the text's own value, not painted by a
     ///   modifier, so a change to it inside ``withAnimation(_:_:)`` happens at
@@ -78,19 +81,40 @@ extension Text {
         withForegroundColor(style)
     }
 
-    /// This text drawn in `color`.
+    // Of two styles on one text the first written wins, as in SwiftUI
+    // (`Text+StatementOrder.swift`): each of these leaves a text that states a
+    // style already as it is, but for a content level, which takes the style
+    // written after it as the style it is a level of. A whole-text style
+    // (``wholeTextShape()``) counts as stated; a fragment's own does not, being
+    // the fragment's.
+
+    /// This text drawn in `color`, or, where it states a level, at that level
+    /// of `color`: the colour at the level's strength, as `Color.blue.secondary`
+    /// draws (measured to be the same pixels).
     @usableFromInline
     func withForegroundColor(_ color: Color) -> Text {
-        var copy = withoutWholeTextShape()
-        copy.style.foregroundColor = color
-        return copy
+        guard wholeTextShape() == nil else { return self }
+        switch style.foregroundInk {
+        case .unstated:
+            var copy = self
+            copy.style.foregroundColor = color
+            return copy
+        case .stated:
+            return self
+        default:
+            let level = style.foregroundInk.level ?? 0
+            var copy = self
+            copy.style.foregroundColor = level == 0 ? color : color.opacity(HierarchicalShapeStyle.opacities[level])
+            return copy
+        }
     }
 
     /// This text drawn at content level `level` of the style in force where it
     /// is drawn.
     @usableFromInline
     func withForegroundLevel(_ level: HierarchicalShapeStyle) -> Text {
-        var copy = withoutWholeTextShape()
+        guard style.foregroundInk == .unstated, wholeTextShape() == nil else { return self }
+        var copy = self
         copy.style.foregroundInk = StatedInk(level: level.level)
         return copy
     }
@@ -100,14 +124,37 @@ extension Text {
     /// (a text of one fragment becomes a text of one run that carries it), since
     /// the text's own style has room for a colour or a level and no more. A
     /// fragment's own ink stays its own.
+    ///
+    /// Where the text states a level, it stays, and is a level of `style`: on
+    /// a text of one fragment the text's own, drawn with `style` in force
+    /// (``inWholeTextShape(_:)``); on a concatenation each fragment's that
+    /// states no style of its own (``Run/styleResolvingInk(over:in:)``).
     @usableFromInline
     func withForegroundShape<S: ShapeStyle>(_ style: S) -> Text {
-        var text = withoutWholeTextShape()
-        text.style.foregroundInk = .unstated
+        guard self.style.foregroundInk.value == nil, wholeTextShape() == nil else { return self }
+        return carryingShape(style)
+    }
+
+    /// This text with `style` on its runs (``withForegroundShape(_:)``),
+    /// whatever it states already.
+    private func carryingShape(_ style: some ShapeStyle) -> Text {
+        var text = self
+        let level = text.style.foregroundInk.level
         let shape = TextAttributes().adding(TextForegroundShape(style))
         let own = text.runs ?? [Run(text: content, style: TextStyle(), live: nil, link: nil)]
+        // A level of the whole goes down to the fragments it reaches only on
+        // a concatenation: a text of one fragment keeps it as its own.
+        var levelled: TextStyle?
+        if let level, text.runs != nil {
+            levelled = TextStyle()
+            levelled?.foregroundInk = StatedInk(level: level)
+        }
         text.runs = own.map { run in
             var run = run
+            // `rebased(on:)` fills in what the run did not state: here its ink.
+            if let levelled, run.style.foregroundInk == .unstated, run.attributes?[TextForegroundShape.self] == nil {
+                run = run.rebased(on: levelled)
+            }
             run.attributes = (run.attributes ?? TextAttributes()).merged(over: shape)
             return run
         }
@@ -120,16 +167,9 @@ extension Text {
     /// every one, pays a nil check.
     func keepingWholeTextShape(of original: Text) -> Text {
         guard original.runs != nil, let (_, shape) = original.wholeTextShape() else { return self }
-        return withForegroundShape(shape.style)
-    }
-
-    /// This text without a style that ``withForegroundShape(_:)`` gave the
-    /// whole of it, so that a colour or a level stated after it wins, as the
-    /// last style stated does. A concatenation keeps its runs: their own
-    /// styles are theirs.
-    private func withoutWholeTextShape() -> Text {
-        guard let (plain, _) = wholeTextShape() else { return self }
-        return plain
+        // Put back as it was, so not through the first-statement rule: the
+        // reading took the original's style, a level with the shape included.
+        return carryingShape(shape.style)
     }
 
     /// This text as a text of no runs, and the style the one run it has
@@ -193,8 +233,11 @@ extension Text {
     /// A run that states neither — nearly every one — pays two checks.
     func styleResolvingInk(over primary: Paint?, in paints: inout TextShapePaints) -> TextStyle {
         if let level = style.foregroundInk.level {
+            // A style the run carries is the one its level is of: written
+            // after the level, it is nearer the text than any style above.
+            let base = attributes?[TextForegroundShape.self].map { paints.paint(of: $0) } ?? primary
             var resolved = style
-            resolved.foregroundColor = Text.levelPaint(level, over: primary, in: paints.context.environment)?
+            resolved.foregroundColor = Text.levelPaint(level, over: base, in: paints.context.environment)?
                 .representative ?? Text.paletteTier(level)
             return resolved
         }

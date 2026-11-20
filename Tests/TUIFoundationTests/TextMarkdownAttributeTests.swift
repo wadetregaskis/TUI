@@ -88,8 +88,12 @@ extension TextMarkdownTests {
         let backwards = Text("^[x](font: headline, underlineColor: blue, underlineStyle: dash, dim: true, foregroundColor: red)")
         #expect(forwards.runs?.first?.style == expected)
         #expect(backwards.runs?.first?.style == expected)
-        // A weight states the faint flag too; `dim` says it last.
-        #expect(Text("^[x](dim: true, fontWeight: bold)").runs?.first?.style == modified { $0.fontWeight(.bold).dim() })
+        // A weight states the faint flag too; `dim` says it, and the weight
+        // the bold, in either order: bold and faint.
+        let boldDim = modified { $0.dim().fontWeight(.bold) }
+        #expect(boldDim.isBold == true && boldDim.isDim == true, "precondition: \(boldDim)")
+        #expect(Text("^[x](dim: true, fontWeight: bold)").runs?.first?.style == boldDim)
+        #expect(Text("^[x](fontWeight: bold, dim: true)").runs?.first?.style == boldDim)
     }
 
     @Test("Attributes nest with emphasis, and with each other")
@@ -104,6 +108,12 @@ extension TextMarkdownTests {
         let nested = Text("^[a ^[b](foregroundColor: blue)](foregroundColor: red, dim: true)")
         #expect(style(of: "a ", in: nested) == modified { $0.foregroundStyle(.red).dim() })
         #expect(style(of: "b", in: nested) == modified { $0.foregroundStyle(.blue).dim() })
+        // A key's word wins over the span's `**`, `*` and `~~`, which are
+        // stated first: a `Text`'s own modifiers would keep those.
+        let regular = Text("**^[x](fontWeight: regular)** y")
+        #expect(style(of: "x", in: regular)?.isBold == false)
+        let unstruck = Text("~~^[x](strikethroughStyle: false)~~ y")
+        #expect(style(of: "x", in: unstruck)?.isStrikethrough == false)
         // Of two equal keys in one list, the first.
         #expect(Text("^[x](dim: true, dim: false)").runs?.first?.style == modified { $0.dim() })
     }

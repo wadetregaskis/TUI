@@ -1719,11 +1719,28 @@ at the secondary level. What ships, measured against SwiftUI on macOS 15.8.3
   (`.palette.accent`, `.rgb(…)`); every call SwiftUI accepts resolves to the
   generic overload.
 
-Still open: when a `Text` states its own style twice, TUI keeps the **last**
-written, and SwiftUI the **first** (measured: `Text("x").foregroundStyle(.red)
-.foregroundStyle(.blue)` is red; `.foregroundStyle(.secondary).foregroundStyle(.blue)`
-is blue at the secondary level, #7FBBFF; `.foregroundStyle(.tint)
-.foregroundStyle(.blue)` is the tint). Not yet put to the owner.
+**Of two statements of one kind on one `Text`, the first written wins** (lane
+TXTFG-ORDER, 2026-11-19), as in SwiftUI, where a `Text`'s own modifiers nest as
+view modifiers do, the first nearest the text. Measured on macOS 15.8.3
+(`Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/stacked.out`) and
+matched for the foreground style (`Text("x").foregroundStyle(.red)
+.foregroundStyle(.blue)` is red), `font` (`font(nil)` included), `fontWeight`,
+`bold`, `italic`, `underline` and `strikethrough` (a line's pattern and colour
+with it), `textScale`, and the `View` modifiers TUI also declares on `Text`,
+`lineLimit` and `truncationMode`; TUI's own `dim` follows. TUI kept the last
+until then. Where two kinds meet, the earlier applies to the later: a level
+written first is that level of the colour, tint or gradient written after it
+(`.foregroundStyle(.secondary).foregroundStyle(.blue)` is `Color.blue.secondary`,
+pixel for pixel), and a `bold` written before a weight makes a regular or heavy
+one bold and leaves a light one light (`bold(false)`: regular, and light
+light). `fontWeight(nil)` is the font's own weight, over a weight or bold
+written after it or stated above it (`.font(.headline)` keeps it bold), where TUI
+used to treat it as no statement. `customAttribute(_:)` is the exception, in
+SwiftUI as here: the last written of a type is the one a renderer reads, a whole
+concatenation's over a fragment's own (TUI kept the fragment's). Framework code
+that restyles a text on purpose (the Markdown attribute keys over `**`) sets its
+style directly. Not matched: a text's own `bold()` under a view's
+`.fontWeight(.ultraLight)` draws bold and faint, where SwiftUI's is ultralight.
 
 Two used to stay out with it and no longer do. `HierarchicalShapeStyle` was
 declined because a second `.secondary` beside `Color.secondary` was expected to

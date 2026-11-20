@@ -98,13 +98,19 @@ private struct MarkdownAttributes {
     }
 
     /// `text` with what was read applied, through the modifiers the keys
-    /// name. A weight before `dim`, as `.fontWeight(.bold).dim()` reads: the
-    /// weight states `dim` too, and the key that says only that should win.
-    nonisolated func applied(to text: Text) -> Text {
-        var text = text
+    /// name, over what `text` states: a key's word wins over the span's
+    /// traits (`**`, `*`, `~~`), as a modifier written after them once did.
+    ///
+    /// The keys are stated on a text of their own and that style merged over
+    /// `text`'s, because a `Text`'s own modifiers now keep the FIRST of two
+    /// statements (`Text+StatementOrder.swift`). Among the keys, `dim` goes
+    /// before the weight so that it is the one that says the faint attribute:
+    /// a weight states that too, and the key that says only that should win.
+    nonisolated func applied(to traits: Text) -> Text {
+        var text = Text(verbatim: "")
         if let font { text = text.font(font) }
-        if let fontWeight { text = text.fontWeight(fontWeight) }
         if let dim { text = text.dim(dim) }
+        if let fontWeight { text = text.fontWeight(fontWeight) }
         if blink == true { text = text.blink() }
         if inverse == true { text = text.inverted() }
         if let textScale { text = text.textScale(textScale) }
@@ -120,7 +126,9 @@ private struct MarkdownAttributes {
             text = text.strikethrough(
                 strikethrough.isActive ?? true, pattern: strikethrough.pattern ?? .solid, color: strikethrough.color)
         }
-        return text
+        var applied = traits
+        applied.style = text.style.merged(over: traits.style)
+        return applied
     }
 
     // MARK: Values

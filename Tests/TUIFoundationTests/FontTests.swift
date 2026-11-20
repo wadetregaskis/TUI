@@ -214,12 +214,18 @@ struct FontTests {
         #expect(!after.contains("2"), "…and not the caption's faintness")
     }
 
-    /// `nil` is SwiftUI's "leave the inherited weight alone", which is not the
-    /// same as `.regular` — one is silence, the other a statement.
-    @Test("a nil weight states nothing")
-    func nilWeightIsSilence() {
-        let untouched = codes(VStack { Text(verbatim: "Hi").fontWeight(nil) }.bold())
-        #expect(untouched.contains("1"), "the inherited bold survived")
+    /// On a `Text`, `nil` is the font's own weight: SwiftUI's
+    /// `Text("x").fontWeight(nil)` is regular under a view's `.bold()` or
+    /// `.fontWeight(.heavy)`, and bold under `.font(.body.bold())` (measured,
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/stacked.out`).
+    /// It is not `.regular`, which would make a headline regular too.
+    @Test("a nil weight is the font's own")
+    func nilWeightIsTheFonts() {
+        #expect(codes(VStack { Text(verbatim: "Hi") }.bold()).contains("1"), "precondition: a view's bold reaches it")
+        let underBold = codes(VStack { Text(verbatim: "Hi").fontWeight(nil) }.bold())
+        #expect(!underBold.contains("1"), "a view's bold gives way: \(underBold)")
+        let headline = codes(VStack { Text(verbatim: "Hi").fontWeight(nil) }.font(.headline))
+        #expect(headline.contains("1"), "the headline's own weight stays: \(headline)")
     }
 
     /// Semantic styling has to work through control labels too, or half of a

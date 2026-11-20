@@ -127,6 +127,44 @@ enum StatedFont: Equatable, _AllBytesDefined {
     }
 }
 
+/// The faint attribute a `TextStyle` stores — a `Bool?`, never stated, on or
+/// off — and, in the same byte, whether the text stated its font's own weight
+/// (`Text.fontWeight(nil)`), which a `Bool?` has no room to say beside it.
+enum StatedDim: Equatable, _AllBytesDefined {
+    case unstated
+    case on
+    case off
+    case fontsWeight
+    case fontsWeightOn
+    case fontsWeightOff
+
+    init(isDim: Bool?, weightIsFonts: Bool) {
+        switch (isDim, weightIsFonts) {
+        case (nil, false): self = .unstated
+        case (true?, false): self = .on
+        case (false?, false): self = .off
+        case (nil, true): self = .fontsWeight
+        case (true?, true): self = .fontsWeightOn
+        case (false?, true): self = .fontsWeightOff
+        }
+    }
+
+    var isDim: Bool? {
+        switch self {
+        case .unstated, .fontsWeight: nil
+        case .on, .fontsWeightOn: true
+        case .off, .fontsWeightOff: false
+        }
+    }
+
+    var weightIsFonts: Bool {
+        switch self {
+        case .unstated, .on, .off: false
+        case .fontsWeight, .fontsWeightOn, .fontsWeightOff: true
+        }
+    }
+}
+
 /// A colour's value, or none: a `Color?` without the colour's alpha, for a
 /// line, whose colour SGR draws opaque. Four bytes where a `StatedColor` is
 /// five — which keeps a `Text` at 64, a multiple of its alignment, so a view

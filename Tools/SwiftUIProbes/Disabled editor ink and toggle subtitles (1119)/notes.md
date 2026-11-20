@@ -132,3 +132,18 @@ keep the hierarchical style in the text's value and resolve it against the
 environment where the text draws, a cost on the most-drawn view. Until then a
 program that wants SwiftUI's colour names it, `.foregroundStyle(.red.secondary)`
 (which takes the `View` form).
+
+**Since matched (2026-11-19):** lanes TXTFG and TXTFG-ORDER gave `Text` that
+generic `foregroundStyle` and SwiftUI's order of statements
+(`Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/notes.md`). What TUI
+now draws for this section's samples, read back from the written cells as
+before (`TextForegroundStyleTests`):
+
+| Sample | SwiftUI (measured) | TUI now |
+|---|---|---|
+| `Text.foregroundStyle(.secondary)`, no style above | #808080 | the palette's secondary tier, as before |
+| … under `.foregroundStyle(.red)` | #FF9C96 | red at the secondary level (`.red.secondary`) |
+| … under `.foregroundStyle(.red, .blue)` | #FF9C96 | red at the secondary level, not blue |
+| `View.foregroundStyle(.secondary)` under `(.red, .blue)` | #0079FF, blue | blue, as before |
+| `Text.foregroundStyle(.secondary).foregroundStyle(.blue)` | #7FBBFF | `Color.blue.secondary` |
+| `Text.foregroundStyle(.red).foregroundStyle(.blue)` | red | red (TUI drew blue before) |

@@ -66,11 +66,14 @@ extension Text {
     /// Adds a custom attribute to the text view — mirrors SwiftUI's
     /// `Text.customAttribute(_:)`.
     ///
-    /// Only one attribute of each type may be attached to each text view: one
-    /// written on a text inside a concatenation stays its own, over one written
-    /// on the whole, as a fragment's own style does. A text renderer finds it on
-    /// the runs of the attributed span (`run[T.self]`); without one, the text
-    /// draws as it would without it.
+    /// Only one attribute of each type may be attached to each text view: the
+    /// last one written, which replaces one of its type written before it —
+    /// on this text, or on a text inside a concatenation it is written on.
+    /// Unlike the style modifiers, which keep the first, this is what SwiftUI's
+    /// renderer reads (measured, macOS 15.8.3,
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/stacked.out`).
+    /// A text renderer finds it on the runs of the attributed span
+    /// (`run[T.self]`); without one, the text draws as it would without it.
     ///
     /// - Parameter value: The attribute.
     /// - Returns: A text view with the attribute on all of its runs.
@@ -81,7 +84,7 @@ extension Text {
         let own = runs ?? [Run(text: content, style: TextStyle(), live: nil, link: nil)]
         text.runs = own.map { run in
             var run = run
-            run.attributes = (run.attributes ?? TextAttributes()).merged(over: TextAttributes().adding(value))
+            run.attributes = (run.attributes ?? TextAttributes()).adding(value)
             return run
         }
         return text

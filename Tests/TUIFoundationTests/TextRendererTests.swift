@@ -50,6 +50,10 @@ private struct PerGlyph: TextRenderer {
 
 private struct Emphasis: TextAttribute {}
 
+private struct Tag: TextAttribute {
+    let value: String
+}
+
 @MainActor
 @Suite("Text renderers", .serialized, .rendersEnglishUI)
 struct TextRendererTests {
@@ -105,6 +109,23 @@ struct TextRendererTests {
         #expect(runs[0][Emphasis.self] == nil)
         #expect(runs[1][Emphasis.self] != nil)
         #expect(runs[1].glyphs.map(\.character).joined() == "loud")
+    }
+
+    /// SwiftUI's renderer reads the last written (measured, macOS 15.8.3:
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/stacked.out`),
+    /// where a `Text`'s style modifiers keep the first.
+    @Test("Of two custom attributes of a type, the last written is the one a run carries")
+    func lastCustomAttributeWins() throws {
+        let probe = LayoutProbe()
+        let text = Text(verbatim: "tagged").customAttribute(Tag(value: "first")).customAttribute(Tag(value: "last"))
+        _ = rendered(text.textRenderer(Recording(probe: probe)))
+        #expect(try #require(probe.layout?.first?.first)[Tag.self]?.value == "last")
+        let whole = Text("\(Text(verbatim: "a ").customAttribute(Tag(value: "fragment")))\(Text(verbatim: "b"))")
+            .customAttribute(Tag(value: "whole"))
+        _ = rendered(whole.textRenderer(Recording(probe: probe)))
+        let runs = Array(try #require(probe.layout?.first))
+        #expect(!runs.isEmpty && runs.allSatisfy { $0[Tag.self]?.value == "whole" },
+            "the whole's replaces the fragment's: \(runs.map { $0[Tag.self]?.value })")
     }
 
     @Test("A truncated text says so")

@@ -154,12 +154,42 @@ struct TextForegroundStyleTests {
         #expect(sgr(before: "a", in: own) != sgr(before: "a", in: whole), "the plain fragment keeps its own ink")
     }
 
-    @Test("The last style a text states wins, a colour after another style included")
-    func lastStyleWins() {
+    // MARK: - Two styles on one text
+
+    /// Measured: `.foregroundStyle(.red).foregroundStyle(.blue)` is red,
+    /// `.tint` then `.blue` the tint, and a gradient then `.blue` the gradient.
+    @Test("Of two styles a text states, the first written wins")
+    func firstStyleWins() {
         let red = drawn(Text("Ink").foregroundStyle(Color.red))
-        #expect(drawn(Text("Ink").foregroundStyle(.tint).foregroundStyle(.red)) == red)
-        #expect(drawn(VStack { Text("Ink").foregroundStyle(.secondary).foregroundStyle(.red) }
-            .foregroundStyle(.blue)) == red)
+        #expect(red != drawn(Text("Ink").foregroundStyle(Color.blue)), "precondition")
+        #expect(drawn(Text("Ink").foregroundStyle(.red).foregroundStyle(.blue)) == red)
+        #expect(drawn(Text("Ink").foregroundStyle(.red).foregroundStyle(.tint)) == red)
+        #expect(drawn(Text("Ink").foregroundStyle(.red).foregroundStyle(.secondary)) == red)
+        #expect(drawn(VStack { Text("Ink").foregroundStyle(.tint).foregroundStyle(.red) }.tint(.green))
+            == drawn(Text("Ink").foregroundStyle(Color.green)))
+        let gradient = LinearGradient(colors: [.red, .blue], startPoint: .leading, endPoint: .trailing)
+        #expect(drawn(Text("Gradient").foregroundStyle(gradient).foregroundStyle(.green))
+            == drawn(Text("Gradient").foregroundStyle(gradient)))
+        let joined = Text("a\(Text("b"))")
+        #expect(drawn(joined.foregroundStyle(.red).foregroundStyle(.blue)) == drawn(joined.foregroundStyle(.red)))
+    }
+
+    /// Measured: `.secondary` then `.blue` draws `Color.blue.secondary`'s
+    /// pixels, and `.secondary` then `.tint` under a green tint
+    /// `Color.green.secondary`'s, whatever style is above.
+    @Test("A level written first is that level of the style written after it")
+    func levelOfTheLaterStyle() {
+        let blueSecondary = drawn(Text("Ink").foregroundStyle(Color.blue.secondary))
+        #expect(blueSecondary != drawn(Text("Ink").foregroundStyle(Color.blue)), "precondition")
+        #expect(drawn(VStack { Text("Ink").foregroundStyle(.secondary).foregroundStyle(.blue) }
+            .foregroundStyle(.red)) == blueSecondary)
+        #expect(drawn(Text("Ink").foregroundStyle(.tertiary).foregroundStyle(.blue))
+            == drawn(Text("Ink").foregroundStyle(Color.blue.tertiary)))
+        #expect(drawn(VStack { Text("Ink").foregroundStyle(.secondary).foregroundStyle(.tint) }.tint(.green))
+            == drawn(Text("Ink").foregroundStyle(Color.green.secondary)))
+        let joined = Text("a\(Text("b"))")
+        #expect(drawn(VStack { joined.foregroundStyle(.secondary).foregroundStyle(.tint) }.tint(.green))
+            == drawn(joined.foregroundStyle(Color.green.secondary)))
     }
 
     @Test("A colour named only on Color still reads with a leading dot")
