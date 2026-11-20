@@ -41,6 +41,15 @@ import Musl
 /// memory-bandwidth contention still slow the work itself, and those show up
 /// as real CPU time — but it removes the largest one.
 ///
+/// ## Windows
+///
+/// `nil`, so its callers read the wall clock there (owner, 2026-11-20: leave
+/// it on wall time). `GetThreadTimes` moves in whole scheduler ticks
+/// (15.625 ms, measured), coarser than what is timed here, and
+/// `QueryThreadCycleTime` counts cycles, not time: converting them would take
+/// a rate measured once per process, which the no-singletons rule does not
+/// exempt. See "The tests" in Documentation/Windows port.md.
+///
 /// ## Cost
 ///
 /// The bench reads it twice per frame. On Darwin this is
