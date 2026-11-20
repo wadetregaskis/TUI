@@ -10,7 +10,7 @@ terminals.
     open http://127.0.0.1:8000/
 
 `build.sh --package-path ~/MyApp --product MyApp` builds another app for the same
-page; the DocC article *Running Your App in a Browser* is the guide for an app's
+page, into that app's own `.build/web/` (or `--site DIR`); the DocC article *Running Your App in a Browser* is the guide for an app's
 author, and `Tools/Web/README.md` lists the page's settings.
 
 ## The toolchain, and why it is not the one you already have

@@ -9,8 +9,16 @@ open http://127.0.0.1:8000/          # and press Run
 Your own app instead of the Example, from its own package:
 
 ```sh
-Tools/Web/build.sh --package-path ~/MyApp --product MyApp
+Tools/Web/build.sh --package-path ~/MyApp --product MyApp   # into ~/MyApp/.build/web/
+Tools/Web/serve.py --site ~/MyApp/.build/web
 ```
+
+Another package's site goes into its own `.build/web/` unless `--site DIR` names
+another place, with a copy of the page beside the module: building an app
+writes nothing into TUI's checkout, which may be a SwiftPM checkout under the
+app's `.build/` that the next resolve replaces. A directory `--site` names must
+be empty or an earlier build's; a rebuild replaces that build's module and
+`resources/` and leaves anything else there alone.
 
 The DocC article *Running Your App in a Browser*
 (`Sources/TUI/TUI.docc/Articles/RunningInABrowser.md`) is the guide for an app's
@@ -25,9 +33,10 @@ is the map of the directory.
 
 | File | What it is |
 |---|---|
-| `build.sh` | builds `Example.wasm` (or `NAME.wasm`, with `--product NAME`, from the package `--package-path` names, into the build directory `--scratch-path` names) with a swift.org 6.3+ toolchain and the WebAssembly SDK, runs `wasm-opt` when it is installed, copies the SwiftPM resource bundles into `site/resources/`, and writes `site/manifest.json` |
+| `build.sh` | builds `Example.wasm` (or `NAME.wasm`, with `--product NAME`, from the package `--package-path` names, into the build directory `--scratch-path` names) with a swift.org 6.3+ toolchain and the WebAssembly SDK, runs `wasm-opt` when it is installed, copies the SwiftPM resource bundles into `site/resources/`, and writes `site/manifest.json`; for another package, all of it and the page go to `--site DIR`, by default the package's `.build/web/` |
+| `test_build.py` | `build.sh`'s options and where it puts things, with a stand-in for `swift`: `python3 -m unittest discover -s Tools/Web -p 'test_*.py'` |
 | `example_gallery.py` | run by `build.sh` for the Example alone: adds its pages (the cases of `DemoPage`, titled as its menu titles them) and its languages to the manifest, read from its source, for the page's start-page and language settings |
-| `serve.py` | a static server that sets `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`. The demo needs `SharedArrayBuffer`, which needs those headers, which `python3 -m http.server` cannot send |
+| `serve.py` | a static server (of `site/`, or the directory `--site` names) that sets `Cross-Origin-Opener-Policy` and `Cross-Origin-Embedder-Policy`. The demo needs `SharedArrayBuffer`, which needs those headers, which `python3 -m http.server` cannot send |
 | `site/index.html` | the page: the settings, an xterm.js terminal, the keystroke ring, and the worker. Fetches nothing large until *Run* is pressed |
 | `site/worker.js` | instantiates the module and runs it; owns stdout batching. Inflates the module as it streams when it is a `.gz` (the published copy) |
 | `site/isolation-sw.js` | a service worker that adds the cross-origin isolation headers to every response from the page's directory, for hosts that cannot send them (GitHub Pages). The page installs it on *Run* only when it is not isolated already, then reloads once |

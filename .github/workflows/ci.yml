@@ -259,6 +259,13 @@ jobs:
       - name: Product smoke script tests
         run: python3 -m unittest discover -s Tools/ProductSmoke -p 'test_*.py'
 
+      # The browser build's options and placement (which site it writes, what
+      # it copies there and removes, and that building an app leaves TUI's
+      # checkout alone), with a stand-in for `swift`: no SDK, no build, a
+      # couple of seconds. The Pages workflow's `wasm` job builds for real.
+      - name: Browser build script tests
+        run: python3 -m unittest discover -s Tools/Web -p 'test_*.py'
+
       # The warnings check's reading of a build log: a warning inside a macro's
       # expansion (an unsafe expression in `#expect`) counted at the line it
       # expands from, the excerpt under a diagnostic not counted again. On

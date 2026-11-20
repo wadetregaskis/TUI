@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`Tools/Web/build.sh` builds your app's browser page into your package, not into TUI's checkout.** With
+`--package-path`, the module, its resources, the manifest and a copy of the page now go into the package's own
+`.build/web/`, or the directory the new `--site DIR` names, and `Tools/Web/serve.py --site DIR` serves them. Before,
+they always went into TUI's `Tools/Web/site/`, replacing the Example's build there, and into a SwiftPM checkout of TUI
+when the app depended on it by URL. A directory `--site` names must be empty or an earlier build's; a rebuild replaces
+only that build's module and resources. With no options the script builds the Example into `Tools/Web/site/` as
+before.
+
 **A key in a `TextEditor` taller than its view no longer draws the scroll bar again.** The bar, and the frames of its
 breath while the editor holds the focus, were drawn afresh every frame, every cell spelled anew, though a key rarely
 moves the scroll: a sixth of a key's cost in a 3.2 MB document. The editor now keeps its bar with what it was drawn

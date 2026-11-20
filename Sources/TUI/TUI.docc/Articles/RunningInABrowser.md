@@ -34,17 +34,21 @@ with `-Os`.
 
 ## Building and Serving
 
-The page and its scripts are in TUI's repository, under `Tools/Web`. From a clone of it, name your package and your
-executable:
+The page and its scripts are in TUI's repository, under `Tools/Web`. From a clone of it, or from the copy SwiftPM
+checked out for your package (`.build/checkouts/TUI`), name your package and your executable:
 
 ```bash
 Tools/Web/build.sh --package-path ~/MyApp --product MyApp
-Tools/Web/serve.py
+Tools/Web/serve.py --site ~/MyApp/.build/web
 open http://127.0.0.1:8000/
 ```
 
-Press *Run* on the page. `build.sh` with no options builds the Example. It writes everything the page needs into
-`Tools/Web/site/`:
+Press *Run* on the page. `build.sh` writes everything the page needs into your package's `.build/web/`, or into the
+directory `--site` names, and nothing into TUI's checkout. A directory you name must be empty or hold an earlier build;
+a rebuild replaces that build's module and resources and leaves anything else in it alone. With no options, `build.sh`
+builds TUI's Example into `Tools/Web/site/`. The site holds:
+
+- `index.html`, `worker.js`, `wasi.js` and `isolation-sw.js`, a copy of the page.
 
 - `MyApp.wasm`, the program, built in release mode with the debug information stripped. `--debug` builds a debug
   build, and `--no-opt` skips `wasm-opt`.
@@ -99,7 +103,8 @@ Three things about the platform reach your code:
 
 ## Publishing on GitHub Pages
 
-Copy these files from `Tools/Web/site/` into the directory your site publishes:
+Publish the site `build.sh` wrote: name a directory of its own among what your site publishes with `--site`, or copy
+these files from `.build/web/`:
 
 - `index.html`, `worker.js`, `wasi.js` and `isolation-sw.js`, the page
 - `MyApp.wasm`, `manifest.json` and `resources/`, from the same build

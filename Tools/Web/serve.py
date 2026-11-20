@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Serves the WebAssembly demo with the two headers that make it work.
 
-    Tools/Web/serve.py [port]        # default 8000, serves Tools/Web/site
+    Tools/Web/serve.py [--site DIR] [port]    # default 8000, serves Tools/Web/site
+
+`--site` serves a site `build.sh --site DIR` wrote somewhere else, such as an
+app's own (`build.sh` prints the command to use).
 
 `SharedArrayBuffer` — which is how the page hands keystrokes to the worker, and
 how the worker parks while it waits for them — exists only on a *cross-origin
@@ -16,6 +19,7 @@ the worker and the wasm module load under that policy.
 
 Only the standard library, like the rest of `Tools/`.
 """
+import argparse
 import http.server
 import json
 import os
@@ -92,16 +96,20 @@ class IsolatedHandler(http.server.SimpleHTTPRequestHandler):
 
 
 def main() -> int:
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    if not os.path.isdir(SITE):
-        print(f"no site directory at {SITE}", file=sys.stderr)
+    parser = argparse.ArgumentParser(description="Serves the WebAssembly demo, cross-origin isolated.")
+    parser.add_argument("port", nargs="?", type=int, default=8000)
+    parser.add_argument("--site", default=SITE, help="the directory build.sh wrote (default: Tools/Web/site)")
+    arguments = parser.parse_args()
+    site, port = os.path.abspath(arguments.site), arguments.port
+    if not os.path.isdir(site):
+        print(f"no site directory at {site}", file=sys.stderr)
         return 1
-    if not os.path.exists(os.path.join(SITE, "manifest.json")):
+    if not os.path.exists(os.path.join(site, "manifest.json")):
         print("no manifest.json — run Tools/Web/build.sh first", file=sys.stderr)
         return 1
-    handler = partial(IsolatedHandler, directory=SITE)
+    handler = partial(IsolatedHandler, directory=site)
     server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
-    print(f"serving {SITE} on http://127.0.0.1:{port}/  (cross-origin isolated)")
+    print(f"serving {site} on http://127.0.0.1:{port}/  (cross-origin isolated)")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
