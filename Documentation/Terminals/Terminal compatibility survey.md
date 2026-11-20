@@ -2924,6 +2924,7 @@ says, monochrome.
 | win32-input-mode (9001) | recognised | recognised | DECRQM; TUI does not set it |
 | kitty keyboard protocol | **yes, from 1.25** | no answer | 1.25.3131.0 (2026-11-17): `CSI ? u` answers `CSI ? 0 u`, takes all 31 flags TUI pushes, and pops back to 0 (`keyboard_protocol_probe.py`), so TUI reads its keys in the protocol's encoding; 1.24.12741.0 (2026-11-16) left the query unanswered before the fence, as conhost does. Its own key bindings take their chords first: ⌃, (its settings) arrived as nothing, pressed without the protocol, and as Control's own press and release alone with it ("Keys under the kitty protocol"). TUI takes ⌃, to be kept with it too (`TerminalClient.keptChords`), so Settings… and F1's list show F2 there, as in conhost, though ⌃, stays bound |
 | Sixel | yes (DA1 `4`) | no (DA1 has no `4`) | `sixel_probe.py` in Windows Terminal: `CSI 16 t` answers a cell of 10 × 20, as its source says |
+| Colour queries: OSC 10, 11 and 4, `CSI ? 996 n` | **OSC 10, 11 and 4 all answered**; `CSI ? 996 n` not | **none answered** | `osc_colour_probe.py`, 2026-11-20 (Windows Terminal 1.25.3131.0, Campbell: foreground 204,204,204, background 12,12,12, all 64 OSC 4 exchanges answered, `rgb:` with four digits, ST-terminated, before the fence; conhost: no reply to any). conhost tells the program it runs its colours instead (`GetConsoleScreenBufferInfoEx`: its table and attribute), which TUI reads there for what the queries left unsaid (`TerminalColorQuery.classicConsoleReport()`) |
 
 ### Keys (measured 2026-11-17, both)
 

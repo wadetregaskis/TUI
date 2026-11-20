@@ -817,8 +817,11 @@ def main():
         try:
             termios.tcsetattr(fd, termios.TCSADRAIN, saved)
         finally:
-            subprocess.run(["stty", "sane"], stdin=fd, stdout=subprocess.DEVNULL,
-                           stderr=subprocess.DEVNULL, timeout=5)
+            # Windows has no stty; the console's modes came back with tcsetattr
+            # (Tools/TerminalProbes/windows/termios.py).
+            if os.name != "nt":
+                subprocess.run(["stty", "sane"], stdin=fd, stdout=subprocess.DEVNULL,
+                               stderr=subprocess.DEVNULL, timeout=5)
         result["elapsed_s"] = round((time.monotonic_ns() - t0) / 1e9, 3)
         result["fence_timeouts"] = probe.fence_timeouts
         result["exchanges"] = probe.exchanges

@@ -494,9 +494,14 @@ extension TerminalClient {
     /// the record as it was. A reply later than the deadline is not read here:
     /// the input parser siphons it out of the keystrokes instead, and
     /// `TerminalColorRefresher` publishes what it adds to what was known.
+    ///
+    /// The classic Windows console answers no colour query, but tells the
+    /// program it runs its colours: what the exchange left unsaid there is
+    /// filled from its record (``TerminalColorQuery/classicConsoleReport()``),
+    /// once the host is named, so a pseudo console is never taken for it.
     @MainActor
     static func detectColors(using terminal: Terminal) {
-        guard let report = terminal.queryColors(),
+        guard let report = terminal.queryColors().map(TerminalColorQuery.withClassicConsoleColors),
             let colors = TerminalColorQuery.colorsToPublish(
                 report, environment: ProcessInfo.processInfo.environment)
         else { return }

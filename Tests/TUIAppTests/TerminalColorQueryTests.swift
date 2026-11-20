@@ -485,4 +485,45 @@ struct TerminalColorQueryTests {
                     foreground: Self.black, background: Self.white,
                     slots: TerminalColors.Slots(Self.appleTerminalSlots), prefersDark: false))
     }
+
+    // MARK: - The classic Windows console's own record
+
+    /// conhost's default (Campbell) colour table, in the console's order, as
+    /// `COLORREF`s (`0x00BBGGRR`).
+    private static let campbell: [UInt32] = [
+        0x0C0C0C, 0xDA3700, 0x0EA113, 0xDD963A, 0x1F0FC5, 0x981788, 0x009CC1, 0xCCCCCC,
+        0x767676, 0xFF783B, 0x0CC616, 0xD6D661, 0x5648E7, 0x9E00B4, 0xA5F1F9, 0xF2F2F2,
+    ]
+
+    @Test("The console's colour table is read in ANSI's order, and its attribute names the defaults")
+    func classicConsoleTable() throws {
+        // Gray on black, conhost's default attribute.
+        let report = try #require(TerminalColorQuery.consoleReport(attributes: 0x07, table: Self.campbell))
+        #expect(report.foreground == RGB(red: 204, green: 204, blue: 204))
+        #expect(report.background == RGB(red: 12, green: 12, blue: 12))
+        // The console's red (4) is ANSI's slot 1, and its blue (1) slot 4.
+        #expect(report.slots[1] == RGB(red: 197, green: 15, blue: 31))
+        #expect(report.slots[4] == RGB(red: 0, green: 55, blue: 218))
+        #expect(report.slots[9] == RGB(red: 231, green: 72, blue: 86))
+        // Black on white, as a light profile sets it.
+        let light = try #require(TerminalColorQuery.consoleReport(attributes: 0xF0, table: Self.campbell))
+        #expect(light.background == RGB(red: 242, green: 242, blue: 242))
+        #expect(Self.resolve(light).prefersDark == false)
+        #expect(TerminalColorQuery.consoleReport(attributes: 0x07, table: [0]) == nil)
+    }
+
+    @Test("The console's record fills only what the terminal left unsaid")
+    func classicConsoleFills() throws {
+        let console = try #require(TerminalColorQuery.consoleReport(attributes: 0x07, table: Self.campbell))
+        let silent = TerminalColorQuery.filling(TerminalColorReport(), from: console)
+        #expect(silent.foreground == console.foreground && silent.background == console.background)
+        #expect(silent.slots == console.slots)
+        var answered = TerminalColorReport()
+        answered.background = Self.white
+        answered.slots[0] = Self.black
+        let kept = TerminalColorQuery.filling(answered, from: console)
+        #expect(kept.background == Self.white)
+        #expect(kept.foreground == console.foreground)
+        #expect(kept.slots == answered.slots)
+    }
 }
