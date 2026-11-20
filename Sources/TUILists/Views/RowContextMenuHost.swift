@@ -302,9 +302,16 @@ package enum RowContextMenuHost {
     /// Whether `items` draws anything at all — a menu closure that returned
     /// nothing for this set is an empty view, and an empty menu must not take
     /// the keyboard with nothing on screen to give it back.
+    ///
+    /// Asked without claiming the items' keys: measured here, at another
+    /// identity than the menu lays them out at, a row with a key equivalent
+    /// held its shortcut for this question, and the menu's own measure found
+    /// none, so the menu was as wide as its titles alone and cut each row's
+    /// title to fit its key (``EnvironmentValues/claimsKeyboardShortcuts``).
     private static func drawsAnything(_ items: AnyView, context: RenderContext) -> Bool {
         var probe = context
         probe.isMeasuring = true
+        probe.environment.claimsKeyboardShortcuts = false
         let size = measureChild(
             _RowMenuItems(items: items), proposal: ProposedViewSize(width: nil, height: nil),
             context: probe)

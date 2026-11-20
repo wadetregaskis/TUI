@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A table's or a list's selection menu is wide enough for each item's key.** A
+`contextMenu(forSelectionType:menu:primaryAction:)` menu was drawn as wide as its widest title alone, so an item with a
+key equivalent or a `keyboardShortcutHint(_:)` had its title cut to make room for the key (`Show in Fi… ⌃N`), where a
+`.contextMenu` drew the same items whole. The question asked before the menu opens, whether its items draw anything,
+held each item's key, and the menu then measured its rows without them. It is now as wide as each title and its key,
+as every other menu is, and cuts a title only where the screen is too narrow.
+
 **A focused `.focusable()` view shows that it has the focus.** It draws the standard focus tint behind its cells,
 breathing on the same clock and in the same colour as a list's cursor row, where SwiftUI on macOS draws a focus ring
 round it; until now it took Tab and the keys and looked exactly as it did unfocused. This changes the look of every

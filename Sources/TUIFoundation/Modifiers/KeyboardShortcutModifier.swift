@@ -161,7 +161,7 @@ enum KeyboardShortcutRegistrar {
         action: @escaping () -> Void, isDisabled: Bool, repeats: Bool, title: @escaping () -> String,
         context: RenderContext
     ) -> KeyboardShortcut? {
-        guard !isDisabled else { return nil }
+        guard !isDisabled, context.environment.claimsKeyboardShortcuts else { return nil }
         let shortcut = claim(
             context.environment.assignedKeyboardShortcut, standingInFor: nil, action: action, repeats: repeats,
             title: title, context: context)

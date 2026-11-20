@@ -167,3 +167,29 @@ extension EnvironmentValues {
         assignedKeyboardShortcut?.shortcut
     }
 }
+
+// MARK: - A measure that only asks
+
+private struct ClaimsKeyboardShortcutsKey: EnvironmentKey {
+    static var defaultValue: Bool { true }
+}
+
+extension EnvironmentValues {
+    /// Whether a control measured or drawn here claims the shortcut a
+    /// `.keyboardShortcut` above it offers: `true` but under a measure that
+    /// only asks a question of views drawn elsewhere — whether a row menu's
+    /// items draw anything at all (`RowContextMenuHost`) — whose claims must
+    /// not stand.
+    ///
+    /// A claim latches the carrier to the claiming control's identity
+    /// (``KeyboardShortcutAssignment``), and such a question is asked at
+    /// another identity than the menu then lays its rows out at: the claim it
+    /// made left every row's measure without its key, so the menu was sized
+    /// to its titles alone and each row with a hint was cut to fit,
+    /// `Show in Fi… ⌃N` (tuidisk's feedback, Milestone 3 item 10). Here a
+    /// control claims nothing, as a disabled one claims nothing.
+    package var claimsKeyboardShortcuts: Bool {
+        get { self[ClaimsKeyboardShortcutsKey.self] }
+        set { self[ClaimsKeyboardShortcutsKey.self] = newValue }
+    }
+}
