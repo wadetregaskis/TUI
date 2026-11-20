@@ -102,12 +102,20 @@ final class EditorLayout {
     /// rules GB4 and GB5 break after and before every CR and LF), so its bytes
     /// are where its character is.
     static func lineBreaks(in text: String) -> (starts: [Int], ending: String, isUniform: Bool) {
-        var starts = [0]
+        lineBreaks(inBytes: text.utf8)
+    }
+
+    /// ``lineBreaks(in:)`` of `bytes`, which start at byte `base` of a text:
+    /// the starts are the text's, the first of them `base`.
+    static func lineBreaks(
+        inBytes bytes: some Sequence<UInt8>, startingAt base: Int = 0
+    ) -> (starts: [Int], ending: String, isUniform: Bool) {
+        var starts = [base]
         var kinds = (lf: false, crlf: false, cr: false)
         // A CR seen, which the byte after it says is a CRLF's or a lone one.
         var afterCR = false
-        var offset = 0
-        for byte in text.utf8 {
+        var offset = base
+        for byte in bytes {
             if afterCR {
                 afterCR = false
                 if byte == 0x0A {
