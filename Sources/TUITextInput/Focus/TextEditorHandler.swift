@@ -218,6 +218,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// ``replaceHighlightLayer(_:)`` (B-ATTRED-8, lane H1).
     var highlightLayer: EditorHighlightLayer?
 
+    /// The highlighter whose session the layer's runs come from, or `nil`
+    /// (lane H6′): set by the frame (``connectHighlighter(_:layout:)``).
+    var highlightConnection: EditorHighlightConnection?
+
     /// The blank rows after each line's rows, from the line heights read so
     /// far (``lineGaps(for:)``), for that many lines; `nil` to be made again
     /// from ``lineStyleCache``.

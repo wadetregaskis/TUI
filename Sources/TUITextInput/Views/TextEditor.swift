@@ -358,6 +358,9 @@ extension TextEditor {
 private enum TextEditorStateIndex {
     static let handler = 0
     static let focusID = 1
+    /// A count written when a line on screen changed its highlighting, so
+    /// the editor draws again (`TextEditor+Highlighting.swift`).
+    static let highlights = 2
     /// A tracked value, not a box: the layout a measure makes before the
     /// handler exists (`TextEditor+FirstLayout.swift`). In the reserved
     /// table (`StateStorage.StateKey`), as tracked values of modifiers
@@ -395,6 +398,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
 
     /// The first frame's layout's slot (`TextEditor+FirstLayout.swift`).
     static var firstLayoutStateIndex: Int { StateIndex.firstLayout }
+
+    /// The highlighting's slot (`TextEditor+Highlighting.swift`).
+    static var highlightsStateIndex: Int { StateIndex.highlights }
 
     var body: Never {
         fatalError("_TextEditorCore renders via Renderable")
@@ -514,6 +520,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         if !context.isMeasuring {
             handler.displayLayout().endFrame()
             handler.insertionPoint = handler.drawnInsertionPoint(column: window.caretColumn, rows: window.rows, width: window.contentWidth, height: height)
+            syncHighlighter(handler, window: window, height: height, context: context)
         }
 
         // A subtle field background so the editor reads as a text field (like

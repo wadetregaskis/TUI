@@ -165,6 +165,12 @@ struct EditorLineStyleCache {
         drawn = drawn.filter { !lines.contains($0.key) }
     }
 
+    /// Forgets the highlighted runs of each of `lines`.
+    mutating func forgetDrawnRuns(ofEach lines: some Sequence<Int>) {
+        guard !drawn.isEmpty else { return }
+        for line in lines { drawn[line] = nil }
+    }
+
     /// `line`'s paragraph alignment: that kept, or `read`'s, kept from now on.
     mutating func alignment(
         ofLine line: Int, reading read: (Int) -> TextAlignment?
@@ -207,7 +213,7 @@ struct EditorLineStyleCache {
 
     /// `kept`'s lines, those `replaced` gone and those after moved by the lines
     /// that took their place.
-    private static func moving<Value>(
+    static func moving<Value>(
         _ kept: [Int: Value], replacing replaced: Range<Int>, withCount count: Int
     ) -> [Int: Value] {
         guard !kept.isEmpty else { return kept }

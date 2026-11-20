@@ -975,7 +975,7 @@ fetch it.
 | Lane | What | Days | Was |
 |---|---|---|---|
 | **H1** ✓ | Drawing: runs into `styledRow`, styles interned per token value (B-ATTRED-10), the drawn lines' run cache, precedence (B-ATTRED-8). **Built 2026-11-19** (B-ATTRED-31 to 33, below) | ½ | ½ |
-| **H6′** | The seam and its store: versioned snapshots, coalesced whole-line changes, the styler's task started and cancelled with the editor (B-ATTRED-19 to 22, 25), publishing validated into the window, frames only for lines on screen (20), provisional tokens carried and shifted (24, 28), updates on a scroll (27), B-ATTRED-29's additions, the guards (15, 30). Tests: a fake tree styler that reports changed ranges, deterministic stepping without sleeps, a stale publish refused, an edit mid-publish, cancellation, one run under the thread sanitizer | 1½ | H2 + H7 2, H6 ½ |
+| **H6′** ✓ | The seam and its store: versioned snapshots, coalesced whole-line changes, the styler's task started and cancelled with the editor (B-ATTRED-19 to 22, 25), publishing validated into the window, frames only for lines on screen (20), provisional tokens carried and shifted (24, 28), updates on a scroll (27), B-ATTRED-29's additions, the guards (15, 30). Tests: a fake tree styler that reports changed ranges, deterministic stepping without sleeps, a stale publish refused, an edit mid-publish, cancellation, one run under the thread sanitizer. **Built 2026-11-20** (B-ATTRED-34 to 41, below) | 1½ | H2 + H7 2, H6 ½ |
 | **H5′** | A stateless JSON line styler over the seam, in an internal target that is not a product (as `TUIWidthCorpus` is), for the Example, Stress's `bigtext-highlighted` and tests | ¼ | ¼ (a JSONC lexer) |
 | **H3** | Marks (B-ATTRED-13), with the find bar's matches moved onto them | 1 | 1 |
 | **H4′** | The API: `TextEditorMark` and `.textEditorMarks` public, with DocC; the seam and `.textEditorHighlighter` under `@_spi(TextEditorHighlighting)` (A-ATTRED-10), documented in doc comments; `api_baseline.py` taught to skip SPI; the API stability policy's SPI line; CHANGELOG; the Example's Text Input page in its seven languages | ¾ | 1 |
@@ -1009,6 +1009,64 @@ exist until H6′ and H4′; the tests set a layer on the handler.
   changes", which the closure, given no environment, cannot need.
 
 An editor with no highlighter pays one `nil` check a line drawn, and draws byte for byte as before.
+
+#### H6′, as built (2026-11-20)
+
+The seam of §8.1, as §8.6 trimmed it, behind `@_spi(TextEditorHighlighting)` (A-ATTRED-10 (b)), with no line lexer
+(A-ATTRED-15 (a)): `TextEditorHighlighter`, `TextEditorHighlightSession`, `TextEditorText`, `TextEditorTextChange`,
+`TextEditorHighlightUpdate`, `TextEditorTokens` and `.textEditorHighlighter(_:maximumLineLength:style:)`, in
+`Sources/TUITextInput/Highlighting/`. The session is the store (B-ATTRED-20): one `Mutex` holds the latest text, the
+change not yet taken, the lines on screen and the tokens kept. The editor starts the highlighter through
+`LifecycleManager.startTask` as `AsyncImage` starts its load (B-ATTRED-22), and fills H1's layer from the session.
+What the design left open was decided as follows.
+
+- **B-ATTRED-34. A snapshot's line starts are found by the highlighter's task, not shared with the editor.**
+  B-ATTRED-19 had the snapshot hold the layout's own start array. Since 2026-11-19 a key splices that array in
+  place (`EditorLayout.laidOut(_:reusingStorage:)`), so a session holding it would make every key copy it on the
+  main actor: 105–109 µs at 172,714 lines in probe 1. Instead the session keeps the `String` alone, two retains,
+  and `nextUpdate()` finds the lines with the layout's own scan (`EditorLayout.lineBreaks(in:)`, so the units are
+  B-ATTRED-26's) on the highlighter's task, once an update taken. That scan is one pass of the bytes, of the order of
+  probe 1's 3.3 ms full pass at 3.2 MB, and coalescing (B-ATTRED-21) bounds how often it runs. A scroll reuses the
+  text the highlighter already has. Finding them incrementally from the change is possible, and waits for a profile
+  that shows the scan.
+- **B-ATTRED-35. The modifier ships with the seam, under the same SPI.** H4′'s row lists
+  `.textEditorHighlighter` among its work, but a seam with no way in cannot be written against, and promotion waits
+  on tuitree's adapter being written (A-ATTRED-10's trigger, A-ATTRED-16). SPI promises nothing, so the modifier is
+  here; H4′ keeps the naming review, the doc comments' polish, `api_baseline.py`'s SPI check, the policy line and
+  marks. B-ATTRED-15's limit is the modifier's defaulted `maximumLineLength:` (20,000 bytes).
+- **B-ATTRED-36. A change's bytes always start at a line's start.** The editor's splice puts the break before lines
+  added or taken at the end into the edit's bytes, so such a change would start mid-line, and §8.6's `InputEdit`
+  mapping (points at column 0) would be wrong. A change that reaches the end and adds or takes whole lines is widened
+  by the line before; the session's own move of its tokens uses the editor's unwidened lines, so that line keeps
+  its tokens.
+- **B-ATTRED-37. `publish` returns `false` only when there is something to do about it:** a version that is not the
+  editor's (take the next update), a line past the text, or a batch whose tokens are not one a line (all of it
+  refused). A line outside the window, or longer than the limit, is taken and kept nowhere, since a highlighter
+  cannot know the window exactly between a scroll and its next update.
+- **B-ATTRED-38. A line that leaves the window loses its tokens in the session and in the drawn lines' cache,** so
+  what is drawn is always what the session holds. A line scrolled back is drawn in the editor's ink until the scroll's
+  update is answered (a highlight query for a screen is 0.15 ms in probe 4).
+- **B-ATTRED-39. A publish asks for one frame until the editor draws.** `publish` is synchronous, so the hop to the
+  main actor is a `Task { @MainActor }` that writes a count at the editor's identity, which invalidates its memo and
+  asks for a frame (`AsyncImage`'s pattern). A flag, cleared when the frame takes the changed lines, makes a flood of
+  publishes one frame. Lines changed off screen are forgotten by the same frame, drawn again when they come on
+  screen, and ask for nothing.
+- **B-ATTRED-40. Tokens are interned by the session, under a lock of their own.** A publish's tokens become 8-byte
+  runs (B-ATTRED-10) on the highlighter's task, under a second lock the frame never takes, so a frame waits only for
+  a line's copy and never for hashing. Their indices count from 1 in the order first seen, and each frame, before
+  its rows, gives H1's `EditorHighlightStyles` the tokens interned since, in the same order, so a session's index is
+  the layer's. The style asked is the one the highlighter started with: B-ATTRED-25 keeps the session across body
+  evaluations, and with it its style.
+- **B-ATTRED-41. A line edited in place shifts its tokens by its bytes, not by the edit's column.** The editor's
+  edits reach the layout as lines (`EditedLines`), so the shift of B-ATTRED-28 is found from the line before and
+  after: the bytes they share at the start stay, those they share at the end move by the difference, and offsets
+  between go to where they first differ. That is the same answer for a key, and right for a replacement too. It costs
+  the line's length, and only lines in the window are shifted.
+
+Tests: `TextEditorHighlightSessionTests` (the session alone, the test playing the editor and the highlighter in
+turn), `TextEditorHighlighterTests` (through the editor, with a stepped highlighter that hands the test its session,
+a fake tree styler in `FakeTreeStyler.swift` that finds the lines whose tokens changed as tree-sitter's changed
+ranges are found, and one highlighter's own task beside 60 edits, the run the thread sanitizer checks). None sleeps.
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 

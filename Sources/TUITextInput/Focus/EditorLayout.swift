@@ -101,7 +101,7 @@ final class EditorLayout {
     /// A byte at a time: a line break is a grapheme of its own (Unicode's
     /// rules GB4 and GB5 break after and before every CR and LF), so its bytes
     /// are where its character is.
-    private static func lineBreaks(in text: String) -> (starts: [Int], ending: String, isUniform: Bool) {
+    static func lineBreaks(in text: String) -> (starts: [Int], ending: String, isUniform: Bool) {
         var starts = [0]
         var kinds = (lf: false, crlf: false, cr: false)
         // A CR seen, which the byte after it says is a CRLF's or a lone one.

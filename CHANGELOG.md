@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextEditor` can be highlighted by a styler of the app's own, through a seam that is SPI for now.** With
+`@_spi(TextEditorHighlighting) import TUITextInput`, `.textEditorHighlighter(_:style:)` gives the editors below a
+`TextEditorHighlighter`: a tree-sitter adapter, say, run in a task of its own off the main actor, which takes the
+editor's text as it changes (every edit since the last as one change by whole lines, in UTF-8 bytes) and publishes
+tokens for the lines on screen, which the editor draws over its text without writing them into it. The editor never
+waits for it, and keeps a line's tokens, moved with the edit, until the styler publishes the line again. Being SPI,
+all of it may change in any release until it is made public.
+
 **A `Canvas`'s text stays inside the canvas.** A glyph drawn at the canvas's right or bottom edge, `x: size.width` or
 `y: size.height`, landed in the column or row past it, and a wide glyph in the last column ran a cell over, so the
 canvas came out a cell wider or taller than its frame, and where its frame cut a wide glyph back the row was left a
