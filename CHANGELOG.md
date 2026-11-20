@@ -40,6 +40,14 @@ test sees what its app posts through `@Environment(\.notificationService)`; a po
 `NotificationService.current` goes to the process's queue, which no `TestApp` draws, so a test that read such a toast
 on the screen should have the view post through the environment.
 
+**A view's content level under a view's level replaces it, as in SwiftUI.** `VStack { … }.foregroundStyle(.secondary)`
+inside a view with `.foregroundStyle(.secondary)` drew the outer secondary at half strength again, where SwiftUI draws
+the plain secondary (#808080, measured on macOS 15.8.3); under `.secondary` below `.foregroundStyle(.red)`, an inner
+`.primary` drew the secondary red where SwiftUI draws red. A view's level, and a shape's `.fill(.secondary)`, is now a
+level of the style the level above it was a level of: the palette's tiers under a level of no style, red's under a
+level of red or under `.red.secondary`, and under `.foregroundStyle(.red, .blue)` the primary red and the secondary
+the named blue, through any level between. A `Text`'s own level is unchanged.
+
 **A bold under a medium `fontWeight` stays medium, as in SwiftUI.** `Text("x").bold()` inside a view with
 `.fontWeight(.medium)` drew bold, where SwiftUI keeps it medium (measured on macOS 15.8.3). TUI draws medium as it
 draws regular, since a terminal has only bold, normal and faint and medium is far nearer regular, so the text now draws

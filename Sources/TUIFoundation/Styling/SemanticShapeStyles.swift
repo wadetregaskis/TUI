@@ -83,15 +83,39 @@ extension EnvironmentValues {
         set { self[TertiaryForegroundStyleKey.self] = newValue }
     }
 
-    /// The foreground style as it was published when it is a content level of
-    /// no style: a `View.foregroundStyle(.secondary)` (or any level) with no
-    /// style above it, which draws the palette's tier
-    /// (``HierarchicalShapeStyle/isBare(in:)``). It stands only while it is
-    /// still the style in force, so a site that sets ``foregroundStyle``
-    /// directly — a control's own ink — ends it without having to know of it.
-    var bareLevelForegroundStyle: Paint? {
-        get { self[BareLevelForegroundStyleKey.self] }
-        set { self[BareLevelForegroundStyleKey.self] = newValue }
+    /// The mark a content level leaves where a view publishes it as the
+    /// foreground style — `View.foregroundStyle(.secondary)`, or a style's own
+    /// level such as `.red.secondary` — saying what it is a level of. It
+    /// stands only while its paint is still the style in force, so a site that
+    /// sets ``foregroundStyle`` directly — a control's own ink — ends it
+    /// without having to know of it.
+    var foregroundLevel: ForegroundLevelMark? {
+        get { self[ForegroundLevelKey.self] }
+        set { self[ForegroundLevelKey.self] = newValue }
+    }
+
+    /// ``foregroundLevel``, where it still stands.
+    private var standingForegroundLevel: ForegroundLevelMark? {
+        guard let mark = foregroundLevel, mark.paint == foregroundStyle else { return nil }
+        return mark
+    }
+
+    /// What a view's content level — a `View.foregroundStyle(.secondary)`, a
+    /// shape's `.fill(.secondary)` — is a level of: the foreground style in
+    /// force, or, where that is itself a level, the style it is a level of;
+    /// `nil` for the palette's tiers.
+    ///
+    /// SwiftUI's, measured (macOS 15.8.3,
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/variants.out`):
+    /// a view's level under a view's level replaces it rather than fading it
+    /// again. Under `.secondary` with nothing above, a view's `.primary` is
+    /// the plain primary (#272727) and its `.secondary` the plain secondary
+    /// (#808080); under `.secondary` below `.red`, or under `.red.secondary`,
+    /// they are red (#FF3B2F) and the secondary red (#FF9C96). A `Text`'s own
+    /// level is not the same (``levelPrimaryForegroundStyle``).
+    var levelBaseForegroundStyle: Paint? {
+        if let mark = standingForegroundLevel { return mark.base }
+        return foregroundStyle
     }
 
     /// What a `Text`'s own content level is a level of: the foreground style in
@@ -109,13 +133,28 @@ extension EnvironmentValues {
     /// `.red.secondary`.
     var levelPrimaryForegroundStyle: Paint? {
         guard let style = foregroundStyle else { return nil }
-        if let bare = bareLevelForegroundStyle, bare == style { return nil }
+        if let mark = standingForegroundLevel, mark.isBare { return nil }
         return style
     }
 }
 
-private struct BareLevelForegroundStyleKey: EnvironmentKey {
-    static let defaultValue: Paint? = nil
+/// What a content level a view published as the foreground style is a level
+/// of (``EnvironmentValues/foregroundLevel``).
+struct ForegroundLevelMark: Equatable, Sendable {
+    /// The paint the level published.
+    let paint: Paint
+    /// The style it is a level of — the style in force above it, seen through
+    /// any level above that — or `nil` for none, the palette's tiers.
+    let base: Paint?
+    /// Whether it is a level of no style that no level
+    /// ``View/foregroundStyle(_:_:)`` named answers for
+    /// (``HierarchicalShapeStyle/isBare(in:)``): a `Text`'s own level below
+    /// it is then the palette's tier.
+    let isBare: Bool
+}
+
+private struct ForegroundLevelKey: EnvironmentKey {
+    static let defaultValue: ForegroundLevelMark? = nil
 }
 
 /// A shape style that maps to one of the numbered content styles: the levels
@@ -148,7 +187,9 @@ public struct HierarchicalShapeStyle: ShapeStyle, Equatable {
         if level >= 1, let secondary = environment.secondaryForegroundStyle {
             return level == 1 ? secondary : secondary.faded(Self.opacities[level - 1])
         }
-        guard let primary = environment.foregroundStyle else {
+        // Of the style in force, or where that is a level, of what it is a
+        // level of: a level replaces a level (``EnvironmentValues/levelBaseForegroundStyle``).
+        guard let primary = environment.levelBaseForegroundStyle else {
             return Self.paletteTier(level, of: environment.palette)
         }
         return level == 0 ? primary : primary.faded(Self.opacities[level])
@@ -222,6 +263,17 @@ public struct HierarchicalShapeStyleModifier<Base: ShapeStyle>: ShapeStyle {
     public func paint(in environment: EnvironmentValues) -> Paint {
         base.paint(in: environment).faded(HierarchicalShapeStyle.opacities[level])
     }
+}
+
+/// A style that is a level of another, which a view's level below it replaces
+/// rather than fades again: `.red.secondary`'s red.
+protocol LevelOfAStyle {
+    /// The style this is a level of, painted where `environment` is.
+    func basePaint(in environment: EnvironmentValues) -> Paint
+}
+
+extension HierarchicalShapeStyleModifier: LevelOfAStyle {
+    func basePaint(in environment: EnvironmentValues) -> Paint { base.paint(in: environment) }
 }
 
 extension HierarchicalShapeStyleModifier: Equatable where Base: Equatable {}

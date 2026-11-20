@@ -210,16 +210,17 @@ SwiftUI's #808080.
 
 **After lane TXTFG-NEST (2026-11-19):** section 4's text rows match. A view's
 level of no style is marked in the environment beside the colour it resolved
-to (`EnvironmentValues.bareLevelForegroundStyle`, read through
-`levelPrimaryForegroundStyle` in `SemanticShapeStyles.swift`), and a text's own
+to (then `EnvironmentValues.bareLevelForegroundStyle`, now the `isBare` of
+`EnvironmentValues.foregroundLevel`, read through `levelPrimaryForegroundStyle`
+in `SemanticShapeStyles.swift`), and a text's own
 level under it is the palette's tier, as with no style; under a level of a
 colour, or of `foregroundStyle(_:_:)`'s named level, it is a level of that, as
 before. Pinned by `TextForegroundStyleTests` (`levelUnderABareLevel`,
 `levelUnderALevelOfAColour`). Not matched, and not taken on: a view's level
 under a view's level still fades the inner level from the outer one (SwiftUI
-takes it from the style the outer level is of), and a view's
-`.foregroundStyle(.foreground)` is the style in force where SwiftUI's is the
-default foreground.
+takes it from the style the outer level is of; matched by lane TXTFG-NEST2,
+below), and a view's `.foregroundStyle(.foreground)` is the style in force
+where SwiftUI's is the default foreground.
 
 Section 2 was not matched by lane TXTFG: TUI kept the **last** style a text
 stated, so `.foregroundStyle(.red).foregroundStyle(.blue)` was blue and
@@ -264,3 +265,14 @@ fragment's own bold in `concatenatedLines`). A text's own `bold().fontWeight(.me
 (`Text+StatementOrder.swift`). A font's tier and weight are weights, not a view's bold. Pinned by
 `TextModifierOrderTests` (`boldUnderAMediumWeight`, `viewBoldBeyondTheWeight`). Under a light weight with a view's
 `.bold()` farther out, a text's own bold is now bold, not faint, as SwiftUI's is.
+
+**After lane TXTFG-NEST2 (2026-11-20), view levels:** section 5's view levels match. A content level a view publishes
+leaves a mark with what it is a level of (`EnvironmentValues.foregroundLevel`, a `ForegroundLevelMark`: the paint it
+published, its base, whether it is bare), and a view's level, or a shape's, below it is a level of that base
+(`levelBaseForegroundStyle`, read by `HierarchicalShapeStyle.paint(in:)`): the palette's tiers under a level of none,
+red under a level of red or under `.red.secondary` (a `LevelOfAStyle`). A level no longer clears the levels
+`foregroundStyle(_:_:)` named, so a `.secondary` under `.secondary` under `(.red, .blue)` is still the named blue. A
+text's own level reads the same mark as before. Pinned by `SemanticShapeStyleTests.levelUnderALevel`. Not matched,
+and not taken on: under `foregroundStyle(_:_:)` a level past the last one named is that one at full strength in
+SwiftUI (`.tertiary` under `(.red, .blue)` is blue, #0079FF), where TUI fades it (blue at half), under a level or
+not.

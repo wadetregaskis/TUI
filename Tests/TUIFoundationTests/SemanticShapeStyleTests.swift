@@ -96,6 +96,39 @@ struct SemanticShapeStyleTests {
         #expect(!drawn.lines[0].contains(ink(.blue)), "\(drawn.lines[0].debugDescription)")
     }
 
+    /// Measured (`Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/variants.out`):
+    /// a view's level under a view's level replaces it, a level of the style
+    /// the outer one was a level of — the plain levels under a level of none,
+    /// red's under a level of red or `.red.secondary`. A shape's level too.
+    @Test("A view's level under a view's level replaces it, as SwiftUI's does")
+    func levelUnderALevel() {
+        let outers = [HierarchicalShapeStyle.secondary, .tertiary, .quaternary]
+        for outer in outers {
+            for inner in [HierarchicalShapeStyle.primary, .secondary, .tertiary, .quaternary] {
+                let alone = buffer(VStack { Text("x") }.foregroundStyle(inner))
+                #expect(buffer(VStack { Text("x") }.foregroundStyle(inner).foregroundStyle(outer)) == alone,
+                    "\(inner.level) under \(outer.level)")
+                let red = buffer(VStack { Text("x") }.foregroundStyle(inner).foregroundStyle(.red))
+                #expect(buffer(VStack { Text("x") }.foregroundStyle(inner).foregroundStyle(outer)
+                    .foregroundStyle(.red)) == red, "\(inner.level) under \(outer.level) under red")
+                #expect(buffer(VStack { Text("x") }.foregroundStyle(inner).foregroundStyle(.red.secondary)) == red,
+                    "\(inner.level) under red.secondary")
+            }
+        }
+        #expect(buffer(VStack { Text("x") }.foregroundStyle(.secondary).foregroundStyle(.red))
+            != buffer(VStack { Text("x") }.foregroundStyle(.red)), "precondition: a level of red is not red")
+        // Under `(.red, .blue)`: the primary red, the secondary the named blue.
+        let named = VStack { Text("x") }.foregroundStyle(.secondary)
+        #expect(buffer(VStack { named }.foregroundStyle(.secondary).foregroundStyle(.red, .blue))
+            == buffer(VStack { Text("x") }.foregroundStyle(.blue)))
+        #expect(buffer(VStack { VStack { Text("x") }.foregroundStyle(.primary) }.foregroundStyle(.secondary)
+            .foregroundStyle(.red, .blue)) == buffer(VStack { Text("x") }.foregroundStyle(.red)))
+        // A shape's level, likewise.
+        let shape = Rectangle().fill(.secondary).frame(width: 3, height: 1)
+        #expect(buffer(VStack { shape }.foregroundStyle(.secondary).foregroundStyle(.red))
+            == buffer(VStack { shape }.foregroundStyle(.red)))
+    }
+
     // MARK: - Roles
 
     @Test("The roles answer from the palette and the environment")

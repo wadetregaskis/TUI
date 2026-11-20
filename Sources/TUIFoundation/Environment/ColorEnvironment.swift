@@ -295,28 +295,48 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
         var childContext = context
         childContext.environment[keyPath: slot] = paint
         if clearsLevels {
+            // A content level is marked with what it is a level of, so that a
+            // view's level below it replaces it rather than fading it again,
+            // and a text's own level below a level of no style is the
+            // palette's tier (``EnvironmentValues/foregroundLevel``). A
+            // function of this wrapper's type and of what is above it, whose
+            // own wrappers tell the memos below of any change, so it needs no
+            // bookkeeping of its own here.
+            let mark = Self.levelMark(of: style, published: paint, in: context.environment)
+            if mark != nil || context.environment.foregroundLevel != nil {
+                childContext.environment.foregroundLevel = mark
+            }
             // Nil below whatever was set above — a constant for the subtree, so
-            // there is no change for a memo below to be told of.
-            childContext.environment.secondaryForegroundStyle = nil
-            childContext.environment.tertiaryForegroundStyle = nil
+            // there is no change for a memo below to be told of. A content
+            // level keeps them: a level of `foregroundStyle(_:_:)`'s style is
+            // still within it, and a `.secondary` below is still the one it
+            // named (measured, `variants.out`).
+            if !(style is HierarchicalShapeStyle) {
+                childContext.environment.secondaryForegroundStyle = nil
+                childContext.environment.tertiaryForegroundStyle = nil
+            }
             // A primary foreground — the only style that clears the levels — is
             // the app's, or a container's default the controls below keep their
             // own colours under (``EnvironmentValues/statedForegroundStyle``).
             childContext.environment.foregroundStyleIsDefault = keepsStated
-            // A content level of no style is marked as one, so that a text's
-            // own level below it is the palette's tier rather than a level of
-            // this one (``EnvironmentValues/levelPrimaryForegroundStyle``). A
-            // function of this wrapper's type and of what is above it, whose
-            // own wrappers tell the memos below of any change, so it needs no
-            // bookkeeping of its own here.
-            if let level = style as? HierarchicalShapeStyle, level.isBare(in: context.environment) {
-                childContext.environment.bareLevelForegroundStyle = paint
-            } else if context.environment.bareLevelForegroundStyle != nil {
-                childContext.environment.bareLevelForegroundStyle = nil
-            }
         }
         childContext.environmentApplicationDepth += 1
         return childContext
+    }
+
+    /// The mark `style`, published as `paint` where `environment` is, leaves
+    /// for the levels below it, or `nil` where it is not a level.
+    private static func levelMark(
+        of style: S, published paint: Paint, in environment: EnvironmentValues
+    ) -> ForegroundLevelMark? {
+        if let level = style as? HierarchicalShapeStyle {
+            return ForegroundLevelMark(
+                paint: paint, base: environment.levelBaseForegroundStyle, isBare: level.isBare(in: environment))
+        }
+        if let level = style as? any LevelOfAStyle {
+            return ForegroundLevelMark(paint: paint, base: level.basePaint(in: environment), isBare: false)
+        }
+        return nil
     }
 }
 

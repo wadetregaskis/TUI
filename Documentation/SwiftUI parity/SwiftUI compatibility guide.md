@@ -1711,7 +1711,12 @@ at the secondary level. What ships, measured against SwiftUI on macOS 15.8.3
   and #272727, `nested.out`; TUI faded the view's tier again until lane
   TXTFG-NEST, 2026-11-19). Under a view's level of a colour it is a level of
   that level (below `.red`, a view's `.secondary` makes a text's own
-  `.secondary` red at a quarter, #FFCDCA).
+  `.secondary` red at a quarter, #FFCDCA). A **view's** level is not the same:
+  under a view's level it replaces it, a level of what that one was a level
+  of (under `.secondary` below `.red`, a view's `.primary` is red #FF3B2F and
+  its `.secondary` #FF9C96; under a `.secondary` of nothing, the plain levels;
+  `variants.out`; TUI faded the outer level again until lane TXTFG-NEST2,
+  2026-11-20). A shape's `.fill(.secondary)` resolves as a view's level does.
 - **Any other style** — `.tint`, `.foreground`, a gradient, `.red.secondary` —
   is kept on the text's runs, as a custom attribute is, and resolved where the
   text is drawn; the result is a `Text`, so it interpolates into another. A
