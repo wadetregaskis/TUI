@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUIChrome
 import TUICore
 import TUIFoundation
@@ -562,9 +563,17 @@ extension RenderLoop: HeadlessRendering {}
 /// The caller's clock, as the mouse dispatcher reads it: a box, so the
 /// dispatcher's closure holds the clock rather than the app that owns the
 /// dispatcher.
-private final class EventClock {
+///
+/// `Sendable`, an atomic rather than a plain `var`, so that a reader on
+/// another thread can hold it too. Set only on the main actor, by a frame.
+private final class EventClock: Sendable {
+    private let value = Atomic<UInt64>(0)
+
     /// The last frame's instant; zero before the first frame.
-    var nanos: UInt64 = 0
+    var nanos: UInt64 {
+        get { value.load(ordering: .relaxed) }
+        set { value.store(newValue, ordering: .relaxed) }
+    }
 }
 
 // MARK: - In-Memory Terminal
