@@ -20,7 +20,7 @@ import TUIFoundation
 /// | Chord | Under `.control` | Does |
 /// |---|---|---|
 /// | ⌘2, ⌘3 | ⌃2, ⌃3 | the list view, the column view (Finder's numbers; ⌘1 and ⌘4, the icon and gallery views, have none to choose) |
-/// | ⇧⌘P | ⌃⇧P | shows or hides the preview (Finder's View ▸ Show Preview) |
+/// | ⇧⌘P | ⌃⇧P | shows or hides the preview (Finder's View ▸ Show Preview), as a typed `=` does |
 /// | ⌘↑ | ⌃↑ | the enclosing folder |
 /// | ⌘↓ | ⌃↓ | opens the folder selected, or chooses the file, as Return does |
 /// | ⇧⌘G | ⌃⇧G | the go-to field (`/`) |
@@ -37,10 +37,15 @@ import TUIFoundation
 /// terminals send ⌃2 as NUL (dropped), ⌃3 as Escape (which cancels) and ⌃.
 /// as a plain `.`; and macOS takes ⌃↑ and ⌃↓ for Mission Control in every
 /// terminal, as Apple Terminal strips the modifiers from ↑ and ↓ (the
-/// survey's "Keys a sheet's grabber uses"). Under the kitty keyboard protocol they all arrive. So the panel's
-/// typed keys — Backspace, `~`, `/`, `+` and Escape — stay its portable
-/// route, and the status bar names these chords only where the protocol is
-/// on (``FilePanel/statusItems(viewMode:createsFolders:commandKey:reporting:)``).
+/// survey's "Keys a sheet's grabber uses"). Under the kitty keyboard protocol they all arrive,
+/// but where the terminal keeps one for itself (Windows Terminal keeps ⌃⇧P,
+/// ⌃⇧N, ⌃⇧D, ⌃⇧A and ⌃⇧., `KeyboardReporting.keptChords`). So the panel's
+/// typed keys — Backspace, `~`, `/`, `+`, `=`, `>` and Escape — stay its
+/// portable route (an `onKeyPress` on the rows, heard before a list's
+/// type-to-select would take the character), and the status bar names a
+/// chord only where it arrives, and the typed key where it does not: ⌃⇧P or
+/// `=` for the preview (``FilePanel/statusItems(viewMode:createsFolders:commandKey:reporting:)``,
+/// the owner, 2026-11-19).
 enum FilePanelCommand: CaseIterable {
     case listView, columnsView, togglePreview, enclosingFolder, openSelection, goToFolder
     case home, desktop, downloads, documents, applications, newFolder, toggleHiddenFiles, cancel

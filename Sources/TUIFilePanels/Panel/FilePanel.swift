@@ -48,7 +48,7 @@ import TUITables
 ///   completes and Return goes to, as at a shell prompt;
 /// - Escape cancels (or closes that field);
 /// - and Finder's chords, ⌘ through the app's `commandKey` (⌃ by default):
-///   ⌘2 and ⌘3 the views, ⇧⌘P the preview, ⌘↑ and ⌘↓, the Go menu's ⇧⌘G,
+///   ⌘2 and ⌘3 the views, ⇧⌘P (or a typed `=`) the preview, ⌘↑ and ⌘↓, the Go menu's ⇧⌘G,
 ///   ⇧⌘H, ⇧⌘D, ⌥⌘L, ⇧⌘O and ⇧⌘A, ⇧⌘N, ⇧⌘. hidden files and ⌘. cancel
 ///   (``FilePanelCommand``, which says where a terminal cannot send them).
 /// Every one of them is also a click: a double-click opens or chooses, the
@@ -338,6 +338,14 @@ struct FilePanel: View {
             .onKeyPress(keys: ["+"]) { press in
                 guard createsFolders, !press.modifiers.contains(.command) else { return .ignored }
                 askingNewFolder = true
+                return .handled
+            }
+            // Beside ⇧⌘P, which arrives only under the kitty keyboard protocol,
+            // and not in Windows Terminal, which keeps ⌃⇧P (the owner,
+            // 2026-11-19). Unmodified, so a chord on = stays the app's.
+            .onKeyPress(keys: ["="]) { press in
+                guard press.modifiers.isDisjoint(with: [.command, .control, .option]) else { return .ignored }
+                previewVisibility = showsPreview ? .hidden : .shown
                 return .handled
             }
             // Added to the sheet's own Escape item, which presses the Cancel

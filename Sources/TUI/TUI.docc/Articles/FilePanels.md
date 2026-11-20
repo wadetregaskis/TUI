@@ -91,8 +91,11 @@ Documents and Applications where they exist, <kbd>⇧⌘N</kbd> New Folder,
 a chord it reads as its own. Their Control stand-ins arrive as themselves
 only under the kitty keyboard protocol — elsewhere Shift is lost on a
 Control letter, ⌃2, ⌃3 and ⌃. have no keys of their own, and macOS keeps ⌃↑
-and ⌃↓ for Mission Control — so the status bar names them only there, and
-the typed keys above are the route every terminal has.
+and ⌃↓ for Mission Control — and not even there where the terminal keeps one
+for itself, as Windows Terminal keeps ⌃⇧P, ⌃⇧N, ⌃⇧D, ⌃⇧A and ⌃⇧.. So the
+status bar names a chord only where it arrives, and the typed keys above are
+the route every terminal has: <kbd>=</kbd> too opens and closes the preview,
+and the status bar names it wherever ⌃⇧P does not arrive.
 
 ## List, Columns and Preview
 
@@ -114,7 +117,7 @@ app's preview (`fileDialogPreview(_:)`), then its name, kind, size and date.
 A file of a text type is shown in any encoding, and a file of no known type
 when it reads as UTF-8 text. It shows "No Selection" while there is no one
 item to show. The Show Preview / Hide Preview
-button after the view switcher, or <kbd>⇧⌘P</kbd>, opens and closes it. Until
+button after the view switcher, or <kbd>⇧⌘P</kbd> or <kbd>=</kbd>, opens and closes it. Until
 the user does,
 it is open where the folder has room for it beside a list that keeps its
 Size and Date Modified — 82 cells, as in a terminal 90 columns wide — and

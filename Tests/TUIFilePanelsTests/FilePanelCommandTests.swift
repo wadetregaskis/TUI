@@ -187,8 +187,10 @@ struct FilePanelCommandTests {
         let enhanced = items(.control, KeyboardReporting(flags: .requested))
         #expect(enhanced.contains("⌃⇧P"), "\(enhanced)")
         #expect(enhanced.contains("⌃2|⌃3"), "\(enhanced)")
+        #expect(!enhanced.contains("="), "\(enhanced)")
+        // Where ⌃⇧P does not arrive, the preview's typed key is named instead.
         let legacy = items(.control, .legacy)
-        #expect(!legacy.contains("⌃⇧P") && !legacy.contains("⌃2|⌃3"), "\(legacy)")
+        #expect(!legacy.contains("⌃⇧P") && !legacy.contains("⌃2|⌃3") && legacy.contains("="), "\(legacy)")
         // No stand-in for ⌘, no chords.
         #expect(items(.unavailable, KeyboardReporting(flags: .requested)) == legacy)
         // A chord the terminal keeps for itself is not named either.
@@ -196,6 +198,33 @@ struct FilePanelCommandTests {
             .control,
             KeyboardReporting(
                 flags: .requested, keptChords: [KeyboardShortcut("p", modifiers: [.control, .shift]).trigger]))
-        #expect(!keepsPreview.contains("⌃⇧P") && keepsPreview.contains("⌃2|⌃3"), "\(keepsPreview)")
+        #expect(
+            !keepsPreview.contains("⌃⇧P") && keepsPreview.contains("=") && keepsPreview.contains("⌃2|⌃3"),
+            "\(keepsPreview)")
+    }
+
+    @Test("A typed = opens and closes the preview too, but a save panel's name field types it")
+    func typedPreviewKey() async throws {
+        let fixture = try FilePanelFixture()
+        defer { fixture.remove() }
+        let caller = FilePanelCaller()
+        let store = MockStorageBackend()
+        let driver = FilePanelDriver { panel(fixture, caller: caller, store: store) }
+        await driver.waitFor("notes.md")
+        await driver.waitFor("No Selection")
+        driver.press([KeyEvent(key: .character("="))])
+        await settle { !driver.screen().contains("No Selection") }
+        driver.press([KeyEvent(key: .character("="))])
+        await driver.waitFor("No Selection")
+        #expect(caller.heard.isEmpty)
+
+        let saving = FilePanelDriver { panel(fixture, caller: FilePanelCaller(), saves: true, store: store) }
+        await saving.waitFor("notes.md")
+        await saving.waitFor("No Selection")
+        saving.press([KeyEvent(key: .character("="))])
+        await settle {
+            saving.screen().split(separator: "\n").contains { $0.contains("Save As:") && $0.contains("▐= ") }
+        }
+        #expect(saving.screen().contains("No Selection"))
     }
 }

@@ -62,10 +62,10 @@ extension FilePanel {
     /// Escape item, which presses the Cancel button
     /// (`StatusBarState.keepPresentationItem`): to the enclosing folder in
     /// the view `viewMode` shows, home, the go-to field, and New Folder where
-    /// the panel `createsFolders`; and the most used of the chords
-    /// (``FilePanelCommand``), the preview's and the views', ⌘ resolved
-    /// through `commandKey`, where the terminal `reporting` sends one of them
-    /// as itself (``FilePanelCommand/shownShortcut(commandKey:reporting:)``).
+    /// the panel `createsFolders`; the preview's ⇧⌘P where it arrives, and its
+    /// typed `=` where it does not; and the views' chords, ⌘ resolved through
+    /// `commandKey`, where the terminal `reporting` sends them as themselves
+    /// (``FilePanelCommand/shownShortcut(commandKey:reporting:)``).
     @StatusBarItemBuilder
     static func statusItems(
         viewMode: FilePanelViewMode, createsFolders: Bool, commandKey: CommandKeyBinding,
@@ -85,11 +85,10 @@ extension FilePanel {
                 shortcut: "+",
                 label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusNewFolder))
         }
-        if let preview = FilePanelCommand.togglePreview.shownShortcut(commandKey: commandKey, reporting: reporting) {
-            StatusBarItem(
-                shortcut: preview,
-                label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusPreview))
-        }
+        // ⌃⇧P where it arrives, and the typed = everywhere else.
+        StatusBarItem(
+            shortcut: FilePanelCommand.togglePreview.shownShortcut(commandKey: commandKey, reporting: reporting) ?? "=",
+            label: LocalizationService.shared.string(for: LocalizationKey.FilePanel.statusPreview))
         if let list = FilePanelCommand.listView.shownShortcut(commandKey: commandKey, reporting: reporting),
             let columns = FilePanelCommand.columnsView.shownShortcut(commandKey: commandKey, reporting: reporting)
         {

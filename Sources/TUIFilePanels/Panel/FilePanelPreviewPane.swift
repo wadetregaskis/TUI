@@ -15,7 +15,7 @@ import TUIFoundation
 /// view's column — kept in the app's storage beside the view mode
 /// (``storageKey(for:)``), so the next panel opens as the last was left.
 ///
-/// Until the user opens or closes it (⇧⌘P, or the Preview button beside the
+/// Until the user opens or closes it (⇧⌘P or `=`, or the Preview button beside the
 /// view switcher), it is ``automatic``: open where the panel has room for it
 /// and for a list that stays comfortable (``opensByDefault(inWidth:)``), and
 /// closed where it has not, as the preview would take the list's columns.
@@ -95,7 +95,8 @@ struct FilePanelPreviewPane: View {
 /// toggle in the button style labelled "Show Preview" or "Hide Preview" (as
 /// Finder's View ▸ Show/Hide Preview menu item is), pressed in while the
 /// preview shows. A Tab stop, as the switcher is, whose Space toggles it;
-/// ⇧⌘P does the same from anywhere in the panel.
+/// ⇧⌘P does the same from anywhere in the panel, and a typed `=` from its
+/// rows.
 struct FilePanelPreviewToggle: View {
     let isOn: Binding<Bool>
 
