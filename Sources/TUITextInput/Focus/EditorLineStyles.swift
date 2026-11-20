@@ -123,6 +123,10 @@ struct EditorLineStyleCache {
     /// line whose paragraph states none: read for the lines drawn, and for
     /// those the caret, a click or a vertical key reaches.
     private var alignments: [Int: TextAlignment?] = [:]
+    /// Each read line's paragraph's rows a line (A-ATTRED-13), and, of those,
+    /// the lines of more than one: read for the lines drawn and the caret's.
+    private var lineRows: [Int: Int] = [:]
+    private var spacedLines: [Int: Int] = [:]
 
     /// How many lines' styles are kept.
     var count: Int { kept.count }
@@ -145,11 +149,33 @@ struct EditorLineStyleCache {
         return alignment
     }
 
+    /// Reads `line`'s rows a line with `read`, unless it has been. Whether it
+    /// was read now and takes more than one: the gaps need making again.
+    mutating func readLineRows(ofLine line: Int, reading read: (Int) -> Int) -> Bool {
+        guard lineRows[line] == nil else { return false }
+        let rows = read(line)
+        lineRows[line] = rows
+        guard rows > 1 else { return false }
+        spacedLines[line] = rows
+        return true
+    }
+
+    /// The blank rows after each of each of `lineCount` lines' rows, from the
+    /// lines read so far, or `nil` where none read takes more than a row.
+    func gaps(lineCount: Int) -> [Int]? {
+        guard !spacedLines.isEmpty else { return nil }
+        var gaps = [Int](repeating: 0, count: lineCount)
+        for (line, rows) in spacedLines where line < lineCount { gaps[line] = rows - 1 }
+        return gaps
+    }
+
     /// An edit replaced the lines `replaced` with `count` others: their styles
     /// go, those before stay, and those after move with their lines.
     mutating func replaceLines(_ replaced: Range<Int>, withCount count: Int) {
         kept = Self.moving(kept, replacing: replaced, withCount: count)
         alignments = Self.moving(alignments, replacing: replaced, withCount: count)
+        lineRows = Self.moving(lineRows, replacing: replaced, withCount: count)
+        spacedLines = Self.moving(spacedLines, replacing: replaced, withCount: count)
     }
 
     /// `kept`'s lines, those `replaced` gone and those after moved by the lines
@@ -172,5 +198,7 @@ struct EditorLineStyleCache {
     mutating func removeAll() {
         kept.removeAll()
         alignments.removeAll()
+        lineRows.removeAll()
+        spacedLines.removeAll()
     }
 }

@@ -42,7 +42,7 @@ extension TextEditorHandler {
             source.onTakenWhole = { [weak self] sameCharacters in
                 guard let self else { return }
                 lineStyleCache.removeAll()
-                keptLineGaps = .unread
+                keptLineGaps = nil
                 // Only recoloured: still the text the history's edits left.
                 if sameCharacters, let value = attributedSource?.value { undoHistory.noteWritten(.attributed(value)) }
             }
@@ -56,7 +56,10 @@ extension TextEditorHandler {
             palette: palette, accent: palette.accent.resolve(with: palette),
             lineStyleSupport: environment.lineStyleSupport, font: environment.font,
             linkUnderline: environment.linkUnderline)
-        if styling != attributedStyling { lineStyleCache.removeAll() }
+        if styling != attributedStyling {
+            lineStyleCache.removeAll()
+            keptLineGaps = nil
+        }
         attributedStyling = styling
     }
 

@@ -159,10 +159,17 @@ extension _TextEditorCore {
         if let handler = existingHandler(context: context) {
             gaps = handler.lineGaps(for: layout)
         } else if let value = attributed?.text.wrappedValue, Self.hidingGlyph(in: context) == nil {
-            let read = TextEditorHandler.lineGaps(
-                in: value, lines: layout.lines.indices, characterStarts: layout.characterStarts,
-                reading: TextEditorHandler.statedLineRows)
-            gaps = read.contains { $0 > 0 } ? read : nil
+            // Before a render has made the handler: the lines the first screen
+            // can show, as the handler reads them (``TextEditorHandler/lineGaps(for:)``).
+            let shown = 0..<min(layout.lines.count, max(1, min(context.availableHeight, 1024)) + 1)
+            let rows = shown.map {
+                TextEditorHandler.lineRows(
+                    ofLine: $0, in: value, characterStarts: layout.characterStarts, reading: { $0.drawnLineRows })
+            }
+            if rows.contains(where: { $0 > 1 }) {
+                gaps = Array(repeating: 0, count: layout.lines.count)
+                for (line, count) in zip(shown, rows) { gaps?[line] = count - 1 }
+            }
         }
         guard context.environment.textEditorWrapsLines, width > 0 else {
             return SidewaysRows(lineCount: layout.lines.count, gaps: gaps).rowCount

@@ -473,12 +473,22 @@ after each line but the last, on top of `.lineSpacing(_:)`'s, in the measure as 
 budget holds, a line limit (which counts lines, as SwiftUI's does) and a link's rows (`TextLinkSpans`) all go through
 it, so the measure reports what the render draws.
 
-**The editor** needs every line's value, since a paragraph's blank rows move every row after it. The handler keeps the
-blank rows after each line's rows (`keptLineGaps`, `TextEditorHandler+LineHeight.swift`): read whole when a value is
-taken, through `value.runs[LineHeightAttribute.self]` (one run per stretch of paragraphs that share a value, each
-mapped to its lines through the layout's character starts), and after the editor's own edit only for the lines it put
-in, the rest moved, as the line styles are. A text that states no line height keeps `nil`, and its rows are the
-wrapping as before. `WrappedRows` counts the blank rows as rows (`spaced(by:)`, the row starts made again in one pass,
+**The editor** reads a line's line height as it reads its styles and its alignment (B-ATTRED-2): from its first
+character's run, once, for the lines a frame shows from the top and the caret's, kept in `EditorLineStyleCache` and
+moved or dropped with the lines an edit changes (`TextEditorHandler+LineHeight.swift`). A line never shown counts as
+one row a line, so the rows below the screen are provisional: a paragraph of more than one row a line adds its blank
+rows when it is first shown, and the scroll bar's extent grows by them then; the frame that scrolls it on screen
+follows the caret again on the rows it makes. What is on screen, the caret's row and the keys' steps are exact. Not
+the whole value at once, which the first build of this did, because of what it cost (measured 2026-11-19, macOS
+15.8.3, Xcode's Swift 6.2.4, -O, a probe kept out of the repository, 40,000 JSON-like lines of 16 runs): Foundation's
+runs of one key (`runs[\.lineHeight]`, or a slice's) take time growing with the square of the runs, 3.9 s for 40,000
+runs and 18.9 s for 80,000, so hours for `bigtext-rich`'s 640,003; every run's container read is about 0.23 µs a run
+(150 ms), and every paragraph's first character about 0.65 µs a line (26 ms), against 12.5 ms for the rest of taking
+that value (its characters read and compared). Read lazily, taking it costs 0.05 ms more with no line height (+0.4%)
+and 0.08 ms with every paragraph at two rows a line (+0.7%, the gaps and the rows' starts made again). The Mac's
+grid read could not be run here (macOS 26): a stand-in of Core Text's shape, a maker and `==` not inlined, takes 69
+ns for a factor of 2 and 339 ns for one off the grid, so 0.002 to 0.009 ms for a screen's lines. A text that states
+no line height keeps `nil`, and its rows are the wrapping as before. `WrappedRows` counts the blank rows as rows (`spaced(by:)`, the row starts made again in one pass,
 kept beside the wrapping while the gaps array is the same), so the scroll, its bar, the page keys and the screen
 count them; a blank row belongs to the text row above it (`location(ofRow:)`, so a click there lands on that row, as
 §7 ruled), the caret's row is always a text row, Down onto blank rows goes on to the next text row and Up onto them to
@@ -487,7 +497,7 @@ view may be a blank row (`scrollBlankRows`), so the wheel moves one row at a tim
 screen. Where the editor scrolls sideways, each line is followed by its blank rows the same way (one row a line, so the
 gap is per line). Measured on this machine: nothing; the read of a whole value's line heights walks Foundation's
 runs of that one key, which for `bigtext`'s 640,003 runs is not measured, and is paid once for each value taken whole,
-not for the editor's own edits. A test seam, `lineRowRuns`, lets the drawing tests run on a Mac before macOS 26 through
+not for the editor's own edits. A test seam, `lineRowsOfRun`, lets the drawing tests run on a Mac before macOS 26 through
 an attribute of their own (`RichTextEditorLineHeightTests`, which runs every case through `lineHeight` too where it
 exists); `TextParagraphLineHeightTests` runs the rule everywhere, `Text`'s rows through its runs, and Core Text's
 reading under `#available(macOS 26, *)`.

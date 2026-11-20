@@ -3,8 +3,8 @@
 //
 //  An attributed editor's paragraph line heights (G3 L4, the owner's rulings
 //  A-ATTRED-3 of 2026-11-17 and A-ATTRED-13 (b) of 2026-11-19): the blank rows
-//  each line's rows are followed by, which a wrapping editor's rows count
-//  (`WrappedRows`), read for every line, since each moves every row after it.
+//  each line's rows are followed by, which an editor's rows count
+//  (`WrappedRows`, `SidewaysRows`), read for the lines a frame shows.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -12,35 +12,37 @@
 import Foundation
 import TUIFoundation
 
-/// What an editor knows of its lines' line heights: nothing yet, or the blank
-/// rows after each of each line's rows, by line (`nil` inside where no line
-/// has any).
-enum EditorLineGaps {
-    case unread
-    case read([Int]?)
-}
-
-/// The stretches of a text that state a line height of more than one row a
-/// line, and how many rows (``ParagraphLineRows``).
-typealias LineRowRuns = (AttributedSubstring) -> [(range: Range<AttributedString.Index>, rows: Int)]
-
 extension TextEditorHandler {
     /// The blank rows after each of each line's rows, by line, for the
-    /// value's characters laid out as `layout`, or `nil` where no paragraph
-    /// takes more than a row a line, the editor is bound to a `String`, or its
-    /// text is hidden. Read whole once for each value taken, and for the lines
-    /// an edit changes after it (``replaceLineGaps(_:with:in:)``): a
-    /// paragraph's blank rows move every row after it, so the rows need every
-    /// line's.
+    /// value's characters laid out as `layout`, or `nil` where no line read so
+    /// far takes more than a row a line, the editor is bound to a `String`, or
+    /// its text is hidden.
+    ///
+    /// Read a line at a time, as its styles and its alignment are
+    /// (B-ATTRED-2): the lines a frame shows from the top, and the caret's,
+    /// each once, kept until an edit changes it or a value is taken whole. A
+    /// line never shown is never read, and counts as one row a line, so a
+    /// replaced value costs nothing until it is drawn. Not the whole value at
+    /// once: Foundation's runs of one key (`runs[\.lineHeight]`) take time
+    /// growing with the square of the runs on macOS 15.8 (3.9 s for 40,000,
+    /// 18.9 s for 80,000; `bigtext-rich`'s 640,003 would be hours), and even
+    /// one character of each paragraph is about 0.65 µs a line, 26 ms for
+    /// `bigtext`, against 1 ms for the rest of taking a value.
+    ///
+    /// So the rows below the screen are provisional: a paragraph of more than
+    /// one row a line that has not been shown yet adds its blank rows when it
+    /// is, and the scroll bar's extent grows by them then. What is on screen,
+    /// the caret's row and the keys' steps over the blank rows are exact.
     func lineGaps(for layout: EditorLayout) -> [Int]? {
         guard let source = attributedSource, !isSecure else { return nil }
-        if case .read(let gaps) = keptLineGaps, gaps.map({ $0.count == layout.lines.count }) ?? true { return gaps }
-        let gaps = Self.lineGaps(
-            in: source.value, lines: layout.lines.indices, characterStarts: layout.characterStarts,
-            reading: lineRowRuns)
-        let kept = gaps.contains { $0 > 0 } ? gaps : nil
-        keptLineGaps = .read(kept)
-        return kept
+        let count = layout.lines.count
+        let top = min(max(0, scrollLine), count - 1)
+        for line in top..<min(count, top + max(1, viewportHeight) + 1) { readLineRows(line, in: layout, of: source) }
+        if cursorLine >= 0, cursorLine < count { readLineRows(cursorLine, in: layout, of: source) }
+        if let kept = keptLineGaps, kept.count == count { return kept.gaps }
+        let gaps = lineStyleCache.gaps(lineCount: count)
+        keptLineGaps = (count, gaps)
+        return gaps
     }
 
     /// ``lineGaps(for:)`` of the text's layout.
@@ -49,65 +51,31 @@ extension TextEditorHandler {
         return lineGaps(for: layout())
     }
 
-    /// An edit replaced the lines `replaced` with those of `layout` in
-    /// `replacement`, and the value is the one it made: the lines it put in
-    /// are read, those before keep theirs, and those after move with them.
-    func replaceLineGaps(_ replaced: Range<Int>, with replacement: Range<Int>, in layout: EditorLayout) {
-        guard case .read(let kept) = keptLineGaps, let source = attributedSource else { return }
-        let fresh = Self.lineGaps(
-            in: source.value, lines: replacement, characterStarts: layout.characterStarts, reading: lineRowRuns)
-        guard kept != nil || fresh.contains(where: { $0 > 0 }) else { return }
-        var gaps = kept ?? Array(repeating: 0, count: layout.lines.count - replacement.count + replaced.count)
-        gaps.replaceSubrange(replaced, with: fresh)
-        keptLineGaps = .read(gaps.contains { $0 > 0 } ? gaps : nil)
+    /// Reads `line`'s rows a line, unless it has been: its paragraph's, from
+    /// its first character (its line break, where it is empty), as its
+    /// alignment is. A line of more than one row a line has the gaps made
+    /// again.
+    private func readLineRows(_ line: Int, in layout: EditorLayout, of source: AttributedTextSource) {
+        let read = lineStyleCache.readLineRows(ofLine: line) { line in
+            Self.lineRows(ofLine: line, in: source.value, characterStarts: layout.characterStarts, reading: lineRowsOfRun)
+        }
+        if read { keptLineGaps = nil }
     }
 
-    /// The blank rows after each of the rows of each of `lines`, the lines of
-    /// `value` that start at `characterStarts`: its paragraph's rows a line
-    /// less one, read from the line's first character (its line break, where
-    /// it is empty), as its alignment is.
-    static func lineGaps(
-        in value: AttributedString, lines: Range<Int>, characterStarts: [Int], reading lineRowRuns: LineRowRuns
-    ) -> [Int] {
-        var gaps = [Int](repeating: 0, count: lines.count)
-        let characters = value.characters
-        guard !lines.isEmpty,
-            let lower = characters.index(
-                value.startIndex, offsetBy: characterStarts[lines.lowerBound], limitedBy: value.endIndex)
-        else { return gaps }
-        let upper =
-            lines.upperBound < characterStarts.count
-            ? characters.index(value.startIndex, offsetBy: characterStarts[lines.upperBound], limitedBy: value.endIndex)
-                ?? value.endIndex
-            : value.endIndex
-        for (range, rows) in lineRowRuns(value[lower..<upper]) where rows > 1 {
-            let start = characters.distance(from: value.startIndex, to: range.lowerBound)
-            let end = characters.distance(from: value.startIndex, to: range.upperBound)
-            // The first of `lines` starting in the run, then each after it that does.
-            var (low, high) = (lines.lowerBound, lines.upperBound)
-            while low < high {
-                let middle = (low + high) / 2
-                if characterStarts[middle] < start { low = middle + 1 } else { high = middle }
-            }
-            while low < lines.upperBound, characterStarts[low] < end {
-                gaps[low - lines.lowerBound] = rows - 1
-                low += 1
-            }
-        }
-        return gaps
-    }
-
-    /// The stretches of `text` whose paragraphs state a line height
-    /// (`lineHeight`), and the rows each of their lines takes: none on a Mac
-    /// before macOS 26, which has no line height (as SwiftUI's has none).
-    static func statedLineRows(in text: AttributedSubstring) -> [(range: Range<AttributedString.Index>, rows: Int)] {
-        #if canImport(CoreText)
-            guard #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) else { return [] }
-        #endif
-        return text.runs[AttributeScopes.CoreTextAttributes.LineHeightAttribute.self].compactMap { height, range in
-            guard let rows = height?.drawnRows, rows > 1 else { return nil }
-            return (range, rows)
-        }
+    /// The rows each line of `line`'s paragraph takes, read from its first
+    /// character by `rowsOfRun`; one for a line past the text's last
+    /// character. The character is read as a substring, not through `runs`,
+    /// which a program on Windows cannot link (`Documentation/Windows
+    /// port.md`, "Toolchain").
+    static func lineRows(
+        ofLine line: Int, in value: AttributedString, characterStarts: [Int],
+        reading rowsOfRun: (AttributedSubstring) -> Int
+    ) -> Int {
+        guard line < characterStarts.count,
+            let index = value.characters.index(value.startIndex, offsetBy: characterStarts[line], limitedBy: value.endIndex),
+            index < value.endIndex
+        else { return 1 }
+        return rowsOfRun(value[index..<value.characters.index(after: index)])
     }
 
     /// Puts the top of the view at `row` of `rows`, a blank one too: kept as

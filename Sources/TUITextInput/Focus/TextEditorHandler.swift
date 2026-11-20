@@ -214,18 +214,19 @@ final class TextEditorHandler: PersistedFocusable {
     /// The styles read for the lines drawn, kept until an edit changes a line.
     var lineStyleCache = EditorLineStyleCache()
 
-    /// The blank rows after each line's rows, from an attributed value's line
-    /// heights (``lineGaps(for:)``), until a value is taken whole.
-    var keptLineGaps = EditorLineGaps.unread
+    /// The blank rows after each line's rows, from the line heights read so
+    /// far (``lineGaps(for:)``), for that many lines; `nil` to be made again
+    /// from ``lineStyleCache``.
+    var keptLineGaps: (count: Int, gaps: [Int]?)?
 
     /// The rows of an editor that scrolls sideways, while its lines have
     /// blank rows after them (``sidewaysRows()``).
     var keptSidewaysRows: SidewaysRows?
 
-    /// Where the line heights of an attributed value are read from: its
-    /// `lineHeight` (``statedLineRows(in:)``). A test on a Mac before macOS
-    /// 26, which has no line height, reads them from an attribute of its own.
-    var lineRowRuns: LineRowRuns = TextEditorHandler.statedLineRows
+    /// The rows each line of a run's paragraph takes: its `lineHeight`'s
+    /// (`AttributedSubstring.drawnLineRows`). A test on a Mac before
+    /// macOS 26, which has no line height, reads an attribute of its own.
+    var lineRowsOfRun: (AttributedSubstring) -> Int = { $0.drawnLineRows }
 
     /// Sets where the lines' styles come from, forgetting those already read.
     func replaceLineStyler(_ styler: ((Int) -> [EditorStyledRun])?) {
@@ -316,7 +317,7 @@ final class TextEditorHandler: PersistedFocusable {
         cachedLayout = fresh
         // A text replaced whole: its lines are not the ones styled.
         if lineStyler != nil { lineStyleCache.removeAll() }
-        keptLineGaps = .unread
+        keptLineGaps = nil
         return fresh
     }
 

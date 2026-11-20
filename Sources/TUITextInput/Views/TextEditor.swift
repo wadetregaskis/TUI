@@ -696,7 +696,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         guard wraps else {
             if follows { handler.wrapWidth = nil }
             // Each line a row, a paragraph's line height's blank rows after it.
-            let spaced = handler.sidewaysRows()
+            var spaced = handler.sidewaysRows()
             let overflows = spaced.rowCount > height
             let contentWidth = overflows ? max(1, width - barWidth) : width
             if follows { handler.sidewaysWidth = contentWidth }
@@ -713,12 +713,19 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             } else {
                 caretCells = 1
             }
-            if follows, handler.isWheelScrolled {
-                handler.clampWheelScroll(rowCount: spaced.rowCount, height: height, in: nil)
-            } else if follows {
-                followCursor(
-                    handler, cursorDisplayColumn: caretColumn, caretCells: caretCells, width: contentWidth,
-                    height: height)
+            // Followed again while the lines the scroll brought on screen,
+            // read now (`TextEditorHandler.lineGaps(for:)`), add blank rows.
+            for _ in 0..<(follows ? 3 : 0) {
+                if handler.isWheelScrolled {
+                    handler.clampWheelScroll(rowCount: spaced.rowCount, height: height, in: nil)
+                } else {
+                    followCursor(
+                        handler, cursorDisplayColumn: caretColumn, caretCells: caretCells, width: contentWidth,
+                        height: height)
+                }
+                let read = handler.sidewaysRows()
+                guard read.gaps != spaced.gaps else { break }
+                spaced = read
             }
             return Window(
                 contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: spaced.rowCount,
@@ -734,10 +741,17 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         if follows {
             handler.wrapWidth = contentWidth
             handler.sidewaysWidth = nil
-            if handler.isWheelScrolled {
-                handler.clampWheelScroll(rowCount: rows.rowCount, height: height, in: rows)
-            } else {
-                handler.followCaretRow(in: rows, height: height)
+            // Followed again while the lines the scroll brought on screen,
+            // read now (`TextEditorHandler.lineGaps(for:)`), add blank rows.
+            for _ in 0..<3 {
+                if handler.isWheelScrolled {
+                    handler.clampWheelScroll(rowCount: rows.rowCount, height: height, in: rows)
+                } else {
+                    handler.followCaretRow(in: rows, height: height)
+                }
+                let read = handler.wrappedRows(width: contentWidth, tabWidth: tabWidth)
+                guard read.gaps != rows.gaps else { break }
+                rows = read
             }
         }
         return Window(

@@ -11,7 +11,7 @@
 //  Each case runs through SwiftUI's `lineHeight` where it exists (macOS 26 on
 //  a Mac, which CI's macOS 26 lane runs; Linux, Windows) and, everywhere,
 //  through an attribute of the test's own read by the handler's seam
-//  (`lineRowRuns`), since a Mac before macOS 26 has no line height at all.
+//  (`lineRowsOfRun`), since a Mac before macOS 26 has no line height at all.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -72,14 +72,9 @@ enum LineRowsSpelling: String, CaseIterable, Sendable, CustomStringConvertible {
     /// Has `handler` read this spelling, and its line heights afresh.
     func prepare(_ handler: TextEditorHandler) {
         guard self == .testAttribute else { return }
-        handler.lineRowRuns = Self.testRuns
-        handler.keptLineGaps = .unread
-    }
-
-    /// The test attribute's stretches, as ``TextEditorHandler/statedLineRows(in:)``
-    /// gives `lineHeight`'s.
-    static func testRuns(_ text: AttributedSubstring) -> [(range: Range<AttributedString.Index>, rows: Int)] {
-        text.runs[TestLineRowsAttribute.self].compactMap { rows, range in rows.map { (range, $0) } }
+        handler.lineRowsOfRun = { $0[TestLineRowsAttribute.self] ?? 1 }
+        handler.lineStyleCache.removeAll()
+        handler.keptLineGaps = nil
     }
 }
 
@@ -185,7 +180,7 @@ struct RichTextEditorLineHeightTests {
     }
 
     @Test(
-        "Typing keeps a paragraph's rows, a paragraph split from it takes them, and the lines read after an edit are those read whole",
+        "Typing keeps a paragraph's rows, a paragraph split from it takes them, and the edited lines are read again",
         arguments: LineRowsSpelling.available)
     func typing(_ spelling: LineRowsSpelling) throws {
         let text = document([("alpha", 2), ("hi", nil)], spelling)
@@ -196,14 +191,33 @@ struct RichTextEditorLineHeightTests {
         }
         #expect(String(text.value.characters) == "al!\nxpha\nhi")
         #expect(drawn.render() == ["al!", "", "xpha", "", "hi", ""])
-        // What the edits left, against the whole value read afresh.
-        let kept = drawn.handler.lineGaps()
-        let layout = drawn.handler.layout()
-        let whole = TextEditorHandler.lineGaps(
-            in: text.value, lines: layout.lines.indices, characterStarts: layout.characterStarts,
-            reading: drawn.handler.lineRowRuns)
-        #expect(kept == whole)
-        #expect(whole == [1, 1, 0])
+        #expect(drawn.handler.lineGaps() == [1, 1, 0])
+    }
+
+    @Test(
+        "A line is read when it is shown: a value taken whole reads none until then, and the rows grow by its blank rows",
+        arguments: LineRowsSpelling.available)
+    func readWhenShown(_ spelling: LineRowsSpelling) {
+        // Ten lines, each two rows a line, in an editor four rows tall.
+        let paragraphs = (0..<10).map { ("line \($0)", Optional(2)) }
+        let drawn = editor(document(paragraphs, spelling), spelling, height: 4)
+        let shownFirst = drawn.handler.wrappedRows()?.rowCount ?? 0
+        #expect(shownFirst < 19, "the lines below the screen are not read yet: \(shownFirst) rows")
+        // A jump to the last line shows it on its own row, its blank row
+        // after it read too, the caret on it.
+        drawn.handler.moveCursor(toLine: 9, column: 0)
+        let rendered = drawn.render()
+        let caret = drawn.handler.insertionPoint
+        #expect(caret.map { rendered[$0.y].hasPrefix("line 9") } == true, "\(rendered) \(String(describing: caret))")
+        #expect(rendered.filter { $0.hasPrefix("line") }.count == 2, "\(rendered)")
+        // Walked down a line at a time, every line is shown, so read.
+        drawn.handler.moveCursor(toLine: 0, column: 0)
+        _ = drawn.render()
+        for _ in 0..<9 {
+            _ = drawn.handler.handleKeyEvent(KeyEvent(key: .down))
+            _ = drawn.render()
+        }
+        #expect(drawn.handler.wrappedRows()?.rowCount == 19, "every line read on the way")
     }
 
     @Test("A block takes no row from the blank ones", arguments: LineRowsSpelling.available)

@@ -301,7 +301,8 @@ cannot set a line height, as in SwiftUI. On Linux, Windows and WebAssembly TUI d
 every factor. It belongs to a whole paragraph, as `alignment` does. A `Text` puts the blank rows after each line, on top
 of `.lineSpacing(_:)`'s, and measures them; a `TextEditor` puts them after each row of the paragraph, where they belong
 to the row above for a click, the Up and Down keys step over them, the caret never stands on one, and the scroll and
-its bar count them.
+its bar count them. The editor reads a paragraph's line height when it first shows it, as it reads its colours, so a
+large text costs a screenful: the scroll bar's extent grows by a paragraph's blank rows once it has been shown.
 
 **A paragraph's `alignment` in an `AttributedString` is drawn.** `string.alignment = .center` (or `.left`, `.right`)
 compiles and draws as it does in SwiftUI. On Apple platforms it is Core Text's own attribute, so it needs macOS 26,
