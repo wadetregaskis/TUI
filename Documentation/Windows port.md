@@ -201,7 +201,9 @@ passes again with those fixes in.
 
 **Through `Tools/ParallelTest/parallel_test.py`** (6.3.3, 2026-11-20), which now runs on Windows (its README's
 "Toolchains and platforms" has what it sets up: swift-testing's DLLs on `PATH`, `TMP` and `TEMP`, a lock without
-`flock`): 15,726 tests in four processes, every one accounted for, all passed in 524 s.
+`flock`): 15,726 tests in four processes, every one accounted for, all passed in 524 s. On 6.2.4 too (594 s), and on
+6.4.2 (639 s, with `--build-system native`, as 6.4's default stops beside 6.3.3) all but two cost bounds that read the
+wall clock here (below, "A per-thread CPU clock").
 
 **The stack a frame is drawn on.** A Windows thread gets the stack its executable names, 1 MiB unless the program was
 linked asking for more: an app's main thread, and the libdispatch workers Swift Testing runs a `@MainActor` test on.
@@ -238,6 +240,12 @@ Two things about the environment the runs needed:
 - **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
   logging the session off would end the test with it. Worth a run in a virtual machine.
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
+- **A per-thread CPU clock** (`threadCPUNanoseconds()`, TUICore), for the owner to decide: it answers `nil` on
+  Windows, so the tests' cost bounds (`bestCPUSeconds`) and the Stress bench read the wall clock there, and two bounds
+  failed under `parallel_test.py`'s load on 6.4.2. `GetThreadTimes` moves in whole ticks (15.625 ms, measured
+  2026-11-20); `QueryThreadCycleTime` is precise but counts cycles (1.87–1.96 GHz against `QueryPerformanceCounter`
+  here, by span), and turning them into time takes a measured rate, a process-wide value the no-singletons rule
+  does not exempt, as it is not a pure function.
 - **The rest of Windows Terminal's default bindings that TUI's own keys share**, to measure as the file panel's were
   (`keyboard_events_probe.py`, `PROBE_ALT=1 PROBE_MOUSE_INPUT=0`, one tab, one pane, no selection), so that
   `TerminalClient.keptChords` lists those it keeps: ⌥↩ (a vertical field's newline; also ⌃J), ⌥⇧↑ ⌥⇧↓ and ⌃⇧↑ ⌃⇧↓

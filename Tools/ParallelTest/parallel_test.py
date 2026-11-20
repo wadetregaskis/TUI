@@ -1254,8 +1254,13 @@ def main():
     # Before the build (it only names the directory), because the test
     # environment needs it and the toolchain is checked before a long build.
     configuration = build_configuration_args(args.release, args.scratch_path, args.build_system)
-    shown = subprocess.run(swift + ["build", "--show-bin-path"] + configuration, cwd=REPO,
-                           capture_output=True, text=True)
+    try:
+        shown = subprocess.run(swift + ["build", "--show-bin-path"] + configuration, cwd=REPO,
+                               capture_output=True, text=True)
+    except FileNotFoundError:
+        print("parallel-test: no `%s` to run; put a toolchain on PATH, or name one in $SWIFT"
+              % swift[0])
+        return 2
     if shown.returncode != 0:
         # What swift said is the whole diagnosis; a traceback would hide it.
         sys.stderr.write(shown.stderr)

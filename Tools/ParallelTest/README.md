@@ -547,7 +547,8 @@ stops before building ("platform 'windows' already registered"), so each
 toolchain is run with its own build directory and, for 6.4, the native build
 system: `--scratch-path .build-6.4.2 --build-system native` built and ran
 every test in 639.3 s, all passing but two cost bounds read on the wall clock
-(see "Known order dependence, and flakes").
+(see "Known order dependence, and flakes"). 6.2.4, unpacked rather than
+installed, with `--scratch-path .build-6.2.4`: all 15,726 passed, in 594.3 s.
 
 ## Tests
 
