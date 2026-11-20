@@ -72,6 +72,23 @@ struct AppLocaleRegionTests {
         #expect(LocalizationService.systemRegion(environment: [:], current: Locale(identifier: "en_001")) == nil)
     }
 
+    @Test("A Windows locale name gives its region, and its language list its languages")
+    func windowsNames() {
+        #expect(LocalizationService.systemRegion(environment: [:], current: Locale(identifier: "en-AU"))?.identifier == "AU")
+        let list = Array("de-DE".utf16) + [0] + Array("en-US".utf16) + [0, 0]
+        #expect(LocalizationService.windowsLanguageList(list) == ["de-DE", "en-US"])
+        #expect(LocalizationService.windowsLanguageList([0, 0]) == nil)
+        #expect(LocalizationService.systemPreferredLanguageCodes(environment: [:], preferredLanguages: ["de-DE", "en-US"]) == ["de"])
+    }
+
+    #if os(Windows)
+        @Test("On Windows the user's languages and region are Windows's, not Foundation's world English")
+        func windowsReadsItsOwn() {
+            #expect(LocalizationService.systemLanguageList != ["en-001"])
+            #expect(LocalizationService.systemLocale?.region?.identifier != "001")
+        }
+    #endif
+
     // MARK: - The service
 
     private let configDir = NSTemporaryDirectory() + "tuikit-e3-\(UUID().uuidString)"

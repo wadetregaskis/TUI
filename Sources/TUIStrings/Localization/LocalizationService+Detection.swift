@@ -20,13 +20,15 @@ extension LocalizationService {
     /// English on a fully German machine, and why an `isEmpty` guard would
     /// never have fired. Darwin's list is a genuine preference and still
     /// decides — a process with no POSIX locale variables set, which is every
-    /// GUI-launched one, reads exactly what it always did.
+    /// GUI-launched one, reads exactly what it always did. On Windows the list
+    /// is the user's display languages (``systemLanguageList``), as Foundation's
+    /// is the same sentinel there and Windows sets no POSIX variable.
     ///
     /// Both inputs are parameters so the two platforms' answers can be posed
     /// on either; the defaults are what the running process actually has.
     static func systemPreferredLanguage(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        preferredLanguages: [String] = NSLocale.preferredLanguages
+        preferredLanguages: [String] = systemLanguageList
     ) -> Language? {
         systemPreferredLanguageCodes(environment: environment, preferredLanguages: preferredLanguages)
             .last.flatMap(Language.init(rawValue:))
@@ -47,7 +49,7 @@ extension LocalizationService {
     /// variables, then the preferred-languages list.
     static func systemPreferredLanguageCodes(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        preferredLanguages: [String] = NSLocale.preferredLanguages
+        preferredLanguages: [String] = systemLanguageList
     ) -> [String] {
         var codes: [String] = []
         // These are canonical BCP-47 tags, language subtag first — no
@@ -92,7 +94,7 @@ extension LocalizationService {
     /// either; the defaults are what the running process has.
     static func systemRegion(
         environment: [String: String] = ProcessInfo.processInfo.environment,
-        current: Locale? = .current
+        current: Locale? = systemLocale
     ) -> Locale.Region? {
         for name in ["LC_ALL", "LC_TIME", "LC_NUMERIC", "LANG"] {
             if let region = (environment[name]).flatMap(territory(of:)) { return Locale.Region(region) }
