@@ -116,6 +116,8 @@ It still differs from `swift test` in three ways worth knowing:
 | `--plan-only` | print the partition and its proof, run nothing |
 | `--filter REGEX` | restrict to matching test IDs (`Module.Suite/test()`) |
 | `--no-build` | skip `swift build --build-tests` |
+| `--scratch-path DIR` | the build directory, when not `.build` (each toolchain building into its own) |
+| `--build-system NAME` | SwiftPM's `--build-system` (`native`, `swiftbuild`), when not its default |
 | `--expect-known-issues N` | fail unless the known-issue total is exactly N |
 | `--full-failing-logs` | print the whole log of every failing process, not only its issues |
 | `--json PATH` | write the full result, per group, as JSON |
@@ -370,6 +372,18 @@ closed:
   `3fadcb1d` fixed elsewhere by measuring thread CPU time instead. It is
   load-sensitive by construction and is not evidence about the partition.
 
+* **On Windows, every cost bound that reads `bestCPUSeconds`** reads the wall
+  clock, as `threadCPUNanoseconds()` has no Windows arm: `GetThreadTimes`
+  moves in whole scheduler ticks (15.625 ms on the VM, 2026-11-20), coarser
+  than a batch, and `QueryThreadCycleTime` counts cycles (1.87–1.96 GHz
+  against `QueryPerformanceCounter` there, by the span measured), which
+  Microsoft says not to convert to time. So under the harness's load they fail
+  as the one above did: on 6.4.2 at `-j 4`, `analyzeForEachIterations()`
+  (`scaleFactor < 3.0`) and `RenderPerformanceStatistics/printStatistics()`
+  (`ratio < 18`, five levels deep); with only their two suites running,
+  three times, both passed every time, and once their suite-mate
+  `analyzeModifierChainDepth()` (`ratio < 25`) failed instead.
+
 Two more flakes surfaced on 2026-09-28. Both were one test writing
 process-wide state that another test in the same process was reading, and
 both are now closed at the writer:
@@ -528,7 +542,12 @@ Measured on the VM (Windows 11 arm64, 8 logical cores, 16 GiB; 6.3.3, debug,
 passed and reconciled in 523.7 s (530.2 s end to end, 1,258.5 CPU-seconds,
 127 known issues), against 19 minutes for `swift test` there (2026-11-17,
 15,667 tests). Split by count, the groups took 339–524 s, so a weight table
-would shorten it further.
+would shorten it further. With 6.4.2 beside 6.3.3, 6.4's default build system
+stops before building ("platform 'windows' already registered"), so each
+toolchain is run with its own build directory and, for 6.4, the native build
+system: `--scratch-path .build-6.4.2 --build-system native` built and ran
+every test in 639.3 s, all passing but two cost bounds read on the wall clock
+(see "Known order dependence, and flakes").
 
 ## Tests
 
@@ -536,7 +555,7 @@ would shorten it further.
 python3 Tools/ParallelTest/test_parallel_test.py
 ```
 
-84 tests covering the parts that can be tested without running the suite: ID
+87 tests covering the parts that can be tested without running the suite: ID
 escaping and pattern anchoring, the partition proof rejecting a gap or an
 overlap, bin packing, both weight paths, all eight shapes of the summary line
 in both their singular and plural wordings, the malformed-xunit recovery, the
@@ -553,9 +572,10 @@ killed once the stall limit passes, and not before; the failure excerpt on real
 Linux (CI) and macOS (probe) output; and the escaping of the `::error`
 annotations. And for Windows: `$SWIFT` with a quoted path, the `PATH` for each
 architecture and for a platform with no versions, launchers spelt with `.exe`,
-and a crash's exit code. They run on any of the three, each layout's paths
-spelt by its own platform's rules (`posixpath`, `ntpath`), so a run on one
-checks the others' layouts too.
+and a crash's exit code; and `--scratch-path` and `--build-system` reaching
+the build. They run on any of the three, each layout's paths spelt by its own
+platform's rules (`posixpath`, `ntpath`), so a run on one checks the others'
+layouts too.
 
 Until 2026-11-20 the stall test sat below the file's `unittest.main()`, which
 exits, so running the file never defined it, let alone ran it.

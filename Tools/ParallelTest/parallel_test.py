@@ -70,6 +70,8 @@ Usage:
     [SWIFT="xcrun --toolchain <id> swift"]
     Tools/ParallelTest/parallel_test.py [-j N] [--calibrate] [--plan-only]
                                         [--filter REGEX] [--no-build]
+                                        [--release] [--scratch-path DIR]
+                                        [--build-system NAME]
                                         [--expect-known-issues N]
                                         [--full-failing-logs] [--json PATH]
 
@@ -426,9 +428,18 @@ RELEASE_TEST_FLAGS = [
 ]
 
 
-def build_configuration_args(release):
-    """What `swift build` takes to build, or to name, the configuration run."""
-    return ["-c", "release"] + RELEASE_TEST_FLAGS if release else []
+def build_configuration_args(release, scratch_path=None, build_system=None):
+    """What `swift build` takes to build, or to name, the configuration run.
+
+    `scratch_path` is the build directory when it is not `.build`, as when
+    each toolchain builds into its own (`swift build --scratch-path`), and
+    `build_system` SwiftPM's `--build-system` when not its default: on a
+    Windows machine with two toolchains installed, 6.4's default stops before
+    building, and only `native` builds.
+    """
+    chosen = (["--scratch-path", scratch_path] if scratch_path else []) + \
+        (["--build-system", build_system] if build_system else [])
+    return chosen + (["-c", "release"] + RELEASE_TEST_FLAGS if release else [])
 
 
 def swift_command(environ=None, windows=None):
@@ -1207,6 +1218,10 @@ def main():
                     help="build and run the tests in release, with the invariant checks "
                          "on (RELEASE_TEST_FLAGS); with --no-build, run a release build "
                          "made with those flags")
+    ap.add_argument("--scratch-path", default=None,
+                    help="the build directory, when it is not .build (as `swift build` takes it)")
+    ap.add_argument("--build-system", default=None,
+                    help="SwiftPM's build system (native, swiftbuild), when not its default")
     ap.add_argument("--expect-known-issues", type=int, default=None,
                     help="fail unless the known-issue total equals this")
     ap.add_argument("--full-failing-logs", action="store_true",
@@ -1238,9 +1253,17 @@ def main():
     swift = swift_command()
     # Before the build (it only names the directory), because the test
     # environment needs it and the toolchain is checked before a long build.
-    configuration = build_configuration_args(args.release)
-    bin_dir = subprocess.run(swift + ["build", "--show-bin-path"] + configuration, cwd=REPO,
-                             capture_output=True, text=True, check=True).stdout.strip()
+    configuration = build_configuration_args(args.release, args.scratch_path, args.build_system)
+    shown = subprocess.run(swift + ["build", "--show-bin-path"] + configuration, cwd=REPO,
+                           capture_output=True, text=True)
+    if shown.returncode != 0:
+        # What swift said is the whole diagnosis; a traceback would hide it.
+        sys.stderr.write(shown.stderr)
+        print("parallel-test: `%s` failed (%s)"
+              % (" ".join(swift + ["build", "--show-bin-path"] + configuration),
+                 describe_exit(shown.returncode)))
+        return 2
+    bin_dir = shown.stdout.strip()
     tc = toolchain(swift, bin_dir)
 
     if not args.no_build:

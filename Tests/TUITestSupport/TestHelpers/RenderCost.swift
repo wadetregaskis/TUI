@@ -40,8 +40,11 @@ import TUICore
 /// `block`.
 ///
 /// The wall clock is the fallback only where a platform has no per-thread CPU
-/// clock (`threadCPUNanoseconds()` answers `nil`), which today is neither of
-/// the two this suite runs on.
+/// clock (`threadCPUNanoseconds()` answers `nil`), which of the three this
+/// suite runs on is Windows: its `GetThreadTimes` moves in whole scheduler
+/// ticks (15.625 ms, measured 2026-11-20), coarser than a batch here, and
+/// `QueryThreadCycleTime` counts cycles, not time. So under load these bounds
+/// can fail there (Tools/ParallelTest/README.md, "Known order dependence, and flakes").
 func bestCPUSeconds(batches: Int = 5, _ block: () -> Void) -> TimeInterval {
     var best = TimeInterval.infinity
     for _ in 0..<batches {

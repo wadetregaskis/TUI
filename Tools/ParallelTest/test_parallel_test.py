@@ -717,6 +717,24 @@ class TestCommandLine(unittest.TestCase):
                          ["/b/T.xctest", "--list-tests", "--testing-library", "swift-testing"])
 
 
+class TestBuildConfiguration(unittest.TestCase):
+    def test_debug_in_dot_build_takes_nothing(self):
+        self.assertEqual(pt.build_configuration_args(False), [])
+
+    def test_a_scratch_path_comes_with_either_configuration(self):
+        self.assertEqual(pt.build_configuration_args(False, ".build-6.4.2"),
+                         ["--scratch-path", ".build-6.4.2"])
+        self.assertEqual(pt.build_configuration_args(True, ".build-6.4.2"),
+                         ["--scratch-path", ".build-6.4.2", "-c", "release"]
+                         + pt.RELEASE_TEST_FLAGS)
+
+    def test_a_build_system_comes_after_the_scratch_path(self):
+        self.assertEqual(pt.build_configuration_args(False, ".b", "native"),
+                         ["--scratch-path", ".b", "--build-system", "native"])
+        self.assertEqual(pt.build_configuration_args(False, None, "native"),
+                         ["--build-system", "native"])
+
+
 class TestPlan(unittest.TestCase):
     def test_one_binary_is_one_invocation_per_group(self):
         owner = {"M.A/a()": "P", "M.A/b()": "P", "M.B/c()": "P"}
