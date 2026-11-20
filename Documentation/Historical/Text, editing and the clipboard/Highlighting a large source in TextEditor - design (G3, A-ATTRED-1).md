@@ -7,9 +7,9 @@ real editors highlight large documents, then proposes how TUI should. Written 20
 2b23a75b5. Nothing here is built. The costs come from a standalone probe on this machine (macOS 15.8.3, Xcode's
 Swift 6.2.4, `-O`; see "For a future reader"). Ids: A-ATTRED-5 to 7 (for the owner), B-ATTRED-8 to 15 (decided
 here). The owner ruled on A-ATTRED-5 to 7 on 2026-11-18; §8 explores the rulings (B-ATTRED-19 to 26, and
-A-ATTRED-10 to 12 for the owner, who ruled on all three on 2026-11-19). His final word on 12 replaced the lexers
-with tree-sitter, outside TUI; §8.6 re-plans TUI's side for it (B-ATTRED-27 to 30 decided there, A-ATTRED-15 and
-16 for the owner), with a fourth probe of tree-sitter itself.*
+A-ATTRED-10 to 12 for the owner, who ruled on all three on 2026-11-19). The owner's final word on 12 replaced the
+lexers with tree-sitter, outside TUI; §8.6 re-plans TUI's side for it (B-ATTRED-27 to 30 decided there, A-ATTRED-15
+and 16 for the owner, both ruled (a) later on 2026-11-19), with a fourth probe of tree-sitter itself.*
 
 ## In short
 
@@ -1001,6 +1001,15 @@ user outside TUI.*
 ★ (a): it is the line engine, not the seam, that a lexer needed, and no lexer is coming. **Default if unanswered:**
 (a), since it promises nothing and (b) stays additive.
 
+**Ruled 2026-11-19: (a), not now.** The owner asked what a line lexer would be needed for in the foreseeable future.
+The answer given: nothing known. It would serve only a hand-written lexer that carries state across lines over a large
+document: a language with no tree-sitter grammar (and a small format can be styled straight against the seam), a
+platform where tree-sitter's Swift packages do not build (Windows and WebAssembly are unverified, and `TUITextInput`
+does not build on Windows yet), or an app refusing the C dependency or its ~0.36 MB. Of the known apps, tuitree goes
+through tree-sitter and tuitop and tuiarcade have no highlighted editor; TUI's own JSON styler (H5′) is written
+against the seam. So TUI builds only the seam, about 4 lane-days, and a line lexer can come in a minor release if an
+app asks.
+
 #### A-ATTRED-16. Where the tree-sitter adapter lives
 
 - **(a) ★ In tuitree, in a target of its own** that imports nothing else of tuitree's, so it can move out whole.
@@ -1010,6 +1019,8 @@ user outside TUI.*
   `@_spi` a published package breaks whenever the seam changes in a minor release, so it must pin TUI's minor.
 
 ★ (a): extract it when a second app wants it, which is also when the seam's promotion is due. **Default:** (a).
+
+**Ruled 2026-11-19: (a).** The adapter is a target of tuitree's own.
 
 ## For a future reader
 
