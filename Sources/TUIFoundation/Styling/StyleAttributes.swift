@@ -35,17 +35,29 @@ public enum FontWeight: Sendable, Hashable {
     /// The text attributes this weight maps to on a terminal. Sets `bold` and
     /// `dim` explicitly (rather than leaving them `nil`) so that, e.g.,
     /// `.fontWeight(.regular)` actively clears an inherited bold/faint.
+    ///
+    /// `.medium` draws as `.regular` does. A terminal has bold, normal and
+    /// faint, and medium (500) is a step above regular (400) where bold (700)
+    /// is three; a bold under it leaves it medium, as SwiftUI's does, so a
+    /// text's own `bold()` under a view's `.fontWeight(.medium)` draws normal,
+    /// like the medium text beside it, rather than standing out as bold where
+    /// SwiftUI's does not (``StyleAttributes/weightIgnoresBold``).
     var styleAttributes: StyleAttributes {
+        var attributes: StyleAttributes
         switch self {
         case .semibold, .bold, .heavy, .black:
-            return StyleAttributes(bold: true, dim: false)
+            attributes = StyleAttributes(bold: true, dim: false)
         case .ultraLight, .thin, .light:
-            var attributes = StyleAttributes(bold: false, dim: true)
-            attributes.dimIsLightWeight = true
-            return attributes
-        case .regular, .medium:
-            return StyleAttributes(bold: false, dim: false)
+            attributes = StyleAttributes(bold: false, dim: true)
+            attributes.weightIgnoresBold = true
+        case .medium:
+            attributes = StyleAttributes(bold: false, dim: false)
+            attributes.weightIgnoresBold = true
+        case .regular:
+            attributes = StyleAttributes(bold: false, dim: false)
         }
+        attributes.boldIsWeight = true
+        return attributes
     }
 }
 
@@ -78,15 +90,43 @@ public struct StyleAttributes: Sendable, Hashable {
     public var strikethrough: Bool?
     public var dim: Bool?
 
-    /// Whether ``dim`` was stated by a light weight (``FontWeight/light`` and
-    /// lighter) rather than by `dim` itself or a font's faint tier. A bold
-    /// applies to the weight below it, as SwiftUI's does, and leaves a light
-    /// one light: under a view's `.fontWeight(.ultraLight)`, `Text("x").bold()`
-    /// and a view's `.bold()` are ultralight, a text's own weight alone
-    /// deciding otherwise (measured, macOS 15.8.3,
-    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/nested.out`).
-    /// It travels with ``dim``, as a line's style travels with its line.
-    var dimIsLightWeight = false
+    /// Whether ``dim`` was stated by a weight a bold leaves as it is: a light
+    /// one (``FontWeight/light`` and lighter) or ``FontWeight/medium``, rather
+    /// than by `dim` itself, a font's faint tier or another weight. A bold
+    /// applies to the weight below it, as SwiftUI's does, and leaves these as
+    /// they are: under a view's `.fontWeight(.ultraLight)` or `.medium`,
+    /// `Text("x").bold()` and a view's `.bold()` are that weight, a text's own
+    /// weight alone deciding otherwise (measured, macOS 15.8.3,
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/nested.out`
+    /// and `variants.out`). It travels with ``dim``, which every weight
+    /// states, as a line's style travels with its line.
+    var weightIgnoresBold = false
+
+    /// Whether ``bold`` was stated by a weight (``FontWeight/styleAttributes``)
+    /// rather than by a bold. It travels with ``bold``.
+    var boldIsWeight = false
+
+    /// What the nearest bold the cascade states as a bold — a view's
+    /// `.bold()`, not a weight — comes to against the weight above it, or
+    /// `nil` where there is none. It decides a text's own `bold()`, as
+    /// SwiftUI's does (measured, `variants.out`): a view's `.bold()` farther
+    /// out than a view's `.fontWeight(.medium)` makes a text's own bold bold,
+    /// one nearer leaves it medium, and one under a `.fontWeight(.ultraLight)`
+    /// leaves it ultralight, whatever weight is nearer. Set where that bold is
+    /// merged over what is above it, and kept from then on.
+    var viewBold: ViewBold?
+
+    /// What a view's `.bold()` comes to, against the weight above it.
+    enum ViewBold: UInt8, Sendable, Hashable {
+        /// `.bold(false)`: a text's own bold applies to the nearest weight.
+        case off
+        /// Bold: no weight above it, or one a bold makes bold.
+        case bold
+        /// Normal: under a ``FontWeight/medium``.
+        case keepsRegular
+        /// Faint: under a light weight.
+        case keepsFaint
+    }
 
     /// How the underline is drawn where ``underline`` is `true`: `nil` for a
     /// single line in the text's colour. It travels with ``underline``, so the
@@ -183,13 +223,43 @@ public struct StyleAttributes: Sendable, Hashable {
             // A line's style goes with whoever stated the line.
             underlineStyle: underline != nil ? underlineStyle : base.underlineStyle,
             strikethroughStyle: strikethrough != nil ? strikethroughStyle : base.strikethroughStyle)
-        merged.dimIsLightWeight = dim != nil ? dimIsLightWeight : base.dimIsLightWeight
+        merged.weightIgnoresBold = dim != nil ? weightIgnoresBold : base.weightIgnoresBold
+        merged.boldIsWeight = bold != nil ? boldIsWeight : base.boldIsWeight
+        if let viewBold {
+            // Already merged over what was above it: a resolved cascade.
+            merged.viewBold = viewBold
+        } else if let bold, !boldIsWeight {
+            merged.viewBold = if !bold {
+                .off
+            } else if !base.weightIgnoresBold {
+                .bold
+            } else {
+                base.dim == true ? .keepsFaint : .keepsRegular
+            }
+        } else {
+            merged.viewBold = base.viewBold
+        }
         return merged
     }
 
-    /// Whether a bold arriving with these attributes stays off: the faint they
-    /// resolve to is a light weight's (``dimIsLightWeight``).
-    var keepsLightWeight: Bool {
-        dim == true && dimIsLightWeight
+    /// The bold, and the faint where a weight's changes, of a text under these
+    /// attributes that states no weight or faint of its own, given its own
+    /// bold (`nil` for none). A `nil` faint leaves the faint as resolved.
+    ///
+    /// A bold applies to the weight it is under, as SwiftUI's does
+    /// (``weightIgnoresBold``, ``viewBold``): the cascade's own bold gives way
+    /// to a light or medium weight, and a text's own bold takes what a view's
+    /// `.bold()` came to, or with none applies to the nearest weight. Where it
+    /// wins over a light weight it is bold, not bold and faint.
+    func emphasis(ownBold: Bool?) -> (bold: Bool?, faint: Bool?) {
+        guard let ownBold else { return (weightIgnoresBold ? false : bold, nil) }
+        guard ownBold else { return (false, nil) }
+        let faintIsWeight = dim == true && weightIgnoresBold
+        switch viewBold {
+        case .bold: return (true, faintIsWeight ? false : nil)
+        case .keepsRegular: return (false, faintIsWeight ? false : nil)
+        case .keepsFaint: return (false, true)
+        case .off, nil: return (!weightIgnoresBold, nil)
+        }
     }
 }

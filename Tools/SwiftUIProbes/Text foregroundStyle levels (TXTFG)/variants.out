@@ -1,0 +1,138 @@
+macOS 15.8.3, drawn at 3x, Aqua
+
+{ bold() } under View.fontWeight(.regular): first; first and last differ in 5448 px
+{ bold() } under View.fontWeight(.medium): last; first and last differ in 5262 px
+{ bold() } under View.fontWeight(.semibold): last; first and last differ in 4788 px
+{ bold() } under View.fontWeight(.heavy): last; first and last differ in 5290 px
+View.fontWeight(.medium) alone, against regular and bold: neither (4643 px from first, 5262 from last); first and last differ in 5448 px
+{ bold(false) } under View.fontWeight(.medium): last; first and last differ in 4643 px
+{ Text("**Sample text**") } under View.fontWeight(.medium): last; first and last differ in 5262 px
+{ bold() + bold() } under View.fontWeight(.medium): last; first and last differ in 5262 px
+VStack { Text }.bold().fontWeight(.medium): last; first and last differ in 5262 px
+VStack { Text }.fontWeight(.medium).bold(): first; first and last differ in 5262 px
+{ fontWeight(.regular).bold() } under View.fontWeight(.medium): neither (5448 px from first, 4643 from last); first and last differ in 5262 px
+{ bold() } under View.fontWeight(.medium) under View.fontWeight(.regular): last; first and last differ in 5262 px
+{ bold() } under View.fontWeight(.regular) under View.fontWeight(.medium): first; first and last differ in 5262 px
+{ bold() } under View.fontWeight(.medium) under View.bold(): first; first and last differ in 5262 px
+{ bold() } under View.bold() under View.fontWeight(.medium): last; first and last differ in 5262 px
+{ bold() } under View.fontWeight(.medium) under View.bold(false): last; first and last differ in 5262 px
+{ bold(false) } under View.fontWeight(.medium) under View.bold(): last; first and last differ in 4643 px
+{ bold() } under View.fontWeight(.ultraLight) under View.bold(): first; first and last differ in 5372 px
+{ bold() } under View.bold() under View.fontWeight(.ultraLight): last; first and last differ in 5372 px
+{ bold() } under View.fontWeight(.heavy) under View.bold(): first; first and last differ in 5290 px
+{ bold() } under View.fontWeight(.medium) under View.fontWeight(.heavy): last; first and last differ in 5262 px
+{ bold() } under View.fontWeight(.medium) under View.bold() under View.fontWeight(.ultraLight): neither (5372 px from first, 4791 from last); first and last differ in 5262 px
+  the same, against ultralight and semibold: first; first and last differ in 5008 px
+  the same, against light and regular: neither (3984 px from first, 4412 from last); first and last differ in 4018 px
+  the same, against thin and ultralight bold(): last; first and last differ in 3195 px
+bold().fontWeight(.medium): last; first and last differ in 5262 px
+bold().fontWeight(.semibold): last; first and last differ in 4788 px
+bold(false).fontWeight(.medium): last; first and last differ in 4643 px
+
+View.foregroundStyle(.secondary):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=2537 core=#E6E6E6 over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.tertiary):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=2537 core=#E6E6E6 over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.quaternary):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=2537 core=#E6E6E6 over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.red):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=2707 core=#FFDBD9 over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=2707 core=#FFDBD9 over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.tertiary) under .foregroundStyle(.red):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=2707 core=#FFDBD9 over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red, .blue):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=3177 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=54...67 n=2224 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=3347 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.red, .blue):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=3177 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=54...67 n=2224 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=3347 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.red, .blue, .green):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=3177 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=54...67 n=2339 core=#28CD3F over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=3505 core=#28CD3F over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red, .blue, .green):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=3177 core=#0079FF over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=54...67 n=2339 core=#28CD3F over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=3505 core=#28CD3F over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.red.secondary):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  VStack { Text }.foregroundStyle(.quaternary): y=77...89 n=2707 core=#FFDBD9 over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=98...111 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red):
+  Rectangle().fill(.primary): y=8...19 n=6480 core=#FF3B30 over #FFFFFF
+  Rectangle().fill(.secondary): y=30...41 n=6480 core=#FF9C97 over #FFFFFF
+  Rectangle().fill(.tertiary): y=52...63 n=6480 core=#FFCECB over #FFFFFF
+View.foregroundStyle(.secondary):
+  Rectangle().fill(.primary): y=8...19 n=6480 core=#272727 over #FFFFFF
+  Rectangle().fill(.secondary): y=30...41 n=6480 core=#808080 over #FFFFFF
+  Rectangle().fill(.tertiary): y=52...63 n=6480 core=#BDBDBD over #FFFFFF
+View.foregroundStyle(.foreground) under .foregroundStyle(.red):
+  Rectangle().fill(.primary): y=8...19 n=6480 core=#272727 over #FFFFFF
+  Rectangle().fill(.secondary): y=30...41 n=6480 core=#808080 over #FFFFFF
+  Rectangle().fill(.tertiary): y=52...63 n=6480 core=#BDBDBD over #FFFFFF
+
+no style:
+  VStack { Text }.foregroundStyle(.foreground): y=10...23 n=3372 core=#272727 over #FFFFFF
+  VStack { Text.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { VStack { Text }.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=55...67 n=2973 core=#808080 over #FFFFFF
+View.foregroundStyle(.red):
+  VStack { Text }.foregroundStyle(.foreground): y=10...23 n=3372 core=#272727 over #FFFFFF
+  VStack { Text.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { VStack { Text }.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=55...67 n=2973 core=#808080 over #FFFFFF
+View.foregroundStyle(.secondary):
+  VStack { Text }.foregroundStyle(.foreground): y=10...23 n=3372 core=#272727 over #FFFFFF
+  VStack { Text.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { VStack { Text }.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=55...67 n=2973 core=#808080 over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red):
+  VStack { Text }.foregroundStyle(.foreground): y=10...23 n=3372 core=#272727 over #FFFFFF
+  VStack { Text.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { VStack { Text }.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=55...67 n=2973 core=#808080 over #FFFFFF
+View.foregroundStyle(.red, .blue):
+  VStack { Text }.foregroundStyle(.foreground): y=10...23 n=3372 core=#272727 over #FFFFFF
+  VStack { Text.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { VStack { Text }.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=55...67 n=2973 core=#808080 over #FFFFFF
+View.foregroundColor(.red):
+  VStack { Text }.foregroundStyle(.foreground): y=10...23 n=3372 core=#272727 over #FFFFFF
+  VStack { Text.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { VStack { Text }.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=55...67 n=2973 core=#808080 over #FFFFFF
+View.tint(.green):
+  VStack { Text }.foregroundStyle(.foreground): y=10...23 n=3372 core=#272727 over #FFFFFF
+  VStack { Text.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { VStack { Text }.foregroundStyle(.secondary) }.foregroundStyle(.foreground): y=55...67 n=2973 core=#808080 over #FFFFFF

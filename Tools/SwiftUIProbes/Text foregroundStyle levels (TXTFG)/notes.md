@@ -137,6 +137,58 @@ levels by `levels.swift`'s method, the weights by `stacked.swift`'s.
   weight aside: a text's `bold()` there is a bold caption. A view's
   `.bold(false)` does not stop a text's own `bold()`.
 
+## 5. The variants of section 4's three unmatched answers
+
+`variants.swift` (`variants.out`, same machine, 2026-11-20, lane TXTFG-NEST2): the weights by `stacked.swift`'s
+method, the levels by `levels.swift`'s.
+
+**A bold and a weight.** "First" and "last" are the compared pair each line names.
+
+| Sample | SwiftUI draws |
+|---|---|
+| `{ bold() }` under a view's `.medium`, `.semibold`, `.heavy` | the view's weight |
+| `{ bold() }` under a view's `.regular` | bold |
+| `{ bold(false) }`, `**…**`, `bold() + bold()` under `.medium` | medium |
+| `VStack { Text }.bold().fontWeight(.medium)`, `.fontWeight(.medium).bold()` | medium |
+| `{ fontWeight(.regular).bold() }` under `.medium` | regular (the text's own weight) |
+| `{ bold() }` under `.medium` under `.regular` / under `.heavy` | medium |
+| `{ bold() }` under `.regular` under `.medium` | bold |
+| `{ bold() }` under `.medium` under a view's `.bold()` | **bold** |
+| `{ bold() }` under a view's `.bold()` under `.medium` | medium |
+| `{ bold() }` under `.medium` under `.bold(false)`; `{ bold(false) }` under `.medium` under `.bold()` | medium |
+| `{ bold() }` under `.ultraLight` under a view's `.bold()` | **bold** (not ultralight) |
+| `{ bold() }` under a view's `.bold()` under `.ultraLight` | ultralight |
+| `{ bold() }` under `.heavy` under a view's `.bold()` | bold |
+| `{ bold() }` under `.medium` under `.bold()` under `.ultraLight` | **ultralight** |
+| `bold().fontWeight(.medium)`, `bold(false).fontWeight(.medium)` | medium |
+| `bold().fontWeight(.semibold)` | semibold |
+
+So a text's own `bold()` is what the nearest view `.bold()` came to against the weight in force where that bold was
+stated: bold with no weight there (or regular, or heavy), that weight where it is light or medium, whatever weight is
+nearer the text. With no view `.bold()`, it applies to the nearest weight, which every weight but `.regular` keeps.
+Without a bold of the text's own, the nearest weight wins over a view's `.bold()` on either side of it.
+
+**A view's level under a view's level.** The inner view's level replaces the outer one, a level of the style that
+outer level was a level of:
+
+| Outer | inner `.primary` | `.secondary` | `.tertiary` | `.quaternary` | `.foreground` |
+|---|---|---|---|---|---|
+| `.secondary`, `.tertiary`, `.quaternary` | #272727 | #808080 | #BDBDBD | #E6E6E6 | #272727 |
+| `.red` | #FF3B2F | #FF9C96 | #FFCDCA | #FFDBD9 | #272727 |
+| `.secondary` or `.tertiary` under `.red` | #FF3B2F | #FF9C96 | #FFCDCA | #FFDBD9 | #272727 |
+| `.red.secondary` | #FF3B2F | #FF9C96 | #FFCDCA | #FFDBD9 | #272727 |
+| `(.red, .blue)`, and `.secondary` under it | #FF3B2F | #0079FF | #0079FF | #0079FF | #272727 |
+| `(.red, .blue, .green)`, and `.secondary` under it | #FF3B2F | #0079FF | #28CD3F | #28CD3F | #272727 |
+
+A shape's level does the same: `Rectangle().fill(.primary)` under `.secondary` under `.red` is red (#FF3B30) and
+`.fill(.secondary)` there the secondary red (#FF9C97). Under a `foregroundStyle(_:_:)` a level past the last one named
+is that one at full strength (`.tertiary` under `(.red, .blue)` is blue, #0079FF), under a level or not.
+
+**A view's `.foreground`.** `VStack { Text }.foregroundStyle(.foreground)` is the default foreground, #272727, under
+`.red`, `.secondary`, `.secondary` under `.red`, `(.red, .blue)`, `foregroundColor(.red)` and `.tint(.green)` alike;
+inside it a text's own `.secondary` and a view's `.secondary` are the plain secondary, #808080, and a shape's levels
+the plain levels. It is no style at all: the style above stops there.
+
 ## TUI
 
 **Before (main at cbbcbbfc3):** `Text` had only `foregroundStyle(_: Color) -> Text`,
@@ -199,6 +251,16 @@ weight all draw faint (`Text.swift`, `applyingCascadedEmphasis` and
 `concatenatedLines`). A caption's or `.dim()`'s faint still takes a bold.
 Pinned by `TextModifierOrderTests.boldUnderALightWeight`. Not matched: under a
 view's `.fontWeight(.medium)` SwiftUI keeps a text's `bold()` medium, which TUI
-draws bold, since its weights carry no medium apart from regular; and a
-`.font(.caption)` nearer than a view's light weight sets the weight aside in
-SwiftUI (a bold caption) where TUI keeps the weight (faint).
+drew bold (matched by lane TXTFG-NEST2, below); and a `.font(.caption)` nearer
+than a view's light weight sets the weight aside in SwiftUI (a bold caption)
+where TUI keeps the weight (faint).
+
+**After lane TXTFG-NEST2 (2026-11-20), bold:** section 5's bolds match. Medium is marked in the style cascade as a
+weight a bold leaves as it is, as the light weights were (`StyleAttributes.weightIgnoresBold`), and drawn normal as
+TUI draws medium (a terminal has bold, normal and faint, and medium is far nearer regular than bold); and the cascade
+records what its nearest view `.bold()` came to against the weight above it (`StyleAttributes.viewBold`), which
+decides a text's own bold (`StyleAttributes.emphasis(ownBold:)`, read by `applyingCascadedEmphasis` and by a
+fragment's own bold in `concatenatedLines`). A text's own `bold().fontWeight(.medium)` is medium
+(`Text+StatementOrder.swift`). A font's tier and weight are weights, not a view's bold. Pinned by
+`TextModifierOrderTests` (`boldUnderAMediumWeight`, `viewBoldBeyondTheWeight`). Under a light weight with a view's
+`.bold()` farther out, a text's own bold is now bold, not faint, as SwiftUI's is.

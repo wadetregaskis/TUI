@@ -88,8 +88,11 @@ extension View {
     ///
     /// Cascades through the environment; a descendant can opt out with
     /// `.bold(false)`. (`Text`'s own `.bold()` continues to return `Text`.)
-    /// Under a light ``fontWeight(_:)``, on either side of this, the text stays
-    /// light, as SwiftUI's does: a bold applies to the weight.
+    /// Under a light or a medium ``fontWeight(_:)``, on either side of this,
+    /// the text stays that weight, as SwiftUI's does: a bold applies to the
+    /// weight. Farther out than the weight, it makes a text's own `bold()`
+    /// below the weight bold, as SwiftUI's does; nearer, the text's bold too
+    /// stays the weight.
     nonisolated public func bold(_ enabled: Bool = true) -> some View {
         style(.text, StyleAttributes(bold: enabled))
     }

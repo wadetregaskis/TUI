@@ -44,9 +44,9 @@ extension TextStyle {
     ///
     /// A weight stated before wins. A bold stated before applies to this
     /// weight, as SwiftUI's `bold()` applies to the weight below it (measured):
-    /// `bold()` makes a regular or heavy weight bold and leaves a light one
-    /// light, and `bold(false)` leaves a light weight light and makes any
-    /// other regular. A `dim(_:)` stated before keeps its say on the faint
+    /// `bold()` makes a regular or heavy weight bold and leaves a light or a
+    /// medium one as it is, and `bold(false)` leaves a light weight light and
+    /// makes any other regular. A `dim(_:)` stated before keeps its say on the faint
     /// attribute. A `nil` weight states the font's own (``weightIsFonts``).
     ///
     /// A weight always states the faint attribute, on or off, which is how a
@@ -59,15 +59,17 @@ extension TextStyle {
             if isBold == nil || isDim == nil { weightIsFonts = true }
             return
         }
-        let light = attributes.dim == true
         guard isDim == nil else {
             // A weight or a `dim(_:)` came first. Only the latter leaves the
             // bold unsaid, and only that is filled in here.
             if isBold == nil { isBold = attributes.bold == true }
             return
         }
-        isBold = isBold.map { $0 && !light } ?? (attributes.bold == true)
-        isDim = light
+        // A light weight, or a medium one (drawn normal), stays as it is under
+        // a bold before it: `bold().fontWeight(.medium)` is medium (measured,
+        // `variants.out`).
+        isBold = isBold.map { $0 && !attributes.weightIgnoresBold } ?? (attributes.bold == true)
+        isDim = attributes.dim == true
     }
 
     /// `dim(isActive)` written after what this style states: a faint

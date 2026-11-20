@@ -112,6 +112,48 @@ struct TextModifierOrderTests {
         #expect(drawn(VStack { text.bold() }.style(.text) { $0.dim = true }) == drawn(text.bold().dim()))
     }
 
+    @Test("A bold under a medium weight leaves it medium, drawn normal, as SwiftUI's does")
+    func boldUnderAMediumWeight() {
+        // Measured: `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/variants.out`.
+        let medium = drawn(VStack { text }.fontWeight(.medium))
+        let bold = drawn(text.bold())
+        #expect(medium == drawn(text), "precondition: medium is drawn as regular")
+        #expect(drawn(VStack { text.bold() }.fontWeight(.medium)) == medium, "the text's own bold")
+        #expect(drawn(VStack { Text("**Sample**") }.fontWeight(.medium)) == medium, "Markdown")
+        #expect(drawn(VStack { Text("\(Text("Sam").bold())\(Text("ple").bold())") }.fontWeight(.medium)) == medium, "joined")
+        #expect(drawn(VStack { text }.bold().fontWeight(.medium)) == medium, "a view's bold inside")
+        #expect(drawn(VStack { text.bold() }.bold().fontWeight(.medium)) == medium, "both bolds, the view's inside")
+        #expect(drawn(text.bold().fontWeight(.medium)) == medium, "a bold before the text's own medium")
+        // A regular weight nearer takes the bold; a medium nearer than a
+        // regular keeps it medium; the heavier weights are bold anyway.
+        #expect(drawn(VStack { VStack { text.bold() }.fontWeight(.regular) }.fontWeight(.medium)) == bold)
+        #expect(drawn(VStack { VStack { text.bold() }.fontWeight(.medium) }.fontWeight(.regular)) == medium)
+        #expect(drawn(VStack { VStack { text.bold() }.fontWeight(.medium) }.fontWeight(.heavy)) == medium)
+        for weight in [FontWeight.semibold, .heavy] {
+            #expect(drawn(VStack { text.bold() }.fontWeight(weight)) == bold, "\(weight)")
+        }
+    }
+
+    @Test("A view's bold farther out than a medium or light weight makes a text's own bold bold, as SwiftUI's does")
+    func viewBoldBeyondTheWeight() {
+        // Measured: `variants.out`. SwiftUI's bold here is the one the view's
+        // `.bold()` came to against the weight above IT: none, so bold.
+        let bold = drawn(text.bold())
+        for weight in [FontWeight.medium, .ultraLight, .light] {
+            #expect(drawn(VStack { VStack { text.bold() }.fontWeight(weight) }.bold()) == bold, "\(weight)")
+            #expect(drawn(VStack { VStack { text }.fontWeight(weight) }.bold()) == drawn(VStack { text }
+                .fontWeight(weight)), "\(weight): without the text's own bold, the weight")
+            #expect(drawn(VStack { VStack { text.bold(false) }.fontWeight(weight) }.bold()) == drawn(VStack { text }
+                .fontWeight(weight)), "\(weight): the text's own bold(false)")
+            #expect(drawn(VStack { VStack { text.bold() }.fontWeight(weight) }.bold(false)) == drawn(VStack { text }
+                .fontWeight(weight)), "\(weight): a view's bold(false)")
+        }
+        // Under an ultralight above the view's bold, the bold came to
+        // ultralight, and a medium nearer does not change that.
+        #expect(drawn(VStack { VStack { VStack { text.bold() }.fontWeight(.medium) }.bold() }.fontWeight(.ultraLight))
+            == drawn(text.fontWeight(.ultraLight)))
+    }
+
     @Test("fontWeight(nil) is the font's own weight, over a weight or bold stated after it or above it")
     func fontsOwnWeight() {
         keepsFirst(text.fontWeight(nil).fontWeight(.heavy), text, not: text.fontWeight(.heavy))

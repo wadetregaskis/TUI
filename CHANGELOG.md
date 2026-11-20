@@ -40,6 +40,14 @@ test sees what its app posts through `@Environment(\.notificationService)`; a po
 `NotificationService.current` goes to the process's queue, which no `TestApp` draws, so a test that read such a toast
 on the screen should have the view post through the environment.
 
+**A bold under a medium `fontWeight` stays medium, as in SwiftUI.** `Text("x").bold()` inside a view with
+`.fontWeight(.medium)` drew bold, where SwiftUI keeps it medium (measured on macOS 15.8.3). TUI draws medium as it
+draws regular, since a terminal has only bold, normal and faint and medium is far nearer regular, so the text now draws
+normal, like the medium text beside it. The same goes for a Markdown `**` span, bold fragments of a joined text, a
+view's `.bold()` nearer than the weight, and a text's own `bold().fontWeight(.medium)`. A view's `.bold()` farther out
+than a medium or light weight does make a text's own `bold()` below it bold, as in SwiftUI, where TUI drew it faint
+under a light weight; a text with no bold of its own still draws the weight.
+
 **A bold under a light `fontWeight` stays light, as in SwiftUI.** `Text("x").bold()` inside a view with
 `.fontWeight(.ultraLight)`, `.thin` or `.light` drew bold and faint, where SwiftUI draws it ultralight (measured on
 macOS 15.8.3): a bold applies to the weight in force. It is now drawn faint, and so is a Markdown `**` span, a bold

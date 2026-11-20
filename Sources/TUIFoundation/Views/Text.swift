@@ -279,10 +279,12 @@ extension Text {
     /// Applies or removes bold — mirrors SwiftUI's `bold(_:)`.
     ///
     /// A bold applies to the weight in force, as SwiftUI's does, and leaves a
-    /// light one light: under a view's `.fontWeight(.ultraLight)`, `.thin` or
-    /// `.light`, `Text("x").bold()` is drawn faint, not bold and faint
-    /// (measured, macOS 15.8.3,
-    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/nested.out`).
+    /// light or a medium one as it is: under a view's `.fontWeight(.ultraLight)`,
+    /// `.thin` or `.light`, `Text("x").bold()` is drawn faint, not bold and
+    /// faint, and under `.medium` normal, as medium is drawn (measured, macOS
+    /// 15.8.3, `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/nested.out`
+    /// and `variants.out`). A view's `.bold()` farther out than that weight
+    /// makes it bold after all, as SwiftUI's does.
     ///
     /// - Parameter isActive: Whether the text is bold. `false` states that it
     ///   is not, overriding a ``View/bold(_:)`` cascaded from an ancestor.
@@ -902,15 +904,19 @@ package struct TextStyle: Sendable, Equatable {
             result.isBold = own.isBold.map { $0 && !light } ?? (weight?.bold == true)
             result.isDim = own.isDim ?? light
             result.weightIsFonts = false
+        } else if own.isDim == nil {
+            // A bold applies to the weight below it and leaves a light or a
+            // medium one as it is, as SwiftUI's does: under such a weight
+            // above, neither the text's own `bold()` nor a view's makes it
+            // bold, unless a view's `.bold()` farther out than the weight does
+            // (`StyleAttributes.emphasis(ownBold:)`). Only a weight of the
+            // text's own, which states the faint attribute too, says otherwise.
+            let emphasis = cascaded.emphasis(ownBold: own.isBold)
+            result.isBold = emphasis.bold
+            result.isDim = emphasis.faint ?? cascaded.dim
         } else {
             result.isBold = own.isBold ?? cascaded.bold
-            result.isDim = own.isDim ?? cascaded.dim
-            // A bold applies to the weight below it and leaves a light one
-            // light, as SwiftUI's does: under a light weight above, neither the
-            // text's own `bold()` nor a bold cascaded with the weight makes it
-            // bold. Only a weight of the text's own, which states the faint
-            // attribute too, says otherwise (`StyleAttributes.dimIsLightWeight`).
-            if own.isDim == nil, cascaded.keepsLightWeight { result.isBold = false }
+            result.isDim = own.isDim
         }
         result.isItalic = own.isItalic ?? cascaded.italic
         result.underline = own.underline ?? cascaded.underlineLine
@@ -1443,9 +1449,10 @@ package struct TextStyle: Sendable, Equatable {
         // (``Text/Run/styleResolvingInk(over:in:)``).
         let levelPrimary = style.foregroundColor.map(Paint.color)
             ?? ink.cascaded.foreground.map(Paint.color) ?? context.environment.levelPrimaryForegroundStyle
-        // Whether this text resolved under a light weight stated above it,
-        // which a fragment's own bold leaves light, as it does the text's.
-        let keepsLightWeight = style.isDim == nil && ink.cascaded.keepsLightWeight
+        // What a fragment's own bold comes to under the weight and bold this
+        // text resolved under, as the text's own does; `nil` where the text
+        // states a weight, which decides for its fragments.
+        let fragmentBold = style.isDim == nil ? ink.cascaded.emphasis(ownBold: true) : nil
         // A ramp a fragment states for itself, banded across this text as an
         // inherited one is, where none is inherited (`Text.Run.statedRamp`).
         // The styles the runs carry, each image among them asked for its
@@ -1501,9 +1508,12 @@ package struct TextStyle: Sendable, Equatable {
                 if paintsRamp { runTakesRamp.append(takesOwnRamp ?? (own.foregroundColor == nil)) }
                 runStyle = own.merged(over: effectiveStyle)
                 // A fragment's own bold — a `**` included — applies to the
-                // light weight this text resolved under, as the text's does
+                // weight this text resolved under, as the text's does
                 // (``applyingCascadedEmphasis(to:_:font:context:)``).
-                if keepsLightWeight, own.isBold == true, own.isDim == nil { runStyle.isBold = false }
+                if let fragmentBold, own.isBold == true, own.isDim == nil {
+                    runStyle.isBold = fragmentBold.bold
+                    if let faint = fragmentBold.faint { runStyle.isDim = faint }
+                }
             }
             resolvedRunStyles.append(
                 runStyle.fittingLines(to: context.environment.lineStyleSupport).resolved(with: palette))

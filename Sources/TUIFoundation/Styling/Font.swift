@@ -274,6 +274,10 @@ public struct Font: Sendable, Hashable {
         if let weight {
             attributes = weight.styleAttributes.merged(over: attributes)
         }
+        // A tier's bold is the font's weight, not a bold of the cascade's: it
+        // does not decide a text's own `bold()` as a view's `.bold()` does
+        // (``StyleAttributes/viewBold``).
+        attributes.boldIsWeight = true
         attributes.italic = isItalic
         return attributes
     }

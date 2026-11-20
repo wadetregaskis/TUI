@@ -1611,7 +1611,10 @@ messages cite that path), and what cites it.
   `Text(s).a` and `Text(s).b` pixel for pixel; how a bold and a weight combine; what `fontWeight(nil)` does; and
   which of two custom attributes a `TextRenderer` reads. Then (`nested.swift`, `nested.out`) a text's own level under
   a view's level, of no style and of a colour, a view's level under a view's level, and a text's own `bold()` under
-  each view `fontWeight`.
+  each view `fontWeight`. Then (`variants.swift`, `variants.out`) the variants of those: a bold under a medium,
+  semibold or heavy weight with a view's `bold()` on either side and weights nested; each view level under each
+  outer level, of none, of red, of `.red.secondary` and of `foregroundStyle(_:_:)`'s named levels, a shape's level
+  beside it; and a view's `.foregroundStyle(.foreground)` under every kind of style.
 - **Answers:** a text's own level is the style above at macOS's label strengths (under `.red`, `.secondary` is
   #FF9C96), with no part for a level that `foregroundStyle(_:_:)` names; under a view's `.secondary` the levels are as
   with no style. `.tint` and `.foreground` resolve where the text is drawn. Of two styles on one text the first written
@@ -1620,8 +1623,13 @@ messages cite that path), and what cites it.
   `fontWeight(nil)` is the font's own weight; `customAttribute` alone keeps the last. Under a view's level of no style a
   text's own level replaces it (`.secondary` #808080, `.primary` #272727); under a view's level of a colour it is a
   level of that level (#FFCDCA below `.red`). A text's own `bold()` keeps a view's weight for every weight but
-  `.regular`, a light one light; a view's weight beats a view's `bold()` on either side of it.
-- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-19.
+  `.regular`, a light one light; a view's weight beats a view's `bold()` on either side of it. A text's own `bold()`
+  is what the nearest view `bold()` came to against the weight where it was stated (bold above a medium weight,
+  ultralight below an ultralight one). A view's level under a view's level replaces it, a level of what the outer one
+  was a level of; under `foregroundStyle(_:_:)` a level past the last named is that one at full strength. A view's
+  `.foregroundStyle(.foreground)` is no style: the default foreground, and the plain levels inside it.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-19 (`variants`
+  2026-11-20).
 - **Was:** written here.
 - **Cited by:** `Sources/TUIFoundation/Views/Text+ForegroundStyle.swift`,
   `Sources/TUIFoundation/Styling/SemanticShapeStyles.swift`, `Sources/TUIFoundation/Views/Text+StatementOrder.swift`,

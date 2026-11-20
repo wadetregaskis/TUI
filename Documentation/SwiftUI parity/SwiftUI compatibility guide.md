@@ -1739,7 +1739,7 @@ until then. Where two kinds meet, the earlier applies to the later: a level
 written first is that level of the colour, tint or gradient written after it
 (`.foregroundStyle(.secondary).foregroundStyle(.blue)` is `Color.blue.secondary`,
 pixel for pixel), and a `bold` written before a weight makes a regular or heavy
-one bold and leaves a light one light (`bold(false)`: regular, and light
+one bold and leaves a light or a medium one as it is (`bold(false)`: regular, and light
 light). `fontWeight(nil)` is the font's own weight, over a weight or bold
 written after it or stated above it (`.font(.headline)` keeps it bold), where TUI
 used to treat it as no statement. `customAttribute(_:)` is the exception, in
@@ -1750,9 +1750,12 @@ style directly. A bold applies to the weight above the text too: under a
 view's `.fontWeight(.ultraLight)`, `.thin` or `.light`, a text's own `bold()`, a
 Markdown `**` and a view's `bold()` on either side of the weight leave it faint,
 as SwiftUI draws it ultralight (`nested.out`; TUI drew bold and faint until lane
-TXTFG-NEST, 2026-11-19). Not matched: under a view's `.fontWeight(.medium)` SwiftUI
-keeps a text's `bold()` medium, which TUI draws bold; TUI's weights carry no
-medium apart from regular.
+TXTFG-NEST, 2026-11-19), and under a view's `.fontWeight(.medium)` they leave it
+medium, which TUI draws as regular, a terminal having bold, normal and faint
+(`variants.out`; TUI drew bold until lane TXTFG-NEST2, 2026-11-20). A view's
+`.bold()` farther out than such a weight makes a text's own `bold()` bold, as
+SwiftUI's does: a text's own bold is what the nearest view `.bold()` came to
+against the weight where it was stated.
 
 Two used to stay out with it and no longer do. `HierarchicalShapeStyle` was
 declined because a second `.secondary` beside `Color.secondary` was expected to
