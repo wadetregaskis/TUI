@@ -57,9 +57,10 @@ package enum RowBackground: Sendable {
     case pulsingReversal(SelectionEmphasisCycle, dim: Paint, bright: Paint)
 
     /// How one frame of a breathing row paints its line. `@usableFromInline`, as
-    /// the type of a case of one.
+    /// the type of a case of one. `Equatable`, so a row draws each paint of its
+    /// breath once however many frames show it.
     @usableFromInline
-    package enum Paint: Sendable {
+    package enum Paint: Sendable, Equatable {
         case fill(Color)
         /// The pair reversed; `bold` emboldens the whole row too.
         case reversed(ink: Color, field: Color, bold: Bool = false)

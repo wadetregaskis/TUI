@@ -5072,9 +5072,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 lines: frame(paints[step]), pulseFrames: nil, claims: claims(over: nil),
                 contentClaims: content.claims(leaving: droppedRunClaims))
         }
-        // Transposed to line-major, because that is how the runs are asked for:
-        // one run per LINE, carrying that line at every point of the cycle.
-        let perStep = paints.map(frame)
+        // Each paint drawn once (``drawingEachPaintOnce(_:_:)``). Transposed to
+        // line-major below, because that is how the runs are asked for: one run per
+        // LINE, carrying that line at every point of the cycle.
+        let perStep = Self.drawingEachPaintOnce(paints, frame)
         // A breathing fill claims nothing and needs to: `accentFillPulse` spends a
         // translucent tint's alpha against the page at both ends (§29), so every
         // frame states a concrete colour. The MARK still claims — it is drawn into
@@ -5093,6 +5094,25 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             pulseTiming: timing,
             claims: claims(over: nil),
             contentClaims: content.claims(leaving: droppedRunClaims + childRuns.flatMap(\.leftBehind)))
+    }
+
+    /// `frame` of each of a breath's `paints`, in cycle order, drawn once a paint.
+    ///
+    /// A breath comes back down through the colours it went up through, so about
+    /// half its frames repeat one before them; every step showing a paint shares the
+    /// lines drawn for it, as the content's fades are spent once a colour
+    /// (`ListRowContent`). A pulse between ends a 256-colour terminal rounds together
+    /// repeats more.
+    private static func drawingEachPaintOnce(
+        _ paints: [RowBackground.Paint], _ frame: (RowBackground.Paint) -> [String]
+    ) -> [[String]] {
+        var drawn: [(paint: RowBackground.Paint, lines: [String])] = []
+        return paints.map { paint in
+            if let known = drawn.first(where: { $0.paint == paint }) { return known.lines }
+            let lines = frame(paint)
+            drawn.append((paint, lines))
+            return lines
+        }
     }
 
     /// A row's rendered lines, plus — when its background breathes — every frame
