@@ -214,6 +214,10 @@ final class TextEditorHandler: PersistedFocusable {
     /// The styles read for the lines drawn, kept until an edit changes a line.
     var lineStyleCache = EditorLineStyleCache()
 
+    /// The highlighting drawn over the text, or `nil` for none: set with
+    /// ``replaceHighlightLayer(_:)`` (B-ATTRED-8, lane H1).
+    var highlightLayer: EditorHighlightLayer?
+
     /// The blank rows after each line's rows, from the line heights read so
     /// far (``lineGaps(for:)``), for that many lines; `nil` to be made again
     /// from ``lineStyleCache``.
@@ -236,8 +240,12 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// The styles `line` is drawn in: none for a text with no styler, or one
     /// hidden (``isSecure``), whose colours would show where its words are.
+    ///
+    /// With a highlighter, its runs drawn over them (``highlightedStyles(ofLine:in:)``).
     func styles(ofLine line: Int) -> [EditorStyledRun] {
-        guard let lineStyler, !isSecure else { return [] }
+        guard !isSecure else { return [] }
+        if let highlightLayer { return highlightedStyles(ofLine: line, in: highlightLayer) }
+        guard let lineStyler else { return [] }
         return lineStyleCache.runs(ofLine: line, reading: lineStyler)
     }
 
@@ -316,7 +324,7 @@ final class TextEditorHandler: PersistedFocusable {
         let fresh = EditorLayout(text: current)
         cachedLayout = fresh
         // A text replaced whole: its lines are not the ones styled.
-        if lineStyler != nil { lineStyleCache.removeAll() }
+        if drawsLineStyles { lineStyleCache.removeAll() }
         keptLineGaps = nil
         return fresh
     }

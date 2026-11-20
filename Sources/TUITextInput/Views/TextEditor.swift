@@ -453,11 +453,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 focusID: persistedFocusID, text: text, canBeFocused: !isDisabled,
                 clipboard: context.environment.clipboardAccess))
         let handler = handlerBox.value
-        if let attributed {
-            handler.adoptAttributed(attributed, environment: context.environment)
-        } else {
-            handler.text = text
-        }
+        handler.adopt(text: text, attributed: attributed, environment: context.environment)
         handler.canBeFocused = !isDisabled
         // Redacted, the editor hides its text as a SecureField does
         // (``TextEditorHandler/isSecure``).

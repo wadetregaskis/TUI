@@ -127,9 +127,16 @@ struct EditorLineStyleCache {
     /// the lines of more than one: read for the lines drawn and the caret's.
     private var lineRows: [Int: Int] = [:]
     private var spacedLines: [Int: Int] = [:]
+    /// Each drawn line's runs with its highlighting over them
+    /// (``EditorHighlightLayer``), while the editor has a highlighter: kept
+    /// until the line, its highlighting or the styles' environment change.
+    private var drawn: [Int: [EditorStyledRun]] = [:]
 
     /// How many lines' styles are kept.
     var count: Int { kept.count }
+
+    /// How many lines' highlighted runs are kept.
+    var drawnCount: Int { drawn.count }
 
     /// `line`'s styles: those kept, or `read`'s, kept from now on.
     mutating func runs(ofLine line: Int, reading read: (Int) -> [EditorStyledRun]) -> [EditorStyledRun] {
@@ -137,6 +144,25 @@ struct EditorLineStyleCache {
         let runs = read(line)
         kept[line] = runs
         return runs
+    }
+
+    /// `line`'s highlighted runs, if kept. Not read through a closure, as
+    /// ``runs(ofLine:reading:)`` is: making them reads the layout, which may
+    /// clear this very cache.
+    func drawnRuns(ofLine line: Int) -> [EditorStyledRun]? { drawn[line] }
+
+    /// Keeps `runs` as `line`'s highlighted runs.
+    mutating func keepDrawnRuns(_ runs: [EditorStyledRun], ofLine line: Int) { drawn[line] = runs }
+
+    /// Forgets the highlighted runs of `lines`, or of every line: their
+    /// highlighting, or the environment its styles were resolved in, changed.
+    /// The lines' own styles stay.
+    mutating func forgetDrawnRuns(ofLines lines: Range<Int>? = nil) {
+        guard let lines else {
+            drawn.removeAll()
+            return
+        }
+        drawn = drawn.filter { !lines.contains($0.key) }
     }
 
     /// `line`'s paragraph alignment: that kept, or `read`'s, kept from now on.
@@ -176,6 +202,7 @@ struct EditorLineStyleCache {
         alignments = Self.moving(alignments, replacing: replaced, withCount: count)
         lineRows = Self.moving(lineRows, replacing: replaced, withCount: count)
         spacedLines = Self.moving(spacedLines, replacing: replaced, withCount: count)
+        drawn = Self.moving(drawn, replacing: replaced, withCount: count)
     }
 
     /// `kept`'s lines, those `replaced` gone and those after moved by the lines
@@ -200,5 +227,6 @@ struct EditorLineStyleCache {
         alignments.removeAll()
         lineRows.removeAll()
         spacedLines.removeAll()
+        drawn.removeAll()
     }
 }

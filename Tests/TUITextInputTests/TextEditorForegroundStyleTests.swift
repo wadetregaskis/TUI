@@ -124,7 +124,7 @@ struct TextEditorForegroundStyleTests {
 
     /// A run's colour drawn disabled: faded toward the page by the disabled
     /// dim, keeping its hue, as a disabled slider's accent track is.
-    private static func faded(_ colour: Color, in context: RenderContext) -> Color {
+    static func faded(_ colour: Color, in context: RenderContext) -> Color {
         let palette = context.environment.palette
         return colour.opacity(ViewConstants.disabledForeground, over: palette.background.resolve(with: palette))
     }
@@ -224,7 +224,7 @@ struct TextEditorForegroundStyleTests {
 
     /// The first colour on a coarse grid whose fade toward `ground` shows at 24-bit
     /// but which a terminal at `depth` draws as the colour itself.
-    private static func swallowedFade(over ground: Color, at depth: ColorDepth) -> Color? {
+    static func swallowedFade(over ground: Color, at depth: ColorDepth) -> Color? {
         let steps = stride(from: 0, through: 255, by: 17).map(UInt8.init)
         for red in steps {
             for green in steps {

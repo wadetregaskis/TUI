@@ -90,7 +90,7 @@ extension TextEditorHandler {
         let unshared = isKnownUniquelyReferenced(&before)
         let after = before.laidOut(edit, reusingStorage: unshared)
         cachedLayout = after
-        if lineStyler != nil { lineStyleCache.replaceLines(edit.replaced, withCount: edit.replacement.count) }
+        if drawsLineStyles { lineStyleCache.replaceLines(edit.replaced, withCount: edit.replacement.count) }
         // The lines' rows a line moved with them, those of the lines it
         // put in to be read.
         keptLineGaps = nil
@@ -109,7 +109,7 @@ extension TextEditorHandler {
         // them (``EditorLayout/segmented(_:)``).
         if text.wrappedValue == joined {
             cachedLayout = EditorLayout(text: joined, lines: lines.map(EditorLayout.segmented), lineEnding: ending)
-            if lineStyler != nil { lineStyleCache.removeAll() }
+            if drawsLineStyles { lineStyleCache.removeAll() }
             keptLineGaps = nil
         }
     }

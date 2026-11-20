@@ -9,7 +9,8 @@ Swift 6.2.4, `-O`; see "For a future reader"). Ids: A-ATTRED-5 to 7 (for the own
 here). The owner ruled on A-ATTRED-5 to 7 on 2026-11-18; §8 explores the rulings (B-ATTRED-19 to 26, and
 A-ATTRED-10 to 12 for the owner, who ruled on all three on 2026-11-19). The owner's final word on 12 replaced the
 lexers with tree-sitter, outside TUI; §8.6 re-plans TUI's side for it (B-ATTRED-27 to 30 decided there, A-ATTRED-15
-and 16 for the owner, both ruled (a) later on 2026-11-19), with a fourth probe of tree-sitter itself.*
+and 16 for the owner, both ruled (a) later on 2026-11-19), with a fourth probe of tree-sitter itself. Lane H1 is built
+(B-ATTRED-31 to 33, in §8.6).*
 
 ## In short
 
@@ -973,7 +974,7 @@ fetch it.
 
 | Lane | What | Days | Was |
 |---|---|---|---|
-| **H1** | Drawing: runs into `styledRow`, styles interned per token value (B-ATTRED-10), the drawn lines' run cache, precedence (B-ATTRED-8) | ½ | ½ |
+| **H1** ✓ | Drawing: runs into `styledRow`, styles interned per token value (B-ATTRED-10), the drawn lines' run cache, precedence (B-ATTRED-8). **Built 2026-11-19** (B-ATTRED-31 to 33, below) | ½ | ½ |
 | **H6′** | The seam and its store: versioned snapshots, coalesced whole-line changes, the styler's task started and cancelled with the editor (B-ATTRED-19 to 22, 25), publishing validated into the window, frames only for lines on screen (20), provisional tokens carried and shifted (24, 28), updates on a scroll (27), B-ATTRED-29's additions, the guards (15, 30). Tests: a fake tree styler that reports changed ranges, deterministic stepping without sleeps, a stale publish refused, an edit mid-publish, cancellation, one run under the thread sanitizer | 1½ | H2 + H7 2, H6 ½ |
 | **H5′** | A stateless JSON line styler over the seam, in an internal target that is not a product (as `TUIWidthCorpus` is), for the Example, Stress's `bigtext-highlighted` and tests | ¼ | ¼ (a JSONC lexer) |
 | **H3** | Marks (B-ATTRED-13), with the find bar's matches moved onto them | 1 | 1 |
@@ -982,6 +983,32 @@ fetch it.
 
 **About 4 lane-days in TUI, against 6¼.** In order: H1, H6′, H5′, H3, H4′. With A-ATTRED-15 (b), about 6¼. The
 adapter's 2½ days are tuitree's.
+
+**H1, as built (2026-11-19).** The narrowest reading of the row above, by B-ATTRED-8: the layer and its drawing,
+and nothing an app can reach yet. The editor's handler holds an `EditorHighlightLayer`: where a line's runs come
+from (a closure, which H6′'s store will fill), and the styles they name. No modifier, no seam and no source of runs
+exist until H6′ and H4′; the tests set a layer on the handler.
+
+- **B-ATTRED-31. Highlighting joins the line's own runs before the row draws.** A drawn line's highlight runs are
+  laid over its own runs (an attributed value's) into one list, which `styledRow` draws as it drew the value's
+  alone. So the selection, the find bar's tint, the caret, the disabled fade and its 16- and 256-colour faint
+  fallback (A-DISED-1) treat a highlight exactly as a stored run, through code that already existed. The order is
+  B-ATTRED-8's: the selection, the find bar's tint, (marks, H3), highlighting, the stored attributes, the editor's
+  style. Within a cell, a highlight's ink, field, underline and strikethrough replace the value's, and those it
+  leaves unset are the value's; bold, faint and italic are added, never taken away, because a resolved run can say
+  "bold" but not "not bold". Joining is one pass over both lists, so a line costs its runs. A wrapping editor's row
+  finds its runs by a binary search, so a row costs its own runs, not its line's.
+- **B-ATTRED-32. The drawn lines' cache keeps the joined runs,** in `EditorLineStyleCache` beside the line's own,
+  moved and dropped by the same splices as an edit makes, and dropped for the lines whose highlighting changed
+  (`highlightingChanged(inLines:)`, for H6′). A line never drawn is never asked for its runs.
+- **B-ATTRED-33. A style is asked for once a token, and resolved once an environment.** `EditorHighlightStyles`
+  interns each distinct token's `AttributeContainer` to a 16-bit index (0 is "none", the gaps; past 65,535 a token
+  draws as none) and resolves the containers through the attributed editor's own run resolution, so a highlight and
+  a stored run of the same attributes draw alike. A palette, accent, line-style or font change re-resolves the
+  containers kept, without calling the style again: narrower than B-ATTRED-10's "called again when the environment
+  changes", which the closure, given no environment, cannot need.
+
+An editor with no highlighter pays one `nil` check a line drawn, and draws byte for byte as before.
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 

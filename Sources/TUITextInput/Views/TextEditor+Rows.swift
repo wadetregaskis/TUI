@@ -69,7 +69,7 @@ extension _TextEditorCore {
                     return layout.cells(inRow: rowInLine, before: lower) ..< layout.cells(inRow: rowInLine, before: upper)
                 }
                 // The line's styles, in this row's columns.
-                let styles = handler.styles(ofLine: line).compactMap { $0.clipped(toColumns: span.start, end) }
+                let styles = EditorStyledRun.clipping(handler.styles(ofLine: line), toColumns: span.start, end)
                 rendered = styledRow(
                     Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, leadingCells: aligned,
                     width: rows.width,
@@ -335,9 +335,13 @@ extension _TextEditorCore {
         }
     }
 
-    /// `styles` are the line's own (``EditorStyledRun``), in the columns of
+    /// `styles` are the line's own (``EditorStyledRun``), with any
+    /// highlighting already drawn over them
+    /// (``TextEditorHandler/highlightedStyles(ofLine:in:)``), in the columns of
     /// `chars`, ascending: a run's colours give way to the selection's, and
-    /// its field to a find match's; its decoration is drawn under both.
+    /// its field to a find match's; its decoration is drawn under both. So the
+    /// order is B-ATTRED-8's: the selection, the find bar's tint,
+    /// highlighting, the line's own attributes, the editor's style.
     ///
     /// `leadingCells` are blank cells the line is drawn after, its
     /// paragraph's alignment (A-ATTRED-3): scrolled with it, in the well's
