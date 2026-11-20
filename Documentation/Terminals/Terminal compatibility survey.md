@@ -2980,6 +2980,13 @@ record with motion reports). Every key is reported as the specification has it, 
   press the app never saw is decoded and dropped by the input chain, as every release
   bound to nothing is. ⌃, opened the settings in a tab of their own, which took
   Control's release: the next key's report (F1, no modifiers) says it is up.
+  A second run that day, of a file panel's chords (`FilePanelCommand`): ⌃⇧P (its command
+  palette), ⌃⇧N (a new window) and ⌃⇧D (a duplicate tab) arrived as Shift's press alone,
+  their Shift releases going to the window or palette they opened; ⌃⇧A (select all,
+  which on an empty alternate screen reads as the screen inverted) as `CSI 97:65;6:3u`
+  alone, and ⌃⇧. (its suggestions) as `CSI 46:62;6:3u` alone. ⌃⇧G, ⌃⇧H and ⌃⇧O, which it
+  binds to nothing, arrived whole (`CSI 103:71;6u` and its release). All of these are in
+  `TerminalClient.keptChords`.
 - **A paste** with mouse reporting and bracketed paste off arrived as its text, outside
   any report.
 - Not pressed: a dead key, ⌘ (the Windows key, taken by the system), the keypad.

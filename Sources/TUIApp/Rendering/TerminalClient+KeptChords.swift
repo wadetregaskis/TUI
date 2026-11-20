@@ -31,7 +31,14 @@ extension TerminalClient {
     ///   as it arrived as nothing without the protocol, 2026-11-17 ("Keys");
     ///   ⌥⇧- (a split pane) as its modifiers alone; ⌃- (the font size) and
     ///   ⌃⇧V (its paste) as their releases alone. ⌃- is one of undo's keys and
-    ///   ⌥⇧- one of redo's, so their hints name ⌃Z and ⌃⇧Z there.
+    ///   ⌥⇧- one of redo's, so their hints name ⌃Z and ⌃⇧Z there. In a second
+    ///   run that day, ⌃⇧P (its command palette), ⌃⇧N (a new window) and ⌃⇧D
+    ///   (a duplicate tab) arrived as Shift's press alone, ⌃⇧A (select all)
+    ///   and ⌃⇧. (its suggestions) as their releases alone, where ⌃⇧G, ⌃⇧H
+    ///   and ⌃⇧O arrived whole: a file panel's Preview, New Folder, Desktop,
+    ///   Applications and hidden files (``FilePanelCommand``), whose status
+    ///   bar names none of them there. ⌃⇧. is listed in both its spellings,
+    ///   as the panel binds both.
     ///
     /// Every other host is taken to keep none: a chord it does keep is still
     /// bound, and named, as nothing here knows it does not arrive.
@@ -42,6 +49,11 @@ extension TerminalClient {
                 [
                     KeyboardShortcut(",", modifiers: .control), KeyboardShortcut("-", modifiers: .control),
                     KeyboardShortcut("_", modifiers: .option), KeyboardShortcut("v", modifiers: [.control, .shift]),
+                    KeyboardShortcut("p", modifiers: [.control, .shift]),
+                    KeyboardShortcut("n", modifiers: [.control, .shift]),
+                    KeyboardShortcut("d", modifiers: [.control, .shift]),
+                    KeyboardShortcut("a", modifiers: [.control, .shift]),
+                    KeyboardShortcut(".", modifiers: [.control, .shift]), KeyboardShortcut(">", modifiers: .control),
                 ].map(\.trigger))
         case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .windowsConsole, .tmux,
             .unidentified:

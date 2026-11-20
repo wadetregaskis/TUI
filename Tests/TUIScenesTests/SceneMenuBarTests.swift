@@ -310,6 +310,11 @@ struct SceneMenuBarTests {
                 [
                     KeyboardShortcut(",", modifiers: .control), KeyboardShortcut("-", modifiers: .control),
                     KeyboardShortcut("_", modifiers: .option), KeyboardShortcut("v", modifiers: [.control, .shift]),
+                    KeyboardShortcut("p", modifiers: [.control, .shift]),
+                    KeyboardShortcut("n", modifiers: [.control, .shift]),
+                    KeyboardShortcut("d", modifiers: [.control, .shift]),
+                    KeyboardShortcut("a", modifiers: [.control, .shift]),
+                    KeyboardShortcut(".", modifiers: [.control, .shift]), KeyboardShortcut(">", modifiers: .control),
                 ].map(\.trigger))
             #expect(kept == (program == .windowsTerminal ? windowsTerminals : []))
         }

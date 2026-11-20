@@ -24,6 +24,10 @@ already were. `RowShortcuts.hint(for:on:commandKey:)` chooses a list row's hint 
 **In Windows Terminal, undo and redo name ⌃Z and ⌃⇧Z.** Windows Terminal keeps ⌃- for its font size and ⌥⇧- for
 splitting a pane, so those two of undo's and redo's keys never reach the app there.
 
+**In Windows Terminal, the file panel's status bar no longer names ⌃⇧P for the preview.** Windows Terminal keeps
+⌃⇧P (its command palette), and also ⌃⇧N, ⌃⇧D, ⌃⇧A and ⌃⇧., so the panel's New Folder, Desktop, Applications and
+hidden-files chords never reach the app there either. `+`, `/` and `>` still do.
+
 **On Windows, `handOffTerminal(running:arguments:)` runs the program.** It threw `.unsupported` there. It now
 starts the program in the app's console and waits for it, and reports how it ended as `.exit` with its exit code:
 Windows has no signals, so a program ended by ⌃C exits with `0xC000013A`. A name is looked up as Windows looks one
