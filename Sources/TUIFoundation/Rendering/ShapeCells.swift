@@ -103,7 +103,10 @@ struct ShapeCells {
             flush()
             lines.append(line)
         }
-        var buffer = FrameBuffer(lines: lines, width: width, lineWidths: Array(repeating: width, count: height))
+        // Every row is `width` cells, one glyph a cell: said, so a composite
+        // over these cells can go in place (`FrameBuffer.composite(with:at:)`).
+        var buffer = FrameBuffer(
+            lines: lines, width: width, uniformWidth: true, lineWidths: Array(repeating: width, count: height))
         buffer.opacityRegions = claims
         return buffer
     }

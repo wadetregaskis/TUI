@@ -226,7 +226,8 @@ private struct _CanvasCore<Symbols: View>: View, Renderable, Layoutable {
                 token: graphics.token, signature: signature, columns: columns, rows: rows,
                 pixels: { (opaque ? Self.opaqueBytes(bytes) : bytes, opaque ? .rgb : .rgba, width, height) })
         else { return nil }
-        var buffer = FrameBuffer(lines: lines, width: columns, lineWidths: Array(repeating: columns, count: lines.count))
+        var buffer = FrameBuffer(
+            lines: lines, width: columns, uniformWidth: true, lineWidths: Array(repeating: columns, count: lines.count))
         if !opaque { buffer = Self.punchingClearCells(buffer, raster: raster, grid: grid, columns: columns, rows: rows) }
         return surface.glyphs(over: buffer)
     }
@@ -281,7 +282,8 @@ private struct _CanvasCore<Symbols: View>: View, Renderable, Layoutable {
                 var end = column + 1
                 while end < columns, isClear(raster, column: end, row: row, grid: grid) { end += 1 }
                 let hole = ShapeCells(width: end - column, height: 1).buffer()
-                result = result.composited(with: hole, at: (x: column, y: row))
+                // In place: only the hole's row is rewritten (`glyphs(over:)`).
+                result.composite(with: hole, at: (x: column, y: row))
                 column = end
             }
         }

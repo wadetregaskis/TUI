@@ -258,6 +258,16 @@ extension GraphicsContext {
         /// run of glyphs laid over it. A run alone, so a cell no glyph was
         /// written in stays `base`'s, and a glyph with no field of its own takes
         /// the one beneath it (``FrameBuffer/composited(with:at:)``).
+        ///
+        /// Each run is composited in place (``FrameBuffer/composite(with:at:)``),
+        /// which rewrites only the run's own row. Not the copying
+        /// `composited(with:at:)`, which gives the same buffer but rebuilds,
+        /// pads and re-measures every row of it per call: over a canvas of pixel
+        /// cells, whose rows are long runs of escapes, a treemap's few dozen
+        /// names cost more than all its fills (tuidisk, TUI-FEEDBACK.md M2 item
+        /// 9). In place needs `base`'s rows to be one width, which
+        /// ``ShapeCells/buffer()`` and a picture's rows say they are; a base
+        /// that does not say so is composited by copying, as before.
         func glyphs(over base: FrameBuffer, origin: (x: Int, y: Int) = (0, 0)) -> FrameBuffer {
             var result = base
             for (row, cells) in rows.sorted(by: { $0.key < $1.key }) {
@@ -273,7 +283,7 @@ extension GraphicsContext {
                     let run = line(row: row, from: column, to: end)
                     var overlay = FrameBuffer(lines: [run.text], width: end - column, lineWidths: [end - column])
                     overlay.opacityRegions = run.claims
-                    result = result.composited(with: overlay, at: (x: column - origin.x, y: row - origin.y))
+                    result.composite(with: overlay, at: (x: column - origin.x, y: row - origin.y))
                     column = end
                 }
             }
