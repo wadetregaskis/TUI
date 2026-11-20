@@ -367,7 +367,8 @@ comfortable here; the ceiling is cores, not RAM.
 test's 600 s sleep (see the comment on the macOS Test step in
 `.github/workflows/ci.yml`; `-j 4` is an experiment, and the arm64 macOS
 runners' 7 GB is the thing to watch). The Windows jobs still run `swift
-test`. The harness runs every test, and fails loudly unless the union of test
+test`, though the harness runs on Windows too (its README's "Toolchains and
+platforms" has what it sets up there). The harness runs every test, and fails loudly unless the union of test
 IDs returned by its processes matches the enumerated suite exactly, so a
 process that quietly ran nothing cannot be mistaken for a pass. That identity
 check held in all 25 full-suite runs behind this section: 7,591 tests, 1,082

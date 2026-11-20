@@ -77,8 +77,9 @@ longer through `swift test`. One `swift test` process queues every
 suite runs there had grown from 120–290 s (early 2026-09) to 290–650 s, and on
 2026-09-28 the trunk lane's 640.6 s run outlasted a test's 600 s `Task.sleep`
 and failed it (`LifecycleManagerTests`, fixed in `a3bb5790`). The Windows lanes
-still run `swift test`: they are advisory for tests, and the harness does not
-support Windows. The harness's own unit tests (`python3 -m unittest discover
+still run `swift test`, in their container: they are advisory for tests, and
+the harness has run on Windows only on the VM so far (since 2026-11-20; see
+"Toolchains and platforms"). The harness's own unit tests (`python3 -m unittest discover
 -s Tools/ParallelTest -p 'test_*.py'`, ~1 s) run once per CI run, on the
 macOS 26 · Xcode 26 lane just before its Test step, so a broken harness fails
 as itself.
@@ -139,7 +140,8 @@ before either.
 
 ## One run at a time
 
-A run takes a machine-wide lock (`/tmp/tuikit-parallel-test.lock`, or
+A run takes a machine-wide lock (`/tmp/tuikit-parallel-test.lock`, on Windows
+`tuikit-parallel-test.lock` in the user's temporary directory, or
 `$TUI_PARALLEL_TEST_LOCK`) before it builds, so a second run — from another
 worktree, or an agent — waits for the first and says whose run it is waiting
 for. One run already fills half the cores with test processes; on the 16 GiB
@@ -147,8 +149,9 @@ machine this is used on, two at once, with their builds, push each other into
 memory compression and swap, so each is slower and the pair is slower than the
 same two in turn. It is a `flock`, which the kernel drops when its holder
 exits however it exits, so a crashed run cannot leave the next one waiting.
-`--plan-only` runs nothing and takes no lock. There is no lock on Windows,
-which has no `flock`.
+Windows has no `flock`; there it is `msvcrt.locking` on one byte of the file
+(`LockFile`), which Windows also drops when its holder exits. `--plan-only`
+runs nothing and takes no lock.
 
 ## The reconciliation gate
 
@@ -496,9 +499,36 @@ that crashed or ran nothing, its last 40 lines and the signal that killed it.
 (`GITHUB_ACTIONS=true`) folds it into a collapsible group and makes each failed
 test an `::error` annotation.
 
-**Windows** is not supported and has never been run: there is no `flock`, the
-binary discovery does not know `.exe`, and SwiftPM's Windows `PATH` additions
-are not mirrored. CI's Windows lanes keep running `swift test`.
+**Windows** has no helper either: the product runs directly, as on Linux. What
+the environment needs there is `PATH`. A Windows toolchain installs swift-testing
+and XCTest as DLLs in its platform, `<platform>\Developer\Library\Testing-<version>\usr\<bin>`
+and `XCTest-<version>` beside it, and puts neither on `PATH`: without them the
+test binary exits `0xC0000135` (`STATUS_DLL_NOT_FOUND`) before it has listed a
+test. So both go before the user's `PATH`, and from 6.4 the build directory
+after it (Windows's library path being `PATH`). `<bin>` is `bin64` for x86_64
+and `bin64a` for arm64, the versions are the platform `Info.plist`'s
+`SWIFT_TESTING_VERSION` and `XCTEST_VERSION`, and the platform is the one
+`SDKROOT` names (`<platform>\Developer\SDKs\Windows.sdk`), as for the build. The
+installer sets `SDKROOT`, and with two toolchains installed it need not match the
+`swift` that comes first on `PATH` (on the VM it named 6.4.2's while 6.3.3's
+`swift` came first), so set it to the one that builds. The rest is Windows's
+own: the native build's product is `<name>.xctest`, an executable without
+`.exe` that `CreateProcess` runs as it is, and swift-build's launcher is
+`<name>-test-runner.exe`; there is no `wait4`, so the harness polls its
+children and reads each one's CPU time and peak working set from its process
+handle; each process gets its own `TMP` and `TEMP` as well as `TMPDIR`, as
+Windows takes its temporary directory from those; a binary with nothing to run
+exits `ERROR_NOT_FOUND` (1168), not 69; a crash's NTSTATUS is reported in
+hexadecimal; and the logs, written in UTF-8, are read and printed as UTF-8
+rather than in the ANSI code page. CI's Windows lanes still run `swift test`,
+in their container.
+
+Measured on the VM (Windows 11 arm64, 8 logical cores, 16 GiB; 6.3.3, debug,
+`--no-build -j 4`, no weight cache, 2026-11-20): 15,726 tests in 2,336 suites
+passed and reconciled in 523.7 s (530.2 s end to end, 1,258.5 CPU-seconds,
+127 known issues), against 19 minutes for `swift test` there (2026-11-17,
+15,667 tests). Split by count, the groups took 339–524 s, so a weight table
+would shorten it further.
 
 ## Tests
 
@@ -506,7 +536,7 @@ are not mirrored. CI's Windows lanes keep running `swift test`.
 python3 Tools/ParallelTest/test_parallel_test.py
 ```
 
-74 tests covering the parts that can be tested without running the suite: ID
+84 tests covering the parts that can be tested without running the suite: ID
 escaping and pattern anchoring, the partition proof rejecting a gap or an
 overlap, bin packing, both weight paths, all eight shapes of the summary line
 in both their singular and plural wordings, the malformed-xunit recovery, the
@@ -518,9 +548,17 @@ path, fails them); the compiler-version spellings and the 6.4 cut-over for the
 build directory on the library path, with its place in the order on both
 platforms; test-binary discovery for native and swift-build output on both
 platforms; the helper and direct command lines; the per-binary plan; a slot
-running its invocations in turn while slots run at once; the failure excerpt
-on real Linux (CI) and macOS (probe) output; and the escaping of the `::error`
-annotations.
+running its invocations in turn while slots run at once; a silent process
+killed once the stall limit passes, and not before; the failure excerpt on real
+Linux (CI) and macOS (probe) output; and the escaping of the `::error`
+annotations. And for Windows: `$SWIFT` with a quoted path, the `PATH` for each
+architecture and for a platform with no versions, launchers spelt with `.exe`,
+and a crash's exit code. They run on any of the three, each layout's paths
+spelt by its own platform's rules (`posixpath`, `ntpath`), so a run on one
+checks the others' layouts too.
+
+Until 2026-11-20 the stall test sat below the file's `unittest.main()`, which
+exits, so running the file never defined it, let alone ran it.
 
 Two of those are a negative control on the summary parser and are the reason
 to run it after touching `SUMMARY_RE`: a log with no run summary in it — empty,

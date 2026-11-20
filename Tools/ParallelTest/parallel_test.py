@@ -73,23 +73,29 @@ Usage:
                                         [--expect-known-issues N]
                                         [--full-failing-logs] [--json PATH]
 
-Runs on macOS (swift.org, Xcode and Command Line Tools toolchains) and Linux,
-with SwiftPM's native build system or swift-build; see "Toolchains and
+Runs on macOS (swift.org, Xcode and Command Line Tools toolchains), Linux and
+Windows, with SwiftPM's native build system or swift-build; see "Toolchains and
 platforms" in README.md.
 """
 
 import argparse
 import json
 import math
+import ntpath
 import os
+import plistlib
+import posixpath
 import re
 import shlex
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import xml.etree.ElementTree as ET
 from collections import defaultdict
+
+WINDOWS = os.name == "nt"
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 WORK = os.path.join(REPO, ".build", "parallel-test")
@@ -102,8 +108,12 @@ WEIGHTS = os.path.join(WORK, "weights.json")
 # the same two in turn. So a second run waits for the first. Deliberately in
 # /tmp rather than $TMPDIR, which can differ per sandbox or agent, and a flock
 # rather than a pid file: the kernel drops it when its holder exits, however
-# that happens, so a crashed run never leaves the next one waiting.
-LOCK_PATH = os.environ.get("TUI_PARALLEL_TEST_LOCK", "/tmp/tuikit-parallel-test.lock")
+# that happens, so a crashed run never leaves the next one waiting. Windows has
+# no /tmp, and its user's temporary directory is the nearest it has to one.
+LOCK_PATH = os.environ.get(
+    "TUI_PARALLEL_TEST_LOCK",
+    os.path.join(tempfile.gettempdir(), "tuikit-parallel-test.lock") if WINDOWS
+    else "/tmp/tuikit-parallel-test.lock")
 # How long a test process may write nothing before it counts as hung (`kill_stalled`).
 STALL_SECONDS = int(os.environ.get("TUI_PARALLEL_TEST_STALL_SECONDS", "1800"))
 
@@ -242,7 +252,7 @@ def durations_from_event_stream(path):
     apart before any of it is believed.
     """
     started, ended = {}, {}
-    with open(path, "r", errors="replace") as fh:
+    with open(path, "r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
             line = line.strip()
             if not line:
@@ -278,7 +288,7 @@ def peak_concurrency(path):
     error — it would quietly poison the weights instead.
     """
     marks = []
-    with open(path, "r", errors="replace") as fh:
+    with open(path, "r", encoding="utf-8", errors="replace") as fh:
         for line in fh:
             line = line.strip()
             if not line:
@@ -421,7 +431,7 @@ def build_configuration_args(release):
     return ["-c", "release"] + RELEASE_TEST_FLAGS if release else []
 
 
-def swift_command(environ=None):
+def swift_command(environ=None, windows=None):
     """The `swift` to drive, as an argv prefix.
 
     `$SWIFT` when it is set, which is how CI's macOS lanes name their toolchain:
@@ -429,24 +439,41 @@ def swift_command(environ=None):
     under Xcode. Otherwise `swift` from PATH — swiftly's default, locally.
     Every build, `--show-bin-path` and `-print-target-info` goes through it, so
     the toolchain that runs the tests is the one that built them.
+
+    On Windows, where a backslash separates a path and is no escape, it is
+    split as cmd.exe splits it: a quoted path keeps its spaces, and its
+    backslashes.
     """
     environ = os.environ if environ is None else environ
-    return shlex.split(environ.get("SWIFT") or "swift")
+    text = environ.get("SWIFT") or "swift"
+    if windows is None:
+        windows = WINDOWS
+    if not windows:
+        return shlex.split(text)
+    return [w[1:-1] if len(w) > 1 and w[0] == w[-1] == '"' else w
+            for w in shlex.split(text, posix=False)]
 
 
 class Toolchain(object):
     """How to launch a test binary: through `helper` (macOS), or directly
-    (`helper` None: Linux), with `env` merged over the parent's environment."""
+    (`helper` None: Linux and Windows), with `env` merged over the parent's
+    environment. `where` says where its swift-testing comes from."""
 
     def __init__(self, helper, env, darwin, where):
         self.helper, self.env, self.darwin, self.where = helper, env, darwin, where
 
 
-def append_path(env, environ, key, value):
+def append_path(env, environ, key, value, sep=":"):
     """SwiftPM's `Environment.appendPath`: after whatever is already there —
-    the user's own setting wins — separated by `:`."""
+    the user's own setting wins — separated by `sep` (`:`, or Windows's `;`)."""
     old = env.get(key, environ.get(key, ""))
-    env[key] = old + ":" + value if old else value
+    env[key] = old + sep + value if old else value
+
+
+def prepend_path(env, environ, key, value, sep=":"):
+    """SwiftPM's `Environment.prependPath`: before whatever is already there."""
+    old = env.get(key, environ.get(key, ""))
+    env[key] = value + sep + old if old else value
 
 
 def compiler_version(info):
@@ -533,26 +560,26 @@ def darwin_test_env(resource_dir, environ, platform_path, exists=os.path.exists,
     env, found = {}, []
     for d in product_dirs:
         append_path(env, environ, "DYLD_LIBRARY_PATH", d)
-    usr = os.path.dirname(os.path.dirname(resource_dir))
-    root = os.path.dirname(usr)
-    frameworks = os.path.join(root, "Library", "Developer", "Frameworks")
-    testing_lib = os.path.join(resource_dir, "macosx", "testing")
-    if exists(os.path.join(frameworks, "Testing.framework")):
+    usr = posixpath.dirname(posixpath.dirname(resource_dir))
+    root = posixpath.dirname(usr)
+    frameworks = posixpath.join(root, "Library", "Developer", "Frameworks")
+    testing_lib = posixpath.join(resource_dir, "macosx", "testing")
+    if exists(posixpath.join(frameworks, "Testing.framework")):
         append_path(env, environ, "DYLD_FRAMEWORK_PATH", frameworks)
         append_path(env, environ, "DYLD_LIBRARY_PATH",
-                    os.path.join(root, "Library", "Developer", "usr", "lib"))
+                    posixpath.join(root, "Library", "Developer", "usr", "lib"))
         found.append(frameworks)
     elif exists(testing_lib):
         append_path(env, environ, "DYLD_LIBRARY_PATH", testing_lib)
         found.append(testing_lib)
     if platform_path:
-        dev = os.path.join(platform_path, "Developer")
-        platform_frameworks = os.path.join(dev, "Library", "Frameworks")
+        dev = posixpath.join(platform_path, "Developer")
+        platform_frameworks = posixpath.join(dev, "Library", "Frameworks")
         append_path(env, environ, "DYLD_FRAMEWORK_PATH", platform_frameworks)
         append_path(env, environ, "DYLD_FRAMEWORK_PATH",
-                    os.path.join(dev, "Library", "PrivateFrameworks"))
-        append_path(env, environ, "DYLD_LIBRARY_PATH", os.path.join(dev, "usr", "lib"))
-        if exists(os.path.join(platform_frameworks, "Testing.framework")):
+                    posixpath.join(dev, "Library", "PrivateFrameworks"))
+        append_path(env, environ, "DYLD_LIBRARY_PATH", posixpath.join(dev, "usr", "lib"))
+        if exists(posixpath.join(platform_frameworks, "Testing.framework")):
             found.append(platform_frameworks)
     return env, found
 
@@ -565,6 +592,58 @@ def linux_test_env(environ, product_dirs):
     for d in product_dirs:
         append_path(env, environ, "LD_LIBRARY_PATH", d)
     return env
+
+
+# The directory under a Windows platform library's `usr` that holds the DLLs
+# for an architecture, as SwiftPM's `UserToolchain` names it.
+WINDOWS_BIN_DIRS = {"x86_64": "bin64", "aarch64": "bin64a", "i686": "bin32", "armv7": "bin32a"}
+
+
+def read_plist(path):
+    """The property list at `path`, or None when there is none to read."""
+    try:
+        with open(path, "rb") as fh:
+            return plistlib.load(fh)
+    except (OSError, plistlib.InvalidFileException):
+        return None
+
+
+def windows_test_env(environ, triple, product_dirs, exists=os.path.exists, plist=read_plist):
+    """The PATH `swift test` gives a Windows test executable.
+
+    A Windows toolchain installs swift-testing and XCTest as DLLs in the
+    platform, `<platform>\\Developer\\Library\\Testing-<version>\\usr\\<bin>`
+    and `XCTest-<version>`, where `<bin>` is the architecture's
+    (`WINDOWS_BIN_DIRS`) and the versions are the platform's `Info.plist`
+    `SWIFT_TESTING_VERSION` and `XCTEST_VERSION` ("development" without
+    one). Neither is on PATH after an install, so `constructTestEnvironment`
+    puts both before it, and from 6.4 `product_dirs` after it (Windows's
+    library path is PATH). The platform is the one SDKROOT names,
+    `<platform>\\Developer\\SDKs\\Windows.sdk`, as for the build, so the
+    tests load the swift-testing of the SDK they were built against.
+
+    -> (env dict, [where the testing library was found]).
+    """
+    env, found = {}, []
+    sdk = (environ.get("SDKROOT") or "").rstrip("\\/")
+    arch = WINDOWS_BIN_DIRS.get(triple.split("-")[0])
+    if not sdk or not arch:
+        return env, found
+    platform = ntpath.dirname(ntpath.dirname(ntpath.dirname(sdk)))
+    defaults = (plist(ntpath.join(platform, "Info.plist")) or {}).get("DefaultProperties", {})
+    library = ntpath.join(platform, "Developer", "Library")
+    testing = ntpath.join(library, "Testing-%s" % defaults.get("SWIFT_TESTING_VERSION", "development"),
+                           "usr", arch)
+    xctest = ntpath.join(library, "XCTest-%s" % defaults.get("XCTEST_VERSION", "development"),
+                          "usr", arch)
+    if exists(xctest):
+        prepend_path(env, environ, "PATH", xctest, sep=";")
+    if exists(testing):
+        prepend_path(env, environ, "PATH", testing, sep=";")
+        found.append(testing)
+    for d in product_dirs:
+        append_path(env, environ, "PATH", d, sep=";")
+    return env, found
 
 
 def toolchain(swift, bin_dir):
@@ -589,15 +668,22 @@ def toolchain(swift, bin_dir):
     res = os.path.realpath(info.get("paths", info)["runtimeResourcePath"])  # <usr>/lib/swift
     darwin = "-apple-" in triple if triple else sys.platform == "darwin"
     product_dirs = product_library_dirs(compiler_version(info), bin_dir)
+    if "-windows" in triple or (not triple and WINDOWS):
+        # No helper, as on Linux, but the testing library is not on PATH.
+        env, found = windows_test_env(os.environ, triple, product_dirs)
+        if not found:
+            sys.exit("parallel-test: no swift-testing library for %s (looked under the "
+                     "platform SDKROOT names, %r, for Developer\\Library\\Testing-<version>)"
+                     % (triple, os.environ.get("SDKROOT")))
+        return Toolchain(None, env, False, found[0])
     if not darwin:
-        # Linux (and Windows): no helper. The test product is an executable,
-        # and `swift test` runs it directly. `constructTestEnvironment` adds
-        # NO_COLOR (not mirrored, above) and, from 6.4, the products'
-        # directory on LD_LIBRARY_PATH, then returns before the macOS-only
-        # testing-library paths (bar a PATH tweak on Windows, which this
-        # harness does not support).
+        # Linux: no helper. The test product is an executable, and `swift
+        # test` runs it directly. `constructTestEnvironment` adds NO_COLOR
+        # (not mirrored, above) and, from 6.4, the products' directory on
+        # LD_LIBRARY_PATH, then returns before the macOS-only testing-library
+        # paths.
         return Toolchain(None, linux_test_env(os.environ, product_dirs), False,
-                         triple or sys.platform)
+                         "the test binaries (%s)" % (triple or sys.platform))
     usr = os.path.dirname(os.path.dirname(res))               # <usr>
     helper = os.path.join(usr, "libexec", "swift", "pm", "swiftpm-testing-helper")
     if not os.path.exists(helper):
@@ -629,6 +715,9 @@ def test_binaries(bin_dir, darwin, isfile=os.path.isfile, isdir=os.path.isdir,
     * Linux, swift-build: `<name>-test-runner`, a launcher that loads the
       `<name>.so` beside it. If any exist they are the test binaries; an
       `.xctest` beside them would be a stale native build.
+    * Windows: as Linux, the launcher spelt `<name>-test-runner.exe`. The
+      native build's `<name>.xctest` is an executable without `.exe`, which
+      CreateProcess runs as it is.
     """
     names = sorted(listdir(bin_dir)) if isdir(bin_dir) else []
     found = {}
@@ -640,8 +729,9 @@ def test_binaries(bin_dir, darwin, isfile=os.path.isfile, isdir=os.path.isdir,
                 found[name] = inner if isfile(inner) else os.path.join(bin_dir, n, name)
     else:
         for n in names:
-            if n.endswith("-test-runner") and isfile(os.path.join(bin_dir, n)):
-                found[n[: -len("-test-runner")]] = os.path.join(bin_dir, n)
+            stem = n[: -len(".exe")] if n.lower().endswith(".exe") else n
+            if stem.endswith("-test-runner") and isfile(os.path.join(bin_dir, n)):
+                found[stem[: -len("-test-runner")]] = os.path.join(bin_dir, n)
         if not found:
             for n in names:
                 if n.endswith(".xctest") and isfile(os.path.join(bin_dir, n)):
@@ -672,7 +762,11 @@ def child_env(tc, slot):
         # would latch ColorDepth to .noColor, disabling ANSI escapes in tests
         # that assert on rendered colours.
         del env["TERM"]
-    for key, sub in (("TUI_CONFIG_DIR", "config"), ("TMPDIR", "tmp")):
+    # Windows's temporary directory is TMP's, then TEMP's (GetTempPath2W), not TMPDIR's.
+    keys = [("TUI_CONFIG_DIR", "config"), ("TMPDIR", "tmp")]
+    if WINDOWS:
+        keys += [("TMP", "tmp"), ("TEMP", "tmp")]
+    for key, sub in keys:
         d = os.path.join(WORK, "slot%d" % slot, sub)
         os.makedirs(d, exist_ok=True)
         env[key] = d
@@ -726,8 +820,8 @@ def list_tests(tc, binaries):
     owner = {}
     for name, binary in sorted(binaries.items()):
         cmd = test_cmd(tc, binary, None, extra=["--list-tests"])
-        out = subprocess.run(cmd, capture_output=True, text=True, cwd=REPO,
-                             env=child_env(tc, 0))
+        out = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8",
+                             errors="replace", cwd=REPO, env=child_env(tc, 0))
         ids = {l.strip() for l in out.stdout.splitlines() if l.strip() and "/" in l}
         # EX_UNAVAILABLE is swift-testing's "no tests": a target whose tests all
         # compile out here, as TUIFilePanelsAppKitTests' do on Linux, where
@@ -770,6 +864,60 @@ def plan_invocations(patterns, owner, binaries):
     return plan
 
 
+def reap(running):
+    """One child of `running` ({pid: (slot, invocation)}) that has exited, as
+    (pid, exit code, cpu seconds, peak memory in bytes), or None while none has.
+
+    POSIX: `wait4`, which reaps in exit order and says what the child cost.
+    Windows has no `wait4`, so each child is polled, and its cost read from its
+    process handle (`windows_usage`).
+    """
+    if not hasattr(os, "wait4"):
+        for pid, (_, r) in running.items():
+            rc = r["p"].poll()
+            if rc is not None:
+                return (pid, rc) + windows_usage(r["p"])
+        return None
+    while True:
+        pid, status, ru = os.wait4(-1, os.WNOHANG)
+        if pid == 0:
+            return None
+        if pid in running:
+            # ru_maxrss is bytes on macOS and KiB on Linux; report bytes.
+            return (pid, os.waitstatus_to_exitcode(status), ru.ru_utime + ru.ru_stime,
+                    ru.ru_maxrss * (1 if sys.platform == "darwin" else 1024))
+
+
+def windows_usage(process):
+    """(cpu seconds, peak working set in bytes) of an exited Windows child,
+    from `GetProcessTimes` and `K32GetProcessMemoryInfo` on the handle its
+    `Popen` holds until it is collected; (0.0, 0) where either is refused."""
+    import ctypes
+    from ctypes import wintypes
+
+    class Counters(ctypes.Structure):  # PROCESS_MEMORY_COUNTERS
+        _fields_ = [("cb", wintypes.DWORD), ("PageFaultCount", wintypes.DWORD)] + [
+            (n, ctypes.c_size_t) for n in (
+                "PeakWorkingSetSize", "WorkingSetSize", "QuotaPeakPagedPoolUsage",
+                "QuotaPagedPoolUsage", "QuotaPeakNonPagedPoolUsage", "QuotaNonPagedPoolUsage",
+                "PagefileUsage", "PeakPagefileUsage")]
+
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.GetProcessTimes.argtypes = [wintypes.HANDLE] + [ctypes.POINTER(wintypes.FILETIME)] * 4
+    kernel.K32GetProcessMemoryInfo.argtypes = [
+        wintypes.HANDLE, ctypes.POINTER(Counters), wintypes.DWORD]
+    handle = wintypes.HANDLE(int(process._handle))
+    times = [wintypes.FILETIME() for _ in range(4)]  # creation, exit, kernel, user
+    cpu = 0.0
+    if kernel.GetProcessTimes(handle, *[ctypes.byref(t) for t in times]):
+        cpu = sum(((t.dwHighDateTime << 32) | t.dwLowDateTime) / 1e7 for t in times[2:])
+    counters = Counters(cb=ctypes.sizeof(Counters))
+    peak = 0
+    if kernel.K32GetProcessMemoryInfo(handle, ctypes.byref(counters), counters.cb):
+        peak = counters.PeakWorkingSetSize
+    return cpu, peak
+
+
 def run_processes(invocations, tc, slot_of):
     """Run every slot at once, each slot's invocations in turn; reap in EXIT order.
 
@@ -801,19 +949,14 @@ def run_processes(invocations, tc, slot_of):
         start(slot)
     done = []
     while running:
-        pid, status, ru = os.wait4(-1, os.WNOHANG)
-        if pid == 0:
+        exited = reap(running)
+        if exited is None:
             kill_stalled(running)
             time.sleep(0.05)
             continue
-        if pid not in running:
-            continue
-        slot, r = running.pop(pid)
+        slot, r = running.pop(exited[0])
         r["wall"] = time.time() - r["t0"]
-        r["rc"] = os.waitstatus_to_exitcode(status)
-        r["cpu"] = ru.ru_utime + ru.ru_stime
-        # ru_maxrss is bytes on macOS and KiB on Linux; report bytes.
-        r["maxrss"] = ru.ru_maxrss * (1 if sys.platform == "darwin" else 1024)
+        r["rc"], r["cpu"], r["maxrss"] = exited[1:]
         r["fh"].close()
         r["p"].returncode = r["rc"]
         done.append(r)
@@ -846,8 +989,9 @@ def kill_stalled(running, now=time.time, limit=None):
 # line is followed by its details — `↳ …` or indented on Linux, `<symbol>  …`
 # and indented on macOS — until the next event line, which is a symbol and then
 # `Test`/`Suite`/`Test run`. Known issues are expected and are left out.
-# What a swift-testing binary exits with when it has no tests to run (EX_UNAVAILABLE).
-SWIFT_TESTING_NO_TESTS = 69
+# What a swift-testing binary exits with when it has no tests to run: EX_UNAVAILABLE,
+# and on Windows ERROR_NOT_FOUND (0x490, as TUIFilePanelsAppKitTests' empty run exits there).
+SWIFT_TESTING_NO_TESTS = 1168 if WINDOWS else 69
 
 ISSUE_RE = re.compile(r" recorded an issue\b")
 EVENT_LINE_RE = re.compile("^(?![↳\U00100135])\\S+\\s+(Test|Suite)\\b")
@@ -878,7 +1022,7 @@ def load_weights():
     if not os.path.exists(WEIGHTS):
         return {}, None
     try:
-        with open(WEIGHTS) as fh:
+        with open(WEIGHTS, encoding="utf-8") as fh:
             doc = json.load(fh)
         return doc.get("weights", {}), doc.get("generated")
     except (ValueError, OSError):
@@ -887,7 +1031,7 @@ def load_weights():
 
 def save_weights(weights, source):
     os.makedirs(WORK, exist_ok=True)
-    with open(WEIGHTS, "w") as fh:
+    with open(WEIGHTS, "w", encoding="utf-8") as fh:
         json.dump({"version": 1, "source": source,
                    "generated": time.strftime("%Y-%m-%dT%H:%M:%S"),
                    "weights": weights}, fh)
@@ -928,24 +1072,49 @@ def fill_weights(ids, weights):
 
 # --------------------------------------------------------------------- report
 
+# Where the Windows lock's byte is: far past the holder's text, which a waiting
+# run reads, as a Windows lock also keeps out reads of what it covers.
+WINDOWS_LOCK_OFFSET = 1 << 20
+
+
+def try_lock(fh, wait=False):
+    """Takes the exclusive lock on `fh`'s file: True once held, False if
+    another open file holds it (with `wait`, after waiting a while for it).
+
+    POSIX: `flock`, which belongs to the open file and so contends between two
+    opens in one process as between two runs. Windows: `msvcrt.locking` on one
+    byte (`LockFile`), which belongs to the handle in the same way, and which
+    Windows also drops when its holder exits; its blocking form gives up after
+    ten one-second tries, so a caller that waits loops."""
+    if WINDOWS:
+        import msvcrt
+        os.lseek(fh.fileno(), WINDOWS_LOCK_OFFSET, os.SEEK_SET)
+        try:
+            msvcrt.locking(fh.fileno(), msvcrt.LK_LOCK if wait else msvcrt.LK_NBLCK, 1)
+            return True
+        except OSError:
+            return False
+    import fcntl
+    try:
+        fcntl.flock(fh, fcntl.LOCK_EX | (0 if wait else fcntl.LOCK_NB))
+        return True
+    except BlockingIOError:
+        return False
+
+
 def machine_lock(path=LOCK_PATH, out=sys.stdout):
     """Takes the machine-wide run lock (`LOCK_PATH`), waiting for it if another
     run holds it, and returns the open file that holds it — keep it alive
-    until the run ends. `None` where there is no `flock` (Windows)."""
-    try:
-        import fcntl
-    except ImportError:
-        return None
-    fh = open(path, "a+")
-    try:
-        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
+    until the run ends."""
+    fh = open(path, "a+", encoding="utf-8")
+    if not try_lock(fh):
         fh.seek(0)
         holder = fh.read().strip() or "another run"
         print("parallel-test: waiting for %s (one run at a time on this machine)"
               % holder, file=out, flush=True)
         waited = time.time()
-        fcntl.flock(fh, fcntl.LOCK_EX)
+        while not try_lock(fh, wait=True):
+            pass
         print("parallel-test: waited %.0fs" % (time.time() - waited), file=out, flush=True)
     fh.seek(0)
     fh.truncate()
@@ -973,6 +1142,14 @@ def gh_annotation_message(text):
     return text.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
 
 
+def describe_exit(rc):
+    """How a child ended: a POSIX signal is a negative code; a Windows crash is
+    an NTSTATUS, such as 0xC0000005, which reads in hexadecimal."""
+    if rc < 0:
+        return "killed by signal %d" % -rc
+    return "exit 0x%08X" % rc if rc > 0xFFFF else "exit %d" % rc
+
+
 def report_failing_logs(procs, failed_by_tag, full_logs, out=None):
     """Put what failed INTO the output, not only a path under .build.
 
@@ -990,9 +1167,9 @@ def report_failing_logs(procs, failed_by_tag, full_logs, out=None):
                or failed_by_tag.get(r["tag"]) or r.get("problem"))
         if not bad:
             continue
-        with open(r["log"], errors="replace") as fh:
+        with open(r["log"], encoding="utf-8", errors="replace") as fh:
             text = fh.read()
-        how = ("killed by signal %d" % -r["rc"]) if r["rc"] < 0 else ("exit %d" % r["rc"])
+        how = describe_exit(r["rc"])
         print("", file=out)
         print("── %s (%s, %s) ──" % (r["tag"], r["binary"], how), file=out)
         excerpt = failure_excerpt(text)
@@ -1040,8 +1217,13 @@ def main():
 
     # A pipe (CI's log) would otherwise hold this output back in a block
     # buffer, behind the build's.
+    # On Windows a pipe also gets the ANSI code page, which cannot spell the ✘
+    # of a failing log's lines, so those are written as the logs are, UTF-8.
     try:
-        sys.stdout.reconfigure(line_buffering=True)
+        if WINDOWS:
+            sys.stdout.reconfigure(line_buffering=True, encoding="utf-8", errors="replace")
+        else:
+            sys.stdout.reconfigure(line_buffering=True)
     except AttributeError:
         pass
 
@@ -1071,7 +1253,7 @@ def main():
     if len(binaries) > 1 or os.environ.get("SWIFT") or not tc.darwin:
         print("parallel-test: `%s`, %d test binar%s, swift-testing from %s"
               % (" ".join(swift), len(binaries), "y" if len(binaries) == 1 else "ies",
-                 tc.where if tc.darwin else "the test binaries (%s)" % tc.where))
+                 tc.where))
 
     owner = list_tests(tc, binaries)
     ids = select_ids(sorted(owner), args.filter)
@@ -1154,7 +1336,7 @@ def main():
             gids, gfailed, n = set(), set(), 0
             problems.append("group %s: %s" % (r["tag"], exc))
             r["problem"] = True
-        with open(r["log"], errors="replace") as fh:
+        with open(r["log"], encoding="utf-8", errors="replace") as fh:
             summary = parse_summary_text(fh.read())
         r["summary"], r["ran"] = summary, n
         counted += n
@@ -1186,8 +1368,8 @@ def main():
         # so the gate does not rest on the helper always exiting non-zero.
         if not gfailed and (r["rc"] != 0
                             or (summary is not None and not summary["passed"])):
-            problems.append("group %s reported a failure (exit %d) that no test "
-                            "accounts for (see %s)" % (r["tag"], r["rc"], r["log"]))
+            problems.append("group %s reported a failure (%s) that no test "
+                            "accounts for (see %s)" % (r["tag"], describe_exit(r["rc"]), r["log"]))
 
     missing, extra = sorted(set(ids) - union), sorted(union - set(ids))
     if missing or extra or counted != len(union):
@@ -1268,7 +1450,7 @@ def main():
               "%.1fs of measured work)" % (len(measured), sum(measured.values())))
 
     if args.json:
-        with open(args.json, "w") as fh:
+        with open(args.json, "w", encoding="utf-8") as fh:
             json.dump({"wall": wall, "cpu": cpu, "jobs": jobs, "ok": ok,
                        "tests": len(union), "suites": len(suites),
                        "known": known, "failed": sorted(failed),

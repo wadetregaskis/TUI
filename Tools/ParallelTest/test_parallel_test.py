@@ -381,14 +381,12 @@ class TestMachineLock(unittest.TestCase):
     # flock belongs to an open file, not to a process, so two opens in this
     # one process contend exactly as two runs would.
     def test_a_second_run_waits_for_the_first(self):
-        import fcntl
         import io
         with tempfile.TemporaryDirectory() as d:
             path = os.path.join(d, "lock")
             first = pt.machine_lock(path, out=io.StringIO())
             with open(path, "a+") as other:
-                with self.assertRaises(BlockingIOError):
-                    fcntl.flock(other, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                self.assertFalse(pt.try_lock(other), "a second open took the lock")
             with open(path) as fh:
                 self.assertIn("pid %d" % os.getpid(), fh.read())
             first.close()
@@ -455,6 +453,14 @@ class TestSwiftCommand(unittest.TestCase):
         self.assertEqual(
             pt.swift_command({"SWIFT": "xcrun --toolchain org.swift.640202609131a swift"}),
             ["xcrun", "--toolchain", "org.swift.640202609131a", "swift"])
+
+    def test_a_windows_path_keeps_its_backslashes_and_spaces(self):
+        self.assertEqual(
+            pt.swift_command({"SWIFT": r'"C:\Program Files\Swift\swift.exe" -v'}, windows=True),
+            [r"C:\Program Files\Swift\swift.exe", "-v"])
+        self.assertEqual(pt.swift_command({"SWIFT": r"C:\S\swift.exe"}, windows=True),
+                         [r"C:\S\swift.exe"])
+        self.assertEqual(pt.swift_command({}, windows=True), ["swift"])
 
 
 class TestDarwinTestEnv(unittest.TestCase):
@@ -565,6 +571,54 @@ class TestProductLibraryPath(unittest.TestCase):
         self.assertEqual(found, [lib])
 
 
+class TestWindowsTestEnv(unittest.TestCase):
+    """The layout is a real one, transcribed from a Windows 11 arm64 machine
+    with the 6.3.3 toolchain installed for one user."""
+
+    PLATFORM = r"C:\U\AppData\Local\Programs\Swift\Platforms\6.3.3\Windows.platform"
+    SDK = PLATFORM + r"\Developer\SDKs\Windows.sdk" + "\\"
+    LIB = PLATFORM + r"\Developer\Library"
+    TESTING = LIB + r"\Testing-6.3.3\usr\bin64a"
+    XCTEST = LIB + r"\XCTest-6.3.3\usr\bin64a"
+    PLIST = {"DefaultProperties": {"SWIFT_TESTING_VERSION": "6.3.3", "XCTEST_VERSION": "6.3.3"}}
+    BIN = r"C:\r\.build\aarch64-unknown-windows-msvc\debug"
+
+    def env(self, environ, triple="aarch64-unknown-windows-msvc", product_dirs=(),
+            present=None, plist=None):
+        present = {self.TESTING, self.XCTEST} if present is None else present
+        info = self.PLIST if plist is None else plist
+        return pt.windows_test_env(
+            environ, triple, list(product_dirs), lambda p: p in present,
+            lambda p: info if p == self.PLATFORM + r"\Info.plist" else None)
+
+    def test_the_testing_library_and_xctest_go_before_the_users_path(self):
+        env, found = self.env({"SDKROOT": self.SDK, "PATH": r"C:\mine"})
+        self.assertEqual(env, {"PATH": ";".join([self.TESTING, self.XCTEST, r"C:\mine"])})
+        self.assertEqual(found, [self.TESTING])
+
+    def test_6_4_puts_the_products_after_it(self):
+        env, _ = self.env({"SDKROOT": self.SDK, "PATH": r"C:\mine"}, product_dirs=[self.BIN])
+        self.assertEqual(env["PATH"],
+                         ";".join([self.TESTING, self.XCTEST, r"C:\mine", self.BIN]))
+
+    def test_x86_64_has_its_own_directory(self):
+        testing = self.LIB + r"\Testing-6.3.3\usr\bin64"
+        _, found = self.env({"SDKROOT": self.SDK}, triple="x86_64-unknown-windows-msvc",
+                            present={testing})
+        self.assertEqual(found, [testing])
+
+    def test_a_platform_without_versions_is_development(self):
+        testing = self.LIB + r"\Testing-development\usr\bin64a"
+        _, found = self.env({"SDKROOT": self.SDK}, present={testing}, plist={})
+        self.assertEqual(found, [testing])
+
+    def test_no_sdkroot_or_no_library_finds_nothing(self):
+        self.assertEqual(self.env({}), ({}, []))
+        self.assertEqual(self.env({"SDKROOT": self.SDK}, present=set()), ({}, []))
+        self.assertEqual(self.env({"SDKROOT": self.SDK}, triple="riscv64-unknown-windows-msvc"),
+                         ({}, []))
+
+
 class TestSdkPlatformPath(unittest.TestCase):
     class Out(object):
         def __init__(self, rc, stdout):
@@ -600,8 +654,8 @@ class TestTestBinaries(unittest.TestCase):
         with tempfile.TemporaryDirectory() as d:
             self.touch(os.path.join(d, "PkgPackageTests.xctest/Contents/MacOS/PkgPackageTests"))
             self.assertEqual(pt.test_binaries(d, True), {
-                "PkgPackageTests":
-                    os.path.join(d, "PkgPackageTests.xctest/Contents/MacOS/PkgPackageTests")})
+                "PkgPackageTests": os.path.join(
+                    d, "PkgPackageTests.xctest", "Contents", "MacOS", "PkgPackageTests")})
 
     def test_swift_build_on_macos_is_one_bundle_per_test_target(self):
         with tempfile.TemporaryDirectory() as d:
@@ -625,6 +679,15 @@ class TestTestBinaries(unittest.TestCase):
             self.assertEqual(pt.test_binaries(d, False), {
                 "ATests": os.path.join(d, "ATests-test-runner"),
                 "BTests": os.path.join(d, "BTests-test-runner")})
+
+    def test_windows_runs_the_launchers_spelt_with_exe(self):
+        with tempfile.TemporaryDirectory() as d:
+            for n in ("ATests", "BTests"):
+                self.touch(os.path.join(d, n + "-test-runner.exe"))
+                self.touch(os.path.join(d, n + ".dll"))
+            self.assertEqual(pt.test_binaries(d, False), {
+                "ATests": os.path.join(d, "ATests-test-runner.exe"),
+                "BTests": os.path.join(d, "BTests-test-runner.exe")})
 
     def test_no_binary_is_an_error_not_an_empty_run(self):
         with tempfile.TemporaryDirectory() as d:
@@ -760,7 +823,7 @@ class TestAnnotationMessage(unittest.TestCase):
 class TestReportFailingLogs(unittest.TestCase):
     def proc(self, d, tag, text, rc, summary):
         log = os.path.join(d, tag + ".log")
-        with open(log, "w") as fh:
+        with open(log, "w", encoding="utf-8") as fh:
             fh.write(text)
         return {"tag": tag, "binary": "B", "log": log, "rc": rc, "summary": summary}
 
@@ -784,9 +847,10 @@ class TestReportFailingLogs(unittest.TestCase):
         self.assertEqual(text.count("::group::"), 2)
         self.assertEqual(text.count("::endgroup::"), 2)
 
-
-if __name__ == "__main__":
-    unittest.main(verbosity=2)
+    def test_a_windows_crash_reads_in_hexadecimal(self):
+        self.assertEqual(pt.describe_exit(0xC0000005), "exit 0xC0000005")
+        self.assertEqual(pt.describe_exit(1), "exit 1")
+        self.assertEqual(pt.describe_exit(-11), "killed by signal 11")
 
 
 class KillStalledTests(unittest.TestCase):
@@ -798,7 +862,8 @@ class KillStalledTests(unittest.TestCase):
             with open(log, "wb") as handle:
                 handle.write(b"started")
                 handle.flush()
-                child = subprocess.Popen(["sleep", "30"], stdout=handle)
+                child = subprocess.Popen(
+                    [sys.executable, "-c", "import time; time.sleep(30)"], stdout=handle)
                 self.addCleanup(child.wait)
                 self.addCleanup(child.kill)
                 running = {child.pid: (0, {"log": log, "tag": "g0", "p": child})}
@@ -816,4 +881,9 @@ class KillStalledTests(unittest.TestCase):
                 self.assertIsNone(child.poll())
 
                 pt.kill_stalled(running, now=lambda: 120.0, limit=10)
-                self.assertEqual(child.wait(timeout=5), -signal.SIGKILL)
+                # `Popen.kill` is SIGKILL on POSIX and TerminateProcess(…, 1) on Windows.
+                self.assertEqual(child.wait(timeout=5), 1 if pt.WINDOWS else -signal.SIGKILL)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

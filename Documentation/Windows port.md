@@ -47,8 +47,8 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
       raw VT mode is the user's problem);
    5. the clipboard: a `WinSDK` arm (`OpenClipboard`/`SetClipboardData(CF_UNICODETEXT)`), and locality from
       `SSH_CONNECTION` plus a Toolhelp32 walk of the parents.
-3. **The tests.** Build and run the whole suite on Windows (`swift test`; `Tools/ParallelTest/parallel_test.py` if
-   it runs there). Expect path, line-ending and file-system differences in the file-panel and persistence tests.
+3. **The tests.** Build and run the whole suite on Windows (`swift test`, and `Tools/ParallelTest/parallel_test.py`,
+   which runs there since 2026-11-20). Expect path, line-ending and file-system differences in the file-panel and persistence tests.
 4. **The smoke tests.** `Tools/Smoke/` is `pty`/`termios`; a ConPTY harness (or the tests' in-memory terminal where
    that is enough) for the quit keys, raw mode and a walk of the Example.
 5. **Terminals.** Measure Windows Terminal and conhost with `Tools/TerminalProbes/` where they run, and record what is
@@ -198,6 +198,10 @@ environment, the menus session (its check read a highlight by colour alone, wher
 Both fixed; all 158 cases and 43 sessions pass, on 6.2.4 and 6.4.2 too (2026-11-18), and on x86_64 (6.3.3, built
 for `x86_64-unknown-windows-msvc` and run under emulation, in 40 minutes), where every module
 passes again with those fixes in.
+
+**Through `Tools/ParallelTest/parallel_test.py`** (6.3.3, 2026-11-20), which now runs on Windows (its README's
+"Toolchains and platforms" has what it sets up: swift-testing's DLLs on `PATH`, `TMP` and `TEMP`, a lock without
+`flock`): 15,726 tests in four processes, every one accounted for, all passed in 524 s.
 
 **The stack a frame is drawn on.** A Windows thread gets the stack its executable names, 1 MiB unless the program was
 linked asking for more: an app's main thread, and the libdispatch workers Swift Testing runs a `@MainActor` test on.
