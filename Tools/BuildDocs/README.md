@@ -171,6 +171,15 @@ types that have no page — not structural. Fix them at the source comment; a
 link to something internal should be single-backtick code, not a
 ``doc-link``.
 
+`Tools/validate-doc-links.py` finds the commonest of them from the sources
+alone, in seconds, so they need not wait for this build: a link qualified by a
+module (``Foundation/AttributedString/x``: the archive is one module, so it is
+``AttributedString/x``), a link to a declaration that is not public, a link
+whose labels no declaration takes, a name nothing declares or extends, and a
+`<doc:>` link to no article or heading. It runs in CI beside the Markdown link
+check. It passes what it cannot decide, so this build stays the authority; the
+script's docstring says what it reads and what it leaves alone.
+
 A link to one of several overloads names it by a disambiguator. Prefer the
 parameter types (``init(_:content:)-(LocalizedStringKey,_)``) to DocC's hash
 (``buttonStyle(_:)-5m1ib``): the hash is taken over the symbol's USR, which

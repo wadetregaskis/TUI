@@ -314,6 +314,17 @@ jobs:
           python3 Tools/validate-markdown-links.py --self-test
           python3 Tools/validate-markdown-links.py
 
+      # And for DocC's links, which the strict docs build below checks only
+      # after minutes of building: a symbol link qualified by a module the
+      # one-module archive lacks (``Foundation/…``), to a declaration that is
+      # not public, or to labels no declaration takes, and a <doc:> link to no
+      # article. From the sources alone, in seconds; the docs build stays the
+      # authority. The kinds that reached main three times before this.
+      - name: DocC links resolve, as far as the sources can tell
+        run: |
+          python3 Tools/validate-doc-links.py --self-test
+          python3 Tools/validate-doc-links.py
+
   # ── macOS ──────────────────────────────────────────────────────────────────
   macos:
     name: ${{ matrix.name }}

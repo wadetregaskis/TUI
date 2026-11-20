@@ -315,6 +315,9 @@ swift-format format -i -r Sources Tests
 
 # Build the documentation (one archive covering every module)
 Tools/BuildDocs/build-docs.sh            # add --analyze for every diagnostic
+
+# Check the doc links without building: seconds, the kinds --strict catches most
+python3 Tools/validate-doc-links.py
 ```
 
 > Use the script, not `swift package generate-documentation --target TUI`.
