@@ -174,6 +174,11 @@ final class TextEditorHandler: PersistedFocusable {
     var scrollLine = 0
     /// In a wrapping editor, which of ``scrollLine``'s rows is the top one.
     var scrollRowInLine = 0
+    /// How many blank rows below ``scrollRowInLine``'s text (or, where the
+    /// editor scrolls sideways, ``scrollLine``'s) the top is: a paragraph's
+    /// line height puts them there (``WrappedRows``, ``SidewaysRows``). Set
+    /// with ``scroll(toRow:in:)`` and ``scrollSideways(toRow:in:)``.
+    var scrollBlankRows = 0
     /// Left visible column — advanced to follow the cursor horizontally.
     var scrollColumn = 0
     /// Whether the wheel has scrolled the text since the caret last moved:
@@ -208,6 +213,19 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// The styles read for the lines drawn, kept until an edit changes a line.
     var lineStyleCache = EditorLineStyleCache()
+
+    /// The blank rows after each line's rows, from an attributed value's line
+    /// heights (``lineGaps(for:)``), until a value is taken whole.
+    var keptLineGaps = EditorLineGaps.unread
+
+    /// The rows of an editor that scrolls sideways, while its lines have
+    /// blank rows after them (``sidewaysRows()``).
+    var keptSidewaysRows: SidewaysRows?
+
+    /// Where the line heights of an attributed value are read from: its
+    /// `lineHeight` (``statedLineRows(in:)``). A test on a Mac before macOS
+    /// 26, which has no line height, reads them from an attribute of its own.
+    var lineRowRuns: LineRowRuns = TextEditorHandler.statedLineRows
 
     /// Sets where the lines' styles come from, forgetting those already read.
     func replaceLineStyler(_ styler: ((Int) -> [EditorStyledRun])?) {
@@ -298,6 +316,7 @@ final class TextEditorHandler: PersistedFocusable {
         cachedLayout = fresh
         // A text replaced whole: its lines are not the ones styled.
         if lineStyler != nil { lineStyleCache.removeAll() }
+        keptLineGaps = .unread
         return fresh
     }
 
@@ -865,7 +884,9 @@ final class TextEditorHandler: PersistedFocusable {
             return
         }
         let lines = displayLines()
-        let target = min(max(0, cursorLine + pages * step), lines.count - 1)
+        // A screenful of rows, a paragraph's blank rows among them.
+        let rows = sidewaysRows()
+        let target = rows.placement(ofRow: rows.row(ofLine: cursorLine) + pages * step).line
         cursorLine = target
         cursorColumn = characterIndex(atColumn: desiredColumn, inLine: target, of: lines)
     }

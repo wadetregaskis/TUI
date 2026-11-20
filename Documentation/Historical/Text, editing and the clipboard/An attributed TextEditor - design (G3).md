@@ -22,6 +22,10 @@ Text's own, macOS 26 only as in SwiftUI; TUI declares the same names only where 
 `paragraphAlignment` aligns a paragraph on every platform and macOS. Line height stays unbuilt: Core Text's factor
 cannot be read back with what runs here (§5, A-ATTRED-13).*
 
+*Updated 2026-11-19, later: the owner ruled A-ATTRED-13 (b), and line height is built (§5, "As built: a paragraph's
+line height"): Core Text's `lineHeight` on macOS 26, read by `==` against a grid of factors, TUI's identical type
+elsewhere, no attribute of TUI's own; each line takes its factor's rows, rounded.*
+
 ## In short
 
 SwiftUI's attributed editor is one initializer, a selection type that carries typing attributes, five
@@ -432,10 +436,63 @@ that TUI's `Font` can carry: it has no size, family, width or leading to ignore 
 `Font.custom` do not exist here), its `design` is ignored, and `monospaced()` returns the font unchanged, every cell
 being one already. Kerning, tracking and a baseline offset stay out of the scope, so setting one does not compile.
 
-**Not yet built (L4's remainder):** a paragraph's line height (§7's ruling); and Stress's `text-editor-rich` and
-`bigtext-rich` cases.
+**Not yet built (L4's remainder):** Stress's `text-editor-rich` and `bigtext-rich` cases.
 
-**Why line height is not built (attralign, 2026-11-19).** The ruling's basis would be Core Text's
+*As built: a paragraph's line height (A-ATTRED-13 (b), ruled 2026-11-19).* SwiftUI's scope declares `lineHeight:
+AttributeScopes.CoreTextAttributes.LineHeightAttribute`, valued Core Text's `AttributedString.LineHeight`, both macOS 26.
+Its 26.2 SDK interface has the presets `variable`, `normal`, `tight` and `loose`, the makers `multiple(factor:)`,
+`leading(increase:)` and `exact(points:)`, `==`, `hash(into:)` and Codable, and no accessor; the key is a plain
+`AttributedStringKey`, not Codable, unlike alignment's. In `Sources/TUIFoundation/Views/AttributeScopes+LineHeight.swift`,
+on the same basis as alignment:
+
+| Where | `lineHeight` | How the factor is read |
+|---|---|---|
+| Apple platforms, macOS 26 | Core Text's; the scope's member computed (T14, which the owner's approval covers) | `==` against the presets, then `.multiple(factor:)` of every multiple of 0.05 from 1.5 to 8.45 (`ParagraphLineRows.readableTwentieths`): any other factor draws one row |
+| Apple platforms, before macOS 26 | Absent, as in SwiftUI; no TUI attribute (the ruling says none) | Nothing to read: one row a line |
+| Linux, Windows, WebAssembly | TUI's identical type and key (`"TUI.LineHeight"`, bounded by paragraphs), stored in the scope | Directly: TUI's type keeps what it was made as |
+
+**The rounding (`ParagraphLineRows`, shared by `Text` and the editor and tested on every platform):** a line of a
+paragraph at `.multiple(factor:)` takes `factor` rows, rounded half away from zero, at least 1 and at most 8; the rows
+past the first are blank, after the line's text. So 1.5 and 2 put one blank row after each line, 2.5 and 3 two, and
+1.2 or 1.4 none; past 8.5 it is 8, so a factor of a million cannot ask for a million rows a line. Every other value
+takes one row: the presets (typographic nudges a cell grid cannot show), and `leading(increase:)` and
+`exact(points:)`, because a terminal row's height in points is the terminal's font's, which TUI does not know, and on
+Apple platforms the points cannot be read back anyway, so a point value draws alike everywhere. Half away from zero is
+Swift's `rounded()`, and puts 1.5, the commonest "airy" factor, at two rows: one row would draw it as nothing at all.
+The grid starts at 1.5 because every factor below draws one row whatever it is, and ends at 8.45, the last factor
+below the cap's rounding; it is 140 comparisons at worst, made only for a run that states a line height. **What
+differs by platform:** a factor off the grid (2.33, 100) draws one row on a Mac and its rows elsewhere; the tests hold
+each side to its own answer. Not measured here (macOS 26 does not run on this machine): whether Core Text's key is
+bounded by paragraphs (the tests that set it on a word assert so, on CI's macOS 26 lane), and whether `==` on Core
+Text's value compares its factor exactly as made (they assert `.multiple(factor: 1.5)` and the rest of the table).
+
+**`Text`** reads each run's rows a line once, when it is made (`Text.Run.lineRows`, `nil` for one), so a text that
+states none pays one flag. `Text+ParagraphStyle.swift`'s `lineGaps` gives each wrapped line its paragraph's blank rows
+by the paragraphs' wrapped line counts, as alignment finds a line's paragraph, and `LineSpacingRows` interleaves them
+after each line but the last, on top of `.lineSpacing(_:)`'s, in the measure as in the drawing: the rows a height
+budget holds, a line limit (which counts lines, as SwiftUI's does) and a link's rows (`TextLinkSpans`) all go through
+it, so the measure reports what the render draws.
+
+**The editor** needs every line's value, since a paragraph's blank rows move every row after it. The handler keeps the
+blank rows after each line's rows (`keptLineGaps`, `TextEditorHandler+LineHeight.swift`): read whole when a value is
+taken, through `value.runs[LineHeightAttribute.self]` (one run per stretch of paragraphs that share a value, each
+mapped to its lines through the layout's character starts), and after the editor's own edit only for the lines it put
+in, the rest moved, as the line styles are. A text that states no line height keeps `nil`, and its rows are the
+wrapping as before. `WrappedRows` counts the blank rows as rows (`spaced(by:)`, the row starts made again in one pass,
+kept beside the wrapping while the gaps array is the same), so the scroll, its bar, the page keys and the screen
+count them; a blank row belongs to the text row above it (`location(ofRow:)`, so a click there lands on that row, as
+§7 ruled), the caret's row is always a text row, Down onto blank rows goes on to the next text row and Up onto them to
+the row they belong to, a block takes no row from them, and no blank row follows the document's last. The top of the
+view may be a blank row (`scrollBlankRows`), so the wheel moves one row at a time and the caret at the bottom stays on
+screen. Where the editor scrolls sideways, each line is followed by its blank rows the same way (one row a line, so the
+gap is per line). Measured on this machine: nothing; the read of a whole value's line heights walks Foundation's
+runs of that one key, which for `bigtext`'s 640,003 runs is not measured, and is paid once for each value taken whole,
+not for the editor's own edits. A test seam, `lineRowRuns`, lets the drawing tests run on a Mac before macOS 26 through
+an attribute of their own (`RichTextEditorLineHeightTests`, which runs every case through `lineHeight` too where it
+exists); `TextParagraphLineHeightTests` runs the rule everywhere, `Text`'s rows through its runs, and Core Text's
+reading under `#available(macOS 26, *)`.
+
+**Why line height was not built at first (attralign, 2026-11-19).** The ruling's basis would be Core Text's
 `AttributedString.LineHeight` on the macOS 26 SDK and a TUI-named fallback elsewhere, as for alignment. The crude
 drawing needs the factor of `.multiple(factor:)`, and Core Text gives no way to read it that can be measured here.
 Its interface (26.2 SDK) declares the makers (`multiple(factor:)`, `leading(increase:)`, `exact(points:)`, `normal`,
@@ -465,7 +522,8 @@ did not finish inside five minutes and was stopped). `Text` would interleave a p
 
 ## 6. Questions for the owner
 
-**A-ATTRED-13 (open, 2026-11-19): line height, now that Core Text's factor is unreadable here.** Options, each on
+**A-ATTRED-13 (ruled (b) 2026-11-19, built: §5, "As built: a paragraph's line height"): line height, now that Core
+Text's factor is unreadable here.** Options, each on
 top of the editor work §5 sketches (a rows-per-row factor per line in `WrappedRows`, blank rows belonging to the row
 above, the vertical keys stepping over them, `Text` interleaving them as `lineSpacing`'s rows), which is about 1 to
 1½ lane-days whichever is picked:
@@ -582,8 +640,9 @@ platforms (macOS 26 only, as SwiftUI's), the owner ruled: "(a) but provide our o
 doesn't (e.g. macOS 15) if possible." *What follows:* Core Text's types on the macOS 26 SDK, TUI's identical ones
 where no SDK declares them (the macOS 15 SDKs, Linux, Windows, WebAssembly), and, for a program built with the 26
 SDK and run on macOS 15, where TUI cannot declare the names without bringing the ambiguity back, TUI's own
-`paragraphAlignment` under a name SwiftUI does not use (§5, as built). Line height on the same basis waits on
-A-ATTRED-13 (§6).
+`paragraphAlignment` under a name SwiftUI does not use (§5, as built). Line height on the same basis waited on
+A-ATTRED-13 (§6), ruled (b) the same day and built (§5): Core Text's `lineHeight` on macOS 26, TUI's identical type
+where there is no Core Text, and no attribute of TUI's own.
 
 ## 8. The caret's side: affinity and typing attributes
 

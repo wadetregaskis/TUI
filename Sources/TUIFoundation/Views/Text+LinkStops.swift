@@ -36,6 +36,10 @@ final class TextLinkSpans {
     /// Each link run's spans, by the run's index, top row first.
     private(set) var byRun: [Int: [Span]] = [:]
 
+    /// The blank rows a paragraph's `lineHeight` put after each line, as the
+    /// text drew them, or `nil` for none (``space(by:)``).
+    private var gaps: [Int]?
+
     /// Notes where each link run's fragments are in `lines`, the text's laid
     /// out lines, attributed to `runs` as the drawing attributes them
     /// (`TextRunAttribution`, from `runTexts`, the runs' words as drawn): by
@@ -45,8 +49,9 @@ final class TextLinkSpans {
     /// The attribution is made again here rather than handed over from the
     /// drawing, which keeps the drawing's signature as it was; only a text
     /// whose links are stops pays it, once a frame.
-    func note(_ lines: [String], runTexts: [String], runs: [Text.Run]) {
+    func note(_ lines: [String], runTexts: [String], runs: [Text.Run], gaps: [Int]?) {
         byRun.removeAll(keepingCapacity: true)
+        self.gaps = gaps
         var cursor = (run: 0, offset: 0)
         let attributed = lines.map { TextRunAttribution.fragments(of: $0, runTexts: runTexts, cursor: &cursor) }
         for (row, line) in attributed.enumerated() {
@@ -61,13 +66,14 @@ final class TextLinkSpans {
     }
 
     /// Moves each span from its line to its row, `spacing` blank rows
-    /// standing between lines (`LineSpacingRows`).
+    /// standing between lines and a paragraph's line height's after them
+    /// (`LineSpacingRows`).
     func space(by spacing: Int) {
-        guard spacing > 0 else { return }
+        guard spacing > 0 || gaps != nil else { return }
         for run in byRun.keys {
             byRun[run] = byRun[run]?.map { span in
                 var spaced = span
-                spaced.row *= spacing + 1
+                spaced.row = LineSpacingRows.row(ofLine: span.row, spacing: spacing, gaps: gaps)
                 return spaced
             }
         }
@@ -455,7 +461,7 @@ private struct _TextLinksCore: View, Renderable {
         style.foregroundColor = colour
         runs[index] = Run(
             text: run.text, style: style, live: run.live, link: run.link, attributes: run.attributes,
-            alignment: run.alignment)
+            alignment: run.alignment, lineRows: run.lineRows)
         var recoloured = self
         recoloured.runs = runs
         return recoloured

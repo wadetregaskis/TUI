@@ -32,7 +32,8 @@ import Foundation
 //   scope's keys through its stored properties, so with Core Text, coding with
 //   `\.swiftUI`'s scope drops the alignment (not measured: it needs macOS 26):
 //   Deliberate deviations from SwiftUI T14, approved by the owner's ruling
-//   A-ATTRED-14 (2026-11-19).
+//   A-ATTRED-14 (2026-11-19). A paragraph's `lineHeight` is declared the same
+//   way, and T14 covers it too (`AttributeScopes+LineHeight.swift`).
 #if canImport(CoreText)
     import CoreText
 

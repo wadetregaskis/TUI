@@ -15,7 +15,14 @@ extension TextEditorHandler {
     /// where it scrolls sideways (``View/textEditorWrapsLines(_:)``).
     func wrappedRows() -> WrappedRows? {
         guard let wrapWidth else { return nil }
-        return displayLayout().wrapped(width: wrapWidth, tabWidth: tabWidth)
+        return wrappedRows(width: wrapWidth, tabWidth: tabWidth)
+    }
+
+    /// The document's rows at `width`, a paragraph's line height's blank rows
+    /// among them (``lineGaps(for:)``).
+    func wrappedRows(width: Int, tabWidth: TabWidth) -> WrappedRows {
+        let layout = displayLayout()
+        return layout.wrapped(width: width, tabWidth: tabWidth, gaps: lineGaps(for: layout))
     }
 
     /// The row the caret is drawn on, among all of them, by its affinity.
@@ -47,9 +54,12 @@ extension TextEditorHandler {
         if rowStartHead != cursor || selectionRange == nil { rowStartHead = nil }
     }
 
-    /// The top row on screen, among all of them.
+    /// The top row on screen, among all of them: a blank one too.
     func topRow(in rows: WrappedRows) -> Int {
-        rows.row(line: scrollLine, rowInLine: scrollRowInLine)
+        let line = min(max(0, scrollLine), rows.lines.count - 1)
+        return min(
+            rows.row(line: scrollLine, rowInLine: scrollRowInLine) + min(scrollBlankRows, rows.gap(ofLine: line)),
+            max(0, rows.rowCount - 1))
     }
 
     /// Moves the caret `delta` rows, keeping the column it was asked to keep
@@ -66,7 +76,10 @@ extension TextEditorHandler {
     ///   goes to the text's start or end — the arrows' and Ctrl-P's and N's,
     ///   not a page's, which stops at the first or last row.
     func moveByRows(_ delta: Int, in rows: WrappedRows, pastTheEnds: Bool) {
-        let target = caretRow(in: rows) + delta
+        var target = caretRow(in: rows) + delta
+        // Down onto a paragraph's blank rows goes on to the next text row; up
+        // onto them, to the row they belong to (``moveToRow(_:in:)``).
+        if delta > 0, target < rows.rowCount { target = rows.textRow(atOrAfter: target) }
         guard target >= 0, target < rows.rowCount else {
             guard pastTheEnds else {
                 moveToRow(min(max(0, target), rows.rowCount - 1), in: rows)
@@ -109,7 +122,7 @@ extension TextEditorHandler {
             top = caret - height + 1
         }
         top = max(0, min(top, max(0, rows.rowCount - height)))
-        (scrollLine, scrollRowInLine) = rows.location(ofRow: top)
+        scroll(toRow: top, in: rows)
         scrollColumn = 0
     }
 
@@ -169,8 +182,12 @@ extension TextEditorHandler {
                 let caret = caretRow(in: $0)
                 return CellPoint(x: column + alignmentCells(ofRow: caret, in: $0), y: caret - topRow(in: $0))
             }
-            ?? CellPoint(
-                x: column - scrollColumn + sidewaysAlignmentCells(ofLine: cursorLine), y: cursorLine - scrollLine)
+            ?? {
+                let spaced = sidewaysRows()
+                return CellPoint(
+                    x: column - scrollColumn + sidewaysAlignmentCells(ofLine: cursorLine),
+                    y: spaced.row(ofLine: cursorLine) - sidewaysTopRow(in: spaced))
+            }()
         guard (0..<width).contains(point.x), (0..<height).contains(point.y) else { return nil }
         return point
     }

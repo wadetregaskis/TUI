@@ -24,12 +24,7 @@ extension _TextEditorCore {
     /// height, or below a container that does not pull.
     private func pulledRowCount(width: Int, context: RenderContext) -> Int? {
         guard isPulled(context: context) else { return nil }
-        let layout = layout(context: context)
-        return max(
-            1,
-            context.environment.textEditorWrapsLines && width > 0
-                ? layout.wrapped(width: width, tabWidth: context.environment.tabWidth).rowCount
-                : layout.lines.count)
+        return contentRowCount(width: width, context: context)
     }
 
     /// Whether the editor is pulled, filing it as a view that bands its own
@@ -126,19 +121,19 @@ extension _TextEditorCore {
                     handler.cursorColumn >= 0 && handler.cursorColumn < line.count
                     ? (line[handler.cursorColumn] == "\t" ? 1 : max(1, line[handler.cursorColumn].terminalWidth)) : 1
                 followCursor(
-                    handler, cursorDisplayColumn: caretColumn, caretCells: caretCells, lineCount: lines.count,
-                    width: width, height: height)
-                handler.scrollLine = min(top, max(0, lines.count - 1))
+                    handler, cursorDisplayColumn: caretColumn, caretCells: caretCells, width: width, height: height)
+                let spaced = handler.sidewaysRows()
+                handler.scrollSideways(toRow: min(top, max(0, spaced.rowCount - 1)), in: spaced)
             }
             return Window(
-                contentWidth: width, hasVerticalOverflow: false, extent: lines.count, offset: top,
+                contentWidth: width, hasVerticalOverflow: false, extent: handler.sidewaysRows().rowCount, offset: top,
                 caretColumn: caretColumn, rows: nil)
         }
-        let rows = handler.displayLayout().wrapped(width: width, tabWidth: tabWidth)
+        let rows = handler.wrappedRows(width: width, tabWidth: tabWidth)
         if follows {
             handler.wrapWidth = width
             handler.sidewaysWidth = nil
-            (handler.scrollLine, handler.scrollRowInLine) = rows.location(ofRow: min(top, max(0, rows.rowCount - 1)))
+            handler.scroll(toRow: min(top, max(0, rows.rowCount - 1)), in: rows)
             handler.scrollColumn = 0
         }
         return Window(
@@ -148,8 +143,31 @@ extension _TextEditorCore {
 
     /// The row the caret is on, among the editor's rows at `width`.
     private func caretRow(_ handler: TextEditorHandler, width: Int, context: RenderContext) -> Int {
-        guard context.environment.textEditorWrapsLines else { return handler.cursorLine }
-        return handler.caretRow(in: handler.displayLayout().wrapped(width: width, tabWidth: context.environment.tabWidth))
+        guard context.environment.textEditorWrapsLines else {
+            return handler.sidewaysRows().row(ofLine: handler.cursorLine)
+        }
+        return handler.caretRow(in: handler.wrappedRows(width: width, tabWidth: context.environment.tabWidth))
+    }
+
+    /// The editor's rows at `width`, for a measure: its lines, or where it
+    /// wraps its rows, a paragraph's line height's blank rows among them —
+    /// read from the value itself before a render has made the handler that
+    /// keeps them.
+    func contentRowCount(width: Int, context: RenderContext) -> Int {
+        let layout = layout(context: context)
+        var gaps: [Int]?
+        if let handler = existingHandler(context: context) {
+            gaps = handler.lineGaps(for: layout)
+        } else if let value = attributed?.text.wrappedValue, Self.hidingGlyph(in: context) == nil {
+            let read = TextEditorHandler.lineGaps(
+                in: value, lines: layout.lines.indices, characterStarts: layout.characterStarts,
+                reading: TextEditorHandler.statedLineRows)
+            gaps = read.contains { $0 > 0 } ? read : nil
+        }
+        guard context.environment.textEditorWrapsLines, width > 0 else {
+            return SidewaysRows(lineCount: layout.lines.count, gaps: gaps).rowCount
+        }
+        return max(1, layout.wrapped(width: width, tabWidth: context.environment.tabWidth, gaps: gaps).rowCount)
     }
 
     /// The editor's handler, when it has one.

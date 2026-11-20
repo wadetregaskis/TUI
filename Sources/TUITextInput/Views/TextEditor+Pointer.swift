@@ -60,7 +60,9 @@ struct EditorPointer {
         // wrapping editor's click below its last row lands on that row: read
         // as an empty line, the column came out 0 wherever the click was.
         let allLines = handler.displayLines()
-        let line = min(handler.scrollLine + row, allLines.count - 1)
+        let spaced = handler.sidewaysRows()
+        // A paragraph's blank rows belong to the line above them.
+        let line = min(spaced.placement(ofRow: handler.sidewaysTopRow(in: spaced) + row).line, allLines.count - 1)
         let lineChars = allLines.indices.contains(line) ? allLines[line] : []
         // After the line's alignment, where its paragraph states one.
         let displayColumn =

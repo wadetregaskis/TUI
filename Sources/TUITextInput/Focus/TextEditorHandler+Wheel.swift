@@ -24,11 +24,13 @@ extension TextEditorHandler {
             let top = topRow(in: rows)
             let moved = max(0, min(top + delta, rows.rowCount - height))
             guard moved != top else { return false }
-            (scrollLine, scrollRowInLine) = rows.location(ofRow: moved)
+            scroll(toRow: moved, in: rows)
         } else {
-            let moved = max(0, min(scrollLine + delta, readLines().count - height))
-            guard moved != scrollLine else { return false }
-            scrollLine = moved
+            let rows = sidewaysRows()
+            let top = sidewaysTopRow(in: rows)
+            let moved = max(0, min(top + delta, rows.rowCount - height))
+            guard moved != top else { return false }
+            scrollSideways(toRow: moved, in: rows)
         }
         isWheelScrolled = true
         return true
@@ -38,10 +40,11 @@ extension TextEditorHandler {
     /// under it — without moving it to the caret.
     func clampWheelScroll(rowCount: Int, height: Int, in rows: WrappedRows?) {
         guard let rows else {
-            scrollLine = max(0, min(scrollLine, rowCount - height))
+            let spaced = sidewaysRows()
+            scrollSideways(toRow: max(0, min(sidewaysTopRow(in: spaced), rowCount - height)), in: spaced)
             return
         }
         let top = max(0, min(topRow(in: rows), rowCount - height))
-        (scrollLine, scrollRowInLine) = rows.location(ofRow: top)
+        scroll(toRow: top, in: rows)
     }
 }

@@ -644,8 +644,8 @@ private struct RichTextBoldToggle: View {
     }
 }
 
-/// A paragraph's alignment, as SwiftUI (macOS 26) spells it: set, merged, read
-/// and its types NAMED, in this file, which imports AppKit. On the macOS 26 SDK
+/// A paragraph's alignment and line height, as SwiftUI (macOS 26) spells them:
+/// set, merged, read and their types NAMED, in this file, which imports AppKit. On the macOS 26 SDK
 /// the types are Core Text's own, and TUI declares none of its own beside them
 /// (the owner's ruling attralign, 2026-11-19), so naming them is not
 /// ambiguous; while TUI declared its own (a6fa64c8f) the `let` below failed
@@ -670,6 +670,15 @@ private struct ParagraphAttributeShapes: View {
                     _ = read
                     _ = AttributedString.TextAlignment.allCases
                     _ = AttributeScopes.CoreTextAttributes.TextAlignmentAttribute.self
+                    // And its line height (A-ATTRED-13), named too: Core
+                    // Text's own type, macOS 26, as SwiftUI's.
+                    text[text.range(of: "Chapter One")!].lineHeight = .multiple(factor: 2)
+                    let height: AttributedString.LineHeight = .exact(points: 24)
+                    container.lineHeight = height
+                    let readHeight: AttributedString.LineHeight? = text.runs.first?.lineHeight
+                    _ = readHeight == .normal || readHeight == .loose || readHeight == .tight
+                    _ = [AttributedString.LineHeight.variable, .leading(increase: 2)]
+                    _ = AttributeScopes.CoreTextAttributes.LineHeightAttribute.self
                 }
             }
         }

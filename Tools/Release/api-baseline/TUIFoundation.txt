@@ -146,6 +146,7 @@ AppStorage.projectedValue | var projectedValue: Binding<Value> { get }
 AppStorage.resolveEnvironment(_:) | func resolveEnvironment(_ environment: EnvironmentValues)
 AppStorage.wrappedValue | var wrappedValue: Value { get nonmutating set }
 Appearance.localizedName | var localizedName: String { get }
+AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.CoreTextAttributes.LineHeightAttribute>) -> AttributeScopes.CoreTextAttributes.LineHeightAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.CoreTextAttributes.TextAlignmentAttribute>) -> AttributeScopes.CoreTextAttributes.TextAlignmentAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute>) -> AttributeScopes.SwiftUIAttributes.BackgroundColorAttribute { get }
 AttributeDynamicLookup.subscript(dynamicMember:) | subscript(dynamicMember keyPath: KeyPath<AttributeScopes.SwiftUIAttributes, AttributeScopes.SwiftUIAttributes.FontAttribute>) -> AttributeScopes.SwiftUIAttributes.FontAttribute { get }
@@ -180,6 +181,7 @@ AttributeScopes.SwiftUIAttributes.backgroundColor | let backgroundColor: Attribu
 AttributeScopes.SwiftUIAttributes.font | let font: AttributeScopes.SwiftUIAttributes.FontAttribute
 AttributeScopes.SwiftUIAttributes.foregroundColor | let foregroundColor: AttributeScopes.SwiftUIAttributes.ForegroundColorAttribute
 AttributeScopes.SwiftUIAttributes.foundation | let foundation: AttributeScopes.FoundationAttributes
+AttributeScopes.SwiftUIAttributes.lineHeight | var lineHeight: AttributeScopes.CoreTextAttributes.LineHeightAttribute { get }
 AttributeScopes.SwiftUIAttributes.paragraphAlignment | let paragraphAlignment: AttributeScopes.SwiftUIAttributes.ParagraphAlignmentAttribute
 AttributeScopes.SwiftUIAttributes.strikethroughStyle | let strikethroughStyle: AttributeScopes.SwiftUIAttributes.StrikethroughStyleAttribute
 AttributeScopes.SwiftUIAttributes.underlineStyle | let underlineStyle: AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute

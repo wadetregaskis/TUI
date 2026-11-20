@@ -43,6 +43,12 @@ import TUIStyling
         /// attributed string's `alignment` or `paragraphAlignment`, or `nil` for the text's own
         /// (``View/multilineTextAlignment(_:)``). See `Text+ParagraphStyle.swift`.
         var alignment: TextAlignment?
+
+        /// The rows each line of the paragraph the fragment is in takes, from
+        /// an attributed string's `lineHeight` (``ParagraphLineRows``), the
+        /// rows past the first blank; `nil` for one. See
+        /// `Text+ParagraphStyle.swift`.
+        var lineRows: Int?
     }
 }
 
@@ -66,7 +72,7 @@ extension Text.Run {
     func rebased(on base: TextStyle) -> Self {
         Self(
             text: text, style: style.merged(over: base), live: live, link: link, attributes: attributes,
-            alignment: alignment)
+            alignment: alignment, lineRows: lineRows)
     }
 }
 

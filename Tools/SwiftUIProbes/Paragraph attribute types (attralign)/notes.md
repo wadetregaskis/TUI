@@ -14,7 +14,8 @@ design](<../../../Documentation/Historical/Text, editing and the clipboard/An at
 - `ClientGuarded.swift`: SwiftUI's spelling inside `if #available(macOS 26, *)`, the types named.
   `ClientUnguarded.swift`: the same with no guard. `ClientFallback.swift`: TUI's `paragraphAlignment`.
 - `LineHeightReading.swift`: the three ways TUI could read Core Text's `LineHeight` back. It type-checks; none can run
-  here.
+  here. The owner ruled A-ATTRED-13 (b) on 2026-11-19: the first, `==` against made values, is what TUI does
+  (`Sources/TUIFoundation/Views/AttributeScopes+LineHeight.swift`, every multiple of 0.05 from 1.5 to 8.45).
 - `probe.sh`: the matrix; `probe.out` is what it printed.
 
 Run with `sh probe.sh` (Xcode's swiftc; the 15 SDK is the Command Line Tools' 15.5, tuitree's).

@@ -1428,6 +1428,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   run's work as in SwiftUI, but a coder or Markdown parse given `\.swiftUI`'s
   scope does not see the key, and leaves the alignment out. Elsewhere (Linux,
   Windows, WebAssembly) it is stored, as SwiftUI's is.
+- **`lineHeight` too** (A-ATTRED-13, built 2026-11-19): the scope's `lineHeight`
+  is computed on Apple platforms for the same reason
+  (`AttributeScopes+LineHeight.swift`). Core Text's key is not Codable, so no
+  coder carries it in SwiftUI either; what differs is only what else finds a
+  scope's keys through its stored properties. The owner's approval of T14 on
+  2026-11-19 covers it: the same language rule, the same shape.
 - **Why:** Swift refuses `@available` on a stored property of a type built
   without library evolution ("stored properties cannot be marked potentially
   unavailable", measured with `Tools/SwiftUIProbes/Paragraph attribute types

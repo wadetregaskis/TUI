@@ -1006,13 +1006,17 @@ package struct TextStyle: Sendable, Equatable {
         // number of cells for it.
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
+        let shown = shownWords(in: context.environment)
         let contentString = Self.displayString(
-            shownWords(in: context.environment).content, textCase: textCase,
+            shown.content, textCase: textCase,
             redaction: context.environment.effectiveRedactionReasons,
             context: context)
         let wrapped = TextWrapping.wrapMeasured(
             contentString,
             width: maxWidth)
+        // The blank rows a paragraph's `lineHeight` puts after its lines, as
+        // the render draws them (`Text+ParagraphStyle.swift`).
+        let gaps = Self.lineGaps(of: shown.runs, in: contentString, width: maxWidth)
 
         // Reuse the per-line widths the wrap already computed instead of
         // re-`strippedLength`-ing every line. When there is a line limit and
@@ -1031,7 +1035,7 @@ package struct TextStyle: Sendable, Equatable {
         var offerBinds = false
         if let offered = proposal.height {
             let fitting = max(
-                policy.reservedLines ?? 1, LineSpacingRows.lines(fittingRows: offered, spacing: spacing))
+                policy.reservedLines ?? 1, LineSpacingRows.lines(fittingRows: offered, spacing: spacing, gaps: gaps))
             if fitting < min(wrapped.lines.count, rowLimit ?? wrapped.lines.count) {
                 rowLimit = fitting
                 offerBinds = true
@@ -1066,7 +1070,7 @@ package struct TextStyle: Sendable, Equatable {
         // …and then the blank rows `.lineSpacing(_:)` interleaves. The limit
         // counts LINES, as in SwiftUI, so it is applied first and the spacing
         // expands what survives it.
-        let height = LineSpacingRows.displayRows(forLines: drawnLines, spacing: spacing)
+        let height = LineSpacingRows.displayRows(forLines: drawnLines, spacing: spacing, gaps: gaps)
 
         // Text is never flexible - it has a fixed size…
         // …and, unless the offered height took lines from it, a NATURAL size:
@@ -1090,12 +1094,11 @@ package struct TextStyle: Sendable, Equatable {
         }
         let font = resolvedFont(stating: style.font, context: context)
         let textCase = cascadedAttributes(context: context, font: font).effectiveTextCase
-        let wrapped = TextWrapping.wrapMeasured(
-            Self.displayString(
-                shownWords(in: context.environment).content, textCase: textCase,
-                redaction: context.environment.effectiveRedactionReasons,
-                context: context),
-            width: width)
+        let shown = shownWords(in: context.environment)
+        let displayed = Self.displayString(
+            shown.content, textCase: textCase, redaction: context.environment.effectiveRedactionReasons,
+            context: context)
+        let wrapped = TextWrapping.wrapMeasured(displayed, width: width)
         // A word broken between its characters shows every one of them, but
         // not whole: a spelling that needs that is one that did not fit.
         guard (wrapped.widths.max() ?? 0) <= width, !wrapped.brokeAWord else { return false }
@@ -1103,8 +1106,9 @@ package struct TextStyle: Sendable, Equatable {
             return false
         }
         guard let height else { return true }
-        return LineSpacingRows.displayRows(forLines: wrapped.lines.count, spacing: resolvedLineSpacing(context: context))
-            <= height
+        return LineSpacingRows.displayRows(
+            forLines: wrapped.lines.count, spacing: resolvedLineSpacing(context: context),
+            gaps: Self.lineGaps(of: shown.runs, in: displayed, width: width)) <= height
     }
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
@@ -1187,12 +1191,6 @@ package struct TextStyle: Sendable, Equatable {
         // `TextWrapping` so text lays out the same way wherever it's shown.
         let lineLimit = resolvedLineLimit(context: context)
         let spacing = resolvedLineSpacing(context: context)
-        // The height budget is in ROWS, but the wrap counts LINES — and with
-        // spacing those differ. Convert first, or a spaced text lays out as many
-        // lines as there are rows and then overflows by the gaps between them.
-        let linesThatFit = LineSpacingRows.lines(
-            fittingRows: context.availableHeight, spacing: spacing)
-        let maxHeight = min(linesThatFit, lineLimit ?? linesThatFit)
         // Read once for the content and every run of a concatenation, which
         // each used to read it again — see `displayString`.
         let redaction = context.environment.effectiveRedactionReasons
@@ -1200,6 +1198,15 @@ package struct TextStyle: Sendable, Equatable {
         // `.linkDisplay` asks for it, as the measure counted it.
         let shown = shownWords(in: context.environment)
         let displayed = Self.displayString(shown.content, textCase: effectiveCase, redaction: redaction, context: context)
+        // The blank rows a paragraph's `lineHeight` puts after its lines
+        // (`Text+ParagraphStyle.swift`), `nil` for a text that states none.
+        let gaps = Self.lineGaps(of: shown.runs, in: displayed, width: maxWidth)
+        // The height budget is in ROWS, but the wrap counts LINES — and with
+        // spacing those differ. Convert first, or a spaced text lays out as many
+        // lines as there are rows and then overflows by the gaps between them.
+        let linesThatFit = LineSpacingRows.lines(
+            fittingRows: context.availableHeight, spacing: spacing, gaps: gaps)
+        let maxHeight = min(linesThatFit, lineLimit ?? linesThatFit)
         let wrapped = TextWrapping.fitMeasured(
             displayed, width: maxWidth, maxLines: maxHeight, mode: mode, atWordBoundary: atWordBoundary)
 
@@ -1225,7 +1232,7 @@ package struct TextStyle: Sendable, Equatable {
             let runTexts = runs.map {
                 Self.displayString($0.text, textCase: effectiveCase, redaction: redaction, context: context)
             }
-            linkSpans?.note(plainLines, runTexts: runTexts, runs: runs)
+            linkSpans?.note(plainLines, runTexts: runTexts, runs: runs, gaps: gaps)
             let concatenated = concatenatedLines(
                 plainLines, runs: runs, runTexts: runTexts, blockWidth: lineWidths.max() ?? 0,
                 effectiveStyle: effectiveStyle, font: font, ink: (ramp, cascaded.foreground), context: context)
@@ -1279,18 +1286,18 @@ package struct TextStyle: Sendable, Equatable {
         // Interleave the spacing LAST, after styling: a blank row carries no
         // text, so it needs no ANSI run, and inserting it earlier would have the
         // run-attribution walk step over rows that are not part of the content.
-        guard spacing > 0, paddedLines.count > 1 else {
+        guard spacing > 0 || gaps != nil, paddedLines.count > 1 else {
             var buffer = FrameBuffer(
                 lines: paddedLines, width: knownWidth, lineWidths: paddedWidths)
-            buffer.opacityRegions += Self.rowed(perLineClaims, spacing: 0)
+            buffer.opacityRegions += Self.rowed(perLineClaims, spacing: 0, gaps: nil)
             return buffer
         }
-        let spacedWidths = LineSpacingRows.interleaved(paddedWidths, spacing: spacing, blank: 0)
+        let spacedWidths = LineSpacingRows.interleaved(paddedWidths, spacing: spacing, gaps: gaps, blank: 0)
         var buffer = FrameBuffer(
-            lines: LineSpacingRows.interleaved(paddedLines, spacing: spacing, blank: ""),
+            lines: LineSpacingRows.interleaved(paddedLines, spacing: spacing, gaps: gaps, blank: ""),
             width: knownWidth,
             lineWidths: spacedWidths)
-        buffer.opacityRegions += Self.rowed(perLineClaims, spacing: spacing)
+        buffer.opacityRegions += Self.rowed(perLineClaims, spacing: spacing, gaps: gaps)
         return buffer
     }
 
@@ -1300,7 +1307,7 @@ package struct TextStyle: Sendable, Equatable {
     /// lines and the widths go through, rather than by arithmetic on `spacing`:
     /// three parallel arrays that must agree about which row is which, and the one
     /// derived a different way is the one that drifts.
-    private static func rowed(_ perLine: [[OpacityRegion]], spacing: Int) -> [OpacityRegion] {
+    private static func rowed(_ perLine: [[OpacityRegion]], spacing: Int, gaps: [Int]?) -> [OpacityRegion] {
         // EMPTY means "no claims anywhere", not "one empty list per line". The
         // distinction is the whole cost of this feature on a page with no
         // translucency: spelling the nothing case as `Array(repeating: [], count:)`
@@ -1309,7 +1316,7 @@ package struct TextStyle: Sendable, Equatable {
         // +4.3%, `textwall` +2.1% and four more scenarios slower with intervals
         // clear of zero. Every producer below returns `[]` for it.
         guard !perLine.isEmpty else { return [] }
-        let spaced = LineSpacingRows.interleaved(perLine, spacing: spacing, blank: [])
+        let spaced = LineSpacingRows.interleaved(perLine, spacing: spacing, gaps: gaps, blank: [])
         return spaced.enumerated().flatMap { row, claims in
             claims.map { claim in
                 var region = claim

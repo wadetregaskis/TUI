@@ -1,8 +1,9 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  Text+ParagraphStyle.swift
 //
-//  An attributed text's paragraphs, each aligned its own way: which paragraph
-//  each drawn line is of, and the alignment it takes (G3 L4, A-ATTRED-3).
+//  An attributed text's paragraphs, each aligned its own way and each with its
+//  own line height: which paragraph each drawn line is of, and the alignment
+//  and the blank rows after it it takes (G3 L4, A-ATTRED-3 and A-ATTRED-13).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -73,12 +74,18 @@ import Foundation
     /// The attribute is bounded by paragraphs, so every run of a paragraph
     /// states the same one; a trailing empty paragraph states none.
     nonisolated static func paragraphAlignments(of runs: [Run]) -> [TextAlignment?] {
-        var paragraphs: [TextAlignment?] = []
+        paragraphValues(of: runs, \.alignment)
+    }
+
+    /// Each paragraph's `value`: that of the run its first character is in,
+    /// `nil` for a trailing empty paragraph, which has no character.
+    nonisolated static func paragraphValues<Value>(of runs: [Run], _ value: KeyPath<Run, Value?>) -> [Value?] {
+        var paragraphs: [Value?] = []
         var atParagraphStart = true
         for run in runs {
             for character in run.text {
                 if atParagraphStart {
-                    paragraphs.append(run.alignment)
+                    paragraphs.append(run[keyPath: value])
                     atParagraphStart = false
                 }
                 // The breaks `TextWrapping` splits paragraphs at.
@@ -87,5 +94,24 @@ import Foundation
         }
         if atParagraphStart { paragraphs.append(nil) }
         return paragraphs
+    }
+
+    /// The blank rows after each line `text` wraps to at `width`, where `runs`
+    /// state a paragraph's line height: its rows a line less one
+    /// (``ParagraphLineRows``), for every line of the paragraph, the last
+    /// included. `nil` where no run states one, which is every text but an
+    /// attributed one with a `lineHeight` of more than one row: those pay one
+    /// scan of their runs' flags. The rows `.lineSpacing(_:)` puts between
+    /// lines come on top (``LineSpacingRows``), and nothing follows the last
+    /// line drawn.
+    ///
+    /// - Parameter text: The words as wrapped, cased as drawn.
+    static func lineGaps(of runs: [Run]?, in text: String, width: Int) -> [Int]? {
+        guard let runs, runs.contains(where: { $0.lineRows != nil }) else { return nil }
+        var gaps: [Int] = []
+        for (rows, count) in zip(paragraphValues(of: runs, \.lineRows), TextWrapping.paragraphLineCounts(text, width: width)) {
+            gaps.append(contentsOf: repeatElement(max(0, (rows ?? 1) - 1), count: count))
+        }
+        return gaps
     }
 }

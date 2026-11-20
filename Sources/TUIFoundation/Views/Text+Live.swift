@@ -192,7 +192,7 @@ final class LiveTextBox: Sendable, Hashable {
             let read = zip(runs, ladders).map { run, ladder in
                 Run(
                     text: ladder[min(rung, ladder.count - 1)], style: run.style, link: run.link,
-                    attributes: run.attributes, alignment: run.alignment)
+                    attributes: run.attributes, alignment: run.alignment, lineRows: run.lineRows)
             }
             var text = Text(verbatim: read.map(\.text).joined())
             text.style = style

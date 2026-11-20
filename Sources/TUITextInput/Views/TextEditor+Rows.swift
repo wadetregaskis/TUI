@@ -18,7 +18,8 @@ extension _TextEditorCore {
     ///
     /// A run of spaces may hang past the last cell; what starts past it is not
     /// drawn, and a caret in such a run sits on the last cell
-    /// (``SoftWrapLayout/column(of:inRow:)``).
+    /// (``SoftWrapLayout/column(of:inRow:)``). A paragraph's line height's
+    /// blank rows (``WrappedRows``) are drawn empty, in the well's field.
     func renderWrappedRows(
         _ rows: WrappedRows, lines: [[Character]], handler: TextEditorHandler, height: Int,
         tabWidth: TabWidth, caret: RowCaret?, styling: RowStyling
@@ -30,10 +31,14 @@ extension _TextEditorCore {
         let top = handler.topRow(in: rows)
         let caretRow = handler.caretRow(in: rows)
         let showsSelection = Self.showsSelection(caret: caret, handler: handler)
-        var (line, rowInLine) = rows.location(ofRow: top)
+        var place = rows.placement(ofRow: top)
         for screenRow in 0..<height {
             let rendered: RenderedRow
-            if top + screenRow < rows.rowCount {
+            let (line, rowInLine) = (place.line, place.rowInLine)
+            if top + screenRow < rows.rowCount, place.blank > 0 {
+                rendered = emptyRow(width: rows.width, background: styling.background)
+                place = rows.placement(after: place)
+            } else if top + screenRow < rows.rowCount {
                 let layout = rows.lines[line]
                 let span = layout.rows[rowInLine]
                 // Only what starts inside the row: a hanging run may run on.
@@ -71,12 +76,9 @@ extension _TextEditorCore {
                     caret: top + screenRow == caretRow && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
                     selection: selection, matches: matches, styles: styles, styling: styling)
-                // On to the next row: the rest of this line's, then the next line's.
-                if rowInLine + 1 < layout.rows.count {
-                    rowInLine += 1
-                } else {
-                    (line, rowInLine) = (line + 1, 0)
-                }
+                // On to the next row: this one's blank rows, the rest of this
+                // line's, then the next line's.
+                place = rows.placement(after: place)
             } else {
                 rendered = emptyRow(width: rows.width, background: styling.background)
             }
@@ -112,10 +114,15 @@ extension _TextEditorCore {
         var caretRun: AnimatedCellRun?
         lines.reserveCapacity(height)
         let showsSelection = Self.showsSelection(caret: caret, handler: handler)
+        // Each line one row, a paragraph's line height's blank rows after it.
+        let spaced = handler.sidewaysRows()
+        let top = handler.sidewaysTopRow(in: spaced)
         for row in 0..<height {
-            let lineIndex = handler.scrollLine + row
+            let (lineIndex, blank) = spaced.placement(ofRow: top + row)
             let rendered: RenderedRow
-            if lineIndex < displayLines.count {
+            if top + row < spaced.rowCount, blank > 0 {
+                rendered = emptyRow(width: width, background: styling.background)
+            } else if top + row < spaced.rowCount, lineIndex < displayLines.count {
                 let lineChars = displayLines[lineIndex]
                 // The blank cells its paragraph's alignment puts in front.
                 let aligned = handler.alignmentCells(ofLine: lineIndex, characters: lineChars)
@@ -127,7 +134,7 @@ extension _TextEditorCore {
                 let selection: Range<Int>? =
                     !showsSelection
                     ? nil
-                    : handler.blockCells(onRow: lineIndex).map { ($0.lowerBound - aligned)..<($0.upperBound - aligned) }
+                    : handler.blockCells(onRow: top + row).map { ($0.lowerBound - aligned)..<($0.upperBound - aligned) }
                         ?? handler.selectedColumns(inLine: lineIndex, lineLength: lineChars.count).map {
                             TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
                                 ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)

@@ -41,8 +41,11 @@ import Foundation
     /// the text is disabled, or it is in a list's row, where it is none.
     /// A paragraph's `alignment` places each of its lines within the text's
     /// width (its widest line), as ``View/multilineTextAlignment(_:)`` places
-    /// a text's lines, and wins over that modifier for its own lines. Every
-    /// other attribute is ignored, as SwiftUI ignores them.
+    /// a text's lines, and wins over that modifier for its own lines. A
+    /// paragraph's `lineHeight` puts blank rows after each of its lines, its
+    /// factor rounded to whole rows (`multiple(factor: 2)` one; see
+    /// `ParagraphLineRows`), beside any ``View/lineSpacing(_:)``. Every other
+    /// attribute is ignored, as SwiftUI ignores them.
     ///
     /// The string's attributes take precedence over the text's modifiers, which
     /// is SwiftUI's rule: in
@@ -77,7 +80,9 @@ import Foundation
     nonisolated static func styledRuns(of string: AttributedString) -> [Run]? {
         let runs = runs(of: string)
         return runs.count > 1
-            || runs.first.map({ $0.style != TextStyle() || $0.link != nil || $0.alignment != nil }) == true
+            || runs.first.map({
+                $0.style != TextStyle() || $0.link != nil || $0.alignment != nil || $0.lineRows != nil
+            }) == true
             ? runs : nil
     }
 
@@ -101,6 +106,7 @@ import Foundation
             var gatheredStyle = TextStyle()
             var gatheredLink: URL?
             var gatheredAlignment: TextAlignment?
+            var gatheredLineRows: Int?
             var index = string.startIndex
             while index < string.endIndex {
                 let next = string.characters.index(after: index)
@@ -108,24 +114,30 @@ import Foundation
                 let style = Self.style(of: piece)
                 let link = piece.link
                 let alignment = piece.drawnParagraphAlignment
+                let lineRows = Self.lineRows(of: piece)
                 if gathered.isEmpty || style != gatheredStyle || link != gatheredLink
-                    || alignment != gatheredAlignment
+                    || alignment != gatheredAlignment || lineRows != gatheredLineRows
                 {
                     if !gathered.isEmpty {
                         result.append(
-                            Run(text: gathered, style: gatheredStyle, link: gatheredLink, alignment: gatheredAlignment))
+                            Run(
+                                text: gathered, style: gatheredStyle, link: gatheredLink, alignment: gatheredAlignment,
+                                lineRows: gatheredLineRows))
                     }
                     gathered = ""
                     gatheredStyle = style
                     gatheredLink = link
                     gatheredAlignment = alignment
+                    gatheredLineRows = lineRows
                 }
                 gathered.append(contentsOf: piece.characters)
                 index = next
             }
             if !gathered.isEmpty {
                 result.append(
-                    Run(text: gathered, style: gatheredStyle, link: gatheredLink, alignment: gatheredAlignment))
+                    Run(
+                        text: gathered, style: gatheredStyle, link: gatheredLink, alignment: gatheredAlignment,
+                        lineRows: gatheredLineRows))
             }
         #else
             for run in string.runs {
@@ -143,13 +155,22 @@ import Foundation
         let style = Self.style(of: piece)
         let link = piece.link
         let alignment = piece.drawnParagraphAlignment
+        let lineRows = Self.lineRows(of: piece)
         if let last = runs.last, last.style == style, last.link == link, last.live == nil,
-            last.alignment == alignment
+            last.alignment == alignment, last.lineRows == lineRows
         {
-            runs[runs.count - 1] = Run(text: last.text + text, style: style, link: link, alignment: alignment)
+            runs[runs.count - 1] = Run(
+                text: last.text + text, style: style, link: link, alignment: alignment, lineRows: lineRows)
         } else {
-            runs.append(Run(text: text, style: style, link: link, alignment: alignment))
+            runs.append(Run(text: text, style: style, link: link, alignment: alignment, lineRows: lineRows))
         }
+    }
+
+    /// The rows each line of `piece`'s paragraph takes, `nil` for one: one row
+    /// a line is no line height at all.
+    nonisolated private static func lineRows(of piece: AttributedSubstring) -> Int? {
+        let rows = piece.drawnLineRows
+        return rows > 1 ? rows : nil
     }
 
     /// What `run` draws in its cells as a `Text` of it draws them with nothing

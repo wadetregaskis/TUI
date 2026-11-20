@@ -31,9 +31,11 @@ extension AttributeScopes {
     /// places its lines across the width, as SwiftUI's does (the owner's ruling
     /// A-ATTRED-3, 2026-11-17); on Apple platforms it is Core Text's, macOS 26
     /// only, and TUI's own ``paragraphAlignment`` does the same on every macOS
-    /// (the owner's ruling attralign, 2026-11-19). Foundation's own attributes
-    /// come along through ``foundation``, and a `Text` draws the `link` among
-    /// them.
+    /// (the owner's ruling attralign, 2026-11-19). A paragraph's `lineHeight`
+    /// draws blank rows after its lines, its factor rounded to whole rows (the
+    /// owner's ruling A-ATTRED-13, 2026-11-19); it too is Core Text's on Apple
+    /// platforms, macOS 26 only. Foundation's own attributes come along through
+    /// ``foundation``, and a `Text` draws the `link` among them.
     ///
     /// SwiftUI's sub-cell typography is not here — `kern`, `tracking`,
     /// `baselineOffset` and the `adaptiveImageGlyph` — so setting one fails to
@@ -72,6 +74,14 @@ extension AttributeScopes {
             /// macOS 26; on Apple's platforms it is Core Text's, and macOS 26
             /// only (`AttributeScopes+CoreText.swift`).
             public let alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
+
+            /// A property for accessing a paragraph's line height
+            /// (``AttributedString/LineHeight``) — mirrors SwiftUI's.
+            ///
+            /// Here TUI declares Core Text's types itself, so it needs no
+            /// macOS 26; on Apple's platforms it is Core Text's, and macOS 26
+            /// only (`AttributeScopes+LineHeight.swift`).
+            public let lineHeight: AttributeScopes.CoreTextAttributes.LineHeightAttribute
         #endif
 
         /// A property for accessing a paragraph's alignment as TUI's

@@ -43,8 +43,10 @@ final class EditorLayout {
     let hasOneLineEnding: Bool
 
     /// The lines wrapped at the widths asked for this frame and the last
-    /// (``wrapped(width:tabWidth:)``), each with the frame that last asked.
-    var wrappings: [(rows: WrappedRows, tabWidth: TabWidth, frame: UInt)] = []
+    /// (``wrapped(width:tabWidth:)``), each with the frame that last asked,
+    /// and the same rows spaced by the line heights last asked for
+    /// (``wrapped(width:tabWidth:gaps:)``).
+    var wrappings: [(rows: WrappedRows, tabWidth: TabWidth, frame: UInt, spaced: (gaps: [Int], rows: WrappedRows)?)] = []
 
     /// The frame the wrappings are stamped with, moved on by ``endFrame()``.
     var frame: UInt = 0
@@ -323,6 +325,8 @@ extension EditorLayout {
             for index in taken.indices {
                 taken[index].rows.replaceLines(
                     edit.replaced, with: newLines[edit.replacement], tabWidth: taken[index].tabWidth)
+                // Spaced by the gaps of the lines before the edit.
+                taken[index].spaced = nil
             }
             layout.wrappings = taken
             layout.frame = frame

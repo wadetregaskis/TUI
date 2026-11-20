@@ -91,6 +91,7 @@ extension TextEditorHandler {
         let after = before.laidOut(edit, reusingStorage: unshared)
         cachedLayout = after
         if lineStyler != nil { lineStyleCache.replaceLines(edit.replaced, withCount: edit.replacement.count) }
+        replaceLineGaps(edit.replaced, with: edit.replacement, in: after)
         return EditedLines(after.lines)
     }
 
@@ -107,6 +108,7 @@ extension TextEditorHandler {
         if text.wrappedValue == joined {
             cachedLayout = EditorLayout(text: joined, lines: lines.map(EditorLayout.segmented), lineEnding: ending)
             if lineStyler != nil { lineStyleCache.removeAll() }
+            keptLineGaps = .unread
         }
     }
 }

@@ -42,8 +42,9 @@ extension TextEditorHandler {
         if let rows = wrappedRows() {
             return CellPoint(x: max(0, column), y: min(max(0, topRow(in: rows) + row), max(0, rows.rowCount - 1)))
         }
-        let lineCount = readLines().count
-        return CellPoint(x: max(0, scrollColumn + column), y: min(max(0, scrollLine + row), lineCount - 1))
+        let spaced = sidewaysRows()
+        return CellPoint(
+            x: max(0, scrollColumn + column), y: min(max(0, sidewaysTopRow(in: spaced) + row), spaced.rowCount - 1))
     }
 
     /// Starts a block at `point`, a grid cell, in place of any selection.
@@ -63,7 +64,7 @@ extension TextEditorHandler {
             swap(&current.anchor, &current.head)
             current.pointerOffset = CellPoint(x: current.head.x - point.x, y: current.head.y - point.y)
         }
-        let lastRow = wrappedRows().map { max(0, $0.rowCount - 1) } ?? (readLines().count - 1)
+        let lastRow = wrappedRows().map { max(0, $0.rowCount - 1) } ?? (sidewaysRows().rowCount - 1)
         current.head = CellPoint(
             x: max(0, point.x + current.pointerOffset.x),
             y: min(max(0, point.y + current.pointerOffset.y), lastRow))
@@ -90,8 +91,10 @@ extension TextEditorHandler {
         guard !columns.isEmpty else { return [] }
         if let rows = wrappedRows() {
             return block.rows.compactMap { row in
-                guard row < rows.rowCount else { return nil }
-                let (line, rowInLine) = rows.location(ofRow: row)
+                // A paragraph's blank rows hold no characters.
+                let place = rows.placement(ofRow: row)
+                guard row < rows.rowCount, place.blank == 0 else { return nil }
+                let (line, rowInLine) = (place.line, place.rowInLine)
                 let layout = rows.lines[line]
                 let span = layout.rows[rowInLine]
                 // In the grid's columns: after the row's alignment.
@@ -103,8 +106,11 @@ extension TextEditorHandler {
             }
         }
         let lines = readLines()
-        return block.rows.compactMap { line in
-            guard line < lines.count else { return nil }
+        let spaced = sidewaysRows()
+        return block.rows.compactMap { row in
+            // A paragraph's blank rows hold no characters.
+            let (line, blank) = spaced.placement(ofRow: row)
+            guard row < spaced.rowCount, blank == 0, line < lines.count else { return nil }
             let characters = lines[line]
             let aligned = alignmentCells(ofLine: line, characters: characters)
             let inside = characters.indices.filter {

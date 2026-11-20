@@ -13,7 +13,7 @@
 
 import TUI
 
-/// A paragraph's alignment with its types named. On the macOS 26 SDK they are
+/// A paragraph's alignment and line height with their types named. On the macOS 26 SDK they are
 /// Core Text's own (the owner's ruling attralign, 2026-11-19), and the `TUI`
 /// umbrella re-exports Core Text as `import SwiftUI` brings it; without that,
 /// naming them fails with "missing import of defining module 'CoreText'"
@@ -30,6 +30,8 @@ private struct ParagraphAlignmentNamed: View {
                 let side: AttributedString.TextAlignment = .center
                 text.alignment = side
                 _ = text.runs.first?.alignment == .right
+                let height: AttributedString.LineHeight = .multiple(factor: 1.5)
+                text.lineHeight = height
             }
             text.paragraphAlignment = .trailing
         }

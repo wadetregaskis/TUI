@@ -42,6 +42,7 @@ extension TextEditorHandler {
             source.onTakenWhole = { [weak self] sameCharacters in
                 guard let self else { return }
                 lineStyleCache.removeAll()
+                keptLineGaps = .unread
                 // Only recoloured: still the text the history's edits left.
                 if sameCharacters, let value = attributedSource?.value { undoHistory.noteWritten(.attributed(value)) }
             }

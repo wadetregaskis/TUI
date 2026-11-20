@@ -417,12 +417,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // Given no width — the ideal-width ask, whose answer is 0 as SwiftUI's
         // editor's is — it is as tall as its lines: wrapping at one cell would
         // lay out a row per character to answer a question about nothing.
-        let layout = layout(context: context)
-        let contentHeight = max(
-            1,
-            context.environment.textEditorWrapsLines && width > 0
-                ? layout.wrapped(width: width, tabWidth: context.environment.tabWidth).rowCount
-                : layout.lines.count)
+        let contentHeight = contentRowCount(width: width, context: context)
         // Pulled, its rows' height, held (`TextEditor+Pulled.swift`).
         // Offered no height and not pulled, its rows' height too
         // (`answersNaturalHeight`).
@@ -700,7 +695,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         }
         guard wraps else {
             if follows { handler.wrapWidth = nil }
-            let overflows = lines.count > height
+            // Each line a row, a paragraph's line height's blank rows after it.
+            let spaced = handler.sidewaysRows()
+            let overflows = spaced.rowCount > height
             let contentWidth = overflows ? max(1, width - barWidth) : width
             if follows { handler.sidewaysWidth = contentWidth }
             // In DISPLAY columns, the space the scroll window and the caret cell
@@ -717,21 +714,20 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 caretCells = 1
             }
             if follows, handler.isWheelScrolled {
-                handler.clampWheelScroll(rowCount: lines.count, height: height, in: nil)
+                handler.clampWheelScroll(rowCount: spaced.rowCount, height: height, in: nil)
             } else if follows {
                 followCursor(
-                    handler, cursorDisplayColumn: caretColumn, caretCells: caretCells, lineCount: lines.count, width: contentWidth,
+                    handler, cursorDisplayColumn: caretColumn, caretCells: caretCells, width: contentWidth,
                     height: height)
             }
             return Window(
-                contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: lines.count,
-                offset: handler.scrollLine, caretColumn: caretColumn, rows: nil)
+                contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: spaced.rowCount,
+                offset: handler.sidewaysTopRow(in: spaced), caretColumn: caretColumn, rows: nil)
         }
-        let layout = handler.displayLayout()
-        var rows = layout.wrapped(width: width, tabWidth: tabWidth)
+        var rows = handler.wrappedRows(width: width, tabWidth: tabWidth)
         let overflows = rows.rowCount > height
         let contentWidth = overflows ? max(1, width - barWidth) : width
-        if overflows { rows = layout.wrapped(width: contentWidth, tabWidth: tabWidth) }
+        if overflows { rows = handler.wrappedRows(width: contentWidth, tabWidth: tabWidth) }
         // The width the keys move by: the one drawn, never a measure's probe,
         // which would leave the keys between frames moving by rows at a width
         // nobody sees.
@@ -791,15 +787,18 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// the caret's on-screen cell, which runs ahead of the character index
     /// on tab-bearing lines).
     func followCursor(
-        _ handler: TextEditorHandler, cursorDisplayColumn: Int, caretCells: Int = 1,
-        lineCount: Int, width: Int, height: Int
+        _ handler: TextEditorHandler, cursorDisplayColumn: Int, caretCells: Int = 1, width: Int, height: Int
     ) {
-        if handler.cursorLine < handler.scrollLine {
-            handler.scrollLine = handler.cursorLine
-        } else if handler.cursorLine >= handler.scrollLine + height {
-            handler.scrollLine = handler.cursorLine - height + 1
+        // In rows: each line one, a paragraph's line height's blank rows after it.
+        let rows = handler.sidewaysRows()
+        var top = handler.sidewaysTopRow(in: rows)
+        let caret = rows.row(ofLine: handler.cursorLine)
+        if caret < top {
+            top = caret
+        } else if caret >= top + height {
+            top = caret - height + 1
         }
-        handler.scrollLine = max(0, min(handler.scrollLine, max(0, lineCount - height)))
+        handler.scrollSideways(toRow: max(0, min(top, max(0, rows.rowCount - height))), in: rows)
 
         let w = max(1, width)
         if cursorDisplayColumn < handler.scrollColumn {

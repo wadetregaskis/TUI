@@ -37,9 +37,9 @@ A-ATTRED-12, finally: TUI writes no lexers and there is no `TUILexers` repositor
 tree-sitter through a thin adapter on the seam, in tuitree or an optional package, never in TUI. The design's §8.6
 re-plans TUI's side for it (about 4 lane-days, against 6¼); its A-ATTRED-15 and 16 were ruled (a) that evening: no line
 lexer for now, and the adapter in a target of tuitree's own. Later that day:
-**A-ATTRED-13** ruled (b): lineHeight macOS 26 on Apple, TUI's type elsewhere; being built. **A-ATTRED-14**
+**A-ATTRED-13** ruled (b): lineHeight macOS 26 on Apple, TUI's type elsewhere; built (each line takes its factor's rows, rounded; the G3 design §5). **A-ATTRED-14**
 approved: on the macOS 26 SDK the `\.swiftUI` scope's paragraph `alignment` is a computed property, so coding with
-that scope drops it (deviation T14, [Deliberate deviations](<SwiftUI parity/Deliberate deviations from SwiftUI.md#t14-a-paragraphs-alignment-is-not-among-the-swiftui-scopes-stored-keys-on-the-macos-26-sdk>)).
+that scope drops it, and `lineHeight` likewise (deviation T14, [Deliberate deviations](<SwiftUI parity/Deliberate deviations from SwiftUI.md#t14-a-paragraphs-alignment-is-not-among-the-swiftui-scopes-stored-keys-on-the-macos-26-sdk>)).
 And **the macOS 15 SDK** is dropped: TUI builds only with the macOS 26 SDK (Xcode 26), and the macOS 15 runtime
 stays supported ([the ledger](<Swift language/Cost of supporting Swift 6.2 and macOS 15.md>), S1 to S5). Nothing
 from that day is left open.

@@ -50,10 +50,9 @@
         "AttributeScopes.SwiftUIAttributes.tracking",
         "AttributeScopes.SwiftUIAttributes.TrackingAttribute*",
         "AttributeScopes.SwiftUIAttributes.baselineOffset",
-        "AttributeScopes.SwiftUIAttributes.BaselineOffsetAttribute*",
-        "AttributeScopes.SwiftUIAttributes.lineHeight"
+        "AttributeScopes.SwiftUIAttributes.BaselineOffsetAttribute*"
       ],
-      "why": "Sub-cell typography, as the View modifiers of the same names (decisions C8): a cell grid has one advance per cell, one baseline and one line height, so kerning, tracking, a baseline offset or a line height have nowhere to go. Omitted so setting one fails to compile. (A paragraph's alignment ships since 2026-11-17, the owner's ruling A-ATTRED-3: a Text and a TextEditor align each paragraph's lines its own way.)"
+      "why": "Sub-cell typography, as the View modifiers of the same names (decisions C8): a cell grid has one advance per cell and one baseline, so kerning, tracking or a baseline offset have nowhere to go. Omitted so setting one fails to compile. (A paragraph's alignment ships since 2026-11-17, the owner's ruling A-ATTRED-3: a Text and a TextEditor align each paragraph's lines its own way; and a paragraph's lineHeight since 2026-11-19, A-ATTRED-13 (b): its factor rounded to whole rows, the rows past the first blank.)"
     },
     {
       "match": [
@@ -328,7 +327,7 @@
         "View.lineHeight(_:)",
         "EnvironmentValues.lineHeight"
       ],
-      "why": "Sub-cell typography: kerning and tracking move glyphs by fractions of a point, baselineOffset raises a run within its line, and lineHeight sets the distance between baselines. Cells advance in whole columns and rows, and the emulator places each glyph within its cell, so none of these could be more than accepted and ignored. Confirmed in Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md (P8's omissions, and the Font.Leading verdict: a grid can only move whole rows)."
+      "why": "Sub-cell typography: kerning and tracking move glyphs by fractions of a point, baselineOffset raises a run within its line, and lineHeight sets the distance between baselines. Cells advance in whole columns and rows, and the emulator places each glyph within its cell, so none of these could be more than accepted and ignored. Confirmed in Documentation/Historical/SwiftUI parity process/The refusals re-examined (wave 17).md (P8's omissions, and the Font.Leading verdict: a grid can only move whole rows). A paragraph's lineHeight attribute in an AttributedString is drawn in whole rows since 2026-11-19 (A-ATTRED-13); this modifier and environment value are not built."
     },
     {
       "match": [
