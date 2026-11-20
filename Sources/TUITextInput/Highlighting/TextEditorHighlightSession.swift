@@ -67,7 +67,7 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
             case .update(let taken):
                 // The lines found here, on the highlighter's task, never on
                 // the main actor.
-                let text = taken.text ?? TextEditorText(version: taken.version, string: taken.string)
+                let text = taken.madeText()
                 state.withLock { $0.noteTaken(text) }
                 return TextEditorHighlightUpdate(text: text, change: taken.change, visibleLines: taken.visible)
             case .wait: await waitForChange()

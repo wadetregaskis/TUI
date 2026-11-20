@@ -1137,6 +1137,20 @@ cause was where §4 put the cost; the runs a screen draws are cached, and joinin
   `ANSIRenderer.wrap` spells it, without making that string first. Byte for byte the frames they were. Kept no
   longer than the frame, since an introducer is spelled at the frame's colour depth, which the look does not say;
   a TextField's single row is left as it was.
+- **B-ATTRED-45. An update's lines are found from the last update's, through the change.** `nextUpdate` made each
+  update's `TextEditorText` by finding every line's start (`EditorLayout.lineBreaks`): `bigtext`'s 3.2 MB walked a
+  byte at a time, and a 40,000-entry array made, for every key. That is on the highlighter's task, never in a frame,
+  and still it cost the frames. With B-ATTRED-44 in, the traces showed work highlighting never touches slower too
+  (the window's toolbar 130 µs a frame against 107, the measure pass 93 against 73), and the switches priced it:
+  `noop` was indistinguishable from `bigtext` (+1.2% [−7.5%, +13.3%]), `idle` +9.4% [+4.2%, +12.2%] against `noop`,
+  and `nopublish`, the editor still drawing nothing highlighted, +30.8% [+26.0%, +42.6%] against `bigtext`, with
+  peak RSS +37 MB. About a fifth of a frame, then, was the walk's memory traffic beside it. The session now hands
+  `nextUpdate` the text the highlighter took last: the lines before the change keep their starts, those after it
+  move by the bytes it added or took, and only the change's own bytes are walked. Where the change does not fit the
+  last text, or a CR ends the bytes before it or its own (an LF across the boundary would join it into one CRLF,
+  which the editor splits once), or the lines found are not the editor's count, the text is walked whole as before:
+  a lone CR typed into a document is rare enough that a cleverer rule buys nothing. After it, `nopublish` and
+  `idle` are indistinguishable (−2.7% [−3.4%, +0.8%]), and so is their RSS (−4.5 MB).
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 

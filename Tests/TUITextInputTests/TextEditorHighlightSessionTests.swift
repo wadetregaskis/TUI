@@ -137,6 +137,37 @@ struct TextEditorHighlightSessionTests {
         #expect(oldText.lineCount - change.oldLines.upperBound == newText.lineCount - change.newLines.upperBound)
     }
 
+    @Test("An update's lines are found from the last text's, through the change, as a whole walk finds them")
+    @MainActor
+    func linesFoundThroughTheChange() async throws {
+        // Each edit as lines, in each kind of break: in place, a line put in,
+        // lines taken, a break at the end, two edits folded into one update,
+        // and nothing (last: a text with no break has no kind of break).
+        let edits = [
+            [["alpha", "beta!", "gamma"]], [["alpha", "beta!", "new", "gamma"]], [["alpha", "gamma"]],
+            [["alpha", "gamma", ""]], [["alpha!", "gamma", ""], ["alpha!", "gamma", "z"]], [[""]],
+        ]
+        for ending in ["\n", "\r\n", "\r"] {
+            var text = ["alpha", "beta", "gamma"].joined(separator: ending)
+            let (session, _) = Self.session(text)
+            var previous = try #require(await session.nextUpdate()).text
+            for (index, steps) in edits.enumerated() {
+                for lines in steps { text = try Self.edit(session, text, to: lines.joined(separator: ending)) }
+                let update = try #require(await session.nextUpdate())
+                let label = "edit \(index), \(ending.debugDescription)"
+                #expect(update.text.lineStarts == EditorLayout.lineBreaks(in: text).starts, "\(label)")
+                // The short way, not a whole walk, except after a lone CR, which
+                // an LF the edit put after it would join.
+                let change = try #require(update.change)
+                let found = TextEditorText.lineStarts(of: update.text.string.utf8, changing: previous, by: change)
+                if ending != "\r" || change.oldUTF8.lowerBound == 0 {
+                    #expect(found == update.text.lineStarts, "\(label) walked whole")
+                }
+                previous = update.text
+            }
+        }
+    }
+
     // MARK: - Publishing
 
     @Test("A publish is kept for the window, and asks for a frame only when a line on screen changed")

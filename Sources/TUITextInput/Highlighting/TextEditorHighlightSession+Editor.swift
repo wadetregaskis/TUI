@@ -187,14 +187,28 @@ enum EditorHighlightTake: Sendable {
     case wait
     case update(Taken)
 
-    /// An update taken: its text, made whole outside the lock unless it is
-    /// the one the highlighter has (a scroll).
+    /// An update taken: its text, made outside the lock unless it is the one
+    /// the highlighter has (a scroll).
     struct Taken: Sendable {
         var version: Int
         var string: String
         var text: TextEditorText?
         var change: TextEditorTextChange?
         var visible: Range<Int>
+        /// The text the highlighter took last, which ``change`` is from, and
+        /// the lines of the one taken now: its lines are found from that
+        /// one's (B-ATTRED-45).
+        var previous: TextEditorText?
+        var lineCount: Int
+
+        /// The text taken: the highlighter's own, where only the lines on
+        /// screen moved; else its lines found from the last text's where
+        /// there is a change from it, and from the whole text where not.
+        func madeText() -> TextEditorText {
+            if let text { return text }
+            guard let previous, let change else { return TextEditorText(version: version, string: string) }
+            return TextEditorText(version: version, string: string, changing: previous, by: change, lineCount: lineCount)
+        }
     }
 }
 
@@ -219,7 +233,7 @@ extension EditorHighlightState {
         }
         let taken = EditorHighlightTake.Taken(
             version: version, string: string, text: taken?.version == version ? taken : nil, change: change,
-            visible: visible)
+            visible: visible, previous: taken, lineCount: lineCount)
         (pending, viewportMoved, takenSize) = (nil, false, (lineCount, utf8Count))
         return .update(taken)
     }

@@ -108,6 +108,65 @@ public struct TextEditorText: Sendable {
         lineStarts = EditorLayout.lineBreaks(in: string).starts
     }
 
+    /// `string` as version `version`, which `change` made from `previous`,
+    /// its lines found from `previous`'s (B-ATTRED-45): those before the
+    /// change kept, those after it moved by the bytes it added or took, and
+    /// only its own bytes walked, not the whole text's as
+    /// ``init(version:string:)`` walks them. Where the change does not fit
+    /// `previous`, or a CR at either of its ends might join a break across
+    /// it, or the lines found are not `lineCount`, they are found whole.
+    init(version: Int, string: String, changing previous: Self, by change: TextEditorTextChange, lineCount: Int) {
+        var string = string
+        string.makeContiguousUTF8()
+        guard let starts = Self.lineStarts(of: string.utf8, changing: previous, by: change), starts.count == lineCount
+        else {
+            self = Self(version: version, string: string)
+            return
+        }
+        self.version = version
+        self.string = string
+        lineStarts = starts
+    }
+
+    /// The line starts of `utf8`, the text `change` made from `previous`, or
+    /// `nil` where the change cannot be trusted to have left them. A native
+    /// string's view, whose indices move by offsets in constant time.
+    static func lineStarts(
+        of utf8: String.UTF8View, changing previous: Self, by change: TextEditorTextChange
+    ) -> [Int]? {
+        let old = previous.lineStarts
+        let (oldLines, newLines, oldUTF8, newUTF8) = (change.oldLines, change.newLines, change.oldUTF8, change.newUTF8)
+        let (oldTotal, newTotal) = (previous.utf8Count, utf8.count)
+        // The change as `previous` has it: whole lines, at their starts.
+        guard oldLines.lowerBound < old.count, oldLines.upperBound <= old.count,
+            old[oldLines.lowerBound] == oldUTF8.lowerBound, newUTF8.lowerBound == oldUTF8.lowerBound,
+            oldUTF8.upperBound == (oldLines.upperBound < old.count ? old[oldLines.upperBound] : oldTotal),
+            newUTF8.upperBound <= newTotal, oldTotal - oldUTF8.upperBound == newTotal - newUTF8.upperBound
+        else { return nil }
+        let hasSuffix = oldLines.upperBound < old.count
+        func index(_ offset: Int) -> String.UTF8View.Index { utf8.index(utf8.startIndex, offsetBy: offset) }
+        // A lone CR before the change, or one ending it, could pair with an
+        // LF the other side of it into one CRLF: walked whole.
+        let cr = UInt8(ascii: "\r")
+        if newUTF8.lowerBound > 0, utf8[index(newUTF8.lowerBound - 1)] == cr { return nil }
+        if hasSuffix, !newUTF8.isEmpty, utf8[index(newUTF8.upperBound - 1)] == cr { return nil }
+        var starts: [Int] = []
+        starts.reserveCapacity(old.count - oldLines.count + newLines.count)
+        starts += old[..<oldLines.lowerBound]
+        if !newLines.isEmpty {
+            var found = EditorLayout.lineBreaks(
+                inBytes: utf8[index(newUTF8.lowerBound)..<index(newUTF8.upperBound)], startingAt: newUTF8.lowerBound
+            ).starts
+            // The last break's start is the first line after the change's.
+            if hasSuffix, found.last == newUTF8.upperBound { found.removeLast() }
+            guard found.count == newLines.count else { return nil }
+            starts += found
+        }
+        let shift = newUTF8.upperBound - oldUTF8.upperBound
+        starts += old[oldLines.upperBound...].lazy.map { $0 + shift }
+        return starts
+    }
+
     /// How many lines there are: never fewer than one.
     public var lineCount: Int { lineStarts.count }
 
