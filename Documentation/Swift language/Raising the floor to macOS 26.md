@@ -17,7 +17,7 @@ Each macOS carries a Swift runtime: macOS 15.0 has Swift 6.0's, 15.4 has 6.1's, 
 ## What to fix on the day
 
 - **Availability:** delete `@available(macOS 26…)` and `#available(macOS 26, *)`. They give no warning at a higher target, so nothing will prompt this: search for them. Keep the checks that are the subject of a test, and `Tools/SwiftUIProbes`, which is a record.
-- **`UndoManager`:** the macOS 26 SDK isolates it to the main actor, and the macOS 15 SDK doesn't. `UndoManagerEnvironment.swift` and `TextUndoBridge.swift` work around the difference and can simplify. This goes with the SDK rather than the target, so check which of them each comment means.
+- **`UndoManager`:** done already. Its workaround went with the macOS 15 SDK on 2026-11-19 (the ledger's S1), not with the target.
 - **macOS 15 stand-ins:** the `#expect` metatype crash in `CONTRIBUTING.md` is a macOS 15 runtime limit, and those two tests can go back once macOS 15 is gone. Check it first.
 - **Comments:** search for "macOS 15" and "macOS 26" in `Sources`, `Tests`, `Tools` and CI. Dated measurements stay; statements about what's possible don't.
 - **CI:** drop the macOS 15 lanes, and `Tools/check-span-compatibility.sh` if `Span` is adopted.

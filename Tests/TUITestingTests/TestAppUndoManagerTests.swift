@@ -21,9 +21,7 @@ private final class Tally {
 
     func add(undoManager: UndoManager?) {
         total += 1
-        undoManager?.registerUndo(withTarget: self) { tally in
-            MainActor.assumeIsolated { tally.total -= 1 }
-        }
+        undoManager?.registerUndo(withTarget: self) { tally in tally.total -= 1 }
     }
 }
 

@@ -278,25 +278,9 @@ enum FileExportWrite {
         init<T: Transferable>(_ item: T, contentTypes: [UTType]) {
             let provider = NSItemProvider()
             // The provider takes the item as a `@Sendable` autoclosure, which
-            // it may call on a queue of its own when it loads the data.
-            // SwiftUI's `fileExporter` takes any `Transferable`, `Sendable` or
-            // not, so the item is handed over as SwiftUI's must be, vouched
-            // for: only that load reads it, once the panel is closed. Vouched
-            // for by calling `register(_:)` as a function whose closure need
-            // not be `@Sendable` — the same two words, as `@Sendable` changes
-            // no function's layout — rather than by a box of the item that is
-            // `@unchecked Sendable`: the box covered the item, but the closure
-            // still captured `T`'s metatype, which is `Sendable` only where
-            // `Transferable` refines `Sendable`, as the macOS 26 SDK's does and
-            // the macOS 15 SDK's does not. Against that one, which a swift.org
-            // toolchain builds with when only the Command Line Tools are
-            // installed, every build warned "capture of non-Sendable type
-            // 'T.Type' in an isolated closure" (SE-0470), and nothing
-            // SwiftUI's signature lets `T` be constrained by could stop it.
-            let register = unsafe unsafeBitCast(
-                provider.register as (@escaping @Sendable () -> T) -> Void,
-                to: ((@escaping () -> T) -> Void).self)
-            register { item }
+            // it may call on a queue of its own when it loads the data: the
+            // item is `Sendable`, as every `Transferable` is.
+            provider.register(item)
             self.provider = provider
             self.contentTypes = contentTypes.isEmpty ? provider.registeredContentTypes : contentTypes
             // An empty suggestion is none: the panel offers Untitled instead.

@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Building TUI on macOS requires the macOS 26 SDK (Xcode 26, or Command Line Tools 26); macOS 15 still runs it.** An
+app built with Xcode 26's SDK still deploys to macOS 15, as before. The macOS 15 SDKs (Command Line Tools 16.x), never
+supported, no longer build TUI at all: a Mac with only those Command Line Tools needs Xcode 26 or Command Line Tools
+26. With that SDK alone, `AttributedString`'s `subscript(_:)` with an `AttributedTextSelection` is always there on
+macOS 26, and a change made through `transform(updating:body:)` is tracked by Foundation on macOS 26 in every build.
+
 **A disabled `TextEditor` or `Slider` no longer looks live on a 16- or 256-colour terminal.** Both fade their
 colours toward the page when disabled, but such a terminal can round the faded colour to the same palette entry as
 the original: an editor's highlighted run then drew exactly as enabled, and at 16 colours a `.knob` or `.marker`
@@ -26,8 +32,7 @@ slider with its value hidden drew disabled exactly as enabled on the Man Page, S
 palettes. Where the terminal rounds away the fade of a colour the control actually draws (a run the editor shows,
 the colours a slider's track style and ticks are drawn in), the control is now drawn faint, as other disabled controls
 already are where their grey rounds to their enabled colour; a colour it doesn't draw, a hidden value's grey
-included, doesn't count. Enabled
-controls, and 24-bit terminals, draw as before.
+included, doesn't count. Enabled controls, and 24-bit terminals, draw as before.
 
 **`TUI_PLAIN_TEXT=transliterate` is a supported option, no longer an experiment.** Spelling other scripts in Latin
 letters before layout, for a terminal that shows only ASCII, keeps its default (off unless named) and does what it
@@ -285,10 +290,10 @@ is taken whole: its characters are read and compared with the editor's, about 0.
 screen are styled again. A paragraph's line height is not drawn yet.
 
 **A paragraph's `alignment` in an `AttributedString` is drawn.** `string.alignment = .center` (or `.left`, `.right`)
-compiles and draws as it does in SwiftUI. Built with the macOS 26 SDK it is Core Text's own attribute, so it needs
-macOS 26, as SwiftUI's does, and naming `AttributedString.TextAlignment` is never ambiguous; TUI re-exports Core
-Text there, as `import SwiftUI` does. Where no SDK declares it (the macOS 15 SDKs, Linux, Windows) TUI declares the
-same names itself, with no gate. To align a paragraph on macOS 15, set TUI's own `paragraphAlignment` (`.leading`,
+compiles and draws as it does in SwiftUI. On Apple platforms it is Core Text's own attribute, so it needs macOS 26,
+as SwiftUI's does, and naming `AttributedString.TextAlignment` is never ambiguous; TUI re-exports Core Text there, as
+`import SwiftUI` does. On Linux and Windows, which have no Core Text, TUI declares the same names itself, with no
+gate. To align a paragraph on macOS 15, set TUI's own `paragraphAlignment` (`.leading`,
 `.center`, `.trailing`), which draws on every platform and macOS; where a paragraph states both, `alignment` wins.
 Either belongs to a whole paragraph: set on a word, it is set on the word's paragraph, and text typed into the
 paragraph takes it. A `Text` aligns each of the paragraph's lines within its own width, as `.multilineTextAlignment`
@@ -305,8 +310,7 @@ takes the attributes macOS's text system gives (the character before the caret's
 its start, a selection's first character's over it). On macOS 26, Linux and Windows the selection is tracked through
 a change by Foundation itself. macOS 15's Foundation cannot track, so there the change is found by comparing the text
 before and after: exact for one contiguous change, approximate for several in one `transform`, at about
-3 ms for a 3 MB text. A build against a macOS 15 SDK (Command Line Tools 16.x), whose Foundation declares none of
-this, takes that path on every macOS and has no `subscript(_:)` with a selection.
+3 ms for a 3 MB text.
 
 **A debug build warns when a `List`'s selection can name none of its rows.** `List(games, selection: $selection)` with a
 `GameID?` selection over rows whose `id` is a `String` selects nothing, as in SwiftUI, and said nothing, as SwiftUI says
@@ -815,12 +819,6 @@ closed by Escape left its typing in the app's undo manager until another frame w
 nothing animating, or in a `TestApp`, waited for the next input: the status bar went on offering "undo", and the first
 ⌃Z undid typing nobody could see rather than the app's last step. The steps of a `TextField` or `TextEditor` the frame
 stopped drawing now leave as that frame ends, and the frame after it shows the bar without them.
-
-**TUI builds without warnings against the macOS 15 SDK.** A swift.org toolchain on a Mac with only the Command Line
-Tools builds against that SDK, and there TUI gave three warnings in every build of a package that depends on it: two
-"no unsafe operations occur within 'unsafe' expression" and a "capture of non-Sendable type 'T.Type'" from
-`fileExporter`. Whether `String(format:)` is unsafe, and whether `Transferable` is `Sendable`, is the SDK's to say, and
-the macOS 26 SDK says yes to both where the macOS 15 SDK says no; TUI's code no longer depends on the answer.
 
 **`TestApp.windowTitle` reads the title the app has given the terminal's window**, such as a `DocumentGroup`
 window's document name with "Edited", so a test can check that an edit marks a document edited and a save clears it.

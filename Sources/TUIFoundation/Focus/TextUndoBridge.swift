@@ -114,13 +114,7 @@ package enum TextUndoBridge {
         // unowned, and the step is what keeps the mark alive.
         let step = TextUndoStep(control: control, manager: manager, undoing: undoing)
         if control.stepsKeepControl { step.kept = control }
-        manager.registerUndo(withTarget: mark) { [step, mark] _ in
-            // The manager runs its steps on the main actor. The macOS 26 SDK's
-            // handler says so; the macOS 15 SDK's (the Command Line Tools')
-            // does not, and is `@Sendable` besides — hence the step, isolated,
-            // rather than the control and the manager captured here.
-            MainActor.assumeIsolated { step.run(mark: mark) }
-        }
+        manager.registerUndo(withTarget: mark) { [step, mark] _ in step.run(mark: mark) }
         label(manager, with: mark)
         if needsGroup { manager.endUndoGrouping() }
     }

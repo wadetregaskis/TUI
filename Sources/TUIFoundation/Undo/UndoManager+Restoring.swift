@@ -60,12 +60,7 @@ extension UndoManager {
         let step = RestoringUndoStep(binding: binding, value: value, actionName: actionName, manager: self)
         // The step is captured as well as passed: the manager keeps its
         // target unowned, and the closure is what keeps the step alive.
-        registerUndo(withTarget: step) { [step] _ in
-            // The manager runs its steps on the main actor. The macOS 15
-            // SDK's handler does not say so and is `@Sendable`, hence the
-            // isolated step rather than the binding captured here.
-            MainActor.assumeIsolated { step.run() }
-        }
+        registerUndo(withTarget: step) { [step] _ in step.run() }
         if let actionName { setActionName(actionName) }
         if needsGroup { endUndoGrouping() }
     }

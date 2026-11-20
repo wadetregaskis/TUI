@@ -277,10 +277,11 @@ support in 0.64.0.
 
 ```bash
 # Build. With swiftly's `swift` the SDK is whichever `xcode-select` points at.
-# TUI needs Swift 6.2 or newer, and on macOS that means an SDK from Xcode 26 or
-# Command Line Tools 26 (or newer), whose interfaces are 6.2's: Xcode 26.3 runs
-# on macOS 15. The macOS 15 SDKs (Command Line Tools 16.x) carry Swift 6.1's
-# interfaces and are not supported, so nothing is built or tested against them.
+# TUI needs Swift 6.2 or newer, and on macOS the macOS 26 SDK, from Xcode 26 or
+# Command Line Tools 26 (or newer): Xcode 26.3 runs on macOS 15. The macOS 15
+# SDKs (Command Line Tools 16.x) cannot build TUI (the owner, 2026-11-19). The
+# macOS 15 RUNTIME is supported: the package's macOS 15 deployment target, built
+# with the 26 SDK, is what CI's macOS 15 lane builds and runs.
 swift build
 
 # Build with Xcode's own toolchain too, if `swift` on your PATH is a swift.org

@@ -32,9 +32,8 @@ struct UndoDemo: View {
 
 /// A number whose every change registers its own undo.
 ///
-/// A main-actor class — so `Sendable`, which the macOS 15 SDK asks of what an
-/// undo handler captures — that keeps the manager it was last changed under,
-/// for the undo to register the redo with.
+/// A main-actor class that keeps the manager it was last changed under, for
+/// the undo to register the redo with.
 @MainActor
 @Observable
 final class UndoableCounter {
@@ -46,8 +45,7 @@ final class UndoableCounter {
         value = newValue
         self.undoManager = undoManager
         undoManager?.registerUndo(withTarget: self) { counter in
-            // Undo runs on the main actor, where the change was made.
-            MainActor.assumeIsolated { counter.set(old, undoManager: counter.undoManager) }
+            counter.set(old, undoManager: counter.undoManager)
         }
     }
 }

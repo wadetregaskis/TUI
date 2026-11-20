@@ -143,15 +143,11 @@ public final class StatusBarState {
 
     /// The app's undo manager, whose undo and redo the bar offers; set by the
     /// run loop.
-    @MainActor
-    package var undoManager: UndoManager? {
-        get { _undoManager?.manager }
-        set { _undoManager = newValue.map(MainActorUndoManager.init) }
-    }
+    package var undoManager: UndoManager? { get { _undoManager } set { _undoManager = newValue } }
 
     /// ``undoManager``'s storage: private, under the `package` accessor
     /// (CONTRIBUTING.md, "Crossing a module boundary").
-    private var _undoManager: MainActorUndoManager?
+    private var _undoManager: UndoManager?
 
     /// The app's undo and redo keys, which decide the key the bar names
     /// beside each: the first the terminal can deliver (``UndoShortcuts``'s
@@ -455,7 +451,7 @@ public final class StatusBarState {
         if showReturnItem, let label = activationLabelOverride {
             items.append(SystemStatusBarItem.returnKey(label: label))
         }
-        if showUndoItems, let reference = _undoManager { items += undoItems(reference) }
+        if showUndoItems, let manager = _undoManager { items += undoItems(manager) }
         // F6, to a toast's buttons, while one is drawn and the focus is
         // elsewhere: named, not bound — the toasts' own key handler takes it,
         // and a click on the item presses the key.
@@ -481,8 +477,8 @@ public final class StatusBarState {
     ///
     /// The bar is not isolated to the main actor, though it only ever runs
     /// there; `UndoManager` is.
-    private func undoItems(_ reference: MainActorUndoManager) -> [StatusBarItem] {
-        let (canUndo, canRedo) = MainActor.assumeIsolated { (reference.manager.canUndo, reference.manager.canRedo) }
+    private func undoItems(_ manager: UndoManager) -> [StatusBarItem] {
+        let (canUndo, canRedo) = MainActor.assumeIsolated { (manager.canUndo, manager.canRedo) }
         guard canUndo || canRedo else { return [] }
         let localization = LocalizationService.shared
         // The hint follows the focus: a text field's own ⌃Y yanks, so redo
@@ -494,14 +490,14 @@ public final class StatusBarState {
                 StatusBarItem(
                     id: Self.undoItemID, naming: undoKeys.hint(for: .undo, sparing: focus) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.undo), order: .undo
-                ) { MainActor.assumeIsolated { _ = UndoCommand.undo.perform(on: reference.manager) } })
+                ) { MainActor.assumeIsolated { _ = UndoCommand.undo.perform(on: manager) } })
         }
         if canRedo {
             items.append(
                 StatusBarItem(
                     id: Self.redoItemID, naming: undoKeys.hint(for: .redo, sparing: focus) ?? "",
                     label: localization.string(for: LocalizationKey.StatusBar.redo), order: .redo
-                ) { MainActor.assumeIsolated { _ = UndoCommand.redo.perform(on: reference.manager) } })
+                ) { MainActor.assumeIsolated { _ = UndoCommand.redo.perform(on: manager) } })
         }
         return items
     }

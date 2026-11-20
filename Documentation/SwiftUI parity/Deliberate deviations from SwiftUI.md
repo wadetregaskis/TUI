@@ -1426,18 +1426,17 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   owner's ruling attralign), the scope's `alignment` is a computed property
   (`AttributeScopes+CoreText.swift`), so `string.alignment`, a container's and a
   run's work as in SwiftUI, but a coder or Markdown parse given `\.swiftUI`'s
-  scope does not see the key, and leaves the alignment out. Elsewhere (the 15
-  SDKs, Linux, Windows, WebAssembly) it is stored, as SwiftUI's is.
+  scope does not see the key, and leaves the alignment out. Elsewhere (Linux,
+  Windows, WebAssembly) it is stored, as SwiftUI's is.
 - **Why:** Swift refuses `@available` on a stored property of a type built
   without library evolution ("stored properties cannot be marked potentially
   unavailable", measured with `Tools/SwiftUIProbes/Paragraph attribute types
   (attralign)/`), and TUI must keep the macOS 15 floor; a stored member of
   Core Text's macOS 26 type would not compile at that floor at all.
-- **Decided:** forced by the language, under the owner's ruling attralign
-  (2026-11-19), recorded in the [G3
-  design](<../Historical/Text, editing and the clipboard/An attributed TextEditor - design (G3).md>)
-  §7. Put to the owner on its own as A-ATTRED-14 ([Open owner
-  decisions](<../Open owner decisions.md>)); it stands until answered.
+- **Decided:** owner's ruling A-ATTRED-14, approved 2026-11-19. Forced by the
+  language, under the owner's ruling attralign (2026-11-19), recorded in the
+  [G3 design](<../Historical/Text, editing and the clipboard/An attributed TextEditor - design (G3).md>)
+  §7. **Owner.**
 
 ---
 

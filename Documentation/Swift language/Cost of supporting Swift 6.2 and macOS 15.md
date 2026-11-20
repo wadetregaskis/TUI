@@ -21,8 +21,9 @@ they draw on.
 - `.github/workflows/ci.yml:38-49`: the support matrix. Swift 6.2 is the `macOS 15 · Xcode 26` lane (`ci.yml:333`)
   and `Linux · Swift 6.2 · arm64` (`ci.yml:879`). Swift 6.3 is `macOS 26 · Xcode 26` (`ci.yml:354`) and `Linux ·
   Swift 6.3 · arm64` (`ci.yml:886`).
-- `CONTRIBUTING.md:22` and `:286-293`: Swift 6.2 or newer; on macOS that means an SDK from Xcode 26 or Command Line
-  Tools 26. The macOS 15 SDKs (Command Line Tools 16.x) are not supported (owner ruling SDK15-CI (c), 2026-10-26).
+- `CONTRIBUTING.md:22` and `:286-294`: Swift 6.2 or newer, and on macOS the macOS 26 SDK, from Xcode 26 or Command
+  Line Tools 26. The macOS 15 SDKs (Command Line Tools 16.x) cannot build TUI (the owner's ruling of 2026-11-19); a
+  macOS 15 deployment target, built with the 26 SDK, is supported and runs on macOS 15.
 
 Each macOS carries its own Swift runtime: macOS 15.0 has Swift 6.0's, 15.4 has 6.1's, 26.0 has 6.2's and 26.4 has
 6.3's. So the two floors are separate costs. The compiler floor decides syntax, compiler bugs and attribute
@@ -39,16 +40,15 @@ may. After 1.0, a drop waits for 2.0.
 
 ## The ledger
 
-Floors: **macOS 15** means the macOS 15 runtime, so it goes with a macOS 26 deployment target. **macOS 15 SDK** means
-the SDK a Command Line Tools 16.x user builds against: unsupported since 2026-10-26, but kept warning-free since
-2026-11-15 (rows S2 and S3) and building since 2026-11-17 (row S4). **6.2** means the compiler, and goes with a 6.3
-minimum. **6.2 and 6.3** goes only with a 6.4 minimum.
+Floors: **macOS 15** means the macOS 15 runtime, so it goes with a macOS 26 deployment target. TUI builds only with
+the macOS 26 SDK; the macOS 15 SDK's own rows (S1 to S5) ended on 2026-11-19 (see "What has already been paid
+down"). **6.2** means the compiler, and goes with a 6.3 minimum. **6.2 and 6.3** goes only with a 6.4 minimum.
 
 ### Runtime and Foundation (macOS 15)
 
 | # | What | Where | Floor | Kind | Size | Dropping it would | Found |
 |---|---|---|---|---|---|---|---|
-| M1 | The attributed text selection's fallbacks. macOS 15's Foundation has no `isValid(within:)`, no index tracking (`transform(updating:body:)`), no `removeSubranges(_:)` and no `AttributedString` UTF-8 view. Linux and Windows have all of them. | `Sources/TUITextInput/AttributedText/AttributedTextSelection+MacOS15Fallbacks.swift`; the `else` arms at `AttributedTextSelection.swift:258` and `AttributedString+AttributedTextSelection.swift:44, :111, :159`; G3 design §9 | macOS 15 | Fallback code; behaviour | 229 lines (111 of code). **Behaviour:** a stale index that falls inside the text counts as valid; several disjoint changes in one body are tracked as one span; tracking a change costs 2.6 to 2.9 ms on a 3.07 MB text (measured, macOS 15.8.3) | Delete the file and the four arms (and row S4's `#else` arms); exact validity and tracking everywhere | 2026-11-17 (G3 L3) |
+| M1 | The attributed text selection's fallbacks. macOS 15's Foundation has no `isValid(within:)`, no index tracking (`transform(updating:body:)`), no `removeSubranges(_:)` and no `AttributedString` UTF-8 view. Linux and Windows have all of them. | `Sources/TUITextInput/AttributedText/AttributedTextSelection+MacOS15Fallbacks.swift`; the `else` arms at `AttributedTextSelection.swift:258` and `AttributedString+AttributedTextSelection.swift:44, :111, :159`; G3 design §9 | macOS 15 | Fallback code; behaviour | 229 lines (111 of code). **Behaviour:** a stale index that falls inside the text counts as valid; several disjoint changes in one body are tracked as one span; tracking a change costs 2.6 to 2.9 ms on a 3.07 MB text (measured, macOS 15.8.3) | Delete the file and the four arms; exact validity and tracking everywhere | 2026-11-17 (G3 L3) |
 | M2 | The same fallbacks, tested twice: each case runs through the platform's path and through the fallback called directly, and the Foundation comparisons skip on macOS 15. | `Tests/TUITextInputTests/AttributedStringSelectionEditTests.swift:7-8, :24, :117, :223, :286`; `AttributedTextSelectionTests.swift:98, :110` | macOS 15 | Test duplication | The two files have 493 lines; the fallback's share is not measured | Delete the direct-fallback tests and the guards | 2026-11-17 |
 | M3 | `Span` over a standard type: `Array.span`, `String.utf8.span`, `UTF8Span`. All are macOS 26 on every compiler, so hot byte loops stay on unsafe buffer closures. | 87 `withUnsafe(Mutable)BufferPointer` calls in `Sources` (grep, 2026-11-17); the 6.4 study's table | macOS 15 | Forgone feature | **Behaviour, not speed:** a `Span` measured 15 to 70% slower than the buffer it replaces in a micro-benchmark, and 0 to 4% in TUI's prototypes (6.4 study). The gain is bounds checking and fewer `unsafe` sites | Bounds-checked buffers in hot code, each move A/B'd | 2026-11-08 (6.4 study) |
 | M4 | `libswiftCompatibilitySpan.dylib`. Below macOS 26 any `Span`-family type in unspecialised generic code, or in a dependency, links a toolchain library. A program copied out of `.build` then stops at launch on macOS 15, with no build error or warning. | `Tools/check-span-compatibility.sh`; CI step `ci.yml:705-721`; `CONTRIBUTING.md:86` | macOS 15 | Workaround; CI cost | The script is 227 lines and 7 commits, plus 14 commits that mention the check. The CI step took 9 s on the development machine on 2026-10-12 (runners not measured). **Behaviour:** every use of a `Span` type, and every new dependency, has to pass it | Delete the script and its CI step; `Span` usable in generic code | 2026-10-10 (914137ed6) |
@@ -59,23 +59,6 @@ minimum. **6.2 and 6.3** goes only with a 6.4 minimum.
 | M9 | Markdown's content type: macOS 26 dropped four extensions and MIME types that macOS 15 declares, so the test expects either. | `Tests/TUIFilePanelsTests/ContentTypeTableTests.swift:27-33` | macOS 15 | Test duplication | 4 lines. The table keeps the entries for Linux whatever happens | Drop the `else` | not recorded |
 | M10 | `Task.immediate` (macOS 26) could replace part of `ActivationHold`, which lets a task an action started reach its first suspension before a frame draws. | the macOS 26 study's table | macOS 15 | Forgone feature | Not measured; inferred, never tried | Possibly a simpler `ActivationHold` | 2026-11-01 (macOS 26 study) |
 | M11 | A paragraph's alignment in an `AttributedString`. On the macOS 26 SDK `alignment` is Core Text's own (the owner's ruling attralign, 2026-11-19), so before macOS 26 a program cannot set it, as in SwiftUI. TUI adds `paragraphAlignment`, its own attribute under a name SwiftUI does not use, which draws on every macOS, and draws `alignment` where it exists and `paragraphAlignment` otherwise. | `Sources/TUIFoundation/Views/AttributeScopes+CoreText.swift` (the attribute, its subscript and `drawnParagraphAlignment`); `Tests/TUITestSupport/ParagraphAlignmentSpelling.swift`; G3 design §5 | macOS 15 | Fallback API; behaviour; test duplication | About 40 lines of fallback (the attribute, its subscript, the read). **Behaviour:** a program that runs on macOS 15 writes TUI's spelling, which a SwiftUI build of the same file does not have. The alignment tests run twice where both spellings exist (11 cases), and on macOS 15 only through the fallback, so the development machine never runs Core Text's spelling: CI's macOS 26 lane does | Delete `paragraphAlignment` (pre-1.0, or deprecate it to the next major); `alignment` alone, as in SwiftUI | 2026-11-19 |
-
-### The macOS 15 SDK (Command Line Tools 16.x)
-
-The owner ruled on 2026-10-26 that these SDKs are not supported (SDK15-CI (c); 4c1ec10f9 deleted three guards for
-them). On 2026-11-15 a downstream app, tuitree, built against the 15.5 SDK and reported three warnings, so 34bd2840f
-made TUI warning-free there again. On 2026-11-17 the attributed text selection's macOS 26 Foundation calls stopped it
-building there at all, and row S4 restored it. So in practice this SDK is still served, though not tested: only an
-`env -i` build against it, with a fresh scratch path, shows whether it still builds. A macOS 26 floor ends it, because
-that SDK cannot build for a macOS 26 target.
-
-| # | What | Where | Floor | Kind | Size | Dropping it would | Found |
-|---|---|---|---|---|---|---|---|
-| S1 | `UndoManager` is main-actor isolated in the macOS 26 SDK and not in the 15 SDK, where its handler is also `@Sendable`. So the manager travels as `MainActorUndoManager`, and each undo step is an isolated object rather than a closure capturing the binding. | `Sources/TUIFoundation/Undo/UndoManagerEnvironment.swift:18-41`; `UndoManager+Restoring.swift:64-67`; `Sources/TUIFoundation/Focus/TextUndoBridge.swift:117-122`; `Sources/Example/Pages/UndoDemo.swift:35`; `Tests/TUIAppTests/AppUndoTests.swift:39` | macOS 15 SDK | Workaround | About 40 lines over five files (estimate, not counted) | Plain captures; the wrapper goes | 2026-10-15 (1f49c77e9), tests 2026-11-04 (473db4f7c) |
-| S2 | `Transferable` refines `Sendable` only in the 26 SDK. Against the 15 SDK every build warned about capturing `T.Type`, so `fileExporter` calls `NSItemProvider.register(_:)` through an `unsafeBitCast` to a non-`@Sendable` closure type. | `Sources/TUIFilePanels/Modifiers/View+FileExporter.swift:282-298` | macOS 15 SDK | Workaround | One `unsafe` cast and its 14-line justification | A plain call; one fewer `unsafe` site | 2026-11-15 (34bd2840f) |
-| S3 | `String(format:)` is `@unsafe` in the 26 SDK's Foundation and not in the 15 SDK's. So on Darwin `String(unsafeFormat:)` formats through `withVaList` and `NSString(format:arguments:)` instead of calling `String(format:)`. | `Sources/TUICore/Extensions/String+UnsafeFormat.swift:24-36` | macOS 15 SDK | Workaround | A few lines. The function itself stays, for Linux's Foundation (see "Not costs of either floor") | Call `String(format:)` on Darwin | 2026-11-15 (34bd2840f) |
-| S4 | The attributed text selection's macOS 26 arms. The 15 SDK's Foundation does not declare `isValid(within:)`, index tracking (`transform(updating:)`), `removeSubranges(_:)` or `DiscontiguousAttributedSubstring`, and `#available` cannot hide an undeclared member, so the G3 work stopped TUI building there (tuitree's setup: swiftly 6.2.4 and the Command Line Tools' 15.5 SDK). Each macOS 26 arm sits under `#if !canImport(Darwin) \|\| canImport(FoundationModels)` (FoundationModels arrives with the 26 SDK), with an `#else` that calls M1's fallback, and the selection `subscript(_:)` is not declared at all. | `Sources/TUITextInput/AttributedText/AttributedTextSelection.swift:257`; `AttributedString+AttributedTextSelection.swift:43, :60, :110, :158, :173`; the note in `AttributedTextSelection+MacOS15Fallbacks.swift:22-32` | macOS 15 SDK | Version gate; behaviour | Six `#if`s, three duplicated fallback calls, about 30 lines in all. **Behaviour:** a program built against the 15 SDK takes M1's fallbacks on every macOS, 26 included (approximate validity and tracking, 2.6 to 2.9 ms a tracked change on 3 MB), and has no `AttributedString` `subscript(_:)` with a selection. Every new use of a macOS 26 Foundation API needs the same guard, and only an `env -i` build against that SDK finds a missing one | The six `#if`s and their `#else` arms | 2026-11-17 |
-| S5 | Core Text's paragraph types on the 15 SDK. That SDK's Core Text declares no `AttributedString.TextAlignment` or `CoreTextAttributes`, so TUI declares them itself there under Core Text's names (as on Linux), with no availability gate; on the 26 SDK it uses Core Text's. The two SDKs are told apart by FoundationModels, as in S4. | `Sources/TUIFoundation/Views/AttributeScopes+CoreText.swift` (the `#else` arm, shared with Linux, Windows and WebAssembly); `Sources/TUIFoundation/Views/AttributeScopes+SwiftUI.swift` (the stored `alignment` under `#if`); `Sources/TUI/Exports.swift` (Core Text re-exported on the 26 SDK only) | macOS 15 SDK | Version gate; behaviour | Three `#if`s; the declarations themselves cost nothing extra, since Linux needs them. **Behaviour:** a program built against the 15 SDK sets `string.alignment` on macOS 15 with no `#available`, and stops compiling at a macOS 15 target when it moves to the 26 SDK ("only available in macOS 26"). Checked 2026-11-19: the stand-in probes, and an `env -i` build of the `TUI` target against the 15.5 SDK (swiftly 6.2.4, a fresh scratch path), which declares the types itself and has no warnings | The 15 SDK's arm; Linux keeps the declarations | 2026-11-19 |
 
 ### The Swift 6.2 compiler
 
@@ -105,8 +88,34 @@ that SDK cannot build for a macOS 26 target.
   macOS 15](<../Historical/Swift language and platforms/Raising the floor to macOS 15.md>)): `Mutex`, `Atomic`, `String(validating:)` adopted, every macOS 15 gate deleted, and
   the `@unchecked Sendable` and `nonisolated(unsafe)` lines down from about 147 and 74 to 8 and 4 declarations.
 - **The macOS 15 SDKs declared unsupported** (SDK15-CI (c), 2026-10-26, 4c1ec10f9): the guards for task names,
-  `InlineArray` and the named-task tests on that SDK were deleted. Rows S1 to S3 came back later (see that table).
+  `InlineArray` and the named-task tests on that SDK were deleted. Rows S1 to S3 came back later, and S4 and S5
+  joined them, until the SDK went for good (below).
 - **Windows on Swift 6.4 only** (owner, 2026-11-16, 9c4948f6c): the port does not carry 6.2 or 6.3.
+- **The macOS 15 SDKs no longer build TUI** (the owner's ruling of 2026-11-19): TUI needs the macOS 26 SDK, from
+  Xcode 26 or Command Line Tools 26; the macOS 15 runtime is still supported, through a macOS 15 deployment target
+  built with the 26 SDK, as CI's macOS 15 lane builds. Unsupported since 2026-10-26, that SDK had still been served
+  in practice for a downstream app, tuitree, which moves to Xcode 26's SDK. The five rows it cost, and what became
+  of each:
+  - **S1, `UndoManager`** (2026-10-15, 1f49c77e9). The 15 SDK's `UndoManager` is not main-actor isolated and its
+    handler is `@Sendable`, so the manager travelled as `MainActorUndoManager` and each handler hopped back with
+    `MainActor.assumeIsolated`. The 26 SDK isolates the class to the main actor (so it is `Sendable`) and types the
+    handler `@MainActor`, as TUI's own `UndoManager` off Darwin already did. The wrapper is gone; the status bar
+    holds the manager itself, and the handlers in `TextUndoBridge`, `registerRestoring`, the Example's undo page and
+    four test suites call their steps directly. The isolated step objects stay as the registration targets.
+  - **S2, `fileExporter`'s `unsafeBitCast`** (2026-11-15, 34bd2840f). `Transferable` refines `Sendable` in the 26
+    SDK, so `NSItemProvider.register(_:)` is called plainly: one `unsafe` site fewer.
+  - **S3, `String(unsafeFormat:)`'s Darwin body** (2026-11-15, 34bd2840f). The 26 SDK's `String(format:)` is
+    `@unsafe`, so on Darwin the function calls it under `unsafe` rather than through `withVaList` and
+    `NSString(format:arguments:)`. The function stays, for swift-corelibs-foundation's (see "Not costs of either
+    floor").
+  - **S4, the attributed selection's SDK arms** (2026-11-17). The six `#if !canImport(Darwin) ||
+    canImport(FoundationModels)` guards and their three duplicated fallback calls are gone; each macOS 26 call sits
+    under its `#available` alone, and `subscript(_:)` with a selection is always declared (macOS 26, as SwiftUI's).
+    The macOS 15 runtime's fallbacks are M1 and stay.
+  - **S5, Core Text's paragraph types** (2026-11-19). Told apart by `canImport(CoreText)` now, not by
+    FoundationModels: Core Text's own on Apple platforms, TUI's identical declarations on Linux, Windows and
+    WebAssembly, which keep them. `Tools/SwiftUIProbes/Paragraph attribute types (attralign)/` keeps its `sdk15`
+    mode and FoundationModels test as the dated record of the measurement the ruling rested on.
 
 ## Pending
 
@@ -117,7 +126,8 @@ Costs known to be coming, or not yet priced:
   `==` against made values, an undocumented Codable encoding, or reflection), none of which can run on the
   development machine (macOS 15.8). Not built; the options and prices are in [the G3
   design](<../Historical/Text, editing and the clipboard/An attributed TextEditor - design (G3).md>) §6. Alignment,
-  which this bullet also held until 2026-11-19, is rows M11 and S5. Size: not measured.
+  which this bullet also held until 2026-11-19, is row M11 (and was S5, until the 15 SDK went). Size: not
+  measured.
 - **The highlighter's line lexer** (G3 H0). It would take a `Span<UInt8>` of the line, but `String`'s span needs
   the macOS 26 runtime, so it takes a buffer instead ([Highlighting a large source in
   TextEditor](<../Historical/Text, editing and the clipboard/Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>)).
@@ -143,7 +153,7 @@ These come up when the floors are discussed, and a rise would not remove them:
   decodes with ImageIO, and why `SystemFormatStyle+DiscreteStatics.swift` declares its statics twice. It starts
   with the macOS 15 SDK and continues in the 26 SDK.
 - **`String(unsafeFormat:)` itself.** It exists because Apple's Foundation and swift-corelibs-foundation disagree
-  about whether `String(format:)` is unsafe, which is a Linux matter. Only its Darwin body is S3.
+  about whether `String(format:)` is unsafe, which is a Linux matter. Only its Darwin body was S3.
 - **The WebAssembly executor stall** (a pending `Task.sleep` holds up everything) affects every toolchain through
   6.4.2. Its fix is on `main` after 6.4 (`Sources/TUI/TUI.docc/Articles/RunningInABrowser.md`).
 - **The `concurrency_escape` exceptions** come from SwiftUI's own signatures, Apple classes not marked `Sendable`

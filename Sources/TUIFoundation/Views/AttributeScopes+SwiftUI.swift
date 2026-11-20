@@ -64,12 +64,12 @@ extension AttributeScopes {
         /// A property for accessing an underline style attribute.
         public let underlineStyle: UnderlineStyleAttribute
 
-        #if !(canImport(Darwin) && canImport(FoundationModels))
+        #if !canImport(CoreText)
             /// A property for accessing a paragraph's alignment
             /// (``AttributedString/TextAlignment``) — mirrors SwiftUI's.
             ///
             /// Here TUI declares Core Text's types itself, so it needs no
-            /// macOS 26; on the macOS 26 SDK it is Core Text's, and macOS 26
+            /// macOS 26; on Apple's platforms it is Core Text's, and macOS 26
             /// only (`AttributeScopes+CoreText.swift`).
             public let alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
         #endif

@@ -253,12 +253,9 @@ extension AttributedTextSelection {
     /// Whether `range` is valid for `text`: Foundation's test where it has
     /// one, else whether the range falls inside the text.
     static func isValid(_ range: Range<AttributedString.Index>, in text: AttributedString) -> Bool {
-        // Not in a macOS 15 SDK's Foundation (see the fallbacks' file).
-        #if !canImport(Darwin) || canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
-                return range.isValid(within: text)
-            }
-        #endif
+        if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+            return range.isValid(within: text)
+        }
         return AttributedTextSelectionMacOS15Fallbacks.isInside(range, text)
     }
 

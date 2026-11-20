@@ -17,24 +17,23 @@ import Foundation
 // Core Text doesn't"). Measured with the stand-ins in
 // `Tools/SwiftUIProbes/Paragraph attribute types (attralign)/`:
 //
-// - The macOS 26 SDK declares Core Text's, and TUI uses it: one declaration, so
-//   naming it is never ambiguous, and `string.alignment` wants macOS 26 as
-//   SwiftUI's does. The `TUI` umbrella re-exports Core Text there, because a
-//   SwiftUI file built with `MemberImportVisibility` names the type and its
-//   cases with `import SwiftUI` alone (not this module: its importers would
-//   see Dispatch's names where they see none today). FoundationModels arrives in the same SDK, so it tells that SDK from
-//   the 15 SDKs, as it does for `AttributedTextSelection`'s macOS 26 arms.
-// - The macOS 15 SDKs, Linux, Windows and WebAssembly declare none, so TUI
-//   declares Core Text's names itself, with no availability: nothing else is
-//   named so there.
-// - A stored property cannot be newer than its type, so on the 26 SDK the scope's
-//   `alignment` is a computed property, declared here; elsewhere it is stored,
-//   in the scope (`AttributeScopes+SwiftUI.swift`). Foundation finds a scope's
-//   keys through its stored properties, so on the 26 SDK decoding with
-//   `\.swiftUI`'s scope leaves the alignment out (not measured: it needs macOS
-//   26): Deliberate deviations from SwiftUI T14, put to the owner as
-//   A-ATTRED-14.
-#if canImport(Darwin) && canImport(FoundationModels)
+// - Apple's SDKs declare Core Text's (TUI builds against the macOS 26 SDK, and
+//   no older one), and TUI uses it: one declaration, so naming it is never
+//   ambiguous, and `string.alignment` wants macOS 26 as SwiftUI's does. The
+//   `TUI` umbrella re-exports Core Text there, because a SwiftUI file built
+//   with `MemberImportVisibility` names the type and its cases with
+//   `import SwiftUI` alone (not this module: its importers would see Dispatch's
+//   names where they see none today).
+// - Linux, Windows and WebAssembly have no Core Text, so TUI declares Core
+//   Text's names itself, with no availability: nothing else is named so there.
+// - A stored property cannot be newer than its type, so with Core Text the
+//   scope's `alignment` is a computed property, declared here; elsewhere it is
+//   stored, in the scope (`AttributeScopes+SwiftUI.swift`). Foundation finds a
+//   scope's keys through its stored properties, so with Core Text, coding with
+//   `\.swiftUI`'s scope drops the alignment (not measured: it needs macOS 26):
+//   Deliberate deviations from SwiftUI T14, approved by the owner's ruling
+//   A-ATTRED-14 (2026-11-19).
+#if canImport(CoreText)
     import CoreText
 
     extension AttributeScopes.SwiftUIAttributes {
@@ -77,7 +76,7 @@ import Foundation
     extension AttributeScopes {
         /// The namespace of the paragraph attributes SwiftUI's scope declares —
         /// mirrors Core Text's `AttributeScopes.CoreTextAttributes`, which
-        /// TUI uses itself where the SDK declares it (the macOS 26 SDK).
+        /// TUI uses itself where there is Core Text (Apple's platforms).
         ///
         /// Not a scope of its own, as Core Text's is not: its keys are reached
         /// through ``SwiftUIAttributes``, as `string.alignment`.
@@ -179,7 +178,7 @@ extension AttributedSubstring {
     /// its attributes, since a program on Windows that uses `runs` does not
     /// link (`Documentation/Windows port.md`, "Toolchain").
     package var drawnParagraphAlignment: TextAlignment? {
-        #if canImport(Darwin) && canImport(FoundationModels)
+        #if canImport(CoreText)
             if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *), let alignment = self.alignment {
                 switch alignment {
                 case .left: return .leading
