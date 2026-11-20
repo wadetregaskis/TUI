@@ -1425,10 +1425,11 @@ package struct TextStyle: Sendable, Equatable {
         let palette = context.environment.palette
         // What `.primary` is for a run that states a content level: the style
         // this text draws in, as stated rather than defaulted, so that with
-        // none stated the run draws the palette's tier
+        // none stated, or only a content level of none, the run draws the
+        // palette's tier
         // (``Text/Run/styleResolvingInk(over:in:)``).
         let levelPrimary = style.foregroundColor.map(Paint.color)
-            ?? ink.cascaded.map(Paint.color) ?? context.environment.foregroundStyle
+            ?? ink.cascaded.map(Paint.color) ?? context.environment.levelPrimaryForegroundStyle
         // A ramp a fragment states for itself, banded across this text as an
         // inherited one is, where none is inherited (`Text.Run.statedRamp`).
         // The styles the runs carry, each image among them asked for its

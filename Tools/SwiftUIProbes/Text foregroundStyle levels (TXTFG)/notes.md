@@ -98,6 +98,45 @@ stacked one's pixels equal.
 - A text's own `bold()` under a view's `.fontWeight(.ultraLight)` is
   ultralight: the view's weight, the bold applying to it.
 
+## 4. A text's own level or bold against a view's level or weight
+
+`nested.swift` (`nested.out`, same machine, 2026-11-19, lane TXTFG-NEST): the
+levels by `levels.swift`'s method, the weights by `stacked.swift`'s.
+
+| Above the stack | `.primary` | `.secondary` | `.tertiary` | `.foreground` |
+|---|---|---|---|---|
+| `View.foregroundStyle(.secondary)` | #272727 | #808080 | #BDBDBD | #808080 |
+| `View.foregroundStyle(.tertiary)` | #272727 | #808080 | #BDBDBD | #BDBDBD |
+| `.secondary` under `.red` | #FF9C96 | #FFCDCA | #FFE5E4 | #FF9C96 |
+| `.secondary` under `(.red, .blue)` | #0079FF | #7FBBFF | #BFDCFF | #0079FF |
+| `.red` under `.secondary` | #FF3B2F | #FF9C96 | #FFCDCA | #FF3B2F |
+
+**SwiftUI (measured):**
+
+- A text's own level under a view's level **of no style** replaces it: the
+  plain levels, `.primary` included, as `.secondary.secondary` is `.secondary`.
+- Under a view's level **of a colour** it is a level of that level: below
+  `.red`, a view's `.secondary` makes the text's `.primary` the secondary red
+  and its `.secondary` red at a quarter, as `.red.secondary` above does
+  (section 1); below `(.red, .blue)` the view's `.secondary` is the named blue
+  and the text's levels are levels of blue.
+- A **view's** level under a view's level is not the same: `VStack { Text }
+  .foregroundStyle(.primary)` under `.secondary` under `.red` is red #FF3B2F,
+  and its `.secondary` #FF9C96, levels of the red, not of the secondary red;
+  and a view's `.foregroundStyle(.foreground)` draws the default #272727 under
+  a view's `.secondary`, whatever is above.
+- A text's own `bold()` keeps the view's weight for **every weight but
+  `.regular`**: ultralight, thin, light, medium, semibold and heavy all draw as
+  the view's weight alone; under `.regular` it is bold. `bold(false)` under
+  `.ultraLight` is ultralight. A Markdown `**` and a `Text + Text` of bold
+  fragments are the same as `bold()`.
+- Between two view modifiers the weight wins either way:
+  `VStack { Text }.bold().fontWeight(.ultraLight)` and `.fontWeight(.ultraLight)
+  .bold()` are both ultralight.
+- A view's `.font(.caption)` nearer than its `.fontWeight(.ultraLight)` sets the
+  weight aside: a text's `bold()` there is a bold caption. A view's
+  `.bold(false)` does not stop a text's own `bold()`.
+
 ## TUI
 
 **Before (main at cbbcbbfc3):** `Text` had only `foregroundStyle(_: Color) -> Text`,
@@ -112,9 +151,23 @@ Section 1 matches: a level resolves where the text is drawn against the style
 that text would otherwise draw in (a stated colour, a cascade's, the
 environment's), not a named level; with none it is the palette's tier; a joined
 text's level likewise. `.tint` and `.foreground` resolve where the text is drawn.
-Not matched: under `View.foregroundStyle(.secondary)` TUI's environment holds
-the style already resolved to a colour, so a text's own `.secondary` there is
-that colour at half strength, a paler grey than SwiftUI's #808080.
+Not matched by lane TXTFG: under `View.foregroundStyle(.secondary)` TUI's
+environment holds the style already resolved to a colour, so a text's own
+`.secondary` there was that colour at half strength, a paler grey than
+SwiftUI's #808080.
+
+**After lane TXTFG-NEST (2026-11-19):** section 4's text rows match. A view's
+level of no style is marked in the environment beside the colour it resolved
+to (`EnvironmentValues.bareLevelForegroundStyle`, read through
+`levelPrimaryForegroundStyle` in `SemanticShapeStyles.swift`), and a text's own
+level under it is the palette's tier, as with no style; under a level of a
+colour, or of `foregroundStyle(_:_:)`'s named level, it is a level of that, as
+before. Pinned by `TextForegroundStyleTests` (`levelUnderABareLevel`,
+`levelUnderALevelOfAColour`). Not matched, and not taken on: a view's level
+under a view's level still fades the inner level from the outer one (SwiftUI
+takes it from the style the outer level is of), and a view's
+`.foregroundStyle(.foreground)` is the style in force where SwiftUI's is the
+default foreground.
 
 Section 2 was not matched by lane TXTFG: TUI kept the **last** style a text
 stated, so `.foregroundStyle(.red).foregroundStyle(.blue)` was blue and

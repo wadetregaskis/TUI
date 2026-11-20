@@ -42,6 +42,57 @@ struct TextForegroundStyleTests {
         #expect(own == expected, "\(own.lines) against \(expected.lines)")
     }
 
+    /// Measured (`nested.out`): under a view's `.foregroundStyle(.secondary)`
+    /// or `.tertiary` with nothing above, a text's own `.primary` is #272727,
+    /// `.secondary` #808080 and `.tertiary` #BDBDBD, as with no style; its
+    /// `.foreground` is the view's level. Before, the level was a level of the
+    /// view's tier: `.secondary` the secondary tier at half strength, paler.
+    @Test("Under a view's level of no style, a text's own level replaces it")
+    func levelUnderABareLevel() {
+        for outer in [HierarchicalShapeStyle.secondary, .tertiary] {
+            for own in [HierarchicalShapeStyle.primary, .secondary, .tertiary] {
+                let text = drawn(VStack { Text("Level").foregroundStyle(own) }.foregroundStyle(outer))
+                let alone = drawn(Text("Level").foregroundStyle(own))
+                #expect(text == alone, "\(own.level) under \(outer.level): \(text.lines) against \(alone.lines)")
+            }
+            // A joined text's fragment, likewise.
+            let joined = drawn(VStack { Text("A \(Text("b").foregroundStyle(.secondary))") }.foregroundStyle(outer))
+            let tier = drawn(VStack { Text("A \(Text("b").foregroundStyle(Color.secondary))") }.foregroundStyle(outer))
+            #expect(joined == tier, "fragment under \(outer.level): \(joined.lines) against \(tier.lines)")
+        }
+        // `.foreground` is the view's level itself.
+        #expect(drawn(VStack { Text("Level").foregroundStyle(.foreground) }.foregroundStyle(.secondary))
+            == drawn(Text("Level").foregroundStyle(.secondary)))
+        // Two levels of none are still none.
+        #expect(drawn(VStack { VStack { Text("Level").foregroundStyle(.secondary) }.foregroundStyle(.tertiary) }
+            .foregroundStyle(.secondary)) == drawn(Text("Level").foregroundStyle(.secondary)))
+    }
+
+    /// Measured (`nested.out`): below `.foregroundStyle(.red)`, a view's
+    /// `.secondary` makes a text's own `.primary` #FF9C96 and `.secondary`
+    /// #FFCDCA, as under `.red.secondary`; below `(.red, .blue)`, levels of the
+    /// named blue. A level of a colour is not a level of none.
+    @Test("Under a view's level of a colour, a text's own level is a level of that")
+    func levelUnderALevelOfAColour() {
+        let own = drawn(VStack { Text("Level").foregroundStyle(.secondary) }
+            .foregroundStyle(.secondary).foregroundStyle(.red))
+        let expected = drawn(VStack { Text("Level").foregroundStyle(.secondary) }.foregroundStyle(.red.secondary))
+        #expect(own == expected, "\(own.lines) against \(expected.lines)")
+        #expect(own != drawn(Text("Level").foregroundStyle(.secondary)), "not the palette's tier")
+        let named = drawn(VStack { Text("Level").foregroundStyle(.secondary) }
+            .foregroundStyle(.secondary).foregroundStyle(.red, .blue))
+        #expect(named == drawn(VStack { Text("Level").foregroundStyle(.secondary) }.foregroundStyle(.blue)))
+        // A colour stated below the level ends it.
+        let inner = drawn(VStack { VStack { Text("Level").foregroundStyle(.secondary) }.foregroundStyle(.red) }
+            .foregroundStyle(.secondary))
+        #expect(inner == drawn(VStack { Text("Level").foregroundStyle(.secondary) }.foregroundStyle(.red)))
+        // So does an ink a control sets straight into the environment.
+        let setInk = VStack { Text("Level").foregroundStyle(.secondary) }
+            .environment(\.foregroundStyle, .color(.red))
+        let set = drawn(VStack { setInk }.foregroundStyle(.secondary))
+        #expect(set == inner, "\(set.lines) against \(inner.lines)")
+    }
+
     @Test("Each level fades the style above as macOS's label colours do")
     func everyLevel() {
         let levels: [(own: HierarchicalShapeStyle, expected: AnyShapeStyle)] = [

@@ -303,6 +303,17 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
             // the app's, or a container's default the controls below keep their
             // own colours under (``EnvironmentValues/statedForegroundStyle``).
             childContext.environment.foregroundStyleIsDefault = keepsStated
+            // A content level of no style is marked as one, so that a text's
+            // own level below it is the palette's tier rather than a level of
+            // this one (``EnvironmentValues/levelPrimaryForegroundStyle``). A
+            // function of this wrapper's type and of what is above it, whose
+            // own wrappers tell the memos below of any change, so it needs no
+            // bookkeeping of its own here.
+            if let level = style as? HierarchicalShapeStyle, level.isBare(in: context.environment) {
+                childContext.environment.bareLevelForegroundStyle = paint
+            } else if context.environment.bareLevelForegroundStyle != nil {
+                childContext.environment.bareLevelForegroundStyle = nil
+            }
         }
         childContext.environmentApplicationDepth += 1
         return childContext

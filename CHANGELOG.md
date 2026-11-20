@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Text`'s own `.secondary` under a view's `.foregroundStyle(.secondary)` is the plain secondary, as in
+SwiftUI.** It was the view's secondary at half strength again, a paler grey than SwiftUI draws (#808080, measured on
+macOS 15.8.3), and the text's `.primary` there was the view's secondary rather than the foreground. Under a view's
+content level with no style above it, a text's own level now replaces that level, every level from `.primary` to
+`.quinary`, for a fragment of a joined text too. Under a view's level of a colour, such as a `.secondary` below
+`.foregroundStyle(.red)`, a text's own level is still a level of that secondary red, as in SwiftUI.
+
 **Building TUI on macOS requires the macOS 26 SDK (Xcode 26, or Command Line Tools 26); macOS 15 still runs it.** An
 app built with Xcode 26's SDK still deploys to macOS 15, as before. The macOS 15 SDKs (Command Line Tools 16.x), never
 supported, no longer build TUI at all: a Mac with only those Command Line Tools needs Xcode 26 or Command Line Tools

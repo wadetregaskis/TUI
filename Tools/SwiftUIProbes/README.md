@@ -1609,17 +1609,21 @@ messages cite that path), and what cites it.
   pixel of each line read back. Then (`stacked.swift`, `stacked.out`) which of two of every `Text`-returning
   modifier of one kind wins, and of `lineLimit` and `truncationMode`, by comparing `Text(s).a.b` with
   `Text(s).a` and `Text(s).b` pixel for pixel; how a bold and a weight combine; what `fontWeight(nil)` does; and
-  which of two custom attributes a `TextRenderer` reads.
+  which of two custom attributes a `TextRenderer` reads. Then (`nested.swift`, `nested.out`) a text's own level under
+  a view's level, of no style and of a colour, a view's level under a view's level, and a text's own `bold()` under
+  each view `fontWeight`.
 - **Answers:** a text's own level is the style above at macOS's label strengths (under `.red`, `.secondary` is
   #FF9C96), with no part for a level that `foregroundStyle(_:_:)` names; under a view's `.secondary` the levels are as
   with no style. `.tint` and `.foreground` resolve where the text is drawn. Of two styles on one text the first written
   wins, and a level written first is exactly that level of the style after it. The first wins for every other
   style modifier too, `lineLimit` and `truncationMode` included; a `bold` applies to the weight written after it;
-  `fontWeight(nil)` is the font's own weight; `customAttribute` alone keeps the last.
+  `fontWeight(nil)` is the font's own weight; `customAttribute` alone keeps the last. Under a view's level of no style a
+  text's own level replaces it (`.secondary` #808080, `.primary` #272727); under a view's level of a colour it is a
+  level of that level (#FFCDCA below `.red`).
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-19.
 - **Was:** written here.
 - **Cited by:** `Sources/TUIFoundation/Views/Text+ForegroundStyle.swift`,
-  `Sources/TUIFoundation/Views/Text+StatementOrder.swift`, `Sources/TUIFoundation/Views/Text.swift`,
-  `Sources/TUIFoundation/Views/Text+CustomAttribute.swift`;
+  `Sources/TUIFoundation/Styling/SemanticShapeStyles.swift`, `Sources/TUIFoundation/Views/Text+StatementOrder.swift`,
+  `Sources/TUIFoundation/Views/Text.swift`, `Sources/TUIFoundation/Views/Text+CustomAttribute.swift`;
   `Tests/TUIFoundationTests/TextForegroundStyleTests.swift`, `Tests/TUIFoundationTests/TextModifierOrderTests.swift`;
   the SwiftUI compatibility guide's "Closed: `foregroundStyle` takes `some ShapeStyle`"; Deliberate deviations C3.

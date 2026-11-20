@@ -1704,7 +1704,14 @@ at the secondary level. What ships, measured against SwiftUI on macOS 15.8.3
   is the secondary red, not blue (SwiftUI: #FF9C96), where `View`'s
   `.foregroundStyle(.secondary)` draws the named blue: a level that
   `foregroundStyle(_:_:)` names plays no part in a text's own. The same holds
-  for a text interpolated into another (SwiftUI's `+`, measured).
+  for a text interpolated into another (SwiftUI's `+`, measured). Under a
+  view's own level with nothing above it (`VStack { … }.foregroundStyle(.secondary)`)
+  a text's level replaces that level, as SwiftUI's does: its `.secondary` is the
+  palette's secondary tier and its `.primary` the foreground (SwiftUI: #808080
+  and #272727, `nested.out`; TUI faded the view's tier again until lane
+  TXTFG-NEST, 2026-11-19). Under a view's level of a colour it is a level of
+  that level (below `.red`, a view's `.secondary` makes a text's own
+  `.secondary` red at a quarter, #FFCDCA).
 - **Any other style** — `.tint`, `.foreground`, a gradient, `.red.secondary` —
   is kept on the text's runs, as a custom attribute is, and resolved where the
   text is drawn; the result is a `Text`, so it interpolates into another. A

@@ -26,9 +26,16 @@ extension Text {
     /// own: under `.foregroundStyle(.red, .blue)` the text's `.secondary` is
     /// still the secondary red, where a `View`'s `.foregroundStyle(.secondary)`
     /// draws blue (measured, macOS 15.8.3: #FF9C96,
-    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/`). Any other
-    /// style — `.tint`, `.foreground`, a gradient — is resolved where the text is
-    /// drawn too.
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/`). Under a
+    /// view's own level with no style above it — a `VStack`'s
+    /// `.foregroundStyle(.secondary)` — a text's level replaces that level
+    /// rather than fading it further: its `.secondary` is the palette's
+    /// secondary tier and its `.primary` the foreground, as SwiftUI's are
+    /// (#808080 and #272727, `nested.out`). Under a level of a colour it is a
+    /// level of that level: below `.foregroundStyle(.red)`, a view's
+    /// `.secondary` makes a text's own `.secondary` red at a quarter (#FFCDCA).
+    /// Any other style — `.tint`, `.foreground`, a gradient — is resolved where
+    /// the text is drawn too.
     ///
     /// ```swift
     /// VStack {
@@ -213,8 +220,9 @@ extension Text {
     /// What a text's own content level `level` draws in: `primary`, the style
     /// the text would draw in had it stated none, at the level's strength; or
     /// `nil` for the palette's tier (``paletteTier(_:)``), where nothing is
-    /// stated above it or it is over a raised background, as
-    /// ``HierarchicalShapeStyle`` answers there.
+    /// stated above it but perhaps a content level of nothing
+    /// (``EnvironmentValues/levelPrimaryForegroundStyle``), or it is over a
+    /// raised background, as ``HierarchicalShapeStyle`` answers there.
     ///
     /// Only `primary`: a level named by ``View/foregroundStyle(_:_:)`` is not
     /// consulted, as SwiftUI's text does not (see ``foregroundStyle(_:)-(S)``).
@@ -387,10 +395,11 @@ struct TextForegroundShape: TextAttribute {
         var environmentPaint = context.environment.foregroundStyle
         // A content level the text stated for itself is the style it would
         // draw in had it stated none, at that level, drawn as that style is
-        // below; or, with none stated above it, the palette's tier, drawn as a
-        // stated role colour is (`Text+ForegroundStyle.swift`).
+        // below; or, with none stated above it, or only a content level of
+        // none (``EnvironmentValues/levelPrimaryForegroundStyle``), the
+        // palette's tier, drawn as a stated role colour is.
         if let level = ink.level {
-            let primary = cascaded.foreground.map(Paint.color) ?? environmentPaint
+            let primary = cascaded.foreground.map(Paint.color) ?? context.environment.levelPrimaryForegroundStyle
             if let paint = levelPaint(level, over: primary, in: context.environment) {
                 environmentPaint = paint
             } else {
@@ -423,6 +432,6 @@ struct TextForegroundShape: TextAttribute {
     /// of a style above it states no role of its own.
     func explicitRoleInk(in environment: EnvironmentValues) -> Color? {
         guard let level = style.foregroundInk.level else { return style.foregroundColor }
-        return environment.foregroundStyle == nil ? Self.paletteTier(level) : nil
+        return environment.levelPrimaryForegroundStyle == nil ? Self.paletteTier(level) : nil
     }
 }

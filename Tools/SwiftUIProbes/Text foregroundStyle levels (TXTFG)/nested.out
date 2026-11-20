@@ -1,0 +1,58 @@
+macOS 15.8.3, drawn at 3x, Aqua
+
+View.foregroundStyle(.secondary):
+  Text.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  Text.foregroundStyle(.foreground): y=77...89 n=3234 core=#808080 over #FFFFFF
+View.foregroundStyle(.tertiary):
+  Text.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  Text.foregroundStyle(.foreground): y=77...89 n=2930 core=#BDBDBD over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red):
+  Text.foregroundStyle(.primary): y=11...23 n=2027 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2729 core=#FFCDCA over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1698 core=#FFE5E4 over #FFFFFF
+  Text.foregroundStyle(.foreground): y=77...89 n=3146 core=#FF9C96 over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red, .blue):
+  Text.foregroundStyle(.primary): y=10...23 n=2212 core=#0079FF over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2899 core=#7FBBFF over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1890 core=#BFDCFF over #FFFFFF
+  Text.foregroundStyle(.foreground): y=77...89 n=3382 core=#0079FF over #FFFFFF
+View.foregroundStyle(.red) under View.foregroundStyle(.secondary):
+  Text.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  Text.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  Text.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  Text.foregroundStyle(.foreground): y=76...89 n=3391 core=#FF3B2F over #FFFFFF
+
+no style:
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=76...89 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.secondary):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2198 core=#272727 over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2973 core=#808080 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1882 core=#BDBDBD over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=76...89 n=3372 core=#272727 over #FFFFFF
+View.foregroundStyle(.secondary) under .foregroundStyle(.red):
+  VStack { Text }.foregroundStyle(.primary): y=10...23 n=2221 core=#FF3B2F over #FFFFFF
+  VStack { Text }.foregroundStyle(.secondary): y=33...45 n=2912 core=#FF9C96 over #FFFFFF
+  VStack { Text }.foregroundStyle(.tertiary): y=55...67 n=1922 core=#FFCDCA over #FFFFFF
+  VStack { Text }.foregroundStyle(.foreground): y=76...89 n=3372 core=#272727 over #FFFFFF
+
+{ bold() } under View.fontWeight(.ultraLight): last; first and last differ in 5372 px
+{ bold() } under View.fontWeight(.thin): last; first and last differ in 5437 px
+{ bold() } under View.fontWeight(.light): last; first and last differ in 5470 px
+{ bold() } under View.fontWeight(.regular): first; first and last differ in 5448 px
+{ bold() } under View.fontWeight(.medium): last; first and last differ in 5262 px
+{ bold() } under View.fontWeight(.semibold): last; first and last differ in 4788 px
+{ bold() } under View.fontWeight(.heavy): last; first and last differ in 5290 px
+{ bold(false) } under View.fontWeight(.ultraLight): last; first and last differ in 4412 px
+{ Text("**Sample text**") } under View.fontWeight(.ultraLight): last; first and last differ in 5372 px
+{ bold() + bold() } under View.fontWeight(.ultraLight): last; first and last differ in 5372 px
+{ bold() } under View.font(.caption).fontWeight(.ultraLight): first; first and last differ in 3136 px
+{ bold() } under View.bold(false): first; first and last differ in 5448 px
+VStack { Text }.bold().fontWeight(.ultraLight): last; first and last differ in 5372 px
+VStack { Text }.fontWeight(.ultraLight).bold(): first; first and last differ in 5372 px
