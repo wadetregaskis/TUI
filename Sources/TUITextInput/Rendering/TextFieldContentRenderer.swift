@@ -275,10 +275,14 @@ struct TextFieldContentRenderer: FieldTextLayout {
         private var decoration: CellDecoration?
         private var start = 0
         private var isOpen = false
+        /// The frame's introducers, each look's derived once, or `nil` to
+        /// derive each run's (``RunIntroducers``).
+        private let introducers: RunIntroducers?
 
-        init(ink: Color, field: Color?) {
+        init(ink: Color, field: Color?, introducers: RunIntroducers? = nil) {
             self.ink = ink
             self.field = field
+            self.introducers = introducers
         }
 
         /// Closes the open run.
@@ -288,23 +292,21 @@ struct TextFieldContentRenderer: FieldTextLayout {
         ///   same invariant `emitCaret` builds its own run's `offsetX` from.
         mutating func flush(atColumn column: Int) {
             guard isOpen else { return }
-            if let decoration {
-                var style = TextStyle()
-                style.foregroundColor = ink.opaqueSpelling
-                style.backgroundColor = field?.opaqueSpelling
-                style.isInverted = isReversed
-                decoration.apply(to: &style)
-                line += ANSIRenderer.render(text, with: style)
+            let look = RunIntroducers.Look(ink: ink, field: field, isReversed: isReversed, decoration: decoration)
+            // Written into the line as `ANSIRenderer.wrap` spells a run, its
+            // introducer, text and reset, without making that string first.
+            if let introducer = introducers.map({ $0.introducer(for: look) }) ?? RunIntroducers.derive(look) {
+                line += introducer
+                line += text
+                line += ANSIRenderer.reset
             } else {
-                line += ANSIRenderer.colorize(
-                    text, foreground: ink.opaqueSpelling, background: field?.opaqueSpelling,
-                    inverted: isReversed)
+                line += text
             }
             claims +=
                 OpacityRegion.claim(
                     offsetX: start, width: column - start, height: 1, ink: ink, field: field)
                 .map { [$0] } ?? []
-            text = ""
+            text.removeAll(keepingCapacity: true)
             isOpen = false
         }
 

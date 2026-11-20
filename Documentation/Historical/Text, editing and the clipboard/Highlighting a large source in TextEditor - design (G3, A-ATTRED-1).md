@@ -1119,6 +1119,25 @@ Tests: `JSONLineStylerTests` (each kind of token, escapes in strings and keys, a
 can be, every pair of bytes giving offsets in order, and through an editor: its colours drawn, and a line past the
 limit drawn unstyled between styled lines).
 
+#### What highlighting costs a frame, profiled (2026-11-20)
+
+H5′'s A/B left `bigtext-highlighted` 60% dearer a frame than `bigtext`, about the same for a key, a move and a jump.
+Profiled with `Tools/Profiling/` (one release binary with symbols, `Stress --bench --scenario session/<id>` attached
+by `xctrace`, `analyze_timeprofile.py --thread main`), and then taken apart with switches in the gate that were never
+committed, each A/B'd against `bigtext` in one binary: the highlighter answering nothing (`noop`), answering each
+permit without taking an update (`idle`), and taking each update but publishing nothing (`nopublish`). Neither
+cause was where §4 put the cost; the runs a screen draws are cached, and joining them is microseconds, as it said.
+
+- **B-ATTRED-44. A frame derives each look's SGR introducer once.** In the highlighted trace
+  `RunAccumulator.flush` was 12.8% of the main thread inclusive (707 ms of 5,532), 71% of it
+  `ANSIRenderer.styleSequence(for:)` and most of the rest the run's string made and appended: about 420 µs a frame,
+  against 31 for `bigtext`, whose rows are a run each. A highlighted screen is some 300 runs in about ten looks
+  (ink, field, reversal, decoration). `RunIntroducers`, made with the rows' styling, one a frame, keeps each look's
+  introducer, found the last one first; the run is appended as its introducer, text and reset, as
+  `ANSIRenderer.wrap` spells it, without making that string first. Byte for byte the frames they were. Kept no
+  longer than the frame, since an introducer is spelled at the frame's colour depth, which the look does not say;
+  a TextField's single row is left as it was.
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

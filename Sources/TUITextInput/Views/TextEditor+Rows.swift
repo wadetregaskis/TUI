@@ -249,6 +249,9 @@ extension _TextEditorCore {
         /// How a disabled editor fades its lines' own styles, or `nil` while it
         /// is enabled, where the runs are drawn as they are and cost nothing more.
         let runFade: RunFade?
+        /// Each look's introducer, derived once for the frame's runs
+        /// (B-ATTRED-44).
+        let introducers = RunIntroducers()
 
         /// A disabled editor fades everything it draws, its runs' colours too
         /// (the owner's ruling A-DISED-1, 2026-11-19, a deliberate deviation:
@@ -370,7 +373,7 @@ extension _TextEditorCore {
         // palette's), and run boundaries already are colour boundaries. Its column
         // is `outputCells`, which holds the next cell's column wherever a run opens
         // or flushes — mid-straddle included, where `outputCells` advances after.
-        var runs = TextFieldContentRenderer.RunAccumulator(ink: textForeground, field: background)
+        var runs = TextFieldContentRenderer.RunAccumulator(ink: textForeground, field: background, introducers: styling.introducers)
         // The decoration of the character being drawn, for every cell it takes.
         var decoration: CellDecoration?
         func emit(_ character: Character, foreground: Color, background: Color?, reversed: Bool = false) {
