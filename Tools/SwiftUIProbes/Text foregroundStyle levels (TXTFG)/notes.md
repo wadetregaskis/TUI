@@ -186,7 +186,19 @@ after it or above it; `customAttribute` keeps the last. `monospaced`,
 `fontDesign` and `monospacedDigit` change nothing in a terminal, and TUI's
 `Text` has no `fontWidth`, `kerning`, `tracking` or `baselineOffset`.
 
-Not matched: a text's own `bold()` under a view's `.fontWeight(.ultraLight)`
-draws bold and faint, where SwiftUI's is ultralight (TUI's faint is not only a
-weight: `.dim()`, a caption's tier); this is a text against what is above it,
-not an order on one text, and is left as it was.
+Not matched by lane TXTFG-ORDER: a text's own `bold()` under a view's
+`.fontWeight(.ultraLight)` drew bold and faint, where SwiftUI's is ultralight
+(TUI's faint is not only a weight: `.dim()`, a caption's tier).
+
+**After lane TXTFG-NEST (2026-11-19), bold:** section 4's light weights match.
+A light weight's faint is marked as one in the style cascade
+(`StyleAttributes.dimIsLightWeight`, carried with the faint attribute), and a
+text under it is not bold unless its own weight says so: its own `bold()`, a
+Markdown `**`, a bold fragment, and a view's `bold()` on either side of the
+weight all draw faint (`Text.swift`, `applyingCascadedEmphasis` and
+`concatenatedLines`). A caption's or `.dim()`'s faint still takes a bold.
+Pinned by `TextModifierOrderTests.boldUnderALightWeight`. Not matched: under a
+view's `.fontWeight(.medium)` SwiftUI keeps a text's `bold()` medium, which TUI
+draws bold, since its weights carry no medium apart from regular; and a
+`.font(.caption)` nearer than a view's light weight sets the weight aside in
+SwiftUI (a bold caption) where TUI keeps the weight (faint).

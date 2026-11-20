@@ -278,6 +278,12 @@ extension Text {
 
     /// Applies or removes bold — mirrors SwiftUI's `bold(_:)`.
     ///
+    /// A bold applies to the weight in force, as SwiftUI's does, and leaves a
+    /// light one light: under a view's `.fontWeight(.ultraLight)`, `.thin` or
+    /// `.light`, `Text("x").bold()` is drawn faint, not bold and faint
+    /// (measured, macOS 15.8.3,
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/nested.out`).
+    ///
     /// - Parameter isActive: Whether the text is bold. `false` states that it
     ///   is not, overriding a ``View/bold(_:)`` cascaded from an ancestor.
     /// - Returns: A new text with the bold setting applied.
@@ -899,6 +905,12 @@ package struct TextStyle: Sendable, Equatable {
         } else {
             result.isBold = own.isBold ?? cascaded.bold
             result.isDim = own.isDim ?? cascaded.dim
+            // A bold applies to the weight below it and leaves a light one
+            // light, as SwiftUI's does: under a light weight above, neither the
+            // text's own `bold()` nor a bold cascaded with the weight makes it
+            // bold. Only a weight of the text's own, which states the faint
+            // attribute too, says otherwise (`StyleAttributes.dimIsLightWeight`).
+            if own.isDim == nil, cascaded.keepsLightWeight { result.isBold = false }
         }
         result.isItalic = own.isItalic ?? cascaded.italic
         result.underline = own.underline ?? cascaded.underlineLine
@@ -1235,7 +1247,7 @@ package struct TextStyle: Sendable, Equatable {
             linkSpans?.note(plainLines, runTexts: runTexts, runs: runs, gaps: gaps)
             let concatenated = concatenatedLines(
                 plainLines, runs: runs, runTexts: runTexts, blockWidth: lineWidths.max() ?? 0,
-                effectiveStyle: effectiveStyle, font: font, ink: (ramp, cascaded.foreground), context: context)
+                effectiveStyle: effectiveStyle, font: font, ink: (ramp, cascaded), context: context)
             styledLines = concatenated.lines
             perLineClaims = concatenated.claims
         } else if let ramp, !context.isMeasuring {
@@ -1414,12 +1426,13 @@ package struct TextStyle: Sendable, Equatable {
     ///   - effectiveStyle: This text's resolved attributes, cascade included.
     ///   - font: This text's font, for deciding which fragments re-cascade.
     ///   - ink: The gradient in force, when there is one; and the style
-    ///     cascade's colour for this text, if it gives one.
+    ///     cascade's attributes for this text: its colour, if it gives one,
+    ///     and whether a light weight above leaves a fragment's own bold light.
     ///   - context: The render context.
     /// - Returns: One styled string per line.
     private func concatenatedLines(
         _ plainLines: [String], runs: [Text.Run], runTexts: [String], blockWidth: Int,
-        effectiveStyle: TextStyle, font: Font?, ink: (ramp: Paint?, cascaded: Color?), context: RenderContext
+        effectiveStyle: TextStyle, font: Font?, ink: (ramp: Paint?, cascaded: StyleAttributes), context: RenderContext
     ) -> (lines: [String], claims: [[OpacityRegion]]) {
         // Read once for every run, not copied out of the environment per run.
         let palette = context.environment.palette
@@ -1429,7 +1442,10 @@ package struct TextStyle: Sendable, Equatable {
         // palette's tier
         // (``Text/Run/styleResolvingInk(over:in:)``).
         let levelPrimary = style.foregroundColor.map(Paint.color)
-            ?? ink.cascaded.map(Paint.color) ?? context.environment.levelPrimaryForegroundStyle
+            ?? ink.cascaded.foreground.map(Paint.color) ?? context.environment.levelPrimaryForegroundStyle
+        // Whether this text resolved under a light weight stated above it,
+        // which a fragment's own bold leaves light, as it does the text's.
+        let keepsLightWeight = style.isDim == nil && ink.cascaded.keepsLightWeight
         // A ramp a fragment states for itself, banded across this text as an
         // inherited one is, where none is inherited (`Text.Run.statedRamp`).
         // The styles the runs carry, each image among them asked for its
@@ -1484,6 +1500,10 @@ package struct TextStyle: Sendable, Equatable {
                 // falls through to that.
                 if paintsRamp { runTakesRamp.append(takesOwnRamp ?? (own.foregroundColor == nil)) }
                 runStyle = own.merged(over: effectiveStyle)
+                // A fragment's own bold — a `**` included — applies to the
+                // light weight this text resolved under, as the text's does
+                // (``applyingCascadedEmphasis(to:_:font:context:)``).
+                if keepsLightWeight, own.isBold == true, own.isDim == nil { runStyle.isBold = false }
             }
             resolvedRunStyles.append(
                 runStyle.fittingLines(to: context.environment.lineStyleSupport).resolved(with: palette))

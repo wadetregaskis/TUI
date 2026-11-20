@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A bold under a light `fontWeight` stays light, as in SwiftUI.** `Text("x").bold()` inside a view with
+`.fontWeight(.ultraLight)`, `.thin` or `.light` drew bold and faint, where SwiftUI draws it ultralight (measured on
+macOS 15.8.3): a bold applies to the weight in force. It is now drawn faint, and so is a Markdown `**` span, a bold
+fragment of a joined text, and a view's `.bold()` on either side of the light weight. A text's own `fontWeight` still
+decides for itself, and a faint that is not a weight, a caption's or `.dim()`'s, still takes a bold.
+
 **A `Text`'s own `.secondary` under a view's `.foregroundStyle(.secondary)` is the plain secondary, as in
 SwiftUI.** It was the view's secondary at half strength again, a paler grey than SwiftUI draws (#808080, measured on
 macOS 15.8.3), and the text's `.primary` there was the view's secondary rather than the foreground. Under a view's

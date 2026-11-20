@@ -1746,8 +1746,13 @@ used to treat it as no statement. `customAttribute(_:)` is the exception, in
 SwiftUI as here: the last written of a type is the one a renderer reads, a whole
 concatenation's over a fragment's own (TUI kept the fragment's). Framework code
 that restyles a text on purpose (the Markdown attribute keys over `**`) sets its
-style directly. Not matched: a text's own `bold()` under a view's
-`.fontWeight(.ultraLight)` draws bold and faint, where SwiftUI's is ultralight.
+style directly. A bold applies to the weight above the text too: under a
+view's `.fontWeight(.ultraLight)`, `.thin` or `.light`, a text's own `bold()`, a
+Markdown `**` and a view's `bold()` on either side of the weight leave it faint,
+as SwiftUI draws it ultralight (`nested.out`; TUI drew bold and faint until lane
+TXTFG-NEST, 2026-11-19). Not matched: under a view's `.fontWeight(.medium)` SwiftUI
+keeps a text's `bold()` medium, which TUI draws bold; TUI's weights carry no
+medium apart from regular.
 
 Two used to stay out with it and no longer do. `HierarchicalShapeStyle` was
 declined because a second `.secondary` beside `Color.secondary` was expected to

@@ -1619,11 +1619,13 @@ messages cite that path), and what cites it.
   style modifier too, `lineLimit` and `truncationMode` included; a `bold` applies to the weight written after it;
   `fontWeight(nil)` is the font's own weight; `customAttribute` alone keeps the last. Under a view's level of no style a
   text's own level replaces it (`.secondary` #808080, `.primary` #272727); under a view's level of a colour it is a
-  level of that level (#FFCDCA below `.red`).
+  level of that level (#FFCDCA below `.red`). A text's own `bold()` keeps a view's weight for every weight but
+  `.regular`, a light one light; a view's weight beats a view's `bold()` on either side of it.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-19.
 - **Was:** written here.
 - **Cited by:** `Sources/TUIFoundation/Views/Text+ForegroundStyle.swift`,
   `Sources/TUIFoundation/Styling/SemanticShapeStyles.swift`, `Sources/TUIFoundation/Views/Text+StatementOrder.swift`,
-  `Sources/TUIFoundation/Views/Text.swift`, `Sources/TUIFoundation/Views/Text+CustomAttribute.swift`;
+  `Sources/TUIFoundation/Views/Text.swift`, `Sources/TUIFoundation/Views/Text+CustomAttribute.swift`,
+  `Sources/TUIFoundation/Styling/StyleAttributes.swift`;
   `Tests/TUIFoundationTests/TextForegroundStyleTests.swift`, `Tests/TUIFoundationTests/TextModifierOrderTests.swift`;
   the SwiftUI compatibility guide's "Closed: `foregroundStyle` takes `some ShapeStyle`"; Deliberate deviations C3.

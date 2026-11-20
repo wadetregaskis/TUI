@@ -40,7 +40,9 @@ public enum FontWeight: Sendable, Hashable {
         case .semibold, .bold, .heavy, .black:
             return StyleAttributes(bold: true, dim: false)
         case .ultraLight, .thin, .light:
-            return StyleAttributes(bold: false, dim: true)
+            var attributes = StyleAttributes(bold: false, dim: true)
+            attributes.dimIsLightWeight = true
+            return attributes
         case .regular, .medium:
             return StyleAttributes(bold: false, dim: false)
         }
@@ -75,6 +77,16 @@ public struct StyleAttributes: Sendable, Hashable {
     public var underline: Bool?
     public var strikethrough: Bool?
     public var dim: Bool?
+
+    /// Whether ``dim`` was stated by a light weight (``FontWeight/light`` and
+    /// lighter) rather than by `dim` itself or a font's faint tier. A bold
+    /// applies to the weight below it, as SwiftUI's does, and leaves a light
+    /// one light: under a view's `.fontWeight(.ultraLight)`, `Text("x").bold()`
+    /// and a view's `.bold()` are ultralight, a text's own weight alone
+    /// deciding otherwise (measured, macOS 15.8.3,
+    /// `Tools/SwiftUIProbes/Text foregroundStyle levels (TXTFG)/nested.out`).
+    /// It travels with ``dim``, as a line's style travels with its line.
+    var dimIsLightWeight = false
 
     /// How the underline is drawn where ``underline`` is `true`: `nil` for a
     /// single line in the text's colour. It travels with ``underline``, so the
@@ -158,7 +170,7 @@ public struct StyleAttributes: Sendable, Hashable {
     /// attributes `merged(over:)` the accumulated outer ones makes the closest
     /// setter of each property win (proximity, per property).
     public func merged(over base: Self) -> Self {
-        Self(
+        var merged = Self(
             foreground: foreground ?? base.foreground,
             background: background ?? base.background,
             bold: bold ?? base.bold,
@@ -171,5 +183,13 @@ public struct StyleAttributes: Sendable, Hashable {
             // A line's style goes with whoever stated the line.
             underlineStyle: underline != nil ? underlineStyle : base.underlineStyle,
             strikethroughStyle: strikethrough != nil ? strikethroughStyle : base.strikethroughStyle)
+        merged.dimIsLightWeight = dim != nil ? dimIsLightWeight : base.dimIsLightWeight
+        return merged
+    }
+
+    /// Whether a bold arriving with these attributes stays off: the faint they
+    /// resolve to is a light weight's (``dimIsLightWeight``).
+    var keepsLightWeight: Bool {
+        dim == true && dimIsLightWeight
     }
 }

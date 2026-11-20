@@ -78,6 +78,40 @@ struct TextModifierOrderTests {
         keepsFirst(heavy.bold(false), heavy, not: text)
     }
 
+    /// Measured (`nested.out`): a text's own `bold()` under a view's
+    /// `.fontWeight(.ultraLight)`, `.thin` or `.light` draws as the view's
+    /// weight alone, and so do a Markdown `**`, a `Text + Text` of bold
+    /// fragments (here interpolated) and a view's `bold()` on either side of the weight; under
+    /// `.regular` it is bold. TUI drew bold and faint.
+    @Test("A bold under a light weight above the text leaves it light, as SwiftUI's does")
+    func boldUnderALightWeight() {
+        /// Whether `word` is drawn faint and not bold, as a light weight is.
+        func isLight(_ word: String, in view: some View) -> Bool {
+            let state = sgrState(of: word, in: drawn(view).lines)
+            return state?.isBold == false && state?.isFaint == true
+        }
+        for weight in [FontWeight.ultraLight, .thin, .light] {
+            let light = drawn(VStack { text }.fontWeight(weight))
+            #expect(light != drawn(text.bold()), "precondition: \(weight) is not bold")
+            let own = drawn(VStack { text.bold() }.fontWeight(weight))
+            #expect(own == light, "\(weight): \(own.lines) against \(light.lines)")
+            #expect(isLight("Sample", in: VStack { Text("**Sample**") }.fontWeight(weight)), "\(weight): Markdown")
+            #expect(isLight("ple", in: VStack { Text("\(Text("Sam").bold())\(Text("ple").bold())") }
+                .fontWeight(weight)), "\(weight): joined")
+            #expect(isLight("ple", in: VStack { Text("Sam\(Text("ple").bold())") }.fontWeight(weight)),
+                "\(weight): a bold fragment")
+            #expect(drawn(VStack { text }.bold().fontWeight(weight)) == light, "\(weight): a view's bold inside")
+            #expect(drawn(VStack { text }.fontWeight(weight).bold()) == light, "\(weight): a view's bold outside")
+        }
+        #expect(!isLight("ple", in: VStack { Text("Sam\(Text("ple").bold())") }), "precondition: a bold fragment")
+        // A regular weight takes the bold; a text's own weight decides for itself.
+        #expect(drawn(VStack { text.bold() }.fontWeight(.regular)) == drawn(text.bold()))
+        #expect(drawn(VStack { text.bold().fontWeight(.regular) }.fontWeight(.ultraLight)) == drawn(text.bold()))
+        // A faint that is not a weight still takes it: a bold caption.
+        #expect(drawn(VStack { text.bold() }.font(.caption)) == drawn(text.bold().dim()))
+        #expect(drawn(VStack { text.bold() }.style(.text) { $0.dim = true }) == drawn(text.bold().dim()))
+    }
+
     @Test("fontWeight(nil) is the font's own weight, over a weight or bold stated after it or above it")
     func fontsOwnWeight() {
         keepsFirst(text.fontWeight(nil).fontWeight(.heavy), text, not: text.fontWeight(.heavy))
