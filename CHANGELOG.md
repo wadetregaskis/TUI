@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A key in a `TextEditor` taller than its view no longer draws the scroll bar again.** The bar, and the frames of its
+breath while the editor holds the focus, were drawn afresh every frame, every cell spelled anew, though a key rarely
+moves the scroll: a sixth of a key's cost in a 3.2 MB document. The editor now keeps its bar with what it was drawn
+from, as a `ScrollView` keeps its own, and draws it again only when one of those moves. A key in that document costs
+about a fifth less, and in a wrapping editor of two thousand lines about a third less (release build).
+
 **A scroll view disabled while it does not hold the focus shows a pinned thumb without colour.** Its bar was kept
 from the frame before, when the view was enabled, so on a terminal with no colour the thumb stayed `▒` where a
 disabled view's is `░`.

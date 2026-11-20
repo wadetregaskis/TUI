@@ -40,6 +40,15 @@ final class TextEditorHandler: PersistedFocusable {
     /// (`scrollIndicatorsFlash`).
     var indicatorFlash = ScrollIndicatorFlash()
 
+    /// The scroll bar drawn last time, with the inputs it was drawn from, and
+    /// its breath's runs (`ScrollbarMemo.vertical`): drawn again only when
+    /// one of them moves.
+    var scrollbarMemo: ScrollbarMemo<ClaimingColumn>?
+
+    /// How many times ``scrollbarMemo`` answered — for the test that pins it
+    /// answering.
+    var scrollbarMemoHits = 0
+
     /// Whether the pointer is over the editor: under
     /// `.scrollIndicatorPlacement(.overContent)` its scroll bar is drawn over
     /// the text while it is, unless the editor holds the focus (then the bar

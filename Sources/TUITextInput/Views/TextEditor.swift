@@ -566,10 +566,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             // breath is a focus indication and goes with the effect; the caret
             // above is the insertion point and reads the raw `isFocused`.
             bar = appendScrollbar(
-                to: &drawn.lines, height: height, extent: window.extent,
-                offset: window.offset, barColumn: barColumn,
+                to: &drawn.lines, height: height, window: window, barColumn: barColumn,
                 isFocused: context.indicatesFocus(isFocused),
-                flash: handler.indicatorFlash.strength(context: context), context: context)
+                flash: handler.indicatorFlash.strength(context: context), handler: handler, context: context)
         }
 
         var buffer = FrameBuffer(lines: drawn.lines)
@@ -630,37 +629,33 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// replaying over a screen the caret was still repainting. Either half
     /// alone looks correct in a screenshot and is wrong over time.
     private func appendScrollbar(
-        to output: inout [String], height: Int, extent: Int, offset: Int,
-        barColumn: Int, isFocused: Bool, flash: Double?, context: RenderContext
+        to output: inout [String], height: Int, window: Window,
+        barColumn: Int, isFocused: Bool, flash: Double?, handler: TextEditorHandler, context: RenderContext
     ) -> (runs: [AnimatedCellRun], claims: [OpacityRegion]) {
         // Pulses the accent while the editor is focused — the shared
         // focus-indicator convention (ScrollbarColors.focusIndicating). The
         // editor's bar is not a mouse target (it registers no region of its
         // own), so there is no hovered cell to answer.
-        let colors = ScrollbarColors.focusIndicating(isFocused: isFocused, hoveredCell: nil, context: context)
-        var bar = ScrollbarRenderer.verticalScrollbar(
-            height: height, extent: extent, viewport: height, offset: offset,
+        //
+        // Kept on the handler with everything it is drawn from, as a scroll
+        // view's is (`ScrollbarMemo.vertical`): a key rarely moves the scroll,
+        // and drawn afresh every frame — the bar, then the bar again for each
+        // colour of its breath, every cell spelled in SGR — it was 16.7% of a
+        // key in a 3.2 MB document (`Stress --session bigtext`).
+        let memo = ScrollbarMemo.vertical(
+            remembered: &handler.scrollbarMemo, hits: &handler.scrollbarMemoHits,
+            length: height, extent: window.extent, viewport: height, offset: window.offset,
             arrows: .none, proportional: true,
-            colors: flash.map { colors.flashing($0, in: context.environment.palette) } ?? colors,
-            width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
+            isFocused: isFocused, hoveredCell: nil, flash: flash, context: context)
+        var bar = memo.bar
         // One cell per row the editor drew — an unpainted space past the bar's
         // end, as it always was — so no claim outlives the row it was for.
         let rows = min(height, output.count)
         bar.fit(toCount: rows, field: nil)
         for index in 0..<rows { output[index] += bar.lines[index] }
-        let claims = bar.claims(atColumn: barColumn)
-        // A flashing bar is still: the breath's runs would paint over the flash.
-        guard flash == nil,
-            let pulse = ScrollbarColors.focusPulse(
-                isFocused: isFocused, hoveredCell: nil, context: context)
-        else { return ([], claims) }
-        return (
-            ScrollbarRenderer.verticalScrollbarRuns(
-                height: height, extent: extent, viewport: height, offset: offset,
-                arrows: .none, proportional: true, pulse: pulse, width: context.environment.scrollbarWidth,
-                cornerTriangles: context.environment.cornerTrianglesFillTheCell
-            ).map { $0.shifted(byX: barColumn, y: 0) },
-            claims)
+        // A flashing bar is still: the breath's runs would paint over the
+        // flash, so the memo has none for it.
+        return (memo.runs.map { $0.shifted(byX: barColumn, y: 0) }, bar.claims(atColumn: barColumn))
     }
 
     /// What a frame draws its rows from: how wide they are, whether a scroll
