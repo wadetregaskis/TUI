@@ -73,7 +73,7 @@ extension View {
     /// ```
     ///
     /// TUI-specific, and on every platform: SwiftUI's `fileExporter` takes a
-    /// `Transferable` or a `FileDocument`, which Linux does not have.
+    /// `Transferable` or a `FileDocument`, which Linux and Windows do not have.
     ///
     /// - Parameters:
     ///   - isPresented: A binding to whether the panel is shown.
@@ -125,7 +125,7 @@ extension View {
     /// An encoding error ends the save, handed to `onCompletion`.
     ///
     /// TUI-specific, and on every platform: SwiftUI's `fileExporter` takes a
-    /// `Transferable` or a `FileDocument`, which Linux does not have.
+    /// `Transferable` or a `FileDocument`, which Linux and Windows do not have.
     ///
     /// - Parameters:
     ///   - isPresented: A binding to whether the panel is shown.

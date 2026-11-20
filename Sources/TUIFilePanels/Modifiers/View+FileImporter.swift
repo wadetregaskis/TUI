@@ -48,8 +48,8 @@ extension View {
     /// The URL is a plain file URL. Apple's documentation asks for
     /// `startAccessingSecurityScopedResource()` around its use, which a sandboxed
     /// macOS app needs; the call is harmless here on macOS (it returns `true`),
-    /// and Linux's Foundation has no such method, so code shared with Linux
-    /// keeps it inside `#if canImport(Darwin)`.
+    /// and the Foundation of Linux and Windows has no such method, so code
+    /// shared with them keeps it inside `#if canImport(Darwin)`.
     ///
     /// - Note: Changing `allowedContentTypes` while the file importer is
     ///   presented will have no immediate effect, however will apply the next

@@ -42,7 +42,7 @@ import Foundation
 /// }
 /// ```
 ///
-/// That compiles on Linux unchanged, where `UTType` and `FileWrapper` are TUI's;
+/// That compiles on Linux and Windows unchanged, where `UTType` and `FileWrapper` are TUI's;
 /// only `import UniformTypeIdentifiers`, if the file says so, wants
 /// `#if canImport(UniformTypeIdentifiers)`.
 @preconcurrency

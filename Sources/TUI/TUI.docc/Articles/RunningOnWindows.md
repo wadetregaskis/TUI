@@ -82,6 +82,8 @@ the app, in both terminals. Two things don't:
   there: neither terminal posts notifications, and Windows has no tool TUI can post one with, as it does with
   `osascript` on macOS and `notify-send` on Linux.
 - **Progress** from ``View/terminalProgress(_:)`` shows as a ring on Windows Terminal's tab and on its taskbar button.
+- **Reduce motion and high contrast** aren't read from Windows's settings, as they are from macOS's and GNOME's. Set
+  `TUI_REDUCE_MOTION=1` or `TUI_INCREASE_CONTRAST=1` for them (<doc:EnvironmentVariables>).
 
 ## Where Things Are Kept
 

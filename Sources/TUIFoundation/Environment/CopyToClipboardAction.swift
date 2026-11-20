@@ -40,7 +40,7 @@
 /// TUI-specific: SwiftUI has no such action. A SwiftUI app writes
 /// `NSPasteboard.general` or `UIPasteboard.general`, which in a terminal app
 /// is the clipboard of the machine the app runs on — the wrong one over ssh —
-/// and on Linux does not exist.
+/// and on Linux and Windows does not exist.
 ///
 /// A `TestApp` keeps what was copied, for a test to read as its `clipboard`.
 public struct CopyToClipboardAction: Sendable {

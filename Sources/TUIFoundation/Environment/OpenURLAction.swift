@@ -25,7 +25,7 @@ import TUICore
 /// ```
 ///
 /// The default action hands the URL to the operating system's opener — `open`
-/// on macOS, `xdg-open` on Linux — but that opener is OFF unless the session
+/// on macOS, `xdg-open` on Linux, the shell's `ShellExecuteW` on Windows — but that opener is OFF unless the session
 /// has been declared local: over ssh it would run on the wrong machine, and
 /// the framework cannot tell which machine it is on (3a96d8fc). A tool that
 /// knows it is local turns it on through ``TerminalClient/urlOpeningSupport``,

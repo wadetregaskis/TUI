@@ -165,7 +165,7 @@ enum FileExportWrite {
         /// it exports, when `contentTypes` is empty), and written atomically.
         ///
         /// Apple platforms only: `Transferable` is CoreTransferable's, which
-        /// Linux does not have.
+        /// Linux and Windows do not have.
         ///
         /// - Parameters:
         ///   - isPresented: A binding to whether the interface should be shown.

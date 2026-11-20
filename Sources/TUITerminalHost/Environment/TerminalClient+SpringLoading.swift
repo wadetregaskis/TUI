@@ -12,7 +12,7 @@ import TUICore
 
 extension TerminalClient {
     /// The host's spring-loading delay, or `nil` where there is none to read:
-    /// a host with no such setting (Linux, a wasm guest), or one never set.
+    /// a host with no such setting (Linux, Windows, a wasm guest), or one never set.
     ///
     /// On macOS, System Settings ▸ Accessibility ▸ Pointer Control's
     /// spring-loading speed, `com.apple.springing.delay` in the global domain,

@@ -25,7 +25,7 @@
     /// caller uses: the identifier, the preferred extension and MIME type, the
     /// types it conforms to, and the static members that name the common types.
     /// So `fileImporter(isPresented:allowedContentTypes:onCompletion:)` with
-    /// `[.pdf, .plainText]` compiles on Linux unchanged; a file that imports
+    /// `[.pdf, .plainText]` compiles on Linux and Windows unchanged; a file that imports
     /// UniformTypeIdentifiers wraps that import in
     /// `#if canImport(UniformTypeIdentifiers)`.
     ///

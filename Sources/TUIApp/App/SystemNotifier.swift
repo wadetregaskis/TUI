@@ -13,7 +13,8 @@ import TUICore
 import TUIFoundation
 
 /// This machine's own notifications — AppleScript's `display notification`
-/// through `osascript` on macOS, `notify-send` (D-Bus) on a Linux desktop —
+/// through `osascript` on macOS, `notify-send` (D-Bus) on a Linux desktop, and
+/// nothing on Windows, which has no tool to post one with —
 /// behind the substrate's ``SystemNotificationBackend``: what the app's run
 /// loop installs into the ``TUIContext`` it creates. Nothing else does, so no
 /// other context, a test's above all, posts a real notification.

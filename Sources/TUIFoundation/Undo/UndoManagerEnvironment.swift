@@ -93,7 +93,7 @@ extension EnvironmentValues {
     ///   terminal has a route to both.
     ///
     /// Each event's registrations are one undo step, as `UndoManager` groups
-    /// them on macOS. Where Foundation has no `UndoManager` (Linux), TUI
+    /// them on macOS. Where Foundation has no `UndoManager` (Linux, Windows), TUI
     /// provides one with the same Swift surface. See
     /// `Documentation/Terminals/Terminal compatibility survey.md`, "Undo and redo".
     public package(set) var undoManager: UndoManager? {

@@ -86,8 +86,8 @@ import TUIFoundation
 /// app's undo manager (``EnvironmentValues/undoManager``), as a new document's
 /// window has an undo manager of its own on macOS.
 ///
-/// Available everywhere the framework's file panels are; on Linux the
-/// `FileWrapper` it reads and writes through is TUI's.
+/// Available everywhere the framework's file panels are; on Linux and Windows
+/// the `FileWrapper` it reads and writes through is TUI's.
 public struct DocumentGroup<Document, Content: View> {
     /// Makes what holds the document, once, as the window first draws.
     let makeStore: @MainActor @Sendable () -> any DocumentStore

@@ -61,7 +61,8 @@ private final class SignalRegistrationBarrier: Sendable {
 // MARK: - Signal Manager
 
 /// Manages POSIX signal handling for the application lifecycle via libdispatch
-/// signal sources.
+/// signal sources, and on Windows the console's control events instead
+/// (`SignalManager+Windows.swift`).
 ///
 /// SIGWINCH (terminal resize), SIGINT / SIGTERM (graceful shutdown) and
 /// SIGTSTP / SIGCONT (job control: Ctrl-Z has to hand the terminal back BEFORE

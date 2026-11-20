@@ -26,7 +26,7 @@ extension TUIEnvironmentVariables {
 
     /// The default of each variable that a setting of the computer's also answers.
     private static let systemSetting =
-        "Unset, what you've kept in the settings panel decides, and otherwise your computer's own setting, when you're at the machine the program runs on."
+        "Unset, what you've kept in the settings panel decides, and otherwise your computer's own setting, when you're at the machine the program runs on (not on Windows, whose own setting isn't read)."
 
     private static let appearance: [TUIEnvironmentVariable] = [
         TUIEnvironmentVariable(
@@ -215,7 +215,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "TUI_SYSTEM_NOTIFICATIONS", .endUser, .linksAndNotifications,
             values: "`0` or `1`",
-            effect: "Whether a notification the terminal can't show is posted by this computer itself, with `osascript` on macOS or `notify-send` on Linux. `0`: never. `1`: wherever the program can't tell where you are, such as inside zellij or GNU screen at your own desk. Unset, only where the program can tell you're at this computer, and never over ssh. On macOS these are Script Editor's notifications, so they show only where System Settings > Notifications > Script Editor allows them. A notification never comes twice: a terminal that shows them always gets them instead. `TUI_NOTIFICATIONS=0` turns these off too, whatever this says.",
+            effect: "Whether a notification the terminal can't show is posted by this computer itself, with `osascript` on macOS or `notify-send` on Linux (Windows has nothing to post one with, so there it changes nothing). `0`: never. `1`: wherever the program can't tell where you are, such as inside zellij or GNU screen at your own desk. Unset, only where the program can tell you're at this computer, and never over ssh. On macOS these are Script Editor's notifications, so they show only where System Settings > Notifications > Script Editor allows them. A notification never comes twice: a terminal that shows them always gets them instead. `TUI_NOTIFICATIONS=0` turns these off too, whatever this says.",
             reading: .once),
         TUIEnvironmentVariable(
             "TUI_PROGRESS", .endUser, .linksAndNotifications,

@@ -11,7 +11,7 @@ import TUIFoundation
     import WinSDK
 #endif
 
-/// This machine's URL opener — `open` on macOS, `xdg-open` on Linux — behind
+/// This machine's URL opener — `open` on macOS, `xdg-open` on Linux, `ShellExecuteW` on Windows — behind
 /// the substrate's ``URLOpenerBackend``: what the app's run loop installs into
 /// the ``TUIContext`` it creates. Nothing else does, so no other context
 /// launches a browser.

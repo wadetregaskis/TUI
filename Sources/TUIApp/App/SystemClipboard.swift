@@ -19,7 +19,8 @@ import TUIFoundation
 
 /// This machine's clipboard, reached through the platform's helper binaries
 /// (`pbcopy`/`pbpaste` on macOS; `wl-copy`/`wl-paste` under Wayland and
-/// `xclip`/`xsel` under X11 on Linux) with hardened child I/O.
+/// `xclip`/`xsel` under X11 on Linux) with hardened child I/O, and on Windows
+/// through the Win32 clipboard itself, with no helper.
 ///
 /// **This machine's, which is not always the user's.** Over ssh it is the
 /// server's clipboard. Nothing calls this directly to copy: ``ClipboardWriter``

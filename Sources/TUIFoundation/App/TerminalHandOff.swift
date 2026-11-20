@@ -18,8 +18,7 @@ import TUICore
 /// a snapshot and WebAssembly's host have nothing to hand back, so their
 /// contexts' never gets one, and a closure handed to it just runs. The type
 /// lives here, below `TUIApp`, so that the action can be read from any view's
-/// environment on every platform, Windows included, where `TUIApp` does not
-/// build.
+/// environment, in a module that needs no console layer.
 ///
 /// One per ``TUIContext``, as the bell is (``TerminalBell``), so two apps in
 /// one process (a test suite) do not reach each other's terminal.

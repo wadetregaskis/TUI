@@ -19,7 +19,7 @@
 /// (the Plane-16 Private Use Area) and only render where a font supplies their
 /// glyphs. In a terminal that means **all** of the following must hold:
 ///
-/// - **An Apple platform** (macOS). On Linux every lookup here returns `nil`
+/// - **An Apple platform** (macOS). On Linux and Windows every lookup here returns `nil`
 ///   and ``all`` is empty — the baked table isn't even compiled in.
 /// - **A terminal whose font carries the glyphs.** In practice that is
 ///   **Terminal.app with SF Mono**, with the **SF Symbols font installed**
@@ -139,7 +139,7 @@ public enum SFSymbol {
     /// reading the table at all.
     ///
     /// Evaluated once and cached. `false` wherever the table is not compiled in:
-    /// any platform without CoreText (Linux) or without AppKit.
+    /// any platform without CoreText (Linux, Windows) or without AppKit.
     public static let isFontAvailable: Bool = {
         #if canImport(CoreText) && canImport(AppKit)
         let glyph = String(fontProbeScalar)

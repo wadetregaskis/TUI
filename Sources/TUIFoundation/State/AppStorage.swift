@@ -325,7 +325,8 @@ public enum StorageDefaults {
     ///   `~/Library/Preferences/<executable-name>.plist` for a plain CLI binary.
     /// - **Linux / other**: ``JSONFileStorage``, since Foundation's `UserDefaults`
     ///   does not reliably persist there — written under `appConfigDirectory()`
-    ///   (`$XDG_CONFIG_HOME/<app>/settings.json`, else `~/.config/<app>/…`).
+    ///   (`$XDG_CONFIG_HOME/<app>/settings.json`, else `~/.config/<app>/…`; on
+    ///   Windows `%APPDATA%\<app>\settings.json`).
     ///
     /// Setting `TUI_CONFIG_DIR` in the environment overrides both: storage
     /// becomes file-backed under that directory on every platform. That is the

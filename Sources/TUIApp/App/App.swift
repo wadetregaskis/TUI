@@ -179,7 +179,8 @@ extension App {
 ///
 /// `AppRunner` is the main coordinator that owns the run loop and
 /// delegates to specialized managers:
-/// - `SignalManager` - POSIX signal handling (SIGINT, SIGWINCH)
+/// - `SignalManager` - POSIX signal handling (SIGINT, SIGWINCH); on Windows
+///   the console's control handler (`SignalManager+Windows.swift`)
 /// - `InputHandler` - Key event dispatch (status bar, views, defaults)
 /// - `RenderLoop` — Rendering pipeline (scene + status bar)
 @MainActor

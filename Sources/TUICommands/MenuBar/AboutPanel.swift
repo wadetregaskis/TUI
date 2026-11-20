@@ -22,7 +22,7 @@ extension Scene {
     /// says more through AppKit's `orderFrontStandardAboutPanel(options:)`,
     /// whose option keys these parameters are named for. A terminal app is
     /// mostly a command-line executable — a SwiftPM product, or any program on
-    /// Linux — with no Info.plist, so its About has only the process's name to
+    /// Linux or Windows — with no Info.plist, so its About has only the process's name to
     /// go on; this is where such an app says the rest.
     ///
     /// Each value the app leaves `nil` comes from the bundle's Info.plist where

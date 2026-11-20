@@ -25,7 +25,9 @@ import TUIFoundation
 /// overrides). Where the terminal posts none, this machine posts it itself —
 /// `osascript` on macOS, `notify-send` on a Linux desktop — but only where the
 /// person is at this machine (never over ssh, nor in a tmux attached from
-/// elsewhere; `TUI_SYSTEM_NOTIFICATIONS=0` turns it off). On macOS those are
+/// elsewhere; `TUI_SYSTEM_NOTIFICATIONS=0` turns it off). On Windows neither
+/// terminal posts one and the machine has nothing to post it with, so there
+/// it is the toast alone. On macOS those are
 /// Script Editor's notifications, which macOS shows only where System Settings
 /// ▸ Notifications ▸ Script Editor allows them. One route or the
 /// other, never both, so it arrives once. Unlike `requestAttention`, it never

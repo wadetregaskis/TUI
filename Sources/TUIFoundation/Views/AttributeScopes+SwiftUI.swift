@@ -34,7 +34,7 @@ extension AttributeScopes {
     /// `baselineOffset`, the paragraph's `lineHeight` and `alignment`, and the
     /// `adaptiveImageGlyph` — so setting one fails to compile instead of being
     /// dropped on the way to the screen. Nor is `accessibility`: the
-    /// Accessibility framework's scope does not exist on Linux.
+    /// Accessibility framework's scope does not exist on Linux or Windows.
     ///
     /// > Important: On macOS, SwiftUI's scope of the same name is visible to
     /// > an app too, because TUI imports AppKit and AppKit loads SwiftUICore.
@@ -42,7 +42,7 @@ extension AttributeScopes {
     /// > subscripts here are more specific than SwiftUI's), but spelling the
     /// > scope's NAME in a type position — `let k: AttributeScopes.SwiftUIAttributes.FontAttribute.Type`
     /// > — is ambiguous there, and an attribute only SwiftUI has, such as
-    /// > `kern`, compiles and then fails to link. Linux has neither problem.
+    /// > `kern`, compiles and then fails to link. Linux and Windows have neither problem.
     public struct SwiftUIAttributes: AttributeScope {
         /// A property for accessing a font attribute.
         public let font: FontAttribute
