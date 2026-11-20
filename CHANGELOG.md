@@ -19,6 +19,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TestApp` draws toasts of its own, on its test clock.** A toast posted in a `TestApp` was stamped by the machine's
+clock and faded by the test's, so its box was drawn blank over the window until the two clocks agreed, and again
+after its time until real seconds had passed; and every `TestApp` in a process drew the same queue, so tests running
+at once drew each other's toasts. Each `TestApp` now puts a queue of its own at `\.notificationService`, as it has
+its own `@AppStorage` store and undo manager: a toast fades in from the instant it is posted and has gone once
+`advance(by:)` has passed its fades and its duration. A running app still draws `NotificationService.current`. A
+test sees what its app posts through `@Environment(\.notificationService)`; a post through
+`NotificationService.current` goes to the process's queue, which no `TestApp` draws, so a test that read such a toast
+on the screen should have the view post through the environment.
+
 **A bold under a light `fontWeight` stays light, as in SwiftUI.** `Text("x").bold()` inside a view with
 `.fontWeight(.ultraLight)`, `.thin` or `.light` drew bold and faint, where SwiftUI draws it ultralight (measured on
 macOS 15.8.3): a bold applies to the weight in force. It is now drawn faint, and so is a Markdown `**` span, a bold

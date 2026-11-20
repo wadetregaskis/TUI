@@ -14,6 +14,7 @@
 import Foundation
 
 @testable import TUIApp
+@testable import TUIChrome
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUITerminalHost
@@ -101,6 +102,14 @@ extension TestApp {
     }
 
     var cursorVisible: Bool { headless.cursorVisible }
+
+    /// The queue of toasts the app draws: its own, on its clock, unless a
+    /// test hands it another — the process's, for an app that posts through
+    /// `NotificationService.current`.
+    var notificationService: NotificationService {
+        get { headless.notificationService }
+        set { headless.notificationService = newValue }
+    }
 
     func takeFrameRequest() -> Bool { headless.takeFrameRequest() }
     func handBackHostState() { headless.handBackHostState() }

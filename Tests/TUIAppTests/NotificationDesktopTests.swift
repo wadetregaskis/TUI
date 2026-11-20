@@ -23,26 +23,17 @@ private struct ToastApp: App {
 }
 
 @MainActor
-@Suite("Notifications posted to the desktop", .serialized)
+@Suite("Notifications posted to the desktop")
 struct NotificationDesktopTests {
-    /// Empties `service` at once and puts an empty one in its place as the
-    /// shared service, so no toast of this suite's — not even one fading out —
-    /// is drawn over another suite's app in this process.
-    private static func release(_ service: NotificationService) {
-        service.clear()
-        NotificationService.current = NotificationService()
-    }
-
     private var now: Int64 = 0
 
     private static func notification(_ text: String) -> String { "\u{1B}]9;\(text)\u{1B}\\" }
 
-    /// An app drawing a fresh shared service, on a terminal that posts
-    /// notifications or not, after its first frame.
+    /// An app and the queue of toasts it draws, its own, on a terminal that
+    /// posts notifications or not, after its first frame.
     private mutating func launched(postsNotifications: Bool) -> (TestApp, NotificationService) {
-        let service = NotificationService()
-        NotificationService.current = service
         let app = TestApp(ToastApp(), width: 50, height: 10)
+        let service = app.notificationService
         app.services.terminalFeatures = TerminalFeatures(showsProgress: false, postsNotifications: postsNotifications)
         frame(app)
         return (app, service)
@@ -56,7 +47,6 @@ struct NotificationDesktopTests {
     @Test("desktop: .always sends the message with the next frame, once")
     mutating func always() {
         let (app, service) = launched(postsNotifications: true)
-        defer { Self.release(service) }
         service.post("Build finished", desktop: .always)
         frame(app)
         #expect(app.hostWrites == [Self.notification("Build finished")])
@@ -68,7 +58,6 @@ struct NotificationDesktopTests {
     @Test("A toast not posted to the desktop sends nothing")
     mutating func never() {
         let (app, service) = launched(postsNotifications: true)
-        defer { Self.release(service) }
         service.post("Saved")
         frame(app)
         #expect(app.hostWrites.isEmpty)
@@ -77,7 +66,6 @@ struct NotificationDesktopTests {
     @Test("A terminal that posts no notifications is sent nothing, and no bell: the system's notifications get it")
     mutating func noBellInstead() throws {
         let (app, service) = launched(postsNotifications: false)
-        defer { Self.release(service) }
         service.post("Build finished", desktop: .always)
         frame(app)
         #expect(app.hostWrites.isEmpty)
@@ -89,7 +77,6 @@ struct NotificationDesktopTests {
     @Test("A terminal that posts notifications gets the toast's, and the system's notifications nothing: never twice")
     mutating func neverTwice() throws {
         let (app, service) = launched(postsNotifications: true)
-        defer { Self.release(service) }
         service.post("Build finished", desktop: .always)
         frame(app)
         #expect(app.hostWrites == [Self.notification("Build finished")])

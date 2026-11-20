@@ -62,7 +62,11 @@ public final class NotificationService: Sendable {
     /// outside the view tree at all, has only this.
     ///
     /// For tests, construct a fresh instance rather than reaching for
-    /// `current`, which every test in the process shares.
+    /// `current`, which every test in the process shares. A `TestApp` draws a
+    /// queue of its own, not this one (see ``EnvironmentValues/notificationService``):
+    /// a test sees the toasts its app posts through the environment, and a
+    /// post through `current` goes to the process's queue, which no
+    /// `TestApp` draws.
     ///
     /// ```swift
     /// NotificationService.current.post("Done!")
@@ -156,8 +160,16 @@ public final class NotificationService: Sendable {
     }
 
     /// Creates an empty notification service that reads `nowNanos` for the time — a
-    /// test's own clock.
-    init(nowNanos: @escaping @Sendable () -> UInt64) {
+    /// test's own clock, or a `TestApp`'s: the clock its frames are stamped with.
+    ///
+    /// A post is stamped with this clock, and the scene fades the toast by the
+    /// frame's stamp, so the two must be one clock. In a running app they are:
+    /// both read ``MonotonicClock``. A `TestApp`'s frames read its test clock,
+    /// so its queue is made on that clock (`HeadlessApp.useOwnNotificationQueue()`).
+    /// Stamping a post with the last frame's instant instead would be wrong
+    /// in a running app: after a second with nothing drawn, a post would be
+    /// a second old at its first frame, its fade-in skipped.
+    package init(nowNanos: @escaping @Sendable () -> UInt64) {
         self.nowNanos = nowNanos
         self.storage = Storage()
         self.owner = nil
@@ -481,6 +493,14 @@ extension EnvironmentValues {
     /// back. The convention here is the one `focusManager` and
     /// `keyEventDispatcher` already follow — a runtime service is Optional, and
     /// absent means absent.
+    ///
+    /// A running app's is ``NotificationService/current``. A `TestApp`'s is a
+    /// queue of its own, on its test clock, as it has its own `@AppStorage`
+    /// store and undo manager: every `TestApp` drawing `current` (A-APPSTATE-2's
+    /// one queue for the process) drew the toasts of the tests running beside
+    /// it, and stamped them by the machine's clock while its frames ran on the
+    /// test's. So a test sees what its app posts here; a post through `current`
+    /// goes to the process's queue, which no `TestApp` draws.
     public var notificationService: NotificationService? {
         // Kept in the substrate's `.notificationService` slot
         // (`FeatureObjectSlot`), which detaching an environment clears: the

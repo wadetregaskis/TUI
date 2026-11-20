@@ -222,6 +222,21 @@ pause after which type select starts a new prefix.
 A `TimelineView` shows ``TestApp/date``, which you can set for a test of a particular day. ``TestApp/elapsed`` is how
 much time has passed.
 
+A toast lives on this clock too. Each `TestApp` draws a queue of its own, so tests running at once never see each
+other's: a toast posted through `@Environment(\.notificationService)` fades in from the instant it is posted, and has
+gone once the clock has passed its fades and its duration, three seconds unless the post gives another:
+
+```swift
+app.press(.enter)                      // The view posts "Saved".
+app.advance(by: .milliseconds(500))
+#expect(app.screen.contains("Saved"))
+app.advance(by: .seconds(4))
+#expect(!app.screen.contains("Saved"))
+```
+
+A post through `NotificationService.current` goes to the process's queue, which no `TestApp` draws. Post through the
+environment what a test should see.
+
 ### Work that takes real time
 
 Your own async work runs on its own time, and a task on the main actor only gets its turn when the test suspends. So

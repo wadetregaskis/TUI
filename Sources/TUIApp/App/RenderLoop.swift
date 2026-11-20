@@ -264,6 +264,13 @@ internal final class RenderLoop<A: App> {
     /// app, and in a test what it wants of the app (`HeadlessApp.configureEnvironment`).
     var configureEnvironment: ((inout EnvironmentValues) -> Void)?
 
+    /// The queue of toasts the scenes draw, put at `\.notificationService`
+    /// every frame: `nil` in an app, which draws the process's
+    /// (`NotificationService.current`, read each frame so that an app that
+    /// replaces it draws the new one), and in a `TestApp` a queue of its own,
+    /// on its test clock (`HeadlessApp.useOwnNotificationQueue()`).
+    var notificationService: NotificationService?
+
     /// The lines `.hairline` list separators draw, as the terminal holds them
     /// (`RenderLoop+Hairlines.swift`). Idle, and never asked, on a host that
     /// draws none.
@@ -1129,7 +1136,7 @@ extension RenderLoop {
         if let style = controlStyleManager.currentControlStyle, style != .automatic {
             environment.controlStyle = style
         }
-        environment.notificationService = NotificationService.current
+        environment.notificationService = notificationService ?? NotificationService.current
         environment.viewPreferenceOverrides = viewPreferenceOverrides
         // TUI's settings beneath the scene's own statements: the user's
         // `TUI_*` variable for this launch, else what the person saved for

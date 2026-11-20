@@ -196,6 +196,30 @@ package final class HeadlessApp {
         renderer.configureEnvironment = configure
     }
 
+    /// The queue of toasts the app's scenes draw, which its views post to
+    /// through `\.notificationService`: the process's
+    /// (`NotificationService.current`), as a running app's is, until
+    /// ``useOwnNotificationQueue()``. Settable for the framework's own tests,
+    /// which hand an app the queue they post to.
+    package var notificationService: NotificationService {
+        get { renderer.notificationService ?? NotificationService.current }
+        set { renderer.notificationService = newValue }
+    }
+
+    /// Gives the app a queue of toasts of its own, in place of the process's:
+    /// what a `TestApp` draws.
+    ///
+    /// Its own, so that two apps in one process, two tests running at once,
+    /// never draw each other's toasts. And on this app's clock, the instant of
+    /// its last frame, so that a post is stamped on the clock its toast is
+    /// faded by: on the machine's, a toast posted in a test was a blank box
+    /// until the test's clock caught up with the machine's, and stayed one
+    /// past its time until the machine's caught up with its end.
+    package func useOwnNotificationQueue() {
+        let clock = eventClock
+        renderer.notificationService = NotificationService(nowNanos: { clock.nanos })
+    }
+
     /// What tracks the app's views and owns the tasks their `.task`s started.
     package var lifecycle: LifecycleManager { lifecycleManager }
 
@@ -556,6 +580,7 @@ private protocol HeadlessRendering: AnyObject {
     var hostAccessibility: AccessibilityPreferences { get set }
     var viewPreferenceOverrides: ViewPreferenceOverrides { get }
     var configureEnvironment: ((inout EnvironmentValues) -> Void)? { get set }
+    var notificationService: NotificationService? { get set }
 }
 
 extension RenderLoop: HeadlessRendering {}

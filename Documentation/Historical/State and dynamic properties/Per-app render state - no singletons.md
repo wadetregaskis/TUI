@@ -122,6 +122,19 @@ three; making the notification queue per app would only make it harder to
 reach. Multi-client hosting in one process, the case that would change that,
 is tabled until an app asks. Recorded as exemptions on the CLAUDE.md rule.
 
+**The `TestApp` case, found 2026-11-19 (tuidisk's feedback, items 1 and 2).**
+The ruling's "one app runs per process, none of them makes a test depend on
+another" did not hold for `TestApp`: every `TestApp` in a test process drew
+`NotificationService.current`, so tests running in parallel drew each other's
+toasts, and the queue stamped posts with the machine's clock while a
+`TestApp`'s frames ran on its test clock. Resolved without changing the
+ruling: a running app still draws `current`, and each `TestApp` puts a queue of
+its own, on its test clock, at `\.notificationService`
+(`HeadlessApp.useOwnNotificationQueue()`), as it has its own `@AppStorage`
+store and undo manager. A test sees what its app posts through the
+environment; a post through `current` still goes to the process's queue,
+which no `TestApp` draws.
+
 ### B-APPSTATE-1. A change with no view in hand asks the app whose work made it
 
 *`AmbientApp.renderState`, a task local in TUICore; `StoredKey.didChange()`,

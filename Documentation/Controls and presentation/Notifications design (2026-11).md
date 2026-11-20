@@ -14,6 +14,13 @@ callback, none of which has a view to hang a binding on, and a toast outlives
 the screen that posted it. The owner judged this approach better than a
 binding-driven `.toast(isPresented:)`; it needed expanding, not replacing.
 
+A `TestApp` is the exception (2026-11-19, tuidisk's feedback; recorded under
+A-APPSTATE-2 in [per-app render state](<../Historical/State and dynamic properties/Per-app render state - no singletons.md>)):
+it draws a queue of its own, on its test clock, at `\.notificationService`,
+so parallel tests never draw each other's toasts and a toast lives on the
+test's time. A post through `NotificationService.current` goes to the
+process's queue, which no `TestApp` draws.
+
 ## 1. No manual host step
 
 **Chosen:** the scene hosts notifications. `WindowGroup` (and so `Window`)

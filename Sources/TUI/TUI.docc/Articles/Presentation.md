@@ -610,6 +610,13 @@ was seen.
 NotificationService.current.post("Build finished", style: .success, desktop: .whenInactive)
 ```
 
+In a test, a ``TestApp`` draws a queue of toasts of its own, on its test clock,
+so tests running at once never draw each other's: it shows what its views post
+through `@Environment(\.notificationService)`. A post through
+``NotificationService/current`` goes to the process's queue, which no
+`TestApp` draws, so post through the environment what a test should see
+(<doc:TestingYourApp>).
+
 ## Open and Save Panels
 
 `fileImporter`, `fileExporter` and `fileMover` draw their panels in the terminal.

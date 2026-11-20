@@ -93,6 +93,12 @@ public final class TestApp {
     /// kept there too, and the person's settings for all programs are never
     /// read.
     ///
+    /// The toasts its views post through `@Environment(\.notificationService)`
+    /// go to a queue of this instance's, on its clock: one fades in from the
+    /// instant it is posted, and has gone once ``advance(by:)`` has passed its
+    /// fades and its duration. A post through `NotificationService.current`
+    /// goes to the process's queue, which no `TestApp` draws.
+    ///
     /// - Parameters:
     ///   - width: The terminal's width, in cells.
     ///   - height: The terminal's height, in rows.
@@ -104,6 +110,7 @@ public final class TestApp {
         headless = HeadlessApp(
             TestViewHost(content: content), width: width, height: height, undoManager: undoManager)
         useInMemoryAppStorage()
+        headless.useOwnNotificationQueue()
     }
 
     /// Runs a whole app, its scenes and its window's bars included, laid out as
@@ -111,6 +118,7 @@ public final class TestApp {
     ///
     /// An `@AppStorage` that names no store reads and writes a store of this
     /// instance's, in memory, unless the app's scene or views set their own.
+    /// Its toasts are this instance's too, on its clock, as for a view.
     ///
     /// - Parameters:
     ///   - app: The app to run. It is never launched, so no `main` runs.
@@ -120,6 +128,7 @@ public final class TestApp {
         undoManager = UndoManager()
         headless = HeadlessApp(app, width: width, height: height, undoManager: undoManager)
         useInMemoryAppStorage()
+        headless.useOwnNotificationQueue()
     }
 
     private func useInMemoryAppStorage() {
