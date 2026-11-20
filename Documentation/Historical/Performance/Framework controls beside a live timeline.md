@@ -5,7 +5,7 @@
 label's content is "drawn again at every frame". Commit d4808499d fixed the app's own views beside and
 above a timeline (`FrameBodyKeep`) and left this, with the diagnosis that framework controls have no memo
 of their own and that a focused `List` registers focus in a way the memo cannot replay. Ids:
-B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (the owner ruled F0, 2026-11-19); B-TLCTRL-2 to B-TLCTRL-5, added below.*
+B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (the owner ruled F0, 2026-11-19); B-TLCTRL-2 to B-TLCTRL-6, added below.*
 
 ## In short
 
@@ -344,6 +344,32 @@ loop, whose root environment holds 62 keys; the bench scenarios' hosts hold far 
 +1.4% (−1.5% to +3.1%), indistinguishable. The sweep is under B-TLCTRL-6, with which it was run. `Stress
 --check-counts`: no count moved; bytes unchanged (95 of 95 sessions' `TUI_HEADLESS_STREAM` identical).
 
+## The process environment read at each frame (B-TLCTRL-6)
+
+*Added 2026-11-19, with B-TLCTRL-5 built.* `RenderLoop.buildEnvironment`, which makes each frame's root environment,
+wrote the terminal's line styles from `TerminalHost.lineStyles`, which names the terminal from the process environment
+(`TerminalHost.program`), and `ProcessInfo.environment` copies the whole of it into a new dictionary at each read:
+5.9% of a frame of `session/case:timeline-tiles` (`static TerminalHost.program.getter` 601 ms of 10,172, all of it
+under `buildEnvironment`, 7.7%).
+
+Nothing it reads changes under a running loop. The one write TUI makes, `TUI_TERM_PROGRAM` seeded from the terminal's
+answer when nothing named it (`TerminalHost.seedDiscoveredHost`), is made before the loop is made (`identifyHost`),
+for the same reason: the loop's `FrameDiffWriter` and its hairline layer read the host once, at construction, and the
+`TerminalHost` detectors are `static let`s. And the variable is documented as read once (*Environment variables*). So
+the loop reads the line styles once, when it is made (`RenderLoop.lineStyleSupport`), and writes that at every frame.
+Under tmux the answer was already fixed for the run (`.tmux`; tmux re-spells line styles for each client itself).
+
+Time Profiler, `Stress --bench --scenario session/case:timeline-tiles` (release, `-g`), 8 s attached,
+`analyze_timeprofile.py --thread main`, inclusive, B-TLCTRL-5 built: `RenderLoop.buildEnvironment()` 7.3% → 1.1%,
+`_ProcessInfo.environment.getter` 4.7% → not in the top 600. Measured (`Tools/Profiling/ab_bench.py`, release, CPU per
+frame, 12 paired reps, against B-TLCTRL-5 built): `session/case:timeline-tiles` 942.4 → 869.9 µs, −8.0% (95% CI −8.7%
+to −7.4%); `session/case:timeline-beside` −10.5% (−11.4% to −9.9%); `session/case:game-loop` −15.5% (−17.8% to
+−14.8%); the bench scenarios, which draw without a run loop, indistinguishable. With B-TLCTRL-5, a step of
+`timeline-tiles`' perf case went from 1012.3 to 869.9 µs (−14%). The default sweep, B-TLCTRL-4 built against both (36
+scenarios, 10 reps): 7 faster, 27 indistinguishable, `table-churn` +0.9% (+0.5% to +1.5%) and `table-tail` +0.5% (+0.3%
+to +1.9%) slower, and at 20 reps −0.2% (−10.4% to +6.1%) and +0.6% (−0.6% to +1.3%), both indistinguishable.
+`Stress --check-counts`: no count moved; bytes unchanged (95 of 95 sessions' `TUI_HEADLESS_STREAM` identical).
+
 ## Decisions
 
 ### A-TLCTRL-1. A focused control beside a live timeline: replayable, or drawn?
@@ -405,3 +431,9 @@ order, a pulled `ZStack`'s band) are left as they were: none was measured beside
 gathers the entries in key order, rather than sorting the entries themselves. A refactor of how the stamp is made:
 every stamp is what it was. A stamp is still made flat once per pass, not kept across passes: what that would keep
 alive, and the comparisons it would make unsound, are above.
+
+### B-TLCTRL-6. The render loop reads the terminal's line styles once
+
+*Decided here, 2026-11-19, and built.* `RenderLoop` reads `TerminalHost.lineStyles` when it is made and writes that
+value as each frame's `lineStyleSupport`, rather than reading the process environment at every frame. No behaviour
+changes: what it reads is settled before the loop is made, as for the loop's diff writer.

@@ -269,6 +269,16 @@ internal final class RenderLoop<A: App> {
     /// draws none.
     let hairlines = HairlineLayer(z: HairlineLayer.z(for: TerminalClient.current.program))
 
+    /// The underline and strikethrough styles the terminal draws, written at the
+    /// root of every frame as ``EnvironmentValues/lineStyleSupport``: read once,
+    /// when the loop is made, as ``diffWriter`` and ``hairlines`` read the host.
+    /// `TerminalHost.program` reads the whole process environment, and asked at
+    /// every frame it was 5.9% of a frame of `session/case:timeline-tiles`
+    /// (B-TLCTRL-6). Nothing it reads changes under a running loop: TUI seeds
+    /// `TUI_TERM_PROGRAM` before the loop is made (`identifyHost`), and the
+    /// variables are read once (*Environment variables*). A test states it.
+    var lineStyleSupport = TerminalHost.lineStyles
+
     /// The pictures laid under glyphs that stand on a frosted picture
     /// (`RenderLoop+PicturesUnderText.swift`). Idle, and never asked, on a
     /// host that draws none.
@@ -1188,7 +1198,7 @@ extension RenderLoop {
         environment.fontHasQuadrants = capabilities.fontHasQuadrants
         // Not per tmux client: tmux re-spells line styles for each client
         // itself (`TerminalHost.lineStyles`).
-        environment.lineStyleSupport = TerminalHost.lineStyles
+        environment.lineStyleSupport = lineStyleSupport
         // The writer's tmux skin-tone scope follows the same per-client answer:
         // keep the tone bases tmux itself merges (the measured 70 — see
         // Character.tmuxMergedToneBases) only when every attached client also

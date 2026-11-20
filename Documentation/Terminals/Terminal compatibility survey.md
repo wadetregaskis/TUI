@@ -1071,6 +1071,9 @@ So TUI (`TerminalHost.lineStyles`, since 2026-10-18):
   shape such a host misreads can come out as a background or a blink, and the
   owner would rather have a plain line than that.
 
+The render loop reads this once, when it is made (B-TLCTRL-6, 2026-11-19), as
+its diff writer reads the host: the terminal is named before the loop exists.
+
 ### Ghostty's model is conditional on mode 2027 — measured 2026-08-26
 
 Every Ghostty number in this document was measured with DEC mode 2027

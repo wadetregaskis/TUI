@@ -84,6 +84,8 @@ env.localizationService = LocalizationService.shared
 // following the pointer, scene storage's session, openWindow/openSettings, …
 ```
 
+What it says about the terminal, such as the underline styles it draws, the loop read once, when it was made, and is not read from the process environment again.
+
 This environment is immutable for the duration of the frame. Runtime services (state storage, lifecycle, key dispatch, render cache, preferences) are injected here so that views and modifiers can access them through the environment rather than through `TUIContext` directly.
 
 ### Step 4: Create Render Context
