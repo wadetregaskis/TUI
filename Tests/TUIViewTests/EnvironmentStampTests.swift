@@ -58,6 +58,38 @@ private struct LabelledKey: EnvironmentKey, _RenderProjectingEnvironmentKey {
     static func renderProjection(of value: Any) -> (any Equatable)? { (value as? Labelled)?.name }
 }
 
+/// Twelve keys of one value type, told apart by a tag: enough of them that a
+/// flat stamp's sort has work to do whatever order its dictionary lists them in.
+private protocol StampSlot {
+    static func store(_ value: Int, in environment: inout EnvironmentValues)
+}
+
+private struct SlotKey<Tag>: EnvironmentKey, StampSlot {
+    static var defaultValue: Int { -1 }
+    static func store(_ value: Int, in environment: inout EnvironmentValues) { environment[Self.self] = value }
+}
+
+private enum Slot0 {}
+private enum Slot1 {}
+private enum Slot2 {}
+private enum Slot3 {}
+private enum Slot4 {}
+private enum Slot5 {}
+private enum Slot6 {}
+private enum Slot7 {}
+private enum Slot8 {}
+private enum Slot9 {}
+private enum Slot10 {}
+private enum Slot11 {}
+
+private var stampSlots: [any StampSlot.Type] {
+    [
+        SlotKey<Slot0>.self, SlotKey<Slot1>.self, SlotKey<Slot2>.self, SlotKey<Slot3>.self, SlotKey<Slot4>.self,
+        SlotKey<Slot5>.self, SlotKey<Slot6>.self, SlotKey<Slot7>.self, SlotKey<Slot8>.self, SlotKey<Slot9>.self,
+        SlotKey<Slot10>.self, SlotKey<Slot11>.self,
+    ]
+}
+
 /// A class whose `==` says two instances are equal: compared by identity all
 /// the same, since what a render below reads from a class is the object.
 private final class Service: Equatable, @unchecked Sendable {
@@ -92,6 +124,31 @@ struct EnvironmentStampTests {
         #expect(first.shallowHash == same.shallowHash, "the order keys were set in reaches the hash")
         #expect(!first.isEquivalent(to: other))
         #expect(first.firstDifference(from: other) == ObjectIdentifier(NumberKey.self))
+    }
+
+    @Test("A flat stamp lists its keys in key order, each with its own value, whatever order they were set in")
+    func flatStampInKeyOrder() throws {
+        let stamps = EnvironmentStamps()
+        let forward = try #require(stamps.build(environment { environment in
+            for (value, slot) in stampSlots.enumerated() { slot.store(value, in: &environment) }
+        }))
+        let backward = try #require(stamps.build(environment { environment in
+            for (value, slot) in stampSlots.enumerated().reversed() { slot.store(value, in: &environment) }
+        }))
+        // The keys are sorted (B-TLCTRL-5 sorts their places, not the entries), and
+        // each entry is still the one made for its key.
+        let keys = forward.entries.map(\.key)
+        #expect(keys == keys.sorted() && Set(keys).count == stampSlots.count)
+        let valueOf = Dictionary(uniqueKeysWithValues: stampSlots.enumerated().map { (ObjectIdentifier($1), $0) })
+        for entry in forward.entries {
+            guard case .value(let held, _) = entry.token else {
+                Issue.record("\(entry.key) holds no value")
+                continue
+            }
+            #expect(held as? Int == valueOf[entry.key])
+        }
+        #expect(forward.shallowHash == backward.shallowHash)
+        #expect(forward.isEquivalent(to: backward))
     }
 
     @Test("A class is compared by identity, before its ==")

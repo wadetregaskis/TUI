@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Frames under a running `TimelineView` spend less time comparing environments.** Each view kept above a running
+timeline is checked against the environment it was built under at every frame, and the first such check in a frame
+sorted that environment's values in a way that copied each of them many times over. It now sorts only their keys, and
+a frame of an animated tile launcher costs about 7% less.
+
 **A `ZStack` beside a running `TimelineView` no longer composites its layers again at each entry when none moved.** A
 launcher's animated preview, a picture with its loop's timeline in a `ZStack`, was put together cell by cell at every
 frame of every preview on the page. While a timeline is live the composite is now kept with everything it was made

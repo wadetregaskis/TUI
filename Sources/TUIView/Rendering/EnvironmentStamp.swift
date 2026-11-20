@@ -339,8 +339,15 @@ package final class EnvironmentStamps {
     package func build(_ environment: EnvironmentValues) -> EnvironmentStamp? {
         counts.built += 1
         let stored = environment.storedValues
-        var hashed: [(entry: EnvironmentStamp.Entry, hash: Int)] = []
-        hashed.reserveCapacity(stored.count)
+        var unsorted: [EnvironmentStamp.Entry] = []
+        unsorted.reserveCapacity(stored.count)
+        // What the sort moves: plain words, not the entries. An entry holds an
+        // existential and a closure, so a sort of entries copied (retained and
+        // released) both at every step through the runtime's generic tuple
+        // witnesses: 594 of the 745 ms `build` took in a profile of
+        // `session/case:timeline-tiles`, 5.8% of its frame (B-TLCTRL-5).
+        var order: [(key: ObjectIdentifier, hash: Int, index: Int)] = []
+        order.reserveCapacity(stored.count)
         var comparable = true
         for (key, raw) in stored {
             let value: Any
@@ -371,16 +378,24 @@ package final class EnvironmentStamps {
             }
             let entryHash = hasher.finalize()
             if tracksVariety { variety[key, default: []].insert(entryHash) }
-            if comparable { hashed.append((EnvironmentStamp.Entry(key: key, token: token), entryHash)) }
+            if comparable {
+                order.append((key, entryHash, unsorted.count))
+                unsorted.append(EnvironmentStamp.Entry(key: key, token: token))
+            }
         }
         guard comparable else {
             counts.uncomparable += 1
             return nil
         }
-        hashed.sort { $0.entry.key < $1.entry.key }
+        order.sort { $0.key < $1.key }
         var hasher = Hasher()
-        for item in hashed { hasher.combine(item.hash) }
-        return EnvironmentStamp(entries: hashed.map(\.entry), shallowHash: hasher.finalize())
+        var entries: [EnvironmentStamp.Entry] = []
+        entries.reserveCapacity(order.count)
+        for item in order {
+            hasher.combine(item.hash)
+            entries.append(unsorted[item.index])
+        }
+        return EnvironmentStamp(entries: entries, shallowHash: hasher.finalize())
     }
 
     /// `stamp`, or the live stamp equal to it already made.

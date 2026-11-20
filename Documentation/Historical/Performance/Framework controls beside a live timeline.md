@@ -5,7 +5,7 @@
 label's content is "drawn again at every frame". Commit d4808499d fixed the app's own views beside and
 above a timeline (`FrameBodyKeep`) and left this, with the diagnosis that framework controls have no memo
 of their own and that a focused `List` registers focus in a way the memo cannot replay. Ids:
-B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (the owner ruled F0, 2026-11-19); B-TLCTRL-2 to B-TLCTRL-4, added below.*
+B-TLCTRL-1 (decided and built here), A-TLCTRL-1 (the owner ruled F0, 2026-11-19); B-TLCTRL-2 to B-TLCTRL-5, added below.*
 
 ## In short
 
@@ -295,6 +295,55 @@ stamps are now the largest single cost, 13.7%), its context copied and its child
 A-TLCTRL-1 = F0 the focused tile is drawn at each entry in any case. The stamps are a separate question: an environment
 no derivation reaches is stamped flat, its keys hashed and sorted, at each pass.
 
+## The environment stamp built at each pass (B-TLCTRL-5)
+
+*Added 2026-11-19, with B-TLCTRL-4 built.* A kept body's key holds the stamp of the environment it was built under
+(`frameBodyKey`), and each ancestor of a live timeline asks for one at each entry. Time Profiler,
+`Stress --bench --scenario session/case:timeline-tiles` (release, `-g`), 8 s attached, `analyze_timeprofile.py --thread
+main`, inclusive:
+
+| Frame | Before | After |
+|---|---|---|
+| `EnvironmentStamps.stamp(of:)` | 13.7% | 7.9% |
+| `EnvironmentStamps.build(_:)` (the flat stamp) | 7.3% | 2.2% |
+| its `sort(by:)` | 5.8% | not in the top 600 |
+| `EnvironmentStamps.derive(_:)` (the others, against it) | 2.3% | 3.9% |
+
+(The second column is a share of a cheaper frame.)
+
+**Why a stamp is made again at each pass, not reused.** A stamp is memoized per pass by its environment's storage, and
+no storage outlives a frame: the run loop builds the root environment afresh and installs a new volatile-read tracker
+in it at every frame, and every environment below is a copy of it with a key or two set. So the first environment
+stamped in a pass, the anchor, is stamped flat, every key read, classified, hashed and sorted, and the others are
+derived from it (counted in a debug build: 326 of the case's 380 passes built one flat stamp and derived three). A flat
+stamp is interned, so an environment equal to last frame's is last frame's stamp and keys compare by identity. Here
+none ever was: the anchor is a tile's environment, below its `.focused(_:equals:)`, and that modifier puts a new
+`AssignedFocusID` object, the focus id it offers, into the environment at every render. A stamp compares a class by
+identity, so the anchor never equals last frame's, nor does any stamp derived from it, and every kept body's key is
+compared with last frame's flat, entry by entry. Keeping the anchor into the next pass, to derive the next frame's
+first environment from it, was weighed and not done: the anchor keeps the environment it was made from, which holds
+the render cache and the state storage, so it would be the cycle `EnvironmentStamps.endPass` exists to break; and its
+cheap comparisons (an object's address, equal bytes) are sound only while that environment keeps every object it
+holds alive. Comparing the offer by its id instead was measured as an experiment and not built: with the
+offer compared by its id, and a claim of it made a render side effect so that no memo keeps a picture whose claim it
+cannot make again, `app-shapes/timeline-tiles` was 5.2% faster (95% CI −6.3% to −4.6%) and its perf case 1.2%
+(−1.7% to −0.3%), the flat stamp still built at each pass. It changes what may be served below every `.focused`, for
+a small gain here, so it is left for a lane that measures it where `.focused` wraps more.
+
+**What was slow was the sort.** `build` sorted its entries by key, and an entry holds an existential and a closure, so
+each step of the sort copied two entries through the runtime's generic tuple witnesses, a retain and a release each
+(594 of the 745 ms `build` took). It now sorts each key with its hash and its place, three words, and gathers the
+entries in that order once. The stamp is the same: the same entries in the same order, the same shallow hash
+(`EnvironmentStampTests`' key-order test pins both).
+
+Measured (`Tools/Profiling/ab_bench.py`, release, CPU per frame, 12 paired reps, against B-TLCTRL-4 built):
+`session/case:timeline-tiles` 1012.3 → 946.2 µs, −6.6% (95% CI −7.5% to −3.3%); `session/case:timeline-beside`
+−11.0% (−11.5% to −10.6%); `session/case:game-loop` −14.5% (−15.3% to −14.1%). The perf cases run under the app's run
+loop, whose root environment holds 62 keys; the bench scenarios' hosts hold far fewer, and `app-shapes/timeline-tiles`,
+`timeline-beside` and `timeline-rows` were indistinguishable, `game-loop` +0.9% (+0.1% to +3.5%), and at 20 reps
++1.4% (−1.5% to +3.1%), indistinguishable. The sweep is under B-TLCTRL-6, with which it was run. `Stress
+--check-counts`: no count moved; bytes unchanged (95 of 95 sessions' `TUI_HEADLESS_STREAM` identical).
+
 ## Decisions
 
 ### A-TLCTRL-1. A focused control beside a live timeline: replayable, or drawn?
@@ -349,3 +398,10 @@ with its layers, their places, the canvas and the environment's blending inputs,
 live and all compare equal; one whose layers carry animated runs or may draw into the image store is not kept. A pure
 function's memo, as B-TLCTRL-2's. The other users of `FrameBuffer.layered` (a stack's glide, a windowed stack's z
 order, a pulled `ZStack`'s band) are left as they were: none was measured beside a live timeline.
+
+### B-TLCTRL-5. A flat environment stamp sorts its keys, not its entries
+
+*Decided here, 2026-11-19, and built.* `EnvironmentStamps.build` sorts each key with its hash and its place and then
+gathers the entries in key order, rather than sorting the entries themselves. A refactor of how the stamp is made:
+every stamp is what it was. A stamp is still made flat once per pass, not kept across passes: what that would keep
+alive, and the comparisons it would make unsound, are above.
