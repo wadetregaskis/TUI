@@ -628,7 +628,7 @@ struct PlainMemoCorrectnessTests {
             .appendingPathComponent("Sources")
         // Hold no view, or are tools: nothing of theirs reaches the memo.
         let holdNoViews: Set<String> = [
-            "TUIEnvironmentDocs", "TUIEnvironmentDocsTool", "TUIMacros", "TUIMacrosPlugin", "TUIWidthCorpus",
+            "TUIEnvironmentDocs", "TUIEnvironmentDocsTool", "TUIJSONStyler", "TUIMacros", "TUIMacrosPlugin", "TUIWidthCorpus",
         ]
         let modules = try FileManager.default.contentsOfDirectory(atPath: sources.path).filter { $0.hasPrefix("TUI") }
         for module in modules where !holdNoViews.contains(module) {

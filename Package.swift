@@ -10,7 +10,7 @@ let umbrellaTestDependencies: [Target.Dependency] = [
     "TUILists",
     "TUIMenus", "TUINavigation", "TUINumericControls", "TUIPickers", "TUIPresentation", "TUIScenes", "TUISearch",
     "TUIStrings", "TUITabImages", "TUITables", "TUITabs", "TUITerminalHost", "TUITesting", "TUITextInput",
-    "TUIAppKit", "TUIEnvironmentDocs", "TUIFilePanelsAppKit", "TUIWidthCorpus", "CTestSupport",
+    "TUIAppKit", "TUIEnvironmentDocs", "TUIFilePanelsAppKit", "TUIWidthCorpus", "TUIJSONStyler", "CTestSupport",
 ]
 
 let package = Package(
@@ -482,6 +482,11 @@ let package = Package(
             dependencies: ["TUIFoundation"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
+        // A stateless JSON line styler over TextEditor's highlight seam (`@_spi(TextEditorHighlighting)`), for the
+        // Example, Stress's `bigtext-highlighted` and the tests: a fixture, not a lexer TUI ships (real highlighting
+        // comes from tree-sitter, in apps: A-ATTRED-12). Not a product, as TUIWidthCorpus is not, so no app can
+        // depend on it and no library build compiles it.
+        .target(name: "TUIJSONStyler", dependencies: ["TUITextInput"]),
 
         // Step C7's peel, out of the TextInput group above: `Slider` with its ticks and value labels, `Stepper`,
         // `Gauge` and its concrete styles, `ProgressView` with its timer, their handlers and styles, the track and
@@ -750,8 +755,9 @@ let package = Package(
         // ── App & Tests ─────────────────────────────────────────────────────────────────────────────────
         .executableTarget(
             name: "Example",
-            // The Finder's icons in its file panels (empty off Apple platforms).
-            dependencies: ["TUI", "TUIFilePanelsAppKit"],
+            // The Finder's icons in its file panels (empty off Apple platforms), and the JSON styler a
+            // highlighted editor is shown with.
+            dependencies: ["TUI", "TUIFilePanelsAppKit", "TUIJSONStyler"],
             resources: [.copy("Resources")]
         ),
         // The framework's suite, a test target per module (the owner's request B-TC1-1, 2026-10-12; placed
@@ -1025,7 +1031,7 @@ let package = Package(
         .testTarget(
             name: "TUITextInputTests",
             dependencies: [
-                "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUIStyling",
+                "TUIApp", "TUIAppTestSupport", "TUICore", "TUIFoundation", "TUIJSONStyler", "TUIStyling",
                 "TUITerminalHost", "TUITestSupport", "TUITextInput", "TUITesting", "TUIView",
             ]
         ),
@@ -1103,7 +1109,7 @@ let package = Package(
         .executableTarget(name: "DocumentEditor", dependencies: ["TUI"]),
         .executableTarget(
             name: "Stress",
-            dependencies: ["TUI"],
+            dependencies: ["TUI", "TUIJSONStyler"],
             // Documentation, and the counts `--check-counts` reads from the
             // source tree (`RecordedCounts.defaultPath`): neither is a bundled resource.
             exclude: ["README.md", "Cases/RecordedCounts.txt"]

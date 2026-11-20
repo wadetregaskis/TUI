@@ -354,6 +354,7 @@ enum Sessions {
             BigTextSession.descriptor,
             BigTextOpenSession.descriptor,
             BigTextRichSession.descriptor,
+            BigTextHighlightedSession.descriptor,
         ]
         // Last: every perf case, `case:<id>`, its script looped.
         return apps + inboxes + logs + pages + CaseSession.descriptors

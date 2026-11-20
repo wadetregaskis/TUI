@@ -976,7 +976,7 @@ fetch it.
 |---|---|---|---|
 | **H1** ✓ | Drawing: runs into `styledRow`, styles interned per token value (B-ATTRED-10), the drawn lines' run cache, precedence (B-ATTRED-8). **Built 2026-11-19** (B-ATTRED-31 to 33, below) | ½ | ½ |
 | **H6′** ✓ | The seam and its store: versioned snapshots, coalesced whole-line changes, the styler's task started and cancelled with the editor (B-ATTRED-19 to 22, 25), publishing validated into the window, frames only for lines on screen (20), provisional tokens carried and shifted (24, 28), updates on a scroll (27), B-ATTRED-29's additions, the guards (15, 30). Tests: a fake tree styler that reports changed ranges, deterministic stepping without sleeps, a stale publish refused, an edit mid-publish, cancellation, one run under the thread sanitizer. **Built 2026-11-20** (B-ATTRED-34 to 41, below) | 1½ | H2 + H7 2, H6 ½ |
-| **H5′** | A stateless JSON line styler over the seam, in an internal target that is not a product (as `TUIWidthCorpus` is), for the Example, Stress's `bigtext-highlighted` and tests | ¼ | ¼ (a JSONC lexer) |
+| **H5′** ✓ | A stateless JSON line styler over the seam, in an internal target that is not a product (as `TUIWidthCorpus` is), for the Example, Stress's `bigtext-highlighted` and tests. **Built 2026-11-20** (B-ATTRED-42, 43, below) | ¼ | ¼ (a JSONC lexer) |
 | **H3** | Marks (B-ATTRED-13), with the find bar's matches moved onto them | 1 | 1 |
 | **H4′** | The API: `TextEditorMark` and `.textEditorMarks` public, with DocC; the seam and `.textEditorHighlighter` under `@_spi(TextEditorHighlighting)` (A-ATTRED-10), documented in doc comments; `api_baseline.py` taught to skip SPI; the API stability policy's SPI line; CHANGELOG; the Example's Text Input page in its seven languages | ¾ | 1 |
 | **H0** | Gone, with the line-lexer engine (A-ATTRED-15 (a)) | 0 | 1 |
@@ -1067,6 +1067,57 @@ Tests: `TextEditorHighlightSessionTests` (the session alone, the test playing th
 turn), `TextEditorHighlighterTests` (through the editor, with a stepped highlighter that hands the test its session,
 a fake tree styler in `FakeTreeStyler.swift` that finds the lines whose tokens changed as tree-sitter's changed
 ranges are found, and one highlighter's own task beside 60 edits, the run the thread sanitizer checks). None sleeps.
+
+#### H5′, as built (2026-11-20)
+
+`TUIJSONStyler` (`Sources/TUIJSONStyler/JSONLineStyler.swift`): `JSONToken`, `JSONLineStyler` (a line's tokens, the
+style the Example, Stress and the tests draw them in, and a window's publish) and `JSONHighlighter`, all `package`,
+in a target that is no product, as `TUIWidthCorpus` is. Stress, the Example and `TUITextInputTests` depend on it;
+the Example does not use it yet (its Text Input page is H4′'s). A fixture, by A-ATTRED-12: no grammar beyond JSON's
+tokens, no recovery, no state.
+
+- **B-ATTRED-42. The JSON styler is stateless per line, and publishes its whole window every update.** A string
+  that spans lines is not JSON, so a line's tokens are its bytes' alone: keys (a string a colon follows, past
+  blanks), strings, escapes within them (one JSON lacks, or a `\u` short of four hex digits, is invalid), numbers
+  (leniently, a run of what numbers are made of), `true`, `false` and `null`, punctuation, blanks, and anything else
+  invalid; an unterminated string runs to the line's end and is never a key. With no state there are no changed
+  ranges to find, so each update republishes the lines on screen and a screen either side, in one batch: the session
+  takes a line whose runs did not change as no change (B-ATTRED-20's `keep`), so the editor joins and draws again only
+  the lines that did. A line longer than the session's `maximumLineLength` is published empty, unscanned
+  (B-ATTRED-15). A line is scanned as an array of its bytes, a copy, not the string's storage borrowed, which would
+  need `unsafe` under SE-0458 for nothing a fixture needs.
+- **B-ATTRED-43. Stress's `bigtext-highlighted` holds its highlighter to its steps.** A headless run is one
+  synchronous main-actor loop, so a highlighter on its own task would publish whenever it happened to run, and the
+  warm instance, its cache-cleared twin and two bench runs would each draw different tokens. Its highlighter styles
+  only when the session's step lets it (`HighlightGate`): at the start of each step, outside the timed region, if
+  the editor's text or the lines on screen differ from those it answered last, the step lets it take the update and
+  waits on a semaphore until it has published. So each frame draws what a highlighter as quick as tree-sitter's
+  queries would have published by then: the last step's lines styled, the line just edited carried (B-ATTRED-28).
+  The frame the publish asks for is a task queued on the main actor, which the loop never reaches; every step draws
+  the editor again anyway. What is timed is the editor's side alone: the session told of the edit, the tokens moved,
+  the runs joined and drawn. Its check is `bigtext`'s, and that the highlighter answered every step.
+
+**What highlighting costs a large document (2026-11-20).** `bigtext` against `bigtext-highlighted`, one release
+binary (9574344ef), 120 × 40, `ab_bench.py` pairing the two sessions (a wrapper reads one id as the other), ten
+reps, order randomised, the box busy (load 65):
+
+| | `bigtext` | `bigtext-highlighted` | change |
+|---|---|---|---|
+| CPU a frame, `ab_bench.py` | 1,470 µs | 2,346 µs | +60.1% [+52.3%, +64.3%], slower |
+| a key (type), p50, median of 5 × 400 steps | 1,387 µs | 2,259 µs | +872 µs |
+| a move (arrows, a line or a few), p50 | 1,114 µs | 1,893 µs | +779 µs |
+| a jump (the app writes the selection: a screen anew), p50, 3 a run | 1,513 µs | 2,177 µs | +664 µs |
+| bytes a frame | 160 | 306 | the runs' SGR |
+| peak RSS | 202.8 MB | 232.7 MB | +29.8 MB |
+
+The styler's own work is off the main actor and outside the timed region, so this is the editor's side alone. It
+is about the same for a key, a move and a jump, so it is a cost a frame, not an edit's or a scroll's: what the
+frame does for a highlighted editor whatever changed. That wants a Time Profiler trace (`Tools/Profiling/`) before
+H4′ makes the seam the way in; it is not this lane's to optimise.
+
+Tests: `JSONLineStylerTests` (each kind of token, escapes in strings and keys, a malformed line styled as far as it
+can be, every pair of bytes giving offsets in order, and through an editor: its colours drawn, and a line past the
+limit drawn unstyled between styled lines).
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
