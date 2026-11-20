@@ -141,7 +141,7 @@ struct FocusableModifierTests {
 
     @Test("A suppressed focusable offers no click-to-focus region")
     func suppressedFocusableTakesNoClicks() {
-        // `.activate` (in `.automatic`) makes the content clickable to focus it.
+        // `.edit` (in `.automatic`) makes the content clickable to focus it.
         // Nothing filed the stop, so the click would reach
         // `FocusManager.focus(id:)` with an id no section holds — a pending
         // intent that repaints for a couple of passes looking for it.

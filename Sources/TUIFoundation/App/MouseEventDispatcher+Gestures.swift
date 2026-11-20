@@ -222,7 +222,9 @@ extension MouseEventDispatcher {
 
     @MainActor
     private func beginGestureArena(_ event: MouseEvent, matching: [HitTestRegion], time: Int64) -> Bool? {
-        let ranking = GestureArena.rank(matching, roles: gestureRoles)
+        let ranking = GestureArena.rank(matching, roles: gestureRoles) { [clickFocusTargets] id in
+            clickFocusTargets[id] != nil
+        }
         // An arena still waiting on a ranked gesture — a double tap waiting
         // for its next click — lives on through this press, as on macOS 15.8:
         // what this press shares with it carries on where it is, the rest

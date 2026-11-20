@@ -24,6 +24,12 @@ public struct FocusInteractions: OptionSet, Sendable {
     /// well as when Tab reaches it — SwiftUI's "become focused when the user
     /// taps or clicks on them, or when the user issues a focus movement
     /// command".
+    ///
+    /// The click still reaches what is inside the view, as on macOS: a tap
+    /// gesture on it runs as the view takes the focus, and its hover, help and
+    /// mouse handlers hear the pointer. A control inside it that takes the
+    /// click as its own — a `Button` — keeps it, and the view doesn't take
+    /// the focus from it.
     public static let edit = Self(rawValue: 1 << 1)
 
     /// The default set of interactions.
@@ -61,7 +67,7 @@ extension View {
     ///
     /// - Parameters:
     ///   - isFocusable: Whether the view can receive focus.
-    ///   - interactions: The interactions the view supports. `.activate` adds
+    ///   - interactions: The interactions the view supports. `.edit` adds
     ///     click-to-focus.
     nonisolated public func focusable(_ isFocusable: Bool = true, interactions: FocusInteractions) -> some View {
         FocusableModifier(content: self, isFocusable: isFocusable, interactions: interactions)
@@ -134,7 +140,7 @@ nonisolated struct FocusableModifier<Content: View>: View {
 
         var buffer = TUIView.renderToBuffer(content, context: contentContext)
 
-        // `.edit` → click anywhere in the content to focus it. Not while an
+        // `.edit` → a left press anywhere on the view focuses it. Not while an
         // ancestor suppresses focus: `registerFocusStop` still hands back an id
         // there (it must — the id's `StateStorage` slot has to stay marked
         // active, and the ring's own guard lives one call further in), but
@@ -143,25 +149,39 @@ nonisolated struct FocusableModifier<Content: View>: View {
         // couple of passes to look for a control that is not coming.
         if let focusID, interactions.contains(.edit),
             !context.environment.isFocusSuppressed,
-            let mouseDispatcher = context.environment.mouseEventDispatcher
-        {
+            let mouseDispatcher = context.environment.mouseEventDispatcher,
             let focusManager = context.environment.focusManager
+        {
+            // The region goes BEHIND the content's, as a container's does, so
+            // what is inside the view hears the pointer first, as in SwiftUI:
+            // a tap gesture, a hover or a help, a mouse handler, a button. In
+            // front of them, as it was until 2026-11-20, it took every left
+            // press and the hover, and none of them heard anything. It takes
+            // a press nothing inside took, so that the press doesn't go on to
+            // what lies behind the view (a scroll view's viewport would focus
+            // the scroll view), and it captures the press so the release comes
+            // back here. The focusing is the dispatcher's, done for every left
+            // press on the view whoever takes it
+            // (`MouseEventDispatcher.focusPressedView(_:)`); a press that
+            // reaches the region by another way, passed through by a drag
+            // handle in front, focuses the view here.
             let handlerID = mouseDispatcher.register(in: context) { event in
+                guard event.button == .left else { return false }
                 switch event.phase {
-                case .pressed where event.button == .left:
-                    // Claim the press so the release routes back here.
+                case .pressed:
+                    focusManager.focus(id: focusID)
                     return true
-                case .released where event.button == .left:
-                    focusManager?.focus(id: focusID)
+                case .released:
                     return true
                 default:
                     return false
                 }
             }
-            // A pointer style in the content shows through: the region takes
-            // the click to focus, and hides nothing.
-            mouseDispatcher.fileSeeThroughPointerShapes(for: handlerID, over: buffer.hitTestRegions, in: context)
-            buffer.hitTestRegions += buffer.frameHitRegions(handlerID: handlerID, focusID: focusID)
+            mouseDispatcher.fileClickFocus(focusID, manager: focusManager, for: handlerID, in: context)
+            // Behind the content, its pointer shapes are in front of the region,
+            // and show without being filed as seen through it.
+            buffer.hitTestRegions.insert(
+                contentsOf: buffer.frameHitRegions(handlerID: handlerID, focusID: focusID), at: 0)
         }
 
         return buffer

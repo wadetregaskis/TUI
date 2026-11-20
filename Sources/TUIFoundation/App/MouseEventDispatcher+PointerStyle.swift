@@ -61,13 +61,14 @@ extension MouseEventDispatcher {
     /// own shape.
     ///
     /// For the wrappers that take events for their content without hiding
-    /// it — `.draggable` (`_DragHandle`), `.focusable()`'s click-to-focus,
-    /// `.onMouseEvent`: each files a region over the whole of its content,
-    /// after it, so front to back it comes first, and
-    /// as the control under the pointer it covered every style inside it.
-    /// `Image(…).pointerStyle(.grabIdle).draggable(item)` showed nothing. A
-    /// control that draws its content as its own — a `Button`'s label — does
-    /// not call this, and covers what it draws (decisions O12, B-O12-2).
+    /// it — `.draggable` (`_DragHandle`), `.onMouseEvent`: each files a region
+    /// over the whole of its content, after it, so front to back it comes
+    /// first, and as the control under the pointer it covered every style
+    /// inside it. `Image(…).pointerStyle(.grabIdle).draggable(item)` showed
+    /// nothing. A control that draws its content as its own — a `Button`'s
+    /// label — does not call this, and covers what it draws (decisions O12,
+    /// B-O12-2). `.focusable()`'s click-to-focus called this as well until its
+    /// region went behind its content's (2026-11-20), where it covers nothing.
     ///
     /// The caller passes its content's regions before it appends its own.
     /// Recorded for a value memo beside the registration it follows.

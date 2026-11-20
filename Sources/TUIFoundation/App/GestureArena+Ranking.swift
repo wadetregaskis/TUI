@@ -114,11 +114,24 @@ extension GestureArena {
     /// Ranks the regions under a press, or returns `nil` when none of them is
     /// a gesture.
     ///
-    /// - Parameter matching: The regions containing the press, innermost
-    ///   first — an attached gesture's region comes after its content's,
-    ///   because it is filed behind them.
+    /// A region that `yieldsToGestures` names — `.focusable()`'s
+    /// click-to-focus — is no control of the view it covers in SwiftUI's
+    /// sense, and outranks no gesture: it is ranked after the gestures behind
+    /// it, ahead of the next control, so `Canvas { … }.focusable()
+    /// .onTapGesture { … }` runs its tap. The focusing is done apart from the
+    /// press (`MouseEventDispatcher.focusPressedView(_:)`); the region takes
+    /// a press only so that what lies behind the view doesn't.
+    ///
+    /// - Parameters:
+    ///   - matching: The regions containing the press, innermost first — an
+    ///     attached gesture's region comes after its content's, because it is
+    ///     filed behind them.
+    ///   - roles: The gestures filed for the regions, by handler id.
+    ///   - yieldsToGestures: Whether a region that is no gesture's ranks after
+    ///     the gestures behind it.
     static func rank(
-        _ matching: [HitTestRegion], roles: [HitTestRegion.HandlerID: GestureRole]
+        _ matching: [HitTestRegion], roles: [HitTestRegion.HandlerID: GestureRole],
+        yieldsToGestures: (HitTestRegion.HandlerID) -> Bool = { _ in false }
     ) -> (ranked: [Entry], simultaneous: [Contender])? {
         guard matching.contains(where: { roles[$0.handlerID] != nil }) else { return nil }
         var disabled: Set<HitTestRegion.HandlerID> = []
@@ -127,8 +140,16 @@ extension GestureArena {
         }
         var ranked: [Entry] = []
         var simultaneous: [Contender] = []
+        // Click-to-focus regions waiting for the next control behind them.
+        var yielding: [Entry] = []
         for region in matching where !disabled.contains(region.handlerID) {
             guard let role = roles[region.handlerID] else {
+                if yieldsToGestures(region.handlerID) {
+                    yielding.append(.control(region))
+                    continue
+                }
+                ranked += yielding
+                yielding.removeAll()
                 ranked.append(.control(region))
                 continue
             }
@@ -144,7 +165,7 @@ extension GestureArena {
                 simultaneous.append(contender)
             }
         }
-        return (ranked, simultaneous)
+        return (ranked + yielding, simultaneous)
     }
 
     /// The gesture's view of a dispatcher event.

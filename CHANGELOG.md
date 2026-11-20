@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A click on a `.focusable()` view reaches what is inside it.** The modifier's click-to-focus (its `.edit`
+interaction, one of the defaults) put a region in front of the view that took every left press and the hover, so a tap
+gesture on the view, an `onHover` or `onContinuousHover`, a `help` tooltip under the pointer, and an `onMouseEvent`
+inside it never ran, in whichever order the modifiers were written. As on macOS, the click now focuses the view and
+reaches them too: `Canvas { … }.onTapGesture { location in … }.focusable()` runs its tap and takes the focus. A left
+press focuses the view as it comes down, rather than on the release. A control inside the view that takes the click
+as its own, a `Button`, keeps it, and the view doesn't take the focus from it.
+
 **A toast fades over the page instead of out of a blank box.** A toast's fade was spent against its own surface,
 which a floating layer paints opaque, so the frame a toast was posted on drew an empty box over the window, neither
 the toast nor what was under it, and both its fades drew the toast coming out of and going back into that box. The

@@ -207,6 +207,12 @@ package final class MouseEventDispatcher {
     /// the handler table. See ``filePointerFocusName(_:for:in:)``.
     var pointerFocusNames: [HitTestRegion.HandlerID: String] = [:]
 
+    /// The regions this frame that a left press focuses a view through —
+    /// `.focusable()`'s, with `.edit` among its interactions — with the view
+    /// each focuses, cleared with the handler table. See
+    /// ``fileClickFocus(_:manager:for:in:)``.
+    var clickFocusTargets: [HitTestRegion.HandlerID: ClickFocusTarget] = [:]
+
     /// For each region the pointer's shape is read from, the styles and the
     /// see-through wrappers whose views it is inside, this frame, cleared with
     /// the handler table: what tells a region nested in another from one that
@@ -215,9 +221,9 @@ package final class MouseEventDispatcher {
     var pointerShapeEnclosures: [HitTestRegion.HandlerID: [HitTestRegion.HandlerID]] = [:]
 
     /// The controls this frame whose regions cover their content without
-    /// hiding its pointer shapes — `.draggable`, `.focusable()`,
-    /// `.onMouseEvent` — where the content holds one, cleared with the handler
-    /// table. See ``fileSeeThroughPointerShapes(for:over:in:)``.
+    /// hiding its pointer shapes — `.draggable`, `.onMouseEvent` — where the
+    /// content holds one, cleared with the handler table. See
+    /// ``fileSeeThroughPointerShapes(for:over:in:)``.
     var pointerShapeWrappers: Set<HitTestRegion.HandlerID> = []
 
     /// The shape under the pointer as last resolved, and whether the pointer
@@ -506,6 +512,7 @@ extension MouseEventDispatcher {
         controlPointerShapes.removeAll(keepingCapacity: true)
         pointerFocusFollowers.removeAll(keepingCapacity: true)
         pointerFocusNames.removeAll(keepingCapacity: true)
+        clickFocusTargets.removeAll(keepingCapacity: true)
         pointerShapeEnclosures.removeAll(keepingCapacity: true)
         pointerShapeWrappers.removeAll(keepingCapacity: true)
         passiveIDs.removeAll(keepingCapacity: true)
@@ -1108,6 +1115,12 @@ extension MouseEventDispatcher {
         if event.phase == .moved {
             return dispatchMotion(event)
         }
+
+        // A left press focuses the `.focusable()` view it lands on before
+        // anything inside that view hears it, so a tap gesture or a mouse
+        // handler inside the view that takes the press doesn't keep the view
+        // from the focus (``focusPressedView(_:)``).
+        focusPressedView(event)
 
         // A press on an attached gesture, and the rest of the button's
         // gesture after one, are ranked in the gesture arena — controls under

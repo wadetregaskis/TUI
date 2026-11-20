@@ -77,9 +77,10 @@ Writing to `field` moves focus; reading it tells you where focus is. A `Bool`
 
 Three more modifiers shape the order that Tab follows:
 
-- `focusable(_:interactions:)` makes any view a Tab stop — `.activate` also
-  makes a click focus it — so a custom view joins the ring without adopting
-  ``Focusable``.
+- `focusable(_:interactions:)` makes any view a Tab stop — `.edit`, one of
+  its default interactions, also makes a click focus it, and the click still
+  reaches the view's own tap gestures and mouse handlers — so a custom view
+  joins the ring without adopting ``Focusable``.
 - `focusSection(_:)` groups a region. ⇥ and ⇧⇥ step through a section's
   controls and, from its last (or first), move to the next (or previous)
   section, entering it at its edge — its first control going forward, its last
