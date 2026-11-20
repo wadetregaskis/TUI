@@ -100,14 +100,14 @@ import Foundation
             var gathered = ""
             var gatheredStyle = TextStyle()
             var gatheredLink: URL?
-            var gatheredAlignment: AttributedString.TextAlignment?
+            var gatheredAlignment: TextAlignment?
             var index = string.startIndex
             while index < string.endIndex {
                 let next = string.characters.index(after: index)
                 let piece = string[index..<next]
                 let style = Self.style(of: piece)
                 let link = piece.link
-                let alignment = piece.alignment
+                let alignment = piece.drawnParagraphAlignment
                 if gathered.isEmpty || style != gatheredStyle || link != gatheredLink
                     || alignment != gatheredAlignment
                 {
@@ -142,7 +142,7 @@ import Foundation
         guard !text.isEmpty else { return }
         let style = Self.style(of: piece)
         let link = piece.link
-        let alignment = piece.alignment
+        let alignment = piece.drawnParagraphAlignment
         if let last = runs.last, last.style == style, last.link == link, last.live == nil,
             last.alignment == alignment
         {

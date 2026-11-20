@@ -17,6 +17,11 @@ caret's side at a run's edge and at a wrap, measured on macOS, is §8 (A-ATTRED-
 and what its macOS 15 fallbacks cost is §9. L4's editor is built but for line height (§5), and
 B-ATTRED-4's price is measured there.*
 
+*Updated 2026-11-19: the owner ruled on attralign (§7). On the macOS 26 SDK a paragraph's `alignment` is Core
+Text's own, macOS 26 only as in SwiftUI; TUI declares the same names only where no SDK does; and TUI's own
+`paragraphAlignment` aligns a paragraph on every platform and macOS. Line height stays unbuilt: Core Text's factor
+cannot be read back with what runs here (§5, A-ATTRED-13).*
+
 ## In short
 
 SwiftUI's attributed editor is one initializer, a selection type that carries typing attributes, five
@@ -137,7 +142,7 @@ as gaps (`Tools/APIParity/baseline.json`).
 | `link` | Styled as a link; OSC 8 where the host honours it | A link and a control (B85) | Styled, no OSC 8: the terminal would take ⌘-click inside an editable field (the 2026-10-04 design, kept) |
 | `inlinePresentationIntent` (Darwin) | Bold, italic, strikethrough | Drawn | Drawn |
 | `kern`, `tracking`, `baselineOffset`, `lineHeight` | No: the grid fixes them | Ignored | Ignored |
-| `alignment` (a paragraph's) | Drawn per line (A-ATTRED-3, as built in L4) | Each line aligned within the text's width | Each row aligned within the editor's width |
+| `alignment` (a paragraph's) | Drawn per line (A-ATTRED-3, as built in L4); Core Text's on the macOS 26 SDK, so macOS 26 only, and TUI's `paragraphAlignment` on every macOS (attralign) | Each line aligned within the text's width | Each row aligned within the editor's width |
 | `adaptiveImageGlyph` | No | Ignored | Ignored |
 
 So everything tuitree asks for is in the drawable half: colours per token, and an underline (curly where the
@@ -367,27 +372,42 @@ initializer's documentation states. The three-quarters of a second a key of §4 
 the comparison three orders of magnitude cheaper, and leaves the fresh layout of a changed text, which the `String`
 editor pays as well, as what a large source costs.
 
-*As built in L4 (2026-11-17), a paragraph's alignment (§7, A-ATTRED-3):* SwiftUI's scope declares
-`alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute`, whose value is Core Text's
-`AttributedString.TextAlignment` (`left`, `center`, `right`; macOS 26, read from the 26.2 SDK's Core Text interface).
-TUI declares both under those names itself, in `Sources/TUIFoundation/Views/AttributeScopes+CoreText.swift`, so they
-exist on macOS 15, Linux and Windows and need no gate; the key is bounded by paragraphs
-(`runBoundaries = .paragraph`), as a paragraph attribute is, so setting it on a word sets it on the word's paragraph
-and typed text takes it. Its `name` is TUI's own (`"TUI.TextAlignment"`): Core Text's interface does not show its
-name, and a value carrying Core Text's attribute stays invisible to TUI's key rather than read as the wrong type.
+*As built in L4 (2026-11-17), a paragraph's alignment (§7, A-ATTRED-3), and as the owner then ruled (attralign,
+2026-11-19):* SwiftUI's scope declares `alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute`, whose
+value is Core Text's `AttributedString.TextAlignment` (`left`, `center`, `right`; macOS 26, read from the 26.2 SDK's
+Core Text interface). L4 first declared both under those names itself, on every platform. That cost one thing,
+measured: on macOS, Core Text's declarations are visible beside TUI's wherever Core Text is loaded, and TUI loads it
+(`TUIStrings`' SF Symbols table), so an app that NAMED the type (`let a: AttributedString.TextAlignment`) beside
+AppKit got "ambiguous type name". That broke the rule that nothing TUI adds may make a SwiftUI declaration
+ambiguous, and went to the owner, who ruled "(a) but provide our own version anywhere that Core Text doesn't (e.g.
+macOS 15) if possible". As built now, in `Sources/TUIFoundation/Views/AttributeScopes+CoreText.swift`, with the
+compile probes in `Tools/SwiftUIProbes/Paragraph attribute types (attralign)/`:
 
-**The one cost of declaring them (measured, not decided):** on macOS, Core Text's `AttributedString.TextAlignment` is
-visible beside TUI's wherever Core Text is loaded, and TUI loads it (`TUIStrings`' SF Symbols table), so an app that
-NAMES the type (`let a: AttributedString.TextAlignment`) gets "ambiguous type name" unless it builds with
-`MemberImportVisibility` and imports none of AppKit, SwiftUI and Core Text; `internal import CoreText` in `TUIStrings`
-does not hide it. Setting the attribute (`string.alignment = .center`, `container.alignment = .right`, reading
-`run.alignment`) binds to TUI's even with AppKit imported, as the colours' subscripts do; the compile corpus checks
-it beside AppKit. TUI's own test targets, built without `MemberImportVisibility`, hit it at once (they name a
-stand-in instead). Linux and Windows have no second declaration. This is the scope type's own caveat (decisions B84)
-reaching `TextAlignment` and `CoreTextAttributes`, and the lead's brief said to stop and write up any ambiguity: it is written up here for the
-lead, who may prefer the alternative, Core Text's own types on Apple platforms (gated to macOS 26, as SwiftUI's are)
-and TUI's elsewhere. That alternative costs macOS 15 the attribute, and Core Text's `LineHeight` has no public
-accessor to read a factor back from (only `==` against made values), which matters for line height.
+| Where | `alignment` | Naming `AttributedString.TextAlignment` | TUI's `paragraphAlignment` |
+|---|---|---|---|
+| macOS 26 SDK, run on macOS 26 | Core Text's, drawn | One declaration, Core Text's: never ambiguous, with AppKit or `MemberImportVisibility` too | Drawn; `alignment` wins where a paragraph states both |
+| macOS 26 SDK, run on macOS 15 | Needs `if #available(macOS 26, *)`, as SwiftUI's does; unreachable before it | As above | Drawn: the fallback |
+| macOS 15 SDK (Command Line Tools 16) | TUI's own, under Core Text's names, no gate: that SDK declares none | TUI's, the only one | Drawn |
+| Linux, Windows, WebAssembly | TUI's own, no gate | TUI's, the only one | Drawn |
+
+The macOS 26 SDK is told from the 15 SDKs by FoundationModels, as `AttributedTextSelection`'s macOS 26 arms are
+(§9; the ledger's row S4); both arrive with that SDK. On it TUIFoundation re-exports Core Text, because a SwiftUI file
+built with `MemberImportVisibility` names the type and its cases with `import SwiftUI` alone, and without the
+re-export a TUI one could not (the probe: "missing import of defining module 'CoreText'"). The scope's `alignment` is
+a computed property there, because a stored property cannot be newer than its type; Foundation finds a scope's keys
+through its stored properties, so decoding with `\.swiftUI`'s scope leaves the alignment out on that SDK (not
+measured: decoding needs macOS 26; deviation T14, put to the owner as A-ATTRED-14). Elsewhere it is stored, under TUI's key name `"TUI.TextAlignment"`.
+
+**The fallback** is TUI's own attribute under a name SwiftUI does not use, so it shadows nothing: `paragraphAlignment`
+(`AttributeScopes.SwiftUIAttributes.ParagraphAlignmentAttribute`, valued TUI's `TextAlignment`, the
+`multilineTextAlignment` type: `leading`, `center`, `trailing`), bounded by paragraphs as `alignment` is. It compiles
+with no guard on every SDK and platform, beside AppKit too. TUI draws `alignment` where the platform has it and
+`paragraphAlignment` otherwise (`AttributedSubstring.drawnParagraphAlignment`), so `Text` and the editor keep
+one internal type, TUI's `TextAlignment`. **What a program on macOS 15 cannot do:** use SwiftUI's spelling at all
+(SwiftUI's own cannot either), and so share that line with a SwiftUI build; it writes `paragraphAlignment`, which a
+SwiftUI build does not have. The tests (`TextParagraphAlignmentTests`, `RichTextEditorAlignmentTests`) run each case
+through both spellings where both exist and through `paragraphAlignment` alone on a Mac before macOS 26, and the
+compile corpus names the type beside AppKit.
 
 A `Text` aligns each line of the paragraph within its own width (the widest line), as
 `multilineTextAlignment` aligns all of them, and a paragraph's alignment wins over that modifier for its own lines:
@@ -413,7 +433,24 @@ that TUI's `Font` can carry: it has no size, family, width or leading to ignore 
 being one already. Kerning, tracking and a baseline offset stay out of the scope, so setting one does not compile.
 
 **Not yet built (L4's remainder):** a paragraph's line height (§7's ruling); and Stress's `text-editor-rich` and
-`bigtext-rich` cases. Line height is unlike alignment in one way that matters for a large text: a paragraph's blank
+`bigtext-rich` cases.
+
+**Why line height is not built (attralign, 2026-11-19).** The ruling's basis would be Core Text's
+`AttributedString.LineHeight` on the macOS 26 SDK and a TUI-named fallback elsewhere, as for alignment. The crude
+drawing needs the factor of `.multiple(factor:)`, and Core Text gives no way to read it that can be measured here.
+Its interface (26.2 SDK) declares the makers (`multiple(factor:)`, `leading(increase:)`, `exact(points:)`, `normal`,
+`tight`, `loose`, `variable`), `==`, `hash(into:)` and Codable, and no accessor. Three ways in, all type-checked in
+the probe folder's `LineHeightReading.swift`, none runnable on this macOS 15.8 machine:
+
+- **`==` against a grid of made values** (1, 1.5, … 4): public API, so reliable for exactly those values. Any other
+  factor, and every `leading` and `exact` value, reads as unknown, drawn as one row.
+- **Codable**: encode the value and read the factor out. Exact for every factor if the encoding carries it, but the
+  encoding is undocumented and its shape unmeasured; a test on CI's macOS 26 lane would have to pin it, and a later
+  macOS could change it.
+- **Reflection** (`Mirror`): private, unversioned layout; not robust.
+
+On a Mac before macOS 26 there is no `LineHeight` at all, so the fallback would be a TUI-named attribute of TUI's own
+(a row count, say), as `paragraphAlignment` is. The owner's question is A-ATTRED-13 (§6). Line height is unlike alignment in one way that matters for a large text: a paragraph's blank
 rows move every row after it, so the editor's rows (`WrappedRows.rowStarts`, which the scroll, the scroll bar's extent,
 the caret's row and every click go through) need every paragraph's line height, where alignment needs only the lines
 drawn. The way in that keeps B-ATTRED-2: `LineHeightAttribute` bounded by paragraphs like alignment, so
@@ -427,6 +464,25 @@ did not finish inside five minutes and was stopped). `Text` would interleave a p
 `lineSpacing`'s are (`LineSpacingRows`), in its measure as in its drawing.
 
 ## 6. Questions for the owner
+
+**A-ATTRED-13 (open, 2026-11-19): line height, now that Core Text's factor is unreadable here.** Options, each on
+top of the editor work §5 sketches (a rows-per-row factor per line in `WrappedRows`, blank rows belonging to the row
+above, the vertical keys stepping over them, `Text` interleaving them as `lineSpacing`'s rows), which is about 1 to
+1½ lane-days whichever is picked:
+
+- **(a) A TUI-named attribute only** (`paragraphLineRows`, an `Int`, say), on every platform and macOS; SwiftUI's
+  `lineHeight` stays absent, so setting it does not compile. No reading of Core Text at all. About ¼ day beyond the
+  editor work.
+- **(b) (a) plus SwiftUI's `lineHeight` read by `==` against a grid** of `.multiple(factor:)` values on macOS 26;
+  any other value draws one row. About ½ day beyond the editor work, and a macOS 26 CI run to see it work.
+- **(c) (a) plus `lineHeight` read through its Codable encoding**: exact, but the encoding is undocumented and
+  unmeasured. About ¾ day, a macOS 26 CI round trip first to learn the encoding, and a test that pins it on the
+  macOS 26 and 27 lanes.
+- **(d) Not yet**: leave line height unbuilt until a macOS 26 machine can measure Core Text, or the owner drops
+  macOS 15.
+
+Recommended: (a) now if tuitree or an app wants it, (b) on top only if a SwiftUI program's `lineHeight` matters;
+otherwise (d). If you don't answer: (d).
 
 ### A-ATTRED-1. Colouring a large source: SwiftUI's API alone, or a per-line styler too
 
@@ -519,6 +575,15 @@ character take?* macOS 26 decides this, and this machine (macOS 15.8.3) cannot r
 
 **The sum:** SwiftUI's API (L0–L4, L6, L7) about 9 lane-days, then the highlighter (H0–H6, ★) about 7. tuitree has
 colour 4½ days after the SwiftUI part.
+
+**attralign (2026-11-19).** Asked whether TUI should keep declaring Core Text's `AttributedString.TextAlignment`
+itself (working on macOS 15, but ambiguous when an app names it beside Core Text) or use Core Text's own on Apple
+platforms (macOS 26 only, as SwiftUI's), the owner ruled: "(a) but provide our own version anywhere that Core Text
+doesn't (e.g. macOS 15) if possible." *What follows:* Core Text's types on the macOS 26 SDK, TUI's identical ones
+where no SDK declares them (the macOS 15 SDKs, Linux, Windows, WebAssembly), and, for a program built with the 26
+SDK and run on macOS 15, where TUI cannot declare the names without bringing the ambiguity back, TUI's own
+`paragraphAlignment` under a name SwiftUI does not use (§5, as built). Line height on the same basis waits on
+A-ATTRED-13 (§6).
 
 ## 8. The caret's side: affinity and typing attributes
 
@@ -658,8 +723,9 @@ call it. Dropping macOS 15 deletes the file and those arms. Linux and Windows ne
 
 **L4 adds no fallback.** The attributed editor reads the app's selection through `indices(in:)`, whose validity on
 macOS 15 is the bounds check above, and finds an offset's index through the character view, which costs a
-microsecond there (below). Its edits are made by offset, not tracked, so they need no tracking fallback. A paragraph's alignment adds none
-either: TUI declares the attribute and its value type itself, so macOS 15 has them as macOS 26 does (§5, as built).
+microsecond there (below). Its edits are made by offset, not tracked, so they need no tracking fallback. A paragraph's alignment costs macOS
+15 SwiftUI's spelling (attralign, §5 as built): a program built with the 26 SDK sets Core Text's `alignment` only on
+macOS 26, and on macOS 15 sets TUI's `paragraphAlignment` instead. The ledger's row M11 counts it.
 
 **The offset-to-index walk** (the owner's question): on macOS 15.8.3 Foundation's `AttributedString` finds an index
 from a character or scalar offset through its rope, so no walk happens. Without the UTF-8 view, on a

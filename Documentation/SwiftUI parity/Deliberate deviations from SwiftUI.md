@@ -1408,6 +1408,33 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
 - **Decided:** the owner's ruling A-DISED-1, option (b), 2026-11-19.
   **Owner.**
 
+### T14. A paragraph's `alignment` is not among the `\.swiftUI` scope's stored keys on the macOS 26 SDK
+
+- **SwiftUI:** `AttributeScopes.SwiftUIAttributes` declares `alignment` as a
+  stored property, `@available(macOS 26, *)` (the SDK's declaration, SwiftUICore
+  in the 26.2 SDK; SwiftUI is built with library evolution, which allows a
+  stored property newer than its type). Foundation finds a scope's keys through
+  its stored properties, so decoding or encoding an `AttributedString` with
+  that scope (`AttributeScopeCodableConfiguration`, `including: \.swiftUI`)
+  carries a paragraph's alignment (believed from that; not measured, since it
+  needs macOS 26).
+- **TUI:** on the macOS 26 SDK, where the attribute is Core Text's own (the
+  owner's ruling attralign), the scope's `alignment` is a computed property
+  (`AttributeScopes+CoreText.swift`), so `string.alignment`, a container's and a
+  run's work as in SwiftUI, but a coder or Markdown parse given `\.swiftUI`'s
+  scope does not see the key, and leaves the alignment out. Elsewhere (the 15
+  SDKs, Linux, Windows, WebAssembly) it is stored, as SwiftUI's is.
+- **Why:** Swift refuses `@available` on a stored property of a type built
+  without library evolution ("stored properties cannot be marked potentially
+  unavailable", measured with `Tools/SwiftUIProbes/Paragraph attribute types
+  (attralign)/`), and TUI must keep the macOS 15 floor; a stored member of
+  Core Text's macOS 26 type would not compile at that floor at all.
+- **Decided:** forced by the language, under the owner's ruling attralign
+  (2026-11-19), recorded in the [G3
+  design](<../Historical/Text, editing and the clipboard/An attributed TextEditor - design (G3).md>)
+  §7. Put to the owner on its own as A-ATTRED-14 ([Open owner
+  decisions](<../Open owner decisions.md>)); it stands until answered.
+
 ---
 
 ## Colour and drawing

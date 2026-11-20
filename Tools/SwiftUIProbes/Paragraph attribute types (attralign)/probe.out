@@ -1,0 +1,129 @@
+swift-driver version: 1.127.15 Apple Swift version 6.2.4 (swiftlang-6.2.4.1.4 clang-1700.6.4.2)
+== sdk26
+sdk26 ruling macOS15.0 TUI ClientGuarded                               ok
+sdk26 ruling macOS15.0 TUI ClientUnguarded                             error: 'subscript(dynamicMember:)' is only available in macOS 26 or newer
+sdk26 ruling macOS15.0 TUI ClientFallback                              ok
+sdk26 ruling macOS15.0 TUI+AppKit ClientGuarded                        ok
+sdk26 ruling macOS15.0 TUI+AppKit ClientUnguarded                      error: 'alignment' is only available in macOS 26.0 or newer
+sdk26 ruling macOS15.0 TUI+AppKit ClientFallback                       ok
+sdk26 ruling macOS15.0 TUI, MemberImportVisibility ClientGuarded       ok
+sdk26 ruling macOS15.0 TUI, MemberImportVisibility ClientUnguarded     error: 'subscript(dynamicMember:)' is only available in macOS 26 or newer
+sdk26 ruling macOS15.0 TUI, MemberImportVisibility ClientFallback      ok
+sdk26 ruling macOS26.0 TUI ClientGuarded                               ok
+sdk26 ruling macOS26.0 TUI ClientUnguarded                             ok
+sdk26 ruling macOS26.0 TUI ClientFallback                              ok
+sdk26 ruling macOS26.0 TUI+AppKit ClientGuarded                        ok
+sdk26 ruling macOS26.0 TUI+AppKit ClientUnguarded                      ok
+sdk26 ruling macOS26.0 TUI+AppKit ClientFallback                       ok
+sdk26 ruling macOS26.0 TUI, MemberImportVisibility ClientGuarded       ok
+sdk26 ruling macOS26.0 TUI, MemberImportVisibility ClientUnguarded     ok
+sdk26 ruling macOS26.0 TUI, MemberImportVisibility ClientFallback      ok
+sdk26 same-named macOS15.0 TUI ClientGuarded                           ok
+sdk26 same-named macOS15.0 TUI ClientUnguarded                         ok
+sdk26 same-named macOS15.0 TUI ClientFallback                          ok
+sdk26 same-named macOS15.0 TUI+AppKit ClientGuarded                    error: ambiguous type name 'TextAlignment' in 'AttributedString'
+sdk26 same-named macOS15.0 TUI+AppKit ClientUnguarded                  ok
+sdk26 same-named macOS15.0 TUI+AppKit ClientFallback                   ok
+sdk26 same-named macOS15.0 TUI, MemberImportVisibility ClientGuarded   ok
+sdk26 same-named macOS15.0 TUI, MemberImportVisibility ClientUnguarded ok
+sdk26 same-named macOS15.0 TUI, MemberImportVisibility ClientFallback  ok
+sdk26 same-named macOS26.0 TUI ClientGuarded                           ok
+sdk26 same-named macOS26.0 TUI ClientUnguarded                         ok
+sdk26 same-named macOS26.0 TUI ClientFallback                          ok
+sdk26 same-named macOS26.0 TUI+AppKit ClientGuarded                    error: ambiguous type name 'TextAlignment' in 'AttributedString'
+sdk26 same-named macOS26.0 TUI+AppKit ClientUnguarded                  ok
+sdk26 same-named macOS26.0 TUI+AppKit ClientFallback                   ok
+sdk26 same-named macOS26.0 TUI, MemberImportVisibility ClientGuarded   ok
+sdk26 same-named macOS26.0 TUI, MemberImportVisibility ClientUnguarded ok
+sdk26 same-named macOS26.0 TUI, MemberImportVisibility ClientFallback  ok
+sdk26 ruling, no re-export macOS15.0 TUI ClientGuarded                 ok
+sdk26 ruling, no re-export macOS15.0 TUI ClientUnguarded               error: 'subscript(dynamicMember:)' is only available in macOS 26 or newer
+sdk26 ruling, no re-export macOS15.0 TUI ClientFallback                ok
+sdk26 ruling, no re-export macOS15.0 TUI+AppKit ClientGuarded          ok
+sdk26 ruling, no re-export macOS15.0 TUI+AppKit ClientUnguarded        error: 'alignment' is only available in macOS 26.0 or newer
+sdk26 ruling, no re-export macOS15.0 TUI+AppKit ClientFallback         ok
+sdk26 ruling, no re-export macOS15.0 TUI, MemberImportVisibility ClientGuarded error: enum case 'left' is not available due to missing import of defining module 'CoreText' [#MemberImportVisibility]
+sdk26 ruling, no re-export macOS15.0 TUI, MemberImportVisibility ClientUnguarded error: 'subscript(dynamicMember:)' is only available in macOS 26 or newer
+sdk26 ruling, no re-export macOS15.0 TUI, MemberImportVisibility ClientFallback ok
+sdk26 ruling, no re-export macOS26.0 TUI ClientGuarded                 ok
+sdk26 ruling, no re-export macOS26.0 TUI ClientUnguarded               ok
+sdk26 ruling, no re-export macOS26.0 TUI ClientFallback                ok
+sdk26 ruling, no re-export macOS26.0 TUI+AppKit ClientGuarded          ok
+sdk26 ruling, no re-export macOS26.0 TUI+AppKit ClientUnguarded        ok
+sdk26 ruling, no re-export macOS26.0 TUI+AppKit ClientFallback         ok
+sdk26 ruling, no re-export macOS26.0 TUI, MemberImportVisibility ClientGuarded error: enum 'TextAlignment' is not available due to missing import of defining module 'CoreText' [#MemberImportVisibility]
+sdk26 ruling, no re-export macOS26.0 TUI, MemberImportVisibility ClientUnguarded error: enum case 'center' is not available due to missing import of defining module 'CoreText' [#MemberImportVisibility]
+sdk26 ruling, no re-export macOS26.0 TUI, MemberImportVisibility ClientFallback ok
+sdk26 SwiftUI itself macOS15.0 SwiftUI ClientGuarded                   ok
+sdk26 SwiftUI itself macOS15.0 SwiftUI ClientUnguarded                 error: 'alignment' is only available in macOS 26.0 or newer
+sdk26 SwiftUI itself macOS15.0 SwiftUI, MemberImportVisibility ClientGuarded ok
+sdk26 SwiftUI itself macOS15.0 SwiftUI, MemberImportVisibility ClientUnguarded error: 'alignment' is only available in macOS 26.0 or newer
+sdk26 SwiftUI itself macOS26.0 SwiftUI ClientGuarded                   ok
+sdk26 SwiftUI itself macOS26.0 SwiftUI ClientUnguarded                 ok
+sdk26 SwiftUI itself macOS26.0 SwiftUI, MemberImportVisibility ClientGuarded ok
+sdk26 SwiftUI itself macOS26.0 SwiftUI, MemberImportVisibility ClientUnguarded ok
+== sdk26 line height
+LineHeightReading (==, Codable, Mirror) type-checks
+== sdk15
+sdk15 ruling macOS15.0 TUI ClientGuarded                               ok
+sdk15 ruling macOS15.0 TUI ClientUnguarded                             ok
+sdk15 ruling macOS15.0 TUI ClientFallback                              ok
+sdk15 ruling macOS15.0 TUI+AppKit ClientGuarded                        ok
+sdk15 ruling macOS15.0 TUI+AppKit ClientUnguarded                      ok
+sdk15 ruling macOS15.0 TUI+AppKit ClientFallback                       ok
+sdk15 ruling macOS15.0 TUI, MemberImportVisibility ClientGuarded       ok
+sdk15 ruling macOS15.0 TUI, MemberImportVisibility ClientUnguarded     ok
+sdk15 ruling macOS15.0 TUI, MemberImportVisibility ClientFallback      ok
+sdk15 ruling macOS26.0 TUI ClientGuarded                               ok
+sdk15 ruling macOS26.0 TUI ClientUnguarded                             ok
+sdk15 ruling macOS26.0 TUI ClientFallback                              ok
+sdk15 ruling macOS26.0 TUI+AppKit ClientGuarded                        ok
+sdk15 ruling macOS26.0 TUI+AppKit ClientUnguarded                      ok
+sdk15 ruling macOS26.0 TUI+AppKit ClientFallback                       ok
+sdk15 ruling macOS26.0 TUI, MemberImportVisibility ClientGuarded       ok
+sdk15 ruling macOS26.0 TUI, MemberImportVisibility ClientUnguarded     ok
+sdk15 ruling macOS26.0 TUI, MemberImportVisibility ClientFallback      ok
+sdk15 same-named macOS15.0 TUI ClientGuarded                           ok
+sdk15 same-named macOS15.0 TUI ClientUnguarded                         ok
+sdk15 same-named macOS15.0 TUI ClientFallback                          ok
+sdk15 same-named macOS15.0 TUI+AppKit ClientGuarded                    ok
+sdk15 same-named macOS15.0 TUI+AppKit ClientUnguarded                  ok
+sdk15 same-named macOS15.0 TUI+AppKit ClientFallback                   ok
+sdk15 same-named macOS15.0 TUI, MemberImportVisibility ClientGuarded   ok
+sdk15 same-named macOS15.0 TUI, MemberImportVisibility ClientUnguarded ok
+sdk15 same-named macOS15.0 TUI, MemberImportVisibility ClientFallback  ok
+sdk15 same-named macOS26.0 TUI ClientGuarded                           ok
+sdk15 same-named macOS26.0 TUI ClientUnguarded                         ok
+sdk15 same-named macOS26.0 TUI ClientFallback                          ok
+sdk15 same-named macOS26.0 TUI+AppKit ClientGuarded                    ok
+sdk15 same-named macOS26.0 TUI+AppKit ClientUnguarded                  ok
+sdk15 same-named macOS26.0 TUI+AppKit ClientFallback                   ok
+sdk15 same-named macOS26.0 TUI, MemberImportVisibility ClientGuarded   ok
+sdk15 same-named macOS26.0 TUI, MemberImportVisibility ClientUnguarded ok
+sdk15 same-named macOS26.0 TUI, MemberImportVisibility ClientFallback  ok
+sdk15 ruling, no re-export macOS15.0 TUI ClientGuarded                 ok
+sdk15 ruling, no re-export macOS15.0 TUI ClientUnguarded               ok
+sdk15 ruling, no re-export macOS15.0 TUI ClientFallback                ok
+sdk15 ruling, no re-export macOS15.0 TUI+AppKit ClientGuarded          ok
+sdk15 ruling, no re-export macOS15.0 TUI+AppKit ClientUnguarded        ok
+sdk15 ruling, no re-export macOS15.0 TUI+AppKit ClientFallback         ok
+sdk15 ruling, no re-export macOS15.0 TUI, MemberImportVisibility ClientGuarded ok
+sdk15 ruling, no re-export macOS15.0 TUI, MemberImportVisibility ClientUnguarded ok
+sdk15 ruling, no re-export macOS15.0 TUI, MemberImportVisibility ClientFallback ok
+sdk15 ruling, no re-export macOS26.0 TUI ClientGuarded                 ok
+sdk15 ruling, no re-export macOS26.0 TUI ClientUnguarded               ok
+sdk15 ruling, no re-export macOS26.0 TUI ClientFallback                ok
+sdk15 ruling, no re-export macOS26.0 TUI+AppKit ClientGuarded          ok
+sdk15 ruling, no re-export macOS26.0 TUI+AppKit ClientUnguarded        ok
+sdk15 ruling, no re-export macOS26.0 TUI+AppKit ClientFallback         ok
+sdk15 ruling, no re-export macOS26.0 TUI, MemberImportVisibility ClientGuarded ok
+sdk15 ruling, no re-export macOS26.0 TUI, MemberImportVisibility ClientUnguarded ok
+sdk15 ruling, no re-export macOS26.0 TUI, MemberImportVisibility ClientFallback ok
+sdk15 SwiftUI itself macOS15.0 SwiftUI ClientGuarded                   error: reference to member 'alignment' cannot be resolved without a contextual type
+sdk15 SwiftUI itself macOS15.0 SwiftUI ClientUnguarded                 error: reference to member 'alignment' cannot be resolved without a contextual type
+sdk15 SwiftUI itself macOS15.0 SwiftUI, MemberImportVisibility ClientGuarded error: reference to member 'alignment' cannot be resolved without a contextual type
+sdk15 SwiftUI itself macOS15.0 SwiftUI, MemberImportVisibility ClientUnguarded error: reference to member 'alignment' cannot be resolved without a contextual type
+sdk15 SwiftUI itself macOS26.0 SwiftUI ClientGuarded                   error: reference to member 'alignment' cannot be resolved without a contextual type
+sdk15 SwiftUI itself macOS26.0 SwiftUI ClientUnguarded                 error: reference to member 'alignment' cannot be resolved without a contextual type
+sdk15 SwiftUI itself macOS26.0 SwiftUI, MemberImportVisibility ClientGuarded error: reference to member 'alignment' cannot be resolved without a contextual type
+sdk15 SwiftUI itself macOS26.0 SwiftUI, MemberImportVisibility ClientUnguarded error: reference to member 'alignment' cannot be resolved without a contextual type

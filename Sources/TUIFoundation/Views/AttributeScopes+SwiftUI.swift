@@ -27,10 +27,13 @@ extension AttributeScopes {
     ///
     /// Each of these has a cell to go in: a foreground and a background colour,
     /// a semantic font (which a terminal draws as an intensity — see ``Font``),
-    /// and a single underline or strikethrough. A paragraph's ``alignment``
+    /// and a single underline or strikethrough. A paragraph's `alignment`
     /// places its lines across the width, as SwiftUI's does (the owner's ruling
-    /// A-ATTRED-3, 2026-11-17). Foundation's own attributes come along through
-    /// ``foundation``, and a `Text` draws the `link` among them.
+    /// A-ATTRED-3, 2026-11-17); on Apple platforms it is Core Text's, macOS 26
+    /// only, and TUI's own ``paragraphAlignment`` does the same on every macOS
+    /// (the owner's ruling attralign, 2026-11-19). Foundation's own attributes
+    /// come along through ``foundation``, and a `Text` draws the `link` among
+    /// them.
     ///
     /// SwiftUI's sub-cell typography is not here — `kern`, `tracking`,
     /// `baselineOffset` and the `adaptiveImageGlyph` — so setting one fails to
@@ -61,9 +64,20 @@ extension AttributeScopes {
         /// A property for accessing an underline style attribute.
         public let underlineStyle: UnderlineStyleAttribute
 
-        /// A property for accessing a paragraph's alignment
-        /// (``AttributedString/TextAlignment``).
-        public let alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
+        #if !(canImport(Darwin) && canImport(FoundationModels))
+            /// A property for accessing a paragraph's alignment
+            /// (``AttributedString/TextAlignment``) — mirrors SwiftUI's.
+            ///
+            /// Here TUI declares Core Text's types itself, so it needs no
+            /// macOS 26; on the macOS 26 SDK it is Core Text's, and macOS 26
+            /// only (`AttributeScopes+CoreText.swift`).
+            public let alignment: AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
+        #endif
+
+        /// A property for accessing a paragraph's alignment as TUI's
+        /// ``TextAlignment``, on every platform and macOS — TUI's own
+        /// (``ParagraphAlignmentAttribute``).
+        public let paragraphAlignment: ParagraphAlignmentAttribute
 
         /// A property for accessing attributes defined by the Foundation
         /// framework. Of those, a ``Text`` draws `link` (and, where
@@ -162,15 +176,5 @@ extension AttributeDynamicLookup {
         >
     ) -> AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute {
         self[AttributeScopes.SwiftUIAttributes.UnderlineStyleAttribute.self]
-    }
-
-    /// The ``AttributeScopes/SwiftUIAttributes/alignment`` attribute, as
-    /// `string.alignment`.
-    public subscript(
-        dynamicMember keyPath: KeyPath<
-            AttributeScopes.SwiftUIAttributes, AttributeScopes.CoreTextAttributes.TextAlignmentAttribute
-        >
-    ) -> AttributeScopes.CoreTextAttributes.TextAlignmentAttribute {
-        self[AttributeScopes.CoreTextAttributes.TextAlignmentAttribute.self]
     }
 }

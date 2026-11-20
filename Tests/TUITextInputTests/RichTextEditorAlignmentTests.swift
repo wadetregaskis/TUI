@@ -4,7 +4,9 @@
 //  An attributed `TextEditor`'s paragraph alignment (G3 L4, the owner's ruling
 //  A-ATTRED-3 of 2026-11-17): a centred or right-aligned paragraph's rows are
 //  drawn after blank cells, and the caret, a click and the vertical keys map
-//  through them, wrapping or scrolling sideways.
+//  through them, wrapping or scrolling sideways. Each case runs through
+//  SwiftUI's `alignment` where it exists (macOS 26 on a Mac) and TUI's
+//  `paragraphAlignment` everywhere (the owner's ruling attralign, 2026-11-19).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -40,53 +42,43 @@ struct RichTextEditorAlignmentTests {
         return (handler, { renderToBuffer(view, context: context).lines.map(\.stripped) })
     }
 
-    /// A paragraph's alignment, named here and not as
-    /// `AttributedString.TextAlignment`: on macOS a module that loads Core
-    /// Text sees its type of that name too, and without
-    /// `MemberImportVisibility` naming it is ambiguous, as an app's would be
-    /// (`AttributeScopes.CoreTextAttributes`). Setting it is not.
-    enum Side { case left, center, right }
-
-    /// Sets `range`'s paragraph's alignment to `side`'s.
-    static func align(_ string: inout AttributedString, _ range: Range<AttributedString.Index>, _ side: Side) {
-        switch side {
-        case .left: string[range].alignment = .left
-        case .center: string[range].alignment = .center
-        case .right: string[range].alignment = .right
-        }
-    }
-
     /// "alpha" over "hi", the second paragraph aligned `side`.
-    private func twoParagraphs(_ side: Side) -> Box<AttributedString> {
+    private func twoParagraphs(_ side: TextAlignment, _ spelling: ParagraphAlignmentSpelling) -> Box<AttributedString> {
         var string = AttributedString("alpha\nhi")
-        Self.align(&string, string.range(of: "hi")!, side)
+        spelling.align(&string, string.range(of: "hi")!, side)
         return Box(string)
     }
 
-    @Test("A centred or right-aligned paragraph's row is drawn after blank cells; the caret's margin is kept")
-    func drawn() {
+    @Test(
+        "A centred or right-aligned paragraph's row is drawn after blank cells; the caret's margin is kept",
+        arguments: ParagraphAlignmentSpelling.available)
+    func drawn(_ spelling: ParagraphAlignmentSpelling) {
         // 12 cells, the last the caret's margin: "hi" centred in 11 starts at
         // (11 - 2) / 2 = 4, right-aligned at 9.
-        let centred = editor(twoParagraphs(.center)).render()
+        let centred = editor(twoParagraphs(.center, spelling)).render()
         #expect(centred[0].hasPrefix("alpha "))
         #expect(centred[1].hasPrefix("    hi "), "'\(centred[1])'")
-        let right = editor(twoParagraphs(.right)).render()
+        let right = editor(twoParagraphs(.trailing, spelling)).render()
         #expect(right[1].hasPrefix("         hi "), "'\(right[1])'")
-        let left = editor(twoParagraphs(.left)).render()
+        let left = editor(twoParagraphs(.leading, spelling)).render()
         #expect(left[1].hasPrefix("hi "), "'\(left[1])'")
     }
 
-    @Test("The terminal's cursor parks on the caret's cell after the row's blank cells")
-    func caretCell() {
-        let drawn = editor(twoParagraphs(.center))
+    @Test(
+        "The terminal's cursor parks on the caret's cell after the row's blank cells",
+        arguments: ParagraphAlignmentSpelling.available)
+    func caretCell(_ spelling: ParagraphAlignmentSpelling) {
+        let drawn = editor(twoParagraphs(.center, spelling))
         drawn.handler.moveCursor(toLine: 1, column: 1)
         _ = drawn.render()
         #expect(drawn.handler.insertionPoint == CellPoint(x: 5, y: 1))
     }
 
-    @Test("A click lands on the character drawn under it, and one in the blank cells on the row's start")
-    func click() throws {
-        let drawn = editor(twoParagraphs(.center))
+    @Test(
+        "A click lands on the character drawn under it, and one in the blank cells on the row's start",
+        arguments: ParagraphAlignmentSpelling.available)
+    func click(_ spelling: ParagraphAlignmentSpelling) throws {
+        let drawn = editor(twoParagraphs(.center, spelling))
         let rows = try #require(drawn.handler.wrappedRows())
         // "hi" is drawn in cells 4 and 5.
         let columns = [5, 1, 9].map { drawn.handler.position(atScreenRow: 1, column: $0, in: rows) }
@@ -94,9 +86,9 @@ struct RichTextEditorAlignmentTests {
         #expect(columns.map(\.column) == [1, 0, 2])
     }
 
-    @Test("Up and Down keep the column across the screen, not in the row")
-    func verticalKeys() {
-        let drawn = editor(twoParagraphs(.center))
+    @Test("Up and Down keep the column across the screen, not in the row", arguments: ParagraphAlignmentSpelling.available)
+    func verticalKeys(_ spelling: ParagraphAlignmentSpelling) {
+        let drawn = editor(twoParagraphs(.center, spelling))
         // After "alph": column 4 across the screen, which is before "h" below.
         drawn.handler.moveCursor(toLine: 0, column: 4)
         _ = drawn.render()
@@ -107,9 +99,11 @@ struct RichTextEditorAlignmentTests {
         #expect(drawn.handler.cursorLine == 0 && drawn.handler.cursorColumn == 5, "column 5 across: after \"alpha\"")
     }
 
-    @Test("Scrolling sideways, a line narrower than the editor is aligned, and a click and the keys map through it")
-    func sideways() {
-        let drawn = editor(twoParagraphs(.right), wraps: false)
+    @Test(
+        "Scrolling sideways, a line narrower than the editor is aligned, and a click and the keys map through it",
+        arguments: ParagraphAlignmentSpelling.available)
+    func sideways(_ spelling: ParagraphAlignmentSpelling) {
+        let drawn = editor(twoParagraphs(.trailing, spelling), wraps: false)
         let rows = drawn.render()
         #expect(rows[1].hasPrefix("         hi"), "'\(rows[1])'")
         drawn.handler.moveCursor(toLine: 1, column: 0)
@@ -120,9 +114,11 @@ struct RichTextEditorAlignmentTests {
         #expect(drawn.handler.cursorLine == 0 && drawn.handler.cursorColumn == 5)
     }
 
-    @Test("Typing into an aligned paragraph keeps it aligned, and a new paragraph split from it takes it")
-    func typing() {
-        let text = twoParagraphs(.center)
+    @Test(
+        "Typing into an aligned paragraph keeps it aligned, and a new paragraph split from it takes it",
+        arguments: ParagraphAlignmentSpelling.available)
+    func typing(_ spelling: ParagraphAlignmentSpelling) {
+        let text = twoParagraphs(.center, spelling)
         let drawn = editor(text)
         drawn.handler.moveCursor(toLine: 1, column: 2)
         for key: Key in [.character("!"), .enter, .character("x")] {

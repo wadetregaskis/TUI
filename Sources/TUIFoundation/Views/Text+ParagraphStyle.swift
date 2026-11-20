@@ -61,7 +61,7 @@ import Foundation
         var lines: [TextAlignment] = []
         lines.reserveCapacity(lineCount)
         for (alignment, count) in zip(paragraphs, TextWrapping.paragraphLineCounts(text, width: width)) {
-            let aligned = alignment?.multilineAlignment ?? fallback
+            let aligned = alignment ?? fallback
             lines.append(contentsOf: repeatElement(aligned, count: min(count, lineCount - lines.count)))
             if lines.count == lineCount { break }
         }
@@ -72,8 +72,8 @@ import Foundation
     /// Each paragraph's alignment: that of the run its first character is in.
     /// The attribute is bounded by paragraphs, so every run of a paragraph
     /// states the same one; a trailing empty paragraph states none.
-    nonisolated static func paragraphAlignments(of runs: [Run]) -> [AttributedString.TextAlignment?] {
-        var paragraphs: [AttributedString.TextAlignment?] = []
+    nonisolated static func paragraphAlignments(of runs: [Run]) -> [TextAlignment?] {
+        var paragraphs: [TextAlignment?] = []
         var atParagraphStart = true
         for run in runs {
             for character in run.text {

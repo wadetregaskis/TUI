@@ -61,6 +61,14 @@
 // owner's answer to A-W1-1, 2026-10-27). It costs an app no bytes: TUI links
 // Foundation already.
 @_exported import Foundation
+// And Core Text where TUI's paragraph `alignment` is Core Text's own (the macOS
+// 26 SDK, told by FoundationModels; the owner's ruling attralign, 2026-11-19),
+// as `import SwiftUI` brings it: a file built with `MemberImportVisibility`
+// names `AttributedString.TextAlignment` and its cases with no import of Core
+// Text (Tools/SwiftUIProbes/Paragraph attribute types (attralign)).
+#if canImport(Darwin) && canImport(FoundationModels)
+    @_exported import CoreText
+#endif
 @_exported import TUIApp
 @_exported import TUIBitmaps
 @_exported import TUIChrome

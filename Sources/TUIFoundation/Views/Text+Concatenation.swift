@@ -40,9 +40,9 @@ import TUIStyling
         var attributes: TextAttributes?
 
         /// The alignment of the paragraph the fragment is in, from an
-        /// attributed string's `alignment`, or `nil` for the text's own
+        /// attributed string's `alignment` or `paragraphAlignment`, or `nil` for the text's own
         /// (``View/multilineTextAlignment(_:)``). See `Text+ParagraphStyle.swift`.
-        var alignment: AttributedString.TextAlignment?
+        var alignment: TextAlignment?
     }
 }
 

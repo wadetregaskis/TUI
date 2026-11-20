@@ -4,7 +4,9 @@
 //  An attributed string's paragraph `alignment` (G3 L4, the owner's ruling
 //  A-ATTRED-3 of 2026-11-17): the attribute under SwiftUI's name, bounded by
 //  paragraphs, and a `Text` of the string aligning each paragraph's lines
-//  its own way.
+//  its own way. Each case runs through SwiftUI's `alignment` where it exists
+//  (Core Text's on a Mac, so macOS 26) and TUI's `paragraphAlignment`
+//  everywhere (the owner's ruling attralign, 2026-11-19).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -25,71 +27,83 @@ struct TextParagraphAlignmentTests {
             .lines.map { $0.stripped }
     }
 
-    /// A paragraph's alignment, named here and not as
-    /// `AttributedString.TextAlignment`: on macOS a module that loads Core
-    /// Text sees its type of that name too, and without
-    /// `MemberImportVisibility` naming it is ambiguous, as an app's would be
-    /// (`AttributeScopes.CoreTextAttributes`). Setting it is not.
-    enum Side { case left, center, right }
-
-    /// Sets `range`'s paragraph's alignment to `side`'s.
-    static func align(_ string: inout AttributedString, _ range: Range<AttributedString.Index>, _ side: Side) {
-        switch side {
-        case .left: string[range].alignment = .left
-        case .center: string[range].alignment = .center
-        case .right: string[range].alignment = .right
-        }
-    }
-
     /// "alpha" (5) over "hi" (2), the second paragraph aligned `side`.
-    private func twoParagraphs(secondAligned side: Side) -> AttributedString {
+    private func twoParagraphs(
+        secondAligned side: TextAlignment, _ spelling: ParagraphAlignmentSpelling
+    ) -> AttributedString {
         var string = AttributedString("alpha\nhi")
-        Self.align(&string, string.range(of: "hi")!, side)
+        spelling.align(&string, string.range(of: "hi")!, side)
         return string
     }
 
-    @Test("The attribute reads back under SwiftUI's name, and covers its whole paragraph")
-    func boundedByParagraphs() throws {
+    @Test(
+        "The attribute reads back under its name, and covers its whole paragraph",
+        arguments: ParagraphAlignmentSpelling.available)
+    func boundedByParagraphs(_ spelling: ParagraphAlignmentSpelling) throws {
         var string = AttributedString("one two\nthree")
         let two = try #require(string.range(of: "two"))
-        string[two].alignment = .center
+        spelling.align(&string, two, .center)
         // Set on one word, it is the paragraph's: every run of it says so, its
         // newline included, and the next paragraph's say nothing.
         let runs = Array(string.runs)
         let first = String(string[runs[0].range].characters)
         #expect(first == "one two\n", "one run for the whole first paragraph: \(runs.map { String(string[$0.range].characters) })")
-        #expect(runs[0].alignment == .center)
-        #expect(runs.count == 2 && runs[1].alignment == nil)
-        let centred = try #require(runs[0].alignment)
-        #expect(type(of: centred).allCases == [.left, .center, .right])
+        #expect(spelling.alignment(of: runs[0]) == .center)
+        #expect(string[runs[0].range].drawnParagraphAlignment == .center)
+        #expect(runs.count == 2 && spelling.alignment(of: runs[1]) == nil)
     }
 
-    @Test("A centred paragraph centres its lines in the text's width")
-    func centred() {
-        let rows = render(Text(twoParagraphs(secondAligned: .center)), width: 12)
+    @Test("SwiftUI's alignment runs where Core Text has it, which on a Mac is macOS 26")
+    func alignmentRunsWhereCoreTextHasIt() {
+        // Held per side (never accepting both): a Mac before macOS 26 has only
+        // TUI's spelling; macOS 26, Linux and Windows have both.
+        if #available(macOS 26, iOS 26, tvOS 26, watchOS 26, visionOS 26, *) {
+            #expect(ParagraphAlignmentSpelling.available == [.alignment, .paragraphAlignment])
+            #expect(AttributedString.TextAlignment.allCases == [.left, .center, .right])
+        } else {
+            #expect(ParagraphAlignmentSpelling.available == [.paragraphAlignment])
+        }
+    }
+
+    @Test("Where a paragraph states both, SwiftUI's alignment wins")
+    func alignmentWinsOverParagraphAlignment() throws {
+        guard ParagraphAlignmentSpelling.available.contains(.alignment) else { return }
+        var string = AttributedString("alpha\nhi")
+        let hi = try #require(string.range(of: "hi"))
+        ParagraphAlignmentSpelling.paragraphAlignment.align(&string, hi, .trailing)
+        ParagraphAlignmentSpelling.alignment.align(&string, hi, .center)
+        #expect(string[hi].drawnParagraphAlignment == .center)
+        #expect(render(Text(string), width: 12)[1] == " hi  ")
+    }
+
+    @Test("A centred paragraph centres its lines in the text's width", arguments: ParagraphAlignmentSpelling.available)
+    func centred(_ spelling: ParagraphAlignmentSpelling) {
+        let rows = render(Text(twoParagraphs(secondAligned: .center, spelling)), width: 12)
         #expect(rows[0] == "alpha")
         #expect(rows[1] == " hi  ", "'\(rows[1])'")
     }
 
-    @Test("A right-aligned paragraph puts its lines flush right")
-    func right() {
-        let rows = render(Text(twoParagraphs(secondAligned: .right)), width: 12)
+    @Test("A right-aligned paragraph puts its lines flush right", arguments: ParagraphAlignmentSpelling.available)
+    func right(_ spelling: ParagraphAlignmentSpelling) {
+        let rows = render(Text(twoParagraphs(secondAligned: .trailing, spelling)), width: 12)
         #expect(rows[1] == "   hi", "'\(rows[1])'")
     }
 
-    @Test("A paragraph's alignment wins over multilineTextAlignment for its own lines only")
-    func winsOverTheModifier() {
+    @Test(
+        "A paragraph's alignment wins over multilineTextAlignment for its own lines only",
+        arguments: ParagraphAlignmentSpelling.available)
+    func winsOverTheModifier(_ spelling: ParagraphAlignmentSpelling) {
         var string = AttributedString("alpha\nhi\nyo")
-        string[string.range(of: "hi")!].alignment = .left
+        spelling.align(&string, string.range(of: "hi")!, .leading)
         let rows = render(Text(string).multilineTextAlignment(.trailing), width: 12)
         #expect(rows[1] == "hi   ", "the stated paragraph stays left: '\(rows[1])'")
         #expect(rows[2] == "   yo", "the other takes the modifier's: '\(rows[2])'")
     }
 
-    @Test("Every wrapped line of a paragraph takes its alignment")
-    func wrappedLines() {
+    @Test("Every wrapped line of a paragraph takes its alignment", arguments: ParagraphAlignmentSpelling.available)
+    func wrappedLines(_ spelling: ParagraphAlignmentSpelling) {
         var string = AttributedString("aaaaaa\nbb cc")
-        string[string.range(of: "bb")!].alignment = .right
+        spelling.align(&string, string.range(of: "bb")!, .trailing)
         // At 6 cells: "aaaaaa", then "bb cc" fits whole (5), right-aligned.
         let rows = render(Text(string), width: 6)
         #expect(rows[0] == "aaaaaa")

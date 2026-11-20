@@ -14,12 +14,13 @@ import Foundation
 import TUIFoundation
 
 extension TextEditorHandler {
-    /// The alignment of `line`'s paragraph: the `alignment` of its first
-    /// character, or of its newline where it is empty — the attribute is
-    /// bounded by paragraphs, so every character of one states the same. `nil`
-    /// for a `String` editor, a hidden text, and a paragraph that states none.
-    /// Read once a line and kept with its styles until an edit changes it.
-    func paragraphAlignment(ofLine line: Int) -> AttributedString.TextAlignment? {
+    /// The alignment of `line`'s paragraph: the `alignment` (or
+    /// `paragraphAlignment`) of its first character, or of its newline where it
+    /// is empty — the attributes are bounded by paragraphs, so every character
+    /// of one states the same. `nil` for a `String` editor, a hidden text, and
+    /// a paragraph that states none. Read once a line and kept with its styles
+    /// until an edit changes it.
+    func paragraphAlignment(ofLine line: Int) -> TextAlignment? {
         guard let source = attributedSource, !isSecure else { return nil }
         return lineStyleCache.alignment(ofLine: line) { line in
             let layout = layout()
@@ -30,7 +31,7 @@ extension TextEditorHandler {
             guard let index = value.characters.index(value.startIndex, offsetBy: start, limitedBy: value.endIndex),
                 index < value.endIndex
             else { return nil }
-            return value[index..<value.characters.index(after: index)].runs.first?.alignment
+            return value[index..<value.characters.index(after: index)].drawnParagraphAlignment
         }
     }
 
@@ -39,7 +40,7 @@ extension TextEditorHandler {
     /// width's last cell is the caret's margin), of the row's text less the
     /// spaces a wrap leaves hanging at its end.
     func alignmentCells(line: Int, rowInLine: Int, in rows: WrappedRows) -> Int {
-        guard let alignment = paragraphAlignment(ofLine: line), alignment != .left else { return 0 }
+        guard let alignment = paragraphAlignment(ofLine: line), alignment != .leading else { return 0 }
         let layout = rows.lines[line]
         let span = layout.rows[rowInLine]
         var end = span.end
@@ -47,7 +48,7 @@ extension TextEditorHandler {
             let characters = displayLayout().lines[line]
             while end > span.start, characters[end - 1] == " " || characters[end - 1] == "\t" { end -= 1 }
         }
-        return alignment.leadingCells(lineWidth: layout.cells(inRow: rowInLine, before: end), in: rows.width - 1)
+        return alignment.leadingPad(lineWidth: layout.cells(inRow: rowInLine, before: end), blockWidth: rows.width - 1)
     }
 
     /// The blank cells in front of `row`, among all of a wrapping editor's
@@ -63,11 +64,11 @@ extension TextEditorHandler {
     /// margin, where the line fits in that; none where it does not, which
     /// scrolls as any long line does.
     func alignmentCells(ofLine line: Int, characters: [Character]) -> Int {
-        guard let width = sidewaysWidth, let alignment = paragraphAlignment(ofLine: line), alignment != .left
+        guard let width = sidewaysWidth, let alignment = paragraphAlignment(ofLine: line), alignment != .leading
         else { return 0 }
         let cells = TabLayout.displayColumn(ofCharIndex: characters.count, in: characters, tabWidth: tabWidth)
         guard cells < width else { return 0 }
-        return alignment.leadingCells(lineWidth: cells, in: width - 1)
+        return alignment.leadingPad(lineWidth: cells, blockWidth: width - 1)
     }
 
     /// The character of `line` of `lines` (as drawn) whose cells hold

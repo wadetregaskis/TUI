@@ -43,6 +43,10 @@ $swiftc -typecheck -I "$modules" $c_includes "$here/CompileCorpus.swift"
 # bridges, and within one compilation an import in one file loads its module
 # for all of them — which is the very leak this one proves is gone.
 $swiftc -typecheck -I "$modules" $c_includes "$here/CompileCorpusTUIOnly.swift"
+# With MemberImportVisibility (Swift 7's default), which sees only what the
+# file's own imports bring: what `import TUI` re-exports.
+$swiftc -typecheck -I "$modules" $c_includes -enable-upcoming-feature MemberImportVisibility \
+    "$here/CompileCorpusMemberImportVisibility.swift"
 echo "compile corpus: every SwiftUI snippet type-checks against TUI"
 # The other way round: SwiftUI code that TUI refuses, each line stating the error
 # it must get. `-verify` fails on a missing error, an extra one, or a wrong message.

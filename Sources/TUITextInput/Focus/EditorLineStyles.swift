@@ -122,7 +122,7 @@ struct EditorLineStyleCache {
     /// Each read line's paragraph alignment (A-ATTRED-3), `nil` inside for a
     /// line whose paragraph states none: read for the lines drawn, and for
     /// those the caret, a click or a vertical key reaches.
-    private var alignments: [Int: AttributedString.TextAlignment?] = [:]
+    private var alignments: [Int: TextAlignment?] = [:]
 
     /// How many lines' styles are kept.
     var count: Int { kept.count }
@@ -137,8 +137,8 @@ struct EditorLineStyleCache {
 
     /// `line`'s paragraph alignment: that kept, or `read`'s, kept from now on.
     mutating func alignment(
-        ofLine line: Int, reading read: (Int) -> AttributedString.TextAlignment?
-    ) -> AttributedString.TextAlignment? {
+        ofLine line: Int, reading read: (Int) -> TextAlignment?
+    ) -> TextAlignment? {
         if let alignment = alignments[line] { return alignment }
         let alignment = read(line)
         alignments[line] = .some(alignment)

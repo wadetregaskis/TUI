@@ -255,15 +255,16 @@ is taken whole: its characters are read and compared with the editor's, about 0.
 screen are styled again. A paragraph's line height is not drawn yet.
 
 **A paragraph's `alignment` in an `AttributedString` is drawn.** `string.alignment = .center` (or `.left`, `.right`)
-compiles as it does in SwiftUI on macOS 26, on every platform, macOS 15 and Linux included: TUI declares the attribute
-and `AttributedString.TextAlignment` under Core Text's names. Like Core Text's, it belongs to a whole paragraph: set on
-a word, it is set on the word's paragraph, and text typed into the paragraph takes it. A `Text` aligns each of the
-paragraph's lines within its own width, as `.multilineTextAlignment` aligns all of them, and wins over that modifier
-for its own lines. A `TextEditor` centres or right-aligns each row of the paragraph within its width (the last cell
-kept for the caret), or each line narrower than the editor where it scrolls sideways; the caret, clicks, drags, an
-Option-drag's block and the Up and Down keys go by the cells as drawn. On macOS, Core Text's declarations are visible
-too wherever it is loaded, so spell the value without its type (`.center`): naming `AttributedString.TextAlignment` is
-ambiguous there.
+compiles and draws as it does in SwiftUI. Built with the macOS 26 SDK it is Core Text's own attribute, so it needs
+macOS 26, as SwiftUI's does, and naming `AttributedString.TextAlignment` is never ambiguous; TUI re-exports Core
+Text there, as `import SwiftUI` does. Where no SDK declares it (the macOS 15 SDKs, Linux, Windows) TUI declares the
+same names itself, with no gate. To align a paragraph on macOS 15, set TUI's own `paragraphAlignment` (`.leading`,
+`.center`, `.trailing`), which draws on every platform and macOS; where a paragraph states both, `alignment` wins.
+Either belongs to a whole paragraph: set on a word, it is set on the word's paragraph, and text typed into the
+paragraph takes it. A `Text` aligns each of the paragraph's lines within its own width, as `.multilineTextAlignment`
+aligns all of them, and wins over that modifier for its own lines. A `TextEditor` centres or right-aligns each row of
+the paragraph within its width (the last cell kept for the caret), or each line narrower than the editor where it
+scrolls sideways; the caret, clicks, drags, an Option-drag's block and the Up and Down keys go by the cells as drawn.
 
 **`AttributedTextSelection` and `AttributedString`'s selection members arrive, ahead of the attributed `TextEditor`.**
 SwiftUI's selection in attributed text, with its four initializers, `indices(in:)`, `affinity(in:)`,

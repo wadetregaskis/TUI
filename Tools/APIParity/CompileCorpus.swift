@@ -644,29 +644,51 @@ private struct RichTextBoldToggle: View {
     }
 }
 
-/// A paragraph's alignment, set as SwiftUI (macOS 26) sets it, the value's
-/// type inferred: in this file, which imports AppKit, Core Text's
-/// `AttributedString.TextAlignment` is visible beside TUI's, and naming the
-/// type would be ambiguous (see `AttributeScopes.CoreTextAttributes`). G3 L4,
-/// the owner's ruling A-ATTRED-3.
+/// A paragraph's alignment, as SwiftUI (macOS 26) spells it: set, merged, read
+/// and its types NAMED, in this file, which imports AppKit. On the macOS 26 SDK
+/// the types are Core Text's own, and TUI declares none of its own beside them
+/// (the owner's ruling attralign, 2026-11-19), so naming them is not
+/// ambiguous; while TUI declared its own (a6fa64c8f) the `let` below failed
+/// with "ambiguous type name 'TextAlignment' in 'AttributedString'". On the
+/// macOS 15 SDKs TUI's are the only ones. G3 L4, A-ATTRED-3.
 @available(macOS 15, *)
 private struct ParagraphAttributeShapes: View {
-    @State private var text: AttributedString = {
-        var text = AttributedString("Chapter One\nIt was a dark and stormy night.")
-        text[text.range(of: "Chapter One")!].alignment = .center
-        return text
-    }()
+    @State private var text = AttributedString("Chapter One\nIt was a dark and stormy night.")
 
     var body: some View {
         VStack {
             Text(text)
             TextEditor(text: $text)
-            Button("Right") {
-                var container = AttributeContainer()
-                container.alignment = .right
-                text.mergeAttributes(container)
+            Button("Centre") {
+                if #available(macOS 26, *) {
+                    text[text.range(of: "Chapter One")!].alignment = .center
+                    let side: AttributedString.TextAlignment = .right
+                    var container = AttributeContainer()
+                    container.alignment = side
+                    text.mergeAttributes(container)
+                    let read: AttributedString.TextAlignment? = text.runs.first?.alignment
+                    _ = read
+                    _ = AttributedString.TextAlignment.allCases
+                    _ = AttributeScopes.CoreTextAttributes.TextAlignmentAttribute.self
+                }
             }
-            Text(text.runs.first?.alignment == .center ? "centred" : "not")
+        }
+    }
+}
+
+/// TUI's own spelling of a paragraph's alignment, beside AppKit: no guard, on
+/// every macOS (the fallback of the owner's ruling attralign, 2026-11-19).
+@available(macOS 15, *)
+private struct ParagraphAlignmentWithoutCoreText: View {
+    @State private var text = AttributedString("Chapter One\nIt was a dark and stormy night.")
+
+    var body: some View {
+        Button("Centre") {
+            text[text.range(of: "Chapter One")!].paragraphAlignment = .center
+            var container = AttributeContainer()
+            container.paragraphAlignment = .trailing
+            text.mergeAttributes(container)
+            _ = text.runs.first?.paragraphAlignment == .center
         }
     }
 }

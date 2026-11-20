@@ -439,7 +439,7 @@ extension TextAlignment {
     /// The leading (left) padding, in cells, to place a `lineWidth`-wide line
     /// inside a `blockWidth`-wide text block so it sits at this alignment. The
     /// trailing padding is `blockWidth - lineWidth - leadingPad`.
-    func leadingPad(lineWidth: Int, blockWidth: Int) -> Int {
+    package func leadingPad(lineWidth: Int, blockWidth: Int) -> Int {
         let slack = max(0, blockWidth - lineWidth)
         switch self {
         case .leading: return 0

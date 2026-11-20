@@ -1579,3 +1579,23 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-19.
 - **Was:** written here.
 - **Cited by:** nothing yet; the owner decides TUI's behaviour from `notes.md`.
+
+### Paragraph attribute types (attralign)
+
+- **Asks:** which declarations of `AttributedString.TextAlignment` and SwiftUI's paragraph `alignment` compile, and
+  where naming them is ambiguous, for TUI's stand-in declarations in each shape the owner's ruling attralign weighed
+  (TUI declaring Core Text's names everywhere; Core Text's own on the 26 SDK with and without a re-export; TUI's
+  `paragraphAlignment`), beside AppKit, under `MemberImportVisibility`, at macOS 15 and 26 targets, against the 26.2
+  and 15.5 SDKs, and SwiftUI itself for reference (`StandIn.swift`, the three `Client*.swift`, `probe.sh`,
+  `probe.out`, `notes.md`). And what of Core Text's `LineHeight` can be read back (`LineHeightReading.swift`).
+  Type-checks only: nothing runs.
+- **Answers:** declaring Core Text's names beside Core Text is ambiguous once AppKit is imported; Core Text's own
+  types, re-exported, compile exactly where SwiftUI's do and refuse exactly what SwiftUI refuses; without the
+  re-export a `MemberImportVisibility` file cannot name them; on the 15 SDK every shape compiles;
+  `paragraphAlignment` compiles everywhere. `LineHeight` has no accessor for its factor; `==`, Codable and `Mirror`
+  type-check but need macOS 26 to run.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK and the Command Line Tools' 15.5
+  SDK, 2026-11-19.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Views/AttributeScopes+CoreText.swift`, `Sources/TUI/Exports.swift`,
+  `Tools/APIParity/CompileCorpusMemberImportVisibility.swift`; the G3 design §5; Deliberate deviations T14.
