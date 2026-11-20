@@ -345,58 +345,15 @@ extension _ScrollViewCore {
         let span = verticalBarSpan(rows: rows, margins: margins)
         let height = span.length
         let palette = context.environment.palette
-        // The same hovered cell the draw lifts. The runs REPLACE those cells
-        // from the first tick, so a pulse that does not know about the
-        // pointer paints the lift away and it never returns while the pointer
-        // sits there.
-        let pulse =
-            flash == nil
-            ? ScrollbarColors.focusPulse(
-                isFocused: isFocused, hoveredCell: handler.hoveredBarCell, context: context) : nil
-        let key = ScrollbarMemo<ClaimingColumn>.Key(
+        // Kept on the handler with everything it is drawn from
+        // (`ScrollbarMemo.vertical`): drawn afresh every frame, a focused
+        // bar's runs were 15.6% of a live `dashboard` frame.
+        let memo = ScrollbarMemo.vertical(
+            remembered: &handler.verticalScrollbarMemo, hits: &handler.verticalScrollbarMemoHits,
             length: height, extent: handler.contentHeight, viewport: handler.viewportHeight,
             offset: handler.scrollOffset, arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
-            isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
-            hoveredCell: handler.hoveredBarCell, palette: ComparablePalette(palette),
-            depth: ColorDepth.current, terminalColors: TerminalColors.current,
-            cycle: pulse?.cycle, flash: flash, width: context.environment.scrollbarWidth,
-            cornerTriangles: context.environment.cornerTrianglesFillTheCell)
-        let memo: ScrollbarMemo<ClaimingColumn>
-        if let remembered = handler.verticalScrollbarMemo, remembered.key == key {
-            handler.verticalScrollbarMemoHits += 1
-            memo = remembered
-        } else {
-            // The bar is the ScrollView's focus indicator: it pulses the
-            // accent while focused (see ScrollbarColors.focusIndicating). The
-            // runs that pulse it are one scrollbar render PER PULSE FRAME,
-            // which is why the bar and its runs are kept with their inputs.
-            let colors = ScrollbarColors.focusIndicating(
-                isFocused: isFocused, hoveredCell: handler.hoveredBarCell, context: context)
-            let bar = ScrollbarRenderer.verticalScrollbar(
-                height: height,
-                extent: handler.contentHeight,
-                viewport: handler.viewportHeight,
-                offset: handler.scrollOffset,
-                arrows: context.environment.scrollbarArrows,
-                proportional: context.environment.scrollbarProportionalThumb,
-                colors: flash.map { colors.flashing($0, in: palette) } ?? colors,
-                width: context.environment.scrollbarWidth, cornerTriangles: context.environment.cornerTrianglesFillTheCell)
-            let runs =
-                pulse.map { pulse in
-                    ScrollbarRenderer.verticalScrollbarRuns(
-                        height: height,
-                        extent: handler.contentHeight,
-                        viewport: handler.viewportHeight,
-                        offset: handler.scrollOffset,
-                        arrows: context.environment.scrollbarArrows,
-                        proportional: context.environment.scrollbarProportionalThumb,
-                        pulse: pulse, width: context.environment.scrollbarWidth,
-                        cornerTriangles: context.environment.cornerTrianglesFillTheCell)
-                } ?? []
-            memo = ScrollbarMemo(key: key, bar: bar, runs: runs)
-            handler.verticalScrollbarMemo = memo
-        }
+            isFocused: isFocused, hoveredCell: handler.hoveredBarCell, flash: flash, context: context)
         var bar = memo.bar
         // A cell on every line: plain track below a bar shorter than the viewport.
         bar.fit(toCount: height, field: ScrollbarColors.track(in: palette))
@@ -432,8 +389,9 @@ extension _ScrollViewCore {
         // The bar's own cells, handed to the run loop. Its column is the last
         // one — the content was padded out to `contentWidth` above — and only
         // the rows that actually change earn a run, so a tall bar does not
-        // repaint its whole length to move a two-cell thumb.
-        if !context.isMeasuring, pulse != nil {
+        // repaint its whole length to move a two-cell thumb. A still bar
+        // (no focus, or a flash) has none.
+        if !context.isMeasuring {
             result.animatedCells += memo.runs.map { $0.shifted(byX: contentWidth, y: span.top) }
         }
         return result
@@ -534,107 +492,5 @@ extension _ScrollViewCore {
     func horizontalBarSpan(contentWidth: Int, margins: EdgeInsets) -> (leading: Int, length: Int) {
         let leading = min(margins.leading, max(0, contentWidth - 1))
         return (leading, max(min(1, contentWidth), contentWidth - leading - margins.trailing))
-    }
-}
-
-// MARK: - The bar drawn last time
-
-/// A scrollbar and the animated runs that pulse it, with the inputs they were
-/// drawn from — a vertical bar's column or a horizontal bar's row. See
-/// `ScrollViewHandler.verticalScrollbarMemo`.
-package struct ScrollbarMemo<Bar> {
-    /// Everything the bar's cells and runs are a function of. The palette by
-    /// its id and the depth outright, since the cells carry resolved colours;
-    /// the pulse cycle whole, since the runs carry one render per frame of it.
-    package struct Key: Equatable {
-        /// The bar's length along its axis: a vertical bar's height, a
-        /// horizontal bar's width.
-        package let length: Int
-        package let extent: Int
-        package let viewport: Int
-        package let offset: Int
-        package let arrows: ScrollbarArrows
-        package let proportional: Bool
-        package let isFocused: Bool
-        package let isScrollEnabled: Bool
-        package let hoveredCell: Int?
-        /// The palette by value where it can be, not by its id: a palette edited in
-        /// place keeps the id, and a key of the id served the bar drawn before the edit.
-        package let palette: ComparablePalette
-        package let depth: ColorDepth
-        /// The colours the terminal had reported when the bar was drawn.
-        ///
-        /// At sixteen colours an RGB colour is emitted as the slot nearest to what that
-        /// slot PAINTS — the colour the terminal reported for it, or xterm's value while
-        /// it has reported none — so the bar's bytes are a function of the report as well
-        /// as of the palette. A palette whose roles are the terminal's own carries the
-        /// report through its grounding, which `ComparablePalette` compares; a palette of
-        /// RGB colours carries nothing, and without this a bar drawn before a report was
-        /// served to every frame after it.
-        ///
-        /// By value, not by `TerminalColors.generation`, as the image caches are keyed
-        /// (b7a2f35d): a task-local pin changes what a slot measures as without moving the
-        /// generation. The render cache's clear on a moved generation does not reach this
-        /// memo either — it lives on the handler, not in the cache.
-        package let terminalColors: TerminalColors
-        package let cycle: SelectionEmphasisCycle?
-        /// How strongly a `scrollIndicatorsFlash` lit the bar, or `nil`.
-        package let flash: Double?
-        /// The bar's width in cells (``View/scrollbarWidth(_:)``).
-        package let width: Int
-        /// Whether a double-width bar's arrows are corner triangles
-        /// (``EnvironmentValues/cornerTrianglesFillTheCell``): it follows the
-        /// terminal, which can change under a running app — a tmux attach.
-        package let cornerTriangles: Bool
-
-        /// The memberwise initializer, spelled out because the synthesized one
-        /// is internal and TUILists makes these, for the lists' scrollbars.
-        package init(
-            length: Int,
-            extent: Int,
-            viewport: Int,
-            offset: Int,
-            arrows: ScrollbarArrows,
-            proportional: Bool,
-            isFocused: Bool,
-            isScrollEnabled: Bool,
-            hoveredCell: Int?,
-            palette: ComparablePalette,
-            depth: ColorDepth,
-            terminalColors: TerminalColors,
-            cycle: SelectionEmphasisCycle?,
-            flash: Double? = nil,
-            width: Int = 1,
-            cornerTriangles: Bool = false
-        ) {
-            self.length = length
-            self.extent = extent
-            self.viewport = viewport
-            self.offset = offset
-            self.arrows = arrows
-            self.proportional = proportional
-            self.isFocused = isFocused
-            self.isScrollEnabled = isScrollEnabled
-            self.hoveredCell = hoveredCell
-            self.palette = palette
-            self.depth = depth
-            self.terminalColors = terminalColors
-            self.cycle = cycle
-            self.flash = flash
-            self.width = width
-            self.cornerTriangles = cornerTriangles
-        }
-    }
-
-    package let key: Key
-    package let bar: Bar
-    package let runs: [AnimatedCellRun]
-
-    /// The memberwise initializer, spelled out because the synthesized one is
-    /// internal and TUILists makes these, for the lists' scrollbars.
-    package init(key: Key, bar: Bar, runs: [AnimatedCellRun]) {
-        self.key = key
-        self.bar = bar
-        self.runs = runs
     }
 }
