@@ -112,6 +112,11 @@ def module_lines(directory, module):
                 continue
             if symbol.get("accessLevel") not in ("public", "open"):
                 continue
+            # An `@_spi` declaration is public to the compiler but not public API:
+            # a client must `@_spi(Name) import` it and takes no stability promise
+            # (the TextEditor highlighting seam ships this way, A-ATTRED-10).
+            if symbol.get("spi"):
+                continue
             lines.append(line_for(symbol))
     return sorted(lines)
 
