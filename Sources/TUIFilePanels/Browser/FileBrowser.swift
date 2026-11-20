@@ -172,6 +172,11 @@ final class FileBrowser {
         // `SortComparator`, and on Linux the bare member finds an internal one.
         #if canImport(Darwin)
             KeyPathComparator(\FileEntry.name, comparator: String.StandardComparator.localizedStandard)
+        #elseif os(Windows)
+            // Windows's Foundation has `localizedStandardCompare(_:)` but no
+            // `.localizedStandard` comparator (Swift 6.3.3, measured
+            // 2026-11-20): "item2" before "item10", as Explorer lists them.
+            KeyPathComparator(\FileEntry.name, comparator: LocalizedStandardNameOrder())
         #else
             // The static Linux SDK's Foundation has no `.localizedStandard`
             // (measured with Swift 6.3.3; TUITables' `tableColumnDefault`

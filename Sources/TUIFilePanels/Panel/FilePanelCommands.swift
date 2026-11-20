@@ -113,8 +113,20 @@ enum FilePanelCommand: CaseIterable {
 
     /// The folder a Go chord goes to — in `home`, or for Applications the
     /// system's — where it exists; `nil` where it does not (Applications on
-    /// Linux), and for the other commands.
+    /// Linux), and for the other commands. On Windows, the folder Windows keeps
+    /// for it first (``windowsKnownFolder``: a Desktop moved into OneDrive, and
+    /// Program Files for Applications), where that exists, and where `home` is
+    /// the user's own: those are the profile's folders, and a panel given
+    /// another home goes to that home's.
     func place(home: URL) -> URL? {
+        #if os(Windows)
+            let usersOwn =
+                home.standardizedFileURL.path
+                == FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL.path
+            if usersOwn || self == .applications, let known = windowsKnownFolder, Self.isFolder(known) {
+                return known
+            }
+        #endif
         let place: URL? =
             switch self {
             case .home: home
@@ -124,11 +136,15 @@ enum FilePanelCommand: CaseIterable {
             case .applications: URL(fileURLWithPath: "/Applications", isDirectory: true)
             default: nil
             }
-        var isDirectory: ObjCBool = false
-        guard let place, unsafe FileManager.default.fileExists(atPath: place.path, isDirectory: &isDirectory),
-            isDirectory.boolValue
-        else { return nil }
+        guard let place, Self.isFolder(place) else { return nil }
         return place
+    }
+
+    /// Whether a folder is at `url`.
+    private static func isFolder(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return unsafe FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)
+            && isDirectory.boolValue
     }
 }
 

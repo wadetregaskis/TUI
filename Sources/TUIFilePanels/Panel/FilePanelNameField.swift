@@ -35,10 +35,11 @@ enum SaveName {
     /// extension when it has none of the types' own (as a macOS save panel
     /// adds the extension of the type it saves) — `notes` saved as plain text
     /// is `notes.txt`, `notes.md` stays as it is, since Markdown is plain text.
-    /// `nil` for a name no file can have: empty, `.` or `..`, or one with a `/`.
+    /// `nil` for a name no file can have: empty, `.` or `..`, or one with a `/`,
+    /// and on Windows what it refuses besides (``FileNameRules``), such as a `:`.
     static func resolve(_ typed: String, contentTypes: [UTType]) -> String? {
         let name = typed.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !name.isEmpty, name != ".", name != "..", !name.contains("/") else { return nil }
+        guard !FileNameRules.refuses(name) else { return nil }
         guard let preferred = contentTypes.first?.preferredFilenameExtension else { return name }
         let ext = (name as NSString).pathExtension
         if !ext.isEmpty, let typedType = UTType(filenameExtension: ext),

@@ -456,7 +456,7 @@ import TUICore
         /// Elsewhere as it is, so a file already written keeps its name.
         static func fileNamePart(_ suite: String) -> String {
             #if os(Windows)
-                String(suite.map { #"<>:"/\|?*"#.contains($0) || $0.asciiValue.map { $0 < 32 } == true ? "_" : $0 })
+                String(suite.map { FileNameRules.isForbiddenOnWindows($0) ? "_" : $0 })
             #else
                 suite
             #endif

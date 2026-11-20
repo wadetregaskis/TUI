@@ -144,9 +144,10 @@ struct FilePanelNewFolderPrompt<Content: View>: View {
 
     /// Makes a folder `name` in `folder` and returns it. A name holding a `/`
     /// would make a folder somewhere else, or several, so it is refused as
-    /// the Finder refuses it.
+    /// the Finder refuses it, and on Windows what it refuses besides
+    /// (``FileNameRules``), such as a `\` or a trailing dot.
     static func makeFolder(named name: String, in folder: URL) throws -> URL {
-        guard !name.contains("/") else { throw CocoaError(.fileWriteInvalidFileName) }
+        guard !FileNameRules.refuses(name) else { throw CocoaError(.fileWriteInvalidFileName) }
         let made = folder.appendingPathComponent(name, isDirectory: true)
         // Asked first, so that a name taken says so wherever this runs, whatever
         // error its Foundation would answer with: a file of that name counts too.

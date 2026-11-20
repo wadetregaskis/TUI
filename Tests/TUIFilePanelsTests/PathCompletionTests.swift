@@ -10,6 +10,10 @@
 import Foundation
 import Testing
 
+#if os(Windows)
+import WinSDK
+#endif
+
 @testable import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUICore
@@ -61,6 +65,25 @@ struct PathCompletionTests {
         #expect(PathCompletion.complete(".h", relativeTo: root, home: root) == ".hidden")
         #expect(PathCompletion.complete("al", relativeTo: root, home: root) == "Alpha/")
     }
+
+    #if os(Windows)
+        @Test("On Windows an item with the hidden attribute completes only where nothing shown matches")
+        func windowsHiddenAttribute() throws {
+            let fixture = try FilePanelFixture()
+            defer { fixture.remove() }
+            let hidden = fixture.url("Albatross.txt")
+            try Data().write(to: hidden)
+            let marked = hidden.path.withCString(encodedAs: UTF16.self) {
+                unsafe SetFileAttributesW($0, DWORD(FILE_ATTRIBUTE_HIDDEN))
+            }
+            try #require(marked)
+            let root = fixture.root
+            // `Alpha` is shown, so `Al` passes the hidden file by...
+            #expect(PathCompletion.complete("Al", relativeTo: root, home: root) == "Alpha/")
+            // ...and where only the hidden one matches, it is found.
+            #expect(PathCompletion.complete("Alb", relativeTo: root, home: root) == "Albatross.txt")
+        }
+    #endif
 }
 
 /// Serialized for the reason ``FileImporterPanelTests`` is.

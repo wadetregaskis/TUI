@@ -33,18 +33,24 @@ enum PathCompletion {
     ///
     /// Matched by case first and, where nothing matches by case, without it
     /// (a macOS volume ignores case). Hidden items match only a prefix that
-    /// begins with a dot.
+    /// begins with a dot. On Windows, an item with the hidden attribute
+    /// (`AppData`, `NTUSER.DAT`) matches only where no other item does, as
+    /// case does above: `A` passes it by, and `AppD` still finds it.
     static func complete(_ typed: String, relativeTo base: URL, home: URL) -> String {
         let slash = typed.lastIndex(where: isSeparator)
         let folderPart = slash.map { String(typed[...$0]) } ?? ""
         let prefix = slash.map { String(typed[typed.index(after: $0)...]) } ?? typed
         let folder =
             folderPart.isEmpty ? base : resolve(folderPart, relativeTo: base, home: home)
-        guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return typed }
-        let visible = prefix.hasPrefix(".") ? names : names.filter { !$0.hasPrefix(".") }
-        var matches = visible.filter { $0.hasPrefix(prefix) }
-        if matches.isEmpty {
-            matches = visible.filter { $0.lowercased().hasPrefix(prefix.lowercased()) }
+        guard let (names, hidden) = items(of: folder) else { return typed }
+        let undotted = prefix.hasPrefix(".") ? names : names.filter { !$0.hasPrefix(".") }
+        let shown = undotted.filter { !hidden.contains($0) }
+        var matches: [String] = []
+        for candidates in [shown, undotted] where matches.isEmpty {
+            matches = candidates.filter { $0.hasPrefix(prefix) }
+            if matches.isEmpty {
+                matches = candidates.filter { $0.lowercased().hasPrefix(prefix.lowercased()) }
+            }
         }
         guard let first = matches.first else { return typed }
         if matches.count == 1 {
@@ -55,6 +61,20 @@ enum PathCompletion {
         }
         let shared = matches.dropFirst().reduce(first) { commonPrefix($0, $1) }
         return shared.count > prefix.count ? folderPart + shared : typed
+    }
+
+    /// The names of the items in `folder`, and of those the file system marks
+    /// hidden: on Windows by the hidden attribute, from the folder's own
+    /// enumeration (``DirectoryListing``); elsewhere none, a dot being the
+    /// mark. `nil` where the folder cannot be read.
+    private static func items(of folder: URL) -> (names: [String], hidden: Set<String>)? {
+        #if os(Windows)
+            guard let items = try? DirectoryListing.windowsItems(of: folder) else { return nil }
+            return (items.map(\.name), Set(items.filter(\.facts.isHidden).map(\.name)))
+        #else
+            guard let names = try? FileManager.default.contentsOfDirectory(atPath: folder.path) else { return nil }
+            return (names, [])
+        #endif
     }
 
     /// `path` with a leading `~` (alone, or before a `/`) made `home`'s path.
