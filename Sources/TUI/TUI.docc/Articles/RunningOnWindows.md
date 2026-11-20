@@ -82,8 +82,23 @@ the app, in both terminals. Two things don't:
   there: neither terminal posts notifications, and Windows has no tool TUI can post one with, as it does with
   `osascript` on macOS and `notify-send` on Linux.
 - **Progress** from ``View/terminalProgress(_:)`` shows as a ring on Windows Terminal's tab and on its taskbar button.
-- **Reduce motion and high contrast** aren't read from Windows's settings, as they are from macOS's and GNOME's. Set
-  `TUI_REDUCE_MOTION=1` or `TUI_INCREASE_CONTRAST=1` for them (<doc:EnvironmentVariables>).
+
+## Settings TUI Reads from Windows
+
+As it reads macOS's and GNOME's, when you're at the machine the app runs on:
+
+- **Language and region**: the display languages and the regional format in Settings → Time & language, for TUI's own
+  words and for how dates and numbers are written. Foundation on Windows reads neither, and answers world English
+  (`en-001`) whatever was chosen, so TUI asks Windows itself. `LANG` and the other POSIX variables still win where
+  they're set, as Git Bash's login shell sets `LANG`.
+- **Accessibility**: Animation effects off is reduce motion, Transparency effects off is reduce transparency, and a
+  contrast theme is increased contrast (Settings → Accessibility). Windows has nothing for differentiating without
+  colour; `TUI_DIFFERENTIATE_WITHOUT_COLOR=1` asks for it (<doc:EnvironmentVariables>).
+- **Folders**: a file panel's Desktop, Documents and Downloads are where Windows keeps them, in OneDrive when its backup
+  moved them there, and Applications is Program Files.
+- **File names**: a file panel refuses a name Windows would read as something else, such as one with a `:` (which
+  names a hidden stream of another file), a `\`, a trailing dot or space, or a device's name such as `CON`. Names
+  sort as Explorer sorts them, `item2` before `item10`.
 
 ## Where Things Are Kept
 

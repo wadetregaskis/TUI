@@ -227,9 +227,36 @@ bug in the compiler that its internal checks catch. swift.org's Windows toolchai
   -Xswiftc -assert-config -Xswiftc Debug`), and turning the SIL verifier off (`-Xfrontend -sil-verify-none`, or
   `-disable-sil-ownership-verifier`) does not get past it.
 
-Neither flag can go: `@testable import` needs the first, and the run is for the second. So the release suite on
-Windows waits for these to be fixed upstream (to be reported, with these commands as the reproduction: the function
-alone, with what it calls, did not reduce quickly), or for a toolchain without the checks.
+Neither flag can go: `@testable import` needs the first, and the run is for the second. Tried, to work round them
+with a switch where that was not hard and cost nothing notable (the owner, 2026-11-20), and given up:
+
+- 6.2 and 6.3: `-Xfrontend -disable-cmo` loses to SwiftPM's own `-enable-default-cmo`, and `-Xllvm
+  -sil-disable-pass=performance-sil-linker` left the pass running. Nothing short of reshaping `View.sheet` for a
+  compiler's sake avoids it.
+- 6.4.2: copy propagation off (`-Xfrontend -enable-copy-propagation=false`) builds `TUICore`, and the build then
+  stops in `SemanticARCOpts` compiling `SwiftSyntax` ("Invalid SIL provided to OSSACompleteLifetime?!", on
+  `SyntaxProtocol.debugWrite`). With the ownership verifier off as well (`-disable-sil-ownership-verifier`, which that
+  message names), it stops lowering `TUIEnvironmentDocs` to SIL: "SIL verification failed: switch_enum default
+  destination must take no arguments", on a `switch` over a pair of `TUIEnvironmentVariable.CodeSetting`s. Each
+  crash also left a compile idle and the build waiting on it, until stopped. Three bugs deep, the switches stopped
+  short of a workaround and were taken back out.
+
+All of them are to be reported upstream, with these commands as the reproduction (the function alone, with what it
+calls, did not reduce quickly); the release suite runs on Windows once they are fixed.
+
+**Windows's own settings** (2026-11-20). Foundation on Windows reads neither the user's languages nor their region:
+`Locale.preferredLanguages` is `["en-001"]` and `Locale.current` is `en_001` on a machine set to `en-US` (Swift 6.3.3),
+so every app spoke English and wrote dates day first. TUI asks Windows (`GetUserPreferredUILanguages`,
+`GetUserDefaultLocaleName`; `LocalizationService+Windows.swift`), behind the POSIX variables as everywhere. Its
+accessibility settings are read too (`TerminalClient+Accessibility+Windows.swift`: `SPI_GETCLIENTAREAANIMATION`,
+`SPI_GETHIGHCONTRAST`, the `EnableTransparency` value), with no process started, where the GNOME arm had run a
+`gsettings` that is not there on every launch and focus. A file panel's Desktop, Documents and Downloads come from
+`SHGetKnownFolderPath` where the folder it names exists (on the VM the Desktop is `OneDrive\Desktop` and the profile
+has none, and Documents is named `OneDrive\Documents`, which does not exist, so the profile's is kept), and
+Applications is Program Files. Its names follow Windows's rules (`FileNameRules`): `notes:old` had written an
+alternate data stream of `notes`. Tab completion passes an item with the hidden attribute by unless nothing else
+matches, and names sort as `localizedStandardCompare(_:)` orders them, which Windows's Foundation has without
+`.localizedStandard`.
 
 **No per-thread CPU clock on Windows** (owner, 2026-11-20: leave it on wall time). `threadCPUNanoseconds()` (TUICore)
 answers `nil` there, so the tests' cost bounds (`bestCPUSeconds`) and the Stress bench read the wall clock, and under
@@ -275,8 +302,19 @@ Two things about the environment the runs needed:
 - **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
   logging the session off would end the test with it. Worth a run in a virtual machine.
 - **CI**: a run of every Windows step, then binding, per the ratchet (the owner, 2026-11-20: not binding yet).
-- **The release suite**: blocked by two compiler bugs that Windows's assert-enabled toolchains catch ("The tests", "In
-  release"); to report upstream, and to run once they are fixed.
+- **The release suite**: blocked on all three toolchains by compiler bugs that their assert-enabled Windows builds
+  catch ("The tests", "In release"); to report upstream.
+- **What Windows has that TUI does not read yet** (a survey of the sources, 2026-11-20), larger or less certain than
+  what was done the same day ("Windows's own settings", below): images through WIC rather than `stb_image` (TIFF,
+  WebP, HEIC, EXIF orientation, colour management; and `Image+Bundle` lists `tiff`, which `stb_image` cannot decode,
+  on every platform without CoreGraphics); `.lnk` shortcuts in a file panel (`IShellLinkW`); the Kind column in
+  Windows's words (`SHGetFileInfoW`); a cell's size in pixels and the display's scale (`GetCurrentConsoleFontEx`,
+  `GetDpiForWindow`); a `file:` link's host name (`GetComputerNameExW`: whether Windows Terminal follows a link with a
+  host is unmeasured); conhost's colours where it does not answer the colour query (`GetConsoleScreenBufferInfoEx`);
+  `TableColumn`'s default order, which is `.lexical` off Darwin and would need a comparator of its own type; the
+  double-click interval, caret blink and key repeat, which TUI fixes on every platform (`GetDoubleClickTime`,
+  `GetCaretBlinkTime`); `SessionLocality.isLikelyLocal`, which wants `TERM_PROGRAM` and so says no on Windows (its one
+  caller today is unaffected); and Japanese readings, zlib for Kitty images, and the Stress bench's memory figures.
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal

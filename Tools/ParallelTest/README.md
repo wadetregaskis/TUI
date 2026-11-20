@@ -550,6 +550,11 @@ every test in 639.3 s, all passing but two cost bounds read on the wall clock
 (see "Known order dependence, and flakes"). 6.2.4, unpacked rather than
 installed, with `--scratch-path .build-6.2.4`: all 15,726 passed, in 594.3 s.
 
+`--release` does not build on Windows yet: swift.org's Windows toolchains are
+built with the compiler's own assertions on, and each of 6.2.4, 6.3.3 and
+6.4.2 stops on one of them building the tests optimised (Windows port.md, "In
+release").
+
 ## Tests
 
 ```bash

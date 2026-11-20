@@ -22,6 +22,14 @@ What differs from macOS and Linux, such as the keys Windows Terminal keeps for i
 no suspending and no desktop notifications, is in the new Running on Windows article. CI's Windows jobs for the
 console layer and the tests stay advisory until they have passed there.
 
+**On Windows, TUI reads the user's language, region and accessibility settings from Windows.** Foundation there
+answers world English (`en-001`) whatever was chosen, so every app spoke English and wrote dates day first; TUI's own
+words and an app's dates and numbers now follow Settings → Time & language, as `LANG` does elsewhere. Reduce motion,
+reduce transparency and increased contrast follow Windows's Animation effects, Transparency effects and contrast
+themes. A file panel's Desktop, Documents and Downloads are where Windows keeps them, OneDrive included, and
+Applications is Program Files; it refuses a name Windows would read as something else, such as `notes:old`, which
+wrote a hidden stream of `notes`, and lists names as Explorer orders them.
+
 **In a `TextEditor`, Shift-Option-B and Shift-Option-F select a word at a time,** as they do in a `TextField` and as
 Shift-Option-← and → already did. They only moved the caret, losing the selection. They are the word keys where a
 terminal keeps Shift-Option-arrows for itself, as Windows Terminal binds them to resizing a pane.
