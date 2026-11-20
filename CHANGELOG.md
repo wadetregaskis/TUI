@@ -28,7 +28,8 @@ words and an app's dates and numbers now follow Settings → Time & language, as
 reduce transparency and increased contrast follow Windows's Animation effects, Transparency effects and contrast
 themes. A file panel's Desktop, Documents and Downloads are where Windows keeps them, OneDrive included, and
 Applications is Program Files; it refuses a name Windows would read as something else, such as `notes:old`, which
-wrote a hidden stream of `notes`, and lists names as Explorer orders them.
+wrote a hidden stream of `notes`, and lists names as Explorer orders them, each file's Kind in Windows's words. The classic
+console, which answers no colour query, has its colours read from the console itself.
 
 **In a `TextEditor`, Shift-Option-B and Shift-Option-F select a word at a time,** as they do in a `TextField` and as
 Shift-Option-← and → already did. They only moved the caret, losing the selection. They are the word keys where a

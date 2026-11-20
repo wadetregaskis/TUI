@@ -98,7 +98,10 @@ As it reads macOS's and GNOME's, when you're at the machine the app runs on:
   moved them there, and Applications is Program Files.
 - **File names**: a file panel refuses a name Windows would read as something else, such as one with a `:` (which
   names a hidden stream of another file), a `\`, a trailing dot or space, or a device's name such as `CON`. Names
-  sort as Explorer sorts them, `item2` before `item10`.
+  sort as Explorer sorts them, `item2` before `item10`, and a file's Kind is Windows's word for it, as in Explorer's
+  Type column.
+- **The console's colours**: the classic console doesn't answer the questions TUI asks a terminal about its colours,
+  so TUI reads them from the console itself, and takes a light profile as light. Windows Terminal answers them.
 
 ## Where Things Are Kept
 

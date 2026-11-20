@@ -256,7 +256,10 @@ has none, and Documents is named `OneDrive\Documents`, which does not exist, so 
 Applications is Program Files. Its names follow Windows's rules (`FileNameRules`): `notes:old` had written an
 alternate data stream of `notes`. Tab completion passes an item with the hidden attribute by unless nothing else
 matches, and names sort as `localizedStandardCompare(_:)` orders them, which Windows's Foundation has without
-`.localizedStandard`.
+`.localizedStandard`. A file's Kind is Windows's own word for its type (`SHGetFileInfoW`, by extension, once a
+listing: "Text Document", "Compressed (zipped) Folder"). conhost, which answers no colour query (the survey's
+"Capabilities"), has its colours read from its own record (`GetConsoleScreenBufferInfoEx`), so a light profile should be taken
+as light (tested on Campbell's table; not yet seen in a light console). And `SessionLocality.isLikelyLocal` takes Windows Terminal's `WT_SESSION` as it takes `TERM_PROGRAM`.
 
 **No per-thread CPU clock on Windows** (owner, 2026-11-20: leave it on wall time). `threadCPUNanoseconds()` (TUICore)
 answers `nil` there, so the tests' cost bounds (`bestCPUSeconds`) and the Stress bench read the wall clock, and under
@@ -304,17 +307,17 @@ Two things about the environment the runs needed:
 - **CI**: a run of every Windows step, then binding, per the ratchet (the owner, 2026-11-20: not binding yet).
 - **The release suite**: blocked on all three toolchains by compiler bugs that their assert-enabled Windows builds
   catch ("The tests", "In release"); to report upstream.
-- **What Windows has that TUI does not read yet** (a survey of the sources, 2026-11-20), larger or less certain than
-  what was done the same day ("Windows's own settings", below): images through WIC rather than `stb_image` (TIFF,
-  WebP, HEIC, EXIF orientation, colour management; and `Image+Bundle` lists `tiff`, which `stb_image` cannot decode,
-  on every platform without CoreGraphics); `.lnk` shortcuts in a file panel (`IShellLinkW`); the Kind column in
-  Windows's words (`SHGetFileInfoW`); a cell's size in pixels and the display's scale (`GetCurrentConsoleFontEx`,
-  `GetDpiForWindow`); a `file:` link's host name (`GetComputerNameExW`: whether Windows Terminal follows a link with a
-  host is unmeasured); conhost's colours where it does not answer the colour query (`GetConsoleScreenBufferInfoEx`);
-  `TableColumn`'s default order, which is `.lexical` off Darwin and would need a comparator of its own type; the
-  double-click interval, caret blink and key repeat, which TUI fixes on every platform (`GetDoubleClickTime`,
-  `GetCaretBlinkTime`); `SessionLocality.isLikelyLocal`, which wants `TERM_PROGRAM` and so says no on Windows (its one
-  caller today is unaffected); and Japanese readings, zlib for Kitty images, and the Stress bench's memory figures.
+- **What Windows has that TUI does not read yet** (a survey of the sources, 2026-11-20), each left for a reason:
+  images through WIC rather than `stb_image` (TIFF, WebP, HEIC, EXIF orientation, colour management: a decoder of its
+  own); `Image+Bundle` listing `tiff`, which `stb_image` cannot decode (the branch Linux shares, so a Linux change);
+  `.lnk` shortcuts in a file panel (`IShellLinkW`, a COM interface called through its vtable, or the binary format
+  parsed); conhost's cell size in pixels (`GetCurrentConsoleFontEx`), whose default already matches Consolas and whose
+  answer would also decide whether pictures are drawn, and the display's scale (`GetDpiForWindow`); a `file:` link's
+  host name (`GetComputerNameExW`: whether Windows Terminal follows a link with a host is unmeasured);
+  `TableColumn`'s default order, which is `.lexical` off Darwin and would need a comparator of its own type, an API
+  change; the double-click interval, caret blink and key repeat, which TUI fixes on every platform
+  (`GetDoubleClickTime`, `GetCaretBlinkTime`: a choice for every platform, so the owner's); and Japanese readings, zlib for
+  Kitty images, and the Stress bench's memory figures.
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal
