@@ -1032,8 +1032,15 @@ extension FrameBuffer {
                 storage[row] = Self.ansiReset + overlayLine + Self.ansiReset
                 continue
             }
+            // The row is `resultWidth` already: every row was `width` (the
+            // guard above), and was padded to `resultWidth` if that is wider.
+            // Measuring it again to pad it by nothing walked the whole row, a
+            // second time beside the split's own walk, for every overlay.
+            assert(
+                storage[row].strippedLength == resultWidth,
+                "a buffer said its rows are one width, and row \(row) is not \(resultWidth) cells")
             let inserted = Self.insertOverlay(
-                base: storage[row].padToVisibleWidth(resultWidth),
+                base: storage[row],
                 overlay: overlayLine,
                 atColumn: position.x,
                 overlayIsPainted: overlayIsPainted,
