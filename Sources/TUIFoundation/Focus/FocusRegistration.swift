@@ -328,9 +328,17 @@ package enum FocusRegistration {
     /// reaches it (module split step A3).
     @usableFromInline
     package static func publishHelpText(context: RenderContext, focusID: String) {
+        guard let text = context.environment.helpText else { return }
+        publishHelpText(text, context: context, focusID: focusID)
+    }
+
+    /// Claims `text` as the help of the control `focusID` names, if it holds
+    /// the focus: ``publishHelpText(context:focusID:)`` for a help found
+    /// elsewhere than in the control's own environment — inside a
+    /// `.focusable()` view's content (``EnvironmentValues/focusStopHelp``).
+    package static func publishHelpText(_ text: String, context: RenderContext, focusID: String) {
         let trigger = context.environment.tooltipTrigger
-        guard let text = context.environment.helpText,
-            trigger != .never,
+        guard trigger != .never,
             let tooltips = context.environment.tooltipState,
             context.environment.focusManager?.isFocused(id: focusID) == true
         else { return }

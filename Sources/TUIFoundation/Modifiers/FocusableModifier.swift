@@ -138,7 +138,30 @@ nonisolated struct FocusableModifier<Content: View>: View {
         let isFocused = focusID.map { FocusRegistration.isFocused(context: context, focusID: $0) }
         FocusRegistration.publishIsFocused(isFocused, context: context, into: &contentContext)
 
+        // The help written INSIDE the view is its help too, for the help key,
+        // as SwiftUI's view has one help however its modifiers are ordered:
+        // a focused stop gathers it as its content draws, and an unfocused
+        // one keeps an outer stop's gathering away from its own content, so a
+        // help reaches the stop nearest it (`EnvironmentValues.focusStopHelp`).
+        let gathered: FocusStopHelp?
+        if isFocused == true {
+            gathered = FocusStopHelp()
+            contentContext.environment.focusStopHelp = gathered
+        } else {
+            gathered = nil
+            if contentContext.environment.focusStopHelp != nil { contentContext.environment.focusStopHelp = nil }
+        }
+
         var buffer = TUIView.renderToBuffer(content, context: contentContext)
+
+        // Published after the help in the stop's own environment, which its
+        // registration published, so the inner one wins, as it does under the
+        // pointer. Not where a control inside the view carries a focus id of
+        // its own: a `Button("…").help("…")` in a focusable container explains
+        // the button, which hasn't the focus.
+        if let focusID, let text = gathered?.text, !buffer.hitTestRegions.contains(where: { $0.focusID != nil }) {
+            FocusRegistration.publishHelpText(text, context: context, focusID: focusID)
+        }
 
         // `.edit` → a left press anywhere on the view focuses it. Not while an
         // ancestor suppresses focus: `registerFocusStop` still hands back an id

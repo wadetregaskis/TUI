@@ -332,6 +332,7 @@ struct EnvironmentStampTests {
         "CursorTimerKey": "a reader records a volatile read, so nothing that read it is stored",
         "PreferenceStorageKey": "a mailbox views post into and never draw from",
         "RowEditRestrictionsKey": "a mailbox views post into and never draw from",
+        "FocusStopHelpKey": "a mailbox views post into and never draw from; a help that posts is never stored",
         "KeyEventDispatcherKey": "a per-walk channel: registrations are journalled and replayed into the one in force",
         "MouseEventDispatcherKey": "a per-walk channel: registrations are journalled and replayed into the one in force",
         "KeyChannelTokenKey": "a per-walk channel: registrations are journalled and replayed into the one in force",

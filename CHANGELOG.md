@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**The help key shows a `help` written inside a `.focusable()` view.** Only a `.help` written outside the modifier
+reached the keyboard: `Rectangle().help("…").focusable()` showed its tooltip under the pointer, but `?` showed nothing
+when the view had the focus. A view now has one help however its modifiers are ordered; of a help inside the
+modifier and one outside it, the inner one shows, as under the pointer. A help on a control inside a focusable
+container, `Button("…").help("…")`, stays the control's.
+
 **An `onMouseEvent` handler leaves the hover to the views inside it.** Its region was the control under the pointer,
 so an `onHover`, `onContinuousHover` or `help` inside it, and a `Button`'s hover face, heard nothing, though the
 handler returned `false` for every event; `onScrollWheel`, which is built on it, did the same. The handler now hears

@@ -41,6 +41,7 @@ struct EnvironmentClassAuditTests {
         "ButtonKeyExtras": "provider-kept (@State); its key closures are used at event time, nothing is drawn from it",
         "MenuOpenAction": "provider-kept (@State); called at event time to open a menu",
         "DismissalGate": "provider-kept (state storage); asked at event time whether a dismissal may proceed",
+        "FocusStopHelp": "mailbox: helps drawn inside a focused .focusable() post into it, declaring a render side effect; nothing draws from it",
         "MenuRowSink": "mailbox kept by the menu's controller: rows publish into it",
         "ContainerReadNote": "mailbox kept by a scroll view: a containerRelativeFrame notes its read into it; the scroll view reads it, no row draws from it",
         "_TabMenuOpeners": "mailbox: each tab files its menu's opener into it every frame",

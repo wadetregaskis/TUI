@@ -44,6 +44,16 @@ nonisolated package struct HelpModifier<Content: View>: View {
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         var childContext = context
         childContext.environment.helpText = text
+        // Inside a focused `.focusable()` view, this is the view's help for the
+        // help key as well (`EnvironmentValues.focusStopHelp`). Before the
+        // content draws, so a help nested inside this one writes over it and
+        // the innermost wins, as under the pointer. A render side effect: a
+        // memo between here and the stop must not serve a frame that would
+        // not write it again.
+        if !context.isMeasuring, let gathering = context.environment.focusStopHelp {
+            gathering.text = text
+            context.environment.volatileReadTracker?.recordRenderSideEffect()
+        }
         var buffer = TUIView.renderToBuffer(content, context: childContext)
 
         // `isEnabled` is NOT checked, unlike `.onHover`'s SwiftUI-parity gate:
@@ -219,6 +229,12 @@ extension View {
     ///
     /// `View.tooltips(_:)` chooses when: ``TooltipTrigger/onFocus`` drops the
     /// help key requirement, so moving the focus through a page explains it.
+    ///
+    /// The view holding the focus is the control the help is written on or
+    /// around, or a ``View/focusable(_:)`` view it is written inside or
+    /// outside: `Canvas { … }.help("…").focusable()` shows its help for the
+    /// help key as `.focusable().help("…")` does. Of a help on each side, the
+    /// inner one shows, as under the pointer.
     ///
     /// ```swift
     /// Button("Rebuild") { rebuild() }
