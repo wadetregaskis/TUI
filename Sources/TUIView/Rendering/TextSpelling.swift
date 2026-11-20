@@ -3,7 +3,7 @@
 //
 //  How the words a view draws are spelled: as written, with only the key symbols
 //  in ASCII (a terminal that shows only ASCII), or all in ASCII before they are
-//  laid out (`TUI_PLAIN_TEXT=transliterate`, an experiment; see
+//  laid out (`TUI_PLAIN_TEXT=transliterate`; see
 //  `Documentation/Historical/Text, editing and the clipboard/ASCII transliteration before layout.md`).
 //  The value lives here, beside `RenderContext`, so a context can carry it as a
 //  field; the spelling itself is TUIFoundation's (`TextTransliteration`).
@@ -91,7 +91,8 @@ extension EnvironmentValues {
     ///
     /// Read only there, once, when a context is made from an environment: the
     /// render loop's root, a one-off render's, a toolbar's. A view asks its
-    /// context. Package-only while the ASCII spelling is an experiment.
+    /// context. Package-only: the person asks for the ASCII spelling, with
+    /// `TUI_PLAIN_TEXT`, and nothing in an app's code sets it.
     package var textSpelling: TextSpelling {
         get { self[TextSpellingKey.self] }
         set { self[TextSpellingKey.self] = newValue }

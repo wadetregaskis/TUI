@@ -106,8 +106,8 @@ internal final class RenderLoop<A: App> {
     /// every other loop unless a test says otherwise.
     var textCursorFollowsFocus: TextCursorFollowsFocus?
 
-    /// Whether text is spelled in ASCII before layout: all of it under the
-    /// experiment `TUI_PLAIN_TEXT=transliterate`, only the key symbols for any
+    /// Whether text is spelled in ASCII before layout: all of it under
+    /// `TUI_PLAIN_TEXT=transliterate`, only the key symbols for any
     /// other terminal that shows only ASCII, as the app runner reads it
     /// (``PlainTerminalText/respelling(in:)``), written at the root of every
     /// frame as ``EnvironmentValues/textSpelling``. A headless app's asks the

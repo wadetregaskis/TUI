@@ -2,9 +2,10 @@
 //  PlainTerminalText.swift
 //
 //  The best we can do for a terminal that truly can't show anything but ASCII, in
-//  the same place as what's done for a terminal's other shortcomings. Not a mode
-//  anyone is meant to choose: the owner's ruling (2026-11-01) is that an ASCII-only
-//  mode makes no sense, and that this is a matter of degrading gracefully.
+//  the same place as what's done for a terminal's other shortcomings: a matter of
+//  degrading gracefully, not a look to choose (the owner's ruling, 2026-11-01, that
+//  an ASCII-only mode makes no sense). `TUI_PLAIN_TEXT`, which the person sets for
+//  such a terminal, is a supported option since 2026-11-19.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -39,8 +40,8 @@ package enum PlainTerminalText {
     }
 
     /// Whether text is spelled in ASCII before it's laid out, as well as folded here:
-    /// `TUI_PLAIN_TEXT=transliterate`, an experiment (owner, 2026-11-08), so only when
-    /// asked for by name. `你好` is then `ni hao`, six cells, which layout makes room for,
+    /// `TUI_PLAIN_TEXT=transliterate` (built 2026-11-08, a supported option since
+    /// 2026-11-19), so only when asked for by name. `你好` is then `ni hao`, six cells, which layout makes room for,
     /// where folding here can only make it `niha`, in the four it was given.
     ///
     /// A value of the same variable rather than one of its own: it's the same question,

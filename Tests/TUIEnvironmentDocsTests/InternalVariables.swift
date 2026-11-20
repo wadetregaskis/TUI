@@ -19,7 +19,6 @@ enum InternalVariables {
         "TUI_KEEP_TIMELINE_ANCESTORS": "It turns an optimisation off to compare with it.",
         "TUI_OBSERVATION_RETIREMENT": "It picks between implementations, to compare them.",
         "TUI_OPTION_C": "It turns an optimisation off to compare with it.",
-        "TUI_PLAIN_TEXT": "The owner ruled (2026-11-01) that nothing should encourage an ASCII-only mode except for testing.",
         "TUI_SCROLL_CENSUS": "It measures what the scroll levels would do, for TUI's developers.",
         "TUI_STILL": "It freezes the screen for clips and tests; the owner kept it internal (2026-11-01).",
     ]

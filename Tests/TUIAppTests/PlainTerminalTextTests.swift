@@ -35,7 +35,7 @@ struct PlainTerminalTextTests {
     }
 
     @Test(
-        "Text is spelled before layout only when asked for by name: an experiment, off by default",
+        "Text is spelled before layout only when asked for by name, off by default",
         arguments: [
             (["TUI_PLAIN_TEXT": "transliterate"], true),
             (["TUI_PLAIN_TEXT": "1"], false),

@@ -4,6 +4,12 @@ An experiment behind a flag, `TUI_PLAIN_TEXT=transliterate` (owner, 2026-11-08: 
 if it works well in practice … behind a 'feature flag' … until we're confident it's a good idea."). Round 2, the same
 day: "Keep working on the improved ASCII-only mode; try to remove the limitations and fix the flaws."
 
+**Promoted, 2026-11-19:** the owner, having tried it: "`TUI_PLAIN_TEXT=transliterate` looks good; let's commit to it
+as a supported variable and option." It is no longer an experiment, so it falls under the
+[API stability policy](<../../API stability policy.md>) (decision 5), and `TUI_PLAIN_TEXT` moved from the internal list
+(where the owner's ruling of 2026-11-01, that nothing should encourage an ASCII-only mode, had kept it) to the end-user
+table. It stays off unless named, and behaves as below.
+
 ## The problem
 
 For a terminal that can show only ASCII, `PlainTerminalText` (TUIApp) folds each row on its way out. The frame is laid

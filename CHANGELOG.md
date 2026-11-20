@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`TUI_PLAIN_TEXT=transliterate` is a supported option, no longer an experiment.** Spelling other scripts in Latin
+letters before layout, for a terminal that shows only ASCII, keeps its default (off unless named) and does what it
+did, but it now falls under the API stability promise, as the rest of the end-user variables do. `TUI_PLAIN_TEXT`,
+with its `1` and `0`, moves from the variables for developing TUI to the end-user table, so an app's generated man
+page and the EnvironmentVariables article list it under Text and language. No experiment is left.
+
 **A frame no longer reads the whole process environment.** Each frame looked up which terminal it was drawing for, to
 say which underline styles it draws, and that copied every environment variable the program has. The answer is now
 read once, when the app starts drawing, as the rest of what TUI knows about the terminal is.

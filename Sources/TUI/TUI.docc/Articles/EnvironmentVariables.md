@@ -142,6 +142,7 @@ These tables are generated from the same text an app's man page gets, so the pag
 | `LC_NUMERIC` | A locale, such as `de_DE.UTF-8` | The region dates and numbers are written for, unless `LC_ALL` or `LC_TIME` says otherwise. |
 | `LC_CTYPE` | A locale, such as `de_DE.ISO8859-1` | The terminal's character set, unless `LC_ALL` says otherwise. Anything but UTF-8 says the terminal shows nothing beyond plain ASCII, so the program sends ASCII alone. |
 | `LANG` | A locale, such as `fr_FR.UTF-8` | The language, the region and the character set, wherever none of the above says. For example: `LANG=fr_FR.UTF-8 myapp`. |
+| `TUI_PLAIN_TEXT` | `1`, `transliterate` or `0` | For a terminal that shows nothing beyond plain ASCII, whatever the character set above says. `1` sends ASCII alone: accented letters lose their accents, keyboard shortcuts are written out, such as `Alt-F` and `^Q`, and the program's own marks take ASCII forms, such as `[x]` for a checked toggle. Words in other scripts are spelled in the room their own letters took, so a Chinese word is cut short. `transliterate` does all that, and also spells words in other scripts in Latin letters with all the room the spelling needs: Chinese in pinyin, Japanese as it's read, Russian and Greek in their usual romanizations, and emoji as `:)` or by name, such as `:rocket:`. `0` sends the text as it is. Unset, ASCII alone where `LC_ALL`, `LC_CTYPE` or `LANG`, whichever comes first, names a character set other than UTF-8; `C` and `POSIX` name none. |
 
 ### Screen size and printed output
 
@@ -268,6 +269,7 @@ Two of the variables above are worth knowing for tests too. `TUI_CONFIG_DIR` kee
 | `LC_NUMERIC` | Wins | `.environment(\.locale, _)`. | Once |
 | `LC_CTYPE` | No setting | The variable is the only way. | Once |
 | `LANG` | Wins | `LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\.locale, _)` for part of an app. | Once |
+| `TUI_PLAIN_TEXT` | No setting | The variable is the only way. | Once |
 | `COLUMNS` | No setting | The variable is the only way. | Each use |
 | `LINES` | No setting | The variable is the only way. | Each use |
 | `TUI_FORCE_ESCAPES` | Wins | `renderOnce(output:content:)`, with `.plainText` or `.escapeSequences`. Only `.automatic`, the default, reads this. | Each use |

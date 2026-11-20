@@ -6,8 +6,9 @@ article ("API stability"), `RELEASING.md` points at it, and the pre-1.0 rule of 
 (the changelog's preface, `.claude/CLAUDE.md`) changes to the deprecation rule below. Until 1.0.0 is tagged, the
 pre-1.0 rule stands.
 
-Still open before 1.0: each experiment (decision 5), the defaults 1.0 freezes (decision 11), and the CI that
-keeps WebAssembly and Windows supported (decision 9): WebAssembly's tests, and Windows's jobs made binding.
+Still open before 1.0: the defaults 1.0 freezes (decision 11), and the CI that keeps WebAssembly and Windows
+supported (decision 9): WebAssembly's tests, and Windows's jobs made binding. No experiment is left open: the owner decided the last, `TUI_PLAIN_TEXT=transliterate`, on
+2026-11-19 (decision 5).
 
 ## What 1.0 promises
 
@@ -65,10 +66,12 @@ promised: TUI is a source package built with the app, without library evolution,
   (`_MemoizedView`'s initializer). The owner ruled the same day that underscored names are not API and may change
   in any release.
 - **`package` declarations,** which clients cannot see, and `@_spi` (there is none).
-- **Experimental environment variables:** every developer and internal variable, `TUI_PLAIN_TEXT=transliterate`
-  among them. An experiment can change or go in any release; one that is promoted joins the promise from the release
-  that says so. The end-user table marks none as an experiment since 2026-11-15, when the owner promoted the three it
-  did (`TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS`, `TUI_GRAPHICS_PLAYBACK`; decision 5).
+- **Experimental, developer and internal environment variables:** every developer and internal variable, and any
+  experiment. An experiment can change or go in any release; one that is promoted joins the promise from the release
+  that says so. There are none today: the owner promoted the three the end-user table marked as one on 2026-11-15
+  (`TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS`, `TUI_GRAPHICS_PLAYBACK`), and the last,
+  `TUI_PLAIN_TEXT=transliterate`, on 2026-11-19, which moved `TUI_PLAIN_TEXT` from the internal list to the end-user
+  table (decision 5).
 - **The bytes TUI writes to the terminal:** the escape sequences it chooses, which cells it repaints and when, its
   glyph and colour choices for a given terminal, and frame timing. These change as terminals are measured and
   output is optimised. What is promised is the documented look and behaviour, not how it is drawn. The golden
@@ -138,7 +141,7 @@ is the sum of those commits.
 
 ## The decisions
 
-Answered by the owner on 2026-11-09, in chat, and point 5 in part on 2026-11-15; the record is in
+Answered by the owner on 2026-11-09, in chat, and point 5 on 2026-11-15 and 2026-11-19; the record is in
 [The owner's decisions of 2026-11-08](<Historical/SwiftUI parity process/The owner's decisions of 2026-11-08.md>).
 
 | # | Decision | Answer |
@@ -147,7 +150,7 @@ Answered by the owner on 2026-11-09, in chat, and point 5 in part on 2026-11-15;
 | 2 | Underscored names | Not API, and may change at any time. Every remaining underscored public was checked the same day, and the one that did not have to be public (`_MemoizedView`'s initializer) made `internal`; the 14 accidental ones already were |
 | 3 | Which public enums may gain cases | Any, in any release; apps write `@unknown default:` |
 | 4 | Which of the 35 library products are promised | All of them |
-| 5 | Each experiment: `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK`, the held-press widening (A-TEXT2-1) | **Promoted, 2026-11-15:** `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` and `TUI_GRAPHICS_PLAYBACK` are supported options under the promise, their defaults and behaviour unchanged, and the held-press widening (A-TEXT2-1) is accepted as it is. **Open:** `TUI_PLAIN_TEXT=transliterate` (the owner is still testing it, and expects to promote it too) stays an experiment until the owner decides, before 1.0 |
+| 5 | Each experiment: `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS`, `TUI_PLAIN_TEXT=transliterate`, `TUI_GRAPHICS_PLAYBACK`, the held-press widening (A-TEXT2-1) | **Promoted, 2026-11-15:** `TUI_ARROW_FOCUS`, `TUI_TEXT_CURSOR_FOLLOWS_FOCUS` and `TUI_GRAPHICS_PLAYBACK` are supported options under the promise, their defaults and behaviour unchanged, and the held-press widening (A-TEXT2-1) is accepted as it is. **Promoted, 2026-11-19:** `TUI_PLAIN_TEXT=transliterate` ("looks good; let's commit to it as a supported variable and option"), its default and behaviour unchanged; `TUI_PLAIN_TEXT` moves from the internal list to the end-user table. No experiment is left |
 | 6 | Raising the minimum Swift or macOS | B: only a major release raises one; any release may lower one |
 | 7 | Deprecation | A: deprecate in a minor, remove in the next major. SwiftUI's deprecations followed case by case |
 | 8 | Read compatibility of persisted settings | Both ways within a major; kept across majors where it can be |

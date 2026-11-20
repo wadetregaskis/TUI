@@ -1,12 +1,12 @@
 //  🖥️ TUI — A Terminal UI framework for Swift
 //  Text+Transliteration.swift
 //
-//  An experiment behind a flag (owner, 2026-11-08): for a terminal that can show
-//  only ASCII, spell other scripts in Latin letters BEFORE layout, so "你好" is
-//  "ni hao", six cells, and the layout makes room for it. The folding at output
-//  (`PlainTerminalText` in TUIApp) has to keep each character to the cells it was
-//  laid out in, which cuts "你好" to "niha". That folding stays, for what this
-//  doesn't reach: chrome, and text being edited.
+//  Built behind a flag (owner, 2026-11-08), a supported option since 2026-11-19:
+//  for a terminal that can show only ASCII, spell other scripts in Latin letters
+//  BEFORE layout, so "你好" is "ni hao", six cells, and the layout makes room for
+//  it. The folding at output (`PlainTerminalText` in TUIApp) has to keep each
+//  character to the cells it was laid out in, which cuts "你好" to "niha". That
+//  folding stays, for what this doesn't reach: chrome, and text being edited.
 //  `TUI_PLAIN_TEXT=transliterate` turns it on; see
 //  `Documentation/Historical/Text, editing and the clipboard/ASCII transliteration before layout.md`.
 //
