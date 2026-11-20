@@ -23,7 +23,7 @@ import Foundation
 ///   might draw from and nothing could compare; it is the wrong one here,
 ///   because the only reader is `Button`, and what a `Button` does with it —
 ///   register an action for the frame — is declared to the memo on its own
-///   (`KeyboardShortcutRegistrar/declare(_:commandChord:repeats:title:action:carrier:context:)`). So the
+///   (`KeyboardShortcutRegistrar/declare(_:commandChord:repeats:standingInFor:title:action:carrier:context:)`). So the
 ///   carrier is assigned straight into the environment, as `.focusSection`
 ///   assigns its section, and the subtree keeps its cache.
 /// - **It could not say where it was planted.** A registration may be replayed
@@ -46,6 +46,11 @@ nonisolated struct KeyboardShortcutModifier<Content: View>: View {
     /// `.keyboardShortcut(nil)`, which leaves the environment as it found it.
     let assignment: KeyboardShortcutAssignment?
 
+    /// Whether it plants the control's fallback
+    /// (``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``) rather than
+    /// its shortcut: the same claim, in a slot of its own.
+    var isFallback = false
+
     @MainActor var body: Never {
         fatalError("KeyboardShortcutModifier renders via Renderable")
     }
@@ -63,15 +68,21 @@ nonisolated struct KeyboardShortcutModifier<Content: View>: View {
         // identity and is new every frame), and a change drops what was
         // cached below. Both walks, as `EnvironmentModifier` does: the measure
         // memo has the same blind spot.
+        let keyPath: AnyKeyPath =
+            isFallback ? \EnvironmentValues.keyboardShortcutFallback : \EnvironmentValues.keyboardShortcut
         if let cache = context.renderCache,
             case .changed = cache.noteAppliedEnvironment(
-                assignment.shortcut, identity: context.identity,
-                keyPath: \EnvironmentValues.keyboardShortcut, depth: context.environmentApplicationDepth)
+                assignment.shortcut, identity: context.identity, keyPath: keyPath,
+                depth: context.environmentApplicationDepth)
         {
             cache.clearAffected(by: context.identity)
         }
         var planted = context
-        planted.environment.assignedKeyboardShortcut = assignment
+        if isFallback {
+            planted.environment.assignedKeyboardShortcutFallback = assignment
+        } else {
+            planted.environment.assignedKeyboardShortcut = assignment
+        }
         planted.environmentApplicationDepth += 1
         return planted
     }
@@ -122,11 +133,15 @@ enum KeyboardShortcutRegistrar {
     /// before every walk, so a control whose subtree was served from a value
     /// memo has to register again or its key equivalent is dead while it is
     /// still on screen. Declared to any value-memoizing ancestor either way
-    /// (``declare(_:commandChord:repeats:title:action:carrier:context:)``).
+    /// (``declare(_:commandChord:repeats:standingInFor:title:action:carrier:context:)``).
     ///
     /// A hint (``View/keyboardShortcutHint(_:)``) binds nothing, but its key is
     /// in force under the control's name all the same, which it notes in the
     /// same place, and which a replay must note again.
+    ///
+    /// A fallback (``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``)
+    /// is claimed and bound the same way, beside the shortcut, and listed only
+    /// where the shortcut is not.
     ///
     /// - Parameters:
     ///   - action: What the shortcut does: the control's primary action.
@@ -134,29 +149,53 @@ enum KeyboardShortcutRegistrar {
     ///   - repeats: Whether a held key's repeats run the action again.
     ///   - title: What the control is called, for the list of what is in force.
     ///   - context: Where the control renders.
-    /// - Returns: The shortcut as resolved here, or `nil` where none was
-    ///   offered, the control is disabled, or another control claimed it.
+    /// - Returns: The key to name beside the control, as resolved here: the
+    ///   shortcut where the terminal sends it as itself, else the fallback
+    ///   where it does (``KeyboardReporting/delivers(_:)``, the owner,
+    ///   2026-11-19); `nil` where neither, where none was offered, the control
+    ///   is disabled, or another control claimed them. Both stay bound either
+    ///   way: a person may have rebound the terminal's own key.
     @MainActor
     @discardableResult
     static func claim(
         action: @escaping () -> Void, isDisabled: Bool, repeats: Bool, title: @escaping () -> String,
         context: RenderContext
     ) -> KeyboardShortcut? {
-        guard !isDisabled, let assignment = context.environment.assignedKeyboardShortcut,
-            let shortcut = assignment.claim(by: context.identity, isMeasuring: context.isMeasuring)
+        guard !isDisabled else { return nil }
+        let shortcut = claim(
+            context.environment.assignedKeyboardShortcut, standingInFor: nil, action: action, repeats: repeats,
+            title: title, context: context)
+        let fallback = claim(
+            context.environment.assignedKeyboardShortcutFallback, standingInFor: shortcut?.trigger, action: action,
+            repeats: repeats, title: title, context: context)
+        let reporting = context.environment.keyboardReporting
+        return [shortcut, fallback].lazy.compactMap(\.self).first(where: reporting.delivers)
+    }
+
+    /// Claims the shortcut `assignment` carries for the control rendering at
+    /// `context`, and registers `action` for it, as the fallback of the
+    /// shortcut on `standingInFor` where there is one: what ``claim(action:isDisabled:repeats:title:context:)``
+    /// does with each of a control's two carriers.
+    @MainActor
+    private static func claim(
+        _ assignment: KeyboardShortcutAssignment?, standingInFor shortcut: KeyboardShortcut.Trigger?,
+        action: @escaping () -> Void, repeats: Bool, title: @escaping () -> String, context: RenderContext
+    ) -> KeyboardShortcut? {
+        guard let assignment, let claimed = assignment.claim(by: context.identity, isMeasuring: context.isMeasuring)
         else { return nil }
-        let resolved = shortcut.resolved(commandKey: context.environment.commandKey)
+        let resolved = claimed.resolved(commandKey: context.environment.commandKey)
         // The shortcut as written too, where the app asked for a real ⌘ to
         // fire it (`.keyboardShortcutsMatchCommand()`); `nil` by default.
-        let commandChord = shortcut.commandChord(matching: context.environment.keyboardShortcutsMatchCommand)
+        let commandChord = claimed.commandChord(matching: context.environment.keyboardShortcutsMatchCommand)
         if let resolved, !context.isMeasuring {
             let binding = assignment.registers ? action : nil
             if register(
-                resolved, commandChord: commandChord, repeats: repeats, title: title, action: binding, context: context)
+                resolved, commandChord: commandChord, repeats: repeats, standingInFor: shortcut, title: title,
+                action: binding, context: context)
             {
                 declare(
-                    resolved, commandChord: commandChord, repeats: repeats, title: title, action: binding,
-                    carrier: assignment, context: context)
+                    resolved, commandChord: commandChord, repeats: repeats, standingInFor: shortcut, title: title,
+                    action: binding, carrier: assignment, context: context)
             }
         }
         return resolved
@@ -191,6 +230,8 @@ enum KeyboardShortcutRegistrar {
     ///   (``ButtonRepeatBehavior/enabled``); see
     ///   ``KeyboardShortcutRegistry/register(_:commandChord:repeats:action:)``,
     ///   which takes `commandChord` too.
+    /// - Parameter standingInFor: The shortcut this one is the fallback of
+    ///   (``KeyboardShortcutRegistry/register(_:commandChord:repeats:section:standingInFor:title:action:)``).
     /// - Parameter action: What it does, or `nil` for a hint, which only notes
     ///   the key.
     /// - Returns: `false` outside a running app, where there is no registry and
@@ -199,13 +240,15 @@ enum KeyboardShortcutRegistrar {
     @discardableResult
     static func register(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
-        title: @escaping () -> String, action: (() -> Void)?, context: RenderContext
+        standingInFor: KeyboardShortcut.Trigger? = nil, title: @escaping () -> String, action: (() -> Void)?,
+        context: RenderContext
     ) -> Bool {
         guard let registry = context.environment.keyboardShortcutRegistry else { return false }
         let section = context.environment.shortcutSectionID
         if let action {
             registry.register(
-                shortcut, commandChord: commandChord, repeats: repeats, section: section, title: title, action: action)
+                shortcut, commandChord: commandChord, repeats: repeats, section: section, standingInFor: standingInFor,
+                title: title, action: action)
         } else {
             registry.noteHint(shortcut, title: title, section: section)
         }
@@ -240,8 +283,8 @@ enum KeyboardShortcutRegistrar {
     @MainActor
     static func declare(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
-        title: @escaping () -> String, action: (() -> Void)?, carrier: KeyboardShortcutAssignment,
-        context: RenderContext
+        standingInFor: KeyboardShortcut.Trigger? = nil, title: @escaping () -> String, action: (() -> Void)?,
+        carrier: KeyboardShortcutAssignment, context: RenderContext
     ) {
         let tracker = context.environment.volatileReadTracker
         guard carrier.isPlanted(insideMemoAtDepth: context.effectRecordingDepth) else {
@@ -259,8 +302,8 @@ enum KeyboardShortcutRegistrar {
                 kind: kind, channelToken: context.environment.keyChannelToken
             ) { replay in
                 register(
-                    shortcut, commandChord: commandChord, repeats: repeats, title: title, action: action,
-                    context: replay)
+                    shortcut, commandChord: commandChord, repeats: repeats, standingInFor: standingInFor, title: title,
+                    action: action, context: replay)
             })
     }
 }
@@ -284,7 +327,7 @@ enum KeyboardShortcutRegistrar {
 /// content drawn whole does.
 @MainActor extension KeyboardShortcutModifier: ContentRewrapping {
     func rewrapping<V: View>(_ view: V) -> any View {
-        KeyboardShortcutModifier<V>(content: view, assignment: assignment)
+        KeyboardShortcutModifier<V>(content: view, assignment: assignment, isFallback: isFallback)
     }
 }
 
@@ -299,7 +342,7 @@ enum KeyboardShortcutRegistrar {
 /// `Tools/SwiftUIProbes/Form rows`).
 @MainActor extension KeyboardShortcutModifier: FormRowRewrapping {
     func rewrappingFormRow<V: View>(_ row: V) -> any View {
-        KeyboardShortcutModifier<V>(content: row, assignment: assignment)
+        KeyboardShortcutModifier<V>(content: row, assignment: assignment, isFallback: isFallback)
     }
 }
 
@@ -319,7 +362,7 @@ package protocol KeyboardShortcutBinding {
 
 @MainActor extension KeyboardShortcutModifier: KeyboardShortcutBinding {
     package var boundShortcut: KeyboardShortcut? {
-        guard let assignment, assignment.registers else { return nil }
+        guard let assignment, assignment.registers, !isFallback else { return nil }
         return assignment.shortcut
     }
 }

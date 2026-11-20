@@ -100,7 +100,9 @@ public struct ButtonStyleConfiguration {
     /// binds it to), or `nil` when the button has none — or when this
     /// terminal cannot send it as itself (`⌃⇧S` where a legacy encoding sends
     /// `⌃S`, or a chord the terminal keeps for a binding of its own), which
-    /// is still bound but would name a key that does not work here.
+    /// is still bound but would name a key that does not work here. There,
+    /// the button's fallback (``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``)
+    /// where it has one that the terminal does send.
     ///
     /// - Note: Terminal-specific addition. AppKit draws a menu item's key
     ///   equivalent for you; here a menu-row style has to draw it, so it needs

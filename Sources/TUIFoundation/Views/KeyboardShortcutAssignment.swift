@@ -111,6 +111,10 @@ private struct AssignedKeyboardShortcutKey: EnvironmentKey {
     static var defaultValue: KeyboardShortcutAssignment? { nil }
 }
 
+private struct AssignedKeyboardShortcutFallbackKey: EnvironmentKey {
+    static var defaultValue: KeyboardShortcutAssignment? { nil }
+}
+
 extension EnvironmentValues {
     /// The app's semantic-shortcut registry (nil outside a running app).
     package var keyboardShortcutRegistry: KeyboardShortcutRegistry? {
@@ -123,6 +127,21 @@ extension EnvironmentValues {
     var assignedKeyboardShortcut: KeyboardShortcutAssignment? {
         get { self[AssignedKeyboardShortcutKey.self] }
         set { self[AssignedKeyboardShortcutKey.self] = newValue }
+    }
+
+    /// The fallback assignment awaiting a control, planted by
+    /// ``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``: claimed as
+    /// ``assignedKeyboardShortcut`` is, by the first control under it.
+    var assignedKeyboardShortcutFallback: KeyboardShortcutAssignment? {
+        get { self[AssignedKeyboardShortcutFallbackKey.self] }
+        set { self[AssignedKeyboardShortcutFallbackKey.self] = newValue }
+    }
+
+    /// The fallback shortcut assigned to the view or an ancestor
+    /// (``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``), or `nil`:
+    /// what a memo below notes, as it notes ``keyboardShortcut``.
+    var keyboardShortcutFallback: KeyboardShortcut? {
+        assignedKeyboardShortcutFallback?.shortcut
     }
 
     /// The keyboard shortcut buttons in this environment are triggered with,

@@ -532,6 +532,19 @@ the same way. So bind a command to a key every terminal sends where you can
 (``KeyboardShortcut/isDeliverableInTerminal``); a Control chord on a shifted or
 punctuation key goes unnamed outside the kitty keyboard protocol.
 
+A control of your own can name its other key with
+``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``. Both keys are bound,
+and the fallback is named wherever the shortcut is not:
+
+```swift
+Button("Show Preview") { showsPreview.toggle() }
+    .keyboardShortcut("p", modifiers: [.command, .shift])    // ⌃⇧P
+    .keyboardShortcutFallback("p", modifiers: [.command, .option])   // ⌥⌃P
+```
+
+A `Button` or a `Toggle` takes it. An alert's buttons, which the alert draws
+itself, and a scene's ``Scene/keyboardShortcut(_:)`` do not.
+
 ## Framework Shortcuts
 
 A few controls bind keys of their own, the way SwiftUI's built-in menu items do.

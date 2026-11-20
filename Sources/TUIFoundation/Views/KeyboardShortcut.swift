@@ -711,6 +711,46 @@ extension View {
             content: self, assignment: shortcut.map { KeyboardShortcutAssignment($0, registers: false) })
     }
 
+    /// Gives the wrapped control a second key, `shortcut`, for terminals that
+    /// cannot send its ``keyboardShortcut(_:)-(KeyboardShortcut)``.
+    ///
+    /// ```swift
+    /// Button("Show Preview") { showsPreview.toggle() }
+    ///     .keyboardShortcut("p", modifiers: [.command, .shift])
+    ///     .keyboardShortcutFallback("p", modifiers: [.command, .option])
+    /// ```
+    ///
+    /// Both keys work wherever they arrive. A menu row, a button's label and
+    /// F1's list of shortcuts name the shortcut where the terminal sends it as
+    /// itself, and the fallback only where it does not: under a legacy
+    /// encoding, which loses Shift on a Control letter (`⌃⇧P` arrives as
+    /// `⌃P`), or in a terminal that keeps the chord for itself (Windows
+    /// Terminal's command palette is `⌃⇧P`). Where neither arrives, none is
+    /// named. The owner's rule, 2026-11-19: a key that does not work is not
+    /// shown, and one that does is shown in its place.
+    ///
+    /// Claimed as the shortcut is, by the first control rendered under it,
+    /// and resolved through ``EnvironmentValues/commandKey`` the same way.
+    /// `nil` adds none. A `Button` or a `Toggle` takes it; an alert's buttons,
+    /// which the alert draws itself, and a scene's shortcut do not.
+    ///
+    /// TUI-specific: SwiftUI gives a control one shortcut, because on its
+    /// platforms every chord arrives.
+    nonisolated public func keyboardShortcutFallback(_ shortcut: KeyboardShortcut?) -> some View {
+        KeyboardShortcutModifier(
+            content: self, assignment: shortcut.map { KeyboardShortcutAssignment($0) }, isFallback: true)
+    }
+
+    /// Gives the wrapped control a second key, `key` with `modifiers`, for
+    /// terminals that cannot send its shortcut — see
+    /// ``keyboardShortcutFallback(_:)-(KeyboardShortcut?)``. `modifiers`
+    /// defaults to `.command`, as ``keyboardShortcut(_:modifiers:)``'s does.
+    nonisolated public func keyboardShortcutFallback(
+        _ key: KeyEquivalent, modifiers: EventModifiers = .command
+    ) -> some View {
+        keyboardShortcutFallback(KeyboardShortcut(key, modifiers: modifiers))
+    }
+
     /// Assigns a key-equivalent shortcut to the wrapped control — SwiftUI's
     /// `keyboardShortcut(_:modifiers:)`.
     ///

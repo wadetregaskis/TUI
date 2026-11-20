@@ -74,6 +74,10 @@ package final class KeyboardShortcutRegistry {
         /// bar's item only shows, and which only says what it is for an app
         /// with no menu bar.
         var yieldsToHint = false
+        /// The shortcut this one is the fallback of
+        /// (`View.keyboardShortcutFallback(_:)`), which is listed in its place
+        /// wherever it is listed at all.
+        var standsInFor: KeyboardShortcut.Trigger?
     }
 
     /// Where a shortcut was declared: the focus section. While a modal section
@@ -172,16 +176,23 @@ package final class KeyboardShortcutRegistry {
     ///   the same action is registered on that trigger too. `nil` — the
     ///   default, and every shortcut's unless the app asked — registers
     ///   nothing more.
+    /// - Parameter standingInFor: The trigger of the shortcut this one is the
+    ///   fallback of (`View.keyboardShortcutFallback(_:)`): it fires as any
+    ///   other does, but the list of what is in force names it only where it
+    ///   does not name that one. `nil` — the default — for a shortcut of its own.
     /// - Parameter title: What the control is called, for the list of what is
     ///   in force. `nil` leaves it off the list.
     func register(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, repeats: Bool = true,
-        section: String? = nil, title: (() -> String)? = nil, action: @escaping () -> Void
+        section: String? = nil, standingInFor: KeyboardShortcut.Trigger? = nil, title: (() -> String)? = nil,
+        action: @escaping () -> Void
     ) {
         registrationCount += 1
+        var name = name(title)
+        name?.standsInFor = standingInFor
         let entry = Entry(
             repeats: repeats, action: action, serial: registrationCount,
-            scope: Scope(section: section), name: name(title))
+            scope: Scope(section: section), name: name)
         insert(entry, on: shortcut.trigger)
         if let commandChord { insert(entry, on: commandChord.trigger) }
     }
@@ -223,7 +234,7 @@ package final class KeyboardShortcutRegistry {
     /// has resolved: for a framework command outside a view — a scene's
     /// `.keyboardShortcut` (TUIApp) — inside ``registeringCommands(_:)``,
     /// so the window's own shortcut on the key keeps it. A held key does not
-    /// repeat it. `commandChord` and `title` are ``register(_:commandChord:repeats:section:title:action:)``'s.
+    /// repeat it. `commandChord` and `title` are ``register(_:commandChord:repeats:section:standingInFor:title:action:)``'s.
     package func registerCommand(
         _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, title: (() -> String)? = nil,
         action: @escaping () -> Void
@@ -329,7 +340,9 @@ package final class KeyboardShortcutRegistry {
     /// closure that nothing can ask what it answers to. And only a key the
     /// terminal sends as itself (`reporting`, ``KeyboardReporting/delivers(_:)``):
     /// one that does not is still bound, but the list names only keys that
-    /// work here (the owner, 2026-11-19).
+    /// work here (the owner, 2026-11-19). A fallback
+    /// (`View.keyboardShortcutFallback(_:)`) is named only where the shortcut
+    /// it stands in for is not, so a control appears once.
     package func listing(
         activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil,
         reporting: KeyboardReporting? = nil
@@ -350,9 +363,9 @@ package final class KeyboardShortcutRegistry {
                     for: trigger, activePane: activePane, reachesPage: reachesPage, modalSection: modalSection)?.name
                 : app?.name
             let hint = hints[trigger].flatMap { $0.scope.fires(under: modalSection) ? $0.name : nil }
-            if let name = (bound?.yieldsToHint == true ? hint : nil) ?? bound ?? hint {
-                named.append((trigger, name))
-            }
+            guard let name = (bound?.yieldsToHint == true ? hint : nil) ?? bound ?? hint else { continue }
+            if let standsInFor = name.standsInFor, triggers.contains(standsInFor) { continue }
+            named.append((trigger, name))
         }
         return named.sorted { $0.name.serial < $1.name.serial }.map {
             ListedShortcut(key: Self.keyName(of: $0.trigger), title: $0.name.title(), menu: $0.name.menu)

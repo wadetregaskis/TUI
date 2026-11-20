@@ -668,16 +668,15 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         // action only under `.buttonRepeatBehavior(.enabled)`, as a held Return
         // does.
         let words = title(in: context)
-        let resolvedShortcut = KeyboardShortcutRegistrar.claim(
+        // The key named: the shortcut, or its fallback, that the terminal
+        // sends as itself. Both stay bound where it does not (a person may
+        // have rebound the terminal's own key), but a menu's key column shows
+        // only a key that works here (`KeyboardReporting.delivers`).
+        let namedShortcut = KeyboardShortcutRegistrar.claim(
             action: effectiveAction, isDisabled: isDisabled,
             repeats: context.environment.buttonRepeatBehavior == .enabled,
             title: KeyboardShortcutRegistrar.title(words: words, label: labelView, context: context),
             context: context)
-
-        // Still bound where the terminal cannot send it (a person may have
-        // rebound the terminal's own key), but not named: a menu's key column
-        // shows only a key that works here (`KeyboardReporting.delivers`).
-        let namedShortcut = resolvedShortcut.flatMap { context.environment.keyboardReporting.delivers($0) ? $0 : nil }
         let configuration = ButtonStyleConfiguration(
             title: words,
             labelView: labelView,

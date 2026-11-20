@@ -3945,7 +3945,9 @@ View.keyboardShortcut(_:) | nonisolated func keyboardShortcut(_ shortcut: Keyboa
 View.keyboardShortcut(_:) | nonisolated func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some View
 View.keyboardShortcut(_:modifiers:) | nonisolated func keyboardShortcut(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some View
 View.keyboardShortcut(_:modifiers:localization:) | nonisolated func keyboardShortcut(_ key: KeyEquivalent, modifiers: EventModifiers = .command, localization: KeyboardShortcut.Localization) -> some View
-View.keyboardShortcutHint(_:) | nonisolated func keyboardShortcutHint(_ shortcut: KeyboardShortcut?) -> some View
+View.keyboardShortcutFallback(_:) | nonisolated func keyboardShortcutFallback(_ shortcut: KeyboardShortcut?) -> some View
+View.keyboardShortcutFallback(_:modifiers:) | nonisolated func keyboardShortcutFallback(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some View
+View.keyboardShortcutHint(_:) |nonisolated func keyboardShortcutHint(_ shortcut: KeyboardShortcut?) -> some View
 View.keyboardShortcutsMatchCommand(_:) | nonisolated func keyboardShortcutsMatchCommand(_ matches: Bool = true) -> some View
 View.labelIconToTitleSpacing(_:) | nonisolated func labelIconToTitleSpacing(_ spacing: Int) -> some View
 View.labelReservedIconWidth(_:) | nonisolated func labelReservedIconWidth(_ value: Int) -> some View
