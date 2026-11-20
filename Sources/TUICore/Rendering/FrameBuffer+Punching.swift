@@ -44,7 +44,27 @@ extension FrameBuffer {
         guard !bands.isEmpty else { return opacityRegions }
         var result = opacityRegions
         for band in bands {
-            result = result.flatMap { $0.subtracting(columns: band.columns, rows: band.rows) }
+            // Only the regions the band reaches are cut, in their places; the
+            // rest are kept as they are. Not `flatMap` over `subtracting`,
+            // which gives the same regions in the same order but makes an
+            // array for every region it leaves whole: a canvas's labels punch
+            // its cells' claims once a run, and the claims are hundreds, most
+            // of them nowhere near the run (`canvas-labels`).
+            func reaches(_ region: OpacityRegion) -> Bool {
+                region.offsetY < band.rows.upperBound && band.rows.lowerBound < region.offsetY + region.height
+                    && region.offsetX < band.columns.upperBound && band.columns.lowerBound < region.offsetX + region.width
+            }
+            guard let first = result.firstIndex(where: reaches) else { continue }
+            var punched = Array(result[..<first])
+            punched.reserveCapacity(result.count + 3)
+            for region in result[first...] {
+                if reaches(region) {
+                    punched += region.subtracting(columns: band.columns, rows: band.rows)
+                } else {
+                    punched.append(region)
+                }
+            }
+            result = punched
         }
         return result
     }

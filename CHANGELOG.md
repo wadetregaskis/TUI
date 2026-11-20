@@ -25,6 +25,12 @@ canvas came out a cell wider or taller than its frame, and where its frame cut a
 cell short. A glyph that doesn't fit wholly inside the canvas is now not drawn, as the canvas already clipped
 everything else it draws.
 
+**Text drawn in a `Canvas` costs far less.** Each piece of text a canvas draws, with `context.draw(Text(…), at:)` or
+`draw(_:in:)`, was laid over the canvas's cells by rebuilding and re-measuring every row of the canvas, so a treemap's
+few dozen names cost more than all its fills. Each run of text now rewrites only its own row. A page-filling canvas of
+40 fills and 40 short labels redrawn every frame takes 10.2 ms a frame where it took 17.4 ms (the same canvas without
+its labels takes 5.4 ms); what it draws is unchanged.
+
 **The help key shows a `help` written inside a `.focusable()` view.** Only a `.help` written outside the modifier
 reached the keyboard: `Rectangle().help("…").focusable()` showed its tooltip under the pointer, but `?` showed nothing
 when the view had the focus. A view now has one help however its modifiers are ordered; of a help inside the
