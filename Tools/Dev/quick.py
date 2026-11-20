@@ -35,7 +35,9 @@ def env():
     environment = dict(os.environ)
     if "DEVELOPER_DIR" not in environment and os.path.isdir(XCODE):
         environment["DEVELOPER_DIR"] = XCODE
-    environment.pop("SDKROOT", None)
+    if os.name != "nt":
+        # Windows's toolchains find their SDK, and parallel_test.py its swift-testing, through SDKROOT.
+        environment.pop("SDKROOT", None)
     environment.setdefault("TUI_CONFIG_DIR", os.path.join(REPO, ".tuikit-test-config"))
     os.makedirs(environment["TUI_CONFIG_DIR"], exist_ok=True)
     return environment
@@ -47,12 +49,13 @@ def wrapped(command):
 
 
 def run(command):
-    process = subprocess.run(wrapped(command), cwd=REPO, env=env(), capture_output=True, text=True)
+    process = subprocess.run(wrapped(command), cwd=REPO, env=env(), capture_output=True, encoding="utf-8",
+                             errors="replace")
     return process.returncode, process.stdout + process.stderr
 
 
 def relative(line):
-    return line.replace(REPO + "/", "")
+    return line.replace(REPO + os.sep, "").replace(REPO + "/", "")
 
 
 def build():
@@ -76,7 +79,7 @@ def test(suites, build_first=True):
     if not suites:
         print("tests: no suites named")
         return False
-    command = ["python3", "Tools/ParallelTest/parallel_test.py", "-j", "4", "--no-build",
+    command = [sys.executable, "Tools/ParallelTest/parallel_test.py", "-j", "4", "--no-build",
                "--filter", "|".join(suites)]
     code, out = run(command)
     issues = []

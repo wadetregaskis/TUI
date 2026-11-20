@@ -19,6 +19,10 @@ filter matching more tests than planned (every group passed) as the pass it is. 
 toolchain, without which SwiftLint crashes loading SourceKit. `TUI_RUN_WRAPPER` prefixes the heavy steps with a
 command of yours, such as a machine-wide build slot.
 
+On Windows, run it with `python Tools\Dev\quick.py …` (there is no shebang there), with the toolchain that builds on
+`PATH` and `SDKROOT` naming its SDK: unlike on macOS, it keeps `SDKROOT`, which the build and the test runner both need
+there. `lint` needs a `swiftlint` on `PATH`, which the Windows toolchains do not include.
+
 ## Habits
 
 - **Batch edits before building.** A build is minutes; an edit is seconds. Make every edit a fix needs, then build and
