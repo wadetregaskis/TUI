@@ -236,7 +236,9 @@ much time has passed.
 
 A toast lives on this clock too. Each `TestApp` draws a queue of its own, so tests running at once never see each
 other's: a toast posted through `@Environment(\.notificationService)` fades in from the instant it is posted, and has
-gone once the clock has passed its fades and its duration, three seconds unless the post gives another:
+gone once the clock has passed its fades and its duration, three seconds unless the post gives another. While it
+fades, what is under it shows through, entirely on the frame it is posted on, so read it once its fade-in (0.2 s) has
+passed:
 
 ```swift
 app.press(.enter)                      // The view posts "Saved".

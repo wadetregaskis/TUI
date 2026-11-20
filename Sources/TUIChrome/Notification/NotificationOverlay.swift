@@ -105,11 +105,20 @@ enum NotificationOverlay {
             var y = origin.y
             for toast in drawn {
                 let isCovered = covered.contains(toast.entry.id)
-                layers.append(
-                    OverlayLayer(
-                        offsetX: origin.x, offsetY: y, content: toast.buffer,
-                        level: isCovered ? .popover : .notification,
-                        zIndex: isCovered ? Self.coveredZIndex : 0))
+                let layer = OverlayLayer(
+                    offsetX: origin.x, offsetY: y, content: toast.buffer,
+                    level: isCovered ? .popover : .notification,
+                    zIndex: isCovered ? Self.coveredZIndex : 0)
+                // The fade is the presenter's, from outside the toast, so it takes
+                // the toast's surface with it toward what is behind the layer: at 0
+                // the page shows through unchanged, half way a mix of the two. Faded
+                // inside the toast, it was spent against the toast's own surface,
+                // which a floating layer paints opaque (`OverlayLayer.isOpaque`), and
+                // every frame of either fade drew a box of blank cells over the page
+                // (`Opacity as composition.md` §96.2). The layer keeps its geometry,
+                // its buttons and its hit regions throughout. At 1 there is nothing
+                // to claim: the surface states every field, so it is drawn as it is.
+                layers += toast.opacity < 1 ? OpacityFading.fadingOverlays([layer], by: toast.opacity) : [layer]
                 y += toast.buffer.height
             }
         }
@@ -129,6 +138,14 @@ enum NotificationOverlay {
     /// displaced drawing (``OverlayLayer/displacedDrawingZIndex``), as the page
     /// it lies on is.
     static let coveredZIndex: Double = -0.5
+
+    /// One toast drawn: its buffer, at full strength, its notification, and how
+    /// far its fade has got, which its layer is faded by.
+    private struct DrawnToast {
+        let buffer: FrameBuffer
+        let entry: NotificationEntry
+        let opacity: Double
+    }
 
     /// What every toast of one walk is drawn with.
     @MainActor
@@ -224,17 +241,19 @@ enum NotificationOverlay {
     /// whatever comes and goes around it. Measured before it is drawn, so one
     /// that does not fit registers no buttons the focus could reach.
     ///
-    /// - Returns: The toasts drawn, top to bottom, each with its notification.
+    /// - Returns: The toasts drawn, top to bottom, each with its notification
+    ///   and the opacity its layer is faded to.
     @MainActor
     private static func stack(
         _ entries: [NotificationEntry], placement: NotificationPlacement, width: Int, maxHeight: Int,
         toasts context: ToastContext
-    ) -> [(buffer: FrameBuffer, entry: NotificationEntry)] {
-        var drawn: [(buffer: FrameBuffer, entry: NotificationEntry)] = []
+    ) -> [DrawnToast] {
+        var drawn: [DrawnToast] = []
         var height = 0
         for entry in entries.reversed() {
-            let opacity = NotificationTiming.opacity(
+            let fade = NotificationTiming.opacity(
                 elapsed: entry.age(atNanos: context.now), visibleDuration: entry.duration)
+            let opacity = min(max(fade, 0), 1)
             let base = context.covered.contains(entry.id) ? context.coveredContext : context.context
             var toastContext = base.withChildIdentity(
                 erasedType: NotificationToast.self, key: entry.id.rawValue.uuidString)
@@ -244,7 +263,7 @@ enum NotificationOverlay {
             guard drawn.isEmpty || height + size.height <= maxHeight else { break }
             let buffer = TUIView.renderToBuffer(toast, context: toastContext)
             height += buffer.height
-            drawn.append((buffer, entry))
+            drawn.append(DrawnToast(buffer: buffer, entry: entry, opacity: opacity))
         }
         return placement.isTop ? drawn : drawn.reversed()
     }

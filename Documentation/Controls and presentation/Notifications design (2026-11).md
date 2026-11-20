@@ -278,10 +278,13 @@ NotificationAction("Delete", role: .destructive) { … }
 
 ## Known gaps
 
-- In a `TUITesting` `TestApp`, whose frames run on a clock of their own from
-  zero, a toast's age is measured on the machine's clock, so it never gets past
-  the first instant of its fade-in and draws blank (its buttons still work). It
-  was so before this work too. Measuring the age on the frame clock from the
-  first frame that draws a toast would fix it; not done here.
+- ~~In a `TUITesting` `TestApp` a toast's age was measured on the machine's
+  clock, so it never got past the first instant of its fade-in and drew
+  blank.~~ Each `TestApp` has a queue of its own on its test clock now
+  (2026-11-20). The blank box itself was not the clock's: a toast faded toward
+  its own surface rather than the page, so the first instant of its fade-in drew
+  an empty box over the page in a running app too, for a frame, and both its
+  fades drew it coming out of that box. Its fade is its layer's now, from
+  outside, and the page shows through it (`Opacity as composition.md` §118).
 - A toast's live content is redrawn only when something asks for a frame: a
   `TimelineView` inside it does (the Example's download does that).

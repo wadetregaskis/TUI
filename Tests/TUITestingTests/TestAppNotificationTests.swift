@@ -57,6 +57,16 @@ struct TestAppNotificationTests {
         #expect(Self.rowsWhole(app.screen), "the rows, whole again: \(app.screen)")
     }
 
+    /// The frame it is posted on, a toast is at the first instant of its
+    /// fade-in: transparent, so the window shows through it unchanged. It was
+    /// drawn as a box of blank cells over the rows until it had faded in.
+    @Test("The frame a toast is posted on, the window shows through it unchanged")
+    func postedFrameShowsTheWindow() {
+        let app = TestApp(PageApp("Hello from a toast"), width: 80, height: 12)
+        #expect(Self.rowsWhole(app.screen), "the rows, whole under a toast at opacity 0: \(app.screen)")
+        #expect(!app.screen.contains("Hello from a toast"))
+    }
+
     @Test("Two apps in one test each draw only their own toasts")
     func ownQueue() {
         let first = TestApp(PageApp("From the first app"), width: 80, height: 12)

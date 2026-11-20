@@ -12,19 +12,23 @@ import TUIFoundation
 
 /// One toast as the scene draws it: the message — or the views the post gave
 /// in its place — led by its style's glyph, with its buttons on the last row,
-/// inside a border in its style's colour, faded to `opacity`.
+/// inside a border in its style's colour.
 ///
 /// Composed from views rather than assembled line by line, so the message is
 /// a `Text` like any other — wrapped to the toast's width, bold under a bold
-/// legibility weight — its buttons are `Button`s, and the glyph, the border
-/// and the fade are the modifiers every view has.
+/// legibility weight — its buttons are `Button`s, and the glyph and the border
+/// are the modifiers every view has.
 ///
 /// Its buttons sit at its trailing edge. Its emoji — its style's glyph, and any
 /// in the message or the views — are drawn only while it is fully opaque.
 ///
-/// The fade is always applied, at 1 for the visible stretch, so the toast's
-/// structure — and the identities of everything in it, its buttons' focus
-/// included — never changes between its fade-in and the rest of its life.
+/// It is drawn at full strength whatever its `opacity`: the fade is its
+/// layer's (``NotificationOverlay``), from outside it, so it takes the toast's
+/// surface toward the page behind. A fade applied here, inside the surface,
+/// faded toward that surface, and the toast was a blank box over the page
+/// through both its fades. Its structure — and the identities of everything in
+/// it, its buttons' focus included — never changes between its fade-in and the
+/// rest of its life.
 struct NotificationToast: View {
     /// The notification drawn.
     let entry: NotificationEntry
@@ -32,7 +36,8 @@ struct NotificationToast: View {
     /// The toast's width, border included.
     let width: Int
 
-    /// How opaque it is: 0 to 1, the fades at either end of its life.
+    /// How opaque its layer is drawn: 0 to 1, the fades at either end of its
+    /// life. Read here only for its emoji, which wait for a full 1.
     let opacity: Double
 
     /// Called after one of the toast's buttons ran its action: dismisses the
@@ -84,7 +89,6 @@ struct NotificationToast: View {
         // its cells blank meanwhile (the owner's ruling NOTIF-EMOJI (a),
         // 2026-11-10). Applied at 1 too, so the structure never changes.
         .hidingEmoji(opacity < 1)
-        .opacity(opacity)
     }
 
     /// The buttons the toast of `entry` carries: its actions, or — for one

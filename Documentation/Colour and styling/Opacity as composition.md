@@ -7890,3 +7890,25 @@ stayed at 9.6% of a frame. Keyed on the width, it is 1.5% (the overlay
 compositing 7.3% of a frame, from 17.7%), and a frame of `sheet-present` costs
 13% less CPU, `editor-sheet-typing` 23%, `sheet-search` and `sheet-item-switch`
 11–12%, an alert over a list or a table 3%; the bytes written are unchanged.
+
+## 118. A toast's fade is its layer's (2026-11-20)
+
+A toast faded with `.opacity` applied inside its own view (`NotificationToast`), which was right
+while the compositor spent every claim a layer carried against what was behind the layer. Since
+§96.2 split the claims of a surface's content from those made of it from outside (2026-10-31), a
+fade inside a surface is spent against the surface, and a toast's surface is the one the compositor
+paints a floating layer onto (`OverlayLayer.isOpaque`). So the toast faded toward its own blank box:
+the frame it was posted on, at opacity 0, drew that box over the page, neither the toast nor what
+was under it, and every frame of both fades drew the toast's ink coming out of or going into it.
+Measured in a PTY on the Example's Info toast (debug build, truecolor): the frame after the click
+put the box over the page's text with the message's ink at `050b05` on the surface's `050a05`, and
+the page showed again only once the toast had gone.
+
+The fade is now the overlay's, laid on the toast's layer from outside
+(`OpacityFading.fadingOverlays`, as `.opacity` lays its fade on an anchored layer), so it takes the
+surface with it: at 0 the page shows through unchanged, half way each channel of the field is half
+way between the page's and the surface's, and at 1 nothing is claimed: the painted surface
+states every field, and is drawn as it is. The layer is emitted throughout with its geometry, its buttons and its hit
+regions, as `NotificationLayerTests` requires of a toast at age 0. At 16 and 256 colours the blend
+rounds to the palette as every faded colour does. `ToastFadeBlendTests`, and a `TestApp` reading
+the screen on the frame a toast is posted (`TestAppNotificationTests`).

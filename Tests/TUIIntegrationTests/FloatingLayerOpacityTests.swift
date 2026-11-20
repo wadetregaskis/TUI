@@ -28,6 +28,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Synchronization
 import Testing
 import TUICore
 
@@ -35,6 +36,11 @@ import TUI
 @testable import TUIApp
 @testable import TUIFoundation
 @testable import TUITestSupport
+
+/// A clock a test steps by hand, for a toast's age.
+private final class ToastClock: Sendable {
+    let nanos = Atomic<UInt64>(10_000_000_000)
+}
 
 @MainActor
 @Suite("Floating layers are opaque")
@@ -357,12 +363,21 @@ struct FloatingLayerOpacityTests {
     /// two toasts is page, and only the toasts themselves are surface — which
     /// is why the assertion reads the toasts' own rows rather than the layer's
     /// bounding box.
+    ///
+    /// Read once both have faded in, on a clock of the test's: at the instant it
+    /// is posted a toast is transparent, and the page shows through it as it should
+    /// (`ToastFadeBlendTests`). On the machine's clock this read a toast a few
+    /// milliseconds old, which was opaque only while a toast faded toward its own
+    /// surface rather than the page.
     @Test("A notification toast is opaque", arguments: [false, true])
     func notification(onTerminalPage: Bool) throws {
         let (tui, base) = harness(onTerminalPage: onTerminalPage)
-        let service = NotificationService()
+        let clock = ToastClock()
+        let service = NotificationService(nowNanos: { clock.nanos.load(ordering: .relaxed) })
         service.post("First toast")
         service.post("Second toast")
+        // A second on: past the fade-in, and well inside the three seconds shown.
+        clock.nanos.add(1_000_000_000, ordering: .relaxed)
         var environment = base.environment
         environment.notificationService = service
         let context = RenderContext(

@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A toast fades over the page instead of out of a blank box.** A toast's fade was spent against its own surface,
+which a floating layer paints opaque, so the frame a toast was posted on drew an empty box over the window, neither
+the toast nor what was under it, and both its fades drew the toast coming out of and going back into that box. The
+fade is now the toast's layer's: at the start of its fade-in and the end of its fade-out the window shows through
+unchanged, and half way the two are mixed. Its buttons stay reachable throughout.
+
 **A test can read the progress bar and the desktop notifications an app sends.** `TestApp.terminalProgress` is the
 progress the app's views state with `.terminalProgress(_:)` (what a terminal that draws a bar is sent), or `nil` while
 none states one, and `TestApp.desktopNotifications` lists the toasts posted on the desktop too, whichever route a
