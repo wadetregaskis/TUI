@@ -105,7 +105,7 @@ enum AttributedTextSelectionMacOS15Fallbacks {
             var old = String(before.characters[before.startIndex..<before.endIndex])
             var new = String(after.characters[after.startIndex..<after.endIndex])
             let (prefix, suffix) = old.withUTF8 { oldBytes in
-                new.withUTF8 { newBytes in Self.commonBytes(oldBytes, newBytes) }
+                new.withUTF8 { newBytes in unsafe Self.commonBytes(oldBytes, newBytes) }
             }
             var start = prefix
             while start > 0, !(Self.isBoundary(start, in: old) && Self.isBoundary(start, in: new)) { start -= 1 }
@@ -117,8 +117,8 @@ enum AttributedTextSelectionMacOS15Fallbacks {
             }
             let (startScalars, oldSpan, newSpan) = old.withUTF8 { oldBytes in
                 new.withUTF8 { newBytes in
-                    (Self.scalars(in: oldBytes[..<start]), Self.scalars(in: oldBytes[start..<(oldBytes.count - end)]),
-                     Self.scalars(in: newBytes[start..<(newBytes.count - end)]))
+                    unsafe (Self.scalars(in: oldBytes[..<start]), Self.scalars(in: oldBytes[start..<(oldBytes.count - end)]),
+                            Self.scalars(in: newBytes[start..<(newBytes.count - end)]))
                 }
             }
             self.init(start: startScalars, oldEnd: startScalars + oldSpan, newEnd: startScalars + newSpan)
@@ -129,9 +129,9 @@ enum AttributedTextSelectionMacOS15Fallbacks {
         private static func commonBytes(_ old: UnsafeBufferPointer<UInt8>, _ new: UnsafeBufferPointer<UInt8>) -> (Int, Int) {
             let shorter = min(old.count, new.count)
             var prefix = 0
-            while prefix < shorter, old[prefix] == new[prefix] { prefix += 1 }
+            while prefix < shorter, unsafe old[prefix] == new[prefix] { prefix += 1 }
             var suffix = 0
-            while suffix < shorter - prefix, old[old.count - 1 - suffix] == new[new.count - 1 - suffix] { suffix += 1 }
+            while suffix < shorter - prefix, unsafe old[old.count - 1 - suffix] == new[new.count - 1 - suffix] { suffix += 1 }
             return (prefix, suffix)
         }
 
@@ -143,7 +143,7 @@ enum AttributedTextSelectionMacOS15Fallbacks {
         /// How many Unicode scalars some UTF-8 holds: its bytes that are not
         /// continuation bytes.
         private static func scalars(in bytes: Slice<UnsafeBufferPointer<UInt8>>) -> Int {
-            bytes.reduce(0) { $0 + ($1 & 0xC0 == 0x80 ? 0 : 1) }
+            unsafe bytes.reduce(0) { $0 + ($1 & 0xC0 == 0x80 ? 0 : 1) }
         }
 
         /// Where a range's bounds go, as Foundation's tracking moves them

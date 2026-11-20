@@ -60,7 +60,7 @@ enum CountCheck {
         #if os(Windows)
             _ = unsafe _putenv_s(name, value ?? "")
         #else
-            if let value { setenv(name, value, 1) } else { unsetenv(name) }
+            if let value { unsafe setenv(name, value, 1) } else { unsafe unsetenv(name) }
         #endif
     }
 

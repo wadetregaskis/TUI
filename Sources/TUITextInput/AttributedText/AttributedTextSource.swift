@@ -298,7 +298,7 @@ final class AttributedTextSource {
     /// values in different storage a character at a time (B-ATTRED-4). Where
     /// Foundation lays the type out otherwise, `==` it is.
     static func isIdentical(_ a: AttributedString, _ b: AttributedString) -> Bool {
-        guard MemoryLayout<AttributedString>.size == MemoryLayout<UnsafeRawPointer>.size else { return a == b }
+        guard unsafe MemoryLayout<AttributedString>.size == MemoryLayout<UnsafeRawPointer>.size else { return a == b }
         // The address of the value's storage, never of a function: no
         // deduplication can make two storages share one.
         // swiftlint:disable:next function_address_identity

@@ -603,7 +603,7 @@ extension ForEach where Content: TableRowContent {
         let makeRows = content.content
         let appended: Void? = content.data.withContiguousStorageIfAvailable { elements in
             for index in elements.indices {
-                appendTableRows(makeRows(elements[index]), to: &rows)
+                appendTableRows(makeRows(unsafe elements[index]), to: &rows)
             }
         }
         guard appended == nil else { return }

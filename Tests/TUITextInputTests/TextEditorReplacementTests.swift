@@ -52,7 +52,7 @@ struct TextEditorReplacementTests {
         TextEditorReplacement(line: 1, columns: 0..<1).apply(to: &after)
         for index in [0, 2] {
             let shared = before[index].withUnsafeBufferPointer { old in
-                after[index].withUnsafeBufferPointer { new in old.baseAddress == new.baseAddress }
+                after[index].withUnsafeBufferPointer { new in unsafe old.baseAddress == new.baseAddress }
             }
             #expect(shared, "line \(index)")
         }
