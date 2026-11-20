@@ -49,11 +49,16 @@ final class TimelineTilesDemo {
 /// The launcher: a title, the tiles in a row, a line of keys.
 struct TimelineTilesApp: View {
     let seed: UInt64
+    /// Whether the focused tile draws the focus tint a `.focusable()` view
+    /// draws, as a launcher that leaves its focus look to TUI does; the
+    /// launcher this shape is drawn from turns it off and borders its tile.
+    let tinted: Bool
     @FocusState private var focus: Int?
     @State private var demos: [TimelineTilesDemo]
 
-    init(seed: UInt64) {
+    init(seed: UInt64, tinted: Bool = false) {
         self.seed = seed
+        self.tinted = tinted
         _demos = State(initialValue: (0..<2).map { TimelineTilesDemo(seed: mix(seed, $0)) })
     }
 
@@ -65,7 +70,7 @@ struct TimelineTilesApp: View {
                     TimelineTile(index: index, demo: demos[index], isFocused: focus == index)
                         .focusable()
                         .focused($focus, equals: index)
-                        .focusEffectDisabled()
+                        .focusEffectDisabled(!tinted)
                         .onTapGesture(count: 2) {}
                         .onTapGesture { focus = index }
                         .onKeyPress(.return) { .handled }

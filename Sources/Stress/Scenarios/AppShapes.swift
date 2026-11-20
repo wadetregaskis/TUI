@@ -358,5 +358,8 @@ enum AppShapeMatrix {
         variant("canvas-fills", "the same treemap without its labels — the pair that prices a Canvas's text") {
             AnyView(CanvasLabelsApp(labelled: false, seed: $0.seed))
         },
+        variant("timeline-tiles-tinted", "timeline-tiles with the focused tile's focus effect on: the focus tint a .focusable() draws behind its cells") {
+            AnyView(TimelineTilesApp(seed: $0.seed, tinted: true))
+        },
     ]
 }

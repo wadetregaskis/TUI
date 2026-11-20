@@ -258,7 +258,9 @@ the page, forty tiles filled at its grain and a short name drawn at each with
 `context.draw(Text, at:anchor:)`, the colours moved on at every frame of a
 `TimelineView(.animation)`, so no memo serves the canvas; `canvas-fills` is the
 same map without its names, and the pair prices a canvas's text. The perf cases
-of the same names count a second of each.
+of the same names count a second of each. `timeline-tiles-tinted` is `timeline-tiles` with the focused tile's focus
+effect on, so the tile draws the focus tint a `.focusable()` view draws behind
+its cells: it prices that tint, breathing behind a tile whose preview changes.
 
 `table-api` is the first: 43 variants over seven axes — how a column gets its
 value (key path, closure, sort-by-one-display-another, non-`Equatable` rows,
