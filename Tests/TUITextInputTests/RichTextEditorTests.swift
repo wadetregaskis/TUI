@@ -267,7 +267,7 @@ struct RichTextEditorTests {
 
     @Test("An AttributedString is one reference, which the editor's identity test reads")
     func layoutIsOneReference() {
-        #expect(MemoryLayout<AttributedString>.size == MemoryLayout<UnsafeRawPointer>.size)
+        #expect(MemoryLayout<AttributedString>.size == MemoryLayout<AnyObject>.size)
         let text = AttributedString("abc")
         var copy = text
         #expect(AttributedTextSource.isIdentical(text, copy))
