@@ -15,7 +15,7 @@ extension TextEditorHandler {
     /// edge; `false` for every other key, which the editor then handles.
     ///
     /// - Shift with a motion key extends the selection from where it began:
-    ///   Shift-←/→ a character, Shift-Option-←/→ a word, Shift-↑/↓ a line,
+    ///   Shift-←/→ a character, Shift-Option-←/→ or Shift-Option-B/F a word, Shift-↑/↓ a line,
     ///   Shift-Page Up/Down a page, Shift-Home/End to the document's ends. The
     ///   first such key anchors the selection at the caret, as a Shift-click
     ///   does (``startOrExtendSelection(from:)``); the caret then moves as the
@@ -60,6 +60,11 @@ extension TextEditorHandler {
         case .pageDown: { self.movePage(by: 1) }
         case .home: moveToStartOfDocument
         case .end: moveToEndOfDocument
+        // Readline's word motions, as a text field selects with them: the
+        // word keys where a terminal keeps Shift-Option-←/→ for its own
+        // (Windows Terminal binds them to resizing a pane).
+        case .character("b"), .character("B"): event.alt ? moveWordLeft : nil
+        case .character("f"), .character("F"): event.alt ? moveWordRight : nil
         default: nil
         }
     }

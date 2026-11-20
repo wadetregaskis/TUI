@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**In a `TextEditor`, Shift-Option-B and Shift-Option-F select a word at a time,** as they do in a `TextField` and as
+Shift-Option-← and → already did. They only moved the caret, losing the selection. They are the word keys where a
+terminal keeps Shift-Option-arrows for itself, as Windows Terminal binds them to resizing a pane.
+
 **`keyboardShortcutFallback(_:)` gives a button or a toggle a second key.** Both keys are bound, and a menu row, the
 button's label and F1's list of shortcuts name the fallback only where the terminal cannot send the
 `keyboardShortcut` as itself, such as `⌃⇧P` in a legacy encoding, which sends `⌃P`, or in Windows Terminal, which

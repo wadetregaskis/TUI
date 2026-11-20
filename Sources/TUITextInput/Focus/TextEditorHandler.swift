@@ -647,9 +647,9 @@ final class TextEditorHandler: PersistedFocusable {
     /// Carries out an Emacs-chord command on the editor's lines. The editor
     /// has every line a command can name, so it carries out all of them.
     ///
-    /// The editor has no keyboard selection (a drag's selection goes with the
-    /// next key), so the Shift forms of the word motions move as the plain
-    /// ones do.
+    /// The Shift forms of the word motions select, as Shift-Option-←/→ do,
+    /// before a command is read (``handleSelectionKey(_:)``); one that reaches
+    /// here, where Shift was not reported, moves as the plain one does.
     private func perform(_ command: TextEditingCommand) {
         switch command {
         case .moveToStartOfLine: moveToStartOfLine()

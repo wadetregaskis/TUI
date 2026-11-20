@@ -338,11 +338,12 @@ struct GivingWayCase: Sendable, CustomTestStringConvertible {
             shortcut: AppShortcut(key: "f", modifiers: .command, commandKey: .option),
             hosts: PrecedenceHost.allCases, edited: (field: "abcdX", editor: "abX\ncd"),
             secureEdited: "abXcd"),
-        // With Shift they extend a field's selection, so the X replaces it.
+        // With Shift they extend the selection, in a field and in the editor
+        // alike, so the X replaces it.
         Self(
             name: "Option-Shift-F", chord: option("F"),
             shortcut: AppShortcut(key: "F", modifiers: .option),
-            hosts: PrecedenceHost.allCases, edited: (field: "aX", editor: "abX\ncd"),
+            hosts: PrecedenceHost.allCases, edited: (field: "aX", editor: "aX\ncd"),
             secureEdited: "aXcd"),
         // A field reads Option first, so these are its word motions, and the
         // editor reads Control first, so they are its character motions. Both

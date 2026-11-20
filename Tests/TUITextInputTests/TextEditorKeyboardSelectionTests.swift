@@ -58,6 +58,22 @@ struct TextEditorKeyboardSelectionTests {
         #expect(sink.value == " three")
     }
 
+    @Test("Shift-Option-F and Shift-Option-B select a word at a time, as in a text field")
+    func shiftOptionWordKeysSelect() {
+        let sink = Text2Sink("one two three")
+        let editor = editor(sink, at: (0, 0))
+        press(editor, .character("F"), alt: true, times: 2)
+        #expect(editor.selectionRange?.start == TextEditorPosition(line: 0, column: 0))
+        #expect(editor.selectionRange?.end == TextEditorPosition(line: 0, column: 7))
+        press(editor, .character("B"), alt: true)
+        #expect(editor.selectionRange?.end == TextEditorPosition(line: 0, column: 4))
+        _ = editor.handleKeyEvent(KeyEvent(key: .backspace))
+        #expect(sink.value == "two three")
+        // Without Shift, Option-F only moves.
+        _ = editor.handleKeyEvent(KeyEvent(key: .character("f"), alt: true))
+        #expect(editor.selectionRange == nil)
+    }
+
     @Test("Shift-↓ selects to the same column a line down, across the line break")
     func shiftDownSelectsALine() {
         let sink = Text2Sink("abc\ndef")
