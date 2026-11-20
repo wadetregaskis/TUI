@@ -14,10 +14,11 @@ import TUIFoundation
 /// (``TextFieldContentRenderer/RunAccumulator``), derived the first time a run
 /// in that look is written and kept for the rest of the frame.
 ///
-/// A highlighted editor's screen is some 300 runs in perhaps ten looks: a
-/// token's colour over the well, and the selection's, the caret's line, a find
-/// match's. Deriving each run's introducer anew (``derive(_:)``) was 70% of
-/// writing it (B-ATTRED-44).
+/// A highlighted editor's screen is hundreds of runs in a handful of looks
+/// (`bigtext-highlighted`'s record lines are 17 runs each, in five colours):
+/// a token's colour over the well, the selection's, a find match's. Deriving
+/// each run's introducer anew (``derive(_:)``) was 71% of writing it
+/// (B-ATTRED-44).
 ///
 /// One a frame, made with the rows' styling (``_TextEditorCore/RowStyling``),
 /// and never kept past it: an introducer is spelled at the colour depth the

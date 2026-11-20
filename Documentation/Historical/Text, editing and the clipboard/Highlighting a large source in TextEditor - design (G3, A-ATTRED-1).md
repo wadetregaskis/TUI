@@ -1112,8 +1112,8 @@ reps, order randomised, the box busy (load 65):
 
 The styler's own work is off the main actor and outside the timed region, so this is the editor's side alone. It
 is about the same for a key, a move and a jump, so it is a cost a frame, not an edit's or a scroll's: what the
-frame does for a highlighted editor whatever changed. That wants a Time Profiler trace (`Tools/Profiling/`) before
-H4′ makes the seam the way in; it is not this lane's to optimise.
+frame does for a highlighted editor whatever changed. That wanted a Time Profiler trace (`Tools/Profiling/`) before
+H4′ makes the seam the way in, and it is priced below (B-ATTRED-44, 45): +27.4% after both.
 
 Tests: `JSONLineStylerTests` (each kind of token, escapes in strings and keys, a malformed line styled as far as it
 can be, every pair of bytes giving offsets in order, and through an editor: its colours drawn, and a line past the
@@ -1131,8 +1131,9 @@ cause was where §4 put the cost; the runs a screen draws are cached, and joinin
 - **B-ATTRED-44. A frame derives each look's SGR introducer once.** In the highlighted trace
   `RunAccumulator.flush` was 12.8% of the main thread inclusive (707 ms of 5,532), 71% of it
   `ANSIRenderer.styleSequence(for:)` and most of the rest the run's string made and appended: about 420 µs a frame,
-  against 31 for `bigtext`, whose rows are a run each. A highlighted screen is some 300 runs in about ten looks
-  (ink, field, reversal, decoration). `RunIntroducers`, made with the rows' styling, one a frame, keeps each look's
+  against 31 for `bigtext`, whose rows are a run each. A highlighted screen is hundreds of runs in a handful of
+  looks (ink, field, reversal, decoration): a record line of `bigtext-highlighted` is 17 runs, counted, in five
+  colours, so its screen is some 650. `RunIntroducers`, made with the rows' styling, one a frame, keeps each look's
   introducer, found the last one first; the run is appended as its introducer, text and reset, as
   `ANSIRenderer.wrap` spells it, without making that string first. Byte for byte the frames they were. Kept no
   longer than the frame, since an introducer is spelled at the frame's colour depth, which the look does not say;
@@ -1151,6 +1152,47 @@ cause was where §4 put the cost; the runs a screen draws are cached, and joinin
   which the editor splits once), or the lines found are not the editor's count, the text is walked whole as before:
   a lone CR typed into a document is rare enough that a cleverer rule buys nothing. After it, `nopublish` and
   `idle` are indistinguishable (−2.7% [−3.4%, +0.8%]), and so is their RSS (−4.5 MB).
+
+**After both (2026-11-20).** `ab_bench.py`, ten reps, order randomised, the binary of H5′ (9634f159f) against
+that of B-ATTRED-45 (6d203b4ff), at load 5; frames the same in every editor session at 120 × 40 and 50 × 12
+(`frame_parity.py`), and `--verify` clean:
+
+| session | before | after | change |
+|---|---|---|---|
+| `bigtext-highlighted` | 2,695 µs | 1,959 µs | −17.2% [−19.2%, −13.8%], faster; peak RSS −20 MB |
+| `bigtext` | 2,366 µs | 2,313 µs | indistinguishable (+5.2% [−7.4%, +11.5%]) |
+| `editor` | 1,529 µs | 1,558 µs | indistinguishable (+0.9% [−12.8%, +17.5%]) |
+| `case:editor-typing` | 745 µs | 726 µs | indistinguishable (−2.5% [−2.8%, +2.9%]) |
+
+And highlighting's price, `bigtext` against `bigtext-highlighted` in the one binary, at load 9: **+27.4%**
+[+24.3%, +30.4%] a frame (1,436 µs against 1,842), peak RSS +7.3 MB; it was +60.1% and +29.8 MB.
+
+**What is left, and why it is not ~10%.** Three parts, none of them the runs' bookkeeping, which the traces put
+at about twenty microseconds a frame (rows clipping their runs 12 µs, the lines' runs read and joined 4, the
+session synced 4): joining a screen's runs is microseconds, as §4 said.
+
+1. *The fixture's hand-off.* Each step lets the highlighter answer and waits for it (B-ATTRED-43), outside the
+   timed region, and the frame after pays: `idle` was +9.4% against `noop`. A highlighter in an app runs beside
+   the editor and is never waited on. Spinning on the gate instead of sleeping on a semaphore was tried and did
+   not measurably help (−3.9% [−11.4%, +4.0%], `idle` against `idle`), so it was not kept.
+2. *Drawing the colours.* A highlighted record row is 17 runs where a plain one is one, and the extra is linear
+   in what is drawn: in a trace with both fixes (a probe build, its gate spinning), against `bigtext`, per frame,
+   the rows +138 µs (the accumulator comparing each character's look, +114, and the runs' writing), the frame
+   buffer's measure of the longer rows +35 and their stripped length +31, the writer +31. That is the price of SGR
+   on 40 rows that are all drawn every frame, as a plain editor's are: what would cut it is not redrawing rows that
+   did not change, for plain and highlighted alike, not anything highlighting does.
+3. *The edit told to the session* (its change found, the window's tokens carried, the session locked): +38 µs a
+   frame across the session's steps, in the same trace.
+
+So the target of ~10% is out of reach while the editor draws every row every frame and the bench hands off to its
+highlighter between steps; the first is the editor's own cost, which highlighting multiplies by the runs a row
+has, and the second is the bench's.
+
+**The +30 MB was never held.** At steady state the physical footprints with the highlighter answering nothing
+and with it taking every update were 87.5 MB and 87.1 MB; the live heap differed by one version of the text, the
+highlighter's, a version behind the editor's (+3.0 MB of `StringStorage`), and its line starts (+0.65 MB). The peak
+RSS `ab_bench.py` reads was the walks' turnover, and that high-water mark moves by tens of megabytes between runs
+of one binary, so read differences of under ten as none.
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
