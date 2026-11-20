@@ -40,6 +40,12 @@ test sees what its app posts through `@Environment(\.notificationService)`; a po
 `NotificationService.current` goes to the process's queue, which no `TestApp` draws, so a test that read such a toast
 on the screen should have the view post through the environment.
 
+**A view's `.foregroundStyle(.foreground)` is the default foreground, as in SwiftUI.** It drew the style in force,
+red under `.foregroundStyle(.red)`, where SwiftUI draws the default foreground whatever is above (#272727, measured on
+macOS 15.8.3), and the levels inside it as the plain levels. It now states no style at all: text below draws the
+palette's foreground, and a `Text`'s own or a view's `.secondary` inside it the palette's secondary tier. A `Text`'s own `.foregroundStyle(.foreground)` still draws the style in
+force, as SwiftUI's does.
+
 **A view's content level under a view's level replaces it, as in SwiftUI.** `VStack { … }.foregroundStyle(.secondary)`
 inside a view with `.foregroundStyle(.secondary)` drew the outer secondary at half strength again, where SwiftUI draws
 the plain secondary (#808080, measured on macOS 15.8.3); under `.secondary` below `.foregroundStyle(.red)`, an inner

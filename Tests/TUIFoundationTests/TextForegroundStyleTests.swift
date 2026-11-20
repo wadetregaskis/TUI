@@ -182,8 +182,14 @@ struct TextForegroundStyleTests {
         check("tint", TintShapeStyle.tint)
         check("selection", SelectionShapeStyle.selection)
         check("thin material", Material.thin)
-        check("foreground", ForegroundStyle())
         check("background", BackgroundStyle())
+        // `.foreground` is the one that differs, in SwiftUI as here: a text's
+        // own is the style in force, a view's no style, the default foreground
+        // (measured, `levels.out` and `variants.out`).
+        let own = drawn(VStack { Text("Styled").foregroundStyle(.foreground) }.foregroundStyle(.red))
+        #expect(own == drawn(VStack { Text("Styled") }.foregroundStyle(.red)), "a text's own: \(own.lines)")
+        let view = drawn(VStack { Group { Text("Styled") }.foregroundStyle(.foreground) }.foregroundStyle(.red))
+        #expect(view == drawn(Text("Styled")), "a view's: \(view.lines)")
     }
 
     /// The SGR in force where `character` is drawn on `line`: the last one

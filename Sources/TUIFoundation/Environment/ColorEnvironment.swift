@@ -266,14 +266,23 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
         // `some Equatable` parameter does by type. Tracking the resolved paint
         // also means a style that resolves to the same colour does not count as
         // a change, which is the right answer as well as the cheap one.
+        // A view's `.foreground` is no style at all, as SwiftUI's is: the
+        // default foreground, whatever is above, and the plain levels below it
+        // (measured, macOS 15.8.3, `Tools/SwiftUIProbes/Text foregroundStyle
+        // levels (TXTFG)/variants.out`). It publishes none — the palette's
+        // foreground once any fade toward it has settled.
+        let publishesNone = clearsLevels && style is ForegroundStyle
         var paint: Paint
-        if implicitIsBackground {
+        if publishesNone {
+            paint = .color(context.environment.palette.foreground)
+        } else if implicitIsBackground {
             var environment = context.environment
             environment.implicitStyleIsBackground = true
             paint = style.paint(in: environment)
         } else {
             paint = style.paint(in: context.environment)
         }
+        let settled = paint
         // An image paint's pixels, asked for here, once for everything below
         // that draws with it (`ImagePaint`).
         paint = paint.materializingImages(in: context, owner: Self.self)
@@ -282,9 +291,10 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
         if fades {
             paint = PaintAnimation.resolving(paint, owner: Self.self, context: context)
         }
+        let published: Paint? = publishesNone && paint == settled ? nil : paint
         if let cache = context.renderCache,
             case .changed = cache.noteAppliedEnvironment(
-                paint, identity: context.identity, keyPath: slot,
+                published.map { $0 as Any } ?? NoForegroundStyle(), identity: context.identity, keyPath: slot,
                 depth: context.environmentApplicationDepth)
         {
             // A paint moves no cell, so the memoized sizes below stay: only
@@ -293,7 +303,7 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
             cache.clearAffected(by: context.identity, keepingSizes: true)
         }
         var childContext = context
-        childContext.environment[keyPath: slot] = paint
+        childContext.environment[keyPath: slot] = published
         if clearsLevels {
             // A content level is marked with what it is a level of, so that a
             // view's level below it replaces it rather than fading it again,
@@ -302,7 +312,7 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
             // function of this wrapper's type and of what is above it, whose
             // own wrappers tell the memos below of any change, so it needs no
             // bookkeeping of its own here.
-            let mark = Self.levelMark(of: style, published: paint, in: context.environment)
+            let mark = published.flatMap { Self.levelMark(of: style, published: $0, in: context.environment) }
             if mark != nil || context.environment.foregroundLevel != nil {
                 childContext.environment.foregroundLevel = mark
             }
@@ -336,9 +346,18 @@ nonisolated struct _StyleEnvironmentView<Content: View, S: ShapeStyle>: View {
         if let level = style as? any LevelOfAStyle {
             return ForegroundLevelMark(paint: paint, base: level.basePaint(in: environment), isBare: false)
         }
+        // A view's `.foreground` partway through a fade to the palette's
+        // foreground: the primary level of no style, as it is once settled.
+        if style is ForegroundStyle {
+            return ForegroundLevelMark(paint: paint, base: nil, isBare: true)
+        }
         return nil
     }
 }
+
+/// What a view's `.foregroundStyle(.foreground)` publishes, as the render
+/// cache tracks it: no style, which a slot must tell apart from any paint.
+private struct NoForegroundStyle: Equatable {}
 
 @MainActor extension _StyleEnvironmentView: Renderable {
     func renderToBuffer(context: RenderContext) -> FrameBuffer {

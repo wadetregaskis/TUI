@@ -129,6 +129,36 @@ struct SemanticShapeStyleTests {
             == buffer(VStack { shape }.foregroundStyle(.red)))
     }
 
+    /// Measured (`variants.out`): a view's `.foregroundStyle(.foreground)` is
+    /// the default foreground, #272727, under a colour, a level, a level of a
+    /// colour and a two-style `foregroundStyle` alike, and a text's own level
+    /// or a view's level inside it the plain level, #808080.
+    @Test("A view's .foreground is no style: the style above stops there, as SwiftUI's does")
+    func foregroundIsNoStyle() {
+        let plain = buffer(VStack { Text("x") })
+        let secondary = buffer(Text("x").foregroundStyle(.secondary))
+        let above: [AnyShapeStyle] = [
+            AnyShapeStyle(Color.red), AnyShapeStyle(HierarchicalShapeStyle.secondary),
+            AnyShapeStyle(Color.red.secondary),
+        ]
+        for style in above {
+            #expect(buffer(VStack { Text("x") }.foregroundStyle(.foreground).foregroundStyle(style)) == plain)
+            #expect(buffer(VStack { Text("x").foregroundStyle(.secondary) }.foregroundStyle(.foreground)
+                .foregroundStyle(style)) == secondary)
+            #expect(buffer(VStack { VStack { Text("x") }.foregroundStyle(.secondary) }.foregroundStyle(.foreground)
+                .foregroundStyle(style)) == secondary)
+        }
+        #expect(buffer(VStack { Text("x") }.foregroundStyle(.red)) != plain, "precondition: red is not plain")
+        #expect(buffer(VStack { Text("x") }.foregroundStyle(.foreground).foregroundStyle(.secondary)
+            .foregroundStyle(.red)) == plain)
+        #expect(buffer(VStack { Text("x") }.foregroundStyle(.foreground).foregroundStyle(.red, .blue)) == plain)
+        #expect(buffer(VStack { VStack { Text("x") }.foregroundStyle(.secondary) }.foregroundStyle(.foreground)
+            .foregroundStyle(.red, .blue)) == secondary)
+        // A style below it is drawn as stated.
+        #expect(buffer(VStack { VStack { Text("x") }.foregroundStyle(.red) }.foregroundStyle(.foreground))
+            == buffer(VStack { Text("x") }.foregroundStyle(.red)))
+    }
+
     // MARK: - Roles
 
     @Test("The roles answer from the palette and the environment")

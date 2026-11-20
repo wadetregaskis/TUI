@@ -1716,7 +1716,11 @@ at the secondary level. What ships, measured against SwiftUI on macOS 15.8.3
   of (under `.secondary` below `.red`, a view's `.primary` is red #FF3B2F and
   its `.secondary` #FF9C96; under a `.secondary` of nothing, the plain levels;
   `variants.out`; TUI faded the outer level again until lane TXTFG-NEST2,
-  2026-11-20). A shape's `.fill(.secondary)` resolves as a view's level does.
+  2026-11-20). A shape's `.fill(.secondary)` resolves as a view's level does. A
+  view's `.foregroundStyle(.foreground)` is no style at all: the default
+  foreground whatever is above, and the plain levels inside it (#272727 and
+  #808080, `variants.out`; TUI drew the style in force until lane
+  TXTFG-NEST2).
 - **Any other style** — `.tint`, `.foreground`, a gradient, `.red.secondary` —
   is kept on the text's runs, as a custom attribute is, and resolved where the
   text is drawn; the result is a `Text`, so it interpolates into another. A

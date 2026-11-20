@@ -220,7 +220,7 @@ before. Pinned by `TextForegroundStyleTests` (`levelUnderABareLevel`,
 under a view's level still fades the inner level from the outer one (SwiftUI
 takes it from the style the outer level is of; matched by lane TXTFG-NEST2,
 below), and a view's `.foregroundStyle(.foreground)` is the style in force
-where SwiftUI's is the default foreground.
+where SwiftUI's is the default foreground (matched by lane TXTFG-NEST2, below).
 
 Section 2 was not matched by lane TXTFG: TUI kept the **last** style a text
 stated, so `.foregroundStyle(.red).foregroundStyle(.blue)` was blue and
@@ -276,3 +276,9 @@ text's own level reads the same mark as before. Pinned by `SemanticShapeStyleTes
 and not taken on: under `foregroundStyle(_:_:)` a level past the last one named is that one at full strength in
 SwiftUI (`.tertiary` under `(.red, .blue)` is blue, #0079FF), where TUI fades it (blue at half), under a level or
 not.
+
+**After lane TXTFG-NEST2 (2026-11-20), `.foreground`:** section 5's `.foreground` rows match. A view's
+`.foregroundStyle(.foreground)` publishes no foreground style (`_StyleEnvironmentView`, `ColorEnvironment.swift`) and
+clears the named levels, so the text below draws the palette's foreground and a level inside it the palette's tier,
+whatever is above. Where its colour moves under `withAnimation` (a palette change) it publishes the colour partway,
+as a bare primary level, and none once settled. Pinned by `SemanticShapeStyleTests.foregroundIsNoStyle`.
