@@ -80,6 +80,17 @@ struct KeySymbolsTests {
         #expect(KeySymbols.key(Key(key)) == symbol)
     }
 
+    /// A bare Return or Escape IS the default or the cancel action, in
+    /// SwiftUI and here, and a macOS menu draws its key all the same:
+    /// tuidisk's feedback, Milestone 3 item 11, found both drawn as nothing.
+    @Test("The semantic roles are drawn as their keys, ↩ and ⎋")
+    func semanticRoles() {
+        #expect(KeyboardShortcut.defaultAction.displayString == "↩")
+        #expect(KeyboardShortcut(.return, modifiers: []).displayString == "↩")
+        #expect(KeyboardShortcut.cancelAction.displayString == "⎋")
+        #expect(KeyboardShortcut(.escape, modifiers: []).displayString == "⎋")
+    }
+
     @Test("Shift-Tab is ⇧⇥, as macOS draws it, not ⇤")
     func backtab() {
         #expect(KeyboardShortcut(.tab, modifiers: .shift).displayString == "⇧⇥")
@@ -108,7 +119,7 @@ struct KeySymbolsTests {
         #expect(!KeySymbols.nameIsLocalized(KeyboardShortcut("z", modifiers: .control)))
         #expect(!KeySymbols.nameIsLocalized(KeyboardShortcut(.home, modifiers: [])))
         #expect(!KeySymbols.nameIsLocalized(KeyboardShortcut(.tab, modifiers: .shift)))
-        // The semantic roles have no name.
+        // The semantic roles are symbols, ↩ and ⎋, in every language.
         #expect(!KeySymbols.nameIsLocalized(.defaultAction))
         #expect(!KeySymbols.nameIsLocalized(.cancelAction))
     }

@@ -370,16 +370,7 @@ package final class KeyboardShortcutRegistry {
             named.append((trigger, name))
         }
         return named.sorted { $0.name.serial < $1.name.serial }.map {
-            ListedShortcut(key: Self.keyName(of: $0.trigger), title: $0.name.title(), menu: $0.name.menu)
-        }
-    }
-
-    /// `trigger` as it is drawn.
-    private static func keyName(of trigger: KeyboardShortcut.Trigger) -> String {
-        switch trigger {
-        case .defaultAction: KeySymbols.key(.enter)
-        case .cancelAction: KeySymbols.key(.escape)
-        case .key(let key, let modifiers): KeySymbols.chord(Key(key), modifiers)
+            ListedShortcut(key: KeySymbols.trigger($0.trigger), title: $0.name.title(), menu: $0.name.menu)
         }
     }
 

@@ -392,9 +392,9 @@ struct KeyEquivalentShortcutTests {
         #expect(KeyboardShortcut("z", modifiers: .control).displayString == "⌃Z")
         // macOS's order, ⌃ ⌥ ⇧ ⌘, however the set was written.
         #expect(KeyboardShortcut("z", modifiers: [.shift, .option, .control]).displayString == "⌃⌥⇧Z")
-        // The semantic roles have no key to print.
-        #expect(KeyboardShortcut.defaultAction.displayString == nil)
-        #expect(KeyboardShortcut.cancelAction.displayString == nil)
+        // The semantic roles are their keys, as a macOS menu draws them.
+        #expect(KeyboardShortcut.defaultAction.displayString == "↩")
+        #expect(KeyboardShortcut.cancelAction.displayString == "⎋")
     }
 
     /// The measure pass asks for the shortcut too — it has to reserve the

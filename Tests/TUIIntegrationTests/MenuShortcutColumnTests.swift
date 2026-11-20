@@ -3,7 +3,8 @@
 //
 //  A menu's shortcut column, as an app writes its menus: a table's selection
 //  menu is wide enough for each title and its key, as `.contextMenu`'s is
-//  (tuidisk's feedback, Milestone 3 item 10).
+//  (tuidisk's feedback, Milestone 3 item 10), and every key a menu item can
+//  name has a symbol, Return and Escape included (item 11).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -64,5 +65,38 @@ struct MenuShortcutColumnTests {
         app.press(.f10, modifiers: .shift)
         let finder = try #require(app.screen.line(containing: "Show in"), "\(app.screen)")
         #expect(finder.contains("Show in Finder ⌃N"), "\(app.screen)")
+    }
+
+    @Test(
+        "A menu item names every key that types nothing with macOS's symbol, Return and Escape included",
+        arguments: [
+            (KeyEquivalent.return, "↩"), (.escape, "⎋"), (.tab, "⇥"), (.delete, "⌫"), (.deleteForward, "⌦"),
+            (.upArrow, "↑"), (.downArrow, "↓"), (.leftArrow, "←"), (.rightArrow, "→"),
+            (.pageUp, "⇞"), (.pageDown, "⇟"), (.home, "↖"), (.end, "↘"), (.space, "Space"),
+        ])
+    func bareKeysHaveSymbols(key: KeyEquivalent, symbol: String) throws {
+        let app = TestApp(width: 40, height: 10) {
+            Button("target") {}
+                .contextMenu {
+                    Button("Act") {}.keyboardShortcutHint(KeyboardShortcut(key, modifiers: []))
+                }
+        }
+        app.press(.f10, modifiers: .shift)
+        let row = try #require(app.screen.line(containing: "Act"), "\(app.screen)")
+        #expect(row.contains(" \(symbol) "), "\(app.screen)")
+    }
+
+    @Test("A bound Return or Escape is named too, as the roles they are")
+    func boundRolesAreNamed() throws {
+        let app = TestApp(width: 40, height: 10) {
+            Button("target") {}
+                .contextMenu {
+                    Button("Open Folder") {}.keyboardShortcut(.defaultAction)
+                    Button("Up a Level") {}.keyboardShortcut(.cancelAction)
+                }
+        }
+        app.press(.f10, modifiers: .shift)
+        #expect(try #require(app.screen.line(containing: "Open Folder")).contains("↩"), "\(app.screen)")
+        #expect(try #require(app.screen.line(containing: "Up a Level")).contains("⎋"), "\(app.screen)")
     }
 }

@@ -130,8 +130,8 @@ struct KeyboardShortcutFallbackTests {
         return listed
     }
 
-    private var named: String { shortcut.resolved(commandKey: .control)!.displayString! }
-    private var namedFallback: String { fallback.resolved(commandKey: .control)!.displayString! }
+    private var named: String { shortcut.resolved(commandKey: .control)!.displayString }
+    private var namedFallback: String { fallback.resolved(commandKey: .control)!.displayString }
 
     @Test("Where the terminal sends the shortcut, the menu and F1's list name it, and not the fallback")
     mutating func shortcutNamed() {
@@ -184,7 +184,7 @@ struct KeyboardShortcutFallbackTests {
     // MARK: A scene's
 
     private static func chord(_ key: KeyEquivalent, _ modifiers: EventModifiers) -> String {
-        KeyboardShortcut(key, modifiers: modifiers).resolved(commandKey: .control)!.displayString!
+        KeyboardShortcut(key, modifiers: modifiers).resolved(commandKey: .control)!.displayString
     }
 
     @Test("Where the terminal keeps ⌃, for itself, Settings… and F1's list name the scene's fallback, not F2")

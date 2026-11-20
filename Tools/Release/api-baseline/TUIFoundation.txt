@@ -1772,7 +1772,7 @@ KeyboardShortcut.Localization.custom | static let custom: KeyboardShortcut.Local
 KeyboardShortcut.Localization.withoutMirroring | static let withoutMirroring: KeyboardShortcut.Localization
 KeyboardShortcut.cancelAction | static let cancelAction: KeyboardShortcut
 KeyboardShortcut.defaultAction | static let defaultAction: KeyboardShortcut
-KeyboardShortcut.displayString | var displayString: String? { get }
+KeyboardShortcut.displayString | var displayString: String { get }
 KeyboardShortcut.init(_:modifiers:) | init(_ key: KeyEquivalent, modifiers: EventModifiers = .command)
 KeyboardShortcut.init(_:modifiers:localization:) | init(_ key: KeyEquivalent, modifiers: EventModifiers = .command, localization: KeyboardShortcut.Localization)
 KeyboardShortcut.isDeliverableInTerminal | var isDeliverableInTerminal: Bool { get }

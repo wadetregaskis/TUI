@@ -879,7 +879,7 @@ joins a minus that is the key like any other key: `⌃-` is `Ctrl--`.
 @Environment(\.keyNotation) private var keyNotation
 
 var body: some View {
-    Text("Save: " + keyNotation.spelling(save.displayString ?? ""))
+    Text("Save: " + keyNotation.spelling(save.displayString))
 }
 ```
 

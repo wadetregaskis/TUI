@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A menu item whose key is Return or Escape shows `↩` or `⎋`.** A bare Return or Escape is the default or the cancel
+action, in SwiftUI and here, and `KeyboardShortcut.displayString` was `nil` for those two roles, so a menu row bound to
+either, with `.keyboardShortcut` or `keyboardShortcutHint(_:)`, showed no key. They are now drawn as a macOS menu draws
+them, and as the shortcut overlay already did: `↩` and `⎋`, or `Return` and `Esc` where keys are spelled out
+(`TUI_KEY_SYMBOLS=0`) or in ASCII (`TUI_PLAIN_TEXT`). `displayString` is no longer optional, since every shortcut now
+has one: drop a `?? ""` written after it.
+
 **A table's or a list's selection menu is wide enough for each item's key.** A
 `contextMenu(forSelectionType:menu:primaryAction:)` menu was drawn as wide as its widest title alone, so an item with a
 key equivalent or a `keyboardShortcutHint(_:)` had its title cut to make room for the key (`Show in Fi… ⌃N`), where a

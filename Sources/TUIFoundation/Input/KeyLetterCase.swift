@@ -52,7 +52,7 @@ public enum KeyLetterCase: Hashable, Sendable, CaseIterable {
     /// ```swift
     /// @Environment(\.keyLetterCase) private var keyLetterCase
     ///
-    /// Text(keyLetterCase.spelling(killShortcut.displayString ?? "") + " kill")
+    /// Text(keyLetterCase.spelling(killShortcut.displayString) + " kill")
     /// ```
     public func spelling(_ name: String) -> String {
         guard self == .asTyped, name.count == 1, let letter = name.first, letter.isUppercase else { return name }

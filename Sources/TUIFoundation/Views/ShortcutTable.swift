@@ -92,7 +92,7 @@ extension ShortcutTable {
                     let clash = pass ? claimedByOverride[resolved.trigger] : nil
                     if let existing = clash, existing != action {
                         report(
-                            "\(Self.modifierName) binds \(resolved.displayString ?? "?") to both "
+                            "\(Self.modifierName) binds \(resolved.displayString) to both "
                                 + "\(existing) and \(action); \(existing), which \(Action.self) "
                                 + "declares first, keeps it")
                         continue

@@ -459,10 +459,10 @@ public struct KeyboardShortcut: Hashable, Sendable {
     }()
 
     /// The printable form of this shortcut — what a menu row prints in its
-    /// shortcut column — or `nil` for the semantic roles, which have no key to
-    /// show. The status bar writes its undo and redo hints this way too, but
-    /// for a letter held with nothing but Shift, which it writes in the case
-    /// the key types (`u`, `U` for Shift-U), as its own items are written.
+    /// shortcut column. The status bar writes its undo and redo hints this way
+    /// too, but for a letter held with nothing but Shift, which it writes in
+    /// the case the key types (`u`, `U` for Shift-U), as its own items are
+    /// written.
     ///
     /// Drawn as a macOS menu draws a key equivalent: the modifiers in the order
     /// ⌃ ⌥ ⇧ ⌘, then the key, a letter in upper case — `⌃S`, `⌃⇧Z` (Control-
@@ -470,15 +470,21 @@ public struct KeyboardShortcut: Hashable, Sendable {
     /// `KeyboardShortcut("Z", modifiers: .control)` is `⌃⇧Z` too. See
     /// `KeySymbols` for every key's symbol and how they were measured.
     ///
+    /// The semantic roles are their keys, as they are in SwiftUI, where
+    /// ``defaultAction`` is unmodified Return and ``cancelAction`` unmodified
+    /// Escape: `↩` and `⎋`, as a macOS menu draws an item whose key equivalent
+    /// is Return or Escape, and as the shortcut overlay already named them.
+    /// (This was `nil` for them, so a menu item bound to a bare Return or
+    /// Escape showed no key: tuidisk's feedback, Milestone 3 item 11.)
+    ///
     /// Call it on a *resolved* shortcut (see `resolved(commandKey:)`), whose
     /// `.command` has been replaced by the key that stands in for it here: ⌘
     /// is drawn only where a shortcut still holds it.
     ///
     /// TUI-specific: SwiftUI has no printable form of a shortcut, AppKit
     /// drawing a menu item's key equivalent itself.
-    public var displayString: String? {
-        guard case .key(let key, let modifiers) = trigger else { return nil }
-        return KeySymbols.chord(Key(key), modifiers)
+    public var displayString: String {
+        KeySymbols.trigger(trigger)
     }
 }
 

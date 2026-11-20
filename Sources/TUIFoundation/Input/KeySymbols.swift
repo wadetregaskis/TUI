@@ -66,6 +66,17 @@ enum KeySymbols {
         self.modifiers(modifiers) + self.key(key)
     }
 
+    /// What activates a shortcut, as it is drawn: a key and its modifiers, or
+    /// the key a semantic role stands for — Return for the default action,
+    /// Escape for the cancel action, which is what each of them is.
+    static func trigger(_ trigger: KeyboardShortcut.Trigger) -> String {
+        switch trigger {
+        case .defaultAction: key(.enter)
+        case .cancelAction: key(.escape)
+        case .key(let equivalent, let modifiers): chord(Key(equivalent), modifiers)
+        }
+    }
+
     /// The symbol or name for `key` alone.
     static func key(_ key: Key) -> String {
         switch key {

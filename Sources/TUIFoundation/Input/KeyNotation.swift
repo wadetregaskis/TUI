@@ -50,7 +50,7 @@ public enum KeyNotation: Hashable, Sendable, CaseIterable {
     /// ```swift
     /// @Environment(\.keyNotation) private var keyNotation
     ///
-    /// Text("Save: " + keyNotation.spelling(saveShortcut.displayString ?? ""))
+    /// Text("Save: " + keyNotation.spelling(saveShortcut.displayString))
     /// ```
     public func spelling(_ text: String) -> String {
         switch self {
