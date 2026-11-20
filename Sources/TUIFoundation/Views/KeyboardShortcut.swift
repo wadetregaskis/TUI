@@ -731,8 +731,8 @@ extension View {
     ///
     /// Claimed as the shortcut is, by the first control rendered under it,
     /// and resolved through ``EnvironmentValues/commandKey`` the same way.
-    /// `nil` adds none. A `Button` or a `Toggle` takes it; an alert's buttons,
-    /// which the alert draws itself, and a scene's shortcut do not.
+    /// `nil` adds none. A `Button` or a `Toggle` takes it, an alert's buttons
+    /// among them; a scene has its own, `Scene.keyboardShortcutFallback(_:)`.
     ///
     /// TUI-specific: SwiftUI gives a control one shortcut, because on its
     /// platforms every chord arrives.

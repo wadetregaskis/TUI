@@ -68,7 +68,9 @@ Scene.focusFollowsPointer(_:) | @MainActor func focusFollowsPointer(_ follows: B
 Scene.keyNotation(_:) | @MainActor func keyNotation(_ notation: KeyNotation) -> some Scene
 Scene.keyboardShortcut(_:) | @MainActor func keyboardShortcut(_ shortcut: KeyboardShortcut?) -> some Scene
 Scene.keyboardShortcut(_:modifiers:localization:) | @MainActor func keyboardShortcut(_ key: KeyEquivalent, modifiers: EventModifiers = .command, localization: KeyboardShortcut.Localization = .automatic) -> some Scene
-Scene.keyboardShortcutOverlayDisabled(_:) | @MainActor func keyboardShortcutOverlayDisabled(_ isDisabled: Bool = true) -> some Scene
+Scene.keyboardShortcutFallback(_:) | @MainActor func keyboardShortcutFallback(_ shortcut: KeyboardShortcut?) -> some Scene
+Scene.keyboardShortcutFallback(_:modifiers:) | @MainActor func keyboardShortcutFallback(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some Scene
+Scene.keyboardShortcutOverlayDisabled(_:) |@MainActor func keyboardShortcutOverlayDisabled(_ isDisabled: Bool = true) -> some Scene
 Scene.mouseSupport(_:) | @MainActor func mouseSupport(_ support: MouseSupport) -> some Scene
 Scene.onChange(of:initial:_:) | @MainActor func onChange<V>(of value: V, initial: Bool = false, _ action: @escaping () -> Void) -> some Scene where V : Equatable
 Scene.onChange(of:initial:_:) | @MainActor func onChange<V>(of value: V, initial: Bool = false, _ action: @escaping (V, V) -> Void) -> some Scene where V : Equatable

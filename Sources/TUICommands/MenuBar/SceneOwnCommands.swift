@@ -91,7 +91,7 @@ struct SceneOwnCommands {
             return settingsItems(environment)
         case .windowArrangement, .windowList, .singleWindowList:
             return environment.scenePresenter.flatMap {
-                windowItems(group, presenter: $0, appName: environment.resolvedAboutPanel.name)
+                windowItems(group, presenter: $0, appName: environment.resolvedAboutPanel.name, environment: environment)
             }
         case .saveItem:
             return environment.scenePresenter.flatMap(closeItems)
@@ -200,9 +200,13 @@ struct SceneOwnCommands {
     }
 
     /// The Window menu's groups: Close Window, the open windows and the
-    /// `Window` scenes — for an app that can open more than one window.
+    /// `Window` scenes — for an app that can open more than one window. A
+    /// scene's item names its key, or its fallback where the terminal cannot
+    /// send that (``ScenePresenter/namedShortcut(_:fallback:in:)``), as read
+    /// in `environment`.
     private func windowItems(
-        _ group: CommandGroupPlacement.Group, presenter: ScenePresenter, appName: String
+        _ group: CommandGroupPlacement.Group, presenter: ScenePresenter, appName: String,
+        environment: EnvironmentValues
     ) -> CommandItems? {
         guard presenter.opensSeveralWindows else { return nil }
         switch group {
@@ -230,7 +234,8 @@ struct SceneOwnCommands {
             return Self.items("single-window-list") {
                 ForEach(scenes, id: \.id) { scene in
                     Button(scene.title ?? scene.id) { presenter.openScene(scene.id) }
-                        .keyboardShortcutHint(scene.shortcut)
+                        .keyboardShortcutHint(
+                            ScenePresenter.namedShortcut(scene.shortcut, fallback: scene.fallback, in: environment))
                 }
             }
         default:

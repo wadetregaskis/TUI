@@ -70,7 +70,7 @@ package final class KeyboardShortcutRegistry {
         /// Its place in the frame's registrations.
         let serial: Int
         /// Whether a menu row showing the key names it better: a scene's key
-        /// (``registerCommand(_:commandChord:title:action:)``), which the menu
+        /// (``registerCommand(_:commandChord:standingInFor:title:action:)``), which the menu
         /// bar's item only shows, and which only says what it is for an app
         /// with no menu bar.
         var yieldsToHint = false
@@ -236,10 +236,12 @@ package final class KeyboardShortcutRegistry {
     /// so the window's own shortcut on the key keeps it. A held key does not
     /// repeat it. `commandChord` and `title` are ``register(_:commandChord:repeats:section:standingInFor:title:action:)``'s.
     package func registerCommand(
-        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil, title: (() -> String)? = nil,
-        action: @escaping () -> Void
+        _ shortcut: KeyboardShortcut, commandChord: KeyboardShortcut? = nil,
+        standingInFor: KeyboardShortcut.Trigger? = nil, title: (() -> String)? = nil, action: @escaping () -> Void
     ) {
-        register(shortcut, commandChord: commandChord, repeats: false, title: title, action: action)
+        register(
+            shortcut, commandChord: commandChord, repeats: false, standingInFor: standingInFor, title: title,
+            action: action)
         if let entry = actions[shortcut.trigger], entry.serial == registrationCount {
             actions[shortcut.trigger]?.name?.yieldsToHint = true
         }

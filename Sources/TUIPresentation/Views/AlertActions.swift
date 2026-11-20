@@ -19,7 +19,8 @@ import TUIFoundation
 /// `.disabled`, which disables its button, and
 /// `.keyboardShortcut`, which gives its button that key equivalent — Return for
 /// `.defaultAction`, Escape for `.cancelAction`. `.help`, `.tint` and
-/// `.foregroundStyle` show nothing there, and are left out here too.
+/// `.foregroundStyle` show nothing there, and are left out here too. TUI's own
+/// `.keyboardShortcutFallback` is kept with the shortcut it stands in for.
 @MainActor
 struct AlertAction {
     /// The button, disabled where a modifier written on it said so.
@@ -29,9 +30,15 @@ struct AlertAction {
     /// control would claim it — put back on it where the dialog draws it.
     let shortcut: KeyboardShortcut?
 
-    init(_ button: Button, shortcut: KeyboardShortcut? = nil) {
+    /// The fallback written on the button
+    /// (``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``), the
+    /// innermost, put back on it with its shortcut.
+    let fallback: KeyboardShortcut?
+
+    init(_ button: Button, shortcut: KeyboardShortcut? = nil, fallback: KeyboardShortcut? = nil) {
         self.button = button
         self.shortcut = shortcut
+        self.fallback = fallback
     }
 
     /// The button's role.
@@ -40,20 +47,21 @@ struct AlertAction {
     /// Whether the action can be chosen.
     var isDisabled: Bool { button.isDisabled }
 
-    /// The view the dialog draws: the button, carrying its shortcut.
-    var view: some View { button.keyboardShortcut(shortcut) }
+    /// The view the dialog draws: the button, carrying its shortcut and its
+    /// fallback.
+    var view: some View { button.keyboardShortcut(shortcut).keyboardShortcutFallback(fallback) }
 
     /// This action, running `action` instead of its own.
     func running(_ action: @escaping () -> Void) -> Self {
-        Self(Button(button, action: action), shortcut: shortcut)
+        Self(Button(button, action: action), shortcut: shortcut, fallback: fallback)
     }
 
     /// This action as the modifiers outside it say: disabled where one
     /// disabled it, which nothing further in can undo, and carrying their
-    /// shortcut where it states none of its own.
-    func modified(disabled: Bool, shortcut outer: KeyboardShortcut?) -> Self {
+    /// shortcut and fallback where it states none of its own.
+    func modified(disabled: Bool, shortcut outer: KeyboardShortcut?, fallback outerFallback: KeyboardShortcut?) -> Self {
         let button = disabled && !button.isDisabled ? button.disabled(true) : button
-        return Self(button, shortcut: shortcut ?? outer)
+        return Self(button, shortcut: shortcut ?? outer, fallback: fallback ?? outerFallback)
     }
 }
 
@@ -109,10 +117,11 @@ func alertActions(from view: some View, in context: RenderContext) -> [AlertActi
             // What the modifiers passed on the way in said, outermost first.
             var disabled = false
             var shortcut: KeyboardShortcut?
+            var fallback: KeyboardShortcut?
             while true {
                 if let provider = current as? ButtonProvider {
                     actions += provider.extractActions(in: context).map {
-                        $0.modified(disabled: disabled, shortcut: shortcut)
+                        $0.modified(disabled: disabled, shortcut: shortcut, fallback: fallback)
                     }
                     break
                 }
@@ -121,8 +130,9 @@ func alertActions(from view: some View, in context: RenderContext) -> [AlertActi
                 }
                 // Walking in, so a later one is nearer the button — the one it
                 // would claim. A `nil` leaves the one further out in force.
-                if let binding = current as? any KeyboardShortcutBinding, let bound = binding.boundShortcut {
-                    shortcut = bound
+                if let binding = current as? any KeyboardShortcutBinding {
+                    if let bound = binding.boundShortcut { shortcut = bound }
+                    if let bound = binding.boundFallback { fallback = bound }
                 }
                 if let wrapper = current as? any SingleContentWrapper {
                     current = wrapper.wrappedContent

@@ -355,14 +355,23 @@ enum KeyboardShortcutRegistrar {
 @MainActor
 package protocol KeyboardShortcutBinding {
     /// The shortcut bound: `nil` for `.keyboardShortcut(nil)`, which leaves a
-    /// shortcut written further out in force, and for a hint, which binds
-    /// nothing (``View/keyboardShortcutHint(_:)``).
+    /// shortcut written further out in force, for a hint, which binds
+    /// nothing (``View/keyboardShortcutHint(_:)``), and for a fallback.
     var boundShortcut: KeyboardShortcut? { get }
+
+    /// The fallback bound (``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)``):
+    /// `nil` for `.keyboardShortcutFallback(nil)`, and for a shortcut.
+    var boundFallback: KeyboardShortcut? { get }
 }
 
 @MainActor extension KeyboardShortcutModifier: KeyboardShortcutBinding {
     package var boundShortcut: KeyboardShortcut? {
         guard let assignment, assignment.registers, !isFallback else { return nil }
+        return assignment.shortcut
+    }
+
+    package var boundFallback: KeyboardShortcut? {
+        guard let assignment, isFallback else { return nil }
         return assignment.shortcut
     }
 }

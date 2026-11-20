@@ -542,8 +542,9 @@ Button("Show Preview") { showsPreview.toggle() }
     .keyboardShortcutFallback("p", modifiers: [.command, .option])   // ⌥⌃P
 ```
 
-A `Button` or a `Toggle` takes it. An alert's buttons, which the alert draws
-itself, and a scene's ``Scene/keyboardShortcut(_:)`` do not.
+A `Button` or a `Toggle` takes it, an alert's buttons among them. A scene's
+key has one too, ``Scene/keyboardShortcutFallback(_:)``, which Settings… and a
+`Window`'s item in the Window menu name the same way.
 
 ## Framework Shortcuts
 

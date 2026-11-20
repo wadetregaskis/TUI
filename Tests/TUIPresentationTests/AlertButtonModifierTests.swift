@@ -119,6 +119,29 @@ struct AlertButtonModifierTests {
         #expect(!presented.value, "choosing it closed the alert")
     }
 
+    @Test("A fallback key written on an alert's button chooses it too, outside the shortcut or inside it")
+    func fallbackChooses() {
+        for fallbackOutside in [true, false] {
+            let harness = Harness()
+            let presented = Flag()
+            var chose = "—"
+            let keep = Button("Keep") { chose = "Keep" }
+            let view = Text("Page").alert("Sure?", isPresented: presented.binding) {
+                if fallbackOutside {
+                    keep.keyboardShortcut("k", modifiers: [.command, .shift]).keyboardShortcutFallback("l")
+                } else {
+                    keep.keyboardShortcutFallback("l").keyboardShortcut("k", modifiers: [.command, .shift])
+                }
+                Button("Discard", role: .cancel) { chose = "Discard" }
+            }
+            harness.frame(view)
+            // ⌘L, which the default command key spells Ctrl-L.
+            _ = harness.handler.handle(KeyEvent(key: .character("l"), ctrl: true))
+            #expect(chose == "Keep", "Ctrl-L chose \(chose), the fallback outside: \(fallbackOutside)")
+            #expect(!presented.value, "choosing it closed the alert")
+        }
+    }
+
     @Test("Return that nothing focused takes reaches the alert's default button")
     func defaultActionRegisters() {
         let harness = Harness()

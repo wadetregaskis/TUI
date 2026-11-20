@@ -57,6 +57,22 @@ private struct WrapPage: View {
     }
 }
 
+/// A Settings scene on its ⌘, with ⌥⌘P beside it, and a `Window` on ⇧⌘K with
+/// ⌥⌘K beside it.
+private struct SceneKeysApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup("Notes") { Text("main window") }
+            .commands { CommandMenu("Note") {} }
+            .aboutPanel(applicationName: "Notes")
+        Window("Inspector", id: "inspector") { Text("inspector window") }
+            .keyboardShortcut("k", modifiers: [.command, .shift])
+            .keyboardShortcutFallback("k", modifiers: [.command, .option])
+        Settings { Text("settings content") }
+            .keyboardShortcutFallback("p", modifiers: [.command, .option])
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -70,7 +86,11 @@ struct KeyboardShortcutFallbackTests {
     }
 
     private mutating func launched(_ presses: Presses, reporting: KeyboardReporting) -> TestApp {
-        let app = TestApp(PreviewMenuApp(presses: presses), width: 60, height: 30)
+        launched(PreviewMenuApp(presses: presses), reporting: reporting)
+    }
+
+    private mutating func launched<A: App>(_ scenes: A, reporting: KeyboardReporting) -> TestApp {
+        let app = TestApp(scenes, width: 60, height: 30)
         frame(app)
         app.keyboardReporting = reporting
         frame(app)
@@ -78,11 +98,12 @@ struct KeyboardShortcutFallbackTests {
         return app
     }
 
-    /// The Panels menu's Show Preview row, the menu closed again: F10, Right
-    /// to Panels (after the app menu), Down.
-    private mutating func previewRow(_ app: TestApp) -> String {
+    /// The row of `item` in the menu titled `menu`, the menu closed again:
+    /// F10, Right along the titles to it, Down. The whole screen where no row
+    /// has it.
+    private mutating func row(_ item: String, in menu: String, of app: TestApp) -> String {
         let titles = app.screen.lines[0].split(separator: " ").map(String.init)
-        let index = titles.firstIndex(of: "Panels") ?? 0
+        let index = titles.firstIndex(of: menu) ?? 0
         app.send(KeyEvent(key: .f10))
         frame(app)
         for _ in 0..<index {
@@ -91,11 +112,13 @@ struct KeyboardShortcutFallbackTests {
         }
         app.send(KeyEvent(key: .down))
         frame(app)
-        let row = app.screen.lines.first { $0.contains("Show Preview") } ?? app.screen.lines.joined(separator: "\n")
+        let row = app.screen.lines.first { $0.contains(item) } ?? app.screen.lines.joined(separator: "\n")
         app.send(KeyEvent(key: .escape))
         frame(app)
         return row
     }
+
+    private mutating func previewRow(_ app: TestApp) -> String { row("Show Preview", in: "Panels", of: app) }
 
     /// The rows of F1's list, taken down again.
     private mutating func shortcutList(_ app: TestApp) -> [String] {
@@ -156,5 +179,61 @@ struct KeyboardShortcutFallbackTests {
         app.send(try #require(wrapFallback.keyEvent(commandKey: .control)))
         frame(app)
         #expect(!presses.wraps)
+    }
+
+    // MARK: A scene's
+
+    private static func chord(_ key: KeyEquivalent, _ modifiers: EventModifiers) -> String {
+        KeyboardShortcut(key, modifiers: modifiers).resolved(commandKey: .control)!.displayString!
+    }
+
+    @Test("Where the terminal keeps ⌃, for itself, Settings… and F1's list name the scene's fallback, not F2")
+    mutating func settingsFallbackNamed() {
+        let app = launched(
+            SceneKeysApp(),
+            reporting: KeyboardReporting(
+                flags: .requested, keptChords: [KeyboardShortcut(",", modifiers: .control).trigger]))
+        let settings = Self.chord(",", .command)
+        let fallback = Self.chord("p", [.command, .option])
+        let row = row("Settings…", in: "Notes", of: app)
+        #expect(row.contains(fallback) && !row.contains(settings) && !row.contains("F2"), "\(row)")
+        // The panel's own F2 is listed beside it, as it always is.
+        let listed = shortcutList(app)
+        #expect(listed.contains { $0.contains("\(fallback)  Settings…") }, "\(listed)")
+        #expect(!listed.contains { $0.contains(settings) }, "\(listed)")
+    }
+
+    @Test("Where the terminal sends ⌃,, Settings… and F1's list name it, and not the fallback")
+    mutating func settingsShortcutNamed() {
+        let app = launched(SceneKeysApp(), reporting: KeyboardReporting(flags: .requested))
+        let row = row("Settings…", in: "Notes", of: app)
+        #expect(row.contains(Self.chord(",", .command)) && !row.contains(Self.chord("p", [.command, .option])), "\(row)")
+        let listed = shortcutList(app)
+        #expect(listed.contains { $0.contains("\(Self.chord(",", .command))  Settings…") }, "\(listed)")
+        #expect(!listed.contains { $0.contains(Self.chord("p", [.command, .option])) }, "\(listed)")
+    }
+
+    @Test("A scene's fallback key opens it")
+    mutating func settingsFallbackPresents() throws {
+        let app = launched(SceneKeysApp(), reporting: KeyboardReporting(flags: .requested))
+        app.send(try #require(KeyboardShortcut("p", modifiers: [.command, .option]).keyEvent(commandKey: .control)))
+        frame(app)
+        frame(app)
+        #expect(app.scenes.isPresentingSettings, "\(app.screen.lines.joined(separator: "\n"))")
+    }
+
+    @Test("A Window's item in the Window menu names its fallback where a legacy encoding loses its Shift, and the fallback opens it")
+    mutating func windowFallback() throws {
+        let app = launched(SceneKeysApp(), reporting: .legacy)
+        let row = row("Inspector", in: "Window", of: app)
+        let shortcut = Self.chord("k", [.command, .shift])
+        let fallback = Self.chord("k", [.command, .option])
+        #expect(row.contains(fallback) && !row.contains(shortcut), "\(row)")
+        let listed = shortcutList(app).filter { $0.contains("Inspector") }
+        #expect(listed.count == 1 && listed[0].contains(fallback), "\(listed)")
+        app.send(try #require(KeyboardShortcut("k", modifiers: [.command, .option]).keyEvent(commandKey: .control)))
+        frame(app)
+        frame(app)
+        #expect(app.screen.lines.contains { $0.contains("inspector window") }, "\(app.screen.lines.joined(separator: "\n"))")
     }
 }

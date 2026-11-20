@@ -44,14 +44,51 @@ extension Scene {
         _SceneKeyboardShortcut(
             content: self, shortcut: KeyboardShortcut(key, modifiers: modifiers, localization: localization))
     }
+
+    /// Gives the scene a second key, `shortcut`, for terminals that cannot
+    /// send its ``keyboardShortcut(_:)``: Settings…'s, or a `Window`'s in the
+    /// Window menu, as the view modifier
+    /// ``View/keyboardShortcutFallback(_:)-(KeyboardShortcut?)`` gives a
+    /// button one.
+    ///
+    /// ```swift
+    /// Settings { SettingsView() }
+    ///     .keyboardShortcut(",", modifiers: .command)          // ⌃,
+    ///     .keyboardShortcutFallback("p", modifiers: [.command, .option])   // ⌥⌃P
+    /// ```
+    ///
+    /// Both keys open the scene wherever they arrive. Its menu item and F1's
+    /// list of shortcuts name the shortcut where the terminal sends it as
+    /// itself, and the fallback only where it does not (Windows Terminal keeps
+    /// ⌃, for its own settings). `nil` adds none.
+    ///
+    /// TUI-specific: SwiftUI gives a scene one shortcut, because on its
+    /// platforms every chord arrives.
+    ///
+    /// - Parameter shortcut: The second key, or `nil` for none.
+    /// - Returns: A scene that opens on either key.
+    public func keyboardShortcutFallback(_ shortcut: KeyboardShortcut?) -> some Scene {
+        _SceneKeyboardShortcut(content: self, shortcut: shortcut, isFallback: true)
+    }
+
+    /// Gives the scene a second key, `key` with `modifiers`, for terminals
+    /// that cannot send its shortcut — see ``keyboardShortcutFallback(_:)``.
+    /// `modifiers` defaults to `.command`, as ``keyboardShortcut(_:modifiers:localization:)``'s does.
+    public func keyboardShortcutFallback(_ key: KeyEquivalent, modifiers: EventModifiers = .command) -> some Scene {
+        keyboardShortcutFallback(KeyboardShortcut(key, modifiers: modifiers))
+    }
 }
 
 // MARK: - Wrapper Scene
 
-/// Framework-internal scene wrapper that states the key its scene opens on.
+/// Framework-internal scene wrapper that states the key its scene opens on,
+/// or its fallback.
 internal struct _SceneKeyboardShortcut<Content: Scene>: Scene {
     let content: Content
     let shortcut: KeyboardShortcut?
+
+    /// Whether it states the scene's fallback rather than its shortcut.
+    var isFallback = false
 
     /// A primitive scene: it renders through `SceneRenderable`.
     var body: Never { fatalError("_SceneKeyboardShortcut renders via SceneRenderable") }
@@ -60,7 +97,11 @@ internal struct _SceneKeyboardShortcut<Content: Scene>: Scene {
 extension _SceneKeyboardShortcut: ConfiguringScene {
     /// The modifier closest to the scene wins, as every scene modifier's.
     func configure(_ configuration: inout SceneConfiguration) {
-        configuration.keyboardShortcut = .some(shortcut)
+        if isFallback {
+            configuration.keyboardShortcutFallback = .some(shortcut)
+        } else {
+            configuration.keyboardShortcut = .some(shortcut)
+        }
     }
 
     var configuredContent: (any Scene)? { content }
@@ -100,6 +141,32 @@ extension ScenePresenter {
         entry.configuration.keyboardShortcut.flatMap { $0 }
     }
 
+    /// The second key that opens the window scene `entry`, if its
+    /// `.keyboardShortcutFallback` states one.
+    func fallback(of entry: SceneCatalog.WindowEntry) -> KeyboardShortcut? {
+        entry.configuration.keyboardShortcutFallback.flatMap { $0 }
+    }
+
+    /// The `Settings` scene's second key, if its `.keyboardShortcutFallback`
+    /// states one and the panel has a tab to show.
+    package var settingsFallback: KeyboardShortcut? {
+        guard hasSettings else { return nil }
+        return settingsEntry?.configuration.keyboardShortcutFallback.flatMap { $0 }
+    }
+
+    /// The key a menu item names for a scene opened on `shortcut`, with
+    /// `fallback` beside it: the first the terminal can send as itself, as
+    /// the environment resolves and reports keys (``arrives(_:commandKey:reporting:)``);
+    /// `nil` where neither arrives. The owner, 2026-11-19: a key that does
+    /// not work is not shown, and one that does is shown in its place.
+    package static func namedShortcut(
+        _ shortcut: KeyboardShortcut?, fallback: KeyboardShortcut?, in environment: EnvironmentValues
+    ) -> KeyboardShortcut? {
+        [shortcut, fallback].lazy.compactMap(\.self).first {
+            arrives($0, commandKey: environment.commandKey, reporting: environment.keyboardReporting)
+        }
+    }
+
     /// Registers the scenes' keys into `registry` as the menu bar's commands
     /// register theirs, so the window's content keeps any it registered on
     /// the same key: each opens its scene, whether or not the app shows a
@@ -109,22 +176,33 @@ extension ScenePresenter {
         reporting: KeyboardReporting = .legacy
     ) {
         let service = LocalizationService.shared
-        var keys: [(shortcut: KeyboardShortcut, title: (() -> String)?, action: () -> Void)] = []
+        // Each with the key it is the fallback of, if it is one: named in the
+        // list of keys in force only where that one is not.
+        var keys:
+            [(shortcut: KeyboardShortcut, title: (() -> String)?, action: () -> Void, standsInFor: KeyboardShortcut?)] =
+                []
         for entry in entries {
-            guard let shortcut = shortcut(of: entry) else { continue }
+            let shortcut = shortcut(of: entry)
+            let fallback = fallback(of: entry)
+            guard shortcut != nil || fallback != nil else { continue }
             let identity = entry.identity
-            let title = entry.window.windowTitle?.content ?? entry.window.sceneID
-            keys.append((shortcut, title.map { title in { title } }, { [weak self] in self?.openWindow(ofSceneAt: identity) }))
+            let title = (entry.window.windowTitle?.content ?? entry.window.sceneID).map { title in { title } }
+            let open: () -> Void = { [weak self] in self?.openWindow(ofSceneAt: identity) }
+            if let shortcut { keys.append((shortcut, title, open, nil)) }
+            if let fallback { keys.append((fallback, title, open, shortcut)) }
         }
+        // Named in the list of keys in force only where the terminal can send
+        // them (``arrives(_:commandKey:reporting:)``); bound everywhere, for a
+        // terminal that sends them after all.
+        let settingsTitle = { service.string(for: LocalizationKey.Menu.settings) }
+        let presentSettings: () -> Void = { [weak self] in self?.presentSettings() }
         if let shortcut = settingsShortcut {
-            // Named in the list of keys in force only where the terminal can
-            // send it (``arrives(_:commandKey:reporting:)``); bound
-            // everywhere, for a terminal that sends it after all.
             let arrives = Self.arrives(shortcut, commandKey: commandKey, reporting: reporting)
-            keys.append((
-                shortcut, arrives ? { service.string(for: LocalizationKey.Menu.settings) } : nil,
-                { [weak self] in self?.presentSettings() }
-            ))
+            keys.append((shortcut, arrives ? settingsTitle : nil, presentSettings, nil))
+        }
+        if let fallback = settingsFallback {
+            let arrives = Self.arrives(fallback, commandKey: commandKey, reporting: reporting)
+            keys.append((fallback, arrives ? settingsTitle : nil, presentSettings, settingsShortcut))
         }
         // File ▸ Close and Close All, for an app that can have more than one
         // window open. Registered as commands, so a key of the window's own
@@ -138,12 +216,12 @@ extension ScenePresenter {
             keys.append((
                 Self.closeShortcut,
                 canCloseFrontWindow ? { service.string(for: LocalizationKey.Menu.close) } : nil,
-                { [weak self] in self?.closeFrontWindow() }
+                { [weak self] in self?.closeFrontWindow() }, nil
             ))
             keys.append((
                 Self.closeAllShortcut,
                 windowsCloseAllCloses.isEmpty ? nil : { service.string(for: LocalizationKey.Menu.closeAll) },
-                { [weak self] in self?.closeAllWindows() }
+                { [weak self] in self?.closeAllWindows() }, nil
             ))
         }
         guard !keys.isEmpty else { return }
@@ -151,7 +229,8 @@ extension ScenePresenter {
             for key in keys {
                 guard let resolved = key.shortcut.resolved(commandKey: commandKey) else { continue }
                 registry.registerCommand(
-                    resolved, commandChord: key.shortcut.commandChord(matching: matchesCommand), title: key.title,
+                    resolved, commandChord: key.shortcut.commandChord(matching: matchesCommand),
+                    standingInFor: key.standsInFor?.resolved(commandKey: commandKey)?.trigger, title: key.title,
                     action: key.action)
             }
         }
@@ -168,7 +247,8 @@ extension ScenePresenter {
     }
 
     /// The key the menu bar's Settings… shows, and F1's list names it by:
-    /// ``settingsShortcut`` where the terminal can send it, and otherwise
+    /// ``settingsShortcut`` where the terminal can send it, else
+    /// ``settingsFallback`` where it can send that, and otherwise
     /// what the person can press instead, the panel's own key (F2 unless a
     /// scene moved it), unless something of the app's has that key. `nil`
     /// where neither — or where the scene took its key away, which leaves
@@ -177,9 +257,9 @@ extension ScenePresenter {
     /// Read from the environment the menu bar draws in, after the page has
     /// registered its keys.
     package func settingsMenuShortcut(in environment: EnvironmentValues) -> KeyboardShortcut? {
-        guard let shortcut = settingsShortcut else { return nil }
-        if Self.arrives(shortcut, commandKey: environment.commandKey, reporting: environment.keyboardReporting) {
-            return shortcut
+        guard settingsShortcut != nil || settingsFallback != nil else { return nil }
+        if let named = Self.namedShortcut(settingsShortcut, fallback: settingsFallback, in: environment) {
+            return named
         }
         guard let key = settingsPanelKey,
             environment.keyboardShortcutRegistry?.hasAppShortcut(for: KeyEvent(key: key)) != true,

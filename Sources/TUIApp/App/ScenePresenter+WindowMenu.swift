@@ -35,6 +35,11 @@ extension ScenePresenter {
 
         /// The key that opens it, if its `.keyboardShortcut` states one.
         package let shortcut: KeyboardShortcut?
+
+        /// Its second key, if its `.keyboardShortcutFallback` states one:
+        /// named in its menu item where ``shortcut`` does not arrive
+        /// (``ScenePresenter/namedShortcut(_:fallback:in:)``).
+        package var fallback: KeyboardShortcut? = nil
     }
 
     /// Whether the app can have more than one window open: whether it has
@@ -52,6 +57,7 @@ extension ScenePresenter {
     private func opensFurtherWindows(of entry: SceneCatalog.WindowEntry) -> Bool {
         guard !entry.window.opensOneWindow else { return false }
         return entry.window.sceneID != nil || entry.window.presentedValueType != nil || shortcut(of: entry) != nil
+            || fallback(of: entry) != nil
     }
 
     /// The open windows, back to front.
@@ -68,7 +74,9 @@ extension ScenePresenter {
     package var listedScenes: [ListedScene] {
         entries.compactMap { entry in
             guard entry.window.opensOneWindow, let id = entry.window.sceneID else { return nil }
-            return ListedScene(id: id, title: entry.window.windowTitle?.content, shortcut: shortcut(of: entry))
+            return ListedScene(
+                id: id, title: entry.window.windowTitle?.content, shortcut: shortcut(of: entry),
+                fallback: fallback(of: entry))
         }
     }
 

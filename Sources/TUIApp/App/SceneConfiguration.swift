@@ -73,6 +73,10 @@ struct SceneConfiguration {
     /// where it took the scene's default key away.
     var keyboardShortcut: KeyboardShortcut??
 
+    /// The scene's second key, if a `.keyboardShortcutFallback` said:
+    /// `.some(nil)` where one took it away.
+    var keyboardShortcutFallback: KeyboardShortcut??
+
     /// What a `.builtInSettingsTab` said of each of TUI's tabs in the
     /// settings panel; a tab it says nothing of is shown.
     var builtInSettingsTabs: [BuiltInSettingsTab: BuiltInSettingsTabChoice] = [:]

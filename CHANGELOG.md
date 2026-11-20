@@ -18,7 +18,9 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 **`keyboardShortcutFallback(_:)` gives a button or a toggle a second key.** Both keys are bound, and a menu row, the
 button's label and F1's list of shortcuts name the fallback only where the terminal cannot send the
 `keyboardShortcut` as itself, such as `⌃⇧P` in a legacy encoding, which sends `⌃P`, or in Windows Terminal, which
-keeps it for its command palette. TUI-specific: SwiftUI gives a control one shortcut.
+keeps it for its command palette. An alert keeps a button's fallback, and `Scene.keyboardShortcutFallback(_:)` gives
+a scene's key one, which Settings… and a `Window`'s item in the Window menu name the same way. TUI-specific: SwiftUI
+gives a control one shortcut.
 
 **A menu, F1's list of shortcuts and the file panel's status bar name only keys that work in the terminal.** A chord
 the terminal cannot send as itself, such as ⌃⇧S where a legacy encoding sends ⌃S, or one the terminal keeps for a
