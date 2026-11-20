@@ -35,19 +35,31 @@ enum FindMatches {
     /// The ranges, as character offsets, at which `query` occurs in `text` —
     /// none for an empty query.
     static func ranges(of query: String, in text: String, options: FindOptions = FindOptions()) -> [Range<Int>] {
-        guard !query.isEmpty else { return [] }
         var found: [Range<Int>] = []
-        var searchStart = text.startIndex
-        var offset = 0
-        let compare: String.CompareOptions = options.ignoresCase ? .caseInsensitive : []
-        while let match = text.range(of: query, options: compare, range: searchStart..<text.endIndex) {
+        var (searchStart, offset) = (text.startIndex, 0)
+        for match in matches(of: query, in: text, options: options) {
             // Offsets counted forward from the last match only, so a text with
             // many matches is walked once.
             let lower = offset + text.distance(from: searchStart, to: match.lowerBound)
             let length = text.distance(from: match.lowerBound, to: match.upperBound)
-            offset = lower + length
+            (searchStart, offset) = (match.upperBound, lower + length)
+            found.append(lower..<(lower + length))
+        }
+        return found
+    }
+
+    /// The ranges of `text` at which `query` occurs — none for an empty
+    /// query: what ``ranges(of:in:options:)`` counts in characters.
+    static func matches(of query: String, in text: String, options: FindOptions = FindOptions())
+        -> [Range<String.Index>]
+    {
+        guard !query.isEmpty else { return [] }
+        var found: [Range<String.Index>] = []
+        var searchStart = text.startIndex
+        let compare: String.CompareOptions = options.ignoresCase ? .caseInsensitive : []
+        while let match = text.range(of: query, options: compare, range: searchStart..<text.endIndex) {
             searchStart = match.upperBound
-            if Self.stands(match, in: text, as: options.placement) { found.append(lower..<(lower + length)) }
+            if Self.stands(match, in: text, as: options.placement) { found.append(match) }
             if match.isEmpty { break }
         }
         return found
