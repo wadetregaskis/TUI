@@ -32,7 +32,10 @@ Answered the same day, and built: **attralign**, "(a) but provide our own versio
 SwiftUI, and never ambiguous to name; TUI declares the same names only where there is no Core Text (Linux,
 Windows); and TUI's own `paragraphAlignment` aligns a paragraph on every macOS, 15 included, under a name SwiftUI
 does not use ([the G3 design](<Historical/Text, editing and the clipboard/An attributed TextEditor - design (G3).md>)
-§5 and §7). A-ATTRED-10 and 11 were ruled the same day ((b) and (a), the highlighting design §8.4). Later that day:
+§5 and §7). A-ATTRED-10 and 11 were ruled the same day ((b) and (a), the highlighting design §8.4), and so was
+A-ATTRED-12, finally: TUI writes no lexers and there is no `TUILexers` repository; highlighting comes from
+tree-sitter through a thin adapter on the seam, in tuitree or an optional package, never in TUI. The design's §8.6
+re-plans TUI's side for it (about 4 lane-days, against 6¼) and asks A-ATTRED-15 and 16 below. Later that day:
 **A-ATTRED-13** ruled (b): lineHeight macOS 26 on Apple, TUI's type elsewhere; being built. **A-ATTRED-14**
 approved: on the macOS 26 SDK the `\.swiftUI` scope's paragraph `alignment` is a computed property, so coding with
 that scope drops it (deviation T14, [Deliberate deviations](<SwiftUI parity/Deliberate deviations from SwiftUI.md#t14-a-paragraphs-alignment-is-not-among-the-swiftui-scopes-stored-keys-on-the-macos-26-sdk>)).
@@ -42,7 +45,8 @@ left:
 
 | Id | Question | Recommended | If you don't answer |
 |---|---|---|---|
-| A-ATTRED-12 | The lexers' package ([the highlighting design](<Historical/Text, editing and the clipboard/Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>) §8.4). You leaned to (a), a `TUILexers` repository beside TUI's, and asked how much the lexers would depend on TUI: only through their conformance, token type and default colours. Proposed: (a), each language's lexing in a TUI-free target inside it, so (b) stays additive. Name and create the repository. | (a), TUI-free cores inside | (c): the lexers stay in tuitree until the repository exists |
+| A-ATTRED-15 | Whether TUI keeps a line lexer ([the highlighting design](<Historical/Text, editing and the clipboard/Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>) §8.6). With tree-sitter the only real styler, the line engine (a state per line, convergence, the screen lexed in the frame, catch-up slices) and the public `TextEditorLexer` have no user outside TUI. (a) build only the seam, saving about 2¼ days, a line lexer addable later in a minor release; (b) keep it as ruled on 11-18, about 6¼ days in all and a public protocol fixed from 1.0 | (a) | (a) |
+| A-ATTRED-16 | Where the tree-sitter adapter lives (§8.6; about 2½ days, never in TUI). (a) in tuitree, in a target of its own so it can move out whole; (b) an optional package now, about ½ day more and a repository for you to create, pinned to TUI's minor while the seam is `@_spi` | (a) | (a) |
 
 EXPERIMENTS (API-STABILITY point 5), open since 2026-11-09, is answered: the last experiment,
 `TUI_PLAIN_TEXT=transliterate`, was promoted to a supported option on 2026-11-19, and none is left. The record is in

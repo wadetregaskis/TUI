@@ -7,7 +7,9 @@ real editors highlight large documents, then proposes how TUI should. Written 20
 2b23a75b5. Nothing here is built. The costs come from a standalone probe on this machine (macOS 15.8.3, Xcode's
 Swift 6.2.4, `-O`; see "For a future reader"). Ids: A-ATTRED-5 to 7 (for the owner), B-ATTRED-8 to 15 (decided
 here). The owner ruled on A-ATTRED-5 to 7 on 2026-11-18; §8 explores the rulings (B-ATTRED-19 to 26, and
-A-ATTRED-10 to 12 for the owner, who ruled on 10 and 11 on 2026-11-19 and leaned to (a) on 12).*
+A-ATTRED-10 to 12 for the owner, who ruled on all three on 2026-11-19). His final word on 12 replaced the lexers
+with tree-sitter, outside TUI; §8.6 re-plans TUI's side for it (B-ATTRED-27 to 30 decided there, A-ATTRED-15 and
+16 for the owner), with a fourth probe of tree-sitter itself.*
 
 ## In short
 
@@ -37,6 +39,17 @@ lexer only ever costs the lines drawn. About 7 lane-days, after SwiftUI's API (A
 **2026-11-18:** the owner's rulings (explore the public seam and a worker; no lexers in TUI) are explored in §8.
 The seam becomes a push model behind `@_spi` first, the catch-up moves to a worker while the lines on screen are
 still lexed in the frame, and the lexers go to a package of their own: about 6¼ lane-days in TUI.
+
+**2026-11-19, final (A-ATTRED-12):** no lexers anywhere. Highlighting comes from tree-sitter (SwiftTreeSitter and
+grammar packages such as TreeSitterJSON and TreeSitterXML), through a thin adapter on the seam that lives in
+tuitree or an optional package, never in TUI. §8.6 re-plans TUI's side. TUI still owns the layer, the seam (off the
+main actor, versioned, the viewport first), marks and the guards. The line-lexer engine (a state per line, the
+frontier, convergence, the screen lexed in the frame, the catch-up slices) existed to run hand-written lexers, so
+§8.6 proposes dropping it with the public line-lexer protocol (A-ATTRED-15): **about 4 lane-days in TUI, against
+6¼**. Measured here, tree-sitter parses a 3.2 MB JSON in 240 ms and re-parses after a key in 0.4 ms at 100 KB, 4.5
+ms at 1 MB and 16–17 ms at 3.2 MB, all on the styler's task, off the main actor. Its pieces add about 0.36 MB to a
+stripped app (JSON and XML) and 3 to 4 s to a clean release build. The adapter is about 2½ days in tuitree
+(A-ATTRED-16).
 
 ## 1. How editors do it
 
@@ -754,6 +767,15 @@ target that imports nothing of TUI's inside `TUILexers`, and the TUI conformance
 (b) is additive later at no cost now. Still open: the owner's final word, and the repository's name, which the owner
 creates.
 
+**Ruled 2026-11-19, final: none of (a) to (c).** TUI writes no lexers, and there is no `TUILexers` repository.
+Highlighting for JSON, XML and other languages comes from tree-sitter (SwiftTreeSitter and grammar packages such as
+TreeSitterJSON and TreeSitterXML), plugged in through a thin adapter on the `TextEditorHighlighter` seam. The
+adapter lives in an app (tuitree) or an optional package, never in TUI. In the owner's words: "I just don't want to
+invest significant time in that, especially if it's highly unoriginal work." A language server may come later
+through the same seam, for code-editing apps. A-ATTRED-10 (b) (the seam `@_spi` until a second real styler
+exists), A-ATTRED-11 (a) (to a screen past the viewport) and A-ATTRED-7 (work off the main actor) stand. §8.6
+re-plans TUI's side.
+
 ### 8.5 The lanes, as they now stand
 
 | Lane | Change | Days |
@@ -766,6 +788,228 @@ creates.
 
 **About 6¼ lane-days in TUI**, against 7 before. The 11-17 plan's H0–H6 is now H0–H4, H6 and H7, with H5's lexers
 in their own repository.
+
+*Superseded on 2026-11-19 by §8.6, after A-ATTRED-12's final ruling.*
+
+### 8.6 Tree-sitter instead of lexers: TUI's side, re-planned (2026-11-19)
+
+Written against `main` at c05417ca8, with a fourth probe (§"For a future reader"): a throwaway package that links
+SwiftTreeSitter 0.25.0, tree-sitter's C runtime 0.25.10, TreeSitterJSON 0.24.8 and TreeSitterXML 0.7.0, built and
+run on the same machine as §8 (macOS 15.8.3, 14 cores, Xcode's Swift 6.2.4, `-c release`, a load average of about 7
+from other lanes). New ids: B-ATTRED-27 to 30 (decided here), A-ATTRED-15 and 16 (for the owner).
+
+#### What tree-sitter changes
+
+The line engine of B-ATTRED-11 and 12 (an interned end state per line, the frontier, convergence, the screen lexed
+in the frame, the catch-up in 3 ms slices) is how TUI would have run a *line lexer*. Tree-sitter needs none of it.
+It keeps its own tree, re-parses after `ts_tree_edit` by reusing the old tree's unchanged parts [12], says where
+the tree changed (`ts_tree_get_changed_ranges` [13]), and answers a highlight query for any byte range [26]. So
+the whole incremental machinery is the styler's, and TUI's share shrinks to what any styler needs from an editor:
+
+| TUI still owns | Why a tree-sitter styler cannot do it | Where |
+|---|---|---|
+| The layer: runs drawn over the text, never written into it; styles interned per token; precedence under marks, find and selection | Only the editor draws | B-ATTRED-8, 10; H1 |
+| The seam: versioned snapshots, edits coalesced by whole lines, the styler's task started and cancelled with the editor | Only the editor sees its edits, and owns the task's lifetime | B-ATTRED-19 to 22, 25; H6′ |
+| The viewport first: the lines on screen as a hint, and an update when they move | Only the editor knows what it shows | B-ATTRED-20, 27 |
+| The off-main hand-off: a locked store the styler publishes into, a frame asked only when a line on screen changed, stale versions refused | The frame must never wait on a styler (A-ATTRED-7) | B-ATTRED-20, 24, 28 |
+| Marks tied to the text they were computed from | An app's parse errors and the find bar's matches are not highlighting | B-ATTRED-13; H3 |
+| The guards: clamped offsets, refused lines and versions, a bounded window, an over-long line drawn unstyled | A buggy or slow styler must not cost the editor | B-ATTRED-15, 20, 30 |
+
+What goes: the state store and its interning, the frontier and convergence, `resynchronizationState`, the screen
+lexed in the frame (B-ATTRED-23), the catch-up slices and their budget seam, and the guards that exist for a
+non-converging or slow-per-line lexer. B-ATTRED-23 existed because a line lexer is a pure function TUI could call in
+the frame. A tree-sitter parse cannot be (16–17 ms a key at 3.2 MB, below), so the line just typed is drawn with its
+old tokens until the styler publishes, which B-ATTRED-24 and 28 make close to invisible.
+
+**Does the public line-lexer protocol still earn its place?** Not on present evidence. Its users would be an app
+with a hand-written lexer, and the two named so far (tuitree's JSON and XML) are now tree-sitter's. TUI's own
+Example, Stress and tests need a styler to show and measure the feature, but strict JSON has nothing that spans
+lines (a string cannot hold a raw line break), so a stateless line styler over the seam is exact for them. The
+engine is a few hundred lines and about two days of lanes for a protocol with no user outside TUI. It can come back in a minor
+release, additively, if an app asks: A-ATTRED-15.
+
+#### What the adapter needs from the seam, checked against SwiftTreeSitter
+
+Read from SwiftTreeSitter 0.25.0's source [25] and tree-sitter 0.25.10's `api.h` [26]:
+
+- **Edits.** `InputEdit(startByte:oldEndByte:newEndByte:startPoint:oldEndPoint:newEndPoint:)`, applied with
+  `MutableTree.edit(_:)` (or `Tree.edit(_:)`, which returns an edited copy), then `Parser.parse(tree:…)` with the
+  edited tree to re-parse [25: `InputEdit.swift`, `Tree.swift`, `Parser.swift`]. B-ATTRED-21's change maps onto it
+  directly: `startByte` is `oldUTF8.lowerBound`, `oldEndByte` is `oldUTF8.upperBound`, `newEndByte` is
+  `newUTF8.upperBound`, and the points are (line, 0) at each end. Edits coalesced into one whole-line change are one
+  wider `InputEdit`, which tree-sitter takes as it takes any edit. Measured: `edit` alone is 2–7 µs.
+- **Changed ranges.** `Tree.changedRanges(from:)` (or `MutableTree.changedRanges(from:)`) over
+  `ts_tree_get_changed_ranges`, returning `TSRange`s with bytes and points [25: `Tree.swift`]. tree-sitter documents
+  them as where "the hierarchical structure of syntax nodes" changed [13], so the text just typed inside a token is
+  not necessarily in them: the adapter adds the edit's new bytes. It maps the bytes to lines, keeps those in the
+  window, and queries only those.
+- **Highlight queries over a byte range.** `Query(language:data:)` from a `highlights.scm`, `query.execute(in:)` for
+  a `QueryCursor`, `setByteRange(range:)`, then `nextCapture()`; each capture has `node.byteRange` and its capture
+  name [25: `Query.swift`]. A match that overlaps the range is returned whole [26:
+  `ts_query_cursor_set_byte_range`], so the adapter clips captures to each line, splits a capture that spans lines
+  (a comment), and flattens nested captures (a pair's key is also a string) into the seam's flat runs, with a "none"
+  token for the gaps. Measured: a 60-line screen's captures in 0.15 ms, whatever the document's size.
+- **Points against the seam's units.** tree-sitter's points are (row, column), the column in bytes of the input's
+  encoding, and a row ends only at LF [12]. With a UTF-8 parse, the column is exactly B-ATTRED-26's UTF-8 offset
+  from the line's start, and the rows are TUI's lines for LF and CRLF text. They differ only for a lone CR, which
+  TUI counts as a break and tree-sitter does not. SwiftTreeSitter's own comment on `InputEdit` says the points are
+  optional for a client that does not use line-relative positions [25: `InputEdit.swift`], and incremental reuse
+  works on bytes, so an adapter that works in bytes throughout is right even for lone-CR text.
+- **Three traps in SwiftTreeSitter.** It is built for UTF-16 and `NSRange` (TextKit's units):
+  1. `Parser.parse(_:)` and `parse(tree:string:)` encode the text as UTF-16, and `parse(tree:readBlock:)` defaults
+     to `TSInputEncodingUTF16LE` [25: `Parser.swift`]. The adapter passes `encoding: TSInputEncodingUTF8` and a read
+     block over the snapshot's UTF-8. Measured: that read block, which copies a chunk into `Data`, costs the same as
+     handing tree-sitter's C API the whole buffer (within the noise, at every size below).
+  2. Every `NSRange` helper (`Node.range`, `QueryCursor.setRange`, `NamedRange.range`) halves byte offsets
+     [25: `Encoding+Helpers.swift`], so it is wrong for a UTF-8 parse. So is the stock text provider that query
+     predicates read through (`String.predicateTextProvider` takes an `NSRange` [25: `String+TextProvider.swift`,
+     `Predicate.swift`]). TreeSitterXML's highlights use `#any-of?`, so the adapter gives the cursor its own text
+     provider, which reads by the point range it is also handed.
+  3. Cancellation: SwiftTreeSitter offers only `Parser.timeout`, over `ts_parser_set_timeout_micros` [25:
+     `Parser.swift`], which tree-sitter 0.25 marks deprecated ("will be removed in 0.26") for
+     `ts_parser_parse_with_options` and its progress callback [26]. SwiftTreeSitter pins tree-sitter
+     `.upToNextMinor(from: "0.25.0")` [25: `Package.swift`], while tree-sitter is at 0.27.2 (2026-11-07) [30]. An
+     adapter that wants to stop a long parse when a newer version arrives calls `ts_parser_parse_with_options`
+     itself (`import TreeSitter`, about 60 lines). Importing both modules makes `TSRange` ambiguous, so it is
+     spelled `SwiftTreeSitter.TSRange` (a compile error in the probe).
+- **The queries ship as resource bundles.** Each grammar target copies its `queries` folder as a SwiftPM resource
+  [27][28], and `LanguageConfiguration(_:name:)` finds it as `TreeSitterJSON_TreeSitterJSON.bundle` under
+  `Bundle.main.resourceURL` [25: `LanguageConfiguration.swift`]. A terminal tool is often installed as a lone
+  binary, without its bundles, so the adapter embeds each `highlights.scm` it uses (a few lines each; MIT licensed)
+  and builds its `Query` from the text.
+
+**Decided here.**
+
+- **B-ATTRED-27. An update comes on a scroll too.** B-ATTRED-21's updates carried edits. A styler that styles only
+  the window, as the tree-sitter adapter does by query, must also hear when the lines on screen move. So
+  `nextUpdate()` returns when the viewport moves, with the lines on screen in the update; the version is unchanged
+  by a scroll, which is how a styler tells one from an edit.
+- **B-ATTRED-28. A line edited in place keeps its tokens shifted.** B-ATTRED-24 kept an edited line's old tokens as
+  provisional at their old offsets. The editor knows the edit's column and length, so it moves the offsets past the
+  edit by the bytes inserted or removed. Typing inside a string then keeps the closing quote's colour where it was
+  until the styler publishes (0.4 ms later at 100 KB, a frame or two at 3.2 MB). Internal; no API.
+- **B-ATTRED-29. What the seam adds for a tree styler.** `TextEditorText.line(containingUTF8Offset:)` (a binary
+  search of the line starts the snapshot already has), to map changed ranges and captures to lines;
+  `TextEditorText.withUTF8(_:)`, the whole text's UTF-8 borrowed without a copy, for a parse through tree-sitter's C
+  API; and a batch `publish(_:forLines:of:)`, so a window of 60 or 180 lines takes the lock once, not once a line.
+- **B-ATTRED-30. The cap bounds styling, not parsing.** A-ATTRED-11 (a) stands, but a tree-sitter parse covers the
+  document (it is cheap after an edit because the old tree is reused, not because it stops early). What the cap
+  bounds is what the styler is asked for and what the store keeps: the lines on screen and a screen either side
+  (B-ATTRED-20). The long-line guard of B-ATTRED-15 stays: a line past 20,000 bytes (raisable in the modifier) is
+  drawn unstyled except for marks, and the session tells the styler not to style it, since a minified file's one
+  line would otherwise be hundreds of thousands of tokens.
+
+#### What it costs: probe 4
+
+A pretty-printed JSON built as §8.3's was (an array of records of seven lines), at three sizes. Medians of 5 full
+parses, 9 edits and 51 queries, two or three runs each; "C API" is the same edit through `ts_parser_parse_string_encoding`
+with the whole buffer, to split SwiftTreeSitter's share from tree-sitter's.
+
+| | 100 KB (5,464 lines) | 1 MB (53,344 lines) | 3.2 MB (168,095 lines) |
+|---|---|---|---|
+| A full parse | 7.3–7.8 ms | 70–76 ms | 237–241 ms |
+| A letter typed in a string: `edit`, re-parse with the old tree, changed ranges | 0.41–0.42 ms | 4.3–4.7 ms | 15.5–17.3 ms |
+| Of the letter's and the quote's, the re-parse / the changed ranges (C API, one run) | 0.19–0.20 / 0.19–0.20 ms | 2.2–2.7 / 2.2–2.8 ms | 7.3–9.0 / 6.7–7.2 ms |
+| A `"` typed, opening a string | 0.41–0.42 ms | 4.3–4.6 ms | 16.0–17.4 ms |
+| `/*` typed, opening a comment to the end (changed range: the whole document) | 0.77–0.81 ms | 7.4–7.7 ms | 24.4–26.1 ms |
+| A 60-line screen's highlight captures (`setByteRange`) | 0.15 ms | 0.16 ms | 0.15 ms |
+
+Against the byte lexer of §8.3 (a full pass in 3.3 ms at 3.2 MB, a key one line), tree-sitter is about 70 times
+slower to parse, and its cost a key grows with the document: about 5 ms a megabyte on this shape (one top-level
+array of 24,000 records), split evenly between the re-parse and the changed ranges. Why it grows was not
+investigated, and a more nested document may do better. None of it runs on the main actor (A-ATTRED-7), so the
+cost is how soon colours arrive, not how fast keys are taken: at once at 100 KB, a frame or two late at 3.2 MB,
+and a quarter of a second for the first colours when a 3.2 MB file opens. The tree's memory was not measured.
+
+Binary size: release builds (SwiftPM dead-strips), then stripped.
+
+| Executable | Stripped | Added | `__text` |
+|---|---|---|---|
+| A baseline (Foundation, `Data`, one `print`) | 54,568 bytes | | |
+| + SwiftTreeSitter, the runtime and TreeSitterJSON, parsing and querying | 360,360 bytes | 305,792 | 231,772 |
+| + TreeSitterXML (its DTD target is linked too) | 410,056 bytes | 49,696 more | 244,640 |
+
+Each grammar target also leaves a resource bundle beside the binary (4 KB each on disk), which an adapter that
+embeds its queries does not read. Compile time, clean, each product in a fresh scratch path: the baseline in 4.5 s
+of wall clock (3.0 s of CPU), with JSON 7.5 s (7.9 s), with JSON and XML 8.8 s (8.4 s) in release; in debug the
+baseline 4.8 s (3.7 s) and JSON with XML 6.6 s (14.8 s). So about **0.36 MB and 3 to 4 s of a clean build**, and
+nothing on an incremental build, since the dependencies do not change with the app's code. None of it reaches TUI
+or an app that does not depend on the adapter.
+
+#### Platforms
+
+- **macOS:** built and run here (above).
+- **Linux:** SwiftTreeSitter's CI runs `swift test` on `ubuntu-latest` [25: `.github/workflows/ci.yml`], which
+  compiles the C runtime too, and the Swift Package Index reports 0.25.0 building on Linux with Swift 6.1 to 6.4
+  [29]. The grammar packages are plain C11 (TreeSitterXML's scanner includes only `<string.h>`, `<wctype.h>` and
+  tree-sitter's own headers) and are expected to build, but **this was not verified here**: the static Linux SDK
+  this machine used for cross-checks is no longer installed, and this lane did not download it again.
+- **Windows: unverified.** tree-sitter's own CI builds the C library for Windows on x64, x86 and arm64 with MSVC,
+  through Cargo [26: `.github/workflows/build.yml`], and the runtime has `_WIN32` branches (its clock, atomics,
+  allocation). Nobody that I found builds the SwiftPM targets on Windows: SwiftTreeSitter has no Windows CI, and the
+  Swift Package Index does not build Windows [29]. SwiftTreeSitter uses `Data`, `NSRange`, `Bundle` and
+  `FileManager`, all in swift-corelibs-foundation there. It does not matter yet: `TUITextInput` does not build on
+  Windows (§8.3, "Platforms"), so no highlighted editor exists there until it is ported. Check then, on the Windows
+  VM (an owner action).
+- **WebAssembly:** the Swift Package Index reports Wasm builds (one of its two Swift 6.2 builds failed) [29], and
+  SwiftTreeSitter keeps its `Bundle` code behind `#if !os(WASI)` [25]. Not verified here.
+
+#### The adapter's cost (in tuitree or a package, never TUI)
+
+| Piece | Days |
+|---|---|
+| Updates to the tree: change to `InputEdit`, `edit`, re-parse over the snapshot's UTF-8, changed ranges and the edit to lines in the window | ½ |
+| Cancellation through `ts_parser_parse_with_options` when a newer version arrives (optional at first: B-ATTRED-21's coalescing wastes at most one parse) | ¼–½ |
+| Styling the window: query a byte range, clip and split captures per line, flatten nesting, publish (B-ATTRED-29's batch) | ½ |
+| A UTF-8 text provider for predicates; embedded queries; capture names to a default palette | ½ |
+| Tests: the edit mapping, the flattening, a lone-CR text, and incremental against full parse over random edits | ½–¾ |
+
+**About 2½ days**, against H5's 1½ for two hand-written lexers, and every further language then costs a dependency
+and its query rather than a lexer. Dependencies: SwiftTreeSitter (BSD 3-Clause), tree-sitter (MIT) and each
+grammar (MIT). The grammar packages' manifests name `ChimeHQ/SwiftTreeSitter` for their tests only; SwiftPM did not
+fetch it.
+
+#### The lanes
+
+| Lane | What | Days | Was |
+|---|---|---|---|
+| **H1** | Drawing: runs into `styledRow`, styles interned per token value (B-ATTRED-10), the drawn lines' run cache, precedence (B-ATTRED-8) | ½ | ½ |
+| **H6′** | The seam and its store: versioned snapshots, coalesced whole-line changes, the styler's task started and cancelled with the editor (B-ATTRED-19 to 22, 25), publishing validated into the window, frames only for lines on screen (20), provisional tokens carried and shifted (24, 28), updates on a scroll (27), B-ATTRED-29's additions, the guards (15, 30). Tests: a fake tree styler that reports changed ranges, deterministic stepping without sleeps, a stale publish refused, an edit mid-publish, cancellation, one run under the thread sanitizer | 1½ | H2 + H7 2, H6 ½ |
+| **H5′** | A stateless JSON line styler over the seam, in an internal target that is not a product (as `TUIWidthCorpus` is), for the Example, Stress's `bigtext-highlighted` and tests | ¼ | ¼ (a JSONC lexer) |
+| **H3** | Marks (B-ATTRED-13), with the find bar's matches moved onto them | 1 | 1 |
+| **H4′** | The API: `TextEditorMark` and `.textEditorMarks` public, with DocC; the seam and `.textEditorHighlighter` under `@_spi(TextEditorHighlighting)` (A-ATTRED-10), documented in doc comments; `api_baseline.py` taught to skip SPI; the API stability policy's SPI line; CHANGELOG; the Example's Text Input page in its seven languages | ¾ | 1 |
+| **H0** | Gone, with the line-lexer engine (A-ATTRED-15 (a)) | 0 | 1 |
+
+**About 4 lane-days in TUI, against 6¼.** In order: H1, H6′, H5′, H3, H4′. With A-ATTRED-15 (b), about 6¼. The
+adapter's 2½ days are tuitree's.
+
+#### A-ATTRED-15. Whether TUI keeps a line lexer
+
+*A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no
+user outside TUI.*
+
+- **(a) ★ Not now.** TUI builds only the seam. **Price:** none, and it saves about 2¼ days (H0's day, about a day
+  of H2 and H7's screen lexed in the frame and catch-up slices, and about ¼ of the lexer's public API and
+  documentation). An app with a hand-written lexer writes it against the seam and keeps its own line states. A line lexer can be added in a minor release later, on the seam, if an app asks. All highlighting is then
+  behind `@_spi` until the seam is promoted (A-ATTRED-10): apps write `@_spi(TextEditorHighlighting) import
+  TUITextInput`. The promotion trigger is unchanged: when tuitree's adapter has been written against the seam and
+  has settled, promotion is put to the owner.
+- **(b) As ruled on 2026-11-18.** The engine and the public `TextEditorLexer` beside the seam. **Price:** about 2¼
+  days more (about 6¼ in all), and from 1.0 a public protocol fixed until 2.0 whose only users are TUI's Example and
+  tests.
+
+★ (a): it is the line engine, not the seam, that a lexer needed, and no lexer is coming. **Default if unanswered:**
+(a), since it promises nothing and (b) stays additive.
+
+#### A-ATTRED-16. Where the tree-sitter adapter lives
+
+- **(a) ★ In tuitree, in a target of its own** that imports nothing else of tuitree's, so it can move out whole.
+  **Price:** none beyond its 2½ days.
+- **(b) An optional package now,** in a repository beside TUI's that the owner creates (repository names are held
+  for the owner). **Price:** about ½ day more (the package and its CI against TUI's `main`), and while the seam is
+  `@_spi` a published package breaks whenever the seam changes in a minor release, so it must pin TUI's minor.
+
+★ (a): extract it when a second app wants it, which is also when the seam's promotion is due. **Default:** (a).
 
 ## For a future reader
 
@@ -792,6 +1036,17 @@ in their own repository.
      global): the module emitted with `-emit-module`, then each app file type-checked with `-default-isolation
      MainActor -enable-upcoming-feature InferIsolatedConformances -enable-upcoming-feature
      NonisolatedNonsendingByDefault`, and without them.
+- **The 2026-11-19 probe** (§8.6; in the scratchpad, not the repository): a SwiftPM package (tools 6.2, macOS 15)
+  depending on `tree-sitter/swift-tree-sitter` from 0.10.0 (it resolved to 0.25.0, and tree-sitter to 0.25.10),
+  `tree-sitter/tree-sitter-json` exactly 0.24.8 and `tree-sitter-grammars/tree-sitter-xml` exactly 0.7.0. Four
+  executables: `Base` (Foundation, `Data` of the argument, a `print`); `MinimalJSON` and `Minimal` (a UTF-8 parse
+  through `parse(tree:encoding:readBlock:)` and a capture walk, for JSON, and for JSON and XML); and `Adapter`,
+  about 180 lines, which builds the JSON of §8.3 at a size given as its argument, then times a full parse, a 60-line
+  query by `setByteRange`, and three edits (a letter in a string, a `"`, a `/*`) as copy, `edit`, re-parse and
+  changed ranges, through SwiftTreeSitter with 64 KB and 4 KB read chunks and through the C API with the whole
+  buffer. Sizes: `swift build -c release --product X --scratch-path <fresh>` per product, timed with `/usr/bin/time
+  -p`, then a copy stripped with `strip` and measured, and `size -m` for sections. Built with Xcode's toolchain
+  (`DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`). A lane can rebuild it in an hour.
 - **The cap on catch-up** (B-ATTRED-12) is the decision most likely to be revisited. If an app wants the whole
   document styled (a minimap, an outline drawn from tokens), the engine can run to the end in slices on request.
   It is not the default, because an edit that opens a comment would then cost the document.
@@ -842,3 +1097,18 @@ in their own repository.
 23. Bare Bones, Codeless Language Modules: <https://barebones.com/support/develop/clm.html>
 24. Language Server Protocol 3.17, `textDocument/publishDiagnostics` (`version`) and semantic tokens:
     <https://microsoft.github.io/language-server-protocol/specifications/lsp/3.17/specification/>
+25. SwiftTreeSitter 0.25.0 (revision 08ef81e), read where cited: `Package.swift`, `Sources/SwiftTreeSitter/`
+    `Parser.swift`, `Tree.swift`, `InputEdit.swift`, `Query.swift`, `Predicate.swift`, `String+TextProvider.swift`,
+    `Encoding+Helpers.swift`, `LanguageConfiguration.swift`, `Bundle+Extensions.swift`, and
+    `.github/workflows/ci.yml`: <https://github.com/tree-sitter/swift-tree-sitter/tree/0.25.0>
+26. tree-sitter 0.25.10: `Package.swift`, `lib/include/tree_sitter/api.h` (`ts_parser_parse_with_options`,
+    `TSParseOptions`, the deprecation of `ts_parser_set_timeout_micros`, `ts_query_cursor_set_byte_range`,
+    `ts_tree_get_changed_ranges`) and `.github/workflows/build.yml` (the Windows targets):
+    <https://github.com/tree-sitter/tree-sitter/tree/v0.25.10>
+27. tree-sitter-json 0.24.8 (`Package.swift`, `queries/highlights.scm`, `bindings/swift`):
+    <https://github.com/tree-sitter/tree-sitter-json/tree/v0.24.8>
+28. tree-sitter-xml 0.7.0 (`Package.swift`, `queries/xml/highlights.scm`, `xml/src/scanner.c`):
+    <https://github.com/tree-sitter-grammars/tree-sitter-xml/tree/v0.7.0>
+29. Swift Package Index, swift-tree-sitter's builds (0.25.0: Linux, Android, Wasm and Apple platforms with Swift
+    6.1 to 6.4; no Windows), read 2026-11-19: <https://swiftpackageindex.com/tree-sitter/swift-tree-sitter/builds>
+30. tree-sitter's releases (0.27.2, 2026-11-07): <https://github.com/tree-sitter/tree-sitter/releases>
