@@ -131,8 +131,11 @@ struct GradientAnimationTests {
     /// The geometry's numbers move too, so a ramp can sweep across a view.
     @Test("A moving start point sweeps rather than jumping")
     func geometrySlides() {
+        // The view modifier's, around the text: `Text`'s own `foregroundStyle`
+        // keeps the style in the text's value and changes at once under an
+        // animation (Deliberate deviations T10).
         func ramp(_ start: UnitPoint) -> some View {
-            Text(verbatim: "abcdefgh")
+            Group { Text(verbatim: "abcdefgh") }
                 .foregroundStyle(
                     LinearGradient(
                         colors: [.rgb(255, 0, 0), .rgb(0, 0, 255)],
