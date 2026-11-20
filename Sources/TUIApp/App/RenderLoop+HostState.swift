@@ -126,6 +126,7 @@ extension RenderLoop {
         for message in owed.takePendingAttention() {
             if posts, let notification = TerminalHostState.notification(message) {
                 notifications += notification
+                postedDesktopNotification?(message)
             } else {
                 rings = true
             }
@@ -136,10 +137,12 @@ extension RenderLoop {
         // bell: the toast is on the screen, so there is nothing to ring for.
         for message in owed.takePendingNotifications() {
             if posts {
-                notifications += TerminalHostState.notification(message) ?? ""
+                guard let notification = TerminalHostState.notification(message) else { continue }
+                notifications += notification
             } else {
                 tuiContext.systemNotifier.post(message)
             }
+            postedDesktopNotification?(message)
         }
         return (notifications, rings ? TerminalHostState.bell : "")
     }

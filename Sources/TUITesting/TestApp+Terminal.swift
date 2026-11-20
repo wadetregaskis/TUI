@@ -2,7 +2,8 @@
 //  TestApp+Terminal.swift
 //
 //  What a test can say about the terminal around the app: its window losing
-//  and gaining the focus, and what the terminal can do.
+//  and gaining the focus, and what the terminal can do; and what the app sent
+//  the terminal beyond its cells: its progress bar and desktop notifications.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -67,5 +68,50 @@ extension TestApp {
         start()
         headless.reportFocus(isFocused)
         if headless.takeFrameRequest() { drawFrames() }
+    }
+
+    /// The progress the app last sent for the terminal to show on its tab or
+    /// window, which its views state with `.terminalProgress(_:)`, or `nil`
+    /// while none states one.
+    ///
+    /// It is not on the ``screen``: a terminal draws it beside the app's
+    /// cells. A running app sends it only to a terminal that draws a progress
+    /// bar; this is what it would send to one, whatever
+    /// ``terminalCapabilities`` says.
+    ///
+    /// ```swift
+    /// app.press(.character("s"), modifiers: .control)     // starts a scan
+    /// #expect(app.terminalProgress == .indeterminate)
+    /// ```
+    public var terminalProgress: TerminalProgress? {
+        start()
+        drawAskedFrames()
+        return headless.terminalProgress
+    }
+
+    /// The messages the app has posted on the desktop, oldest first: each
+    /// toast posted with a `desktop:` delivery that applied when the frame
+    /// after the post drew it.
+    ///
+    /// Nothing reaches the desktop of the machine the test runs on. A running
+    /// app posts these through the terminal where it posts notifications, and
+    /// otherwise through the machine's own; a message lands here either way.
+    /// A toast that asks for `.whenInactive` is posted only while the window
+    /// is in the background, as ``reportFocus(_:)`` puts it:
+    ///
+    /// ```swift
+    /// app.reportFocus(false)
+    /// app.press(.character("s"), modifiers: .control)     // posts "Scan finished"
+    /// #expect(app.desktopNotifications == ["Scan finished"])
+    /// ```
+    ///
+    /// A toast is sent by the frame that first draws it, so one posted through
+    /// `NotificationService.current`, which no `TestApp` draws, is not here.
+    /// Nor is a `\.requestAttention` call: a `TestApp`'s terminal is not taken
+    /// to post notifications, so that one rings the bell instead.
+    public var desktopNotifications: [String] {
+        start()
+        drawAskedFrames()
+        return headless.desktopNotificationsPosted
     }
 }

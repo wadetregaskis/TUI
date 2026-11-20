@@ -271,6 +271,12 @@ internal final class RenderLoop<A: App> {
     /// on its test clock (`HeadlessApp.useOwnNotificationQueue()`).
     var notificationService: NotificationService?
 
+    /// Told each message a frame posts as a desktop notification, by either
+    /// route: through the terminal, or this machine's own (`attentionWrites()`).
+    /// `nil` in an app; in a `TestApp`, its record of them
+    /// (`HeadlessApp.desktopNotificationsPosted`).
+    var postedDesktopNotification: ((String) -> Void)?
+
     /// The lines `.hairline` list separators draw, as the terminal holds them
     /// (`RenderLoop+Hairlines.swift`). Idle, and never asked, on a host that
     /// draws none.

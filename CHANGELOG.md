@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A test can read the progress bar and the desktop notifications an app sends.** `TestApp.terminalProgress` is the
+progress the app's views state with `.terminalProgress(_:)` (what a terminal that draws a bar is sent), or `nil` while
+none states one, and `TestApp.desktopNotifications` lists the toasts posted on the desktop too, whichever route a
+running app would send them by. Neither is on the screen, so a test could check only the model behind them.
+
 **A `TestApp` draws toasts of its own, on its test clock.** A toast posted in a `TestApp` was stamped by the machine's
 clock and faded by the test's, so its box was drawn blank over the window until the two clocks agreed, and again
 after its time until real seconds had passed; and every `TestApp` in a process drew the same queue, so tests running

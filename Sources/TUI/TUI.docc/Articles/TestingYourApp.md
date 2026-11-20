@@ -198,6 +198,18 @@ app.reportFocus(false)
 #expect(app.screen.contains("Paused"))
 ```
 
+What the app sends the terminal beyond its cells isn't on the screen either. ``TestApp/terminalProgress`` is the progress
+its views state with `.terminalProgress(_:)`, for the terminal to show on its tab, or `nil` while none states one.
+``TestApp/desktopNotifications`` lists the toasts posted on the desktop too, oldest first: one posted with
+`desktop: .whenInactive` lands there only while the window is in the background, as ``TestApp/reportFocus(_:)`` puts
+it. Nothing reaches the desktop of the machine the test runs on.
+
+```swift
+app.reportFocus(false)
+app.press(.character("s"), modifiers: .control)    // Starts a scan.
+#expect(app.terminalProgress == .indeterminate)
+```
+
 ### Moving time
 
 The clock stands still until you move it, so nothing depends on how fast the machine is:

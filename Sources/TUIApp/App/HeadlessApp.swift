@@ -163,6 +163,7 @@ package final class HeadlessApp {
         // that starts a tooltip's delay, the press that may make a double click.
         let eventClock = self.eventClock
         tuiContext.mouseEventDispatcher.nowNanos = { eventClock.nanos }
+        renderer.postedDesktopNotification = { [weak self] in self?.desktopNotificationsPosted.append($0) }
         // Counted where `AppRunner.wireFocusRepaints` asks the loop for them.
         focusManager.onFocusChange = { [weak self] in self?.framesAsked += 1 }
         focusManager.focusedValues.requestFrame = { [weak self] in self?.framesAsked += 1 }
@@ -185,6 +186,18 @@ package final class HeadlessApp {
 
     /// The instant the last frame was drawn at; zero before the first.
     package private(set) var lastFrameNanos: Int64 = 0
+
+    /// The progress the views of the last frame written stated
+    /// (`.terminalProgress(_:)`): what the frame sends a terminal that takes a
+    /// progress bar, whether or not this one is taken to (`sendsProgressReports`).
+    /// `nil` where no view states one.
+    package private(set) var terminalProgress: TerminalProgress?
+
+    /// Every message the frames have posted as a desktop notification, oldest
+    /// first, whichever route each took: through the terminal (`OSC 9`), or
+    /// handed to this machine's own notifications, which here post nothing
+    /// (`InMemorySystemNotifier`).
+    package private(set) var desktopNotificationsPosted: [String] = []
 
     /// The terminal's size, in cells.
     package var size: (width: Int, height: Int) { terminal.size }
@@ -270,6 +283,9 @@ package final class HeadlessApp {
             pulsePhase: 0, cursorTimer: nil, animationScheduler: animationScheduler, frameNowNanos: nanos,
             frameDate: date, writesFrame: true)
         animationScheduler.endFrame()
+        // Read after the walk, as the frame read it to send: an update between
+        // frames writes nothing, so sends nothing either.
+        terminalProgress = renderer.terminalProgress
         // As `AppRunner.renderFrame` ends a frame: the events until the next one
         // are filtered against the support the frame asked for, the scene's
         // base with what its views requested (an `.onHover` asks for motion),
@@ -581,6 +597,8 @@ private protocol HeadlessRendering: AnyObject {
     var viewPreferenceOverrides: ViewPreferenceOverrides { get }
     var configureEnvironment: ((inout EnvironmentValues) -> Void)? { get set }
     var notificationService: NotificationService? { get set }
+    var postedDesktopNotification: ((String) -> Void)? { get set }
+    var terminalProgress: TerminalProgress? { get }
 }
 
 extension RenderLoop: HeadlessRendering {}

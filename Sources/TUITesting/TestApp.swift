@@ -353,7 +353,7 @@ public final class TestApp {
     /// so what the test reads is what a terminal would show. Without it, a
     /// change made between events — an undo the test made through
     /// ``undoManager``, say — stayed off the screen until the next input.
-    private func drawAskedFrames() {
+    func drawAskedFrames() {
         if drawsAskedFramesOnRead, headless.takeFrameRequest() { drawFrames() }
     }
 

@@ -11,6 +11,7 @@ TestApp.click(_:button:modifiers:) | @MainActor func click(_ text: String, butto
 TestApp.click(at:button:modifiers:) | @MainActor func click(at point: CellPoint, button: MouseButton = .left, modifiers: EventModifiers = [])
 TestApp.clipboard | @MainActor var clipboard: String? { get }
 TestApp.date | @MainActor var date: Date { get set }
+TestApp.desktopNotifications | @MainActor var desktopNotifications: [String] { get }
 TestApp.drag(from:to:modifiers:) | @MainActor func drag(from start: CellPoint, to end: CellPoint, modifiers: EventModifiers = [])
 TestApp.drag(from:to:modifiers:) | @MainActor func drag(from start: String, to end: String, modifiers: EventModifiers = []) throws
 TestApp.elapsed | @MainActor var elapsed: Duration { get }
@@ -29,6 +30,7 @@ TestApp.screen | @MainActor var screen: TestScreen { get }
 TestApp.scroll(_:by:at:) | @MainActor func scroll(_ direction: TestApp.ScrollDirection, by ticks: Int = 1, at point: CellPoint? = nil)
 TestApp.scroll(_:by:over:) | @MainActor func scroll(_ direction: TestApp.ScrollDirection, by ticks: Int = 1, over text: String) throws
 TestApp.terminalCapabilities | @MainActor var terminalCapabilities: TerminalCapabilities { get set }
+TestApp.terminalProgress | @MainActor var terminalProgress: TerminalProgress? { get }
 TestApp.type(_:) | @MainActor func type(_ text: String)
 TestApp.undoManager | @MainActor let undoManager: UndoManager
 TestApp.wait(for:timeout:) | @MainActor func wait(for text: String, timeout: Duration = .seconds(60)) async throws
