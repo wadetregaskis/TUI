@@ -19,6 +19,21 @@ struct EditorAttributedStyling: Equatable {
     let font: Font?
     let linkUnderline: Bool
 
+    /// What an editor drawn in `environment` draws its lines' styles under.
+    @MainActor
+    init(in environment: EnvironmentValues) {
+        let palette = environment.palette
+        self.init(
+            palette: palette, accent: palette.accent.resolve(with: palette),
+            lineStyleSupport: environment.lineStyleSupport, font: environment.font,
+            linkUnderline: environment.linkUnderline)
+    }
+
+    init(palette: any Palette, accent: Color, lineStyleSupport: LineStyleSupport, font: Font?, linkUnderline: Bool) {
+        (self.palette, self.accent, self.lineStyleSupport) = (palette, accent, lineStyleSupport)
+        (self.font, self.linkUnderline) = (font, linkUnderline)
+    }
+
     static func == (a: Self, b: Self) -> Bool {
         a.palette.id == b.palette.id && a.accent == b.accent && a.lineStyleSupport == b.lineStyleSupport
             && a.font == b.font && a.linkUnderline == b.linkUnderline
@@ -51,11 +66,7 @@ extension TextEditorHandler {
             }
         }
         text = source.plainText
-        let palette = environment.palette
-        let styling = EditorAttributedStyling(
-            palette: palette, accent: palette.accent.resolve(with: palette),
-            lineStyleSupport: environment.lineStyleSupport, font: environment.font,
-            linkUnderline: environment.linkUnderline)
+        let styling = EditorAttributedStyling(in: environment)
         if styling != attributedStyling {
             lineStyleCache.removeAll()
             keptLineGaps = nil
@@ -75,26 +86,14 @@ extension TextEditorHandler {
         let value = source.value
         let lower = value.characters.index(value.startIndex, offsetBy: layout.characterStarts[line])
         let upper = value.characters.index(lower, offsetBy: layout.lines[line].count)
-        let palette = styling.palette
         var styles: [EditorStyledRun] = []
         var column = 0
         for run in value[lower..<upper].runs {
             let length = value[run.range].characters.count
             defer { column += length }
-            var cell = Text.cellStyle(of: value[run.range], environmentFont: styling.font)
-            if run.link != nil {
-                cell.foreground = cell.foreground ?? styling.accent
-                if cell.underline == nil, styling.linkUnderline { cell.underline = .single }
+            if let styled = EditorStyledRun(value[run.range], columns: column..<(column + length), styling: styling) {
+                styles.append(styled)
             }
-            let decoration = CellDecoration(
-                isBold: cell.isBold, isDim: cell.isDim, isItalic: cell.isItalic, underline: cell.underline,
-                strikethrough: cell.strikethrough)
-            guard cell.foreground != nil || cell.background != nil || decoration != CellDecoration() else { continue }
-            styles.append(
-                EditorStyledRun(
-                    columns: column..<(column + length), foreground: cell.foreground?.resolve(with: palette),
-                    background: cell.background?.resolve(with: palette),
-                    decoration: decoration.fitted(to: styling.lineStyleSupport, palette: palette)))
         }
         return styles
     }
@@ -145,5 +144,29 @@ extension TextEditorHandler {
                 source.published = (chosen, offsets)
                 if source.selection?.wrappedValue != chosen { source.selection?.wrappedValue = chosen }
             })
+    }
+}
+
+extension EditorStyledRun {
+    /// `run`, a stretch of an `AttributedString` drawn alike, over `columns`,
+    /// as an editor drawing under `styling` draws it — its colours resolved, a
+    /// font's tier and weight as bold or faint, italic, its lines fitted to
+    /// the terminal, a link in the accent and underlined — or `nil` where it
+    /// states nothing an editor draws.
+    init?(_ run: AttributedSubstring, columns: Range<Int>, styling: EditorAttributedStyling) {
+        var cell = Text.cellStyle(of: run, environmentFont: styling.font)
+        if run.link != nil {
+            cell.foreground = cell.foreground ?? styling.accent
+            if cell.underline == nil, styling.linkUnderline { cell.underline = .single }
+        }
+        let decoration = CellDecoration(
+            isBold: cell.isBold, isDim: cell.isDim, isItalic: cell.isItalic, underline: cell.underline,
+            strikethrough: cell.strikethrough)
+        guard cell.foreground != nil || cell.background != nil || decoration != CellDecoration() else { return nil }
+        let palette = styling.palette
+        self.init(
+            columns: columns, foreground: cell.foreground?.resolve(with: palette),
+            background: cell.background?.resolve(with: palette),
+            decoration: decoration.fitted(to: styling.lineStyleSupport, palette: palette))
     }
 }
