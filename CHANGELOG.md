@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Canvas`'s text stays inside the canvas.** A glyph drawn at the canvas's right or bottom edge, `x: size.width` or
+`y: size.height`, landed in the column or row past it, and a wide glyph in the last column ran a cell over, so the
+canvas came out a cell wider or taller than its frame, and where its frame cut a wide glyph back the row was left a
+cell short. A glyph that doesn't fit wholly inside the canvas is now not drawn, as the canvas already clipped
+everything else it draws.
+
 **The help key shows a `help` written inside a `.focusable()` view.** Only a `.help` written outside the modifier
 reached the keyboard: `Rectangle().help("…").focusable()` showed its tooltip under the pointer, but `?` showed nothing
 when the view had the focus. A view now has one help however its modifiers are ordered; of a help inside the

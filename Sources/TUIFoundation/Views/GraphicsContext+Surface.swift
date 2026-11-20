@@ -45,6 +45,9 @@ extension GraphicsContext {
 
         /// The frame, in cells.
         let frame: (columns: Int, rows: Int)
+        /// Whether a glyph must lie wholly inside the frame to be drawn: a
+        /// canvas's must, a text's may land past it, by ``reach``.
+        private let clipsToFrame: Bool
         /// How many of the context's units a row is tall: the cell aspect in a
         /// ``Canvas``, whose units are a shape's, and 1 in a text, whose are its
         /// layout's.
@@ -87,6 +90,7 @@ extension GraphicsContext {
                 CGFloat(-Self.reach.columns), CGFloat(-Self.reach.rows),
                 CGFloat(width + Self.reach.columns), CGFloat(height + Self.reach.rows))
             frame = (width, height)
+            clipsToFrame = false
             unitsPerRow = 1
             grain = context.environment.canvasGrain.inCells(of: context.environment)
             grid = grain.cellPixels
@@ -106,6 +110,7 @@ extension GraphicsContext {
         ) {
             bounds = (0, 0, CGFloat(columns), CGFloat(rows))
             frame = (columns, rows)
+            clipsToFrame = true
             self.unitsPerRow = CGFloat(unitsPerRow)
             self.grid = grid
             self.grain = grain
@@ -161,6 +166,16 @@ extension GraphicsContext {
 
         func write(_ cell: Cell, column: Int, row: Int) {
             guard cell.opacity > 0 else { return }
+            // A canvas clips to its frame, and a glyph cannot be cut: one that
+            // would cross the edge is not drawn. ``bounds`` admits an origin ON
+            // the right and bottom edges (a point there is in the frame), which
+            // put a glyph in the column or row past it, and a wide glyph in the
+            // last column ran a cell over; the buffer then came out wider or
+            // taller than the canvas, and a frame cutting it back left the row
+            // a cell short where it cut the wide glyph.
+            if clipsToFrame {
+                guard column >= 0, row >= 0, column + cell.width <= frame.columns, row < frame.rows else { return }
+            }
             var line = rows[row] ?? [:]
             // A wide glyph covers the cell after it, and a glyph written over
             // either half of a wide one removes it.

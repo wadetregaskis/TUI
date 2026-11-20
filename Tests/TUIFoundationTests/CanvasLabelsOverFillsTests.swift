@@ -80,6 +80,36 @@ struct CanvasLabelsOverFillsTests {
         let folded = foldedRuns(of: surface, over: base)
         #expect(drawn == folded)
         #expect(drawn.linesAreUniformWidth, "every row one width, as the in-place composite keeps them")
+        #expect(drawn.width == 16, "no glyph past the canvas's right edge")
+        #expect(drawn.lines.count == 3)
+        #expect(drawn.lines.allSatisfy { $0.strippedLength == 16 })
+    }
+
+    @Test("A label is cut at the canvas's right edge, and a wide glyph that would cross it is not drawn")
+    func clippedAtTheEdge() {
+        let canvas = Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(green))
+            context.draw(Text(verbatim: "abcdef"), at: CGPoint(x: 3, y: 0), anchor: .topLeading)
+            context.draw(Text(verbatim: "x日"), at: CGPoint(x: 4, y: 2), anchor: .topLeading)
+        }
+        let buffer = canvasDrawn(canvas.canvasGrain(.halfBlocks), columns: 6, rows: 2)
+        #expect(buffer.width == 6)
+        #expect(buffer.lines.map(\.strippedLength) == [6, 6])
+        #expect(buffer.lines[0].stripped == "   abc")
+        #expect(buffer.lines[1].stripped == "    x ")
+        #expect(paintedCells(buffer.lines[1])[5].state.backgroundColour == .rgb(0, 160, 0), "the fill, where 日 was not drawn")
+    }
+
+    @Test("A glyph whose origin is on the canvas's right or bottom edge is not drawn")
+    func originOnTheEdge() {
+        let surface = canvasSurface(columns: 4, rows: 2) { context, size in
+            context.draw(Text(verbatim: "r"), at: CGPoint(x: size.width, y: 0), anchor: .topLeading)
+            context.draw(Text(verbatim: "b"), at: CGPoint(x: 0, y: size.height), anchor: .topLeading)
+            context.draw(Text(verbatim: "日"), at: CGPoint(x: size.width - 1, y: 2), anchor: .topLeading)
+            context.draw(Text(verbatim: "ok"), at: CGPoint(x: 2, y: 2), anchor: .topLeading)
+        }
+        #expect(surface.rows.keys.sorted() == [1])
+        #expect(surface.rows[1]?.keys.sorted() == [2, 3])
     }
 
     @Test("Labels over a clear canvas draw what the fold drew, its blank cells left blank")
