@@ -7,7 +7,7 @@ real editors highlight large documents, then proposes how TUI should. Written 20
 2b23a75b5. Nothing here is built. The costs come from a standalone probe on this machine (macOS 15.8.3, Xcode's
 Swift 6.2.4, `-O`; see "For a future reader"). Ids: A-ATTRED-5 to 7 (for the owner), B-ATTRED-8 to 15 (decided
 here). The owner ruled on A-ATTRED-5 to 7 on 2026-11-18; §8 explores the rulings (B-ATTRED-19 to 26, and
-A-ATTRED-10 to 12 for the owner).*
+A-ATTRED-10 to 12 for the owner, who ruled on 10 and 11 on 2026-11-19 and leaned to (a) on 12).*
 
 ## In short
 
@@ -714,6 +714,9 @@ frame.
 ★ (b): the engine is built behind the seam either way. It is the promise, not the code, that wants a user first.
 **Default if unanswered:** (b), since it promises nothing.
 
+**Ruled 2026-11-19: (b).** The seam is `@_spi(TextEditorHighlighting) public` until a second real styler exists, then
+public in a minor release. H6 builds it so, with `api_baseline.py` taught to skip SPI.
+
 #### A-ATTRED-11. How far the catch-up goes, now that it is off the main actor
 
 - **(a) ★ As B-ATTRED-12: to a screen past the viewport.** A jump far ahead draws one provisional screen, corrected
@@ -728,6 +731,8 @@ frame.
 ★ (a): with a byte lexer the difference is one frame after a jump. (b) or (c) can come when an app wants a minimap,
 without an API change. **Default:** (a).
 
+**Ruled 2026-11-19: (a).** The catch-up runs to a screen past the viewport, as B-ATTRED-12 has it.
+
 #### A-ATTRED-12. The lexers' package
 
 - **(a) ★ `TUILexers`, a repository beside TUI's,** with a product per language (`TUIJSONLexer`, `TUIXMLLexer`),
@@ -739,6 +744,15 @@ without an API change. **Default:** (a).
 
 ★ (a): the ruling asked for a repository other apps can use, and every user named so far uses TUI. **Default:** (a)
 once the owner names the repository, else (c).
+
+**2026-11-19: (a), tentatively.** The owner leaned to (a) and asked, for (b), how much the lexers depend on TUI and how
+useful they would be without it. The answer given: they are not written yet; what would touch TUI is only the
+`TextEditorLexer` conformance, the token type it returns and the default palette's colours, and a lexer's state
+machine itself needs nothing of TUI's. Without TUI they would be modestly useful (another terminal or GUI editor,
+a formatter, a linter), since a byte lexer for JSON or XML is small. Proposed: (a), with each language's lexing in a
+target that imports nothing of TUI's inside `TUILexers`, and the TUI conformance in the product beside it, so that
+(b) is additive later at no cost now. Still open: the owner's final word, and the repository's name, which the owner
+creates.
 
 ### 8.5 The lanes, as they now stand
 
