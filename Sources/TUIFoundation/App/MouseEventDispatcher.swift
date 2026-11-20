@@ -237,8 +237,8 @@ package final class MouseEventDispatcher {
 
     /// The handlers the app wrote, registered this frame
     /// (``registerApplicationHandler(in:_:)``), cleared with the handler
-    /// table.
-    private var applicationHandlerIDs: Set<HitTestRegion.HandlerID> = []
+    /// table. Read by the hover machine, which treats them as observers.
+    private(set) var applicationHandlerIDs: Set<HitTestRegion.HandlerID> = []
 
     /// The handlers registered to hear the wheel alone this frame
     /// (``registerWheelHandler(in:_:)``), cleared with the handler table.

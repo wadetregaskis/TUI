@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**An `onMouseEvent` handler leaves the hover to the views inside it.** Its region was the control under the pointer,
+so an `onHover`, `onContinuousHover` or `help` inside it, and a `Button`'s hover face, heard nothing, though the
+handler returned `false` for every event; `onScrollWheel`, which is built on it, did the same. The handler now hears
+the pointer come and go as `onHover` does, beside the views inside it, whatever it returns; presses are offered to it
+as before.
+
 **A click on a `.focusable()` view reaches what is inside it.** The modifier's click-to-focus (its `.edit`
 interaction, one of the defaults) put a region in front of the view that took every left press and the hover, so a tap
 gesture on the view, an `onHover` or `onContinuousHover`, a `help` tooltip under the pointer, and an `onMouseEvent`

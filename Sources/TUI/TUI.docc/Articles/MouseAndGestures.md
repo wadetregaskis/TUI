@@ -225,6 +225,10 @@ content
     }
 ```
 
+The pointer coming in, moving and leaving (`.entered`, `.moved`, `.exited`) reaches the
+handler as it reaches `onHover`: beside the views inside yours, which keep their own
+hover whatever you return.
+
 Events come from the terminal's mouse reports, in the modern SGR encoding or the
 legacy X10 one, and reach you as `MouseEvent` values. Each view that wants the mouse registers a hit-test region (the rectangle of cells where a click counts as its own) for its on-screen
 rectangle; the dispatcher routes an incoming report to the front-most region

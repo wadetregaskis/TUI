@@ -375,16 +375,26 @@ extension MouseEventDispatcher {
     /// SwiftUI's do ("a region for detecting pointer movement with the size
     /// and position of this view"); until 2026-10-18 only the outermost did
     /// (semantic audit item 31).
+    ///
+    /// The app's own `.onMouseEvent` closure (``registerApplicationHandler(in:_:)``)
+    /// is an observer here too: it hears the pointer come and go over its view
+    /// and leaves the hover to what is inside it, whatever it returns. As the
+    /// control under the pointer it took the hover from everything inside it,
+    /// though it answered `false` to every event ("Return `true` to claim the
+    /// event"): an `.onContinuousHover` or a `help(_:)` inside heard nothing,
+    /// and nor did one inside `.onScrollWheel`, which is built on it (tuidisk's
+    /// feedback, 2026-11-20).
     private func resolveHover(at x: Int, y: Int) -> (target: HitTestRegion?, observers: [HitTestRegion]) {
         let matching = matchingRegions(at: x, y: y)
         // The common frame has no observer, and is the control's lane alone —
         // but for a bordered box's interior, which the pointer sees through.
-        guard !hoverObserverIDs.isEmpty else {
+        guard !hoverObserverIDs.isEmpty || !applicationHandlerIDs.isEmpty else {
             return (matching.first { $0.handlerID != .selectionInterior }, [])
         }
         var observers: [HitTestRegion] = []
         for region in matching where region.handlerID != .selectionInterior {
-            guard hoverObserverIDs.contains(region.handlerID) else { return (region, observers) }
+            guard hoverObserverIDs.contains(region.handlerID) || applicationHandlerIDs.contains(region.handlerID)
+            else { return (region, observers) }
             observers.append(region)
         }
         return (nil, observers)

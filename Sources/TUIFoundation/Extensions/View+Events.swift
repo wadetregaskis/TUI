@@ -104,6 +104,12 @@ extension View {
     /// `.dragged` and `.released` events for the same button even if
     /// the cursor wanders off-view.
     ///
+    /// The pointer coming into the view, moving over it and leaving it
+    /// (`.entered`, `.moved`, `.exited`) reaches the handler as it reaches
+    /// ``View/onHover(perform:)``: beside the views inside this one, which
+    /// keep their own hover, a `help(_:)` and an `onContinuousHover` among
+    /// them, whatever the handler returns.
+    ///
     /// ```swift
     /// Text("Drag me")
     ///     .onMouseEvent { event in

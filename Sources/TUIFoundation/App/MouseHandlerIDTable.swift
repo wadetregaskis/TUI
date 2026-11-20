@@ -356,9 +356,13 @@ extension MouseEventDispatcher {
     }
 
     /// Registers a handler the app wrote — an ``View/onMouseEvent(_:)``
-    /// closure — for a region that is the control under the pointer, as
-    /// ``register(in:_:)``'s is, but whose answer to a plain left press only
-    /// the closure knows, and gives only by being offered one.
+    /// closure — for a region offered presses as ``register(in:_:)``'s is,
+    /// but whose answer to a plain left press only the closure knows, and
+    /// gives only by being offered one.
+    ///
+    /// For the hover it is an observer, as ``registerHoverObserver(in:_:)``'s
+    /// is: it hears the pointer come and go without taking the hover from
+    /// what is inside its view, whatever it returns (`resolveHover(at:y:)`).
     ///
     /// Filed so a drag handle in front of it stands aside for selectable text
     /// (``PressRole/dragSource``) and lets it be offered the press in turn,
@@ -450,8 +454,9 @@ enum MouseHandlerLane: Sendable {
     /// A control for hover that never takes a plain left press — see
     /// ``MouseEventDispatcher/registerPassive(in:_:)``.
     case passive
-    /// A control whose answer to a plain left press only the app's closure
-    /// knows — see ``MouseEventDispatcher/registerApplicationHandler(in:_:)``.
+    /// A control for presses whose answer to a plain left press only the
+    /// app's closure knows, and an observer for the hover — see
+    /// ``MouseEventDispatcher/registerApplicationHandler(in:_:)``.
     case application
     /// A handler that hears the pointer enter and leave its region without
     /// taking the hover from the control inside it — see

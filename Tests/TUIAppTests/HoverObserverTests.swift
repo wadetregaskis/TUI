@@ -114,6 +114,32 @@ struct HoverObserverTests {
         #expect(log == [true, false], "the observer itself still hears enter, then exit: \(log)")
     }
 
+    /// tuidisk's TUI-FEEDBACK.md, milestone 2 item 6: the app's `.onMouseEvent`
+    /// closure was the control under the pointer, and took the hover from the
+    /// control inside it though it claimed nothing.
+    @Test("A Button inside an .onMouseEvent that claims nothing still lights under the pointer")
+    func onMouseEventKeepsTheButtonsHover() {
+        var log: [MousePhase] = []
+        let bare = Button("Save") {}
+        let observed = Button("Save") {}.onMouseEvent { event in
+            if event.phase == .entered || event.phase == .exited { log.append(event.phase) }
+            return false
+        }
+        guard let cell = controlCells(of: bare).first else {
+            Issue.record("the Button drew no hit region")
+            return
+        }
+        let path = [cell, away]
+        let (expected, got) = withColorDepth(.truecolor) {
+            (frames(of: bare, pointer: path, in: harness()),
+                frames(of: observed, pointer: path, in: harness()))
+        }
+        #expect(expected[1] != expected[0], "precondition: a bare Button lights under the pointer")
+        #expect(got[1] == expected[1], "the .onMouseEvent wrapper took the Button's hover: \(got[1])")
+        #expect(got[2] == expected[2], "leaving must put the Button back: \(got[2])")
+        #expect(log == [.entered, .exited], "the closure itself still hears enter, then exit: \(log)")
+    }
+
     /// Forwarding the transitions down to the content is not enough, and this
     /// is why: the pointer moving from one control to its neighbour never
     /// leaves the wrapper's region.
