@@ -234,6 +234,14 @@ Two things about the environment the runs needed:
 - **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
   logging the session off would end the test with it. Worth a run in a virtual machine.
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
+- **The rest of Windows Terminal's default bindings that TUI's own keys share**, to measure as the file panel's were
+  (`keyboard_events_probe.py`, `PROBE_ALT=1 PROBE_MOUSE_INPUT=0`, one tab, one pane, no selection), so that
+  `TerminalClient.keptChords` lists those it keeps: ⌥↩ (a vertical field's newline; also ⌃J), ⌥⇧↑ ⌥⇧↓ and ⌃⇧↑ ⌃⇧↓
+  (a list's row move; also ⌃↑ ⌃↓), ⌃⇧F (a text editor's find, which takes ⌃F too), ⌃Tab and ⌃⇧Tab (the focus,
+  which Tab moves too), ⌃⇧Home ⌃⇧End ⌃⇧PgUp ⌃⇧PgDn (a selection extended, as without ⌃), ⌃⇧K ⌃⇧T ⌃⇧W and ⌃⇧C
+  (a row key or an edit whose Shift TUI ignores), and ⌥⇧← ⌥⇧→ (a word selected; Windows Terminal binds ⌥⇧↑↓←→ to
+  resize a pane, which may do nothing with one). Found by comparing its `defaults.json` (1.25.3131.0) with TUI's
+  bindings, 2026-11-19; ⌥← ⌥→ ⌥↑ ⌥↓ already arrived with one pane.
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal
