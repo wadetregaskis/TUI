@@ -976,8 +976,14 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// B-D5G-9): a reader in a row asking `.scrollView` is answered in the
     /// list's content window, not by a scroll view around the list.
     func renderToBuffer(context: RenderContext) -> FrameBuffer {
-        context.drawingAsVerticalScroller { renderPulledFrame(context: context) ?? renderFrame(context: context) }
-            .drawnDisabled(if: isDisabled(in: context))
+        // Taken before any row is drawn: whether something inside the list does
+        // what a kept buffer cannot, as its rows' live timelines do (see the
+        // breath in `renderRow`). A pulled list's rows build their breath whole.
+        let redraw = RedrawForecast(context)
+        return context.drawingAsVerticalScroller {
+            renderPulledFrame(context: context) ?? renderFrame(context: context, redraw: redraw)
+        }
+        .drawnDisabled(if: isDisabled(in: context))
     }
 
     /// The container the list draws its rows in: its border, padding and
@@ -999,9 +1005,10 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// inside the border and below a borderless title, as tall as the rows
     /// get (``renderToBuffer(context:)``). `pulled`, the rows a pulled list
     /// draws (`_ListCore+Pulled.swift`): from there, with no indicators of its
-    /// own, as the scroll view around it scrolls it.
+    /// own, as the scroll view around it scrolls it. `redraw`, taken as the list
+    /// began, says whether the cursor row's breath is worth building whole.
     func renderFrame(
-        context: RenderContext, pulled: ListPulledRows? = nil
+        context: RenderContext, pulled: ListPulledRows? = nil, redraw: RedrawForecast = .none
     ) -> (buffer: FrameBuffer, viewport: CellRect?) {
         // A section this list draws as one row keeps the list's styling; under
         // `.listStyle(.surface)` everything is drawn on the list's own surface,
@@ -1135,7 +1142,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 style: style,
                 targetContentHeight: targetContentHeight,
                 predictedBar: predictsBar,
-                pulled: pulled
+                pulled: pulled,
+                redraw: redraw
             )
             content = _ListContentView(
                 lines: result.lines, runs: result.runs, claims: result.claims, knownWidth: result.lineWidth)
@@ -1438,7 +1446,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         style: any ListStyle,
         targetContentHeight: Int,
         predictedBar: Bool,
-        pulled: ListPulledRows?
+        pulled: ListPulledRows?,
+        redraw: RedrawForecast = .none
     ) -> (
         lines: [String], lineWidth: Int?, runs: [AnimatedCellRun], claims: [OpacityRegion],
         state: PopulatedRenderState
@@ -1563,7 +1572,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 firstContentRowIndex: firstContentRowIndex, listHasFocus: listHasFocus,
                 // Over the rows, they are laid out at the whole width the
                 // layout gave them, and the bar covers their last column.
-                widths: (contentRowWidth, wantsScrollbar ? contentRowWidth : rowWidth), bar: bar, context: context)
+                widths: (contentRowWidth, wantsScrollbar ? contentRowWidth : rowWidth), bar: bar, context: context,
+                redraw: redraw)
             // The bar is the last interior column: the border's cell when the
             // style draws one — a `.plain` list has none, and a constant 1 here
             // registered the bar's hit region one column PAST the drawn bar, off
@@ -1583,7 +1593,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 listHasFocus: listHasFocus,
                 rowWidth: rowWidth,
                 contentHeight: targetContentHeight,
-                context: context
+                context: context,
+                redraw: redraw
             )
             rowContentWidth = max(0, rowWidth - 1)
         }
@@ -2447,7 +2458,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         listHasFocus: Bool,
         rowWidth: Int,
         contentHeight: Int,
-        context: RenderContext
+        context: RenderContext,
+        redraw: RedrawForecast = .none
     ) -> (
         lines: [String], ranges: [VisibleRowRange], runs: [AnimatedCellRun],
         claims: [OpacityRegion], contentClaims: [Int: [OpacityRegion]]
@@ -2543,7 +2555,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 row: row, at: rowIndex, state: state,
                 rowWidth: rowWidth, contentRowIndex: contentRowIndex,
                 style: style, context: context, palette: palette,
-                hairlineAbove: state.isHighlighted ? nil : hairlineAbove)
+                hairlineAbove: state.isHighlighted ? nil : hairlineAbove, redraw: redraw)
             hairlineAbove = Self.hairline(below: row, isHighlighted: state.isHighlighted)
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
             let endsInRule = row.content.separatorLine?.takesRow == true
@@ -2844,7 +2856,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         listHasFocus: Bool,
         widths: (content: Int, rowLayout: Int),
         bar: ClaimingColumn,
-        context: RenderContext
+        context: RenderContext,
+        redraw: RedrawForecast = .none
     ) -> (
         lines: [String], ranges: [VisibleRowRange], runs: [AnimatedCellRun],
         claims: [OpacityRegion], contentClaims: [Int: [OpacityRegion]]
@@ -2887,7 +2900,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
                 style: style,
                 context: context,
                 palette: palette,
-                hairlineAbove: state.isHighlighted ? nil : hairlineAbove
+                hairlineAbove: state.isHighlighted ? nil : hairlineAbove,
+                redraw: redraw
             )
             hairlineAbove = Self.hairline(below: row, isHighlighted: state.isHighlighted)
             let scrollClip = rowIndex == origin.offset ? origin.topClip : 0
@@ -4855,7 +4869,8 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         style: any ListStyle,
         context: RenderContext,
         palette: any Palette,
-        hairlineAbove: ListRowSeparatorLine? = nil
+        hairlineAbove: ListRowSeparatorLine? = nil,
+        redraw: RedrawForecast = .none
     ) -> RenderedRow {
         let background = background(
             of: row, state: state, contentRowIndex: contentRowIndex, style: style, context: context, palette: palette)
@@ -5025,16 +5040,41 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         context.requestWake(
             token: "list-dropped-run-\(context.identity.path)",
             forNextStepOf: childRuns.map { ($0.clock, $0.frameTicks) })
-        // Transposed to line-major, because that is how the runs are asked for:
-        // one run per LINE, carrying that line at every point of the cycle.
-        // Each frame over its fill, or reversed (a 16-colour breath's other end, or
-        // without colour, by weight) with the content's fades spent against it.
-        let perStep = paints.map { paint in
+        let step = background.stepNow % max(1, paints.count)
+        /// One frame of the breath, over its fill, or reversed (a 16-colour breath's
+        /// other end, or without colour, by weight) with the content's fades spent
+        /// against it.
+        func frame(_ paint: RowBackground.Paint) -> [String] {
             spentOnReversedFrame(
                 paint.lines { lines(over: $0) }, of: paint, row: row, badge: badge, rowWidth: rowWidth,
                 palette: palette)
         }
-        let step = background.stepNow % max(1, perStep.count)
+        // A list drawn again before the breath next steps would never have one of
+        // its runs replayed: that render draws the row afresh, at whatever step the
+        // breath has reached by then (`RedrawForecast`). So only the frame on screen
+        // is built, and the row is that frame with no run — the lines and the claims
+        // exactly as the breathing row's. A row with a live preview in it draws its
+        // list every tick, and the breath's other fifteen frames, each its lines
+        // rebuilt and its content's fades spent again, were a tenth of such a list's
+        // frame (`app-shapes/timeline-list`).
+        //
+        // Not for a row whose content animates — a spinner, any run of its own, kept
+        // or cut short of an ellipsis. Its runs are dropped under the breath, and the
+        // breath's run is what carries their line between renders. And the wake the
+        // row asks for them would satisfy the forecast by itself, so the row would
+        // leave no run at all on the strength of its own spinner's steps rather than
+        // of anything else drawing the list. Such a row builds its breath whole, as
+        // it did before the forecast.
+        if !paints.isEmpty, childRuns.isEmpty, carried.stepping.isEmpty,
+            redraw.outruns(nextStepOf: [(timing.clock, timing.frameTicks)], in: context)
+        {
+            return RenderedRow(
+                lines: frame(paints[step]), pulseFrames: nil, claims: claims(over: nil),
+                contentClaims: content.claims(leaving: droppedRunClaims))
+        }
+        // Transposed to line-major, because that is how the runs are asked for:
+        // one run per LINE, carrying that line at every point of the cycle.
+        let perStep = paints.map(frame)
         // A breathing fill claims nothing and needs to: `accentFillPulse` spends a
         // translucent tint's alpha against the page at both ends (§29), so every
         // frame states a concrete colour. The MARK still claims — it is drawn into

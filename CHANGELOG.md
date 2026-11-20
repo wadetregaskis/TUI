@@ -124,6 +124,13 @@ content level with no style above it, a text's own level now replaces that level
 `.quinary`, for a fragment of a joined text too. Under a view's level of a colour, such as a `.secondary` below
 `.foregroundStyle(.red)`, a text's own level is still a level of that secondary red, as in SwiftUI.
 
+**A focused `List` whose rows are redrawn every frame no longer builds its cursor row's whole breath each frame.**
+The cursor row of a focused list breathes by handing the run loop every frame of its breath, sixteen copies of its
+lines, to replay between renders. In a list of live previews, a `TimelineView` in each row, the list is drawn again
+on every tick, before any of those frames is replayed, and building them was a tenth of the frame. Where the list
+will be drawn again before its breath next steps, it now draws the row at the step on screen and builds no other;
+what the terminal shows is unchanged.
+
 **Building TUI on macOS requires the macOS 26 SDK (Xcode 26, or Command Line Tools 26); macOS 15 still runs it.** An
 app built with Xcode 26's SDK still deploys to macOS 15, as before. The macOS 15 SDKs (Command Line Tools 16.x), never
 supported, no longer build TUI at all: a Mac with only those Command Line Tools needs Xcode 26 or Command Line Tools

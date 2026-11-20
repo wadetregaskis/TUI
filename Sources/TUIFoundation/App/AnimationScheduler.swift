@@ -121,13 +121,28 @@ package final class AnimationScheduler {
     /// wake it was declares its next one during this frame. A lattice's next
     /// firing is strictly after `time` by definition.
     package func nextFiring(after time: Int64) -> Int64? {
+        soonestFiring(after: time, declaredThisFrame: false)
+    }
+
+    /// ``nextFiring(after:)`` among the lattices and wakes declared THIS frame so far
+    /// — the ones ``endFrame()`` will keep — or `nil` for none.
+    ///
+    /// For a view asking, part-way through a render, whether one is due soon anyway
+    /// (`RedrawForecast`). A request left from the frame before counts for nothing
+    /// until it is declared again: its view may not be on screen any more, and then
+    /// the render it named never happens.
+    package func nextFiringDeclaredThisFrame(after time: Int64) -> Int64? {
+        soonestFiring(after: time, declaredThisFrame: true)
+    }
+
+    private func soonestFiring(after time: Int64, declaredThisFrame: Bool) -> Int64? {
         var soonest: Int64?
-        for lattice in lattices.values {
+        for lattice in lattices.values where lattice.liveThisFrame || !declaredThisFrame {
             soonest = min(
                 soonest ?? .max,
                 AnimationClock.nanoseconds(ofNextTickMultiple: lattice.frameTicks, after: time))
         }
-        for wake in wakes.values where wake.instant > time {
+        for wake in wakes.values where wake.instant > time && (wake.liveThisFrame || !declaredThisFrame) {
             soonest = min(soonest ?? .max, wake.instant)
         }
         return soonest

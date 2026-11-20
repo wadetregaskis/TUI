@@ -60,7 +60,7 @@ extension RenderContext {
     /// `AnimationClock.stepEndNanos`, so the wake is never a nanosecond before the
     /// step it is for.
     @MainActor
-    func nextStepNanos(of runs: [(clock: AnimationClock, frameTicks: Int)]) -> Int64 {
+    package func nextStepNanos(of runs: [(clock: AnimationClock, frameTicks: Int)]) -> Int64 {
         let now = environment.frameNowNanos
         let content = Double(now) / 1_000_000_000
         let cursor = environment.cursorTimer?.elapsed(for: .cursor) ?? 0

@@ -528,3 +528,41 @@ so any dump containing an emoji-presentation cluster looks truncated whatever
 the app emitted. `Tools/Smoke/raw_probe.py` answers the question the bytes can
 (it decodes nothing, and `--term-program` forces a host model from any
 terminal); `Tools/TerminalProbes/` answers what a real terminal then draws.
+
+## 11. A run the next render replaces is not worth building
+
+A run is the cheap route only while nothing else renders the page. Building one
+costs the whole cycle — a focused `List`'s cursor row is sixteen copies of its
+lines, each with its content's fades spent against that frame's colour — and the
+loop replays it only between renders. On a page that renders every tick anyway,
+the next render replaces the run before a single frame of it is replayed.
+
+`app-shapes/timeline-list` is that page: a list of live previews, each row a
+canvas in its own `TimelineView(.animation)`. Its cursor row built its whole
+breath sixty times a second to show one frame of it each time, a tenth of the
+frame (2026-11-20).
+
+So a view that builds runs can ask first, with `RedrawForecast` (TUIFoundation):
+taken as the view begins, and asked once it knows the cycle's rate and clock.
+It answers yes only when both hold:
+
+* **a render is due by the cycle's next step**, among the requests this frame has
+  declared so far (`AnimationScheduler.nextFiringDeclaredThisFrame(after:)`) —
+  never one left from the frame before, whose view may be gone;
+* **that render reaches the view**: something inside it since it began did what a
+  kept buffer cannot do again (the tracker's `sideEffects` grew), so every memo
+  around it declines to keep this frame's buffer, and the next walk draws it.
+
+Then the view draws the step on screen and leaves no run. The answer errs one
+way only: where it cannot vouch for both, the view builds its runs as before.
+What the terminal shows is the same either way, since the run loop skips a replay
+when a render is due, and the render at the step draws what the run would have
+(`AppRunner.foldPendingWork`). `List` asks it for its cursor row. `Table`'s cursor
+row paints its bare lines once per frame of the breath, which costs far less, and
+does not ask yet.
+
+Ask it only for a run that stands for nothing else. A cursor row whose content
+animates (a spinner) has its content's runs dropped under the breath, so the
+breath's run is what carries that line between renders, and the wake the row asks
+for the spinner's next step is a request of its own making, which the first
+condition would count. `List` builds such a row's breath whole, as before.
