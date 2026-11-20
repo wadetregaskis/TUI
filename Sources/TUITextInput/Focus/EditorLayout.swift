@@ -455,6 +455,12 @@ extension EditorLayout: TextCharacterOffsets {
         return text.utf8.index(text.utf8.startIndex, offsetBy: lineStarts[position.line] + bytes)
     }
 
+    /// The line the byte at `offset` is in, a line's break counted as its
+    /// own: the last line for an offset past the text.
+    func line(containingUTF8Offset offset: Int) -> Int {
+        Self.lastIndex(in: lineStarts, atOrBefore: offset)
+    }
+
     /// The last index of `starts`, ascending from 0, whose value is at most
     /// `value`.
     private static func lastIndex(in starts: [Int], atOrBefore value: Int) -> Int {

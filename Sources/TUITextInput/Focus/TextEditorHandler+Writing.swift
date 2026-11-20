@@ -90,10 +90,12 @@ extension TextEditorHandler {
         let unshared = isKnownUniquelyReferenced(&before)
         // Made while `before` has its lines: laid out in place, it has none.
         let highlighted = highlightEdit(edit, from: before)
+        let marked = markEdit(edit, from: before)
         let after = before.laidOut(edit, reusingStorage: unshared)
         cachedLayout = after
         if drawsLineStyles { lineStyleCache.replaceLines(edit.replaced, withCount: edit.replacement.count) }
         if let highlighted { sendHighlightEdit(highlighted, leaving: after) }
+        if let marked { marks.carry(through: marked.edit, of: marked.text, from: before, to: after) }
         // The lines' rows a line moved with them, those of the lines it
         // put in to be read.
         keptLineGaps = nil

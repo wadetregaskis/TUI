@@ -238,8 +238,7 @@ public struct TextEditor {
                     opensFindOnControlF: !findIsOff,
                     // Every match tinted while the bar is up, the current one
                     // selected over it, as macOS's find bar marks them.
-                    findMatches: presented
-                        ? FindMatches.ranges(of: findQuery, in: text.wrappedValue, options: findOptions) : []
+                    findMarks: presented ? findMarks(in: text.wrappedValue) : nil
                 ).textEditingMenu(menuTarget)
             }
             .onKeyPress(keys: ["f", "F", "g", "G"]) { press in
@@ -324,6 +323,13 @@ extension TextEditor: View {}
             reachesPage: !(focusManager?.activeSectionIsModal ?? false))
     }
 
+    /// The find bar's matches in `text`, as marks of it (B-ATTRED-13): the
+    /// same way to style a range as an app's marks.
+    private func findMarks(in text: String) -> EditorMarkStatement {
+        EditorMarkStatement(
+            text: text, ranges: FindMatches.matches(of: findQuery, in: text, options: findOptions), attributes: nil)
+    }
+
     /// Selects the next (`delta` 1) or previous (-1) match of the query, wrapping:
     /// Ctrl-G's, with the bar up or not.
     private func stepFind(by delta: Int) {
@@ -382,9 +388,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// Whether the editor has a find bar for Ctrl-F to open
     /// (``TextEditorHandler/yieldsControlFToFind``).
     var opensFindOnControlF = false
-    /// The find bar's matches, as character offsets in order, which the rows
-    /// tint: none while the bar is down.
-    var findMatches: [Range<Int>] = []
+    /// The find bar's matches, as marks of the text they were found in,
+    /// which the rows tint: `nil` while the bar is down.
+    var findMarks: EditorMarkStatement?
     /// Set on the copy a pulled editor draws its band with
     /// (`TextEditor+Pulled.swift`): the first row the band holds, which the
     /// editor draws from, with no bar and no wheel of its own, whatever it
@@ -508,7 +514,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // beside it (`TextEditor+OverlaidIndicators.swift`): it takes no room.
         // Never while the editor holds the focus (`placingScrollIndicators`).
         let barOverText = context.environment.scrollIndicatorsOverlayContent
-        handler.noteFind(opensOnControlF: opensFindOnControlF, matches: findMatches, in: displayLines)
+        handler.noteFind(opensOnControlF: opensFindOnControlF)
+        handler.noteMarks(app: context.environment.textEditorMarks, find: findMarks, environment: context.environment)
         let window = window(
             handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
             wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring,

@@ -121,9 +121,9 @@ final class TextEditorHandler: PersistedFocusable {
     /// bar to open. Right arrow moves forward a character still.
     var yieldsControlFToFind = false
 
-    /// The find bar's matches, by line: each line's character columns that a
-    /// match covers (``noteFindMatches(_:in:)``), which the rows tint.
-    var matchedColumnsByLine: [Int: [Range<Int>]] = [:]
+    /// The app's marks and the find bar's matches (``noteMarks(app:find:environment:)``),
+    /// which the rows draw (B-ATTRED-13).
+    var marks = EditorMarkStore()
 
     /// The selection last exchanged with the app, as character offsets, so
     /// each side writes only a change.
@@ -255,11 +255,13 @@ final class TextEditorHandler: PersistedFocusable {
     /// hidden (``isSecure``), whose colours would show where its words are.
     ///
     /// With a highlighter, its runs drawn over them (``highlightedStyles(ofLine:in:)``).
+    ///
+    /// The app's marks drawn over both (``marked(_:ofLine:)``).
     func styles(ofLine line: Int) -> [EditorStyledRun] {
         guard !isSecure else { return [] }
-        if let highlightLayer { return highlightedStyles(ofLine: line, in: highlightLayer) }
-        guard let lineStyler else { return [] }
-        return lineStyleCache.runs(ofLine: line, reading: lineStyler)
+        if let highlightLayer { return marked(highlightedStyles(ofLine: line, in: highlightLayer), ofLine: line) }
+        guard let lineStyler else { return marked([], ofLine: line) }
+        return marked(lineStyleCache.runs(ofLine: line, reading: lineStyler), ofLine: line)
     }
 
     /// The text and caret before each key that changed the text, for Ctrl-Z.

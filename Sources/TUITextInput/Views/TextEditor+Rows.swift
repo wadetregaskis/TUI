@@ -62,7 +62,7 @@ extension _TextEditorCore {
                                 ..< layout.cells(inRow: rowInLine, before: upper)
                         }
                 // The find bar's matches on this row, as its cells.
-                let matches = (handler.matchedColumnsByLine[line] ?? []).compactMap { matched -> Range<Int>? in
+                let matches = handler.findColumns(ofLine: line).compactMap { matched -> Range<Int>? in
                     let lower = max(matched.lowerBound, span.start)
                     let upper = min(matched.upperBound, end)
                     guard lower < upper else { return nil }
@@ -102,7 +102,7 @@ extension _TextEditorCore {
     /// the bar has the focus then, and macOS's editor keeps its selection drawn
     /// under its find bar the same way.
     static func showsSelection(caret: RowCaret?, handler: TextEditorHandler) -> Bool {
-        caret != nil || !handler.matchedColumnsByLine.isEmpty
+        caret != nil || handler.marks.hasFindMatches
     }
 
     func renderRows(
@@ -139,7 +139,7 @@ extension _TextEditorCore {
                             TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
                                 ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
                         }
-                let matches = (handler.matchedColumnsByLine[lineIndex] ?? []).map {
+                let matches = handler.findColumns(ofLine: lineIndex).map {
                     TabLayout.displayColumn(ofCharIndex: $0.lowerBound, in: lineChars, tabWidth: tabWidth)
                         ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
                 }

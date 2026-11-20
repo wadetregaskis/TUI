@@ -9,8 +9,8 @@ Swift 6.2.4, `-O`; see "For a future reader"). Ids: A-ATTRED-5 to 7 (for the own
 here). The owner ruled on A-ATTRED-5 to 7 on 2026-11-18; §8 explores the rulings (B-ATTRED-19 to 26, and
 A-ATTRED-10 to 12 for the owner, who ruled on all three on 2026-11-19). The owner's final word on 12 replaced the
 lexers with tree-sitter, outside TUI; §8.6 re-plans TUI's side for it (B-ATTRED-27 to 30 decided there, A-ATTRED-15
-and 16 for the owner, both ruled (a) later on 2026-11-19), with a fourth probe of tree-sitter itself. Lane H1 is built
-(B-ATTRED-31 to 33, in §8.6).*
+and 16 for the owner, both ruled (a) later on 2026-11-19), with a fourth probe of tree-sitter itself. Lanes H1, H6′, H5′ and H3 are
+built (B-ATTRED-31 to 51, in §8.6).*
 
 ## In short
 
@@ -977,7 +977,7 @@ fetch it.
 | **H1** ✓ | Drawing: runs into `styledRow`, styles interned per token value (B-ATTRED-10), the drawn lines' run cache, precedence (B-ATTRED-8). **Built 2026-11-19** (B-ATTRED-31 to 33, below) | ½ | ½ |
 | **H6′** ✓ | The seam and its store: versioned snapshots, coalesced whole-line changes, the styler's task started and cancelled with the editor (B-ATTRED-19 to 22, 25), publishing validated into the window, frames only for lines on screen (20), provisional tokens carried and shifted (24, 28), updates on a scroll (27), B-ATTRED-29's additions, the guards (15, 30). Tests: a fake tree styler that reports changed ranges, deterministic stepping without sleeps, a stale publish refused, an edit mid-publish, cancellation, one run under the thread sanitizer. **Built 2026-11-20** (B-ATTRED-34 to 41, below) | 1½ | H2 + H7 2, H6 ½ |
 | **H5′** ✓ | A stateless JSON line styler over the seam, in an internal target that is not a product (as `TUIWidthCorpus` is), for the Example, Stress's `bigtext-highlighted` and tests. **Built 2026-11-20** (B-ATTRED-42, 43, below) | ¼ | ¼ (a JSONC lexer) |
-| **H3** | Marks (B-ATTRED-13), with the find bar's matches moved onto them | 1 | 1 |
+| **H3** ✓ | Marks (B-ATTRED-13), with the find bar's matches moved onto them. **Built 2026-11-20** (B-ATTRED-46 to 51, below) | 1 | 1 |
 | **H4′** | The API: `TextEditorMark` and `.textEditorMarks` public, with DocC; the seam and `.textEditorHighlighter` under `@_spi(TextEditorHighlighting)` (A-ATTRED-10), documented in doc comments; `api_baseline.py` taught to skip SPI; the API stability policy's SPI line; CHANGELOG; the Example's Text Input page in its seven languages | ¾ | 1 |
 | **H0** | Gone, with the line-lexer engine (A-ATTRED-15 (a)) | 0 | 1 |
 
@@ -1193,6 +1193,92 @@ and with it taking every update were 87.5 MB and 87.1 MB; the live heap differed
 highlighter's, a version behind the editor's (+3.0 MB of `StringStorage`), and its line starts (+0.65 MB). The peak
 RSS `ab_bench.py` reads was the walks' turnover, and that high-water mark moves by tens of megabytes between runs
 of one binary, so read differences of under ten as none.
+
+#### H3, as built (2026-11-20)
+
+Marks, as B-ATTRED-13 has them, behind `@_spi(TextEditorHighlighting)` until H4′:
+`TextEditorMark(_ range: Range<String.Index>, attributes: AttributeContainer)` and
+`.textEditorMarks(_ marks: [TextEditorMark], in text: String)`, in `Sources/TUITextInput/Highlighting/TextEditorMarks.swift`.
+The editor's side is `EditorMarkStore` (`Sources/TUITextInput/Focus/EditorMarks.swift`): each source's marks as last
+stated and as carried to the editor's text, the app's attributes interned and resolved as highlighting's are
+(B-ATTRED-10, 33, through H1's own `EditorHighlightStyles`), and each drawn line's marks in its columns. A line's app
+marks are laid over its highlighting and its own runs (`EditorStyledRun.overlaying`, B-ATTRED-31's join), so the
+selection, the find bar's tint, the caret and the disabled fade treat them as they treat a highlight; the find bar's
+matches are the row's `matches` as before. So the order is B-ATTRED-8's whole: the selection, the find bar's tint,
+marks, highlighting, the stored attributes, the editor's style. Where two marks overlap, the later is drawn over
+the earlier, as a later modifier is. What the design left open was decided as follows.
+
+- **B-ATTRED-46. Marks are kept in UTF-8 offsets of the editor's text, tied to the layout they were carried to.**
+  B-ATTRED-13 converted a range to character offsets through the layout. That works for the editor's current text
+  only: a range of a text a key old would need that text's layout, which the editor no longer has. A
+  `String.Index` of the text the app stated becomes a UTF-8 offset by that text alone, in constant time for a
+  native string, and UTF-8 is what the editor's edits are made of (the splice of `EditorLayout.Edit`, B-ATTRED-41's
+  shift), what the seam counts in (B-ATTRED-26), and what H1 already draws as columns. Columns are found only for a
+  line drawn, once a change, in one walk of the line however many marks it has. The marks belong to the layout
+  they were carried to, as H6′'s session belongs to its `syncedLayout`: a text the editor did not edit into the one
+  it has (the app's own, or one the editor wrote whole: an undo, a redo, Replace All, a mixed-ending text's join)
+  hides them until they are stated again. Carrying an undo would mean diffing two whole texts, and the app restates
+  marks after its next parse anyway.
+- **B-ATTRED-47. A mark's ends do not take in text put where they stand; a mark an edit takes whole goes.** As
+  CodeMirror's marks by default: text typed at a mark's start goes before it, at its end after it, so typing next to
+  a parse error's underline does not lengthen it. A range around an edit grows or shrinks with it; an end in text
+  the edit took goes to the edge of what it put in that leaves the mark outside it; a range the edit took whole is
+  left empty, which B-ATTRED-13's "shrinks to its start" also meant, and an empty mark draws nothing, so it is
+  dropped (an app that marks a point marks a character). The edit is found to the byte across all its lines, as
+  B-ATTRED-41 finds a line's (`EditorLineShift`, reused), so a mark on the line being typed on keeps its place in it
+  rather than the whole line counting as replaced. It costs the edited lines' bytes, only while there are marks.
+- **B-ATTRED-48. The editor keeps the texts of its last four edits, only while an app states marks, and forgets
+  those older than the one an app's marks were last found in.** Each kept text is a whole document (3.2 MB in
+  tuitree's case), so the history is bounded twice: by count, and by the app, which does not state marks against a
+  text older than one it has already stated them against. While the app's parse keeps up, one or two texts are
+  held. Four covers tuitree's 22 ms parse against keys repeating at 30 a second with room to spare. Marks stated
+  again unchanged, frame after frame, are carried an edit at a time and never need the history, however far they
+  fall behind; only marks stated anew of an old text do. An editor with no `.textEditorMarks` keeps nothing.
+- **B-ATTRED-49. Texts are compared by value, lengths first, not by storage identity.** B-ATTRED-13 had a
+  storage-identity check. `String ==` answers at once for two strings that share storage, which is the case that
+  matters (the app parsed the very string the editor wrote), and a differing byte count answers in constant time,
+  which is the case after nearly every key. Where neither answers, comparing is right where identity would not be
+  (a small string has no storage to share, an app may hold a copy), and it is what `layout(of:)` already does each
+  frame. It runs only when a statement changes, never on a frame that restates the same marks.
+- **B-ATTRED-50. The find bar's matches are marks of the text they were found in, in a style of their own.** The
+  bar finds them as `String.Index` ranges (`FindMatches.matches`, which `ranges` now counts in characters), and
+  states them with the text, as an app states its marks; they are carried, kept by line and turned into columns by
+  the same code, and drawn in the find tint, which only the selection is drawn over. Nothing a user sees changes:
+  the bar finds its matches again whenever the editor's body is evaluated, so they are carried only between an edit
+  and the next evaluation. A frame with the bar up no longer walks the lines to every match; a line's columns are
+  found when it is first drawn after the matches change.
+- **B-ATTRED-51. The API's shape, for H4′.** A modifier, by CLAUDE.md's modifier-first rule (SwiftUI has nothing
+  to follow: §2), which reaches every editor below it as `.textEditorHighlighter` does; the innermost wins, as for
+  any environment value. `in text: String` is the text the ranges are of. An attributed editor's marks are of its
+  characters' `String` (`String(value.characters)`), found by value (B-ATTRED-49); whether to add an
+  `AttributedString` form (ranges of `AttributedString.Index`, whose UTF-8 view needs macOS 26, B-ATTRED-19) is
+  H4′'s to decide with the naming review.
+
+**What it costs (2026-11-20).** With no marks and the find bar down, a frame asks one question more (is anything
+stated?) and an edit one more (are there marks to carry?). Measured with
+one release binary each, `keep-50d` (c15cb825b) against the marks (4d42e6828), at a load of 15 to 20: every frame
+the same in `bigtext`, `bigtext-highlighted`, `bigtext-rich`, `editor` and the cases `editor-typing`,
+`editor-mid-typing`, `editor-rich-typing` and `editor-tiny`, at 120 × 40 and 50 × 12 (`frame_parity.py`); and
+`ab_bench.py`, ten reps:
+
+| session | before | after | change |
+|---|---|---|---|
+| `bigtext` | 1,492 µs | 1,516 µs | indistinguishable (+2.0% [−1.5%, +4.9%]) |
+| `bigtext-highlighted` | 1,869 µs | 1,807 µs | indistinguishable (−0.6% [−6.1%, +1.6%]) |
+| `bigtext-rich` | 1,683 µs | 1,699 µs | indistinguishable (+0.2% [−3.3%, +22.7%]) |
+| `editor` | 1,540 µs | 1,535 µs | indistinguishable (+0.5% [−2.7%, +6.4%]) |
+| `case:editor-typing` | 727 µs | 737 µs | +0.9% [+0.3%, +5.2%], slower |
+| `case:editor-mid-typing` | 710 µs | 721 µs | indistinguishable (+1.6% [−3.1%, +4.0%]) |
+| `case:editor-rich-typing` | 836 µs | 838 µs | indistinguishable (+0.6% [−1.0%, +11.6%]) |
+
+`editor-typing`'s +0.9% is within the few per cent the owner tolerates, and its interval nearly reaches zero; the
+two questions are a `nil` check each, so it was not chased.
+
+Tests: `TextEditorMarkTests` (a mark one and two keys stale; marks restated unchanged carried key by key; an unknown
+text, the app's own text and a text five keys old hiding; edits after, before and inside a mark, at its ends, and
+over it whole or in part; over highlighting, under the selection and the find tint, the later of two over the
+earlier; across a line break and from inside a wide character; the find bar's matches carried through an edit; edits
+found to the byte), with `FindNavigatorTests` unchanged.
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
