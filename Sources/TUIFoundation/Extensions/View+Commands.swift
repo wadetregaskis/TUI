@@ -103,6 +103,19 @@ extension View {
     /// Either key alone or with Shift, as on macOS; with Control or Option it
     /// is a different editing command and not this one.
     ///
+    /// An action that deletes a list's or a table's selection deletes what is
+    /// selected, which by default in TUI is not where the arrows went: TUI
+    /// keeps a keyboard cursor apart from the selection, and the arrows move
+    /// only the cursor. Where Delete should act on the row the arrows reached,
+    /// as on macOS, where the cursor is the selection, add
+    /// ``View/selectionFollowsCursor(_:)`` to the list or table.
+    ///
+    /// ```swift
+    /// Table(files, selection: $selection) { … }
+    ///     .selectionFollowsCursor()
+    ///     .onDeleteCommand { trash(selection) }
+    /// ```
+    ///
     /// - Parameter action: The action to perform; `nil` keeps the command for
     ///   this view and does nothing.
     /// - Returns: A view that handles the delete command while it holds the

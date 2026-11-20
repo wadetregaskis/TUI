@@ -77,6 +77,16 @@ extension View {
     /// selection binding (measured on macOS), take neither the menu nor the
     /// action, and leave their rows' own menus be.
     ///
+    /// The cursor row is where the arrows went, which by default in TUI is not
+    /// the selection: TUI keeps a keyboard cursor apart from the selection,
+    /// and the arrows move only the cursor. So from the keyboard the closures
+    /// get the cursor row alone, or the whole selection where the cursor row
+    /// is selected, while an action that
+    /// reads the selection binding itself, such as an `onDeleteCommand`'s,
+    /// acts on the selection. Add ``View/selectionFollowsCursor(_:)`` for the
+    /// arrows to select as they move, as on macOS, where the cursor is the
+    /// selection.
+    ///
     /// - Parameters:
     ///   - itemType: The identifier type of the rows; it must match the
     ///     container's selection type.

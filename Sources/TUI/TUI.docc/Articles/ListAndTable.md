@@ -743,7 +743,12 @@ A row can carry actions besides its selection:
   ``View/moveDisabled(_:)`` does from reordering.
 - **Context menu.** `contextMenu(forSelectionType:menu:primaryAction:)` on the
   list or table shows a menu for the selected rows, opened by a secondary click
-  or ⇧F10; its `primaryAction` runs on a double-click or Return.
+  or ⇧F10; its `primaryAction` runs on a double-click or Return. From the
+  keyboard both act on the cursor row alone, or on the whole selection where
+  the cursor row is selected, while a
+  ``View/onDeleteCommand(perform:)`` that reads the selection acts on the
+  selection, which the arrows don't move by default: add
+  `.selectionFollowsCursor()` for them to move both, as on macOS.
 - **Refresh.** `refreshable(action:)` on a list makes ⌃R run the action, with a
   spinner over the top row while it runs. A list that can be reordered keeps ⌃R
   for picking a row up while it has the focus (below); the refresh runs when the
