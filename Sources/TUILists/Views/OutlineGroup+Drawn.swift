@@ -27,7 +27,7 @@ import TUIView
 @MainActor extension OutlineGroup: LazyChildViewProvider where Leaf: View {
     /// The rows as an on-demand collection: the count and each row's key come
     /// from the visible nodes, which are kept from pass to pass while the tree
-    /// and its open branches are the same (``OutlineVisibleNodes``), and a
+    /// and its open branches are the same (`OutlineVisibleNodes`), and a
     /// row view is built only when a container asks for that row — so a lazy
     /// stack of a large open tree builds about a screenful.
     public func childViewCollection(context: RenderContext) -> ChildViewCollection {

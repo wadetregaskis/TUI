@@ -17,10 +17,10 @@ import TUIFoundation
 /// A selection is an insertion point (the caret) or one or more ranges of the
 /// text. Its indices belong to the text they were made from: keep the two in
 /// step by changing the text through `AttributedString`'s
-/// ``Foundation/AttributedString/transform(updating:body:)``,
-/// ``Foundation/AttributedString/replaceSelection(_:withCharacters:)``,
-/// ``Foundation/AttributedString/replaceSelection(_:with:)`` and
-/// ``Foundation/AttributedString/transformAttributes(in:body:)``, which move the
+/// ``AttributedString/transform(updating:body:)``,
+/// ``AttributedString/replaceSelection(_:withCharacters:)``,
+/// ``AttributedString/replaceSelection(_:with:)`` and
+/// ``AttributedString/transformAttributes(in:body:)``, which move the
 /// selection with the characters. After any other change, make a new selection.
 ///
 /// ```swift
@@ -38,7 +38,7 @@ import TUIFoundation
 /// has neither, and there TUI approximates them (see
 /// `AttributedTextSelection+MacOS15Fallbacks.swift`): a selection whose indices
 /// fall inside a text is taken as valid for it, and a change made through
-/// ``Foundation/AttributedString/transform(updating:body:)`` is found by
+/// ``AttributedString/transform(updating:body:)`` is found by
 /// comparing the text before it and after.
 ///
 /// SwiftUI's is macOS 26; TUI's builds on macOS 15 but for
@@ -61,7 +61,7 @@ public struct AttributedTextSelection: Equatable, Sendable {
 
     /// The attributes typing at the insertion point takes, where the app or a
     /// formatting change set them (``init(insertionPoint:typingAttributes:)``,
-    /// ``Foundation/AttributedString/transformAttributes(in:body:)``), and only
+    /// ``AttributedString/transformAttributes(in:body:)``), and only
     /// until the caret moves: a selection made anew has none (B-ATTRED-16).
     package var storedTypingAttributes: AttributeContainer?
 
@@ -141,7 +141,7 @@ public struct AttributedTextSelection: Equatable, Sendable {
     /// The attributes text typed at the selection takes.
     ///
     /// Those given with the insertion point (or by
-    /// ``Foundation/AttributedString/transformAttributes(in:body:)`` at it),
+    /// ``AttributedString/transformAttributes(in:body:)`` at it),
     /// until the caret moves. Otherwise the macOS text system's rule, measured
     /// on macOS 15.8 (B-ATTRED-16): the attributes of the character before the
     /// caret; at a paragraph's start, those of the paragraph's first character

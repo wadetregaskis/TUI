@@ -191,7 +191,7 @@ nonisolated public struct OutlineGroup<Data: RandomAccessCollection, ID: Hashabl
     /// The rows, stacked, for where nothing lays them out
     /// (`OutlineGroup+Drawn.swift`). A container that does — a stack, a
     /// `List`, a `Section` — takes the outline apart into its rows instead
-    /// (``childViews(context:)``, ``extractListRows(context:)``) and never
+    /// (``childViews(context:)``, `extractListRows(context:)`) and never
     /// asks for this.
     public var body: some View {
         _OutlineGroupCore(outline: self)
@@ -391,7 +391,7 @@ struct OutlineNode<Element, ID: Hashable> {
     /// One child per visible node, keyed by the node's id — so a stack lays the
     /// tree out as a column of siblings, and each row's own state follows its
     /// node rather than its position. The nodes are the kept ones
-    /// (``OutlineVisibleNodes``), flattened again only when the tree or its
+    /// (`OutlineVisibleNodes`), flattened again only when the tree or its
     /// open branches change.
     public func childViews(context: RenderContext) -> [ChildView] {
         let expansion = expansion(context: context)
