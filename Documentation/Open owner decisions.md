@@ -25,6 +25,16 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
 
 ## Decisions waiting on you
 
+### Open on 2026-11-20
+
+Answered the same day, and built: **A-FOCUSABLE-1** ruled (b). A focused `.focusable()` view draws the standard
+breathing focus tint behind its cells, in the standard focus colour, where SwiftUI on macOS draws a focus ring (a
+terminal has no spare cells round a view for one); `.focusEffectDisabled()` turns it off, and cells that set their own
+background, such as a filled `Canvas`, don't show it. How to draw a look of your own instead is in `FocusSystem.md`,
+"Your own focus look". The record is in
+[Focus, focused values and the default focus](<Historical/Input, keys and gestures/Focus, focused values and the default focus.md#a-focusable-1-how-a-focused-focusable-view-looks>).
+Nothing from that day is left open.
+
 ### Open on 2026-11-19
 
 Answered the same day, and built: **attralign**, "(a) but provide our own version anywhere that Core Text doesn't

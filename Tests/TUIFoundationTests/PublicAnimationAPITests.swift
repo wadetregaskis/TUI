@@ -81,9 +81,13 @@ struct PublicAnimationAPITests {
         @ViewBuilder _ build: @escaping (SelectionEmphasisCycle, Color, Color) -> Body
     ) -> FrameBuffer {
         // `.focusable()` is what makes an app's own view a focus stop, and the
-        // first stop registered with a fresh manager takes the focus.
+        // first stop registered with a fresh manager takes the focus. Its own
+        // look in place of the tint a focused focusable draws, as FocusSystem.md's
+        // "Your own focus look" says: `.focusEffectDisabled()` outside the
+        // modifier. With the tint on, its breath repaints the whole row, and the
+        // view's own runs are dropped beneath it.
         renderToBuffer(
-            PublicProbeControl(build: build).focusable(),
+            PublicProbeControl(build: build).focusable().focusEffectDisabled(),
             context: makeRenderContext(width: 20, height: 4))
     }
 
@@ -138,7 +142,8 @@ struct PublicAnimationAPITests {
     @Test("An animated border colour animates the border, offsets and all")
     func animatedBorder() {
         let buffer = renderToBuffer(
-            PublicProbeBordered().focusable(), context: makeRenderContext(width: 20, height: 4))
+            PublicProbeBordered().focusable().focusEffectDisabled(),
+            context: makeRenderContext(width: 20, height: 4))
         // A three-row box: the two rules, and two side cells on the one row
         // between them.
         #expect(buffer.animatedCells.count == 4, "wrong number of border runs")

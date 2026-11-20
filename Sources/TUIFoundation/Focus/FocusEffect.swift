@@ -108,8 +108,13 @@ extension View {
     /// caps, the bold, the recoloured glyphs and arrows, the highlighted row,
     /// a scroll bar's breath, a colour grid's cursor mark, a `DatePicker`'s
     /// active-field mark, a focus section's ●, a split divider's or resize
-    /// grip's breath. A text cursor stays, and animates
-    /// as it always did.
+    /// grip's breath, the tint behind a focused ``View/focusable(_:)`` view. A
+    /// text cursor stays, and animates as it always did.
+    ///
+    /// To draw a focus look of your own in place of a focusable view's tint,
+    /// write this modifier outside the `.focusable()` and style the view from
+    /// `@FocusState` or from `\.isFocused` read inside it: "Your own focus look"
+    /// in <doc:FocusSystem>.
     ///
     /// Be aware of what that costs. A terminal has no pointer to fall back on
     /// when the keyboard is the only way to navigate, so a subtree with its

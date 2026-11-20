@@ -23,7 +23,7 @@ extension ExampleStrings {
 
             // .focusable (Focus & Input page)
             "page.focus.focusableSection": "Focusable views · .focusable()",
-            "page.focus.focusableExplain": "Any view becomes a Tab stop with .focusable(); @FocusState then binds to it via .focused(). Tab to the item below — it shows (focused) while it holds focus.",
+            "page.focus.focusableExplain": "Any view becomes a Tab stop with .focusable(); @FocusState then binds to it via .focused(). Tab to the item below: the focus tint breathes behind it, and it says (focused) while it holds the focus. The board and the track further down draw a look of their own instead, under .focusEffectDisabled().",
             "page.focus.focusableUnfocused": "Focusable",
             "page.focus.focusableFocused": "Focusable (focused)",
 
@@ -80,7 +80,7 @@ extension ExampleStrings {
 
             // .focusable (Focus & Input page)
             "page.focus.focusableSection": "Fokussierbare Views · .focusable()",
-            "page.focus.focusableExplain": "Mit .focusable() wird jede View zur Tab-Station; @FocusState bindet sich per .focused() daran. Tabbe zum Element unten — es zeigt (fokussiert), solange es den Fokus hält.",
+            "page.focus.focusableExplain": "Mit .focusable() wird jede View zur Tab-Station; @FocusState bindet sich per .focused() daran. Tabbe zum Element unten: Hinter ihm atmet die Fokusfärbung, und es zeigt (fokussiert), solange es den Fokus hält. Das Brett und die Spur weiter unten zeichnen stattdessen ein eigenes Aussehen, mit .focusEffectDisabled().",
             "page.focus.focusableUnfocused": "Fokussierbar",
             "page.focus.focusableFocused": "Fokussierbar (fokussiert)",
 
@@ -137,7 +137,7 @@ extension ExampleStrings {
 
             // .focusable (Focus & Input page)
             "page.focus.focusableSection": "Vues focalisables · .focusable()",
-            "page.focus.focusableExplain": "Toute vue devient un arrêt de tabulation avec .focusable() ; @FocusState s'y lie ensuite via .focused(). Tabulez jusqu'à l'élément ci-dessous — il affiche (focalisé) tant qu'il détient le focus.",
+            "page.focus.focusableExplain": "Toute vue devient un arrêt de tabulation avec .focusable() ; @FocusState s'y lie ensuite via .focused(). Tabulez jusqu'à l'élément ci-dessous : la teinte du focus respire derrière lui, et il affiche (focalisé) tant qu'il détient le focus. Le plateau et la piste plus bas dessinent plutôt leur propre aspect, avec .focusEffectDisabled().",
             "page.focus.focusableUnfocused": "Focalisable",
             "page.focus.focusableFocused": "Focalisable (focalisé)",
 
@@ -194,7 +194,7 @@ extension ExampleStrings {
 
             // .focusable (Focus & Input page)
             "page.focus.focusableSection": "Viste focalizzabili · .focusable()",
-            "page.focus.focusableExplain": "Con .focusable() qualsiasi vista diventa una tappa del Tab; @FocusState vi si lega poi tramite .focused(). Tabula fino all'elemento sotto — mostra (con focus) finché lo mantiene.",
+            "page.focus.focusableExplain": "Con .focusable() qualsiasi vista diventa una tappa del Tab; @FocusState vi si lega poi tramite .focused(). Tabula fino all'elemento sotto: dietro di esso respira la tinta del focus, e mostra (con focus) finché lo mantiene. La scacchiera e la traccia più in basso disegnano invece un aspetto proprio, con .focusEffectDisabled().",
             "page.focus.focusableUnfocused": "Focalizzabile",
             "page.focus.focusableFocused": "Focalizzabile (con focus)",
 
@@ -251,7 +251,7 @@ extension ExampleStrings {
 
             // .focusable (Focus & Input page)
             "page.focus.focusableSection": "Vistas enfocables · .focusable()",
-            "page.focus.focusableExplain": "Con .focusable() cualquier vista pasa a ser una parada del tabulador; @FocusState se enlaza a ella mediante .focused(). Tabula hasta el elemento de abajo: muestra (con foco) mientras lo mantiene.",
+            "page.focus.focusableExplain": "Con .focusable() cualquier vista pasa a ser una parada del tabulador; @FocusState se enlaza a ella mediante .focused(). Tabula hasta el elemento de abajo: el tinte del foco respira detrás de él, y muestra (con foco) mientras lo mantiene. El tablero y la pista más abajo dibujan en cambio un aspecto propio, con .focusEffectDisabled().",
             "page.focus.focusableUnfocused": "Enfocable",
             "page.focus.focusableFocused": "Enfocable (con foco)",
 
@@ -308,7 +308,7 @@ extension ExampleStrings {
 
             // .focusable (Focus & Input page)
             "page.focus.focusableSection": "可聚焦视图 · .focusable()",
-            "page.focus.focusableExplain": "用 .focusable() 可让任何视图成为 Tab 停靠点；@FocusState 再通过 .focused() 与之绑定。用 Tab 移到下方条目——持有焦点时它会显示（已聚焦）。",
+            "page.focus.focusableExplain": "用 .focusable() 可让任何视图成为 Tab 停靠点；@FocusState 再通过 .focused() 与之绑定。用 Tab 移到下方条目：焦点色调会在它背后呼吸，持有焦点时它会显示（已聚焦）。下方的棋盘和轨道则改用 .focusEffectDisabled() 绘制自己的外观。",
             "page.focus.focusableUnfocused": "可聚焦",
             "page.focus.focusableFocused": "可聚焦（已聚焦）",
 
@@ -365,7 +365,7 @@ extension ExampleStrings {
 
             // .focusable (Focus & Input page)
             "page.focus.focusableSection": "フォーカス可能なビュー · .focusable()",
-            "page.focus.focusableExplain": ".focusable() を付ければどんなビューも Tab の停止点になり、@FocusState が .focused() で結び付きます。Tab で下の項目へ移動すると、フォーカスを持つ間は（フォーカス中）と表示されます。",
+            "page.focus.focusableExplain": ".focusable() を付ければどんなビューも Tab の停止点になり、@FocusState が .focused() で結び付きます。Tab で下の項目へ移動すると、その背後でフォーカスの色合いが呼吸し、フォーカスを持つ間は（フォーカス中）と表示されます。下のボードとトラックは .focusEffectDisabled() で代わりに独自の見た目を描きます。",
             "page.focus.focusableUnfocused": "フォーカス可能",
             "page.focus.focusableFocused": "フォーカス可能（フォーカス中）",
 

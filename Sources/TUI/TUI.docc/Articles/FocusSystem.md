@@ -256,9 +256,36 @@ The pulse runs on a shared clock so everything on screen breathes together, and
 it walks a discrete ramp of shades rather than lerping — the 256-colour cube has
 no dark tinted colours, so a continuous fade quantises to grey partway down.
 
-To give **your own** view the same affordance, read the two environment values
-the built-in controls read: `\.isFocused` says whether this subtree holds focus,
-and `\.selectionEmphasis` carries the current point on the pulse.
+### A focusable view's tint
+
+A view made focusable with `focusable(_:interactions:)` draws the standard
+focus tint **behind its cells** while it holds the focus: the neutral focus wash
+a list's cursor row breathes (``Palette/focusWashPulse()``), on the same shared
+clock, in the same colour as every other focus on screen. It is TUI's rendering
+of the focus ring SwiftUI draws round a focused focusable view on macOS. A ring
+needs a cell on every side of the view, which a terminal layout has no spare
+cells for, so the focus goes behind the view instead and its size stays as it
+is (the owner's ruling A-FOCUSABLE-1, 2026-11-20).
+
+It shows only where the view leaves a cell's background unset. A cell that
+paints its own, such as a filled `Canvas`, a `.background(_:)` or a bordered
+button's face, keeps it, so a view that fills every cell shows no tint at all:
+give such a view a look of its own (below). Without colour the tint is reverse
+video, breathing by weight where the terminal draws bold, as a cursor row's is;
+under Differentiate Without Color it is reverse video over the colours, still.
+In a window that has lost the terminal's focus it holds still in the plain
+wash, as a cursor row does.
+
+The tint belongs to the stop that holds the focus, and to no other. A
+`.focusable()` around a `Button`, or around a container of controls, adds a
+stop of its own beside theirs: while the wrapper holds the focus it tints and
+the controls inside draw unfocused, and while one of them holds it, that
+control draws its own focus and the wrapper draws nothing. However focusables
+and controls are nested, a focus is drawn once.
+
+While the tint breathes, an animation inside the view, such as a spinner or a
+`TimelineView`, is drawn by a render at each of its steps rather than replayed
+between renders, as on a list's cursor row.
 
 ### Turning it off
 
@@ -272,6 +299,8 @@ breath, a menu `Picker`'s accent value and breathing caps, the check mark on a
 `ColorPicker` grid's cursor swatch, and the breathing scrollbars and "N more"
 lines of a `ScrollView` or `TextEditor` (the bars stay, in their resting
 colours: where you are in the content is not which control has the keys).
+A focused `.focusable()` view's tint goes too (see
+<doc:FocusSystem#Your-own-focus-look> to draw your own instead).
 Handles and sections go the same way: the ● an active focus section or
 `NavigationSplitView` column draws in its border, the breathing background of
 a split's divider or edge column, and the breath of a `userResizable` view's
@@ -310,6 +339,100 @@ plain value, so a subtree that sets it back to `true` gets its breath back.
 **Know what it costs.** A terminal has no pointer to fall back on, so a subtree
 with its focus effects off can be genuinely impossible to navigate by keyboard.
 That is the same trade SwiftUI's modifier makes, and it is the caller's to make.
+
+### Your own focus look
+
+The tint is what a focusable view gets by default. To replace it, turn it off
+with ``View/focusEffectDisabled(_:)``, on the focusable view or anywhere above
+it, and draw the focus yourself. Write it outside the `.focusable()`, as
+below: like every environment value it reaches what is inside it, and the
+modifier reads it where the modifier is.
+
+The view needs to know when it holds the focus, and there are two ways to ask.
+**The recommended one is `@FocusState`** in the view that owns the state, bound
+with `focused(_:)`:
+
+```swift
+struct Tile: View {
+    let title: String
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        Text(title)
+            .padding(.horizontal, 1)
+            .border(isFocused ? .palette.accent : .palette.border)
+            .focusable()
+            .focused($isFocused)
+            .focusEffectDisabled()
+    }
+}
+```
+
+**Or read `\.isFocused` in content below the `.focusable()`.** The modifier
+tells its content whether it holds the focus, so a view inside it can read the
+environment. It has to be inside. A view that applies `.focusable()` in its own
+`body` is above the modifier, and its `\.isFocused` is that of whatever
+encloses it, so it never sees its own focus:
+
+```swift
+// Right: TileFace is the focusable's content, and is told its focus.
+struct TileFace: View {
+    let title: String
+    @Environment(\.isFocused) private var isFocused
+
+    var body: some View {
+        Text(title).bold(isFocused)
+    }
+}
+
+struct Launcher: View {
+    var body: some View {
+        TileFace(title: "Play")
+            .focusable()
+            .focusEffectDisabled()
+    }
+}
+
+// Wrong: this view reads \.isFocused above its own .focusable(), so the
+// title never turns bold.
+struct BrokenTile: View {
+    @Environment(\.isFocused) private var isFocused
+
+    var body: some View {
+        Text("Play")
+            .bold(isFocused)
+            .focusable()
+    }
+}
+```
+
+**To breathe in step with the built-in controls**, colour the look through
+`\.selectionEmphasis`. ``SelectionEmphasisClock/animatedColor(_:dim:bright:)`` hands
+a modifier that paints, such as a border, every frame of the shared pulse, so
+your look breathes with every other focus on screen, holds still where the
+app or the person said so (<doc:FocusSystem#Holding-it-still>), and holds
+still half-way while the window is inactive:
+
+```swift
+struct BreathingTileFace: View {
+    @Environment(\.isFocused) private var isFocused
+    @Environment(\.selectionEmphasis) private var emphasis
+    @Environment(\.palette) private var palette
+
+    var body: some View {
+        Text("Play")
+            .border(emphasis.animatedColor(isFocused, dim: palette.border, bright: palette.accent))
+    }
+}
+```
+
+<doc:AnimatingYourOwnView> says how that colour reaches the screen without a
+render per tick.
+
+**In a ``Renderable`` view, or anything that draws for itself**, gate the
+focus styling on ``RenderContext/indicatesFocus(_:)`` rather than on the
+focus alone, so a `.focusEffectDisabled()` written above your view turns your
+look off as it turns off every built-in one.
 
 ### Holding it still
 
@@ -373,10 +496,11 @@ vanished with the window read as the focus having been lost.
   has, which is what makes it read as "here, but not now". A selected cursor
   row keeps its ● at full strength, which still tells it from a selection the
   list merely remembers.
-- **A cursor row that is not selected** holds still in the plain focus wash,
-  ``Palette/focusBackground`` — the bottom of the breath it draws while the
-  window is active (``Palette/focusWashPulse()``), and the look it has always
-  had. A palette that leaves `focusBackground` to its default, or a shipped
+- **A cursor row that is not selected**, and a focused `.focusable()` view's
+  tint, hold still in the plain focus wash,
+  ``Palette/focusBackground`` — the bottom of the breath they draw while the
+  window is active (``Palette/focusWashPulse()``), and the look a cursor row
+  has always had. A palette that leaves `focusBackground` to its default, or a shipped
   palette, holds the dim end chosen with its other row fills instead. A translucent wash is held spent over the page, as the breath spends it,
   so the row stops where it was on whatever it is drawn over.
 - **Nothing else changes.** The bold, the recoloured arrows and values: they

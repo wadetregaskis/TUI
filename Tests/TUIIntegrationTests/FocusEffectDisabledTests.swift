@@ -286,6 +286,15 @@ struct FocusEffectDisabledTests {
         expectIndistinguishable(Button("press") {}, "Button")
     }
 
+    /// A focused `.focusable()` view draws the focus tint behind its cells
+    /// (A-FOCUSABLE-1, 2026-11-20); it goes with every other indication, and
+    /// holds still in an inactive window.
+    @Test(".focusable()")
+    func focusable() {
+        expectDistinguishable(Text("plain view").focusable(), ".focusable()")
+        expectIndistinguishable(Text("plain view").focusable(), ".focusable()")
+    }
+
     @Test("Toggle")
     func toggle() {
         expectDistinguishable(Toggle("on", isOn: .constant(true)), "Toggle")

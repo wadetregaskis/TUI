@@ -68,8 +68,11 @@ struct FocusPage: View {
                     Text("page.focus.focusableExplain")
                         .foregroundStyle(.palette.foregroundSecondary)
                     // A single plain Text — not a control — made a Tab stop with
-                    // .focusable() and bound to @FocusState via .focused(). It
-                    // gains a "(focused)" suffix while it holds focus.
+                    // .focusable() and bound to @FocusState via .focused(). While
+                    // it holds the focus the standard focus tint breathes behind
+                    // it, and it gains a "(focused)" suffix. The board and the
+                    // track below (CommandsDemo, KeyPressDemo) show the other
+                    // path: .focusEffectDisabled() and a look of their own.
                     Text(
                         labelFocused
                             ? L("page.focus.focusableFocused")

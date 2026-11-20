@@ -22,6 +22,13 @@ extension EnvironmentValues {
     /// keyboard). Either way only that content knows what part of itself should
     /// say so.
     ///
+    /// It is read BELOW the modifier that owns the stop: a view that applies
+    /// `.focusable()` in its own `body` is above it, and reads whatever
+    /// encloses it. A focusable view also draws the focus tint behind its
+    /// cells; to draw your own look in its place, add
+    /// ``View/focusEffectDisabled(_:)`` outside the `.focusable()` ("Your own
+    /// focus look" in <doc:FocusSystem>).
+    ///
     /// Pair it with ``EnvironmentValues/selectionEmphasis`` to get an
     /// affordance that keeps step with every built-in control and honours
     /// ``View/selectionIndicatorStyle(_:)`` — pulse, blink or a

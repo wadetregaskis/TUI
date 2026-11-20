@@ -34,6 +34,9 @@ struct CommandsDemo: View {
                 .border(isFocused ? .palette.accent : .palette.border)
                 .focusable()
                 .focused($isFocused)
+                // Its own focus look, the border above, in place of the tint a
+                // focused `.focusable()` draws (FocusSystem.md, "Your own focus look").
+                .focusEffectDisabled()
                 .onMoveCommand { direction in
                     switch direction {
                     case .left: cursor.column = max(0, cursor.column - 1)

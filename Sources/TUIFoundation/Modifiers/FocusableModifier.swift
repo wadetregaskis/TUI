@@ -54,6 +54,18 @@ extension View {
     /// a subtree an ancestor closed, exactly as `.disabled(false)` cannot
     /// re-enable one.
     ///
+    /// While the view holds the focus it draws the standard focus tint behind
+    /// its cells, breathing on the shared clock as a list's cursor row does:
+    /// TUI's rendering of the focus ring SwiftUI draws round a focused view on
+    /// macOS, which would need a cell on every side of it. A cell that paints
+    /// its own background keeps it, so a view that fills every cell, such as a
+    /// filled `Canvas`, shows no tint. ``View/focusEffectDisabled(_:)`` written
+    /// outside this modifier turns it off; to draw a look of your own instead,
+    /// from `@FocusState` or from `\.isFocused` read inside the view, see
+    /// "Your own focus look" in <doc:FocusSystem>. A control inside the view
+    /// draws its own focus when it holds the focus, and the view then draws
+    /// none.
+    ///
     /// - Parameter isFocusable: Whether the view can receive focus.
     nonisolated public func focusable(_ isFocusable: Bool = true) -> some View {
         FocusableModifier(content: self, isFocusable: isFocusable, interactions: .automatic)
@@ -64,6 +76,10 @@ extension View {
     /// `false` suppresses the content's own focus stops as it does on
     /// ``View/focusable(_:)``; `interactions` then names nothing, there being no
     /// stop to interact with.
+    ///
+    /// A focused view draws the focus tint behind its cells, as under
+    /// ``View/focusable(_:)``; "Your own focus look" in <doc:FocusSystem> says
+    /// how to replace it.
     ///
     /// - Parameters:
     ///   - isFocusable: Whether the view can receive focus.
@@ -154,6 +170,20 @@ nonisolated struct FocusableModifier<Content: View>: View {
 
         var buffer = TUIView.renderToBuffer(content, context: contentContext)
 
+        // A focused stop says so: the standard focus tint behind its cells, where
+        // SwiftUI on macOS draws a focus ring round the view (the owner's ruling
+        // A-FOCUSABLE-1 (b), 2026-11-20; a ring needs a cell on every side, which a
+        // terminal layout has no spare cells for). Until then the view took Tab and
+        // the keys and looked exactly as it did unfocused.
+        //
+        // Only for this stop's OWN focus, which is what keeps nesting from drawing
+        // it twice: a control inside registers a stop of its own, so while it
+        // holds the focus this one does not, and draws nothing, and while this one
+        // does, the control draws unfocused over the tint.
+        if isFocused == true, context.indicatesFocus(true) {
+            buffer = focusTinted(buffer, context: context)
+        }
+
         // Published after the help in the stop's own environment, which its
         // registration published, so the inner one wins, as it does under the
         // pointer. Not where a control inside the view carries a focus id of
@@ -208,6 +238,35 @@ nonisolated struct FocusableModifier<Content: View>: View {
         }
 
         return buffer
+    }
+
+    /// `buffer`, the focused view's content, on the focus tint.
+    ///
+    /// The tint is the neutral focus wash a list's cursor row breathes on a row
+    /// the selection does not include (`Palette.focusWashEmphasis(appearsActive:)`):
+    /// one focus identity with every other focus on screen, in the palette, on the
+    /// shared clock, reversed where the wash cannot be drawn (without colour,
+    /// breathing by weight where the host draws bold), and held still in the
+    /// plain wash while the view does not appear active. Painted behind the
+    /// finished content by the painter a menu's focused row uses
+    /// (`FrameBuffer.onHighlight`), so a cell that states its own background keeps
+    /// it, the content's fades are spent against the tint, and the content's own
+    /// runs are dropped for as long as it breathes, their next steps rendered on
+    /// their behalf, as on a cursor row.
+    ///
+    /// Where the person asks for cues that don't rest on colour (Differentiate
+    /// Without Color) the tint is reverse video over the palette's pair, still,
+    /// as a focused button's is (`FrameBuffer.reversedWithoutColor`); without
+    /// colour the wash is already that reversal.
+    private func focusTinted(_ buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
+        guard !buffer.lines.isEmpty else { return buffer }
+        let palette = context.environment.palette
+        let tint: HighlightFill =
+            context.statesWithoutColor && ColorDepth.current != .noColor
+            ? .reversed(ink: palette.foreground, field: palette.background)
+            : palette.focusWashEmphasis(appearsActive: context.environment.appearsActive)
+        return buffer.onHighlight(
+            tint, width: buffer.width, wakeToken: "focusable-dropped-run-\(context.identity.path)", context: context)
     }
 
     /// Registers a bare focus stop unless the view is disabled, not focusable, or
@@ -293,5 +352,7 @@ nonisolated struct FocusableModifier<Content: View>: View {
 // MARK: - Removal Transitions
 
 /// Draws its content unchanged, at its own identity, so a removal transition
-/// written inside it plays — see `DrawsContentUnchanged`.
+/// written inside it plays — see `DrawsContentUnchanged`. Unchanged but for the
+/// focus tint behind a focused view's cells, which a departing picture does
+/// without: it is the view leaving, and the focus leaves it.
 @MainActor extension FocusableModifier: DrawsContentUnchanged {}

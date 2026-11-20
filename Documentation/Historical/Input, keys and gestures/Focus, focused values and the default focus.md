@@ -1,15 +1,16 @@
 # Focus, focused values and the default focus
 
 *When a focused-value reader sees its publisher, what "when no other view has
-focus" means, and the focused objects declined. Ids: B34, B34-FULLER, B35,
-C9.*
+focus" means, the focused objects declined, and how a focused `.focusable()`
+view looks. Ids: B34, B34-FULLER, B35, C9, A-FOCUSABLE-1.*
 
 ## In short
 
 A reader drawn ahead of its publisher catches up a frame later (kept: both
 fixes cost every frame). A preferred default focus applies when no other view
 has focus, read the way B35 records. `@FocusedObject` and its modifiers are
-declined.
+declined. A focused `.focusable()` view breathes the standard focus tint behind
+its cells (A-FOCUSABLE-1).
 
 ## The record
 
@@ -121,3 +122,41 @@ compatibility doc declines for the whole framework. The `@Observable` forms
 SwiftUI offers beside them ship — `@FocusedValue(Model.self)`,
 `.focusedValue(model)`, `.focusedSceneValue(model)` — so the map entries are
 `differentShape`, naming those.
+
+### A-FOCUSABLE-1. How a focused `.focusable()` view looks
+
+*`View.focusable(_:)`, `View.focusable(_:interactions:)`,
+`View.focusEffectDisabled(_:)`*
+
+SwiftUI on macOS draws a focus ring round a focused custom `.focusable()` view.
+TUI drew nothing: the view took Tab and the keys and never said so, and an app
+had to draw its own look from `\.isFocused` (tuidisk's treemap tinted its own
+caption). Put to the owner on 2026-11-20 with three options: (a) keep that and
+document it, (b) a breathing focus tint behind the view's cells in the standard
+focus colour, off under `.focusEffectDisabled()`, (c) a real ring, which needs
+a cell on every side of the view and so changes its layout.
+
+**Decided 2026-11-20: (b).** A focused `.focusable()` view draws the standard
+breathing focus tint behind its cells, in the standard focus colour;
+`.focusEffectDisabled()` turns it off. It does not show on cells that set their
+own background, such as a filled `Canvas`, which is accepted and documented.
+The owner asked for the way to customise the look to be made clear and easy to
+find.
+
+**Shipped 2026-11-20.** The tint is the neutral focus wash a list's cursor row
+breathes on a row that is not selected (`Palette.focusWashEmphasis(appearsActive:)`),
+painted behind the finished content by the painter a menu's focused row uses
+(`FrameBuffer.onHighlight`), so it is in the palette, breathes on the shared
+clock, reverses without colour (breathing by weight where the host draws bold),
+holds still in the plain wash in an inactive window, and drops the content's own
+runs while it breathes, as a cursor row does. Under Differentiate Without Color
+it is a still reversal over the colours, as a focused button's is. It is
+gated on `RenderContext.indicatesFocus(_:)`, so `.focusEffectDisabled()` above
+the modifier removes it. Nesting needed no rule of its own: the tint follows
+the focusable's OWN stop, and a control inside it registers a stop of its own,
+so at most one of them holds the focus and draws it. The customising path is
+`FocusSystem.md`'s "Your own focus look": `.focusEffectDisabled()`, then
+`@FocusState` with `.focused(_:)` in the view that owns the state, or
+`\.isFocused` read below the modifier. Not a deviation from SwiftUI's API: it
+is a terminal rendering of SwiftUI's ring. Tests: `FocusableFocusTintTests`,
+and `.focusable()` in `FocusEffectDisabledTests`' sweep.

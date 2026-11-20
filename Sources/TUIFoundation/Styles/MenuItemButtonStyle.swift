@@ -126,8 +126,8 @@ private struct _MenuItemRowBar: View, Renderable, Layoutable {
         // A breath with reverse video in it (16 colours, where the palette's picks run
         // out; without colour, by weight) is drawn as a list's cursor row draws it.
         let emphasis = palette.highlightedRowFill(appearsActive: context.environment.appearsActive, reversing: true)
-        // Drawn by the one painter of a highlight behind a finished label
-        // (`FrameBuffer.onHighlight`).
+        // Drawn by the one painter of a highlight behind a finished label, which a
+        // focused `.focusable()` view's tint shares (`FrameBuffer.onHighlight`).
         return buffer.onHighlight(
             emphasis, wakeToken: "menu-row-dropped-run-\(context.identity.path)", context: context)
     }

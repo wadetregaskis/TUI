@@ -37,8 +37,12 @@ The shape of it:
 Start with the question that usually prompts this: your view is the focusable
 thing, so how does it show that it has the focus?
 
-``View/focusable(_:)`` makes any view a Tab stop, and publishes
-``EnvironmentValues/isFocused`` to its content so the view can say so.
+``View/focusable(_:)`` makes any view a Tab stop, draws the standard focus
+tint behind it while it holds the focus, and publishes
+``EnvironmentValues/isFocused`` to its content so the view can say so in its
+own way. For a look of your own in place of the tint, add
+``View/focusEffectDisabled(_:)`` outside the `.focusable()`; "Your own focus
+look" in <doc:FocusSystem> has the whole recipe.
 ``EnvironmentValues/selectionEmphasis`` turns that into the same affordance
 every built-in control uses, on the same clock, honouring whatever
 ``View/selectionIndicatorStyle(_:)`` is in force —

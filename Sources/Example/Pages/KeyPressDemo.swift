@@ -31,6 +31,9 @@ struct KeyPressDemo: View {
                     .border(isFocused ? .palette.accent : .palette.border)
                     .focusable()
                     .focused($isFocused)
+                    // Its own focus look, the border above, in place of the tint a
+                    // focused `.focusable()` draws (FocusSystem.md, "Your own focus look").
+                    .focusEffectDisabled()
                     // Handled even at an end, so the arrow does not move the
                     // focus instead: refused, with the bell.
                     .onKeyPress(.leftArrow) {
