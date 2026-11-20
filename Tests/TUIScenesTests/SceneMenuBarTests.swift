@@ -315,8 +315,24 @@ struct SceneMenuBarTests {
                     KeyboardShortcut("d", modifiers: [.control, .shift]),
                     KeyboardShortcut("a", modifiers: [.control, .shift]),
                     KeyboardShortcut(".", modifiers: [.control, .shift]), KeyboardShortcut(">", modifiers: .control),
+                    // Measured 2026-11-20: full screen, scrolling, search, tabs, the window.
+                    KeyboardShortcut(.return, modifiers: .option),
+                    KeyboardShortcut(.upArrow, modifiers: [.control, .shift]),
+                    KeyboardShortcut(.downArrow, modifiers: [.control, .shift]),
+                    KeyboardShortcut(.home, modifiers: [.control, .shift]),
+                    KeyboardShortcut(.end, modifiers: [.control, .shift]),
+                    KeyboardShortcut(.pageUp, modifiers: [.control, .shift]),
+                    KeyboardShortcut(.pageDown, modifiers: [.control, .shift]),
+                    KeyboardShortcut(.tab, modifiers: .control), KeyboardShortcut(.tab, modifiers: [.control, .shift]),
+                    KeyboardShortcut("f", modifiers: [.control, .shift]),
+                    KeyboardShortcut("k", modifiers: [.control, .shift]),
+                    KeyboardShortcut("t", modifiers: [.control, .shift]),
+                    KeyboardShortcut("w", modifiers: [.control, .shift]),
                 ].map(\.trigger))
             #expect(kept == (program == .windowsTerminal ? windowsTerminals : []))
+            // What arrived whole is not listed: a pane's resize with one pane, a copy with nothing selected.
+            #expect(!kept.contains(KeyboardShortcut(.leftArrow, modifiers: [.option, .shift]).trigger))
+            #expect(!kept.contains(KeyboardShortcut("c", modifiers: [.control, .shift]).trigger))
         }
     }
 

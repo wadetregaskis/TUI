@@ -39,6 +39,17 @@ extension TerminalClient {
     ///   Applications and hidden files (``FilePanelCommand``), whose status
     ///   bar names none of them there. ⌃⇧. is listed in both its spellings,
     ///   as the panel binds both.
+    /// - The same, 2026-11-20, the rest of its default bindings that TUI's
+    ///   own keys share, with one tab, one pane and no selection: ⌥↩ (full
+    ///   screen; a vertical field's newline, which ⌃J also types), ⌃⇧↑ ⌃⇧↓
+    ///   (a line's scroll), ⌃⇧Home ⌃⇧End ⌃⇧PgUp ⌃⇧PgDn (scrolling) and ⌃⇧K
+    ///   arrived as their releases alone; ⌃⇧F (its search) and ⌃⇧T (a new tab)
+    ///   as their modifiers' presses alone, ⌃Tab and ⌃⇧Tab (its tab switcher)
+    ///   likewise, even with one tab; and ⌃⇧W closed the window. TUI reads
+    ///   each of those as a key it also takes without the extra modifier, or
+    ///   by another (⌃F, Tab, ⌃J), and names none, so listing them changes no
+    ///   hint. ⌥⇧↑ ⌥⇧↓ ⌥⇧← ⌥⇧→ (a pane's resize) and ⌃⇧C (its copy, with
+    ///   nothing selected) arrived whole, and are not listed.
     ///
     /// Every other host is taken to keep none: a chord it does keep is still
     /// bound, and named, as nothing here knows it does not arrive.
@@ -54,10 +65,25 @@ extension TerminalClient {
                     KeyboardShortcut("d", modifiers: [.control, .shift]),
                     KeyboardShortcut("a", modifiers: [.control, .shift]),
                     KeyboardShortcut(".", modifiers: [.control, .shift]), KeyboardShortcut(">", modifiers: .control),
-                ].map(\.trigger))
+                ].map(\.trigger) + Self.windowsTerminalNavigationChords)
         case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal, .xtermJS, .windowsConsole, .tmux,
             .unidentified:
             []
         }
     }
+
+    /// Windows Terminal's kept chords measured on 2026-11-20 (above): its
+    /// full screen, scrolling, search, tabs and window.
+    private static let windowsTerminalNavigationChords: [KeyboardShortcut.Trigger] = [
+        KeyboardShortcut(.return, modifiers: .option),
+        KeyboardShortcut(.upArrow, modifiers: [.control, .shift]),
+        KeyboardShortcut(.downArrow, modifiers: [.control, .shift]),
+        KeyboardShortcut(.home, modifiers: [.control, .shift]),
+        KeyboardShortcut(.end, modifiers: [.control, .shift]),
+        KeyboardShortcut(.pageUp, modifiers: [.control, .shift]),
+        KeyboardShortcut(.pageDown, modifiers: [.control, .shift]),
+        KeyboardShortcut(.tab, modifiers: .control), KeyboardShortcut(.tab, modifiers: [.control, .shift]),
+        KeyboardShortcut("f", modifiers: [.control, .shift]), KeyboardShortcut("k", modifiers: [.control, .shift]),
+        KeyboardShortcut("t", modifiers: [.control, .shift]), KeyboardShortcut("w", modifiers: [.control, .shift]),
+    ].map(\.trigger)
 }

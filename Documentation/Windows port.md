@@ -21,9 +21,10 @@ starting point for the session that does it, on a Windows VM, and the record it 
   the emoji page's treatment rows line up in both, and the menu's Quit hands the console back. Under a pseudo
   console (`Tools/Smoke/conpty.py`) it also takes keys, follows a resize, asks on ⌃\, quits on ⌃Q, and leaves the
   console as it found it on ⌃Q and on Ctrl-Break.
-- **Keys and the mouse are measured in both** (2026-11-19, by the owner's hand): Windows Terminal speaks the kitty
-  keyboard protocol in full, and keeps a few chords for its own bindings, which TUI does not name; conhost speaks the
-  legacy encodings; both report every mouse button and modifier but Shift ("Still to do", below, has the rest).
+- **Keys and the mouse are measured in both** (2026-11-19 and -20, by the owner's hand): Windows Terminal speaks the
+  kitty keyboard protocol in full, and keeps the chords of its own default bindings, which TUI does not name, every
+  one TUI's keys share now measured; conhost speaks the legacy encodings; both report every mouse button and modifier
+  but Shift.
 
 ## What "fully supported" means here
 
@@ -249,14 +250,6 @@ Two things about the environment the runs needed:
 - **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
   logging the session off would end the test with it. Worth a run in a virtual machine.
 - **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
-- **The rest of Windows Terminal's default bindings that TUI's own keys share**, to measure as the file panel's were
-  (`keyboard_events_probe.py`, `PROBE_ALT=1 PROBE_MOUSE_INPUT=0`, one tab, one pane, no selection), so that
-  `TerminalClient.keptChords` lists those it keeps: ⌥↩ (a vertical field's newline; also ⌃J), ⌥⇧↑ ⌥⇧↓ and ⌃⇧↑ ⌃⇧↓
-  (a list's row move; also ⌃↑ ⌃↓), ⌃⇧F (a text editor's find, which takes ⌃F too), ⌃Tab and ⌃⇧Tab (the focus,
-  which Tab moves too), ⌃⇧Home ⌃⇧End ⌃⇧PgUp ⌃⇧PgDn (a selection extended, as without ⌃), ⌃⇧K ⌃⇧T ⌃⇧W and ⌃⇧C
-  (a row key or an edit whose Shift TUI ignores), and ⌥⇧← ⌥⇧→ (a word selected; Windows Terminal binds ⌥⇧↑↓←→ to
-  resize a pane, which may do nothing with one). Found by comparing its `defaults.json` (1.25.3131.0) with TUI's
-  bindings, 2026-11-19; ⌥← ⌥→ ⌥↑ ⌥↓ already arrived with one pane.
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal
@@ -266,7 +259,9 @@ kitty protocol too (the survey's "Keys under the kitty protocol": every key as t
 (`TerminalClient.keptChords`: none of them is named where the app names its keys, and one that works is named instead,
 so Settings… shows F2 there, undo and redo ⌃Z and ⌃⇧Z, and the file panel's preview `=`; the owner's rule of 2026-11-19,
 for every terminal, which replaced 2026-11-17's "Just ⌃, for now", with `keyboardShortcutFallback(_:)` for an app to
-name its own other key), and copies too large for the
+name its own other key; the rest of its default bindings that TUI's keys share measured 2026-11-20 by the owner's
+hand, its full screen, scrolling, search, tabs and window kept and listed, a pane's resize and a copy with nothing
+selected arriving whole, as the survey's "Keys under the kitty protocol" has it), and copies too large for the
 terminal (over a measured 24,567 bytes of text: sent to this machine's clipboard at the desk, reported as not copied
 over ssh), x86_64, and the console's font (conhost names it, and where it has no quadrants, as Consolas has none, shapes
 cut their corners in whole cells and a canvas draws half blocks; asked again on each resize, which a font change sends;

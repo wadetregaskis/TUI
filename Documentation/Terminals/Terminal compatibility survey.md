@@ -2987,6 +2987,18 @@ record with motion reports). Every key is reported as the specification has it, 
   alone, and ⌃⇧. (its suggestions) as `CSI 46:62;6:3u` alone. ⌃⇧G, ⌃⇧H and ⌃⇧O, which it
   binds to nothing, arrived whole (`CSI 103:71;6u` and its release). All of these are in
   `TerminalClient.keptChords`.
+  A third run, 2026-11-20, of the rest of its default bindings that TUI's keys share (found
+  comparing its `defaults.json` with TUI's bindings), with one tab, one pane and nothing
+  selected: ⌥↩ (full screen) arrived as `CSI 13;3:3u` alone; ⌃⇧↑ ⌃⇧↓ (a line's scroll),
+  ⌃⇧Home ⌃⇧End and ⌃⇧PgUp ⌃⇧PgDn (scrolling) as their releases alone (`CSI 1;6:3A`,
+  `CSI 1;6:3H`, `CSI 5;6:3~` and the like), and ⌃⇧K as `CSI 107:75;6:3u` alone; ⌃⇧F (its
+  search, which took the focus) and ⌃⇧T (a new tab) as their modifiers' presses alone; ⌃Tab
+  and ⌃⇧Tab (its tab switcher, a list with a search field, even with one tab) the same, in a
+  run of their own; and ⌃⇧W closed the window. Those are in `TerminalClient.keptChords` too.
+  ⌥⇧↑ ⌥⇧↓ ⌥⇧← ⌥⇧→ (a pane's resize, with one pane to resize) arrived whole (`CSI 1;4A` and
+  its release), as ⌥←→↑↓ (a pane's focus) had, and ⌃⇧C (its copy, with nothing selected) as
+  `CSI 99:67;6u` and its release; ⌃⇧J, bound to nothing, whole too. Those are not listed:
+  where there is a pane to resize or a selection to copy, they are its.
 - **A paste** with mouse reporting and bracketed paste off arrived as its text, outside
   any report.
 - Not pressed: a dead key, ⌘ (the Windows key, taken by the system), the keypad.
