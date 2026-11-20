@@ -250,6 +250,9 @@ struct ImageNaturalSizeTests {
         #expect(SessionLocality.isLikelyLocal(environment: ["TERM_PROGRAM": "ghostty"]))
         #expect(!SessionLocality.isLikelyLocal(environment: ["TERM_PROGRAM": "ghostty", "SSH_CONNECTION": "a b c d"]))
         #expect(!SessionLocality.isLikelyLocal(environment: ["TERM": "xterm-ghostty"]), "TERM travels over ssh")
+        // Windows Terminal names itself by its session, not TERM_PROGRAM.
+        #expect(SessionLocality.isLikelyLocal(environment: ["WT_SESSION": "4c1b2e"]))
+        #expect(!SessionLocality.isLikelyLocal(environment: ["WT_SESSION": "4c1b2e", "SSH_TTY": "/dev/pts/0"]))
     }
 
     @Test("The text area's reply is read, and nothing else is")

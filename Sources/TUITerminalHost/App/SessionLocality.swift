@@ -159,15 +159,18 @@ package enum SessionLocality {
     }
 
     /// Whether the environment says the app runs on the machine the terminal
-    /// is on: the terminal set `TERM_PROGRAM`, which ssh does not forward, and
-    /// no ssh session is in the environment.
+    /// is on: the terminal set `TERM_PROGRAM`, or Windows Terminal its
+    /// `WT_SESSION` (it sets no `TERM_PROGRAM`), neither of which ssh forwards,
+    /// and no ssh session is in the environment.
     ///
     /// The environment's word, not evidence (``isLocal()`` is): a tmux or
     /// screen session keeps the variables it started with, wherever it is
     /// attached from. Cheap, and right for a question whose wrong answer only
     /// mis-sizes something.
     package static func isLikelyLocal(environment: [String: String]) -> Bool {
-        guard environment["TERM_PROGRAM"] != nil, environment["SSH_CONNECTION"] == nil else { return false }
+        guard environment["TERM_PROGRAM"] != nil || environment["WT_SESSION"] != nil,
+            environment["SSH_CONNECTION"] == nil
+        else { return false }
         return environment["SSH_TTY"] == nil
     }
 
