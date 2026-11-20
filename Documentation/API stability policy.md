@@ -90,8 +90,8 @@ WebAssembly builds and runs, but CI builds it without running the test suite the
 
 ## Minimum Swift and macOS
 
-Today: `swift-tools-version: 6.2` and macOS 15, with Linux supported and the lower four modules building on
-Windows. Raising either minimum stops some apps building, so the policy has to say which release may do it.
+Today: `swift-tools-version: 6.2` and macOS 15, with Linux supported and the whole package building on Windows
+with Swift 6.2, 6.3 and 6.4 (since 2026-11-16). Raising either minimum stops some apps building, so the policy has to say which release may do it.
 The two notes in `Documentation/Swift language` (raising the floor to macOS 26, raising the minimum Swift to 6.4)
 are the evidence for the next such raise.
 

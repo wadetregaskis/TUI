@@ -5,7 +5,7 @@ What it takes for TUI to be fully supported on Windows, which the owner made a 1
 starting point for the session that does it, on a Windows VM, and the record it keeps as it goes, as
 [WebAssembly port.md](<WebAssembly port.md>) is for that port.
 
-## Where it stands (2026-11-17, on the VM)
+## Where it stands (2026-11-19, on the VM)
 
 - **The whole package builds on Windows** with Swift 6.2.4, 6.3.3 and 6.4.2, every library, tool and test target,
   with no warnings in its code (`swift build --build-tests`, each from a clean scratch path), on a Windows 11 arm64
@@ -21,6 +21,9 @@ starting point for the session that does it, on a Windows VM, and the record it 
   the emoji page's treatment rows line up in both, and the menu's Quit hands the console back. Under a pseudo
   console (`Tools/Smoke/conpty.py`) it also takes keys, follows a resize, asks on ⌃\, quits on ⌃Q, and leaves the
   console as it found it on ⌃Q and on Ctrl-Break.
+- **Keys and the mouse are measured in both** (2026-11-19, by the owner's hand): Windows Terminal speaks the kitty
+  keyboard protocol in full, and keeps a few chords for its own bindings, which TUI does not name; conhost speaks the
+  legacy encodings; both report every mouse button and modifier but Shift ("Still to do", below, has the rest).
 
 ## What "fully supported" means here
 
@@ -159,6 +162,9 @@ Measured under a pseudo console (`Tools/Smoke/conpty.py`, 2026-11-16, debug buil
 
 - The first frame draws; Down, Up, Return, Escape and the digits drive the menu; a resize from 120x40 to 90x30 redraws
   at the new size.
+- Walked again 2026-11-19 (6.3.3, debug), with F1's list of shortcuts, which names no chord the console cannot send
+  (no ⌃⇧ chord, no ⌃,): all as before. A key sent before the page a previous one opened has drawn waits for it; a walk
+  that sends the next key at once can read the old screen.
 - ⌃\ brings up "Quit Example?" (it read "Quit Example.exe?" until `programName`); ⌃Q exits with status 0, its teardown
   leaving the alternate screen; Ctrl-Break (sent in win32-input-mode, `CSI 3;70;0;1;8;1 _`) pays the quit's debt —
   styling reset, title popped, alternate screen left — and exits with `0xC000013A`.
@@ -232,9 +238,12 @@ Two things about the environment the runs needed:
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal
 hands the app, and no pointer shapes in either, as TUI assumed), the keys in both, and in Windows Terminal under the
-kitty protocol too (the survey's "Keys under the kitty protocol": every key as the specification has it; ⌃-, ⌥⇧-, ⌃, and
-⌃⇧V kept by its own bindings), Windows Terminal's ⌃, (TUI takes it to be kept, so Settings… shows F2 there; its other
-default bindings are not listed, the owner's ruling of 2026-11-17: "Just ⌃, for now"), and copies too large for the
+kitty protocol too (the survey's "Keys under the kitty protocol": every key as the specification has it; ⌃-, ⌥⇧-, ⌃,,
+⌃⇧V, ⌃⇧P, ⌃⇧N, ⌃⇧D, ⌃⇧A and ⌃⇧. kept by its own bindings, all measured 2026-11-19), the chords Windows Terminal keeps
+(`TerminalClient.keptChords`: none of them is named where the app names its keys, and one that works is named instead,
+so Settings… shows F2 there, undo and redo ⌃Z and ⌃⇧Z, and the file panel's preview `=`; the owner's rule of 2026-11-19,
+for every terminal, which replaced 2026-11-17's "Just ⌃, for now", with `keyboardShortcutFallback(_:)` for an app to
+name its own other key), and copies too large for the
 terminal (over a measured 24,567 bytes of text: sent to this machine's clipboard at the desk, reported as not copied
 over ssh), x86_64, and the console's font (conhost names it, and where it has no quadrants, as Consolas has none, shapes
 cut their corners in whole cells and a canvas draws half blocks; asked again on each resize, which a font change sends;
