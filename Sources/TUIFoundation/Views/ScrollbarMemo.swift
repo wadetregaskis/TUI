@@ -30,6 +30,10 @@ package struct ScrollbarMemo<Bar> {
         package let proportional: Bool
         package let isFocused: Bool
         package let isScrollEnabled: Bool
+        /// Whether the bar's view is enabled: a disabled view's resting thumb
+        /// is drawn as a pinned one where there is no colour to draw it in
+        /// (``ScrollbarColors/focusIndicating(isFocused:hoveredCell:context:)``).
+        package let isEnabled: Bool
         package let hoveredCell: Int?
         /// The palette by value where it can be, not by its id: a palette edited in
         /// place keeps the id, and a key of the id served the bar drawn before the edit.
@@ -71,6 +75,7 @@ package struct ScrollbarMemo<Bar> {
             proportional: Bool,
             isFocused: Bool,
             isScrollEnabled: Bool,
+            isEnabled: Bool = true,
             hoveredCell: Int?,
             palette: ComparablePalette,
             depth: ColorDepth,
@@ -88,6 +93,7 @@ package struct ScrollbarMemo<Bar> {
             self.proportional = proportional
             self.isFocused = isFocused
             self.isScrollEnabled = isScrollEnabled
+            self.isEnabled = isEnabled
             self.hoveredCell = hoveredCell
             self.palette = palette
             self.depth = depth
@@ -165,6 +171,7 @@ extension ScrollbarMemo where Bar == ClaimingColumn {
             length: length, extent: extent, viewport: viewport,
             offset: offset, arrows: arrows, proportional: proportional,
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
+            isEnabled: context.environment.isEnabled,
             hoveredCell: hoveredCell, palette: ComparablePalette(palette),
             depth: ColorDepth.current, terminalColors: TerminalColors.current,
             cycle: pulse?.cycle, flash: flash, width: width, cornerTriangles: cornerTriangles)

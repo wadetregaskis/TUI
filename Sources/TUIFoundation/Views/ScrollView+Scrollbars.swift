@@ -425,7 +425,7 @@ extension _ScrollViewCore {
             offset: axis.scrollOffset, arrows: context.environment.scrollbarArrows,
             proportional: context.environment.scrollbarProportionalThumb,
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
-            hoveredCell: axis.hoveredBarCell, palette: ComparablePalette(palette),
+            isEnabled: context.environment.isEnabled, hoveredCell: axis.hoveredBarCell, palette: ComparablePalette(palette),
             depth: ColorDepth.current, terminalColors: TerminalColors.current,
             cycle: pulse?.cycle, flash: flash)
         let memo: ScrollbarMemo<ClaimingRow>

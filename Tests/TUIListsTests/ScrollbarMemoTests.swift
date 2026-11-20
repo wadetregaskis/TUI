@@ -160,6 +160,34 @@ struct ScrollbarMemoTests {
         let expected = oracle.frame(palette: palette)
         #expect(edited.lines == expected.lines, "the bar kept the colours from before the edit")
     }
+
+    @Test("A view disabled under an unfocused bar draws it again, pinned, where there is no colour")
+    func disabledInvalidates() {
+        // Without colour a resting thumb is `▒` and a disabled view's `░`
+        // (`ScrollbarColors.ThumbWithoutColor`), and nothing else in the key
+        // moves when an unfocused view is disabled.
+        var remembered: ScrollbarMemo<ClaimingColumn>?
+        var hits = 0
+        let thumbs = [true, false, false].map { enabled in
+            withColorDepth(.noColor) { Self.thumb(enabled: enabled, remembered: &remembered, hits: &hits) }
+        }
+        #expect(thumbs == ["▒", "░", "░"])
+        #expect(hits == 1, "the disabled bar was served the enabled one's, or never kept")
+    }
+
+    /// The first cell of an unfocused bar four cells tall over twice its
+    /// height, drawn through `remembered`, its view enabled or not.
+    private static func thumb(
+        enabled: Bool, remembered: inout ScrollbarMemo<ClaimingColumn>?, hits: inout Int
+    ) -> String? {
+        var context = makeRenderContext(width: 1, height: 4)
+        context.environment.isEnabled = enabled
+        return ScrollbarMemo.vertical(
+            remembered: &remembered, hits: &hits, length: 4, extent: 8, viewport: 4, offset: 0,
+            arrows: .none, proportional: true, isFocused: false, hoveredCell: nil, flash: nil,
+            context: context
+        ).bar.lines.first?.stripped
+    }
 }
 
 /// A `List`'s bar is kept on its handler the same way: it never pulses, but every

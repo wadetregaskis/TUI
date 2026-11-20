@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A scroll view disabled while it does not hold the focus shows a pinned thumb without colour.** Its bar was kept
+from the frame before, when the view was enabled, so on a terminal with no colour the thumb stayed `▒` where a
+disabled view's is `░`.
+
 **A menu item whose key is Return or Escape shows `↩` or `⎋`.** A bare Return or Escape is the default or the cancel
 action, in SwiftUI and here, and `KeyboardShortcut.displayString` was `nil` for those two roles, so a menu row bound to
 either, with `.keyboardShortcut` or `keyboardShortcutHint(_:)`, showed no key. They are now drawn as a macOS menu draws
