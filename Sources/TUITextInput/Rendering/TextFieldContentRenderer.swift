@@ -1011,13 +1011,18 @@ extension FrameBuffer {
     /// without colour (`fadedWithoutColor(if:greyDrawsAsEnabled:context:)`), and where
     /// the tertiary tier its text is drawn in disabled draws, at the terminal's depth,
     /// as the colour it is drawn in enabled — `text`, or the palette's foreground: at 16
-    /// colours Violet's and Blue's tiers are one colour (THEME-16, 2026-11-10).
+    /// colours Violet's and Blue's tiers are one colour (THEME-16, 2026-11-10). And where
+    /// `runsDrawAsLive`: a disabled editor's coloured run faded to a colour the terminal
+    /// draws as its enabled one (`_TextEditorCore.RowStyling.RunFade`).
     @MainActor
-    func fadedTextInput(if isDisabled: Bool, text: Color?, context: RenderContext) -> FrameBuffer {
+    func fadedTextInput(
+        if isDisabled: Bool, text: Color?, runsDrawAsLive: Bool = false, context: RenderContext
+    ) -> FrameBuffer {
         let palette = context.environment.palette
         let enabled = (text ?? palette.foreground).resolve(with: palette)
         return fadedWithoutColor(
-            if: isDisabled, greyDrawsAsEnabled: context.drawsAsResting(palette.foregroundTertiary, enabled),
+            if: isDisabled,
+            greyDrawsAsEnabled: runsDrawAsLive || context.drawsAsResting(palette.foregroundTertiary, enabled),
             context: context)
     }
 }

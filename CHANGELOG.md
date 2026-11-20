@@ -19,6 +19,16 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A disabled `TextEditor` or `Slider` no longer looks live on a 16- or 256-colour terminal.** Both fade their
+colours toward the page when disabled, but such a terminal can round the faded colour to the same palette entry as
+the original: an editor's highlighted run then drew exactly as enabled, and at 16 colours a `.knob` or `.marker`
+slider with its value hidden drew disabled exactly as enabled on the Man Page, Silver Aerogel and Solid Colors
+palettes. Where the terminal rounds away the fade of a colour the control actually draws (a run the editor shows,
+the colours a slider's track style and ticks are drawn in), the control is now drawn faint, as other disabled controls
+already are where their grey rounds to their enabled colour; a colour it doesn't draw, a hidden value's grey
+included, doesn't count. Enabled
+controls, and 24-bit terminals, draw as before.
+
 **`TUI_PLAIN_TEXT=transliterate` is a supported option, no longer an experiment.** Spelling other scripts in Latin
 letters before layout, for a terminal that shows only ASCII, keeps its default (off unless named) and does what it
 did, but it now falls under the API stability promise, as the rest of the end-user variables do. `TUI_PLAIN_TEXT`,

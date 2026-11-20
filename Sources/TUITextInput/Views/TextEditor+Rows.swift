@@ -251,17 +251,35 @@ extension _TextEditorCore {
         /// slider fades its accent track by, and how macOS's disabled
         /// TextField fades a stated red to a paler red rather than a grey. So
         /// highlighted code stays legible as code, and no run reads as live.
-        struct RunFade {
+        ///
+        /// Where a 16- or 256-colour terminal rounds a run's faded colour to
+        /// the entry it draws that colour in enabled, the fade says nothing and
+        /// the run would look live: the fade notes it (``drawsAsLive``) and the
+        /// whole editor is drawn faint, as where its tertiary tier rounds to its
+        /// enabled ink (`FrameBuffer.fadedTextInput(if:text:runsDrawAsLive:context:)`).
+        /// A class so that every row a frame draws through the one fade can say
+        /// so; a new one each frame, and none while enabled.
+        @MainActor
+        final class RunFade {
             /// What the runs fade toward: the page a disabled editor, which
             /// draws no well, is drawn on.
             let ground: Color
             let palette: any Palette
+            /// Whether a colour of a run faded this frame draws, at the
+            /// terminal's depth, as it does enabled
+            /// (`Color.disabledFadeDrawsAsItself(over:)`).
+            private(set) var drawsAsLive = false
+
+            init(ground: Color, palette: any Palette) {
+                (self.ground, self.palette) = (ground, palette)
+            }
 
             /// `run` with its ink, its field and its lines' colours faded.
-            @MainActor
             func callAsFunction(_ run: EditorStyledRun) -> EditorStyledRun {
                 run.mappingColors {
-                    $0.resolve(with: palette).opacity(ViewConstants.disabledForeground, over: ground)
+                    let stated = $0.resolve(with: palette)
+                    if !drawsAsLive, stated.disabledFadeDrawsAsItself(over: ground) { drawsAsLive = true }
+                    return stated.opacity(ViewConstants.disabledForeground, over: ground)
                 }
             }
         }

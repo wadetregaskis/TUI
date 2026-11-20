@@ -589,7 +589,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
             context: context, buffer: &buffer, handler: handler,
             contentWidth: contentWidth, height: height, overflows: window.hasVerticalOverflow,
             focusID: persistedFocusID, isDisabled: isDisabled)
-        return buffer.fadedTextInput(if: isDisabled, text: styling.stated, context: context)
+        return buffer.fadedTextInput(if: isDisabled, text: styling.stated, runsDrawAsLive: styling.runFade?.drawsAsLive == true, context: context)
     }
 
     /// The caret a focused editor draws at `column` of its line or row.

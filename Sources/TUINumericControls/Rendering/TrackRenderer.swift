@@ -200,6 +200,33 @@ package enum TrackRenderer {
         }
     }
 
+    /// Which of the three colours `render` is handed a track in `style` draws in,
+    /// at some value: what a disabled slider
+    /// asks its fade of (`_SliderCore.disabledDrawsAsEnabled(trackStyle:context:)`).
+    /// It mirrors `render`'s switch, so a style that changes the colours it draws
+    /// changes here too. A colour a style states of its own (a gradient, a
+    /// `.custom` background, a `.threeSegment` colouring other than `.automatic`)
+    /// takes the handed colour's place.
+    static func drawnColours(
+        _ style: TrackStyle, showsHead: Bool
+    ) -> (fill: Bool, background: Bool, accent: Bool) {
+        func configured(_ config: TrackConfiguration) -> (fill: Bool, background: Bool, accent: Bool) {
+            (config.fillGradient == nil, config.backgroundColor == nil && config.backgroundGradient == nil, false)
+        }
+        switch style {
+        case .block, .blockFine, .shade, .bar, .braille: return (true, true, false)
+        case .shadeRamp(let gradient): return configured(.shadeRamp(gradient: gradient))
+        case .custom(let config): return configured(config)
+        // `.dot`'s head is the accent, drawn only with the thumb; `.knob` fills in
+        // the accent too; `.marker`'s marker is the accent even as a hidden thumb's `─`.
+        case .dot: return (true, true, showsHead)
+        case .knob, .marker: return (false, true, true)
+        case .threeSegment(_, _, _, _, let coloring):
+            if case .automatic = coloring { return (true, true, false) }
+            return (false, true, false)
+        }
+    }
+
     /// A fill style drawn from a neutral value: put together from whole cells
     /// of the track drawn empty, drawn to the value, and drawn to the neutral
     /// value, so no style needs a second way to draw its fill. The fill's end

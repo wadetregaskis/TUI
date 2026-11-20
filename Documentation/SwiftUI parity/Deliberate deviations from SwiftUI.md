@@ -1397,8 +1397,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   line styler's — keeps its hue faded toward the page by
   `ViewConstants.disabledForeground`, the fade a disabled slider gives its
   accent track: its ink, its field and its underline's or strikethrough's
-  colour. Its bold, italic and lines stay. Enabled, the runs are drawn as
-  stated, at no extra cost (`_TextEditorCore.RowStyling.RunFade`;
+  colour. Its bold, italic and lines stay. Where a 16- or 256-colour terminal
+  rounds a run's faded colour to the entry it draws the colour in enabled, the
+  fade says nothing there, and the whole editor is drawn faint (italic too
+  where faint doesn't show), the fallback THEME-16 (2026-11-10) gives a
+  control whose disabled grey rounds to its enabled colour. Enabled, the runs
+  are drawn as stated, at no extra cost (`_TextEditorCore.RowStyling.RunFade`;
   `TextEditorForegroundStyleTests`).
 - **Why:** a terminal has no greyed-out window chrome to say an editor is
   off, so its text is what says it, as every other disabled control's does.

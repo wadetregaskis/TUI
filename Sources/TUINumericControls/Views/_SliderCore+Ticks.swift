@@ -94,6 +94,36 @@ extension _SliderCore {
         }
         return [marks.text, labels]
     }
+
+    /// Whether a disabled slider's colours say nothing at the terminal's depth, so
+    /// that it is drawn faint (THEME-16): its read-out, where it shows one, draws its
+    /// tertiary grey as the secondary tier it is drawn in enabled, or a colour its track style or ticks
+    /// draw in, faded toward the page, draws as itself
+    /// (`Color.disabledFadeDrawsAsItself(over:)`). Only the colours drawn
+    /// (`TrackRenderer.drawnColours(_:showsHead:)`), as a disabled editor asks only
+    /// of the runs it draws: a colour no cell is drawn in says nothing either way.
+    /// At 16 colours a `.knob` or `.marker` track on Man Page, Silver Aerogel or
+    /// Solid Colors, its value hidden, drew disabled exactly as enabled.
+    func disabledDrawsAsEnabled(context: RenderContext) -> Bool {
+        let palette = context.environment.palette
+        // The read-out only where it is drawn, as the track's colours are.
+        if context.environment.sliderShowsValue,
+            context.drawsAsResting(palette.foregroundTertiary, palette.foregroundSecondary)
+        {
+            return true
+        }
+        let page = palette.background.resolve(with: palette)
+        // The colours `drawTrack` hands the renderer, and the ticks' tertiary.
+        let drawn = TrackRenderer.drawnColours(
+            trackStyle, showsHead: context.environment.sliderThumbVisibility != .hidden)
+        let colours = [
+            (drawn.fill, palette.foregroundSecondary), (drawn.background || !ticks.isEmpty, palette.foregroundTertiary),
+            (drawn.accent, palette.accent),
+        ]
+        return colours.contains { isDrawn, colour in
+            isDrawn && colour.resolve(with: palette).disabledFadeDrawsAsItself(over: page)
+        }
+    }
 }
 
 // MARK: - Thumb visibility

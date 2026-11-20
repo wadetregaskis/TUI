@@ -219,4 +219,56 @@ struct TextEditorForegroundStyleTests {
             expectRun(try row(), ink: Runs.red, field: Runs.blue, underline: Runs.green, "enabled again")
         }
     }
+
+    // MARK: - Where the terminal's depth rounds the fade away
+
+    /// The first colour on a coarse grid whose fade toward `ground` shows at 24-bit
+    /// but which a terminal at `depth` draws as the colour itself.
+    private static func swallowedFade(over ground: Color, at depth: ColorDepth) -> Color? {
+        let steps = stride(from: 0, through: 255, by: 17).map(UInt8.init)
+        for red in steps {
+            for green in steps {
+                for blue in steps {
+                    let colour = Color.rgb(red, green, blue)
+                    let faded = colour.opacity(ViewConstants.disabledForeground, over: ground)
+                    if faded != colour, faded.downsampled(to: depth) == colour.downsampled(to: depth) { return colour }
+                }
+            }
+        }
+        return nil
+    }
+
+    @Test(
+        "A disabled editor whose run's fade the terminal's depth rounds away is drawn faint, so the run looks unlike a live one",
+        arguments: [ColorDepth.basic16, .palette256])
+    func swallowedFadeDrawsFaint(_ depth: ColorDepth) throws {
+        try withColorDepth(depth) {
+            let context = makeRenderContext(width: 20, height: 3)
+            let palette = context.environment.palette
+            let ground = palette.background.resolve(with: palette)
+            let ink = try #require(Self.swallowedFade(over: ground, at: depth), "the premise: some fade rounds away")
+            // Not faint for the plain text's own reason (THEME-16): its tertiary tier
+            // draws unlike its enabled ink here, so only the run can call for it.
+            try #require(
+                palette.foregroundTertiary.resolve(with: palette).downsampled(to: depth)
+                    != palette.foreground.resolve(with: palette).downsampled(to: depth),
+                "the premise: the plain text's grey shows at \(depth)")
+            let text = AttributedString("x") + Runs.runs([("ab", ink)]) + AttributedString("cd")
+            let disabled = Flag(false)
+            @MainActor func row() throws -> [(character: Character, state: SGRState)] {
+                let view = TextEditor(text: .constant(text)).disabled(disabled.value).frame(width: 20, height: 3)
+                return cells(try #require(renderToBuffer(view, context: context).lines.first))
+            }
+            let enabled = try row()
+            disabled.value = true
+            let drawn = try row()
+            for (live, off) in zip(enabled[1..<3], drawn[1..<3]) {
+                #expect(!live.state.isFaint, "\(live.character) enabled, at \(depth)")
+                #expect(off.state.foregroundColour == live.state.foregroundColour, "the premise: one ink at \(depth)")
+                #expect(off.state.isFaint, "\(off.character) disabled looks live at \(depth)")
+            }
+            disabled.value = false
+            #expect(try row().map(\.state) == enabled.map(\.state), "enabled again, as before, at \(depth)")
+        }
+    }
 }

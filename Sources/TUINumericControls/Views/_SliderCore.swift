@@ -242,11 +242,11 @@ struct _SliderCore: View, Renderable, Layoutable {
 
         // The arrows only: which part of a track is lit says the value. They breathe
         // the accent from their dimmed grey; disabled, the read-out turns from the
-        // secondary tier to the tertiary. Where those draw alike at the terminal's
-        // depth, the state is said as without colour (THEME-16).
+        // secondary tier to the tertiary, and the track fades. Where either draws as
+        // enabled at the terminal's depth, the state is said as without colour (THEME-16).
         let rightArrow = Self.trackLeft(gap: gap) + drawnTrackWidth + gap
         let focusUnseen = isFocused && !isDisabled && context.arrowFocusDrawsAsResting
-        let greyUnseen = context.drawsAsResting(palette.foregroundTertiary, palette.foregroundSecondary)
+        let greyUnseen = isDisabled && disabledDrawsAsEnabled(context: context)
         var buffer = FrameBuffer(
             lines: [content] + tickRows(drawnTrackWidth: drawnTrackWidth, isDisabled: isDisabled, context: context))
             .reversedWithoutColor(

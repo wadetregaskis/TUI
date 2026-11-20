@@ -258,4 +258,70 @@ struct StateColourCollisionTests {
         #expect(found.still.isEmpty, "\(depth): a still focus is not drawn on \(found.still)")
         #expect(found.disabled.isEmpty, "\(depth): disabled looks enabled on \(found.disabled)")
     }
+
+    /// What a sweep of every shipped palette and track style, the value hidden, found at
+    /// 16 colours before A-DISED-1's track check (2026-11-19): a disabled slider drawn
+    /// exactly as an enabled one, its track's faded colours rounding to their own. None
+    /// at 256 colours.
+    nonisolated static let trackFadeFound: [(String, String)] =
+        ["Man Page", "Silver Aerogel", "Solid Colors"].flatMap { palette in ["knob", "marker"].map { (palette, $0) } }
+
+    @Test(
+        "A disabled slider whose track's fade rounds away at 16 colours is drawn faint, its value hidden",
+        arguments: trackFadeFound)
+    func disabledTrackShows(_ palette: String, _ style: String) {
+        let (disabled, enabled) = ColorDepth.withCurrent(.basic16) {
+            (sliderRows(palette, style, disabled: true), sliderRows(palette, style, disabled: false))
+        }
+        #expect(shown(disabled) != shown(enabled), "\(style) track in \(palette): disabled looks enabled")
+    }
+
+    /// A palette, depth and track style where a colour the style does NOT draw rounds
+    /// its fade away and the ones it draws don't: Silver Aerogel's accent at 256
+    /// colours, beside `.bar`'s secondary and tertiary; Basic's secondary at 16, beside
+    /// `.knob`'s accent and tertiary, where the hidden read-out's grey (THEME-16) also
+    /// rounds to its enabled tier and, not drawn, counts no more than the secondary.
+    nonisolated static let undrawnFadeFound: [(String, ColorDepth, String)] =
+        [("Silver Aerogel", .palette256, "bar"), ("Basic", .basic16, "knob")]
+
+    @Test(
+        "A disabled slider is not drawn faint where only a colour its track doesn't draw rounds its fade away",
+        arguments: undrawnFadeFound)
+    func undrawnFadeStaysUnfaint(_ name: String, _ depth: ColorDepth, _ style: String) throws {
+        let palette = Self.palette(named: name)
+        try ColorDepth.withCurrent(depth) {
+            let page = palette.background.resolve(with: palette)
+            func swallowed(_ colour: Color) -> Bool {
+                let colour = colour.resolve(with: palette)
+                let faded = colour.opacity(ViewConstants.disabledForeground, over: page)
+                return faded != colour && faded.downsampled(to: depth) == colour.downsampled(to: depth)
+            }
+            let (undrawn, drawn) =
+                style == "bar"
+                ? (palette.accent, [palette.foregroundSecondary, palette.foregroundTertiary])
+                : (palette.foregroundSecondary, [palette.accent, palette.foregroundTertiary])
+            try #require(swallowed(undrawn), "the premise: \(name)'s undrawn colour rounds its fade away")
+            try #require(!drawn.contains(where: swallowed), "the premise: the drawn ones fade visibly")
+            let disabled = sliderRows(name, style, disabled: true)
+            #expect(
+                !disabled.contains { paintedCells($0).contains { $0.state.isFaint } },
+                "\(style) in \(name) at \(depth): faint, though every colour it draws fades")
+            #expect(shown(disabled) != shown(sliderRows(name, style, disabled: false)), "and still unlike enabled")
+        }
+    }
+
+    /// A slider in `style` (`knob`, `marker` or `bar`), its value hidden, in the shipped
+    /// palette called `palette`, below a button that holds the focus: its rows.
+    private func sliderRows(_ palette: String, _ style: String, disabled: Bool) -> [String] {
+        let track: TrackStyle = ["knob": .knob, "marker": .marker][style] ?? .bar
+        let app = TestApp(width: 50, height: 6) {
+            VStack(alignment: .leading) {
+                Button("Anchor") {}.focusID("anchor")
+                Slider(value: .constant(0.5), in: 0...1).trackStyle(track).sliderShowsValue(false)
+                    .disabled(disabled)
+            }
+            .palette(Self.palette(named: palette))
+        }
+        return Array(app.screen.styledLines.dropFirst())
+    }
 }

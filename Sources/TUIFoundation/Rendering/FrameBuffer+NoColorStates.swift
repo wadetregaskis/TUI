@@ -361,3 +361,22 @@ extension RenderContext {
         return palette.accent.rgbComponents == nil || palette.background.rgbComponents == nil
     }
 }
+
+extension Color {
+    /// Whether this colour, faded toward `ground` as a disabled control fades a hue it
+    /// keeps (by ``ViewConstants/disabledForeground``: a disabled editor's runs, a
+    /// disabled slider's track), draws as itself at the terminal's colour depth
+    /// (``ColorDepth/current``), though the fade shows at 24-bit: a 16- or 256-colour
+    /// terminal rounds both to one entry, so the fade says nothing there, and the
+    /// control falls back to faint, as where THEME-16's grey rounds to its enabled
+    /// colour (``RenderContext/drawsAsResting(_:_:)``). Not a colour the fade leaves
+    /// as it was, the ground itself, which says nothing at any depth. Asked of a
+    /// resolved colour: the fade of a semantic one is its resolution's.
+    package func disabledFadeDrawsAsItself(over ground: Color) -> Bool {
+        let depth = ColorDepth.current
+        // 24-bit draws every fade; no colour draws none, and is faint already.
+        guard depth == .basic16 || depth == .palette256 else { return false }
+        let faded = opacity(ViewConstants.disabledForeground, over: ground)
+        return faded != self && faded.downsampled(to: depth) == downsampled(to: depth)
+    }
+}

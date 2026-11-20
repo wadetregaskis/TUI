@@ -3842,6 +3842,15 @@ attributes and glyphs that every terminal must then draw.
   other host, nor on Warp with a dark or unknown background; tmux drawn in a light Warp is
   not covered, since the host there is tmux. Not re-measured on Warp with the workaround in
   place: the italic itself is what the probe above measured.
+
+  The same faint (and italic) is also drawn at 16 and 256 colours, wherever a disabled
+  control's colours round to its enabled ones at the terminal's depth: its grey to its
+  enabled ink (THEME-16, 2026-11-10), or a hue it fades toward the page to the hue itself,
+  a disabled `TextEditor`'s coloured runs and the colours a disabled `Slider`'s track style
+  draws (2026-11-19,
+  `Color.disabledFadeDrawsAsItself(over:)`). A host that ignores faint shows those as
+  enabled too. The rounding is TUI's own quantisation, not a host's, so it is the same on
+  every terminal at that depth.
 - **Bold** for a selected tab or segment, and a cursor row's breath where
   `TerminalClient.drawsBold` says so. See "Bold is a COLOUR on some hosts" above: with no
   colour stated, a host that brightens bold has nothing here to clash with.
