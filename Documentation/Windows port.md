@@ -211,6 +211,26 @@ passes again with those fixes in.
 6.4.2 (639 s, with `--build-system native`, as 6.4's default stops beside 6.3.3) all but two cost bounds that read the
 wall clock here (below).
 
+**In release** (2026-11-20, arm64): `swift build -c release`, as CI's macOS and Linux lanes build it, has no
+diagnostics on 6.2.4, 6.3.3 and 6.4.2 (8 to 11 minutes each). The suite in release with the invariant checks on
+(`parallel_test.py --release`, CI's release lanes on macOS and Linux) does not build on any of the three, each for a
+bug in the compiler that its internal checks catch. swift.org's Windows toolchains are built with those checks on
+(`6.3.3+Asserts`), its macOS and Linux ones without, so those lanes have never run them:
+
+- **6.2.4 and 6.3.3**: `Assertion failed: Entry->getType() == Type && "Value Type mismatch?"`
+  (`DeserializeSIL.cpp`, line 335 and 395), in `PerformanceSILLinker` while optimising `TUIApp`, deserializing
+  `View.sheet(isPresented:onDismiss:content:)` from `TUIPresentation`. `-enable-testing` alone sets it off (6.3.3,
+  `swift build -c release --target TUIApp -Xswiftc -enable-testing`); `-DTUI_TEST_SUPPORT` and `-DDEBUG` alone build.
+  After it, a second compile of 6.3.3's sat idle for 50 minutes, and the build with it, until stopped.
+- **6.4.2**: "Found ownership error?!" in `CopyPropagation` on `String.sanitizedForTerminal` (`TUICore`), a fatal
+  error. `-assert-config Debug` alone sets it off (`swift build -c release --build-system native --target TUICore
+  -Xswiftc -assert-config -Xswiftc Debug`), and turning the SIL verifier off (`-Xfrontend -sil-verify-none`, or
+  `-disable-sil-ownership-verifier`) does not get past it.
+
+Neither flag can go: `@testable import` needs the first, and the run is for the second. So the release suite on
+Windows waits for these to be fixed upstream (to be reported, with these commands as the reproduction: the function
+alone, with what it calls, did not reduce quickly), or for a toolchain without the checks.
+
 **No per-thread CPU clock on Windows** (owner, 2026-11-20: leave it on wall time). `threadCPUNanoseconds()` (TUICore)
 answers `nil` there, so the tests' cost bounds (`bestCPUSeconds`) and the Stress bench read the wall clock, and under
 `parallel_test.py`'s load two bounds failed on 6.4.2 that pass with their suites alone. Neither Windows clock serves:
@@ -254,7 +274,9 @@ Two things about the environment the runs needed:
 
 - **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
   logging the session off would end the test with it. Worth a run in a virtual machine.
-- **CI**: a run of every Windows step, then binding, per the ratchet; README's platform badge after it.
+- **CI**: a run of every Windows step, then binding, per the ratchet (the owner, 2026-11-20: not binding yet).
+- **The release suite**: blocked by two compiler bugs that Windows's assert-enabled toolchains catch ("The tests", "In
+  release"); to report upstream, and to run once they are fixed.
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal
