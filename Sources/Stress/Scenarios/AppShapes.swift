@@ -352,5 +352,11 @@ enum AppShapeMatrix {
         variant("timeline-tiles", "a tile launcher: two focusable bordered tiles, each a Canvas beside its own 10 or 5 Hz TimelineView") {
             AnyView(TimelineTilesApp(seed: $0.seed))
         },
+        variant("canvas-labels", "a treemap: one page-filling Canvas of 40 fills and 40 short labels, its colours moved every frame") {
+            AnyView(CanvasLabelsApp(labelled: true, seed: $0.seed))
+        },
+        variant("canvas-fills", "the same treemap without its labels — the pair that prices a Canvas's text") {
+            AnyView(CanvasLabelsApp(labelled: false, seed: $0.seed))
+        },
     ]
 }

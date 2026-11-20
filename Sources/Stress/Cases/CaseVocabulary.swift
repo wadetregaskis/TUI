@@ -406,7 +406,7 @@ enum CaseScaling: String, CaseIterable, Sendable {
 /// rather than a case no `--tags` ever picks; a new word is added here.
 enum CaseTags {
     static let known: Set<String> = [
-        "anchor", "appshape", "bytes", "eager", "editor", "hover", "invalidate", "lazy", "list", "memo",
+        "anchor", "appshape", "bytes", "canvas", "eager", "editor", "hover", "invalidate", "lazy", "list", "memo",
         "narrow", "offscreen", "outline", "resize", "scroll", "search", "sheet", "split", "table", "tabs",
         "tail", "window", "wrap",
         "alert", "focus", "form", "grid", "menu", "navigation", "popover", "storm", "tiny", "typing", "values",

@@ -253,7 +253,12 @@ name, a score and a blurb, the preview a `ZStack` of the picture and its own
 tile that holds the focus and five for the other, each entry moving a demo's
 board on a row; the perf case of the same name counts a second of it. What an
 entry costs there beyond the moved preview's own drawing is the tiles around
-it.
+it. `canvas-labels` is a treemap written as tuidisk's is: one `Canvas` filling
+the page, forty tiles filled at its grain and a short name drawn at each with
+`context.draw(Text, at:anchor:)`, the colours moved on at every frame of a
+`TimelineView(.animation)`, so no memo serves the canvas; `canvas-fills` is the
+same map without its names, and the pair prices a canvas's text. The perf cases
+of the same names count a second of each.
 
 `table-api` is the first: 43 variants over seven axes — how a column gets its
 value (key path, closure, sort-by-one-display-another, non-`Equatable` rows,
