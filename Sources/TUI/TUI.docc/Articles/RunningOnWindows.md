@@ -25,7 +25,10 @@ of the two Windows terminals can do. This page is about the rest.
 Toolchains of different versions install side by side, each adding itself to your `PATH` and setting `SDKROOT`: the
 first on the `PATH` is the one that builds, and `SDKROOT` names the last one installed, so set both for the one you
 mean. With two installed, Swift 6.4's default build system stops before building ("platform 'windows' already
-registered"); `swift build --build-system native` builds, or keep one toolchain installed.
+registered"). Its older build system still builds: give `--build-system native` to the subcommand, after its name
+and before a product's (`swift build --build-system native`, `swift run --build-system native MyApp`, `swift test
+--build-system native`), since `swift` itself doesn't take it and what follows the product goes to your program. Or
+keep one toolchain installed.
 
 ## Shipping
 
