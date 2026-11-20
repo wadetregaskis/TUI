@@ -26,7 +26,7 @@ extension TUIEnvironmentVariables {
 
     /// The default of each variable that a setting of the computer's also answers.
     private static let systemSetting =
-        "Unset, what you've kept in the settings panel decides, and otherwise your computer's own setting, when you're at the machine the program runs on (not on Windows, whose own setting isn't read)."
+        "Unset, what you've kept in the settings panel decides, and otherwise your computer's own setting, when you're at the machine the program runs on."
 
     private static let appearance: [TUIEnvironmentVariable] = [
         TUIEnvironmentVariable(

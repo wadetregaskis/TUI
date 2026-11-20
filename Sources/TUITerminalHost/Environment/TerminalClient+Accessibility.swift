@@ -112,9 +112,10 @@ extension TerminalClient {
     /// this machine: over ssh they are the server's settings. Blocking — on
     /// Linux it runs `gsettings` (``TerminalHost/runBounded(_:)``) — so the app
     /// runner asks it off the main actor, at launch and whenever the terminal
-    /// regains the focus. On Windows, which has no `gsettings`, it finds
-    /// nothing (`nil`): Windows's own animation and high-contrast settings are
-    /// not read yet, so `TUI_REDUCE_MOTION` and `TUI_INCREASE_CONTRAST` say them.
+    /// regains the focus. On Windows, Settings ▸ Accessibility's Animation
+    /// effects, Transparency effects and contrast themes, read without starting
+    /// a process (``readWindowsAccessibility()``); Windows has no setting for
+    /// differentiating without colour.
     package static func hostAccessibility() -> AccessibilityPreferences? {
         #if canImport(Darwin)
             let domain = "com.apple.universalaccess" as CFString
@@ -128,6 +129,8 @@ extension TerminalClient {
                     on.insert(named.preference)
                 }
             }
+        #elseif os(Windows)
+            return readWindowsAccessibility()
         #else
             let reducesMotion = gnomeReducesMotion(
                 gsettingsOutput: TerminalHost.runBounded(

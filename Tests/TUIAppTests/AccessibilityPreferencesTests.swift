@@ -94,6 +94,26 @@ struct AccessibilityPreferencesTests {
         #expect(unset.reduceTransparency == false && unset.contrast == .standard)
     }
 
+    @Test("Windows's settings map to three preferences, and none read says nothing")
+    func windowsSettings() {
+        let read = TerminalClient.windowsAccessibility
+        #expect(read(true, true, false) == [])
+        #expect(read(false, true, false) == [.reduceMotion])
+        #expect(read(true, false, false) == [.reduceTransparency])
+        #expect(read(true, true, true) == [.increaseContrast])
+        #expect(read(false, false, true) == [.reduceMotion, .reduceTransparency, .increaseContrast])
+        // One unread is no answer for that one, not a preference.
+        #expect(read(nil, false, nil) == [.reduceTransparency])
+        #expect(read(nil, nil, nil) == nil)
+    }
+
+    #if os(Windows)
+        @Test("On Windows the host's settings are read without a process, and answer")
+        func windowsReadsItsSettings() {
+            #expect(TerminalClient.readWindowsAccessibility() != nil)
+        }
+    #endif
+
     @Test("GNOME's high contrast is read as a switch, and anything else it prints says nothing")
     func gnomeSwitch() {
         #expect(TerminalClient.gnomeSwitch(gsettingsOutput: "true\n") == true)
