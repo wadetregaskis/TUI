@@ -167,7 +167,7 @@ CoreTransferable's — and `fileExporterFilenameLabel(_:)` labels the field.
 ```
 
 A `FileDocument` exports the same way, written through its
-`fileWrapper(configuration:)`, on Linux as well, where `FileWrapper` is TUI's:
+`fileWrapper(configuration:)`, on Linux and Windows as well, where `FileWrapper` is TUI's:
 
 ```swift
 .fileExporter(isPresented: $exporting, document: TextFile(text: draft), contentType: .plainText,
@@ -240,7 +240,7 @@ later included.
 platforms (import that module where you name the type, as beside SwiftUI);
 where the framework does not exist, `TUIFilePanels` declares a `UTType` of
 its own with the same spelling and the common types, so the code compiles
-unchanged on Linux. Type a file of your app's own by its extension with
+unchanged on Linux and Windows. Type a file of your app's own by its extension with
 `UTType(filenameExtension:conformingTo:)`, which works everywhere.
 
 ## See Also

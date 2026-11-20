@@ -95,7 +95,7 @@ struct ContentView: View {
 |---|---|---|
 | ``ScenePhase/active`` | The app is running and taking input | Yes |
 | ``ScenePhase/inactive`` | The terminal window, tab or pane lost focus | No: many terminals never say |
-| ``ScenePhase/background`` | The app is suspended, and the shell has the terminal | Yes |
+| ``ScenePhase/background`` | The app is suspended, and the shell has the terminal, or another program has it (a hand-off, the only way on Windows, which has no suspending) | Yes |
 
 Coming back from ``ScenePhase/background`` is a good moment to look at files again, because anything may have
 changed while the app was stopped.

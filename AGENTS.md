@@ -27,7 +27,7 @@ Tools/Dev/quick.py lint                          # zero violations, in what you 
 Tools/BuildDocs/build-docs.sh --strict           # the documentation, as CI builds it
 ```
 
-CI also builds and tests on Linux and builds four lower modules on Windows, so don't use Apple-only API outside `#if canImport`, in tests too.
+CI also builds and tests on Linux and Windows (Windows's jobs for the console layer and the tests advisory until they have passed there), so don't use Apple-only API outside `#if canImport`, in tests too, and give a POSIX-only call a Windows arm (`.claude/CLAUDE.md`, "Cross-platform").
 
 ## Where things are
 

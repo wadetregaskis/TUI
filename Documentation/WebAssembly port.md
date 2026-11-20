@@ -242,7 +242,7 @@ macOS and Linux, and on wasm its `main` collided with the test runner's. What th
 | Pipes, ptys, signals, process ids, `mkfifo`, helper programs, the call stack | 6 whole files, 14 other sites | left out, `#if !canImport(WASILibc)` |
 | A 64-bit `Int` (literals past 2^31; `CGFloat` is a `Float`) | 6 | a 32-bit equivalent, or 64-bit only |
 | `UserDefaultsStorage` had no WebAssembly arm | 1 | Linux's arm, a JSON file per suite |
-| `ExampleTests` depends on the app | 16 files | the dependency on macOS and Linux only; the tests `#if canImport(Example)` |
+| `ExampleTests` depends on the app | 16 files | the dependency on macOS, Linux and Windows only; the tests `#if canImport(Example)` |
 
 Counting the gates that were there before, 225 `@Test` functions are compiled out on WebAssembly: 59 exit tests, 5
 that need a thread, 99 that need POSIX, 17 whose values need a 64-bit `Int`, and the 45 of `ExampleTests`. Gap 2's

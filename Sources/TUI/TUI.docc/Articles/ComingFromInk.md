@@ -113,7 +113,6 @@ struct FruitView: View {
 - **Layout isn't flexbox.** A container offers each child a size, the child picks its own, and the container places it. There's no `flexShrink` or `flexBasis`. Most views size themselves to their content: see <doc:LayoutSystem>.
 - **The app takes the whole screen.** Ink draws inline, below your shell prompt, by default. TUI always uses the alternate screen and has nothing like `<Static>`, so it isn't the tool for a build log or a progress line in a command's output.
 - **Control-C doesn't quit.** It copies the selection. Control-Q quits.
-- **No Windows yet.** TUI apps run on macOS and Linux.
 
 ## What TUI Adds
 

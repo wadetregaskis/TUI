@@ -1,11 +1,14 @@
 # Windows port
 
-What it takes for TUI to be fully supported on Windows, which the owner made a 1.0 requirement on 2026-11-09
-(API-STABILITY point 9: "WebAssembly and Windows need to be fully working and supported for 1.0"). This file is the
-starting point for the session that does it, on a Windows VM, and the record it keeps as it goes, as
-[WebAssembly port.md](<WebAssembly port.md>) is for that port.
+What it took for TUI to be fully supported on Windows, which the owner made a 1.0 requirement on 2026-11-09
+(API-STABILITY point 9: "WebAssembly and Windows need to be fully working and supported for 1.0"), and what is left.
+It was the starting point for the session that did it, on a Windows VM, and is the record it kept as it went, as
+[WebAssembly port.md](<WebAssembly port.md>) is for that port. **Windows is supported since 2026-11-20**, and the
+docs say so: what an app's author needs to know is the Running on Windows article
+(`Sources/TUI/TUI.docc/Articles/RunningOnWindows.md`). What is left is "Still to do": a real logoff, and CI's
+Windows jobs made binding, which waits for them to pass there (the owner, 2026-11-20: not binding yet).
 
-## Where it stands (2026-11-19, on the VM)
+## Where it stands (2026-11-20, on the VM)
 
 - **The whole package builds on Windows** with Swift 6.2.4, 6.3.3 and 6.4.2, every library, tool and test target,
   with no warnings in its code (`swift build --build-tests`, each from a clean scratch path), on a Windows 11 arm64
@@ -49,7 +52,8 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
    5. the clipboard: a `WinSDK` arm (`OpenClipboard`/`SetClipboardData(CF_UNICODETEXT)`), and locality from
       `SSH_CONNECTION` plus a Toolhelp32 walk of the parents.
 3. **The tests.** Build and run the whole suite on Windows (`swift test`, and `Tools/ParallelTest/parallel_test.py`,
-   which runs there since 2026-11-20). Expect path, line-ending and file-system differences in the file-panel and persistence tests.
+   which runs there since 2026-11-20). Expect path, line-ending and file-system differences in the file-panel and
+   persistence tests.
 4. **The smoke tests.** `Tools/Smoke/` is `pty`/`termios`; a ConPTY harness (or the tests' in-memory terminal where
    that is enough) for the quit keys, raw mode and a walk of the Example.
 5. **Terminals.** Measure Windows Terminal and conhost with `Tools/TerminalProbes/` where they run, and record what is
@@ -57,7 +61,8 @@ gracefully); CI's Windows jobs build and test everything with no `continue-on-er
    (CLAUDE.md, "Terminal-specific behaviour").
 6. **CI and docs.** Every Windows step binding, `TUI`, build-tests and test included; CONTRIBUTING's Windows section,
    README's platforms badge and table, CLAUDE.md's "Cross-platform" rule, and the API stability policy's
-   "Supported platforms" section brought up to date.
+   "Supported platforms" section brought up to date. The docs are (2026-11-20: every article, guide and record that
+   named the platforms, and a Running on Windows article for what differs); CI waits for its Windows jobs to pass.
 
 ## How to work on it
 

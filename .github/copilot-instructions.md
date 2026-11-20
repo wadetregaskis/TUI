@@ -3,7 +3,7 @@
 ## Hard Constraints (non-negotiable)
 
 - **Swift 6.2**: `swift-tools-version: 6.2`. Language features up to 6.2 are fair game; nothing newer.
-- **Cross-platform**: Must build and run on both macOS and Linux. CI tests both (`macos-15` + `swift:6.2` container).
+- **Cross-platform**: Must build and run on macOS, Linux and Windows. CI tests all three (macOS runners, Linux containers, and Windows Server containers, whose console-layer and test steps are advisory for now). A POSIX-only API needs a Windows arm (`#if os(Windows)`).
 - **CI must pass**: All tests and linting must pass before merge.
 
 ## Project

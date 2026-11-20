@@ -126,7 +126,6 @@ There's no loop, no terminal set-up or restore, and no `ListState`: the `List` k
 - **Keys go to the focused control first.** A `List` with the focus takes the arrows and types to jump to a row. An `.onKeyPress` on a container is asked before the control inside it, so it can take a key back, as the `+` above does.
 - **Control-C doesn't quit.** It copies the selection. Control-Q quits.
 - **No inline viewport.** TUI always takes the whole screen, on the alternate screen. It has nothing like `Viewport::Inline`.
-- **No Windows yet.** TUI apps run on macOS and Linux. Ratatui runs on Windows through crossterm.
 
 ## What TUI Adds
 
@@ -142,4 +141,4 @@ There's no loop, no terminal set-up or restore, and no `ListState`: the `List` k
 - **Total control.** You own the loop, every cell of every frame and the async runtime, with no framework state hidden from you. Ratatui fits into almost any program, and since 0.30 even into `no_std` targets.
 - **Constraint layout.** Ratatui's constraint solver lays out dashboards with percentages and ratios directly.
 - **Charts.** `Chart`, `BarChart` and `Sparkline` are built in. In TUI you'd draw them with ``Canvas``.
-- **Inline viewports and Windows**, neither of which TUI has yet.
+- **Inline viewports**, which TUI doesn't have.

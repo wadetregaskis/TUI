@@ -1859,10 +1859,10 @@ A/B of `Stress`, base against this, 8 pairs, with the box busy, so noisy:
 
 The encoder is in `TUICore`, pure and free of POSIX, and `KittyGraphics.skippingPictureCells`
 beside it, so both build on Windows today. `TerminalSixelSupport.swift` and
-`TerminalSixelQuery.swift` and `SixelPictureLayer.swift` are in `TUIApp`, which has no Windows build: what stands in the
-way is the console layer of `CONTRIBUTING.md`'s list, and nothing here adds to it. The
-cell is a table of one for Windows Terminal, its fixed 10 x 20 (§6.5), read from
-source. **Not run on Windows, foot or mintty:** whether text erases pixels there is the
+`TerminalSixelQuery.swift` and `SixelPictureLayer.swift` are in `TUIApp`, which builds on Windows since 2026-11-16,
+and in Windows Terminal the Example draws its pictures in real pixels through Sixel (2026-11-17, the terminal survey's
+"Windows Terminal and the classic console"); `sixel_probe.py` there reads its cell as the fixed 10 x 20 (§6.5) its
+source gives. **Not run on foot or mintty:** whether text erases pixels there is the
 first thing to check, with `sixel_probe.py`, and #8389 before relying on any of this.
 
 ### 16.6 What is not done

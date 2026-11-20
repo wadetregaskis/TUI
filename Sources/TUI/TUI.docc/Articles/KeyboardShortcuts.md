@@ -204,7 +204,7 @@ These keys do something by themselves, once nothing else has taken them. All but
 |-----|--------|-----------|
 | ⌃Q | Quit application | Enabled by default; gated by ``QuitBehavior`` |
 | Undo and redo | ``UndoCommand/defaultShortcuts``: ⌃Z, ⌃- and ⌃/ undo; ⌃Y, ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after your shortcuts; set app-wide with ``Scene/undoShortcuts(_:)``. A bound key is taken whether or not there is a step, so ⌃Z with nothing to undo does nothing. A focused text field or editor takes ⌃Y first, as its yank |
-| ⌃Z | Suspend the app, as the shell's `^Z` would | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
+| ⌃Z | Suspend the app, as the shell's `^Z` would (not on Windows, which has no suspending) | Only where the undo keys leave it out, and only once no view has claimed the key, so a focused text field's or editor's undo wins |
 | `?` | Show the focused view's `View.help(_:)` tooltip | Enabled by default; falls through when the focused view has no help text. Reachable behind a modal, unlike `t` and `a` |
 | F1 (fn-F1 on a Mac keyboard) | Show the list of the shortcuts in force, or take it down | Enabled by default; see "The List of Shortcuts" below |
 | F2 (fn-F2 on a Mac keyboard), or ⌃, | Open the settings panel, or close it | Enabled by default. ⌃, is the `Settings` scene's ⌘, through the command key, and arrives only under the kitty keyboard protocol, and never on Windows Terminal, which keeps it for its own settings; see "The Settings Panel" below |
@@ -385,6 +385,15 @@ encoding, where ⌃4 may be ⌃\\'s byte again, and the driver would quit your
 app on the user's ⌃4 during a slow frame — so while a binding on ⌃4, ⌃| or
 ⌃⇧\\ is on screen there is no watchdog, and a hung app does not quit by ⌃\\
 under the protocol either.
+
+**On Windows** no driver turns ⌃\\ into a signal: it is always a key, which
+your bindings have first and which otherwise asks, or quits, as above. A hung
+app reads no keys, so there the way out is **Ctrl-Break**, which the console
+delivers on a thread of its own whatever the app's main thread is doing: it
+puts the console back as a quit does and ends the app at once, binding or no
+binding. Windows Terminal also keeps some chords for its own bindings, which
+never reach the app; TUI doesn't name them, as <doc:RunningOnWindows#Keys>
+says.
 
 ### Overriding the quit key in a local view context
 

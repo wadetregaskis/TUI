@@ -219,7 +219,7 @@ Your terminal's font has no glyphs for those symbols. Set `TUI_KEY_SYMBOLS=0` to
 
 **A toast shows in the app, but nothing appears among your system's notifications, or the terminal only beeps.**
 
-A notification goes to the desktop only when the app asks for it, by posting with `desktop:` set to `.whenInactive` or `.always` (see <doc:Presentation>). Then the terminal posts it, if it can. If it can't, this machine posts it itself, with `osascript` on macOS or `notify-send` on Linux, but only where TUI can tell you're sitting at the machine the app runs on, so never over ssh. `TUI_SYSTEM_NOTIFICATIONS=1` turns that on where TUI can't tell, such as inside zellij or GNU screen. If each one is only a beep, `TUI_NOTIFICATIONS=0` is set.
+A notification goes to the desktop only when the app asks for it, by posting with `desktop:` set to `.whenInactive` or `.always` (see <doc:Presentation>). Then the terminal posts it, if it can. If it can't, this machine posts it itself, with `osascript` on macOS or `notify-send` on Linux, but only where TUI can tell you're sitting at the machine the app runs on, so never over ssh. `TUI_SYSTEM_NOTIFICATIONS=1` turns that on where TUI can't tell, such as inside zellij or GNU screen. On Windows neither terminal posts one and the machine has nothing to post it with, so it stays a toast. If each one is only a beep, `TUI_NOTIFICATIONS=0` is set.
 
 Ghostty and iTerm2 show a notification only while their window isn't in front: with it in front, Ghostty drops it and iTerm2 puts it in Notification Center without a banner. The toast is on the screen then anyway. Switch to another app to see one arrive.
 

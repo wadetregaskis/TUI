@@ -732,7 +732,7 @@ screenful, and holding <kbd>Shift</kbd> with any of them applies the
 Two chords for the nudge because neither works everywhere. macOS binds
 <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> to Mission Control system-wide, so on
 a stock Mac they never reach the terminal at all — but they are the natural
-binding on Linux, where nothing intercepts them. <kbd>Option</kbd> is what macOS
+binding on Linux and Windows, where nothing intercepts them. <kbd>Option</kbd> is what macOS
 leaves alone; Apple Terminal needs "Use Option as Meta key", and even then
 strips modifiers from <kbd>↑</kbd>/<kbd>↓</kbd> specifically, which is why
 ``RowAction/pickUpRow`` — which needs no modifier at all — remains the route

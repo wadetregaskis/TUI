@@ -126,7 +126,7 @@ struct NodeCommands: Commands {
 
 SwiftUI has no such action: a SwiftUI app writes `NSPasteboard`, which in a terminal
 app is the clipboard of the machine the app runs on, the wrong one over ssh, and
-which Linux does not have.
+which Linux and Windows do not have.
 
 ## Choosing Where It Applies
 

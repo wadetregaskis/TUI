@@ -216,7 +216,7 @@ the startup handshake, and a drag sends many. Coalesce them, as `onInteractiveRe
 | **Pictures in the frame** | Fine | Placeholders and classic placements. On a Kitty host a print moves them with the rows, and the repaint places them again |
 | **`H` larger than the screen** | Degrades | The frame is the screen, like a full-screen app, with junk history above from each resize |
 | **tmux** | Should work | Its own grid and scrollback; copy mode works, a gain. TMUX-HOLD applies the same **[inferred]** |
-| **Windows** | Nothing new to port | CPR and scroll are VT, and no new POSIX is needed. `TUIApp` still has no Windows build |
+| **Windows** | Nothing new to port | CPR and scroll are VT, and no new POSIX is needed. `TUIApp` builds and runs on Windows (since 2026-11-16) |
 | **`NoTerminal`, pipes** | Unchanged | `runWithoutTerminal` answers first **[read]** |
 
 ## 5. The work, in rough commits

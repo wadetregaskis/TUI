@@ -136,7 +136,7 @@ In brief:
   constructed; the blob and the two integer arrays are pure compile-time
   constants), and the **smallest** binary of the greppable options.
 - `InlineArray` (Swift 6.2) for the numeric columns was rejected: it is gated to
-  **macOS 26**, so it won't run on the macOS 15 + Linux deployment floor.
+  **macOS 26**, so it won't run on the macOS 15 + Linux + Windows deployment floor.
 
 The codepoints were a `[UInt16]` of 8466 elements until 2026-10-07. The
 optimiser folds an array literal element by element, and a clean release build

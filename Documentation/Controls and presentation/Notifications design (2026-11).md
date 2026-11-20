@@ -130,7 +130,9 @@ already on screen. It is one-way.
 **Chosen (built 2026-11-08, decision 4):** a direct-OS route behind the same
 option, `SystemNotifier` (TUIApp), the app's run loop's only: `osascript`'s
 `display notification` on macOS, `notify-send` on a Linux desktop (a session
-bus and a display), each only where `SessionLocality.isLocal()` finds positive
+bus and a display), and nothing on Windows, whose two terminals post none
+either (the terminal survey's "Windows Terminal and the classic console",
+2026-11-17), so a desktop post there stays a toast, each only where `SessionLocality.isLocal()` finds positive
 evidence the person is at this machine — no ssh variables, no remote-session
 daemon or session keeper among the process's parents, and in tmux every
 attached client local. **How it combines with the terminal route:** per

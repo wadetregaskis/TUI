@@ -6,8 +6,8 @@ article ("API stability"), `RELEASING.md` points at it, and the pre-1.0 rule of 
 (the changelog's preface, `.claude/CLAUDE.md`) changes to the deprecation rule below. Until 1.0.0 is tagged, the
 pre-1.0 rule stands.
 
-Still open before 1.0: each experiment (decision 5), the defaults 1.0 freezes (decision 11), and the work that
-makes WebAssembly and Windows supported (decision 9).
+Still open before 1.0: each experiment (decision 5), the defaults 1.0 freezes (decision 11), and the CI that
+keeps WebAssembly and Windows supported (decision 9): WebAssembly's tests, and Windows's jobs made binding.
 
 ## What 1.0 promises
 
@@ -83,15 +83,16 @@ promised: TUI is a source package built with the app, without library evolution,
 ## Supported platforms
 
 macOS 15 and later, Linux, WebAssembly and Windows, all four fully supported from 1.0 (owner, 2026-11-09; the
-draft recommended WebAssembly as best effort and Windows later). As of this writing that is ahead of the code:
-WebAssembly builds and runs, but CI builds it without running the test suite there; and Windows builds and runs
-(since 2026-11-16, on a Windows VM), but CI has yet to build all of it there, and its port is still being finished
-(`Windows port.md`). Both are 1.0 work.
+draft recommended WebAssembly as best effort and Windows later). As of this writing CI is behind the code for two of
+them: WebAssembly builds and runs, but CI builds it without running the test suite there; and Windows is supported
+(since 2026-11-20: the whole package builds with no warnings and its suite passes on Swift 6.2, 6.3 and 6.4, measured on
+Windows 11, `Windows port.md`), but CI's Windows jobs for the console layer and the tests are advisory until they have
+passed there. Both are 1.0 work.
 
 ## Minimum Swift and macOS
 
-Today: `swift-tools-version: 6.2` and macOS 15, with Linux supported and the whole package building on Windows
-with Swift 6.2, 6.3 and 6.4 (since 2026-11-16). Raising either minimum stops some apps building, so the policy has to say which release may do it.
+Today: `swift-tools-version: 6.2` and macOS 15, with Linux and Windows supported (Windows since 2026-11-20,
+with Swift 6.2, 6.3 and 6.4). Raising either minimum stops some apps building, so the policy has to say which release may do it.
 The two notes in `Documentation/Swift language` (raising the floor to macOS 26, raising the minimum Swift to 6.4)
 are the evidence for the next such raise.
 

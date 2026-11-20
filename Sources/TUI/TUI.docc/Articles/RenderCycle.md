@@ -14,7 +14,7 @@ Several sources cause `RenderLoop` to produce a new frame. Most converge on two 
 
 | Trigger | Source | Mechanism |
 |---------|--------|-----------|
-| Terminal resize | `SIGWINCH` signal | `SignalManager`'s dispatch signal source sets the resize flag |
+| Terminal resize | `SIGWINCH` signal; on Windows, the console's `WINDOW_BUFFER_SIZE_EVENT` record | `SignalManager`'s dispatch signal source sets the resize flag; on Windows, the thread reading the console's records does |
 | State mutation | `@State` property change | `AppState.setNeedsRender()` sets `needsRender`; the observer wakes the loop |
 | Animation clock | `CursorTimer`, at whatever interval the last frame asked for | `AppState.setNeedsAnimationTick(_:)` records WHICH clock ticked — see below |
 | Focus change | `FocusManager.onFocusChange` | Resets the pulse phase and calls `appState.setNeedsRender()` |

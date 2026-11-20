@@ -95,7 +95,7 @@ A ``Text`` made from a key reads it as inline Markdown, as SwiftUI does:
 `**bold**`, `*italic*`, `~~struck~~`, code between backticks, and links. Everything else a
 modifier can do to part of a text is reachable too, through Apple's
 `^[text](key: value, …)` syntax — useful in a translation, which can style
-its words differently from the key, and on Linux, where `AttributedString`
+its words differently from the key, and on Linux and Windows, where `AttributedString`
 has no Markdown initializer:
 
 ```swift

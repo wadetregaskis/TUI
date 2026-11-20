@@ -172,7 +172,8 @@ SwiftTUI, which pays for it with state.
 | **F. Hot restart:** quit, relaunch, restore `@State` from a snapshot | Nothing | Nothing | **Rejected by the owner:** "it would only preserve state that TUI knows about… Any other app state would be lost… in any real app, I fear that would be untenable and make it a useless feature." Also slower: relaunching needs a link of the whole app, 3.3 s for `Example` [measured], where B links 126 KB. Recorded here because the working notes' Question 4 recommended it first. | **No.** One narrow use remains as a convenience: section 8's relaunch-in-place, for an edit nothing else can apply, offered as what it is. |
 | **G. App logic in a dynamic library, reload the library** | SwiftPM `.dynamic` product, restructured app | The same | Option A in another shape, and the same stranding. `ENABLE_DEBUG_DYLIB` in Xcode is this idea for a different purpose. | **No.** It asks every app to restructure. |
 
-**Windows, later.** `TUIApp` has no Windows build, so this waits for that port. Replacement itself is covered
+**Windows, later.** `TUIApp` builds on Windows (since 2026-11-16), so nothing of the port stands in the way; what
+follows is what this design would need there. Replacement itself is covered
 by the upstream test on Windows (`LoadLibraryA`) [doc]. The hard part is that a DLL cannot have undefined
 symbols, so a replacement image needs an import library for the executable, with everything `dllexport`ed,
 which is more than `-enable-testing` gives [inferred]. `ReadDirectoryChangesW` is the watcher. None of the
@@ -490,7 +491,7 @@ project's rule for POSIX-only code asks.
 | macOS | FSEvents: `FSEventStreamCreate` with `kFSEventStreamCreateFlagFileEvents`, `FSEventStreamSetDispatchQueue` | Part of CoreServices on every macOS TUI supports, so no new dependency; recursive with one stream. From a write to the callback, plain or by rename: 12 ms median, 88 ms worst of 40, with a 50 ms latency setting and `kFSEventStreamCreateFlagNoDefer` [measured]. A latency setting of 0 was oddly slower, at about 70 ms. |
 | Linux | `inotify_init1(IN_NONBLOCK \| IN_CLOEXEC)`, read through a `DispatchSource` read source | In Glibc and Musl, so no new dependency. Not recursive: one `inotify_add_watch` per directory, and `IN_CREATE` of a directory adds another. Watch for `IN_CLOSE_WRITE`, `IN_MOVED_TO`, `IN_DELETE`, `IN_CREATE`. `ENOSPC` means `fs.inotify.max_user_watches` is used up: fall back to polling and say so. [inferred: not run; no Linux box was reachable for this document] |
 | Anywhere else, or either of the above failing | Polling: every 500 ms, `stat` each known file and list each directory | Also the choice wherever events do not arrive: a network volume, a bind mount into a container, WSL's `/mnt/c`. `TUI_HOT_RELOAD_POLL=1` asks for it outright. A hundred-odd files is a negligible cost at that rate [inferred]. |
-| Windows (later) | `ReadDirectoryChangesW` | `TUIApp` has no Windows build, so this waits for it. |
+| Windows (later) | `ReadDirectoryChangesW` | Not built yet; `TUIApp` builds on Windows (since 2026-11-16), so nothing of the port stands in the way. |
 
 A watcher that starts and then hears nothing cannot be told from a developer who is not typing, so the
 banner's first line after launch says which watcher is running, which tells someone on a network volume why
@@ -777,8 +778,8 @@ the same kind of thing as the other `TUI_` variables (`TUI_CONFIG_DIR`, `TUI_RED
 | Stable session keys: the logical-identity switch, the name-keyed state index | `IdentityNode` in `TUICore`, `PropertyWalk` in `TUIView`, under `#if DEBUG` | Debug builds. A `#if` around a branch, so absent from release |
 | `@_typeEraser(AnyView)` on `View`, and erasers for the other `body` protocols | `TUIView` and each protocol's module | Always, as a declaration. It generates nothing for a function that is not `dynamic`: Joe Groff's description of it says the wrapper is applied for `dynamic` declarations (see the citation in section 1) [doc]. Stage 0 confirms with `nm` that a release binary does not change |
 
-The modules that must keep building on Windows (`TUICore`, `TUIStyling`, `TUIView`, `TUIImage`) get only the
-identity and naming switch, which has no POSIX in it.
+The lowest modules (`TUICore`, `TUIStyling`, `TUIView`, `TUIImage`) get only the identity and naming switch, which
+has no POSIX in it, so it builds on Windows, as every module does.
 
 ### How an app opts in
 

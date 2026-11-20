@@ -48,7 +48,7 @@ does not depend on it, so a shipping app carries none of it:
 
 ``TestApp`` runs what a running app runs: the render loop, the focus system and the input chain. `@State` lasts from
 frame to frame, `.onAppear` and `.task` run, a key goes to the control with the focus, and a click goes to whatever
-the last frame drew at that cell. Only the terminal is missing, so a test needs none, and runs on macOS and Linux.
+the last frame drew at that cell. Only the terminal is missing, so a test needs none, and runs on macOS, Linux and Windows.
 
 `TestApp` must be used on the main actor, so mark your test or its suite `@MainActor`. It works the same way in XCTest
 and Swift Testing, and depends on neither. It needs no `@testable`: write that only where a test reaches into your own
@@ -285,7 +285,6 @@ The first run writes it and throws, so that you look at it. When a change is wha
   variable that the content closure reads can go unnoticed by a part of the screen TUI has kept from an earlier frame.
 - **`main` does not run.** `TestApp(MyApp())` runs your app's `body`, and the `init()` you called. If your app registers
   its translations in `main`, a `Text` shows its key in a test. Register them in the test, or in `init()`.
-- **It needs `TUIApp`,** so it has no Windows build, where TUI's console layer has none yet.
 - **Colours are in the escape codes.** ``TestScreen/styledLines`` has them, but TUI has no API for asking what colour a
   cell is. To test that something changes colour, compare rows of `styledLines`.
 - **It draws in 24-bit colour, whatever the environment says.** `swift test` sets `NO_COLOR` whenever its output isn't a

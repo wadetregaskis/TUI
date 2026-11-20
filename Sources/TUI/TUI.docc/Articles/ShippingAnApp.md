@@ -18,6 +18,7 @@ beside it, and you are done. Most apps need nothing else, and the rest of this p
 - <doc:ShippingAnApp#Shipping-Size> lists ways to make the program smaller, and what each one costs.
 - <doc:ShippingAnApp#Build-Time> says why a release build takes minutes, and what helps.
 - <doc:RunningInABrowser> builds your app for WebAssembly, to run on a web page.
+- <doc:RunningOnWindows> says what a Windows program needs beside it, and what else differs there.
 
 To choose what your app depends on, see <doc:ChoosingProducts>.
 
@@ -52,6 +53,13 @@ swift build -c release --static-swift-stdlib
 
 The resource bundle still goes beside the executable. For a program with no shared-library dependencies at all, build
 with the Static Linux SDK (`--swift-sdk x86_64-swift-linux-musl`, or `aarch64-swift-linux-musl`).
+
+### On Windows
+
+The program is `.build\release\MyApp.exe`, with `TUI_TUIStrings.resources` beside it as on Linux. It links the Swift
+runtime and Foundation as DLLs, which must be where Windows looks for them, beside the `.exe` or on the `PATH`, on
+the machine it runs on: ship them with it, or have swift.org's runtime of the same version installed there. See
+<doc:RunningOnWindows>.
 
 ### A Library for macOS 15
 
@@ -315,3 +323,4 @@ depend on only the products you use (<doc:ChoosingProducts>).
 - <doc:EnvironmentVariables>
 - <doc:ModuleIndex>
 - <doc:RunningInABrowser>
+- <doc:RunningOnWindows>

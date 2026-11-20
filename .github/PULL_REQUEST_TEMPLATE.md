@@ -5,7 +5,7 @@
 ## Checklist
 
 - [ ] **Swift 6.2 compatible** (no features requiring a newer compiler)
-- [ ] **Builds on macOS and Linux** (`swift build` succeeds on both)
+- [ ] **Builds on macOS, Linux and Windows** (`swift build` succeeds on each; CI's Windows jobs say so for Windows)
 - [ ] **All tests pass** (`swift test`)
 - [ ] **No new SwiftLint warnings** (`swiftlint`)
 - [ ] Public APIs match SwiftUI signatures (parameter names, order, types)

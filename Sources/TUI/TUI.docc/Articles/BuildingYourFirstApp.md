@@ -10,7 +10,7 @@ The code uses SwiftUI's ideas: views, `@State`, bindings and modifiers. If those
 
 Every step ends with something you can run. If you get stuck, <doc:Troubleshooting> covers the usual problems.
 
-You need Swift 6.2 or later, and a real terminal: Apple's Terminal, iTerm2, Ghostty, or whatever you use on Linux. An IDE's output pane won't do, because it can't take key presses or draw a screen.
+You need Swift 6.2 or later, and a real terminal: Apple's Terminal, iTerm2, Ghostty, Windows Terminal, or whatever you use on Linux. An IDE's output pane won't do, because it can't take key presses or draw a screen.
 
 ## Step 1: Show a list
 
@@ -257,7 +257,7 @@ Run it, add `Milk`, tick `Apples`, and quit with Control-Q. Run it again, and th
 3 to buy
 ```
 
-On a Mac the list goes in the app's `UserDefaults`, under the name `Groceries`. On Linux it goes in `~/.config/Groceries/settings.json` (under `$XDG_CONFIG_HOME` instead of `~/.config` where that is set). To start again from three items, run `defaults delete Groceries` on a Mac, or delete that file on Linux.
+On a Mac the list goes in the app's `UserDefaults`, under the name `Groceries`. On Linux it goes in `~/.config/Groceries/settings.json` (under `$XDG_CONFIG_HOME` instead of `~/.config` where that is set), and on Windows in `%APPDATA%\Groceries\settings.json`. To start again from three items, run `defaults delete Groceries` on a Mac, or delete that file elsewhere.
 
 ## Step 5: Confirm in a sheet
 

@@ -188,8 +188,8 @@ until step A4 landed them.
 
 `TUIFoundation: TUIFoundation/Rendering/Foo.swift::Bar uses isatty, which only POSIX platforms have`
 
-CLAUDE.md keeps termios, ioctl, signals and stdin dispatch sources out of the modules that must build on Windows.
-The plan puts the console layer in TUIApp, so a use elsewhere is reported. Since the owner relaxed the Windows rule
+CLAUDE.md keeps termios, ioctl, signals and stdin dispatch sources behind `#if` arms with a Windows counterpart, as
+every module builds on Windows (since 2026-11-16), and this tool predates that. The plan puts the console layer in TUIApp, so a use elsewhere is reported. Since the owner relaxed the Windows rule
 (CLAUDE.md, 2026-10-07: POSIX-only code may live in any module, isolated, never in a module that builds on Windows
 today), `rules.json`'s `posix.informational` marks such a finding accepted — information, not a new finding — unless
 a `scheduled` refactor covers it. A use counts as isolated when it sits in an `#if` branch that neither Windows nor

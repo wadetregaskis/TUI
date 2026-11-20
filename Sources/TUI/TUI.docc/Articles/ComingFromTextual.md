@@ -113,7 +113,6 @@ There's no `watch_count` and no `query_one`: both labels read the state directly
 - **State must be marked.** A plain `var` in a view struct starts again every time the view is rebuilt. Keep values in `@State`.
 - **Control-C doesn't quit.** It copies the selection. Control-Q quits.
 - **The app takes the whole screen.** TUI has no inline mode like `run(inline=True)`.
-- **No Windows yet.** TUI apps run on macOS and Linux. Textual runs on Windows too.
 
 ## What TUI Adds
 
@@ -128,4 +127,4 @@ There's no `watch_count` and no `query_one`: both labels read the state directly
 - **Developer tools.** `textual console` shows your logs and messages while the app runs.
 - **The browser.** `textual serve` puts any Textual app in a web page. TUI's own demo runs in a browser too, as WebAssembly, but that takes a build of its own.
 - **More widgets**, such as `Sparkline`, `Markdown` and `Log`, and Python's quick edit-and-run loop.
-- **Inline mode and Windows**, neither of which TUI has yet.
+- **Inline mode**, which TUI doesn't have.

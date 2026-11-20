@@ -2,7 +2,7 @@
 
 TUI is SwiftUI's programming interface for the terminal. You write views, `@State`, `@Observable` models, stacks, lists,
 tables, navigation, sheets, menus and animations, and TUI draws them with Swift and the terminal's own escape codes: no
-ncurses, nothing to install. The same package runs on macOS, on Linux and in a web browser.
+ncurses, nothing to install. The same package runs on macOS, on Linux, on Windows and in a web browser.
 
 This is the first release of TUI. It began as [TUIkit](https://github.com/phranck/TUIkit) by Frank Gregor; the tags
 before `v1.0.0` in the repository are TUIkit's. These notes are the highlights. Everything else, with what to change in
@@ -84,7 +84,7 @@ preference is saved per app.
 
 **Testing.** The `TUITesting` product provides `TestApp`, which runs a view or a whole app through the real render
 loop, focus system and input chain without a terminal: press keys, click, move a clock by hand and read the screen.
-It works with Swift Testing and XCTest, on macOS and Linux. See
+It works with Swift Testing and XCTest, on macOS, Linux and Windows. See
 [Testing your app](https://swift-tui.com/docs/documentation/tui/testingyourapp).
 
 **Performance.** A frame is drawn only when something asks for one, and a screen with nothing changing does no work. A
@@ -109,8 +109,13 @@ about a slow screen.
   own app can be published the same way. It needs a swift.org toolchain (not Xcode's) of 6.3 or later, with the matching
   WebAssembly SDK. See
   [Running your app in a browser](https://swift-tui.com/docs/documentation/tui/runninginabrowser).
-- **Windows is not supported yet.** The four lowest modules (`TUICore`, `TUIStyling`, `TUIView` and `TUIImage`) build
-  there and CI keeps them building, but the console layer (raw mode, signals, input) is not ported, so an app does not run.
+- **Windows**, on arm64 and x86_64, in Windows Terminal (the kitty keyboard protocol from 1.25, pictures through Sixel)
+  and the classic console. It needs a swift.org toolchain of 6.2 or later and Developer Mode, for the symbolic links in
+  a dependency's checkout. Measured on Windows 11 with Swift 6.2, 6.3 and 6.4: the whole package builds with no warning in
+  its code, and the suite passes. CI's Windows jobs build it in Windows Server containers with the three released Swift
+  versions; those for the console layer, the tests and the smoke check are advisory until they have passed there. What
+  differs (keys Windows Terminal keeps, no suspending, Ctrl-Break, the Swift runtime's DLLs to ship) is in
+  [Running your app on Windows](https://swift-tui.com/docs/documentation/tui/runningonwindows).
 
 ## What is not there
 
@@ -123,7 +128,6 @@ compile so you know:
 - The `ObservableObject` family is not supported. Use `@Observable`. `@StateObject`, `@ObservedObject` and
   `@EnvironmentObject` do not compile; `ObservableObject` and `@Published` do compile on macOS but TUI does not watch
   them, so a model moved over from SwiftUI that does not redraw is the first thing to check.
-- Windows, as above.
 
 Where code that compiles against both behaves differently on purpose, the difference is written down in
 [Deliberate deviations from SwiftUI](https://github.com/wadetregaskis/TUI/blob/main/Documentation/SwiftUI%20parity/Deliberate%20deviations%20from%20SwiftUI.md),

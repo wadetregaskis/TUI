@@ -19,8 +19,6 @@ Answer by id and option ("B75: a"); a bare "yes" takes the recommendation.
   report as the run's artifact, which I read with the read-only token. Until then the comparison runs against Xcode
   26.3's SDK, and MACOS27-PARITY waits on it. Before 1.0: a mismatch it finds is free to fix now, and a major
   release after.
-- **A Windows VM** (API-STABILITY point 9, 2026-11-09): Windows is to be fully supported at 1.0, and the port is
-  done on a Windows VM. Say how it is reached when it is ready.
 - **Switch on private vulnerability reporting** (SECURITY, 2026-11-09): the repository's *Settings → Security →
   Private vulnerability reporting*. `SECURITY.md` already sends reporters there; until it is on, the link it gives
   leads nowhere.

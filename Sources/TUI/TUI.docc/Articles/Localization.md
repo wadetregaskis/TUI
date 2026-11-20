@@ -10,7 +10,7 @@ TUI provides built-in support for 7 languages: English, German, French, Italian,
 
 - **Type-safe keys**: Compile-time verified `LocalizationKey` enums with IDE autocomplete
 - **7 languages built-in**: EN, DE, FR, IT, ES, ZH, JA with complete translations
-- **Persistent storage**: Language preference saved and restored per-app, in the platform config directory (macOS Application Support, Linux XDG config)
+- **Persistent storage**: Language preference saved and restored per-app, in the platform config directory (macOS Application Support, Linux XDG config, Windows `%APPDATA%`)
 - **Fallback chain**: Current language → English → key itself for graceful degradation
 - **Thread-safe**: Safe language switching from any thread at runtime
 - **Yours to extend**: Register your own translations, or use a `Localizable.strings` file
@@ -347,6 +347,7 @@ Language preferences are automatically saved per-app, in the
 platform-idiomatic configuration directory:
 - **macOS**: `~/Library/Application Support/<App>/language`
 - **Linux**: `$XDG_CONFIG_HOME/<App>/language` (else `~/.config/<App>/language`)
+- **Windows**: `%APPDATA%\<App>\language`
 
 `TUI_CONFIG_DIR`, when set, moves it to `$TUI_CONFIG_DIR/<App>/language` on every platform.
 

@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**Windows is supported.** An app builds with Swift 6.2, 6.3 and 6.4 from swift.org, on arm64 and x86_64, and runs in
+Windows Terminal and in the classic Windows console, with nothing of its own to port. Building needs Developer Mode,
+for the symbolic links in a dependency's checkout, and a shipped program needs the Swift runtime's DLLs beside it.
+What differs from macOS and Linux, such as the keys Windows Terminal keeps for itself, Control-Break for a hung app,
+no suspending and no desktop notifications, is in the new Running on Windows article. CI's Windows jobs for the
+console layer and the tests stay advisory until they have passed there.
+
 **In a `TextEditor`, Shift-Option-B and Shift-Option-F select a word at a time,** as they do in a `TextField` and as
 Shift-Option-← and → already did. They only moved the caret, losing the selection. They are the word keys where a
 terminal keeps Shift-Option-arrows for itself, as Windows Terminal binds them to resizing a pane.

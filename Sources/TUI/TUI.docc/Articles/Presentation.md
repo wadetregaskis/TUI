@@ -589,7 +589,9 @@ terminal where the terminal posts one (Ghostty and iTerm2), which shows it
 only while its window isn't in front, so there `.always` reaches the desktop
 no more often than `.whenInactive` does; elsewhere this
 machine posts it itself, with `osascript` on macOS or `notify-send` on Linux,
-but only where the person is at this machine — never over ssh. On macOS
+but only where the person is at this machine — never over ssh. On Windows
+neither terminal posts one and there is nothing to post it with, so it stays
+a toast. On macOS
 those are Script Editor's notifications, shown only where System Settings ▸
 Notifications ▸ Script Editor allows them (<doc:Troubleshooting>). One or the
 other, never both. The person running the app can turn this machine's own

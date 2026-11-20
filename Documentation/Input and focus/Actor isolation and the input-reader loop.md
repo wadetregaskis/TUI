@@ -75,7 +75,8 @@ for await event in inputStream {
 stdin has data. Wrap in an `AsyncStream<InputEvent>`. Cancellation via
 `source.cancel()`.
 
-- Cross-platform — `libdispatch` ships on both macOS and Linux, the
+- Cross-platform — `libdispatch` ships on macOS, Linux and Windows (where it can't watch a console handle, so the
+  console layer reads stdin on a thread of its own), the
   swift-corelibs build on Linux has gotten steadily more reliable.
 - Trivial cancellation lifecycle.
 - No raw thread to manage.

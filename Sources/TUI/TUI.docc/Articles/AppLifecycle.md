@@ -8,8 +8,9 @@ This page describes what the framework does for you. You don't need it to write 
 what you do need.
 
 What you'll see: the app takes over the whole terminal while it runs, and puts it back as it was when it quits, or
-when you suspend it with Control-Z. Control-Q quits, and Control-\\ asks first, or quits an app that has stopped
-responding. Everything below is how that works, for contributors and the curious.
+when you suspend it with Control-Z (on macOS and Linux; Windows has no suspending). Control-Q quits, and Control-\\
+asks first, or quits an app that has stopped responding. Everything below is how that works, for contributors and
+the curious. Windows does the same things by its own means, which "On Windows", below, sets out.
 
 ## Starting Up
 
@@ -118,6 +119,31 @@ These are not C signal handlers, and that is the point: libdispatch delivers eac
 
 The signals that end the process with nothing run on the way out are the exception, because a queued event would never be read: a crash (`SIGSEGV`, `SIGABRT` and the rest), the terminations nothing handles (`SIGHUP`, `SIGUSR1`, …), and `SIGQUIT` — ⌃\\ at a hung app, and `kill -QUIT` (see the key table). `FatalSignalTerminalRestore` takes them with a C handler that writes what the terminal is owed from a buffer filled in advance, puts the shell's termios back, and lets the signal do what it does. A crash leaves the alternate screen up, with its report on it. `SIGQUIT` (⌃\\, or `kill -QUIT`) is the user's quit, not a crash: it leaves the terminal as a quit does — the images the app put in it deleted, the alternate screen left, the cursor shown, every mode off — and ends by its default action, the shell's `Quit: 3`, without the Swift runtime's crash report. It runs nothing else of `cleanup()` (below): no focus is lost; a setting stored a moment before — persistence saves asynchronously — can go with the process, since a flush is no async-signal-safe call; and under tmux the client hooks stay installed until their next firing removes them, as after a crash (removing them forks tmux). Where the input chain reads ⌃\\ and quits on it, a second press while the dialog is up, the settings are flushed before the signal is sent. And `kill -QUIT` no longer gets the Swift runtime's crash report, a backtrace, out of a running app: it quits it. `kill -ABRT` still does — an abort is a crash, handed on to the runtime's reporter (its threads as `SWIFT_BACKTRACE` sets them), with the alternate screen left up and the report on it.
 
+### On Windows
+
+Windows has no signals, termios or job control, so the console layer does the same work with the console's own
+calls (`WindowsConsole.swift`, `SignalManager+Windows.swift`, `FatalSignalTerminalRestore+Windows.swift`), and
+everything above it, the loop included, is unchanged:
+
+- **Raw mode** is the console's input and output modes: line input, echo, processing and Quick Edit off, virtual
+  terminal input and output on, UTF-8 both ways. Keys, mouse reports, pastes and the terminal's replies then arrive as
+  the bytes a POSIX terminal sends. ⌃C, ⌃Z and ⌃\\ are keys, as above; ⌃\\ always reaches the input chain, which
+  asks or quits as on POSIX, as no driver turns it into a signal; so
+  a hung app, which reads no keys, quits by Ctrl-Break instead.
+- **Input and resizes** come from one thread reading the console's records, since libdispatch can't watch a console
+  handle: a key's characters, and a resize as a `WINDOW_BUFFER_SIZE_EVENT` in place of `SIGWINCH`.
+- **Shutdown**: `SetConsoleCtrlHandler` takes ⌃C sent from outside, Ctrl-Break and the window's close, each setting
+  the shutdown flag as `SIGINT` and `SIGTERM` do. A logoff or a shutdown reaches a process that has loaded
+  `user32.dll` only as a window message, so a hidden window of its own answers `WM_QUERYENDSESSION` and
+  `WM_ENDSESSION` and gives the teardown up to five seconds.
+- **Ctrl-Break** quits at once, even a hung app, as ⌃\\ does on POSIX: the console raises it on a thread of its own,
+  whatever the main thread is doing, which pays the quit's debt and ends the process with `STATUS_CONTROL_C_EXIT`. So
+  the stall watchdog and the quit key's watch are left out.
+- **A crash** is caught by the unhandled-exception filter, which pays the same debt as a fatal signal's handler and
+  puts the console's modes back.
+- **No suspend.** Nothing stops a Windows process from its console, so ⌃Z is only a key, and ``ScenePhase/background``
+  comes with a hand-off, never a suspend.
+
 ## Key Event Dispatch
 
 When the terminal delivers a key event, the `InputHandler` dispatches it through five layers, after the focus path below, plus four refinements: an ESC pre-route before Layer 1 when an open drop-down has claimed Escape, the mid-drag Layer 0.5, an open menu's type select (Layer 2.5), and a semantic-shortcut stage — Layer 3.5 — between Layers 3 and 4. Layer 0 and Layer 3 are mutually exclusive based on `focusManager.hasTextInputFocus`:
@@ -164,7 +190,7 @@ Built-in key bindings that apply when no handler consumed the event, and the one
 |-----|--------|-----------|
 | ⌃Q | Quit application | `statusBar.isQuitAllowed` — offered even behind a modal, as its escape hatch |
 | Undo, redo | The app's undo manager's undo and redo, on the scene's `UndoShortcuts`: by default ⌃Z, ⌃- and ⌃/ undo, ⌃⇧Z, ⌃_ and ⌥_ redo | Always, after the app's own shortcuts; a bound key is taken whether or not there is a step |
-| ⌃Z | Suspend the app | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode turns `^Z` off as a signal character, so the driver never turns it into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
+| ⌃Z | Suspend the app (not on Windows, which has no job control) | Only where the undo keys leave it out (`.undoShortcuts([.undo: …])`). Raw mode turns `^Z` off as a signal character, so the driver never turns it into SIGTSTP; reaching layer 4 unbound means no view claimed it (a focused text field's or editor's undo wins), so it is re-raised as the signal |
 | F1 | Show or take down the list of keyboard shortcuts | Unless the scene turned it off (`keyboardShortcutOverlayDisabled()`); not while an open drop-down holds the keyboard |
 | `t` / `T` | Cycle to next palette | `statusBar.showThemeItem`, and no transient surface has grabbed input |
 | `a` / `A` | Cycle to next appearance | No transient surface has grabbed input — otherwise `a` would restyle the app from behind a modal the user cannot see the controls for |
@@ -218,7 +244,7 @@ Button("Edit in $EDITOR") {
 }
 ```
 
-The program is ``HandOffTerminalAction/Executable/path(_:)`` or ``HandOffTerminalAction/Executable/name(_:)``, a name looked up in `PATH` as a shell looks it up (`posix_spawnp`). It gets the app's environment and working directory, as `system(3)` gives them; a shell or `/usr/bin/env` gives it others. How it ended is a value, ``HandOffTerminalAction/Termination``: ``HandOffTerminalAction/Termination/exit(_:)`` with its status, non-zero included, or ``HandOffTerminalAction/Termination/uncaughtSignal(_:)`` with the signal that ended it. What throws is a program that could not be started or waited for, ``HandOffTerminalAction/LaunchError``, and ``HandOffTerminalAction/LaunchError/unsupported`` where no program can be started: on WebAssembly, which has no processes, and on Windows until the run loop is ported there.
+The program is ``HandOffTerminalAction/Executable/path(_:)`` or ``HandOffTerminalAction/Executable/name(_:)``, a name looked up in `PATH` as a shell looks it up (`posix_spawnp`). It gets the app's environment and working directory, as `system(3)` gives them; a shell or `/usr/bin/env` gives it others. How it ended is a value, ``HandOffTerminalAction/Termination``: ``HandOffTerminalAction/Termination/exit(_:)`` with its status, non-zero included, or ``HandOffTerminalAction/Termination/uncaughtSignal(_:)`` with the signal that ended it. What throws is a program that could not be started or waited for, ``HandOffTerminalAction/LaunchError``, and ``HandOffTerminalAction/LaunchError/unsupported`` where no program can be started: on WebAssembly, which has no processes.
 
 Called with a closure instead, the action runs it at once, on the main actor, while the other program has the terminal, and returns what the closure returns or throws what it throws: for several programs in turn, or one started some other way. The program form is the closure form with the spawn inside it, so what follows holds for both.
 
@@ -229,6 +255,8 @@ While the closure runs, ⌃C, ⌃\\ and ⌃Z are signal characters again, sent t
 On the way back the signals are put back (each ignored once more first, which discards one still pending: on Linux a signal blocked on every thread waits, ignored or not), and the terminal is taken back as after an external stop, since the program may have left any mode in any state: once in the foreground, raw mode made again from the shell's termios, every mode asserted, the diff cache invalidated, and a frame drawn that reads the size again and writes every line.
 
 A program started for the hand-off belongs in the app's process group, which is the terminal's foreground group, with every signal at its default, and the program form starts it so (`ForegroundProgram`, in TUIFoundation): `posix_spawn` with `POSIX_SPAWN_SETSIGDEF` and `POSIX_SPAWN_SETSIGMASK`, and `waitpid`. Foundation's `Process` starts its child in a group of its own (measured on macOS), where an editor that reads the keyboard is stopped by `SIGTTIN`; and a program spawned without the defaults inherits the signals the app ignores. The program form waits with `WUNTRACED`, so it sees its program stop: one that stops itself alone, as a program reading ⌃Z as a key may, is followed by a `SIGTSTP` the app sends itself, so the shell sees the whole job stopped and takes the terminal back, and `fg` continues both. (A stop it sees only after `fg` has continued both, because ⌃Z stopped the app too before it read the report, is not made again: `waitpid` with `WCONTINUED` says the program was continued.) Through a closure TUI cannot see the program: ⌃Z stops one in another group, or one that stops itself alone, without the app, which waits on in the closure, and the terminal looks hung until the program is continued (`kill -CONT`) from elsewhere. Outside a running app — a headless or test app, a snapshot — the program is started and the closure runs, with no terminal to hand over; so does a call made inside the closure.
+
+On Windows the program is started in the app's console with `CreateProcessW`, which it shares as a POSIX program shares the app's process group, and waited for. A name is looked up as `CreateProcessW` looks it up, with `.exe` added where it has no extension, and there is no shell to split a command line: run `cmd.exe /c` for one. While it runs, the app takes ⌃C and Ctrl-Break and does nothing with them, as the console raises them in every process sharing it; the program has them. Windows has no signals, so it always ends with ``HandOffTerminalAction/Termination/exit(_:)``: `0xC000013A` (`STATUS_CONTROL_C_EXIT`) where ⌃C or Ctrl-Break ended it. Nothing stops it, the app or the console.
 
 ## Cleanup
 

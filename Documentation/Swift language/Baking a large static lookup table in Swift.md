@@ -98,7 +98,7 @@ readable.
 **`InlineArray` (Swift 6.2) is not yet usable at a real deployment floor.** It is
 attractive (fixed-size, inline, no `Array` heap buffer) and its array-literal
 initialization compiles cleanly — but it is gated to **macOS 26**. With TUI's
-floor of macOS 15 + Linux/Swift 6.2 it fails to link (needs the macOS 26 runtime
+floor of macOS 15 + Linux/Windows/Swift 6.2 it fails to link (needs the macOS 26 runtime
 metadata symbol), so it was disqualified despite good compile numbers. Revisit
 when the floor moves.
 
@@ -234,7 +234,7 @@ name, where this table is clean, file-backed and read where a lookup reads.
    truly static (near-zero first access), holds no `String`, and stays greppable.
 4. **Avoid a huge `[UInt8]` blob literal** (192 k elements → 13.4 s) — use a
    `StaticString` for the bytes instead.
-5. **`InlineArray` is macOS-26-only** on Swift 6.2 — not for a macOS 15 / Linux
+5. **`InlineArray` is macOS-26-only** on Swift 6.2 — not for a macOS 15 / Linux / Windows
    floor yet.
 6. **Assert the representation's invariants in the generator** (here: ASCII
    names, `UInt16`-range codepoints) so a bad regeneration fails loudly rather

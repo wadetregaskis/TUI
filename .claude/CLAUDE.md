@@ -3,12 +3,17 @@
 ### Compatibility (non-negotiable, with one known exception)
 - **Swift 6.2 compatible**: `swift-tools-version: 6.2`.  Readily make use of language features up to 6.2, such as nonisolated on protocols / classes / structs / enums, test scoping traits, the `@concurrent` attribute, `InlineArray`, `@Observable` types and the `Observations` struct, raw identifier display names for unit tests, default values in string interpolations, weak let, global-actor isolated conformances, isolated synchronous deinit, task naming, regex lookbehind, non-escapable types, `Span` where it's available, etc.
   For yielding accessors use the underscored `_read` and `_modify`. SE-0474's `yielding borrow` / `yielding mutate` would be the official mechanism, but no compiler supports it properly yet: 6.2 and 6.3 accept only the older `read`/`modify` spelling, and 6.4 only `yielding`, and all three only behind `-enable-experimental-feature CoroutineAccessors` (measured 2026-10-09).
-- **Cross-platform**: must build and run correctly on both macOS and Linux. CI
-  tests macOS 15 and 26 (Xcode 26) and macOS 27 (Xcode 27), and Swift
-  6.2/6.3/6.4 Linux containers on x86_64 plus 6.3 on arm64, with
-  nightly-toolchain lanes as advisory.
-  **Windows is being ported, and every module builds there** (since
-  2026-11-16; Documentation/Windows port.md is the record): keep it so. A
+- **Cross-platform**: must build and run correctly on macOS, Linux and
+  Windows. CI tests macOS 15 and 26 (Xcode 26) and macOS 27 (Xcode 27),
+  Swift 6.2/6.3/6.4 Linux containers on x86_64 plus 6.3 on arm64, and
+  Swift 6.2/6.3/6.4 Windows Server containers, with nightly-toolchain lanes
+  as advisory.
+  **Windows is supported** (since 2026-11-20; Documentation/Windows port.md
+  is the record, and the Running on Windows article what differs for an
+  app): every module builds there and the suite passes; keep it so. CI's
+  Windows steps for the console layer, the tests and the smoke check are
+  advisory until they have passed there; don't make them binding without
+  the owner. A
   POSIX-only API (`termios`, `ioctl`, signals, `poll`, `DispatchSource` on
   stdin, `pid_t`, `setenv`) needs a Windows arm beside it — `#if
   os(Windows)`, in the file or in a `+Windows` file of its own — or an

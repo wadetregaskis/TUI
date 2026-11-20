@@ -3,7 +3,7 @@
 <p align="center"><strong>The Swift Terminal UI framework.</strong></p>
 
 <p align="center">
-    <img alt="Platforms" src="https://img.shields.io/badge/Platforms-macOS%20%7C%20Linux%20%7C%20WebAssembly-005c00">
+    <img alt="Platforms" src="https://img.shields.io/badge/Platforms-macOS%20%7C%20Linux%20%7C%20Windows%20%7C%20WebAssembly-005c00">
     <img alt="Swift 6.2" src="https://img.shields.io/badge/Swift-6.2-00b300?logo=swift&logoColor=white">
     <img alt="i18n" src="https://img.shields.io/badge/i18n-7%20Languages-00d900">
     <img alt="License" src="https://img.shields.io/badge/License-MIT-00b300?style=flat">
@@ -14,7 +14,7 @@
     <img src="https://swift-tui.com/media/latest/mixer.webp" width="800" alt="A mixing desk made with TUI, in Ghostty: faders and pan knobs dragged with the mouse, and the level meters answering.">
 </p>
 
-Write SwiftUI, and get a terminal app. TUI speaks SwiftUI's language, with a terminal accent.  Views, `@State`, `@Observable`, stacks, lists, tables, navigation, sheets, menus, animation, and so much more. It draws them with nothing but Swift and the terminal's own escape codes: no ncurses, nothing to install. It runs on macOS, Linux, and in a web browser (and anywhere else that supports WebAssembly).
+Write SwiftUI, and get a terminal app. TUI speaks SwiftUI's language, with a terminal accent.  Views, `@State`, `@Observable`, stacks, lists, tables, navigation, sheets, menus, animation, and so much more. It draws them with nothing but Swift and the terminal's own escape codes: no ncurses, nothing to install. It runs on macOS, Linux, Windows, and in a web browser (and anywhere else that supports WebAssembly).
 
 > [!IMPORTANT]
 > TUI is close to a 1.0 release, but not there yet.  Until then, breaking changes may occur without notice.
@@ -52,7 +52,7 @@ If you know SwiftUI, the code above should look very familiar to you (because th
 
 TUI's goal is not "write once run anywhere", it's "learn once write anywhere".  There are substantial intrinsic differences between a GUI and a terminal - but using SwiftUI concepts, patterns, and (where applicable) compatible APIs, makes it _easy_ (and you _can_ share a lot of UI code directly, too).
 
-But you don't have to know SwiftUI - or be tied to Apple's platforms.  TUI works on Linux and the web (via WASM), too - and it's just a great framework for producing wonderful terminal apps.
+But you don't have to know SwiftUI - or be tied to Apple's platforms.  TUI works on Linux, Windows and the web (via WASM), too - and it's just a great framework for producing wonderful terminal apps.
 
 ## In a real terminal
 
@@ -145,10 +145,10 @@ Actual screen recordings (demo apps, but otherwise completely real - see [their 
 
 - **SwiftUI-compatible API.** Most SwiftUI code compiles as-is under TUI, and behaves effectively the same.  Some things differ, but are easily adapted (e.g. the terminal's primary unit is the character cell, not the pixel, so instead of `.padding(20)` you might write `.padding(1)`).  See [Coming from SwiftUI](https://swift-tui.com/docs/documentation/tui/comingfromswiftui) for what's different.
 - **Keyboard first, mouse too.** Everything is designed to be terminal-native, which means proper support for keyboard-only use.  But TUI also loves the mouse, and its extensive and powerful mouse support makes terminal apps much more intuitive for beginners.
-- **Powerful terminal client portability.** Terminal clients are _not_ created equal - you wouldn't believe how much they vary in what they support, how they support it, and where they make mistakes.  TUI has extensive knowledge of popular terminal clients - including Apple Terminal, iTerm2, Ghostty, & Warp - which means you don't have to.
+- **Powerful terminal client portability.** Terminal clients are _not_ created equal - you wouldn't believe how much they vary in what they support, how they support it, and where they make mistakes.  TUI has extensive knowledge of popular terminal clients - including Apple Terminal, iTerm2, Ghostty, Warp, Windows Terminal & the Windows console - which means you don't have to.
 - **Seven languages.** TUI's built-in controls support multiple languages, with full localisation support - for both your own custom controls and additional languages.  See your app in English, German, French, Italian, Spanish, Chinese, Japanese - and any others you wish to add.
 - **Performance.** Aesthetics _do_ matter, but they're worthless if the everyday experience isn't fast and smooth.  Creating & rendering complex terminal UIs isn't easy, but TUI has invested the blood, sweat, and tears to make sure that for _you_ it is - _without_ compromising on performance.
-- **Platform portability.** Built to provide a native experience on macOS and Linux, but one more thing - the web!  [Try the demo](https://swift-tui.com/demo/) right in your web browser, no installation or plug-ins required!
+- **Platform portability.** Built to provide a native experience on macOS, Linux and Windows, but one more thing - the web!  [Try the demo](https://swift-tui.com/demo/) right in your web browser, no installation or plug-ins required!
 - **Open & free.** It's all here - see the source for yourself, use it freely and widely.  Make changes - send in your pull requests!  And can't figure out what the heck is wrong with your SwiftUI app because SwiftUI is closed-source and inscrutable?  Try running it under TUI, where you can see _exactly_ what's going on, stepping through the full stack line by line.  Fixes you make under TUI often apply under SwiftUI, thanks to the similar view model & render engine.
 
 ## Getting started
@@ -176,6 +176,7 @@ To see more of what TUI can do, run the Example app (`swift run Example` from a 
 - **[Testing your app](https://swift-tui.com/docs/documentation/tui/testingyourapp)**: run your views in a unit test, press keys, move a clock by hand and read the screen.
 - **[Environment variables](https://swift-tui.com/docs/documentation/tui/environmentvariables)**: every variable that people running your app, or you, can set, and which setting wins.
 - **[Building and shipping an app](https://swift-tui.com/docs/documentation/tui/shippinganapp)**: what to ship, how small it can be, and why a release build takes minutes.
+- **[Running on Windows](https://swift-tui.com/docs/documentation/tui/runningonwindows)**: what you need to build there, and what differs in Windows Terminal and the Windows console.
 - **[Contributing](CONTRIBUTING.md)**: how TUI is built, tested and laid out.
 - **[Changes](CHANGELOG.md)**: what has changed, and what to do about it.
 

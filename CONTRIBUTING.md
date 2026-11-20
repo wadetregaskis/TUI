@@ -20,7 +20,7 @@ To send a change, see [Pull Request Requirements](#pull-request-requirements). T
 | Requirement | Details |
 |-------------|---------|
 | **Swift 6.2** | `swift-tools-version: 6.2`. Language features up to 6.2 are fair game; nothing newer. |
-| **Cross-platform** | Must build and run on macOS and Linux. WebAssembly builds and runs (see below); Windows builds and runs, and its port is being finished (see below). |
+| **Cross-platform** | Must build and run on macOS, Linux and Windows (see below). WebAssembly builds and runs (see below). |
 | **CI must pass** | All tests and linting must pass before merge. |
 
 ### What CI covers
@@ -202,12 +202,13 @@ and the two latent bugs it turned up in platform-independent code — is in
 
 ### Windows
 
-Windows is **being ported**, and is to be fully supported at 1.0 (owner, 2026-11-09);
-[`Documentation/Windows port.md`](<Documentation/Windows port.md>) is the plan and the record of the port,
-with what each piece of the console layer became and why. Since 2026-11-16 the whole package builds there,
-the console layer included, and the suite passes; the Example runs in Windows Terminal and in the classic console
-(conhost), both measured and both known hosts (the terminal survey's "Windows Terminal and the classic console").
-What is left is in that file.
+Windows is **supported** (since 2026-11-20; a 1.0 requirement, owner, 2026-11-09):
+the whole package builds there with no warnings in its code on Swift 6.2, 6.3 and 6.4, the console layer included, the suite
+passes, and the Example runs in Windows Terminal and in the classic console (conhost), both measured and both known
+hosts (the terminal survey's "Windows Terminal and the classic console"). What an app's author needs to know is in
+the Running on Windows article (`Sources/TUI/TUI.docc/Articles/RunningOnWindows.md`);
+[`Documentation/Windows port.md`](<Documentation/Windows port.md>) is the record of the port, with what each piece
+of the console layer became and why, and what is left: a real logoff, and CI's Windows jobs made binding.
 
 The CI job is a **ratchet**: every step says for itself whether it is allowed
 to fail, so the job as a whole promises exactly *"everything that builds on
@@ -1009,7 +1010,7 @@ For example:
 - **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
 - **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
 - **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
-- **Linux compatible**: works on macOS and Linux (XDG paths supported)
+- **Cross-platform**: works on macOS, Linux (XDG paths supported) and Windows (`%APPDATA%`, the console's own calls behind `#if os(Windows)`)
 - **Runs in a browser**: builds for `wasm32-unknown-wasip1`; `Tools/Web/build.sh` compiles the Example app to WebAssembly and `Tools/Web/serve.py` serves it into a terminal made of DOM ([how it works](<Documentation/WebAssembly port.md>))
 - **Value types**: views are structs, just like SwiftUI
 
@@ -1105,7 +1106,7 @@ Sources/
 ├── TUITabImages/      Tab(_:image:…): a tab's picture found by name, as Image(_:bundle:)
 ├── TUIColorPicker/    ColorPicker, ColorPickerPanel and GradientEditorPanel
 ├── TUICurveEditors/   The tone-curve and channel-curve editor panels
-├── TUIApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX)
+├── TUIApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX, and Windows's console)
 ├── TUICommands/       Commands, CommandMenu, CommandGroup, .commands: the menu bar
 ├── TUIFilePanels/     fileImporter, fileExporter, fileMover: the open and save panels
 ├── TUIScenes/         Settings (a sheet) and AlertScene: scenes shown over the windows

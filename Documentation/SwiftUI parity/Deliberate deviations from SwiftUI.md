@@ -897,7 +897,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   Ctrl-Z, Ctrl-minus and Ctrl-/; redo on Ctrl-Y (a text control's yank while
   one has the focus), Ctrl-Shift-Z, Ctrl-_ and Option-_,
   replaced app-wide with `.undoShortcuts(_:)`. A `SecureField` registers
-  nothing. Where Foundation has no `UndoManager` (Linux), TUI's own does
+  nothing. Where Foundation has no `UndoManager` (Linux, Windows), TUI's own does
   nothing, or makes a step of its own, where `NSUndoManager` raises, and posts
   no notifications.
 - **Why:** a terminal app that raised would die holding the terminal in raw
@@ -913,8 +913,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   shortcut for the keyboard layout and mirrors it right-to-left (Apple's
   documentation, B8).
 - **TUI:** the commands exist on Apple platforms only (gated on
-  `UniformTypeIdentifiers`, so they fail to compile on Linux rather than do
-  nothing). Where the terminal speaks OSC 5522 (`TerminalClient.mimeClipboard`)
+  `UniformTypeIdentifiers`, so they fail to compile on Linux and Windows rather
+  than do nothing). Where the terminal speaks OSC 5522 (`TerminalClient.mimeClipboard`)
   they carry any type, as SwiftUI's do: a copy writes every representation its
   items register that has a MIME type beside their text, and a paste reads every
   type the clipboard holds that the focused view's paste commands accept, by
@@ -929,8 +929,8 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   a paste is the terminal's bracketed paste, the app's own last copy or the
   local helper, never an OSC 52 read. SwiftUI's own `copyable`, `cuttable`,
   `pasteDestination` and `PasteButton` need no item providers and carry text
-  on Linux too, so no TUI-only spelling is needed. Windows needs Win32
-  arms of the system clipboard (CONTRIBUTING.md). Every `Localization` behaves
+  on Linux and Windows too (Windows through the Win32 clipboard), so no
+  TUI-only spelling is needed. Every `Localization` behaves
   as `.custom`: AppKit's remap for the keyboard layout is compiled code that
   cannot be copied, and needs to know what the user's layout can type, which a
   terminal does not say; mirroring (five pairs, documented in `NSMenuItem.h`)
@@ -1098,7 +1098,7 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   `Tools/SwiftUIProbes/Markdown attribute syntax/decode.swift`).
 - **Why:** Foundation's Markdown parser is Darwin-only. The keys: the owner's
   ruling of 2026-10-27, that everything `Text` can do must be reachable from
-  inline Markdown, which on Linux is the only Markdown a `Text` has.
+  inline Markdown, which on Linux and Windows is the only Markdown a `Text` has.
 - **Decided:** [B86](<../Historical/Text, editing and the clipboard/Links, Markdown and attributed text.md#b86-tuis-markdown-parse-is-its-own-with-two-known-differences>). **Medium.**
 
 ### T4. Links are underlined, and a link inside a `Text` is a Tab stop

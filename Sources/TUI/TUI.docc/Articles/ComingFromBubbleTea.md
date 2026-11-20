@@ -138,7 +138,6 @@ The `List` draws the rows, the cursor and the selection, scrolls when the rows d
 - **Control-C doesn't quit.** It copies the selection, as it does in a GUI. Control-Q quits.
 - **The app takes the whole screen.** TUI always draws on the alternate screen and puts the terminal back when it quits. It has no inline mode like Bubble Tea's default, so it isn't the tool for a progress line in a command's output.
 - **Sizes are cells, and you rarely give them.** Stacks size themselves from their content. Use `.frame` only when you want a fixed width.
-- **No Windows yet.** TUI apps run on macOS and Linux. Bubble Tea runs on Windows too.
 
 ## What TUI Adds
 
@@ -154,4 +153,3 @@ The `List` draws the rows, the cursor and the selection, scrolls when the rows d
 - **Every change is a message.** All input, timers and results arrive at one `Update`, so you can log, replay and unit-test the app's behaviour as plain state transitions, and side effects are explicit `tea.Cmd` values. In TUI a change happens in whichever closure handles the event, which is less code but harder to trace.
 - **Inline output.** A Bubble Tea program can draw a few lines in the middle of a shell session and leave them in the scrollback.
 - **Serving over SSH.** Wish serves a Bubble Tea app to anyone who connects with `ssh`, one program per session. TUI has no equivalent.
-- **Windows.** Bubble Tea runs on Windows; TUI apps don't yet.

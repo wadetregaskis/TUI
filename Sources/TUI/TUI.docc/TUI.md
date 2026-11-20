@@ -10,7 +10,7 @@ The Swift Terminal UI framework: write SwiftUI, and get a terminal app.
 
 ## Overview
 
-TUI speaks SwiftUI's language: views, `@State`, `@Observable`, stacks, lists, tables, navigation, sheets, menus, animation and much more. It draws them with nothing but Swift and the terminal's own escape codes, on macOS, on Linux, and in a web browser.
+TUI speaks SwiftUI's language: views, `@State`, `@Observable`, stacks, lists, tables, navigation, sheets, menus, animation and much more. It draws them with nothing but Swift and the terminal's own escape codes, on macOS, on Linux, on Windows, and in a web browser.
 
 ```swift
 import TUI

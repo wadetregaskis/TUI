@@ -27,6 +27,7 @@ This page is for when you want to know what your users will see.
 - **Keyboard protocol** is the Kitty keyboard protocol, a newer way for a terminal to report keys. With it, an app can tell Control-I from Tab and Control-Shift-Z from Control-Z, and hear a key being released. Without it, those keys arrive looking the same, so a shortcut on one of them may never fire.
 - **Colours** that a terminal can't show are replaced by the nearest it can. Fine gradients show steps at 256 colours.
 - **A web browser** is the terminal of a WebAssembly build of your app, on a page that TUI provides: see <doc:RunningInABrowser>.
+- **Windows Terminal and the Windows console** are where an app built for Windows runs: <doc:RunningOnWindows> says what else differs on Windows, from the keys Windows Terminal keeps for itself to the mouse.
 
 Two terminals keep some of the mouse for themselves:
 
@@ -42,7 +43,7 @@ The Windows console, the window a program opens where Windows Terminal isn't the
 
 A few more things depend on the terminal, and fall back quietly where it can't:
 
-- **Notifications.** A toast is drawn in the app, in every terminal. One posted to the desktop as well (<doc:Presentation#Notifications>) goes through the terminal where it posts notifications. Where it doesn't, this machine posts it itself, with `osascript` on macOS or `notify-send` on Linux, but only when TUI can tell you're at this machine, so never over ssh, or under tmux attached from elsewhere. `TUI_NOTIFICATIONS` and `TUI_SYSTEM_NOTIFICATIONS` change that.
+- **Notifications.** A toast is drawn in the app, in every terminal. One posted to the desktop as well (<doc:Presentation#Notifications>) goes through the terminal where it posts notifications. Where it doesn't, this machine posts it itself, with `osascript` on macOS or `notify-send` on Linux, but only when TUI can tell you're at this machine, so never over ssh, or under tmux attached from elsewhere. `TUI_NOTIFICATIONS` and `TUI_SYSTEM_NOTIFICATIONS` change that. On Windows neither terminal posts one and there's nothing for the machine to post it with, so it's the toast alone.
 - **Progress.** A ``View/terminalProgress(_:)`` report shows in the terminal's own tab or window where the terminal has a place for it. `TUI_PROGRESS` turns that off or on.
 - **The pointer's shape.** ``View/pointerStyle(_:)``, and the I-beam over a text field, change the pointer where the terminal lets an app do so. `TUI_POINTER_SHAPES` turns that off or on.
 
@@ -137,6 +138,7 @@ The same cues are drawn over the colours when the person asks for cues that don'
 
 - <doc:EnvironmentVariables>
 - <doc:RunningInABrowser>
+- <doc:RunningOnWindows>
 - <doc:MouseAndGestures>
 - <doc:KeyboardShortcuts>
 - ``TerminalCapabilities``
