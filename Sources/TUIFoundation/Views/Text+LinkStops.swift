@@ -148,10 +148,22 @@ enum TextLinkStops {
             environment.focusManager != nil, context.stateStorage != nil,
             environment.listRowEditRestrictions?.currentRowIndex == nil
         else { return nil }
+        // The stops are the runs of the words drawn, so they are read here,
+        // once: read again in a subtree's language, and a live run as what it
+        // reads at this frame. Drawn as they were, through the text as made,
+        // the spans were noted under the runs of the words drawn and looked up
+        // in the runs of the text as made: a translation that put its link in
+        // another run trapped, one that swapped two links opened the other,
+        // and a live run read as several styled runs moved every link after
+        // it (LEAF-1, RICH-16). And a focused link did not breathe there: its
+        // recoloured copy was read again from the key, and lost the colour.
+        let shown = text.reading(in: context)
+        let read = shown.readingLive(declaringIn: context, measuring: false) ?? shown
+        guard let readRuns = read.runs, readRuns.contains(where: { $0.link != nil }) else { return nil }
         // A child identity for the links' state: the text is a leaf, and
         // whatever renders it may keep `@State` at the text's own identity.
         return TUIView.renderToBuffer(
-            _TextLinks(text: text), context: context.withChildIdentity(type: _TextLinks.self, index: 0))
+            _TextLinks(text: read), context: context.withChildIdentity(type: _TextLinks.self, index: 0))
     }
 
     /// The id of the focus stop of the link at `run` of the text drawn at
@@ -325,7 +337,11 @@ private struct _TextLinksCore: View, Renderable {
         var focused: Int?
         var regions: [HitTestRegion] = []
         for run in spans.byRun.keys.sorted() {
-            guard let destination = runs[run].link, let runSpans = spans.byRun[run], !runSpans.isEmpty else { continue }
+            // Bounded all the same: the spans are noted against the runs drawn,
+            // which are these (``TextLinkStops/render(_:runs:context:)``).
+            guard runs.indices.contains(run), let destination = runs[run].link, let runSpans = spans.byRun[run],
+                !runSpans.isEmpty
+            else { continue }
             let focusID = TextLinkStops.focusID(identity: context.identity, run: run)
             let activate = self.activate
             FocusRegistration.register(

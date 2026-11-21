@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A link in a `Text` read in a subtree's language opens what it says and breathes when focused.** A key-made `Text`
+with a link, under `.environment(\.locale, …)` naming another language, routed its links by the runs of the app's
+language: a translation with its link in another run crashed, one that swapped two links opened the other, and a
+focused link had no focus look in colour. The links are now the ones drawn.
+
 **A `Stepper` drawn where one over another value type was steps its own value.** Two steppers at one place, say an
 `AnyView` choosing between one over an `Int` and one over a `Double`, kept the first one's handler: the arrows
 stepped the old binding within the old bounds while the read-out showed the new value.
