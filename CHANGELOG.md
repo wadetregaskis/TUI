@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A button under a primitive button style keeps its focus id and its menu.** Under `.glass`, `.glassProminent` or a
+custom `PrimitiveButtonStyle`, the button `Button(configuration)` builds lost the button's `.focusID(_:)`, so
+`focus(id:)` found nothing, and a pop-up menu's trigger opened on the release instead of the press. A press in a
+menu also closed the menu twice. `Button(configuration)` now keeps all three as the button had them.
+
 **A custom `ButtonStyle` can hold `@State` of its own.** Its body is drawn where the button keeps its own focus id,
 hover and press, and its first `@State` took the button's focus id: of another type, the two replaced each other
 every frame and the style's state reset; of the same type, a debug build stopped on an assertion. The button now keeps

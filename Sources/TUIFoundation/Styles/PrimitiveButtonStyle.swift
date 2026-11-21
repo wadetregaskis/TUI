@@ -28,6 +28,26 @@ public struct PrimitiveButtonStyleConfiguration {
     /// menu the button sits in, where it sits in one.
     let action: () -> Void
 
+    // What `Button(configuration)` restores of the button the style was
+    // applied over, beyond what SwiftUI's configuration carries: TUI's own
+    // settings on the button, without which the button the style built was
+    // another one — its `.focusID(_:)` gone, a pop-up menu's trigger opening
+    // on the release instead of the press. Internal: SwiftUI's surface is
+    // unchanged.
+
+    /// The focus id the button was given (`Button.focusID(_:)`), or `nil`.
+    var focusID: String?
+
+    /// The pop-up menu the button triggers (`Button.menuTrigger(_:)`), or
+    /// `nil` for an ordinary button.
+    var triggeredMenu: MouseEventDispatcher.OpenedPopup?
+
+    /// The button's own action, before ``action`` wrapped it in what pressing
+    /// a button does (closing the menu it sits in, noting the activation).
+    /// The button `Button(configuration)` builds wraps its action itself, and
+    /// handed ``action`` it closed a menu twice per press.
+    var buttonAction: (() -> Void)?
+
     /// Performs the button's action.
     public func trigger() {
         action()
@@ -58,7 +78,8 @@ public struct PrimitiveButtonStyleConfiguration {
 /// A primitive style that builds no `Button` makes a control the keyboard
 /// cannot reach unless its body offers a way — as in SwiftUI, where the style's
 /// body is the whole of the control. `Button(configuration)` keeps the focus,
-/// the keys and the click a button has.
+/// the keys and the click a button has, and the button's own TUI settings: its
+/// ``Button/focusID(_:)`` and, as a pop-up menu's trigger, opening on the press.
 public protocol PrimitiveButtonStyle: Sendable {
     /// A view that represents the body of a button.
     associatedtype Body: View

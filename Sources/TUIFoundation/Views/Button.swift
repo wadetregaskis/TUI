@@ -326,9 +326,10 @@ nonisolated public struct Button: View {
     public init(_ configuration: PrimitiveButtonStyleConfiguration) {
         self.label = configuration.label.title
         self.labelView = configuration.label.view
-        self.storedAction = configuration.action
+        self.storedAction = configuration.buttonAction ?? configuration.action
         self.role = configuration.role
-        self.focusID = nil
+        self.focusID = configuration.focusID
+        self.triggeredMenu = configuration.triggeredMenu
         self.isDisabled = false
     }
 
@@ -765,6 +766,9 @@ private struct _ButtonCore: View, Renderable, Layoutable {
             context.environment.menuActionDismissBehavior.dismissesMenu
             ? context.environment.dismissMenu : nil
         let action = self.action
+        // The button's own settings ride along, for `Button(configuration)`
+        // to restore: its focus id, its menu, and its action unwrapped, which
+        // that button wraps itself.
         let configuration = PrimitiveButtonStyleConfiguration(
             role: role,
             label: ButtonStyleConfiguration.Label(title: title(in: context), view: labelView),
@@ -772,7 +776,8 @@ private struct _ButtonCore: View, Renderable, Layoutable {
                 AmbientApp.renderState?.noteControlActivated()
                 action()
                 dismissMenu?()
-            })
+            },
+            focusID: focusID, triggeredMenu: triggeredMenu, buttonAction: action)
         // Disabled by this button's own `.disabled(_:)` too, which the
         // configuration does not carry: the body's `Button(configuration)` was
         // otherwise a live button.

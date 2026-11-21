@@ -150,4 +150,32 @@ struct PrimitiveButtonStyleTests {
         #expect(focus.dispatchKeyEvent(KeyEvent(key: .enter)))
         #expect(tally.count == 1)
     }
+
+    @Test(
+        "Under a primitive style a button keeps the focus id it was given",
+        arguments: [false, true])
+    func primitiveStyleKeepsFocusID(custom: Bool) throws {
+        let context = makeRenderContext(width: 30, height: 6)
+        let button = Button("A") {}.focusID("a")
+        let view = VStack {
+            Button("B") {}
+            if custom { button.buttonStyle(RedBorderedButtonStyle()) } else { button.buttonStyle(.glass) }
+        }
+        _ = lines(view, context: context)
+        let focus = try #require(context.environment.focusManager)
+        focus.focus(id: "a")
+        #expect(focus.currentFocusedID == "a")
+    }
+
+    @Test("Under a primitive style a press in a menu closes the menu once, not twice")
+    func primitiveStyleDismissesOnce() throws {
+        let tally = Tally()
+        let context = makeRenderContext(width: 30, height: 4) { environment, _ in
+            environment.dismissMenu = DismissMenuAction { tally.count += 1 }
+        }
+        _ = lines(Button("Go") {}.buttonStyle(RedBorderedButtonStyle()), context: context)
+        let focus = try #require(context.environment.focusManager)
+        #expect(focus.dispatchKeyEvent(KeyEvent(key: .enter)))
+        #expect(tally.count == 1)
+    }
 }
