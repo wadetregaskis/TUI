@@ -279,6 +279,41 @@ struct TextEditorHighlighterTests {
         #expect(rig.ink(line: 1, column: 1) == Self.ink(Self.green))
     }
 
+    @Test("An undo and the app's write, written whole, keep the tokens of the lines they left, and come as changes")
+    func wholeWritesKeepTokens() async throws {
+        // tuitree's SeamTests, "A text written whole comes with no change, and takes every token with it": the undo
+        // drew the pane plain until the highlighter answered, and handed it no change to re-parse incrementally.
+        let inbox = SessionInbox()
+        let text = (0..<4).map { "line \($0)" }.joined(separator: "\n")
+        let undo = UndoManager()
+        undo.groupsByEvent = false
+        let rig = Rig(text) {
+            $0.textEditorHighlighter(SteppedHighlighter(inbox: inbox), style: Self.style).environment(\.undoManager, undo)
+        }
+        rig.draw()
+        let session = try await Self.session(inbox)
+        let styler = FakeTreeStyler()
+        styler.step(try #require(await session.nextUpdate()), in: session)
+        #expect(rig.ink(line: 1, column: 1) == Self.ink(Self.green))
+        rig.handler.moveCursor(toLine: 2, column: 0)
+        _ = rig.handler.handleKeyEvent(KeyEvent(key: .character("x")))
+        rig.draw()
+        styler.step(try #require(await session.nextUpdate()), in: session)
+        // The editor's own undo, which writes the text whole.
+        undo.undo()
+        try #require(rig.text.value == text, "undone")
+        #expect(rig.ink(line: 1, column: 1) == Self.ink(Self.green), "a line the undo left keeps its tokens")
+        #expect(rig.ink(line: 2, column: 1) == Self.ink(Self.green), "and the line it edited carries them")
+        let undone = try #require(await session.nextUpdate())
+        #expect(undone.change?.oldLines == 2..<3 && undone.change?.newLines == 2..<3)
+        #expect(undone.linesToStyle == RangeSet(2..<3))
+        styler.step(undone, in: session)
+        // The app's own write, as tuitree prints its tree into the pane.
+        rig.text.value = text + "!"
+        #expect(rig.ink(line: 1, column: 1) == Self.ink(Self.green))
+        #expect(try #require(await session.nextUpdate()).change?.newLines == 3..<4)
+    }
+
     // MARK: - A real highlighter beside edits
 
     @Test("A highlighter's own task, beside a burst of edits, ends with the last text styled (the sanitizer's run)")

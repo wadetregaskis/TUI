@@ -1428,6 +1428,33 @@ work round, each item pinned by a test of its own (tuitree's `TUI-FEEDBACK.md`, 
   empty (at the publish's first line) when the window had moved. A source-breaking change to the SPI, which
   promises nothing (A-ATTRED-10); keeping the `Bool` and adding a second method would have left two answers to
   read.
+- **B-ATTRED-58. A text written whole is told as the edit it is of the last, by whole lines** (item 2). The app's
+  writes, and the editor's own undo and redo (TEXTIN-8: still written whole), came as an update with no change, and
+  the session forgot every line's tokens: the pane drew plain until the highlighter answered (a parse from nothing,
+  215 ms at 3.3 MB, unless it diffed the texts itself, as tuitree's adapter did), and a tree styler had no edit to
+  re-parse from. In tuitree whole writes are the common case: every edit in its tree prints the tree into the pane.
+  Now the session finds the bytes the old and new texts share at their start and at their end (`memcmp`, a block of
+  4 KB at a time) and rounds the difference out to whole lines at line starts both texts have: the first line from
+  its start, one line earlier where a lone CR ends the line before (an LF on the other side could have joined it);
+  the first line start in the shared end, or at its very start where the old text breaks a line there too. The
+  shared end is bounded by the first line's start, not by the shared start's last byte, so a line taken whose first
+  letters begin the next ("two" before "three") is that line, not two. That is a change like any key's, so the lines
+  the write left keep their tokens and move with it, the line it edited in place carries them shifted
+  (B-ATTRED-41's shift, found from the old and new lines' bytes, for the lines of the window, and only when the
+  change is at most four windows of lines), and the highlighter is given an edit. A text the same as the last is no
+  update at all; one that shares no byte at either end is all new, as before.
+
+  It is done on the main actor, in the frame that finds the layout changed, not on the highlighter's task in
+  `nextUpdate()` as the feedback offered. Measured on the 3.39 MB JSON of §8.3, a key undone in its middle
+  (`swiftc -O`, 41 runs): 122 µs median (116 to 137). The same whole write costs the editor a layout of the whole
+  text, whose split into lines of characters alone was 114 ms in the same probe, so the comparison is a tenth of a
+  percent of the write. On the highlighter's task it would have cost the main actor nothing, but between the write
+  and the highlighter's next update the session could only keep every line's tokens where they were, and after a
+  write that adds or takes lines those tokens are on the wrong lines; done at once, they are right in the first
+  frame. A differential test (`TextEditorWrittenTextTests`) holds the change to the texts over 2,000 random writes
+  in every kind of line break: the bytes outside it shared, its ends line starts of both, the lines the tokens move
+  past the same lines, and each shift its line's own. Replace All was already one of the editor's own edits
+  (TEXTIN-1); in a text with more than one kind of break it is written whole, and so is now found as one too.
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 

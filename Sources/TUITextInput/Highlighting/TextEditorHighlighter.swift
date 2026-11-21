@@ -267,9 +267,12 @@ public struct TextEditorHighlightUpdate: Sendable {
     /// one old text, never a queue of them.
     public var text: TextEditorText
     /// Every edit since the text the highlighter took last, as one; `nil`
-    /// when the text is all new: the first update, or a text the app replaced
-    /// whole. An update whose text has the version the highlighter last had
-    /// is a scroll: only ``visibleLines`` moved (B-ATTRED-27).
+    /// when the text is all new: the first update, or a text written whole
+    /// (by the app, an undo or a redo) that shares no byte at either end with
+    /// the last; a text written whole that does comes as the change from it,
+    /// by whole lines (B-ATTRED-58). An update whose text has the version the
+    /// highlighter last had is a scroll: only ``visibleLines`` moved
+    /// (B-ATTRED-27).
     public var change: TextEditorTextChange?
     /// The lines on screen: what to style first.
     public var visibleLines: Range<Int>

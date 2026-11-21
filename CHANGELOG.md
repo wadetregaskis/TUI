@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Undo and redo in a highlighted `TextEditor` keep the colours of the lines they don't touch.** They write the text
+whole, as an app's write to the binding does, and the editor forgot every line's highlighting at once, so the whole
+pane drew plain until the highlighter answered, and the highlighter was told the text was all new. The editor now
+finds the lines a text written whole changed, from what it shares with the text before at either end: the other
+lines keep their colours, a line changed in place keeps its own shifted until the highlighter restyles it, and the
+highlighter is given the change, as for a key.
+
 **A `TextEditor`'s highlighter is told which lines it must style.** Through the highlighting seam (SPI), each
 update now carries the `window` of lines the editor keeps tokens for, and `linesToStyle`, the lines of it the editor
 holds no tokens of the update's text for: lines never styled, lines an edit put in or edited in place, and lines

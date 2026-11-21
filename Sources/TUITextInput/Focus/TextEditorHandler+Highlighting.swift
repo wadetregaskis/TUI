@@ -72,7 +72,8 @@ final class EditorHighlightConnection {
     let style: @MainActor (UInt16) -> AttributeContainer
 
     /// The layout whose text the session has: an edit made from another
-    /// layout (the binding kept a text of its own) is told as a text all new.
+    /// layout (the binding kept a text of its own) is told as a text written
+    /// whole, its change found from the bytes the two texts share.
     weak var syncedLayout: EditorLayout?
 
     init(key: EditorHighlighterKey, feed: any EditorHighlightFeed, style: @escaping @MainActor (UInt16) -> AttributeContainer) {
@@ -144,16 +145,16 @@ extension TextEditorHandler {
     }
 
     /// A frame's part, before its rows are drawn: the session given the text
-    /// whole if it does not have it, the lines whose tokens changed drawn
-    /// again, the tokens interned since styled, and the lines on screen told.
+    /// written whole if it does not have it (as the edit it is of the text
+    /// before, B-ATTRED-58), the lines whose tokens changed drawn again, the
+    /// tokens interned since styled, and the lines on screen told.
     @MainActor
     func syncHighlighting(visibleLines: Range<Int>) {
         guard let connection = highlightConnection, highlightLayer != nil else { return }
         let feed = connection.feed
         let layout = layout()
         if connection.syncedLayout !== layout {
-            lineStyleCache.forgetDrawnRuns(
-                ofEach: feed.textChanged(to: layout.text, lineCount: layout.lines.count, by: nil))
+            lineStyleCache.forgetDrawnRuns(ofEach: feed.textWritten(to: layout.text, lineStarts: layout.lineStarts))
             connection.syncedLayout = layout
         }
         lineStyleCache.forgetDrawnRuns(ofEach: feed.takeChangedLines())
