@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**What a `GeometryReader`'s content draws follows a size that an `onAppear` or `onChange` moved in the same frame.**
+When an effect changed the layout around a reader, such as an `onAppear` loading a saved sidebar width, the frame was
+laid out again with the reader at its new size, but kept rows below the reader were drawn as they were at the old one,
+and stayed so until something else drew a frame; the next frame then also redrew them for no reason. They now follow
+the size the frame is written with.
+
 **A `ForEach` row reading an `@Observable` its parent's `body` doesn't read keeps updating.** A row closure such as
 `Text(selection.current == item.id ? "▶" : " ")`, where only the closure read `selection`, stopped being redrawn
 after one change that left every row on screen as it was (a selection moved to a row out of sight, a title set for

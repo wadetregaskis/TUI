@@ -100,13 +100,14 @@ extension RenderCache {
             return token != nil ? .first : .incomparable
         }
 
-        // Already answered this pass. Two-pass layout visits the same modifier
-        // many times per frame and the value cannot change between those visits,
+        // Already answered this walk. Two-pass layout visits the same modifier
+        // many times per walk and the value cannot change between those visits,
         // so everything below — making the value, two existential casts and a
         // comparison, on a path every environment modifier in the tree runs
-        // through — is done once per pass rather than once per visit. Without
+        // through — is done once per walk rather than once per visit. Without
         // this the whole scheme costs ~17% of a frame; with it, nothing
-        // measurable.
+        // measurable. Per walk, not per pass: a walk made again for what the
+        // effects wrote can be handed another value (``beginRewalk()``).
         if previous.lastSeenFrame == frameCounter {
             return previous.isComparable ? .unchanged : .incomparable
         }
@@ -218,7 +219,7 @@ extension RenderCache {
     /// modifier — every framework control that erases its label has one, and a
     /// measure cascade visits each many times — and a slot's key hashes an
     /// `AnyKeyPath` on every visit, where this one is two integers. Once per
-    /// pass, like the environment's; kept and swept by the same liveness rule
+    /// walk, like the environment's; kept and swept by the same liveness rule
     /// (``removeInactive()``).
     ///
     /// - Parameters:

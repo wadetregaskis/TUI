@@ -560,7 +560,9 @@ import TUIStyling
     /// Internal for the same reason as ``appliedEnvironment``.
     var erasedContent: [Int: ErasedContent] = [:]
 
-    /// Bumped once per pass, for pruning ``appliedEnvironment``.
+    /// Bumped once per walk: at each pass, and at each walk a pass makes again
+    /// (``beginRewalk()``). What the environment slots, the erased-content
+    /// table and the hosted members answer a repeat visit by, and prune by.
     private(set) var frameCounter: UInt64 = 0
 
     /// The way back to this cache for whatever keeps one past a render — a
@@ -1363,6 +1365,15 @@ extension RenderCache {
     /// stand: a walk made again prunes nothing the walk before kept alive.
     package func beginRewalk() {
         drainPendingInvalidations()
+        // A walk of its own for the noted values: the slots answer a repeat
+        // visit without comparing (`noteAppliedEnvironment`), and in this walk
+        // a value moved by what the effects wrote — a `GeometryReader`'s size,
+        // beside a sidebar an `onAppear` widened — is handed in afresh. Left at
+        // the pass's count, every slot the walk before visited answered
+        // unchanged whatever it was handed, the memos below it were served the
+        // first walk's picture, and that was the frame written (VIEWR-2,
+        // 2026-11-20).
+        frameCounter &+= 1
         measureEntries.removeAll(keepingCapacity: true)
         unsafe measuredValues.release()
         forgetPassCompositions()

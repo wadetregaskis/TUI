@@ -377,7 +377,7 @@ private struct _GeometryReaderCore<Content: View>: View, Renderable, Layoutable 
     ///
     /// Noted only by a render that draws. A render made to measure — a plain
     /// button's label is measured that way — can offer another size, and the
-    /// note answers the later visits of a pass without comparing; noted there,
+    /// note answers the later visits of a walk without comparing; noted there,
     /// it would compare that size with itself from frame to frame and never
     /// see the one drawn move. `sizeThatFits` never builds the content.
     ///
