@@ -294,7 +294,10 @@ nonisolated package struct ThemeModifier<Content: View>: View {
         } else {
             environment.palette = theme.palette
         }
-        if let buttonStyle = theme.buttonStyle { environment.buttonStyle = buttonStyle }
+        // As `.buttonStyle(_:)` installs one, ending a custom primitive style
+        // further out, which a button asks first: written to `buttonStyle`
+        // alone, the theme's style lost to an outer `.buttonStyle(.glass)`.
+        if let buttonStyle = theme.buttonStyle { environment.installedButtonAppearance = buttonStyle }
         if let listStyle = theme.listStyle { environment.listStyle = listStyle }
         if let pickerStyle = theme.pickerStyle { environment.pickerStyle = pickerStyle }
         // Install the theme's scoped entries, broad-first so its more specific

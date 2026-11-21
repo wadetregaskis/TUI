@@ -178,4 +178,13 @@ struct PrimitiveButtonStyleTests {
         #expect(focus.dispatchKeyEvent(KeyEvent(key: .enter)))
         #expect(tally.count == 1)
     }
+
+    @Test("A theme's button style ends a primitive style set further out")
+    func themeEndsAPrimitiveStyle() {
+        let themed = Button("Go") {}
+            .theme(Theme(palette: SystemPalette(.green), buttonStyle: .plain))
+            .buttonStyle(LabelOnlyButtonStyle())
+        #expect(lines(themed).first != "~Go")
+        #expect(lines(themed).first?.hasSuffix("Go") == true)
+    }
 }
