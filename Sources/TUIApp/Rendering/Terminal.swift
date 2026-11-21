@@ -713,12 +713,18 @@ extension Terminal {
     /// default. This self-corrects for the terminal + font + line spacing on the
     /// terminals that do report it, without any escape-sequence round trip.
     func cellPixelAspect() -> Double? {
-        #if canImport(WASILibc) || os(Windows)
+        #if canImport(WASILibc)
             // The pixel fields ride on the same `ioctl` the size does, so this
             // is unavailable for the same reason; callers keep their default
             // aspect, which is what they do on the terminals that report zero.
-            // The Windows console's buffer is counted in cells alone.
             return nil
+        #elseif os(Windows)
+            // The classic console's font cell (`cellPixelSize()`), so a font
+            // narrower than Consolas's 8 × 16 (Cascadia Mono's 7 × 16) keeps a
+            // picture its shape; elsewhere on Windows, the default.
+            guard let cell = cellPixelSize(), cell.width > 0 else { return nil }
+            let aspect = Double(cell.height) / Double(cell.width)
+            return (aspect >= 1.0 && aspect <= 4.0) ? aspect : nil
         #else
         var windowSize = winsize()
         #if canImport(Glibc) || canImport(Musl)

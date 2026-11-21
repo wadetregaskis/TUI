@@ -28,14 +28,29 @@ enum ConsoleFont {
     /// The face the console draws standard output in, or `nil` where standard
     /// output is no console, or the console names none.
     static func faceName() -> String? {
-        var info = CONSOLE_FONT_INFOEX()
-        info.cbSize = ULONG(MemoryLayout<CONSOLE_FONT_INFOEX>.size)
-        guard unsafe GetCurrentConsoleFontEx(StandardHandle.output, false, &info) else { return nil }
+        guard let info = current() else { return nil }
         // The name is a C array, imported as a tuple of 32 code units: read
         // through a mirror, it needs no pointer, safe on every toolchain.
         let units = Mirror(reflecting: info.FaceName).children.compactMap { $0.value as? WCHAR }
         let face = String(decoding: units.prefix { $0 != 0 }, as: UTF16.self)
         return face.isEmpty ? nil : face
+    }
+
+    /// The size, in pixels, of a cell of the console's font, or `nil` where
+    /// standard output is no console or it states none: a pseudo console
+    /// names its placeholder font at a width of 0, whatever its terminal
+    /// draws in. Measured 2026-11-18: Consolas 8 × 16, Cascadia Mono 7 × 16.
+    static func cellSize() -> TerminalCellPixels? {
+        guard let size = current()?.dwFontSize, size.X > 0, size.Y > 0 else { return nil }
+        return TerminalCellPixels(width: Int(size.X), height: Int(size.Y))
+    }
+
+    /// The console's record of the font it draws standard output in.
+    private static func current() -> CONSOLE_FONT_INFOEX? {
+        var info = CONSOLE_FONT_INFOEX()
+        info.cbSize = ULONG(MemoryLayout<CONSOLE_FONT_INFOEX>.size)
+        guard unsafe GetCurrentConsoleFontEx(StandardHandle.output, false, &info) else { return nil }
+        return info
     }
 
     /// Which of `characters`, each one UTF-16 code unit, the font named `face`
