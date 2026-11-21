@@ -261,6 +261,18 @@ listing: "Text Document", "Compressed (zipped) Folder"). conhost, which answers 
 "Capabilities"), has its colours read from its own record (`GetConsoleScreenBufferInfoEx`), so a light profile should be taken
 as light (tested on Campbell's table; not yet seen in a light console). And `SessionLocality.isLikelyLocal` takes Windows Terminal's `WT_SESSION` as it takes `TERM_PROGRAM`.
 
+The same day, at the owner's word: pictures decode through WIC (`ImageLoader+WIC.swift`), stb_image reading what it
+has no codec for (TGA, HDR, PSD, PNM); measured on the VM, its decoders were BMP, GIF, ICO, CUR, JPEG, PNG, TIFF,
+DNG, JPEG XR, DDS, HEIF/AVIF, WebP, camera raw and JPEG XL, and its flip rotator flips before it turns, so EXIF's
+orientations 5 and 7 take each other's quarter turn. A file panel follows a shortcut as a symbolic link
+(`ShellShortcut+Windows.swift`, `IShellLinkW` through `IPersistFile`, never `Resolve`): one to a folder opens there
+and does not expand in the outline, as Explorer's tree does not; one to a file is chosen as it; one whose target is
+gone, or that names none (File Explorer's), is a file. The classic console's cell size comes from its font
+(`ConsoleFont.cellSize()`). And off Apple platforms and Windows, `Image(_:bundle:)` no longer looks for a `.tiff`,
+which stb_image cannot draw. With WIC's pixels the adaptive palette's test on the Example's picture found an entry
+serving a histogram bucket none of whose pixels is nearest to it (a limit of deriving from buckets, which reseeding
+again did not move), so that test decodes its fixture with stb_image on Windows, as on Linux.
+
 **No per-thread CPU clock on Windows** (owner, 2026-11-20: leave it on wall time). `threadCPUNanoseconds()` (TUICore)
 answers `nil` there, so the tests' cost bounds (`bestCPUSeconds`) and the Stress bench read the wall clock, and under
 `parallel_test.py`'s load two bounds failed on 6.4.2 that pass with their suites alone. Neither Windows clock serves:

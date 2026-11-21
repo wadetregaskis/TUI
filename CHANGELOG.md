@@ -31,6 +31,13 @@ Applications is Program Files; it refuses a name Windows would read as something
 wrote a hidden stream of `notes`, and lists names as Explorer orders them, each file's Kind in Windows's words. The classic
 console, which answers no colour query, has its colours read from the console itself.
 
+**On Windows, an `Image` decodes with Windows's own codecs, and a file panel follows shortcuts.** TIFF, WebP,
+HEIC and AVIF, JPEG XL and XR, icons, DDS and camera raw files draw, turned upright by their EXIF orientation, where
+only PNG, JPEG, GIF and BMP did; a file panel previews them too. A shortcut (`.lnk`) to a folder opens it, and one to
+a file is chosen as that file, as a symbolic link is. In the classic console a picture keeps its shape in a font
+narrower than Consolas. Elsewhere off Apple platforms, `Image(_:bundle:)` no longer looks for a `.tiff`, which it
+could not draw.
+
 **In a `TextEditor`, Shift-Option-B and Shift-Option-F select a word at a time,** as they do in a `TextField` and as
 Shift-Option-← and → already did. They only moved the caret, losing the selection. They are the word keys where a
 terminal keeps Shift-Option-arrows for itself, as Windows Terminal binds them to resizing a pane.

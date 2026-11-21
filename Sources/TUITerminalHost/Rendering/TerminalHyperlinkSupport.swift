@@ -56,7 +56,12 @@ extension TerminalClient {
             guard let name = String(bytes: bytes, encoding: .utf8), !name.isEmpty else { return nil }
             return name
         #else
-            // WebAssembly's wasip1 has no host name to ask for.
+            // WebAssembly's wasip1 has no host name to ask for. Windows has one
+            // (`GetComputerNameExW`), but Windows Terminal refuses a `file:`
+            // link that names any host but `localhost`, its own machine's name
+            // included ("This link type is not currently supported"), and
+            // opens `file:///C:/…` (the terminal survey's "Paint", measured
+            // 2026-11-20): so none is named there.
             return nil
         #endif
     }

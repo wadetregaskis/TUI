@@ -2830,6 +2830,7 @@ strikethrough), read from screenshots:
 | Double, curly, dotted, dashed underline; SGR 58 colour | all drawn | all drawn |
 | Strikethrough | drawn, in the text's colour (SGR 58 ignored) | **not drawn** |
 | OSC 8 link | dotted underline; Ctrl+click follows it | swallowed, drawn as plain text, nothing on hover |
+| OSC 8 `file:` link's host | `file:///C:/…` and `file://localhost/C:/…` open; **`file://<this machine>/C:/…` is refused**, a dialog saying "This link type is not currently supported", the machine's own name included (1.25.3131.0, by the owner's hand, 2026-11-20, with Ctrl-Shift-click, as the Mac host turns a Ctrl-click into a right-click, which pastes). So TUI names no host in a file link on Windows (`TerminalClient.readLocalHostName()`) | — (no links) |
 
 So `supportsEmojiChrome` is false on both, `blockElementsFillTheLine` true on both,
 `cornerTrianglesFillTheCell` false on both, `honoursHyperlinks` true on Windows Terminal

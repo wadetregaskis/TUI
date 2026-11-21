@@ -77,7 +77,9 @@ the app, in both terminals. Two things don't:
   each line ending in CR LF there and in a line feed inside the app. Over ssh a copy reaches your clipboard only
   through the terminal, which takes up to 24,567 bytes of text, so a larger one is reported as not copied.
 - **Links** (``Link``, `openURL`) open in the program Windows has for the link's scheme. A link drawn in the text is
-  followed with Control-click in Windows Terminal; the classic console draws it as plain text.
+  followed with Control-click in Windows Terminal; the classic console draws it as plain text. A link to a file names
+  no host there (`file:///C:/…`), as Windows Terminal refuses one that names a machine, even its own, though a link
+  sent over ssh then names the user's machine rather than the server's.
 - **Notifications** are drawn in the app, as toasts, in both terminals. One posted to the desktop as well isn't shown
   there: neither terminal posts notifications, and Windows has no tool TUI can post one with, as it does with
   `osascript` on macOS and `notify-send` on Linux.
@@ -100,6 +102,17 @@ As it reads macOS's and GNOME's, when you're at the machine the app runs on:
   names a hidden stream of another file), a `\`, a trailing dot or space, or a device's name such as `CON`. Names
   sort as Explorer sorts them, `item2` before `item10`, and a file's Kind is Windows's word for it, as in Explorer's
   Type column.
+- **Shortcuts**: a file panel follows a shortcut (`.lnk`) as it follows a symbolic link. One to a folder opens that
+  folder, and one to a file is chosen as that file, unless
+  ``View/fileDialogImportsUnresolvedAliases(_:)`` asks for the shortcut itself. A shortcut whose target is gone, or
+  one to something with no path such as File Explorer's own, is a file like any other.
+- **Pictures**: Windows's own codecs decode them (WIC), so besides PNG, JPEG, GIF and BMP an ``Image`` draws TIFF,
+  WebP, HEIC and AVIF, JPEG XL and XR, icons, DDS and camera raw files, turned upright by their orientation, the
+  largest of an icon's or a TIFF's images, each where Windows has a codec for it (some, as HEIC's, come as extensions
+  from the Microsoft Store). TGA, Radiance HDR, PSD and PNM, which WIC does not read, are decoded by TUI's own decoder. Only a
+  GIF animates, as elsewhere off Apple platforms.
+- **The classic console's font**: TUI asks its cell's size, so a picture keeps its shape in a font narrower than
+  Consolas, such as Cascadia Mono.
 - **The console's colours**: the classic console doesn't answer the questions TUI asks a terminal about its colours,
   so TUI reads them from the console itself, and takes a light profile as light. Windows Terminal answers them.
 
