@@ -448,7 +448,10 @@ enum MatchedGeometryPlacement {
         let y =
             Double(source.frame.y) + source.anchor.y * Double(source.frame.height) - anchor.y * Double(size.height)
         return CellRect(
-            x: Int(x.rounded(.down)), y: Int(y.rounded(.down)), width: size.width, height: size.height)
+            // `Int(cells:)`: either anchor is the app's (CONC-5); held as a
+            // stated length, as the frame is where the follower is drawn.
+            x: Int(cells: x.rounded(.down)).heldToStatedLength, y: Int(cells: y.rounded(.down)).heldToStatedLength,
+            width: size.width, height: size.height)
     }
 
     /// Where a content of size `content`, laid out in a matched frame of size
@@ -463,8 +466,8 @@ enum MatchedGeometryPlacement {
     ) -> CellPoint {
         guard matchesPosition else { return CellPoint(x: 0, y: 0) }
         return CellPoint(
-            x: Int((2 * anchor.x * Double(frame.width - content.width)).rounded(.down)),
-            y: Int((2 * anchor.y * Double(frame.height - content.height)).rounded(.down)))
+            x: Int(cells: (2 * anchor.x * Double(frame.width - content.width)).rounded(.down)).heldToStatedLength,
+            y: Int(cells: (2 * anchor.y * Double(frame.height - content.height)).rounded(.down)).heldToStatedLength)
     }
 }
 

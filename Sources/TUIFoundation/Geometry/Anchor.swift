@@ -107,16 +107,22 @@ indirect enum AnchorGeometry: Hashable, Sendable {
         case .bounds:
             return CellRect(x: origin.x, y: origin.y, width: size.width, height: size.height)
         case .rect(let rect):
-            return CellRect(x: origin.x + rect.x, y: origin.y + rect.y, width: rect.width, height: rect.height)
+            // Held as a stated length is: `CellRect(x: .max, …)` overflowed
+            // the sum with any origin but 0 (SCROLL-23).
+            return CellRect(
+                x: origin.x + rect.x.heldToStatedLength, y: origin.y + rect.y.heldToStatedLength,
+                width: rect.width, height: rect.height)
         case .point(let point):
-            return CellPoint(x: origin.x + point.x, y: origin.y + point.y)
+            return CellPoint(x: origin.x + point.x.heldToStatedLength, y: origin.y + point.y.heldToStatedLength)
         case .unitPoint(let unit):
             // Floored once, from the whole product: the midpoint of a 5-cell
             // view is column 2 (`AlignmentID` explains why it is never
             // floored in two steps).
+            // `Int(cells:)`: a NaN, an infinity or a finite 1e19 trapped
+            // `Int(_:)` (LAYOUT-4, SCROLL-23).
             return CellPoint(
-                x: origin.x + Int((unit.x * Double(size.width)).rounded(.down)),
-                y: origin.y + Int((unit.y * Double(size.height)).rounded(.down)))
+                x: origin.x + Int(cells: (unit.x * Double(size.width)).rounded(.down)),
+                y: origin.y + Int(cells: (unit.y * Double(size.height)).rounded(.down)))
         case .array(let parts):
             return parts.map { $0.resolve(origin: origin, size: size) }
         case .optional(let part):

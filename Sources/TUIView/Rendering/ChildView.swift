@@ -166,7 +166,10 @@ public struct ChildView {
     /// which (``LayoutTraitsForwarding``), after the cast a real spacer passes.
     static func spacerInfo<V: View>(of view: V) -> (isSpacer: Bool, minLength: Int?) {
         guard V._isSpacer else { return (false, nil) }
-        if let spacer = view as? SpacerProtocol { return (true, spacer.minLength) }
+        // Held at the read: `minLength` is a public `var`, and one set after
+        // `init` skipped the init's hold, so two `.max` spacers in a row
+        // overflowed a stack's tally (hunt 11-20, LAYOUT-5).
+        if let spacer = view as? SpacerProtocol { return (true, spacer.minLength?.heldToStatedLength) }
         if let proxy = view as? LayoutTraitsForwarding {
             let member = proxy.forwardedChild
             return (member.isSpacer, member.spacerMinLength)

@@ -59,7 +59,9 @@ nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
             inset, proposal: insetProposal, context: layerContext(context, modifierType: Self.self))
         let along = stacksVertically ? insetSize.height : insetSize.width
         // No bar, no spacing: an empty inset leaves the view where it was.
-        let gap = along > 0 ? spacing : 0
+        // Held as every stated length is: `spacing: .max` overflowed the sums
+        // below, and `.min` the subtraction (hunt 11-20, FMOD-2).
+        let gap = along > 0 ? spacing.heldToStatedLength : 0
         let baseProposal =
             stacksVertically
             ? ProposedViewSize(width: proposal.width, height: proposal.height.map { max(0, $0 - along - gap) })
@@ -78,12 +80,14 @@ nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
         if stacksVertically {
             return ViewSize(
                 width: max(baseSize.width, insetSize.width),
-                height: baseSize.height + gap + insetSize.height,
+                // A negative spacing overlaps the two, down to nothing and no
+                // further.
+                height: max(0, baseSize.height + gap + insetSize.height),
                 isWidthFlexible: baseSize.isWidthFlexible || insetSize.isWidthFlexible,
                 isHeightFlexible: baseSize.isHeightFlexible)
         }
         return ViewSize(
-            width: baseSize.width + gap + insetSize.width,
+            width: max(0, baseSize.width + gap + insetSize.width),
             height: max(baseSize.height, insetSize.height),
             isWidthFlexible: baseSize.isWidthFlexible,
             isHeightFlexible: baseSize.isHeightFlexible || insetSize.isHeightFlexible)
@@ -119,13 +123,15 @@ nonisolated struct SafeAreaInsetModifier<Base: View, Inset: View>: View {
         let insetPosition: (x: Int, y: Int)
         if stacksVertically {
             width = max(baseBuffer.width, insetBuffer.width)
-            height = baseBuffer.height + gap + insetBuffer.height
+            // Floored as the measure is: `spacing: -3` between two one-row
+            // views made a height of -1, and the blank buffer below trapped.
+            height = max(0, baseBuffer.height + gap + insetBuffer.height)
             let baseX = HorizontalAlignment.center.childOffset(childWidth: baseBuffer.width, in: width)
             let insetX = alignment.horizontal.childOffset(childWidth: insetBuffer.width, in: width)
             basePosition = (baseX, insetLeads ? insetBuffer.height + gap : 0)
             insetPosition = (insetX, insetLeads ? 0 : baseBuffer.height + gap)
         } else {
-            width = baseBuffer.width + gap + insetBuffer.width
+            width = max(0, baseBuffer.width + gap + insetBuffer.width)
             height = max(baseBuffer.height, insetBuffer.height)
             let baseY = VerticalAlignment.center.childOffset(childHeight: baseBuffer.height, in: height)
             let insetY = alignment.vertical.childOffset(childHeight: insetBuffer.height, in: height)

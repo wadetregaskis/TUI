@@ -59,10 +59,13 @@ package struct MatchedEdgeOffsets: Equatable, Sendable {
     /// `target` with `remaining` of these offsets still to cover — `1` where
     /// the animation starts, `0` where it ends — each edge rounded once.
     package func applied(to target: CellRect, remaining: Double) -> CellRect {
-        let minX = target.minX + Int((self.minX * remaining).rounded())
-        let minY = target.minY + Int((self.minY * remaining).rounded())
-        let maxX = target.maxX + Int((self.maxX * remaining).rounded())
-        let maxY = target.maxY + Int((self.maxY * remaining).rounded())
+        // `Int(cells:)`: `remaining` is the animation's, and a custom curve
+        // can return anything, NaN included; held as a stated length, as the
+        // frame is drawn.
+        let minX = target.minX + Int(cells: (self.minX * remaining).rounded()).heldToStatedLength
+        let minY = target.minY + Int(cells: (self.minY * remaining).rounded()).heldToStatedLength
+        let maxX = target.maxX + Int(cells: (self.maxX * remaining).rounded()).heldToStatedLength
+        let maxY = target.maxY + Int(cells: (self.maxY * remaining).rounded()).heldToStatedLength
         return CellRect(x: minX, y: minY, width: max(0, maxX - minX), height: max(0, maxY - minY))
     }
 }

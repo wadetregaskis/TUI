@@ -106,8 +106,9 @@ extension ScrollViewHandler {
         targeting.behavior.updateTarget(&target, context: context)
         let anchor = target.anchor ?? .topLeading
         return (
-            x: target.rect.x + Int((anchor.x * Double(target.rect.width - container.width)).rounded(.down)),
-            y: target.rect.y + Int((anchor.y * Double(target.rect.height - container.height)).rounded(.down))
+            // `Int(cells:)`: `ScrollTarget.anchor` is a custom behaviour's (CONC-5).
+            x: target.rect.x + Int(cells: (anchor.x * Double(target.rect.width - container.width)).rounded(.down)),
+            y: target.rect.y + Int(cells: (anchor.y * Double(target.rect.height - container.height)).rounded(.down))
         )
     }
 

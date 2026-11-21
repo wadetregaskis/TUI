@@ -78,8 +78,12 @@ extension AnyTransition.Effect {
             }
         case .offset(let x, let y):
             let away = 1 - present
+            // Held as `View.offset(x:y:)` holds its lengths: `.offset(x: .max)`
+            // ("far off screen") trapped `scaled`, and two such offsets merged
+            // below overflowed their sum (CONC-9).
             return Self.moved(
-                buffer, dx: Self.scaled(x, away), dy: Self.scaled(y, away), away: away)
+                buffer, dx: Self.scaled(x.heldToStatedLength, away), dy: Self.scaled(y.heldToStatedLength, away),
+                away: away)
         case .scale(let factor, let anchor):
             // From `factor` of the view at no presence to all of it at full;
             // never more than all of it — see `AnyTransition.scale(scale:anchor:)`.
@@ -160,8 +164,8 @@ extension AnyTransition.Effect {
                 case .bottom: dy += scaled(buffer.height, away)
                 }
             case .offset(let x, let y):
-                dx += scaled(x, away)
-                dy += scaled(y, away)
+                dx += scaled(x.heldToStatedLength, away)
+                dy += scaled(y.heldToStatedLength, away)
             default:
                 drawn = effect.apply(to: drawn, phase: phase, context: context).buffer
             }
@@ -200,8 +204,10 @@ extension AnyTransition.Effect {
         return TransitionPicture(buffer: buffer, dx: dx, dy: dy)
     }
 
+    /// `extent` scaled by `fraction`, a phase a custom animation may take
+    /// anywhere: `Int(cells:)`, so no fraction traps.
     private static func scaled(_ extent: Int, _ fraction: Double) -> Int {
-        Int((Double(extent) * fraction).rounded())
+        Int(cells: (Double(extent) * fraction).rounded())
     }
 }
 
@@ -334,8 +340,12 @@ extension AnyTransition.Effect {
         let height = buffer.lines.count
         let shownWidth = Int((Double(width) * factor).rounded())
         let shownHeight = Int((Double(height) * factor).rounded())
-        let originX = Int((Double(width - shownWidth) * anchor.x).rounded())
-        let originY = Int((Double(height - shownHeight) * anchor.y).rounded())
+        // Held inside the slot: an anchor outside the unit square is legal
+        // (`.scale(scale: 0.5, anchor: UnitPoint(x: 3, y: 0.5))`), and drew
+        // rows wider than the buffer said it was; a NaN one trapped `Int(_:)`
+        // (STYLE-11). Such an anchor reveals from the edge nearest it.
+        let originX = min(max(0, Int(cells: (Double(width - shownWidth) * anchor.x).rounded())), width - shownWidth)
+        let originY = min(max(0, Int(cells: (Double(height - shownHeight) * anchor.y).rounded())), height - shownHeight)
         let blank = String.spaces(max(0, width))
 
         var revealed: [String] = []

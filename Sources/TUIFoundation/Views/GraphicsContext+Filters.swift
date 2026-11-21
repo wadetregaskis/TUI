@@ -229,9 +229,12 @@ extension GraphicsContext {
     ) -> CanvasRaster {
         let ink = surface.pixel(of: color)
         let invert = options.contains(.invertsAlpha)
+        // `Int(cells:)`: `.shadow(radius:x:y:)` keeps the app's offset as given,
+        // and `w / 0` trapped `Int(_:)` on the first draw (hunt 11-20, LEAF-11).
+        // Held to ±2^30, so `x - shift.x` below cannot overflow either.
         let shift = (
-            x: Int((offset.x * CGFloat(surface.grid.across)).rounded()),
-            y: Int((offset.y * CGFloat(surface.grid.down) / surface.unitsPerRow).rounded())
+            x: Int(cells: Double((offset.x * CGFloat(surface.grid.across)).rounded())),
+            y: Int(cells: Double((offset.y * CGFloat(surface.grid.down) / surface.unitsPerRow).rounded()))
         )
         let cast = CanvasRaster(width: drawing.width, height: drawing.height, isLinear: drawing.isLinear)
         cast.transformPixels { x, y, _ in

@@ -257,7 +257,14 @@ extension _ScrollViewCore {
         guard !isChrome else { return EdgeInsets() }
         let margins = environment.contentMargins
         let stated = margins.isEmpty ? EdgeInsets() : margins.content
-        return stated.adding(environment.safeAreaContentMargins)
+        let summed = stated.adding(environment.safeAreaContentMargins)
+        // Floored at none: a margin is blank lines and columns drawn around
+        // the content, and a negative one, from `.safeAreaPadding(.vertical,
+        // -1)` over a scroll view, was a negative count of lines, which
+        // trapped (hunt 11-20, with FMOD-2).
+        return EdgeInsets(
+            top: max(0, summed.top), leading: max(0, summed.leading),
+            bottom: max(0, summed.bottom), trailing: max(0, summed.trailing))
     }
 
     /// The viewport a render draws into — what it was given — the context

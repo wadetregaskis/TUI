@@ -107,7 +107,8 @@ enum NestedSeek {
     static func line(for seek: ScrollToRequest, height: Int, current: Int, viewportHeight: Int) -> Int {
         if let anchor = seek.anchor {
             let slack = viewportHeight - seek.topInset - seek.bottomInset - height
-            return seek.topInset + Int((Double(slack) * anchor.y).rounded())
+            // `Int(cells:)`: the anchor is the app's, NaN and infinities included.
+            return seek.topInset + Int(cells: (Double(slack) * anchor.y).rounded())
         }
         if current < seek.topInset { return seek.topInset }
         let bottom = viewportHeight - seek.bottomInset - height

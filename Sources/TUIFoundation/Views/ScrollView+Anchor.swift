@@ -351,7 +351,8 @@ extension _ScrollViewCore {
         guard room > 0, axes.contains(.vertical), !isChrome,
             let anchor = context.environment.scrollAnchor(for: .alignment), anchor.y > 0
         else { return 0 }
-        return min(room, Int((anchor.y * Double(room)).rounded(.down)))
+        // `Int(cells:)`: `anchor.y > 0` lets +infinity through.
+        return min(room, Int(cells: (anchor.y * Double(room)).rounded(.down)))
     }
 
     /// How many columns across the viewport this frame draws content NARROWER
@@ -395,6 +396,6 @@ extension _ScrollViewCore {
         ).width
         let room = contentWidth - drawn
         guard room > 0 else { return 0 }
-        return min(room, Int((anchor.x * Double(room)).rounded(.down)))
+        return min(room, Int(cells: (anchor.x * Double(room)).rounded(.down)))
     }
 }

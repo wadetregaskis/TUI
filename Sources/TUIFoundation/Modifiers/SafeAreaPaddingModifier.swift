@@ -132,10 +132,14 @@ extension EnvironmentValues {
 }
 
 extension EdgeInsets {
-    /// These insets and `other`, edge by edge.
+    /// These insets and `other`, edge by edge, each held as a stated length
+    /// first: two nested `.safeAreaPadding(.vertical, .max)` over a scroll view
+    /// added `Int.max` to `Int.max` (hunt 11-20, FMOD-2).
     func adding(_ other: EdgeInsets) -> EdgeInsets {
         EdgeInsets(
-            top: top + other.top, leading: leading + other.leading,
-            bottom: bottom + other.bottom, trailing: trailing + other.trailing)
+            top: top.heldToStatedLength + other.top.heldToStatedLength,
+            leading: leading.heldToStatedLength + other.leading.heldToStatedLength,
+            bottom: bottom.heldToStatedLength + other.bottom.heldToStatedLength,
+            trailing: trailing.heldToStatedLength + other.trailing.heldToStatedLength)
     }
 }

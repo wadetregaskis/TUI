@@ -219,8 +219,10 @@ struct GridLattice {
         gridAlignment: Alignment
     ) -> (x: Int, y: Int) {
         if let anchor {
-            let dx = Int((anchor.x * Double(box.width - renderedWidth)).rounded(.down))
-            let dy = Int((anchor.y * Double(box.height - renderedHeight)).rounded(.down))
+            // `Int(cells:)` before the clamp below: a `gridCellAnchor` of NaN
+            // or 1e19 trapped `Int(_:)`, which ran first (TABLES-4).
+            let dx = Int(cells: (anchor.x * Double(box.width - renderedWidth)).rounded(.down))
+            let dy = Int(cells: (anchor.y * Double(box.height - renderedHeight)).rounded(.down))
             return (
                 x: box.x + min(max(0, dx), max(0, box.width - renderedWidth)),
                 y: box.y + min(max(0, dy), max(0, box.height - renderedHeight))

@@ -52,7 +52,13 @@ public struct GridItem: Sendable, Equatable {
     }
 
     /// How this track claims space.
-    public var size: Size
+    ///
+    /// Held on every write, as `init` holds it: a value set after `init`
+    /// skipped the hold, and `.fixed(.max)` beside another track overflowed
+    /// the track sums (hunt 11-20, SCROLL-10).
+    public var size: Size {
+        didSet { size = size.held }
+    }
 
     /// Cells between this track and the next, or `nil` for the grid's
     /// default: one between a ``LazyVGrid``'s columns — the gap an
@@ -60,8 +66,11 @@ public struct GridItem: Sendable, Equatable {
     /// read as one item — and none between a ``LazyHGrid``'s rows, as a
     /// ``VStackLayout`` leaves none.
     ///
-    /// Trailing spacing, so the last track's value is never used.
-    public var spacing: Int?
+    /// Trailing spacing, so the last track's value is never used. Held on
+    /// every write, as ``size`` is.
+    public var spacing: Int? {
+        didSet { spacing = spacing?.heldToStatedLength }
+    }
 
     /// Where a subview sits inside this track's cell, or `nil` to use the
     /// grid's own alignment.

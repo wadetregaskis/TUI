@@ -258,11 +258,14 @@ public struct FrameBuffer: Sendable, Equatable {
     /// for Spacer views which need to occupy vertical space even without
     /// visible content.
     ///
-    /// - Parameter height: The number of lines.
+    /// - Parameter height: The number of lines; a negative one is none.
     public init(emptyWithHeight height: Int) {
         // Use a single space instead of empty string so the buffer
-        // is not considered "empty" by appendVertically
-        self.storage = Array(repeating: " ", count: height)
+        // is not considered "empty" by appendVertically. Floored at zero, as
+        // `init(footprintWidth:height:)` is: `Array(repeating:count:)` traps
+        // on a negative count, and a lone `Spacer(minLength: -1)` asked for
+        // one (hunt 11-20, CORE1-1).
+        self.storage = Array(repeating: " ", count: max(0, height))
         self.width = 1
         self.linesAreUniformWidth = true  // all lines are a single space
         self.lineWidths = nil  // uniform at width 1; no array needed
@@ -274,10 +277,13 @@ public struct FrameBuffer: Sendable, Equatable {
     /// horizontal space across multiple rows.
     ///
     /// - Parameters:
-    ///   - width: The width in characters.
-    ///   - height: The number of lines.
+    ///   - width: The width in characters; a negative one is none.
+    ///   - height: The number of lines; a negative one is none.
     public init(emptyWithWidth width: Int, height: Int) {
-        self.storage = Array(repeating: String.spaces(width), count: height)
+        // Floored at zero, for the reason `init(emptyWithHeight:)` gives: a
+        // negative `safeAreaInset` spacing past both views' extent came here.
+        let width = max(0, width)
+        self.storage = Array(repeating: String.spaces(width), count: max(0, height))
         self.width = width
         self.linesAreUniformWidth = true  // every line is `width` spaces
         self.lineWidths = nil  // uniform at `width`; no array needed

@@ -178,13 +178,16 @@ nonisolated public struct FlowLayout: Layout, Sendable, Equatable {
     /// The rows between lines in force: the stated ones, or the vertical
     /// distance views prefer.
     @MainActor package var lineGap: Int {
-        lineSpacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
+        // Held as a stated length: `lineSpacing: .max` overflowed the sum of
+        // three lines' gaps (hunt 11-20, LAYOUT-5).
+        (lineSpacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)).heldToStatedLength
     }
 
     /// The gaps between neighbours on a line: ``HStackLayout``'s rule —
     /// every one ``spacing``, or, when it is `nil`, what each pair asks for.
     @MainActor private func gaps(between subviews: Subviews) -> StackGaps {
-        let uniform = spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
+        // Held, as `lineGap` is.
+        let uniform = (spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)).heldToStatedLength
         guard spacing == nil, subviews.mayStateSpacing else { return StackGaps(uniform: uniform) }
         return StackGaps(uniform: uniform, stating: subviews.children, along: .horizontal, context: subviews.context)
     }

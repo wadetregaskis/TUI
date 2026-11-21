@@ -161,7 +161,19 @@ func listRowSeparatorGuides<V: View>(of view: V, size: (width: Int, height: Int)
     let leading = explicitGuide(of: view, .horizontal(.listRowSeparatorLeading), in: dimensions, context: measuring)
     let trailing = explicitGuide(of: view, .horizontal(.listRowSeparatorTrailing), in: dimensions, context: measuring)
     guard leading != nil || trailing != nil else { return nil }
-    return (leading.map { Int($0.rounded()) }, trailing.map { Int($0.rounded()) })
+    return (leading.map(separatorColumn), trailing.map(separatorColumn))
+}
+
+/// A separator guide's value as a column: rounded, and held by `Int(cells:)`.
+///
+/// The value is whatever the app's closure returned, and `Int(_:)` trapped on
+/// the first walk that reported the row (hunt 11-20, CONC-2) when it was not a
+/// number, an infinity — `d.width / d.height` legitimately is, on a row
+/// squeezed to no height — or past 2^63. Held to ±2^30, not to the row: a guide
+/// outside it keeps its meaning, and the separator is clamped where it is
+/// drawn; NaN is column 0.
+private func separatorColumn(_ guide: Double) -> Int {
+    Int(cells: guide.rounded())
 }
 
 /// Reports the separator guides `child` sets, laid out at `size` in its
@@ -176,5 +188,5 @@ package func reportSeparatorGuides(of child: ChildView, size: (width: Int, heigh
     let leading = child.explicitGuide(.horizontal(.listRowSeparatorLeading), at: dimensions, context: context)
     let trailing = child.explicitGuide(.horizontal(.listRowSeparatorTrailing), at: dimensions, context: context)
     guard leading != nil || trailing != nil else { return }
-    reports.reportSeparatorGuides(row: row, (leading.map { Int($0.rounded()) }, trailing.map { Int($0.rounded()) }))
+    reports.reportSeparatorGuides(row: row, (leading.map(separatorColumn), trailing.map(separatorColumn)))
 }

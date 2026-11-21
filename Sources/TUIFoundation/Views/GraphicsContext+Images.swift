@@ -122,7 +122,9 @@ extension GraphicsContext {
         _ pixels: ImagePaintPixels, rect: CGRect, inverse: CGAffineTransform, smooth: Bool, pixelScale: Double
     ) -> CanvasSource {
         guard rect.width > 0, rect.height > 0, pixels.width > 0, pixels.height > 0 else { return .flat(.clear) }
-        let taps = max(1, min(4, Int(pixelScale.rounded(.up))))
+        // `Int(clamping:)`: a rect shrunk to a denormal width has a scale past
+        // `Int`, which `Int(_:)` refused before the `min` (LEAF-11).
+        let taps = max(1, min(4, Int(clamping: pixelScale.rounded(.up))))
         return .sampled { x, y in
             averagedPictureSample(
                 x: x, y: y, taps: taps, pixels: pixels, rect: rect, inverse: inverse, smooth: smooth)

@@ -294,7 +294,12 @@ package struct ChildPlacement: Equatable, Sendable {
 
     /// The cell a placement part-way through a glide is drawn at.
     init(_ value: AnimatablePair<Double, Double>) {
-        self.init(x: Int(value.first.rounded()), y: Int(value.second.rounded()))
+        // `Int(cells:)`: an animation's value between two placements is the
+        // curve's, and a custom curve can overshoot to anything, NaN included;
+        // held as a stated length, as it is where the child is composited.
+        self.init(
+            x: Int(cells: value.first.rounded()).heldToStatedLength,
+            y: Int(cells: value.second.rounded()).heldToStatedLength)
     }
 }
 

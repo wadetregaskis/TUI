@@ -98,8 +98,8 @@ extension ChildView {
         // default distance along the stack's axis (``defaultMinLength(along:)``),
         // which a stack's own spacer path reads from the child instead.
         let axis = context.environment.containerAxis
-        let width = minLength ?? (axis == .horizontal ? Self.defaultMinLength(along: .horizontal) : 0)
-        let height = minLength ?? (axis == .vertical ? Self.defaultMinLength(along: .vertical) : 0)
+        let width = heldMinLength ?? (axis == .horizontal ? Self.defaultMinLength(along: .horizontal) : 0)
+        let height = heldMinLength ?? (axis == .vertical ? Self.defaultMinLength(along: .vertical) : 0)
         // Natural: the answer is the minimum length and the two fill flags,
         // whatever space was offered in either direction.
         return ViewSize(
@@ -112,7 +112,15 @@ extension ChildView {
 
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         // Standalone spacer (outside a stack): render as empty lines
-        let count = minLength ?? 1
+        let count = heldMinLength ?? 1
         return FrameBuffer(emptyWithHeight: count)
+    }
+
+    /// ``minLength`` as a spacer outside a stack is sized by it: held, as
+    /// `init` holds it (the property is a public `var`), and none if negative.
+    /// `Spacer(minLength: -1)` alone measured -1 by -1 and trapped the blank
+    /// buffer it rendered (hunt 11-20, CORE1-1).
+    private var heldMinLength: Int? {
+        minLength.map { max(0, $0.heldToStatedLength) }
     }
 }

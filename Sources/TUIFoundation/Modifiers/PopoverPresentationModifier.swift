@@ -388,8 +388,9 @@ nonisolated package struct PopoverPresentationModifier<Content: View, Popover: V
         case .point(let unit):
             area = CellRect(x: 0, y: 0, width: base.width, height: base.height)
             point = (
-                Int((unit.x * Double(base.width)).rounded(.down)),
-                Int((unit.y * Double(base.height)).rounded(.down))
+                // `Int(cells:)`: `.point(UnitPoint)` is the app's (CONC-5).
+                Int(cells: (unit.x * Double(base.width)).rounded(.down)),
+                Int(cells: (unit.y * Double(base.height)).rounded(.down))
             )
         }
 

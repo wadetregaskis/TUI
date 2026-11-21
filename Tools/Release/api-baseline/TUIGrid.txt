@@ -14,8 +14,8 @@ GridItem.Size.fixed(_:) | case fixed(Int)
 GridItem.Size.flexible(minimum:maximum:) | case flexible(minimum: Int = 1, maximum: Int = .max)
 GridItem.alignment | var alignment: Alignment?
 GridItem.init(_:spacing:alignment:) | init(_ size: GridItem.Size = .flexible(), spacing: Int? = nil, alignment: Alignment? = nil)
-GridItem.size | var size: GridItem.Size
-GridItem.spacing | var spacing: Int?
+GridItem.size | var size: GridItem.Size { get set }
+GridItem.spacing | var spacing: Int? { get set }
 GridLayout | nonisolated struct GridLayout
 GridLayout.AnimatableData | typealias AnimatableData = EmptyAnimatableData
 GridLayout.Cache | struct Cache

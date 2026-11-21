@@ -143,7 +143,8 @@ struct ScrollContentWindow: Hashable {
         let topPad = (edgeInset > 0 && offset + linesAbove > 0) ? 1 : 0
         let bottomPad = (edgeInset > 0 && contentBelow) ? 1 : 0
         let usable = max(1, viewportHeight - topPad - bottomPad)
-        return offset + topPad + Int((Double(usable - 1) * unit.y).rounded(.down))
+        // `Int(cells:)`: the anchor is the app's, NaN and infinities included.
+        return offset + topPad + Int(cells: (Double(usable - 1) * unit.y).rounded(.down))
     }
 
     /// A pending programmatic scroll (``ScrollViewProxy/scrollTo(_:anchor:)``).
@@ -179,7 +180,8 @@ struct ScrollContentWindow: Hashable {
         var sampleX: Int {
             let lastColumn = Double(max(1, viewportWidth) - 1)
             let across = (lastColumn * unitX).rounded(.down)
-            return offset + Int(across)
+            // `Int(cells:)`: the anchor is the app's (SCROLL-14).
+            return offset + Int(cells: across)
         }
     }
 
@@ -580,7 +582,10 @@ package struct ScrollToRequest: Sendable, Hashable {
     func columnOffset(targetX: Int, width: Int, currentOffset: Int, viewportWidth: Int, totalWidth: Int) -> Int {
         let raw: Int
         if let anchor {
-            raw = targetX - Int((Double(viewportWidth - width) * anchor.x).rounded())
+            // `Int(cells:)`, not `Int(_:)`: a `UnitPoint` holds whatever the app
+        // computed (`index / (count - 1)` with one element is NaN), and the
+        // product is held, not the anchor, as anchors outside 0...1 are legal.
+        raw = targetX - Int(cells: (Double(viewportWidth - width) * anchor.x).rounded())
         } else if targetX < currentOffset {
             raw = targetX
         } else if targetX + width > currentOffset + viewportWidth {
@@ -608,7 +613,8 @@ package struct ScrollToRequest: Sendable, Hashable {
         let raw: Int
         if let anchor {
             let slack = viewportHeight - topPad - bottomPad - rowHeight
-            raw = targetY - topPad - Int((Double(slack) * anchor.y).rounded())
+            // `Int(cells:)`, as in `columnOffset`.
+            raw = targetY - topPad - Int(cells: (Double(slack) * anchor.y).rounded())
         } else {
             // Minimal movement: visible means within the CURRENT frame's
             // indicator-clipped band, exactly as the reveal fire condition

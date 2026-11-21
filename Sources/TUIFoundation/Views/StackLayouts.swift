@@ -86,8 +86,12 @@ nonisolated public struct VStackLayout: Layout, Sendable, Equatable {
 
     /// The spacing in force: the stated one, or the vertical distance views
     /// prefer.
+    ///
+    /// Held as a stated length, at the read since ``spacing`` is a public
+    /// `var`: `VStackLayout(spacing: .max)` overflowed the sum of its gaps
+    /// (hunt 11-20, LAYOUT-5).
     @MainActor private var resolvedSpacing: Int {
-        spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)
+        (spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .vertical)).heldToStatedLength
     }
 
     @MainActor public func sizeThatFits(
@@ -243,8 +247,10 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
 
     /// The spacing in force: the stated one, or the horizontal distance views
     /// prefer.
+    ///
+    /// Held, as ``VStackLayout``'s is.
     @MainActor private var resolvedSpacing: Int {
-        spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)
+        (spacing ?? ViewSpacing().distance(to: ViewSpacing(), along: .horizontal)).heldToStatedLength
     }
 
     @MainActor public func sizeThatFits(

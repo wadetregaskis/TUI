@@ -218,7 +218,10 @@ extension VisualEffect {
     /// - Parameter offset: The distance to offset the view.
     /// - Returns: An effect that offsets the view by `offset`.
     public func offset(_ offset: CellSize) -> some VisualEffect {
-        _OffsetEffect(base: self, x: Double(offset.width), y: Double(offset.height))
+        // Held as `View.offset(x:y:)` holds its lengths: `Double(Int.max)` is
+        // 2^63, which `Int(_:)` refused where the effect was applied (CONC-3).
+        _OffsetEffect(
+            base: self, x: Double(offset.width.heldToStatedLength), y: Double(offset.height.heldToStatedLength))
     }
 
     /// Offsets the view by the specified horizontal and vertical distances, in
@@ -229,7 +232,8 @@ extension VisualEffect {
     ///   - y: The vertical distance to offset the view.
     /// - Returns: An effect that offsets the view by `x` and `y`.
     public func offset(x: Int = 0, y: Int = 0) -> some VisualEffect {
-        _OffsetEffect(base: self, x: Double(x), y: Double(y))
+        // Held, as `offset(_:)` explains.
+        _OffsetEffect(base: self, x: Double(x.heldToStatedLength), y: Double(y.heldToStatedLength))
     }
 
     /// Sets the transparency of the view.
@@ -322,7 +326,10 @@ struct _OffsetEffect<Base: VisualEffect>: VisualEffect {
 
     func _applied(to buffer: FrameBuffer, context: RenderContext) -> FrameBuffer {
         let inner = base._applied(to: buffer, context: context)
-        let (columns, rows) = (Int(x.rounded()), Int(y.rounded()))
+        // `Int(cells:)` as well as the hold where the effect is made: between
+        // two frames the value is the animation's, and a custom curve can
+        // overshoot to anything, NaN included.
+        let (columns, rows) = (Int(cells: x.rounded()), Int(cells: y.rounded()))
         guard columns != 0 || rows != 0 else { return inner }
         return drawEffect(
             BufferView(buffer: inner).offset(x: columns, y: rows), owner: Self.self, context: context)

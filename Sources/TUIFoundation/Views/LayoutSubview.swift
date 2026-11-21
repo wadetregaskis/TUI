@@ -146,8 +146,13 @@ public struct LayoutSubview: @MainActor Equatable {
     ///   - proposal: The size to offer the subview.
     public func place(at position: CellPoint, anchor: UnitPoint = .topLeading, proposal: ProposedViewSize) {
         let size = child.measure(proposal: proposal, context: context)
-        let x = Int((Double(position.x) - anchor.x * Double(size.width)).rounded(.down))
-        let y = Int((Double(position.y) - anchor.y * Double(size.height)).rounded(.down))
+        // `Int(cells:)`, not `Int(_:)`: a `UnitPoint` holds whatever the app
+        // computed (`index / (count - 1)` with one element is NaN), and the
+        // product is held, not the anchor, as anchors outside 0...1 are legal.
+        // And held as a stated length: the placement is where the subview is
+        // composited, and a canvas grown to 2^30 rows is no better than a trap.
+        let x = Int(cells: (Double(position.x) - anchor.x * Double(size.width)).rounded(.down)).heldToStatedLength
+        let y = Int(cells: (Double(position.y) - anchor.y * Double(size.height)).rounded(.down)).heldToStatedLength
         placements.record(index: index, x: x, y: y, proposal: proposal)
     }
 
@@ -165,8 +170,10 @@ public struct LayoutSubview: @MainActor Equatable {
     ///   - proposal: The size to offer the subview.
     public func place(in bounds: CellRect, anchor: UnitPoint, proposal: ProposedViewSize) {
         let size = child.measure(proposal: proposal, context: context)
-        let x = Int((anchor.x * Double(bounds.width - size.width)).rounded(.down))
-        let y = Int((anchor.y * Double(bounds.height - size.height)).rounded(.down))
+        // Converted with `Int(cells:)` BEFORE the clamp below, which a trap in
+        // `Int(_:)` never reached.
+        let x = Int(cells: (anchor.x * Double(bounds.width - size.width)).rounded(.down))
+        let y = Int(cells: (anchor.y * Double(bounds.height - size.height)).rounded(.down))
         placements.record(
             index: index,
             x: bounds.x + min(max(0, x), max(0, bounds.width - size.width)),

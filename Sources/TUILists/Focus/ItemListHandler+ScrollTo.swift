@@ -121,7 +121,8 @@ extension ItemListHandler {
             return
         }
         if glide == nil,
-            let row = row(atRowLine: Int((Double(rowLineBudget - 1) * position.anchor.y).rounded(.down))),
+            // `Int(cells:)`: the anchor is `.scrollPosition(_:anchor:)`'s (CONC-5).
+            let row = row(atRowLine: Int(cells: (Double(rowLineBudget - 1) * position.anchor.y).rounded(.down))),
             let id = rowID(row)
         {
             position.report(

@@ -319,7 +319,8 @@ public struct ViewAlignedScrollTargetBehavior: ScrollTargetBehavior, Equatable, 
         typealias Landing = (landing: Int, span: TargetLayoutSpans.Span)
         var landings: [Landing] = spans.spans(overlapping: reach).map { (span: TargetLayoutSpans.Span) -> Landing in
             let offset: Double = unit * Double(span.length - container)
-            return (landing: span.origin + Int(offset.rounded(.down)), span: span)
+            // `Int(cells:)`: `unit` is `.viewAligned(anchor:)`'s, the app's.
+            return (landing: span.origin + Int(cells: offset.rounded(.down)), span: span)
         }
         landings.sort { (a: Landing, b: Landing) -> Bool in a.landing < b.landing }
         guard !landings.isEmpty else { return nil }
