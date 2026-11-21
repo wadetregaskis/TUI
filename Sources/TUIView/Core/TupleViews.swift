@@ -146,11 +146,18 @@ extension TupleView: @MainActor Equatable where repeat each V: Equatable {
             infos.append(
                 contentsOf: provider.childInfos(context: context.withChildIdentity(erasedType: C.self, index: slot)))
         } else {
+            // At its STATIC slot too, not the count of infos before it: an `if`
+            // or a loop before it adds as many as it holds, so `Text("a"); if c
+            // { X(); Y() }; Counter()` drawn whole put the counter at index 2 or
+            // 3 by `c`, a new identity on every flip, its `@State` and focus id
+            // gone (VIEWS-11), where SwiftUI keeps them (measured on macOS
+            // 15.8.3, `Tools/SwiftUIProbes/AnyView type swap (H-08)/anyview.out`).
+            // A provider's children are a step further in, so the two never meet.
             infos.append(
                 makeChildInfo(
                     for: child,
                     context: context.withChildIdentity(
-                        type: type(of: child), index: infos.count)
+                        type: type(of: child), index: slot)
                 )
             )
         }

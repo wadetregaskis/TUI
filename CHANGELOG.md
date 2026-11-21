@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A view after an `if` keeps its state when a view of several is drawn whole.** In an `AnyView` of a view whose
+body is `Text("a"); if c { X(); Y() }; Counter()`, as in a menu's items, the counter was reset, and lost the focus,
+each time the `if` flipped, and so did a view after a builder `for` loop when the loop grew. It now keeps its place,
+as in a stack and in SwiftUI.
+
 **A theme's button style now wins over a primitive button style set further out.** `Theme(buttonStyle:)` on a panel
 inside a `.buttonStyle(.glass)`, or inside any custom `PrimitiveButtonStyle`, left the panel's buttons in the outer
 style. It now ends it, as `.buttonStyle(_:)` naming any style does.

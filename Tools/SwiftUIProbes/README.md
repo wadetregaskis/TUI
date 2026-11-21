@@ -233,6 +233,24 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15.8.1, SwiftUI 6.5.4, Xcode's Swift 6.2.4, 2026-10-29.
 - **Cited by:** `Documentation/Historical/State and dynamic properties/Row state lifetime (2026-10-29).md`.
 
+### AnyView type swap (H-08)
+
+- **Asks:** what happens to the `@State` of an `AnyView`'s content when the erased type changes to another with
+  the same state layout, to one with another layout, back to the first, and to the first inside a modifier
+  (`A().padding(1)`); whether the same type wrapped in a new `AnyView` on every body run keeps it; and, as a
+  control for a tuple drawn whole, whether a view after an `if` that adds two views keeps its state when the
+  condition flips (`anyview.swift`, `anyview.out`). Each view stamps its `@State` with a serial when SwiftUI makes
+  it, and a second `@State` is written through a closure its body leaves behind.
+- **Answers:** a change of the erased type is a new view with new state, whatever the state's layout: the type
+  swapped in starts afresh, the first type swapped back starts afresh, and so does the first type inside a
+  modifier. The same type wrapped again keeps its state. The view after the `if` keeps its state across both
+  flips.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-21.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIView/Core/TupleViews.swift`, `Tests/TUIIntegrationTests/TupleDrawnWholeStateTests.swift`.
+  The `AnyView` half is H-08's evidence; its fix was taken out of batch 56 (2026-11-21: a menu drawing several
+  erased labels at one identity read as a swap and dropped the menu's state) and is to be redone.
+
 ### Alignment guides
 
 - **Asks:** whether an explicit alignment guide's value is used as given or clamped to the view's own size, in
