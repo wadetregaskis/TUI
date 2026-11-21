@@ -1031,6 +1031,17 @@ extension FocusManager {
     /// - **Enter / Space**: Dispatched to the focused element for activation.
     /// - **Other keys**: Dispatched to the focused element.
     ///
+    /// This is one layer of the key chain, the focus system's, not the chain
+    /// itself: the app's input handler calls it partway down, after the
+    /// layers above have declined the key. So a key dispatched here reaches
+    /// the focused control and moves the focus as a typed key would, and
+    /// nothing else a typed key reaches: no `onKeyPress` handler, status-bar
+    /// item, `.keyboardShortcut` or default binding sees it, and none of them
+    /// gets a turn before the focused control. Calling the whole chain from
+    /// here would also call it again from inside itself. A running app has no
+    /// public entry to the whole chain yet; in a test, `TestApp.press(_:)`
+    /// delivers a key as the terminal would.
+    ///
     /// - Parameter event: The key event to dispatch.
     /// - Returns: True if the event was handled.
     @discardableResult

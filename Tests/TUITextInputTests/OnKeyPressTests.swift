@@ -118,6 +118,26 @@ struct OnKeyPressTests {
         }
     }
 
+    @Test("FocusManager.dispatchKeyEvent is the focus system's layer alone: the focused control, not the focus path")
+    func dispatchKeyEventSkipsTheFocusPath() {
+        let log = PressLog()
+        let harness = InputChainHarness()
+        let page = {
+            VStack { Button("Go") { log.entries.append("button") } }
+                .onKeyPress { _ in log.entries.append("container"); return .ignored }
+        }
+        harness.frame(page())
+        harness.frame(page())
+        // As its doc comment says: the focused button takes Return, and the
+        // container's handler, which a typed Return reaches first, never hears it.
+        #expect(harness.focusManager.dispatchKeyEvent(KeyEvent(key: .enter)))
+        #expect(log.entries == ["button"])
+        log.entries = []
+        harness.frame(page())
+        #expect(harness.press(KeyEvent(key: .enter)))
+        #expect(log.entries == ["container", "button"], "a typed Return goes down the whole chain")
+    }
+
     @Test("The focus path is asked before a focused text field types the key")
     func beforeTheTextField() {
         let text = FieldText()
