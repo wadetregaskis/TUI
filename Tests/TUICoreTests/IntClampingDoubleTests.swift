@@ -5,7 +5,7 @@
 //  License: MIT
 
 import Testing
-import TUIStyling
+import TUICore
 
 /// Values and what they truncate to, the largest one past 32 bits where `Int`
 /// is 64 (and inside them where it is not: wasm32).
@@ -53,5 +53,34 @@ struct IntClampingDoubleTests {
             #expect(Int(clamping: Double(Int.max) + 1) == .max)
             #expect(Int(clamping: Double(Int.min) - 1) == .min)
         #endif
+    }
+
+    @Test("Int64(clamping:) is the same conversion at 64 bits, wherever Int is narrower")
+    func sixtyFourBits() {
+        #expect(Int64(clamping: 3.7) == 3)
+        #expect(Int64(clamping: -3.7) == -3)
+        #expect(Int64(clamping: 1e15) == 1_000_000_000_000_000)
+        #expect(Int64(clamping: .infinity) == .max)
+        #expect(Int64(clamping: -.infinity) == .min)
+        #expect(Int64(clamping: .greatestFiniteMagnitude) == .max)
+        #expect(Int64(clamping: -.greatestFiniteMagnitude) == .min)
+        #expect(Int64(clamping: .nan) == 0)
+        #expect(Int64(clamping: Double(Int64.max)) == .max)
+        #expect(Int64(clamping: 9_223_372_036_854_774_784) == 9_223_372_036_854_774_784)
+    }
+
+    @Test(
+        "Int(cells:) holds a distance to ±2^30, so the sum it goes into cannot overflow",
+        arguments: [
+            (3.7, 3), (-3.7, -3), (0.0, 0), (65_536.0, 65_536), (.nan, 0), (-.nan, 0),
+            (.infinity, 1 << 30), (-.infinity, -(1 << 30)),
+            (.greatestFiniteMagnitude, 1 << 30), (-.greatestFiniteMagnitude, -(1 << 30)),
+            (1e18, 1 << 30), (-1e18, -(1 << 30)), (Double(1 << 30), 1 << 30), (Double(1 << 30) - 1, (1 << 30) - 1),
+        ] as [(Double, Int)])
+    func cells(pair: (Double, Int)) {
+        #expect(Int(cells: pair.0) == pair.1)
+        // What the bound is for: an origin and an extent added to it.
+        #expect((1 << 20).addingReportingOverflow(Int(cells: pair.0)).overflow == false)
+        #expect(abs(Int(cells: pair.0)) <= Int.cellReach)
     }
 }

@@ -287,7 +287,6 @@ Gradient.resolvingStops(with:) | func resolvingStops(with palette: any Palette) 
 Gradient.sampled(count:) | func sampled(count: Int) -> [Color]
 Gradient.stops | var stops: [Gradient.Stop]
 Gradient.withStops(_:) | func withStops(_ stops: [Gradient.Stop]) -> Gradient
-Int.init(clamping:) | init(clamping value: Double)
 LiveTerminalPalette | struct LiveTerminalPalette
 LiveTerminalPalette.accent | let accent: Color
 LiveTerminalPalette.appHeaderBackground | let appHeaderBackground: Color

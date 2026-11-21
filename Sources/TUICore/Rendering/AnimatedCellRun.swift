@@ -77,14 +77,45 @@ public enum AnimationClock: String, Sendable, Equatable, Hashable, CaseIterable 
     /// count all ask this, so what the render draws and what a replay splices cannot
     /// disagree about which step an instant is in.
     public static func nanoseconds(_ seconds: Double) -> Int64 {
-        let nanos = (seconds * 1_000_000_000).rounded()
-        // Saturating, as `Int64(_:)` traps past ±292 years and on NaN — a
-        // toast posted for `.infinity` seconds reaches here. NaN is no time.
-        // `Double(Int64.max)` is 2^63, one past the largest `Int64`.
-        guard !nanos.isNaN else { return 0 }
-        guard nanos < Double(Int64.max) else { return .max }
-        guard nanos > Double(Int64.min) else { return .min }
-        return Int64(nanos)
+        nanoseconds(seconds, rounding: .toNearestOrAwayFromZero)
+    }
+
+    /// `seconds` as whole nanoseconds, rounded by `rule`: ``nanoseconds(_:)``
+    /// for a deadline, which rounds UP so that nothing is due a nanosecond
+    /// before its time.
+    package static func nanoseconds(_ seconds: Double, rounding rule: FloatingPointRoundingRule) -> Int64 {
+        // Saturating (`Int64(clamping:)`), as `Int64(_:)` traps past ±292
+        // years and on NaN — a toast posted for `.infinity` seconds reaches
+        // here. NaN is no time.
+        Int64(clamping: (seconds * 1_000_000_000).rounded(rule))
+    }
+
+    /// The instant `seconds` after `start`, in nanoseconds, or `nil` for one
+    /// the clock never reaches: a wait that is infinite, or so long that the
+    /// sum is past `Int64`'s end (292 years of nanoseconds).
+    ///
+    /// The one way a wait an app states becomes a deadline. NOT
+    /// `start &+ Int64(seconds * 1e9)`, the shape this replaces at a long
+    /// press's minimum duration, a tooltip's delay and an animation's
+    /// completion: `Int64(_:)` traps on an infinity and on anything past 292
+    /// years, and `&+` WRAPS a wait just short of that into an instant in the
+    /// past, so "practically never" fired at once. `nil` says never, which is
+    /// what `.infinity` means to the app that wrote it. A wait that is
+    /// negative or not a number is no wait: the answer is `start`.
+    ///
+    /// - Parameters:
+    ///   - seconds: The wait, in seconds. Any `Double`.
+    ///   - start: The instant the wait begins at, in nanoseconds.
+    ///   - rule: How a fraction of a nanosecond rounds. The default is to the
+    ///     nearest, as ``nanoseconds(_:)`` rounds.
+    package static func deadline(
+        _ seconds: Double, after start: Int64, rounding rule: FloatingPointRoundingRule = .toNearestOrAwayFromZero
+    ) -> Int64? {
+        // `max(0, .nan)` is 0: Swift's `max` answers its first argument when
+        // the comparison is false, as every comparison with a NaN is.
+        let wait = nanoseconds(max(0, seconds), rounding: rule)
+        let (instant, overflow) = start.addingReportingOverflow(wait)
+        return overflow || wait == .max ? nil : instant
     }
 
     /// Whole steps of `frameTicks` ticks in `elapsed`: the tick `elapsed` is in, counted

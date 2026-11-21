@@ -282,6 +282,8 @@ HitTestRegion.revealOutsetTop | var revealOutsetTop: Int
 HitTestRegion.shifted(byX:y:) | func shifted(byX dx: Int, y dy: Int) -> HitTestRegion
 HitTestRegion.topClip | var topClip: Int
 HitTestRegion.width | let width: Int
+Int.init(clamping:) | init(clamping value: Double)
+Int64.init(clamping:) | init(clamping value: Double)
 Key | enum Key
 Key.backspace | case backspace
 Key.character(_:) | case character(Character)

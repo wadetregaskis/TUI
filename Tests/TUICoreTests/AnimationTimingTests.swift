@@ -205,4 +205,28 @@ struct AnimationTimingTests {
             Set([Animation.easeInOut, .easeInOut, .linear]).count == 2,
             "equal animations must hash together")
     }
+
+    @Test(
+        "A wait becomes a deadline without trapping or wrapping: never for an infinite one, at once for none",
+        arguments: [
+            (0.5, 1_000, 500_001_000), (0, 1_000, 1_000), (-1, 1_000, 1_000), (.nan, 1_000, 1_000),
+            (-.infinity, 1_000, 1_000), (-.greatestFiniteMagnitude, 1_000, 1_000),
+            (.infinity, 1_000, nil), (.greatestFiniteMagnitude, 1_000, nil), (1e18, 1_000, nil),
+            // 9.2e9 s is just inside an Int64 of nanoseconds, so the sum with
+            // a late start is what overflows: wrapped, it was in the past.
+            (9.2e9, Int64.max - 1, nil), (.infinity, -5, nil), (.infinity, 0, nil),
+            (1, Int64.min, Int64.min + 1_000_000_000),
+        ] as [(Double, Int64, Int64?)])
+    func deadlines(seconds: Double, start: Int64, expected: Int64?) {
+        #expect(AnimationClock.deadline(seconds, after: start) == expected)
+    }
+
+    @Test("A deadline rounds a fraction of a nanosecond the way it is asked to")
+    func deadlineRounding() {
+        #expect(AnimationClock.deadline(1.2e-9, after: 0) == 1)
+        #expect(AnimationClock.deadline(1.2e-9, after: 0, rounding: .up) == 2)
+        #expect(AnimationClock.nanoseconds(1.2e-9, rounding: .up) == 2)
+        #expect(AnimationClock.nanoseconds(.infinity, rounding: .up) == .max)
+        #expect(AnimationClock.nanoseconds(.nan, rounding: .up) == 0)
+    }
 }

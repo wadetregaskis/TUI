@@ -96,13 +96,11 @@ extension ShadowModifier: PartlySpatialAnimatable {
         animatedValueHoldingMotion(of: modifier, owner: owner, context: context, isMeasuring: isMeasuring)
     }
 
-    /// `value` rounded to whole cells, held to ±2^30 — past every screen, and
-    /// inside `Int` — so a frame between two outlandish values cannot trap the
-    /// conversion; NaN is no cells.
+    /// `value` rounded to whole cells, held to ±2^30 (`Int(cells:)`) — past
+    /// every screen, and inside `Int` — so a frame between two outlandish
+    /// values cannot trap the conversion; NaN is no cells.
     private static func cells(_ value: Double) -> Int {
-        let bound = Double(1 << 30)
-        guard !value.isNaN else { return 0 }
-        return Int(min(max(value.rounded(), -bound), bound))
+        Int(cells: value.rounded())
     }
 }
 

@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import TUICore
 import TUIStyling
 
 /// Standard ANSI escape sequences for ASCII art colorization.
