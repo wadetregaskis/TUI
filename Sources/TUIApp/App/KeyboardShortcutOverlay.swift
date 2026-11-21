@@ -74,6 +74,22 @@ struct ShortcutOverlayListing: Equatable {
     /// case it is written in (``KeyLetterCase``); Shift is a `⇧` of its own.
     mutating func add(_ row: ListedShortcut, to title: String) {
         guard !row.key.isEmpty, !row.title.isEmpty, seen.insert(row.key.uppercased()).inserted else { return }
+        append(row, to: title)
+    }
+
+    /// Adds one row for `keys`, called `title`, under `section`: a
+    /// labelled `onKeyPress`, whose keys share its label (A-KEYHELP-1). Each
+    /// key an earlier row names is left out of it, by ``add(_:to:)``'s rule,
+    /// and the row with them; the rest are spelled side by side.
+    mutating func add(keys: [String], title: String, to section: String) {
+        guard !title.isEmpty else { return }
+        let fresh = keys.filter { !$0.isEmpty && seen.insert($0.uppercased()).inserted }
+        guard !fresh.isEmpty else { return }
+        append(ListedShortcut(key: fresh.joined(separator: " "), title: title), to: section)
+    }
+
+    /// Puts `row` under `title`, in the section of that name if there is one.
+    private mutating func append(_ row: ListedShortcut, to title: String) {
         if let index = sections.firstIndex(where: { $0.title == title }) {
             sections[index].rows.append(row)
         } else {
@@ -90,7 +106,8 @@ struct ShortcutOverlayListing: Equatable {
 
 extension InputHandler {
     /// What's in force as of the frame last drawn, by the rules a key press goes
-    /// by: the shortcuts, the status bar's items, and TUI's own keys.
+    /// by: the shortcuts, the labelled `onKeyPress` handlers, the status bar's
+    /// items, and TUI's own keys.
     ///
     /// Taken once, when the list is asked for. With the list up the page is drawn
     /// as a backdrop, and registers nothing.
@@ -111,6 +128,15 @@ extension InputHandler {
             listing.add(
                 ListedShortcut(key: letterCase.spelling(row.key), title: row.title, menu: row.menu),
                 to: row.menu ?? page)
+        }
+        // A labelled `onKeyPress` on the screen, in the page's section, after
+        // the shortcuts: a key both bind keeps the shortcut's name, which is
+        // what a key reaches while the handler's view does not hold the focus.
+        let keyPresses = keyboardShortcuts.keyPressListing(
+            activePane: focusManager.activePaneID, reachesPage: !focusManager.activeSectionIsModal,
+            modalSection: focusManager.activeModalSectionID)
+        for row in keyPresses {
+            listing.add(keys: row.keys.map(letterCase.spelling), title: row.title, to: page)
         }
 
         let bar = service.string(for: LocalizationKey.Menu.shortcutsStatusBar)

@@ -4025,10 +4025,10 @@ View.onInteractiveResizeChange(_:) | nonisolated func onInteractiveResizeChange(
 View.onKeyEvent(_:) | nonisolated func onKeyEvent(_ handler: @escaping (KeyEvent) -> Bool) -> some View
 View.onKeyEvent(_:action:) | nonisolated func onKeyEvent(_ key: Key, action: @escaping () -> Void) -> some View
 View.onKeyEvent(keys:handler:) | nonisolated func onKeyEvent(keys: Set<Key>, handler: @escaping (KeyEvent) -> Bool) -> some View
-View.onKeyPress(_:action:) | nonisolated func onKeyPress(_ key: KeyEquivalent, action: @escaping () -> KeyPress.Result) -> some View
-View.onKeyPress(_:phases:action:) | nonisolated func onKeyPress(_ key: KeyEquivalent, phases: KeyPress.Phases, action: @escaping (KeyPress) -> KeyPress.Result) -> some View
+View.onKeyPress(_:label:action:) | nonisolated func onKeyPress(_ key: KeyEquivalent, label: Text? = nil, action: @escaping () -> KeyPress.Result) -> some View
+View.onKeyPress(_:phases:label:action:) | nonisolated func onKeyPress(_ key: KeyEquivalent, phases: KeyPress.Phases, label: Text? = nil, action: @escaping (KeyPress) -> KeyPress.Result) -> some View
 View.onKeyPress(characters:phases:action:) | nonisolated func onKeyPress(characters: CharacterSet, phases: KeyPress.Phases = [.down, .repeat], action: @escaping (KeyPress) -> KeyPress.Result) -> some View
-View.onKeyPress(keys:phases:action:) | nonisolated func onKeyPress(keys: Set<KeyEquivalent>, phases: KeyPress.Phases = [.down, .repeat], action: @escaping (KeyPress) -> KeyPress.Result) -> some View
+View.onKeyPress(keys:phases:label:action:) | nonisolated func onKeyPress(keys: Set<KeyEquivalent>, phases: KeyPress.Phases = [.down, .repeat], label: Text? = nil, action: @escaping (KeyPress) -> KeyPress.Result) -> some View
 View.onKeyPress(phases:action:) | nonisolated func onKeyPress(phases: KeyPress.Phases = [.down, .repeat], action: @escaping (KeyPress) -> KeyPress.Result) -> some View
 View.onLongPressGesture(minimumDuration:maximumDistance:perform:onPressingChanged:) | nonisolated func onLongPressGesture(minimumDuration: Double = 0.5, maximumDistance: Int = 1, perform action: @escaping () -> Void, onPressingChanged: ((Bool) -> Void)? = nil) -> some View
 View.onMenuOpen(_:) | nonisolated func onMenuOpen(_ action: @escaping () -> Void) -> some View

@@ -222,6 +222,12 @@ private struct KeyPressShapes: View {
                 return .ignored
             }
             .onKeyPress { _ in .ignored }
+            // The action written as an argument, not a trailing closure: the
+            // labels TUI's defaulted `label:` sits between (A-KEYHELP-1).
+            .onKeyPress(.tab, action: { .ignored })
+            .onKeyPress(.home, phases: .down, action: { _ in .handled })
+            .onKeyPress(keys: [.end], action: { _ in .handled })
+            .onKeyPress(keys: [.pageUp], phases: .down, action: { _ in .handled })
     }
 }
 

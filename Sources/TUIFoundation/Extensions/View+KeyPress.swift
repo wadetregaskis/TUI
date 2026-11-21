@@ -26,6 +26,23 @@ import Foundation
 ///   the app's keyboard shortcuts.
 /// - **Phases.** All three where the terminal speaks the kitty keyboard
 ///   protocol; presses only in its legacy encodings. See ``KeyPress``.
+/// - **In F1's list, if you label it.** The three that name their keys take
+///   a `label`, TUI's own parameter, defaulted to `nil` so SwiftUI's calls are
+///   unchanged: a labelled handler's keys are listed under the label in the
+///   list of the keys in force that F1 shows, in the section of the page,
+///   while its view is on the screen and not disabled (the owner's ruling
+///   A-KEYHELP-1, 2026-11-20). The other two, on a set of characters and on
+///   any key, take none: they name no key the list could show. To list keys a
+///   catch-all hears, give those keys a handler of their own.
+///
+///   ```swift
+///   Board()
+///       .focusable()
+///       .onKeyPress(keys: [.leftArrow, .rightArrow], label: Text("Move")) { press in
+///           move(press.key == .leftArrow ? -1 : 1)
+///           return .handled
+///       }
+///   ```
 extension View {
     /// Performs an action when the given key is pressed while this view has
     /// the focus, or contains it.
@@ -45,12 +62,15 @@ extension View {
     ///
     /// - Parameters:
     ///   - key: The key to match. Case matters: `"a"` does not match Shift-A.
+    ///   - label: What the key does, for F1's list of the keys in force, or
+    ///     `nil`, SwiftUI's call, to leave it off the list. TUI-specific: see
+    ///     the discussion above.
     ///   - action: The action to perform.
     /// - Returns: A view that handles the key while it holds the focus.
     nonisolated public func onKeyPress(
-        _ key: KeyEquivalent, action: @escaping () -> KeyPress.Result
+        _ key: KeyEquivalent, label: Text? = nil, action: @escaping () -> KeyPress.Result
     ) -> some View {
-        onKeyPress(keys: [key], phases: [.down, .repeat]) { _ in action() }
+        onKeyPress(keys: [key], phases: [.down, .repeat], label: label) { _ in action() }
     }
 
     /// Performs an action when the given key is pressed in one of `phases`
@@ -61,13 +81,15 @@ extension View {
     ///   - phases: The phases to match. A terminal in its legacy encodings
     ///     reports every press as ``KeyPress/Phases/down`` and no release;
     ///     see ``KeyPress``.
+    ///   - label: What the key does, for F1's list of the keys in force, or
+    ///     `nil` to leave it off the list. TUI-specific.
     ///   - action: The action to perform, given the press.
     /// - Returns: A view that handles the key while it holds the focus.
     nonisolated public func onKeyPress(
-        _ key: KeyEquivalent, phases: KeyPress.Phases,
+        _ key: KeyEquivalent, phases: KeyPress.Phases, label: Text? = nil,
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        onKeyPress(keys: [key], phases: phases, action: action)
+        onKeyPress(keys: [key], phases: phases, label: label, action: action)
     }
 
     /// Performs an action when any of `keys` is pressed while this view has
@@ -83,13 +105,18 @@ extension View {
     /// - Parameters:
     ///   - keys: The keys to match.
     ///   - phases: The phases to match; a press and its repeats by default.
+    ///   - label: What the keys do, for F1's list of the keys in force, where
+    ///     they are listed in one row, or `nil` to leave them off the list.
+    ///     TUI-specific.
     ///   - action: The action to perform, given the press.
     /// - Returns: A view that handles the keys while it holds the focus.
     nonisolated public func onKeyPress(
-        keys: Set<KeyEquivalent>, phases: KeyPress.Phases = [.down, .repeat],
+        keys: Set<KeyEquivalent>, phases: KeyPress.Phases = [.down, .repeat], label: Text? = nil,
         action: @escaping (KeyPress) -> KeyPress.Result
     ) -> some View {
-        onKeyPress(phases: phases, where: { keys.contains($0.key) }, action: action)
+        onKeyPress(
+            phases: phases, where: { keys.contains($0.key) },
+            listed: label.map { KeyPressListing(keys: keys, label: $0) }, action: action)
     }
 
     /// Performs an action when a key whose characters are all in `characters`
@@ -160,9 +187,11 @@ extension View {
     ///   Declared, a PIN field's digits would mask the user's quit key, whose
     ///   byte some terminals send for ⌃4, and be offered ⌃\\ again as ⌃4,
     ///   typing a 4 for it (the coordinator's ruling, 2026-10-06).
+    /// - Parameter listed: The keys and label F1's list shows for the
+    ///   handler, or `nil` for one it does not list.
     nonisolated private func onKeyPress(
         phases: KeyPress.Phases, where matches: @escaping (KeyPress) -> Bool, declared: Bool = true,
-        action: @escaping (KeyPress) -> KeyPress.Result
+        listed: KeyPressListing? = nil, action: @escaping (KeyPress) -> KeyPress.Result
     ) -> FocusPathModifier<Self> {
         let declares: ((KeyEvent) -> Bool)? =
             declared
@@ -171,7 +200,7 @@ extension View {
                     && KeyPress(event).map { matches($0) && (!event.ctrl || $0.key.namesControlChord) } == true
             }
             : nil
-        return FocusPathModifier(content: self, stage: .keyPress, declares: declares) { context in
+        return FocusPathModifier(content: self, stage: .keyPress, declares: declares, listed: listed) { context in
             let repeatsReported = context.environment.keyboardReporting.reportsRepeats
             return { event in
                 guard phases.hears(event.phase, repeatsReported: repeatsReported),

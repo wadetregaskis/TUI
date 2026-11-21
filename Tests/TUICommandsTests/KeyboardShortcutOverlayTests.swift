@@ -138,6 +138,37 @@ private struct KeyPressApp: App {
     }
 }
 
+/// A focused view that reads its keys with `onKeyPress`, as a game does:
+/// two handlers labelled, one not, and one labelled but disabled.
+private struct LabelledKeyPressApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                Text("a game").focusable()
+                    .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .all, label: Text("Steer")) { _ in .handled }
+                    .onKeyPress("f", label: Text("Fire")) { .handled }
+                    .onKeyPress("z") { .handled }
+                Text("off").focusable()
+                    .onKeyPress("x", label: Text("Unreachable")) { .handled }
+                    .disabled(true)
+            }
+        }
+    }
+}
+
+/// The same keys, none labelled: what every SwiftUI call is.
+private struct UnlabelledKeyPressApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup {
+            Text("a game").focusable()
+                .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .all) { _ in .handled }
+                .onKeyPress("f") { .handled }
+        }
+    }
+}
+
 /// F1 on an `onKeyEvent` of the page's.
 private struct KeyEventApp: App {
     init() {}
@@ -331,6 +362,28 @@ struct KeyboardShortcutOverlayTests {
         let app = launched(BareWindowsApp())
         press(f1, in: app)
         #expect(row("Close", in: app) == nil)
+    }
+
+    @Test("A labelled onKeyPress is listed on the page's section, its keys spelled as shortcuts are, side by side")
+    func listsALabelledKeyPress() throws {
+        let app = launched(LabelledKeyPressApp())
+        press(f1, in: app)
+        #expect(app.screen.contains("On This Screen"))
+        let steer = try #require(row("Steer", in: app))
+        #expect(steer.contains("← →  Steer"), "listed: \(steer)")
+        let fire = try #require(row("Fire", in: app))
+        #expect(fire.contains("F  Fire"), "listed: \(fire)")
+        #expect(row("Unreachable", in: app) == nil, "a disabled handler hears no key")
+        #expect(!app.screen.text.contains(" Z  "), "an unlabelled handler isn't listed")
+    }
+
+    @Test("An onKeyPress with no label isn't listed")
+    func unlabelledKeyPressIsNotListed() {
+        let app = launched(UnlabelledKeyPressApp())
+        press(f1, in: app)
+        #expect(app.screen.contains(heading))
+        #expect(!app.screen.contains("On This Screen"))
+        #expect(!app.screen.text.contains("←"))
     }
 
     @Test("A disabled control isn't listed: its key isn't in force")

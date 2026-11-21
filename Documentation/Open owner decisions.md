@@ -38,6 +38,10 @@ key goes, its phase as posted, so another device's presses (tuiarcade's gamepads
 go. A posted key is delivered once the frame being drawn is on the screen, and one posted from inside a key handler
 waits for the next frame rather than running the chain inside itself. The record is in
 [Keys from another device, and the keys F1 lists](<Historical/Input, keys and gestures/Keys from another device, and the keys F1 lists.md#a-postkey-1-a-way-to-send-a-key-through-the-whole-input-chain>).
+**A-KEYHELP-1** ruled (b): `onKeyPress` on a key or a set of keys takes a `label: Text? = nil` before its action, and
+F1's list shows a labelled one by its keys, in the page's section, while its view is on the screen. SwiftUI's calls
+are unchanged. The record is in
+[the same story](<Historical/Input, keys and gestures/Keys from another device, and the keys F1 lists.md#a-keyhelp-1-how-f1s-list-learns-the-keys-an-onkeypress-reads>).
 Nothing from that day is left open.
 
 ### Open on 2026-11-19

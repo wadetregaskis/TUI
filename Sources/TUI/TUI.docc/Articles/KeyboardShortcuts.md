@@ -32,7 +32,8 @@ To send ⌘ shortcuts to a different key, or to none, set ``EnvironmentValues/co
 
 For a view that wants keys of its own, use SwiftUI's
 ``View/onKeyPress(phases:action:)`` and its four siblings, which behave as they
-do in SwiftUI on macOS:
+do in SwiftUI on macOS (with one parameter of TUI's own, a `label` for the list
+F1 shows; see <doc:KeyboardShortcuts#The-List-of-Shortcuts>):
 
 - **The focus decides who hears a press.** A handler runs only while the focus
   is on its view or inside it. `Text("x").onKeyPress { … }` hears nothing
@@ -620,7 +621,7 @@ you. Each comes from what the framework already knows, under a heading:
 
 | Heading | What's listed |
 |---------|---------------|
-| On This Screen | Each `.keyboardShortcut` on a button or toggle the page draws, by its label |
+| On This Screen | Each `.keyboardShortcut` on a button or toggle the page draws, by its label, then each `onKeyPress` given a `label` |
 | Each menu's title | The menu bar's commands, the scene's own included |
 | Status Bar | Its items, those of `.statusBarItems` among them |
 | General | F1, F2, Tab and Shift-Tab, F10 with a menu bar, and the help keys where a view on the screen has help |
@@ -629,7 +630,30 @@ you. Each comes from what the framework already knows, under a heading:
 a menu both bind is listed as the page's, and a key appears once. Over a sheet or
 an alert, the list is what that presentation answers to. A handler that hears
 keys for itself, `onKeyPress` or `onKeyEvent`, isn't listed: it's a closure, and
-nothing can ask it what it answers to.
+nothing can ask it what it answers to. Unless you say: an `onKeyPress` on a key
+or a set of keys takes a `label`, TUI's own parameter, and is then listed by its
+keys and its label while its view is on the screen, whether or not that view
+holds the focus.
+
+```swift
+Board()
+    .focusable()
+    .onKeyPress(keys: [.leftArrow, .rightArrow], phases: .all, label: Text("Steer")) { press in
+        steer(press)
+        return .handled
+    }
+    .onKeyPress("f", label: Text("Fire")) {
+        fire()
+        return .handled
+    }
+```
+
+The list then has `← →  Steer` and `F  Fire` under On This Screen, the keys
+spelled as a shortcut's are, a handler's keys side by side in one row. The
+label defaults to `nil`, which is SwiftUI's call and lists nothing, so code
+written for SwiftUI is unchanged. The `onKeyPress` on a set of characters, and
+the one that hears any key, take no label: they name no key the list could
+show. Give the keys you want listed a handler of their own.
 
 The list is a bordered dialog, centred, its sections side by side in as many
 columns as the window is wide enough for: each section kept whole, short ones

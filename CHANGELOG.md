@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**F1's list of shortcuts can show the keys you read with `onKeyPress`.** Give an `onKeyPress` on a key or a set of
+keys a `label`, TUI's own parameter, and F1's list shows its keys under that label in the page's section while its
+view is on the screen: `.onKeyPress(keys: [.leftArrow, .rightArrow], phases: .all, label: Text("Steer")) { … }` is
+listed as `← →  Steer`. The label defaults to `nil`, so code written for SwiftUI is unchanged and lists nothing. The
+`onKeyPress` on a set of characters and the one on any key take no label, since they name no key to show.
+
 **An app can send a key through the whole input chain with `@Environment(\.postKeyEvent)`.** A key posted with it
 goes where a typed key goes, the `onKeyPress` handlers round the focused view, the focused control, the status bar,
 the shortcuts and TUI's own keys, so another device's presses, such as a gamepad's buttons, can stand for keys

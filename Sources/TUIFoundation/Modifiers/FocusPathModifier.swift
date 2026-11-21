@@ -43,6 +43,11 @@ nonisolated package struct FocusPathModifier<Content: View>: View {
     /// `KeyEventDispatcher.declaresFocusPathBinding(forAnyOf:focusedIdentity:)`.
     var declares: ((KeyEvent) -> Bool)?
 
+    /// The keys and label F1's list of the keys in force shows for the
+    /// handler: a labelled `onKeyPress`'s (A-KEYHELP-1), or `nil` for a
+    /// handler the list does not show.
+    var listed: KeyPressListing?
+
     /// Makes the handler for a render, from that render's context — for the
     /// handlers whose keys depend on the environment, such as a command chord
     /// resolved through ``EnvironmentValues/commandKey``. The handler does its
@@ -56,11 +61,13 @@ nonisolated package struct FocusPathModifier<Content: View>: View {
         content: Content,
         stage: FocusPathStage,
         declares: ((KeyEvent) -> Bool)? = nil,
+        listed: KeyPressListing? = nil,
         bind: @escaping (RenderContext) -> (KeyEvent) -> Bool
     ) {
         self.content = content
         self.stage = stage
         self.declares = declares
+        self.listed = listed
         self.bind = bind
     }
 
@@ -92,9 +99,12 @@ nonisolated package struct FocusPathModifier<Content: View>: View {
         // control inside renders at it or below it.
         let scope = context.identity
         let handler = bind(context)
+        // What F1's list shows for a labelled handler, read in this context's
+        // language now: the list is taken between frames, with no context.
+        let named = listed?.named(in: context)
         FocusPathRegistrar.register(
             scope: scope, stage: stage, declares: declares, handler: handler, sectionID: sectionID,
-            context: context)
+            named: named, context: context)
         if let journal = context.recordingEffectJournal {
             // The scope and section are captured, not looked up: the replay
             // context is the memo root's, whose identity is not this view's.
@@ -104,7 +114,7 @@ nonisolated package struct FocusPathModifier<Content: View>: View {
                 ) { [stage, declares, handler] replay in
                     FocusPathRegistrar.register(
                         scope: scope, stage: stage, declares: declares, handler: handler, sectionID: sectionID,
-                        context: replay)
+                        named: named, context: replay)
                 })
         }
 
@@ -120,14 +130,23 @@ enum FocusPathRegistrar {
     /// The journal kind of a focus-path registration.
     static let kind = EffectJournal.Kind("focusPathKey")
 
-    /// Adds `handler` for the subtree at `scope` to `context`'s key dispatcher.
+    /// Adds `handler` for the subtree at `scope` to `context`'s key dispatcher,
+    /// and `named`, a labelled handler's keys, to its shortcut registry for
+    /// F1's list.
+    ///
+    /// Both registries are looked up in `context`, so a replay registers into
+    /// the frame that serves it, as ``KeyboardShortcutModifier`` registers.
     @MainActor
     static func register(
         scope: ViewIdentity, stage: FocusPathStage, declares: ((KeyEvent) -> Bool)?,
-        handler: @escaping (KeyEvent) -> Bool, sectionID: String?, context: RenderContext
+        handler: @escaping (KeyEvent) -> Bool, sectionID: String?, named: KeyPressListing.Named? = nil,
+        context: RenderContext
     ) {
         context.environment.keyEventDispatcher?.addFocusPathHandler(
             scope: scope, stage: stage, sectionID: sectionID, declares: declares, handler)
+        if let named, let registry = context.environment.keyboardShortcutRegistry {
+            registry.noteKeyPress(named.keys, title: named.title, section: named.section)
+        }
     }
 }
 
@@ -167,6 +186,6 @@ enum FocusPathRegistrar {
 /// control in the row renders below it, so it is on their focus path still.
 @MainActor extension FocusPathModifier: FormRowRewrapping {
     package func rewrappingFormRow<V: View>(_ row: V) -> any View {
-        FocusPathModifier<V>(content: row, stage: stage, declares: declares, bind: bind)
+        FocusPathModifier<V>(content: row, stage: stage, declares: declares, listed: listed, bind: bind)
     }
 }

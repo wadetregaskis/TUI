@@ -1,13 +1,15 @@
 # Keys from another device, and the keys F1 lists
 
 *How a key that does not come from the terminal gets into the input chain, and
-how an `onKeyPress` handler's keys get into F1's list. Ids: A-POSTKEY-1.*
+how an `onKeyPress` handler's keys get into F1's list. Ids: A-POSTKEY-1, A-KEYHELP-1.*
 
 ## In short
 
 An app posts a key with `@Environment(\.postKeyEvent)`, and it goes down the
 whole input chain as a typed key does, its phase as posted, once the frame
-being drawn is on the screen (A-POSTKEY-1).
+being drawn is on the screen (A-POSTKEY-1). An `onKeyPress` on a key or a set
+of keys takes a defaulted `label`, and a labelled one is listed in F1's list by
+its keys while its view is on the screen (A-KEYHELP-1).
 
 ## The problem
 
@@ -19,6 +21,12 @@ shortcut (documented as such on 2026-11-20, `87947fce5`), and only a test's
 `TestApp.press(_:)` delivered a key as the terminal does. So the arcade kept a
 second path beside the keys, and wrote every rule of the chain (which handler
 is asked first, what a modal swallows) a second time.
+
+Its item 1, from the same milestone: F1's list of the keys in force is built
+from `.keyboardShortcut`s, status-bar items and TUI's own keys, and a game
+reads its keys with `onKeyPress(phases: .all)`, which nothing can ask what it
+answers to. So the list showed ⌃Q, F1, F2 and Tab, and none of the game's
+keys, and an app with keys of its own had to take F1 and hide TUI's list.
 
 ## Where it stands
 
@@ -33,6 +41,12 @@ Built on 2026-11-20. Nothing is owed.
   place to look is delivering posted keys with the run loop's input instead of
   after the frame, which needs its own rule for a key posted from inside a
   handler.
+
+- The `label` is a parameter added to SwiftUI's own `onKeyPress`
+  initialisers, so it lives or dies with their signatures. If SwiftUI ever adds
+  a parameter named `label` to one, or a new overload whose trailing closure
+  could be read as this one's, the call becomes ambiguous; the compile corpus
+  (`Tools/APIParity/compile_corpus.sh`) is what would notice.
 
 ## The record
 
@@ -73,3 +87,58 @@ half-drawn frame.
 A phase is delivered as posted: a release reaches the handlers that ask for
 `.up` whether or not the terminal reports releases, which is what lets a pad
 hold a key where a legacy encoding cannot. Tests: `PostKeyEventTests`.
+
+### A-KEYHELP-1. How F1's list learns the keys an `onKeyPress` reads
+
+*`View.onKeyPress(_:label:action:)`, `View.onKeyPress(_:phases:label:action:)`,
+`View.onKeyPress(keys:phases:label:action:)`*
+
+Put to the owner on 2026-11-20 after tuiarcade's item 1, with options for how
+a view says what its key handlers answer to: (a) a modifier of its own beside
+the handler, the arcade's `.keyboardShortcutHelp("← →", "move")`; (b) a
+defaulted label parameter on `onKeyPress` itself; (c) an API for adding
+sections to the list.
+
+**Decided 2026-11-20: (b).** A defaulted label parameter added to `onKeyPress`
+itself, under CLAUDE.md's "Extending SwiftUI's API": SwiftUI's overloads keep
+their names, order and types, the parameter is added and defaulted, and no
+SwiftUI call changes or becomes ambiguous.
+
+**Shipped 2026-11-20.** `label: Text? = nil`, just before `action:`, on the
+three overloads that name their keys: `onKeyPress(_:label:action:)`,
+`onKeyPress(_:phases:label:action:)` and `onKeyPress(keys:phases:label:action:)`.
+A `Text`, as SwiftUI's `badge(_:)` takes an optional one, so `Text("Move")`
+is looked up and `Text(verbatim:)` is not, with one parameter and no new
+overload; a `LocalizedStringKey` with a `StringProtocol` twin, the status bar's
+pair, would have doubled the overloads to get a bare literal. Before `action:`
+so the trailing closure reads as it does today: the forward scan skips a
+parameter that is not a function. The overloads on a set of characters and on
+any key take none, since they name no key the list could show; a catch-all's
+keys are listed by giving them a handler of their own.
+
+A labelled handler registers its keys and its label's words, read in the
+render's language, with the frame's shortcut registry
+(`KeyboardShortcutRegistry.noteKeyPress(_:title:section:)`) beside its
+focus-path handler, and again whenever a memo replays that registration. It
+binds nothing. The list shows it while its view is on the screen and not
+disabled, whether or not that view holds the focus, under the page's section,
+after the page's shortcuts, by the rules a shortcut is listed by (a modal's own
+while a modal holds the keyboard; a pane's, and the page's where it reaches).
+The keys are spelled through `KeyboardShortcut`, so with the glyphs a shortcut
+is spelled with, side by side in a shortcut list's order, in one row; a key an
+earlier row names is left out of the row.
+
+Type-check cost, measured the day it shipped (Xcode's compiler): a file of 40
+`onKeyPress` calls in one modifier chain, 30 of them to the three
+overloads, takes 3,108 constraint-solver scopes against a build without the
+parameter and 3,168 with it (+60, two for each call to an overload that has it),
+and its body type-checks in the same time within noise (10 paired runs on a
+busy machine: minimum 54.8 ms and median 63.0 ms without, 56.1 ms and 66.0 ms
+with). The compile corpus takes 78,081 scopes without and 78,093 with (+12, its
+six such calls), and 1.32 s of function bodies either way (minimum of 5 paired
+runs: 1,316 ms and 1,327 ms). No overload was added, so no call has more
+candidates than before; the file passes the type-check guard
+(`-solver-scope-threshold=2000`) both ways.
+
+Tests: `KeyboardShortcutOverlayTests` (a labelled handler listed, an unlabelled
+and a disabled one not), the compile corpus for SwiftUI's call sites.

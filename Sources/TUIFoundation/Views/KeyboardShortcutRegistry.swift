@@ -41,7 +41,8 @@
 /// It also knows what each shortcut is called, for the list of what is in force
 /// (``listing(activePane:reachesPage:modalSection:)``): a control says, as it
 /// registers, and a menu row that only shows a key something else binds says so
-/// too (``noteHint(_:title:menu:section:)``).
+/// too (``noteHint(_:title:menu:section:)``), as does a labelled `onKeyPress`
+/// (``noteKeyPress(_:title:section:)``).
 ///
 /// Not `Sendable`, like its sibling per-frame services (`MouseEventDispatcher`,
 /// `KeyEventDispatcher`): touched only from the main run loop (render pass
@@ -149,6 +150,10 @@ package final class KeyboardShortcutRegistry {
     /// The framework defaults registered inside each pane, by the pane.
     private var paneDefaults: [String: [KeyboardShortcut.Trigger: Default]] = [:]
 
+    /// The labelled `onKeyPress` handlers drawn this frame, in the order drawn
+    /// (``noteKeyPress(_:title:section:)``), for the list of what is in force.
+    var keyPresses: [KeyPressEntry] = []
+
     /// Clears the frame's registrations (called from the render loop).
     package func beginRenderPass() {
         actions.removeAll(keepingCapacity: true)
@@ -157,6 +162,7 @@ package final class KeyboardShortcutRegistry {
         defaults.removeAll(keepingCapacity: true)
         if !paneDefaults.isEmpty { paneDefaults.removeAll() }
         if !hints.isEmpty { hints.removeAll(keepingCapacity: true) }
+        if !keyPresses.isEmpty { keyPresses.removeAll(keepingCapacity: true) }
         currentCommandMenu = nil
         registrationCount = 0
     }
@@ -338,13 +344,14 @@ package final class KeyboardShortcutRegistry {
     /// frame was drawn, by the rules ``trigger(for:activePane:reachesPage:modalSection:)``
     /// fires by, so each key appears once, under whatever a press would reach.
     ///
-    /// Only what registers here. An `onKeyPress` or `onKeyEvent` handler is a
-    /// closure that nothing can ask what it answers to. And only a key the
-    /// terminal sends as itself (`reporting`, ``KeyboardReporting/delivers(_:)``):
-    /// one that does not is still bound, but the list names only keys that
-    /// work here (the owner, 2026-11-19). A fallback
-    /// (`View.keyboardShortcutFallback(_:)`) is named only where the shortcut
-    /// it stands in for is not, so a control appears once.
+    /// Only what registers here. An `onKeyEvent` handler, or an `onKeyPress`
+    /// with no `label`, is a closure that nothing can ask what it answers to;
+    /// a labelled `onKeyPress` is listed by ``keyPressListing(activePane:reachesPage:modalSection:)``.
+    /// And only a key the terminal sends as itself (`reporting`,
+    /// ``KeyboardReporting/delivers(_:)``): one that does not is still bound,
+    /// but the list names only keys that work here (the owner, 2026-11-19). A
+    /// fallback (`View.keyboardShortcutFallback(_:)`) is named only where the
+    /// shortcut it stands in for is not, so a control appears once.
     package func listing(
         activePane: String? = nil, reachesPage: Bool = true, modalSection: String? = nil,
         reporting: KeyboardReporting? = nil
