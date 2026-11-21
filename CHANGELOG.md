@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A custom `ButtonStyle` can hold `@State` of its own.** Its body is drawn where the button keeps its own focus id,
+hover and press, and its first `@State` took the button's focus id: of another type, the two replaced each other
+every frame and the style's state reset; of the same type, a debug build stopped on an assertion. The button now keeps
+its own state where no view's `@State` can reach it.
+
 **A table's column menu, scrolled sideways, marks every column the table shows.** It took the columns on screen for
 the shown ones: a column scrolled out of sight was listed unmarked, choosing it did nothing, and with one column in
 sight Hide and every entry were off. Choosing a shown column off screen now hides it.

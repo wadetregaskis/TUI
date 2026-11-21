@@ -80,6 +80,7 @@ import TUICore
     /// | -230… | `_FormLayout`: a windowed columns form's kept widths (-230, `FormColumnsWindowing.swift`), and the version of what its content walk read, which its loop rows are memoised under (-231, `FormRowMemo.swift`) |
     /// | -240… | `_TextEditorCore`'s first frame: the layout its measures make before its handler exists (a tracked value) |
     /// | -250… | `_TimelineViewCore`: the animation entry it shows until its next wake (a tracked value) |
+    /// | -260… | `_ButtonCore` (a `ButtonStyle`'s body is drawn at the button's own identity) |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with

@@ -467,11 +467,16 @@ private struct _ButtonCore: View, Renderable, Layoutable {
         fatalError("_ButtonCore renders via Renderable")
     }
 
+    /// Negative: the style's body is drawn at this core's own identity (a
+    /// ``ButtonStyle``'s `makeBody`, through `makeBuffer`), and `0...` belongs
+    /// to that body's own `@State` — at `0…3` its first `@State` was this
+    /// button's focus id, its second the hover flag. See
+    /// `StateStorage.StateKey`'s reserved-range table.
     private enum StateIndex {
-        static let focusID = 0
-        static let isHovered = 1
-        static let isPressed = 2
-        static let repeatTimer = 3
+        static let focusID = -260
+        static let isHovered = -261
+        static let isPressed = -262
+        static let repeatTimer = -263
     }
 
     /// A button hugs its label (it never grows to fill), so this is its exact,
