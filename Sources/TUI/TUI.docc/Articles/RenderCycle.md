@@ -653,7 +653,12 @@ each check would be followed by a draw anyway.
 **A row's builder.** What a `ForEach` closure or a row's builder reads is the
 parent's view of its rows: a change to it marks the rows below the parent, and
 each is re-checked by its rebuilt value — the edited line of an index-keyed
-editor is drawn again, and the others are served.
+editor is drawn again, and the others are served. The rebuild a re-check makes
+is observed the same way, under a scope the entry keeps alive, so a row served
+because it compared equal still sees the next change to what its builder read.
+Rebuilt unobserved, a change that left every row on screen equal (a selection
+moved to a row out of sight) left nothing watching, and the next one was never
+drawn.
 
 **The contract this rests on is SwiftUI's.** A row's `==` must cover everything
 the row draws. One that leaves something out — compares an id, say, while the

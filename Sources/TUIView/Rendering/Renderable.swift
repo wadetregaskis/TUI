@@ -571,15 +571,25 @@ package func observingKeptResult<T>(
 package func observingRowBuild<T>(
     of reader: Any.Type, parent: ViewIdentity, context: RenderContext, _ build: () -> T
 ) -> T {
-    let cache = context.renderCache
+    observingRowBuild(
+        of: reader, parent: parent, cache: context.renderCache, link: observationLink(of: context), build)
+}
+
+/// ``observingRowBuild(of:parent:context:_:)`` with the cache and the link in
+/// hand: what a re-check builds its row under (`RenderCache.recheckRow`),
+/// which has no render context. Not main-actor isolated, as the cache is not:
+/// it reads nothing a render context holds.
+@inline(__always)
+package func observingRowBuild<T>(
+    of reader: Any.Type, parent: ViewIdentity, cache: RenderCache?, link: RenderCache.Link?, _ build: () -> T
+) -> T {
     let sentinel = cache?.scopeSentinel(forReader: reader, at: parent)
     return withObservationTracking(
         {
             sentinel?.touch()
             return build()
         },
-        onChange: rowBuildChange(
-            cache: cache, link: observationLink(of: context), reader: reader, parent: parent, sentinel: sentinel))
+        onChange: rowBuildChange(cache: cache, link: link, reader: reader, parent: parent, sentinel: sentinel))
 }
 
 /// ``observingRowBuild(of:parent:context:_:)``'s change: a soft invalidation

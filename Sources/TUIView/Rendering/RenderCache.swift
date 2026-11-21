@@ -864,7 +864,7 @@ extension RenderCache {
             || resolveSuspect(
                 entry,
                 recheck: { record in
-                    environment.map { recheckRow(record, rebuild: rebuild, environment: $0, depth: depth) } ?? .off
+                    environment.map { recheckRow(record, rebuild: rebuild, of: V.self, at: identity, environment: $0, depth: depth) } ?? .off
                 },
                 drop: { dropSuspect(entry, at: identity, slot: slot) })
         else {
@@ -1109,7 +1109,7 @@ extension RenderCache {
         if let found, unsafe found.isSuspect {
             // As a buffer's (``lookupEntry``).
             let verdict = environment.flatMap { environment in
-                unsafe found.revalidation.map { recheckRow($0, rebuild: rebuild, environment: environment, depth: depth) }
+                unsafe found.revalidation.map { recheckRow($0, rebuild: rebuild, of: V.self, at: found.identity, environment: environment, depth: depth) }
             } ?? .off
             revalidation.noteVerdict(verdict, at: found.identity.structuralHash)
             if verdict == .unchanged {

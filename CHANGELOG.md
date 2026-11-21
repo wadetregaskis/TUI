@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `ForEach` row reading an `@Observable` its parent's `body` doesn't read keeps updating.** A row closure such as
+`Text(selection.current == item.id ? "▶" : " ")`, where only the closure read `selection`, stopped being redrawn
+after one change that left every row on screen as it was (a selection moved to a row out of sight, a title set for
+one): the next change, even to a row in sight, was never drawn. The rows checked after such a change now go on
+watching what their closure read.
+
 **`.animation(_:value:)` animates a change in a row that was kept from an earlier frame.** A `ForEach` row over
 `Equatable` data, a view in `.equatable()` or a view of the app's own that TUI kept forgot the value its
 `.animation(_:value:)` watched on the first frame something else on the page drew, so the next change to it jumped

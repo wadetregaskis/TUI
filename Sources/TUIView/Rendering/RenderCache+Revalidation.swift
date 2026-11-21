@@ -230,6 +230,10 @@ extension RenderCache {
         package var environment: EnvironmentStamp
         /// How many environment modifiers that note themselves were above it.
         package let depth: Int
+        /// The lease of the last re-check's rebuild, which keeps the scope it
+        /// was built under alive while the entry is kept (``recheckRow``):
+        /// replaced by each re-check, so the scope before it is cancelled.
+        package var rebuildLease: ObservationLease?
 
         init(snapshot: Any, equal: @escaping (Any, Any) -> Bool, environment: EnvironmentStamp, depth: Int) {
             self.snapshot = snapshot
@@ -269,11 +273,26 @@ extension RenderCache {
     /// none — 4,000 a frame on `fanout` — makes nothing. A re-check closure
     /// made for every lookup cost that scenario 19% (stored, capturing the
     /// render context) and `anyview` 4% (on the stack).
+    ///
+    /// The row is rebuilt under the scope a miss builds it under
+    /// (`observingRowBuild`), reporting softly at the parent of `identity`,
+    /// the row's, with `reader` the memo's key type: the scope that marked
+    /// the row suspect has fired, and fires once, and a row served on an
+    /// equal verdict arms nothing else.
+    /// Rebuilt under no scope, nothing watched what the row's builder read
+    /// once a frame had re-checked every row and found each equal, and the
+    /// next change to it was never drawn (VIEWR-1, 2026-11-20). The scope is
+    /// armed under a lease of its own, which the record holds
+    /// (``Revalidation/rebuildLease``), so it lives while the entry is kept.
     package func recheckRow<Row>(
-        _ record: Revalidation, rebuild build: () -> Row, environment: EnvironmentValues, depth: Int
+        _ record: Revalidation, rebuild build: () -> Row, of reader: Any.Type, at identity: ViewIdentity,
+        environment: EnvironmentValues, depth: Int
     ) -> RecheckVerdict {
         guard revalidation.servesRechecked else { return .off }
-        let row = build()
+        let leaseMark = leases.beginComputation()
+        let row =
+            identity.parent.map { observingRowBuild(of: reader, parent: $0, cache: self, link: link, build) } ?? build()
+        let rebuildLease = leases.endComputation(leaseMark)
         guard record.equal(record.snapshot, row) else {
             revalidation.counts.unequalValues += 1
             return .valueChanged
@@ -293,6 +312,7 @@ extension RenderCache {
         }
         record.snapshot = row
         record.environment = stamp
+        record.rebuildLease = rebuildLease
         return .unchanged
     }
 
