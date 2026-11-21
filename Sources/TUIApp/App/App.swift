@@ -473,6 +473,10 @@ extension AppRunner {
         let hostSettings = HostSettingsRefresher { [weak self, weak renderer] settings in
             renderer?.hostAccessibility = settings.accessibility
             renderer?.hostSpringLoadingDelay = settings.springLoadingDelay
+            renderer?.hostTextCursorBlinkHalf = settings.inputTimings.textCursorBlinkHalf
+            renderer?.hostTextCursorBlinks = settings.inputTimings.textCursorBlinks
+            self?.tuiContext.mouseEventDispatcher.multiClickWindow =
+                settings.inputTimings.doubleClickInterval ?? MouseEventDispatcher.standardMultiClickWindow
             self?.appState.setNeedsRender()
         }
         self.hostSettings = hostSettings

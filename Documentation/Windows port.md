@@ -320,16 +320,14 @@ Two things about the environment the runs needed:
 - **The release suite**: blocked on all three toolchains by compiler bugs that their assert-enabled Windows builds
   catch ("The tests", "In release"); to report upstream.
 - **What Windows has that TUI does not read yet** (a survey of the sources, 2026-11-20), each left for a reason:
-  images through WIC rather than `stb_image` (TIFF, WebP, HEIC, EXIF orientation, colour management: a decoder of its
-  own); `Image+Bundle` listing `tiff`, which `stb_image` cannot decode (the branch Linux shares, so a Linux change);
-  `.lnk` shortcuts in a file panel (`IShellLinkW`, a COM interface called through its vtable, or the binary format
-  parsed); conhost's cell size in pixels (`GetCurrentConsoleFontEx`), whose default already matches Consolas and whose
-  answer would also decide whether pictures are drawn, and the display's scale (`GetDpiForWindow`); a `file:` link's
-  host name (`GetComputerNameExW`: whether Windows Terminal follows a link with a host is unmeasured);
-  `TableColumn`'s default order, which is `.lexical` off Darwin and would need a comparator of its own type, an API
-  change; the double-click interval, caret blink and key repeat, which TUI fixes on every platform
-  (`GetDoubleClickTime`, `GetCaretBlinkTime`: a choice for every platform, so the owner's); and Japanese readings, zlib for
-  Kitty images, and the Stress bench's memory figures.
+  colour management and animation other than a GIF's in WIC's pictures (an animated WebP's frames come uncomposited,
+  so playing one is a compositor of its own); the display's scale (`GetDpiForWindow`); `TableColumn`'s default order,
+  which is `.lexical` off Darwin, as Windows's `String.StandardComparator` has nothing else, so a natural default
+  would change SwiftUI's parameter type, a deviation; press-and-hold repeat, which no Windows setting governs (its
+  keyboard repeat is the terminal's); macOS's and GNOME's double-click and blink settings, beside Windows's (read
+  since 2026-11-20, `TerminalClient.hostInputTimings()`), for the Mac; and Japanese readings, zlib for Kitty images,
+  and the Stress bench's memory figures. A `file:` link's host is not one: Windows Terminal refuses a link that names
+  one (the survey's "Paint").
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal

@@ -96,8 +96,12 @@ As it reads macOS's and GNOME's, when you're at the machine the app runs on:
 - **Accessibility**: Animation effects off is reduce motion, Transparency effects off is reduce transparency, and a
   contrast theme is increased contrast (Settings → Accessibility). Windows has nothing for differentiating without
   colour; `TUI_DIFFERENTIATE_WITHOUT_COLOR=1` asks for it (<doc:EnvironmentVariables>).
-- **Folders**: a file panel's Desktop, Documents and Downloads are where Windows keeps them, in OneDrive when its backup
-  moved them there, and Applications is Program Files.
+- **Double-click speed and the text cursor's blink**: two clicks count as a double-click as far apart as the Mouse
+  control panel's double-click speed allows (500 ms by default, where TUI's own is 400), and the text cursor blinks
+  at the Keyboard control panel's cursor blink rate, or not at all where that is "None", whatever a view asked for. A
+  view's ``View/indicatorAnimationSpeed(_:for:)`` still sets its own speed.
+- **Folders**: a file panel's Desktop, Documents and Downloads are where Windows keeps them, in OneDrive when its
+  backup moved them there, and Applications is Program Files.
 - **File names**: a file panel refuses a name Windows would read as something else, such as one with a `:` (which
   names a hidden stream of another file), a `\`, a trailing dot or space, or a device's name such as `CON`. Names
   sort as Explorer sorts them, `item2` before `item10`, and a file's Kind is Windows's word for it, as in Explorer's
@@ -109,8 +113,8 @@ As it reads macOS's and GNOME's, when you're at the machine the app runs on:
 - **Pictures**: Windows's own codecs decode them (WIC), so besides PNG, JPEG, GIF and BMP an ``Image`` draws TIFF,
   WebP, HEIC and AVIF, JPEG XL and XR, icons, DDS and camera raw files, turned upright by their orientation, the
   largest of an icon's or a TIFF's images, each where Windows has a codec for it (some, as HEIC's, come as extensions
-  from the Microsoft Store). TGA, Radiance HDR, PSD and PNM, which WIC does not read, are decoded by TUI's own decoder. Only a
-  GIF animates, as elsewhere off Apple platforms.
+  from the Microsoft Store). TGA, Radiance HDR, PSD and PNM, which WIC does not read, are decoded by TUI's own
+  decoder. Only a GIF animates, as elsewhere off Apple platforms.
 - **The classic console's font**: TUI asks its cell's size, so a picture keeps its shape in a font narrower than
   Consolas, such as Cascadia Mono.
 - **The console's colours**: the classic console doesn't answer the questions TUI asks a terminal about its colours,

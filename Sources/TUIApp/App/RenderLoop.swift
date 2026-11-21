@@ -431,6 +431,15 @@ internal final class RenderLoop<A: App> {
     /// every loop but the app runner's, which takes macOS's default instead.
     var hostSpringLoadingDelay: Duration?
 
+    /// The host's text cursor blink, shown and then hidden for this long each,
+    /// where the user is provably at the machine (`HostSettingsRefresher`):
+    /// written at the root as the text cursor's speed, beneath the scene's.
+    var hostTextCursorBlinkHalf: Duration?
+
+    /// Whether the host's text cursor blinks: `false` where the user turned it
+    /// off, which stills every text cursor (`textCursorBlinks`).
+    var hostTextCursorBlinks: Bool?
+
     /// The date every frame of a still run says it is, or `nil` for a run that moves:
     /// `TUI_STILL`, which the app runner reads. See ``publishAnimationValues``.
     var stillDate: Date?
@@ -1121,6 +1130,18 @@ extension RenderLoop {
         // (the key's own). A view's `.springLoadingDelay(_:)` overrides it.
         if let delay = springLoadingDelayRequested ?? hostSpringLoadingDelay {
             environment.springLoadingDelay = delay
+        }
+        // The host's text cursor blink, where the user is provably at it: its
+        // rate against TUI's own as the text cursor's speed, beneath the
+        // scene's and a theme's speeds, which go over it; and still where it
+        // does not blink, which nothing goes over.
+        if let half = hostTextCursorBlinkHalf, half > .zero {
+            let rate = Double(CursorTimer.standardBlinkHalf.clampedNanoseconds) / Double(half.clampedNanoseconds)
+            environment.indicatorAnimationSpeeds.set(
+                IndicatorAnimationSpeed(rate, tolerance: rate * 0.05), for: .textCursor)
+        }
+        if hostTextCursorBlinks == false {
+            environment.textCursorBlinks = false
         }
         environment.sceneStorageSession = sceneStorageSession
 

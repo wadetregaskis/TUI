@@ -58,6 +58,18 @@ struct MouseDoubleClickTests {
         #expect(counts() == [1, 2])
     }
 
+    @Test("The window is the dispatcher's: a host's slower double-click counts a gap TUI's own does not")
+    func hostWindow() {
+        var now: UInt64 = 0
+        let (dispatcher, counts) = recordingDispatcher(now: { now })
+        click(dispatcher)
+        now += 450_000_000  // past TUI's 400 ms
+        click(dispatcher)
+        dispatcher.multiClickWindow = .milliseconds(500)  // Windows's default
+        now += 450_000_000
+        click(dispatcher)
+        #expect(counts() == [1, 1, 2])
+    }
     @Test("Three quick clicks reach clickCount 3 (triple-click)")
     func tripleClick() {
         var now: UInt64 = 0

@@ -21,10 +21,18 @@ struct HostSettings: Equatable, Sendable {
     /// The host's spring-loading delay, where it states one (owner ruling B82).
     var springLoadingDelay: Duration?
 
+    /// The host's double-click speed and text cursor blink, where it states them.
+    var inputTimings = HostInputTimings()
+
     /// Whether this reading asks for anything a host left at its defaults
     /// does not: what decides whether the session's locality is worth asking.
+    /// Windows's own defaults (a 500 ms double-click, a 530 ms blink) differ
+    /// from TUI's, so a Windows host always asks.
     var asksForAnything: Bool {
         !accessibility.isEmpty || (springLoadingDelay.map { $0 != EnvironmentValues().springLoadingDelay } ?? false)
+            || (inputTimings.doubleClickInterval.map { $0 != MouseEventDispatcher.standardMultiClickWindow } ?? false)
+            || (inputTimings.textCursorBlinkHalf.map { $0 != CursorTimer.standardBlinkHalf } ?? false)
+            || inputTimings.textCursorBlinks == false
     }
 }
 
@@ -96,7 +104,8 @@ internal final class HostSettingsRefresher {
     nonisolated static func readHost() -> HostSettings {
         let host = HostSettings(
             accessibility: TerminalClient.hostAccessibility() ?? [],
-            springLoadingDelay: TerminalClient.hostSpringLoadingDelay())
+            springLoadingDelay: TerminalClient.hostSpringLoadingDelay(),
+            inputTimings: TerminalClient.hostInputTimings())
         guard host.asksForAnything, SessionLocality.isLocal() else { return HostSettings() }
         return host
     }

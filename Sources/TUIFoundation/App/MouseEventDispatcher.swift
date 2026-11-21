@@ -323,7 +323,7 @@ package final class MouseEventDispatcher {
         var inFlight = true
     }
 
-    /// The most recent button press. A press within ``multiClickWindowNanos``
+    /// The most recent button press. A press within ``multiClickWindow``
     /// of the previous one, on the same button and (near) the same cell,
     /// increments the count.
     private var lastClick: LastClick?
@@ -435,9 +435,16 @@ package final class MouseEventDispatcher {
     /// once per walk, and only while an arena exists.
     var gestureFilingsUnread = false
 
-    /// The maximum gap between successive clicks for them to count as one
-    /// multi-click sequence (400 ms — a common desktop double-click threshold).
-    private static let multiClickWindowNanos: UInt64 = 400_000_000
+    /// TUI's own longest gap between successive clicks for them to count as
+    /// one multi-click sequence: 400 ms, a common desktop double-click
+    /// threshold.
+    package static let standardMultiClickWindow = Duration.milliseconds(400)
+
+    /// The longest gap between successive clicks for them to count as one
+    /// multi-click sequence: the host's double-click speed where the app runner
+    /// read one where the user is at the machine (Windows's, 500 ms by
+    /// default), else ``standardMultiClickWindow``.
+    package var multiClickWindow = MouseEventDispatcher.standardMultiClickWindow
 
     /// Monotonic time source (nanoseconds): the clock an event's arrival is
     /// read on, both for a press's place in a multi-click sequence and for the
@@ -1466,7 +1473,7 @@ extension MouseEventDispatcher {
                 last.button == event.button,
                 abs(last.x - event.x) <= 1,
                 abs(last.y - event.y) <= 1,
-                now &- last.timeNanos <= Self.multiClickWindowNanos
+                now &- last.timeNanos <= multiClickWindow.clampedNanoseconds
             {
                 count = last.count + 1
             } else {

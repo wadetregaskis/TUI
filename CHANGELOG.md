@@ -38,6 +38,11 @@ a file is chosen as that file, as a symbolic link is. In the classic console a p
 narrower than Consolas. Elsewhere off Apple platforms, `Image(_:bundle:)` no longer looks for a `.tiff`, which it
 could not draw.
 
+**On Windows, a double-click and the text cursor's blink follow Windows's settings.** Two clicks count as one double-click
+as far apart as the Mouse control panel allows (500 ms by default, where TUI's own is 400 ms), and the text cursor
+blinks at the Keyboard control panel's rate, or holds still where that is None, whatever a view's `.textCursor(_:)`
+asked for. Read only where you're at the machine the app runs on, as TUI's other host settings are.
+
 **In a `TextEditor`, Shift-Option-B and Shift-Option-F select a word at a time,** as they do in a `TextField` and as
 Shift-Option-← and → already did. They only moved the caret, losing the selection. They are the word keys where a
 terminal keeps Shift-Option-arrows for itself, as Windows Terminal binds them to resizing a pane.

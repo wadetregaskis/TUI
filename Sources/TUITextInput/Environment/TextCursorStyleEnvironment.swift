@@ -23,8 +23,15 @@ extension EnvironmentValues {
     /// TextField("Name", text: $name)
     ///     .textCursor(.bar, animation: .blink)
     /// ```
+    ///
+    /// Still, whatever was set, where the user turned the text cursor's
+    /// blinking off in the host's own settings (`textCursorBlinks`).
     public var textCursorStyle: TextCursorStyle {
-        get { self[TextCursorStyleKey.self] }
+        get {
+            let style = self[TextCursorStyleKey.self]
+            guard !textCursorBlinks, style.animation != .none else { return style }
+            return TextCursorStyle(shape: style.shape, animation: .none)
+        }
         set { self[TextCursorStyleKey.self] = newValue }
     }
 }

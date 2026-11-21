@@ -325,6 +325,13 @@ extension CursorTimer {
     /// 700 ms period.
     nonisolated static let standardBlinkCycle: TimeInterval = 0.7
 
+    /// A blink's shown, or hidden, time at the standard speed: half
+    /// ``standardBlinkCycle``, 350 ms. What a host's own blink rate is read
+    /// against (Windows's 530 ms is a rate of about 0.66).
+    nonisolated package static var standardBlinkHalf: Duration {
+        .milliseconds(Int((standardBlinkCycle * 500).rounded()))
+    }
+
     /// A breath's cycle at the standard speed, bright to dim to bright: 800 ms.
     nonisolated static let standardPulseCycle: TimeInterval = 0.8
 
