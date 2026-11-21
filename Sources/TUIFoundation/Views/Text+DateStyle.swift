@@ -121,7 +121,9 @@ struct DateStyleSource: LiveTextSource, Equatable {
                 counted, width: .wide, locale: environment.locale, calendar: environment.calendar)
             return (now < date ? "\u{2212}" : "+") + units
         case .timer:
-            return TimeSpan.clock(seconds: Int(abs(now.timeIntervalSince(date))), showsHours: true)
+            // `Int(clamping:)`: a date at an infinity or NaN (an ETA divided by
+            // a rate of 0) trapped `Int(_:)` in `Text`'s initialiser (RICH-1).
+            return TimeSpan.clock(seconds: Int(clamping: abs(now.timeIntervalSince(date))), showsHours: true)
         }
     }
 
@@ -180,6 +182,9 @@ struct DateStyleSource: LiveTextSource, Equatable {
     }
 
     func nextChange(after now: Date, in environment: LiveTextEnvironment) -> Date? {
+        // A date that is no finite instant reads the same at every `now`: the
+        // span to it is infinite (or not a number) whenever it is asked.
+        guard date.timeIntervalSinceReferenceDate.isFinite else { return nil }
         let spelling: TimeSpanSpelling
         switch style.storage {
         case .time, .date:

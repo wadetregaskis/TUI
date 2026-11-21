@@ -133,8 +133,13 @@ public final class AnimationCompletionTracker {
 
     /// `nowNanos` plus `seconds`, or `.max` for an animation that never gets
     /// there.
+    ///
+    /// Through `AnimationClock.deadline`, which saturates: an animation of
+    /// 1e18 s (or `.speed(1e-12)`) trapped `Int64(_:)` here, and one just short
+    /// of 292 years WRAPPED into a deadline in the past and fired its
+    /// completion at once (hunt 11-20, VIEWS-3).
     private func deadline(_ nowNanos: Int64, _ seconds: Double?) -> Int64 {
         guard let seconds, seconds.isFinite else { return .max }
-        return nowNanos &+ Int64((seconds * 1_000_000_000).rounded(.up))
+        return AnimationClock.deadline(seconds, after: nowNanos, rounding: .up) ?? .max
     }
 }

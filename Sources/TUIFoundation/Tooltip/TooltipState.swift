@@ -304,7 +304,7 @@ public final class TooltipState {
         hoveredViews.append(
             Candidate(
                 text: text, handlerID: handlerID, owner: owner, sinceNanos: nowNanos,
-                showAtNanos: nowNanos &+ Int64(max(0, delaySeconds) * 1_000_000_000),
+                showAtNanos: Self.showAt(nowNanos: nowNanos, delaySeconds: delaySeconds),
                 style: style))
     }
 
@@ -547,7 +547,7 @@ public final class TooltipState {
         // gone (`syncFocus`), so one still here is this control's own from an
         // earlier walk. Compared on the text, as `hovering` compares, so help
         // text that changes under the focus is new help with a new wait.
-        var deadline = nowNanos &+ Int64(max(0, delaySeconds) * 1_000_000_000)
+        var deadline = Self.showAt(nowNanos: nowNanos, delaySeconds: delaySeconds)
         if let focused, focused.text == text { deadline = focused.showAtNanos }
         focused = Candidate(
             text: text, handlerID: handlerID, focusID: focusID, sinceNanos: nowNanos,
@@ -668,13 +668,24 @@ public final class TooltipState {
     /// matching ``resolved(nowNanos:)`` — the slot that would not be shown even
     /// once its own deadline passed is not worth waking for.
     package func pendingDeadlineNanos(nowNanos: Int64) -> Int64? {
+        // `.max` is never (``showAt(nowNanos:delaySeconds:)``): no wake for it.
         if let pointer = pointerCandidate {
-            return pointer.showAtNanos > nowNanos ? pointer.showAtNanos : nil
+            return pointer.showAtNanos > nowNanos && pointer.showAtNanos != .max ? pointer.showAtNanos : nil
         }
         guard let focused, focused.revealsItself, !keyboardRevealed,
-            focused.showAtNanos > nowNanos
+            focused.showAtNanos > nowNanos, focused.showAtNanos != .max
         else { return nil }
         return focused.showAtNanos
+    }
+
+    /// When a tooltip asked for at `nowNanos` shows by itself: `delaySeconds`
+    /// later, or `.max` — never — for a delay the clock never reaches.
+    ///
+    /// `.environment(\.tooltipDelay, .infinity)` says "never by itself", and
+    /// trapped `Int64(_:)` the first time a pointer entered a view with help
+    /// (hunt 11-20, FOCUS-1). Saturating, through `AnimationClock.deadline`.
+    static func showAt(nowNanos: Int64, delaySeconds: Double) -> Int64 {
+        AnimationClock.deadline(delaySeconds, after: nowNanos) ?? .max
     }
 }
 

@@ -966,10 +966,23 @@ extension View {
 
 extension Duration {
     /// This duration as whole nanoseconds, clamped at zero.
+    ///
+    /// Saturating at `UInt64.max` (584 years), which is "never": a
+    /// `.dragAutoScrollDelay(.seconds(Int64.max))` WRAPPED to a second short of
+    /// 2^64, and the deadline it was added to wrapped again to a second ago, so
+    /// the delay meant as never fired on the next frame (hunt 11-20, DND-11).
     package var clampedNanoseconds: UInt64 {
         guard self > .zero else { return 0 }
-        let seconds = UInt64(components.seconds) &* 1_000_000_000
-        return seconds &+ UInt64(components.attoseconds / 1_000_000_000)
+        let (seconds, overflow) = UInt64(components.seconds).multipliedReportingOverflow(by: 1_000_000_000)
+        let (total, carry) = seconds.addingReportingOverflow(UInt64(components.attoseconds / 1_000_000_000))
+        return overflow || carry ? .max : total
+    }
+
+    /// `start` plus `delay` nanoseconds, or `UInt64.max` — never — past the
+    /// clock's end, where `&+` wrapped to an instant in the past.
+    package static func deadline(_ start: UInt64, plus delay: UInt64) -> UInt64 {
+        let (sum, overflow) = start.addingReportingOverflow(delay)
+        return overflow ? .max : sum
     }
 }
 

@@ -43,6 +43,9 @@ extension TerminalClient {
             default: nil
             }
         guard let seconds, seconds.isFinite, seconds >= 0 else { return nil }
-        return .milliseconds(Int64((seconds * 1000).rounded()))
+        // `Int64(clamping:)`: a preference of 1e17 s (a corrupt plist, or
+        // spring loading turned "off") trapped `Int64(_:)` as the host's
+        // settings were read, at launch (hunt 11-20, CORE2-16).
+        return .milliseconds(Int64(clamping: (seconds * 1000).rounded()))
     }
 }

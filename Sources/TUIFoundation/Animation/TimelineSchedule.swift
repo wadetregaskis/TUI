@@ -215,7 +215,11 @@ public struct AnimationTimelineSchedule: TimelineSchedule, Sendable {
 
         public mutating func next() -> Date? {
             guard let date = upcoming else { return nil }
-            upcoming = date.addingTimeInterval(interval)
+            // Ends where a step does not move the date, as the periodic
+            // schedule's entries do: an app iterating them by hand would
+            // otherwise be handed this one forever.
+            let following = date.addingTimeInterval(interval)
+            upcoming = following > date ? following : nil
             return date
         }
     }
@@ -262,8 +266,14 @@ public struct AnimationTimelineSchedule: TimelineSchedule, Sendable {
     }
 
     public func entries(from startDate: Date, mode: TimelineScheduleMode) -> Entries {
-        let interval =
-            (minimumInterval.map { $0 > 0 ? $0 : Self.defaultInterval }) ?? Self.defaultInterval
+        // At least one tick of 1/60 s, the shortest wait `frameTicks` paces the
+        // view at anyway. An interval below a `Date`'s resolution today (about
+        // 6e-8 s; `.animation(minimumInterval: 1e-9)`) handed out the start
+        // date forever, and `TimelineView`, looking for the first entry after
+        // now, never returned from its first render (hunt 11-20, FENV-3).
+        let interval = max(
+            AnimationClock.seconds(forTicks: 1),
+            (minimumInterval.map { $0 > 0 ? $0 : Self.defaultInterval }) ?? Self.defaultInterval)
         // Paused, or a display too slow to be worth animating on: no entries at
         // all. The view still renders once, at the date it asked about.
         let stopped = paused || mode == .lowFrequency

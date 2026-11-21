@@ -306,9 +306,15 @@ struct GestureTimer {
     private var expiry: Int64?
 
     /// Starts the timer: it runs out `seconds` after `start`, the time of
-    /// the event that armed it.
+    /// the event that armed it, or never, for a wait the clock never reaches.
+    ///
+    /// `LongPressGesture(minimumDuration: .infinity)` is SwiftUI's idiom for
+    /// "tell me only while it is pressed": it trapped `Int64(_:)` on the first
+    /// press, and a wait just short of 292 years wrapped `&+` into an expiry in
+    /// the past (hunt 11-20, FOCUS-1). `AnimationClock.deadline` saturates, and
+    /// its `nil` leaves the timer running for good.
     mutating func arm(seconds: Double, at start: Int64) {
-        expiry = start &+ Self.nanos(seconds)
+        expiry = AnimationClock.deadline(seconds, after: start)
     }
 
     mutating func disarm() {
@@ -324,8 +330,8 @@ struct GestureTimer {
     /// When the timer runs out, while it runs.
     var deadline: Int64? { expiry }
 
-    /// `seconds` in nanoseconds, never negative.
+    /// `seconds` in nanoseconds, never negative, and saturating.
     static func nanos(_ seconds: Double) -> Int64 {
-        Int64((max(0, seconds) * 1_000_000_000).rounded())
+        AnimationClock.nanoseconds(max(0, seconds))
     }
 }

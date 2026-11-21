@@ -209,7 +209,7 @@ extension DragAndDropSession {
         else { return nil }
         let since = hover.sinceNanos ?? nowNanos
         hover.sinceNanos = since
-        let deadline = since &+ target.delayNanos
+        let deadline = Duration.deadline(since, plus: target.delayNanos)
         guard nowNanos >= deadline else {
             springLoadHover = hover
             return deadline

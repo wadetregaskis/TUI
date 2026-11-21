@@ -230,8 +230,13 @@ final class CustomAnimationCurve: Sendable {
 
     /// The frame `time` falls in: read on the frame grid, so every walk of a
     /// frame, and a frame asked for again, reads the same value.
+    ///
+    /// Held to `0...maximumFrames`, the integration's own cap, while still a
+    /// `Double`: `.speed(.infinity)` (the spelling for "arrive at once") and
+    /// `fraction(at: .infinity)` asked for an infinite frame, and `Int(_:)`
+    /// trapped on it. NaN is the first frame.
     private static func frame(at time: TimeInterval) -> Int {
-        max(0, Int((time * framesPerSecond + 1e-6).rounded(.down)))
+        min(maximumFrames, max(0, Int(clamping: (time * framesPerSecond + 1e-6).rounded(.down))))
     }
 
     /// Integrates `table` through `frame`, or until the animation finishes.

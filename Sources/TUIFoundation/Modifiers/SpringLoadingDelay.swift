@@ -76,6 +76,9 @@ extension TerminalClient {
         guard let text = environment["TUI_SPRING_LOADING_DELAY"],
             let seconds = Double(text.trimmingCharacters(in: .whitespaces)), seconds.isFinite, seconds >= 0
         else { return nil }
-        return .milliseconds(Int64((seconds * 1000).rounded()))
+        // `Int64(clamping:)`, as the Mac preference's twin
+        // (`TerminalClient.springLoadingDelay(preferenceValue:)`) explains:
+        // `TUI_SPRING_LOADING_DELAY=1e17` trapped at launch (DND-11).
+        return .milliseconds(Int64(clamping: (seconds * 1000).rounded()))
     }
 }

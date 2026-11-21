@@ -148,15 +148,23 @@ public struct ScrollGlide: Sendable {
     /// is that instant (`AnimationCompletionTracker`), and a landing a
     /// nanosecond before it is the glide's last frame, after which nothing
     /// would draw the frame that fires it.
+    ///
+    /// Saturating, after the rounding up: a glide under
+    /// `withAnimation(.linear(duration: 1e18))`, `.speed(1e-300)` or
+    /// `duration: .infinity` is longer than an `Int64` of nanoseconds, and
+    /// `Int64(_:)` trapped on the first frame that asked (hunt 11-20, CONC-4).
+    /// Such a glide never finishes, which is what its animation says.
     package func isFinished(atNanos nanos: Int64) -> Bool {
         guard let total = animation.totalDuration else { return animation.isFinished(at: elapsed(atNanos: nanos)) }
-        return nanos &- startNanos >= Int64((total * 1_000_000_000).rounded(.up))
+        let length = AnimationClock.nanoseconds(total, rounding: .up)
+        return length != .max && nanos &- startNanos >= length
     }
 
     /// How much of the distance the curve has travelled by `nanos`, in whole
     /// lines: the line the glide is drawn on.
     package func place(atNanos nanos: Int64) -> Int {
-        Int((Double(distance) * animation.fraction(at: elapsed(atNanos: nanos))).rounded())
+        // `Int(cells:)`: a custom curve's fraction is anything it returns.
+        Int(cells: (Double(distance) * animation.fraction(at: elapsed(atNanos: nanos))).rounded())
     }
 
     /// The first 1/60 s tick after `nanos` at which the glide is drawn on

@@ -37,7 +37,13 @@ struct TimerIntervalSchedule: TimelineSchedule, Sendable {
 
     func entries(from startDate: Date, mode: Mode) -> Entries {
         let now = startDate.timeIntervalSinceReferenceDate
-        let first = min(end, start + max(0, (now - start).rounded(.down)))
+        var first = min(end, start + max(0, (now - start).rounded(.down)))
+        // A start too far off for its whole seconds to land near now: from a
+        // `Date` of -1.8e308, `start + (now - start)` came back hundreds of
+        // millions of seconds short of now, and the timeline stepped a second
+        // at a time up to it for thirteen minutes; from -infinity it is NaN.
+        // Such an interval has no second boundaries to keep: count from now.
+        if now >= start, !(abs(first - now) <= 1) { first = min(end, now) }
         return Entries(upcoming: first, end: end)
     }
 
@@ -48,7 +54,12 @@ struct TimerIntervalSchedule: TimelineSchedule, Sendable {
 
         mutating func next() -> Date? {
             guard let current = upcoming else { return nil }
-            upcoming = current < end ? Swift.min(end, current + 1) : nil
+            // Ends where a second does not move the date, as the periodic
+            // schedule's entries do: past 2^53 s `current + 1` is `current`,
+            // and a timeline looking for the first entry after now never
+            // returned.
+            let following = Swift.min(end, current + 1)
+            upcoming = current < end && following > current ? following : nil
             return Date(timeIntervalSinceReferenceDate: current)
         }
     }
@@ -74,7 +85,9 @@ nonisolated public struct DefaultDateProgressLabel: View {
     /// The whole seconds left (counting down) or gone (counting up) at `date`.
     @MainActor private func seconds(at date: Date) -> Int {
         let now = min(end, max(start, date.timeIntervalSinceReferenceDate))
-        return Int((countsDown ? (end - now).rounded(.up) : (now - start).rounded(.down)))
+        // `Int(clamping:)`: an interval ending at +infinity reads infinitely
+        // many seconds left, which `Int(_:)` trapped on (CONC-6).
+        return Int(clamping: countsDown ? (end - now).rounded(.up) : (now - start).rounded(.down))
     }
 
     /// `m:ss`, or `h:mm:ss` from an hour.

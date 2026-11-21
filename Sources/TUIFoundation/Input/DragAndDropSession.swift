@@ -1255,7 +1255,7 @@ package final class DragAndDropSession {
             // tick, so a drag merely crossing an edge on its way elsewhere
             // doesn't yank the viewport.
             autoScrollEngagedSinceNanos = nowNanos
-            autoScrollNextFireNanos = nowNanos &+ step.zone.delayNanos
+            autoScrollNextFireNanos = Duration.deadline(nowNanos, plus: step.zone.delayNanos)
         } else if nowNanos >= autoScrollNextFireNanos {
             var moved = false
             if step.dy != 0 { moved = step.zone.vertical.scrollFine(by: step.dy) }

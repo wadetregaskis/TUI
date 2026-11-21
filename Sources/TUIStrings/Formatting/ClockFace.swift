@@ -9,6 +9,7 @@
 //  License: MIT
 
 import Foundation
+import TUICore
 
 /// SwiftUI's rules for a timer's and a stopwatch's face, measured on macOS 15
 /// and pinned in `SystemFormatStyleClockTests`:
@@ -73,7 +74,12 @@ package struct ClockFace: Sendable {
     private func quantised(_ value: Double, stepUnits: Int, scale: Int, roundsUp: Bool) -> Int {
         let steps = value * Double(scale) / Double(stepUnits)
         let rounded = roundsUp ? (steps - Self.slack).rounded(.up) : (steps + Self.slack).rounded(.down)
-        return max(0, Int(rounded)) * stepUnits
+        // Saturating, at both steps: a timer counting down to a `Date` at +∞
+        // (an ETA of `remaining / rate` with a rate of 0) reads ∞ seconds, and
+        // a stopwatch past 248 days is past a 32-bit `Int` of hundredths
+        // (wasm32). Each trapped; each reads the longest face there is now.
+        let (total, overflow) = max(0, Int(clamping: rounded)).multipliedReportingOverflow(by: stepUnits)
+        return overflow ? Int.max / stepUnits * stepUnits : total
     }
 
     /// The fields `value` seconds is counted in, in `units`, truncated: from
@@ -81,7 +87,7 @@ package struct ClockFace: Sendable {
     /// timer reads under a day). The first unit takes as many as there are:
     /// a timer has no days.
     private func counted(_ value: Double, in units: [TimeSpanUnit]) -> [TimeSpanField] {
-        var remaining = max(0, Int((value + Self.slack).rounded(.down)))
+        var remaining = max(0, Int(clamping: (value + Self.slack).rounded(.down)))
         var values: [Int] = []
         for unit in units {
             let length = Int(unit.seconds ?? 1)
@@ -122,7 +128,7 @@ package struct ClockFace: Sendable {
             return ladder
         case .face:
             guard padsLeading else { return [widest] }
-            let whole = Int((value + Self.slack).rounded(.down))
+            let whole = max(0, Int(clamping: (value + Self.slack).rounded(.down)))
             var ladder = [widest, TimeSpan.clock(seconds: whole, showsHours: showsHours, padsLeading: false)]
             let hours = showsHours ? whole / 3_600 : 0
             if hours > 0 {

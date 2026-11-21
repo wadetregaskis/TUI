@@ -81,9 +81,14 @@ struct TimerIntervalSource: LiveTextSource, Equatable {
 
     /// Whole seconds, rounded the way the timer reads: up counting down, so it
     /// shows `0:01` until it is done; down counting up.
+    ///
+    /// `Int(clamping:)`: an interval that ends at a `Date` of +infinity (an ETA
+    /// of `remaining / rate` with a rate of 0) reads infinity counting down,
+    /// and one that starts at -infinity reads NaN. `Int(_:)` trapped on both,
+    /// in `Text`'s initialiser, which reads the source at once (RICH-1).
     private func seconds(at now: Date) -> Int {
         let value = reading(at: now)
-        return Int(countsDown ? value.rounded(.up) : value.rounded(.down))
+        return Int(clamping: countsDown ? value.rounded(.up) : value.rounded(.down))
     }
 
     func text(at now: Date, in environment: LiveTextEnvironment) -> String {
@@ -91,16 +96,21 @@ struct TimerIntervalSource: LiveTextSource, Equatable {
     }
 
     func nextChange(after now: Date, in environment: LiveTextEnvironment) -> Date? {
+        // A reading that is not a number of seconds never changes: the face
+        // the clamp gave it stays.
+        guard reading(at: now).isFinite else { return nil }
         let current = seconds(at: now)
         if countsDown {
             // The seconds left are `ceil(end − t)`, which read one fewer once
             // `end − t` falls to it — unless the pause holds them first.
-            let floor = Int((pauseOffset ?? 0).rounded(.up))
+            let floor = Int(clamping: (pauseOffset ?? 0).rounded(.up))
             guard current > floor else { return nil }
-            return end.addingTimeInterval(-Double(current - 1))
+            return end.addingTimeInterval(1 - Double(current))
         }
         // The seconds gone are `floor(t − start)`, up to the end or the pause.
-        guard Double(current + 1) <= pauseOffset ?? length else { return nil }
-        return start.addingTimeInterval(Double(current + 1))
+        // In `Double`: a reading of `Int.max` seconds (an interval longer
+        // than that, clamped) has no `+ 1` in `Int`.
+        guard Double(current) + 1 <= pauseOffset ?? length else { return nil }
+        return start.addingTimeInterval(Double(current) + 1)
     }
 }

@@ -48,7 +48,12 @@
         /// is a breath a second), at least one.
         package static func frameTicks(speed: Double) -> Int {
             guard speed.isFinite, speed > 0 else { return AnimationClock.standardFrameTicks }
-            return max(1, Int((Double(AnimationClock.standardFrameTicks) / speed).rounded()))
+            // Held to `Int32.max` ticks while a `Double`, as
+            // `AnimationClock.frameTicks(forSeconds:)` holds them: a speed below
+            // about 3e-19 made a quotient past `Int.max`, and `Int(_:)` trapped
+            // as the modifier was built (hunt 11-20, CONC-8).
+            let ticks = (Double(AnimationClock.standardFrameTicks) / speed).rounded()
+            return ticks < Double(Int32.max) ? max(1, Int(ticks)) : Int(Int32.max)
         }
 
         /// The ink's opacity at frame `index` of a breath: full at its start, the
