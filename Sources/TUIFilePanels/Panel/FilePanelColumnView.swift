@@ -86,7 +86,7 @@ struct FilePanelColumnView: View {
         let browser = browser
         forward.action = { id in
             guard let url = id.base as? URL, let entry = browser.entry(for: url) else { return false }
-            if entry.isFolder, !entry.isPlaceholder { browser.open(entry.url) }
+            if entry.isFolder, !entry.isPlaceholder { browser.open(entry.openedURL) }
             // On a file too: → does nothing there, and stays in the columns.
             return true
         }
@@ -184,7 +184,7 @@ struct FilePanelColumnView: View {
     /// The folder selected in the folder shown, alone, whose items show in
     /// the column after it.
     private var selectedFolder: URL? {
-        selectedEntry.flatMap { $0.isFolder ? $0.url : nil }
+        selectedEntry.flatMap { $0.expandsInPlace ? $0.url : nil }
     }
 
     /// The item selected in the folder shown, alone.
@@ -304,7 +304,7 @@ struct FilePanelColumnView: View {
             set: { url in
                 guard let url, let entry = rows.first(where: { $0.url == url }) else { return }
                 if entry.isFolder {
-                    browser.open(entry.url)
+                    browser.open(entry.openedURL)
                 } else {
                     browser.open(URL(fileURLWithPath: folder, isDirectory: true))
                     guard !entry.isDimmed else { return }

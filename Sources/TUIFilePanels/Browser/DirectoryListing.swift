@@ -141,6 +141,10 @@ enum DirectoryListing {
         /// The system's words for the type, on Apple platforms and Windows.
         var typeDescription: String?
 
+        /// Where the item leads, for a shortcut file the platform follows
+        /// (a Windows `.lnk`, ``ShellShortcut``) whose target exists.
+        var shortcutTarget: URL?
+
         init() {}
 
         /// From prefetched values; all defaults where they could not be read.
@@ -177,9 +181,17 @@ enum DirectoryListing {
     ) -> FileEntry {
         let url = directory.appendingPathComponent(name)
         let isSymbolicLink = facts.isSymbolicLink
+        let shortcutTarget = facts.shortcutTarget
         let isPackage = facts.isPackage
         var isDirectory = facts.isDirectory
-        if isSymbolicLink {
+        if let shortcutTarget {
+            // A shortcut is a folder where its target is, and has the type its
+            // target has, so the panel's types are asked of what it leads to.
+            var leadsToDirectory: ObjCBool = false
+            isDirectory =
+                unsafe FileManager.default.fileExists(atPath: shortcutTarget.path, isDirectory: &leadsToDirectory)
+                && leadsToDirectory.boolValue
+        } else if isSymbolicLink {
             // A link to a folder opens as one: the link's own values describe
             // the link, so ask what it leads to. `fileExists(atPath:isDirectory:)`
             // follows the link (it is `stat`); `resolvingSymlinksInPath()` does
@@ -191,7 +203,9 @@ enum DirectoryListing {
                 && leadsToDirectory.boolValue
         }
         let isFolder = isDirectory && (!isPackage || rule.enumeratesPackages)
-        let type = contentType(of: url, facts: facts, isFolder: isFolder)
+        let type =
+            shortcutTarget.map { contentType(of: $0, facts: ItemFacts(), isFolder: isFolder) }
+            ?? contentType(of: url, facts: facts, isFolder: isFolder)
         let size = isFolder ? nil : facts.size
         var isChoosable = rule.allows(type, isFolder: isFolder)
         if isChoosable, let predicate = rule.urlEnabled {
@@ -200,11 +214,12 @@ enum DirectoryListing {
         let isHidden = facts.isHidden || url.lastPathComponent.hasPrefix(".")
         return FileEntry(
             url: url, name: url.lastPathComponent, isFolder: isFolder, isHidden: isHidden,
-            isSymbolicLink: isSymbolicLink,
+            isSymbolicLink: isSymbolicLink, shortcutTarget: shortcutTarget,
             contentType: type, size: size, modified: facts.modified,
             sizeText: size.map(formats.size) ?? "--", modifiedText: facts.modified.map(formats.date) ?? "",
             kind: kind(of: type, facts: facts, isFolder: isFolder), isChoosable: isChoosable,
-            fileKind: fileKind(of: type, isFolder: isFolder, isSymbolicLink: isSymbolicLink, kinds: &kinds))
+            fileKind: fileKind(
+                of: type, isFolder: isFolder, isSymbolicLink: isSymbolicLink || shortcutTarget != nil, kinds: &kinds))
     }
 
     /// ``FileKind/of(_:isFolder:isSymbolicLink:)``, a file type's worked out

@@ -118,7 +118,7 @@ extension FileBrowser {
     func branches(for rows: [FileEntry]) -> [FileEntry] {
         guard !folderRows.isEmpty || !foldersShowingLoading.isEmpty else { return rows }
         var updated = rows
-        for index in updated.indices where updated[index].isFolder {
+        for index in updated.indices where updated[index].expandsInPlace {
             updated[index].children = branch(of: updated[index].url)
         }
         return updated
@@ -145,7 +145,7 @@ extension FileBrowser {
             return []
         }
         return items.map { item in
-            guard item.isFolder else { return item }
+            guard item.expandsInPlace else { return item }
             var folder = item
             folder.children = branch(of: item.url)
             return folder

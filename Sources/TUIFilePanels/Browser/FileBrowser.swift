@@ -334,7 +334,7 @@ final class FileBrowser {
             // A folder's row is a branch in the outline that starts with no children
             // until read or until the loading delay elapses.
             .map { entry in
-                guard entry.isFolder, entry.children == nil else { return entry }
+                guard entry.expandsInPlace, entry.children == nil else { return entry }
                 var folder = entry
                 folder.children = []
                 return folder

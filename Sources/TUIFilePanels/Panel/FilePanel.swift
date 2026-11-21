@@ -509,7 +509,7 @@ struct FilePanel: View {
     private func activate(_ urls: Set<URL>) {
         let entries = browser.entries(for: urls)
         if entries.count == 1, let entry = entries.first, entry.isFolder {
-            browser.open(entry.url)
+            browser.open(entry.openedURL)
             return
         }
         // To save, a file is a name to save under, not a choice.

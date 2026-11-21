@@ -48,7 +48,14 @@ extension DirectoryListing {
             // Foundation's error says why in the words every platform's does.
             return try foundationItems(of: directory)
         }
-        return items
+        // A shortcut is followed as a symbolic link is (`ShellShortcut`).
+        return items.map { item in
+            guard !item.facts.isDirectory, ShellShortcut.isShortcut(named: item.name) else { return item }
+            var facts = item.facts
+            facts.shortcutTarget = ShellShortcut.target(
+                ofShortcutAt: directory.appendingPathComponent(item.name).path)
+            return (item.name, facts)
+        }
     }
 
     /// What finds every item in the folder at `path`, its native path:

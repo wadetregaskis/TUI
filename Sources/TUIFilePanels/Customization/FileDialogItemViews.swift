@@ -34,7 +34,8 @@ struct FileDialogItemViews: Equatable {
     /// The app's view for `entry`, or `nil` for TUI's own.
     @MainActor
     func view(for entry: FileEntry) -> AnyView? {
-        box.make(entry.url, entry.contentType)
+        // A shortcut's view is of what it leads to, as its type is.
+        box.make(entry.shortcutTarget ?? entry.url, entry.contentType)
     }
 
     /// The closure a modifier's latest body gave it. Main-actor state: written

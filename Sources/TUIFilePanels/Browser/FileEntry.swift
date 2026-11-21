@@ -40,6 +40,13 @@ struct FileEntry: Identifiable, Sendable {
     /// it leads to unless told not to (`fileDialogImportsUnresolvedAliases(_:)`).
     let isSymbolicLink: Bool
 
+    /// Where the item leads, when it is a shortcut file the platform follows
+    /// (a Windows `.lnk`) to a file or folder that exists: what a panel
+    /// opens, and chooses unless told not to, in its place, as it does a
+    /// symbolic link's target. `nil` for anything else, a symbolic link
+    /// included, which the file system follows by itself.
+    var shortcutTarget: URL?
+
     /// The item's content type.
     let contentType: UTType
 
@@ -104,11 +111,24 @@ struct FileEntry: Identifiable, Sendable {
     /// nor opened — a file of a type the panel does not take.
     var isDimmed: Bool { !isChoosable && !isFolder }
 
-    /// The URL a panel hands its caller for the item: a symbolic link's
-    /// target, when links are resolved, and otherwise the item's own.
+    /// The URL a panel hands its caller for the item: a link's target, a
+    /// shortcut's or a symbolic link's, when links are resolved, and
+    /// otherwise the item's own.
     func chosenURL(resolvingLinks: Bool) -> URL {
-        isSymbolicLink && resolvingLinks ? url.resolvingSymlinksInPath() : url
+        guard resolvingLinks else { return url }
+        if let shortcutTarget { return shortcutTarget }
+        return isSymbolicLink ? url.resolvingSymlinksInPath() : url
     }
+
+    /// The folder a panel opens for the item: a shortcut's target, else the
+    /// item's own URL (a symbolic link's leads where it does by itself).
+    var openedURL: URL { shortcutTarget ?? url }
+
+    /// Whether the item's own items show beneath it, in the list view's
+    /// outline and the column after it: a folder, but not a shortcut to one,
+    /// which opens at its target, as Explorer's tree never expands one in
+    /// place.
+    var expandsInPlace: Bool { isFolder && shortcutTarget == nil }
 
     /// The size the Size column sorts by: a folder before every file.
     var sortSize: Int64 { size ?? -1 }

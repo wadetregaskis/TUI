@@ -189,7 +189,7 @@ struct FilePanelPreview: View {
     /// grow between its size being read and the read.
     @concurrent
     static func excerpt(of entry: FileEntry) async -> Excerpt? {
-        let file = entry.url.resolvingSymlinksInPath()
+        let file = entry.shortcutTarget ?? entry.url.resolvingSymlinksInPath()
         guard mayContainText(entry.contentType),
             (try? file.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true,
             let handle = try? FileHandle(forReadingFrom: file)
