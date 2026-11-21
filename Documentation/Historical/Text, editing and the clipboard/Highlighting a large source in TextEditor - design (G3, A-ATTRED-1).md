@@ -9,8 +9,9 @@ Swift 6.2.4, `-O`; see "For a future reader"). Ids: A-ATTRED-5 to 7 (for the own
 here). The owner ruled on A-ATTRED-5 to 7 on 2026-11-18; §8 explores the rulings (B-ATTRED-19 to 26, and
 A-ATTRED-10 to 12 for the owner, who ruled on all three on 2026-11-19). The owner's final word on 12 replaced the
 lexers with tree-sitter, outside TUI; §8.6 re-plans TUI's side for it (B-ATTRED-27 to 30 decided there, A-ATTRED-15
-and 16 for the owner, both ruled (a) later on 2026-11-19), with a fourth probe of tree-sitter itself. Lanes H1, H6′, H5′ and H3 are
-built (B-ATTRED-31 to 51, in §8.6).*
+and 16 for the owner, both ruled (a) later on 2026-11-19), with a fourth probe of tree-sitter itself. All five of
+TUI's lanes, H1, H6′, H5′, H3 and H4′, are built (B-ATTRED-31 to 54, in §8.6): marks are public, and the seam is SPI
+until tuitree's tree-sitter adapter has been written against it and settled.*
 
 ## In short
 
@@ -978,7 +979,7 @@ fetch it.
 | **H6′** ✓ | The seam and its store: versioned snapshots, coalesced whole-line changes, the styler's task started and cancelled with the editor (B-ATTRED-19 to 22, 25), publishing validated into the window, frames only for lines on screen (20), provisional tokens carried and shifted (24, 28), updates on a scroll (27), B-ATTRED-29's additions, the guards (15, 30). Tests: a fake tree styler that reports changed ranges, deterministic stepping without sleeps, a stale publish refused, an edit mid-publish, cancellation, one run under the thread sanitizer. **Built 2026-11-20** (B-ATTRED-34 to 41, below) | 1½ | H2 + H7 2, H6 ½ |
 | **H5′** ✓ | A stateless JSON line styler over the seam, in an internal target that is not a product (as `TUIWidthCorpus` is), for the Example, Stress's `bigtext-highlighted` and tests. **Built 2026-11-20** (B-ATTRED-42, 43, below) | ¼ | ¼ (a JSONC lexer) |
 | **H3** ✓ | Marks (B-ATTRED-13), with the find bar's matches moved onto them. **Built 2026-11-20** (B-ATTRED-46 to 51, below) | 1 | 1 |
-| **H4′** | The API: `TextEditorMark` and `.textEditorMarks` public, with DocC; the seam and `.textEditorHighlighter` under `@_spi(TextEditorHighlighting)` (A-ATTRED-10), documented in doc comments; `api_baseline.py` taught to skip SPI; the API stability policy's SPI line; CHANGELOG; the Example's Text Input page in its seven languages | ¾ | 1 |
+| **H4′** ✓ | The API: `TextEditorMark` and `.textEditorMarks` public, with DocC; the seam and `.textEditorHighlighter` under `@_spi(TextEditorHighlighting)` (A-ATTRED-10), documented in doc comments; `api_baseline.py` taught to skip SPI; the API stability policy's SPI line; CHANGELOG; the Example's Text Input page in its seven languages. **Built 2026-11-20** (B-ATTRED-52 to 54, below; `api_baseline.py`'s SPI skip had landed on `main` before it) | ¾ | 1 |
 | **H0** | Gone, with the line-lexer engine (A-ATTRED-15 (a)) | 0 | 1 |
 
 **About 4 lane-days in TUI, against 6¼.** In order: H1, H6′, H5′, H3, H4′. With A-ATTRED-15 (b), about 6¼. The
@@ -1280,6 +1281,84 @@ over it whole or in part; over highlighting, under the selection and the find ti
 earlier; across a line break and from inside a wide character; the find bar's matches carried through an edit; edits
 found to the byte), with `FindNavigatorTests` unchanged.
 
+#### H4′, as built (2026-11-20)
+
+The API, on top of H3 (0f7453566). Marks are public, the seam stays SPI (A-ATTRED-10 (b)), and highlighting reaches
+DocC only as a sentence naming the SPI import:
+
+```swift
+public struct TextEditorMark: Equatable, Sendable {
+    public var range: Range<String.Index>
+    public var attributes: AttributeContainer
+    public init(_ range: Range<String.Index>, attributes: AttributeContainer)
+}
+extension View {
+    nonisolated public func textEditorMarks(_ marks: [TextEditorMark], in text: String) -> some View
+}
+// Unchanged, under @_spi(TextEditorHighlighting): TextEditorHighlighter, TextEditorHighlightSession,
+// TextEditorText, TextEditorTextChange, TextEditorHighlightUpdate, TextEditorTokens and
+// .textEditorHighlighter(_:maximumLineLength:style:).
+```
+
+Documented in the symbols' doc comments, in a "Marking ranges of the text" section of the Text Input and Forms
+article, and under the Controls collection's Text Input topic; the seam in its doc comments only, which now say how
+to opt in and that it is outside the promise. The API stability policy's SPI line says what SPI means for TUI (no
+promise, may change in a minor or a patch, opted into by `@_spi(Name) import`, promotion additive) and names the one
+SPI. `api_baseline.py` already left SPI out (on `main` before this lane), so the baseline gains marks alone. The
+CHANGELOG has an entry for marks, and the seam's entry says it is outside the promise.
+
+- **B-ATTRED-52. Marks have one form, of a `String`; no `AttributedString` form.** B-ATTRED-51 left it to this lane.
+  SwiftUI has no marks, so there is no signature to follow, and TUI's own rules decide: a modifier for an option that
+  reaches a subtree (it is one), and as few overloads as do the job. One form serves both editors, since an
+  attributed editor's marks are ranges of its characters' `String`, found by value (B-ATTRED-49). A second form would
+  be an overload of `textEditorMarks(_:in:)` by the type of `in:`, with a second mark type over
+  `Range<AttributedString.Index>`: a type-checking cost at every call, and a worse one underneath. An
+  `AttributedString.Index` becomes the UTF-8 offset marks are kept in (B-ATTRED-46) only by walking the characters
+  from the start until `AttributedString`'s UTF-8 view, which needs macOS 26 (B-ATTRED-19; cost ledger M3, M4), so
+  each mark would cost the text up to it, against constant time for a native `String`'s index; and finding the
+  stated text by value would compare `AttributedString`s, a character at a time (the comparison that was 98.7% of a
+  key's time in the Text Input article's `@Observable` note). The app has the `String` anyway: a parser reads bytes.
+  So the doc comment says to state an attributed editor's marks of `String(value.characters)`, ideally the very
+  string the parse read. If an app asks, the form is additive in a minor release, best once macOS 26 is the floor.
+  The macOS 15 part of the reason is in the
+  [cost ledger](<../../Swift language/Cost of supporting Swift 6.2 and macOS 15.md>).
+- **B-ATTRED-53. The names stay as H3 built them.** `TextEditorMark`, `init(_:attributes:)` and
+  `textEditorMarks(_:in:)`: the `TextEditor` prefix of TUI's other editor options (`textEditorWrapsLines`,
+  `textEditorStyle`, `.textEditorHighlighter`), the range unlabelled as `AttributedString`'s subscripts take it,
+  `attributes:` as `AttributedString.mergeAttributes(_:)` names an `AttributeContainer`, and `in:` for the text the
+  ranges are of, as `String.range(of:)` results are "in" a string. SwiftUI declares neither base name (its text
+  editor has `TextEditor` and `textEditorStyle(_:)` alone, §2), so nothing is shadowed, and no SwiftUI call can
+  become ambiguous: a new base name adds no overload to any existing set. `TextEditorMark` stays `Equatable` and
+  `Sendable`, as H3 made it; `Hashable`, if an app wants it, is additive.
+- **B-ATTRED-54. The Example shows marks with a check an app would write, and highlighting through the SPI.** The
+  Text Input page's new section, `MarkedEditorDemo`, is a `TextEditor` of JSON coloured by H5′'s `JSONHighlighter`
+  (the Example already depended on `TUIJSONStyler`) and marked where a bracket does not match: a check of the text,
+  run on each evaluation of the body, the marks stated with the text it read and drawn in the palette's error colour
+  with a curly underline. The sample has one bracket too many, so the marks show at once and follow as the reader
+  mends or breaks a bracket; a line under the editor counts them. Its four strings are in all seven languages
+  (`Strings_g29.swift`).
+
+Tests: `TextEditorMarksPublicTests` (in `TUITestingTests`, with plain imports as an app's tests have: a mark drawn
+over its range and nowhere else, marks of the text before three keys carried through them, a curly underline),
+`TextEditorHighlighterSPITests` (the same target, with only `@_spi(TextEditorHighlighting) import TUITextInput`: a
+highlighter of the test's own run by a real editor in a `TestApp`), and `MarkedEditorDemoTests` (the bracket check,
+and the section on the page), with `ExampleLocalizationParityTests` for the strings.
+
+**What tuitree's adapter needs next (A-ATTRED-16 (a): a target of tuitree's own).** Nothing more from TUI to start.
+It imports `@_spi(TextEditorHighlighting) import TUITextInput` and SwiftTreeSitter with the grammar packages, and
+pins TUI's minor version, since the seam may change in one. Its work is §"The adapter's cost": each update's
+`TextEditorTextChange` to one `InputEdit` (B-ATTRED-36's changes start at a line's start, so the points are
+(line, 0)), a re-parse over `TextEditorText.withUTF8(_:)` with a UTF-8 read block, the changed ranges plus the
+edit's new bytes to lines by `line(containingUTF8Offset:)`, a highlight query over the window's byte range
+(`update.visibleLines` and a screen either side), captures clipped and flattened into one line's
+`TextEditorTokens`, published in one batch with `publish(_:forLines:of:)`, and `checkpoint()` between steps. Its
+parse errors (tree-sitter's `ERROR` and `MISSING` nodes) become the app's public marks: ranges of the update's
+`text.string`, made from byte offsets by indexing `string.utf8` (constant time for a native string), and stated
+with that same string, so they are drawn at once if the editor is still there and carried if it has moved on
+(B-ATTRED-48). When the adapter has settled, the seam's promotion goes to the owner (A-ATTRED-10's trigger), with
+the driveable session in `TUITesting` that §8.1's risk table prices at about ½ day, so a bridge can be tested
+without an editor.
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no
@@ -1321,6 +1400,11 @@ app asks.
 
 ## For a future reader
 
+- **Where it stands (2026-11-20).** TUI's side is built (§8.6's lanes, through H4′). Public: `TextEditorMark` and
+  `.textEditorMarks(_:in:)`. SPI (`@_spi(TextEditorHighlighting) import TUITextInput`): the seam and
+  `.textEditorHighlighter`. Internal: the JSON styler (`TUIJSONStyler`, no product) that the Example, Stress and the
+  tests use. Next is tuitree's tree-sitter adapter ("H4′, as built" says what it needs), and after it the seam's
+  promotion, which is the owner's call (A-ATTRED-10).
 - **The probe** (not kept in the repository, per this folder's habit): a Swift file that builds a pretty-printed
   JSON of 3.2 MB (119,774 lines, seven lines a record), lexes it with a byte-level JSONC lexer (key, string,
   number, keyword, punctuation, comment, error; a one-byte state, inside a block comment or not), and times a full

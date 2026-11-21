@@ -265,6 +265,9 @@ struct TextInputPage: View {
                 }
             }
 
+            // MARK: Marks and highlighting
+            MarkedEditorDemo()
+
             ClipboardButtonsDemo()
 
             // MARK: Disabled
