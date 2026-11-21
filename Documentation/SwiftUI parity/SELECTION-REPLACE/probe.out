@@ -1,0 +1,88 @@
+## Part 1: NSTextView, selection {2,5} of "abcdefghij"
+
+| edit | TextKit 1: text after | TextKit 1: selectedRange | TextKit 2: selectedRange |
+|---|---|---|---|
+| (a) textView.string = "0123456789" (same length) | "0123456789" | {10,0} | {10,0} |
+| (a') textView.string = "0123" (shorter than the selection's end) | "0123" | {4,0} | {4,0} |
+| (a'') textView.string = "0123456789ABCDEF" (longer) | "0123456789ABCDEF" | {16,0} | {16,0} |
+| (b) textStorage.replaceCharacters({0,0}, "XY") (insert before) | "XYabcdefghij" | {4,5} | {4,5} |
+| (b') textStorage.replaceCharacters({1,0}, "XY") (insert just before) | "aXYbcdefghij" | {4,5} | {4,5} |
+| (c) textStorage.replaceCharacters({3,2}, "Z") (inside, shrinks) | "abcZfghij" | {4,0} | {4,0} |
+| (c') textStorage.replaceCharacters({3,2}, "ZZZZ") (inside, grows) | "abcZZZZfghij" | {7,0} | {7,0} |
+| (c'') textStorage.replaceCharacters({1,3}, "Q") (straddles the start) | "aQefghij" | {2,0} | {2,0} |
+| (c''') textStorage.replaceCharacters({6,3}, "Q") (straddles the end) | "abcdefQj" | {7,0} | {7,0} |
+| (d) textStorage.replaceCharacters({10,0}, "XYZ") (append) | "abcdefghijXYZ" | {2,5} | {2,5} |
+| (e) textStorage.replaceCharacters({0,10}, "0123456789ABCDEF") (whole, longer) | "0123456789ABCDEF" | {16,0} | {16,0} |
+| (e') textStorage.replaceCharacters({0,10}, "012") (whole, shorter) | "012" | {3,0} | {3,0} |
+| (e'') textStorage.setAttributedString("0123456789") | "0123456789" | {10,0} | {10,0} |
+| (f) textView.replaceCharacters({0,0}, "XY") (NSText API) | "XYabcdefghij" | {4,5} | {4,5} |
+| (g) textView.insertText("XY", replacementRange: {0,0}) | "XYabcdefghij" | {4,5} | {4,5} |
+
+## Part 2: NSTextField, field editor active, selection {2,5} of "abcdefghij"
+
+| assignment | editor still current | editor text | editor selectedRange |
+|---|---|---|---|
+| stringValue = "0123456789" | yes | "0123456789" | {2,5} |
+| stringValue = "abcdefghijXYZ" | yes | "abcdefghijXYZ" | {2,5} |
+| stringValue = "XYabcdefghij" | yes | "XYabcdefghij" | {2,5} |
+| stringValue = "012" | yes | "012" | {2,1} |
+
+## Part 3: SwiftUI TextEditor(text:) / TextField(text:), selection {2,5} set on the NSTextView, then @State set
+
+| view | new @State text | view text after | selectedRange after |
+|---|---|---|---|
+| TextEditor (sel before {2,5}) | "0123456789" | "0123456789" | {10,0} |
+| TextEditor (sel before {2,5}) | "abcdefghijXYZ" | "abcdefghijXYZ" | {13,0} |
+| TextEditor (sel before {2,5}) | "XYabcdefghij" | "XYabcdefghij" | {12,0} |
+| TextEditor (sel before {2,5}) | "012" | "012" | {3,0} |
+| TextEditor (sel before {2,5}) | "abcdefghij" (unchanged) | "abcdefghij" | {2,5} |
+| TextField (sel before {2,5}) | "0123456789" | "0123456789" | {10,0} |
+| TextField (sel before {2,5}) | "abcdefghijXYZ" | "abcdefghijXYZ" | {13,0} |
+| TextField (sel before {2,5}) | "XYabcdefghij" | "XYabcdefghij" | {12,0} |
+| TextField (sel before {2,5}) | "012" | "012" | {3,0} |
+| TextField (sel before {2,5}) | "abcdefghij" (unchanged) | "abcdefghij" | {2,5} |
+
+## Part 4: TextEditor(text:selection:) / TextField(text:selection:) (macOS 15 API)
+
+| view | step | view text | view selectedRange | binding text | binding selection |
+|---|---|---|---|---|---|
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | app sets selection only: 4..<6 | "abcdefghij" | {4,2} | "abcdefghij" | 4..<6 |
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | app sets text only: "XY" + old | "XYabcdefghij" | {2,5} | "XYabcdefghij" | 2..<7 |
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | app sets text "XY" + old AND selection 4..<9 (the old one, shifted) | "XYabcdefghij" | {4,5} | "XYabcdefghij" | 4..<9 |
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | app sets text only: old + "XYZ" | "abcdefghijXYZ" | {2,5} | "abcdefghijXYZ" | 2..<7 |
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | app sets text only: "0123456789" | "0123456789" | {2,5} | "0123456789" | 2..<7 |
+| TextEditor | app sets text only: "012" (the selection now runs past the end) | (skipped: traps; run with PROBE_PAST_END=TextEditor) | | | |
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | app sets text "012" and selection nil | "012" | {3,0} | "012" | insertion 3 |
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextEditor | app sets text "XY" + old, then (next turn) selection 4..<9 | "XYabcdefghij" | {2,5} | "XYabcdefghij" | 2..<7 |
+| TextEditor | ... then selection 4..<9 | "XYabcdefghij" | {4,5} | "XYabcdefghij" | 4..<9 |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | app sets selection only: 4..<6 | "abcdefghij" | {4,2} | "abcdefghij" | 4..<6 |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | app sets text only: "XY" + old | "XYabcdefghij" | {2,5} | "XYabcdefghij" | 2..<7 |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | app sets text "XY" + old AND selection 4..<9 (the old one, shifted) | "XYabcdefghij" | {4,5} | "XYabcdefghij" | 4..<9 |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | app sets text only: old + "XYZ" | "abcdefghijXYZ" | {2,5} | "abcdefghijXYZ" | 2..<7 |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | app sets text only: "0123456789" | "0123456789" | {2,5} | "0123456789" | 2..<7 |
+| TextField | app sets text only: "012" (the selection now runs past the end) | (skipped: traps; run with PROBE_PAST_END=TextField) | | | |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | app sets text "012" and selection nil | "012" | {3,0} | "012" | nil |
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+| TextField | app sets text "XY" + old, then (next turn) selection 4..<9 | "XYabcdefghij" | {2,5} | "XYabcdefghij" | 2..<7 |
+| TextField | ... then selection 4..<9 | "XYabcdefghij" | {4,5} | "XYabcdefghij" | 4..<9 |
+
+## Part 5: macOS 26 API
+
+- compiled against the macOS 26.2 SDK; NOT runnable here: the runtime is macOS Version 15.8.3 (Build 24H241), and every one of these is `@available(macOS 26, *)`.
+
+== end

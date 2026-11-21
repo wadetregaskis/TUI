@@ -1,0 +1,232 @@
+## Part A: a write to the parent's own @State<T>
+
+### A1: @State<Double>, first State<Double> in the process
+| step | parent bodies | body saw | drawn |
+|---|---|---|---|
+| first appearance | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | -0.0 | -0.0 |
+| -> -0.0 again | 0 | -0.0 | -0.0 |
+| -> .nan | 1 | nan | nan |
+| -> .nan again | 1 | nan | nan |
+| -> 0.0 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 0 | 0.0 | 0.0 |
+
+### A2: @State<Double>, second
+| step | parent bodies | body saw | drawn |
+|---|---|---|---|
+| first appearance | 1 | 0.0 | 0.0 |
+| -> -0.0 | 0 | 0.0 | 0.0 |
+| -> -0.0 again | 0 | 0.0 | 0.0 |
+| -> .nan | 1 | nan | nan |
+| -> .nan again | 1 | nan | nan |
+| -> 0.0 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 0 | 0.0 | 0.0 |
+
+### A3: @State<Float>, first write is the identical 0.0
+| step | parent bodies | body saw | drawn |
+|---|---|---|---|
+| first appearance | 1 | 0.0 | 0.0 |
+| -> 0.0 (identical, first write) | 0 | 0.0 | 0.0 |
+| -> -0.0 | 0 | 0.0 | 0.0 |
+| -> .nan | 1 | nan | nan |
+| -> .nan again | 1 | nan | nan |
+
+### A4: @State<Item> (== ignores name), first State<Item>
+| step | parent bodies | body saw | drawn |
+|---|---|---|---|
+| first appearance | 1 | Item(id: 1, name: 1) | Item(id: 1, name: 1) |
+| name 1 -> 2 | 1 | Item(id: 1, name: 2) | Item(id: 1, name: 2) |
+| name 2 -> 3 | 0 | Item(id: 1, name: 2) | Item(id: 1, name: 2) |
+| same value again | 0 | Item(id: 1, name: 2) | Item(id: 1, name: 2) |
+| id 1 -> 2 | 1 | Item(id: 2, name: 3) | Item(id: 2, name: 3) |
+
+### A5: @State<Item>, second
+| step | parent bodies | body saw | drawn |
+|---|---|---|---|
+| first appearance | 1 | Item(id: 1, name: 1) | Item(id: 1, name: 1) |
+| name 1 -> 2 | 0 | Item(id: 1, name: 1) | Item(id: 1, name: 1) |
+| name 2 -> 3 | 0 | Item(id: 1, name: 1) | Item(id: 1, name: 1) |
+| same value again | 0 | Item(id: 1, name: 1) | Item(id: 1, name: 1) |
+| id 1 -> 2 | 1 | Item(id: 2, name: 3) | Item(id: 2, name: 3) |
+
+### A6: @State<ItemS> (non-POD, == ignores name)
+| step | parent bodies | body saw | drawn |
+|---|---|---|---|
+| first appearance | 1 | ItemS(id: 1, name: 1, note: "n") | ItemS(id: 1, name: 1, note: "n") |
+| name 1 -> 2 | 1 | ItemS(id: 1, name: 2, note: "n") | ItemS(id: 1, name: 2, note: "n") |
+| name 2 -> 3 | 0 | ItemS(id: 1, name: 2, note: "n") | ItemS(id: 1, name: 2, note: "n") |
+| same value again | 0 | ItemS(id: 1, name: 2, note: "n") | ItemS(id: 1, name: 2, note: "n") |
+| id 1 -> 2 | 1 | ItemS(id: 2, name: 3, note: "n") | ItemS(id: 2, name: 3, note: "n") |
+
+## Part B: the child's compare (parent re-runs every step)
+
+### D1: POD view `let value: Double`
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | 1 | -0.0 | -0.0 |
+| -> -0.0 again | 1 | 0 | -0.0 | -0.0 |
+| -> .nan | 1 | 1 | nan | nan |
+| -> .nan again | 1 | 0 | nan | nan |
+| -> 0.0 | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 1 | 1 | -0.0 | -0.0 |
+
+### D2: non-POD view (`value: Double`, `tag: String`)
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | 1 | -0.0 | -0.0 |
+| -> -0.0 again | 1 | 0 | -0.0 | -0.0 |
+| -> .nan | 1 | 1 | nan | nan |
+| -> .nan again | 1 | 0 | nan | nan |
+| -> 0.0 | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 1 | 1 | -0.0 | -0.0 |
+
+### D3: POD view, Equatable (Double ==), no .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | 1 | -0.0 | -0.0 |
+| -> -0.0 again | 1 | 0 | -0.0 | -0.0 |
+| -> .nan | 1 | 1 | nan | nan |
+| -> .nan again | 1 | 0 | nan | nan |
+| -> 0.0 | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 1 | 1 | -0.0 | -0.0 |
+
+### D4: same POD Equatable view + .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | 1 | -0.0 | -0.0 |
+| -> -0.0 again | 1 | 0 | -0.0 | -0.0 |
+| -> .nan | 1 | 1 | nan | nan |
+| -> .nan again | 1 | 0 | nan | nan |
+| -> 0.0 | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 1 | 0 | 0.0 | 0.0 |
+
+### D5: non-POD Equatable view (Double ==), no .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | 1 | -0.0 | -0.0 |
+| -> -0.0 again | 1 | 0 | -0.0 | -0.0 |
+| -> .nan | 1 | 1 | nan | nan |
+| -> .nan again | 1 | 1 | nan | nan |
+| -> 0.0 | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 1 | 0 | 0.0 | 0.0 |
+
+### D6: non-POD Equatable view (Double ==) + .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | 1 | -0.0 | -0.0 |
+| -> -0.0 again | 1 | 0 | -0.0 | -0.0 |
+| -> .nan | 1 | 1 | nan | nan |
+| -> .nan again | 1 | 1 | nan | nan |
+| -> 0.0 | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 1 | 0 | 0.0 | 0.0 |
+
+### I1: POD view `let item: Item`, not Equatable
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 1 | name=2 | name=2 |
+| name 2 -> 3 | 1 | 1 | name=3 | name=3 |
+| same value again | 1 | 0 | name=3 | name=3 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I2: POD view, Equatable (synthesized, Item's ==), no .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 1 | name=2 | name=2 |
+| name 2 -> 3 | 1 | 1 | name=3 | name=3 |
+| same value again | 1 | 0 | name=3 | name=3 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I3: same view + .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 1 | name=2 | name=2 |
+| name 2 -> 3 | 1 | 0 | name=2 | name=2 |
+| same value again | 1 | 0 | name=2 | name=2 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I4: same view in EquatableView(content:)
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 0 | name=1 | name=1 |
+| name 2 -> 3 | 1 | 0 | name=1 | name=1 |
+| same value again | 1 | 0 | name=1 | name=1 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I5: non-POD view (`key: String`), not Equatable
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 1 | name=2 | name=2 |
+| name 2 -> 3 | 1 | 1 | name=3 | name=3 |
+| same value again | 1 | 0 | name=3 | name=3 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I6: non-POD view, Equatable (synthesized), no .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 1 | name=2 | name=2 |
+| name 2 -> 3 | 1 | 0 | name=2 | name=2 |
+| same value again | 1 | 0 | name=2 | name=2 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I6e: non-POD view, Equatable (synthesized) + .equatable()
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 1 | name=2 | name=2 |
+| name 2 -> 3 | 1 | 0 | name=2 | name=2 |
+| same value again | 1 | 0 | name=2 | name=2 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I7: view of a NON-POD Equatable field `ItemS` (== ignores name), not Equatable
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 1 | name=2 | name=2 |
+| name 2 -> 3 | 1 | 0 | name=2 | name=2 |
+| same value again | 1 | 0 | name=2 | name=2 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+## Part C: the same types again, in fresh harnesses (is the first-compare effect per type?)
+
+### D7: ReadoutTaggedEq again (as D5)
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 | 1 | 0 | 0.0 | 0.0 |
+| -> -0.0 again | 1 | 0 | 0.0 | 0.0 |
+| -> .nan | 1 | 1 | nan | nan |
+| -> .nan again | 1 | 1 | nan | nan |
+| -> 0.0 | 1 | 1 | 0.0 | 0.0 |
+| -> -0.0 (late) | 1 | 0 | 0.0 | 0.0 |
+
+### I8: ItemViewTaggedEq again (as I6)
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 0 | name=1 | name=1 |
+| name 2 -> 3 | 1 | 0 | name=1 | name=1 |
+| same value again | 1 | 0 | name=1 | name=1 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+### I9: ItemViewEq.equatable() again (as I3)
+| step | parent bodies | child bodies | child saw | drawn |
+|---|---|---|---|---|
+| first appearance | 1 | 1 | name=1 | name=1 |
+| name 1 -> 2 | 1 | 0 | name=1 | name=1 |
+| name 2 -> 3 | 1 | 0 | name=1 | name=1 |
+| same value again | 1 | 0 | name=1 | name=1 |
+| id 1 -> 2 | 1 | 1 | name=3 | name=3 |
+
+== end

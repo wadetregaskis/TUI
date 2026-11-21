@@ -1,0 +1,12 @@
+## Part 4: TextEditor(text:selection:) / TextField(text:selection:) (macOS 15 API)
+
+| view | step | view text | view selectedRange | binding text | binding selection |
+|---|---|---|---|---|---|
+| TextEditor | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+Swift/StringUTF16View.swift:372: Fatal error: String index is out of bounds
+## Part 4: TextEditor(text:selection:) / TextField(text:selection:) (macOS 15 API)
+
+| view | step | view text | view selectedRange | binding text | binding selection |
+|---|---|---|---|---|---|
+| TextField | (after the user's selection {2,5}) | "abcdefghij" | {2,5} | "abcdefghij" | 2..<7 |
+Swift/StringUTF16View.swift:372: Fatal error: String index is out of bounds
