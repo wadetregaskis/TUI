@@ -799,6 +799,12 @@ current direction. Both run the same rule a click runs — the same
 `KeyPathComparator` promotion, with the sort it displaced kept behind it as the
 tie-break — so the two routes cannot drift apart.
 
+A column of strings given no comparator, such as `TableColumn("Name", value: \.name)`, sorts as Finder lists names,
+case aside and `item2` before `item10`, on every platform, as SwiftUI's `.localizedStandard` does on a Mac. One given a
+comparator sorts with it. A sort order your app writes itself, such as the first one it seeds the binding with, is
+Foundation's: off Apple platforms `KeyPathComparator(\.name)` orders strings by their characters' codes, and the
+header's order takes over once someone sorts by that column.
+
 Control letters rather than one chord with Shift on it, because
 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> is the same byte as
 <kbd>Ctrl</kbd>+<kbd>S</kbd> in any terminal without `modifyOtherKeys`: a shifted

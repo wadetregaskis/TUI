@@ -166,22 +166,16 @@ final class FileBrowser {
     }
 
     /// The order a panel starts in: by name, as Finder compares names (so
-    /// "item2" comes before "item10"), where Foundation can.
+    /// "item2" comes before "item10").
     nonisolated static var nameOrder: KeyPathComparator<FileEntry> {
         // Spelt out, not `.localizedStandard`: the argument is any
         // `SortComparator`, and on Linux the bare member finds an internal one.
         #if canImport(Darwin)
             KeyPathComparator(\FileEntry.name, comparator: String.StandardComparator.localizedStandard)
-        #elseif os(Windows)
-            // Windows's Foundation has `localizedStandardCompare(_:)` but no
-            // `.localizedStandard` comparator (Swift 6.3.3, measured
-            // 2026-11-20): "item2" before "item10", as Explorer lists them.
-            KeyPathComparator(\FileEntry.name, comparator: LocalizedStandardNameOrder())
         #else
-            // The static Linux SDK's Foundation has no `.localizedStandard`
-            // (measured with Swift 6.3.3; TUITables' `tableColumnDefault`
-            // makes the same choice).
-            KeyPathComparator(\FileEntry.name, comparator: String.StandardComparator.lexical)
+            // Foundation here has `localizedStandardCompare(_:)` but no
+            // `.localizedStandard` comparator (`LocalizedStandardOrder`).
+            KeyPathComparator(\FileEntry.name, comparator: LocalizedStandardOrder())
         #endif
     }
 

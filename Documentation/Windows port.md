@@ -331,14 +331,15 @@ Two things about the environment the runs needed:
 - **The release suite**: blocked on all three toolchains by compiler bugs that their assert-enabled Windows builds
   catch ("The tests", "In release"); to report upstream.
 - **What Windows has that TUI does not read yet** (a survey of the sources, 2026-11-20), each left for a reason:
-  colour management in WIC's pictures, and APNG's frames (set aside, 2026-11-20); the display's scale in Windows Terminal, which says nothing
-  of its cell; `TableColumn`'s default order,
-  which is `.lexical` off Darwin, as Windows's `String.StandardComparator` has nothing else, so a natural default
-  would change SwiftUI's parameter type, a deviation; press-and-hold repeat, which no Windows setting governs (its
-  keyboard repeat is the terminal's); macOS's and GNOME's double-click and blink settings, beside Windows's (read
-  since 2026-11-20, `TerminalClient.hostInputTimings()`), for the Mac; and Japanese readings, zlib for Kitty images,
-  and the Stress bench's memory figures. A `file:` link's host is not one: Windows Terminal refuses a link that names
-  one (the survey's "Paint").
+  colour management in WIC's pictures, and APNG's frames (set aside, 2026-11-20); the display's scale in Windows
+  Terminal, which says nothing of its cell; press-and-hold repeat, which no Windows setting governs (its keyboard
+  repeat is the terminal's); macOS's and GNOME's double-click and blink settings, beside Windows's (read since
+  2026-11-20, `TerminalClient.hostInputTimings()`), for the Mac; and Japanese readings, zlib for Kitty images, and
+  the Stress bench's memory figures. A `file:` link's host is not one: Windows Terminal refuses a link that names one
+  (the survey's "Paint"). Nor is `TableColumn`'s default order any longer: a column of strings given no comparator
+  sorts as Finder lists names on every platform (`TableColumn+StandardOrder.swift`, 2026-11-20), through an
+  initializer of TUI's own beside SwiftUI's, since Foundation off Apple platforms has no `String.StandardComparator`
+  but `.lexical` and refuses to decode one with `.localizedStandard`'s options.
 
 Done since the list was first written: a crash in both terminals (the survey's "A crash": the exception filter pays the
 debt), the mouse in both (the survey's "Mouse": every button and modifier reported but Shift, which neither terminal

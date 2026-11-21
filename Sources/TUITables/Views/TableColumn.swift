@@ -390,10 +390,16 @@ extension TableColumn {
 }
 
 extension String.StandardComparator {
-    /// What a `String` column sorts with when it is not given a comparator:
-    /// `.localizedStandard` — so "item2" sorts before "item10" — where
-    /// Foundation has it, `.lexical` where it does not (the static Linux SDK's
-    /// Foundation, measured with Swift 6.3.3).
+    /// The default of SwiftUI's `comparator:` parameter: `.localizedStandard`
+    /// where Foundation has it, and `.lexical` where it does not (off Apple
+    /// platforms, where `.lexical` and its reverse are the only ones there
+    /// are; see `LocalizedStandardOrder`).
+    ///
+    /// A column given no comparator never takes it: it is the overload of
+    /// TUI's own that has no `comparator:` parameter
+    /// (`TableColumn+StandardOrder.swift`), which sorts as `.localizedStandard`
+    /// does on every platform. Only a SwiftUI call that names a comparator
+    /// reaches the initializers that carry this default.
     @usableFromInline
     static var tableColumnDefault: Self {
         #if canImport(Darwin)
@@ -548,7 +554,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
     ) {
         self.init(
             title: String(title), cell: .content(content), namesAProperty: false,
-            sortComparator: KeyPathComparator(Self.sendable(value)))
+            sortComparator: Self.standardOrder(value))
     }
 
     /// Creates a sortable column that sorts by a `Comparable` property, with a

@@ -288,6 +288,11 @@ struct TableColumnGestureTests {
         #expect(harness.headerOrder == betaFirst, "\(harness.screen)")
     }
 
+    /// What a click on Beta's title puts first in the sort order: the column's
+    /// own comparator, which sorts its strings as Finder lists names on every
+    /// platform (`TableColumn+StandardOrder.swift`).
+    private static let betaOrder = TableColumn<Entry, KeyPathComparator<Entry>, Text, Text>.standardOrder(\Entry.beta)
+
     @Test("A click on a title still sorts")
     func clickSorts() throws {
         let harness = Harness()
@@ -295,7 +300,7 @@ struct TableColumnGestureTests {
         let beta = try #require(harness.column(of: "Beta", on: y))
         harness.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y))
         harness.send(MouseEvent(button: .left, phase: .released, x: beta + 1, y: y))
-        #expect(harness.columns.sortOrder.first == KeyPathComparator(\Entry.beta))
+        #expect(harness.columns.sortOrder.first == Self.betaOrder)
     }
 
     @Test("Dragging the gap after a title resizes the column within its bounds, and the width persists")
@@ -601,6 +606,6 @@ struct TableColumnGestureTests {
         let beta = try #require(harness.column(of: "Beta", on: y))
         harness.send(MouseEvent(button: .left, phase: .pressed, x: beta + 1, y: y, ctrl: true))
         harness.send(MouseEvent(button: .left, phase: .released, x: beta + 1, y: y, ctrl: true))
-        #expect(harness.columns.sortOrder.first == KeyPathComparator(\Entry.beta), "\(harness.screen)")
+        #expect(harness.columns.sortOrder.first == Self.betaOrder, "\(harness.screen)")
     }
 }

@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A table column of strings sorts `item2` before `item10` on Windows and Linux, as on a Mac.** Given no comparator,
+`TableColumn(_:value:)` and `TableColumn(_:value:content:)` over a `String` property sort as Finder lists names
+everywhere, where off Apple platforms they sorted by character codes (`Zebra` before `apple`, `item10` before
+`item2`), since Foundation there has no `.localizedStandard`. SwiftUI's initializers are unchanged, and a column given
+a comparator sorts with that one. File panels sort their names this way on Linux too, as they already did on Windows.
+
 **On Windows, an animated WebP plays, and in the classic console an `Image` takes its natural size.** Windows's
 WebP codec composites the frames, so a WebP plays there as a GIF does, at the file's own timing. The classic
 console's cell is measured from its window, at its display's scale, so an image that isn't `.resizable()` is as big
