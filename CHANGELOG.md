@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A table whose columns all show a key path redraws every row when the columns move or change key path.** A table
+of `Equatable` rows keeps each row's line while the row is unchanged, and moving a column in its customization,
+choosing a column's key path by a condition (`value: metric ? \.metres : \.feet`) or swapping two like columns with
+an `if`/`else` left every kept row drawing the old cells under the new headers, until its data changed.
+
 **A frame larger than its space now keeps its content in sight.** A frame whose minimum or fixed size is more than it
 is given, such as `.frame(minWidth: 400, minHeight: 300)` on a macOS root view, is cut to the space it has, and its
 alignment placed the content in the whole frame before the cut: centred, the content was drawn past the edge, and on

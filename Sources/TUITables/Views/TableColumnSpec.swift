@@ -126,6 +126,10 @@ struct _TableColumnSpec<Value> {
     /// through, and the row memo's whole soundness argument rests on it.
     var namesAProperty: Bool
 
+    /// The property ``cell`` names, where it names one — see
+    /// ``TableColumn/valueKeyPath``.
+    var valueKeyPath: AnyKeyPath?
+
     /// The column's comparator, with its type erased, or `nil` when the column
     /// cannot sort. Only a ``_TableSortModel`` — which knows the table's
     /// comparator type — can read it.

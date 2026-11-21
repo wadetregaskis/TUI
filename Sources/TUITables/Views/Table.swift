@@ -6710,6 +6710,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 isFocused: false, isSelected: false, context: context, palette: palette),
             stripe: stripe,
             firstColumn: horizontalWindow?.first ?? 0,
+            cellKeyPaths: columns.map(\.valueKeyPath),
             alignments: columns.map(\.alignment),
             truncations: columns.map(\.truncationMode),
             lineLimits: columns.map(\.lineLimit),

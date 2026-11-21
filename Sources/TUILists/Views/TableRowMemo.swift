@@ -27,14 +27,16 @@
 //    That costs the app's own closures, which is the part nobody can skip, and
 //    saves everything downstream of them.
 //  * unless every column NAMES its value (``TableColumn/namesAProperty``), in
-//    which case the cells are a pure function of the row and an equal row is
-//    enough — so a key-path table skips even the property reads. That is an
-//    optimisation on top of the rule above, not the rule itself.
+//    which case the cells are a pure function of the row and of WHICH
+//    properties the columns name, in which order — so an equal row under the
+//    same key paths is enough, and a key-path table skips even the property
+//    reads. That is an optimisation on top of the rule above, not the rule
+//    itself.
 //  * everything the FRAME settles that reaches a row's bytes is compared once
-//    per frame in ``TableRowFrameKey`` — the widths, the geometry, the resolved
-//    ink and selection marks, each column's alignment and truncation and limit,
-//    the colour depth, and the two generations that make a colour or a width
-//    mean something different than it did.
+//    per frame in ``TableRowFrameKey`` — the widths, the geometry, the columns'
+//    key paths, the resolved ink and selection marks, each column's alignment
+//    and truncation and limit, the colour depth, and the two generations that
+//    make a colour or a width mean something different than it did.
 //  * everything the ROW settles is compared per row: the row value itself, and
 //    whether it is selected, which decides its mark and background.
 //  * except for the one row whose look is not settled by the row at all: the
@@ -97,6 +99,15 @@ package struct TableRowFrameKey: Equatable {
     /// sideways (decisions TABLE-HSCROLL), whose window of columns can be as
     /// wide, column for column, as another.
     package let firstColumn: Int
+    /// Which property each column draws, in the order drawn (`nil` for a
+    /// column that computes its value, which the memo never serves a row
+    /// from). A row is kept on its own equality, but its cells are the row
+    /// AND the columns' key paths: moved in a column customization, chosen by
+    /// a condition (`value: metric ? \.metres : \.feet`) or swapped by an
+    /// `if`/`else` of two like columns, the columns keep every other field
+    /// here as it was — two flexible columns are as wide either way round —
+    /// and every kept row went on drawing its old cells under the new headers.
+    package let cellKeyPaths: [AnyKeyPath?]
     package let alignments: [HorizontalAlignment]
     package let truncations: [TruncationMode]
     package let lineLimits: [Int]
@@ -127,7 +138,8 @@ package struct TableRowFrameKey: Equatable {
     package init(
         columnWidths: [Int], columnSpacing: Int, gutter: Int, rowWidth: Int, ink: Color,
         selectedMark: RowSelectionIndicator, unselectedMark: RowSelectionIndicator, stripe: Color?,
-        firstColumn: Int, alignments: [HorizontalAlignment], truncations: [TruncationMode], lineLimits: [Int], colorDepth: ColorDepth,
+        firstColumn: Int, cellKeyPaths: [AnyKeyPath?], alignments: [HorizontalAlignment], truncations: [TruncationMode],
+        lineLimits: [Int], colorDepth: ColorDepth,
         colorGeneration: Int, widthGeneration: Int, cellText: StyleAttributes, boldCells: Bool,
         insideListRow: Bool
     ) {
@@ -140,6 +152,7 @@ package struct TableRowFrameKey: Equatable {
         self.unselectedMark = unselectedMark
         self.stripe = stripe
         self.firstColumn = firstColumn
+        self.cellKeyPaths = cellKeyPaths
         self.alignments = alignments
         self.truncations = truncations
         self.lineLimits = lineLimits

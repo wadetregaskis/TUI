@@ -143,6 +143,12 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
     /// closure to display, so they carry a comparator and compute their value.
     let namesAProperty: Bool
 
+    /// The property ``cell`` names, where it names one (``namesAProperty``):
+    /// which of the row's values the column shows, which the row memo's
+    /// frame key compares (`TableRowFrameKey.cellKeyPaths`) — the row alone
+    /// does not say which of its properties a column draws.
+    let valueKeyPath: AnyKeyPath?
+
     /// How this column sorts, when it can — the comparator a click on its
     /// header puts at the head of the table's `sortOrder`. Always `nil` when
     /// `Sort` is `Never`.
@@ -151,11 +157,12 @@ public struct TableColumn<RowValue: Identifiable, Sort: SortComparator, Content:
     /// The one initializer that stores anything.
     init(
         title: String, cell: _TableCellSource<RowValue>, namesAProperty: Bool,
-        sortComparator: Sort?
+        valueKeyPath: AnyKeyPath? = nil, sortComparator: Sort?
     ) {
         self.title = title
         self.cell = cell
         self.namesAProperty = namesAProperty
+        self.valueKeyPath = valueKeyPath
         self.sortComparator = sortComparator
     }
 
@@ -187,7 +194,7 @@ extension TableColumn {
         _TableColumnSpec(
             title: title, alignment: .leading, width: width,
             truncationMode: truncationMode, lineLimit: lineLimit, lineLimitIsStated: lineLimitIsStated,
-            cell: cell, namesAProperty: namesAProperty,
+            cell: cell, namesAProperty: namesAProperty, valueKeyPath: valueKeyPath,
             sortComparator: sortComparator, liveTitle: liveTitle, styledTitle: styledTitle)
     }
 }
@@ -304,7 +311,7 @@ extension TableColumn where Sort == Never, Label == Text {
     public init<S: StringProtocol>(_ title: S, value: KeyPath<RowValue, String>) where Content == Text {
         self.init(
             title: String(title), cell: .string { $0[keyPath: value] }, namesAProperty: true,
-            sortComparator: nil)
+            valueKeyPath: value, sortComparator: nil)
     }
 
     /// Creates an unsortable column that displays a string property, with a
@@ -445,7 +452,7 @@ extension TableColumn where Sort == KeyPathComparator<RowValue>, Label == Text {
     ) where Content == Text {
         self.init(
             title: String(title), cell: .string { $0[keyPath: value] }, namesAProperty: true,
-            sortComparator: KeyPathComparator(Self.sendable(value), comparator: comparator))
+            valueKeyPath: value, sortComparator: KeyPathComparator(Self.sendable(value), comparator: comparator))
     }
 
     /// Creates a sortable column that displays a string property, with a text
