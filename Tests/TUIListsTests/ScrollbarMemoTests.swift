@@ -175,6 +175,71 @@ struct ScrollbarMemoTests {
         #expect(hits == 1, "the disabled bar was served the enabled one's, or never kept")
     }
 
+    @Test("A focused bar's memo answers across its breath's clock steps, showing the frame each is on")
+    func breathStepsAreServed() {
+        // The key held the cycle's raw clock step, which moves every 50 ms
+        // while the focus is held: a key typed in a focused editor more than
+        // that after the last missed, and drew the bar and its sixteen frames
+        // again (FREND-1). Two frames a tick apart, for 48 ticks: every step
+        // of the breath three times.
+        let timer = CursorTimer(renderNotifier: AppState())
+        var remembered: ScrollbarMemo<ClaimingColumn>?
+        var hits = 0
+        var wrong: [Int] = []
+        var shades: Set<[String]> = []
+        for tick in 0..<48 {
+            timer.creditWake(atNanos: 1_000_000_000 + UInt64(tick) * 16_666_667)
+            let kept = Self.focusedBar(timer: timer, remembered: &remembered, hits: &hits)
+            var none: ScrollbarMemo<ClaimingColumn>?
+            var unused = 0
+            let fresh = Self.focusedBar(timer: timer, remembered: &none, hits: &unused)
+            if kept.bar.lines != fresh.bar.lines || kept.runs.map(\.frames) != fresh.runs.map(\.frames) {
+                wrong.append(tick)
+            }
+            shades.insert(kept.bar.lines)
+        }
+        #expect(hits == 47, "the bar was drawn again \(48 - hits) times for inputs that never moved")
+        #expect(wrong.isEmpty, "ticks whose kept bar is not the one drawn afresh: \(wrong)")
+        #expect(shades.count > 1, "precondition: the breath shows more than one shade")
+    }
+
+    @Test("A still focus draws a new bar when the window stops appearing active")
+    func stillFocusFollowsActivity() {
+        // With the breath off the key held no cycle at all, so the held shade
+        // of an inactive window and the bright one of an active window were
+        // the same key (FREND-2).
+        var remembered: ScrollbarMemo<ClaimingColumn>?
+        var hits = 0
+        let bars = [true, false, true].map { active in
+            var context = makeRenderContext(width: 1, height: 8)
+            context.environment.selectionIndicatorStyle = .none
+            context.environment.appearsActive = active
+            return withColorDepth(.truecolor) {
+                ScrollbarMemo.vertical(
+                    remembered: &remembered, hits: &hits, length: 8, extent: 32, viewport: 8, offset: 0,
+                    arrows: .none, proportional: true, isFocused: true, hoveredCell: nil, flash: nil,
+                    context: context
+                ).bar.lines
+            }
+        }
+        #expect(hits == 0, "a bar was served across a change of activity")
+        #expect(bars[0] != bars[1] && bars[0] == bars[2], "the held and bright bars: \(bars)")
+    }
+
+    /// A focused bar eight cells tall over four times its height, drawn
+    /// through `remembered` at `timer`'s instant.
+    private static func focusedBar(
+        timer: CursorTimer, remembered: inout ScrollbarMemo<ClaimingColumn>?, hits: inout Int
+    ) -> ScrollbarMemo<ClaimingColumn> {
+        var context = makeRenderContext(width: 1, height: 8)
+        context.environment.cursorTimer = timer
+        return withColorDepth(.truecolor) {
+            ScrollbarMemo.vertical(
+                remembered: &remembered, hits: &hits, length: 8, extent: 32, viewport: 8, offset: 0,
+                arrows: .none, proportional: true, isFocused: true, hoveredCell: nil, flash: nil, context: context)
+        }
+    }
+
     /// The first cell of an unfocused bar four cells tall over twice its
     /// height, drawn through `remembered`, its view enabled or not.
     private static func thumb(

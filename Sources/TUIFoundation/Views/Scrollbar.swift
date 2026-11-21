@@ -864,6 +864,8 @@ package struct ScrollbarPulse {
                     // tone while everything around it moves.
                     hover: hoveredCell.map { ($0, palette.hoveredForeground(accent)) })
                 colors.wholeCells = wholeCells
+                // As the drawn bar has it, which is one of these frames.
+                colors.thumbWithoutColor = .focused
                 return colors
             }
     }
@@ -1069,17 +1071,7 @@ package enum ScrollbarRenderer {
     /// Offsets are relative to the bar's own column, row 0 — the caller knows
     /// where the bar sits and shifts them.
     @MainActor
-    package static func verticalScrollbarRuns(
-        height: Int, extent: Int, viewport: Int, offset: Int,
-        arrows: ScrollbarArrows, proportional: Bool, pulse: ScrollbarPulse, width: Int = 1,
-        cornerTriangles: Bool = false
-    ) -> [AnimatedCellRun] {
-        let frames = pulse.frames.map { colors in
-            verticalScrollbar(
-                height: height, extent: extent, viewport: viewport, offset: offset,
-                arrows: arrows, proportional: proportional, colors: colors, width: width,
-                cornerTriangles: cornerTriangles)
-        }
+    package static func verticalScrollbarRuns(frames: [ClaimingColumn], pulse: ScrollbarPulse) -> [AnimatedCellRun] {
         guard let first = frames.first else { return [] }
         assertFramesOweOneClaim(frames.map(\.claims), "a scrollbar's pulse")
         return (0..<first.count).compactMap { row in
@@ -1099,15 +1091,7 @@ package enum ScrollbarRenderer {
     /// bytes per tick, which is the price of not writing a second cell-diffing
     /// routine that could disagree with the renderer.
     @MainActor
-    static func horizontalScrollbarRun(
-        width: Int, extent: Int, viewport: Int, offset: Int,
-        arrows: ScrollbarArrows, proportional: Bool, pulse: ScrollbarPulse
-    ) -> AnimatedCellRun? {
-        let rows = pulse.frames.map { colors in
-            horizontalScrollbar(
-                width: width, extent: extent, viewport: viewport, offset: offset,
-                arrows: arrows, proportional: proportional, colors: colors)
-        }
+    static func horizontalScrollbarRun(frames rows: [ClaimingRow], pulse: ScrollbarPulse) -> AnimatedCellRun? {
         // The drawn bar is one of these frames — its colour is `colorNow`, which
         // indexes the same cycle — so asking the frames is asking the drawn bar.
         assertFramesOweOneClaim(rows.map(\.claims), "a scrollbar's pulse")

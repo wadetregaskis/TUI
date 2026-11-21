@@ -376,6 +376,11 @@ public struct SelectionEmphasisCycle: Sendable, Equatable {
     /// element, is a single frame: a still picture, not an animation.
     public var isAnimating: Bool { frames.count > 1 }
 
+    /// This cycle at step 0: its frames and timing, not where its clock is.
+    /// What a memo of everything the cycle's frames are drawn from is keyed by
+    /// (`ScrollbarMemo.Key`).
+    package var unstepped: Self { Self(frames: frames, step: 0, timing: timing) }
+
     /// Whether a breath between `dim` and `bright` moves: this cycle animates, and the
     /// ends differ. `isAnimating` counts frames, which equal ends colour alike; they are
     /// what `Color.breathEnds(dimmedTo:over:)`, `Color.breathEnds(dim:bright:)` and

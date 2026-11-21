@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A focused scroll bar is no longer drawn again for every key.** A focused `ScrollView`'s or `TextEditor`'s bar
+breathes, and the bar kept from one frame to the next was kept only while the breath's clock had not moved, which it
+does every 50 ms: so a key typed in a focused editor drew the bar again, and its sixteen frames of breath, almost
+every time. The bar is now kept until something it is drawn from changes, and shows the frame of its breath the clock
+is on. A bar under a still focus style (`.selectionIndicatorStyle(.none)`, or breathing off) also now dims and
+brightens with the window as the other focus indicators do.
+
 **A `TextEditor` bound to an `AttributedString` and an `AttributedTextSelection` keeps its selection binding while the
 find bar is up and after it closes.** The bar showed its matches through a selection of its own, put in the app's
 place, so from the moment it came up the app's selection was neither written nor read: a Bold button acting on it

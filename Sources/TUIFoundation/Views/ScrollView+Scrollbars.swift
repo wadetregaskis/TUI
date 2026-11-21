@@ -420,6 +420,9 @@ extension _ScrollViewCore {
             flash == nil
             ? ScrollbarColors.focusPulse(
                 isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context) : nil
+        // Keyed by the breath's frames, not its clock, as the vertical bar is
+        // (`ScrollbarMemo.Key.cycle`).
+        let shown = ScrollbarMemo<ClaimingRow>.cycleKey(isFocused: isFocused, breathes: pulse != nil, context: context)
         let key = ScrollbarMemo<ClaimingRow>.Key(
             length: length, extent: axis.extent, viewport: axis.viewportHeight,
             offset: axis.scrollOffset, arrows: context.environment.scrollbarArrows,
@@ -427,33 +430,34 @@ extension _ScrollViewCore {
             isFocused: isFocused, isScrollEnabled: context.environment.isScrollEnabled,
             isEnabled: context.environment.isEnabled, hoveredCell: axis.hoveredBarCell, palette: ComparablePalette(palette),
             depth: ColorDepth.current, terminalColors: TerminalColors.current,
-            cycle: pulse?.cycle, flash: flash)
+            cycle: shown.cycle, frame: shown.frame, flash: flash)
+        let step = pulse?.cycle.step ?? 0
         let memo: ScrollbarMemo<ClaimingRow>
         if let remembered = handler.horizontalScrollbarMemo, remembered.key == key {
             handler.horizontalScrollbarMemoHits += 1
-            memo = remembered
+            memo = remembered.showing(step: step)
         } else {
-            let colors = ScrollbarColors.focusIndicating(
-                isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context)
-            let bar = ScrollbarRenderer.horizontalScrollbar(
-                width: length,
-                extent: axis.extent,
-                viewport: axis.viewportHeight,
-                offset: axis.scrollOffset,
-                arrows: context.environment.scrollbarArrows,
-                proportional: context.environment.scrollbarProportionalThumb,
-                colors: flash.map { colors.flashing($0, in: palette) } ?? colors)
-            let run = pulse.flatMap { pulse in
-                ScrollbarRenderer.horizontalScrollbarRun(
+            func drawn(_ colors: ScrollbarColors) -> ClaimingRow {
+                ScrollbarRenderer.horizontalScrollbar(
                     width: length,
                     extent: axis.extent,
                     viewport: axis.viewportHeight,
                     offset: axis.scrollOffset,
                     arrows: context.environment.scrollbarArrows,
                     proportional: context.environment.scrollbarProportionalThumb,
-                    pulse: pulse)
+                    colors: colors)
             }
-            memo = ScrollbarMemo(key: key, bar: bar, runs: run.map { [$0] } ?? [])
+            if let pulse {
+                // The frame of its breath the clock is on, as the vertical bar.
+                let frames = pulse.frames.map(drawn)
+                let run = ScrollbarRenderer.horizontalScrollbarRun(frames: frames, pulse: pulse)
+                memo = ScrollbarMemo(
+                    key: key, bar: frames[step % frames.count], frames: frames, runs: run.map { [$0] } ?? [])
+            } else {
+                let colors = ScrollbarColors.focusIndicating(
+                    isFocused: isFocused, hoveredCell: axis.hoveredBarCell, context: context)
+                memo = ScrollbarMemo(key: key, bar: drawn(flash.map { colors.flashing($0, in: palette) } ?? colors), runs: [])
+            }
             handler.horizontalScrollbarMemo = memo
         }
         var row = ClaimingRow()
