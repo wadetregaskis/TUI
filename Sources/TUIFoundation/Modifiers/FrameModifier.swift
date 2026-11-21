@@ -320,10 +320,41 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
             return buffer
         }
 
-        // Otherwise, align content within the frame
+        // Otherwise, align content within the frame — in as much of it as
+        // will be drawn.
         return alignBuffer(
-            buffer, toWidth: finalWidth, height: finalHeight, fitsAsIs: fitsAsIs, drawsPast: drawsPast != nil,
-            contentContext: contentContext)
+            buffer, toWidth: finalWidth, height: finalHeight,
+            placedIn: drawnRegion(
+                frame: (finalWidth, finalHeight), content: (buffer.width, buffer.height), offer: context,
+                offeredNoWidth: offeredNoWidth),
+            fitsAsIs: fitsAsIs, drawsPast: drawsPast != nil, contentContext: contentContext)
+    }
+
+    /// The part of a `frame`-sized frame that is drawn, which its alignment
+    /// places `content` in: the whole frame, unless the frame is larger than
+    /// it was offered on an axis — a minimum or a pin past the offer — where
+    /// only what the universal clamp keeps (`renderResolved` cuts a buffer to
+    /// its offer, keeping the leading columns and the top rows), and never
+    /// less than the content.
+    ///
+    /// Aligned in the whole frame, content centred in a frame cut to its
+    /// offer was drawn past the cut: `Text("Hello world").frame(minWidth: 20)`
+    /// in 12 columns drew four blanks and "Hello wo", and the macOS idiom
+    /// `.frame(minWidth: 400, minHeight: 300)` on an 80×24 screen drew it 160
+    /// columns and 138 rows in, a blank screen. SwiftUI's frame larger than
+    /// its space overflows it on both sides, its content still in sight;
+    /// this keeps the content in sight. The frame's own size is unchanged — a
+    /// caller that reads it before the clamp still gets the full minimum.
+    /// Offered no width (``isOfferedNoWidth(in:)``), the frame is its ideal,
+    /// and nothing cuts it to the context's width.
+    private func drawnRegion(
+        frame: (width: Int, height: Int), content: (width: Int, height: Int), offer context: RenderContext,
+        offeredNoWidth: Bool
+    ) -> (width: Int, height: Int) {
+        (
+            width: offeredNoWidth ? frame.width : min(frame.width, max(content.width, context.availableWidth)),
+            height: min(frame.height, max(content.height, context.availableHeight))
+        )
     }
 
     /// `contentContext` with the content placed where ``alignBuffer`` will put
@@ -336,18 +367,24 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
             content,
             proposal: ProposedViewSize(width: contentContext.availableWidth, height: contentContext.availableHeight),
             context: contentContext)
-        let finalWidth = finalWidth(
-            content: size.width, offer: context.availableWidth, offeredNothing: isOfferedNoWidth(in: context))
+        let offeredNoWidth = isOfferedNoWidth(in: context)
+        let finalWidth = finalWidth(content: size.width, offer: context.availableWidth, offeredNothing: offeredNoWidth)
         let finalHeight = heightAxis.extent(content: size.height, offer: context.availableHeight)
+        let region = drawnRegion(
+            frame: (finalWidth, finalHeight), content: (size.width, size.height), offer: context,
+            offeredNoWidth: offeredNoWidth)
         return contentContext.placingChild(
             gradient: contentContext.gradientFrame,
-            x: alignment.horizontal.childOffset(childWidth: size.width, in: finalWidth),
-            y: alignment.vertical.childOffset(childHeight: size.height, in: finalHeight))
+            x: alignment.horizontal.childOffset(childWidth: size.width, in: region.width),
+            y: alignment.vertical.childOffset(childHeight: size.height, in: region.height))
     }
 
     /// Aligns buffer content within the target frame size.
     ///
     /// - Parameters:
+    ///   - drawn: The part of the frame that is drawn (``drawnRegion``),
+    ///     which the frame's alignment places the content in; a guide places
+    ///     it in the whole frame.
     ///   - fitsAsIs: Whether the content is the frame's size already, so that
     ///     it comes back untouched when its own guide places it on neither
     ///     axis.
@@ -356,8 +393,9 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
     ///     larger along, it is placed by the alignment past the frame's edge,
     ///     as a guide places it, and drawn there.
     private func alignBuffer(
-        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, fitsAsIs: Bool,
-        drawsPast: Bool = false, contentContext: RenderContext
+        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int,
+        placedIn drawn: (width: Int, height: Int), fitsAsIs: Bool, drawsPast: Bool = false,
+        contentContext: RenderContext
     ) -> FrameBuffer {
         // The content's own explicit `.alignmentGuide`, when it set one. The
         // frame is a fixed region holding one child, so there is no run to
@@ -379,12 +417,13 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
                 context: contentContext)
             ?? (drawsPast && buffer.height > targetHeight
                 ? alignment.vertical.offsetDrawingPast(childHeight: buffer.height, in: targetHeight) : nil)
+        let alignedOffset = alignment.horizontal.childOffset(childWidth: buffer.width, in: drawn.width)
         let verticalOffset =
-            verticalGuide ?? alignment.vertical.childOffset(childHeight: buffer.height, in: targetHeight)
+            verticalGuide ?? alignment.vertical.childOffset(childHeight: buffer.height, in: drawn.height)
         guard horizontalGuide != nil || verticalGuide != nil else {
             if fitsAsIs { return buffer }
             return placeBuffer(
-                buffer, toWidth: targetWidth, height: targetHeight, guideOffset: nil,
+                buffer, toWidth: targetWidth, height: targetHeight, horizontalOffset: alignedOffset,
                 verticalOffset: verticalOffset)
         }
 
@@ -402,15 +441,13 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
         // for a clamp to cut, as a `Text` taller than its frame is cut where
         // SwiftUI's truncates — so the region on that axis is taken to hold
         // all of it (decisions-GUIDE3 B-GUIDE3-1).
-        var position = (
-            x: horizontalGuide ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: targetWidth),
-            y: verticalOffset)
+        var position = (x: horizontalGuide ?? alignedOffset, y: verticalOffset)
         let region = (
             width: horizontalGuide == nil ? max(targetWidth, position.x + buffer.width) : targetWidth,
             height: verticalGuide == nil ? max(targetHeight, position.y + buffer.height) : targetHeight)
         if buffer.fits(at: position, inWidth: region.width, height: region.height) {
             return placeBuffer(
-                buffer, toWidth: targetWidth, height: targetHeight, guideOffset: horizontalGuide,
+                buffer, toWidth: targetWidth, height: targetHeight, horizontalOffset: position.x,
                 verticalOffset: verticalOffset)
         }
         guard !contentContext.isMeasuring else {
@@ -418,7 +455,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
             position.y = min(max(0, position.y), max(0, targetHeight - buffer.height))
             return placeBuffer(
                 buffer, toWidth: targetWidth, height: targetHeight,
-                guideOffset: position.x, verticalOffset: position.y)
+                horizontalOffset: position.x, verticalOffset: position.y)
         }
         // Past the top or bottom edge only: across, the content is placed as
         // it is inside the frame before the rows are split, so the rows drawn
@@ -426,7 +463,7 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
         var source = buffer
         if horizontalGuide == nil {
             source = placeBuffer(
-                buffer, toWidth: targetWidth, height: buffer.height, guideOffset: nil, verticalOffset: 0)
+                buffer, toWidth: targetWidth, height: buffer.height, horizontalOffset: alignedOffset, verticalOffset: 0)
             position.x = 0
         }
         let placement = source.splitPlacing(
@@ -434,13 +471,12 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
             height: region.height)
         return placeBuffer(
             placement.insideCarryingOverflow, toWidth: targetWidth, height: targetHeight,
-            guideOffset: placement.insideOrigin.x, verticalOffset: placement.insideOrigin.y)
+            horizontalOffset: placement.insideOrigin.x, verticalOffset: placement.insideOrigin.y)
     }
 
     /// `buffer` placed in a `targetWidth` × `targetHeight` frame `verticalOffset`
-    /// rows down, and across as a block: `guideOffset` columns in when that is
-    /// given, and otherwise where the frame's alignment puts a child of the
-    /// buffer's width.
+    /// rows down, and across as a block `horizontalOffset` columns in — where
+    /// a guide or the frame's alignment put it (``alignBuffer``).
     ///
     /// A block, not each line by the alignment on its own width: SwiftUI
     /// places the content of a frame larger than it as one view, and a
@@ -451,12 +487,9 @@ extension FlexibleFrameView: Equatable where Content: Equatable {
     /// a ragged buffer was centred on its own (" bb " under "aaaa"), and the
     /// buffer's layers, which move with the block, no longer lined up with it.
     private func placeBuffer(
-        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, guideOffset horizontalGuide: Int?,
+        _ buffer: FrameBuffer, toWidth targetWidth: Int, height targetHeight: Int, horizontalOffset: Int,
         verticalOffset: Int
     ) -> FrameBuffer {
-        let horizontalOffset =
-            horizontalGuide
-            ?? alignment.horizontal.childOffset(childWidth: buffer.width, in: targetWidth)
         var result: [String] = []
 
         // Track the aligned result's width as we build it — `alignHorizontally`

@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A frame larger than its space now keeps its content in sight.** A frame whose minimum or fixed size is more than it
+is given, such as `.frame(minWidth: 400, minHeight: 300)` on a macOS root view, is cut to the space it has, and its
+alignment placed the content in the whole frame before the cut: centred, the content was drawn past the edge, and on
+an 80×24 terminal that frame drew a blank screen. Its alignment now places the content in the part that is drawn, so
+`Text("Hello world").frame(minWidth: 20)` in 12 columns draws `Hello world` rather than `    Hello wo`.
+
 **A focused scroll bar is no longer drawn again for every key.** A focused `ScrollView`'s or `TextEditor`'s bar
 breathes, and the bar kept from one frame to the next was kept only while the breath's clock had not moved, which it
 does every 50 ms: so a key typed in a focused editor drew the bar again, and its sixteen frames of breath, almost
