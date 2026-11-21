@@ -162,7 +162,7 @@ extension TerminalClient {
             reportedCell: terminal.cellPixelSize(),
             grid: terminal.windowGrid(),
             textArea: { TerminalHost.program == .iTerm2 ? terminal.queryTextAreaSize() : nil },
-            localDisplayScale: { SessionLocality.isLikelyLocal(environment: environment) ? mainDisplayScale() : nil })
+            localDisplayScale: { localDisplayScale(environment: environment) })
     }
 
     /// The calibration for a host, posed on its inputs so a test can ask it.
@@ -176,6 +176,12 @@ extension TerminalClient {
     ///   scale — known only when the app runs on the Mac the terminal is on,
     ///   from the main display. (A window on a display of another scale is
     ///   sized by the main display's.)
+    /// - The classic Windows console is measured in its window's pixels
+    ///   (``ConsoleWindow``), so its calibration is its window's scale, as
+    ///   Ghostty's is the display's — taken only where the app is known to run
+    ///   on the machine its user is at (``SessionLocality/isLocal()``). (A
+    ///   window moved to a display of another scale keeps the scale it
+    ///   started on.)
     /// - Any other host: none. Its pixels are pixels of a kind nobody here has
     ///   measured.
     ///
@@ -184,14 +190,15 @@ extension TerminalClient {
     ///   - reportedCell: The cell's size as `TIOCGWINSZ` reports it.
     ///   - grid: The grid, in cells, at the same moment.
     ///   - textArea: Asks the text area's size in points (iTerm2's `CSI 14 t`).
-    ///   - localDisplayScale: The main display's scale, where the app runs on
-    ///     the terminal's own machine.
+    ///   - localDisplayScale: The display's scale, where the app runs on the
+    ///     terminal's own machine: the main display's, or the classic
+    ///     console's window's.
     static func calibration(
         program: Program, reportedCell: TerminalCellPixels?, grid: (width: Int, height: Int),
         textArea: () -> (width: Int, height: Int)?, localDisplayScale: () -> Double?
     ) -> CellPointsCalibration? {
         switch program {
-        case .tmux, .gnomeTerminal, .xtermJS, .windowsTerminal, .windowsConsole, .unidentified:
+        case .tmux, .gnomeTerminal, .xtermJS, .windowsTerminal, .unidentified:
             return nil
         case .appleTerminal, .warp:
             return .points
@@ -204,11 +211,29 @@ extension TerminalClient {
             return CellPointsCalibration(
                 pixelsPerPointWide: Double(reportedCell.width) / pointsWide,
                 pixelsPerPointHigh: Double(reportedCell.height) / pointsHigh)
-        case .ghostty:
+        case .ghostty, .windowsConsole:
             guard reportedCell != nil else { return nil }
             guard let scale = localDisplayScale(), scale > 0 else { return nil }
             return CellPointsCalibration(pixelsPerPointWide: scale, pixelsPerPointHigh: scale)
         }
+    }
+
+    /// The scale of the display the terminal draws on — device pixels per
+    /// point — where the app runs on the machine its user is at, or `nil`.
+    ///
+    /// On a Mac the main display's, on the environment's word that the
+    /// terminal is here (``SessionLocality/isLikelyLocal(environment:)``),
+    /// since a wrong answer only mis-sizes a picture. On Windows the classic
+    /// console's window's, on evidence (``SessionLocality/isLocal()``): its
+    /// environment names no terminal, so it never has the environment's word.
+    @MainActor
+    static func localDisplayScale(environment: [String: String]) -> Double? {
+        #if os(Windows)
+            guard TerminalHost.program == .windowsConsole, SessionLocality.isLocal() else { return nil }
+            return ConsoleWindow.cell()?.pixelsPerPoint
+        #else
+            return SessionLocality.isLikelyLocal(environment: environment) ? mainDisplayScale() : nil
+        #endif
     }
 
     /// The main display's scale — device pixels per point — or `nil` where

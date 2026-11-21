@@ -238,6 +238,30 @@ struct ImageNaturalSizeTests {
         #expect(calibration(.ghostty, scale: nil) == nil, "away from the terminal's Mac, unknown")
     }
 
+    @Test("The classic Windows console's pixels are its window's, so it needs the window's scale")
+    func windowsConsole() throws {
+        // Measured at 200%: Consolas's cell is 15 × 32 of the window's pixels, at 192 dots an inch.
+        let found = try #require(
+            calibration(.windowsConsole, reported: TerminalCellPixels(width: 15, height: 32), scale: 2))
+        #expect(found.points(for: TerminalCellPixels(width: 15, height: 32)) == TerminalCellPoints(width: 7.5, height: 16))
+        #expect(calibration(.windowsConsole, scale: nil) == nil, "not known to be at the machine, unknown")
+        #expect(calibration(.windowsConsole, reported: nil, scale: 2) == nil, "a pseudo console has no cell")
+        #expect(calibration(.windowsTerminal, scale: 2) == nil, "Windows Terminal reports no pixels")
+    }
+
+    #if os(Windows)
+        @Test("The classic console's cell and scale come from its window, and a pseudo console has none")
+        @MainActor
+        func consoleWindowCell() {
+            // Run in a classic console, the cell is the window's, at a scale of
+            // at least 1; run in a pseudo console or with no console at all (as
+            // the test runner usually is), there is none.
+            guard let cell = ConsoleWindow.cell() else { return }
+            #expect(cell.pixels.width > 0 && cell.pixels.height >= cell.pixels.width)
+            #expect(cell.pixelsPerPoint >= 1)
+        }
+    #endif
+
     @Test("tmux and unmeasured hosts have no points")
     func unknownHosts() {
         #expect(calibration(.tmux) == nil)

@@ -144,7 +144,7 @@ extension PlatformImageLoader {
 /// Every COM call goes through its interface's table of functions
 /// (`lpVtbl`); an object made is released (`Release`) once used, as nothing
 /// here keeps one past the decode.
-@unsafe private struct WICSession {
+@unsafe struct WICSession {
     let factory: UnsafeMutablePointer<IWICImagingFactory>
 
     /// Runs `body` with COM initialised and a factory made, both undone after.
@@ -251,7 +251,7 @@ extension PlatformImageLoader {
     }
 
     /// `source`'s pixels converted to straight-alpha 32-bit RGBA, row 0 the top.
-    private static func straightRGBA(of source: UnsafeMutablePointer<IWICBitmapSource>) throws -> RGBAImage {
+    static func straightRGBA(of source: UnsafeMutablePointer<IWICBitmapSource>) throws -> RGBAImage {
         var format = GUID_WICPixelFormat32bppRGBA
         var converted: UnsafeMutablePointer<IWICBitmapSource>?
         let result = unsafe WICConvertBitmapSource(&format, source, &converted)
@@ -282,7 +282,7 @@ extension PlatformImageLoader {
     }
 
     /// Frame `index` of `decoder`.
-    private func frame(
+    func frame(
         _ index: UINT, of decoder: UnsafeMutablePointer<IWICBitmapDecoder>
     ) throws -> UnsafeMutablePointer<IWICBitmapFrameDecode> {
         var frame: UnsafeMutablePointer<IWICBitmapFrameDecode>?
@@ -299,7 +299,7 @@ extension PlatformImageLoader {
     }
 
     /// `frame`'s size as stored.
-    private static func size(of frame: UnsafeMutablePointer<IWICBitmapFrameDecode>) -> (width: Int, height: Int) {
+    static func size(of frame: UnsafeMutablePointer<IWICBitmapFrameDecode>) -> (width: Int, height: Int) {
         var width: UINT = 0
         var height: UINT = 0
         _ = unsafe frame.pointee.lpVtbl.pointee.GetSize(frame, &width, &height)
@@ -314,13 +314,22 @@ extension PlatformImageLoader {
             let reader = unsafe reader
         else { return 1 }
         defer { _ = unsafe reader.pointee.lpVtbl.pointee.Release(reader) }
+        return unsafe unsignedMetadata("System.Photo.Orientation", in: reader) ?? 1
+    }
+
+    /// The whole number `reader` holds under the metadata query `name`, or
+    /// `nil` where it holds none, or something else there.
+    static func unsignedMetadata(_ name: String, in reader: UnsafeMutablePointer<IWICMetadataQueryReader>) -> Int? {
         var value = unsafe PROPVARIANT()
         defer { _ = unsafe PropVariantClear(&value) }
-        let name = Array("System.Photo.Orientation".utf16) + [0]
-        guard unsafe reader.pointee.lpVtbl.pointee.GetMetadataByName(reader, name, &value) == S_OK,
-            unsafe value.vt == VARTYPE(VT_UI2.rawValue)
-        else { return 1 }
-        return Int(unsafe value.uiVal)
+        let wide = Array(name.utf16) + [0]
+        guard unsafe reader.pointee.lpVtbl.pointee.GetMetadataByName(reader, wide, &value) == S_OK else { return nil }
+        switch Int32(unsafe value.vt) {
+        case Int32(VT_UI1.rawValue): return Int(unsafe value.bVal)
+        case Int32(VT_UI2.rawValue): return Int(unsafe value.uiVal)
+        case Int32(VT_UI4.rawValue): return Int(unsafe value.ulVal)
+        default: return nil
+        }
     }
 
     /// The decoder `made` names, or the error `result` says: unsupported where

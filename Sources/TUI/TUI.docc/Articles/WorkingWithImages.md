@@ -85,7 +85,7 @@ An animated file plays by itself, with no code of its own:
 Image(.file("waving.gif"))
 ```
 
-It shows each frame for as long as the file says, and repeats as many times as the file says. GIF plays everywhere. APNG and animated WebP play on a Mac, and elsewhere show their first frame, or an error if that platform can't read the format at all. So does a picture from a URL: only files play.
+It shows each frame for as long as the file says, and repeats as many times as the file says. GIF plays everywhere. Animated WebP plays on a Mac and on Windows, and APNG on a Mac; elsewhere they show their first frame, or an error if that platform can't read the format at all. So does a picture from a URL: only files play.
 
 It plays only while someone can see it. Scrolled out of view it stops, and carries on from where it stopped when it comes back. A view that has gone starts again from the first frame if it returns. With Reduce Motion on, whether set in your system's settings, by `TUI_REDUCE_MOTION`, from the View menu or with ``Scene/reduceMotion(_:)``, it shows its first frame and doesn't move.
 

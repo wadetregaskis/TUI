@@ -15,6 +15,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**On Windows, an animated WebP plays, and in the classic console an `Image` takes its natural size.** Windows's
+WebP codec composites the frames, so a WebP plays there as a GIF does, at the file's own timing. The classic
+console's cell is measured from its window, at its display's scale, so an image that isn't `.resizable()` is as big
+there as SwiftUI would draw it, where before it fitted the space it was offered; only where you're at the machine
+the app runs on. Windows Terminal doesn't say how big its cell is, so there it still fits. An APNG still shows its
+first image.
+
 **Windows is supported.** An app builds with Swift 6.2, 6.3 and 6.4 from swift.org, on arm64 and x86_64, and runs in
 Windows Terminal and in the classic Windows console, with nothing of its own to port. Building needs Developer Mode,
 for the symbolic links in a dependency's checkout, and a shipped program needs the Swift runtime's DLLs beside it.

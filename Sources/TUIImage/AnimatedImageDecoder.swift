@@ -2,7 +2,8 @@
 //  AnimatedImageDecoder.swift
 //
 //  Which files animate, and their frames: GIF everywhere, by ImageIO or
-//  stb_image's decoder; APNG and animated WebP where ImageIO reads them.
+//  stb_image's decoder; APNG and animated WebP where ImageIO reads them, and
+//  animated WebP on Windows, by WIC.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -17,9 +18,10 @@ import Foundation
 /// Decodes an animated file into an ``AnimatedImage``.
 ///
 /// A format no decoder here can play stays what it was: the still picture
-/// ``PlatformImageLoader`` loads. Without ImageIO that is every format but GIF:
-/// stb_image reads an APNG's default image and no WebP at all, and a decoder for
-/// either would be a new dependency.
+/// ``PlatformImageLoader`` loads. Without ImageIO that is every format but GIF,
+/// and on Windows WebP, whose frames WIC's codec composites
+/// (`AnimatedImageDecoder+WIC.swift`): stb_image reads an APNG's default image
+/// and no WebP at all, and a decoder for either would be a new dependency.
 package enum AnimatedImageDecoder {
     /// The most bytes of pixels one animated picture keeps (``FramePlan``).
     package static let byteBudget = 64 << 20
@@ -53,11 +55,19 @@ package enum AnimatedImageDecoder {
         if head.starts(with: Array("GIF8".utf8)) { return true }
         #if canImport(ImageIO)
             if head.starts(with: [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]) { return pngMayAnimate(head) }
-            if head.starts(with: Array("RIFF".utf8)), head.count > 20, Array(head[8..<16]) == Array("WEBPVP8X".utf8) {
-                return head[20] & 0x02 != 0
-            }
+        #endif
+        #if canImport(ImageIO) || os(Windows)
+            if isAnimatedWebP(head: head) { return true }
         #endif
         return false
+    }
+
+    /// Whether a file beginning `head` is a WebP whose extended header says it
+    /// is animated.
+    static func isAnimatedWebP(head: [UInt8]) -> Bool {
+        guard head.starts(with: Array("RIFF".utf8)), head.count > 20, Array(head[8..<16]) == Array("WEBPVP8X".utf8)
+        else { return false }
+        return head[20] & 0x02 != 0
     }
 
     /// Whether a PNG beginning `head` has an `acTL` chunk, which an APNG states
@@ -91,6 +101,10 @@ package enum AnimatedImageDecoder {
     ) -> AnimatedImage? {
         #if canImport(ImageIO)
             decodeWithImageIO(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
+        #elseif os(Windows)
+            isAnimatedWebP(head: [UInt8](data.prefix(21)))
+                ? decodeWebPWithWIC(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
+                : decodeGIF(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
         #else
             decodeGIF(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
         #endif

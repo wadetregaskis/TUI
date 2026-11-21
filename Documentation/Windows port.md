@@ -273,6 +273,17 @@ which stb_image cannot draw. With WIC's pixels the adaptive palette's test on th
 serving a histogram bucket none of whose pixels is nearest to it (a limit of deriving from buckets, which reseeding
 again did not move), so that test decodes its fixture with stb_image on Windows, as on Linux.
 
+Later that day, at the owner's word: the classic console's cell is measured from its window (`ConsoleWindow.cell()`:
+the client area over the grid, asked per-monitor aware, so in the window's pixels), and its calibration to points is
+the window's dots an inch over 96 (`GetDpiForWindow`), taken only on `SessionLocality.isLocal()`'s evidence; at 200%
+Consolas's font names 8 × 16, its 96-dpi cell, while the window draws 15 × 32, 7.5 × 16 points (the survey's "A
+cell's size in points"). An image that is not resizable takes its natural size there now. And an animated WebP plays
+(`AnimatedImageDecoder+WIC.swift`): WIC's WebP codec composites its frames itself, each one the whole canvas,
+blended, replaced and disposed as the file says, and states `/ANMF/FrameDuration` and `/ANIM/LoopCount` (measured
+on a hand-made file of four frames, the test's), so playing one took no compositor of TUI's. APNG still shows its
+first image: playing it was set aside, as worth it only if it is little work (the owner, 2026-11-20), and whether
+WIC reads an APNG's frames at all has not been looked at.
+
 **No per-thread CPU clock on Windows** (owner, 2026-11-20: leave it on wall time). `threadCPUNanoseconds()` (TUICore)
 answers `nil` there, so the tests' cost bounds (`bestCPUSeconds`) and the Stress bench read the wall clock, and under
 `parallel_test.py`'s load two bounds failed on 6.4.2 that pass with their suites alone. Neither Windows clock serves:
@@ -320,8 +331,8 @@ Two things about the environment the runs needed:
 - **The release suite**: blocked on all three toolchains by compiler bugs that their assert-enabled Windows builds
   catch ("The tests", "In release"); to report upstream.
 - **What Windows has that TUI does not read yet** (a survey of the sources, 2026-11-20), each left for a reason:
-  colour management and animation other than a GIF's in WIC's pictures (an animated WebP's frames come uncomposited,
-  so playing one is a compositor of its own); the display's scale (`GetDpiForWindow`); `TableColumn`'s default order,
+  colour management in WIC's pictures, and APNG's frames (set aside, 2026-11-20); the display's scale in Windows Terminal, which says nothing
+  of its cell; `TableColumn`'s default order,
   which is `.lexical` off Darwin, as Windows's `String.StandardComparator` has nothing else, so a natural default
   would change SwiftUI's parameter type, a deviation; press-and-hold repeat, which no Windows setting governs (its
   keyboard repeat is the terminal's); macOS's and GNOME's double-click and blink settings, beside Windows's (read

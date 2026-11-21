@@ -157,16 +157,19 @@ struct AnimatedImageDecodingTests {
         func webP(flags: UInt8) -> [UInt8] {
             Array("RIFF".utf8) + [0, 0, 0, 0] + Array("WEBPVP8X".utf8) + [10, 0, 0, 0, flags, 0, 0, 0]
         }
-        // By ImageIO's being here, the only decoder of either.
+        // By ImageIO's being here, the only decoder of APNG, and of WebP but
+        // for WIC on Windows.
         #if canImport(ImageIO)
-            let hasAPNGAndWebP = true
+            let (hasAPNG, hasWebP) = (true, true)
+        #elseif os(Windows)
+            let (hasAPNG, hasWebP) = (false, true)
         #else
-            let hasAPNGAndWebP = false
+            let (hasAPNG, hasWebP) = (false, false)
         #endif
         let apng = signature + chunk("IHDR", length: 13) + chunk("acTL", length: 8) + chunk("IDAT", length: 2)
-        #expect(AnimatedImageDecoder.mayAnimate(head: apng) == hasAPNGAndWebP)
+        #expect(AnimatedImageDecoder.mayAnimate(head: apng) == hasAPNG)
         #expect(!AnimatedImageDecoder.mayAnimate(head: signature + chunk("IHDR", length: 13) + chunk("IDAT", length: 2)))
-        #expect(AnimatedImageDecoder.mayAnimate(head: webP(flags: 0x02)) == hasAPNGAndWebP)
+        #expect(AnimatedImageDecoder.mayAnimate(head: webP(flags: 0x02)) == hasWebP)
         #expect(!AnimatedImageDecoder.mayAnimate(head: webP(flags: 0x10)))
     }
 

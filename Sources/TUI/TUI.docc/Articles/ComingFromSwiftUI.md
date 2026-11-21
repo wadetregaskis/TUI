@@ -136,7 +136,7 @@ An `Image` is drawn in real pixels where the terminal supports the Kitty graphic
 
 - `Image(systemName:)` draws nothing unless the terminal's font has that symbol, so don't rely on SF Symbols for anything essential.
 - An image made from a `CGImage` or `NSImage` is read once. Drawing into it later won't change what's on screen.
-- An image that isn't `.resizable()` draws at its natural size only where TUI knows how big a cell is: Apple's Terminal, Warp, iTerm2, and Ghostty on its own Mac. Elsewhere it fits the space it's offered.
+- An image that isn't `.resizable()` draws at its natural size only where TUI knows how big a cell is: Apple's Terminal, Warp, iTerm2, Ghostty on its own Mac, and the classic Windows console on its own PC. Elsewhere it fits the space it's offered.
 
 ## Shapes and materials are made of cells
 

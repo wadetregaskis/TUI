@@ -114,9 +114,11 @@ As it reads macOS's and GNOME's, when you're at the machine the app runs on:
   WebP, HEIC and AVIF, JPEG XL and XR, icons, DDS and camera raw files, turned upright by their orientation, the
   largest of an icon's or a TIFF's images, each where Windows has a codec for it (some, as HEIC's, come as extensions
   from the Microsoft Store). TGA, Radiance HDR, PSD and PNM, which WIC does not read, are decoded by TUI's own
-  decoder. Only a GIF animates, as elsewhere off Apple platforms.
-- **The classic console's font**: TUI asks its cell's size, so a picture keeps its shape in a font narrower than
-  Consolas, such as Cascadia Mono.
+  decoder. A GIF and an animated WebP play, and an APNG shows its first image, as elsewhere off Apple platforms.
+- **The classic console's window**: TUI measures its cell, in the window's pixels and at its display's scale, so a
+  picture keeps its shape in a font narrower than Consolas, such as Cascadia Mono, and an ``Image`` that isn't
+  `.resizable()` takes its natural size, as in Apple's Terminal. Windows Terminal doesn't say how big its cell is, so
+  there such a picture fits the space it's offered.
 - **The console's colours**: the classic console doesn't answer the questions TUI asks a terminal about its colours,
   so TUI reads them from the console itself, and takes a light profile as light. Windows Terminal answers them.
 

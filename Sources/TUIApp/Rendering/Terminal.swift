@@ -719,9 +719,9 @@ extension Terminal {
             // aspect, which is what they do on the terminals that report zero.
             return nil
         #elseif os(Windows)
-            // The classic console's font cell (`cellPixelSize()`), so a font
-            // narrower than Consolas's 8 × 16 (Cascadia Mono's 7 × 16) keeps a
-            // picture its shape; elsewhere on Windows, the default.
+            // The classic console's cell (`cellPixelSize()`), so a font
+            // narrower than Consolas (Cascadia Mono) keeps a picture its shape;
+            // elsewhere on Windows, the default.
             guard let cell = cellPixelSize(), cell.width > 0 else { return nil }
             let aspect = Double(cell.height) / Double(cell.width)
             return (aspect >= 1.0 && aspect <= 4.0) ? aspect : nil

@@ -3139,6 +3139,7 @@ all on one Retina Mac); this section is what they say about units:
 | Warp v0.2026.08.26 | 8 × 16 | (aspect 2.000) | points | 8 × 16 |
 | iTerm2 3.6.11 | 14 × 34 | 7.125 × 18.32 | ioctl retina-scaled; `14 t` in points | 7.125 × 18.32 |
 | Ghostty 1.3.1 | 16 × 34 | (aspect 2.125) | device pixels | 8 × 17 at scale 2 |
+| conhost, build 26300 | 15 × 32 (its window, below) | — | device pixels | 7.5 × 16 at scale 2 |
 
 **A correction, measured 2026-11-01** ("SGR-Pixels mouse" above): iTerm2 3.7.6's
 `CSI 14 t` is its window, margins and title bar in it, not its text area: 570 × 458
@@ -3163,6 +3164,22 @@ points with the pixels):
   `SSH_CONNECTION`/`SSH_TTY`), from CoreGraphics' main display. A window on a
   display of another scale is sized by the main display's: an image there is
   half or twice its natural size. Over ssh, unknown.
+- **The classic Windows console (conhost):** measured 2026-11-20, build 26300,
+  Consolas at its default size, on a display at 200% (`dpi_probe.py`'s numbers,
+  then TUI's own `ConsoleWindow.cell()` in a conhost window). Windows has no
+  `TIOCGWINSZ`; the console's font (`GetCurrentConsoleFontEx`) names 8 × 16,
+  which is its cell at 96 dots an inch whatever the scale, rounded to whole
+  pixels, while its window (`GetClientRect`, asked per-monitor aware) draws 120
+  × 30 cells in 1800 × 960 pixels at 192 dots an inch (`GetDpiForWindow`): a
+  cell of 15 × 32 pixels, 7.5 × 16 points. So TUI's cell is the window's
+  client area over the grid, and its calibration the window's dots an inch
+  over 96, as Ghostty's is the display's scale — taken only on evidence that
+  the app runs on the machine its user is at (`SessionLocality.isLocal()`), as
+  conhost's environment names no terminal. A pseudo console (Windows
+  Terminal's, an ssh server's) has a window of 0 × 0 and names a font of no
+  width, so it has no cell: Windows Terminal answers neither `CSI 14 t` nor
+  `CSI 16 t` outside Sixel, so there an image fits what it is offered. A
+  window moved to a display of another scale keeps the scale it started on.
 - **tmux:** unknown. tmux does not forward the client's pixel fields (see
   "tmux" above), and two attached clients would not agree on a cell anyway.
 - **Every other host:** unknown — its pixels are of a kind nobody has
