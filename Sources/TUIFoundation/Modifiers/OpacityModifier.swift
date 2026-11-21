@@ -120,7 +120,12 @@ nonisolated package struct _OpacityView<Content: View>: View {
         // the run loop the lot. Otherwise a fade that never ends costs a render
         // pass for as long as the view is on screen.
         let repeating = cycling(context)
-        let factor = min(max(repeating?.current ?? opacity, 0), 1)
+        // In this order, the constant FIRST: `max(0, .nan)` is 0, where
+        // `max(.nan, 0)` is NaN. `.opacity(done / total)` with both zero was
+        // drawn whole over the bare page and not at all over a sibling; it is
+        // invisible everywhere now, before `fading` multiplies it into every
+        // region inside (hunt 11-20, BLEND-14).
+        let factor = min(1, max(0, repeating?.current ?? opacity))
         // Fully opaque is NOT the identity, and short-circuiting it here as
         // though it were put a discontinuity at exactly one point of the range.
         //

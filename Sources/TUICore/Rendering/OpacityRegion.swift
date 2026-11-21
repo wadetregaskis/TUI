@@ -144,11 +144,13 @@ public struct OpacityRegion: Equatable, Sendable {
         self.offsetY = offsetY
         self.width = width
         self.height = height
-        // Clamped in this order for the reason `Color.opacity(_:)`'s is: it
-        // folds a NaN to the low end, which is the only answer available.
-        self.opacity = min(max(opacity, 0), 1)
-        self.inkOpacity = min(max(inkOpacity, 0), 1)
-        self.fieldOpacity = min(max(fieldOpacity, 0), 1)
+        // Clamped with the constant first, as `Color.opacity(_:)` clamps: that
+        // order folds a NaN to the low end, the only answer available.
+        // (`min(max(x, 0), 1)`, which this said, kept the NaN: Swift's `max`
+        // answers its first argument when the comparison is false.)
+        self.opacity = min(1, max(0, opacity))
+        self.inkOpacity = min(1, max(0, inkOpacity))
+        self.fieldOpacity = min(1, max(0, fieldOpacity))
         self.cycle = cycle
         self.fieldUnderContent = fieldUnderContent
         self.blendMode = blendMode

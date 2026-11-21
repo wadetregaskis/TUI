@@ -171,7 +171,14 @@ extension Color.Resolved: CustomStringConvertible {
     }
 
     private static func hex(_ component: Float) -> String {
-        let scaled = component.isFinite ? Int64((Double(component) * 255 + 0.5).rounded(.towardZero)) : 0
+        // Held to `Int64`'s range before the conversion, and only there, so
+        // the measured 32-bit wraps stand: an opacity of 1e20 (it is stored
+        // unencoded) trapped `Int64(_:)` where the doc comment promised a wrap
+        // (hunt 11-20, STYLE-10). By hand, not `Int64(clamping:)`: TUIStyling
+        // does not see TUICore, where that lives. 2^63 is exactly a `Double`.
+        let limit = 9_223_372_036_854_775_808.0
+        let product = (Double(component) * 255 + 0.5).rounded(.towardZero)
+        let scaled = component.isFinite ? (product >= limit ? .max : product <= -limit ? .min : Int64(product)) : 0
         let digits = String(UInt32(truncatingIfNeeded: scaled), radix: 16, uppercase: true)
         return digits.count < 2 ? "0" + digits : digits
     }

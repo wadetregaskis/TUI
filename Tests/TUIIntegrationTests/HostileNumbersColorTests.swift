@@ -100,4 +100,34 @@ struct HostileNumbersColorTests {
         drawHostile(content.visualEffect { effect, _ in effect.grayscale(value) })
         drawHostile(content.visualEffect { effect, _ in effect.hueRotation(.degrees(value)) })
     }
+
+    // MARK: Hunt 11-20
+
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// `Int64(_:)` trapped on an opacity past about 3.6e16, which ends the
+        /// whole run: so in a child process.
+        @Test("A resolved colour of any opacity describes itself (STYLE-10)")
+        func resolvedDescription() async {
+            await #expect(processExitsWith: .success) {
+                for opacity: Float in [1e20, -1e20, .greatestFiniteMagnitude, -.greatestFiniteMagnitude, .infinity, .nan] {
+                    _ = Color.Resolved(red: 0, green: 0, blue: 0, opacity: opacity).description
+                }
+                // The measured 32-bit wraps of SwiftUI's spelling stand.
+                precondition(Color.Resolved(red: 1.5, green: -0.2, blue: 0.5).description == "#17FFFFFFFCE80FF")
+            }
+        }
+    #endif
+
+    @Test("An opacity that is not a number is no opacity, over the bare page and over a sibling alike (BLEND-14)")
+    func notANumberOpacity() {
+        func shows(_ view: some View) -> Bool {
+            let harness = InputChainHarness(width: 10, height: 2)
+            let palette = harness.context.environment.palette
+            let buffer = harness.frame(view).resolvingOpacity(surface: palette.background, palette: palette)
+            return buffer.lines.contains { $0.stripped.contains("x") }
+        }
+        #expect(!shows(Text("x").opacity(.nan)), "over the bare page")
+        #expect(!shows(ZStack { Color.red; Text("x").opacity(.nan) }), "over a sibling")
+        #expect(shows(Text("x").opacity(1)), "the yardstick shows")
+    }
 }
