@@ -128,11 +128,27 @@ final class SignalManager {
     }
 
     /// Stops taking them. Idempotent.
+    ///
+    /// While the console's handler is still running an event it routed, the
+    /// handler stays installed, with no route to send through, so it passes
+    /// every event on. Taking a handler out waits for every handler that is
+    /// running to return, and a window's close keeps the handler waiting for
+    /// this teardown (``handler``), so the teardown would wait out the system's
+    /// five seconds and be ended (measured 2026-11-21: closing conhost's
+    /// window, or Windows Terminal's, stalled the teardown here, and the
+    /// process was ended without returning from `main`). Its process is
+    /// ending, so the handler going with it costs nothing.
     func stop() {
-        _ = SetConsoleCtrlHandler(Self.handler, false)
+        if Self.eventsBeingHandled.load(ordering: .sequentiallyConsistent) == 0 {
+            _ = SetConsoleCtrlHandler(Self.handler, false)
+        }
         Self.route.withLock { $0 = nil }
         wake = nil
     }
+
+    /// How many control events the console's handler is running now, that it
+    /// sent a shutdown for: on the console's threads, so process-wide.
+    nonisolated private static let eventsBeingHandled = Atomic(0)
 
     /// The console's control handler: a shutdown for the events above, and
     /// nothing for the rest, which go on to the next handler. ⌃C during a
@@ -143,6 +159,8 @@ final class SignalManager {
             return true
         case CTRL_C_EVENT, CTRL_CLOSE_EVENT, CTRL_LOGOFF_EVENT, CTRL_SHUTDOWN_EVENT:
             guard let route = SignalManager.route.withLock({ $0 }) else { return false }
+            eventsBeingHandled.add(1, ordering: .sequentiallyConsistent)
+            defer { eventsBeingHandled.subtract(1, ordering: .sequentiallyConsistent) }
             route()
             if Int32(event) != CTRL_C_EVENT { Sleep(5_000) }
             return true
