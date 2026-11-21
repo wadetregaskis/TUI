@@ -24,6 +24,8 @@ import TUIFoundation
 /// offsets that go backwards or past the line are clamped. Tokens are kept
 /// only for the lines on screen and a screen either side, however many are
 /// published, and the editor draws again only when a line on screen changed.
+/// Each update says which of those lines hold no tokens of its text
+/// (``TextEditorHighlightUpdate/linesToStyle``).
 ///
 /// Made by the editor, one for each highlighter it starts: a highlighter
 /// cannot make one.
@@ -56,8 +58,9 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
     public var visibleLines: Range<Int> { state.withLock { $0.visible } }
 
     /// The next thing to style: the latest text, every edit since the text
-    /// taken last as one change, and the lines on screen. Returns at once
-    /// when the text changed or the lines on screen moved since the last
+    /// taken last as one change, the lines on screen, the window tokens are
+    /// kept for, and the lines of it that hold none of this text. Returns at
+    /// once when the text changed or the lines on screen moved since the last
     /// update, and otherwise waits until one does. `nil` once the editor has
     /// gone, or the task is cancelled.
     public func nextUpdate() async -> TextEditorHighlightUpdate? {
@@ -69,7 +72,9 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
                 // the main actor.
                 let text = taken.madeText()
                 state.withLock { $0.noteTaken(text) }
-                return TextEditorHighlightUpdate(text: text, change: taken.change, visibleLines: taken.visible)
+                return TextEditorHighlightUpdate(
+                    text: text, change: taken.change, visibleLines: taken.visible, window: taken.window,
+                    linesToStyle: taken.linesToStyle)
             case .wait: await waitForChange()
             }
         }
@@ -95,22 +100,25 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
         }
     }
 
-    /// Publishes `tokens` for `line` of the text of `version`. Returns
-    /// whether it was taken: `false` for a text that is no longer the
-    /// editor's, or a line it does not have, and then kept nowhere. A line
-    /// off screen by more than a screen, or longer than
-    /// ``maximumLineLength``, is taken and kept nowhere.
+    /// Publishes `tokens` for `line` of the text of `version`. Returns what
+    /// became of them: refused for a text that is no longer the editor's, or
+    /// a line it does not have, and then kept nowhere; else kept, for the
+    /// line if it is in the window (``TextEditorHighlightUpdate/window``) and
+    /// for no line if it is not. A line longer than ``maximumLineLength`` is
+    /// kept as drawn unstyled, whatever its tokens.
     @discardableResult
-    public func publish(_ tokens: TextEditorTokens<Token>, forLine line: Int, of version: Int) -> Bool {
+    public func publish(_ tokens: TextEditorTokens<Token>, forLine line: Int, of version: Int) -> TextEditorPublishOutcome {
         keepPublished(CollectionOfOne(tokens), forLines: line..<(line + 1), of: version)
     }
 
     /// Publishes each of `tokens` for the line of `lines` at its place, under
     /// one lock (B-ATTRED-29): as ``publish(_:forLine:of:)`` for each, and
     /// all refused if one line is out of the text or `tokens` is not one a
-    /// line.
+    /// line. Kept for the lines of `lines` in the window.
     @discardableResult
-    public func publish(_ tokens: [TextEditorTokens<Token>], forLines lines: Range<Int>, of version: Int) -> Bool {
+    public func publish(
+        _ tokens: [TextEditorTokens<Token>], forLines lines: Range<Int>, of version: Int
+    ) -> TextEditorPublishOutcome {
         keepPublished(tokens, forLines: lines, of: version)
     }
 
@@ -136,24 +144,32 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
 
 extension TextEditorHighlightSession {
     /// ``publish(_:forLines:of:)``'s work: the text checked under the lock,
-    /// the runs made outside it, and written under it again if the text is
-    /// still the one they were made for, so a frame waits only for the copy.
+    /// the runs of the lines in the window made outside it, and written under
+    /// it again if the text is still the one they were made for, so a frame
+    /// waits only for the copy.
     private func keepPublished(
         _ tokens: some Collection<TextEditorTokens<Token>>, forLines lines: Range<Int>, of version: Int
-    ) -> Bool {
-        guard tokens.count == lines.count, lines.lowerBound >= 0 else { return false }
+    ) -> TextEditorPublishOutcome {
+        guard tokens.count == lines.count, lines.lowerBound >= 0 else { return .refused }
         guard let publishable = state.withLock({ $0.publishable(version: version) }),
             lines.upperBound <= publishable.text.lineCount
-        else { return false }
+        else { return .refused }
         let (text, window) = publishable
-        var made: [(line: Int, runs: [EditorHighlightRun]?)] = []
-        for (line, lineTokens) in zip(lines, tokens) where window.contains(line) {
+        let inWindow = lines.clamped(to: window)
+        var made: [(line: Int, runs: [EditorHighlightRun])] = []
+        made.reserveCapacity(inWindow.count)
+        for (line, lineTokens) in zip(lines, tokens) where inWindow.contains(line) {
             let length = text.utf8End(ofLine: line) - text.utf8Offset(ofLine: line)
-            made.append((line, length > maximumLineLength ? nil : runs(lineTokens, length: length)))
+            // Past the limit: kept as drawn unstyled, so it is a line styled.
+            made.append((line, length > maximumLineLength ? [] : runs(lineTokens, length: length)))
         }
-        let outcome = state.withLock { $0.keep(made, ofVersion: version) }
-        if outcome == .askForFrame { requestFrame() }
-        return outcome != .refused
+        let outcome = state.withLock { $0.keep(made, madeFor: inWindow, of: lines, ofVersion: version) }
+        switch outcome {
+        case .refused: return .refused
+        case .kept(let kept, let askForFrame):
+            if askForFrame { requestFrame() }
+            return .kept(kept)
+        }
     }
 
     /// `tokens` as runs of a line `length` bytes long, their offsets clamped

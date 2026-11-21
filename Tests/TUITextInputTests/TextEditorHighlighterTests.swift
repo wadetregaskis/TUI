@@ -247,6 +247,38 @@ struct TextEditorHighlighterTests {
         #expect(rig.ink(line: 3, column: 2) == Self.ink(Self.grey), "line 11")
     }
 
+    @Test("Scrolled away and back between two updates, the lines that lost their tokens are the next update's to style")
+    func scrollAwayAndBackListsLinesToStyle() async throws {
+        // tuitree's SeamTests, "Scrolling away and back drops a line's tokens": the update after had the screen
+        // where it was and a change of one line, and said nothing of the lines the scroll had emptied.
+        let inbox = SessionInbox()
+        let rig = Rig((0..<200).map { "line \($0)" }.joined(separator: "\n")) {
+            $0.textEditorHighlighter(SteppedHighlighter(inbox: inbox), style: Self.style)
+        }
+        rig.draw()
+        let session = try await Self.session(inbox)
+        let first = try #require(await session.nextUpdate())
+        #expect(first.visibleLines == 0..<4 && first.window == 0..<8)
+        let styler = FakeTreeStyler()
+        styler.step(first, in: session)
+        #expect(rig.ink(line: 1, column: 1) == Self.ink(Self.green))
+        // Away, back, and a key on the first line: all before the highlighter looks again.
+        rig.handler.moveCursor(toLine: 150, column: 0)
+        rig.draw()
+        rig.handler.moveCursor(toLine: 0, column: 0)
+        rig.draw()
+        _ = rig.handler.handleKeyEvent(KeyEvent(key: .character("x")))
+        #expect(rig.ink(line: 1, column: 1) != Self.ink(Self.green), "line 1 lost its tokens to the scroll")
+        let next = try #require(await session.nextUpdate())
+        #expect(next.visibleLines == first.visibleLines, "the screen is where it was")
+        #expect(next.change?.newLines == 0..<1, "and the change is the one line typed on")
+        #expect(next.linesToStyle == RangeSet(0..<8), "but every line of the window is to style")
+        // The changed line and the lines to style, as a tree styler publishes them: the screen styled again.
+        styler.step(next, in: session)
+        #expect(styler.steps.last?.published == Set(0..<8))
+        #expect(rig.ink(line: 1, column: 1) == Self.ink(Self.green))
+    }
+
     // MARK: - A real highlighter beside edits
 
     @Test("A highlighter's own task, beside a burst of edits, ends with the last text styled (the sanitizer's run)")

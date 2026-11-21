@@ -177,19 +177,20 @@ struct TextEditorHighlightSessionTests {
         let update = try #require(await session.nextUpdate())
         #expect(session.window == 0..<30, "a screen either side")
         let word = Self.tokens([(0, .word), (4, .gap), (5, .number)])
-        #expect(session.publish(word, forLine: 12, of: update.text.version))
+        #expect(session.publish(word, forLine: 12, of: update.text.version) != .refused)
         #expect(frames.asked == 1)
-        #expect(session.publish(Self.tokens([(0, .number)]), forLine: 13, of: update.text.version))
+        #expect(session.publish(Self.tokens([(0, .number)]), forLine: 13, of: update.text.version) != .refused)
         #expect(frames.asked == 1, "one frame asked until the editor draws")
         #expect(session.takeChangedLines() == [12, 13])
-        #expect(session.publish(word, forLine: 12, of: update.text.version))
+        #expect(session.publish(word, forLine: 12, of: update.text.version) != .refused)
         #expect(frames.asked == 1, "the same tokens: nothing to draw")
-        #expect(session.publish(word, forLine: 25, of: update.text.version))
+        #expect(session.publish(word, forLine: 25, of: update.text.version) != .refused)
         #expect(frames.asked == 1, "off screen, in the window: kept, no frame")
         #expect(session.keptLine(25) != nil)
-        #expect(session.publish(word, forLine: 50, of: update.text.version), "outside the window: taken")
+        let outside = session.publish(word, forLine: 50, of: update.text.version)
+        #expect(outside != .refused && outside != .kept(50..<51), "outside the window: taken, and said not kept")
         #expect(session.keptLine(50) == nil, "and kept nowhere")
-        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 14, of: update.text.version))
+        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 14, of: update.text.version) != .refused)
         #expect(frames.asked == 2)
         // The runs: the tokens interned in order, from 1.
         #expect(session.runs(ofLine: 12).map(\.style) == [1, 2, 3])
@@ -205,15 +206,15 @@ struct TextEditorHighlightSessionTests {
         let (session, frames) = Self.session("a\nb\nc")
         _ = session.show(lines: 0..<3)
         let first = try #require(await session.nextUpdate())
-        #expect(!session.publish(Self.tokens([(0, .word)]), forLine: 3, of: first.text.version), "no line 3")
-        #expect(!session.publish([Self.tokens([])], forLines: 0..<2, of: first.text.version), "one tokens a line")
+        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 3, of: first.text.version) == .refused, "no line 3")
+        #expect(session.publish([Self.tokens([])], forLines: 0..<2, of: first.text.version) == .refused, "one tokens a line")
         _ = try Self.edit(session, "a\nb\nc", to: "a\nbb\nc")
-        #expect(!session.publish(Self.tokens([(0, .word)]), forLine: 0, of: first.text.version), "stale")
+        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 0, of: first.text.version) == .refused, "stale")
         #expect(session.keptLine(0) == nil)
         #expect(frames.asked == 0)
         let second = try #require(await session.nextUpdate())
-        #expect(!session.publish(Self.tokens([(0, .word)]), forLine: 0, of: second.text.version + 1), "a version to come")
-        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 0, of: second.text.version))
+        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 0, of: second.text.version + 1) == .refused, "a version to come")
+        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 0, of: second.text.version) != .refused)
         #expect(frames.asked == 1)
     }
 
@@ -246,10 +247,61 @@ struct TextEditorHighlightSessionTests {
         let (session, _) = Self.session("abcd\n0123456789ab", maximumLineLength: 10)
         _ = session.show(lines: 0..<2)
         let update = try #require(await session.nextUpdate())
-        #expect(session.publish(Self.tokens([(2, .word), (1, .number), (100, .gap)]), forLine: 0, of: 0))
+        #expect(session.publish(Self.tokens([(2, .word), (1, .number), (100, .gap)]), forLine: 0, of: 0) != .refused)
         #expect(session.runs(ofLine: 0).map(\.utf8Offset) == [2, 2, 4])
-        #expect(session.publish(Self.tokens([(0, .number)]), forLine: 1, of: update.text.version))
-        #expect(session.keptLine(1) == nil, "12 bytes, past 10")
+        #expect(session.publish(Self.tokens([(0, .number)]), forLine: 1, of: update.text.version) == .kept(1..<2))
+        #expect(session.keptLine(1) == EditorHighlightLine(runs: []), "12 bytes, past 10: kept unstyled")
+        _ = session.show(lines: 0..<1)  // a scroll, for an update: the window is still both lines
+        #expect(await session.nextUpdate()?.linesToStyle.isEmpty == true, "so it is not a line to style")
+    }
+
+    // MARK: - What to style (B-ATTRED-57)
+
+    @Test("An update gives the window, and the lines of it holding no tokens of its text, or provisional ones")
+    @MainActor
+    func linesToStyle() async throws {
+        let text = (0..<100).map { "line \($0)" }.joined(separator: "\n")
+        let (session, _) = Self.session(text)
+        _ = session.show(lines: 10..<20)
+        let first = try #require(await session.nextUpdate())
+        #expect(first.window == 0..<30)
+        #expect(first.linesToStyle == RangeSet(0..<30), "nothing published yet")
+        let word = Self.tokens([(0, .word)])
+        #expect(session.publish(Array(repeating: word, count: 30), forLines: 0..<30, of: 0) == .kept(0..<30))
+        // Away and back before the highlighter looks: the screen is where it
+        // was, but the lines that left the window lost their tokens.
+        _ = session.show(lines: 50..<60)
+        _ = session.show(lines: 10..<20)
+        let back = try #require(await session.nextUpdate())
+        #expect(back.visibleLines == 10..<20 && back.window == 0..<30)
+        #expect(back.linesToStyle == RangeSet(0..<30), "all of them left it: 40..<70 was the window")
+        #expect(session.publish(Array(repeating: word, count: 30), forLines: 0..<30, of: 0) == .kept(0..<30))
+        // A scroll a few lines on: only the lines new to the window.
+        _ = session.show(lines: 15..<25)
+        let scrolled = try #require(await session.nextUpdate())
+        #expect(scrolled.window == 5..<35 && scrolled.linesToStyle == RangeSet(30..<35))
+        // An edit in place: the line's tokens carried, provisional, so to
+        // style; a line put in: none.
+        let typed = try Self.edit(session, text, to: text.replacingOccurrences(of: "line 12\n", with: "line 12!\n"))
+        _ = try Self.edit(session, typed, to: typed.replacingOccurrences(of: "line 20\n", with: "line 20\nnew\n"))
+        let edited = try #require(await session.nextUpdate())
+        // The lines from 21 moved one on with their tokens: 30 is 29's.
+        #expect(Array(edited.linesToStyle.ranges) == [12..<13, 21..<22, 31..<35])
+    }
+
+    @Test("A publish says which of its lines it kept: those in the window, none for a window moved away")
+    func publishSaysWhatItKept() async throws {
+        let (session, _) = Self.session((0..<100).map { "line \($0)" }.joined(separator: "\n"))
+        _ = session.show(lines: 10..<20)
+        let update = try #require(await session.nextUpdate())
+        let word = Self.tokens([(0, .word)])
+        #expect(session.publish(Array(repeating: word, count: 10), forLines: 25..<35, of: 0) == .kept(25..<30))
+        #expect(session.keptLine(29) != nil && session.keptLine(30) == nil)
+        // The window moves before the highlighter publishes what it took.
+        _ = session.show(lines: 60..<70)
+        #expect(session.publish(word, forLine: 15, of: update.text.version) == .kept(15..<15), "kept nowhere")
+        #expect(session.keptLine(15) == nil)
+        #expect(session.publish([], forLines: 0..<0, of: 0) == .kept(0..<0))
     }
 
     // MARK: - Carrying tokens through edits (B-ATTRED-24, 28)
@@ -301,7 +353,7 @@ struct TextEditorHighlightSessionTests {
         let ended = Task { await session.nextUpdate() }
         session.close()
         #expect(await ended.value == nil)
-        #expect(!session.publish(Self.tokens([(0, .word)]), forLine: 0, of: 0))
+        #expect(session.publish(Self.tokens([(0, .word)]), forLine: 0, of: 0) == .refused)
         await #expect(throws: CancellationError.self) { try await session.checkpoint() }
     }
 

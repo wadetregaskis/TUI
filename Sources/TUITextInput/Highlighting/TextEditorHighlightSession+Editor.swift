@@ -195,6 +195,10 @@ enum EditorHighlightTake: Sendable {
         var text: TextEditorText?
         var change: TextEditorTextChange?
         var visible: Range<Int>
+        /// The lines tokens are kept for, and those of them that hold none of
+        /// this text, or only provisional ones (B-ATTRED-57).
+        var window: Range<Int>
+        var linesToStyle: RangeSet<Int>
         /// The text the highlighter took last, which ``change`` is from, and
         /// the lines of the one taken now: its lines are found from that
         /// one's (B-ATTRED-45).
@@ -212,11 +216,11 @@ enum EditorHighlightTake: Sendable {
     }
 }
 
-/// What keeping a publish's runs did.
+/// What keeping a publish's runs did: refused, or kept for some lines, with
+/// whether to ask the editor for a frame.
 enum EditorHighlightKeep: Sendable, Equatable {
     case refused
-    case kept
-    case askForFrame
+    case kept(Range<Int>, askForFrame: Bool)
 }
 
 extension EditorHighlightState {
@@ -233,9 +237,26 @@ extension EditorHighlightState {
         }
         let taken = EditorHighlightTake.Taken(
             version: version, string: string, text: taken?.version == version ? taken : nil, change: change,
-            visible: visible, previous: taken, lineCount: lineCount)
+            visible: visible, window: window, linesToStyle: linesToStyle(), previous: taken, lineCount: lineCount)
         (pending, viewportMoved, takenSize) = (nil, false, (lineCount, utf8Count))
         return .update(taken)
+    }
+
+    /// The lines of the window that hold no tokens, or only provisional ones
+    /// (B-ATTRED-57): a look-up a line of the window, a few hundred at most.
+    func linesToStyle() -> RangeSet<Int> {
+        var found = RangeSet<Int>()
+        var start: Int?
+        for line in window {
+            let held = lines[line].map { !$0.isProvisional } ?? false
+            if !held, start == nil { start = line }
+            if held, let first = start {
+                found.insert(contentsOf: first..<line)
+                start = nil
+            }
+        }
+        if let first = start { found.insert(contentsOf: first..<window.upperBound) }
+        return found
     }
 
     /// The highlighter has `text`, its lines found.
@@ -250,25 +271,33 @@ extension EditorHighlightState {
         return (taken, window)
     }
 
-    /// Keeps `made`, each line's runs (`nil`: drawn unstyled), if `version`
-    /// is still the editor's: a line whose runs changed is one to draw again,
-    /// and one on screen asks for a frame, once until the editor next draws.
-    mutating func keep(_ made: [(line: Int, runs: [EditorHighlightRun]?)], ofVersion version: Int)
-        -> EditorHighlightKeep
-    {
+    /// Keeps `made`, each line's runs (none: drawn unstyled), made for the
+    /// lines `madeLines` of those `published`, if `version` is still the
+    /// editor's: a line whose runs changed is one to draw again, and one on
+    /// screen asks for a frame, once until the editor next draws. Only the
+    /// lines still in the window are kept, which a scroll since `made` was
+    /// made may have moved.
+    mutating func keep(
+        _ made: [(line: Int, runs: [EditorHighlightRun])], madeFor madeLines: Range<Int>, of published: Range<Int>,
+        ofVersion version: Int
+    ) -> EditorHighlightKeep {
         guard !isClosed, version == self.version else { return .refused }
         var onScreen = false
         for (line, runs) in made where window.contains(line) {
             let kept = lines[line]
             guard kept?.runs != runs || kept?.isProvisional == true else { continue }
-            lines[line] = runs.map { EditorHighlightLine(runs: $0) }
+            lines[line] = EditorHighlightLine(runs: runs)
             guard kept?.runs != runs else { continue }
             changed.insert(line)
             onScreen = onScreen || visible.contains(line)
         }
-        guard onScreen, !frameAsked else { return .kept }
+        // None held: an empty range at the publish's start, wherever the
+        // window is.
+        var held = madeLines.clamped(to: window)
+        if held.isEmpty { held = published.lowerBound..<published.lowerBound }
+        guard onScreen, !frameAsked else { return .kept(held, askForFrame: false) }
         frameAsked = true
-        return .askForFrame
+        return .kept(held, askForFrame: true)
     }
 }
 

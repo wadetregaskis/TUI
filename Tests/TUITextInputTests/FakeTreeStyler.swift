@@ -42,7 +42,6 @@ final class FakeTreeStyler: Sendable {
     private struct State: Sendable {
         var version: Int?
         var lines: [Line] = []
-        var published: Set<Int> = []
         var steps: [Step] = []
     }
 
@@ -103,11 +102,11 @@ final class FakeTreeStyler: Sendable {
     }
 
     /// Styles `update`'s text, and publishes to `session` the lines in the
-    /// window whose tokens changed, or that it has not published since the
-    /// text was new: in runs of lines, a lock each.
+    /// window whose tokens changed, and those the session holds no tokens of
+    /// this text for (`linesToStyle`, B-ATTRED-57): in runs of lines, a lock
+    /// each.
     func step(_ update: TextEditorHighlightUpdate, in session: TextEditorHighlightSession<Token>) {
         let lines = Self.lines(of: update.text)
-        let window = EditorHighlightState.window(around: update.visibleLines, lineCount: lines.count)
         let toPublish = state.withLock { state -> [Int] in
             var changed: Set<Int> = []
             if update.text.version == state.version {
@@ -119,17 +118,10 @@ final class FakeTreeStyler: Sendable {
                     let old = line < change.newLines.lowerBound ? line : line - shift
                     if old < 0 || old >= state.lines.count || state.lines[old] != lines[line] { changed.insert(line) }
                 }
-                state.published = Set(
-                    state.published.compactMap { line in
-                        change.oldLines.contains(line) ? nil : line < change.oldLines.lowerBound ? line : line + shift
-                    })
             } else {
                 changed = Set(lines.indices)
-                state.published = []
             }
-            state.published.subtract(changed)
-            let toPublish = window.filter { !state.published.contains($0) }
-            state.published.formUnion(toPublish)
+            let toPublish = update.window.filter { changed.contains($0) || update.linesToStyle.contains($0) }
             state.lines = lines
             state.version = update.text.version
             state.steps.append(

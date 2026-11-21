@@ -1396,6 +1396,39 @@ written whole (TEXTIN-8). The bar shows a match by selecting it through the hand
 hands it to the app's selection binding of either kind; it used to put a selection channel of its own in the app's
 place, which an attributed editor's binding never reached (TEXTIN-3).
 
+#### The seam after its first outside client (2026-11-21)
+
+tuitree's tree-sitter adapter (A-ATTRED-16 (a)), the seam's first client outside TUI, reported what it had had to
+work round, each item pinned by a test of its own (tuitree's `TUI-FEEDBACK.md`, "Highlighting adapter", items 1 to
+9, and its `SeamTests`). The model held (push, versions, whole-line changes, UTF-8, the window); what changed:
+
+- **B-ATTRED-57. An update gives the window, and the lines of it that hold no tokens of its text; a publish says
+  which lines it kept** (items 1 and 5). B-ATTRED-38 drops a line's tokens when it leaves the window, and scrolls
+  coalesce, so after a scroll away and back between two updates the screen is where it was, the change is a key's
+  one line, and the lines the scroll emptied are drawn plain with nothing to say so. A highlighter that publishes
+  what changed (tree-sitter's changed ranges, as §8.6 planned) left them plain until each next changed, so tuitree's
+  adapter styled its whole window every update: cheap for tree-sitter (0.5 ms a screen), a range request a key for
+  a language server. So `TextEditorHighlightUpdate.linesToStyle` lists the lines of the window with no tokens, or
+  only provisional ones (B-ATTRED-28): never published, scrolled out and back, put in by an edit, edited in place. A
+  highlighter publishes those and what its own analysis says changed; a stateless line styler those alone, as the
+  JSON styler now does (superseding B-ATTRED-42's whole window, which the session's no-change check made cheap to
+  draw but not to scan). It is found under the lock as the update is taken, a dictionary look-up a line of the
+  window (a few hundred at most), on the highlighter's task, and is a `RangeSet` (the standard library's, whose
+  macOS 15 floor is the package's): a run of lines is a batch to publish. `window` is B-ATTRED-30's rule, given,
+  so no highlighter repeats its arithmetic and a change to it reaches them all (tuitree's copy, the JSON styler's
+  and the fake tree styler's went). A line past `maximumLineLength` is now kept as a line of no tokens, drawn
+  unstyled as before, so it is not listed every update. Two alternatives were weighed: a flag that the window moved
+  (tuitree's fallback) makes a highlighter restyle a whole window after any scroll, one that emptied nothing
+  included; and listing what changed would repeat what a tree's own changed ranges say, and what a stateless styler
+  never needs.
+
+  `publish` returned `true` for lines outside the window ("taken and kept nowhere", B-ATTRED-37), which a
+  highlighter could not tell from kept. It now returns `TextEditorPublishOutcome`: `.refused`, for what it was
+  refused for before, or `.kept(lines)`, the lines the window held when they were kept, short of those published or
+  empty (at the publish's first line) when the window had moved. A source-breaking change to the SPI, which
+  promises nothing (A-ATTRED-10); keeping the `Bool` and adding a second method would have left two answers to
+  read.
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

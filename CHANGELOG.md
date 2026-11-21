@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextEditor`'s highlighter is told which lines it must style.** Through the highlighting seam (SPI), each
+update now carries the `window` of lines the editor keeps tokens for, and `linesToStyle`, the lines of it the editor
+holds no tokens of the update's text for: lines never styled, lines an edit put in or edited in place, and lines
+scrolled out of the window and back. A highlighter that published only the lines its parse said changed left those
+last drawn plain until each changed again. `publish` returns a `TextEditorPublishOutcome` rather than a `Bool`:
+`.kept(lines)`, the lines the window held, which a publish for lines the editor has scrolled away from leaves
+empty, or `.refused`; a highlighter that tested the `Bool` tests `isRefused`.
+
 **A list's locked rows stay locked when they are out of sight.** A row's `.deleteDisabled()`, `.moveDisabled()` and
 `.selectionDisabled()` were known to its `List` only while the row was drawn, so once the mouse wheel had scrolled the
 cursor row away, Delete deleted a `.deleteDisabled()` row and Ctrl+Down moved a `.moveDisabled()` one, a drag of the

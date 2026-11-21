@@ -259,7 +259,8 @@ public struct TextEditorTextChange: Sendable, Equatable {
 }
 
 /// TUI-specific. What a highlighter is told: the latest text, what changed
-/// since the text it took last, and the lines on screen.
+/// since the text it took last, the lines on screen, the lines the editor
+/// keeps tokens for, and those of them it holds no tokens of this text for.
 @_spi(TextEditorHighlighting)
 public struct TextEditorHighlightUpdate: Sendable {
     /// The latest text: only the latest is kept, so a slow highlighter holds
@@ -270,7 +271,41 @@ public struct TextEditorHighlightUpdate: Sendable {
     /// whole. An update whose text has the version the highlighter last had
     /// is a scroll: only ``visibleLines`` moved (B-ATTRED-27).
     public var change: TextEditorTextChange?
-    /// The lines on screen: what to style first. The editor keeps tokens
-    /// only for these and a screen either side (B-ATTRED-20, 30).
+    /// The lines on screen: what to style first.
     public var visibleLines: Range<Int>
+    /// The lines the editor keeps tokens for: those on screen and a screen
+    /// either side (B-ATTRED-20, 30). Tokens published for any other line
+    /// are kept nowhere (B-ATTRED-57).
+    public var window: Range<Int>
+    /// The lines of ``window`` the editor holds no tokens of this text for:
+    /// lines never published, lines that left the window and came back (a
+    /// line that leaves it loses its tokens, B-ATTRED-38), lines an edit put
+    /// in, and lines edited in place, which the editor draws in their old
+    /// tokens, moved, until they are published again (B-ATTRED-28).
+    ///
+    /// A highlighter that publishes these, and the lines of the window its
+    /// own analysis says changed (tree-sitter's changed ranges), leaves no
+    /// line drawn in another text's tokens: a line not listed holds the
+    /// tokens last published for it, moved with its text where an edit moved
+    /// it. A stateless line styler publishes these alone (B-ATTRED-57).
+    public var linesToStyle: RangeSet<Int>
+}
+
+/// TUI-specific. What became of tokens published to a
+/// ``TextEditorHighlightSession`` (B-ATTRED-57).
+@_spi(TextEditorHighlighting)
+public enum TextEditorPublishOutcome: Sendable, Equatable {
+    /// Taken, and kept for these lines: those published that are in the
+    /// editor's window. A publish's other lines are kept nowhere, so a range
+    /// short of the lines published, or empty, says the window moved; the
+    /// next update lists the lines in
+    /// ``TextEditorHighlightUpdate/linesToStyle`` once they are in it.
+    case kept(Range<Int>)
+    /// Refused, and kept nowhere: the text is no longer the editor's (take
+    /// the next update), a line is past its end, or a batch's tokens are not
+    /// one a line (B-ATTRED-37).
+    case refused
+
+    /// Whether it was refused.
+    public var isRefused: Bool { self == .refused }
 }

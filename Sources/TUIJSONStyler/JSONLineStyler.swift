@@ -68,24 +68,24 @@ package enum JSONLineStyler {
         return container
     }
 
-    /// Styles the lines of `update`'s window, those on screen and a screen
-    /// either side, as the session keeps them, and publishes them to
-    /// `session` in one batch. All of them, every update: a stateless styler
-    /// has no changed ranges to find, and the session takes a line whose
-    /// tokens did not change as no change at all, so the editor draws it
-    /// again only if they did. A line longer than the session styles is
-    /// published empty, without being scanned (B-ATTRED-15).
+    /// Styles the lines of `update`'s window that the session holds no
+    /// tokens of its text for (``TextEditorHighlightUpdate/linesToStyle``),
+    /// and publishes them to `session`, a batch for each run of them. Those
+    /// alone: a line's tokens are its bytes' alone, so a line the session
+    /// holds tokens of this text for, moved with it through an edit, has the
+    /// tokens a scan would give it (B-ATTRED-57). A line longer than the
+    /// session styles is published empty, without being scanned
+    /// (B-ATTRED-15).
     package static func publish(_ update: TextEditorHighlightUpdate, in session: TextEditorHighlightSession<JSONToken>) {
         let text = update.text
-        let visible = update.visibleLines
-        let screen = max(1, visible.count)
-        let window = max(0, visible.lowerBound - screen)..<min(text.lineCount, visible.upperBound + screen)
-        guard !window.isEmpty else { return }
-        let tokens = window.map { index in
-            let line = text.line(index)
-            return line.count > session.maximumLineLength ? TextEditorTokens() : Self.tokens(of: line)
+        for lines in update.linesToStyle.ranges {
+            let tokens = lines.map { index in
+                let line = text.line(index)
+                return line.count > session.maximumLineLength ? TextEditorTokens() : Self.tokens(of: line)
+            }
+            // Refused: a newer text, which the next update brings.
+            if session.publish(tokens, forLines: lines, of: text.version).isRefused { return }
         }
-        session.publish(tokens, forLines: window, of: text.version)
     }
 }
 
