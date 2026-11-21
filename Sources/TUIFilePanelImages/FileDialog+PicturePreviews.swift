@@ -48,11 +48,16 @@ extension View {
 enum FileDialogPicturePreviews {
     /// Whether a file of `type` is a picture the image decoders read: any
     /// image where the system's decoders are (ImageIO reads every raster
-    /// format the host does, and a PDF's first page), and elsewhere the formats
-    /// the bundled decoder reads (`PlatformImageLoader`).
+    /// format the host does, and a PDF's first page), on Windows the formats
+    /// its codecs read (WIC: not every image, as an SVG is not), and elsewhere
+    /// the formats the bundled decoder reads (`PlatformImageLoader`).
     static func isPicture(_ type: UTType) -> Bool {
         #if canImport(ImageIO)
             type.conforms(to: .image) || type.conforms(to: .pdf)
+        #elseif os(Windows)
+            [UTType.png, .jpeg, .gif, .bmp, .tiff, .webP, .heic, .heics, .jpegxl, .ico, .dng, .rawImage].contains {
+                type.conforms(to: $0)
+            }
         #else
             [UTType.png, .jpeg, .gif, .bmp].contains { type.conforms(to: $0) }
         #endif

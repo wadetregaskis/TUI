@@ -82,11 +82,18 @@ import TUIImage
 
     /// The extensions a named image is looked for with, in order: on Apple
     /// platforms a PDF too, which the loader rasterises through Core Graphics —
-    /// an Xcode vector asset's image set holds one alone.
+    /// an Xcode vector asset's image set holds one alone — and on Windows what
+    /// its codecs read besides (WIC). Elsewhere, what stb_image reads: not a
+    /// TIFF, which it cannot decode, so a `name.tiff` there is not found
+    /// rather than found and drawn as nothing.
     #if canImport(CoreGraphics)
         nonisolated static let resourceExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "tiff", "pdf"]
+    #elseif os(Windows)
+        nonisolated static let resourceExtensions = [
+            "png", "jpg", "jpeg", "gif", "bmp", "tiff", "tif", "webp", "heic", "heif", "avif", "jxl", "ico",
+        ]
     #else
-        nonisolated static let resourceExtensions = ["png", "jpg", "jpeg", "gif", "bmp", "tiff"]
+        nonisolated static let resourceExtensions = ["png", "jpg", "jpeg", "gif", "bmp"]
     #endif
 
     /// The image `name` in `bundle` (the main bundle for `nil`): from an

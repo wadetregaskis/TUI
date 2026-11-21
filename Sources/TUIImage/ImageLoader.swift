@@ -105,7 +105,11 @@ public enum ImageLoadError: Error, LocalizedError, CustomStringConvertible {
 /// reads (HEIC, TIFF, WebP, …), and of a file holding several images (an
 /// icon's sizes, a multi-resolution TIFF) the largest. On Apple platforms a
 /// PDF is rasterised too, its first page at one pixel a point
-/// (`decodePDF(_:maxPixelCount:)`); EPS is not read.
+/// (`decodePDF(_:maxPixelCount:)`); EPS is not read. On Windows the system's
+/// own codecs decode first, through WIC (`decodeWithWIC(path:maxPixelCount:reducedBy:)`):
+/// TIFF, WebP, HEIF and AVIF, JPEG XL and XR, ICO, DDS and camera raw files
+/// besides the common ones, the largest of several images, and the EXIF
+/// orientation, as ImageIO's; stb_image reads what WIC does not.
 public struct PlatformImageLoader: ImageLoader {
 
     public init() {}
@@ -133,6 +137,8 @@ public struct PlatformImageLoader: ImageLoader {
                 CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
                 describing: "image at \(path)", maxPixelCount: maxPixelCount
             ).image
+        #elseif os(Windows)
+            return try decodeOnWindows(path: path, maxPixelCount: maxPixelCount).image
         #else
             return try decodeWithSTB(data: Self.fileBytes(atPath: path), maxPixelCount: maxPixelCount).image
         #endif
@@ -169,6 +175,8 @@ public struct PlatformImageLoader: ImageLoader {
                 CGImageSourceCreateWithData(data as CFData, nil), describing: "image data",
                 maxPixelCount: maxPixelCount
             ).image
+        #elseif os(Windows)
+            return try decodeOnWindows(data: data, maxPixelCount: maxPixelCount)
         #else
             return try decodeWithSTB(data: data, maxPixelCount: maxPixelCount).image
         #endif

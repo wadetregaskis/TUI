@@ -87,6 +87,14 @@ extension PlatformImageLoader {
             }
             return (5...8).contains(orientation) ? (height, width) : (width, height)
         #else
+            #if os(Windows)
+                do {
+                    return try pictureSizeWithWIC(path: path, maxPixelCount: maxPixelCount)
+                } catch let error as ImageLoadError {
+                    // Too large is the answer; anything else, stb_image may read.
+                    if case .imageTooLarge = error { throw error }
+                }
+            #endif
             let data = try Self.fileBytes(atPath: path)
             let length = try Self.stbLength(forByteCount: data.count)
             var width: Int32 = 0
@@ -135,6 +143,8 @@ extension PlatformImageLoader {
             return try decodeWithImageIO(
                 CGImageSourceCreateWithURL(URL(fileURLWithPath: path) as CFURL, nil),
                 describing: "image at \(path)", maxPixelCount: maxPixelCount, reducedBy: reduction)
+        #elseif os(Windows)
+            return try decodeOnWindows(path: path, maxPixelCount: maxPixelCount, reducedBy: reduction)
         #else
             return try decodeWithSTB(
                 data: Self.fileBytes(atPath: path), maxPixelCount: maxPixelCount, reducedBy: reduction)
