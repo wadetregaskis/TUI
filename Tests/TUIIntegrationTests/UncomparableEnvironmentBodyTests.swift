@@ -22,14 +22,28 @@ import TUITesting
 @MainActor
 private final class Service {}
 
+/// Not `Equatable`, and nothing in it can be compared: a closure.
+private struct Callback: Sendable {
+    let run: @Sendable () -> Void
+}
+
 private struct ServiceKey: EnvironmentKey {
     static let defaultValue: Service? = nil
+}
+
+private struct CallbackKey: EnvironmentKey {
+    static let defaultValue = Callback(run: {})
 }
 
 extension EnvironmentValues {
     fileprivate var service: Service? {
         get { self[ServiceKey.self] }
         set { self[ServiceKey.self] = newValue }
+    }
+
+    fileprivate var callback: Callback {
+        get { self[CallbackKey.self] }
+        set { self[CallbackKey.self] = newValue }
     }
 }
 
@@ -108,5 +122,12 @@ private func countOverASecond(_ app: TestApp) -> (bodies: Int, frames: Int) {
         canvasDraws = 0
         app.advance(by: .seconds(3))
         #expect(canvasDraws == 0)
+    }
+
+    @Test func `a value nothing can compare runs each body below it once a frame, not twice`() {
+        let counts = countOverASecond(
+            TestApp(width: 20, height: 4) { Ticking().environment(\.callback, Callback(run: {})) })
+        #expect(counts.frames > 30)
+        #expect(counts.bodies <= counts.frames + 2)
     }
 }

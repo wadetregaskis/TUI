@@ -973,7 +973,10 @@ private func measureCompositeBody<V: View>(
     }
     // Evaluated once a walk and kept (`BodyKeep`), and so always observed, since
     // the draw that takes it evaluates nothing to be observed under.
-    if let cache = context.renderCache, cache.bodyKeep.isSlow(V.self), cache.bodyKeep.mayKeep(view, plan: plan) {
+    if let cache = context.renderCache,
+        cache.bodyKeep.keeps(V.self, unservable: context.environment.hasUncomparableEnvironmentValue),
+        cache.bodyKeep.mayKeep(view, plan: plan)
+    {
         if let kept = cache.bodyKeep.take(view, context: context, cache: cache) {
             return measureChild(kept, proposal: proposal, context: childContext)
         }

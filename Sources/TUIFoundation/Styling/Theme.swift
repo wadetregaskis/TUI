@@ -283,6 +283,8 @@ nonisolated package struct ThemeModifier<Content: View>: View {
             // through the tracker, one below it through the flag.
             context.environment.volatileReadTracker?.recordRenderSideEffect()
             environment.hasUncomparableEnvironmentValue = true
+            // And its third: a measure below keeps its body for the draw (`BodyKeep`).
+            context.renderCache?.bodyKeep.noteUnservableEnvironment()
         }
         environment.appearance = theme.appearance
         if let tint = theme.tint {

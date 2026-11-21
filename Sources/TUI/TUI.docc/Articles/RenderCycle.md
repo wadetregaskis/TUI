@@ -587,7 +587,9 @@ Through `EnvironmentModifier` — every `.environment(\.slot, value)`, which is 
 the style modifiers publish — the `.incomparable` answer is acted on: the
 modifier carries it down as a flag on the environment, and every memo below
 declines to store. Memoization is lost there, which is a performance cost rather
-than a correctness one.
+than a correctness one. What is left of it: the body an app's view ran to be
+measured is kept for its draw in the same frame (`BodyKeep`), so each body below
+runs once a frame rather than twice.
 
 At a slot that notes itself and acts on `.changed` alone, there is nothing to
 carry the answer, so it falls through ignored — and `noteAppliedEnvironment`

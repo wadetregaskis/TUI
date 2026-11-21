@@ -27,6 +27,11 @@ SwiftUI compares it: an object by identity, so a mutation inside the object (obs
 read it) is not a change to the environment, and a different object is. A value nothing can compare, such as a
 closure or a struct that isn't `Equatable`, still can't be.
 
+**Below an environment value that can't be compared, each body runs once a frame, not twice.** Under a value set
+with `.environment(\.key, value)` that nothing can compare, a closure or a struct that isn't `Equatable`, no memo
+keeps anything, so each of an app's views below it ran its `body` to be measured and again to be drawn, every frame.
+The body a measure ran is now kept for the draw that follows it.
+
 **`Tools/Web/build.sh` builds your app's browser page into your package, not into TUI's checkout.** With
 `--package-path`, the module, its resources, the manifest and a copy of the page now go into the package's own
 `.build/web/`, or the directory the new `--site DIR` names, and `Tools/Web/serve.py --site DIR` serves them. Before,

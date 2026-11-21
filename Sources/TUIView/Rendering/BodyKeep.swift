@@ -141,6 +141,7 @@ package final class BodyKeep {
         reset()
         sampler.beginPass()
         pass &+= 1
+        unservableSeen = false
         if !tally.isEmpty { judgeKeeps() }
     }
 
@@ -161,13 +162,40 @@ package final class BodyKeep {
         tally.removeAll(keepingCapacity: true)
     }
 
-    /// Whether a composite of `V` is one to keep: seen to be slow, or a test says so.
+    /// Whether this pass has met an environment modifier whose value nothing can
+    /// compare (``noteUnservableEnvironment()``): until it has, no measure looks
+    /// at its environment for one.
+    package private(set) var unservableSeen = false
+
+    /// Says that an environment value nothing can compare was applied this pass,
+    /// so the measures below it keep what they evaluate (``keeps(_:unservable:)``).
     @inline(__always)
-    func isSlow<V: View>(_: V.Type) -> Bool {
+    package func noteUnservableEnvironment() {
+        unservableSeen = true
+    }
+
+    /// Whether a composite of `V` is one to keep: seen to be slow, measured where
+    /// no memo can hold anything (`unservable`), or a test says so.
+    ///
+    /// `unservable` is a measure under an environment value nothing can compare
+    /// (`hasUncomparableEnvironmentValue`: a closure, a struct that is not
+    /// `Equatable`). No memo stores below one, so every body there runs every
+    /// frame, and without this twice: the measure's, and the draw's. Kept, the
+    /// draw takes the measure's, and each body runs once a frame, however quick:
+    /// where nothing is served, a keep that is taken is cheaper than the body it
+    /// saves, and one that is not is cooled as a slow type's is. tuiarcade
+    /// counted 125 bodies a second beside a 60 Hz timeline (TUI-FEEDBACK.md,
+    /// Milestone 3 item 3). Asked only once the pass has met such a value
+    /// (``unservableSeen``): the flag is a look in the environment's table, and
+    /// a page with none pays one load a measure for it.
+    @inline(__always)
+    func keeps<V: View>(_: V.Type, unservable: @autoclosure () -> Bool) -> Bool {
         guard isOn else { return false }
         if keepsEveryBody { return true }
         let type = ObjectIdentifier(V.self)
-        guard !slowTypes.isEmpty, slowTypes.contains(type) else { return false }
+        guard (!slowTypes.isEmpty && slowTypes.contains(type)) || (unservableSeen && unservable()) else {
+            return false
+        }
         guard !gates.isEmpty, let gate = gates[type] else { return true }
         return gate.until <= pass
     }

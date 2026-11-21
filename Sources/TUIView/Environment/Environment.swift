@@ -179,6 +179,9 @@ private func noteEnvironmentChange<V>(
         // — there is no tracker here yet, so the signal has to travel *down*
         // the environment instead. Hence the flag as well.
         context.environment.volatileReadTracker?.recordRenderSideEffect()
+        // And with no memo below to serve a body, a measure's is kept for the
+        // draw, so each runs once a frame rather than twice (`BodyKeep`).
+        cache.bodyKeep.noteUnservableEnvironment()
         return true
     case .first, .unchanged:
         break
