@@ -19,14 +19,15 @@ AnimationStore.Key.identity | let identity: ViewIdentity
 AnimationStore.Key.init(identity:owner:slot:) | init(identity: ViewIdentity, owner: ObjectIdentifier, slot: Int = 0)
 AnimationStore.Key.owner | let owner: ObjectIdentifier
 AnimationStore.Key.slot | let slot: Int
+AnimationStore.LogStart | struct LogStart
 AnimationStore.arrivalPhase(for:animation:nowNanos:isMeasuring:) | func arrivalPhase(for key: AnimationStore.Key, animation: Animation?, nowNanos: Int64, isMeasuring: Bool) -> Double
-AnimationStore.beginLogging() | func beginLogging() -> Int
+AnimationStore.beginLogging() | func beginLogging() -> AnimationStore.LogStart
 AnimationStore.beginRenderPass() | func beginRenderPass()
 AnimationStore.beginWalk() | func beginWalk()
 AnimationStore.count | var count: Int { get }
 AnimationStore.cycle(for:nowNanos:step:) | func cycle<D>(for key: AnimationStore.Key, nowNanos: Int64, step: Int) -> AnimationCycle<D>? where D : Sendable, D : VectorArithmetic
 AnimationStore.declareAgain(_:) | func declareAgain(_ declared: AnimationStore.DeclaredRecords)
-AnimationStore.endLogging(from:) | func endLogging(from start: Int) -> AnimationStore.DeclaredRecords?
+AnimationStore.endLogging(from:) | func endLogging(from start: AnimationStore.LogStart) -> AnimationStore.DeclaredRecords?
 AnimationStore.endRenderPass() | func endRenderPass()
 AnimationStore.hasLiveAnimations(at:) | func hasLiveAnimations(at nowNanos: Int64) -> Bool
 AnimationStore.init() | init()

@@ -130,6 +130,12 @@ package final class AnimationStore {
     /// (``declareAgain(_:)``).
     private var declaredLog: [Key] = []
 
+    /// The `View.animation(_:value:)` triggers asked about while a memo
+    /// renders on a miss, kept apart from ``declaredLog`` because a serve
+    /// stamps them on every hit, where it renews records only now and then
+    /// (``declareAgain(_:)``).
+    private var declaredTriggerLog: [Key] = []
+
     /// How many memos are rendering on a miss, outermost to innermost.
     private var loggingDepth = 0
 
@@ -139,24 +145,47 @@ package final class AnimationStore {
         if loggingDepth > 0 { declaredLog.append(key) }
     }
 
+    /// Notes `key`, a trigger, as asked about this pass for the memos
+    /// rendering around it.
+    @inline(__always)
+    private func logTrigger(_ key: Key) {
+        if loggingDepth > 0 { declaredTriggerLog.append(key) }
+    }
+
+    /// Where a memo's slices of the two logs start (``beginLogging()``).
+    public struct LogStart {
+        let records: Int
+        let triggers: Int
+    }
+
     /// Begins a memo's log of the keys its render declares, returning where
-    /// its slice starts (``endLogging(from:)``).
-    public func beginLogging() -> Int {
+    /// its slices start (``endLogging(from:)``).
+    public func beginLogging() -> LogStart {
         loggingDepth += 1
-        return declaredLog.count
+        return LogStart(records: declaredLog.count, triggers: declaredTriggerLog.count)
     }
 
     /// Ends the innermost memo's log and returns the keys its render
     /// declared; the log empties when the outermost ends. An inner memo's
     /// keys stay in the log for the memo around it.
-    public func endLogging(from start: Int) -> DeclaredRecords? {
+    public func endLogging(from start: LogStart) -> DeclaredRecords? {
         loggingDepth -= 1
         // A copy, and of exactly this slice. `Array(_:)` of a slice that is the whole
         // log shares the log's buffer: an entry kept all the capacity an enclosing
         // memo's page had grown it to, and the `removeAll` below, no longer unique,
         // allocated as much again, 8 KB a row on `session/log`.
-        let declared = start < declaredLog.count ? DeclaredRecords(declaredLog[start...].map(\.self)) : nil
-        if loggingDepth == 0 { declaredLog.removeAll(keepingCapacity: true) }
+        let hasRecords = start.records < declaredLog.count
+        let hasTriggers = start.triggers < declaredTriggerLog.count
+        let declared =
+            hasRecords || hasTriggers
+            ? DeclaredRecords(
+                hasRecords ? declaredLog[start.records...].map(\.self) : [],
+                triggers: hasTriggers ? declaredTriggerLog[start.triggers...].map(\.self) : [])
+            : nil
+        if loggingDepth == 0 {
+            declaredLog.removeAll(keepingCapacity: true)
+            declaredTriggerLog.removeAll(keepingCapacity: true)
+        }
         return declared
     }
 
@@ -168,7 +197,20 @@ package final class AnimationStore {
     /// — the To do clip's strikethrough, whose row the memo served on every
     /// frame after the first, drew whole (found 2026-10-28). A record that has
     /// gone is not made again.
+    ///
+    /// A `View.animation(_:value:)` trigger in the subtree is asked about
+    /// again too, as its modifier would ask on a render: stamped this pass, so
+    /// it lives while it is served and goes on the first pass that neither
+    /// draws nor serves it. Pruned on a served frame, the value it last saw
+    /// was gone, and the next change to it was a first sight, which never
+    /// animates: a `ForEach` row over `Equatable` data snapped on any page
+    /// where something else drew a frame between two changes (found
+    /// 2026-11-20, VIEWS-1). Stamped on every hit, not kept for
+    /// ``keepPasses`` as records are, so that a row that left is still a
+    /// first sight when it comes back; a memo holding no trigger pays one
+    /// emptiness check for it.
     public func declareAgain(_ declared: DeclaredRecords) {
+        if !declared.triggers.isEmpty { declareTriggersAgain(declared.triggers) }
         // A memo serving a list's rows serves hundreds a frame, and a lookup
         // of every record of every one, hashing its identity, was 5.5% of a
         // `menus` frame (A/B +6.5%). So a served subtree keeps its records
@@ -184,6 +226,16 @@ package final class AnimationStore {
         declared.keptUntil = until
     }
 
+    /// ``declareAgain(_:)``'s half for triggers: each stamped this pass, and
+    /// logged for a memo rendering around the one serving them.
+    private func declareTriggersAgain(_ keys: [Key]) {
+        for key in keys {
+            logTrigger(key)
+            guard let index = triggerPasses.index(forKey: key) else { continue }
+            triggerPasses.values[index] = pass
+        }
+    }
+
     /// How many passes a record a memo served stays without being asked
     /// about (``declareAgain(_:)``): a second at 60 frames a second. A view
     /// that has left keeps its record that long, and coming back within it
@@ -194,10 +246,16 @@ package final class AnimationStore {
     /// keeps (``declareAgain(_:)``), and how long it has kept them for.
     public final class DeclaredRecords {
         let keys: [Key]
+        /// The `View.animation(_:value:)` triggers asked about, which every
+        /// hit stamps again.
+        let triggers: [Key]
         /// The last pass the records are kept through, as this last set it.
         var keptUntil: UInt64 = 0
 
-        init(_ keys: [Key]) { self.keys = keys }
+        init(_ keys: [Key], triggers: [Key] = []) {
+            self.keys = keys
+            self.triggers = triggers
+        }
     }
 
     /// How many of ``records`` are ``Record/isUnsettled``: kept by every write
@@ -309,11 +367,17 @@ extension AnimationStore {
             store(appearance(of: target, at: nowNanos), for: key, isMeasuring: isMeasuring)
             return target
         }
-        // The re-declaration, on an entry already in hand.
-        if record.lastPass != pass, !isMeasuring {
-            record.lastPass = pass
+        // The re-declaration, on an entry already in hand. Logged on every
+        // ask, not only the pass's first: a memo drawing its subtree a second
+        // time in one pass (a geometry owner's correction, a walk made again)
+        // otherwise stored a log without the record, and the passes that
+        // served it then let the record go (VIEWS-4).
+        if !isMeasuring {
             logDeclaration(key)
-            records[key] = record
+            if record.lastPass != pass {
+                record.lastPass = pass
+                records[key] = record
+            }
         }
 
         let presented = presented(record, from: from, target: recorded, nowNanos: nowNanos)
@@ -384,9 +448,10 @@ extension AnimationStore {
                 store(
                     Record(from: phase, target: target, animation: nil, startNanos: nowNanos),
                     for: key, isMeasuring: isMeasuring)
-            } else if record.lastPass != pass, !isMeasuring {
-                records[key]?.lastPass = pass
+            } else if !isMeasuring {
+                // Logged on every ask, as `value(for:…)` logs (VIEWS-4).
                 logDeclaration(key)
+                if record.lastPass != pass { records[key]?.lastPass = pass }
             }
             return phase
         }
@@ -464,6 +529,8 @@ extension AnimationStore {
         if !isMeasuring {
             triggers[key] = value
             triggerPasses[key] = pass
+            // For a memo around it, which asks again for it on each serve.
+            logTrigger(key)
         }
         guard let previous else { return false }
         return previous != value

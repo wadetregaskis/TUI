@@ -163,4 +163,61 @@ struct AnimationStoreTests {
         #expect(declared.keys.count == 1)
         #expect(declared.keys.capacity < 8, "\(declared.keys.capacity)")
     }
+
+    /// A memo that draws its subtree a second time in one pass — a geometry
+    /// owner's correction, a walk made again — stores the second drawing's
+    /// log, so that log must name every record the drawing asked about, the
+    /// ones the pass had already asked about included (VIEWS-4).
+    @Test("A record asked about again in the same pass is in the second drawing's log")
+    func secondDrawingInAPassLogsItsRecords() throws {
+        let store = AnimationStore()
+        let key = makeKey()
+        store.beginRenderPass()
+        let first = store.beginLogging()
+        _ = store.value(for: key, target: 0.0, animation: nil, nowNanos: 0, isMeasuring: false)
+        #expect(store.endLogging(from: first)?.keys == [key])
+
+        let second = store.beginLogging()
+        _ = store.value(for: key, target: 0.0, animation: nil, nowNanos: 0, isMeasuring: false)
+        let declared = try #require(store.endLogging(from: second), "the second drawing logged nothing")
+        #expect(declared.keys == [key])
+
+        // Served on the passes after, the record stays.
+        for _ in 0..<3 {
+            store.endRenderPass()
+            store.beginRenderPass()
+            store.declareAgain(declared)
+        }
+        store.endRenderPass()
+        #expect(store.hasRecord(at: key), "the record was dropped under the memo serving it")
+    }
+
+    /// The trigger of `View.animation(_:value:)` lives while a memo serves its
+    /// view, and goes on the first pass nothing asks for it (VIEWS-1).
+    @Test("A trigger a memo serves keeps its value; one nothing asks for goes")
+    func servedTriggerKeepsItsValue() throws {
+        let store = AnimationStore()
+        let key = makeKey()
+        store.beginRenderPass()
+        let log = store.beginLogging()
+        #expect(!store.triggerChanged(false, for: key, isMeasuring: false), "first sight")
+        let declared = try #require(store.endLogging(from: log))
+        #expect(declared.triggers == [key])
+        store.endRenderPass()
+
+        for _ in 0..<100 {
+            store.beginRenderPass()
+            store.declareAgain(declared)
+            store.endRenderPass()
+        }
+        store.beginRenderPass()
+        #expect(store.triggerChanged(true, for: key, isMeasuring: false), "the served trigger forgot its value")
+        store.endRenderPass()
+
+        // Neither drawn nor served for one pass: gone, so it is a first sight.
+        store.beginRenderPass()
+        store.endRenderPass()
+        store.beginRenderPass()
+        #expect(!store.triggerChanged(false, for: key, isMeasuring: false))
+    }
 }

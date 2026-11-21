@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`.animation(_:value:)` animates a change in a row that was kept from an earlier frame.** A `ForEach` row over
+`Equatable` data, a view in `.equatable()` or a view of the app's own that TUI kept forgot the value its
+`.animation(_:value:)` watched on the first frame something else on the page drew, so the next change to it jumped
+to its end instead of animating. The value is now remembered for as long as the view is on screen, drawn or kept, and
+a view that left and comes back still appears without animating.
+
 **A number that is not a number, infinite, enormous or negative no longer crashes the app, wherever it is handed
 in.** About thirty places turned an app's `Double`, `UnitPoint`, `Date` or stated length into a count of cells or
 nanoseconds with a conversion that traps, and an ordinary slip reached each: `index / (count - 1)` with one element,
