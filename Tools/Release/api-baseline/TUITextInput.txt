@@ -69,6 +69,10 @@ TextEditor.focusID(_:) | func focusID(_ id: String) -> TextEditor
 TextEditor.init(text:) | init(text: Binding<String>)
 TextEditor.init(text:selection:) | init(text: Binding<AttributedString>, selection: Binding<AttributedTextSelection>? = nil)
 TextEditor.init(text:selection:) | init(text: Binding<String>, selection: Binding<TextSelection?>)
+TextEditorMark | struct TextEditorMark
+TextEditorMark.attributes | var attributes: AttributeContainer
+TextEditorMark.init(_:attributes:) | init(_ range: Range<String.Index>, attributes: AttributeContainer)
+TextEditorMark.range | var range: Range<String.Index>
 TextEditorStyle | protocol TextEditorStyle : Sendable
 TextEditorStyle.Body | associatedtype Body : View
 TextEditorStyle.Configuration | typealias Configuration = TextEditorStyleConfiguration
@@ -109,6 +113,7 @@ View.tabWidth(_:) | nonisolated func tabWidth(_ width: TabWidth) -> some View
 View.textContentType(_:) | nonisolated func textContentType(_ type: TextContentType?) -> some View
 View.textCursor(_:) | nonisolated func textCursor(_ style: TextCursorStyle) -> some View
 View.textCursor(_:animation:) | nonisolated func textCursor(_ shape: TextCursorStyle.Shape, animation: TextCursorStyle.Animation = .pulse) -> some View
+View.textEditorMarks(_:in:) | nonisolated func textEditorMarks(_ marks: [TextEditorMark], in text: String) -> some View
 View.textEditorStyle(_:) | nonisolated func textEditorStyle<S>(_ style: S) -> some View where S : TextEditorStyle
 View.textEditorWrapsLines(_:) | nonisolated func textEditorWrapsLines(_ wraps: Bool = true) -> some View
 View.textFieldStyle(_:) | nonisolated func textFieldStyle<S>(_ style: S) -> some View where S : TextFieldStyle

@@ -65,7 +65,16 @@ promised: TUI is a source package built with the app, without library evolution,
   LEAKS ruling), and an audit of the rest the same day hid the one other thing that did not have to be public
   (`_MemoizedView`'s initializer). The owner ruled the same day that underscored names are not API and may change
   in any release.
-- **`package` declarations,** which clients cannot see, and `@_spi` (there is none).
+- **`package` declarations,** which clients cannot see.
+- **`@_spi` declarations.** They are public to the compiler, but a client sees them only after asking for them by
+  name, `@_spi(Name) import Module`, and in doing so takes no promise: an SPI may change or go in any release, minor
+  and patch releases included, and its changes are not deprecated first. It is how TUI ships an API whose shape
+  waits on its first real user. There is one: `@_spi(TextEditorHighlighting)` in `TUITextInput`, the seam a styler
+  highlights a `TextEditor` through (`TextEditorHighlighter` and `.textEditorHighlighter`), SPI until a highlighter
+  outside TUI has been written against it and settled (A-ATTRED-10 in the highlighting design,
+  [Historical/Text, editing and the clipboard](<Historical/Text, editing and the clipboard/Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>)).
+  Promoting an SPI to public is additive, so a minor release may do it, and from then on it is under the promise.
+  The baseline leaves SPI out (`api_baseline.py`), and DocC does not document it: its doc comments do.
 - **Experimental, developer and internal environment variables:** every developer and internal variable, and any
   experiment. An experiment can change or go in any release; one that is promoted joins the promise from the release
   that says so. There are none today: the owner promoted the three the end-user table marked as one on 2026-11-15

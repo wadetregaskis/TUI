@@ -52,13 +52,23 @@ article's "Your own focus look" shows the recommended ways. Cells that paint the
 `Canvas`, don't show the tint. A control inside a focusable container still draws its own focus when it holds it, and
 the container then draws none.
 
+**A `TextEditor` draws marks: ranges of its text an app styles, such as a parse error's underline.**
+`.textEditorMarks(_:in:)` gives the editors below a list of `TextEditorMark`s, each a range and the attributes to
+draw it in, together with the text the ranges were found in. That text may be a few keys behind the editor's: the
+editor carries the marks through its own edits since, so an app's parse can lag the typing without its marks landing
+in the wrong place, and a mark whose text was deleted goes. Marks are drawn over the text, its attributes and its
+highlighting, and under the selection and the find bar's matches, and are never written into the text. SwiftUI has
+nothing like them; they are TUI's own, and public.
+
 **A `TextEditor` can be highlighted by a styler of the app's own, through a seam that is SPI for now.** With
 `@_spi(TextEditorHighlighting) import TUITextInput`, `.textEditorHighlighter(_:style:)` gives the editors below a
 `TextEditorHighlighter`: a tree-sitter adapter, say, run in a task of its own off the main actor, which takes the
 editor's text as it changes (every edit since the last as one change by whole lines, in UTF-8 bytes) and publishes
 tokens for the lines on screen, which the editor draws over its text without writing them into it. The editor never
 waits for it, and keeps a line's tokens, moved with the edit, until the styler publishes the line again. Being SPI,
-all of it may change in any release until it is made public.
+all of it is outside the API stability policy and may change in any release, minor ones included, until it is made
+public. The Example's Text Input page shows both: JSON highlighted through the seam, its brackets that don't match
+marked.
 
 **A `Canvas`'s text stays inside the canvas.** A glyph drawn at the canvas's right or bottom edge, `x: size.width` or
 `y: size.height`, landed in the column or row past it, and a wide glyph in the last column ran a cell over, so the

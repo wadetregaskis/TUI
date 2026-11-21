@@ -15,8 +15,8 @@ import TUIFoundation
 extension View {
     /// TUI-specific. Highlights the text of the ``TextEditor``s in this view
     /// with `highlighter`, each token drawn in the attributes `style` gives
-    /// it: over the text, never written into it, under the selection and the
-    /// find bar's matches.
+    /// it: over the text, never written into it, under the app's marks
+    /// (`textEditorMarks(_:in:)`), the selection and the find bar's matches.
     ///
     /// `style` is asked once for each distinct token, on the main actor, and
     /// the attributes it gives are drawn as an attributed editor draws its
@@ -25,8 +25,19 @@ extension View {
     /// highlighter started with that is asked: the editor keeps a highlighter
     /// running across its body's evaluations (``TextEditorHighlighter``).
     ///
-    /// SwiftUI has no highlighting for its text editor; this is TUI's own,
-    /// and while it is `@_spi`, it may change in any release.
+    /// ```swift
+    /// @_spi(TextEditorHighlighting) import TUITextInput
+    ///
+    /// TextEditor(text: $source)
+    ///     .textEditorHighlighter(MyTreeSitterHighlighter(language: .json)) { token in
+    ///         theme.attributes(for: token)
+    ///     }
+    /// ```
+    ///
+    /// SwiftUI has no highlighting for its text editor; this is TUI's own.
+    /// It is SPI, outside the API stability policy, until it is made public
+    /// (``TextEditorHighlighter`` says when): it may change in any release,
+    /// minor ones included.
     ///
     /// - Parameters:
     ///   - highlighter: What styles the text, in a task of its own.

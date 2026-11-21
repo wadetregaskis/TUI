@@ -88,6 +88,29 @@ TextEditor(text: $notes)
 
 Since Return starts a new line there, a ``TextEditor`` doesn't take part in `onSubmit`.
 
+### Marking ranges of the text
+
+A ``TextEditorMark`` is a range of an editor's text drawn in attributes of its own: a parse error's curly underline, a diagnostic, a search result. ``View/textEditorMarks(_:in:)`` gives marks to the editors in a view, with the text their ranges were found in. They are drawn over the text and never written into it, so the bound value stays as the person typed it.
+
+```swift
+struct ConfigEditor: View {
+    @State private var source = ""
+
+    var body: some View {
+        TextEditor(text: $source)
+            .textEditorMarks(problems(in: source).map { range in
+                var error = AttributeContainer()
+                error.underlineStyle = Text.LineStyle(pattern: .curly, color: .red)
+                return TextEditorMark(range, attributes: error)
+            }, in: source)
+    }
+}
+```
+
+The text you state the marks with may be a few keys behind the editor's, as it is when a parse runs on a task of its own and finishes after more has been typed. The editor carries the marks through its own edits since: text typed before a mark moves it, text typed inside it grows it, text typed at either of its ends stays outside it, and a mark whose text was deleted goes. Marks of a text the editor doesn't know, such as one from before an undo, aren't drawn until you state them again. Marks are drawn over any attributes and highlighting the text has, and under the selection and the find bar's matches; of two that overlap, the later is drawn on top. For an editor over an `AttributedString`, the ranges are of its characters as a `String`, `String(value.characters)`. SwiftUI has no marks; they are TUI's own.
+
+Highlighting a language's syntax, from tree-sitter or a language server, comes through a seam that is SPI for now: `@_spi(TextEditorHighlighting) import TUITextInput`. It is documented in its doc comments, and may change in any release until it is made public.
+
 An editor over an `AttributedString` that is a stored property of an `@Observable` model pays for a comparison on every key. The macro's setter compares the new value with the old with `==`, to notify no one of an equal write, and `AttributedString`'s `==` reads them a character at a time up to the edit. In a long document that is most of a key's time: 98.7% of it, typing into a 3.2 MB one. The attributed `TextEditor(text:selection:)` shows how a model can write that one property's accessors itself, without the comparison.
 
 ## Building a form

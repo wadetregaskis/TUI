@@ -133,6 +133,12 @@ Costs known to be coming, or not yet priced:
   the macOS 26 runtime, so it takes a buffer instead ([Highlighting a large source in
   TextEditor](<../Historical/Text, editing and the clipboard/Highlighting a large source in TextEditor - design (G3, A-ATTRED-1).md>)).
   Another instance of M3, when H0 is built.
+- **Marks stated as ranges of an `AttributedString`** (G3 H4′, B-ATTRED-52, 2026-11-20). `.textEditorMarks(_:in:)`
+  takes ranges of a `String` only; an attributed editor's marks are ranges of `String(value.characters)`. An
+  `AttributedString` form was declined mostly on TUI's own rules (few overloads, and the app's parse has the
+  `String`), but also because an `AttributedString.Index` becomes a UTF-8 offset in constant time only through the
+  UTF-8 view macOS 15 lacks (M1): before macOS 26 each mark would cost a walk of the characters up to it. Additive if
+  an app asks, best once macOS 26 is the floor. Size: nothing built.
 - **WebAssembly at the floor is unmeasured.** The wasm lane runs 6.3.3, because 6.2.4 asserted on `TupleView` (C1).
   Nobody has built for WebAssembly with 6.2 since the workaround, so "Swift 6.2 or newer" is untested there
   (`ci.yml:1410-1412`; [WebAssembly port](<../WebAssembly port.md>), step 10).

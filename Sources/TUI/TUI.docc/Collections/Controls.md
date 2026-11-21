@@ -31,6 +31,7 @@ Take input with buttons, fields, toggles, sliders, pickers, menus and search.
 - ``TextField``
 - ``SecureField``
 - ``TextEditor``
+- ``TextEditorMark``
 
 ### Toggles and Choices
 

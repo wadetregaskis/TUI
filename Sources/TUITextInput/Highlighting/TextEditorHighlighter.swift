@@ -34,6 +34,14 @@ import TUIFoundation
 /// splits them, numbered from 0; offsets in UTF-8 bytes, from the start of
 /// the text or of a line. tree-sitter's rows and byte columns are these,
 /// except that it does not take a lone CR for a line break.
+///
+/// The seam is SPI: a module uses it after
+/// `@_spi(TextEditorHighlighting) import TUITextInput`, and gives a
+/// highlighter to an editor with `textEditorHighlighter(_:maximumLineLength:style:)`.
+/// It is outside the API stability policy, and may change in any release,
+/// minor ones included, until a real highlighter outside TUI (tuitree's
+/// tree-sitter adapter is to be the first) has been written against it and
+/// settled, and it is made public in a minor release (A-ATTRED-10, 15).
 @_spi(TextEditorHighlighting)
 public protocol TextEditorHighlighter: Sendable {
     /// What the highlighter calls a token: each distinct value is styled once,
