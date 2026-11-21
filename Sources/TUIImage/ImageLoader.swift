@@ -343,11 +343,15 @@ extension PlatformImageLoader {
             let box = page.getBoxRect(.cropBox)
             let quarterTurns = (page.rotationAngle / 90 % 4 + 4) % 4
             let turned = quarterTurns % 2 == 1
-            let width = Int((turned ? box.height : box.width).rounded(.up))
-            let height = Int((turned ? box.width : box.height).rounded(.up))
+            // `Int(clamping:)`, and the product checked: the box is the file's,
+            // and a page of 1e20 points trapped `Int(_:)` (hunt 11-20 sweep).
+            let width = Int(clamping: Double((turned ? box.height : box.width).rounded(.up)))
+            let height = Int(clamping: Double((turned ? box.width : box.height).rounded(.up)))
             guard width > 0, height > 0 else { throw ImageLoadError.decodingFailed("PDF page is empty") }
-            if let limit = maxPixelCount, width * height > limit {
-                throw ImageLoadError.imageTooLarge(pixelCount: width * height, limit: limit)
+            let (pixels, overflow) = width.multipliedReportingOverflow(by: height)
+            if overflow { throw ImageLoadError.decodingFailed("PDF page is too large") }
+            if let limit = maxPixelCount, pixels > limit {
+                throw ImageLoadError.imageTooLarge(pixelCount: pixels, limit: limit)
             }
             return (page, width, height)
         }

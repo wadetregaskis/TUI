@@ -374,4 +374,28 @@ struct PixelMouseWireTests {
         #expect(!wire.written.contains("$p"))
         #expect(Terminal.inputModesOff.contains("\u{1B}[?1016l\u{1B}[?1006l"), "in the order that leaves neither")
     }
+
+    // MARK: Hostile numbers (hunt 11-20, CORE2-14)
+
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// `Int.max` pixels a cell overflowed `cellSize`'s products, and a column
+        /// near `Int.max` over a one-pixel cell trapped `Int(_:)`: both end the
+        /// whole run, so in a child process.
+        @Test("A geometry reply or a report past any display neither traps nor is believed")
+        func numbersPastAnyDisplay() async {
+            await #expect(processExitsWith: .success) {
+                for source in [PixelMouseNegotiation.CellSource.agreement, .areaOverGrid, .cellReply] {
+                    let host = PixelMouseNegotiation.Host(cellSource: source)
+                    var huge = PixelMouseNegotiation()
+                    huge.negotiate(host, grid: (1, 19), cell: (Int.max, Int.max), area: (Int.max, Int.max))
+                    _ = huge.read(Int.max, Int.max)
+                    precondition(huge.cellSize == nil, "a reply of Int.max pixels is not believed")
+                    var tiny = PixelMouseNegotiation()
+                    tiny.negotiate(host, grid: (1, 19), cell: (1, 1), area: (1, 19))
+                    _ = tiny.read(Int.max, 5)
+                    _ = tiny.read(5, Int.max, final: "m")
+                }
+            }
+        }
+    #endif
 }

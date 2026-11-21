@@ -164,7 +164,9 @@ package enum AnimatedImageDecoder {
             func milliseconds(in properties: [CFString: Any]?) -> Int {
                 let timing = properties?[dictionary] as? [CFString: Any]
                 let seconds = (timing?[unclampedDelay] ?? timing?[delay]) as? Double ?? 0
-                return Int((seconds * 1_000).rounded())
+                // `Int(clamping:)`: the delay is the file's, and a GIF or PNG
+                // naming 1e300 s trapped `Int(_:)` (hunt 11-20 sweep).
+                return Int(clamping: (seconds * 1_000).rounded())
             }
 
             /// How many times a file with `properties` plays, or `nil` for forever.

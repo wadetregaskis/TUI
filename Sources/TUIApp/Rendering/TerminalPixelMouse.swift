@@ -170,7 +170,8 @@ struct PixelMouseNegotiation {
             guard let areaReply, grid.width > 0, grid.height > 0 else { return nil }
             let width = Double(areaReply.width) / Double(grid.width)
             let height = Double(areaReply.height) / Double(grid.height)
-            guard Int(width.rounded()) == cellReply.width, Int(height.rounded()) == cellReply.height else { return nil }
+            guard Int(clamping: width.rounded()) == cellReply.width, Int(clamping: height.rounded()) == cellReply.height
+            else { return nil }
             return CellSize(width: width, height: height)
         case .agreement:
             guard let areaReply,
@@ -244,11 +245,18 @@ struct PixelMouseNegotiation {
         return nil
     }
 
+    /// The most pixels a geometry reply is believed for, either way: 2^20.
+    private static let largestDimension = 1 << 20
+
     private mutating func hearGeometry(_ sequence: [UInt8]) -> Bool {
         let fields = sequence[2..<(sequence.count - 1)].split(separator: 0x3B, omittingEmptySubsequences: false)
         guard fields.count == 3, let kind = ASCIIDecimal.value(of: fields[0]),
             let height = ASCIIDecimal.value(of: fields[1]), let width = ASCIIDecimal.value(of: fields[2])
         else { return false }
+        // A dimension past any display is a malformed reply: heard, and not
+        // believed. `Int.max` pixels a cell overflowed the products `cellSize`
+        // checks a reply with (hunt 11-20, CORE2-14).
+        guard width <= Self.largestDimension, height <= Self.largestDimension else { return kind == 6 || kind == 4 }
         switch kind {
         case 6: cellReply = (width, height)
         case 4: areaReply = (width, height)
@@ -321,10 +329,14 @@ struct PixelMouseNegotiation {
     mutating func convert(_ event: MouseEvent) -> (event: MouseEvent?, write: String) {
         guard let host, let cell = cellSize, grid.width > 0, grid.height > 0 else { return (event, "") }
         let shift = host.countsFromZero ? 1 : 0
-        let across = Double(event.x + shift) / cell.width
-        let down = Double(event.y + shift) / cell.height
+        // In `Double` from the start, and `Int(clamping:)` out of it: a report
+        // carries any column up to `Int.max`, which `+ shift` overflowed and,
+        // over a one-pixel cell, `Int(_:)` refused (CORE2-14).
+        let across = (Double(event.x) + Double(shift)) / cell.width
+        let down = (Double(event.y) + Double(shift)) / cell.height
         if event.phase == .pressed,
-            Int(across) >= grid.width + Self.offGridTolerance || Int(down) >= grid.height + Self.offGridTolerance
+            Int(clamping: across) >= grid.width + Self.offGridTolerance
+                || Int(clamping: down) >= grid.height + Self.offGridTolerance
         {
             guard phase == .on else { return (nil, "") }
             distrusted = true
@@ -337,7 +349,7 @@ struct PixelMouseNegotiation {
 
     /// A position in cells as a whole cell and a fraction, held to `count` cells.
     private static func place(_ position: Double, within count: Int) -> (cell: Int, fraction: Double) {
-        let whole = Int(position)
+        let whole = Int(clamping: position)
         guard whole < count else { return (count - 1, 0.999) }
         return (whole, position - Double(whole))
     }
