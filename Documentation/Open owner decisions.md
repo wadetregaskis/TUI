@@ -33,6 +33,11 @@ terminal has no spare cells round a view for one); `.focusEffectDisabled()` turn
 background, such as a filled `Canvas`, don't show it. How to draw a look of your own instead is in `FocusSystem.md`,
 "Your own focus look". The record is in
 [Focus, focused values and the default focus](<Historical/Input, keys and gestures/Focus, focused values and the default focus.md#a-focusable-1-how-a-focused-focusable-view-looks>).
+**A-POSTKEY-1** ruled (a): `@Environment(\.postKeyEvent)` posts a key event through the whole input chain, as a typed
+key goes, its phase as posted, so another device's presses (tuiarcade's gamepads) go where the keys they stand for
+go. A posted key is delivered once the frame being drawn is on the screen, and one posted from inside a key handler
+waits for the next frame rather than running the chain inside itself. The record is in
+[Keys from another device, and the keys F1 lists](<Historical/Input, keys and gestures/Keys from another device, and the keys F1 lists.md#a-postkey-1-a-way-to-send-a-key-through-the-whole-input-chain>).
 Nothing from that day is left open.
 
 ### Open on 2026-11-19

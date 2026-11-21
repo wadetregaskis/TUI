@@ -962,6 +962,7 @@ EnvironmentValues.openWindow | var openWindow: OpenWindowAction { get set }
 EnvironmentValues.pickerStyle | var pickerStyle: any PickerStyle { get set }
 EnvironmentValues.pixelLength | var pixelLength: Int { get }
 EnvironmentValues.pointingHandCursorScope | var pointingHandCursorScope: PointingHandCursorScope { get set }
+EnvironmentValues.postKeyEvent | var postKeyEvent: PostKeyEventAction { get }
 EnvironmentValues.redactionReasons | var redactionReasons: RedactionReasons { get set }
 EnvironmentValues.refresh | var refresh: RefreshAction? { get set }
 EnvironmentValues.refreshIndicator | var refreshIndicator: RefreshIndicator { get set }
@@ -2290,6 +2291,8 @@ PositionView.renderToBuffer(context:) | @MainActor func renderToBuffer(context: 
 PositionView.rewrapping(_:) | @MainActor func rewrapping<V>(_ view: V) -> any View where V : View [extension where Content : View]
 PositionView.sizeThatFits(proposal:context:) | @MainActor func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize [extension where Content : View]
 PositionView.wrappedContent | @MainActor var wrappedContent: Content { get } [extension where Content : View]
+PostKeyEventAction | struct PostKeyEventAction
+PostKeyEventAction.callAsFunction(_:) | @MainActor func callAsFunction(_ event: KeyEvent)
 PrimitiveButtonStyle | protocol PrimitiveButtonStyle : Sendable
 PrimitiveButtonStyle.Body | associatedtype Body : View
 PrimitiveButtonStyle.Configuration | typealias Configuration = PrimitiveButtonStyleConfiguration

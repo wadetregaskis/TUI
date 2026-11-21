@@ -13,3 +13,4 @@ controls, the clipboard and undo are in [Text, editing and the clipboard](<../Te
 | [Drag and drop](<Drag and drop.md>) | In-app drags, badges, table row drags, spring loading, sessions, keyboard drags (B10, B80, B82, B83, A53, BITEMS1). **Owed:** A53's carry mode, the three-party model. **Open:** DRAG-SELECTION. |
 | [Large pastes and over-long input sequences](<Large pastes and over-long input sequences.md>) | The parser's give-ups removed (PASTE). |
 | [Focus, focused values and the default focus](<Focus, focused values and the default focus.md>) | A reader's frame of lag, the preferred default, `@FocusedObject` declined (B34, B35, C9). |
+| [Keys from another device, and the keys F1 lists](<Keys from another device, and the keys F1 lists.md>) | Posting a key through the whole input chain (A-POSTKEY-1). |

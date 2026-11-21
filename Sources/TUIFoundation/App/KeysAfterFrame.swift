@@ -9,6 +9,13 @@
 /// Keys to press once the frame being drawn is on the screen, through the
 /// whole input chain, as if typed then — and the app's quit, asked for then.
 ///
+/// It is also where an app's posted keys wait (``PostKeyEventAction``, the
+/// owner's ruling A-POSTKEY-1, 2026-11-20): delivered here rather than at
+/// once, so a key posted from inside a key handler waits for the current key
+/// to finish, and for the next frame, instead of running the chain from
+/// inside itself. A key posted while the owed keys are being pressed is owed
+/// to the frame after, as ``take()`` hands over only what was owed before.
+///
 /// How a menu item does exactly what a key does where the key acts on what has
 /// the focus: the menu bar's Copy is ⌘C to the focused view (TUICommands).
 /// While a menu is open it holds the focus and the keyboard, so the key cannot
@@ -29,6 +36,13 @@ package final class KeysAfterFrame {
     package enum Owed {
         /// A key, through the whole input chain, as if typed then.
         case key(KeyEvent)
+
+        /// A key the app posted (``PostKeyEventAction``), through the whole
+        /// input chain as the keyboard's: noted as the keyboard's input, as
+        /// the run loop notes a typed key, so a menu it opens opens with a
+        /// row highlighted. A menu item's ``key(_:)`` is not noted: it is
+        /// pressed under the input that chose the item.
+        case posted(KeyEvent)
 
         /// The app's quit, as the quit key asks for it where nothing else
         /// takes the key: through the status bar, which may ask first (a
@@ -56,6 +70,13 @@ package final class KeysAfterFrame {
     /// Presses `event` once the next frame is on the screen.
     package func press(_ event: KeyEvent) {
         owed.append(.key(event))
+        requestFrame()
+    }
+
+    /// Posts `event` for the next frame: delivered once that frame is on the
+    /// screen, through the whole input chain, as the keyboard's.
+    package func post(_ event: KeyEvent) {
+        owed.append(.posted(event))
         requestFrame()
     }
 

@@ -74,6 +74,36 @@ chord the kitty keyboard protocol lets through.
 An open drop-down takes every key before the focus path does, as an open menu
 does on macOS, and so does a drag in flight.
 
+### Keys from another device
+
+A device whose presses stand for keys, such as a gamepad's buttons, can send
+them through the same chain with ``EnvironmentValues/postKeyEvent``, so each
+goes where the key it stands for goes, by the rules above: the focus path's
+`onKeyPress` handlers, then the focused control, then your shortcuts and TUI's
+own keys. A modal holds a posted key as it holds a typed one.
+
+```swift
+@Environment(\.postKeyEvent) private var postKeyEvent
+
+var body: some View {
+    Game()
+        .task {
+            for await button in gamepad.buttons {
+                postKeyEvent(KeyEvent(key: button.key, phase: button.isDown ? .press : .release))
+            }
+        }
+}
+```
+
+A posted key's phase is delivered as posted, so a release reaches a
+``KeyPress/Phases/up`` handler even where the terminal reports none: a pad that
+says when its button comes up can hold a key where the keyboard cannot. A
+posted key is delivered once the frame being drawn is on the screen, so it acts
+on the focus the person can see. One posted from inside a key handler waits for
+the next frame rather than running the chain from inside itself.
+`FocusManager.dispatchKeyEvent(_:)` is not this: it is the focus system's layer
+alone, and no `onKeyPress` handler hears what it dispatches.
+
 ### Refusing a key
 
 When your view takes a key but can do nothing with it — an arrow at the end of

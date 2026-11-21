@@ -596,10 +596,19 @@ extension InputHandler {
 
     /// Does what a frame owed once it is on the screen (`KeysAfterFrame`): a
     /// key through the whole chain, or the quit.
+    ///
+    /// A posted key (`PostKeyEventAction`) goes as the run loop sends a typed
+    /// one: noted as the keyboard's, and sending the pointer's tooltip away.
+    /// A key it posts in turn is owed to the next frame, so this never runs
+    /// the chain from inside itself.
     @MainActor
     func perform(_ owed: KeysAfterFrame.Owed) {
         switch owed {
         case .key(let event): _ = handle(event)
+        case .posted(let event):
+            focusManager.noteInputSource(.keyboard)
+            _ = silencePointerTooltip(for: event)
+            _ = handle(event)
         case .quit: quit()
         case .keyboardShortcutOverlay: showKeyboardShortcutOverlay()
         }

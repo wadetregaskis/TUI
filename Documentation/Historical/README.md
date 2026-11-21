@@ -25,7 +25,7 @@ place:
 | [Colour and styling](<Colour and styling/>) | Named colours and dark values; content levels, foreground styles and legibility weight. |
 | [Controls and forms](<Controls and forms/>) | Forms and control density; sliders, selections and search. |
 | [Images and terminal graphics](<Images and terminal graphics/>) | An image's natural size, tiles and caps. |
-| [Input, keys and gestures](<Input, keys and gestures/>) | The kitty keyboard protocol; how keys are named; gestures and taps; drag and drop; large pastes; focus and focused values. |
+| [Input, keys and gestures](<Input, keys and gestures/>) | The kitty keyboard protocol; how keys are named; gestures and taps; drag and drop; large pastes; focus and focused values; keys from another device and the keys F1 lists. |
 | [Layout and geometry](<Layout and geometry/>) | Alignment guides that travel; drawing past a region; stack spacing and what a container counts as its children; sections and pinned headers in lazy stacks; where a view is (coordinate spaces, geometry readers, scroll visibility); sharing space; safe areas, size classes and layout direction. |
 | [Lists, tables and tabs](<Lists, tables and tabs/>) | Stripes, surfaces and separators; badges and row prominence; acting on rows; table columns; type select, Home and End; which rows a list draws; tab views. |
 | [Localization](<Localization/>) | Which language a key is read in. |

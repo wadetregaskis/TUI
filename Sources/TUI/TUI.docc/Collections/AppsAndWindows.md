@@ -146,4 +146,5 @@ Define your app and its windows, and fill in their menu bar, toolbars and status
 - ``RefreshIndicator``
 - ``RequestAttentionAction``
 - ``RingBellAction``
+- ``PostKeyEventAction``
 - ``HandOffTerminalAction``

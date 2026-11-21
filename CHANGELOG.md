@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**An app can send a key through the whole input chain with `@Environment(\.postKeyEvent)`.** A key posted with it
+goes where a typed key goes, the `onKeyPress` handlers round the focused view, the focused control, the status bar,
+the shortcuts and TUI's own keys, so another device's presses, such as a gamepad's buttons, can stand for keys
+without a path of their own. Its phase is delivered as posted: a release reaches the handlers that ask for `.up`
+even where the terminal reports none. It is delivered once the frame being drawn is on the screen, and a key posted
+from inside a key handler waits for the next frame instead of running the chain inside itself.
+`FocusManager.dispatchKeyEvent(_:)` is unchanged: it is the focus system's layer alone.
+
 **An object handed down with `.environment(\.key, object)` no longer makes every body below it run every frame.**
 A value set under an `EnvironmentValues` key that isn't `Equatable`, such as a model object or an `Optional` of one
 set to `nil`, couldn't be compared from one frame to the next, so nothing below it was ever kept: beside a running

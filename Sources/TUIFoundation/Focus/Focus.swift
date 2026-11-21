@@ -1038,9 +1038,9 @@ extension FocusManager {
     /// nothing else a typed key reaches: no `onKeyPress` handler, status-bar
     /// item, `.keyboardShortcut` or default binding sees it, and none of them
     /// gets a turn before the focused control. Calling the whole chain from
-    /// here would also call it again from inside itself. A running app has no
-    /// public entry to the whole chain yet; in a test, `TestApp.press(_:)`
-    /// delivers a key as the terminal would.
+    /// here would also call it again from inside itself. To send a key down
+    /// the whole chain, post it with ``EnvironmentValues/postKeyEvent``; in a
+    /// test, `TestApp.press(_:)` delivers a key as the terminal would.
     ///
     /// - Parameter event: The key event to dispatch.
     /// - Returns: True if the event was handled.
