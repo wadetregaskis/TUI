@@ -1359,6 +1359,34 @@ with that same string, so they are drawn at once if the editor is still there an
 the driveable session in `TUITesting` that §8.1's risk table prices at about ½ day, so a bridge can be tested
 without an editor.
 
+#### The find bar's matches, kept and carried (2026-11-21, TEXTIN-1)
+
+B-ATTRED-50 made the find bar's matches marks, stated with their text, and left them found again "whenever the
+editor's body is evaluated". Measured with the bar up (Stress `bigtext-find`: 3.2 MB, a match of `ok` on each of its
+40,000 lines), that is the whole cost of a key: 1.57 s a typed key against `bigtext`'s 1.09 ms, 98.4% of it in
+`FindMatches.matches`, called from the bar's body (60.7%, through the character-offset walk of `ranges`) and the
+editor's (38.5%), each a case-insensitive search of the whole document. So the matches are no longer marks:
+
+- **B-ATTRED-55. The find bar's matches are found once for a query, its options and a text, and carried through the
+  editor's own edits by searching again only the lines an edit touched.** They are a `FindMatchSet`
+  (`Sources/TUITextInput/Focus/FindMatchSet.swift`): UTF-8 offsets into the text they were found in, in order. The
+  editor's `@State` holds a `FindMatchCache`, which every asker shares (the bar's count and arrows, the editor's tints,
+  Ctrl-G) and which answers from what it holds while the query, options and text are the ones it holds (the text by
+  B-ATTRED-49's test). While the bar is up the handler holds the cache too, and each edit it splices
+  (`writeSpliced`) carries the matches: the lines the edit's new bytes touch are searched again, whole and with their
+  breaks, and the matches either side are kept, moved by what the edit put in. This is exact, not an approximation:
+  while the query has no line break, no match spans one, and where a line's matches fall depends on that line alone
+  (each search starts at a break, which no match takes in, and a word's edges are read from the characters beside the
+  match, the breaks included). A query with a break in it is searched for whole after each edit. A differential test
+  (`FindMatchSetTests`) holds carried matches equal to a fresh search over random texts and edits, under every
+  option. So a key costs the edited lines' search and a pass over the matches' offsets, not the document; only a new
+  query, new options, or a text the editor did not write (the app's own, an undo, a redo) is searched whole, once.
+- **B-ATTRED-56. The store draws the bar's matches by searching them, not as marks.** `EditorMarkStore` keeps the set
+  it was last given, with the layout whose text it is of, and finds a drawn line's matches among them by a binary
+  search of the line's bytes: no table of every line's marks is built, which for 40,000 matches was itself a cost per
+  key. The app's marks are unchanged (B-ATTRED-46 to 49), and `EditorMarkStatement` is the app's alone.
+
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

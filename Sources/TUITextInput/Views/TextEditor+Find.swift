@@ -48,16 +48,19 @@ enum FindMatches {
         return found
     }
 
-    /// The ranges of `text` at which `query` occurs — none for an empty
-    /// query: what ``ranges(of:in:options:)`` counts in characters.
-    static func matches(of query: String, in text: String, options: FindOptions = FindOptions())
-        -> [Range<String.Index>]
-    {
+    /// The ranges of `text` at which `query` occurs, from the start of
+    /// `bounds` (all of it by default) to its end — none for an empty query.
+    /// Each starts where the last ends: a match is never searched for inside
+    /// another.
+    static func matches(
+        of query: String, in text: String, options: FindOptions = FindOptions(), within bounds: Range<String.Index>? = nil
+    ) -> [Range<String.Index>] {
         guard !query.isEmpty else { return [] }
         var found: [Range<String.Index>] = []
-        var searchStart = text.startIndex
+        let bounds = bounds ?? text.startIndex..<text.endIndex
+        var searchStart = bounds.lowerBound
         let compare: String.CompareOptions = options.ignoresCase ? .caseInsensitive : []
-        while let match = text.range(of: query, options: compare, range: searchStart..<text.endIndex) {
+        while let match = text.range(of: query, options: compare, range: searchStart..<bounds.upperBound) {
             searchStart = match.upperBound
             if Self.stands(match, in: text, as: options.placement) { found.append(match) }
             if match.isEmpty { break }
@@ -105,6 +108,11 @@ enum FindMatches {
 /// Return in the search field finds the next match, and in the replacement
 /// field replaces the current one; Escape closes the bar. A match is shown by
 /// selecting it in the editor, which scrolls to it.
+///
+/// The matches are asked of the editor's ``FindMatchCache``, which finds them
+/// once for a query and a text and carries them through the editor's edits:
+/// asked afresh in this body and the editor's on every evaluation, a key
+/// with the bar up searched the whole document two or three times (TEXTIN-1).
 struct _FindBar: View {
     let text: Binding<String>
     @Binding var query: String
@@ -113,10 +121,18 @@ struct _FindBar: View {
     @Binding var options: FindOptions
     let supportsReplace: Bool
     var menuTarget: TextEditingMenuTarget?
-    /// Selects a match, as character offsets, in the editor.
-    let select: (Range<Int>) -> Void
+    /// Where the matches are kept.
+    let cache: FindMatchCache
+    /// Selects match `index` of the matches given, in the editor.
+    let select: (FindMatchSet, Int) -> Void
     /// Closes the bar.
     let close: () -> Void
+
+    private var handler: TextEditorHandler? { menuTarget?.handler as? TextEditorHandler }
+
+    private func found(_ query: String, options: FindOptions) -> FindMatchSet {
+        cache.matches(of: query, options: options, in: text.wrappedValue)
+    }
 
     @FocusState private var isQueryFocused: Bool
 
@@ -130,7 +146,7 @@ struct _FindBar: View {
     /// run time on every evaluation (CONTRIBUTING.md, "Crossing a module
     /// boundary").
     var body: some View {
-        let matches = FindMatches.ranges(of: query, in: text.wrappedValue, options: options)
+        let matches = found(query, options: options)
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 1) {
                 TextField(string(LocalizationKey.Label.find.rawValue), text: $query)
@@ -155,11 +171,13 @@ struct _FindBar: View {
         .erasedOnAppear { isQueryFocused = true }
         .onChange(of: query) { _, newQuery in
             current = 0
-            if let first = FindMatches.ranges(of: newQuery, in: text.wrappedValue, options: options).first { select(first) }
+            let first = found(newQuery, options: options)
+            if !first.isEmpty { select(first, 0) }
         }
         .onChange(of: options) { _, newOptions in
             current = 0
-            if let first = FindMatches.ranges(of: query, in: text.wrappedValue, options: newOptions).first { select(first) }
+            let first = found(query, options: newOptions)
+            if !first.isEmpty { select(first, 0) }
         }
     }
 
@@ -199,14 +217,14 @@ struct _FindBar: View {
     }
 
     /// Moves to the next (`delta` 1) or previous (-1) match, wrapping.
-    private func step(by delta: Int, in matches: [Range<Int>]) {
+    private func step(by delta: Int, in matches: FindMatchSet) {
         guard !matches.isEmpty else { return }
         current = FindMatches.index(from: current, by: delta, among: matches.count)
-        select(matches[current])
+        select(matches, current)
     }
 
     private func writeText(_ newText: String) {
-        if let handler = menuTarget?.handler as? TextEditorHandler {
+        if let handler {
             _ = handler.recordingUndoStep {
                 handler.write(newText)
                 return true
@@ -217,18 +235,18 @@ struct _FindBar: View {
     }
 
     /// Replaces the current match, then shows the one that takes its place.
-    private func replaceCurrent(in matches: [Range<Int>]) {
-        guard !matches.isEmpty else { return }
-        let index = min(current, matches.count - 1)
-        let newText = FindMatches.replacing(matches[index], in: text.wrappedValue, with: replacement)
-        writeText(newText)
+    private func replaceCurrent(in matches: FindMatchSet) {
+        let offsets = FindMatches.ranges(of: query, in: text.wrappedValue, options: options)
+        guard !offsets.isEmpty else { return }
+        let index = min(current, offsets.count - 1)
+        writeText(FindMatches.replacing(offsets[index], in: text.wrappedValue, with: replacement))
         let remaining = FindMatches.ranges(of: query, in: text.wrappedValue, options: options)
         guard !remaining.isEmpty else { return }
         // The next match after the replacement, which now sits at this index
         // unless the replacement itself matched.
-        let after = matches[index].lowerBound + replacement.count
+        let after = offsets[index].lowerBound + replacement.count
         current = remaining.firstIndex { $0.lowerBound >= after } ?? 0
-        select(remaining[current])
+        select(found(query, options: options), current)
     }
 
     /// Replaces every match.

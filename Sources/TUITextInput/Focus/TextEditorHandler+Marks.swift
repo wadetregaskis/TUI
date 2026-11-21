@@ -26,14 +26,23 @@ extension TextEditorHandler {
         return letters.contains(letter)
     }
 
-    /// Takes the frame's marks, each source's stated with its text: the
-    /// app's, whose attributes are drawn as highlighting's are, under
-    /// `environment`; and the find bar's matches.
+    /// Takes the frame's marks: the app's, stated with their text, whose
+    /// attributes are drawn as highlighting's are, under `environment`; and
+    /// the find bar's matches.
     @MainActor
-    func noteMarks(app: EditorMarkStatement?, find: EditorMarkStatement?, environment: EnvironmentValues) {
+    func noteMarks(app: EditorMarkStatement?, find: FindMatchSet?, environment: EnvironmentValues) {
         marks.note(app: app, find: find, in: layout()) {
             (attributedSource != nil ? attributedStyling : nil) ?? EditorAttributedStyling(in: environment)
         }
+    }
+
+    /// The find bar's matches of the text, for `request`, or `nil` while the
+    /// bar is down: kept by the bar's cache, which the handler holds while
+    /// the bar is up and carries through its edits (``findCache``).
+    func findMatches(for request: FindRequest?) -> FindMatchSet? {
+        findCache = request?.cache
+        guard let request else { return nil }
+        return request.cache.matches(of: request.query, options: request.options, in: layout().text)
     }
 
     /// The find bar's matches on `line`, as its columns, which its rows tint.

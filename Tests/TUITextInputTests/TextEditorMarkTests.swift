@@ -267,7 +267,7 @@ struct TextEditorMarkTests {
                 app: EditorMarkStatement(
                     text: text, ranges: [text.startIndex..<text.index(text.startIndex, offsetBy: 11)],
                     attributes: [plate]),
-                find: EditorMarkStatement(text: text, ranges: FindMatches.matches(of: "one", in: text), attributes: nil),
+                find: FindMatchSet(query: "one", options: FindOptions(), text: text),
                 environment: rig.context.environment)
             let core = _TextEditorCore(
                 text: rig.text.binding, focusID: nil, isDisabled: false, menuTarget: TextEditingMenuTarget())
@@ -331,14 +331,15 @@ struct TextEditorMarkTests {
     func findMatchesCarried() {
         let rig = Rig("one two one\n")
         rig.draw()
-        let text = rig.text.value
+        let cache = FindMatchCache()
+        rig.handler.findCache = cache
         rig.handler.noteMarks(
-            app: nil,
-            find: EditorMarkStatement(text: text, ranges: FindMatches.matches(of: "one", in: text), attributes: nil),
+            app: nil, find: cache.matches(of: "one", options: FindOptions(), in: rig.text.value),
             environment: rig.context.environment)
         #expect(rig.handler.findColumns(ofLine: 0) == [0..<3, 8..<11])
         rig.type("X", at: 4)
         #expect(rig.handler.findColumns(ofLine: 0) == [0..<3, 9..<12])
+        #expect(cache.searches == 1, "carried, not searched for again")
         // Found again by the next frame: none, since the bar is down.
         rig.draw()
         #expect(rig.handler.findColumns(ofLine: 0).isEmpty)

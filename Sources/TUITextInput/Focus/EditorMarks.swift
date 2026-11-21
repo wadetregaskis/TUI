@@ -4,8 +4,9 @@
 //  Marks: ranges of a TextEditor's text stated with the text they were
 //  computed from, carried through the editor's own edits, and drawn over
 //  highlighting and under the selection (the highlighting design's B-ATTRED-8
-//  and 13, lane H3 of its §8.6). An app's marks, such as a parse error, and
-//  the find bar's matches are its two sources: one way to style a range.
+//  and 13, lane H3 of its §8.6). An app's marks, such as a parse error, are
+//  kept here, and drawn with the find bar's matches (`FindMatchSet`), which
+//  the bar keeps and carries itself.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -13,31 +14,23 @@
 import Foundation
 import TUIFoundation
 
-/// How a mark is drawn (B-ATTRED-8): in the find bar's tint, which only the
-/// selection is drawn over, or in attributes an app gave it, interned in the
-/// store's ``EditorMarkStore/styles``, drawn over highlighting.
-enum EditorMarkStyle: Hashable, Sendable {
-    case findMatch
-    case attributes(UInt16)
-}
-
 /// A mark as the editor keeps it: UTF-8 offsets into the editor's text, and
-/// how it is drawn.
+/// the attributes an app gave it, interned in the store's
+/// ``EditorMarkStore/styles`` and drawn over highlighting (B-ATTRED-8).
 struct EditorMark: Equatable, Sendable {
     var utf8: Range<Int>
-    var style: EditorMarkStyle
+    var style: UInt16
 }
 
-/// Ranges stated with the text they were computed from (B-ATTRED-13): an
-/// app's marks, or the find bar's matches. Equal when their ranges and
-/// attributes are and their texts are one (``EditorMarkStore/isSameText(_:_:)``),
-/// which is how the editor tells marks stated again from new ones each frame.
+/// An app's marks stated with the text they were computed from
+/// (B-ATTRED-13). Equal when their ranges and attributes are and their texts
+/// are one (``EditorMarkStore/isSameText(_:_:)``), which is how the editor
+/// tells marks stated again from new ones each frame.
 struct EditorMarkStatement: Equatable {
     let text: String
     let ranges: [Range<String.Index>]
-    /// Each range's attributes, in order, or `nil` for the find bar's
-    /// matches, drawn in its tint.
-    let attributes: [AttributeContainer]?
+    /// Each range's attributes, in order.
+    let attributes: [AttributeContainer]
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.ranges == rhs.ranges && lhs.attributes == rhs.attributes && EditorMarkStore.isSameText(lhs.text, rhs.text)
@@ -117,12 +110,13 @@ struct EditorLineMarks {
     var runs: [EditorStyledRun] = []
 }
 
-/// A ``TextEditor``'s marks (B-ATTRED-13): each source's as last stated and
-/// as carried to the editor's text, the app's attributes interned, the texts
-/// the editor wrote over its last few edits, and each drawn line's marks.
+/// A ``TextEditor``'s marks (B-ATTRED-13): the app's as last stated and as
+/// carried to the editor's text, their attributes interned, the texts the
+/// editor wrote over its last few edits, the find bar's matches as the bar
+/// last gave them, and each drawn line's marks.
 struct EditorMarkStore {
-    /// One source's marks: as last stated, and as carried to the editor's
-    /// text, in the order stated.
+    /// The app's marks: as last stated, and as carried to the editor's text,
+    /// in the order stated.
     struct Source {
         var stated: EditorMarkStatement?
         var marks: [EditorMark] = []
@@ -133,7 +127,13 @@ struct EditorMarkStore {
     static let carriedEdits = 4
 
     private(set) var app = Source()
-    private(set) var find = Source()
+
+    /// The find bar's matches, and the layout whose text they are of: drawn
+    /// only on that layout. The bar finds them and carries them through the
+    /// editor's edits itself (`FindMatchCache`), so the store holds them as
+    /// given, and finds each drawn line's among them by its bytes.
+    private(set) var find: FindMatchSet?
+    private weak var findLayout: EditorLayout?
 
     /// The attributes of the app's marks, interned and resolved as
     /// highlighting's are (B-ATTRED-10, 33).
@@ -157,10 +157,10 @@ struct EditorMarkStore {
     private var drawn: [Int: EditorLineMarks] = [:]
 
     /// Whether any mark is drawn.
-    var hasMarks: Bool { !app.marks.isEmpty || !find.marks.isEmpty }
+    var hasMarks: Bool { !app.marks.isEmpty || hasFindMatches }
 
     /// Whether the find bar has matches drawn.
-    var hasFindMatches: Bool { !find.marks.isEmpty }
+    var hasFindMatches: Bool { !(find?.isEmpty ?? true) }
 
     /// Whether two texts are one: the same storage at once, else compared,
     /// lengths first, so two texts of different lengths cost nothing.
@@ -168,18 +168,20 @@ struct EditorMarkStore {
         lhs.utf8.count == rhs.utf8.count && lhs == rhs
     }
 
-    /// Takes a frame's statements, in `layout`'s text: each source's marks
-    /// kept where it states what it stated last, and found again otherwise.
-    /// `styling` is what the app's attributes are drawn under.
+    /// Takes a frame's statements, in `layout`'s text: the app's marks kept
+    /// where it states what it stated last, and found again otherwise; the
+    /// find bar's matches as given (``note(find:in:)``). `styling` is what
+    /// the app's attributes are drawn under.
     mutating func note(
-        app appStatement: EditorMarkStatement?, find findStatement: EditorMarkStatement?, in layout: EditorLayout,
+        app appStatement: EditorMarkStatement?, find findMatches: FindMatchSet?, in layout: EditorLayout,
         styling: () -> EditorAttributedStyling
     ) {
+        note(find: findMatches, in: layout)
         // No marks, and none stated: nothing to do, and no history kept.
-        guard appStatement != nil || findStatement != nil || app.stated != nil || find.stated != nil else { return }
+        guard appStatement != nil || app.stated != nil else { return }
         if self.layout !== layout {
             // A text the editor did not carry its marks to.
-            (app, find, self.layout) = (Source(), Source(), layout)
+            (app, self.layout) = (Source(), layout)
             forgetDrawn()
         }
         if historyHead !== layout { (history, historyHead) = ([], nil) }
@@ -188,10 +190,16 @@ struct EditorMarkStore {
             app = resolved
             forgetDrawn()
         }
-        if let resolved = resolved(findStatement, replacing: find, in: layout) {
-            find = resolved
-            forgetDrawn()
-        }
+    }
+
+    /// Takes the find bar's matches, of `layout`'s text, or `nil` for none:
+    /// at each frame, and after each of the editor's edits, which the bar's
+    /// matches are carried through. Matches of another text draw nothing.
+    mutating func note(find matches: FindMatchSet?, in layout: EditorLayout) {
+        let matches = matches.flatMap { Self.isSameText($0.text, layout.text) ? $0 : nil }
+        guard matches?.identity !== find?.identity || (matches != nil && findLayout !== layout) else { return }
+        (find, findLayout) = (matches, matches == nil ? nil : layout)
+        forgetDrawn()
     }
 
     /// `statement`'s marks in `layout`'s text, or `nil` where `source` has
@@ -222,10 +230,7 @@ struct EditorMarkStore {
             let lower = min(range.lowerBound, text.endIndex)
             let upper = min(max(range.upperBound, lower), text.endIndex)
             guard lower < upper else { continue }
-            var style = EditorMarkStyle.findMatch
-            if let attributes = statement.attributes {
-                style = .attributes(styles.index(of: attributes[index]) { container in container })
-            }
+            let style = styles.index(of: statement.attributes[index]) { container in container }
             marks.append(
                 EditorMark(
                     utf8: utf8.distance(from: utf8.startIndex, to: lower)..<utf8.distance(from: utf8.startIndex, to: upper),
@@ -238,7 +243,7 @@ struct EditorMarkStore {
     /// Whether an edit made from `before` is one the marks are carried
     /// through, or the history kept.
     func carries(from before: EditorLayout) -> Bool {
-        (layout === before && hasMarks) || app.stated != nil
+        (layout === before && !app.marks.isEmpty) || app.stated != nil
     }
 
     /// Carries the marks through `edit`, made to `text`, `before`'s, which
@@ -246,7 +251,6 @@ struct EditorMarkStore {
     mutating func carry(through edit: EditorMarkEdit, of text: String, from before: EditorLayout, to after: EditorLayout) {
         if layout === before {
             app.marks = edit.carry(app.marks)
-            find.marks = edit.carry(find.marks)
             layout = after
             forgetDrawn()
         }
@@ -262,19 +266,32 @@ struct EditorMarkStore {
         drawn = [:]
     }
 
-    /// `line`'s marks in its columns, from `layout`, the marks' own.
+    /// `line`'s marks in its columns, from `layout`: the app's where it is
+    /// theirs, the find bar's where it is of their text.
     mutating func marks(ofLine line: Int, in layout: EditorLayout) -> EditorLineMarks {
-        guard hasMarks, layout === self.layout, line < layout.lines.count else { return EditorLineMarks() }
+        guard hasMarks, line < layout.lines.count else { return EditorLineMarks() }
+        let drawsApp = layout === self.layout && !app.marks.isEmpty
+        let drawsFind = layout === findLayout && hasFindMatches
+        guard drawsApp || drawsFind else { return EditorLineMarks() }
         if let kept = drawn[line] { return kept }
-        if byLine == nil { byLine = Self.byLine(find.marks + app.marks, in: layout) }
-        let marks = byLine?[line] ?? []
-        let columns = Self.columns(of: marks.map(\.utf8), in: layout.lines[line])
         var made = EditorLineMarks()
-        for (mark, columns) in zip(marks, columns) where !columns.isEmpty {
-            switch mark.style {
-            case .findMatch: made.find.append(columns)
-            case .attributes(let index):
-                guard var run = styles.style(index) else { continue }
+        if drawsFind, let find {
+            // The line's own bytes, its break included, found among the
+            // matches by a search rather than a table of every line's.
+            let starts = layout.lineStarts
+            let start = starts[line]
+            let end = line + 1 < starts.count ? starts[line + 1] : layout.text.utf8.count
+            let ranges = find.matches(touching: start..<end).map {
+                (max($0.lowerBound, start) - start)..<(min($0.upperBound, end) - start)
+            }
+            made.find = Self.columns(of: ranges, in: layout.lines[line]).filter { !$0.isEmpty }
+        }
+        if drawsApp {
+            if byLine == nil { byLine = Self.byLine(app.marks, in: layout) }
+            let marks = byLine?[line] ?? []
+            for (mark, columns) in zip(marks, Self.columns(of: marks.map(\.utf8), in: layout.lines[line]))
+            where !columns.isEmpty {
+                guard var run = styles.style(mark.style) else { continue }
                 run.columns = columns
                 // Stated later, drawn over.
                 made.runs = EditorStyledRun.overlaying([run], on: made.runs)

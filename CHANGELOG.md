@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Typing with the find bar up costs what it costs with the bar down.** The bar's matches were found again by a
+search of the whole document every time the editor's view was evaluated, twice, so with the bar up each key in a
+large text was a search of all of it: 1.6 s a key in a 3.2 MB document with a match on every line. They are now found
+once for a query and carried through each edit, searching again only the lines it touched.
+
 **What a `GeometryReader`'s content draws follows a size that an `onAppear` or `onChange` moved in the same frame.**
 When an effect changed the layout around a reader, such as an `onAppear` loading a saved sidebar width, the frame was
 laid out again with the reader at its new size, but kept rows below the reader were drawn as they were at the old one,

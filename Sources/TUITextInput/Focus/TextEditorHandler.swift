@@ -125,6 +125,11 @@ final class TextEditorHandler: PersistedFocusable {
     /// which the rows draw (B-ATTRED-13).
     var marks = EditorMarkStore()
 
+    /// Where the find bar keeps its matches, while it is up: each of the
+    /// editor's edits carries them (``writeReplacing(_:beforeWriting:)``), so
+    /// the bar's next question costs no search.
+    var findCache: FindMatchCache?
+
     /// The selection last exchanged with the app, as character offsets, so
     /// each side writes only a change.
     var exchangedSelection: Range<Int>?

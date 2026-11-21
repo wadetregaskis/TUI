@@ -212,6 +212,9 @@ public struct TextEditor {
     /// The match the find bar last selected, as character offsets, for an
     /// editor with no selection binding of the app's to steer.
     @State private var findSelection: Range<Int>?
+    /// The find bar's matches, found once for a query and a text, and carried
+    /// through the editor's edits (``FindMatchCache``).
+    @State private var findCache = FindMatchCache()
     /// Where the editor's context menu finds its handler — see ``TextField``.
     @State private var menuTarget = TextEditingMenuTarget()
 
@@ -229,8 +232,8 @@ public struct TextEditor {
                     _FindBar(
                         text: text, query: $findQuery, replacement: $findReplacement, current: $findMatch,
                         options: $findOptions, supportsReplace: !find.isReplaceDisabled && !isDisabled,
-                        menuTarget: menuTarget,
-                        select: { selectMatch($0) }, close: { setFindPresented(false) })
+                        menuTarget: menuTarget, cache: findCache,
+                        select: { selectMatch($1, of: $0) }, close: { setFindPresented(false) })
                 }
                 _TextEditorCore(
                     text: text, focusID: focusID, isDisabled: isDisabled,
@@ -238,7 +241,7 @@ public struct TextEditor {
                     opensFindOnControlF: !findIsOff,
                     // Every match tinted while the bar is up, the current one
                     // selected over it, as macOS's find bar marks them.
-                    findMarks: presented ? findMarks(in: text.wrappedValue) : nil
+                    find: presented ? FindRequest(query: findQuery, options: findOptions, cache: findCache) : nil
                 ).textEditingMenu(menuTarget)
             }
             .onKeyPress(keys: ["f", "F", "g", "G"]) { press in
@@ -302,7 +305,9 @@ extension TextEditor: View {}
             write: { offsets, _, _, _ in if box.wrappedValue != offsets { box.wrappedValue = offsets } })
     }
 
-    private func selectMatch(_ offsets: Range<Int>) {
+    /// Selects match `index` of `matches` in the editor.
+    private func selectMatch(_ index: Int, of matches: FindMatchSet) {
+        let offsets = matches.characterOffsets(of: index, layout: (menuTarget.handler as? TextEditorHandler)?.layout())
         findChannel.write(offsets, text.wrappedValue, .automatic, WalkedCharacterOffsets())
     }
 
@@ -323,20 +328,13 @@ extension TextEditor: View {}
             reachesPage: !(focusManager?.activeSectionIsModal ?? false))
     }
 
-    /// The find bar's matches in `text`, as marks of it (B-ATTRED-13): the
-    /// same way to style a range as an app's marks.
-    private func findMarks(in text: String) -> EditorMarkStatement {
-        EditorMarkStatement(
-            text: text, ranges: FindMatches.matches(of: findQuery, in: text, options: findOptions), attributes: nil)
-    }
-
     /// Selects the next (`delta` 1) or previous (-1) match of the query, wrapping:
     /// Ctrl-G's, with the bar up or not.
     private func stepFind(by delta: Int) {
-        let matches = FindMatches.ranges(of: findQuery, in: text.wrappedValue, options: findOptions)
+        let matches = findCache.matches(of: findQuery, options: findOptions, in: text.wrappedValue)
         guard !matches.isEmpty else { return }
         findMatch = FindMatches.index(from: findMatch, by: delta, among: matches.count)
-        selectMatch(matches[findMatch])
+        selectMatch(findMatch, of: matches)
     }
 }
 
@@ -388,9 +386,9 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// Whether the editor has a find bar for Ctrl-F to open
     /// (``TextEditorHandler/yieldsControlFToFind``).
     var opensFindOnControlF = false
-    /// The find bar's matches, as marks of the text they were found in,
+    /// What the find bar is looking for, and where it keeps the matches,
     /// which the rows tint: `nil` while the bar is down.
-    var findMarks: EditorMarkStatement?
+    var find: FindRequest?
     /// Set on the copy a pulled editor draws its band with
     /// (`TextEditor+Pulled.swift`): the first row the band holds, which the
     /// editor draws from, with no bar and no wheel of its own, whatever it
@@ -515,7 +513,8 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // Never while the editor holds the focus (`placingScrollIndicators`).
         let barOverText = context.environment.scrollIndicatorsOverlayContent
         handler.noteFind(opensOnControlF: opensFindOnControlF)
-        handler.noteMarks(app: context.environment.textEditorMarks, find: findMarks, environment: context.environment)
+        handler.noteMarks(
+            app: context.environment.textEditorMarks, find: handler.findMatches(for: find), environment: context.environment)
         let window = window(
             handler, lines: displayLines, width: width, height: height, tabWidth: tabWidth,
             wraps: context.environment.textEditorWrapsLines, follows: !context.isMeasuring,
