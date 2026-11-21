@@ -1085,6 +1085,10 @@ extension _NavigationSplitViewCore {
     /// `FrameBuffer(lines: lines, width: width)` constructor dropped
     /// them, which broke per-column click-to-focus on NavigationSplitView.
     fileprivate func padToSize(_ buffer: FrameBuffer, width: Int, height: Int) -> FrameBuffer {
+        // A size past any screen is held, not padded to: a column width of
+        // `Int.max / 4` once asked this for 2.3e18 spaces a line (NAV-1).
+        let width = min(max(0, width), Int.statedLengthLimit)
+        let height = min(max(0, height), Int.statedLengthLimit)
         // Each line padded to the target width, and its width kept: the
         // buffer's own where it knows it (uniform, or `lineWidths`), measured
         // only where it does not — and the result handed over with every

@@ -218,7 +218,8 @@ extension _NavigationSplitViewCore {
             // absorbs the rest, so its proportion is implied (1 − sidebar).
             proportion = column == .sidebar ? style.sidebarProportion : 1 - style.sidebarProportion
         }
-        return max(minimumColumnWidth, Int((Double(usableWidth) * proportion).rounded()))
+        // `Int(cells:)`: a custom style's proportion is whatever it returns.
+        return max(minimumColumnWidth, Int(cells: (Double(usableWidth) * proportion).rounded()))
     }
 
     /// Calculates the width for each visible column.
@@ -316,7 +317,7 @@ extension _NavigationSplitViewCore {
         // keyboard, or requested with `.navigationSplitViewColumnWidth(…)` — is
         // DETERMINATE: it holds that width while the untouched columns keep
         // fitting their content and the trailing one absorbs the slack. (The
-        // trailing column is neither: it is always the flexible remainder.)
+        // trailing column is neither: it takes the remainder, flexible or not.)
         // `.navigationSplitViewColumnWidthReset(_:)` clears the user's pins.
         for index in 0..<max(0, count - 1) {
             let column = visibleColumns[index]
@@ -328,6 +329,21 @@ extension _NavigationSplitViewCore {
                 requestedColumnWidth(
                     natural: natural[index], userPinned: pinned, request: request))
             flexible[index] = false
+        }
+
+        // Every column but the trailing one is held to what the split has
+        // left once each column to its right has its minimum, as
+        // `calculateColumnWidths` holds them. Without it, End on a divider
+        // (`DividerKeyMove.farthest`, `Int.max / 4`) pinned a sidebar 2.3e18
+        // cells wide when no column was width-flexible — the shrink below runs
+        // only for flexible ones — and the render padded a line to it (hunt
+        // 11-20, NAV-1); a drag or Shift+Right held squeezed the trailing
+        // column to nothing. The held width is what `writeBackUserSet` keeps.
+        var given = 0
+        for index in 0..<max(0, count - 1) {
+            let room = usable - given - minimumColumnWidth * (count - 1 - index)
+            if !flexible[index] { natural[index] = max(minimumColumnWidth, min(natural[index], room)) }
+            given += flexible[index] ? minimumColumnWidth : natural[index]
         }
 
         var widthsResult = [Int](repeating: minimumColumnWidth, count: count)

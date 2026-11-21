@@ -126,4 +126,36 @@ struct NavigationSplitViewResizeAnchorTests {
             after == before + 1,
             "→ widens by one from the shown width: was \(before), now \(String(describing: after))")
     }
+
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        /// End stored `Int.max / 4` as the sidebar's width when no column was
+        /// width-flexible, and the render padded a line to it: an allocation no
+        /// machine has, which ends the whole run (hunt 11-20, NAV-1).
+        @Test("End on a size-to-fit divider widens the sidebar as far as the detail's minimum allows, and no further")
+        func endKeyHoldsTheTrailingMinimum() async {
+            await #expect(processExitsWith: .success) {
+                await MainActor.run { NavigationSplitViewResizeAnchorTests.endKeyCheck() }
+            }
+        }
+    #endif
+
+    /// ``endKeyHoldsTheTrailingMinimum()``'s check, here so that its body
+    /// captures nothing.
+    static func endKeyCheck() {
+        let fixture = Self()
+        let context = fixture.resizeContext(width: 60)
+        let focusManager = context.environment.focusManager!
+        _ = renderToBuffer(fixture.splitView, context: context)
+        focusManager.activateSection(id: dividerSectionID(in: focusManager) ?? "")
+        _ = focusManager.dispatchKeyEvent(KeyEvent(key: .end))
+        let after = renderToBuffer(fixture.splitView, context: context)
+        let grip = fixture.gripX(after) ?? -1
+        // 60 cells: a divider, and the detail's minimum of 10 on the right.
+        precondition((10...49).contains(grip), "the sidebar is \(grip) wide")
+        precondition(after.width <= 60, "the split is \(after.width) wide")
+        // Shift+Right held past the edge keeps the same bound.
+        for _ in 0..<80 { _ = focusManager.dispatchKeyEvent(KeyEvent(key: .right, shift: true)) }
+        let pushed = renderToBuffer(fixture.splitView, context: context)
+        precondition((10...49).contains(fixture.gripX(pushed) ?? -1), "pushed to \(String(describing: fixture.gripX(pushed)))")
+    }
 }
