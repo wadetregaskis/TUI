@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextEditor` bound to an `AttributedString` and an `AttributedTextSelection` keeps its selection binding while the
+find bar is up and after it closes.** The bar showed its matches through a selection of its own, put in the app's
+place, so from the moment it came up the app's selection was neither written nor read: a Bold button acting on it
+made bold whatever was selected before Ctrl-F.
+
 **Replace All no longer hangs on a large text, and keeps the styling between its matches.** It replaced each match
 in a fresh copy of the whole text, found by walking it from its start, so thousands of matches in a large document
 took minutes; it is now one edit, made in one pass, and still one step to undo. In an editor bound to an

@@ -209,9 +209,6 @@ public struct TextEditor {
     @State private var findReplacement = ""
     @State private var findMatch = 0
     @State private var findOptions = FindOptions()
-    /// The match the find bar last selected, as character offsets, for an
-    /// editor with no selection binding of the app's to steer.
-    @State private var findSelection: Range<Int>?
     /// The find bar's matches, found once for a query and a text, and carried
     /// through the editor's edits (``FindMatchCache``).
     @State private var findCache = FindMatchCache()
@@ -224,9 +221,6 @@ public struct TextEditor {
         // is in force; a custom style draws its body in the editor's place.
         if style is AutomaticTextEditorStyle || style is PlainTextEditorStyle {
             let presented = isFindPresented
-            // The bar's selection while it is up, and after it closes on a query,
-            // so Ctrl-G can go on selecting matches.
-            let finding = presented || !findQuery.isEmpty
             VStack(alignment: .leading, spacing: 0) {
                 if presented {
                     _FindBar(
@@ -237,7 +231,7 @@ public struct TextEditor {
                 }
                 _TextEditorCore(
                     text: text, focusID: focusID, isDisabled: isDisabled,
-                    selection: finding ? findChannel : selection, menuTarget: menuTarget, attributed: attributed,
+                    selection: selection, menuTarget: menuTarget, attributed: attributed,
                     opensFindOnControlF: !findIsOff,
                     // Every match tinted while the bar is up, the current one
                     // selected over it, as macOS's find bar marks them.
@@ -295,20 +289,18 @@ extension TextEditor: View {}
         }
     }
 
-    /// The selection the editor reads while the bar is up: the app's own,
-    /// which the bar writes its matches into, or the bar's.
-    private var findChannel: _TextSelectionChannel {
-        if let selection { return selection }
-        let box = $findSelection
-        return _TextSelectionChannel(
-            read: { _ in box.wrappedValue },
-            write: { offsets, _, _, _ in if box.wrappedValue != offsets { box.wrappedValue = offsets } })
-    }
-
-    /// Selects match `index` of `matches` in the editor.
+    /// Selects match `index` of `matches` in the editor, through its handler
+    /// (``TextEditorHandler/select(characters:)``), which hands the selection
+    /// to the app's binding of whichever kind; before the editor has drawn,
+    /// in the app's `String` selection, if it has one.
     private func selectMatch(_ index: Int, of matches: FindMatchSet) {
-        let offsets = matches.characterOffsets(of: index, layout: (menuTarget.handler as? TextEditorHandler)?.layout())
-        findChannel.write(offsets, text.wrappedValue, .automatic, WalkedCharacterOffsets())
+        let handler = menuTarget.handler as? TextEditorHandler
+        let offsets = matches.characterOffsets(of: index, layout: handler?.layout())
+        if let handler {
+            handler.select(characters: offsets)
+        } else {
+            selection?.write(offsets, text.wrappedValue, .automatic, WalkedCharacterOffsets())
+        }
     }
 
     /// Whether an app shortcut is on `press`'s chord, and takes it from the

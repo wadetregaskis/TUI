@@ -2,8 +2,10 @@
 //  FindMatchSetTests.swift
 //
 //  The find bar's matches found once and carried through the editor's edits
-//  (TEXTIN-1), Replace All in one pass as one edit (TEXTIN-2), and each match
-//  replaced in its own attributes (TEXTIN-5).
+//  (TEXTIN-1), Replace All in one pass as one edit (TEXTIN-2), each match
+//  replaced in its own attributes (TEXTIN-5), and the bar selecting through
+//  the editor so an attributed editor's selection binding stays live
+//  (TEXTIN-3).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -239,5 +241,44 @@ struct FindMatchSetTests {
         }
         let (blue, red, green) = (Runs.blue, Runs.red, Runs.green)
         #expect(inks == [blue, blue, blue, blue, red, red, red, green, green, green, green], "\(inks)")
+    }
+
+    // MARK: - The selection binding
+
+    @Test("An attributed editor's selection binding is written while the bar is up and after it closes")
+    func attributedSelectionStaysLive() {
+        typealias Runs = SelectionTestText
+        let text = Box(Runs.runs([("cat ", Runs.blue), ("RED", Runs.red), (" cat", Runs.green)]))
+        let selection = Box(AttributedTextSelection())
+        let presented = Box(true)
+        let harness = InputChainHarness(width: 40, height: 8)
+        func view() -> some View {
+            TextEditor(text: text.binding, selection: selection.binding).findNavigator(isPresented: presented.binding)
+        }
+        func selected() -> Range<Int>? {
+            guard case .ranges(let ranges) = selection.value.indices(in: text.value), let range = ranges.ranges.first
+            else { return nil }
+            let characters = text.value.characters
+            return characters.distance(from: characters.startIndex, to: range.lowerBound)
+                ..< characters.distance(from: characters.startIndex, to: range.upperBound)
+        }
+        harness.frame(view())
+        harness.frame(view())
+        for character in "cat" {
+            harness.press(KeyEvent(character: character))
+            harness.frame(view())
+        }
+        #expect(selected() == 0..<3, "the bar's match is not in the app's selection")
+        harness.press(KeyEvent(key: .escape))
+        harness.frame(view())
+        #expect(presented.value == false)
+        guard let handler = harness.focusManager.activeSection?.focusables.compactMap({ $0 as? TextEditorHandler }).first
+        else {
+            Issue.record("no editor handler")
+            return
+        }
+        for _ in 0..<2 { _ = handler.handleKeyEvent(KeyEvent(key: .right, shift: true)) }
+        harness.frame(view())
+        #expect(selected() == 0..<5, "the app's selection did not follow Shift-Right")
     }
 }

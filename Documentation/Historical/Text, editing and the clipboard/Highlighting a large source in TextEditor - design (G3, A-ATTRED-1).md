@@ -1392,7 +1392,9 @@ Replace All and Replace are the editor's own edit now, one `TextEditorReplacemen
 `AttributedTextSource.replacingDescending`), as one undo step: so each match takes the attributes of what it replaces
 rather than the span from the first match to the last taking one set (TEXTIN-5), the text is built once rather than
 copied for every match (TEXTIN-2), and the matches are carried through it as through a key. Undo and redo are still
-written whole (TEXTIN-8).
+written whole (TEXTIN-8). The bar shows a match by selecting it through the handler (`select(characters:)`), which
+hands it to the app's selection binding of either kind; it used to put a selection channel of its own in the app's
+place, which an attributed editor's binding never reached (TEXTIN-3).
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
