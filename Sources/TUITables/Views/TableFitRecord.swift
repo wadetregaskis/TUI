@@ -27,8 +27,12 @@ import TUIView
 /// one box at the table's identity, changed in place — a `StateBox` write
 /// would invalidate the table and ask for another frame, for a cache.
 final class _TableFitRecords {
-    /// Each `.fit` column's record, by its declaration index.
-    var columns: [Int: _TableFitRecord] = [:]
+    /// Each `.fit` column's record, by its place in the column closure
+    /// (``_TableColumnSpec/place``) — not its index among the columns built,
+    /// which a condition before it moves: a dropped column's record went to
+    /// the column after it, and the challenge, reading only the rows on
+    /// screen and the old column's widest, accepted it.
+    var columns: [String: _TableFitRecord] = [:]
     /// The rows the last render drew, which a challenge of an unchanged
     /// collection reads again: a write that moves what rows draw shows there
     /// first.

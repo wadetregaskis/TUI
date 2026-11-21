@@ -214,4 +214,32 @@ struct TableColumnIdentityTests {
             #expect(family < given, "row \(id) kept the old key paths:\n\(harness.screen)")
         }
     }
+
+    @Test("A .fit column after a condition that drops the column before it is as wide as its widest value")
+    func fitRecordStaysWithItsColumn() throws {
+        let harness = Harness(.fit)
+        let wide = "nnnnnnnnnnnnnnnnnnnnnnnnnn".count
+        let before = try #require(harness.column(of: "Tail", onLineWith: "Tail"), "\(harness.screen)")
+        let name = try #require(harness.column(of: "Name", onLineWith: "Tail"), "\(harness.screen)")
+        #expect(before - name > wide, "\(harness.screen)")
+        harness.model.showLead = false
+        harness.frame()
+        harness.frame()
+        let after = try #require(harness.column(of: "Tail", onLineWith: "Tail"), "\(harness.screen)")
+        let movedName = try #require(harness.column(of: "Name", onLineWith: "Tail"), "\(harness.screen)")
+        #expect(after - movedName > wide, "Name was fitted to the rows on screen:\n\(harness.screen)")
+    }
+
+    @Test("A view cell's @State stays with its column when a condition drops the column before it")
+    func viewCellStateStaysWithItsColumn() throws {
+        let harness = Harness(.viewCells)
+        let stamps = harness.stamps(labelled: "b")
+        #expect(stamps.count == 5, "\(harness.screen)")
+        #expect(harness.stamps(labelled: "a").count == 5, "\(harness.screen)")
+        harness.model.showLead = false
+        harness.frame()
+        harness.frame()
+        #expect(harness.stamps(labelled: "a").isEmpty, "\(harness.screen)")
+        #expect(harness.stamps(labelled: "b") == stamps, "column B's cells took other state:\n\(harness.screen)")
+    }
 }

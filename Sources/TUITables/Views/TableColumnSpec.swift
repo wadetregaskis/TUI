@@ -42,9 +42,10 @@ struct _TableColumnSpec<Value> {
     /// What a user may not do to this column; `nil` when nothing stated it.
     var disabledCustomizationBehavior: TableColumnCustomizationBehavior?
 
-    /// The column's place among the table's declared columns, before any is
-    /// hidden or moved — what a cell's identity and a kept `.fit` width are
-    /// keyed by, so that they stay with the column rather than its position.
+    /// The column's place among the table's columns as built, before any is
+    /// hidden or moved. A condition before the column moves it, so what a
+    /// table keeps for the column itself — its cells' identity, its `.fit`
+    /// width — is keyed by ``place`` instead.
     var declarationIndex = 0
 
     /// Where the column sits in the table's column closure: the steps that
@@ -52,7 +53,9 @@ struct _TableColumnSpec<Value> {
     /// and loop element by its identifier — `"/2"` for the third statement,
     /// `"/1/0"` for the first column of an `if` that is the second, `"/3/else"`.
     /// Unlike ``declarationIndex``, which counts the columns built, it does not
-    /// move when a condition before the column adds or drops one.
+    /// move when a condition before the column adds or drops one — so a
+    /// cell's identity (its views' `@State`, focus and memos) and a kept
+    /// `.fit` width are keyed by it, and stay with the column.
     var place = ""
 
     /// How this column is sized, as declared.

@@ -5934,8 +5934,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     ) -> RenderContext {
         var cellContext =
             rowContext(of: item, context: context)
-            .withChildIdentity(
-                erasedType: _TableColumnSpec<Value>.self, index: column.declarationIndex)
+            .withChildIdentity(erasedType: _TableColumnSpec<Value>.self, key: column.place)
             .withAvailableSize(width: max(1, width), height: column.lineLimit)
         cellContext.environment.lineLimit = .lines(column.lineLimit)
         cellContext.environment.truncationMode = column.truncationMode
@@ -6133,13 +6132,15 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // out at the table's width (`scanForFitWidth`'s `probeWidth`), so that
         // width is the key's instead: filed under "uncapped" alone, a table
         // given more room was served the width its cells wrapped to in the old.
-        // The height fields carry the column INDEX rather than a height — a fit
-        // width has no height to depend on, and one entry per column has to be
-        // told from the next.
+        // The height field carries the column's PLACE (hashed) rather than a
+        // height — a fit width has no height to depend on, and one entry per
+        // column has to be told from the next. Its place, not its index among
+        // the columns built: a condition before it that drops a column moved
+        // the next one onto the dropped one's width (``_TableColumnSpec/place``).
         let key = RenderCache.SizeKey(
             identityHash: context.identity.structuralHash,
             proposalWidth: cap, proposalHeight: nil,
-            availableWidth: cap ?? -1, availableHeight: column.declarationIndex,
+            availableWidth: cap ?? -1, availableHeight: column.place.hashValue,
             hasExplicitWidth: false, hasExplicitHeight: false,
             measureGeneration: context.measureGeneration)
         let memo: (cache: RenderCache, signature: AnyEquatableBox)? =
@@ -6290,7 +6291,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
             walkFitCells(of: column, continuing: &walk, header: header, cappedAt: cap, context: context)
             return max(header, walk.widest)
         }
-        let index = column.declarationIndex
+        let place = column.place
         let probeWidth = column.laysOutItsOwnLines ? cap ?? context.availableWidth : nil
         let wraps = column.laysOutItsOwnLines && column.lineLimit > 1
         let count = data.count
@@ -6298,7 +6299,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // it, and the leases of the walks that read it.
         var inheritedVerification: Int?
         var inheritedLeases: [ObservationLease] = []
-        if var record = records.columns[index], record.isCurrent(in: context),
+        if var record = records.columns[place], record.isCurrent(in: context),
             record.isLaidOutAlike(at: probeWidth, wraps: wraps),
             record.answers(header: header, cap: cap)
         {
@@ -6308,7 +6309,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                 // collection that grew has its new rows walked below.
                 let drawn = whole ? records.drawn : 0..<0
                 if challengeFitRecord(&record, of: column, drawn: drawn, header: header, cappedAt: cap, context: context) {
-                    records.columns[index] = record
+                    records.columns[place] = record
                     record.use(in: context)
                     if whole { return max(header, record.widest) }
                     walk = _TableFitWalk(
@@ -6318,7 +6319,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
                     inheritedLeases = record.walkLeases + [record.challengeLease].compactMap { $0 }
                 } else {
                     // Falsified, so gone: kept, it would only be challenged again.
-                    records.columns[index] = nil
+                    records.columns[place] = nil
                 }
             }
         }
@@ -6332,7 +6333,7 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
         // read something that moves on its own, or under an environment that
         // cannot be compared, knows a maximum for this frame only.
         if keepable, !walk.stopped, !context.environment.hasUncomparableEnvironmentValue {
-            records.columns[index] = _TableFitRecord(
+            records.columns[place] = _TableFitRecord(
                 rows: signature, covered: walk.walked, probeWidth: probeWidth, wraps: wraps,
                 widest: walk.widest, widestOrdinal: walk.widestOrdinal, runnerUp: walk.runnerUp,
                 widthGeneration: TerminalWidthTraits.generation,

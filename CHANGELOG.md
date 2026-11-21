@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A table keeps a column's cell state and its `.fit` width with the column when a condition before it changes.**
+Both were kept by the column's position among the columns built, so `if showKind { TableColumn("Kind", …) }` turned
+off handed the next column the `@State`, focus and memos of Kind's cells, and Kind's `.fit` width, which a check of
+the rows on screen could accept: a `.fit` column then cut a long value off screen with `…`. They are now kept by the
+column's place in the column closure, as a width a user gives a column already was.
+
 **A table whose columns all show a key path redraws every row when the columns move or change key path.** A table
 of `Equatable` rows keeps each row's line while the row is unchanged, and moving a column in its customization,
 choosing a column's key path by a condition (`value: metric ? \.metres : \.feet`) or swapping two like columns with
