@@ -13,7 +13,9 @@ import Testing
 
 import TUI
 @testable import TUIAppTestSupport
+@testable import TUICurveEditors
 @testable import TUIFoundation
+@testable import TUITables
 @testable import TUITestSupport
 
 @MainActor
@@ -141,6 +143,86 @@ struct HostileNumbersControlTests {
             drawHostile(
                 LazyHGrid(rows: [GridItem(size)], spacing: value) {
                     ForEach(0..<6, id: \.self) { Text("\($0)") }
+                })
+        }
+    }
+
+    // MARK: Hunt 11-20
+    //
+    // Each of these trapped before its fix, which ends the whole run; so each
+    // runs in a child process, where a trap is this test's recorded failure.
+
+    #if !os(WASI)  // Exit tests need a child process, which WASI cannot start.
+        @Test("A curve editor over points at NaN, infinity or 1e308 draws, its read-outs held to 0...100% (CTRLS-3)")
+        func curveEditors() async {
+            await #expect(processExitsWith: .success) { await MainActor.run { ControlTraps.curveEditors() } }
+        }
+
+        @Test("An indeterminate bar of any extent draws (sweep)")
+        func indeterminateExtent() async {
+            await #expect(processExitsWith: .success) { await MainActor.run { ControlTraps.indeterminateExtent() } }
+        }
+
+        @Test("A table customization decoded with any width draws (TABLES-7)")
+        func decodedColumnWidths() async {
+            await #expect(processExitsWith: .success) { await MainActor.run { ControlTraps.decodedColumnWidths() } }
+        }
+    #endif
+}
+
+/// The hostile-number checks the control suite runs in child processes.
+@MainActor
+private enum ControlTraps {
+    static let values: [Double] = Hostile.doubles + [1e308, -1e308, .greatestFiniteMagnitude]
+
+    static func curveEditors() {
+        typealias Point = ASCIIToneCurve.Ramp.Point
+        for value in values {
+            // A point whose input is hostile dies in the marker row; one whose
+            // output is, in the selected point's read-out (point 0 is selected
+            // as the editor opens).
+            let ramp = ASCIIToneCurve.Ramp([Point(input: value, output: value), Point(input: 1, output: 1)])
+            let channels = ASCIIToneCurve.Channels(red: ramp, green: ramp, blue: ramp)
+            drawHostile(ChannelCurveEditorPanel("Curves", channels: .constant(channels), isPresented: .constant(true)))
+            let stops = [ASCIIToneCurve.Stop(at: value, to: .white), ASCIIToneCurve.Stop(at: 1, to: .black)]
+            drawHostile(ToneCurveEditorPanel("Tone", stops: .constant(stops), isPresented: .constant(true)))
+            _ = ASCIIToneCurve.Stop(at: value, to: .gray)
+            _ = ASCIIToneCurve(stops).color(atTone: value)
+            let percent = ChannelCurveEditorPanel.percent(value)
+            precondition((0...100).contains(percent), "\(value) read \(percent)%")
+        }
+        precondition(ChannelCurveEditorPanel.percent(1e308) == 100 && ChannelCurveEditorPanel.percent(.nan) == 0)
+        precondition(ChannelCurveEditorPanel.percent(0.505) == 51)
+    }
+
+    static func indeterminateExtent() {
+        for value in values {
+            let configuration = IndeterminateConfiguration(motion: .sweep, period: 1, extent: value)
+            drawHostile(ProgressView().indeterminateStyle(.custom(configuration)))
+            var changed = IndeterminateConfiguration.sweep
+            changed.extent = value
+            drawHostile(ProgressView().indeterminateStyle(.custom(changed)))
+        }
+    }
+
+    struct Row: Identifiable {
+        let id: Int
+        let name: String
+        let size: String
+    }
+
+    static func decodedColumnWidths() {
+        let rows = [Row(id: 0, name: "zero", size: "1"), Row(id: 1, name: "one", size: "2")]
+        for width in [Int.max, 1_000_000_000_000, 65_537] {
+            let json = Data(#"{"width": {"name": \#(width), "size": \#(width)}}"#.utf8)
+            guard let decoded = try? JSONDecoder().decode(TableColumnCustomization<Row>.self, from: json) else {
+                preconditionFailure("the customization decodes")
+            }
+            precondition(decoded[width: "name"] == Int.statedLengthLimit, "held as a stated width")
+            drawHostile(
+                Table(rows, columnCustomization: .constant(decoded)) {
+                    TableColumn("Name", value: \Row.name).customizationID("name")
+                    TableColumn("Size", value: \Row.size).customizationID("size")
                 })
         }
     }

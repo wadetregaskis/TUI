@@ -358,7 +358,9 @@ public struct ToneCurveEditorPanel {
 
     /// Where the selected stop sits on the tone axis.
     @MainActor private var positionRow: some View {
-        let percent = Int((Self.position(of: ordered[clampedSelection]) * 100).rounded())
+        // Held, as the channel editor's read-out is: a stop's position is the
+        // binding's, NaN and 1e308 included.
+        let percent = ChannelCurveEditorPanel.percent(Self.position(of: ordered[clampedSelection]))
         return HStack(spacing: 1) {
             Text(localized: LocalizationKey.Label.position).dim()
             // No `.frame(maxWidth: .infinity)`: this dialog hugs its content,
@@ -482,7 +484,9 @@ public struct ToneCurveEditorPanel {
 
     /// The inverse of ``tone(atColumn:)``, clamped into the strip.
     @MainActor static func column(forTone tone: Double) -> Int {
-        min(stripWidth - 1, max(0, Int((tone * Double(stripWidth - 1)).rounded())))
+        // `Int(clamping:)` before the clamp, as `ChannelCurveEditorPanel`'s
+        // `column(forInput:)` explains.
+        min(stripWidth - 1, max(0, Int(clamping: (tone * Double(stripWidth - 1)).rounded())))
     }
 
     /// A stop's position, reading an unresolved semantic `from` as black — it

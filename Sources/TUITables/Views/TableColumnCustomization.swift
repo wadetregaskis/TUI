@@ -97,7 +97,7 @@ public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Senda
     /// nothing about it in its API — it travels in the encoding.
     subscript(width id: String) -> Int? {
         get { widths[id] }
-        set { widths[id] = newValue.map { max(1, $0) } }
+        set { widths[id] = newValue.map { max(1, $0.heldToStatedLength) } }
     }
 
     /// Moves the column identified by `id` to the place `target` holds, the
@@ -184,8 +184,11 @@ public struct TableColumnCustomization<RowValue: Identifiable>: Equatable, Senda
         let stated = try container.decodeIfPresent([String: String].self, forKey: .visibility) ?? [:]
         visibilities = stated.compactMapValues(VisibilityCoding.visibility(named:))
         order = try container.decodeIfPresent([String].self, forKey: .order)
+        // Held as a stated width is: a stored `Int.max` (a corrupt or
+        // hand-edited settings file) overflowed the table's width sums on every
+        // launch, and 10^12 asked for a cell that wide (hunt 11-20, TABLES-7).
         widths = (try container.decodeIfPresent([String: Int].self, forKey: .width) ?? [:])
-            .filter { $0.value > 0 }
+            .filter { $0.value > 0 }.mapValues(\.heldToStatedLength)
     }
 
     /// Encodes this customization: the stated visibilities by identifier, the

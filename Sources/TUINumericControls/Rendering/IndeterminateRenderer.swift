@@ -483,7 +483,10 @@ enum IndeterminateRenderer {
         of configuration: IndeterminateConfiguration, across width: Int
     ) -> Int {
         let cells: Double = Double(width) * max(0, configuration.extent)
-        return max(1, Int(cells))
+        // Held as a stated length: `extent` is a public `var`, and an infinite
+        // one trapped `Int(_:)` (hunt 11-20 sweep); the ramp below has an entry
+        // a cell.
+        return max(1, Int(clamping: cells).heldToStatedLength)
     }
 
     /// A ramp, from the dim end to the bright end. Fewer than two usable

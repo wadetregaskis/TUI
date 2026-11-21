@@ -4,6 +4,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUICore
 import TUIStyling
 
 /// A recolouring of an image, written as "this becomes that".
@@ -85,7 +86,9 @@ public struct ASCIIToneCurve: Sendable, Equatable, ExpressibleByArrayLiteral {
         /// only its luminance is ever read, and stating it as a grey is the
         /// one spelling that says so.
         public init(at position: Double, to: Color) {
-            let level = UInt8(clamping: Int((min(max(position, 0), 1) * 255).rounded()))
+            // `Int(clamping:)`: in this argument order `max(.nan, 0)` is NaN, and
+        // `Int(.nan)` trapped before `UInt8(clamping:)` was reached (CTRLS-3).
+        let level = UInt8(clamping: Int(clamping: (min(max(position, 0), 1) * 255).rounded()))
             self.init(from: .rgb(level, level, level), to: to)
         }
     }
@@ -352,7 +355,8 @@ public struct ASCIIToneCurve: Sendable, Equatable, ExpressibleByArrayLiteral {
     /// interpolation — a preview with maths of its own is a preview that can
     /// disagree with the picture beside it.
     public func color(atTone tone: Double) -> Color {
-        let level = UInt8(clamping: Int((min(max(tone, 0), 1) * 255).rounded()))
+        // `Int(clamping:)`, as `Stop(at:to:)` explains: a NaN tone is black.
+        let level = UInt8(clamping: Int(clamping: (min(max(tone, 0), 1) * 255).rounded()))
         let mapped = apply(to: RGBA(r: level, g: level, b: level, a: 255))
         return .rgb(mapped.r, mapped.g, mapped.b)
     }

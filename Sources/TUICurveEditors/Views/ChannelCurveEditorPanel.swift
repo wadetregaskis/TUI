@@ -334,7 +334,7 @@ public struct ChannelCurveEditorPanel {
             Slider(value: value, in: 0...1, step: 0.01)
                 .sliderShowsValue(false)
                 .frame(width: 22)
-            Text(verbatim: "\(Int((value.wrappedValue * 100).rounded()))%").dim()
+            Text(verbatim: "\(Self.percent(value.wrappedValue))%").dim()
         }
     }
 
@@ -503,8 +503,19 @@ public struct ChannelCurveEditorPanel {
     }
 
     /// The inverse of ``input(atColumn:)``, clamped into the plot.
+    ///
+    /// `Int(clamping:)` before the clamp: a ramp's points are whatever the
+    /// binding holds, and a point at NaN or 1e308 trapped `Int(_:)`, which ran
+    /// first, as the editor opened (hunt 11-20, CTRLS-3). It sits at an end.
     @MainActor static func column(forInput input: Double) -> Int {
-        min(plotWidth - 1, max(0, Int((input * Double(plotWidth - 1)).rounded())))
+        min(plotWidth - 1, max(0, Int(clamping: (input * Double(plotWidth - 1)).rounded())))
+    }
+
+    /// `value`, a point's input or output, as the whole percent its slider
+    /// shows: held to `0...100` as the slider and the plot hold it, with NaN
+    /// as none (CTRLS-3: `1e308 * 100` trapped `Int(_:)`).
+    static func percent(_ value: Double) -> Int {
+        min(100, max(0, Int(clamping: (value * 100).rounded())))
     }
 
     /// `points` with one added beside the point at `index`, at the value the
