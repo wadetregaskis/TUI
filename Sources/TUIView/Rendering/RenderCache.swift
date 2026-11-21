@@ -1374,6 +1374,8 @@ extension RenderCache {
         // first walk's picture, and that was the frame written (VIEWR-2,
         // 2026-11-20).
         frameCounter &+= 1
+        // And the re-checks arm afresh: the effects may have fired their scopes.
+        revalidation.beginWalk()
         measureEntries.removeAll(keepingCapacity: true)
         unsafe measuredValues.release()
         forgetPassCompositions()

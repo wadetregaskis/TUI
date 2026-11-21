@@ -80,6 +80,32 @@ package final class RevalidationState {
     /// The passes begun: what a cooldown is counted in.
     private var pass = 0
 
+    /// The lease the walk's re-checks arm their rebuilds' scopes under, made
+    /// by the first (``walkRebuildLease()``): one for the walk, not one a row.
+    /// See `RenderCache.recheckRow`.
+    private var rebuildLease: ObservationLease?
+
+    /// The rows, by identity hash, whose rebuild a re-check has observed this
+    /// walk: a row is looked up by its measure and by its draw, often more
+    /// than once a walk, and one scope over its builder's reads is enough.
+    var rearmedRows: Set<Int> = []
+
+    /// The walk's rebuild lease, made on first use.
+    func walkRebuildLease() -> ObservationLease {
+        if let rebuildLease { return rebuildLease }
+        let made = ObservationLease()
+        rebuildLease = made
+        return made
+    }
+
+    /// Starts a walk: its re-checks arm afresh, under a lease of their own.
+    /// At each pass (``beginPass()``) and each walk a pass makes again, since
+    /// what the walk before's effects wrote may have fired its scopes.
+    package func beginWalk() {
+        rebuildLease = nil
+        if !rearmedRows.isEmpty { rearmedRows.removeAll(keepingCapacity: true) }
+    }
+
     /// Rows whose value keeps changing, by identity hash (Option C, C5): how
     /// many re-checks in a row found the value unequal, and the pass until
     /// which the row is neither recorded nor re-checked. A row that changes
@@ -90,6 +116,7 @@ package final class RevalidationState {
     /// Starts a pass: this pass's stamps, and the cooldowns that have run out.
     package func beginPass() {
         pass &+= 1
+        beginWalk()
         stamps.beginPass()
         if pass.isMultiple(of: 64), !cooldowns.isEmpty { cooldowns = cooldowns.filter { $0.value.until >= pass - 64 } }
     }
@@ -230,9 +257,10 @@ extension RenderCache {
         package var environment: EnvironmentStamp
         /// How many environment modifiers that note themselves were above it.
         package let depth: Int
-        /// The lease of the last re-check's rebuild, which keeps the scope it
-        /// was built under alive while the entry is kept (``recheckRow``):
-        /// replaced by each re-check, so the scope before it is cancelled.
+        /// The lease of the last observed re-check's rebuild, which keeps the
+        /// scope it was built under alive while the entry is kept
+        /// (``recheckRow``): replaced by the next, so the scope before goes
+        /// once no other entry holds its walk's lease.
         package var rebuildLease: ObservationLease?
 
         init(snapshot: Any, equal: @escaping (Any, Any) -> Bool, environment: EnvironmentStamp, depth: Int) {
@@ -282,17 +310,28 @@ extension RenderCache {
     /// Rebuilt under no scope, nothing watched what the row's builder read
     /// once a frame had re-checked every row and found each equal, and the
     /// next change to it was never drawn (VIEWR-1, 2026-11-20). The scope is
-    /// armed under a lease of its own, which the record holds
-    /// (``Revalidation/rebuildLease``), so it lives while the entry is kept.
+    /// armed under the walk's rebuild lease, which the record holds
+    /// (``Revalidation/rebuildLease``), so it lives while the entry is kept,
+    /// and once a row a walk: its size and its buffer, and each measure, are
+    /// looked up apart, and a scope and a lease for each re-check cost the
+    /// `editor` session 28% a frame (`ab_bench`, 1,519 → 1,955 µs).
     package func recheckRow<Row>(
         _ record: Revalidation, rebuild build: () -> Row, of reader: Any.Type, at identity: ViewIdentity,
         environment: EnvironmentValues, depth: Int
     ) -> RecheckVerdict {
         guard revalidation.servesRechecked else { return .off }
-        let leaseMark = leases.beginComputation()
-        let row =
-            identity.parent.map { observingRowBuild(of: reader, parent: $0, cache: self, link: link, build) } ?? build()
-        let rebuildLease = leases.endComputation(leaseMark)
+        var rebuildLease: ObservationLease?
+        let row: Row
+        if let parent = identity.parent, revalidation.rearmedRows.insert(identity.structuralHash).inserted {
+            rebuildLease = leases.isActive ? revalidation.walkRebuildLease() : nil
+            let leaseMark = rebuildLease.flatMap(leases.beginComputation(under:))
+            row = observingRowBuild(of: reader, parent: parent, cache: self, link: link, build)
+            _ = leases.endComputation(leaseMark)
+            // What is drawing this row holds the lease, as one it made itself.
+            leases.use(rebuildLease)
+        } else {
+            row = build()
+        }
         guard record.equal(record.snapshot, row) else {
             revalidation.counts.unequalValues += 1
             return .valueChanged
@@ -312,7 +351,7 @@ extension RenderCache {
         }
         record.snapshot = row
         record.environment = stamp
-        record.rebuildLease = rebuildLease
+        if let rebuildLease { record.rebuildLease = rebuildLease }
         return .unchanged
     }
 

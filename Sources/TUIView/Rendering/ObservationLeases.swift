@@ -210,6 +210,19 @@ package final class ObservationLeases {
         return open(isDetached: false)
     }
 
+    /// Opens a computation under `lease`, which its caller made and keeps:
+    /// every scope armed in it reads that lease's sentinel, and the lease is
+    /// not held by the computation enclosing this one unless the caller hands
+    /// it over (``use(_:)``). What the re-checks of one walk share
+    /// (`RenderCache.recheckRow`), where a lease a row cost them a frame.
+    @inline(__always)
+    package func beginComputation(under lease: ObservationLease) -> Int? {
+        guard isActive else { return nil }
+        unsafe state.counts.computations += 1
+        unsafe state.stack.append(Slot(lease: lease, isDetached: false))
+        return unsafe state.stack.count - 1
+    }
+
     /// Opens a computation whose lease nothing encloses: it retires as soon as
     /// ``endComputation(_:)``'s caller lets go of what it returns, and every
     /// scope armed beneath it with it. What a memo verifier re-evaluates a
