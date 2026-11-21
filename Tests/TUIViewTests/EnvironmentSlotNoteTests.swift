@@ -94,4 +94,51 @@ struct EnvironmentSlotNoteTests {
         #expect(note() == .incomparable)
         #expect(made == 1)
     }
+
+    /// An object that is not `Equatable` compares by identity, and an
+    /// `Optional`'s `nil` as itself, as an environment stamp compares them:
+    /// incomparable, they turned off every memo below the modifier
+    /// (tuiarcade's TUI-FEEDBACK.md, Milestone 3 item 3).
+    @Test("An object compares by identity, and nil as itself")
+    func objectComparesByIdentity() {
+        let cache = RenderCache()
+        let identity = ViewIdentity(path: "Root")
+        let first = Model()
+        let second = Model()
+        func note(_ value: Model?) -> RenderCache.EnvironmentChange {
+            cache.noteAppliedEnvironment(value as Any, identity: identity, keyPath: \EnvironmentValues.noted, depth: 0)
+        }
+
+        cache.beginRenderPass()
+        #expect(note(nil) == .first)
+        cache.beginRenderPass()
+        #expect(note(nil) == .unchanged)
+        cache.beginRenderPass()
+        #expect(note(first) == .changed)
+        cache.beginRenderPass()
+        #expect(note(first) == .unchanged)
+        cache.beginRenderPass()
+        #expect(note(second) == .changed)
+        cache.beginRenderPass()
+        #expect(note(nil) == .changed)
+    }
+
+    @Test("A nil that becomes a value nothing can compare goes incomparable")
+    func nilThenOpaqueGoesIncomparable() {
+        let cache = RenderCache()
+        let identity = ViewIdentity(path: "Root")
+        func note(_ value: Opaque?) -> RenderCache.EnvironmentChange {
+            cache.noteAppliedEnvironment(value as Any, identity: identity, keyPath: \EnvironmentValues.noted, depth: 0)
+        }
+
+        cache.beginRenderPass()
+        #expect(note(nil) == .first)
+        cache.beginRenderPass()
+        #expect(note(Opaque()) == .incomparable)
+        cache.beginRenderPass()
+        #expect(note(nil) == .incomparable)
+    }
 }
+
+/// An object with no `Equatable`.
+private final class Model {}

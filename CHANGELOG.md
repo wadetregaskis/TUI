@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**An object handed down with `.environment(\.key, object)` no longer makes every body below it run every frame.**
+A value set under an `EnvironmentValues` key that isn't `Equatable`, such as a model object or an `Optional` of one
+set to `nil`, couldn't be compared from one frame to the next, so nothing below it was ever kept: beside a running
+`TimelineView` every body under it ran twice a frame, 125 times a second where 4 ran without it. It is now compared as
+SwiftUI compares it: an object by identity, so a mutation inside the object (observed, for an `@Observable`, by what
+read it) is not a change to the environment, and a different object is. A value nothing can compare, such as a
+closure or a struct that isn't `Equatable`, still can't be.
+
 **`Tools/Web/build.sh` builds your app's browser page into your package, not into TUI's checkout.** With
 `--package-path`, the module, its resources, the manifest and a copy of the page now go into the package's own
 `.build/web/`, or the directory the new `--site DIR` names, and `Tools/Web/serve.py --site DIR` serves them. Before,

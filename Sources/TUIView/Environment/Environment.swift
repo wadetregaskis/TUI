@@ -129,8 +129,11 @@ extension RenderContext {
 /// rest — a preference written by a sibling, an `@AppStorage` value, a
 /// binding threaded down from somewhere that is not an ancestor.
 ///
-/// A value that is not `Equatable` cannot be compared at all, so the subtree
-/// declares itself cache-unsafe instead: `EquatableView` already refuses to
+/// A value that is not `Equatable` is compared as an environment stamp
+/// compares it — an object by identity, an `Optional`'s `nil` as such — and
+/// one that even a stamp cannot compare (a closure, a non-`Equatable` struct)
+/// cannot be compared at all, so the subtree declares itself cache-unsafe
+/// instead: `EquatableView` already refuses to
 /// store a buffer whose render tripped the tracker. Memoization is lost
 /// under such a modifier, which is a performance cost rather than a
 /// correctness one — the right way round.
@@ -401,8 +404,9 @@ extension EnvironmentValues {
 }
 
 extension EnvironmentValues {
-    /// Whether some ancestor injected an environment value that is not
-    /// `Equatable`.
+    /// Whether some ancestor injected an environment value that nothing can
+    /// compare: not `Equatable`, and not an object or an `Optional`'s `nil`,
+    /// which compare as an environment stamp compares them.
     ///
     /// Change detection at the modifier is what lets the render cache key stay
     /// free of the environment (see `EnvironmentModifier.noteEnvironmentChange`),

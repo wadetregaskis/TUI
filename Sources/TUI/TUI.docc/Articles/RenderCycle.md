@@ -575,9 +575,13 @@ wearing the three-row ramp's ink until the frame joined the key. It is an
 `Optional` that is `nil` unless a `.subtree` ramp is in force, so an ordinary
 lookup compares one `nil`.
 
-A value that is **not** `Equatable` cannot be compared. What that costs depends
-on which of the two routes in the table applied it, and the two costs are
-opposites.
+A value that is **not** `Equatable` is compared as an environment stamp
+compares it, where that can: an object by identity, an `Optional` set to `nil`
+as itself. So a model object handed down with `.environment(\.model, model)`
+is unchanged from frame to frame while it is the same object, as in SwiftUI. A
+value even a stamp can't compare (a closure, a struct that isn't `Equatable`)
+cannot be compared at all. What that costs depends on which of the two routes
+in the table applied it, and the two costs are opposites.
 
 Through `EnvironmentModifier` — every `.environment(\.slot, value)`, which is how
 the style modifiers publish — the `.incomparable` answer is acted on: the

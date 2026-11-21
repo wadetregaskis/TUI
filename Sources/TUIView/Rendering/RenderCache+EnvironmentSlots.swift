@@ -26,15 +26,22 @@ extension RenderCache {
         case unchanged
         /// A different value: cached buffers below are stale.
         case changed
-        /// The value is not `Equatable`, so change cannot be detected at all.
+        /// The value can be compared by nothing — neither `Equatable` nor an
+        /// object, nor an `Optional` of one — so change cannot be detected at all.
         case incomparable
     }
 
     /// What one slot applied last, and when.
     struct AppliedEnvironment {
+        /// The value, or for one compared by its stamp token (``byToken``) the
+        /// token: an `EnvironmentStamp.Token`.
         var value: Any
         var lastSeenFrame: UInt64
         var isComparable: Bool
+        /// Whether ``value`` is the token of a value that is not `Equatable`
+        /// but can be compared as a stamp compares it: an object by identity,
+        /// an `Optional` set to `nil` as such.
+        var byToken = false
     }
 
     /// Records the environment value applied at a slot and reports whether it
@@ -66,9 +73,10 @@ extension RenderCache {
     ///   words, as most style values are), and two-pass layout visits each
     ///   modifier several times a frame.
     /// - Returns: `.incomparable` when `value` is not `Equatable`, or is a
-    ///   `PartiallyComparable` wrapper around a value that is not — the
-    ///   caller must then decline caching, because nothing here can tell
-    ///   whether it changed.
+    ///   `PartiallyComparable` wrapper around a value that is not, and is not
+    ///   one an environment stamp compares either (an object, by identity; an
+    ///   `Optional` set to `nil`) — the caller must then decline caching,
+    ///   because nothing here can tell whether it changed.
     public func noteAppliedEnvironment(
         _ value: @autoclosure () -> Any,
         identity: ViewIdentity,
@@ -78,10 +86,18 @@ extension RenderCache {
         let slot = EnvironmentSlot(identity: identity, keyPath: keyPath, depth: depth)
         guard var previous = appliedEnvironment[slot] else {
             let value = value()
-            let comparable = Self.canCompare(value)
+            if Self.canCompare(value) {
+                appliedEnvironment[slot] = AppliedEnvironment(
+                    value: value, lastSeenFrame: frameCounter, isComparable: true)
+                return .first
+            }
+            // An `Equatable` wrapper that cannot compare what it holds
+            // (`PartiallyComparable`) stays incomparable: a stamp would take its
+            // `==`, which answers unequal every frame.
+            let token = value is any Equatable ? nil : stampToken(of: value)
             appliedEnvironment[slot] = AppliedEnvironment(
-                value: value, lastSeenFrame: frameCounter, isComparable: comparable)
-            return comparable ? .first : .incomparable
+                value: token ?? value, lastSeenFrame: frameCounter, isComparable: token != nil, byToken: token != nil)
+            return token != nil ? .first : .incomparable
         }
 
         // Already answered this pass. Two-pass layout visits the same modifier
@@ -97,6 +113,9 @@ extension RenderCache {
 
         // A slot that went incomparable stays so, and never needs the value.
         let current: Any? = previous.isComparable ? value() : nil
+        if previous.byToken, let current {
+            return noteByToken(current, previous: &previous, slot: slot, identity: identity)
+        }
         guard let current, let equatable = current as? any Equatable else {
             previous.lastSeenFrame = frameCounter
             previous.isComparable = false
@@ -131,6 +150,48 @@ extension RenderCache {
     private static func canCompare(_ value: Any) -> Bool {
         guard value is any Equatable else { return false }
         return (value as? any PartiallyComparable)?.isComparable ?? true
+    }
+
+    /// What a slot compares a value that is not `Equatable` by: its token as an
+    /// environment stamp makes it (`EnvironmentStamps.token(for:hasher:)`) — an
+    /// object by identity, held weakly; an `Optional`'s `nil` as such; a value
+    /// that says what a render depends on, by that — or `nil` when even a stamp
+    /// cannot compare it.
+    ///
+    /// The stamp's rules, so that the slot and the memos below it agree: an
+    /// object handed down with `.environment(\.key, object)` was incomparable
+    /// here, and its subtree refused every memo, while every stamp below it
+    /// compared it by identity. SwiftUI compares it so too; tuiarcade measured
+    /// every body below a model object run twice a frame beside a timeline
+    /// (TUI-FEEDBACK.md, Milestone 3 item 3). A mutation inside the object is
+    /// no change here, as it is none to SwiftUI: an `@Observable`'s is
+    /// observed by whatever read it.
+    private func stampToken(of value: Any) -> EnvironmentStamp.Token? {
+        var hasher = Hasher()
+        return revalidation.stamps.token(for: value, hasher: &hasher)
+    }
+
+    /// The rest of ``noteAppliedEnvironment(_:identity:keyPath:depth:)`` for a
+    /// slot compared by token: `current` against the token kept.
+    private func noteByToken(
+        _ current: Any, previous: inout AppliedEnvironment, slot: EnvironmentSlot, identity: ViewIdentity
+    ) -> EnvironmentChange {
+        previous.lastSeenFrame = frameCounter
+        guard let token = stampToken(of: current) else {
+            // A `nil` before, now something nothing compares: changed, and from
+            // now on incomparable, as a wrapper that has come to hold one goes.
+            previous.isComparable = false
+            previous.byToken = false
+            previous.value = current
+            appliedEnvironment[slot] = previous
+            clearAffected(by: identity)
+            return .incomparable
+        }
+        // A token is the slot's own make (`stampToken(of:)`), so the cast holds.
+        let same = (previous.value as? EnvironmentStamp.Token).map { EnvironmentStamp.equal($0, token) } ?? false
+        previous.value = token
+        appliedEnvironment[slot] = previous
+        return same ? .unchanged : .changed
     }
 
     /// What an `AnyView` last held at one identity and depth — see
