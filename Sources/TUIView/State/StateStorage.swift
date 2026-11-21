@@ -474,8 +474,11 @@ extension StateStorage {
     /// created, when another case replaces it, so the case starts at its
     /// defaults when it comes back, as SwiftUI's does (measured on macOS 15:
     /// `Tools/SwiftUIProbes/State keys in dynamic properties/skey.out`). An enum's record among them —
-    /// one inside the case — has what it lists removed with it.
-    func removeValues(forKeys keys: [StateKey]) {
+    /// one inside the case — has what it lists removed with it. And a core's
+    /// own slot that holds what no longer fits the view drawn there, so the
+    /// next ``storage(for:default:)`` makes it afresh without a write (a
+    /// `Stepper`'s handler for a value of another type).
+    package func removeValues(forKeys keys: [StateKey]) {
         for key in keys {
             if let record = dropValue(forKey: key) as? EnumCaseRecord {
                 removeValues(forKeys: record.keys)

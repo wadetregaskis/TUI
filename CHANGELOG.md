@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Stepper` drawn where one over another value type was steps its own value.** Two steppers at one place, say an
+`AnyView` choosing between one over an `Int` and one over a `Double`, kept the first one's handler: the arrows
+stepped the old binding within the old bounds while the read-out showed the new value.
+
 **A `Form`'s `ForEach` rows keep their controls' state by element.** In `Form { ForEach(items) { … }; Button("Add")
 { … } }`, removing an item left its row's drawn state (a `DisclosureGroup`'s expansion, a field's caret, the focus)
 to the row that took its place, and each item added moved the button after the loop, so the focus left it at every

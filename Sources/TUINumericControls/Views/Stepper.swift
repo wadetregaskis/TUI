@@ -516,17 +516,25 @@ private struct _StepperCore: View, Renderable, Layoutable {
         )
 
         // Get or create the persistent (value-type-erased) handler.
-        let handlerKey = StateStorage.StateKey(
-            identity: context.identity, propertyIndex: StateIndex.handler)
-        let handlerBox: StateBox<any StepperDriving> = stateStorage.storage(
-            for: handlerKey,
-            default: makeHandler(persistedFocusID, !isDisabled)
-        )
-        let handler = handlerBox.value
+        let handlerKey = StateStorage.StateKey(identity: context.identity, propertyIndex: StateIndex.handler)
+        let newHandler = { makeHandler(persistedFocusID, !isDisabled) }
+        var handlerBox: StateBox<any StepperDriving> = stateStorage.storage(for: handlerKey, default: newHandler())
 
         // Keep handler in sync with current values. `syncValue` refreshes the
         // one `V`-typed field (the value binding); the rest are value-type-free.
-        syncValue.sync(handler, context)
+        //
+        // A handler made for a value of another type — another stepper drawn
+        // at this place, an `AnyView` choosing between an `Int`'s and a
+        // `Double`'s — cannot be pointed at this one's binding, and is
+        // replaced by this one's own. Left as it was, the arrows stepped the
+        // old binding within the old bounds while the read-out showed the new
+        // value (CTRLS-9).
+        if !syncValue.sync(handlerBox.value, context) {
+            stateStorage.removeValues(forKeys: [handlerKey])
+            handlerBox = stateStorage.storage(for: handlerKey, default: newHandler())
+            _ = syncValue.sync(handlerBox.value, context)
+        }
+        let handler = handlerBox.value
         handler.canBeFocused = !isDisabled
         // Captured at render so Shift+arrow can accelerate at event time.
         handler.shiftStepMultiplier = context.environment.shiftStepMultiplier

@@ -14,7 +14,9 @@ import TUIView
 /// requirement alone is on the main actor, where it is drawn: a value of it can
 /// be made anywhere, as a stepper can.
 protocol StepperValueSync {
-    @MainActor func sync(_ handler: any StepperDriving, _ context: RenderContext)
+    /// Points `handler` at what this render declared, and says whether it
+    /// could: `false` for a handler made for a value of another type.
+    @MainActor func sync(_ handler: any StepperDriving, _ context: RenderContext) -> Bool
 }
 
 /// The handler persists across renders; EVERYTHING this render declared must be
@@ -26,13 +28,14 @@ struct DeclaredStepperValue<V: Strideable>: StepperValueSync {
     let bounds: ClosedRange<V>?
     let step: V.Stride
 
-    @MainActor func sync(_ handler: any StepperDriving, _ context: RenderContext) {
-        guard let handler = handler as? StepperHandler<V> else { return }
+    @MainActor func sync(_ handler: any StepperDriving, _ context: RenderContext) -> Bool {
+        guard let handler = handler as? StepperHandler<V> else { return false }
         // A person's steps are steps in the app's undo manager, a run of them
         // one step; the stepper's own clamp is not a person's.
         handler.value = context.undoable(value, coalescing: true, propertyIndex: StepperUndoIndex.undo)
         handler.plainValue = value
         handler.bounds = bounds
         handler.step = step
+        return true
     }
 }
