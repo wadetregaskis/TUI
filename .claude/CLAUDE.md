@@ -129,7 +129,7 @@ List("Items", selection: $selection) {
         Text(item.name)
     }
 }
-.foregroundColor(.red)  // MUST affect all Text inside!
+.foregroundStyle(.red)  // MUST affect all Text inside!
 .disabled(true)         // MUST disable the entire List!
 ```
 
@@ -201,7 +201,7 @@ extension MyControl: Renderable {  // WRONG - public types must not be Renderabl
 1. Can it be composed from existing Views + modifiers? (preferred)
 2. If not, does the public View have a real `body` wrapping a private `_*Core`?
 3. Does `_*Core` read environment values from `RenderContext`?
-4. Test: `.foregroundColor()` on the control affects its content?
+4. Test: `.foregroundStyle()` on the control affects its content?
 5. Test: `.disabled()` on the control disables interactions?
 
 ### Interactive Views: Focus & State (non-negotiable)
@@ -236,8 +236,10 @@ private enum StateIndex {
   composite content keep `0...`.
 
 #### Disabled state
-- Disabled views MUST NOT register with the focus system
-- Check `isDisabled` BEFORE calling `focusManager.register()`
+- A disabled control MUST NOT be focusable: it registers with
+  `canBeFocused == false`, checked before focus is drawn. Registering is
+  allowed, and preferred: focus recovery uses the control's place in the ring
+  (owner, 2026-11-21, O-09)
 - Disabled styling MUST be visually consistent across all interactive views
 
 ### SwiftUI API Design (non-negotiable)
