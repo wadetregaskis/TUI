@@ -39,6 +39,9 @@ protocol FormRowLoop {
     /// walk is (`walk`), as the form's extraction reads it: one element, or
     /// the several it makes as one group.
     func formElement(at ordinal: Int, in walk: RenderContext) -> _FormElement
+    /// The id of the element the `ordinal`-th row is made from, which the row
+    /// is drawn under, as the form drawn whole draws it.
+    func formRowID(at ordinal: Int) -> AnyHashable
 }
 
 @MainActor extension ForEach: FormRowLoop where Content: View {
@@ -47,8 +50,14 @@ protocol FormRowLoop {
     var formRowsSignature: AnyEquatableBox? { listRowsSignature }
 
     func formElement(at ordinal: Int, in walk: RenderContext) -> _FormElement {
-        let elements = rowElements(of: data[data.index(data.startIndex, offsetBy: ordinal)], in: walk)
+        let elements = rowElements(of: element(at: ordinal), in: walk)
         return elements.count == 1 ? elements[0] : .group(elements, branch: nil)
+    }
+
+    func formRowID(at ordinal: Int) -> AnyHashable { formRowID(of: element(at: ordinal)) }
+
+    private func element(at ordinal: Int) -> Data.Element {
+        data[data.index(data.startIndex, offsetBy: ordinal)]
     }
 }
 
@@ -97,11 +106,15 @@ final class FormColumnWidths {
         // already a row of the lazy stack's own loop, memoised there, and a
         // memo inside that one only doubled the bookkeeping of every row
         // served (`app-shapes/columns-form-filtered` +10%, PERFCASE-F7).
-        let rows = ForEach(0..<loop.formRowCount, id: \.self) { ordinal in
-            columnsElementView(
-                loop.formElement(at: ordinal, in: walk), pillar: pillar, contentWidth: contentWidth, walk: nil,
-                isFirst: ordinal == 0)
-        }
+        // Each row under its element's id, as the form drawn whole draws it,
+        // so its drawn state follows the element (CTRLS-1).
+        let rows = ForEach(
+            storing: 0..<loop.formRowCount, directID: { loop.formRowID(at: $0) },
+            content: { ordinal in
+                columnsElementView(
+                    loop.formElement(at: ordinal, in: walk), pillar: pillar, contentWidth: contentWidth, walk: nil,
+                    isFirst: ordinal == 0)
+            })
         return AnyView(
             _VStackCore(alignment: .leading, spacing: 0, overflow: .window, content: rows)
                 .frame(width: widths.columnWidth, alignment: .leading))

@@ -250,8 +250,8 @@ private func stamped(_ element: _FormElement, alignment: HorizontalAlignment) ->
     case .section(var section):
         section.rows = section.rows.map { stamped($0, alignment: alignment) }
         return .section(section)
-    case .group(let elements, let branch):
-        return .group(elements.map { stamped($0, alignment: alignment) }, branch: branch)
+    case .group(let elements, let branch, let rowID):
+        return .group(elements.map { stamped($0, alignment: alignment) }, branch: branch, rowID: rowID)
     }
 }
 
@@ -262,7 +262,7 @@ func formRows(of elements: [_FormElement]) -> [_FormRow] {
         switch element {
         case .row(let row): return [row]
         case .section(let section): return formRows(of: section.rows)
-        case .group(let elements, _): return formRows(of: elements)
+        case .group(let elements, _, _): return formRows(of: elements)
         }
     }
 }
@@ -274,7 +274,8 @@ private func sectionRows(of elements: [_FormElement]) -> [_FormElement] {
         switch element {
         case .row: return [element]
         case .section(let section): return section.rows
-        case .group(let elements, let branch): return [.group(sectionRows(of: elements), branch: branch)]
+        case .group(let elements, let branch, let rowID):
+            return [.group(sectionRows(of: elements), branch: branch, rowID: rowID)]
         }
     }
 }
@@ -324,8 +325,22 @@ private func sectionRows(of elements: [_FormElement]) -> [_FormElement] {
 }
 
 @MainActor extension ForEach: FormContentExtractor where Content: View {
+    /// One element, the loop's rows in it each under its element's id
+    /// (``_FormElement/group(_:branch:rowID:)``), so a row's drawn state
+    /// follows its element and what comes after the loop keeps its place.
     func extractFormElements(in walk: RenderContext) -> [_FormElement] {
-        data.flatMap { rowElements(of: $0, in: walk) }
+        // A loop over subviews has no rows to give a walk that doesn't draw
+        // them (its members resolve where it is drawn), so it gives none, not
+        // an empty element: `ForEach(subviews:)`'s documented "a form sees
+        // this loop as empty". Any other loop is one element even when empty,
+        // so what follows it keeps its place as its data comes and goes.
+        guard !(Data.self is any ContextResolvedCollection.Type) else { return [] }
+        return [.group(data.map { .group(rowElements(of: $0, in: walk), branch: nil, rowID: formRowID(of: $0)) }, branch: nil)]
+    }
+
+    /// The id the form draws `element`'s row under.
+    func formRowID(of element: Data.Element) -> AnyHashable {
+        AnyHashable(elementID(of: element))
     }
 
     /// The elements `element`'s row is, read where the walk is.
@@ -356,8 +371,8 @@ private func keyedByLoopElement(_ element: _FormElement, _ loopElement: any Equa
     case .section(var section):
         section.rows = section.rows.map { keyedByLoopElement($0, loopElement) }
         return .section(section)
-    case .group(let elements, let branch):
-        return .group(elements.map { keyedByLoopElement($0, loopElement) }, branch: branch)
+    case .group(let elements, let branch, let rowID):
+        return .group(elements.map { keyedByLoopElement($0, loopElement) }, branch: branch, rowID: rowID)
     }
 }
 

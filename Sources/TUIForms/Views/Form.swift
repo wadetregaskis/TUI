@@ -157,28 +157,83 @@ struct _FormSection {
 /// row at all: a Form rebuilds its rows from `content` every render pass, and
 /// display-only rows want exactly that. A row a loop over comparable data made
 /// is memoised inside, by its element and what the form's walk read
-/// (``memoizedRowView(_:row:pillar:walk:)``), never by its position. Identity
-/// is positional, stable across frames.
-private struct _IndexedFormRow<Value>: Identifiable {
-    let id: Int
-    let value: Value
+/// (``memoizedRowView(_:row:pillar:walk:)``), never by its position.
+///
+/// Identified by position, stable across frames, except for a loop's rows
+/// (``_FormElement/group(_:branch:rowID:)`` with a `rowID`), which are
+/// identified by their elements' ids, as a `ForEach`'s rows are anywhere else.
+private struct _IndexedFormRow: Identifiable {
+    let id: _FormRowID
+    /// Whether this is the first of the elements drawn beside each other.
+    let isFirst: Bool
+    let value: _FormElement
 }
 
-private func _indexed<Value>(_ items: [Value]) -> [_IndexedFormRow<Value>] {
-    items.enumerated().map { _IndexedFormRow(id: $0.offset, value: $0.element) }
+/// What a form draws one of its elements under: its place among the elements
+/// written, or — for what a loop's row made — the loop's place, the id of the
+/// row's element and which of the row's elements it is.
+private enum _FormRowID: Hashable {
+    case position(Int)
+    case element(slot: Int, id: AnyHashable, part: Int)
 }
 
-/// A form element: a bare row, a section of rows, or the elements an `if` or
-/// an `if`/`else` holds.
+/// `items` to draw side by side, a loop's rows spliced in among them in
+/// order, each under its element's id, the loop's other elements' places
+/// unmoved by how many rows it has. Spliced, not drawn in a stack of the
+/// loop's own: a stack in the form's column measured each row once more for
+/// every measure of the column (Stress `form-columns-tab@10n`, bodies +46%).
+private func _indexed(_ items: [_FormElement]) -> [_IndexedFormRow] {
+    var indexed: [_IndexedFormRow] = []
+    indexed.reserveCapacity(items.count)
+    func append(_ id: _FormRowID, _ element: _FormElement) {
+        indexed.append(_IndexedFormRow(id: id, isFirst: indexed.isEmpty, value: element))
+    }
+    func appendLoopRow(_ row: _FormElement, slot: Int) {
+        guard case .group(let parts, _, let rowID?) = row else { return }
+        for (part, element) in parts.enumerated() { append(.element(slot: slot, id: rowID, part: part), element) }
+    }
+    for (slot, element) in items.enumerated() {
+        switch element {
+        case .group(let rows, nil, nil) where !rows.isEmpty && rows.allSatisfy(\.isLoopRow):
+            for row in rows { appendLoopRow(row, slot: slot) }
+        case _ where element.isLoopRow:
+            appendLoopRow(element, slot: slot)
+        default:
+            append(.position(slot), element)
+        }
+    }
+    return indexed
+}
+
+extension _FormElement {
+    /// Whether this is the elements of one row of a loop.
+    fileprivate var isLoopRow: Bool {
+        if case .group(_, _, .some) = self { return true }
+        return false
+    }
+}
+
+/// A form element: a bare row, a section of rows, or the elements an `if`, an
+/// `if`/`else` or a loop holds.
 enum _FormElement {
     case row(_FormRow)
     case section(_FormSection)
-    /// The elements of an `if` (none while its condition is false) or of one
-    /// arm of an `if`/`else`, drawn in ONE place among the form's elements, so
-    /// the ones after it keep theirs — a form's rows are identified by
-    /// position — and drawn under `branch`, so the two arms of an `if`/`else`
-    /// keep their state apart, as their views do anywhere else.
-    case group([Self], branch: String?)
+    /// The elements of an `if` (none while its condition is false), of one
+    /// arm of an `if`/`else`, or of a `ForEach`, drawn in ONE place among the
+    /// form's elements, so the ones after it keep theirs — a form's rows are
+    /// identified by position — and drawn under `branch`, so the two arms of
+    /// an `if`/`else` keep their state apart, as their views do anywhere else.
+    ///
+    /// A loop's row is one too, with the id of the element it was made from
+    /// as its `rowID`, under which its elements are drawn, spliced among the
+    /// elements beside the loop (`_indexed`): the
+    /// drawn controls' state — a field's caret, a `DisclosureGroup`'s
+    /// expansion, the focus — follows the element, as it does in a `VStack`'s
+    /// `ForEach`. Flattened into the form's elements and drawn by position, as
+    /// they were, a removed element left its state to the row that took its
+    /// place, and every element added moved a button after the loop to a new
+    /// identity, whose focus id was new, so the focus left it (CTRLS-1).
+    case group([Self], branch: String?, rowID: AnyHashable? = nil)
 }
 
 /// A control a ``Form`` lays out as a push button. Conformed by ``Button``.
@@ -366,12 +421,12 @@ func columnsElementView(
             }
             if let footer = section.footer { footer }
         }
-    case .group(let elements, let branch):
+    case .group(let elements, let branch, _):
         groupView(branch: branch, spacing: 0) {
             ForEach(_indexed(elements)) { entry in
                 columnsElementView(
                     entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk,
-                    isFirst: isFirst && entry.id == 0)
+                    isFirst: isFirst && entry.isFirst)
             }
         }
     }
@@ -386,7 +441,7 @@ private func columnsSectionRowView(
     switch element {
     case .row(let row):
         formRowView(row, pillar: pillar, contentWidth: contentWidth, walk: walk)
-    case .group(let elements, let branch):
+    case .group(let elements, let branch, _):
         groupView(branch: branch, spacing: 0) {
             ForEach(_indexed(elements)) { entry in
                 columnsSectionRowView(entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk)
@@ -442,7 +497,7 @@ private func groupedElementView(
                 if let footer = section.footer { footer }
             }
         }
-    case .group(let elements, let branch):
+    case .group(let elements, let branch, _):
         groupView(branch: branch, spacing: 1) {
             ForEach(_indexed(elements)) { entry in
                 groupedElementView(entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk)
@@ -458,7 +513,7 @@ private func groupedSectionRowView(_ element: _FormElement, pillar: Int, walk: _
     switch element {
     case .row(let row):
         groupedRowView(row, pillar: pillar, walk: walk)
-    case .group(let elements, let branch):
+    case .group(let elements, let branch, _):
         groupView(branch: branch, spacing: 0) {
             ForEach(_indexed(elements)) { entry in
                 groupedSectionRowView(entry.value, pillar: pillar, walk: walk)
@@ -578,7 +633,7 @@ struct _FormLayout<Content: View>: View, Renderable, Layoutable {
                 } else {
                     columnsElementView(
                         entry.value, pillar: pillar, contentWidth: contentWidth, walk: walk,
-                        isFirst: entry.id == 0)
+                        isFirst: entry.isFirst)
                 }
             }
         }

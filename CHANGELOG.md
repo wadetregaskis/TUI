@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Form`'s `ForEach` rows keep their controls' state by element.** In `Form { ForEach(items) { … }; Button("Add")
+{ … } }`, removing an item left its row's drawn state (a `DisclosureGroup`'s expansion, a field's caret, the focus)
+to the row that took its place, and each item added moved the button after the loop, so the focus left it at every
+press. A loop's rows are now drawn under their elements' ids, as in a `VStack`, and what follows the loop keeps its
+place, in both form styles and in a long windowed columns form.
+
 **A view after an `if` keeps its state when a view of several is drawn whole.** In an `AnyView` of a view whose
 body is `Text("a"); if c { X(); Y() }; Counter()`, as in a menu's items, the counter was reset, and lost the focus,
 each time the `if` flipped, and so did a view after a builder `for` loop when the loop grew. It now keeps its place,
