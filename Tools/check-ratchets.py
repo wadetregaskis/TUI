@@ -40,6 +40,32 @@ RATCHETS = [
         "limit": 5,
         "instead": "wait for what the test wants, or step a clock of the test's own",
     },
+    # Lines that convert to an integer with the TRAPPING initialiser over what reads as
+    # a floating-point expression: `Int((x * w).rounded())`, `Int64(seconds * 1e9)`.
+    # `Int(_: Double)` traps, in release builds too, on NaN, either infinity and any
+    # magnitude past the type's range, and an app's numbers reach every kind (hunt
+    # 11-20: thirty crash findings of this one class). Use `Int(clamping:)` or
+    # `Int64(clamping:)` (NaN to 0, a magnitude to the nearer bound), `Int(cells:)`
+    # (held to +-2^30, for a distance added to a position) or
+    # `AnimationClock.deadline` (a wait that may be forever), in
+    # TUICore/Extensions/Int+ClampingDouble.swift and AnimatedCellRun.swift.
+    #
+    # A ratchet, not a SwiftLint rule: a regex cannot tell a `Double` from an `Int`
+    # (it misses `Int(seconds)` over a `Double` variable, about 40 of the 265 sites a
+    # compiler-checked sweep found) and most of the lines it does match are bounded
+    # first (`Int(min(255, max(0, x)))`, a pixel's luminance). A rule would need a
+    # disable and a reason on each of those, so the count is held instead.
+    {
+        "name": "trapping float-to-integer conversions",
+        "pattern": (
+            r"^(?!\s*//).*?\b(?:U?Int(?:8|16|32|64)?)\("
+            r"(?!clamping:|exactly:|truncatingIfNeeded:|bitPattern:|cells:|truncating:)"
+            r".*?(?:\.rounded\(|\bDouble\((?!Int)|\bCGFloat\(|\bFloat\(|\.squareRoot\(\)|\bpow\()"
+        ),
+        "paths": ["Sources"],
+        "limit": 183,
+        "instead": "convert with Int(clamping:), Int64(clamping:), Int(cells:) or AnimationClock.deadline",
+    },
 ]
 
 
@@ -70,6 +96,14 @@ def self_test():
     assert count(sleeps["pattern"], ["        Thread.sleep(forTimeInterval: 0.8)"]) == 1
     assert count(sleeps["pattern"], ["            usleep(100_000)"]) == 1
     assert count(sleeps["pattern"], ["    /// `usleep` and another sampling"]) == 0
+    floats = next(ratchet for ratchet in RATCHETS if "float-to-integer" in ratchet["name"])
+    assert count(floats["pattern"], ["        let x = Int((anchor.x * Double(width)).rounded(.down))"]) == 1
+    assert count(floats["pattern"], ["    expiry = start &+ Int64(max(0, seconds) * 1e9.rounded())"]) == 1
+    assert count(floats["pattern"], ["        let x = Int(clamping: (anchor.x * Double(width)).rounded(.down))"]) == 0
+    assert count(floats["pattern"], ["        let x = Int(cells: (anchor.x * Double(width)).rounded(.down))"]) == 0
+    assert count(floats["pattern"], ["        let level = UInt8(clamping: Int(clamping: (tone * 255).rounded()))"]) == 0
+    assert count(floats["pattern"], ["    // Int((x).rounded()) trapped here"]) == 0
+    assert count(floats["pattern"], ["        let sum = Double(Int(r)) * 0.299"]) == 0
     print("check-ratchets: self-test passed")
     return 0
 

@@ -19,6 +19,30 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A number that is not a number, infinite, enormous or negative no longer crashes the app, wherever it is handed
+in.** About thirty places turned an app's `Double`, `UnitPoint`, `Date` or stated length into a count of cells or
+nanoseconds with a conversion that traps, and an ordinary slip reached each: `index / (count - 1)` with one element,
+`remaining / rate` with a rate of 0, a ratio guide on a row squeezed to no height. Each now gives the least surprising
+answer instead. A wait that is infinite is never: `LongPressGesture(minimumDuration: .infinity)` (SwiftUI's idiom for
+"tell me while it is pressed"), `tooltipDelay = .infinity` and an animation, completion or scroll glide longer than
+292 years never run out, where a wait just short of that used to fire at once. An anchor that is not a number is the
+leading edge, and one that is infinite reaches as far as anything can (`scrollTo(_:anchor:)`,
+`.scrollPosition(id:anchor:)`, `.defaultScrollAnchor`, `.viewAligned(anchor:)`, `LayoutSubview.place`,
+`gridCellAnchor`, `popover(attachmentAnchor: .point(_:))`, `matchedGeometryEffect(anchor:)`,
+`.transition(.scale(anchor:))`, which also stays inside its view). A timer over an interval that ends at an infinite
+`Date` (`Text(timerInterval:)`, `Text(_:style: .timer)`, `ProgressView(timerInterval:)`, the timer and stopwatch
+formats) shows the longest face there is and stops. A negative size is none (`Spacer(minLength: -1)` on its own, a
+`safeAreaInset` spacing past both views), and a huge stated length is held to 65,536 cells as every other one already
+was (`VStackLayout`, `HStackLayout` and `FlowLayout` spacing, a `Spacer` or `GridItem` changed after `init`, a
+visual-effect or transition offset, nested `safeAreaPadding`, a decoded `TableColumnCustomization` width). End on a
+size-to-fit split view's divider widens the sidebar as far as the detail's minimum allows. Also: a separator alignment
+guide, a canvas shadow's offset, a curve editor's point and its percent read-out (held to 0...100%), a custom
+animation at an infinite speed, a symbol effect's near-zero speed, a huge spring-loading delay preference, a pixel
+mouse geometry reply past any display, and `.opacity(.nan)`, which drew whole over the page and not at all over a
+sibling and is now invisible on both. `TimelineView(.animation(minimumInterval:))` with an interval below a `Date`'s
+resolution no longer hangs its first frame, nor does a `ProgressView(timerInterval:)` whose start is too far off
+for whole seconds.
+
 **F1's list of shortcuts can show the keys you read with `onKeyPress`.** Give an `onKeyPress` on a key or a set of
 keys a `label`, TUI's own parameter, and F1's list shows its keys under that label in the page's section while its
 view is on the screen: `.onKeyPress(keys: [.leftArrow, .rightArrow], phases: .all, label: Text("Steer")) { … }` is
