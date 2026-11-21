@@ -372,6 +372,24 @@ struct TableHorizontalScrollTests {
         #expect(model.order.first == "alpha", "\(model.order)\n\(harness.screen)")
     }
 
+    @Test("The column menu of a table scrolled sideways marks every shown column, and hides one off screen")
+    func columnMenuCountsEveryShownColumn() throws {
+        let model = Customized()
+        let harness = Harness(CustomizedColumns(model: model), width: 20, height: 16)
+        let y = try #require(harness.lines.firstIndex { $0.contains("Alpha") }, "\(harness.screen)")
+        #expect(harness.header(showing: "Foxtrot") == nil, "Foxtrot starts off screen: \(harness.screen)")
+        let alpha = try #require(harness.column(of: "Alpha", on: y), "\(harness.screen)")
+        harness.send(MouseEvent(button: .right, phase: .pressed, x: alpha + 1, y: y))
+        harness.send(MouseEvent(button: .right, phase: .released, x: alpha + 1, y: y))
+        // The menu's Foxtrot entry: the one line that shows it. Shown, so
+        // choosing it hides it; taken for hidden, it was "shown" again.
+        let entry = try #require(harness.lines.firstIndex { $0.contains("Foxtrot") }, "\(harness.screen)")
+        let x = try #require(harness.column(of: "Foxtrot", on: entry))
+        harness.send(MouseEvent(button: .left, phase: .pressed, x: x + 1, y: entry))
+        harness.send(MouseEvent(button: .left, phase: .released, x: x + 1, y: entry))
+        #expect(model.customization[visibility: "foxtrot"] == .hidden, "\(harness.screen)")
+    }
+
     @Test("A table that scrolls sideways measures as it draws")
     func measureMatchesRender() {
         for (width, height) in [(12, 6), (20, 8), (20, 4), (20, 5), (30, 12)] {

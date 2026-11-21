@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A table's column menu, scrolled sideways, marks every column the table shows.** It took the columns on screen for
+the shown ones: a column scrolled out of sight was listed unmarked, choosing it did nothing, and with one column in
+sight Hide and every entry were off. Choosing a shown column off screen now hides it.
+
 **A table keeps a column's cell state and its `.fit` width with the column when a condition before it changes.**
 Both were kept by the column's position among the columns built, so `if showKind { TableColumn("Kind", …) }` turned
 off handed the next column the `@State`, focus and memos of Kind's cells, and Kind's `.fit` width, which a check of

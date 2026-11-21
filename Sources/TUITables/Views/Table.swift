@@ -4684,7 +4684,11 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     private func columnMenu(
         on target: String?, binding: Binding<TableColumnCustomization<Value>>
     ) -> _TableColumnMenu {
-        let shown = Set(columns.map(\.declarationIndex))
+        // Every column the table shows, on screen or not: in a table scrolled
+        // sideways ``columns`` is the window's alone, and the columns past it
+        // were listed as hidden — choosing one "showed" it, a no-op — with
+        // Hide and every toggle off once the window held one column.
+        let shown = Set(allColumns.map(\.declarationIndex))
         // Every declared column, in the order shown: the customization with
         // every identified column made visible lays them out.
         var everything = binding.wrappedValue
