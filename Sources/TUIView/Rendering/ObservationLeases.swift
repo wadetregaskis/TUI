@@ -395,4 +395,37 @@ extension RenderCache {
         clearAll()
         leases.noteClearedAtPassStart()
     }
+
+    /// Records that a body of `reader` armed an observation registration under
+    /// this cache — called where the scope's `onChange` is evaluated, which is
+    /// only when it read something.
+    ///
+    /// A type seen to read for the first time asks for the whole cache to be
+    /// dropped at the next pass. From here on its bodies are observed when
+    /// measured (`measureCompositeBody`); a result the cache kept from a
+    /// measure made before — the hug of a `List` whose rows are of this type,
+    /// the picture of an `.equatable()` view whose `ViewThatFits` measured one
+    /// — was taken with those reads untracked, and dropping it once is how
+    /// every kept result from then on is one they were observed for. At the
+    /// next pass, not now: the walk that learned it is still drawing, and a
+    /// memo around it would store what it drew over the clear. One cold frame
+    /// per reading type per cache: the first time an app draws a view of that
+    /// type that reads.
+    @inline(__always)
+    package func noteReads(_ reader: Any.Type) {
+        guard readingTypes.learn(reader) else { return }
+        clearsAtNextPass = true
+        leases.noteReaderLearned()
+    }
+
+    /// The sentinel a scope a body of `reader` is about to arm at `identity`
+    /// must read — so that the lease it is armed under can cancel it — or
+    /// `nil`, when leases are off or the type is not known to read: a scope
+    /// that reads nothing must arm nothing, and reading a sentinel is
+    /// reading something. See ``ObservationLeases``.
+    @inline(__always)
+    package func scopeSentinel(forReader reader: Any.Type, at identity: ViewIdentity) -> ScopeSentinel? {
+        guard leases.isActive, readingTypes.contains(reader) else { return nil }
+        return leases.sentinel(at: identity)
+    }
 }
