@@ -32,22 +32,6 @@ struct FindOptions: Equatable {
 
 /// Where a search string occurs in a text, under the find bar's options.
 enum FindMatches {
-    /// The ranges, as character offsets, at which `query` occurs in `text` —
-    /// none for an empty query.
-    static func ranges(of query: String, in text: String, options: FindOptions = FindOptions()) -> [Range<Int>] {
-        var found: [Range<Int>] = []
-        var (searchStart, offset) = (text.startIndex, 0)
-        for match in matches(of: query, in: text, options: options) {
-            // Offsets counted forward from the last match only, so a text with
-            // many matches is walked once.
-            let lower = offset + text.distance(from: searchStart, to: match.lowerBound)
-            let length = text.distance(from: match.lowerBound, to: match.upperBound)
-            (searchStart, offset) = (match.upperBound, lower + length)
-            found.append(lower..<(lower + length))
-        }
-        return found
-    }
-
     /// The ranges of `text` at which `query` occurs, from the start of
     /// `bounds` (all of it by default) to its end — none for an empty query.
     /// Each starts where the last ends: a match is never searched for inside
@@ -89,12 +73,24 @@ enum FindMatches {
         return (stepped % count + count) % count  // `delta` may be negative
     }
 
-    /// `text` with the characters at `offsets` replaced by `replacement`.
-    static func replacing(_ offsets: Range<Int>, in text: String, with replacement: String) -> String {
-        let lower = text.index(text.startIndex, offsetBy: offsets.lowerBound, limitedBy: text.endIndex) ?? text.endIndex
-        let upper = text.index(lower, offsetBy: offsets.count, limitedBy: text.endIndex) ?? text.endIndex
-        var result = text
-        result.replaceSubrange(lower..<upper, with: replacement)
+    /// `text` with each of `matches`, UTF-8 offsets into it in order and
+    /// apart, replaced by `replacement`: built in one pass, the text between
+    /// the matches copied once. Replace All used to make each replacement in
+    /// a copy of the whole text, found by walking it from its start, a hang
+    /// at thousands of matches in a large text (TEXTIN-2).
+    static func replacing(_ matches: [Range<Int>], in text: String, with replacement: String) -> String {
+        let view = text.utf8
+        var result = ""
+        result.reserveCapacity(
+            view.count + matches.count * replacement.utf8.count - matches.reduce(0) { $0 + $1.count })
+        var taken = text.startIndex
+        for match in matches {
+            let lower = view.index(view.startIndex, offsetBy: match.lowerBound)
+            result += text[taken..<lower]
+            result += replacement
+            taken = view.index(view.startIndex, offsetBy: match.upperBound)
+        }
+        result += text[taken...]
         return result
     }
 }
@@ -223,40 +219,40 @@ struct _FindBar: View {
         select(matches, current)
     }
 
-    private func writeText(_ newText: String) {
+    /// Replaces `replaced`, matches in the text in order, as one step to
+    /// undo: as the editor's own edit where it has drawn
+    /// (``TextEditorHandler/replace(_:with:)``), else in the bound text.
+    private func replace(_ replaced: [Range<Int>]) {
         if let handler {
             _ = handler.recordingUndoStep {
-                handler.write(newText)
+                handler.replace(replaced, with: replacement)
                 return true
             }
         } else {
-            text.wrappedValue = newText
+            text.wrappedValue = FindMatches.replacing(replaced, in: text.wrappedValue, with: replacement)
         }
     }
 
     /// Replaces the current match, then shows the one that takes its place.
     private func replaceCurrent(in matches: FindMatchSet) {
-        let offsets = FindMatches.ranges(of: query, in: text.wrappedValue, options: options)
-        guard !offsets.isEmpty else { return }
-        let index = min(current, offsets.count - 1)
-        writeText(FindMatches.replacing(offsets[index], in: text.wrappedValue, with: replacement))
-        let remaining = FindMatches.ranges(of: query, in: text.wrappedValue, options: options)
+        guard !matches.isEmpty else { return }
+        let match = matches.utf8[min(current, matches.count - 1)]
+        replace([match])
+        let remaining = found(query, options: options)
         guard !remaining.isEmpty else { return }
         // The next match after the replacement, which now sits at this index
         // unless the replacement itself matched.
-        let after = offsets[index].lowerBound + replacement.count
-        current = remaining.firstIndex { $0.lowerBound >= after } ?? 0
-        select(found(query, options: options), current)
+        let after = FindMatchSet.firstIndex(
+            in: remaining.utf8, startingAtOrAfter: match.lowerBound + replacement.utf8.count)
+        current = after < remaining.count ? after : 0
+        select(remaining, current)
     }
 
     /// Replaces every match.
     private func replaceAll() {
-        let matches = FindMatches.ranges(of: query, in: text.wrappedValue, options: options)
-        var result = text.wrappedValue
-        for match in matches.reversed() {
-            result = FindMatches.replacing(match, in: result, with: replacement)
-        }
-        writeText(result)
+        let matches = found(query, options: options)
+        guard !matches.isEmpty else { return }
+        replace(matches.utf8)
         current = 0
     }
 }

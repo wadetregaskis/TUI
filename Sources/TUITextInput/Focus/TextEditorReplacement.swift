@@ -38,6 +38,17 @@ struct TextEditorReplacement: Equatable {
             to: TextEditorPosition(line: line, column: columns.upperBound), with: [characters])
     }
 
+    /// Whether `replacements` are more than one, each before the one listed
+    /// before it, none reaching into another: what Replace All and a block's
+    /// deletion make, last first, so each is placed in the text before any
+    /// of them as well as in the lines the ones before it left.
+    static func areDescending(_ replacements: [Self]) -> Bool {
+        guard replacements.count > 1 else { return false }
+        return zip(replacements, replacements.dropFirst()).allSatisfy { later, earlier in
+            earlier.start <= earlier.end && earlier.end <= later.start
+        }
+    }
+
     /// Makes the replacement in `lines`: the text before ``start`` on its
     /// line, then the replacement's lines, then the text after ``end`` on
     /// its line. The lines it does not reach keep their storage, which is

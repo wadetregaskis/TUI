@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Replace All no longer hangs on a large text, and keeps the styling between its matches.** It replaced each match
+in a fresh copy of the whole text, found by walking it from its start, so thousands of matches in a large document
+took minutes; it is now one edit, made in one pass, and still one step to undo. In an editor bound to an
+`AttributedString`, every character from the first match to the last took the attributes of the first: each match
+now takes those of the text it replaces, and the text between them keeps its own. Replace (of the current match)
+is made the same way, so it no longer lays the whole document out again either.
+
 **Typing with the find bar up costs what it costs with the bar down.** The bar's matches were found again by a
 search of the whole document every time the editor's view was evaluated, twice, so with the bar up each key in a
 large text was a search of all of it: 1.6 s a key in a 3.2 MB document with a match on every line. They are now found

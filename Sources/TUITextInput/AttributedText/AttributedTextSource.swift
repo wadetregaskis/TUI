@@ -152,6 +152,10 @@ final class AttributedTextSource {
             staged = nil
             return
         }
+        if TextEditorReplacement.areDescending(replacements) {
+            staged = (replacingDescending(replacements, in: layout), false)
+            return
+        }
         var text = value
         var lines = layout.lines
         for replacement in replacements {
@@ -175,6 +179,32 @@ final class AttributedTextSource {
             if !inserted.isEmpty { (heldTypingAttributes, heldInsertion) = (nil, nil) }
         }
         staged = (text, false)
+    }
+
+    /// The value with `replacements`, last in the text first
+    /// (``TextEditorReplacement/areDescending(_:)``), made in one pass: the
+    /// value between them copied, each in the attributes of what it replaces
+    /// (``insertion(_:replacing:in:)``), so a Replace All keeps every run
+    /// between its matches. Each is placed in the text before any of them,
+    /// by `layout`, and found from the one before it, so the value is walked
+    /// once however many there are.
+    private func replacingDescending(_ replacements: [TextEditorReplacement], in layout: EditorLayout) -> AttributedString {
+        let text = value
+        var result = AttributedString()
+        var (taken, takenOffset) = (text.startIndex, 0)
+        for replacement in replacements.reversed() {
+            let start = layout.characterOffset(of: replacement.start)
+            let end = layout.characterOffset(of: replacement.end)
+            let lower = text.characters.index(taken, offsetBy: start - takenOffset)
+            let upper = text.characters.index(lower, offsetBy: end - start)
+            result.append(text[taken..<lower])
+            let inserted = replacement.replacement.map { String($0) }.joined(separator: layout.lineEnding)
+            result.append(insertion(inserted, replacing: lower..<upper, in: text))
+            if !inserted.isEmpty { (heldTypingAttributes, heldInsertion) = (nil, nil) }
+            (taken, takenOffset) = (upper, end)
+        }
+        result.append(text[taken...])
+        return result
     }
 
     /// Stages `whole`, an undo's value, for the next write.

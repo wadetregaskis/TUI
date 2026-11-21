@@ -455,6 +455,26 @@ extension EditorLayout: TextCharacterOffsets {
         return text.utf8.index(text.utf8.startIndex, offsetBy: lineStarts[position.line] + bytes)
     }
 
+    /// Each of `offsets`, UTF-8 offsets into the text in ascending order, on
+    /// a character's edge, as a line and a column: in one walk of each line
+    /// as far as its last, however many fall in it.
+    func positions(ofUTF8 offsets: [Int]) -> [TextEditorPosition] {
+        var positions: [TextEditorPosition] = []
+        positions.reserveCapacity(offsets.count)
+        var (line, column, byte) = (-1, 0, 0)
+        for offset in offsets {
+            let found = self.line(containingUTF8Offset: offset)
+            if found != line { (line, column, byte) = (found, 0, lineStarts[found]) }
+            let characters = lines[line]
+            while column < characters.count, byte < offset {
+                byte += characters[column].utf8.count
+                column += 1
+            }
+            positions.append(TextEditorPosition(line: line, column: column))
+        }
+        return positions
+    }
+
     /// The line the byte at `offset` is in, a line's break counted as its
     /// own: the last line for an offset past the text.
     func line(containingUTF8Offset offset: Int) -> Int {

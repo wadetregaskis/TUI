@@ -91,4 +91,48 @@ struct EditedLines {
         replaced = baseLower..<baseUpper
         replacement = window
     }
+
+    /// Makes `edits`, last in the text first, on these lines unedited, in one
+    /// pass: the lines they leave as ``apply(_:)`` would leave them one at a
+    /// time, which copies the span the ones before reached at each, so a
+    /// Replace All of thousands of matches cost their count times the lines
+    /// between the first and the last.
+    ///
+    /// The lines between two edits that neither reaches keep their storage,
+    /// as ``TextEditorReplacement/apply(to:)`` keeps it.
+    ///
+    /// - Precondition: ``TextEditorReplacement/areDescending(_:)``, and no
+    ///   edit made yet.
+    mutating func apply(descending edits: [TextEditorReplacement]) {
+        guard let highest = edits.first, let lowest = edits.last else { return }
+        precondition(isUnedited, "the edits are made on the lines unedited")
+        var window: [[Character]] = []
+        var current: [Character] = []
+        // Where in the base the text not yet taken starts.
+        var (line, column) = (lowest.start.line, lowest.start.column)
+        current += base[line][..<column]
+        for edit in edits.reversed() {
+            while line < edit.start.line {
+                if column == 0, current.isEmpty {
+                    window.append(base[line])
+                } else {
+                    current += base[line][column...]
+                    window.append(current)
+                    current = []
+                }
+                (line, column) = (line + 1, 0)
+            }
+            current += base[line][column..<edit.start.column]
+            current += edit.replacement[0]
+            for next in edit.replacement.dropFirst() {
+                window.append(current)
+                current = next
+            }
+            (line, column) = (edit.end.line, edit.end.column)
+        }
+        current += base[line][column...]
+        window.append(current)
+        replaced = lowest.start.line..<(highest.end.line + 1)
+        replacement = window
+    }
 }

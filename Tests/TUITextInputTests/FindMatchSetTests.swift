@@ -2,7 +2,8 @@
 //  FindMatchSetTests.swift
 //
 //  The find bar's matches found once and carried through the editor's edits
-//  (TEXTIN-1).
+//  (TEXTIN-1), Replace All in one pass as one edit (TEXTIN-2), and each match
+//  replaced in its own attributes (TEXTIN-5).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -171,5 +172,72 @@ struct FindMatchSetTests {
         // "one xtwo two " and "two three", split by the Return.
         #expect(handler.findColumns(ofLine: 100) == [5..<8, 9..<12])
         #expect(handler.findColumns(ofLine: 101) == [0..<3])
+    }
+
+    // MARK: - Replacing
+
+    @Test("Replace All in one pass makes the text a match at a time would")
+    func replaceAllMatchesNaive() {
+        var random = Random(state: 0x5EED)
+        for _ in 0..<200 {
+            let text = random.text(random.below(60), from: Self.alphabet)
+            let replacement = ["", "x", "ab", "é", "\n", "abab"][random.below(6)]
+            let set = FindMatchSet(query: "ab", options: FindOptions(), text: text)
+            var naive = text
+            for match in set.utf8.reversed() {
+                let view = naive.utf8
+                naive.replaceSubrange(
+                    view.index(view.startIndex, offsetBy: match.lowerBound)..<view.index(view.startIndex, offsetBy: match.upperBound),
+                    with: replacement)
+            }
+            #expect(FindMatches.replacing(set.utf8, in: text, with: replacement) == naive, "\(text.debugDescription)")
+        }
+    }
+
+    @Test("Replace All through the editor is the one-pass text, made without laying the document out again")
+    func replaceAllThroughTheEditor() {
+        // About a megabyte, twenty thousand matches.
+        let line = String(repeating: "lorem ipsum dolor sit amet, ", count: 1) + "cat " + String(repeating: "z", count: 18)
+        let text = Box(String(repeating: line + "\n", count: 20_000))
+        let context = makeRenderContext(width: 40, height: 6)
+        let view = TextEditor(text: text.binding).frame(width: 40, height: 6)
+        _ = renderToBuffer(view, context: context)
+        let handler = context.environment.focusManager!.activeSection!.focusables
+            .compactMap { $0 as? TextEditorHandler }.first!
+        let set = FindMatchSet(query: "cat", options: FindOptions(), text: text.value)
+        #expect(set.count == 20_000)
+        let expected = FindMatches.replacing(set.utf8, in: text.value, with: "dog")
+        let layouts = Mutex(0)
+        EditorLayout.$buildReporter.withValue(TaskLocalReporter { layouts.withLock { $0 += 1 } }, operation: {
+            _ = handler.recordingUndoStep {
+                handler.replace(set.utf8, with: "dog")
+                return true
+            }
+            _ = renderToBuffer(view, context: context)
+        })
+        #expect(text.value == expected)
+        #expect(layouts.withLock { $0 } == 0, "the document was laid out whole again")
+    }
+
+    @Test("Replace All in an attributed editor keeps every run between its matches")
+    func replaceAllKeepsRuns() {
+        typealias Runs = SelectionTestText
+        let text = Box(Runs.runs([("cat ", Runs.blue), ("RED", Runs.red), (" cat", Runs.green)]))
+        let context = makeRenderContext(width: 30, height: 4)
+        let view = TextEditor(text: text.binding).frame(width: 30, height: 4)
+        _ = renderToBuffer(view, context: context)
+        let handler = context.environment.focusManager!.activeSection!.focusables
+            .compactMap { $0 as? TextEditorHandler }.first!
+        let set = FindMatchSet(query: "cat", options: FindOptions(), text: String(text.value.characters))
+        _ = handler.recordingUndoStep {
+            handler.replace(set.utf8, with: "dog")
+            return true
+        }
+        #expect(String(text.value.characters) == "dog RED dog")
+        let inks = text.value.runs.flatMap { run in
+            Array(repeating: run.foregroundColor, count: text.value[run.range].characters.count)
+        }
+        let (blue, red, green) = (Runs.blue, Runs.red, Runs.green)
+        #expect(inks == [blue, blue, blue, blue, red, red, red, green, green, green, green], "\(inks)")
     }
 }

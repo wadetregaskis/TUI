@@ -14,9 +14,8 @@ extension TextEditorHandler {
     /// Makes `replacements`, in order, each on the lines the one before it
     /// left, and writes the lines they leave. Every edit the editor makes to
     /// its text is made here, as the ranges it replaces
-    /// (``TextEditorReplacement``), except the two that replace the text
-    /// whole through ``write(_:)``: an undo or a redo, and the find bar's
-    /// Replace All.
+    /// (``TextEditorReplacement``), except an undo or a redo, which replace
+    /// the text whole through ``write(_:)``.
     ///
     /// The replacements are made in an ``EditedLines`` over the layout's
     /// lines, not in a copy of them: the lines they reach are all an edit
@@ -57,7 +56,13 @@ extension TextEditorHandler {
         making replacements: [TextEditorReplacement], beforeWriting prepare: (EditedLines) -> Void
     ) -> LinesEdit {
         var lines = EditedLines(readLines())
-        for replacement in replacements { lines.apply(replacement) }
+        if TextEditorReplacement.areDescending(replacements) {
+            // Thousands, from Replace All: made in one pass, where one at a
+            // time each copied the span the ones before had reached.
+            lines.apply(descending: replacements)
+        } else {
+            for replacement in replacements { lines.apply(replacement) }
+        }
         prepare(lines)
         return layout().replacing(lines).map(LinesEdit.spliced) ?? .joined(lines.array)
     }

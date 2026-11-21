@@ -1387,6 +1387,13 @@ editor's (38.5%), each a case-insensitive search of the whole document. So the m
   key. The app's marks are unchanged (B-ATTRED-46 to 49), and `EditorMarkStatement` is the app's alone.
 
 
+Replace All and Replace are the editor's own edit now, one `TextEditorReplacement` per match through
+`writeReplacing`, last first, made in one pass (`EditedLines.apply(descending:)`, and in an attributed editor's value
+`AttributedTextSource.replacingDescending`), as one undo step: so each match takes the attributes of what it replaces
+rather than the span from the first match to the last taking one set (TEXTIN-5), the text is built once rather than
+copied for every match (TEXTIN-2), and the matches are carried through it as through a key. Undo and redo are still
+written whole (TEXTIN-8).
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

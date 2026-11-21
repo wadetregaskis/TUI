@@ -29,27 +29,29 @@ struct FindNavigatorTests {
         var offsets: Range<Int>?
     }
 
+    private typealias Offsets = FindMatchSetTests
+
     @Test("Matches are found without regard to case, as character offsets")
     func matching() {
-        #expect(FindMatches.ranges(of: "one", in: "One two ONE") == [0..<3, 8..<11])
-        #expect(FindMatches.ranges(of: "", in: "anything").isEmpty)
-        #expect(FindMatches.replacing(4..<7, in: "one two one", with: "2") == "one 2 one")
+        #expect(Offsets.offsets("one", in: "One two ONE") == [0..<3, 8..<11])
+        #expect(Offsets.offsets("", in: "anything").isEmpty)
+        #expect(FindMatches.replacing([4..<7], in: "one two one", with: "2") == "one 2 one")
     }
 
     @Test("The options: case, a word's start, a whole word")
     func matchingOptions() {
         let text = "One bone ONE one_two"
-        #expect(FindMatches.ranges(of: "one", in: text) == [0..<3, 5..<8, 9..<12, 13..<16])
+        #expect(Offsets.offsets("one", in: text) == [0..<3, 5..<8, 9..<12, 13..<16])
         var options = FindOptions()
         options.ignoresCase = false
-        #expect(FindMatches.ranges(of: "one", in: text, options: options) == [5..<8, 13..<16])
+        #expect(Offsets.offsets("one", in: text, options: options) == [5..<8, 13..<16])
         options = FindOptions()
         options.placement = .startsWith
         // "bone" contains it mid-word; "one_two" starts with it.
-        #expect(FindMatches.ranges(of: "one", in: text, options: options) == [0..<3, 9..<12, 13..<16])
+        #expect(Offsets.offsets("one", in: text, options: options) == [0..<3, 9..<12, 13..<16])
         options.placement = .fullWord
         // An underscore is part of a word, as in an identifier.
-        #expect(FindMatches.ranges(of: "one", in: text, options: options) == [0..<3, 9..<12])
+        #expect(Offsets.offsets("one", in: text, options: options) == [0..<3, 9..<12])
     }
 
     @Test("Typing a query selects the first match; Return the next; Escape closes the bar")
