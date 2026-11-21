@@ -58,10 +58,11 @@ final class BigTextSession: StressSession {
     static func records(_ config: StressConfig) -> Int { config.sized(40_000) }
 
     /// The document's records, one a line (``BigTextRecord``): `bigtext-rich`
-    /// colours the same ones.
-    static func documentRecords(_ config: StressConfig) -> [BigTextRecord] {
+    /// colours the same ones. `count` of them, or ``records(_:)``:
+    /// `bigtext-replace-all` edits the first few thousand.
+    static func documentRecords(_ config: StressConfig, count: Int? = nil) -> [BigTextRecord] {
         let seed = config.seed
-        return (0..<Self.records(config)).map { index in
+        return (0..<(count ?? Self.records(config))).map { index in
             let h = mix(seed, index)
             return BigTextRecord(
                 id: index, name: Synth.sentence(h, words: 2 + Int(h % 3)), size: h % 100_000, ok: h & 1 == 0)

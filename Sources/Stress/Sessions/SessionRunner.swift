@@ -179,10 +179,11 @@ enum SessionRunner {
         ]
     }
 
-    /// The instant of step `index`'s frame: a steady sixty a second, the same
-    /// for both instances, so what the clock animates is drawn alike.
-    private static func instant(_ index: Int) -> Int64 {
-        Int64(index + 1) * 16_666_667
+    /// The instant of step `index`'s frame, steps `stepNanos` apart
+    /// (``SessionDescriptor/stepNanos``): the same for both instances, so what
+    /// the clock animates is drawn alike.
+    private static func instant(_ index: Int, _ stepNanos: Int64) -> Int64 {
+        Int64(index + 1) * stepNanos
     }
 
     /// Plays `descriptor`'s session and reports.
@@ -216,7 +217,7 @@ enum SessionRunner {
             let bytesBefore = warm.bytesWritten()
             let cpuStart = threadCPUNanoseconds()
             let wallStart = MonotonicClock.nowNanoseconds
-            play(step, on: warm, at: index)
+            play(step, on: warm, at: index, stepNanos: descriptor.stepNanos)
             let wall = MonotonicClock.nowNanoseconds &- wallStart
             let cpu = threadCPUNanoseconds().flatMap { end in cpuStart.map { end &- $0 } } ?? wall
             let bytes = warm.bytesWritten() &- bytesBefore
@@ -251,7 +252,7 @@ enum SessionRunner {
                 report.scriptMismatch =
                     "step \(index): the twin chose \(twin.action) where the session chose \(step.action)"
             }
-            play(twin, on: cold, at: index)
+            play(twin, on: cold, at: index, stepNanos: descriptor.stepNanos)
             let (seen, expected) = (warm.screen(), cold.screen())
             if seen != expected {
                 report.divergentSteps.append(index)
@@ -268,7 +269,7 @@ enum SessionRunner {
         report.leasesAtEnd = warm.leaseCounts()
         report.readingTypes = warm.readingTypes()
         report.renderCacheSideTable = warm.renderCacheSideTable()
-        finish(warm, cold, at: options.steps, checks: options.checks, into: &report)
+        finish(warm, cold, at: options.steps, stepNanos: descriptor.stepNanos, checks: options.checks, into: &report)
         if report.finish != nil { report.censusAfterFinish = warm.census() }
         if options.show { report.lastScreen = warm.screen().map(\.stripped) }
         let counts = warm.cacheCounts()
@@ -407,13 +408,14 @@ enum SessionRunner {
     /// then draws one more frame on each and compares and checks it as a step's.
     @MainActor
     private static func finish(
-        _ warm: DrivenSession, _ cold: DrivenSession?, at index: Int, checks: Bool, into report: inout Report
+        _ warm: DrivenSession, _ cold: DrivenSession?, at index: Int, stepNanos: Int64, checks: Bool,
+        into report: inout Report
     ) {
         guard let note = warm.finish() else { return }
         _ = cold?.finish()
         report.finish = note
-        warm.frame(instant(index))
-        cold?.frame(instant(index))
+        warm.frame(instant(index, stepNanos))
+        cold?.frame(instant(index, stepNanos))
         if checks { checkFrame(of: warm, after: index, action: "finish", into: &report) }
         guard let cold, warm.screen() != cold.screen() else { return }
         report.divergentSteps.append(index)
@@ -443,11 +445,11 @@ enum SessionRunner {
 
     /// Delivers one step's input to `session` and draws its frame.
     @MainActor
-    private static func play(_ step: SessionStep, on session: DrivenSession, at index: Int) {
+    private static func play(_ step: SessionStep, on session: DrivenSession, at index: Int, stepNanos: Int64) {
         for key in step.keys { session.send(key) }
         for event in step.mouse { session.sendMouse(event) }
         if let size = step.resize { session.resize(size.width, size.height) }
-        session.frame(instant(index))
+        session.frame(instant(index, stepNanos))
     }
 
     /// Where two screens first differ, stripped of styling, with the lines

@@ -322,6 +322,12 @@ struct SessionDescriptor {
     /// for every session but `bigtext-open`
     /// (``Headless/selfcheckPlay(of:fullLength:)``).
     var selfcheckReplay: (steps: Int, resizeEvery: Int)?
+    /// How far apart two steps' frames are, in nanoseconds: a sixtieth of a
+    /// second, back to back, unless a session paces its steps as a person
+    /// does. What is drawn from the clock depends on it: a focused control's
+    /// breath moves on every 50 ms, so steps a sixtieth apart share its frame
+    /// two times in three, where keys typed ten a second never do.
+    var stepNanos: Int64 = 16_666_667
 }
 
 /// Every session, in the order `--sessions` lists them.
@@ -355,6 +361,9 @@ enum Sessions {
             BigTextOpenSession.descriptor,
             BigTextRichSession.descriptor,
             BigTextHighlightedSession.descriptor,
+            BigTextFindSession.descriptor,
+            BigTextFindQuerySession.descriptor,
+            BigTextReplaceAllSession.descriptor,
         ]
         // Last: every perf case, `case:<id>`, its script looped.
         return apps + inboxes + logs + pages + CaseSession.descriptors
