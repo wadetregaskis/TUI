@@ -46,6 +46,7 @@ enum InternalVariables {
         "TUI_BENCH_RUN_VIEW": "The benchmarks alone read it.",
         "TUI_COLLISION_REPORT": "A test alone reads it.",
         "TUI_COLLISION_SWEEP": "A test alone reads it.",
+        "TUI_EDITOR_MEMORY": "A test alone reads it.",
         "TUI_MEASURE_FLEX_PROBE": "A test alone reads it.",
         "TUI_PERF_TREND_CSV": "A tool alone reads it.",
         "TUI_PARALLEL_TEST_LOCK": "A tool alone reads it.",

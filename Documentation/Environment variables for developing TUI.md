@@ -132,6 +132,7 @@ could see and wouldn't set.
 | `TUI_AUDIT_DUMP` | `NoColorAuditTests` | A file to write what the audit found to, for a person to read. |
 | `TUI_COLLISION_SWEEP` | `StateColourCollisionTests` | Any value runs the whole sweep: every control through every shipped palette at every depth, about five minutes. |
 | `TUI_COLLISION_REPORT` | `StateColourCollisionTests` | Any value prints what the sweep found, for a commit message's before and after. |
+| `TUI_EDITOR_MEMORY` | `TextEditorMemoryTests` | Sizes in megabytes, such as `1,10`: measures the heap an editor holds for a text of each size, per line. |
 | `TUI_MEASURE_FLEX_PROBE` | `MeasureRenderEquivalenceTests` | Any value runs the probe that reports flexibility. |
 | `TUI_SEED_MECHANISM_PROBE` | `TerminalIdentityQueryTests` | A test's own variable, written and read to show how seeding works. |
 | `TUI_PERF_TREND_CSV` | `Tools/Profiling/perf_trend.py` | The timing-trend CSV to append to and report from. |
