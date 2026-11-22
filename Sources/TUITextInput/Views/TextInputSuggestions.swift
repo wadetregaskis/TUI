@@ -531,12 +531,25 @@ enum TextFieldSuggestions {
         // Labels render at the SCREEN width, not the field's: the pop-up is
         // an overlay that may grow wider than its control, so a narrow field
         // must not wrap/truncate its option labels.
-        var labelContext = context.withAvailableWidth(
-            max(context.availableWidth, context.environment.terminalWidth))
-        // Every label renders at the field's own identity, so two labels'
-        // memos would share one entry and one environment slot. The entries
-        // being uncomparable used to keep them all from storing; this keeps
-        // them so now that the value compares.
+        //
+        // A step below the field's own identity, not at it: the field keeps
+        // its handler, focus id and hover flag there at indices 0–2
+        // (`TextFieldStateIndex`), and a label is the caller's content. One
+        // written in the builder is a `Subview`, which draws at the identity
+        // it resolved to and keeps its state there whatever step it is drawn
+        // from; but a searchable's suggested token is drawn by the app's
+        // `token` view itself, whose first `@State` took the handler's key —
+        // the two replaced each other's box every frame, and the menu never
+        // stayed open. One step for all of them, not one each: a token's view
+        // is keyed by its token's id below it (`SearchTokenRow`), so its state
+        // stays with its token as the ones before it are chosen, where a step
+        // per row would hand it the state of the row it moved into.
+        var labelContext = context.withChildIdentity(type: Menu.self)
+            .withAvailableWidth(max(context.availableWidth, context.environment.terminalWidth))
+        // Every label renders at that one step, so two labels' memos would
+        // share one entry and one environment slot. The entries being
+        // uncomparable used to keep them all from storing; this keeps them so
+        // now that the value compares.
         labelContext.environment.hasUncomparableEnvironmentValue = true
         labelContext.leaveScrollCanvas()
 

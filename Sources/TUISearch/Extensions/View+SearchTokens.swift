@@ -347,7 +347,10 @@ struct SearchTokenRow {
                     ForEach(current) { element in SearchTokenChip(label: token(element)) }
                 }),
             removeLast: removingLast(tokens),
-            suggestions: offered.map { element in .token(element, label: AnyView(token(element))) },
+            // Each label keyed by its token's id, as a `ForEach` row is: the
+            // field draws every suggestion's label at one place, and the app's
+            // view keeps its `@State` with its token, apart from the others'.
+            suggestions: offered.map { element in .token(element, label: AnyView(token(element).id(element.id))) },
             sink: sink(for: tokens))
     }
 

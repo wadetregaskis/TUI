@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A suggested token's view holding `@State` no longer breaks the search field's suggestions menu.** The `token`
+view of `searchable(text:tokens:suggestedTokens:token:)` was drawn, for each suggested token in the menu, where the
+field keeps its own state, so its first `@State` took the place of the field's, and the menu never stayed open; every
+token's view shared one state besides. Each is now drawn at a place of its own, keyed by its token, so its state stays
+with its token as the ones before it are chosen.
+
 **A `Picker`'s `currentValueLabel` holding `@State` no longer breaks the picker.** A menu picker drew the view it
 shows as its current value where it keeps its own state, so the label's first `@State` took the place of the picker's,
 the label lost its state every frame and the drop-down never stayed open. The label is now drawn at a place of its
