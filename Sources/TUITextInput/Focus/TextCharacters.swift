@@ -194,6 +194,10 @@ extension TextCharacters: RandomAccessCollection, MutableCollection, RangeReplac
     mutating func replaceSubrange<C: Collection>(_ subrange: Range<Int>, with newElements: C)
     where C.Element == Character {
         let inserted = Self.characters(newElements)
+        if subrange.isEmpty, subrange.lowerBound == count {
+            appendInPlace(inserted)
+            return
+        }
         let bytes = utf8Offsets(of: subrange)
         let span = stringIndices(ofBytes: bytes)
         var joined = String()
@@ -214,6 +218,19 @@ extension TextCharacters: RandomAccessCollection, MutableCollection, RangeReplac
         for index in subrange.upperBound..<count { merged.append(UInt32(utf8Offset(of: index) + shift)) }
         storage = joined
         starts = merged.count == joined.utf8.count ? nil : merged
+    }
+
+    /// `inserted` after these characters, in this storage: amortised, as an
+    /// array's append is, not the whole line copied for each, which made a
+    /// line that Replace All grows a piece at a time
+    /// (``EditedLines/apply(descending:)``) cost its length for every piece.
+    private mutating func appendInPlace(_ inserted: Self) {
+        let base = storage.utf8.count
+        if starts != nil || inserted.starts != nil {
+            if starts == nil { starts = Array(0..<UInt32(base)) }
+            for index in 0..<inserted.count { starts?.append(UInt32(base + inserted.utf8Offset(of: index))) }
+        }
+        storage.append(contentsOf: inserted.storage)
     }
 
     /// `elements` as characters of their own: at once where they are some
