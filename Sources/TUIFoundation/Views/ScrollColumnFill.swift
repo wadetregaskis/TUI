@@ -28,7 +28,8 @@ protocol ScrollFillColumn: AnyObject {
     var rowCount: Int { get }
 
     /// Row `ordinal`'s pitch: its lines and the spacing below it (the last
-    /// row has none), never below 1.
+    /// row has none). A row of no lines has a pitch of 0, no gap after it:
+    /// the walk counts rows, not lines, so it progresses over one.
     func pitch(of ordinal: Int) -> Int
 
     /// Row `ordinal`'s stable key, read without building the row.

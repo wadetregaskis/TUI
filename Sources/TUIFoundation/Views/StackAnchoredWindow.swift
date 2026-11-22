@@ -43,6 +43,7 @@ private final class AnchoredWindowFrame {
     /// The sample of these rows, which this frame records in and prices by.
     let pitches: RowPitchSampleBox
     private var pitchCache: [Int: Int] = [:]
+    private var heightCache: [Int: Int] = [:]
     private var widthCache: [Int: Int] = [:]
     private var built: [Int: ChildView] = [:]
 
@@ -78,8 +79,17 @@ private final class AnchoredWindowFrame {
         // ABOVE it — the before-spacing convention dropped exactly the
         // row 0 → row 1 gap (row 0's pitch carried no spacing) and shifted
         // the whole tail up one line per spacing unit.
-        let value = max(1, measured.height) + (ordinal < children.count - 1 ? spacing : 0)
+        //
+        // A row of no lines is no line and earns no gap, as an eager column
+        // charges it (`linearSpacing`) and a pulled one walks it
+        // (`PulledColumnFrame.pitch(of:)`). Floored at a line, as the pitch
+        // once was for the walk's progress — which counts rows, not lines —
+        // the row was drawn at it: a blank line and a gap at every `EmptyView`
+        // past 256 rows, where 200 of the same rows drew nothing.
+        let height = max(0, measured.height)
+        let value = height + (ordinal < children.count - 1 && height > 0 ? spacing : 0)
         pitchCache[ordinal] = value
+        heightCache[ordinal] = height
         widthCache[ordinal] = measured.width
         built[ordinal] = child
         // The running pitch prices rows with a gap below them, and a total
@@ -98,6 +108,13 @@ private final class AnchoredWindowFrame {
 
     func child(at ordinal: Int) -> ChildView {
         built[ordinal] ?? children[ordinal]
+    }
+
+    /// Row `ordinal`'s lines, without the gap below it: what it is drawn at.
+    func height(of ordinal: Int) -> Int {
+        if let known = heightCache[ordinal] { return known }
+        _ = pitch(of: ordinal)
+        return heightCache[ordinal] ?? 0
     }
 
     /// The measured width of a row the pitch walk has already touched.
@@ -258,8 +275,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     ) -> Int {
         let anchor = min(max(0, frame.anchor.ordinal), frame.children.count - 1)
         func lastLine() -> Int {
-            let rowHeight =
-                frame.pitch(of: designated) - (designated < frame.children.count - 1 ? spacing : 0)
+            let rowHeight = frame.height(of: designated)
             return max(window.edgeInset, window.viewportHeight - rowHeight - window.edgeInset)
         }
         guard abs(designated - anchor) <= window.viewportHeight + 2 else {
@@ -414,7 +430,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             return near.offset
         }
         let targetY = seekTargetY(ordinal: ordinal, frame: frame, window: window)
-        let rowHeight = frame.pitch(of: ordinal) - (ordinal < children.count - 1 ? spacing : 0)
+        let rowHeight = frame.height(of: ordinal)
         // What the seek asks of the target's place is read in its coordinates,
         // which near the top are exact (`seekTargetY`):
         //
@@ -466,7 +482,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             let target = NestedSeek.target(
                 holding: seek.key, count: children.count, child: frame.child(at:),
                 width: frame.proposal.width ?? frame.context.availableWidth,
-                rowHeight: { frame.pitch(of: $0) - ($0 < children.count - 1 ? spacing : 0) }, context: frame.context)
+                rowHeight: { frame.height(of: $0) }, context: frame.context)
         else { return nil }
         let rowTop = seekTargetY(ordinal: target.ordinal, frame: frame, window: window)
         let current = frame.viewportLine(ofRow: target.ordinal, viewportHeight: window.viewportHeight) + target.y
@@ -864,9 +880,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         var fade = WindowedRowFade(context: context)
         var zOrder = WindowedZOrder()
         for (ordinal, y) in sorted {
-            let rowHeight =
-                frame.pitch(of: ordinal)
-                - (ordinal < frame.children.count - 1 ? spacing : 0)
+            let rowHeight = frame.height(of: ordinal)
             let slotY = max(y, cursor)
             placedSpans?.append(.init(origin: slotY, length: rowHeight, ordinal: ordinal))
             if slotY > cursor {
@@ -996,7 +1010,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         } else {
             for ordinal in target..<anchor { y -= frame.pitch(of: ordinal) }
         }
-        let rowHeight = frame.pitch(of: target) - (target < count - 1 ? spacing : 0)
+        let rowHeight = frame.height(of: target)
 
         // The indicators are the scroll content's: a section's header above
         // this stack is content above, its footer content below
@@ -1011,8 +1025,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             walked += frame.pitch(of: lastVisible)
             lastVisible += 1
         }
-        let lastHeight =
-            frame.pitch(of: lastVisible) - (lastVisible < count - 1 ? spacing : 0)
+        let lastHeight = frame.height(of: lastVisible)
         let contentBelow =
             lastVisible < count - 1
             || walked + lastHeight + window.linesBelow > window.viewportHeight

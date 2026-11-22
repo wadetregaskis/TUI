@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A row that draws nothing takes no line in a lazy stack of more than 256 rows.** In
+`LazyVStack(spacing: 1) { ForEach(items) { RowView($0) } }`, a row whose body is empty, or framed to no height,
+took no line and no gap at 200 rows, as in a `VStack`, but past 256 it was a blank line and a gap: the list grew
+holes as it grew. It now takes none at any count.
+
 **A long lazy stack's scrollbar reads its rows, not how long it sat on one screen.** Past 256 rows of several
 heights, the rows not yet drawn are priced at the mean pitch of those drawn, and that mean counted a row once for
 every frame it was drawn: a stack that sat on a screen of one-line rows while something animated above it went on
