@@ -139,8 +139,10 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
         guard !tracks.isEmpty, !subviews.isEmpty else { return ViewSize(width: 0, height: 0) }
 
         let breadths = lineBreadths(subviews, tracks: tracks)
-        let total: Int = breadths.reduce(0, +)
-        let along = total + max(0, breadths.count - 1) * spacing
+        // Each line where `placeSubviews` puts it: a negative spacing pulls a
+        // line back over the ones before it, no further than the first, so the
+        // grid is never reported shorter than nothing (it was, by the overlap).
+        let along = Self.lineStarts(breadths, spacing: spacing).end
         // A partly-filled last line still claims the full track extent: a grid
         // that narrowed itself to its final row's content would jitter as items
         // are added, and would not line up with the rows above it.
@@ -172,9 +174,11 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
         guard !tracks.isEmpty else { return }
 
         let breadths = lineBreadths(subviews, tracks: tracks)
-        var along = axis == .vertical ? bounds.y : bounds.x
+        let origin = axis == .vertical ? bounds.y : bounds.x
+        let starts = Self.lineStarts(breadths, spacing: spacing).starts
 
         for (line, breadth) in breadths.enumerated() {
+            let along = origin + starts[line]
             var across = axis == .vertical ? bounds.x : bounds.y
             for (column, track) in tracks.enumerated() {
                 let index = line * tracks.count + column
@@ -190,8 +194,22 @@ private struct _LazyGridLayout: Layout, Sendable, Equatable {
                     proposal: ProposedViewSize(width: cell.width, height: cell.height))
                 across += track.extent + track.spacing
             }
-            along += breadth + spacing
         }
+    }
+
+    /// Where each line of `breadths` starts along the grid, and where the last
+    /// one ends: `spacing` between each two, a negative one held to the extent
+    /// placed before it, as a stack holds one (`FrameBuffer.appliedGap`).
+    private static func lineStarts(_ breadths: [Int], spacing: Int) -> (starts: [Int], end: Int) {
+        var starts: [Int] = []
+        starts.reserveCapacity(breadths.count)
+        var placed = 0
+        for (line, breadth) in breadths.enumerated() {
+            if line > 0 { placed += spacing < 0 ? max(spacing, -placed) : spacing }
+            starts.append(placed)
+            placed += breadth
+        }
+        return (starts, placed)
     }
 }
 

@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A negative `Grid` row spacing overlaps the rows; a negative column spacing is held at zero.**
+`Grid(verticalSpacing: -1)` drew its rows apart while reporting them overlapped, and every row's buttons after the
+first answered clicks a line above where they were drawn; the rows now overlap, the later on top, as a column's
+children do. `Grid(horizontalSpacing: -5)` reported a width short by the overlap and drew nothing once that went below
+zero; columns do not overlap yet, so a negative column spacing is held at zero. A `LazyVGrid` or `LazyHGrid` whose
+spacing outweighs its lines no longer reports a negative size.
+
 **A lazy stack whose spacing comes to minus its row height no longer crashes.** In
 `ScrollView { LazyVStack(spacing: compact ? -1 : 0) { … } }` over one-line rows, the frame `compact` became true
 divided by zero.

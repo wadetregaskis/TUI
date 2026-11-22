@@ -77,8 +77,15 @@ struct GridLattice {
 
     /// The lattice `rows` decide, with `horizontalSpacing` columns between
     /// neighbouring cells.
+    ///
+    /// A negative `horizontalSpacing` is held at zero: columns do not overlap.
+    /// SwiftUI's would, a later column over an earlier one, as a negative row
+    /// spacing overlaps here (``rowTops(spacing:)``); for columns that reaches
+    /// the spanning cells' widths, the distribution and every column origin,
+    /// and is not built. Unheld, the lattice reported a width short by the
+    /// overlap and drew nothing at all once that went below zero.
     init(rows: [Row], horizontalSpacing: Int) {
-        self.horizontalSpacing = horizontalSpacing
+        self.horizontalSpacing = max(0, horizontalSpacing)
 
         // The widest child that spans the whole grid, which belongs to no
         // column — see Pass C.
@@ -182,13 +189,16 @@ struct GridLattice {
     ///
     /// Accumulated rather than multiplied, and clamped the same way the row
     /// canvases are — a zero-height row still occupies the one line a grid
-    /// gives every row.
+    /// gives every row. A negative `spacing` pulls a row up over the rows
+    /// before it, no further than the first, as the grid's
+    /// `appendVertically` draws it (`FrameBuffer.appliedGap`), and the later
+    /// row is drawn on top.
     func rowTops(spacing: Int) -> [Int] {
         var tops: [Int] = []
         tops.reserveCapacity(heights.count)
         var y = 0
-        for (index, height) in heights.enumerated() {
-            if index > 0 { y += spacing }
+        for height in heights {
+            y += FrameBuffer.appliedGap(spacing, after: y, before: 1)
             tops.append(y)
             y += max(1, height)
         }
@@ -196,9 +206,14 @@ struct GridLattice {
     }
 
     /// The grid's total height: every row at least a line, and the gaps
-    /// between them.
+    /// between them — a negative one held as ``rowTops(spacing:)`` holds it,
+    /// so the height is the one the grid draws, never below its last row's.
     func totalHeight(spacing: Int) -> Int {
-        heights.reduce(0) { $0 + max(1, $1) } + max(0, heights.count - 1) * spacing
+        guard spacing < 0 else {
+            return heights.reduce(0) { $0 + max(1, $1) } + max(0, heights.count - 1) * spacing
+        }
+        guard let last = heights.last else { return 0 }
+        return (rowTops(spacing: spacing).last ?? 0) + max(1, last)
     }
 
     /// Where a cell of the given size sits inside its box.
