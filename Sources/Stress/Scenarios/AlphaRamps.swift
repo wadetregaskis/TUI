@@ -49,8 +49,60 @@ enum AlphaRampsScenario {
         blurb: "Translucent gradients in all four alpha shapes, as ink and as fills.",
         stresses:
             "claim derivation per cell · region carriage through composites · opacity resolution",
-        make: { config in AnyView(AlphaRampsView(config: config)) }
+        make: { config in
+            ScenarioVariants.resolve(config, in: scenarioID)?.make(config)
+                ?? AnyView(AlphaRampsView(config: config))
+        },
+        drive: { config in ScenarioVariants.resolve(config, in: scenarioID)?.drive?(config) }
     )
+
+    /// The registry's key: the descriptor's own id, so the two cannot drift.
+    @MainActor
+    static var scenarioID: String { descriptor.id }
+
+    /// The ramps on the page (the default), and the same page inside a
+    /// repeating `.opacity` breath. Every claim a ramp makes is then a claim
+    /// inside a fade that is replayed as pre-rendered phases, and each carries
+    /// the breath's cycle (hunt 11-20, H-14): this prices that, at the size
+    /// where a row holds a claim per cell.
+    @MainActor
+    static let variants: [ScenarioVariant] = [
+        ScenarioVariant(
+            id: "flat", summary: "the ramps on the page", axis: "fade",
+            make: { config in AnyView(AlphaRampsView(config: config)) }),
+        ScenarioVariant(
+            id: "breathing", summary: "the ramps inside a repeating .opacity breath", axis: "fade",
+            make: { config in AnyView(BreathingAlphaRamps(config: config)) },
+            drive: { config in
+                // The run loop's frame clock, which a repeating fade is laid out
+                // on; nothing to write, since the page itself moves each tick.
+                var scenario = DrivenScenario(view: AnyView(BreathingAlphaRamps(config: config))) { _ in }
+                scenario.runsAnimationClock = true
+                return scenario
+            }),
+    ]
+}
+
+/// The ramps inside a fade that breathes for as long as the page is up: from
+/// the second frame on, as a bench runs no `onAppear` to start it in.
+///
+/// Over a fill of its own, in a `ZStack`, so the fade is resolved, and its
+/// phases built, inside the walk the bench times: a bench resolves no claim
+/// that reaches the root, where the run loop resolves one over the bare page.
+private struct BreathingAlphaRamps: View {
+    let config: StressConfig
+
+    @Environment(StressClock.self) private var clock
+
+    var body: some View {
+        let dim = clock.tick >= 2
+        return ZStack(alignment: .topLeading) {
+            Color.rgb(24, 28, 40)
+            AlphaRampsView(config: config)
+                .opacity(dim ? 0.4 : 1)
+                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: dim)
+        }
+    }
 }
 
 private struct AlphaRampsView: View {

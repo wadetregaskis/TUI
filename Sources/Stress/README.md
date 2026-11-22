@@ -126,7 +126,7 @@ scale live · `a` toggle autopilot.
 | `texteffects` | text renderers: a text's layout from its drawing, per-glyph drawing, canvas emission, every frame |
 | `translucent` | cell decomposition of both sides, per-cell region lookup, SGR re-emission. Two variants: `faded` (the default: faded labels over shaded rows) and `material` (each label on a thin material over a row of text that changes every frame: a material frosts what is behind it, so this prices the frost — the dropped glyphs and a thin material's 5 × 3 average — which no other scenario draws) |
 | `gradients` | ramp quantisation, per-cell geometry, origin propagation, re-ink on move, SGR runs, mesh patches |
-| `alpharamp` | per-cell alpha compositing over a patterned ground, blend arithmetic |
+| `alpharamp` | per-cell alpha compositing over a patterned ground, blend arithmetic. Two variants: `flat` (the default: the ramps on the page) and `breathing` (the same page inside a repeating `.opacity` breath, so every claim a ramp makes carries the breath's cycle and every row is rebuilt once per phase: the cost of a claim per cell inside a pre-rendered fade) |
 | `menus` | `ButtonStyle` body measure, menu hug-width pass, shortcut hint column, per-row `@Environment` resolution |
 | `keyrows` | per-row registrations (`onKeyEvent`, `.statusBarItems`) under the row memo, per-frame key and status-bar registries, a `.refreshable` panel |
 | `sheetrows` | rows that each hold a `.sheet` nobody presents, redrawn every frame: what a dismissed presenter costs a page — its section's name, the dock it posts, its closed-frame bookkeeping — with a content (`Dialog`, rows, buttons, detents) that is built only when presented |
