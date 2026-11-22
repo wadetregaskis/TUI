@@ -25,6 +25,12 @@ private enum PickerMenuConstants {
 
     /// `StateStorage` property index for the picker's undo (``ControlValueUndo``).
     static let undoStateIndex = 3
+
+    /// The child step the option labels and section titles are drawn at.
+    static let optionLabelsStep = 0
+
+    /// The child step the `currentValueLabel` is drawn at.
+    static let currentValueLabelStep = 1
 }
 
 // MARK: - Picker Menu Core
@@ -104,8 +110,7 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// overlay that may grow wider than its control, so a narrow picker must not
     /// wrap or truncate its option labels.
     private func renderedOptionLabels(context: RenderContext) -> [String?] {
-        var labelContext = context.withAvailableWidth(
-            max(context.availableWidth, context.environment.terminalWidth))
+        var labelContext = Self.labelContext(PickerMenuConstants.optionLabelsStep, in: context)
         labelContext.leaveScrollCanvas()
         return entries.map { entry in
             // A section's title draws under the section-header chrome role,
@@ -126,10 +131,27 @@ struct _PickerMenuCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// shows, as an option's label is.
     private func renderedCurrentValueLabel(context: RenderContext) -> String? {
         guard let currentValueLabel else { return nil }
-        var labelContext = context.withAvailableWidth(
-            max(context.availableWidth, context.environment.terminalWidth))
+        var labelContext = Self.labelContext(PickerMenuConstants.currentValueLabelStep, in: context)
         labelContext.leaveScrollCanvas()
         return currentValueLabel.renderToBuffer(context: labelContext).lines.first ?? ""
+    }
+
+    /// Where labels are drawn: a step below the core's identity, at the screen's
+    /// width (see `renderedOptionLabels(context:)`).
+    ///
+    /// Not the core's own identity, where its slots are at indices 0–3: the
+    /// `currentValueLabel` is the caller's view itself, so its first `@State`
+    /// took the handler's key, the two replaced each other's box every frame,
+    /// and the drop-down never opened. An option's label or a section's title is
+    /// a `Subview`, which draws at the identity it resolved to and keeps its
+    /// state there whatever step it is drawn from, so all of them share one
+    /// step: one identity a walk rather than one per option. The
+    /// `currentValueLabel` has a step of its own, so its state, and what its
+    /// `AnyView` notes of its type, are apart from the options' (an `AnyView`
+    /// drawn among others of other types is never taken for a swap).
+    private static func labelContext(_ step: Int, in context: RenderContext) -> RenderContext {
+        context.withChildIdentity(erasedType: AnyView.self, index: step)
+            .withAvailableWidth(max(context.availableWidth, context.environment.terminalWidth))
     }
 
     private func dropdownEntries(labels: [String?]) -> [DropdownMenu.Entry] {

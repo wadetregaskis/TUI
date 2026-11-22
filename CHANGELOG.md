@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `Picker`'s `currentValueLabel` holding `@State` no longer breaks the picker.** A menu picker drew the view it
+shows as its current value where it keeps its own state, so the label's first `@State` took the place of the picker's,
+the label lost its state every frame and the drop-down never stayed open. The label is now drawn at a place of its
+own, and keeps its state while the picker shows it.
+
 **A highlighter whose publish is refused for an older text is asked for its lines again.** Under the highlighting
 seam's SPI, the lines a publish refused for a text the editor has moved on from named are listed in the next update's
 `linesToStyle`, where the window holds them, moved through the edits since. They held the tokens the refused publish
