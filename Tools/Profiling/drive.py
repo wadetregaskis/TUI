@@ -93,13 +93,15 @@ def mouse_sgr(button, col, row, press):
 # was). The second Escape leaves the page; on the menu an Escape does nothing,
 # so a page that needed only one pays nothing for it.
 #
-# The second 150 ms after the first: TUI holds a lone ESC for two loop
-# rounds (`Terminal.bareEscStaleFrames`) to tell the Escape key from the start
-# of a sequence, and a byte that arrives inside the hold joins it — ESC ESC is
-# ONE Alt+Escape. Measured on an idle menu (debug build), the hold is under
-# 40 ms: `q` sent 0 ms after an Escape quit 0 times in 6 (it was Alt+q), 20 ms
-# after 5 in 6, 40 ms and more 6 in 6. A busy frame stretches it, so 150 ms is
-# margin, not measurement: the tour passed 10 runs of 10 at 50 ms too. It
+# The second 150 ms after the first: TUI holds a lone ESC for 50 ms and one
+# read more (`Terminal.bareEscWaitNanos`, since 2026-11-22; two loop rounds
+# before) to tell the Escape key from the start of a sequence, and a byte that
+# arrives inside the hold joins it — ESC ESC is ONE Alt+Escape. Measured on an
+# idle menu (debug build) under the two rounds, the hold was under 40 ms: `q`
+# sent 0 ms after an Escape quit 0 times in 6 (it was Alt+q), 20 ms after 5 in
+# 6, 40 ms and more 6 in 6; under the deadline it is 50 to 75 ms (not
+# measured). 150 ms is margin: the tour passed 10 runs of 10 at 50 ms under
+# the two rounds, which the deadline no longer allows. It
 # costs the tour 0.15 s a page. What follows the pair is spaced the same way:
 # the quit's `q` 150 ms later, the tour's next page key 100 ms later, as it
 # always has been after its Escape.

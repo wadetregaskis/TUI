@@ -209,28 +209,39 @@ final class Terminal: HostStateKeeping {
     /// next.
     var pasteScanCursor: Int = 0
 
-    /// Frames during which we couldn't make progress on whatever
-    /// sits at the front of the input buffer. Increments only when
-    /// a drain produced no new bytes *and* the buffer still has an
-    /// unparseable partial at the front. Resets on a successful
-    /// extract; on a drained byte while a paste is open, or one the
-    /// skip of an over-long sequence consumes; and on a read that adds
-    /// to an unfinished sequence longer than a read
-    /// (`restartWaitOfLongSequence()`). Not on a read that adds to a
-    /// shorter one, whose wait counts every quiet pass in all.
+    /// When the parser began waiting on what holds the front of the input
+    /// buffer, on ``nowNanos``'s clock, or `nil` while it waits on nothing.
+    ///
+    /// Set by the first ``readEvent()`` that cannot make progress there, and
+    /// while a paste is open by each that reads a byte of it, so a wait is
+    /// timed from when what it waits on arrived: a lone `ESC`, an unfinished
+    /// sequence, the rest of an over-long one being skipped, a paste that has
+    /// stopped sending. Cleared by progress: an event read, bytes dropped from
+    /// the front (a sequence a new `ESC` cut short, a skip's bytes), a wait
+    /// that ran out. A read that adds to an unfinished sequence longer than a
+    /// read starts it again (`restartWaitOfLongSequence(now:)`); one that adds
+    /// to a shorter one does not, so typing cannot make its wait longer.
     ///
     /// Two roles:
-    /// - Bare-Esc disambiguation: `0x1B` alone looks identical to
-    ///   the first byte of a CSI / SS3 / Alt+key sequence until
-    ///   something definitive arrives. After two stale frames
-    ///   (~48ms) we *defer* it via ``pendingBareEsc`` rather than
-    ///   committing immediately — so a split sequence's late tail
-    ///   can still cancel it (see ``resolveStuckPartial()``).
-    /// - Stuck-byte recovery: if a malformed or truncated sequence
-    ///   sits at the front and the terminal really isn't sending
-    ///   anything more, we consume one byte to make progress and
-    ///   let the parser try again.
-    var staleFrames: Int = 0
+    /// - Bare-Esc disambiguation: `0x1B` alone looks identical to the first
+    ///   byte of a CSI / SS3 / Alt+key sequence until something definitive
+    ///   arrives. After 50 ms we *defer* it via ``pendingBareEsc`` rather than
+    ///   committing it, so a split sequence's late tail can still cancel it
+    ///   (see `resolveStuckPartial(waited:)`).
+    /// - Stuck-byte recovery: if a malformed or truncated sequence sits at the
+    ///   front and the terminal really isn't sending anything more, it is
+    ///   dropped, or one byte is consumed, to make progress.
+    ///
+    /// Until 2026-11-22 a count of the reads that made no progress
+    /// (`staleFrames`), which the run loop does not pace: any wake of the loop
+    /// is a read, so a burst of wakes ran a wait out in microseconds (hunt
+    /// H-21; `Large pastes and over-long input sequences.md`).
+    var heldSince: UInt64?
+
+    /// The clock the parser's waits are timed on, in nanoseconds: read once
+    /// per ``readEvent()``. The run loop's (`MonotonicClock`), and
+    /// injectable for a test, as `MouseEventDispatcher.nowNanos` is.
+    var nowNanos: () -> UInt64 = { MonotonicClock.nowNanoseconds }
 
     /// The size the last in-band resize report gave, which outranks asking: on
     /// a host that sends one, it is the only thing that follows the window

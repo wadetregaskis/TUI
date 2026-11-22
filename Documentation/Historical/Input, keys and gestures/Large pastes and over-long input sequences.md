@@ -120,17 +120,22 @@ done, as no terminal paste of a gibibyte into a WebAssembly app is known.
 
 **The stall timeout is the one way the rest of a paste is still read as
 keys**, and this lane leaves it as it was. A terminal that stops sending in
-the middle of a paste for 40 passes of the run loop
-(`stalledPasteStaleFrames`: a second at the loop's 25 ms input poll,
-two-thirds of one while an animation runs at 60 frames a second) has the
-paste ended there and delivered, and what it sends after the pause is read
-as typing. The timeout exists for a paste whose end marker is lost, which
-would otherwise keep the keyboard for good, and nothing tells that from a
-paste that has only paused until the pause is over. The fuller version
-would time the pause on the clock rather than in passes of the loop, so that
-an animation cannot shorten it. Its price: the parser counts passes and
-reads no clock today, and the tests that drive it pass by pass would each
-need a clock of their own.
+the middle of a paste for a second (`Terminal.stalledPasteWaitNanos`, timed
+from the paste's last byte) has the paste ended there and delivered, and
+what it sends after the pause is read as typing. The timeout exists for a
+paste whose end marker is lost, which would otherwise keep the keyboard for
+good, and nothing tells that from a paste that has only paused until the
+pause is over.
+
+Until 2026-11-22 the pause was 40 passes of the run loop that read nothing
+(`stalledPasteStaleFrames`), and this entry said that was a second at the
+loop's 25 ms input poll and "two-thirds of one while an animation runs at
+60 frames a second". That floor was wrong (hunt H-21, CORE2-2): a pass is
+any wake of the loop, and the cursor timer, the animation clocks and every
+`setNeedsRender()` from a task wake it, so an app writing state 200 times a
+second ended a paste after a pause of 0.2 s, and a burst of queued wakes
+bought passes with no time between them. The pause is timed on the clock
+now; see "The parser's waits are timed on the clock" below.
 
 Then the app holds the text, and what that costs is larger than anything
 above. From the code, not measured:
@@ -268,9 +273,10 @@ And the colour answers the parser keeps (`noteVolunteeredColorReply`) are
 not copied out when longer than all it keeps (4 KiB): an OSC 52 answer to
 another program would have been copied whole, to be dropped.
 
-The skip also ends after eight quiet passes of the run loop
-(`deadSequenceStaleFrames`, about 200 ms at its 25 ms poll), the number an
-unfinished sequence waits, and the run loop keeps polling until then.
+The skip also ends after 200 ms with nothing consumed
+(`Terminal.deadSequenceWaitNanos`, eight quiet passes of the run loop until
+2026-11-22), the wait an unfinished sequence has, and the run loop keeps
+polling until then.
 Without that, a terminal that started a long reply and never finished it
 would take the keyboard with it: a string sequence ends only at `BEL` or
 `ESC`, so everything typed would be skipped until the user pressed Escape. A
@@ -288,30 +294,32 @@ at a digit, `;`, a space or Backspace. `BEL` ends a string's skip, and an
 `ESC` with something behind it ends either: an arrow, a mouse report. A lone
 `ESC`, the Escape key, ends a CSI's skip at once. In a string's it may be
 the first byte of `ST`, so it waits for the skip's wait to run out and then
-for the wait every lone `ESC` gets: the Escape arrives eleven passes after
-the skip's last byte (about 275 ms), and a key typed in that time joins it
-as an Option chord (Escape then `j` is Option-j).
+for the wait every lone `ESC` gets: the Escape arrives about 300 ms after
+the skip's last byte (its 200 ms, a poll before the `ESC` is held, the lone
+`ESC`'s 50 ms and the read it is held for; 275 ms, eleven polls, until
+2026-11-22), and a key typed in that time joins it as an Option chord
+(Escape then `j` is Option-j).
 
 A string sequence shorter than a read whose end is lost is not the same,
 though the first version of this entry said it was (review round 2). Bytes
-typed after one join it too, but its wait counts only the passes on which nothing
-arrives, and never starts again, so typing cannot make it longer: after
-eight quiet passes in all it is dropped with what joined it, and a held
-key's later repeats arrive. A lone `ESC` that joined a string sequence is
+typed after one join it too, but its wait is timed from when it was first
+held and never starts again, so typing cannot make it longer: 200 ms after
+it arrived, at the first read that brings nothing, it is dropped with what
+joined it, and a held key's later repeats arrive. A lone `ESC` that joined a string sequence is
 dropped with it, so there the Escape is lost rather than late.
 
 The skip's wait starts again for the rule this lane is about: the rest of a
 reply is not typed. Counted as within the limit, a reply past the limit that
-arrives with pauses adding up to eight quiet passes (a slow link, under
-ssh; not measured) would see its skip end part way, and its rest typed out.
+arrives with pauses adding up to 200 ms (a slow link, under ssh; not
+measured) would see its skip end part way, and its rest typed out.
 Starting again costs only when a reply past its limit loses its end, which has
 not been observed on any terminal, and then only for as long as the typing
 lasts.
 
 The same holds within the limit for a sequence longer than a read (4 KiB,
 `Terminal.readChunk`): each read that adds to it starts its wait again
-(`restartWaitOfLongSequence()`), and only a shorter one counts every quiet
-pass in all, as above. Until the limits went up (2026-10-12) the skip took
+(`restartWaitOfLongSequence(now:)`), and only a shorter one is timed from
+when it was first held, as above. Until the limits went up (2026-10-12) the skip took
 over at 4 KiB, a read, so this is the wait every sequence that long had
 before. Review round 1 of lane PASTE2 found the higher limits had left the
 sequences between a read and the limit with the wait that never starts
@@ -320,8 +328,7 @@ clipboard answer arriving in 4 KiB pieces with a quiet pass between them
 was dropped at the eighth pause and its last piece typed out, base64, `BEL`
 (Ctrl-G) and all; a kitty key report of 5 to 16 KiB the same, its digits and
 `u`. Typing cannot make a sequence a read long before its wait drops it:
-it adds about a byte a pass, and would need a key on every pass for over a
-minute.
+it adds about a byte a key, and the wait is 200 ms.
 
 An `ESC` in front of the sequence is the Escape key: no terminal puts a
 meta prefix on a reply, and no key is known to run to the limit (a key
@@ -342,3 +349,61 @@ and Up.
 **The fuller version** would skip strictly to the terminator, with no pause
 rule. Its price is the wedge above, for a case nobody has observed (not
 measured on any terminal): a reply longer than its limit whose end is lost.
+
+### The parser's waits are timed on the clock
+
+*2026-11-22, hunt item H-21 (APPRUN-1, CORE2-2, CORE2-7).*
+
+The parser waits in three places: on a lone `ESC`, which may be the Escape
+key or the first byte of a sequence whose rest is in a later read; on an
+unfinished sequence; and on a paste that has stopped sending. Each wait was a
+count of `readEvent()` calls that read nothing (2, 8 and 40,
+`staleFrames`), on the assumption that a call is a 25 ms poll of the run
+loop. A call is any pass of the loop, and passes are not paced: every
+`setNeedsRender()` wakes the loop, two queued wakes buy two passes with no
+time between them, and an app writing state from a task wakes it as often as
+it writes. So a lone `ESC` could be committed microseconds after it arrived,
+and an arrow or mouse report split across reads (by ssh, a multiplexer, or
+the pty's queue under a flood of mouse motion) became Escape and the typed
+characters `[`, `A`; a sustained waker shrank the other two waits as well.
+And the count a dead sequence ran up went to the sequence that cut it short
+(CORE2-7), which was dropped early.
+
+Each wait is now a deadline on the monotonic clock (`Terminal.nowNanos`,
+`MonotonicClock`), timed from when the parser first held what it waits on,
+or from the paste's last byte: `bareEscWaitNanos`, `deadSequenceWaitNanos`
+and `stalledPasteWaitNanos`. A sequence that cuts a dead one short starts a
+wait of its own, and the parser goes on at once to what follows the dropped
+bytes, where a whole sequence used to wait for the next poll. The one-read
+hold of a lone `ESC` past its wait (`pendingBareEsc`) stays: the read after
+the wait still re-attaches it to an introducer that has just arrived.
+
+The deadlines, and why:
+
+- **A lone `ESC`: 50 ms.** The wait trades the Escape key's delay against a
+  split sequence's chance to arrive. Others: Neovim's `ttimeoutlen` is
+  50 ms, Vim's `defaults.vim` sets 100 ms, ncurses's `ESCDELAY` is a second,
+  and tmux's `escape-time` went from 500 ms to 10 ms in tmux 3.5 (2024),
+  whose change called 500 ms far too long for modern terminals and
+  networks. 50 ms is what the run loop's poll was designed around
+  (`FramePacer.pendingInputPollNanos`: "a bare Escape commits within a few
+  of these (~75 ms)"): the wait, then the one-read hold, puts the Escape
+  key 50 to 75 ms after the press. Until now a split could be resolved in no
+  time at all; the old count gave about 25 ms where the loop was idle. A
+  terminal speaking the kitty keyboard protocol sends Escape as `CSI 27 u`
+  and never waits.
+- **An unfinished sequence: 200 ms.** The count's intent (eight polls of
+  25 ms), kept: an `ESC [` or `ESC O` is a sequence beyond doubt, so the wait
+  costs only the meta-sending terminal's Option-[ and Option-O, and Option-_
+  or Option-], which are delivered after it. A read-split sequence's tail is
+  normally in the next read; 200 ms covers a slow link's segment boundary.
+- **A paste that stops: a second from its last byte.** The count's intent
+  (40 polls), kept: a real paste arrives as a stream, and a second is short
+  enough that a lost end marker does not hold the keyboard noticeably long.
+
+Not measured on a slow link: none of the hosts in the compatibility survey
+splits a key's sequence across reads on a local pty, and no ssh capture was
+taken. The tests that drove the parser a call at a time now read it on a
+clock that steps 25 ms a call (`Terminal.readsAtThePollsPace()` in the test
+support), which is what they assumed; `ParserWaitClockTests` pins the
+deadlines and the instant reads.

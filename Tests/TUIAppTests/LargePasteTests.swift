@@ -22,6 +22,7 @@ import WinSDK
 #endif
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -66,6 +67,7 @@ struct LargePasteTests {
         feeding bytes: [UInt8], readLimit: Int = .max, boundaries: [Int] = []
     ) -> (Terminal, Source) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let source = Source(bytes: bytes, readLimit: readLimit, boundaries: boundaries)
         unsafe terminal.readSource = { unsafe source.read(into: $0) }
         return (terminal, source)

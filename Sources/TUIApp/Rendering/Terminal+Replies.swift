@@ -160,12 +160,12 @@ extension Terminal {
     /// on: the Escape key pressed during such a skip arrives once the skip has
     /// ended, and then the wait for a lone `ESC` has run out. Running out of
     /// bytes leaves the skip on for the next call; the dead-sequence wait in
-    /// ``resolveStuckPartial()`` ends it if the rest never comes.
+    /// `resolveStuckPartial(waited:)` ends it if the rest never comes.
     ///
     /// That wait starts again from each byte consumed here. An unfinished
     /// sequence's starts again only once it is longer than a read
-    /// (`restartWaitOfLongSequence()`); shorter, it counts every quiet pass,
-    /// however many bytes arrive between them. So a reply's rest that arrives in pieces,
+    /// (`restartWaitOfLongSequence(now:)`); shorter, it is timed from when it
+    /// was first held, however many bytes arrive after. So a reply's rest that arrives in pieces,
     /// with pauses shorter than the wait between them, is not cut off part
     /// way and typed out however many pauses there are; the price is that
     /// typing during the skip — a key held to auto-repeat — keeps it going
@@ -203,7 +203,7 @@ extension Terminal {
         let skipped = end ?? index
         if skipped > 0 {
             consume(skipped)
-            staleFrames = 0
+            heldSince = nil
         }
         if end != nil { abandonedSequence = nil }
         return end != nil

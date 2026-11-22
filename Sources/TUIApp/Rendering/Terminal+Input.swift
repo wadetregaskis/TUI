@@ -24,8 +24,8 @@ import TUIFoundation
 /// limit and this is the coherent half to lift: everything here reads and
 /// consumes ``Terminal/input``, and nothing here writes to the terminal. The
 /// state it works on has to stay on the type itself — an extension cannot hold
-/// stored properties — which is why the buffer, the paste flag, the stale
-/// counter and the two deferred-`ESC` flags are declared over there and are
+/// stored properties — which is why the buffer, the paste flag, the instant a
+/// wait began and the two deferred-`ESC` flags are declared over there and are
 /// module-internal rather than private. Nothing outside this module can see
 /// ``Terminal`` at all.
 extension Terminal {
@@ -53,7 +53,7 @@ extension Terminal {
     ///
     /// One copy of the rule because three places have to ask it — the two
     /// deferred-`ESC` re-attaches in ``readEvent()`` and the stale-partial arm
-    /// in ``resolveStuckPartial()``. The re-attaches used to list only `[` and
+    /// in ``resolveStuckPartial(waited:)``. The re-attaches used to list only `[` and
     /// `O`, so a reply split across two `read()`s — its `ESC` in the first,
     /// `_Gi=1;OK ESC \` in the second — committed the Escape key and then
     /// typed the payload out, which is exactly what the string-family branch
@@ -62,18 +62,30 @@ extension Terminal {
         byte == 0x5B || byte == 0x4F || String.isStringFamilyIntroducer(UInt32(byte))
     }
 
-    /// Stale frames before a lone `ESC` is committed (the Escape-vs-sequence
-    /// timeout). Short, so Escape stays responsive.
-    private static let bareEscStaleFrames = 2
+    /// How long a lone `ESC` is held before it is taken for the Escape key
+    /// (the Escape-vs-sequence timeout), from when the parser first held it.
+    /// Once it has run out the `ESC` is held for one more read still
+    /// (``pendingBareEsc``), so the key lands 50 to 75 ms after the press at
+    /// the run loop's 25 ms poll (`FramePacer.pendingInputPollNanos`).
+    ///
+    /// 50 ms is Neovim's `ttimeoutlen`; Vim's `defaults.vim` sets 100 ms, and
+    /// tmux 3.5 lowered its `escape-time` from 500 ms to 10. Long enough for a
+    /// sequence split across reads by ssh or a multiplexer to finish, short
+    /// enough that Escape still feels immediate.
+    ///
+    /// A time, not a count of reads: until 2026-11-22 it was two reads that
+    /// made no progress, and the run loop's reads are not paced (any wake is
+    /// one), so a burst of wakes took an arrow's `ESC` for the Escape key
+    /// microseconds after it arrived and typed the rest, `[` and `A` (hunt
+    /// H-21; `Documentation/Historical/Input, keys and gestures/Large pastes
+    /// and over-long input sequences.md` has the choice of all three waits).
+    static let bareEscWaitNanos: UInt64 = 50_000_000
 
-    /// Stale frames of TOTAL silence before an unterminated bracketed paste is
-    /// delivered anyway. These are passes of the run loop that read nothing,
-    /// one ``readEvent()`` each: a second at the loop's 25 ms input poll
-    /// (`FramePacer.pendingInputPollNanos`), less while something else wakes
-    /// the loop sooner — two-thirds of one while an animation runs at 60
-    /// frames a second. Far longer than any gap inside a real paste, which
-    /// arrives as a continuous stream, and short enough that a user does not
-    /// sit in front of an app that has stopped answering the keyboard.
+    /// How long an open bracketed paste may go without a byte before it is
+    /// delivered anyway: a second from its last byte. Far longer than any gap
+    /// inside a real paste, which arrives as a continuous stream, and short
+    /// enough that a user does not sit in front of an app that has stopped
+    /// answering the keyboard.
     ///
     /// It is the one way the rest of a paste is still read as keys: what the
     /// terminal sends after such a pause comes after the paste has ended.
@@ -85,15 +97,24 @@ extension Terminal {
     /// cap: a paste whose `ESC[201~` never arrived swallowed every subsequent
     /// keystroke into the paste buffer, forever, and the app looked frozen to
     /// input while still rendering.
-    private static let stalledPasteStaleFrames = 40
+    ///
+    /// Until 2026-11-22 it was 40 reads that brought nothing, said to be a
+    /// second at the loop's poll and two-thirds of one under a 60 Hz
+    /// animation. Any wake of the loop is a read, though, so an app writing
+    /// state from a task 200 times a second ended a paste after a pause of
+    /// 0.2 s and typed its rest (hunt H-21, CORE2-2).
+    static let stalledPasteWaitNanos: UInt64 = 1_000_000_000
 
-    /// Stale frames before an incomplete `ESC [` / `ESC O` is abandoned as a
-    /// dead sequence. Generous: a read-split sequence's tail arrives within a
-    /// frame or two, so by the time we reach this any real terminator is long
-    /// present — we only get here for a sequence the terminal truly never
-    /// finished. Until then we keep waiting rather than stranding its bytes
-    /// (the leak that turned a split mouse report's `M` into a keystroke).
-    private static let deadSequenceStaleFrames = 8
+    /// How long an incomplete `ESC [` / `ESC O` (or a reply, or the skip of an
+    /// over-long one) is held before it is dropped as a dead sequence, from
+    /// when the parser first held it. Generous: a read-split sequence's tail
+    /// normally arrives with the next read, so by the time this runs out any
+    /// real terminator is long present — we only get here for a sequence the
+    /// terminal truly never finished. Until then we keep waiting rather than
+    /// stranding its bytes (the leak that turned a split mouse report's `M`
+    /// into a keystroke). Eight reads until 2026-11-22, for the reason
+    /// ``bareEscWaitNanos`` gives.
+    static let deadSequenceWaitNanos: UInt64 = 200_000_000
 
     /// Tries to peel one complete regular (non-paste) event off the
     /// front of ``input``. Returns the raw bytes, or `nil` if
@@ -383,7 +404,7 @@ extension Terminal {
     ///   rather than the whole run dropped as a key no terminal sends.
     ///
     /// What cannot be told apart is Alt-Shift-O followed, before the
-    /// dead-sequence wait runs out (``deadSequenceStaleFrames``), by bytes
+    /// dead-sequence wait runs out (``deadSequenceWaitNanos``), by bytes
     /// that spell a key: `ESC O A` is Up, and `ESC O 5 x` Ctrl and the
     /// keypad's 8. The parser is split-invariant by design, so the timing of
     /// the bytes cannot decide. A modifier that the key's byte never follows
@@ -529,9 +550,9 @@ extension Terminal {
         if input.count >= Self.maxControlSequenceBytes { return abandonSequence(.controlSequence) }
 
         // Otherwise the buffer simply doesn't have the terminator yet. (The
-        // wait is bounded by `deadSequenceStaleFrames`, not by the cap: the cap
-        // only catches a terminal that keeps sending, since a pass on which
-        // bytes arrive does not count toward that wait.)
+        // wait is bounded by `deadSequenceWaitNanos`, and the cap catches a
+        // terminal that keeps sending a sequence longer than a read, whose
+        // wait each read starts again.)
         noteSequenceWalk(stoppedAt: i)
         return nil
     }
@@ -700,7 +721,7 @@ extension Terminal {
     ///
     /// ``inPasteMode`` is here even though it is not "bytes we are holding":
     /// paste mode with an EMPTY buffer is the one state whose only exit is a
-    /// timeout, and ``stalledPasteStaleFrames`` advances only inside
+    /// timeout, and ``stalledPasteWaitNanos`` is checked only inside
     /// ``readEvent()``. Leaving it out meant a terminal that emitted `ESC[200~`
     /// and then lost the paste wedged the parser — the loop blocked, so the
     /// timeout that exists precisely to escape that state never ticked, and the
@@ -742,9 +763,24 @@ extension Terminal {
     /// The string-terminated families already avoid this by recursing inside
     /// ``tryExtractRegularEvent()``; the CSI drop happens inside `finalize`,
     /// where it cannot, so the recovery belongs here.
+    ///
+    /// The same for bytes dropped with no event: a sequence a new `ESC` cut
+    /// short, a mis-framed UTF-8 lead, the rest of an over-long sequence being
+    /// skipped. What follows them is read at once rather than at the next
+    /// poll, and is a new sequence with a wait of its own: until 2026-11-22
+    /// a whole sequence behind a dropped prefix waited for the next poll, and
+    /// one still arriving inherited the wait the dropped one had run up, and
+    /// was dropped early and its tail typed (hunt H-21, CORE2-7). Each time
+    /// round drops at least a byte, so the loop ends.
     private func extractDeliverableEvent() -> TerminalInput? {
-        while let bytes = tryExtractRegularEvent() {
-            staleFrames = 0
+        while true {
+            let held = input.count
+            guard let bytes = tryExtractRegularEvent() else {
+                guard input.count < held else { return nil }
+                heldSince = nil
+                continue
+            }
+            heldSince = nil
             if let size = Self.windowSizeReport(bytes) {
                 reportedWindowSize = size
                 windowSizeReportPending = true
@@ -764,7 +800,6 @@ extension Terminal {
             // are the paste, not keystrokes.
             if inPasteMode { return nil }
         }
-        return nil
     }
 
     /// The size in an in-band resize report, `ESC [ 48 ; rows ; columns ; …  t`, or
@@ -795,9 +830,14 @@ extension Terminal {
     /// Lifted out of ``readEvent()`` rather than left inline because it always
     /// returns, so it is a whole branch rather than a step, and because
     /// ``readEvent()`` was at its cyclomatic limit.
-    private func pumpPasteMode() -> TerminalInput? {
+    ///
+    /// - Parameters:
+    ///   - now: The read's instant (``nowNanos``).
+    ///   - arrived: Whether the read already brought bytes of the paste
+    ///     before this was called.
+    private func pumpPasteMode(now: UInt64, arrived: Bool) -> TerminalInput? {
         if let event = tryExtractPaste() {
-            staleFrames = 0
+            heldSince = nil
             return event
         }
         // Paste content is still in flight. Give the kernel one
@@ -805,22 +845,22 @@ extension Terminal {
         // the main loop will spin again in ~24ms.
         let added = appendDrain()
         if added > 0, let event = tryExtractPaste() {
-            staleFrames = 0
+            heldSince = nil
             return event
         }
-        // A real paste arrives as a continuous stream, so a frame that
-        // brought NO bytes at all is the only thing that counts against
-        // it; a slow one simply keeps resetting the count. Total silence
-        // for a second means the end marker is not coming — a dropped
+        // A real paste arrives as a continuous stream, so the wait is timed
+        // from its last byte: each read that brings one starts it again.
+        // Silence for a second means the end marker is not coming — a dropped
         // `ESC[201~`, or a terminal that abandoned the paste — and paste
         // mode must end, or every keystroke from here on is swallowed into
         // the buffer and the app stops answering the keyboard entirely.
-        if added > 0 {
-            staleFrames = 0
+        if added > 0 || arrived {
+            heldSince = now
         } else {
-            staleFrames += 1
-            if staleFrames >= Self.stalledPasteStaleFrames {
-                staleFrames = 0
+            let since = heldSince ?? now
+            heldSince = since
+            if now &- since >= Self.stalledPasteWaitNanos {
+                heldSince = nil
                 return abandonStalledPaste()
             }
         }
@@ -835,15 +875,18 @@ extension Terminal {
     /// the buffer is empty or a partial sequence needs more
     /// bytes), parses events out of the buffer, and never blocks
     /// the run loop.
+    ///
+    /// Its waits — for a lone `ESC`, an unfinished sequence, a paste that has
+    /// stopped — are timed on ``nowNanos``, read once a call: how often it is
+    /// called changes when it notices one has run out, never how long it is.
     func readEvent() -> TerminalInput? {
+        let now = nowNanos()
         // The rest of a sequence that decoded to more than one event goes
         // first: its bytes arrived before anything still in the buffer.
         if let queued = queuedInputs.popFirst() { return queued }
 
         // Make sure there's something to inspect.
-        if input.isEmpty {
-            appendDrain()
-        }
+        let arrived = input.isEmpty && appendDrain() > 0
 
         // Resolve a deferred bare ESC (armed by `resolveStuckPartial`). If a
         // sequence introducer is now at the front, the earlier `ESC` was that
@@ -874,42 +917,50 @@ extension Terminal {
             }
         }
 
-        if inPasteMode { return pumpPasteMode() }
+        if inPasteMode { return pumpPasteMode(now: now, arrived: arrived) }
 
         if let event = extractDeliverableEvent() { return event }
         // `finalize` may have just opened paste mode with the content still in
         // flight. Everything left in the buffer is that content, so leave it to
-        // the paste branch above on the next pump rather than parsing it here.
-        if inPasteMode { return nil }
+        // the paste branch above on the next pump rather than parsing it here;
+        // its wait is timed from now, when its start arrived.
+        if inPasteMode {
+            heldSince = now
+            return nil
+        }
 
         // No complete event yet. Try one more drain in case the
         // kernel has the missing bytes ready right now.
         let added = appendDrain()
         if added > 0 {
             if let event = extractDeliverableEvent() { return event }
-            if inPasteMode { return nil }
+            if inPasteMode {
+                heldSince = now
+                return nil
+            }
         }
 
         // Still nothing. If the buffer's empty there's no partial to
         // worry about; just return nil. (Unless a skip is waiting on the rest
-        // of a sequence: its wait has to run out on quiet frames too.)
+        // of a sequence: its wait has to run out on quiet reads too.)
         guard !input.isEmpty || abandonedSequence != nil else {
-            staleFrames = 0
+            heldSince = nil
             return nil
         }
 
-        // We have a stuck partial at the front. Wait one more frame
-        // for the rest; if still nothing comes, give up on the front
-        // of the buffer. This recovers bare Esc (which looks identical
-        // to a partial CSI introducer until something definitive
-        // arrives) and any truncated sequence the terminal will
+        // We have a stuck partial at the front, held from now if it was not
+        // already. Wait for the rest; once its wait has run out with nothing
+        // more, give up on the front of the buffer. This recovers bare Esc
+        // (which looks identical to a partial CSI introducer until something
+        // definitive arrives) and any truncated sequence the terminal will
         // never finish.
+        let since = heldSince ?? now
+        heldSince = since
         if added == 0 {
-            staleFrames += 1
-            return resolveStuckPartial()
+            return resolveStuckPartial(waited: now &- since)
         }
 
-        restartWaitOfLongSequence()
+        restartWaitOfLongSequence(now: now)
         return nil
     }
 
@@ -919,8 +970,8 @@ extension Terminal {
     ///
     /// A sequence that long is arriving as a stream, a reply or a key report
     /// carrying a long text. Typing that joins a lost one adds about a byte a
-    /// pass: it would take over a minute of a key on every pass to make one a
-    /// read long, and the wait drops it at the eighth pass without one.
+    /// key: it would take thousands of keys inside the wait to make one a
+    /// read long.
     ///
     /// Started again by each read that adds to it, the wait is the one the
     /// skip of a sequence past its limit has (``skipAbandonedSequence()``),
@@ -932,22 +983,23 @@ extension Terminal {
     /// measured), was dropped part way and its rest typed out as keys, a
     /// clipboard answer's base64 or a key report's digits.
     ///
-    /// Shorter than a read, the wait still counts every quiet pass in all, so
-    /// typing after a lost sequence cannot make it longer (decisions-PASTE,
-    /// B-PASTE-2).
-    private func restartWaitOfLongSequence() {
-        if input.count > Self.readChunk { staleFrames = 0 }
+    /// Shorter than a read, the wait is still timed from when the sequence was
+    /// first held, so typing after a lost sequence cannot make it longer
+    /// (decisions-PASTE, B-PASTE-2).
+    private func restartWaitOfLongSequence(now: UInt64) {
+        if input.count > Self.readChunk { heldSince = now }
     }
 
-    /// Called once per stale frame while a partial sits at the front of the
-    /// buffer (or while the rest of an over-long sequence is awaited), and
-    /// decides — based on how long it has been stuck — how to make
+    /// Called by each read that brings nothing while a partial sits at the
+    /// front of the buffer (or while the rest of an over-long sequence is
+    /// awaited), and decides — based on how long it has been held, `waited`
+    /// nanoseconds (``heldSince``) — how to make
     /// progress without ever stranding part of a split escape sequence as a
     /// literal keystroke. Returns an event only when it pops a lone non-ESC
     /// byte; otherwise `nil` (still waiting, or it deferred/discarded).
     ///
     /// - A lone `ESC` is *deferred* (``pendingBareEsc``) after the short
-    ///   ``bareEscStaleFrames`` timeout, not committed outright: its
+    ///   ``bareEscWaitNanos`` timeout, not committed outright: its
     ///   continuation may be a CSI/SS3 sequence — or a terminal reply — split
     ///   into a later read. The next ``readEvent()`` re-attaches it if an
     ///   introducer arrived, else commits the Escape.
@@ -956,21 +1008,21 @@ extension Terminal {
     ///   (arrow, mouse report, …) arrives on a later read and completes it.
     ///   Stranding it instead leaked bytes as keystrokes: the introducer `[`
     ///   (→ Sliders page) or, for a mouse drag, the terminator `M` (→ a stray
-    ///   key). Only after the generous ``deadSequenceStaleFrames`` timeout — by
+    ///   key). Only after the generous ``deadSequenceWaitNanos`` timeout — by
     ///   which point any real terminator has long arrived — is a truly dead
     ///   sequence dropped as a unit.
     /// - Any other stuck byte is consumed singly to make progress.
-    private func resolveStuckPartial() -> TerminalInput? {
+    private func resolveStuckPartial(waited: UInt64) -> TerminalInput? {
         // Skipping the rest of an over-long sequence, with nothing buffered or
-        // only an `ESC` that may be its `ST`: the skip ends after as many quiet
-        // passes as an unfinished sequence waits, so a terminal that never
-        // finishes one cannot take the keyboard with it. They are counted from
-        // the last byte the skip consumed (``skipAbandonedSequence()``), where
-        // an unfinished sequence's are counted in all. An `ESC` left behind is
-        // then an ordinary lone one.
+        // only an `ESC` that may be its `ST`: the skip ends after as long as an
+        // unfinished sequence waits, so a terminal that never finishes one
+        // cannot take the keyboard with it. Timed from the last byte the skip
+        // consumed (``skipAbandonedSequence()``), where an unfinished
+        // sequence's wait is timed from when it was first held. An `ESC` left
+        // behind is then an ordinary lone one.
         if abandonedSequence != nil {
-            if staleFrames >= Self.deadSequenceStaleFrames {
-                staleFrames = 0
+            if waited >= Self.deadSequenceWaitNanos {
+                heldSince = nil
                 abandonedSequence = nil
             }
             return nil
@@ -981,8 +1033,8 @@ extension Terminal {
             if input.count == 1 {
                 // Lone ESC — Escape-vs-sequence ambiguity. Defer after the
                 // short timeout so a split sequence's tail can still cancel it.
-                if staleFrames >= Self.bareEscStaleFrames {
-                    staleFrames = 0
+                if waited >= Self.bareEscWaitNanos {
+                    heldSince = nil
                     input.removeFirst(1)
                     pendingBareEsc = true
                 }
@@ -991,8 +1043,8 @@ extension Terminal {
             if Self.continuesEscapeSequence(input[1]) {
                 // Incomplete CSI/SS3, or a terminal reply whose terminator has
                 // not arrived: wait for it; drop only a long-dead sequence.
-                if staleFrames >= Self.deadSequenceStaleFrames {
-                    staleFrames = 0
+                if waited >= Self.deadSequenceWaitNanos {
+                    heldSince = nil
                     // Except an ESC and a string introducer with nothing at
                     // all behind them: no reply stops after its introducer,
                     // but a meta-sending terminal's Option chord on that key
@@ -1017,8 +1069,8 @@ extension Terminal {
                 // waiting, because committing now strands the tail as literal
                 // keystrokes.
                 guard input.count == 2 else {
-                    if staleFrames >= Self.deadSequenceStaleFrames {
-                        staleFrames = 0
+                    if waited >= Self.deadSequenceWaitNanos {
+                        heldSince = nil
                         consume(input.count)
                     }
                     return nil
@@ -1037,8 +1089,8 @@ extension Terminal {
                 // unless a slow frame batches them, and the recovery is to
                 // press Escape again — against one keystroke reliably doing
                 // two things.
-                if staleFrames >= Self.bareEscStaleFrames {
-                    staleFrames = 0
+                if waited >= Self.bareEscWaitNanos {
+                    heldSince = nil
                     consume(2)
                     pendingAltEsc = true
                 }
@@ -1048,8 +1100,8 @@ extension Terminal {
 
         // Any other stuck byte (not a recognised escape introducer): make
         // progress by popping one, after the short timeout.
-        if staleFrames >= Self.bareEscStaleFrames {
-            staleFrames = 0
+        if waited >= Self.bareEscWaitNanos {
+            heldSince = nil
             if let byte = input.popFirst() {
                 return finalize(bytes: [byte])
             }

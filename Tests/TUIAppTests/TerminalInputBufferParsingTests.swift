@@ -15,6 +15,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -32,6 +33,7 @@ struct TerminalInputBufferParsingTests {
     /// A terminal whose reads return at most `readLimit` of the staged bytes.
     private func makeTerminal(readLimit: Int = .max) -> (Terminal, Source) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let source = Source(readLimit: readLimit)
         unsafe terminal.readSource = { buffer in
             let count = min(source.bytes.count, buffer.count, source.readLimit)

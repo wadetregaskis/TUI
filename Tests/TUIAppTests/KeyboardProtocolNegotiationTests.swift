@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUITestSupport
@@ -31,6 +32,7 @@ struct KeyboardProtocolNegotiationTests {
 
     private func makeTerminal(reads: [String]) -> (Terminal, Script) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let script = Script()
         script.reads = reads.map { Array($0.utf8) }
         unsafe terminal.readSource = { buffer in

@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -21,6 +22,7 @@ struct MetaStringIntroducerTests {
     /// A terminal reading whatever is staged, one read per stage.
     private func makeTerminal() -> (Terminal, ([UInt8]) -> Void) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let box = Box()
         unsafe terminal.readSource = { buffer in
             guard !box.bytes.isEmpty else { return 0 }

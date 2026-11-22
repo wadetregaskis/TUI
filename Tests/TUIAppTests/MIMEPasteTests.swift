@@ -16,6 +16,7 @@ import TUICore
 #endif
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 
 @MainActor
@@ -125,6 +126,7 @@ struct MIMEPasteTests {
         }
         let box = Box()
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         unsafe terminal.readSource = { buffer in
             guard !box.bytes.isEmpty else { return 0 }
             let count = min(box.bytes.count, buffer.count)
@@ -166,6 +168,7 @@ struct MIMEPasteTests {
     @Test("A cut-short OSC 5522 packet does not crash, delivers the next event, and leaves session idle")
     func cutShortPacket() {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         var inputBytes = Array("\u{1B}]5522;X\u{1B}[A".utf8)
         unsafe terminal.readSource = { buffer in
             guard !inputBytes.isEmpty else { return 0 }
@@ -186,6 +189,7 @@ struct MIMEPasteTests {
     @Test("Well-formed OSC 5522 packets ending in BEL or ST arrive with their bodies whole")
     func terminatorsBelAndST() {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
 
         // 1. Packet ending in ST (ESC \)
         var bytesST = Array(Self.packet("type=read:status=OK:pw=\(Self.password)").utf8)

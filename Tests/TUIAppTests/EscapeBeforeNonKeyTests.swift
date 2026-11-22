@@ -16,6 +16,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -31,6 +32,7 @@ struct EscapeBeforeNonKeyTests {
     /// that stages more.
     private func makeTerminal() -> (Terminal, ([UInt8]) -> Void) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let box = ByteBox()
         unsafe terminal.readSource = { buffer in
             let count = min(box.bytes.count, buffer.count)
@@ -87,8 +89,9 @@ struct EscapeBeforeNonKeyTests {
     func deferredEscapeThenPasteTail() {
         let (terminal, stage) = makeTerminal()
         stage(Self.esc + Self.esc)
-        #expect(terminal.readEvent() == nil)  // stale frame 1
-        #expect(terminal.readEvent() == nil)  // stale frame 2 → held as a chord
+        #expect(terminal.readEvent() == nil)  // held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: held as a chord
         stage(Array(Self.paste.dropFirst()))
         #expect(events(terminal) == [Self.escape, Self.pasted])
     }

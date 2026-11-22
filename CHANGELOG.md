@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**An arrow key or mouse report split across two reads is no longer read as Escape and typing.** The input parser's
+waits for a lone `ESC`, an unfinished sequence and a paste that pauses were counted in passes of the run loop, and any
+wake of the loop is a pass: on a screen that animates or writes state from a task, an arrow whose `ESC` and `[A`
+arrived in separate reads (over ssh, under tmux) could become Escape, `[` and `A`, a split mouse report could type its
+coordinates, and a paste that paused could be ended with its rest typed as keys. The waits are timed on the clock
+now, from when what they wait on arrived: 50 ms for a lone `ESC` (the Escape key lands 50 to 75 ms after the press),
+200 ms for an unfinished sequence, and a second after a paste's last byte. A whole sequence behind one a new `ESC` cut
+short is read at once, rather than at the next poll.
+
 **A modifier-key alternate gives the focus back in a running app.** Under the kitty keyboard protocol, with
 `Button("Forward") {}.modifierKeyAlternate(.option) { Text("Go to…") }` focused, holding Option for more than a frame
 and letting go left the focus on the control the alternate had moved it to, instead of returning it to "Forward". The

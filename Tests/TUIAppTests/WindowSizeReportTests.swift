@@ -9,6 +9,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
 
@@ -19,6 +20,7 @@ struct WindowSizeReportTests {
     /// A terminal whose input is `bytes`.
     private func terminal(reading bytes: [UInt8]) -> Terminal {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         var remaining = bytes
         unsafe terminal.readSource = { buffer in
             let count = min(remaining.count, buffer.count)

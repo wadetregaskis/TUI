@@ -15,6 +15,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -48,6 +49,7 @@ struct OverlongSequenceTests {
 
     private func makeTerminal(readLimit: Int = .max, boundaries: [Int] = []) -> (Terminal, Source) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let source = Source(readLimit: readLimit, boundaries: boundaries)
         unsafe terminal.readSource = { unsafe source.read(into: $0) }
         return (terminal, source)
@@ -257,16 +259,16 @@ struct OverlongSequenceTests {
     }
 
     /// Shorter than a read, typing joins an unfinished string sequence too,
-    /// but cannot make its wait longer: after eight quiet passes in all it is
+    /// but cannot make its wait longer: 200 ms after it was first held it is
     /// dropped with what joined it, and every repeat after that is a key.
-    /// The eight are the first pass (a pass whose bytes all came in the read
-    /// that starts it, into an empty buffer, counts as quiet) and the odd
-    /// ones to the thirteenth, so the `j`s of passes 14 to 62 arrive.
+    /// Held from the first pass (25 ms a pass here), it is dropped at the
+    /// first quiet one 200 ms on: the ninth, since a pass that reads a `j`
+    /// adds to it and does not look, so the `j`s of passes 10 to 62 arrive.
     @Test("Typing after an unfinished sequence shorter than a read does not lengthen its wait")
     func typingDoesNotLengthenTheWaitWithinTheCap() {
         let (terminal, source) = makeTerminal()
         source.bytes = Self.esc + Self.bytes("]52;c;QUJD")
-        #expect(typeWhileWaiting(terminal, source, passes: 64) == Array(repeating: Self.key("j"), count: 25))
+        #expect(typeWhileWaiting(terminal, source, passes: 64) == Array(repeating: Self.key("j"), count: 27))
     }
 
     /// Longer than a read, an unfinished sequence's wait starts again from
@@ -329,11 +331,12 @@ struct OverlongSequenceTests {
     }
 
     /// The Escape key during a string sequence's skip may be the first byte
-    /// of its `ST`, so it waits out the skip's eight passes from the last
-    /// byte the skip consumed, and then the three a lone `ESC` takes: eleven
-    /// in all, about 275 ms at the run loop's 25 ms poll. A key typed in that
-    /// time joins it as an Option chord.
-    @Test("The Escape key during a string's skip arrives eleven passes after the skip's last byte")
+    /// of its `ST`, so it waits out the skip's 200 ms from the last byte the
+    /// skip consumed, eight passes at the run loop's 25 ms poll, and then the
+    /// four a lone `ESC` takes (held from the pass after, 50 ms, and the read
+    /// it is held for): twelve in all, about 300 ms. A key typed in that time
+    /// joins it as an Option chord.
+    @Test("The Escape key during a string's skip arrives twelve passes after the skip's last byte")
     func escapeDuringStringSkipIsLate() {
         let (terminal, source) = makeTerminal()
         source.bytes = Self.answerThenEscape
@@ -349,7 +352,7 @@ struct OverlongSequenceTests {
             if let event = terminal.readEvent() { events.append(event) }
         }
         #expect(events == [.key(KeyEvent(key: .escape))])
-        #expect(late == 11)
+        #expect(late == 12)
 
         let (chord, chordSource) = makeTerminal()
         chordSource.bytes = Self.answerThenEscape

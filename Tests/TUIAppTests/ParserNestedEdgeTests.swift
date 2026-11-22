@@ -16,6 +16,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -30,6 +31,7 @@ struct ParserNestedEdgeTests {
     /// that stages more.
     private func makeTerminal() -> (Terminal, ([UInt8]) -> Void) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let box = ByteBox()
         unsafe terminal.readSource = { buffer in
             let count = min(box.bytes.count, buffer.count)

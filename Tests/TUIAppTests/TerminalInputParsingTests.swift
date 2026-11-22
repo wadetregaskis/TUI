@@ -7,6 +7,7 @@
 import Testing
 
 @testable import TUIApp
+@testable import TUIAppTestSupport
 @testable import TUIFoundation
 @testable import TUITestSupport
 
@@ -16,7 +17,8 @@ import Testing
 // bracketed paste as `ESC [ …` (CSI) or `ESC O …` (SS3) sequences. A `read()`
 // boundary occasionally lands mid-sequence, so the parser sees a lone `ESC`
 // first and its tail only on a later read. The lone `ESC` is ambiguous with the
-// Escape key, so it times out after two stale frames — and the regression these
+// Escape key, so it times out after 50 ms (`Terminal.bareEscWaitNanos`; the tests
+// here read it a 25 ms poll a call) — and the regression these
 // tests pin is that the timed-out `ESC` must NOT strand its `[` / `O` introducer
 // to be dispatched as a literal character (which intermittently jumped
 // `Example` to its `[` = Sliders page).
@@ -34,6 +36,7 @@ struct TerminalInputParsingTests {
     /// Returns the terminal plus a setter to stage the next read's bytes.
     private func makeTerminal() -> (Terminal, ([UInt8]) -> Void) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let box = ByteBox()
         unsafe terminal.readSource = { buffer in
             guard !box.bytes.isEmpty else { return 0 }
@@ -54,8 +57,9 @@ struct TerminalInputParsingTests {
 
         // ESC arrives alone; its `[B` tail is still in flight.
         stage([0x1B])
-        #expect(terminal.readEvent() == nil)  // partial — one stale frame
-        #expect(terminal.readEvent() == nil)  // second stale frame → ESC deferred
+        #expect(terminal.readEvent() == nil)  // partial, held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: ESC deferred
 
         // The tail arrives now. The deferred ESC is re-attached and the whole
         // thing parses as Down — NOT Escape, and NOT a literal '[' (Sliders).
@@ -91,7 +95,7 @@ struct TerminalInputParsingTests {
     func splitEscTabWithinWindowIsAltTab() {
         let (terminal, stage) = makeTerminal()
         stage([0x1B])
-        #expect(terminal.readEvent() == nil)  // partial — one stale frame
+        #expect(terminal.readEvent() == nil)  // partial, held from here
         stage([0x09])                          // tail arrives before the deferral commits
         #expect(terminal.readEvent() == .key(KeyEvent(key: .tab, alt: true)))
     }
@@ -104,8 +108,9 @@ struct TerminalInputParsingTests {
         // it here would eat real Escape-then-Tab input.
         let (terminal, stage) = makeTerminal()
         stage([0x1B])
-        #expect(terminal.readEvent() == nil)  // stale frame 1
-        #expect(terminal.readEvent() == nil)  // stale frame 2 → deferred
+        #expect(terminal.readEvent() == nil)  // held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: deferred
         stage([0x09])                          // arrives after the window
         #expect(terminal.readEvent() == .key(KeyEvent(key: .escape)))
         #expect(terminal.readEvent() == .key(KeyEvent(key: .tab)))
@@ -117,8 +122,9 @@ struct TerminalInputParsingTests {
 
         // Nothing ever follows the ESC.
         stage([0x1B])
-        #expect(terminal.readEvent() == nil)  // stale frame 1
-        #expect(terminal.readEvent() == nil)  // stale frame 2 → deferred
+        #expect(terminal.readEvent() == nil)  // held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: deferred
         #expect(terminal.readEvent() == .key(KeyEvent(key: .escape)))  // committed
     }
 
@@ -316,6 +322,7 @@ struct TerminalInputParsingTests {
         _ = terminal.readEvent()
         #expect(terminal.hasPendingInput, "a buffered lone ESC must keep the loop polling")
 
+        _ = terminal.readEvent()
         _ = terminal.readEvent()  // deferred (still pending)
         #expect(terminal.hasPendingInput)
 
@@ -328,6 +335,7 @@ struct TerminalInputParsingTests {
         let (terminal, stage) = makeTerminal()
 
         stage([0x1B])
+        #expect(terminal.readEvent() == nil)
         #expect(terminal.readEvent() == nil)
         #expect(terminal.readEvent() == nil)  // ESC deferred
 
@@ -347,8 +355,9 @@ struct TerminalInputParsingTests {
         let (terminal, stage) = makeTerminal()
 
         stage([0x1B, 0x1B])
-        #expect(terminal.readEvent() == nil)  // stale frame 1
-        #expect(terminal.readEvent() == nil)  // stale frame 2 → deferred
+        #expect(terminal.readEvent() == nil)  // held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: deferred
         #expect(terminal.hasPendingInput, "the held chord keeps the loop awake")
 
         #expect(terminal.readEvent() == .key(KeyEvent(key: .escape, alt: true)))
@@ -393,7 +402,7 @@ struct TerminalInputParsingTests {
     }
 
     /// Paste mode with an EMPTY buffer is the one parser state whose only way
-    /// out is a timeout, and `stalledPasteStaleFrames` only advances inside
+    /// out is a timeout, and `stalledPasteWaitNanos` is only checked inside
     /// `readEvent()` — so the parser has to ask the loop for those wakes, or
     /// the escape hatch never ticks. A terminal that emits `ESC[200~` and then
     /// loses the paste (an interrupted paste, a dropped `ESC[201~` on a lossy
@@ -515,8 +524,9 @@ struct TerminalInputParsingTests {
         let (terminal, stage) = makeTerminal()
 
         stage([0x1B, 0x1B])
-        #expect(terminal.readEvent() == nil)  // stale frame 1
-        #expect(terminal.readEvent() == nil)  // stale frame 2 → deferred
+        #expect(terminal.readEvent() == nil)  // held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: deferred
 
         stage([0x5B, 0x5A])  // "[Z" — the tail, late
         #expect(terminal.readEvent() == .key(KeyEvent(key: .tab, alt: true, shift: true)))
@@ -542,6 +552,7 @@ struct TerminalReplySwallowingTests {
 
     private func makeTerminal() -> (Terminal, ([UInt8]) -> Void) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let box = ByteBox()
         unsafe terminal.readSource = { buffer in
             guard !box.bytes.isEmpty else { return 0 }
@@ -653,7 +664,7 @@ struct TerminalReplySwallowingTests {
     }
 
     /// A reply's `ESC` and its tail can land in different `read()`s — a laggy
-    /// ssh hop needs only the two 25 ms polls that arm the deferred bare ESC.
+    /// ssh hop needs only the 50 ms that arm the deferred bare ESC.
     /// The re-attach then has to recognise the same introducers the rest of
     /// the parser does; it listed only `[` and `O`, so an `ESC` whose tail was
     /// a reply committed as the Escape key and the payload was spelled out
@@ -663,7 +674,8 @@ struct TerminalReplySwallowingTests {
         for tail in ["_Gi=7;OK\u{1B}\\", "]11;rgb:1e1e/1e1e/1e1e\u{07}", "P1+r5375=31\u{1B}\\"] {
             let (terminal, stage) = makeTerminal()
             stage([0x1B])
-            // bareEscStaleFrames == 2: two silent pumps arm the deferral.
+            // Three silent pumps, 50 ms at the poll, arm the deferral.
+            #expect(terminal.readEvent() == nil)
             #expect(terminal.readEvent() == nil)
             #expect(terminal.readEvent() == nil)
 
@@ -681,6 +693,7 @@ struct TerminalReplySwallowingTests {
     func splitDoubledEscapeDoesNotLeakAReply() {
         let (terminal, stage) = makeTerminal()
         stage([0x1B, 0x1B])
+        #expect(terminal.readEvent() == nil)
         #expect(terminal.readEvent() == nil)
         #expect(terminal.readEvent() == nil)
 
@@ -721,6 +734,7 @@ struct TerminalFocusReportTests {
 
     private func makeTerminal() -> (Terminal, ([UInt8]) -> Void) {
         let terminal = Terminal()
+        terminal.readsAtThePollsPace()
         let box = ByteBox()
         unsafe terminal.readSource = { buffer in
             guard !box.bytes.isEmpty else { return 0 }
@@ -764,8 +778,9 @@ struct TerminalFocusReportTests {
     func splitReportIsAFocusEvent() {
         let (terminal, stage) = makeTerminal()
         stage([0x1B])
-        #expect(terminal.readEvent() == nil)  // stale frame 1
-        #expect(terminal.readEvent() == nil)  // stale frame 2 → ESC deferred
+        #expect(terminal.readEvent() == nil)  // held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: ESC deferred
         stage(Array("[O".utf8))
         #expect(events(terminal) == [.focusChanged(isFocused: false)])
     }
@@ -787,8 +802,9 @@ struct TerminalFocusReportTests {
     func deferredDoubledEscapeThenReportTail() {
         let (terminal, stage) = makeTerminal()
         stage([0x1B, 0x1B])
-        #expect(terminal.readEvent() == nil)  // stale frame 1
-        #expect(terminal.readEvent() == nil)  // stale frame 2 → deferred
+        #expect(terminal.readEvent() == nil)  // held from here
+        #expect(terminal.readEvent() == nil)  // a poll (25 ms) later
+        #expect(terminal.readEvent() == nil)  // 50 ms: deferred
         stage(Array("[O".utf8))
         #expect(events(terminal) == [.key(KeyEvent(key: .escape)), .focusChanged(isFocused: false)])
     }
