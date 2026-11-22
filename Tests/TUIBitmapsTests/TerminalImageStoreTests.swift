@@ -220,11 +220,11 @@ struct TerminalImageStoreTests {
         #expect(!pending.contains("i=\(TerminalGraphicsQuery.probeID)"))
     }
 
+    // No zlib to deflate with on WebAssembly or Windows (`SystemZlibTests`).
+    #if !canImport(WASILibc) && !os(Windows)
     /// There is no combining mark for the 298th column, so an image that would
     /// need one is not drawn this way at all — the caller falls back to glyphs
     /// rather than drawing a truncated picture.
-    // No zlib to deflate with on WebAssembly or Windows (`SystemZlibTests`).
-    #if !canImport(WASILibc) && !os(Windows)
     @Test("A store transmits deflated exactly when the terminal said it would take it")
     func transmitsDeflatedOnlyWhereSupported() throws {
         try #require(SystemZlib.isAvailable, "no libz here; there is no compressed path to take")

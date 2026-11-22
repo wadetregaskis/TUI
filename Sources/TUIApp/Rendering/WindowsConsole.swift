@@ -38,12 +38,12 @@ struct ConsoleModes: Equatable, Sendable {
 
     /// The console's settings now, or `nil` where standard input or standard
     /// output is not a console: a pipe, a file, `NUL`.
-    static func current() -> ConsoleModes? {
+    static func current() -> Self? {
         var input: DWORD = 0
         var output: DWORD = 0
         guard unsafe GetConsoleMode(StandardHandle.input, &input), unsafe GetConsoleMode(StandardHandle.output, &output)
         else { return nil }
-        return ConsoleModes(
+        return Self(
             input: input, output: output, inputCodePage: GetConsoleCP(), outputCodePage: GetConsoleOutputCP())
     }
 
@@ -89,7 +89,7 @@ struct ConsoleModes: Equatable, Sendable {
     /// Ctrl-Break is not a key in any of these: the console always raises
     /// `CTRL_BREAK_EVENT` for it, which is what quits a hung app
     /// (`FatalSignalTerminalRestore`), as the driver's ⌃\ does on POSIX.
-    static func raw(from original: ConsoleModes) -> ConsoleModes {
+    static func raw(from original: Self) -> Self {
         var raw = original
         raw.input &= ~DWORD(ENABLE_LINE_INPUT | ENABLE_ECHO_INPUT | ENABLE_PROCESSED_INPUT | ENABLE_QUICK_EDIT_MODE)
         raw.input |= DWORD(ENABLE_VIRTUAL_TERMINAL_INPUT | ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT)
@@ -211,7 +211,7 @@ func environmentValue(_ name: String) -> String? {
 /// Reads only while the run loop has the console (``resume()``, from raw mode
 /// on, to ``pause()``, from raw mode off): records read while another program
 /// has it — a hand-off — would be keys taken from that program.
-final class ConsoleInput: @unchecked Sendable {
+final class ConsoleInput: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
     // @unchecked: every stored property but the two handles, which are set once
     // in `init` and only read after, is read and written under `condition`.
 

@@ -102,9 +102,11 @@ package enum AnimatedImageDecoder {
         #if canImport(ImageIO)
             decodeWithImageIO(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
         #elseif os(Windows)
-            isAnimatedWebP(head: [UInt8](data.prefix(21)))
-                ? decodeWebPWithWIC(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
-                : decodeGIF(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
+            if isAnimatedWebP(head: [UInt8](data.prefix(21))) {
+                decodeWebPWithWIC(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
+            } else {
+                decodeGIF(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
+            }
         #else
             decodeGIF(data, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
         #endif

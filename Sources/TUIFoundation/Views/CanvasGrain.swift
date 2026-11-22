@@ -59,7 +59,7 @@ public struct CanvasGrain: Equatable, Sendable {
     /// (``EnvironmentValues/fontHasQuadrants``), and every grain asked for by
     /// name is itself, as a grain the font may lack is asked for, never
     /// assumed.
-    func inCells(of environment: EnvironmentValues) -> CanvasGrain {
+    func inCells(of environment: EnvironmentValues) -> Self {
         kind == nil && !environment.fontHasQuadrants ? .halfBlocks : self
     }
 }

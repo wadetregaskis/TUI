@@ -97,7 +97,7 @@ struct AccessibilityPreferencesTests {
     @Test("Windows's settings map to three preferences, and none read says nothing")
     func windowsSettings() {
         let read = TerminalClient.windowsAccessibility
-        #expect(read(true, true, false) == [])
+        #expect(read(true, true, false)?.isEmpty == true)
         #expect(read(false, true, false) == [.reduceMotion])
         #expect(read(true, false, false) == [.reduceTransparency])
         #expect(read(true, true, true) == [.increaseContrast])

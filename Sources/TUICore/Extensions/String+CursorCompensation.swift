@@ -674,8 +674,8 @@ extension String {
     /// and is documented. ANSI escape sequences are preserved.
     public func withWindowsConsoleCursorCompensation() -> String {
         withCursorForwardCompensation(
-            erasingUnderGlyph: true, flagsAsCountryCodes: true, respelling: { $0.windowsConsoleRespelling }
-        ) { $0.windowsConsoleCursorAdvance }
+            erasingUnderGlyph: true, flagsAsCountryCodes: true, respelling: { $0.windowsConsoleRespelling },
+            advance: { $0.windowsConsoleCursorAdvance })
     }
 
     /// Returns a copy of this string with tmux's cursor-advance divergences

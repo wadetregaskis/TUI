@@ -148,12 +148,12 @@ extension PlatformImageLoader {
     let factory: UnsafeMutablePointer<IWICImagingFactory>
 
     /// Runs `body` with COM initialised and a factory made, both undone after.
-    static func run<T>(_ body: (WICSession) throws -> T) throws -> T {
+    static func run<T>(_ body: (Self) throws -> T) throws -> T {
         try WindowsCOM.withApartment { try unsafe withFactory(body) }
     }
 
     /// ``run(_:)``'s body, on a thread with COM initialised.
-    private static func withFactory<T>(_ body: (WICSession) throws -> T) throws -> T {
+    private static func withFactory<T>(_ body: (Self) throws -> T) throws -> T {
         var clsid = CLSID_WICImagingFactory
         var iid = IID_IWICImagingFactory
         var made: UnsafeMutableRawPointer?
@@ -161,7 +161,7 @@ extension PlatformImageLoader {
         guard result == S_OK, let made = unsafe made else {
             throw ImageLoadError.decodingFailed("WIC: no imaging factory (\(WICResult.describe(result)))")
         }
-        let session = unsafe WICSession(factory: made.assumingMemoryBound(to: IWICImagingFactory.self))
+        let session = unsafe Self(factory: made.assumingMemoryBound(to: IWICImagingFactory.self))
         defer { _ = unsafe session.factory.pointee.lpVtbl.pointee.Release(session.factory) }
         return try unsafe body(session)
     }
@@ -343,7 +343,6 @@ extension PlatformImageLoader {
         }
         throw ImageLoadError.decodingFailed("WIC could not open \(what) (\(WICResult.describe(result)))")
     }
-
 }
 
 /// What a WIC call answered.

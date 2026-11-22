@@ -71,4 +71,3 @@ extension TerminalClient {
         }
     #endif
 }
-

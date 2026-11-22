@@ -15,11 +15,14 @@ import sys
 RATCHETS = [
     # The exceptions to the SwiftLint rule `concurrency_escape`, each with its reason
     # in a comment. The rule refuses a new one, unless it is disabled on its line.
+    # 12 since staging's Windows port (rebased under local work 2026-11-21):
+    # ConsoleInput, the console reader's queue, is @unchecked Sendable because its
+    # state is guarded by the NSCondition its reader waits on, which no Mutex is.
     {
         "name": "unsafe-concurrency exceptions",
         "pattern": r"disable:this concurrency_escape",
         "paths": ["Sources"],
-        "limit": 11,
+        "limit": 12,
         "instead": "try dropping Sendable, a Mutex, an Atomic, @MainActor or sending",
     },
     # The exceptions to the SwiftLint rule `safe_escape`: a type marked `@safe`, which

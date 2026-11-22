@@ -14,8 +14,8 @@ import TUIApp
 @testable import TUIAppTestSupport
 @testable import TUIFoundation
 import TUIPickers
-@testable import TUITestSupport
 import TUITesting
+@testable import TUITestSupport
 
 /// Shows what the configuration carries.
 private struct ReportingStyle: DatePickerStyle {

@@ -11,8 +11,8 @@ import Foundation
 import Testing
 
 #if os(Windows)
-import WinSDK
 import TUICore
+import WinSDK
 #endif
 
 @testable import TUIFilePanels

@@ -137,20 +137,20 @@ enum WebPFixture {
     private struct BitWriter {
         private var output: [UInt8] = []
         private var pending = 0
-        private var count = 0
+        private var pendingBits = 0
 
         mutating func write(_ value: Int, _ width: Int) {
             for bit in 0..<width {
-                pending |= ((value >> bit) & 1) << count
-                count += 1
-                if count == 8 {
+                pending |= ((value >> bit) & 1) << pendingBits
+                pendingBits += 1
+                if pendingBits == 8 {
                     output.append(UInt8(pending))
-                    (pending, count) = (0, 0)
+                    (pending, pendingBits) = (0, 0)
                 }
             }
         }
 
-        func bytes() -> [UInt8] { count > 0 ? output + [UInt8(pending)] : output }
+        func bytes() -> [UInt8] { pendingBits > 0 ? output + [UInt8(pending)] : output }
     }
 
     private static func chunk(_ tag: String, _ data: [UInt8]) -> [UInt8] {

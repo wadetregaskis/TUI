@@ -39,7 +39,7 @@ extension ScenePresenter {
         /// Its second key, if its `.keyboardShortcutFallback` states one:
         /// named in its menu item where ``shortcut`` does not arrive
         /// (``ScenePresenter/namedShortcut(_:fallback:in:)``).
-        package var fallback: KeyboardShortcut? = nil
+        package var fallback: KeyboardShortcut?
     }
 
     /// Whether the app can have more than one window open: whether it has

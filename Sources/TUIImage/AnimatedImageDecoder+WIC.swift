@@ -28,13 +28,12 @@ extension AnimatedImageDecoder {
     static func decodeWebPWithWIC(
         _ data: Data, maxPixelCount: Int?, byteBudget: Int, frameLimit: Int
     ) -> AnimatedImage? {
-        let decoded = try? unsafe WICSession.run { session in
+        try? unsafe WICSession.run { session -> AnimatedImage? in
             let decoder = try unsafe session.decoder(data: data)
             defer { _ = unsafe decoder.pointee.lpVtbl.pointee.Release(decoder) }
             return try unsafe session.animation(
                 of: decoder, maxPixelCount: maxPixelCount, byteBudget: byteBudget, frameLimit: frameLimit)
         }
-        return decoded ?? nil
     }
 }
 

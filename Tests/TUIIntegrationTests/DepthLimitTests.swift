@@ -14,8 +14,8 @@ import TUI
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
-import TUITestSupport
 import TUITesting
+import TUITestSupport
 @testable import TUIView
 
 /// Further than any stack holds, debug or release, on any platform CI runs.

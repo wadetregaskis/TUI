@@ -133,7 +133,7 @@ enum FatalSignalTerminalRestore {
 
     /// `STATUS_CONTROL_C_EXIT`, what a console process ended by Ctrl-C or
     /// Ctrl-Break exits with when nothing handles the event.
-    private static let controlCExit: Int32 = Int32(bitPattern: 0xC000_013A)
+    private static let controlCExit = Int32(bitPattern: 0xC000_013A)
 
     // MARK: - A quit and the frame in flight
 
@@ -201,9 +201,11 @@ enum FatalSignalTerminalRestore {
 
     /// The unhandled-exception filter: pays a crash's debt, then passes the
     /// exception on.
-    private static let exceptionFilter: @convention(c) (UnsafeMutablePointer<EXCEPTION_POINTERS>?) -> LONG = {
-        pointers in
+    private static let exceptionFilter: @convention(c) (UnsafeMutablePointer<EXCEPTION_POINTERS>?) -> LONG = { pointers in
         Self.pay(asQuit: false, waiting: false)
+        // Not redundant, whatever the rule says: the lock's answer is an optional
+        // of the optional filter it holds, and `?? nil` flattens the two.
+        // swiftlint:disable:next redundant_nil_coalescing
         let previous = unsafe Self.previousFilter.withLockIfAvailable { unsafe $0 } ?? nil
         if let previous = unsafe previous { return unsafe previous(pointers) }
         return EXCEPTION_CONTINUE_SEARCH
