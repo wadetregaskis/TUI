@@ -1507,6 +1507,15 @@ Item 6 was a comment: `TextEditorTextChange` put tree-sitter's end points at col
 not its end). It now says so, and how to find each point from its own text; the change keeps no points of its own,
 which a highlighter that is not tree-sitter would not use.
 
+- **B-ATTRED-61. A highlighter can ask whether a version is still the editor's** (item 7): `isCurrent(_:)`, the
+  check a publish makes (the version is the editor's, and the editor has not gone), without publishing. A publish of
+  no lines answered it already, which read as an accident. `hasUpdate` was the other offer; it is not the same
+  question (a scroll is an update, and leaves the text current), and it would let a highlighter poll.
+
+Item 8, that the SPI spreads to an adapter's own API (a public type cannot conform to an SPI protocol, so
+tuitree's `TreeSitterHighlighter` is SPI too), is what SPI is, and changes only with the seam's promotion
+(A-ATTRED-10); nothing was done for it but to note it as one more reason to promote the seam once it settles.
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

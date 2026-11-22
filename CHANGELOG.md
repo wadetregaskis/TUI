@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A highlighter can ask whether its text is still the editor's.** Under the highlighting seam's SPI, a session's
+`isCurrent(_:)` says whether a version is the one a publish would be taken for, so a long parse can stop for a newer
+text without publishing to find out.
+
 **A highlighter can be tested without an editor.** Under the highlighting seam's SPI, TUITesting's
 `TestHighlightSession` plays the editor (an edit, a whole write, a scroll) exactly as a `TextEditor` tells its
 highlighter of them, runs a highlighter and steps it until it waits for the next update, and reads back the tokens

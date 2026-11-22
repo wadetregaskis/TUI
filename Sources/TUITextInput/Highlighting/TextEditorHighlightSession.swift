@@ -127,6 +127,14 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
         observed(keepPublished(tokens, forLines: lines, of: version), lines: lines, of: version)
     }
 
+    /// Whether the text of `version` is still the editor's: what a publish
+    /// for it is checked against, so `false` means the next update has a
+    /// newer text, or the editor has gone. A long parse can ask it between
+    /// slices and leave a text the editor has moved on from (B-ATTRED-61).
+    public func isCurrent(_ version: Int) -> Bool {
+        state.withLock { !$0.isClosed && $0.version == version }
+    }
+
     /// Ends a slice of work: throws if the task is cancelled or the editor
     /// has gone, and otherwise lets other work run. A highlighter on a single
     /// thread (WebAssembly) holds it until it reaches this.

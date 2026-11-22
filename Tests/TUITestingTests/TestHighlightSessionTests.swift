@@ -99,6 +99,21 @@ struct TestHighlightSessionTests {
         #expect(row == 1 && change.oldUTF8.upperBound - old.utf8Offset(ofLine: row) == 1)
     }
 
+    @Test("A highlighter asks whether its text is still the editor's, without publishing anything")
+    func isCurrent() async throws {
+        // tuitree's SeamTests, "A publish of no lines says whether a version is still the editor's": the only way to
+        // ask, which looked like an accident.
+        let test = TestHighlightSession<Token>(text: "a\nb", visibleLines: 0..<2)
+        let update = try #require(await test.session.nextUpdate())
+        #expect(test.session.isCurrent(update.text.version))
+        test.replace(0..<0, with: "x")
+        #expect(!test.session.isCurrent(update.text.version), "the editor moved on")
+        #expect(test.session.isCurrent(update.text.version + 1))
+        #expect(test.publications.isEmpty, "asked, not published")
+        test.close()
+        #expect(!test.session.isCurrent(update.text.version + 1), "the editor went")
+    }
+
     @Test("A text and tokens a test makes: lines found as the editor finds them, tokens read in order")
     func textAndTokens() {
         let text = TextEditorText("one\r\ntwo\rthree", version: 7)
