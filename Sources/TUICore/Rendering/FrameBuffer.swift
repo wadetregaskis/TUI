@@ -745,6 +745,12 @@ extension FrameBuffer {
     /// of them. Every walk that predicts where an append puts a child — a
     /// stack's measure, its distribution, its glide — charges this gap, so
     /// the extent a stack reports is the extent it draws, and never negative.
+    ///
+    /// Holding the pull to the first child is a deliberate deviation (owner,
+    /// 2026-11-22; L21 in `Deliberate deviations from SwiftUI.md`): SwiftUI lets
+    /// a pull past everything before the child move it above the stack's frame,
+    /// and draws it there. No practical use for that was found, and a stack
+    /// here can't draw outside its frame; re-judge it if one turns up.
     package static func appliedGap(_ spacing: Int, after placedExtent: Int, before extent: Int) -> Int {
         placedExtent > 0 && extent > 0 ? max(spacing, -placedExtent) : 0
     }

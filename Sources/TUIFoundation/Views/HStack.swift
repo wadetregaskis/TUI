@@ -52,6 +52,10 @@ nonisolated public struct HStack<Content: View>: View {
     ///     views, none beside a custom ``Layout`` whose
     ///     ``Layout/spacing(subviews:cache:)`` asks for none on that edge — the
     ///     horizontal half of ``ViewSpacing``.
+    ///     A negative spacing overlaps neighbours, the later on top, as in
+    ///     SwiftUI; it pulls a child back no further than the start of the
+    ///     stack (a deliberate deviation, L21: SwiftUI moves it past the
+    ///     stack's edge).
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: VerticalAlignment = .center,

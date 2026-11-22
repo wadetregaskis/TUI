@@ -46,6 +46,10 @@ nonisolated public struct VStack<Content: View>: View {
     ///   - spacing: The blank lines between children, or `nil` (the default)
     ///     for what views prefer between them: none, the vertical half of
     ///     ``ViewSpacing``.
+    ///     A negative spacing overlaps neighbours, the later on top, as in
+    ///     SwiftUI; it pulls a child back no further than the start of the
+    ///     stack (a deliberate deviation, L21: SwiftUI moves it past the
+    ///     stack's edge).
     ///   - content: A ViewBuilder that defines the children.
     public init(
         alignment: HorizontalAlignment = .center,

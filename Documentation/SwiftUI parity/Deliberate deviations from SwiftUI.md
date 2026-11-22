@@ -628,6 +628,28 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   is the inset as in SwiftUI, the line stays outside the content, and no
   inset parameter is added. **Owner.**
 
+### L21. A negative spacing pulls a child no further than the start of the stack
+
+- **SwiftUI:** a stack's spacing may pull a child past the start of everything
+  before it. `VStack(spacing: -30) { red 20 tall; blue 20 tall }` is 10 tall,
+  blue starts 10 points above the stack's frame, and because a stack doesn't
+  clip, it draws there, over whatever is above the stack. Measured 2026-11-22
+  with `ImageRenderer` on macOS 15 (H-20's probe).
+- **TUI:** the pull stops at the start of the stack (`FrameBuffer.appliedGap`,
+  shared by `appendVertically` and `appendHorizontally`): the same stack is 20
+  rows, blue over all of red. A pull no larger than what precedes it, which is
+  every use found, overlaps exactly as SwiftUI's does, the later child on top.
+- **Why:** no practical use for the extra pull was found: overlapping avatars
+  (`HStack(spacing: -6)` to `-30`), stacked cards and a header image tucked
+  behind the content under it all pull by less than the earlier view, and a
+  view meant to sit above a stack is placed with `.offset` or a `ZStack`.
+  Matching SwiftUI's size is cheap, but matching what it draws needs a stack to
+  draw outside its own frame, which TUI's stacks can't; cutting the overflow
+  would give SwiftUI's size with a different picture. Re-judge this if a real
+  use, or a reason it matters, comes to light.
+- **Decided:** the owner, 2026-11-22 (H20-PULL), on the measurement above.
+  **Owner.**
+
 ## State and data flow
 
 ### S1. A dynamic property in an optional field is live
