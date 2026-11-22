@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`copyToClipboard` is called on the main actor, and a call from elsewhere no longer compiles and then ends the
+app.** `CopyToClipboardAction.callAsFunction(_:)` was nonisolated, so a call from a detached task or another actor
+compiled, and stopped the process at the copy, which runs on the main actor. It is now `@MainActor`, as every other
+environment action's call is. Source-breaking for a call outside the main actor: hop to it, with `await copy(text)`
+in a task or `MainActor.run`. A call in a view's or a command's action, the usual place, is unchanged.
+
 **A picture inside a repeating fade, or behind one, keeps drawing.** On a terminal that draws pictures, a
 `repeatForever` `.opacity` breath over an `Image`, or a breathing scrim laid over one, sent a copy of the picture for
 every level of the breath on every row at each render, megabytes in one frame, and its frames named copies already

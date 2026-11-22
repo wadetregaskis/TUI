@@ -54,7 +54,13 @@ public struct CopyToClipboardAction: Sendable {
 
     /// Puts `text` on the clipboard.
     ///
+    /// On the main actor, as every environment action's call is: the copy
+    /// goes through the app's clipboard writer, which lives there. The action
+    /// itself is `Sendable`, so a task off the main actor can hold it, and
+    /// calls it with `await`.
+    ///
     /// - Parameter text: The text to copy. Empty text copies nothing.
+    @MainActor
     public func callAsFunction(_ text: String) {
         // Announced, as Copy Link's is: nothing else on screen says a
         // command's copy happened.

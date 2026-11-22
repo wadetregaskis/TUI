@@ -549,7 +549,7 @@ CoordinateSpaceProtocol.named(_:) | static func named(_ name: some Hashable) -> 
 CoordinateSpaceProtocol.scrollView | static var scrollView: NamedCoordinateSpace { get } [extension where Self == NamedCoordinateSpace]
 CoordinateSpaceProtocol.scrollView(axis:) | static func scrollView(axis: Axis) -> Self [extension where Self == NamedCoordinateSpace]
 CopyToClipboardAction | struct CopyToClipboardAction
-CopyToClipboardAction.callAsFunction(_:) | func callAsFunction(_ text: String)
+CopyToClipboardAction.callAsFunction(_:) | @MainActor func callAsFunction(_ text: String)
 DefaultButtonLabel | nonisolated struct DefaultButtonLabel
 DefaultButtonLabel.body | @MainActor var body: some View { get }
 DefaultButtonStyle | struct DefaultButtonStyle
