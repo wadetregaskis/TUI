@@ -192,10 +192,12 @@ the pair a change to how the editor lays its document out is priced on (the
 `code-editor` shape is `Text` rows, not an editor). `text-editor-unwrapped` is
 the same settled editor scrolling sideways (`textEditorWrapsLines(false)`), so
 it against `text-editor` is the price of the wrap. `text-editor-beside` puts the
-settled editor beside a gutter in an `HStack`, which lays it out at three widths
+settled editor beside a gutter in an `HStack`, which laid it out at three widths
 a frame (the full width, the width it is given, and a cell narrower for its
-scroll bar) where a lone editor is laid out at two: the shape whose idle frame
-a cache of the latest two widths turned into three whole-document wraps.
+scroll bar) where a lone editor was laid out at two: the shape whose idle frame
+a cache of the latest two widths turned into three whole-document wraps. Since
+2026-11-22 an editor with more lines than the view has rows is wrapped at the
+narrower width alone, and a measure offered a height wraps nothing.
 `sidebar`/`sidebar-untagged` is a pair along a third axis: one hand-written
 "All projects" row above 300 looped ones, which makes the `List` walk its
 flattened children eagerly and recover each looped row's selection value from

@@ -152,9 +152,11 @@ extension _TextEditorCore {
     /// The editor's rows at `width`, for a measure: its lines, or where it
     /// wraps its rows, a paragraph's line height's blank rows among them —
     /// read from the value itself before a render has made the handler that
-    /// keeps them.
-    func contentRowCount(width: Int, context: RenderContext) -> Int {
+    /// keeps them. With a `limit`, at least that many where the editor has as
+    /// many lines, a line being a row at least, and none wrapped to say so.
+    func contentRowCount(width: Int, context: RenderContext, upTo limit: Int? = nil) -> Int {
         let layout = layout(context: context)
+        if let limit, layout.lines.count >= limit { return layout.lines.count }
         var gaps: [Int]?
         if let handler = existingHandler(context: context) {
             gaps = handler.lineGaps(for: layout)

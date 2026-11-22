@@ -145,7 +145,10 @@ struct EditorLayoutEditTests {
         let layout = handler.layout()
         #expect(layout.text == box.value)
         #expect(layout.wrapsMade == 0, "the edit's layout kept the rows of every line but the one typed into")
-        #expect(layout.wrappings.count >= 3)
+        // Rows kept, so the edit had rows to splice its line into: those at
+        // the width drawn, the only one a document taller than the view in
+        // lines is wrapped at.
+        #expect(!layout.wrappings.isEmpty)
     }
 
     @Test("Character offsets and indices found from the lines' starts are the walked ones")

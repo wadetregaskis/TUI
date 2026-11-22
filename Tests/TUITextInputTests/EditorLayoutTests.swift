@@ -121,7 +121,7 @@ struct EditorLayoutTests {
         var handler: TextEditorHandler? { focus.currentFocused as? TextEditorHandler }
     }
 
-    static let longDocument = Array(repeating: "aaaa bbbb cccc dddd eeee ffff gggg", count: 30)
+    nonisolated static let longDocument = Array(repeating: "aaaa bbbb cccc dddd eeee ffff gggg", count: 30)
         .joined(separator: "\n")
 
     struct Beside: View {
@@ -134,20 +134,30 @@ struct EditorLayoutTests {
         }
     }
 
-    /// An HStack measures its editor at the full width, then at the width it
-    /// gives it, and the editor draws at that width and a cell narrower for
-    /// its scroll bar: three widths a frame, and two kept meant the whole
-    /// document wrapped three times on every idle frame.
-    @Test("An editor laid out at several widths a frame wraps its document once for each, not every frame")
-    func idleFramesWrapNothing() throws {
+    /// Three lines of 100 characters: fewer lines than the view has rows,
+    /// more rows than that once wrapped.
+    nonisolated static let wideDocument = Array(repeating: String(repeating: "abcd ", count: 20), count: 3)
+        .joined(separator: "\n")
+
+    /// An editor wraps its document at the width it is given and, once its
+    /// rows overflow the view, a cell narrower for its scroll bar: two widths
+    /// a frame, and one kept meant the whole document wrapped twice on every
+    /// idle frame. A document with more lines than the view has rows
+    /// overflows at any width, and is wrapped at the narrower one alone: kept
+    /// at both, a 10 MB text of 30-byte lines held 168 bytes a line more, of
+    /// 889 (measured 2026-11-22).
+    @Test(
+        "An editor laid out at several widths a frame wraps its document once for each, not every frame",
+        arguments: [(longDocument, 1...1), (wideDocument, 2...8)])
+    func idleFramesWrapNothing(document: String, widths: ClosedRange<Int>) throws {
         let frames = Frames(width: 30, height: 6)
-        let page = Beside(text: Box(Self.longDocument))
+        let page = Beside(text: Box(document))
         for _ in 0..<2 { _ = frames.pass { renderToBuffer(page, context: frames.context) } }
         let layout = try #require(frames.handler).layout()
         let made = layout.wrapsMade
         for _ in 0..<3 { _ = frames.pass { renderToBuffer(page, context: frames.context) } }
         #expect(layout.wrapsMade == made)
-        #expect(layout.wrappings.count >= 3, "the widths a frame asks for are all kept")
+        #expect(widths.contains(layout.wrappings.count), "the widths a frame asks for are kept, and no others")
     }
 
     @Test("A width no frame asks for any more is forgotten")

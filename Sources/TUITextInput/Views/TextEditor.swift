@@ -419,14 +419,19 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         // Given no width — the ideal-width ask, whose answer is 0 as SwiftUI's
         // editor's is — it is as tall as its lines: wrapping at one cell would
         // lay out a row per character to answer a question about nothing.
-        let contentHeight = contentRowCount(width: width, context: context)
         // Pulled, its rows' height, held (`TextEditor+Pulled.swift`).
         // Offered no height and not pulled, its rows' height too
         // (`answersNaturalHeight`).
         if notePulled(context: context) || answersNaturalHeight(proposal: proposal, context: context) {
+            let contentHeight = contentRowCount(width: width, context: context)
             return ViewSize(width: width, height: contentHeight, isWidthFlexible: true, isHeightFlexible: false)
         }
-        let height = proposal.height ?? min(contentHeight, max(1, context.availableHeight))
+        // Its rows counted only where the answer reads them, and no further
+        // than it reads: a measure that wrapped the whole text at the width
+        // it was offered kept it wrapped there, beside the narrower width a
+        // scroll bar leaves, which the render draws at.
+        let available = max(1, context.availableHeight)
+        let height = proposal.height ?? min(contentRowCount(width: width, context: context, upTo: available), available)
         return ViewSize(width: width, height: height, isWidthFlexible: true, isHeightFlexible: true)
     }
 
@@ -677,9 +682,11 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// When the text is taller than the view, the trailing column is reserved
     /// for a scroll indicator, so the user can see there is content out of
     /// view — the total width is unchanged, so measure == render still holds.
-    /// A wrapping editor then lays its text out again a cell narrower, as a
-    /// scroll view lays out its content once a bar arrives; both widths stay
-    /// in the layout, so neither is laid out again the next frame.
+    /// A wrapping editor then lays its text out a cell narrower, as a scroll
+    /// view lays out its content once a bar arrives. It wraps at the full
+    /// width only to learn whether it overflows, and not at all where it has
+    /// more lines than the view has rows; what it wraps at stays in the
+    /// layout, so it is not laid out again the next frame.
     private func window(
         _ handler: TextEditorHandler, lines: [[Character]], width: Int, height: Int, tabWidth: TabWidth,
         wraps: Bool, follows: Bool, barWidth: Int
@@ -727,10 +734,16 @@ struct _TextEditorCore: View, Renderable, Layoutable {
                 contentWidth: contentWidth, hasVerticalOverflow: overflows, extent: spaced.rowCount,
                 offset: handler.sidewaysTopRow(in: spaced), caretColumn: caretColumn, rows: nil)
         }
-        var rows = handler.wrappedRows(width: width, tabWidth: tabWidth)
-        let overflows = rows.rowCount > height
+        // Taller than the view at once where it has more lines than the view
+        // has rows, a line taking a row at least: then the text is wrapped
+        // only at the width it is drawn at. Wrapped at the full width too, to
+        // find that it overflows, the document was kept wrapped at both, a
+        // third of what an editor of a large text held (measured 2026-11-22:
+        // 10 MB of 30-byte lines, 889 B a line, of which 168 that wrapping).
+        let overflows =
+            lines.count > height || handler.wrappedRows(width: width, tabWidth: tabWidth).rowCount > height
         let contentWidth = overflows ? max(1, width - barWidth) : width
-        if overflows { rows = handler.wrappedRows(width: contentWidth, tabWidth: tabWidth) }
+        var rows = handler.wrappedRows(width: contentWidth, tabWidth: tabWidth)
         // The width the keys move by: the one drawn, never a measure's probe,
         // which would leave the keys between frames moving by rows at a width
         // nobody sees.
