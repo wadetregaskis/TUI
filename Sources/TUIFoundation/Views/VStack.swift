@@ -170,8 +170,9 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // height is its MINIMUM (`Spacer.sizeThatFits` reports `minLength ?? 0`)
         // and not the rows the render will hand it. Reading a default spacer as
         // "occupies nothing" would drop one `spacing` from the reported minimum
-        // of every column that has one.
-        var occupiedRows = 0
+        // of every column that has one. A negative `spacing` is charged as the
+        // column draws it (`LinearGapTally`).
+        var gaps = LinearGapTally(spacing: spacing)
         // The scroll views a deal may hand less than they asked, where that can move
         // their width: offered a width, one takes it at any height. Offered none, it
         // answers its ideal, which is the rows it shows and the bar it needs for them.
@@ -188,7 +189,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             if !size.isNaturalSize { childrenAreNatural = false }
             if child.fillsItsOffer, !child.isSpacer, proposal.width == nil { squeezable.append((index, size)) }
             tallestChild = max(tallestChild, size.height)
-            if child.isSpacer || size.height > 0 { occupiedRows += 1 }
+            gaps.place(extent: size.height, occupies: child.isSpacer || size.height > 0)
             let width = asksIdealWidth ? wholeContentWidth(of: size, limit: widthLimit) : size.width
             if hasGuides {
                 guideSizes.append(
@@ -216,7 +217,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             }
             // Under the overflow probe only (`overflowProbeSizeThatFits`): the
             // rows so far and their gaps reach the budget, so the column does.
-            if let stop, totalHeight + totalLinearSpacing(occupiedChildren: occupiedRows, spacing: spacing) >= stop {
+            if let stop, totalHeight + gaps.total >= stop {
                 return ViewSize(
                     width: min(maxWidth, max(0, widthLimit)), height: stop,
                     isWidthFlexible: hasFlexibleWidth, isHeightFlexible: hasFlexibleHeight)
@@ -228,7 +229,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         // contributes-nothing branch, which charges none — so the old count made
         // `VStack(spacing: 2) { Text("A"); EmptyView(); Text("B") }` claim 6 rows
         // for a column that draws 4.
-        totalHeight += totalLinearSpacing(occupiedChildren: occupiedRows, spacing: spacing)
+        totalHeight += gaps.total
 
         // Never advertise a size larger than the constraint we were given —
         // an over-report would make the parent reserve space that does not
@@ -570,8 +571,8 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
         let contentHeight = min(
             context.availableHeight,
             finalHeights.reduce(0, +)
-                + totalLinearSpacing(
-                    occupiedChildren: finalHeights.count { $0 > 0 }, spacing: spacing))
+                + StackGaps(uniform: spacing).total(
+                    count: finalHeights.count, occupies: { finalHeights[$0] > 0 }, extent: { finalHeights[$0] }))
         let gradientFrame = context.gradientContentFrame(
             width: contentWidth, height: contentHeight)
         // Where each child sits, for the ramp and for the carried geometry
@@ -705,7 +706,10 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
             // Gaps between the rows that will occupy lines — every spacer and
             // every row that drew some — the count `distributeLinearSpace`
             // reserves for the eager column. See HStack's `renderWindow`.
-            let totalSpacing = totalLinearSpacing(occupiedChildren: spacerCount + eagerBuffers.count { ($0?.height ?? 0) > 0 }, spacing: spacing)
+            let totalSpacing = StackGaps(uniform: spacing).total(
+                count: children.count,
+                occupies: { children[$0].isSpacer || (eagerBuffers[$0]?.height ?? 0) > 0 },
+                extent: { eagerBuffers[$0]?.height ?? 0 })
             let availableForSpacers = max(0, availableHeight - fixedHeight - totalSpacing)
             spacerHeight = availableForSpacers / spacerCount
             spacerRemainder = availableForSpacers % spacerCount
@@ -853,7 +857,7 @@ nonisolated package struct _VStackCore<Content: View>: View, Renderable, Layouta
                 continue
             }
             defer { placedIndex += 1 }
-            let y = buffer.height > 0 && result.height > 0 ? result.height + spacingToApply : result.height
+            let y = result.height + FrameBuffer.appliedGap(spacingToApply, after: result.height, before: buffer.height)
             let buffer = fade.drawn(
                 buffer, WindowedRow(child, under: context.identity),
                 x: guideRun?.offsets[placedIndex] ?? Self.gradientX(childWidth: buffer.width, extent: maxWidth, alignment: alignment), y: y)

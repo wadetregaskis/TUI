@@ -249,7 +249,8 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
             }
             // Who occupies the axis, by `distributeLinearSpace`'s own rule; a
             // gap by pair is never negative, and the one `spacing` is clamped.
-            let gapTotal = max(0, gaps.total(count: ideal.count) { fills[$0] || ideal[$0] > 0 })
+            let gapTotal = max(
+                0, gaps.total(count: ideal.count, occupies: { fills[$0] || ideal[$0] > 0 }, extent: { ideal[$0] }))
             distributable = min(availableWidth, idealTotal + gapTotal)
         }
         // A priority decides who is offered space first (`layoutPriority(_:)`).
@@ -325,7 +326,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // so both take that same branch.
         let totalWidth =
             widths.reduce(0, +)
-            + gaps.total(count: widths.count) { widths[$0] > 0 }
+            + gaps.total(count: widths.count, occupies: { widths[$0] > 0 }, extent: { widths[$0] })
         return ResolvedRowLayout(
             widths: widths,
             totalWidth: min(totalWidth, max(0, availableWidth)),
@@ -713,9 +714,10 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
         // every column that drew some — the count `distributeLinearSpace`
         // reserves for the eager row. One per child left a Spacer beside an
         // `EmptyView` a `spacing` short of flush.
-        let totalSpacing = gaps.total(count: children.count) {
-            children[$0].isSpacer || (eagerBuffers[$0]?.width ?? 0) > 0
-        }
+        let totalSpacing = gaps.total(
+            count: children.count,
+            occupies: { children[$0].isSpacer || (eagerBuffers[$0]?.width ?? 0) > 0 },
+            extent: { eagerBuffers[$0]?.width ?? 0 })
         let availableForSpacers = max(0, availableWidth - fixedWidth - totalSpacing)
         return (eagerBuffers, availableForSpacers / spacerCount, availableForSpacers % spacerCount)
     }
@@ -866,7 +868,7 @@ nonisolated package struct _HStackCore<Content: View>: View, Renderable, Layouta
                 continue
             }
             defer { placedIndex += 1 }
-            let x = buffer.width > 0 && result.width > 0 ? result.width + spacingToApply : result.width
+            let x = result.width + FrameBuffer.appliedGap(spacingToApply, after: result.width, before: buffer.width)
             let buffer = fade.drawn(
                 buffer, WindowedRow(child, under: context.identity), x: x,
                 y: guideRun?.offsets[placedIndex] ?? alignment.childOffset(childHeight: buffer.height, in: maxHeight))

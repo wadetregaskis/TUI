@@ -261,9 +261,9 @@ nonisolated public struct HStackLayout: Layout, Sendable, Equatable {
         let sizes = subviews.map { $0.sizeThatFits(natural) }
         // See `VStackLayout.sizeThatFits` — the gaps the distribution reserves,
         // each between the two subviews it separates.
-        let gaps = gaps(between: subviews).total(count: subviews.count) {
-            sizes[$0].isWidthFlexible || sizes[$0].width > 0
-        }
+        let gaps = gaps(between: subviews).total(
+            count: subviews.count, occupies: { sizes[$0].isWidthFlexible || sizes[$0].width > 0 },
+            extent: { sizes[$0].width })
         let content = sizes.map(\.width).reduce(0, +) + gaps
         let flexible = sizes.contains { $0.isWidthFlexible }
         let width: Int

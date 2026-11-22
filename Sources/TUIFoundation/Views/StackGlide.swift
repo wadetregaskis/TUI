@@ -161,8 +161,10 @@ struct StackPlacements {
 @MainActor extension _VStackCore {
     /// Where `renderClip`'s PASS 3 puts each child: down the column by the
     /// rows each one draws (`buffers`, or a spacer's height), a gap charged
-    /// only between two children that draw rows, as `appendVertically` charges
-    /// one; across it by the guide run, or by the alignment within
+    /// only between two children that draw rows, and a negative one reaching
+    /// back no further than the first, as `appendVertically` charges one
+    /// (`FrameBuffer.appliedGap`) — so a column gliding to its place is drawn
+    /// where it then settles; across it by the guide run, or by the alignment within
     /// `alignmentWidth`, as `horizontallyAligned(toWidth:alignment:)` places a
     /// narrower child.
     func columnPlacements(
@@ -178,7 +180,7 @@ struct StackPlacements {
             let x =
                 guideRun?.offsets[index]
                 ?? (width < alignmentWidth ? alignment.childOffset(childWidth: width, in: alignmentWidth) : 0)
-            let y = rows > 0 && height > 0 ? height + spacing : height
+            let y = height + FrameBuffer.appliedGap(spacing, after: height, before: rows)
             targets.append(ChildPlacement(x: x, y: y))
             if rows > 0 { height = y + rows }
         }
@@ -214,7 +216,7 @@ struct StackPlacements {
                         ? alignment.childOffset(childHeight: buffer.height, in: rowHeight) : 0)
                 placedIndex += 1
             }
-            let x = width > 0 && columns > 0 ? width + gap : width
+            let x = width + FrameBuffer.appliedGap(gap, after: width, before: columns)
             targets.append(ChildPlacement(x: x, y: y))
             width = x + columns
         }

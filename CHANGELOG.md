@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A negative `spacing` in a column overlaps its rows, as SwiftUI's does.** `VStack(spacing: -1) { Text("a\nb\nc");
+Button("x") {} }` drew four rows while reporting three, with the button's click region a row above where it was drawn,
+and a parent that gave the column the rows it reported cut its last row off. Each child is now pulled up over the rows
+before it and drawn on top of them, as in SwiftUI: the column reports, is dealt and draws the same rows, so two
+bordered boxes at `spacing: -1` share a border row; clicks, focus pulses and fades land where the child is drawn; and
+the column settles where an animation glided it instead of jumping a row the frame it lands. A spacing that outweighs
+the content no longer reports a negative size, which made the stack vanish inside another: in a column and in a row, a
+pull reaches back no further than the stack's first row or column.
+
 **A row that draws nothing takes no line in a lazy stack of more than 256 rows.** In
 `LazyVStack(spacing: 1) { ForEach(items) { RowView($0) } }`, a row whose body is empty, or framed to no height,
 took no line and no gap at 200 rows, as in a `VStack`, but past 256 it was a blank line and a gap: the list grew

@@ -56,7 +56,7 @@ struct WindowedZOrder {
             // or with no gap where either side draws nothing on that axis.
             let extent = isRow ? result.width : result.height
             let length = isRow ? slot.width : slot.height
-            let at = length > 0 && extent > 0 ? extent + spacing : extent
+            let at = extent + FrameBuffer.appliedGap(spacing, after: extent, before: length)
             layers?.append((slot, isRow ? at : 0, isRow ? 0 : at, child.zIndex))
         }
         if isRow {

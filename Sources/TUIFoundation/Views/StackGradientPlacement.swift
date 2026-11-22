@@ -91,8 +91,9 @@ import TUIView
             let fixedHeight = zip(children, sizes)
                 .reduce(0) { $0 + ($1.0.isSpacer ? 0 : $1.1.height) }
             // The rows that will occupy lines, counted as `renderWindow` counts them.
-            let occupied = spacerCount + zip(children, sizes).count { !$0.0.isSpacer && $0.1.height > 0 }
-            let totalSpacing = totalLinearSpacing(occupiedChildren: occupied, spacing: spacing)
+            let totalSpacing = StackGaps(uniform: spacing).total(
+                count: children.count, occupies: { children[$0].isSpacer || sizes[$0].height > 0 },
+                extent: { children[$0].isSpacer ? 0 : sizes[$0].height })
             let forSpacers = max(0, context.availableHeight - fixedHeight - totalSpacing)
             spacerHeight = forSpacers / spacerCount
             spacerRemainder = forSpacers % spacerCount
@@ -174,7 +175,9 @@ import TUIView
             let fixedWidth = zip(children, sizes)
                 .reduce(0) { $0 + ($1.0.isSpacer ? 0 : $1.1.width) }
             // The columns that will occupy cells, counted as `renderWindow` counts them.
-            let totalSpacing = gaps.total(count: children.count) { children[$0].isSpacer || sizes[$0].width > 0 }
+            let totalSpacing = gaps.total(
+                count: children.count, occupies: { children[$0].isSpacer || sizes[$0].width > 0 },
+                extent: { children[$0].isSpacer ? 0 : sizes[$0].width })
             let forSpacers = max(0, context.availableWidth - fixedWidth - totalSpacing)
             spacerWidth = forSpacers / spacerCount
             spacerRemainder = forSpacers % spacerCount

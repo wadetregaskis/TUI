@@ -385,9 +385,19 @@ extension FrameBuffer {
     /// here" collapsed those rows and pulled the following sibling up into
     /// them.
     ///
+    /// A negative `spacing` pulls `other` up over this buffer's last rows, no
+    /// further than its first, and `other` is drawn over them: the later child
+    /// on top, as SwiftUI's `VStack` draws it (probed on macOS 15 with
+    /// `ImageRenderer`: `VStack(spacing: -10) { red 20 tall; blue 20 tall }` is
+    /// 30 tall, blue over the ten rows they share). The buffer is then
+    /// `height + spacing + other.height` rows, as the stacks' measure charges
+    /// it, so a row of this buffer that `other` ends above is cut — SwiftUI's
+    /// stack is as short, and draws that row outside its frame.
+    ///
     /// - Parameters:
     ///   - other: The buffer to append below.
-    ///   - spacing: Number of empty lines between the two buffers.
+    ///   - spacing: Number of empty lines between the two buffers, or, when
+    ///     negative, the rows `other` is pulled up over (see above).
     ///     Ignored when `other` has no lines, by design (see above).
     public mutating func appendVertically(_ other: Self, spacing: Int = 0) {
         let priorHeight = lines.count
@@ -412,8 +422,13 @@ extension FrameBuffer {
         }
 
         // `other`'s content lands below the current lines (plus spacing), over
-        // an earlier view's overflow there.
-        let spacingApplied = priorHeight > 0 ? spacing : 0
+        // an earlier view's overflow there — or, pulled up by a negative gap,
+        // over the current lines themselves.
+        let spacingApplied = Self.appliedGap(spacing, after: priorHeight, before: other.lines.count)
+        if spacingApplied < 0 {
+            appendPulledUp(other, overlapping: -spacingApplied)
+            return
+        }
         let verticalShift = priorHeight + spacingApplied
         coverOverflow(under: other, at: (x: 0, y: verticalShift))
 
@@ -434,7 +449,7 @@ extension FrameBuffer {
         } else {
             resultUniform =
                 linesAreUniformWidth && other.linesAreUniformWidth
-                && width == other.width && spacing == 0
+                && width == other.width && spacingApplied == 0
         }
 
         // Carry per-line widths cheaply (extension, no re-measure) — the exact
@@ -489,8 +504,8 @@ extension FrameBuffer {
             // `append(contentsOf:)` grows geometrically instead, which is what
             // makes the accumulation amortised O(rows added): ~12 reallocations
             // for those same 4,000 appends.
-            if spacing > 0 {
-                merged.append(contentsOf: repeatElement(0, count: spacing))
+            if spacingApplied > 0 {
+                merged.append(contentsOf: repeatElement(0, count: spacingApplied))
             }
             merged.append(contentsOf: theirs)
             lineWidths = merged
@@ -511,8 +526,8 @@ extension FrameBuffer {
         // `storage` (not `lines`) deliberately: the public setter recomputes the
         // whole-buffer width per write, and the geometry is already known
         // exactly here — the same reasoning `composite(with:at:)` documents.
-        if !selfWasEmpty && spacing > 0 {
-            storage.append(contentsOf: repeatElement("", count: spacing))
+        if spacingApplied > 0 {
+            storage.append(contentsOf: repeatElement("", count: spacingApplied))
         }
         storage.append(contentsOf: other.lines)
         width = newWidth
@@ -732,6 +747,74 @@ extension FrameBuffer {
     /// the extent a stack reports is the extent it draws, and never negative.
     package static func appliedGap(_ spacing: Int, after placedExtent: Int, before extent: Int) -> Int {
         placedExtent > 0 && extent > 0 ? max(spacing, -placedExtent) : 0
+    }
+
+    /// ``appendVertically(_:spacing:)`` pulled up by a negative gap: `other`
+    /// drawn over this buffer's last `overlap` rows, its first `overlap` rows
+    /// over them and the rest below.
+    ///
+    /// The covered rows are composited on their own, through
+    /// ``composited(with:at:)`` — so what an overlay does to the cells it lands
+    /// on (punched runs and opacity claims, the field kept under a cell that
+    /// names none) is what this does — and spliced back, so the cost is the
+    /// rows `other` brings, not the column so far. Only a negative `spacing`
+    /// comes here; zero and positive ones stay on the append-only path.
+    private mutating func appendPulledUp(_ other: Self, overlapping overlap: Int) {
+        let top = lines.count - overlap
+        // A row `other` ends above is cut: the stack is `top + other.height`
+        // rows, which is what its measure charges (`appliedGap`).
+        let bottom = top + other.lines.count
+        if bottom < lines.count { self = clamped(toWidth: width, height: bottom) }
+
+        let covered = FrameBuffer(lines: Array(storage[top...]))
+        let joined = covered.composited(with: other, at: (x: 0, y: 0))
+        // A footprint of rows that paint nothing (`.offset`'s) is not
+        // composited, so it brings its rows here.
+        let footprint = other.lines.count - joined.lines.count
+
+        // Settled before `storage` is spliced: the rows above `top` keep the
+        // widths they had, and only the spliced rows make a new claim.
+        let wasUniform = linesAreUniformWidth
+        let newWidth = Swift.max(width, joined.width)
+        let resultUniform =
+            (top == 0 || (wasUniform && width == newWidth)) && joined.linesAreUniformWidth
+            && joined.width == newWidth && footprint == 0
+        if resultUniform {
+            lineWidths = nil
+        } else if lineWidths != nil || wasUniform,
+            let theirs = joined.linesAreUniformWidth
+                ? Array(repeating: joined.width, count: joined.lines.count) : joined.lineWidths
+        {
+            // Taken out of the field before it is changed, so it is grown in
+            // place — see `appendVertically`.
+            var merged = lineWidths ?? Array(repeating: width, count: top)
+            lineWidths = nil
+            merged.removeSubrange(top...)
+            merged.append(contentsOf: theirs)
+            if footprint > 0 { merged.append(contentsOf: repeatElement(0, count: footprint)) }
+            lineWidths = merged
+        } else {
+            lineWidths = nil
+        }
+
+        coverOverflow(under: other, at: (x: 0, y: top))
+        animatedCells = animatedCellsPunched(by: other, at: (x: 0, y: top))
+        opacityRegions = opacityRegionsPunched(by: other, at: (x: 0, y: top))
+
+        storage.replaceSubrange(top..., with: joined.lines)
+        if footprint > 0 { storage.append(contentsOf: repeatElement("", count: footprint)) }
+        width = newWidth
+        linesAreUniformWidth = resultUniform
+        Self.assertLineWidthsInvariant(self, checkedFrom: top)
+
+        appendOverlays(of: joined, shiftedByX: 0, y: top)
+        appendHitTestRegions(of: joined, shiftedByX: 0, y: top)
+        if !joined.animatedCells.isEmpty {
+            animatedCells.append(contentsOf: joined.shiftedAnimatedCells(byX: 0, y: top))
+        }
+        if !joined.opacityRegions.isEmpty {
+            opacityRegions.append(contentsOf: joined.shiftedOpacityRegions(byX: 0, y: top))
+        }
     }
 
     /// The visible width of row `row`, whose string is `line`: none past the

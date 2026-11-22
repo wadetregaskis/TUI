@@ -106,6 +106,20 @@ private struct LayeredSlot: View {
     }
 }
 
+/// A column pulled together by a negative spacing, the later row over the one
+/// before it: B is drawn on the last line of whatever is above it.
+private struct PulledColumn: View {
+    let showing: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: -1) {
+            Text("A\nA")
+            if showing { Text("X\nX").transition(.opacity) }
+            Text("B")
+        }
+    }
+}
+
 /// A view drawn frame by frame as the run loop draws it: the change's
 /// transaction in force for the one pass that shows the change, and none on the
 /// frames after it, which only move the clock on.
@@ -383,6 +397,21 @@ struct StackGlideTests {
         _ = frames.draw(Column(showing: true, transition: .opacity), atMillis: 1000, animating: .linear(duration: 1))
         #expect(frames.storage.animations.count == held)
         #expect(frames.storage.placements.count != .zero)
+    }
+
+    /// The glide places a pulled-up row over the one before it; the settled
+    /// column must draw it there too, or the row jumps the frame it lands.
+    @Test("A column pulled together by a negative spacing settles where its glide took it")
+    func pulledColumnSettlesWhereItGlided() {
+        let frames = Frames()
+        let before = frames.draw(PulledColumn(showing: false), atMillis: 0)
+        #expect(frames.row(of: "B", in: before) == 1, "B over A's last line: \(before)")
+        _ = frames.draw(PulledColumn(showing: true), atMillis: 1000, animating: .linear(duration: 1))
+        let landing = frames.draw(PulledColumn(showing: true), atMillis: 1990)
+        let settled = frames.draw(PulledColumn(showing: true), atMillis: 2100)
+        #expect(frames.row(of: "B", in: landing) == 2, "B over X's last line as it lands: \(landing)")
+        #expect(frames.row(of: "B", in: settled) == 2, "and still there once settled: \(settled)")
+        #expect(settled.prefix(3) == ["A", "X", "B"], "\(settled)")
     }
 
     /// A glide's motion is a function of the clock, so nothing may serve the
