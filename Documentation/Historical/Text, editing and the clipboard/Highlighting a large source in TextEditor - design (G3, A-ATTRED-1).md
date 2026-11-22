@@ -1502,6 +1502,11 @@ work round, each item pinned by a test of its own (tuitree's `TUI-FEEDBACK.md`, 
   input. TUITesting is for test targets alone, and the alternative, a product of its own for one type under an SPI,
   would be one more thing for an adapter's tests to find.
 
+Item 6 was a comment: `TextEditorTextChange` put tree-sitter's end points at column 0 of `oldLines.upperBound` and
+`newLines.upperBound`, which is so only where lines follow the change (B-ATTRED-36 makes its start a line's start,
+not its end). It now says so, and how to find each point from its own text; the change keeps no points of its own,
+which a highlighter that is not tree-sitter would not use.
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

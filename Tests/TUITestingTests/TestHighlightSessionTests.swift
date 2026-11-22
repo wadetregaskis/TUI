@@ -83,6 +83,22 @@ struct TestHighlightSessionTests {
         #expect(test.publications.last?.kind == .marks(count: 1))
     }
 
+    @Test("A change that reaches the text's end ends mid-line, its end point found from the text as documented")
+    func changeAtTheEnd() async throws {
+        // tuitree's SeamTests, "A change that reaches the text's end ends mid-line": `TextEditorTextChange`'s
+        // comment put tree-sitter's end points at column 0 of a line after the change, which there is not.
+        let test = TestHighlightSession<Token>(text: "a\nb", visibleLines: 0..<2)
+        let old = try #require(await test.session.nextUpdate()).text
+        test.replace(3..<3, with: "c")
+        let update = try #require(await test.session.nextUpdate())
+        let change = try #require(update.change)
+        #expect(change.oldLines == 1..<2 && change.oldUTF8 == 2..<3 && change.newUTF8 == 2..<4)
+        #expect(update.text.lineCount == 2, "no line 2 for column 0 of `oldLines.upperBound` to be")
+        // The old end point: row 1, column 1.
+        let row = old.line(containingUTF8Offset: change.oldUTF8.upperBound)
+        #expect(row == 1 && change.oldUTF8.upperBound - old.utf8Offset(ofLine: row) == 1)
+    }
+
     @Test("A text and tokens a test makes: lines found as the editor finds them, tokens read in order")
     func textAndTokens() {
         let text = TextEditorText("one\r\ntwo\rthree", version: 7)

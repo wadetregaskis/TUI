@@ -262,8 +262,14 @@ public struct TextEditorText: Sendable {
 ///
 /// Both ranges start at the start of a line, so a tree-sitter `InputEdit` is
 /// `startByte` = `oldUTF8.lowerBound`, `oldEndByte` = `oldUTF8.upperBound`,
-/// `newEndByte` = `newUTF8.upperBound`, with points at column 0 of
-/// `oldLines.lowerBound`, `oldLines.upperBound` and `newLines.upperBound`.
+/// `newEndByte` = `newUTF8.upperBound`, its start point at column 0 of
+/// `oldLines.lowerBound`. Its end points are at column 0 of
+/// `oldLines.upperBound` and `newLines.upperBound` only where lines follow the
+/// change: one that reaches the text's end ends there, mid-line, on its last
+/// line (`"a\nb"` typed on at its end: `oldLines` `1..<2`, `oldUTF8` `2..<3`,
+/// so the old end is row 1, column 1, and there is no row 2). Find each end
+/// point from its own text: `line(containingUTF8Offset:)` of the end byte,
+/// and the byte less `utf8Offset(ofLine:)` of that line.
 @_spi(TextEditorHighlighting)
 public struct TextEditorTextChange: Sendable, Equatable {
     /// The lines of the old text that were replaced, and those of the new
