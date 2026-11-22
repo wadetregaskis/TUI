@@ -217,6 +217,52 @@ extension ScrollFillColumn {
         self.anchor.derivedOffset = offset
     }
 
+    /// Reconciles the offset with the walk's place at the column's top, after
+    /// ``advanceAnchor(to:viewportHeight:linesBelow:)``: the offset the
+    /// scroll view should take, or `nil` where the two agree or the walk is
+    /// not near the top.
+    ///
+    /// The offset is dead-reckoned in the estimate's lines — a jump lands by
+    /// the running pitch, End at the estimated total's end — and the walk
+    /// moves the anchor by the rows' own, so nothing else ties offset 0 to
+    /// the first row. Under an estimate short of the rows' mean the offset
+    /// reached 0 with rows still above, which no key, wheel or Home could then
+    /// reach (the scroll view clamps at 0); under one past it the first row
+    /// came on top with lines still "above" it, and the scrolls up that
+    /// followed moved nothing. The design corrects the offset at the edges
+    /// ("How estimates stay steady", rule 2, in
+    /// `Documentation/Historical/Scrolling/SCROLL-FIT design.md`), by the rule
+    /// the top-row hold follows (`rebindingAnchor`):
+    ///
+    /// - On the first row, the offset is exactly the lines of it hidden.
+    /// - At offset 0 with rows above, the offset is the lines above: walked
+    ///   up by their exact pitches for as far as a walked scroll would go
+    ///   (``scrollWalkableDelta``), and priced at the running pitch past
+    ///   that. The scrolls up that follow walk on to the first row.
+    ///
+    /// A negative offset shows what is drawn above the column (a section's
+    /// header), where `advanceAnchor` puts the first row itself.
+    func reconciledTopOffset(at offset: Int) -> Int? {
+        guard offset >= 0 else { return nil }
+        let ordinal = anchor.ordinal
+        let lines: Int
+        if ordinal == 0 {
+            lines = anchor.within
+        } else {
+            guard offset == 0 else { return nil }
+            var row = ordinal
+            var above = 0
+            while row > 0, ordinal - row < scrollWalkableDelta, above <= scrollWalkableDelta {
+                row -= 1
+                above += pitch(of: row)
+            }
+            lines = above + row * estimatedPitch + anchor.within
+        }
+        guard lines != offset else { return nil }
+        anchor.derivedOffset = lines
+        return lines
+    }
+
     /// The anchor that puts the last row's bottom `line` lines below the
     /// viewport's top — at its bottom, or above a footer — walking up from the
     /// last row by exact pitches until those lines are covered: the row

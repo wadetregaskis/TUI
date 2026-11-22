@@ -845,6 +845,22 @@ above" keep up — moving the anchor's `derivedOffset` with it, so the walk sees
 scroll made since the last frame — and when the held row is the first, the
 offset is exact: the lines of it above the viewport.
 
+The same rule holds the top edge with no row held (2026-11-22, H-12). The
+offset is dead-reckoned in the estimate's lines (a jump lands by the running
+pitch, End at the estimated total's end) and the walk moves the anchor by the
+rows' own, so after End or a scrollbar jump over rows the estimate prices short,
+paging up ran the offset to 0 with rows still above, which no key, wheel or Home
+could reach; priced long, the first row came on top with "N more above" still
+showing. Where the walk ends on the first row, the offset is now the lines of it
+hidden, and where it ends at offset 0 with rows above, the offset becomes the
+lines above (walked by their exact pitches as far as a walked scroll goes,
+priced past that), so the scrolls up that follow walk on to the first row
+(`ScrollFillColumn.reconciledTopOffset(at:)`). It is answered as a hold, so a
+focus reveal still runs, and never against a seek or a designated row. A stack
+a column pulls (`VStack { header; LazyVStack { … } }`) is not reconciled: its
+offset is the column's to answer, and below the header the first row is placed
+by `advanceAnchor`'s negative-offset rule.
+
 The exact walk measures every row. The uniform path places rows by one pitch,
 verified against every row it draws — the rows it never drew are priced at it.
 The hold measures the remembered row in the geometry of the frame being drawn,

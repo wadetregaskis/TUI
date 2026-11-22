@@ -583,6 +583,30 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         return (0..<ordinal).reduce(0) { $0 + frame.pitch(of: $1) }
     }
 
+    /// Walks the anchor to the window's offset (`advanceAnchor`), keys it, and
+    /// reconciles the offset with it at the stack's top, so the first row is
+    /// on top exactly at offset 0 (`reconciledTopOffset`): the offset moved
+    /// there, or `nil`. Reconciled only where the offset can be answered —
+    /// through a reply, to the scroll view whose content this stack is, not to
+    /// a column that pulls it — never after a seek, which placed it, and only
+    /// on a frame the offset moved. An offset that stood still says nothing
+    /// about the top: the frame after a designated row lets go keeps the
+    /// offset the designation left (0, where it never wrote one) beside an
+    /// anchor far down, and reconciling there pinned that row to the top as if
+    /// it were still designated (`DesignatedRowAnchorTests`, Window default).
+    private func walkingAnchor(
+        frame: AnchoredWindowFrame, window: inout ScrollContentWindow, afterSeek: Bool
+    ) -> Int? {
+        let moved = window.offset != frame.anchor.derivedOffset
+        frame.advanceAnchor(to: window.offset, viewportHeight: window.viewportHeight, linesBelow: window.linesBelow)
+        frame.anchor.key = frame.children.key(at: frame.anchor.ordinal)
+        guard moved, window.reply != nil, !window.isPulled, !afterSeek,
+            let reconciled = frame.reconciledTopOffset(at: window.offset)
+        else { return nil }
+        window.offset = reconciled
+        return reconciled
+    }
+
     /// Renders the window by anchored outward fill, or returns `nil` when a
     /// touched row is a spacer (spacer distribution needs the full walk).
     func renderAnchoredWindow(
@@ -650,11 +674,9 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             anchorFollowsOffset: designatedKey == nil)
 
         var heldOffset: Int?
+        var edgeOffset: Int?
         if designatedKey == nil {
-            frame.advanceAnchor(
-                to: window.offset, viewportHeight: window.viewportHeight,
-                linesBelow: window.linesBelow)
-            frame.anchor.key = children.key(at: frame.anchor.ordinal)
+            edgeOffset = walkingAnchor(frame: frame, window: &window, afterSeek: resolvedSeek != nil)
         } else {
             // A DESIGNATED row owns the anchor: the scroll position follows the
             // ROW, not the other way round. So neither walk the anchor by the
@@ -747,10 +769,11 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             frame: frame, window: window, width: width, context: childContext)
         // Answer the seek only on success: a nil (spacer bail) falls to the
         // exact path, which re-resolves against its own geometry. A hold that
-        // moved the offset after the seek has the last word.
+        // moved the offset after the seek has the last word. The top edge's
+        // offset is a hold's, so a focus reveal still runs.
         if buffer != nil {
             window.reply?.reportResolvedOffset(
-                heldOffset ?? resolvedSeek ?? topRowOffset, isHold: heldOffset == nil && resolvedSeek == nil)
+                heldOffset ?? resolvedSeek ?? edgeOffset ?? topRowOffset, isHold: heldOffset == nil && resolvedSeek == nil)
         }
         if buffer != nil {
             recordDrawnRows(
