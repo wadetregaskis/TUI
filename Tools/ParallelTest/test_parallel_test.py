@@ -724,9 +724,14 @@ class TestBuildConfiguration(unittest.TestCase):
     def test_a_scratch_path_comes_with_either_configuration(self):
         self.assertEqual(pt.build_configuration_args(False, ".build-6.4.2"),
                          ["--scratch-path", ".build-6.4.2"])
-        self.assertEqual(pt.build_configuration_args(True, ".build-6.4.2"),
+        self.assertEqual(pt.build_configuration_args(True, ".build-6.4.2", windows=False),
                          ["--scratch-path", ".build-6.4.2", "-c", "release"]
                          + pt.RELEASE_TEST_FLAGS)
+
+    def test_windows_release_turns_capture_propagation_off(self):
+        self.assertEqual(pt.build_configuration_args(True, windows=True),
+                         ["-c", "release"] + pt.RELEASE_TEST_FLAGS + pt.WINDOWS_RELEASE_TEST_FLAGS)
+        self.assertEqual(pt.build_configuration_args(False, windows=True), [])
 
     def test_a_build_system_comes_after_the_scratch_path(self):
         self.assertEqual(pt.build_configuration_args(False, ".b", "native"),

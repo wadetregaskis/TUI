@@ -427,8 +427,20 @@ RELEASE_TEST_FLAGS = [
     "-Xswiftc", "-assert-config", "-Xswiftc", "Debug",
 ]
 
+# And on Windows, capture propagation off, for a compiler bug (Swift 6.2.4,
+# 6.3.3 and 6.4.2, 2026-11-21): at `-O` it specialises the thunk that starts a
+# module's async `main` on that module's `async_Main`, under a name made from
+# that name alone, the same in every module, which the linker takes for one.
+# The test binary links the Example app's objects, which come first, so its
+# runner's `main` started the Example instead ("standard input and output are
+# not a terminal") and `--list-tests` listed nothing. Off in the app's module
+# alone is enough, but a flag here reaches every module.
+WINDOWS_RELEASE_TEST_FLAGS = [
+    "-Xswiftc", "-Xllvm", "-Xswiftc", "-sil-disable-pass=capture-prop",
+]
 
-def build_configuration_args(release, scratch_path=None, build_system=None):
+
+def build_configuration_args(release, scratch_path=None, build_system=None, windows=WINDOWS):
     """What `swift build` takes to build, or to name, the configuration run.
 
     `scratch_path` is the build directory when it is not `.build`, as when
@@ -439,7 +451,9 @@ def build_configuration_args(release, scratch_path=None, build_system=None):
     """
     chosen = (["--scratch-path", scratch_path] if scratch_path else []) + \
         (["--build-system", build_system] if build_system else [])
-    return chosen + (["-c", "release"] + RELEASE_TEST_FLAGS if release else [])
+    if not release:
+        return chosen
+    return chosen + ["-c", "release"] + RELEASE_TEST_FLAGS + (WINDOWS_RELEASE_TEST_FLAGS if windows else [])
 
 
 def swift_command(environ=None, windows=None):
