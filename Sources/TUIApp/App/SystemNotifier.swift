@@ -136,8 +136,8 @@ struct SystemNotifier: SystemNotificationBackend {
                 || environment["XDG_RUNTIME_DIR"].map { !$0.isEmpty && exists($0 + "/bus") } == true
             let hasDisplay =
                 environment["WAYLAND_DISPLAY"]?.isEmpty == false || environment["DISPLAY"]?.isEmpty == false
-            guard hasBus, hasDisplay, let path = environment["PATH"] else { return nil }
-            return path.split(separator: ":").lazy.map { "\($0)/notify-send" }.first(where: isExecutable)
+            guard hasBus, hasDisplay else { return nil }
+            return ExecutableSearchPath.find("notify-send", in: environment, isExecutable: isExecutable)
                 .map(Self.notifySend)
         }
     }
