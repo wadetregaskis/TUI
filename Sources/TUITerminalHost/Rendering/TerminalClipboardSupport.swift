@@ -125,7 +125,7 @@ extension TerminalClient {
     /// | Host | Writes | Evidence |
     /// |---|---|---|
     /// | Ghostty | yes | `clipboard-write = allow` is its default (its OSC 52 page and config reference); measured 2026-10-19, 1.3.1 |
-    /// | Windows Terminal | yes, up to a size | measured 2026-11-16, 1.24.12741.0: ST, BEL and an empty selector all arrive; a write over ``windowsClipboardWriteBytes`` is dropped (``largestClipboardWrite(of:)``, measured 2026-11-17, 1.25.3131.0) |
+    /// | Windows Terminal | yes, up to a size | measured 2026-11-16, 1.24.12741.0: ST, BEL and an empty selector all arrive; a write over `windowsClipboardWriteBytes` is dropped (`largestClipboardWrite(of:)`, measured 2026-11-17, 1.25.3131.0) |
     /// | conhost | yes, up to a size | measured 2026-11-16 and 2026-11-17, build 26300: as Windows Terminal, the same codebase |
     /// | iTerm2 | only with a setting | "Applications in terminal may access clipboard", off by default; measured both ways 2026-10-19, 3.7.6 |
     /// | tmux | only with `set-clipboard on`, or through its passthrough | `external`, the default, ignores an application's write; `on` keeps it as a buffer and passes it on; under `allow-passthrough` TUI wraps the write and tmux passes it on (measured, 3.7c) |
