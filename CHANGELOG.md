@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A view with a fade of its own inside a repeating `.opacity` breathes with it.** In
+`VStack { Text("a"); Text("b").opacity(0.5) }.opacity(on ? 0.3 : 1)` under `.repeatForever`, `a` breathed and `b`
+stood still at whatever value the last render drew, jumping when anything else rendered. The same held for
+`.opacity(1)` over a background, an `.offset` child with its own fade, a translucent fill or a gradient's alpha inside
+the breath. Each now follows the breath, at its own alpha times the breath's.
+
 **Only the view whose tooltip is waiting asks for the frame that shows it.** While a tooltip waited out its delay,
 every view with help that drew asked for a wake of its own at the same instant, and declared a side effect that kept
 the render memo from storing any view containing it; a page with many views with help, a toolbar or a form, gave up

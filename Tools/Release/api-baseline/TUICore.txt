@@ -420,8 +420,10 @@ MousePhase.pressed | case pressed
 MousePhase.released | case released
 MousePhase.scrolled | case scrolled
 OpacityCycle.clock | var clock: AnimationClock
-OpacityCycle.init(phases:clock:) | init(phases: [Double], clock: AnimationClock)
+OpacityCycle.init(phases:scale:clock:) | init(phases: [Double], scale: Double = 1, clock: AnimationClock)
+OpacityCycle.phase(atStep:) | func phase(atStep step: Int) -> Double
 OpacityCycle.phases | var phases: [Double]
+OpacityCycle.scale | var scale: Double
 OpacityCycle.scaled(by:) | func scaled(by factor: Double) -> OpacityCycle
 OpacityRegion | struct OpacityRegion
 OpacityRegion.Frost | enum Frost

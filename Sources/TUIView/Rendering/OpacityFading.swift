@@ -40,7 +40,18 @@ package enum OpacityFading {
             // An inner cycle scales with everything else about the inner
             // region: a breathing badge inside a half-faded panel breathes
             // between half the values it would alone.
-            scaled.cycle = region.cycle?.scaled(by: factor)
+            //
+            // And an inner claim with NO cycle, inside a fade that has one,
+            // takes this fade's: its own alpha times each phase. A cycle's
+            // frames take a cell's layer from the first claim covering it, the
+            // inner one, and step only a claim that carries a cycle, so without
+            // one every frame drew it at this render's value: `Text("b")
+            // .opacity(0.5)` in a breathing `VStack` stood still beside its
+            // breathing sibling (hunt 11-20, H-14). The static `opacity` stays
+            // the product at this render's value, the phase the lines are drawn
+            // at, and the phases stay the fade's one array
+            // (``OpacityCycle/scale``), not a copy per claim.
+            scaled.cycle = region.cycle?.scaled(by: factor) ?? cycle?.scaled(by: region.opacity)
             return scaled
         }
         guard appendingRectangle else { return result }

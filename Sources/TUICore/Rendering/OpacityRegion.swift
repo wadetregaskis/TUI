@@ -280,22 +280,47 @@ package enum FieldUnderContent: Hashable, Sendable {
 ///
 /// Indexed the way ``AnimatedCellRun/frames`` is — by `tick % count` — so the
 /// run built from it replays in step with every other run on the same clock.
+///
+/// Read a phase through ``phase(atStep:)``, not from `phases` alone: those are
+/// the animation's own values, and ``scale`` is what the fades and masks
+/// around the claim multiply into them.
 package struct OpacityCycle: Equatable, Sendable {
-    /// The opacity at each point of the cycle, in order.
+    /// The animation's own value at each point of the cycle, in order, before
+    /// ``scale``.
+    ///
+    /// Shared, not copied, by every claim a fade hands its cycle to: each claim
+    /// inside a repeating fade carries it (`OpacityFading`), and a scaled copy
+    /// per claim would be an array per claim per render (a ramp claims per
+    /// cell) and an array walk per `OpacityRegion ==` and per row-reuse key.
+    /// One buffer makes two claims' cycles equal at the array's identity check.
     public var phases: [Double]
+
+    /// What every phase is multiplied by: the product of the fades and masks
+    /// this cycle has been carried out through (``scaled(by:)``) and, for a
+    /// claim of its own inside a repeating fade, that claim's own alpha. 1 on
+    /// the fade's own rectangle.
+    public var scale: Double
 
     /// The clock that advances them.
     public var clock: AnimationClock
 
-    public init(phases: [Double], clock: AnimationClock) {
+    public init(phases: [Double], scale: Double = 1, clock: AnimationClock) {
         self.phases = phases
+        self.scale = scale
         self.clock = clock
     }
 
+    /// The opacity at `step`, wrapping as a run's frames do.
+    public func phase(atStep step: Int) -> Double {
+        phases[step % phases.count] * scale
+    }
+
     /// This cycle with every phase scaled — what nesting one fade inside
-    /// another does. See ``OpacityRegion``.
+    /// another does. See ``OpacityRegion``. The phases are shared, not copied.
     public func scaled(by factor: Double) -> Self {
-        Self(phases: phases.map { $0 * factor }, clock: clock)
+        var scaled = self
+        scaled.scale *= factor
+        return scaled
     }
 }
 

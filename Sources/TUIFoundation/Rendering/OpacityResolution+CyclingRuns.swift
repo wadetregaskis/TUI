@@ -124,7 +124,8 @@ extension FrameBuffer {
         }
         // `nil` past the budget, where the merged frames would outweigh the renders
         // they save — two coprime cycles near the cap are ten thousand finished
-        // rows. Then the innermost fade animates alone and the rest hold at the
+        // rows. Then the innermost fade's cycle animates alone (with every claim
+        // of a cycle as long) and the rest hold at the
         // value they were drawn at: frozen, but frozen identically on every tick,
         // which is the whole difference from two runs fighting over one cell.
         let merged = combinedSteps(
@@ -151,10 +152,13 @@ extension FrameBuffer {
                 // the frame is cut to the group's columns, which every repeating fade
                 // there overlaps, so "has a cycle, on this clock" IS membership — and
                 // this closure runs once per region per step, where an
-                // `OpacityRegion ==` costs a phase-array walk.
-                guard let values = region.cycle?.phases, values.count >= 2,
-                    region.cycle?.clock == cycle.clock,
-                    merged != nil || region == innermost
+                // `OpacityRegion ==` costs a phase-array walk. Past the budget the
+                // steps are the innermost cycle's, and every cycle of that length
+                // reads its own phase at them: the claims inside one fade all carry
+                // its cycle (`OpacityFading`), so the innermost is a claim of its
+                // own and the fade's rectangle steps beside it.
+                guard let own = region.cycle, own.phases.count >= 2, own.clock == cycle.clock,
+                    steps.isMultiple(of: own.phases.count)
                 else { return region.cellAlpha }
                 // Its OWN phase at this one step. Pinning the others at `opacity` —
                 // which is what a per-region run did — is exactly what let the run
@@ -164,7 +168,7 @@ extension FrameBuffer {
                 // animate itself (an animated one is a fresh region per frame through
                 // the ordinary render path), so the other two ride along unchanged.
                 var alpha = region.cellAlpha
-                alpha.layer = values[step % values.count]
+                alpha.layer = own.phase(atStep: step)
                 return alpha
             }
             // The group's columns of the row as rebuilt, with the styling in force

@@ -7912,3 +7912,46 @@ states every field, and is drawn as it is. The layer is emitted throughout with 
 regions, as `NotificationLayerTests` requires of a toast at age 0. At 16 and 256 colours the blend
 rounds to the palette as every faded colour does. `ToastFadeBlendTests`, and a `TestApp` reading
 the screen on the frame a toast is posted (`TestAppNotificationTests`).
+
+## 119. A claim inside a repeating fade breathes with it (2026-11-22)
+
+A repeating `.opacity` fade is replayed as runs cut from its rows rebuilt once per phase (§6b, §6b.1),
+and the rebuild takes a cell's LAYER from the first claim covering it (§13). Inside the fade that is
+the inner claim, and `OpacityFading.fading` gave the fade's cycle only to the fade's own rectangle:
+an inner claim with no cycle of its own kept its static product, so every phase of the run drew its
+cells at the value of the render that built it. `VStack { Text("a"); Text("b").opacity(0.5) }
+.opacity(on ? 0.3 : 1)` under `repeatForever` breathed on `a` and stood still on `b`, which moved
+only when something else rendered; a row wholly under inner claims built no run at all, its frames
+all alike. `.opacity(1)` is a claim too (§9.7), so `Text("b").opacity(isEnabled ? 1 : 0.4)` froze
+whichever branch was taken wherever something is behind the fade, and an `.offset` child with a
+claim of its own froze the same way through `fadingOverlays`. So did a translucent fill, a mask, a
+ramp's per-cell claims and every other region stamped inside the fade (hunt 11-20, H-14).
+
+**The rule.** An inner claim with no cycle, inside a fade that has one, takes the fade's cycle times
+its own alpha: at each step its layer is its own `opacity` times the fade's phase, as the render at
+that phase draws it. Its static `opacity` is still the product at the render's phase, the value the
+lines are drawn at. A claim with a cycle of its own keeps today's rule, the outer scalar
+pre-multiplied into its cycle (§13), since two cycles have no common phase index.
+
+**Not a copy per claim.** `OpacityCycle` carries the animation's phases and a `scale`, and
+`scaled(by:)` multiplies the scale, so every claim inside one fade shares the fade's one array. A
+copy each would be an array per claim per render (a ramp inside a breath claims per cell), an array
+walk per `OpacityRegion ==`, and N arrays in each `OpacityRowReuse` key; shared, two cycles of one
+fade compare equal at the array's identity check. A phase is read through `phase(atStep:)`.
+
+Past the combined-step budget (§6b.1) the steps are the innermost cycle's, and the claims that step
+are now every one whose cycle that length holds, not the innermost alone: the innermost is a claim of
+its own now, and alone it would have held the fade's rectangle still.
+
+`ReplayedNestedFadeTests` replays the nested fade, a claim at 1, and an anchored layer through the
+run loop against a render at every tick, on the page and over a block of colour. Before, five of the
+six failed (the claim at 1 over the bare page is dropped there, §9.7, and breathed); a unit case pins
+the shared array.
+
+What it costs (`ab_bench.py`, release, 10 paired reps): Stress's `alpharamp/breathing`, the ramps under
+a 40-phase breath over a fill, +1.6% [+0.8%, +3.1%] CPU a frame and +4.6 MB, the rows the ramps cover
+now carrying runs they did not have; `translucent/material` +0.8% [+0.1%, +1.2%]; `alpharamp/flat`,
+`translucent/faded`, `gradients`, `animating`, `modifiers/color-effects` and `kitchensink`
+indistinguishable. The breath itself is the expensive part, and was before: 170 ms a frame against
+5.2 ms for the same page without it, every row rebuilt once per phase at every render (BLEND-7, hunt
+11-20 H-15).
