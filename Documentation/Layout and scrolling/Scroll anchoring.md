@@ -861,6 +861,28 @@ a column pulls (`VStack { header; LazyVStack { … } }`) is not reconciled: its
 offset is the column's to answer, and below the header the first row is placed
 by `advanceAnchor`'s negative-offset rule.
 
+The anchored walk's own readings (2026-11-22, H-12) follow the design's sample
+rule ("How estimates stay steady", rule 4, in `Historical/Scrolling/SCROLL-FIT
+design.md`): a total's rows past the band, a far jump's landing row and a seek's
+priced place are read from one sample a row (`RowPitchSample`, which `PulledRows`
+keeps too), bounded at 1,024 rows, so drawing the same rows again moves nothing,
+and at the mean's fraction, not the line it rounds to. They read the running
+pitch before, a sum over every measure of every frame, so the rows a stack dwelt
+on outweighed every row after them. A sample is kept per run of rows
+(`StackWindowState.noteRowShape`): a width and the rows, told by their first and
+last rows' keys and their count; an append is the same run, a replacement, a
+prepend or a re-wrap a new one, so the rows are priced at their own lines. Keys,
+not the rows' data, which a growing log would compare whole on every frame.
+
+What a measure answers, and a pulled column's children past its band, still read
+the running pitch, rounded. The measure must not move with every row sampled, or
+it would drop the pass's measures each time (`renderWindowedLadder`). And a
+stack walks more than its rows in that state: a sectioned stack walks its
+sections as a column and then each section's header and loop as another, at its
+own identity, and the per-row sample, tried there, priced the second section, a
+child the column had not reached, at the header's one line. Giving those the
+per-row rule too means telling the stack's walks apart; it is left open.
+
 The exact walk measures every row. The uniform path places rows by one pitch,
 verified against every row it draws — the rows it never drew are priced at it.
 The hold measures the remembered row in the geometry of the frame being drawn,

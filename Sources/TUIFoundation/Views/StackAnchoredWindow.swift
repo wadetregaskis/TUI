@@ -40,6 +40,8 @@ private final class AnchoredWindowFrame {
     let context: RenderContext
 
     private(set) var sawSpacer = false
+    /// The sample of these rows, which this frame records in and prices by.
+    let pitches: RowPitchSampleBox
     private var pitchCache: [Int: Int] = [:]
     private var widthCache: [Int: Int] = [:]
     private var built: [Int: ChildView] = [:]
@@ -54,6 +56,8 @@ private final class AnchoredWindowFrame {
         self.anchor = anchor
         self.proposal = proposal
         self.context = context
+        // The pitches this frame records are of these rows, at this width.
+        pitches = state.noteRowShape(width: proposal.width ?? context.availableWidth, children: children)
     }
 
     func pitch(of ordinal: Int) -> Int {
@@ -84,6 +88,7 @@ private final class AnchoredWindowFrame {
         // widely spaced rows averaged it in: three one-line rows at spacing 6
         // priced the rest at 5, not 7, and the end's lines lost 2 a row.
         state.recordMeasuredPitch(max(1, measured.height) + spacing)
+        pitches.sample.note(max(1, measured.height) + spacing, of: ordinal)
         // Filed, as the uniform render files the rows it draws, so a row that
         // fills goes on counting at the measure's ask after it scrolls away
         // (`anchoredSizeThatFits`): the measure samples only the first rows.
@@ -117,7 +122,15 @@ extension AnchoredWindowFrame: ScrollFillColumn {
 
     var ladder: [String: Int] { state.rowOrdinalMemo }
 
-    var estimatedPitch: Int { state.estimatedPitch(spacing: spacing) }
+    var estimatedPitch: Int { state.estimatedPitch(spacing: spacing, sample: pitches.sample) }
+
+    func estimatedLines(ofRows rows: Int) -> Int {
+        state.estimatedLines(ofRows: rows, spacing: spacing, sample: pitches.sample)
+    }
+
+    func estimatedRows(inLines lines: Int) -> Int {
+        state.estimatedRows(inLines: lines, spacing: spacing, sample: pitches.sample)
+    }
 }
 
 // MARK: - The anchored render
@@ -400,8 +413,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             window.offset = near.offset
             return near.offset
         }
-        let estimate = state.estimatedPitch(spacing: spacing)
-        let targetY = seekTargetY(ordinal: ordinal, estimate: estimate, frame: frame, window: window)
+        let targetY = seekTargetY(ordinal: ordinal, frame: frame, window: window)
         let rowHeight = frame.pitch(of: ordinal) - (ordinal < children.count - 1 ? spacing : 0)
         // What the seek asks of the target's place is read in its coordinates,
         // which near the top are exact (`seekTargetY`):
@@ -428,8 +440,8 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         let newOffset = window.offset(
             realising: request, targetY: targetY, rowHeight: rowHeight,
             stackHeight: max(
-                state.estimatedLines(ofRows: children.count, spacing: spacing),
-                targetY.saturatingAdding(state.estimatedLines(ofRows: children.count - ordinal, spacing: spacing))
+                frame.estimatedLines(ofRows: children.count),
+                targetY.saturatingAdding(frame.estimatedLines(ofRows: children.count - ordinal))
             ).saturatingSubtracting(spacing))
         // Under a designated row the hold follows, not the walk
         // (`clampDesignatedHold`), and the target stands at its top as before.
@@ -456,8 +468,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
                 width: frame.proposal.width ?? frame.context.availableWidth,
                 rowHeight: { frame.pitch(of: $0) - ($0 < children.count - 1 ? spacing : 0) }, context: frame.context)
         else { return nil }
-        let estimate = state.estimatedPitch(spacing: spacing)
-        let rowTop = seekTargetY(ordinal: target.ordinal, estimate: estimate, frame: frame, window: window)
+        let rowTop = seekTargetY(ordinal: target.ordinal, frame: frame, window: window)
         let current = frame.viewportLine(ofRow: target.ordinal, viewportHeight: window.viewportHeight) + target.y
         var request = seek
         if request.anchor == nil {
@@ -469,8 +480,8 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         let newOffset = window.offset(
             realising: request, targetY: rowTop + target.y, rowHeight: target.height,
             stackHeight: max(
-                state.estimatedLines(ofRows: children.count, spacing: spacing),
-                rowTop.saturatingAdding(state.estimatedLines(ofRows: children.count - target.ordinal, spacing: spacing))
+                frame.estimatedLines(ofRows: children.count),
+                rowTop.saturatingAdding(frame.estimatedLines(ofRows: children.count - target.ordinal))
             ).saturatingSubtracting(spacing))
         anchorSeekTarget(
             target.ordinal, top: rowTop, offset: anchorFollowsOffset ? newOffset : rowTop, frame: frame,
@@ -518,7 +529,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         } else if place.ordinal == 0 {
             followed = frame.anchor.within
         } else {
-            followed = max(1, window.offset.saturatingAdding(state.estimatedLines(ofRows: moved, spacing: spacing)))
+            followed = max(1, window.offset.saturatingAdding(frame.estimatedLines(ofRows: moved)))
         }
         frame.anchor.derivedOffset = held.top + followed - window.offset
         guard followed != window.offset else { return nil }
@@ -581,9 +592,9 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     /// the offset clamps to its top, and the walk from the priced place drew
     /// the row lines above where a column of the same rows puts it.
     private func seekTargetY(
-        ordinal: Int, estimate: Int, frame: AnchoredWindowFrame, window: ScrollContentWindow
+        ordinal: Int, frame: AnchoredWindowFrame, window: ScrollContentWindow
     ) -> Int {
-        guard ordinal < window.viewportHeight else { return Int.lines(ofRows: ordinal, pitch: estimate) }
+        guard ordinal < window.viewportHeight else { return frame.estimatedLines(ofRows: ordinal) }
         return (0..<ordinal).reduce(0) { $0 + frame.pitch(of: $1) }
     }
 
@@ -728,7 +739,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
                 // happened. At y 0 the region still tells the snap "scroll
                 // up", which is all convergence needs.
                 let estimatedY = anchorY.saturatingAdding(
-                    state.estimatedLines(ofRows: ordinal - frame.anchor.ordinal, spacing: spacing))
+                    frame.estimatedLines(ofRows: ordinal - frame.anchor.ordinal))
                 if window.reply == nil {
                     placed.append((ordinal, max(0, estimatedY)))
                 } else {
@@ -755,7 +766,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
                 viewportHeight: window.viewportHeight, context: childContext)
             where !covered.contains(stop) {
                 let estimatedY = anchorY.saturatingAdding(
-                    state.estimatedLines(ofRows: stop - frame.anchor.ordinal, spacing: spacing))
+                    frame.estimatedLines(ofRows: stop - frame.anchor.ordinal))
                 if window.reply == nil {
                     placed.append((stop, max(0, estimatedY)))
                 } else {
@@ -814,7 +825,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         // exists in order not to compute.
         let gradientFrame = context.gradientContentFrame(
             width: width,
-            height: max(1, state.estimatedLines(ofRows: frame.children.count, spacing: spacing)
+            height: max(1, frame.estimatedLines(ofRows: frame.children.count)
                 .saturatingSubtracting(frame.children.count > 1 ? spacing : 0)))
         let drawGraft = { (ordinal: Int, y: Int, unseen: Bool) in
             self.drawAnchoredGraft(
@@ -938,7 +949,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         // actual last row has no below-gap, so an estimated suffix carries
         // one spacing too many.
         let total = max(cursor, bottomY)
-            .saturatingAdding(state.estimatedLines(ofRows: max(0, remaining), spacing: spacing))
+            .saturatingAdding(frame.estimatedLines(ofRows: max(0, remaining)))
             .saturatingSubtracting(remaining > 0 ? spacing : 0)
         frame.anchor.reportedTotal = total
         if let reply = window.reply {

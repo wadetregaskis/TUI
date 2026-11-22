@@ -328,15 +328,64 @@ final class StackWindowState {
         /// — see `StackTopRowHold.swift`. On the anchored walk it is the anchor.
         var heldTopRow: HeldTopRow?
 
-        /// Running average of measured row pitches (row + spacing), the
-        /// extent estimate for rows never measured. Refined as rows are
-        /// touched; drives the scrollbar and big-jump seeks only.
+        /// Running average of measured row pitches (row + spacing) over every
+        /// measure of every frame, on every path: what a measure of the stack
+        /// prices rows it never measured at, and what a pulled column prices
+        /// its children past the band at. The anchored walk's own readings —
+        /// its total, a far jump's landing, a seek's priced place — take the
+        /// per-row sample of the rows it walks instead
+        /// (``noteRowShape(width:children:)``).
         var measuredPitchTotal = 0
         var measuredPitchCount = 0
 
         func recordMeasuredPitch(_ pitch: Int) {
-            measuredPitchTotal += pitch
+            measuredPitchTotal = measuredPitchTotal.saturatingAdding(pitch)
             measuredPitchCount += 1
+        }
+
+        /// The anchored walk's samples, one per run of rows it walks, the
+        /// newest last, kept for the last four.
+        private var pitchSamples: [RowPitchSampleRun] = []
+
+        /// The sample for `children` drawn `width` wide, made the newest: the
+        /// one an anchored walk of them records its pitches in and prices its
+        /// rows by (``estimatedLines(ofRows:spacing:sample:)``).
+        ///
+        /// A run of rows is a width and the rows, told by their first and last
+        /// rows' keys and their count: the same keys at the same count, or the
+        /// old last row's key where it was under a greater count (an append),
+        /// are the same run. Rows that are other rows — a replacement, a
+        /// prepend, a cut from the front, a width that re-wraps them — get a
+        /// sample of their own, afresh. Kept, a viewer that showed another
+        /// document in the same stack priced it by the last one's rows, and a
+        /// terminal made narrow enough to wrap every row went on pricing them
+        /// at one line. Several runs, not one: a stack can walk several in a
+        /// frame (at the width it is drawn and the one its scroll bar leaves,
+        /// say), each of which would start the other's afresh.
+        ///
+        /// Keys, not the rows' data: a few key reads a frame, where comparing
+        /// the data (or asking whether the new data extends the old) walked
+        /// every row of a log on every frame it grew — `session/log` 15.6%
+        /// slower — and ``rowsVersion``, which the content-width record keeps,
+        /// remembers one value only, so the two would each see the other's as
+        /// a change. Rows edited in place under the same keys keep their run;
+        /// each re-measured row replaces its own sample.
+        @MainActor func noteRowShape(width: Int, children: ChildViewCollection) -> RowPitchSampleBox {
+            let count = children.count
+            let firstKey = count > 0 ? children.key(at: 0) : nil
+            let lastKey = count > 0 ? children.key(at: count - 1) : nil
+            let index = pitchSamples.lastIndex { run in
+                guard run.width == width, run.firstKey == firstKey else { return false }
+                if run.rowCount == count { return run.lastKey == lastKey }
+                return run.rowCount < count && run.lastKey != nil && children.key(at: run.rowCount - 1) == run.lastKey
+            }
+            var run = index.map { pitchSamples.remove(at: $0) } ?? RowPitchSampleRun(width: width)
+            run.firstKey = firstKey
+            run.lastKey = lastKey
+            run.rowCount = count
+            if pitchSamples.count >= 4 { pitchSamples.removeFirst() }
+            pitchSamples.append(run)
+            return run.box
         }
 
         /// What a measure of the stack reads from this state that its render
@@ -355,8 +404,10 @@ final class StackWindowState {
 
         /// The estimated pitch: measured average (rounded, not truncated —
         /// truncation systematically over-shoots seeks), else the uniform
-        /// seed, else one line. Never below 1 (division safety).
-        func estimatedPitch(spacing: Int) -> Int {
+        /// seed, else one line. Never below 1 (division safety). Of `sample`,
+        /// an anchored walk's own, when it has one.
+        func estimatedPitch(spacing: Int, sample: RowPitchSample? = nil) -> Int {
+            if let rounded = sample?.roundedPitch { return rounded }
             if measuredPitchCount > 0 {
                 let rounded = (measuredPitchTotal + measuredPitchCount / 2) / measuredPitchCount
                 return max(1, rounded)
@@ -365,11 +416,20 @@ final class StackWindowState {
             return 1
         }
 
-        /// `rows` rows priced at ``estimatedPitch(spacing:)``, in lines, held
-        /// at ``estimatedLinesCeiling``: a `ForEach(0..<Int.max)` has more
-        /// lines than `Int` counts.
-        func estimatedLines(ofRows rows: Int, spacing: Int) -> Int {
-            Int.lines(ofRows: rows, pitch: estimatedPitch(spacing: spacing))
+        /// `rows` rows never measured, in lines: at the mean of `sample`, an
+        /// anchored walk's own (``RowPitchSample/lines(ofRows:)``), else at
+        /// ``estimatedPitch(spacing:sample:)``; held at
+        /// ``estimatedLinesCeiling``, as a `ForEach(0..<Int.max)` has more lines
+        /// than `Int` counts.
+        func estimatedLines(ofRows rows: Int, spacing: Int, sample: RowPitchSample? = nil) -> Int {
+            (sample?.lines(ofRows: rows) ?? Int.lines(ofRows: rows, pitch: estimatedPitch(spacing: spacing)))
+                .clampedToEstimatedLines
+        }
+
+        /// How many whole rows priced as ``estimatedLines(ofRows:spacing:sample:)``
+        /// prices them `lines` lines hold: the row a far jump lands on.
+        func estimatedRows(inLines lines: Int, spacing: Int, sample: RowPitchSample? = nil) -> Int {
+            sample?.rows(inLines: lines) ?? lines / estimatedPitch(spacing: spacing)
         }
 }
 

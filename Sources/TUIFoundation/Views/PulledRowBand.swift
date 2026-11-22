@@ -33,28 +33,20 @@ package final class PulledRows {
 
     /// The pitches measured, by row, for the running estimate: a bounded
     /// sample, taken afresh when the rows' width or count changes.
-    private var samples: [Int: Int] = [:]
-    private var sampleTotal = 0
+    private var sample = RowPitchSample()
     private var sampledShape: (width: Int, count: Int)?
 
     /// The rows drawn last frame, by key (§5f's ladder).
     fileprivate(set) var ladder: [String: Int] = [:]
 
-    /// The most pitches the estimate keeps: enough to describe the rows, few
-    /// enough to stay small at any row count.
-    private static let sampleLimit = 1_024
-
     package init() {}
 
     /// The pitch a row never measured is priced at: the mean of those
     /// measured, rounded, at least a line.
-    package var estimatedPitch: Int {
-        guard !samples.isEmpty else { return 1 }
-        return max(1, (sampleTotal + samples.count / 2) / samples.count)
-    }
+    package var estimatedPitch: Int { sample.roundedPitch ?? 1 }
 
     /// Whether any pitch has been measured since the rows last changed shape.
-    package var hasSamples: Bool { !samples.isEmpty }
+    package var hasSamples: Bool { !sample.isEmpty }
 
     /// The rows' height last reported — exact once the band held the last
     /// row, else the estimate — or `nil` before the first band.
@@ -66,8 +58,7 @@ package final class PulledRows {
     package func noteShape(width: Int, count: Int) {
         guard sampledShape.map({ $0 != (width, count) }) ?? true else { return }
         if sampledShape != nil {
-            samples.removeAll(keepingCapacity: true)
-            sampleTotal = 0
+            sample.removeAll()
             anchor.reportedTotal = nil
         }
         sampledShape = (width, count)
@@ -75,13 +66,7 @@ package final class PulledRows {
 
     /// Records row `row`'s measured pitch.
     package func note(pitch: Int, of row: Int) {
-        if let old = samples[row] {
-            sampleTotal += pitch - old
-            samples[row] = pitch
-        } else if samples.count < Self.sampleLimit {
-            samples[row] = pitch
-            sampleTotal += pitch
-        }
+        sample.note(pitch, of: row)
     }
 
     /// The rows' height for a measure: what the last band reported, else

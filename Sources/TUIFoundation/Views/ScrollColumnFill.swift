@@ -52,6 +52,11 @@ protocol ScrollFillColumn: AnyObject {
     /// ``estimatedLinesCeiling``.
     func estimatedLines(ofRows rows: Int) -> Int
 
+    /// How many whole rows priced as ``estimatedLines(ofRows:)`` prices
+    /// them `lines` lines hold: the row a far jump lands on, so that a
+    /// scrollbar dragged to the middle of the total reaches the middle row.
+    func estimatedRows(inLines lines: Int) -> Int
+
     /// The position the walk reads and moves.
     var anchor: ScrollContentAnchor { get }
 
@@ -68,6 +73,8 @@ extension ScrollFillColumn {
     func estimatedLines(ofRows rows: Int) -> Int {
         Int.lines(ofRows: rows, pitch: estimatedPitch)
     }
+
+    func estimatedRows(inLines lines: Int) -> Int { lines / estimatedPitch }
 }
 
 /// The lines a scroll delta may span and still be walked row by row however
@@ -185,7 +192,7 @@ extension ScrollFillColumn {
             let pastEnd = min(offset.saturatingAdding(viewportHeight).saturatingSubtracting(reported), linesBelow)
             (anchor, within) = tailAnchor(endingAt: viewportHeight - pastEnd)
         } else if jumps, !walksJumps {
-            anchor = min(count - 1, max(0, offset / estimatedPitch))
+            anchor = min(count - 1, max(0, estimatedRows(inLines: offset)))
             within = max(0, offset.saturatingSubtracting(estimatedLines(ofRows: anchor)))
         } else if delta != 0 {
             within += delta

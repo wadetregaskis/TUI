@@ -19,6 +19,14 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A long lazy stack's scrollbar reads its rows, not how long it sat on one screen.** Past 256 rows of several
+heights, the rows not yet drawn are priced at the mean pitch of those drawn, and that mean counted a row once for
+every frame it was drawn: a stack that sat on a screen of one-line rows while something animated above it went on
+pricing the five-line rows paged through after it at one line, so the thumb, "N more below" and a scrollbar jump were
+out by a factor of five. The mean is now one sample a row, it is taken at its fraction rather than rounded to a whole
+line (rows of 1.4 lines priced at 1 put the total 29% short), and it starts afresh when the rows are replaced or the
+width re-wraps them; an append keeps it.
+
 **A lazy stack's estimate of the rows it has not drawn no longer overflows.** Past 256 rows, the lines of the rows
 not yet drawn were `count × pitch`, which trapped for SwiftUI's endless-list idiom, `ForEach(0..<Int.max)`, unless
 every row was one line with no spacing. The estimates are now held at a quarter of `Int`'s range, which the rows past
