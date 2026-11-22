@@ -124,8 +124,16 @@ extension String {
     ///   indicators, SF-Symbol PUA glyphs, the VS-15 chrome glyphs, skin-tone
     ///   clusters) — so declining every multi-cell claim declines every one of
     ///   them, including on hosts whose model we have not measured. Single-cell
-    ///   characters have no such disagreement: box drawing, accented Latin,
-    ///   Greek and Cyrillic advance one everywhere.
+    ///   characters are NOT free of disagreement everywhere: box drawing,
+    ///   arrows, `●`, Greek, Cyrillic and much of accented Latin-1 are East
+    ///   Asian Ambiguous, which every measured host advances one cell with its
+    ///   default settings and advances two where it is set to draw ambiguous
+    ///   characters wide (iTerm2's "Ambiguous characters are double-width",
+    ///   Apple Terminal's and GNOME Terminal's equivalents). A span on such a
+    ///   host lands left of where the row was drawn, and the row stays garbled
+    ///   until it is next written whole. This walk accepts them regardless,
+    ///   because they are the ordinary row; see the survey's "Key symbols"
+    ///   section, "Width: every glyph claims one cell".
     /// - **A row that does not decompose to exactly `width` columns** — an empty
     ///   row against a full one, most often.
     ///

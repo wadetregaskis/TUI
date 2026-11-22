@@ -130,10 +130,15 @@ finding that out took a probe rather than a proof.
    placeholder row bails even though each claims one cell; the row is walked
    scalar by scalar without segmenting, which is what makes it cheap), and
    any string-family introducer (OSC, DCS, APC). Precomposed single-cell
-   characters have no such disagreement — box drawing, accented Latin in NFC,
-   Greek and Cyrillic advance one everywhere — so the ordinary row still takes
-   the fast path, on every host, including hosts whose advance model has never
-   been measured. The
+   characters take the fast path, on every host, including hosts whose advance
+   model has never been measured. They are not free of disagreement
+   everywhere, which this paragraph used to claim: box drawing, arrows, `●`,
+   Greek, Cyrillic and much of accented Latin-1 are East Asian Ambiguous, one
+   cell with every measured host's default settings and two where a host is
+   set to draw ambiguous characters wide (iTerm2's "Ambiguous characters are
+   double-width", Apple Terminal's and GNOME Terminal's equivalents). There a
+   span lands left of where its row was drawn, and the row stays garbled until
+   it is next written whole (WRITER-9, hunt of 2026-11-20). The
    Example's emoji page, which exists to demonstrate these divergences, takes
    the whole-line path on every row that demonstrates one.
 5. **Correctness exposure is high — it needs a corpus, not just unit tests.**
