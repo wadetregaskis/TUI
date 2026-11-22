@@ -342,7 +342,12 @@ hovered and the focused view's panels are placed first.
    (`TooltipState.observersHovered`); leaving the child for the rest of the
    container shows the container's help, its delay already served. Until then
    hover resolved one observer per point, the outermost, so the container's
-   help showed over the child and the child's never did.
+   help showed over the child and the child's never did. A child whose help
+   reads as the container's is told apart by its identity, not its text
+   (`TooltipState.publishedBy`, 2026-11-22, hunt 11-20 REST-11): matched on
+   the text, it took over the container's candidate, and leaving it took the
+   container's tooltip away. A popover is attached at the view whose candidate
+   it is, likewise, not at every view with the same help.
 3. **A non-focusable view with no hit region.** `.onHover` establishes one, so
    `help` on a `Text` makes that `Text` hit-testable where it was not. That is
    a small behavioural change to anything sitting under it.

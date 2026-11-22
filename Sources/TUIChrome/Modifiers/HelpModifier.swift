@@ -159,12 +159,14 @@ nonisolated package struct HelpModifier<Content: View>: View {
         // up, exactly as a `Menu`'s drop-down is. The run loop has only the root
         // buffer and could not say where the control ended up.
         //
-        // Identified by its TEXT, which is how `TooltipState.leaving` already
+        // Identified by the view's identity, as `TooltipState.leaving`
         // identifies a candidate: handler ids are per-frame, and the resolved
-        // candidate's id belongs to the frame that published it. Two views with
-        // identical help text would both draw a panel; they would also be
-        // indistinguishable to a reader, and the cost is a duplicate rather than
-        // a wrong answer.
+        // candidate's id belongs to the frame that published it. By the text
+        // only for the focus slot, which is published with no owner
+        // (`TooltipState.publishedBy`). Identified by the text alone until
+        // 2026-11-22, every view with the hovered one's help drew a panel: one
+        // down every row of a list whose rows' buttons share their help
+        // (hunt 11-20, REST-11).
         if trigger.showsEverything {
             // Every panel, unprompted and for as long as the subtree is on screen.
             // Nothing is resolved and nothing waits: this mode is not "which
@@ -172,9 +174,9 @@ nonisolated package struct HelpModifier<Content: View>: View {
             // panel, so the root, which places the set together, gives the
             // hovered and the focused view's panels the room first.
             TooltipPopover.attach(
-                text: text, to: &buffer, context: context, peerRank: tooltips.placementRank(of: text))
+                text: text, to: &buffer, context: context, peerRank: tooltips.placementRank(of: text, owner: owner))
         } else if let showing = tooltips.resolved(nowNanos: context.environment.frameNowNanos),
-            showing.style == .popover, showing.text == text
+            showing.style == .popover, showing.isPublished(by: owner, text: text)
         {
             TooltipPopover.attach(text: text, to: &buffer, context: context)
         }

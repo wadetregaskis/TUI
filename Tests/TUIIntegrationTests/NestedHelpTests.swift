@@ -120,4 +120,30 @@ struct NestedHelpTests {
         #expect(driver.shows("INNER-HELP"), "the inner view's help: \(driver.app.screen.lines)")
         #expect(!driver.shows("OUTER-HELP"))
     }
+
+    /// A child whose help reads as its container's is a candidate of its own,
+    /// found by its identity rather than its text: matched on the text first,
+    /// it took over the container's candidate as the pointer entered it, and
+    /// leaving it for the container's padding took the container's away, so
+    /// no tooltip showed until the pointer left the container and came back.
+    @Test("Help nested in the same help is told apart by its owner")
+    func sameTextIsToldApartByOwner() {
+        let tooltips = TooltipState()
+        tooltips.hovering("X", owner: "a", handlerID: nil, nowNanos: 0)
+        tooltips.hovering("X", owner: "a/b", handlerID: nil, nowNanos: 1)
+        #expect(tooltips.hovered?.owner == "a/b", "the child is the candidate: \(String(describing: tooltips.hovered?.owner))")
+        tooltips.leaving("X", owner: "a/b")
+        #expect(tooltips.hovered?.owner == "a", "the container's again: \(String(describing: tooltips.hovered?.owner))")
+        #expect(tooltips.hovered?.sinceNanos == 0, "its delay already served")
+    }
+
+    /// The text still finds a candidate published with no owner, as the focus
+    /// slot is.
+    @Test("A candidate with no owner is still found by its text")
+    func noOwnerFallsBackToText() {
+        let tooltips = TooltipState()
+        tooltips.hovering("X", handlerID: nil, nowNanos: 0)
+        tooltips.leaving("X", owner: "a")
+        #expect(tooltips.hovered == nil, "found by the text and gone")
+    }
 }

@@ -81,7 +81,7 @@ extension RenderLoop {
     ) -> Bool {
         let tooltips = tuiContext.tooltipState
         let dispatcher = tuiContext.mouseEventDispatcher
-        let popoverDrawn = Self.popoverText(tooltips.resolved(nowNanos: nowNanos))
+        let popoverDrawn = Self.popoverShown(tooltips.resolved(nowNanos: nowNanos))
         // What is presented over the page, which a hold on the rows the bar
         // covers stays with (`TooltipState.heldPresentations`).
         tooltips.beginReshape(
@@ -102,16 +102,20 @@ extension RenderLoop {
         tooltips.endReshape(
             tooltipRows: windowChrome.tooltipRows, pointerRow: dispatcher.restingPointer?.y,
             reaching: { dispatcher.reachesHoverObserver($0) }, region: { dispatcher.regionRect(for: $0) })
-        if Self.popoverText(tooltips.resolved(nowNanos: nowNanos)) != popoverDrawn {
+        if Self.popoverShown(tooltips.resolved(nowNanos: nowNanos)) != popoverDrawn {
             // A wake an instant after this frame: the next frame the cap allows.
             scheduler?.requestWake("tooltip-popover", at: nowNanos &+ 1)
         }
         return !reshaped.isEmpty
     }
 
-    /// The text of `showing` when it is drawn as a popover, `nil` otherwise.
-    private static func popoverText(_ showing: TooltipState.Resolved?) -> String? {
-        showing?.style == .popover ? showing?.text : nil
+    /// The text of `showing`, and the view it is attached at, when it is
+    /// drawn as a popover; `nil` otherwise. The view as well as the text: a
+    /// popover is attached at its view (`HelpModifier`), and a reshape that
+    /// slides another view with the same help under the pointer moves it.
+    private static func popoverShown(_ showing: TooltipState.Resolved?) -> [String?]? {
+        guard let showing, showing.style == .popover else { return nil }
+        return [showing.text, showing.owner]
     }
 
     /// Fills the status bar's rows above its items for this frame: the body

@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A hover tooltip is matched to its view, not to its text.** Help on a view inside a view with the same help took the
+outer view's tooltip away when the pointer left the inner one for the rest of the outer, until the pointer left and
+came back; and under `.tooltipStyle(.popover)` hovering one button of a list whose rows' buttons share their help drew
+a panel at every row. The pointer's tooltip is now found by the view that published it, and its text is compared only
+for the focused control's tooltip.
+
 **A popover tooltip is no longer wrapped to the width of its control.** Help on a view in an `HStack`, a toolbar or a
 fixed `.frame(width:)` was wrapped at the few cells the view was given, so `Button("Save") {}.help("Save the document
 to disk")` in a row showed its help a word or a fragment per row, and Help ▸ Show All Tooltips (Shift-F1) did so for

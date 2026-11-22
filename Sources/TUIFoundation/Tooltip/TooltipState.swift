@@ -96,6 +96,32 @@ public final class TooltipState {
         /// bar is answered by the panel; the run loop has only the root
         /// environment and could not tell.
         var style: TooltipStyle
+
+        /// Whether this is the candidate of the view `owner` names, whose
+        /// help is `text` (`TooltipState.publishedBy(_:_:owner:text:)`).
+        func isPublished(by owner: String?, text: String) -> Bool {
+            TooltipState.publishedBy(self.owner, self.text, owner: owner, text: text)
+        }
+    }
+
+    /// Whether a candidate published by `candidateOwner` with
+    /// `candidateText` is the one of the view `owner` names, whose help is
+    /// `text`.
+    ///
+    /// By the OWNER where both sides name one, and by the text only where
+    /// one does not: the focus slot is published with no owner, and so are
+    /// candidates a caller makes without one. Compared on the text first
+    /// until 2026-11-22, a child with its container's help found the
+    /// container's candidate as the pointer entered it and took that over,
+    /// so leaving the child for the container's padding took the
+    /// container's tooltip away; and a popover was attached at every view
+    /// whose help read as the hovered one's did, a panel down every row of
+    /// a list whose rows' buttons share their help (hunt 11-20, REST-11).
+    static func publishedBy(
+        _ candidateOwner: String?, _ candidateText: String, owner: String?, text: String
+    ) -> Bool {
+        if let candidateOwner, let owner { return candidateOwner == owner }
+        return candidateText == text
     }
 
     /// The pointer's candidates: every view with help whose hover observer
@@ -274,14 +300,16 @@ public final class TooltipState {
         // Re-entering the SAME region must not restart the delay: the
         // dispatcher synthesises `.entered` whenever the cursor crosses a
         // boundary, and a region that was re-registered at a different id this
-        // frame is still the same view under the pointer. Compared on the text
-        // rather than the id for exactly that reason — ids are per-frame.
-        // The view held through the bar's reflow, under the pointer again, is
-        // the same candidate too, its delay already served (``held``).
-        // So is the view it was published for, with help that has changed
-        // since.
+        // frame is still the same view under the pointer. Compared on the
+        // view's identity rather than the id for exactly that reason — ids
+        // are per-frame — and on the text only where either side has no
+        // identity (`publishedBy(_:_:owner:text:)`): a child that shares
+        // its container's help is a candidate of its own. The view held
+        // through the bar's reflow, under the pointer again, is the same
+        // candidate too, its delay already served (``held``), however its
+        // help has changed since.
         func isSame(_ candidate: Candidate) -> Bool {
-            candidate.text == text || (owner != nil && candidate.owner == owner)
+            candidate.isPublished(by: owner, text: text)
         }
         // Either way it takes the id the view's region has now: the
         // dispatcher names the observers the pointer is over by their
@@ -363,12 +391,10 @@ public final class TooltipState {
     /// - Parameters:
     ///   - text: The help text the view had when the pointer entered it.
     ///   - owner: The view's identity, which finds its candidate however its
-    ///     text has changed since.
+    ///     text has changed since, and not a candidate of another view with
+    ///     the same text (`publishedBy(_:_:owner:text:)`).
     package func leaving(_ text: String, owner: String? = nil) {
-        guard
-            let index = hoveredViews.lastIndex(where: {
-                $0.text == text || (owner != nil && $0.owner == owner)
-            })
+        guard let index = hoveredViews.lastIndex(where: { $0.isPublished(by: owner, text: text) })
         else { return }
         if reshapeIsTooltipReflow, held == nil, index == hoveredViews.count - 1 {
             held = hoveredViews[index]
@@ -623,7 +649,7 @@ public final class TooltipState {
             guard nowNanos >= pointer.showAtNanos else { return nil }
             return Resolved(
                 text: pointer.text, source: .hover, handlerID: pointer.handlerID,
-                style: pointer.style)
+                owner: pointer.owner, style: pointer.style)
         }
         guard let focused, keyboardRevealed || focused.revealsItself else { return nil }
         // The help key IS the wait — a press has already taken longer than any
@@ -634,16 +660,19 @@ public final class TooltipState {
             style: focused.style)
     }
 
-    /// Where the panel for `text` comes in the order the panels of
-    /// ``TooltipTrigger/always`` are placed: 0 for the view under the pointer,
-    /// 1 for the focused one, 2 for the rest, which go in reading order.
+    /// Where the panel for `text`, of the view `owner` names, comes in the
+    /// order the panels of ``TooltipTrigger/always`` are placed: 0 for the
+    /// view under the pointer, 1 for the focused one, 2 for the rest, which go
+    /// in reading order. The pointer's candidate is found by its owner first
+    /// (`publishedBy(_:_:owner:text:)`); the focus slot, which has none, by
+    /// the text.
     ///
     /// The slots are consulted with no delay and no help key: the panel is up
     /// already, and the rank only decides who keeps it when the page is too
     /// dense for all of them. Pointing at a view, or focusing it, is then how
     /// a reader brings back a panel that lost its place.
-    package func placementRank(of text: String) -> Int {
-        if hovered?.text == text { return 0 }
+    package func placementRank(of text: String, owner: String? = nil) -> Int {
+        if let hovered, hovered.isPublished(by: owner, text: text) { return 0 }
         if focused?.text == text { return 1 }
         return 2
     }
@@ -653,7 +682,17 @@ public final class TooltipState {
         package var text: String
         var source: Source
         var handlerID: HitTestRegion.HandlerID?
+        /// The identity of the view whose candidate this is; `nil` for the
+        /// focus slot, which is published with none.
+        package var owner: String?
         package var style: TooltipStyle
+
+        /// Whether this is the tooltip of the view `owner` names, whose help
+        /// is `text`: the view a popover is attached at
+        /// (`TooltipState.publishedBy(_:_:owner:text:)`).
+        package func isPublished(by owner: String?, text: String) -> Bool {
+            TooltipState.publishedBy(self.owner, self.text, owner: owner, text: text)
+        }
     }
 
     /// When a tooltip that is not yet showing would appear, as a monotonic

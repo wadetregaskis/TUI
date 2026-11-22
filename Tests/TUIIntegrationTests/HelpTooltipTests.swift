@@ -561,6 +561,25 @@ struct TooltipPopoverTests {
             "Escape still means what it meant")
     }
 
+    /// The hovered view's panel is attached at that view alone, though others
+    /// share its help: found by the text, a panel was drawn at every one, down
+    /// every row of a list whose rows' buttons share their help.
+    @Test("A hovered popover is drawn at its own view, not at every view with its text")
+    func hoveredPopoverIsDrawnOnce() throws {
+        let h = harness()
+        h.dispatcher.nowNanos = { 0 }
+        let view = VStack {
+            Button("First") {}.help("Remove")
+            Button("Second") {}.help("Remove")
+        }
+        let first = frame(view, h)
+        let row = try #require(first.lines.firstIndex { $0.stripped.contains("Second") })
+        _ = h.dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 3, y: row))
+        let shown = frame(view, h).overlays.filter { $0.level == .popover }
+        #expect(shown.count == 1, "one panel, the hovered button's: \(shown.count)")
+        #expect(shown.first?.offsetY ?? 0 > row, "beneath the second button: \(shown.map(\.offsetY))")
+    }
+
     /// A short tooltip is a short box: boxed at the widest wrapped line, not at
     /// the wrap width.
     @Test("The panel is only as wide as its text")
