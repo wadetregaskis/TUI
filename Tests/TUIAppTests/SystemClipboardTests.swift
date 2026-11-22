@@ -119,6 +119,16 @@ struct SystemClipboardTests {
         #expect(result == payload)
     }
 
+    /// No helper appends a line break of its own (`wl-paste` is asked not to),
+    /// so the one a paste ends with is the text's: a cut whole line pasted
+    /// elsewhere must keep it, or it joins the line after it.
+    @Test("A paste keeps the text's own trailing line break")
+    func pasteKeepsTrailingLineBreak() {
+        let text = SystemClipboard.textFromHelper(
+            tool: "/bin/sh", arguments: ["-c", "printf 'a\\n'"], deadline: Self.generousDeadline)
+        #expect(text == "a\n")
+    }
+
     @Test("A missing tool reports failure instead of throwing")
     func missingTool() {
         let result = SystemClipboard.run(

@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A paste from this machine's clipboard keeps the line break it ends with.** A paste read through `pbpaste`,
+`xclip` or `xsel` dropped one line break from its end, on the belief that the helper had added it, which none does:
+a whole line cut and pasted elsewhere was joined to the line after it, on macOS too. The text now comes as the
+clipboard holds it.
+
 **`copyToClipboard` is called on the main actor, and a call from elsewhere no longer compiles and then ends the
 app.** `CopyToClipboardAction.callAsFunction(_:)` was nonisolated, so a call from a detached task or another actor
 compiled, and stopped the process at the copy, which runs on the main actor. It is now `@MainActor`, as every other

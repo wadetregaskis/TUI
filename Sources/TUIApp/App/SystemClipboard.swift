@@ -258,15 +258,23 @@ enum SystemClipboard {
         return nil
     }
 
-    private static func textFromHelper(tool: String, arguments: [String]) -> String? {
-        guard let data = run(tool: tool, arguments: arguments, writing: nil, readsOutput: true),
-            var result = String(bytes: data, encoding: .utf8)
+    /// The text a paste helper prints, as it prints it, or `nil` where it
+    /// fails or prints something other than UTF-8. Internal so a test can run
+    /// a stand-in.
+    ///
+    /// Not trimmed: `pbpaste`, `xclip -o` and `xsel --output` print the
+    /// clipboard's bytes as they are, and `wl-paste` is run with
+    /// `--no-newline`, so a line break at the end is the text's own. A cut
+    /// whole line keeps it, and pastes as a line rather than joined to the
+    /// next one.
+    static func textFromHelper(
+        tool: String, arguments: [String], deadline: TimeInterval = defaultDeadline
+    ) -> String? {
+        guard
+            let data = run(
+                tool: tool, arguments: arguments, writing: nil, readsOutput: true, deadline: deadline)
         else { return nil }
-        // Strip the single trailing newline the helpers append.
-        if result.hasSuffix("\n") {
-            result.removeLast()
-        }
-        return result
+        return String(bytes: data, encoding: .utf8)
     }
 
     // MARK: - Bounded child I/O
