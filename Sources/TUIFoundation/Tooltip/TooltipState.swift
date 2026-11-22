@@ -717,6 +717,28 @@ public final class TooltipState {
         return focused.showAtNanos
     }
 
+    /// ``pendingDeadlineNanos(nowNanos:)`` where the tooltip waiting is the
+    /// one of the view `owner` names, whose help is `text`, and `nil` for
+    /// every other view: what a `help(_:)` view asks its wake against.
+    ///
+    /// The run loop asks once for the deadline itself
+    /// (`RenderLoop.requestTooltipFrames`); a view asks so that a memo above
+    /// it does not serve it as stored while its own tooltip waits, which
+    /// holds for that view alone. Asked against the state's deadline, every
+    /// view with help that drew while any one tooltip waited asked for a wake
+    /// of its own at the same instant, and declared a render side effect that
+    /// kept every memo above it from storing the frame (hunt 11-20,
+    /// REST-12). The pointer's candidate is found by its owner
+    /// (`publishedBy(_:_:owner:text:)`), the focus slot's, which has none,
+    /// by its text.
+    package func pendingDeadlineNanos(nowNanos: Int64, owner: String, text: String) -> Int64? {
+        guard let deadline = pendingDeadlineNanos(nowNanos: nowNanos) else { return nil }
+        if let pointer = pointerCandidate {
+            return pointer.isPublished(by: owner, text: text) ? deadline : nil
+        }
+        return focused?.text == text ? deadline : nil
+    }
+
     /// When a tooltip asked for at `nowNanos` shows by itself: `delaySeconds`
     /// later, or `.max` — never — for a delay the clock never reaches.
     ///

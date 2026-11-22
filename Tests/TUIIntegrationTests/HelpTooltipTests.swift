@@ -243,6 +243,32 @@ struct HelpTooltipTests {
         #expect(h.tooltips.resolved(nowNanos: due)?.source == .hover, "…and now it has")
     }
 
+    /// While a tooltip waits out its delay, the view whose tooltip it is asks
+    /// for the wake at the end of it, and no other: every view with help that
+    /// drew asked for one of its own, at the same instant, and declared a side
+    /// effect that kept every memo above it from storing the frame.
+    @Test("A pending tooltip asks for one wake, not one per view with help")
+    func pendingTooltipAsksForOneWake() {
+        let h = harness()
+        let scheduler = AnimationScheduler()
+        var context = h.context
+        context.environment.animationScheduler = scheduler
+        let view = VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<8, id: \.self) { index in Text("row \(index)").help("help \(index)") }
+        }
+        h.dispatcher.setRegions(renderToBuffer(view, context: context).hitTestRegions)
+        _ = h.dispatcher.dispatch(MouseEvent(button: .none, phase: .moved, x: 1, y: 3))
+        #expect(h.tooltips.hovered?.text == "help 3", "precondition: the pointer is on row 3")
+        // Every row draws, as on a frame that lays the page out again: at the
+        // first frame's width the rows the pointer is not on are served as
+        // stored, and ask for nothing either way.
+        context.availableWidth -= 1
+        scheduler.beginFrame()
+        _ = renderToBuffer(view, context: context)
+        scheduler.endFrame()
+        #expect(scheduler.liveWakeCount == 1, "one wake, the hovered row's: \(scheduler.liveWakeCount)")
+    }
+
     /// Hover beats focus: the pointer is a deliberate act aimed at one thing.
     @Test("Hover wins over a revealed focus candidate")
     func hoverBeatsFocus() {

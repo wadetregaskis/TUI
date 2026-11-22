@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Only the view whose tooltip is waiting asks for the frame that shows it.** While a tooltip waited out its delay,
+every view with help that drew asked for a wake of its own at the same instant, and declared a side effect that kept
+the render memo from storing any view containing it; a page with many views with help, a toolbar or a form, gave up
+its memo for every frame drawn during the delay. Now the view whose tooltip it is asks, and the run loop's own wake
+does the rest.
+
 **A hover tooltip is matched to its view, not to its text.** Help on a view inside a view with the same help took the
 outer view's tooltip away when the pointer left the inner one for the rest of the outer, until the pointer left and
 came back; and under `.tooltipStyle(.popover)` hovering one button of a list whose rows' buttons share their help drew

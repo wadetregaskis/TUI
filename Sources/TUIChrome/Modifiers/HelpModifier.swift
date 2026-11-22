@@ -182,16 +182,20 @@ nonisolated package struct HelpModifier<Content: View>: View {
         }
 
         // The delay expires between frames, and nothing else will redraw for it
-        // — a still-held focus least of all. Declared every frame while either
-        // slot is pending, and it stops as soon as the tooltip is showing or the
-        // candidate goes away: one wake per hover or focus, not a poll. The run
-        // loop asks for it too once the frame is drawn, for a candidate the
-        // frame's reshape sets after this has drawn (`RenderLoop.requestTooltipFrames`);
-        // asked here as well because, asked while drawing, it is a render side
-        // effect, which keeps a memoizing ancestor from serving this view as it
-        // was stored while its tooltip is pending (`RenderContext.requestWake`).
+        // — a still-held focus least of all. Declared every frame while THIS
+        // view's tooltip is pending, and it stops as soon as the tooltip is
+        // showing or the candidate goes away: one wake per hover or focus, not
+        // a poll. The run loop asks for it too once the frame is drawn, for a
+        // candidate the frame's reshape sets after this has drawn
+        // (`RenderLoop.requestTooltipFrames`); asked here as well because,
+        // asked while drawing, it is a render side effect, which keeps a
+        // memoizing ancestor from serving this view as it was stored while its
+        // tooltip is pending (`RenderContext.requestWake`). Only this view's:
+        // asked for whichever tooltip was pending, every view with help that
+        // drew asked for a wake of its own at the same instant, and no memo
+        // above any of them stored the frame (hunt 11-20, REST-12).
         if let deadline = tooltips.pendingDeadlineNanos(
-            nowNanos: context.environment.frameNowNanos)
+            nowNanos: context.environment.frameNowNanos, owner: owner, text: text)
         {
             let seconds = Double(deadline - context.environment.frameNowNanos) / 1_000_000_000
             context.requestWake(token: "tooltip-\(context.identity.path)", afterSeconds: seconds)
