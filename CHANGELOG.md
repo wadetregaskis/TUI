@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**An `AnyView` whose content changes type starts the new content's state afresh.** In
+`loggedIn ? AnyView(Home()) : AnyView(Login())`, or a wizard's `AnyView` steps, the view swapped in was handed the
+`@State` of the one it replaced wherever their states lined up, so text typed in one screen showed in the next,
+and a screen swapped back found what it had held. Content of another type is now a new view, as in SwiftUI; the
+same type wrapped in a new `AnyView` keeps its state, as before. Only what the content made is dropped: a control
+that draws erased labels at its own place, as a search field's suggestions menu does, keeps its own state.
+
 **A view of plain data is compared by its bits, as SwiftUI compares it.** A view holding a `Double` that went from
 `0.0` to `-0.0` kept showing `0.0`, a view holding `.nan` ran its `body` on every frame, and a view holding a struct
 whose `==` compares an id alone was served stale when another of its fields changed. A field of plain data every byte

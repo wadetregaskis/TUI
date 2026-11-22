@@ -343,7 +343,7 @@ private struct _RowMenuItems: View {
         // the items are a view of the app's own, more often than not, whose
         // body is several views — which an `AnyView` hands over only when it
         // erases a provider of them.
-        rowMenuMembers(of: items.erasedView, context: items.contentContext(noting: context))
+        rowMenuMembers(of: items.erasedView, context: items.contentContext(noting: context, comparing: true, handsOverMembers: true))
     }
 }
 

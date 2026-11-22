@@ -40,7 +40,12 @@
         guard let provider = erasedView as? ChildViewProvider, !provider.staysWhole(in: context) else {
             return [ChildView(self)]
         }
-        return erasedMembers(of: erasedView, as: provider, context: contentContext(noting: context))
+        // Its views are drawn by the container, below this identity and out
+        // of its sight, so the state storage is told: a change of type drops
+        // everything below (`handsOverMembers`).
+        return erasedMembers(
+            of: erasedView, as: provider,
+            context: contentContext(noting: context, comparing: true, handsOverMembers: true))
     }
 
     public func staysWhole(in context: RenderContext) -> Bool {

@@ -77,6 +77,7 @@ extension StateStorage {
         let made = HolderToken(holder: holder, hub: hub)
         pruneWitness.changes += 1
         values[key] = made
+        if !erasedContentDraws.isEmpty { noteMadeInErasedContent(key) }
         return (hub, made, .unknown, nil)
     }
 
@@ -122,8 +123,10 @@ extension StateStorage {
         }
         own.place(at: key.identity)
         pruneWitness.changes += 1
-        if let replaced = values.updateValue(own, forKey: key), replaced !== own {
-            (replaced as? any DroppableBox)?.markDropped()
+        if let replaced = values.updateValue(own, forKey: key) {
+            if replaced !== own { (replaced as? any DroppableBox)?.markDropped() }
+        } else if !erasedContentDraws.isEmpty {
+            noteMadeInErasedContent(key)
         }
         return own
     }

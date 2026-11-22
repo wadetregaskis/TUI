@@ -81,6 +81,7 @@ import TUICore
     /// | -240… | `_TextEditorCore`'s first frame: the layout its measures make before its handler exists (a tracked value) |
     /// | -250… | `_TimelineViewCore`: the animation entry it shows until its next wake (a tracked value) |
     /// | -260… | `_ButtonCore` (a `ButtonStyle`'s body is drawn at the button's own identity) |
+    /// | -270… | `AnyView`: the type of the content it draws and the state that content made (`erasedContentIndex`), one per depth in `scope` |
     ///
     /// Taking a new range: claim the next free ten here, in this table.
     /// (Leaf `Renderable` views whose slots can never share an identity with
@@ -148,6 +149,14 @@ import TUICore
         /// (`HeldIndicatorPlacement`, in TUIFoundation). From the table above:
         /// kept at the view's own identity, beside its content's `@State`.
         package static let heldIndicatorPlacementIndex = -210
+
+        /// Where an `AnyView` keeps the record of the content it draws — its
+        /// erased type, and the keys of the state that content made
+        /// (``ErasedContentRecord``) — in the `scope` of its depth, so two
+        /// `AnyView`s nested at one identity keep one each. From the table
+        /// above: kept at the `AnyView`'s identity, beside its content's own
+        /// state, and pruned with it.
+        static let erasedContentIndex = -270
 
         /// The fields folded into one word before `Hasher` sees any — see
         /// ``mixHashWord(_:_:)``, and ``RenderCache/MeasureKey`` for why a
@@ -375,6 +384,18 @@ import TUICore
     /// count for the process, so this one's passes are not consecutive.
     package private(set) var previousPass: UInt32 = 0
 
+    /// The walk under way, a serial of this storage's that every walk of the
+    /// tree moves on (``beginSceneRender()``, ``beginRewalk()``), several
+    /// within a pass: what an `AnyView` compares its erased type once in
+    /// (``noteErasedContentDrawn(_:at:depth:handsOverMembers:)``).
+    private(set) var currentWalk: UInt32 = 0
+
+    /// The `AnyView`s whose content is being drawn or measured, outermost
+    /// first: what the state made meanwhile is noted as their content's
+    /// (``noteMadeInErasedContent(_:)``). Empty outside every `AnyView`,
+    /// which is all a box made there pays to ask.
+    var erasedContentDraws: [ErasedContentDraw] = []
+
     /// Creates an empty state storage.
     public init() {
         animations.completionTracker = animationCompletions
@@ -439,6 +460,7 @@ extension StateStorage {
         // at its place — is dropped.
         pruneWitness.changes += 1
         (values.updateValue(fresh, forKey: key) as? any DroppableBox)?.markDropped()
+        if !erasedContentDraws.isEmpty { noteMadeInErasedContent(key) }
         return fresh
     }
 
@@ -467,7 +489,9 @@ extension StateStorage {
     /// pruned and invalidated with that state's identity.
     func setEnumCaseRecord(_ record: EnumCaseRecord, at key: StateKey) {
         pruneWitness.changes += 1
-        values[key] = record
+        if values.updateValue(record, forKey: key) == nil, !erasedContentDraws.isEmpty {
+            noteMadeInErasedContent(key)
+        }
     }
 
     /// Removes what is stored under each of `keys`: the state an enum's case
@@ -478,11 +502,28 @@ extension StateStorage {
     /// own slot that holds what no longer fits the view drawn there, so the
     /// next ``storage(for:default:)`` makes it afresh without a write (a
     /// `Stepper`'s handler for a value of another type).
+    ///
+    /// An `AnyView`'s record among them (``ErasedContentRecord``), one inside
+    /// the content that went, has the state its own content made removed too.
     package func removeValues(forKeys keys: [StateKey]) {
         for key in keys {
-            if let record = dropValue(forKey: key) as? EnumCaseRecord {
+            switch dropValue(forKey: key) {
+            case let record as EnumCaseRecord:
                 removeValues(forKeys: record.keys)
+            case let record as ErasedContentRecord:
+                removeValues(forKeys: record.keys)
+                removeTrackedValues(forKeys: record.trackedKeys)
+            default:
+                break
             }
+        }
+    }
+
+    /// Removes the tracked values (``setTrackedValue(_:for:)``) under each of
+    /// `keys`.
+    func removeTrackedValues(forKeys keys: [StateKey]) {
+        for key in keys {
+            trackedValues.removeValue(forKey: key)
         }
     }
 
@@ -699,7 +740,9 @@ extension StateStorage {
     ///   - key: The state key (identity + property index).
     public func setTrackedValue<V>(_ value: V, for key: StateKey) {
         pruneWitness.changes += 1
-        trackedValues[key] = value
+        if trackedValues.updateValue(value, forKey: key) == nil, !erasedContentDraws.isEmpty {
+            noteMadeInErasedContent(key, tracked: true)
+        }
     }
 
     /// Stores `value` as ``setTrackedValue(_:for:)`` does, for a caller that
@@ -717,7 +760,9 @@ extension StateStorage {
             }
         }
         pruneWitness.changes += 1
-        trackedValues[key] = value
+        if trackedValues.updateValue(value, forKey: key) == nil, !erasedContentDraws.isEmpty {
+            noteMadeInErasedContent(key, tracked: true)
+        }
     }
 
     /// How many times an `onChange` or `onPreferenceChange` action runs in one
@@ -801,6 +846,7 @@ extension StateStorage {
     /// start again: what the pass has marked active stays marked, and
     /// `currentPass` stays the frame's.
     public func beginRewalk() {
+        currentWalk &+= 1
         animations.beginRenderPass()
         departures.beginRenderPass()
         placements.beginRenderPass()
@@ -823,6 +869,7 @@ extension StateStorage {
     /// and let ``endRenderPass()`` prune App-level `@State` on every frame that
     /// walks the tree twice.
     public func beginSceneRender() {
+        currentWalk &+= 1
         onChangeCounters.removeAll(keepingCapacity: true)
         // What the last walk drew of its windows is that walk's.
         notesWindowedRows = false
@@ -976,6 +1023,7 @@ extension StateStorage {
         displacedEnvironments.removeAll()
         trackedValues.removeAll()
         onChangeCounters.removeAll()
+        erasedContentDraws.removeAll()
         activeIdentities.removeAll()
         pruneWitness.reset()
         windowedRows.removeAll()

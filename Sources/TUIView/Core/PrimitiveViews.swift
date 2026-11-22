@@ -197,7 +197,7 @@ nonisolated public struct AnyView: View {
         // A chain of these built at run time passes no `body` on the way down,
         // the other place the draw's guard is (`renderToBuffer(_:context:)`).
         if !StackGuard.hasHeadroom() { return DepthLimit.drawn(AnyView.self, context: context) }
-        let buffer = TUIView.renderToBuffer(view, context: contentContext(noting: context))
+        let buffer = drawingContent(noting: context, comparing: true) { TUIView.renderToBuffer(view, context: $0) }
         // Its content drew at this identity, unchanged: a transition in it
         // left the picture a slot that held this `AnyView` would play. Said
         // here, by value, because the slot knows only the type `AnyView`.
@@ -232,17 +232,50 @@ nonisolated public struct AnyView: View {
     /// Asked by every path the content takes: drawn whole (the render and the
     /// measure), and taken apart into its views (`childViews(context:)`),
     /// whose views sit below this identity too.
-    package func contentContext(noting context: RenderContext) -> RenderContext {
+    ///
+    /// A render, and a render's walk of its views, notes the type with the
+    /// state storage too (`comparing`), which drops the state the content
+    /// made when the type changes: content of another type is a new view, as
+    /// SwiftUI makes it (``StateStorage/noteErasedContentDrawn(_:at:depth:handsOverMembers:)``).
+    /// The cache is cleared again then, for the measures this pass made
+    /// before the draw, which read the state that has gone. A measure never
+    /// compares: it must not drop state.
+    package func contentContext(
+        noting context: RenderContext, comparing: Bool = false, handsOverMembers: Bool = false
+    ) -> RenderContext {
         var contentContext = context
         contentContext.environmentApplicationDepth += 1
-        guard let cache = context.renderCache else { return contentContext }
-        if cache.noteErasedContent(
-            ObjectIdentifier(type(of: view)), identity: context.identity,
-            depth: context.environmentApplicationDepth)
+        let erasedType = ObjectIdentifier(type(of: view))
+        let depth = context.environmentApplicationDepth
+        let cache = context.renderCache
+        if comparing, !context.isMeasuring, let storage = context.stateStorage,
+            storage.noteErasedContentDrawn(
+                erasedType, at: context.identity, depth: depth, handsOverMembers: handsOverMembers)
         {
+            cache?.clearAffected(by: context.identity)
+        }
+        guard let cache else { return contentContext }
+        if cache.noteErasedContent(erasedType, identity: context.identity, depth: depth) {
             cache.clearAffected(by: context.identity)
         }
         return contentContext
+    }
+
+    /// `body` run on the context the content is drawn or measured in
+    /// (``contentContext(noting:comparing:handsOverMembers:)``), with the
+    /// state storage told that what is made meanwhile is the content's
+    /// (``StateStorage/beginErasedContent(_:at:depth:)``): what a change of
+    /// type drops.
+    @inline(__always)
+    func drawingContent<R>(
+        noting context: RenderContext, comparing: Bool, _ body: (RenderContext) -> R
+    ) -> R {
+        let contentContext = contentContext(noting: context, comparing: comparing)
+        guard let storage = context.stateStorage else { return body(contentContext) }
+        storage.beginErasedContent(
+            ObjectIdentifier(type(of: view)), at: context.identity, depth: context.environmentApplicationDepth)
+        defer { storage.endErasedContent() }
+        return body(contentContext)
     }
 }
 
@@ -534,7 +567,9 @@ extension Optional: ChildViewProvider where Wrapped: View {
     /// measure walk runs first, and a swap noticed only by the render would
     /// already have served a stale size.
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
-        measureChild(view, proposal: proposal, context: contentContext(noting: context))
+        drawingContent(noting: context, comparing: false) {
+            measureChild(view, proposal: proposal, context: $0)
+        }
     }
 }
 
