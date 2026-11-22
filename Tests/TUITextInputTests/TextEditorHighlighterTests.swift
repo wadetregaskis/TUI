@@ -272,7 +272,7 @@ struct TextEditorHighlighterTests {
         let next = try #require(await session.nextUpdate())
         #expect(next.visibleLines == first.visibleLines, "the screen is where it was")
         #expect(next.change?.newLines == 0..<1, "and the change is the one line typed on")
-        #expect(next.linesToStyle == RangeSet(0..<8), "but every line of the window is to style")
+        #expect(next.linesToStyle == [0..<8], "but every line of the window is to style")
         // The changed line and the lines to style, as a tree styler publishes them: the screen styled again.
         styler.step(next, in: session)
         #expect(styler.steps.last?.published == Set(0..<8))
@@ -306,7 +306,7 @@ struct TextEditorHighlighterTests {
         #expect(rig.ink(line: 2, column: 1) == Self.ink(Self.green), "and the line it edited carries them")
         let undone = try #require(await session.nextUpdate())
         #expect(undone.change?.oldLines == 2..<3 && undone.change?.newLines == 2..<3)
-        #expect(undone.linesToStyle == RangeSet(2..<3))
+        #expect(undone.linesToStyle == [2..<3])
         styler.step(undone, in: session)
         // The app's own write, as tuitree prints its tree into the pane.
         rig.text.value = text + "!"

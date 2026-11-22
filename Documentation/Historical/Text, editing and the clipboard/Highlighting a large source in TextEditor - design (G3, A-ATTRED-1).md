@@ -1413,8 +1413,12 @@ work round, each item pinned by a test of its own (tuitree's `TUI-FEEDBACK.md`, 
   highlighter publishes those and what its own analysis says changed; a stateless line styler those alone, as the
   JSON styler now does (superseding B-ATTRED-42's whole window, which the session's no-change check made cheap to
   draw but not to scan). It is found under the lock as the update is taken, a dictionary look-up a line of the
-  window (a few hundred at most), on the highlighter's task, and is a `RangeSet` (the standard library's, whose
-  macOS 15 floor is the package's): a run of lines is a batch to publish. `window` is B-ATTRED-30's rule, given,
+  window (a few hundred at most), on the highlighter's task, and is an array of runs of lines, ascending, each a
+  batch to publish. It was first a `RangeSet<Int>`, which trapped in a release build of Stress on macOS 15.8.3
+  ("Range requires lowerBound <= upperBound", in `IndexingIterator<RangeSet<Int>.Ranges>.next()`, at the JSON
+  styler's first update) while a debug build, the tests and a standalone `-O` probe of the same inserts and walk
+  did not; not traced further, since an array needs nothing of the OS's standard library and says as much.
+  `window` is B-ATTRED-30's rule, given,
   so no highlighter repeats its arithmetic and a change to it reaches them all (tuitree's copy, the JSON styler's
   and the fake tree styler's went). A line past `maximumLineLength` is now kept as a line of no tokens, drawn
   unstyled as before, so it is not listed every update. Two alternatives were weighed: a flag that the window moved

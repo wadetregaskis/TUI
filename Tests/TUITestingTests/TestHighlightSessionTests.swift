@@ -31,7 +31,7 @@ private struct FirstWord: TextEditorHighlighter {
 
     func highlight(_ session: TextEditorHighlightSession<Token>) async {
         while let update = await session.nextUpdate() {
-            for lines in update.linesToStyle.ranges {
+            for lines in update.linesToStyle {
                 session.publish(lines.map { Self.tokens(of: update.text.line($0)) }, forLines: lines, of: update.text.version)
             }
         }
@@ -69,7 +69,7 @@ struct TestHighlightSessionTests {
     func playTheHighlighter() async throws {
         let test = TestHighlightSession<Token>(text: "a b\nc", visibleLines: 0..<2)
         let update = try #require(await test.session.nextUpdate())
-        #expect(update.window == 0..<2 && update.linesToStyle == RangeSet(0..<2))
+        #expect(update.window == 0..<2 && update.linesToStyle == [0..<2])
         test.replace(0..<1, with: "z")
         let tokens = FirstWord.tokens(of: update.text.line(0))
         #expect(test.session.publish(tokens, forLine: 0, of: update.text.version) == .refused)

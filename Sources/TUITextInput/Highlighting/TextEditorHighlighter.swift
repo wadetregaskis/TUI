@@ -321,7 +321,10 @@ public struct TextEditorHighlightUpdate: Sendable {
     /// line drawn in another text's tokens: a line not listed holds the
     /// tokens last published for it, moved with its text where an edit moved
     /// it. A stateless line styler publishes these alone (B-ATTRED-57).
-    public var linesToStyle: RangeSet<Int>
+    ///
+    /// Runs of lines, ascending, none empty and no two touching: each a batch
+    /// to publish.
+    public var linesToStyle: [Range<Int>]
 }
 
 /// TUI-specific. What became of tokens published to a

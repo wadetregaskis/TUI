@@ -167,7 +167,7 @@ struct TextEditorWrittenTextTests {
         let change = try #require(update.change)
         #expect(change.oldLines == 1..<3 && change.newLines == 1..<2)
         #expect(update.text.string == undone)
-        #expect(update.linesToStyle == RangeSet(1..<2))
+        #expect(update.linesToStyle == [1..<2])
         // The same text again: nothing to tell, no new version.
         _ = session.textWritten(to: undone, lineStarts: EditorLayout.lineBreaks(in: undone).starts)
         #expect(session.publish(word, forLine: 1, of: update.text.version) == .kept(1..<2))

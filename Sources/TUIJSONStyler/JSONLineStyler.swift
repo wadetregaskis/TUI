@@ -78,7 +78,7 @@ package enum JSONLineStyler {
     /// (B-ATTRED-15).
     package static func publish(_ update: TextEditorHighlightUpdate, in session: TextEditorHighlightSession<JSONToken>) {
         let text = update.text
-        for lines in update.linesToStyle.ranges {
+        for lines in update.linesToStyle {
             let tokens = lines.map { index in
                 let line = text.line(index)
                 return line.count > session.maximumLineLength ? TextEditorTokens() : Self.tokens(of: line)

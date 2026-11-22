@@ -265,7 +265,7 @@ struct TextEditorHighlightSessionTests {
         _ = session.show(lines: 10..<20)
         let first = try #require(await session.nextUpdate())
         #expect(first.window == 0..<30)
-        #expect(first.linesToStyle == RangeSet(0..<30), "nothing published yet")
+        #expect(first.linesToStyle == [0..<30], "nothing published yet")
         let word = Self.tokens([(0, .word)])
         #expect(session.publish(Array(repeating: word, count: 30), forLines: 0..<30, of: 0) == .kept(0..<30))
         // Away and back before the highlighter looks: the screen is where it
@@ -274,19 +274,19 @@ struct TextEditorHighlightSessionTests {
         _ = session.show(lines: 10..<20)
         let back = try #require(await session.nextUpdate())
         #expect(back.visibleLines == 10..<20 && back.window == 0..<30)
-        #expect(back.linesToStyle == RangeSet(0..<30), "all of them left it: 40..<70 was the window")
+        #expect(back.linesToStyle == [0..<30], "all of them left it: 40..<70 was the window")
         #expect(session.publish(Array(repeating: word, count: 30), forLines: 0..<30, of: 0) == .kept(0..<30))
         // A scroll a few lines on: only the lines new to the window.
         _ = session.show(lines: 15..<25)
         let scrolled = try #require(await session.nextUpdate())
-        #expect(scrolled.window == 5..<35 && scrolled.linesToStyle == RangeSet(30..<35))
+        #expect(scrolled.window == 5..<35 && scrolled.linesToStyle == [30..<35])
         // An edit in place: the line's tokens carried, provisional, so to
         // style; a line put in: none.
         let typed = try Self.edit(session, text, to: text.replacingOccurrences(of: "line 12\n", with: "line 12!\n"))
         _ = try Self.edit(session, typed, to: typed.replacingOccurrences(of: "line 20\n", with: "line 20\nnew\n"))
         let edited = try #require(await session.nextUpdate())
         // The lines from 21 moved one on with their tokens: 30 is 29's.
-        #expect(Array(edited.linesToStyle.ranges) == [12..<13, 21..<22, 31..<35])
+        #expect(edited.linesToStyle == [12..<13, 21..<22, 31..<35])
     }
 
     @Test("A publish says which of its lines it kept: those in the window, none for a window moved away")

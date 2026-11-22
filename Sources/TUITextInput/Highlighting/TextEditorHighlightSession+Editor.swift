@@ -219,7 +219,7 @@ enum EditorHighlightTake: Sendable {
         /// The lines tokens are kept for, and those of them that hold none of
         /// this text, or only provisional ones (B-ATTRED-57).
         var window: Range<Int>
-        var linesToStyle: RangeSet<Int>
+        var linesToStyle: [Range<Int>]
         /// The text the highlighter took last, which ``change`` is from, and
         /// the lines of the one taken now: its lines are found from that
         /// one's (B-ATTRED-45).
@@ -265,18 +265,18 @@ extension EditorHighlightState {
 
     /// The lines of the window that hold no tokens, or only provisional ones
     /// (B-ATTRED-57): a look-up a line of the window, a few hundred at most.
-    func linesToStyle() -> RangeSet<Int> {
-        var found = RangeSet<Int>()
+    func linesToStyle() -> [Range<Int>] {
+        var found: [Range<Int>] = []
         var start: Int?
         for line in window {
             let held = lines[line].map { !$0.isProvisional } ?? false
             if !held, start == nil { start = line }
             if held, let first = start {
-                found.insert(contentsOf: first..<line)
+                found.append(first..<line)
                 start = nil
             }
         }
-        if let first = start { found.insert(contentsOf: first..<window.upperBound) }
+        if let first = start { found.append(first..<window.upperBound) }
         return found
     }
 

@@ -121,7 +121,9 @@ final class FakeTreeStyler: Sendable {
             } else {
                 changed = Set(lines.indices)
             }
-            let toPublish = update.window.filter { changed.contains($0) || update.linesToStyle.contains($0) }
+            let toPublish = update.window.filter { line in
+                changed.contains(line) || update.linesToStyle.contains { $0.contains(line) }
+            }
             state.lines = lines
             state.version = update.text.version
             state.steps.append(
