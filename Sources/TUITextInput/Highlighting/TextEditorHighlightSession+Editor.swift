@@ -101,8 +101,9 @@ struct EditorLineShift: Sendable, Equatable {
 }
 
 /// A line's tokens as kept: provisional while they are the tokens of the
-/// line before an edit, moved with it, until the highlighter publishes the
-/// line again (B-ATTRED-24, 28).
+/// line before an edit, moved with it, or tokens a publish refused for an
+/// older text would have replaced (B-ATTRED-63), until the highlighter
+/// publishes the line again (B-ATTRED-24, 28).
 struct EditorHighlightLine: Sendable, Equatable {
     var runs: [EditorHighlightRun]
     var isProvisional = false
@@ -156,6 +157,13 @@ struct EditorHighlightState: Sendable {
     var takenSize = (lines: 0, bytes: 0)
     /// What changed since: everything until the first update.
     var pending: EditorHighlightPending? = .whole
+    /// The version of the update taken last, and each edit since, as the
+    /// lines it replaced and how many took their place: where a refused
+    /// publish's lines now are (B-ATTRED-63). A text written whole replaces
+    /// them all. Past ``maximumSplices``, one splice from ``pending``.
+    var takenVersion = -1
+    var splices: [(replaced: Range<Int>, count: Int)] = []
+    static let maximumSplices = 64
     /// Whether the lines on screen moved since.
     var viewportMoved = false
     /// The highlighter, waiting for the next update.
@@ -260,7 +268,55 @@ extension EditorHighlightState {
             version: version, string: string, text: taken?.version == version ? taken : nil, change: change,
             visible: visible, window: window, linesToStyle: linesToStyle(), previous: taken, lineCount: lineCount)
         (pending, viewportMoved, takenSize) = (nil, false, (lineCount, utf8Count))
+        (takenVersion, splices) = (version, [])
         return .update(taken)
+    }
+
+    /// Notes an edit since the update taken last that replaced the lines
+    /// `replaced` of the text before with `count`: past
+    /// ``maximumSplices`` the edits are one, the lines ``pending`` says they
+    /// changed between them, which places a line no worse than at the lines
+    /// they changed. Called once ``pending`` and ``lineCount`` are the
+    /// edit's.
+    mutating func noteSplice(replacing replaced: Range<Int>, withCount count: Int) {
+        splices.append((replaced, count))
+        guard splices.count > Self.maximumSplices else { return }
+        switch pending {
+        case .ends(let prefixLines, let suffixLines, _, _):
+            splices = [(prefixLines..<(takenSize.lines - suffixLines), lineCount - suffixLines - prefixLines)]
+        case .whole, nil:
+            splices = [(0..<takenSize.lines, lineCount)]
+        }
+    }
+
+    /// The tokens kept for the lines `refused` of the text of `version`, a
+    /// publish refused because the editor has moved on from it, marked
+    /// provisional, so the next update lists them (B-ATTRED-63): the lines
+    /// its parse said changed hold tokens it said were stale. Placed through
+    /// the edits since; a line an edit replaced is the lines that took its
+    /// place. A publish for a text older than the update taken last can't be
+    /// placed: every line of the window is marked.
+    mutating func restyle(_ refused: Range<Int>, refusedFor version: Int) {
+        guard !isClosed, version < self.version else { return }
+        var placed = refused
+        if version == takenVersion {
+            for splice in splices { placed = Self.place(placed, through: splice.replaced, count: splice.count) }
+        } else {
+            placed = window
+        }
+        for line in placed.clamped(to: window) { lines[line]?.isProvisional = true }
+    }
+
+    /// `lines` after an edit that replaced the lines `replaced` with `count`:
+    /// those before it stay, those after move by the lines it added or took,
+    /// and those it replaced are the lines that took their place.
+    static func place(_ lines: Range<Int>, through replaced: Range<Int>, count: Int) -> Range<Int> {
+        guard !lines.isEmpty else { return lines }
+        let shift = count - replaced.count
+        if lines.upperBound <= replaced.lowerBound { return lines }
+        if lines.lowerBound >= replaced.upperBound { return (lines.lowerBound + shift)..<(lines.upperBound + shift) }
+        let upper = lines.upperBound > replaced.upperBound ? lines.upperBound + shift : replaced.lowerBound + count
+        return min(lines.lowerBound, replaced.lowerBound)..<upper
     }
 
     /// The lines of the window that hold no tokens, or only provisional ones
@@ -302,7 +358,10 @@ extension EditorHighlightState {
         _ made: [(line: Int, runs: [EditorHighlightRun])], madeFor madeLines: Range<Int>, of published: Range<Int>,
         ofVersion version: Int
     ) -> EditorHighlightKeep {
-        guard !isClosed, version == self.version else { return .refused }
+        guard !isClosed, version == self.version else {
+            restyle(published, refusedFor: version)
+            return .refused
+        }
         var onScreen = false
         for (line, runs) in made where window.contains(line) {
             let kept = lines[line]
@@ -351,7 +410,10 @@ extension TextEditorHighlightSession: EditorHighlightFeed {
                 state.changed.removeAll()
             }
             state.carryMarks(through: edit?.marks)
+            let oldLineCount = state.lineCount
             (state.string, state.lineCount, state.utf8Count) = (string, max(1, lineCount), string.utf8.count)
+            state.noteSplice(
+                replacing: edit?.replaced ?? 0..<oldLineCount, withCount: edit?.replacementCount ?? state.lineCount)
             return (state.placeWindow(), state.takeWaiter())
         }
         waiter?.resume()

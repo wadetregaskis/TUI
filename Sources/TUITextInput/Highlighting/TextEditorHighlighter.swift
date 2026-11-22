@@ -314,7 +314,11 @@ public struct TextEditorHighlightUpdate: Sendable {
     /// lines never published, lines that left the window and came back (a
     /// line that leaves it loses its tokens, B-ATTRED-38), lines an edit put
     /// in, and lines edited in place, which the editor draws in their old
-    /// tokens, moved, until they are published again (B-ATTRED-28).
+    /// tokens, moved, until they are published again (B-ATTRED-28). And the
+    /// lines a publish refused for an older text named (B-ATTRED-63), where
+    /// the edits since put them: a parse's changed ranges are of the tree
+    /// just made, which already has them, so the refused publish's lines
+    /// would otherwise hold the tokens it said were stale.
     ///
     /// A highlighter that publishes these, and the lines of the window its
     /// own analysis says changed (tree-sitter's changed ranges), leaves no
@@ -339,7 +343,12 @@ public enum TextEditorPublishOutcome: Sendable, Equatable {
     case kept(Range<Int>)
     /// Refused, and kept nowhere: the text is no longer the editor's (take
     /// the next update), a line is past its end, or a batch's tokens are not
-    /// one a line (B-ATTRED-37).
+    /// one a line (B-ATTRED-37). Refused for an older text, the lines it
+    /// named are in the next update's
+    /// ``TextEditorHighlightUpdate/linesToStyle`` where the window holds
+    /// them, moved through the edits since (all the window's, for a text
+    /// older than the update taken last), so a highlighter need remember
+    /// nothing of it (B-ATTRED-63).
     case refused
 
     /// Whether it was refused.

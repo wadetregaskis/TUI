@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A highlighter whose publish is refused for an older text is asked for its lines again.** Under the highlighting
+seam's SPI, the lines a publish refused for a text the editor has moved on from named are listed in the next update's
+`linesToStyle`, where the window holds them, moved through the edits since. They held the tokens the refused publish
+said were stale, and a parse's changed ranges, of the tree it had just made, no longer named them, so a highlighter had
+to remember them itself, or publish its whole window after each refusal.
+
 **Rows stay whole on a terminal set to draw ambiguous characters wide.** Where iTerm2's "Ambiguous characters are
 double-width", or Apple Terminal's or GNOME Terminal's equivalent, is on, box drawing, arrows, `●`, Greek and Cyrillic
 advance two cells, and a part of a row rewritten on its own landed left of where the row was drawn, leaving old glyphs

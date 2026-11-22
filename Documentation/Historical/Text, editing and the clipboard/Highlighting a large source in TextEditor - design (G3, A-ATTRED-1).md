@@ -1529,6 +1529,26 @@ tuitree's `TreeSitterHighlighter` is SPI too), is what SPI is, and changes only 
   theme's 24-bit rendering of `.cyan` is not `.cyan`, and a test that compared `Color`s would pass or fail by the
   theme.
 
+tuitree's adapter, adopting those, reported two more (`TUI-FEEDBACK.md`, items 10 and 11):
+
+- **B-ATTRED-63. A publish refused for an older text has its lines listed again** (item 10). `linesToStyle` names
+  the lines with no tokens of the text, or only provisional ones; a line the session holds keeps the tokens last
+  published for it, which a parse can make wrong without touching the line (a `/*` deleted), so a tree styler adds
+  its changed ranges. When that publish is refused for a newer text, the next update named none of them, since they
+  held tokens, and the next parse's changed ranges are of the tree just made, which has them already. tuitree
+  published its whole window after every refusal to cover it. Now a publish refused because the editor moved on
+  marks the lines it named provisional, where the window holds tokens for them, so the next update lists them. "The
+  lines" are the publish's own lines, as named, not those the session could judge stale: only the highlighter knows
+  which lines its parse changed, and it named them. They are placed through the edits since the update taken last,
+  which the session now notes as each edit's replaced lines and their count (a whole write replaces them all); a line
+  an edit replaced is the lines that took its place, which are provisional or empty already. Past 64 edits between
+  two updates the notes are folded into one, the lines `pending` says changed, which places a line no worse than
+  among them. A publish for a text older than the update taken last, which a highlighter that publishes each update
+  before taking the next never makes, can't be placed, and marks the whole window. A publish refused for any other
+  reason (a line past the end, a batch not one a line) is the highlighter's mistake, for the editor's own text, and
+  marks nothing. The alternative, a sentence on `.refused` that the lines are the highlighter's to restyle, would have
+  left every tree styler a record of lines to move through edits it is told only as one folded change.
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

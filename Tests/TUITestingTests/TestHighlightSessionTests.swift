@@ -114,6 +114,56 @@ struct TestHighlightSessionTests {
         #expect(!test.session.isCurrent(update.text.version + 1), "the editor went")
     }
 
+    @Test("A publish refused for a stale text has its lines listed again, where the edits since put them")
+    func refusedLinesListedAgain() async throws {
+        // tuitree's SeamTests, "A refused publish's lines aren't listed again": the lines a refused parse changed
+        // held the tokens published before, so no update named them, and the adapter published its whole window.
+        let test = TestHighlightSession<Token>(text: "a 0\nb 1\nc 2\nd 3", visibleLines: 0..<4)
+        let publish = { (update: TextEditorHighlightUpdate, lines: Range<Int>) in
+            test.session.publish(lines.map { FirstWord.tokens(of: update.text.line($0)) }, forLines: lines, of: update.text.version)
+        }
+        let first = try #require(await test.session.nextUpdate())
+        #expect(publish(first, 0..<4) == .kept(0..<4))
+        test.replace(0..<0, with: "x")  // line 0
+        let typed = try #require(await test.session.nextUpdate())
+        #expect(typed.linesToStyle == [0..<1])
+        test.replace(13..<13, with: "y")  // line 3, while the highlighter works on line 0's text
+        #expect(publish(typed, 1..<2) == .refused)
+        #expect(test.isProvisional(line: 1), "its tokens are the ones the refused publish replaced")
+        let next = try #require(await test.session.nextUpdate())
+        #expect(next.linesToStyle == [0..<2, 3..<4], "lines 0 and 3, edited, and line 1, whose publish was refused")
+        #expect(publish(next, 0..<4) == .kept(0..<4))
+        // Moved by the edits since: line 2 of the refused publish's text is line 3 once a line is put in above it.
+        test.replace(0..<0, with: "new\n")
+        #expect(publish(next, 2..<3) == .refused)
+        let moved = try #require(await test.session.nextUpdate())
+        #expect(moved.linesToStyle == [0..<1, 3..<4], "the line put in, and line 2 moved to 3")
+        #expect(publish(moved, 0..<5) == .kept(0..<5))
+        // For a text older than the last update taken, the session can't place them: the whole window.
+        let older = moved
+        test.replace(0..<0, with: "z")
+        let newer = try #require(await test.session.nextUpdate())
+        #expect(publish(newer, 0..<1) == .kept(0..<1))
+        #expect(publish(older, 4..<5) == .refused)
+        test.show(lines: 1..<5)
+        #expect(try #require(await test.session.nextUpdate()).linesToStyle == [0..<5])
+    }
+
+    @Test("Past 64 edits between two updates, a refused publish's lines are placed among all the lines they changed")
+    func refusedLinesPastManyEdits() async throws {
+        let test = TestHighlightSession<Token>(text: "a\nb\nc\nd\ne\nf", visibleLines: 0..<6)
+        let first = try #require(await test.session.nextUpdate())
+        test.session.publish((0..<6).map { FirstWord.tokens(of: first.text.line($0)) }, forLines: 0..<6, of: 0)
+        // One edit on line 4, then 70 on line 0: lines 1 to 3 untouched, but between them.
+        test.replace(8..<8, with: "y")
+        for _ in 0..<70 { test.replace(0..<0, with: "x") }
+        #expect(test.session.publish([FirstWord.tokens(of: first.text.line(5))], forLines: 5..<6, of: 0) == .refused)
+        #expect(test.isProvisional(line: 5) && !test.isProvisional(line: 2), "line 5 is after every edit")
+        #expect(test.session.publish([FirstWord.tokens(of: first.text.line(2))], forLines: 2..<3, of: 0) == .refused)
+        let next = try #require(await test.session.nextUpdate())
+        #expect(next.linesToStyle == [0..<6], "line 2 is somewhere in lines 0 to 4, and line 5 is line 5")
+    }
+
     @Test("A text and tokens a test makes: lines found as the editor finds them, tokens read in order")
     func textAndTokens() {
         let text = TextEditorText("one\r\ntwo\rthree", version: 7)

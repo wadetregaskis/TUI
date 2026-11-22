@@ -164,9 +164,12 @@ extension TextEditorHighlightSession {
         _ tokens: some Collection<TextEditorTokens<Token>>, forLines lines: Range<Int>, of version: Int
     ) -> TextEditorPublishOutcome {
         guard tokens.count == lines.count, lines.lowerBound >= 0 else { return .refused }
-        guard let publishable = state.withLock({ $0.publishable(version: version) }),
-            lines.upperBound <= publishable.text.lineCount
-        else { return .refused }
+        let publishable = state.withLock { state in
+            let publishable = state.publishable(version: version)
+            if publishable == nil { state.restyle(lines, refusedFor: version) }
+            return publishable
+        }
+        guard let publishable, lines.upperBound <= publishable.text.lineCount else { return .refused }
         let (text, window) = publishable
         let inWindow = lines.clamped(to: window)
         var made: [(line: Int, runs: [EditorHighlightRun])] = []
