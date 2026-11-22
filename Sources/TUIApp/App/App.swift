@@ -426,6 +426,60 @@ extension AppRunner {
         tuiContext.undoKeys.reporting = tuiContext.keyboardReporting
     }
 
+    /// Asks the now-identified terminal what it can do — graphics, cell points,
+    /// colours, the keyboard protocol — and publishes the answers, with what they
+    /// settle of its features and capabilities, for the first frame to read.
+    /// Part of `runLoop`'s startup, after identification and the width traits.
+    private func askTerminalAtLaunch() {
+        // Whether it will draw a real picture. Unlike the width traits and host
+        // answers `runLoop` publishes first, this one is ASKED rather than
+        // looked up — see ``TerminalGraphicsQuery``, which is also why it
+        // comes after identification: the exchange is an
+        // APC sequence, and Apple Terminal prints those instead of consuming
+        // them, so it has to know which host this is before it can decide not
+        // to ask. Costs one terminal round trip at startup, and only when
+        // nothing has already answered.
+        TerminalClient.detectGraphics(using: terminal)
+        // And how many of the pixels it reports make a point — the unit an
+        // image's natural size is in. After identification, which names the
+        // host; it asks iTerm2 one question (`CSI 14 t`) and nothing else
+        // anything. See ``CellPointsCalibration``.
+        TerminalClient.detectCellPoints(using: terminal)
+        // And what colours it paints: its default foreground and background
+        // (OSC 10/11) and, outside tmux, its sixteen ANSI slots (OSC 4),
+        // published to `TerminalColors.current` so the first frame is drawn
+        // with them. Also asked rather than looked up, in one round trip
+        // fenced by `CSI 5n`, which every measured host answered. Under tmux
+        // the slots are left out: tmux forwards OSC 4 to one client and holds
+        // the fence about half a second when that client is silent. See
+        // ``TerminalColorQuery``.
+        TerminalClient.detectColors(using: terminal)
+        // The kitty keyboard protocol, where the terminal speaks it: key
+        // releases, repeats, modifier keys alone, Caps Lock and the keypad,
+        // and Ctrl-H/I/J/M/[ as themselves. Its first question rode on the
+        // colour exchange just made, so a terminal that does not speak it
+        // pays no round trip; one that does pays one, for the push and its
+        // answer. Published before the first frame, which is when a view
+        // first reads it.
+        negotiateKeyboardProtocol()
+        // And what it does with what the app asks of it beyond the screen — a
+        // progress bar on its tab, a desktop notification — by which terminal
+        // it is, now that it is named: whether it posts a notification,
+        // published to `\.terminalFeatures` before the first frame. Whether
+        // the frames send the bar goes to the loop (`makeRenderLoop`), which
+        // publishes whether it is seen with each frame: under tmux that
+        // follows the clients attached.
+        tuiContext.terminalFeatures = tuiContext.terminalFeatures.withProgress(
+            showsProgress: false, postsNotifications: TerminalClient.notificationsSupported)
+        // And everything those answers settle of what the terminal can do,
+        // feature by feature, to `\.terminalCapabilities`: its tables, the
+        // graphics handshake and the keyboard negotiation, all in by now, so
+        // the first frame reads them. The loop adds the progress bar as it
+        // learns whether it shows, and a key Option as Meta.
+        tuiContext.terminalCapabilities = .atLaunch(
+            features: tuiContext.terminalFeatures, reporting: tuiContext.keyboardReporting)
+    }
+
     /// The loop that renders this app's frames to its terminal.
     private func makeRenderLoop() -> RenderLoop<A> {
         let loop = RenderLoop(
@@ -594,52 +648,9 @@ extension AppRunner {
         // this machine's opener. See ``TerminalURLOpening/runLoopOpener``.
         publishURLOpener()
         defer { TerminalURLOpening.runLoopOpener = nil }
-        // And whether it will draw a real picture. Unlike the two above, this
-        // one is ASKED rather than looked up — see ``TerminalGraphicsQuery``,
-        // which is also why it comes after identification: the exchange is an
-        // APC sequence, and Apple Terminal prints those instead of consuming
-        // them, so it has to know which host this is before it can decide not
-        // to ask. Costs one terminal round trip at startup, and only when
-        // nothing has already answered.
-        TerminalClient.detectGraphics(using: terminal)
-        // And how many of the pixels it reports make a point — the unit an
-        // image's natural size is in. After identification, which names the
-        // host; it asks iTerm2 one question (`CSI 14 t`) and nothing else
-        // anything. See ``CellPointsCalibration``.
-        TerminalClient.detectCellPoints(using: terminal)
-        // And what colours it paints: its default foreground and background
-        // (OSC 10/11) and, outside tmux, its sixteen ANSI slots (OSC 4),
-        // published to `TerminalColors.current` so the first frame is drawn
-        // with them. Also asked rather than looked up, in one round trip
-        // fenced by `CSI 5n`, which every measured host answered. Under tmux
-        // the slots are left out: tmux forwards OSC 4 to one client and holds
-        // the fence about half a second when that client is silent. See
-        // ``TerminalColorQuery``.
-        TerminalClient.detectColors(using: terminal)
-        // The kitty keyboard protocol, where the terminal speaks it: key
-        // releases, repeats, modifier keys alone, Caps Lock and the keypad,
-        // and Ctrl-H/I/J/M/[ as themselves. Its first question rode on the
-        // colour exchange just made, so a terminal that does not speak it
-        // pays no round trip; one that does pays one, for the push and its
-        // answer. Published before the first frame, which is when a view
-        // first reads it.
-        negotiateKeyboardProtocol()
-        // And what it does with what the app asks of it beyond the screen — a
-        // progress bar on its tab, a desktop notification — by which terminal
-        // it is, now that it is named: whether it posts a notification,
-        // published to `\.terminalFeatures` before the first frame. Whether
-        // the frames send the bar goes to the loop (`makeRenderLoop`), which
-        // publishes whether it is seen with each frame: under tmux that
-        // follows the clients attached.
-        tuiContext.terminalFeatures = tuiContext.terminalFeatures.withProgress(
-            showsProgress: false, postsNotifications: TerminalClient.notificationsSupported)
-        // And everything those answers settle of what the terminal can do,
-        // feature by feature, to `\.terminalCapabilities`: its tables, the
-        // graphics handshake and the keyboard negotiation, all in by now, so
-        // the first frame reads them. The loop adds the progress bar as it
-        // learns whether it shows, and a key Option as Meta.
-        tuiContext.terminalCapabilities = .atLaunch(
-            features: tuiContext.terminalFeatures, reporting: tuiContext.keyboardReporting)
+        // What the terminal draws, paints and reports, asked of it now that it
+        // is named, and published before the first frame (`askTerminalAtLaunch`).
+        askTerminalAtLaunch()
 
         let renderer = makeRenderLoop()
         startHostSettings(renderer: renderer)
