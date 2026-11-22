@@ -30,6 +30,9 @@ import TUIView
 ///   both drawings registered, and make the first drawing's registrations
 ///   again on every frame it serves — the handlers of rows the frame never
 ///   showed;
+/// - the geometry coordinator's asks and visibility observers: one only the
+///   first drawing drew would be reported at the frame's end, a reporter
+///   told where a view the frame never showed is (SCROLL-20);
 /// - a live sheet's dock (`PaneLedger.docks`) and a windowing container's
 ///   note of the rows it drew (`StateStorage.noteWindowedRows`) are what the
 ///   frame's settle asks about the walk drawn
@@ -75,6 +78,8 @@ package struct RenderWalkCheckpoint {
     private let identity: ViewIdentity
     private let handlerSlots: Int?
     private let markerSlots: Int?
+    /// Where the geometry coordinator's asks and observers stood.
+    private let geometryMark: GeometryCoordinator.WalkMark?
     private let onChangeCount: Int?
     private let keyMark: KeyEventDispatcher.Mark?
     private let preferences: PreferenceValues?
@@ -99,6 +104,7 @@ package struct RenderWalkCheckpoint {
         let dispatcher = context.environment.mouseEventDispatcher
         handlerSlots = dispatcher?.handlerIDs.slotCount(at: identity)
         markerSlots = dispatcher?.geometryMarkerIDs.slotCount(at: identity)
+        geometryMark = dispatcher?.geometry.walkMark
         onChangeCount = context.stateStorage?.onChangeCount(at: identity)
         keyMark = context.environment.keyEventDispatcher?.mark
         preferences = context.environment.preferenceStorage?.current
@@ -136,6 +142,7 @@ package struct RenderWalkCheckpoint {
         if let dispatcher = context.environment.mouseEventDispatcher {
             dispatcher.handlerIDs.rewind(at: identity, to: handlerSlots)
             dispatcher.geometryMarkerIDs.rewind(at: identity, to: markerSlots)
+            if let geometryMark { dispatcher.geometry.rewind(to: geometryMark) }
         }
         context.stateStorage?.rewindOnChangeCounters(at: identity, to: onChangeCount)
         if let keyMark { context.environment.keyEventDispatcher?.rollBack(to: keyMark) }

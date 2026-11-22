@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A scroll view that draws its content twice in a frame reports only what the second drawing shows.** When a scroll
+view drew its content again in the same frame (a seek whose measure turned out wrong, a focus reveal), the rows only
+the first drawing had drawn were reported anyway: an `onGeometryChange` asking `.scrollView` was told where a row the
+frame never showed was, and an `onScrollVisibilityChange` observer measured in that drawing could be told it appeared.
+
 **A lazy stack whose rows watch their geometry no longer keeps an entry per row each time one scrolls out of its
 window.** A row with `onScrollVisibilityChange`, `onGeometryChange` asking another coordinate space, or a
 `GeometryReader` that left a `LazyVStack`'s window and came back left what had been kept for it behind, for as long as

@@ -192,6 +192,49 @@ package final class GeometryCoordinator {
         matchedGeometry.beginWalk()
     }
 
+    /// Where the walk's registrations stand: how many asks and visibility
+    /// observers it has registered, in order — what a ``RenderWalkCheckpoint``
+    /// notes before its subtree draws.
+    struct WalkMark {
+        fileprivate let asks: Int
+        fileprivate let observers: Int
+    }
+
+    /// The walk's registrations as they stand now.
+    var walkMark: WalkMark { WalkMark(asks: askOrder.count, observers: observerOrder.count) }
+
+    /// Unregisters every ask and observer registered since `mark`, for a
+    /// subtree to be drawn again in the same walk (``RenderWalkCheckpoint``).
+    ///
+    /// A view the second drawing draws registers again, under the same id; one
+    /// only the first drawing drew — a band of rows the scroll view replaced —
+    /// would otherwise stay registered: its reporter called at the frame's end
+    /// with what no owner found, and its ask keeping ``unansweredTotal`` above
+    /// zero, so every owner after scanned what it drew for it (SCROLL-20).
+    func rewind(to mark: WalkMark) {
+        if askOrder.count > mark.asks {
+            for id in askOrder[mark.asks...] {
+                guard let ask = asks.removeValue(forKey: id) else { continue }
+                for space in ask.wanted where space != .local && ask.found[space] == nil {
+                    unanswered[space, default: 0] -= 1
+                    unansweredTotal -= 1
+                }
+                reporters.removeValue(forKey: id)
+                // Asked by a drawing the frame threw away, which is not asking.
+                kept[id]?.askedThisWalk = false
+            }
+            askOrder.removeSubrange(mark.asks...)
+        }
+        if observerOrder.count > mark.observers {
+            for id in observerOrder[mark.observers...] {
+                if let observer = observers.removeValue(forKey: id), observer.fraction == nil {
+                    unmeasuredObservers -= 1
+                }
+            }
+            observerOrder.removeSubrange(mark.observers...)
+        }
+    }
+
     /// Counts a correction an owner of `kind` made.
     package func noteCorrection(_ kind: GeometryOwnerKind) {
         corrections.note(kind)

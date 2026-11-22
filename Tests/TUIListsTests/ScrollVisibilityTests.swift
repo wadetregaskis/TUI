@@ -38,11 +38,19 @@ struct ScrollVisibilityTests {
         let focusManager = FocusManager()
 
         @discardableResult
-        func render<V: View>(_ view: V, width: Int = 20, height: Int = 5) -> FrameBuffer {
+        func render<V: View>(
+            _ view: V, width: Int = 20, height: Int = 5, transaction: Transaction? = nil
+        ) -> FrameBuffer {
             var environment = EnvironmentValues()
             environment.focusManager = focusManager
             environment.verticalScrollIndicatorVisibility = .hidden
             environment.applyRuntimeServices(from: tuiContext)
+            // A change made in an animation: what a scroll view glides by.
+            if let transaction {
+                environment.animationScheduler = AnimationScheduler()
+                environment.animationFrame = AnimationFrame(nowNanos: 1_000_000_000, step: 0, canAnimate: true)
+                environment.transaction = transaction
+            }
             environment.installVolatileReadTracker(VolatileReadTracker())
             let context = RenderContext(
                 availableWidth: width, availableHeight: height,
@@ -315,6 +323,37 @@ struct ScrollVisibilityTests {
         #expect(geometry.kept.count <= kept, "\(geometry.kept.count) kept after 100 trips")
         #expect(geometry.lateAsks.count <= kept)
         #expect(log.take().contains("0+"))
+    }
+
+    @Test("A glide's first frame reports nothing for the rows it drew at the target to find it, and threw away")
+    func seekDrawnAgainReportsOnlyWhatItKept() {
+        let frames = Frames()
+        var minY: [Int: Int] = [:]
+        var shown: [Int: Bool] = [:]
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+        let view = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<100, id: \.self) { index in
+                    Text("row \(index)")
+                        .onScrollVisibilityChange { shown[index] = $0 }
+                        .onGeometryChange(for: Int.self) { $0.frame(in: .scrollView).minY } action: {
+                            minY[index] = $0
+                        }
+                }
+            }
+        }
+        .scrollPosition(binding)
+        frames.render(view)
+        minY.removeAll()
+        shown.removeAll()
+        // The seek is drawn at its target to find it, and the content drawn
+        // again where the glide starts: the frame shows the top rows still.
+        position.scrollTo(id: 80, anchor: .top)
+        let lines = frames.render(view, transaction: Transaction(animation: .linear(duration: 0.5))).lines
+        #expect(lines.first?.stripped.hasPrefix("row 0") == true, "\(lines.map(\.stripped))")
+        #expect(minY.isEmpty, "told where it is from a drawing the frame threw away: \(minY)")
+        #expect(shown.isEmpty, "\(shown)")
     }
 
     @Test("A scroll view served from a memo keeps what it measured: a row off screen is not reported shown")
