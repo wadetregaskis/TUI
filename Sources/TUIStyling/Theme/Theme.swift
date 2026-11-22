@@ -206,7 +206,7 @@ extension Palette {
     /// palette that states its own `focusBackground`, or for a wrapper that
     /// forwards one.
     package func derivedFocusBackground() -> Color {
-        foregroundTertiary.opacity(0.3, over: background)
+        foregroundTertiary.resolve(with: self).opacity(0.3, over: background.resolve(with: self))
     }
 
     /// The text caret's colour. Defaults to ``accent``, so the caret is the
@@ -721,8 +721,15 @@ extension Palette {
     /// When the accent or the background has no RGB (``Color/default``, or a
     /// colour of the terminal's own that it has not reported), no 20% tint can be
     /// mixed, and the face is the background itself.
+    ///
+    /// The roles are resolved against this palette before they are mixed, here
+    /// and in every derivation of the palette's: a role that names a colour
+    /// (`Color.mint`, an asset catalogue's) takes the value for this palette's
+    /// scheme, as it does where it is drawn alone. Mixed as it is, it measures as
+    /// its light value, so on a dark palette the face was a tint of another colour
+    /// than the marks drawn in the accent beside it.
     public var restingControlFace: Color {
-        accent.opacity(ViewConstants.focusBorderDim, over: background)
+        accent.resolve(with: self).opacity(ViewConstants.focusBorderDim, over: background.resolve(with: self))
     }
 
     /// Whether a tint of the accent over the page can be measured: both have RGB.
@@ -758,7 +765,7 @@ extension Palette {
     /// composition §82.
     package func hoveredGlyph(resting: Color) -> Color {
         accentTintIsMeasurable
-            ? accent.opacity(ViewConstants.hoverBackground, over: background)
+            ? accent.resolve(with: self).opacity(ViewConstants.hoverBackground, over: background.resolve(with: self))
             : hoveredForeground(resting)
     }
 
@@ -798,6 +805,9 @@ extension Palette {
         // only stay at rest or jump to a solid accent under a label nobody can check,
         // and the second is not a hover.
         guard accentTintIsMeasurable else { return restingControlFace }
+        // Resolved, as `restingControlFace` mixes them.
+        let accent = self.accent.resolve(with: self)
+        let background = self.background.resolve(with: self)
         let resting = restingControlFace.resolve(with: self).downsampledToPalette256()
         var distinct: [Color] = []
         var furthest: Color?
@@ -1001,7 +1011,11 @@ extension Palette {
         // ground — `Color.breathEnds(dimmedTo:over:)` is where that rule and the
         // reason an opaque colour must not be re-spelled both live, shared with
         // the three other pulse pairs that had each got it wrong differently.
-        accent.breathEnds(dimmedTo: ViewConstants.focusPulseMin, over: surface ?? background)
+        // Resolved first, as every derivation here (`restingControlFace`): a named
+        // accent's dim end was mixed from its light value and its bright end drawn in
+        // its dark one.
+        accent.resolve(with: self).breathEnds(
+            dimmedTo: ViewConstants.focusPulseMin, over: (surface ?? background).resolve(with: self))
     }
 
     /// The two ends a focus pulse breathes between, for a FILL that content is
@@ -1038,7 +1052,8 @@ extension Palette {
         if let fills = rowFills(over: surface) { return (fills.emphasisDim, fills.emphasisBright) }
         // `Color.breathEnds(dimmedTo:over:)`'s rule for a side with no RGB, applied to
         // this pair's own bright end, which stops short of the accent.
-        let bright = accent.opacity(ViewConstants.focusPulseMax, over: surface ?? background)
+        let bright = accent.resolve(with: self).opacity(
+            ViewConstants.focusPulseMax, over: (surface ?? background).resolve(with: self))
         return (bright, bright)
     }
 
@@ -1101,7 +1116,9 @@ extension Palette {
     /// The breath of a wash a palette states: the wash itself, and twice as far from
     /// the page, floored for the row's text — see ``focusWashPulse()``.
     func washPulse(_ wash: Color) -> (dim: Color, bright: Color) {
-        let dim = wash.spendingAlpha(over: background)
+        // Resolved first, as every derivation here (`restingControlFace`).
+        let background = self.background.resolve(with: self)
+        let dim = wash.resolve(with: self).spendingAlpha(over: background)
         guard let wash = dim.rgbComponents, let page = background.rgbComponents else {
             return (dim, dim)
         }
@@ -1116,7 +1133,9 @@ extension Palette {
             twiceAsFar(wash.green, from: page.green),
             twiceAsFar(wash.blue, from: page.blue))
         return (
-            dim, bright.ensuringContrast(atLeast: ViewConstants.rowBreathPeakContrastFloor, against: foreground)
+            dim,
+            bright.ensuringContrast(
+                atLeast: ViewConstants.rowBreathPeakContrastFloor, against: foreground.resolve(with: self))
         )
     }
 }

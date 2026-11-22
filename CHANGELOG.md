@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A palette whose roles are named colours builds its faces and fills from their dark values on a dark page.** A
+`Palette` of an app's own with, say, `var accent: Color { .mint }` drew marks in the accent's dark value but mixed a
+button's faces, the focus breaths, the selected and cursor rows' fills and the stripe from its light value, so a
+focused control breathed between two hues. Every such derivation now resolves the roles for the palette's scheme
+first. The shipped palettes, and `.tint(_:)`, are unchanged.
+
 **`.colorMultiply(_:)` by a palette role multiplies, and a named colour multiplies by the value it draws as.**
 `.colorMultiply(.accentColor)`, or by any palette role, changed nothing, text or picture, and
 `.colorMultiply(.orange)` multiplied by orange's light value on a dark palette. The tint is now resolved against the

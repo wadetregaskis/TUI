@@ -60,11 +60,12 @@ extension Palette {
     package func stripeFill(over ground: Color, at depth: ColorDepth = .current) -> Color? {
         guard depth > .noColor else { return nil }
         let target = steppedStripe(over: ground)
-        let text = foreground.spendingAlpha(over: ground)
+        // Resolved first, as every derivation of the palette's (`restingControlFace`).
+        let text = foreground.resolve(with: self).spendingAlpha(over: ground)
         // The ACCENT measured too, not only the blend: 15% of a colour the
         // terminal decides is, below half, the ground itself — a fill that
         // measures and shows nothing (Opacity as composition §75).
-        guard accent.rgbComponents != nil, let groundRGB = ground.rgbComponents,
+        guard accent.resolve(with: self).rgbComponents != nil, let groundRGB = ground.rgbComponents,
             let targetRGB = target.rgbComponents, let textRGB = text.rgbComponents
         else { return nil }
         guard depth < .truecolor else {
@@ -97,6 +98,8 @@ extension Palette {
     /// the ground, where even that much of the accent stays nearer it.
     func steppedStripe(over ground: Color) -> Color {
         let step = ViewConstants.alternatingRowContrast
+        // Resolved first, as every derivation of the palette's (`restingControlFace`).
+        let accent = self.accent.resolve(with: self)
         let most = accent.opacity(ViewConstants.alternatingRowBackground, over: ground)
         if most.contrastRatio(against: ground) >= step {
             return Self.share(of: accent, upTo: ViewConstants.alternatingRowBackground, over: ground, reaching: step)

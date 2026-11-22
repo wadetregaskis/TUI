@@ -155,7 +155,10 @@ extension Palette {
     /// reversed.
     package func selectedRowFill() -> HighlightFill {
         if let fills = rowFills() { return .fill(fills.selection) }
-        return highlightFill(accent.opacity(ViewConstants.selectedBackground, over: background), tint: accent)
+        // Resolved first, as every derivation of the palette's (`restingControlFace`).
+        let accent = self.accent.resolve(with: self)
+        return highlightFill(
+            accent.opacity(ViewConstants.selectedBackground, over: background.resolve(with: self)), tint: accent)
     }
 
     /// What a highlighted row paints — a focused list's or table's cursor row on a

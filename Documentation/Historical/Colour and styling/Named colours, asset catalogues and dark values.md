@@ -123,6 +123,12 @@ gradient's stops were resolved only where one had no RGB, the test for "names a
 palette role" from before named colours existed, so `[.mint, .blue]` passed as
 concrete; they are now resolved wherever resolving would change one
 (`Color.needsPaletteResolution`: `.semantic`, `.system`, `.lightDark`).
+`.colorMultiply(_:)` kept its tint as written, so a named one multiplied by its
+light value; it is resolved before it multiplies. And a palette's own
+derivations (its control faces, focus breaths, row fills, stripe and focus
+wash) mixed its roles as written, so an app palette with `accent` `.mint` on a
+dark page drew marks in dark mint and built every tint from light mint; each
+resolves the roles against the palette before it mixes them.
 
 **Measured:** the dark values are SwiftUI's, `Color.resolve(in:)` under a dark
 `EnvironmentValues` on macOS 15.8.1, and agree with `NSColor.systemRed` and

@@ -223,9 +223,12 @@ extension Palette {
     ///   (``Palette/accentFillPulse(over:)``), so a stated wash plays no part.
     package func rowFills(at depth: ColorDepth = .current, over surface: Color? = nil) -> RowFills? {
         guard depth > .noColor else { return nil }
-        let page = surface ?? background
+        // Resolved first, as every derivation of the palette's (`restingControlFace`):
+        // a role that names a colour measures as its light value until it is.
+        let page = (surface ?? background).resolve(with: self)
         func packed(_ colour: Color) -> UInt32? {
-            guard let (red, green, blue) = colour.spendingAlpha(over: page).rgbComponents else { return nil }
+            guard let (red, green, blue) = colour.resolve(with: self).spendingAlpha(over: page).rgbComponents
+            else { return nil }
             return UInt32(red) << 16 | UInt32(green) << 8 | UInt32(blue)
         }
         guard let pageRGB = packed(page), let textRGB = packed(foreground),
