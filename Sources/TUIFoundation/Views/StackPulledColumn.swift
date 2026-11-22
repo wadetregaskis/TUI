@@ -167,7 +167,8 @@ private enum PulledPlace {
     func resolveUniformPullEdge(_ window: inout ScrollContentWindow, count: Int, state: StackWindowState) {
         guard window.isPulled else { return }
         if window.edge == .end, !state.broken, let extent = state.hypothesisExtent {
-            window.offset += count * (extent + spacing) - spacing
+            window.offset = window.offset.saturatingAdding(
+                Int.lines(ofRows: count, pitch: extent + spacing).saturatingSubtracting(spacing))
             window.edge = .top
         }
         if window.edge != .end { window.reply?.pulledPosition = window.offset }
@@ -297,10 +298,10 @@ private enum PulledPlace {
         if last.ordinal < children.count - 1 {
             total += frame.gap(after: last.ordinal)
             let after = (last.ordinal + 1)..<children.count
-            total +=
+            total = total.saturatingAdding(
                 overflow == .clip
-                ? after.reduce(0) { $0 + frame.pitch(of: $1) }
-                : after.count * frame.estimatedPitch
+                    ? after.reduce(0) { $0 + frame.pitch(of: $1) }
+                    : frame.estimatedLines(ofRows: after.count))
         }
         drawOffBand(drawn, frame: frame, window: window, into: &result, bandTop: bandTop, width: width, context: childContext)
         state.pulledRequests = frame.handed
@@ -568,8 +569,8 @@ private enum PulledPlace {
             let isAbove = ordinal < first.ordinal
             let estimate =
                 isAbove
-                ? first.top - (first.ordinal - ordinal) * frame.estimatedPitch
-                : bandTop + bandHeight + (ordinal - last.ordinal - 1) * frame.estimatedPitch
+                ? first.top.saturatingSubtracting(frame.estimatedLines(ofRows: first.ordinal - ordinal))
+                : (bandTop + bandHeight).saturatingAdding(frame.estimatedLines(ofRows: ordinal - last.ordinal - 1))
             let drawnRow: FrameBuffer
             if isAbove {
                 drawnRow = frame.drawingAbove {

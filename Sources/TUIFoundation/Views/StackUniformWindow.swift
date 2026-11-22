@@ -364,6 +364,13 @@ final class StackWindowState {
             if let hypothesisExtent { return max(1, hypothesisExtent + spacing) }
             return 1
         }
+
+        /// `rows` rows priced at ``estimatedPitch(spacing:)``, in lines, held
+        /// at ``estimatedLinesCeiling``: a `ForEach(0..<Int.max)` has more
+        /// lines than `Int` counts.
+        func estimatedLines(ofRows rows: Int, spacing: Int) -> Int {
+            Int.lines(ofRows: rows, pitch: estimatedPitch(spacing: spacing))
+        }
 }
 
 @MainActor extension _VStackCore {
@@ -483,7 +490,7 @@ final class StackWindowState {
             return nil
         }
         let count = children.count
-        let totalHeight = count * pitch - spacing
+        let totalHeight = Int.lines(ofRows: count, pitch: pitch).saturatingSubtracting(spacing)
 
         let proposal = ProposedViewSize(width: width, height: nil)
         guard

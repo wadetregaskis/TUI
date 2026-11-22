@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A lazy stack's estimate of the rows it has not drawn no longer overflows.** Past 256 rows, the lines of the rows
+not yet drawn were `count × pitch`, which trapped for SwiftUI's endless-list idiom, `ForEach(0..<Int.max)`, unless
+every row was one line with no spacing. The estimates are now held at a quarter of `Int`'s range, which the rows past
+it are not reached by. (Such a stack still traps in a running app's first frame, which lists every row; that is
+being tracked separately.)
+
 **Every row of a long lazy stack of mixed heights can be scrolled back to after End or a scrollbar jump.** In
 `ScrollView { LazyVStack { ForEach(…) } }` past 256 rows of several heights, the scroll offset beyond the rows
 drawn is an estimate, and scrolling up from the end could bring it to 0 with the first rows still above, out of

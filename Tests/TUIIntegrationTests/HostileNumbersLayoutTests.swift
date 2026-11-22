@@ -157,6 +157,11 @@ struct HostileNumbersLayoutTests {
         func canvasShadow() async {
             await #expect(processExitsWith: .success) { await MainActor.run { LayoutTraps.canvasShadow() } }
         }
+
+        @Test("A lazy stack of `Int.max` rows of several lines measures, draws and scrolls to its end (SCROLL-13)")
+        func endlessLazyStack() async {
+            await #expect(processExitsWith: .success) { await MainActor.run { LayoutTraps.endlessLazyStack() } }
+        }
     #endif
 
     @Test("A blank buffer of a negative size is empty (CORE1-1)")
@@ -422,6 +427,35 @@ private enum LayoutTraps {
         let harness = InputChainHarness(width: 20, height: 6)
         let overlapped = harness.frame(Text("A").safeAreaInset(edge: .bottom, spacing: -3) { Text("B") }.fixedSize())
         precondition(overlapped.height >= 0)
+    }
+
+    /// SwiftUI's endless-list idiom, `ForEach(0..<Int.max)`, of rows whose
+    /// lines (two each, one with a line between, or one to three) are more
+    /// than `Int` counts: priced at the pitch, the stack's measure and total
+    /// trapped before the first frame. Drawn through a scroll view's window
+    /// and reply, as its content: at the top, at the end, and a step up from
+    /// it, the end being the offset the reply's total puts it at.
+    static func endlessLazyStack() {
+        func scroll<V: View>(_ stack: V) {
+            let context = makeBareRenderContext(width: 20, height: 10)
+            _ = measureChild(stack, proposal: ProposedViewSize(width: 20, height: nil), context: context)
+            var offset = 0
+            for step in 0..<4 {
+                let reply = ScrollContentReply()
+                var frame = context
+                frame.environment.scrollContentWindow = ScrollContentWindow(
+                    offset: offset, viewportHeight: 10, contentIdentity: nil, reply: reply)
+                _ = renderToBuffer(stack, context: frame)
+                let end = max(0, (reply.sliceTotalHeight ?? 0) - 10)
+                offset = step < 2 ? end : max(0, end - 10)
+            }
+        }
+        scroll(LazyVStack { ForEach(0..<Int.max, id: \.self) { Text(verbatim: "row \($0)\nsecond") } })
+        scroll(LazyVStack(spacing: 1) { ForEach(0..<Int.max, id: \.self) { Text(verbatim: "row \($0)") } })
+        scroll(
+            LazyVStack {
+                ForEach(0..<Int.max, id: \.self) { Text(verbatim: "row \($0)").frame(height: $0 % 3 + 1) }
+            })
     }
 
     static func canvasShadow() {

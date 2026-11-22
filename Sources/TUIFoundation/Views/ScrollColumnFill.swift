@@ -46,6 +46,12 @@ protocol ScrollFillColumn: AnyObject {
     /// four screens lands by.
     var estimatedPitch: Int { get }
 
+    /// `rows` rows never measured, in lines: what a total, a jump's landing
+    /// and a far row's place read. Never traps: a `ForEach(0..<Int.max)` of
+    /// two-line rows has more lines than `Int` counts, and is held at
+    /// ``estimatedLinesCeiling``.
+    func estimatedLines(ofRows rows: Int) -> Int
+
     /// The position the walk reads and moves.
     var anchor: ScrollContentAnchor { get }
 
@@ -58,6 +64,10 @@ protocol ScrollFillColumn: AnyObject {
 
 extension ScrollFillColumn {
     var walksJumps: Bool { false }
+
+    func estimatedLines(ofRows rows: Int) -> Int {
+        Int.lines(ofRows: rows, pitch: estimatedPitch)
+    }
 }
 
 /// The lines a scroll delta may span and still be walked row by row however
@@ -146,13 +156,15 @@ extension ScrollFillColumn {
         let count = rowCount
         var anchor = min(self.anchor.ordinal, count - 1)
         var within = self.anchor.within
-        let delta = offset - self.anchor.derivedOffset
-        let jumps = abs(delta) > max(viewportHeight * 4, scrollWalkableDelta)
+        let delta = offset.saturatingSubtracting(self.anchor.derivedOffset)
+        // In magnitudes: `abs` traps on `Int.min`, a delta a hostile offset makes.
+        let screens = UInt(max(0, viewportHeight.saturatingMultiplied(by: 4)))
+        let jumps = delta.magnitude > max(screens, UInt(scrollWalkableDelta))
         // The bottom from more than four screens off, as before the walk
         // grew: an offset at the end is the estimated total's, which a walk
         // of the delta would land by, short of or past the last row.
-        if abs(delta) > viewportHeight * 4, let reported = self.anchor.reportedTotal,
-            offset + viewportHeight >= reported
+        if delta.magnitude > screens, let reported = self.anchor.reportedTotal,
+            offset.saturatingAdding(viewportHeight) >= reported
         {
             // A jump to the very bottom of what this stack last reported — End,
             // a tail glue re-asserted after the total refined, a scrollbar
@@ -170,12 +182,11 @@ extension ScrollFillColumn {
             // pushed the footer below it, and a jump to the content's end that
             // is not glued (`scrollTo(y:)` past it) stayed there, the footer
             // never shown.
-            let pastEnd = min(offset + viewportHeight - reported, linesBelow)
+            let pastEnd = min(offset.saturatingAdding(viewportHeight).saturatingSubtracting(reported), linesBelow)
             (anchor, within) = tailAnchor(endingAt: viewportHeight - pastEnd)
         } else if jumps, !walksJumps {
-            let estimate = estimatedPitch
-            anchor = min(count - 1, max(0, offset / estimate))
-            within = max(0, offset - anchor * estimate)
+            anchor = min(count - 1, max(0, offset / estimatedPitch))
+            within = max(0, offset.saturatingSubtracting(estimatedLines(ofRows: anchor)))
         } else if delta != 0 {
             within += delta
             while within < 0, anchor > 0 {
@@ -256,7 +267,7 @@ extension ScrollFillColumn {
                 row -= 1
                 above += pitch(of: row)
             }
-            lines = above + row * estimatedPitch + anchor.within
+            lines = above.saturatingAdding(estimatedLines(ofRows: row)).saturatingAdding(anchor.within)
         }
         guard lines != offset else { return nil }
         anchor.derivedOffset = lines
@@ -390,7 +401,7 @@ extension ScrollFillColumn {
     /// rows up. And a column of a header over such a stack, priced after the
     /// walk at its average, ended twice as far down as it does.
     private func estimatedEnd(covered: Int, above: Int) -> Int {
-        guard walksJumps else { return covered + above * estimatedPitch }
+        guard walksJumps else { return covered.saturatingAdding(estimatedLines(ofRows: above)) }
         return (0..<above).reduce(covered) { $0 + pitch(of: $1) }
     }
 }

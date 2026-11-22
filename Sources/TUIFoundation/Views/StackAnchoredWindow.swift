@@ -427,8 +427,10 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         if request.anchor == nil { request.anchor = ordinal < frame.anchor.ordinal ? .top : .bottom }
         let newOffset = window.offset(
             realising: request, targetY: targetY, rowHeight: rowHeight,
-            stackHeight: max(children.count * estimate, targetY + (children.count - ordinal) * estimate)
-                - spacing)
+            stackHeight: max(
+                state.estimatedLines(ofRows: children.count, spacing: spacing),
+                targetY.saturatingAdding(state.estimatedLines(ofRows: children.count - ordinal, spacing: spacing))
+            ).saturatingSubtracting(spacing))
         // Under a designated row the hold follows, not the walk
         // (`clampDesignatedHold`), and the target stands at its top as before.
         anchorSeekTarget(
@@ -466,8 +468,10 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         }
         let newOffset = window.offset(
             realising: request, targetY: rowTop + target.y, rowHeight: target.height,
-            stackHeight: max(children.count * estimate, rowTop + (children.count - target.ordinal) * estimate)
-                - spacing)
+            stackHeight: max(
+                state.estimatedLines(ofRows: children.count, spacing: spacing),
+                rowTop.saturatingAdding(state.estimatedLines(ofRows: children.count - target.ordinal, spacing: spacing))
+            ).saturatingSubtracting(spacing))
         anchorSeekTarget(
             target.ordinal, top: rowTop, offset: anchorFollowsOffset ? newOffset : rowTop, frame: frame,
             state: state, children: children)
@@ -514,7 +518,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         } else if place.ordinal == 0 {
             followed = frame.anchor.within
         } else {
-            followed = max(1, window.offset + moved * state.estimatedPitch(spacing: spacing))
+            followed = max(1, window.offset.saturatingAdding(state.estimatedLines(ofRows: moved, spacing: spacing)))
         }
         frame.anchor.derivedOffset = held.top + followed - window.offset
         guard followed != window.offset else { return nil }
@@ -579,7 +583,7 @@ extension AnchoredWindowFrame: ScrollFillColumn {
     private func seekTargetY(
         ordinal: Int, estimate: Int, frame: AnchoredWindowFrame, window: ScrollContentWindow
     ) -> Int {
-        guard ordinal < window.viewportHeight else { return ordinal * estimate }
+        guard ordinal < window.viewportHeight else { return Int.lines(ofRows: ordinal, pitch: estimate) }
         return (0..<ordinal).reduce(0) { $0 + frame.pitch(of: $1) }
     }
 
@@ -711,7 +715,6 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         var grafts: [(ordinal: Int, y: Int, unseen: Bool)] = []
         if let focusManager = context.environment.focusManager {
             let anchorY = window.offset - frame.anchor.within
-            let estimate = state.estimatedPitch(spacing: spacing)
             let placedOrdinals = Set(placed.map(\.ordinal))
             for target in [focusManager.currentFocusedID, focusManager.pendingFocusID] {
                 guard
@@ -724,7 +727,8 @@ extension AnchoredWindowFrame: ScrollFillColumn {
                 // never rendered, never registered, and upward reveal never
                 // happened. At y 0 the region still tells the snap "scroll
                 // up", which is all convergence needs.
-                let estimatedY = anchorY + (ordinal - frame.anchor.ordinal) * estimate
+                let estimatedY = anchorY.saturatingAdding(
+                    state.estimatedLines(ofRows: ordinal - frame.anchor.ordinal, spacing: spacing))
                 if window.reply == nil {
                     placed.append((ordinal, max(0, estimatedY)))
                 } else {
@@ -744,14 +748,14 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         let edges = RingEdges(window, state: state, rows: children.dataSignature)
         if focusedOrdinal != nil || !edges.isEmpty {
             let anchorY = window.offset - frame.anchor.within
-            let estimate = state.estimatedPitch(spacing: spacing)
             let covered = Set(placed.map(\.ordinal)).union(grafts.map(\.ordinal))
             for stop in focusRingStops(
                 focusedOrdinal: focusedOrdinal, edges: edges,
                 count: children.count, child: { frame.child(at: $0) }, width: width,
                 viewportHeight: window.viewportHeight, context: childContext)
             where !covered.contains(stop) {
-                let estimatedY = anchorY + (stop - frame.anchor.ordinal) * estimate
+                let estimatedY = anchorY.saturatingAdding(
+                    state.estimatedLines(ofRows: stop - frame.anchor.ordinal, spacing: spacing))
                 if window.reply == nil {
                     placed.append((stop, max(0, estimatedY)))
                 } else {
@@ -810,8 +814,8 @@ extension AnchoredWindowFrame: ScrollFillColumn {
         // exists in order not to compute.
         let gradientFrame = context.gradientContentFrame(
             width: width,
-            height: max(1, frame.children.count * state.estimatedPitch(spacing: spacing)
-                - (frame.children.count > 1 ? spacing : 0)))
+            height: max(1, state.estimatedLines(ofRows: frame.children.count, spacing: spacing)
+                .saturatingSubtracting(frame.children.count > 1 ? spacing : 0)))
         let drawGraft = { (ordinal: Int, y: Int, unseen: Bool) in
             self.drawAnchoredGraft(
                 frame.child(at: ordinal), measuredWidth: frame.measuredWidth(of: ordinal), y: y,
@@ -930,13 +934,12 @@ extension AnchoredWindowFrame: ScrollFillColumn {
             drawingOver: result, shiftedUpBy: sliceOrigin, isRow: WindowedRow.isAmong(frame.children, under: context.identity))
 
         let remaining = frame.children.count - 1 - lastPlaced
-        let estimate = state.estimatedPitch(spacing: spacing)
         // The estimate prices each remaining row at height + below-gap; the
         // actual last row has no below-gap, so an estimated suffix carries
         // one spacing too many.
-        let total =
-            max(cursor, bottomY) + max(0, remaining) * estimate
-            - (remaining > 0 ? spacing : 0)
+        let total = max(cursor, bottomY)
+            .saturatingAdding(state.estimatedLines(ofRows: max(0, remaining), spacing: spacing))
+            .saturatingSubtracting(remaining > 0 ? spacing : 0)
         frame.anchor.reportedTotal = total
         if let reply = window.reply {
             reply.sliceOriginY = sliceOrigin

@@ -109,7 +109,7 @@ enum PulledSeek {
             : min(max(window.offset - top, -window.viewportHeight), frame.height(of: ordinal))
         let total =
             frame.walksJumps
-            ? (0..<frame.rowCount).reduce(0) { $0 + frame.pitch(of: $1) } : frame.rowCount * frame.estimatedPitch
+            ? (0..<frame.rowCount).reduce(0) { $0 + frame.pitch(of: $1) } : frame.estimatedLines(ofRows: frame.rowCount)
         frame.anchor.ordinal = ordinal
         frame.anchor.key = frame.key(at: ordinal)
         frame.anchor.within = from

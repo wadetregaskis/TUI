@@ -128,7 +128,7 @@ extension ScrollFillColumn {
         let rows = ordinal < anchored ? ordinal..<anchored : anchored..<ordinal
         let lines =
             walksJumps || rows.count <= viewportHeight
-            ? rows.reduce(0) { $0 + pitch(of: $1) } : rows.count * estimatedPitch
+            ? rows.reduce(0) { $0 + pitch(of: $1) } : estimatedLines(ofRows: rows.count)
         return (ordinal < anchored ? -lines : lines) - anchor.within
     }
 }

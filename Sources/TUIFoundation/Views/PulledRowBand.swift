@@ -87,7 +87,7 @@ package final class PulledRows {
     /// The rows' height for a measure: what the last band reported, else
     /// `count` rows at the estimated pitch.
     package func estimatedRowsHeight(count: Int) -> Int {
-        anchor.reportedTotal ?? count * estimatedPitch
+        anchor.reportedTotal ?? Int.lines(ofRows: count, pitch: estimatedPitch)
     }
 }
 
@@ -133,16 +133,16 @@ private final class PulledRowColumn: ScrollFillColumn {
     func top(of target: Int, from: Int, fromTop: Int, reach: Int) -> Int {
         // Every row is a line at least, so a row more than `reach` rows off
         // is more than `reach` lines off: priced without walking to it.
-        if abs(target - from) > reach { return fromTop + (target - from) * estimatedPitch }
+        if abs(target - from) > reach { return fromTop.saturatingAdding(Int.lines(ofRows: target - from, pitch: estimatedPitch)) }
         var row = from
         var y = fromTop
         while row < target {
-            if y - fromTop > reach { return y + (target - row) * estimatedPitch }
+            if y - fromTop > reach { return y.saturatingAdding(Int.lines(ofRows: target - row, pitch: estimatedPitch)) }
             y += pitch(of: row)
             row += 1
         }
         while row > target {
-            if fromTop - y > reach { return y - (row - target) * estimatedPitch }
+            if fromTop - y > reach { return y.saturatingSubtracting(Int.lines(ofRows: row - target, pitch: estimatedPitch)) }
             row -= 1
             y -= pitch(of: row)
         }
@@ -275,7 +275,9 @@ extension PulledBandRequest {
                 realising: seek, targetY: targetTop + top - seekChrome.above,
                 rowHeight: seekChrome.above + column.pitch(of: target) + seekChrome.below,
                 stackHeight: top + bottom
-                    + max(rows.estimatedRowsHeight(count: count), targetTop + (count - target) * estimate))
+                    + max(
+                        rows.estimatedRowsHeight(count: count),
+                        targetTop.saturatingAdding(Int.lines(ofRows: count - target, pitch: estimate))))
             anchor.ordinal = target
             anchor.within = position - top - targetTop
             anchor.derivedOffset = position - top
@@ -349,7 +351,8 @@ extension PulledBandRequest {
         let corrected = position != rowsOffset + top
         anchor.derivedOffset = position - top
         let estimate = rows.estimatedPitch
-        let total = position + (viewBottom ?? (bottomY + (count - end) * estimate + bottom))
+        let total = position.saturatingAdding(
+            viewBottom ?? bottomY.saturatingAdding(Int.lines(ofRows: count - end, pitch: estimate)).saturatingAdding(bottom))
         anchor.reportedTotal = total - top - bottom
 
         // The rows the band holds, and where the drawing of them starts.

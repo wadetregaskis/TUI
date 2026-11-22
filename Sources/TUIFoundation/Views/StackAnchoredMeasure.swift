@@ -209,7 +209,7 @@ import TUICore
         // tree nothing had changed.
         let prefix = min(sample.count, Self.walkedRowCount(
             budget: heightLimit, pitch: estimate, spacing: spacing, count: count))
-        let total = count * estimate - spacing
+        let total = Int.lines(ofRows: count, pitch: estimate).saturatingSubtracting(spacing)
         return (sampled.prefix(prefix), answersWhole ? max(0, total) : min(total, max(0, heightLimit)))
     }
 
@@ -265,7 +265,7 @@ import TUICore
     /// clipped remainder, and the stack hugs what it draws.
     static func walkedRowCount(budget: Int, pitch: Int, spacing: Int, count: Int) -> Int {
         guard pitch > 0 else { return count }
-        let whole = max(0, min(count, (max(0, budget) + spacing) / pitch))
+        let whole = max(0, min(count, max(0, budget).saturatingAdding(spacing) / pitch))
         return min(count, whole + (whole < count ? 1 : 0))
     }
 }
