@@ -38,7 +38,7 @@ package enum DroppedMember {
     /// ``SoftTrap``, while a task binds it — the test seam, as
     /// `ANSIRenderer.translucentReporter` is one: a debug build stops at the
     /// soft trap's assertion, so a test could not otherwise take the path.
-    @TaskLocal package static var reporter: (@Sendable (String) -> Void)?
+    @TaskLocal package static var reporter: TaskLocalReporter<String>?
 
     /// Reports that `container` leaves out `member`, which SwiftUI shows there.
     ///

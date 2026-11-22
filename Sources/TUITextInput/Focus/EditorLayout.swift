@@ -55,7 +55,7 @@ final class EditorLayout {
     /// Told of every text split into lines whole (``init(text:)``), while a
     /// task binds it: the test seam that counts how often a frame lays a
     /// document out, as `DroppedMember.reporter` is one for its reports.
-    @TaskLocal static var buildReporter: (@Sendable () -> Void)?
+    @TaskLocal static var buildReporter: TaskLocalReporter<Void>?
 
     /// Splits `text` into its lines.
     convenience init(text: String) {

@@ -172,7 +172,7 @@ extension ANSIRenderer {
     /// ``backgroundCode(for:)`` themselves. Task-local, as the render path's
     /// other reporters are (`AlignmentGuideRun.guideErrorReporter`), so suites
     /// running in parallel do not see each other's reports.
-    @TaskLocal static var translucentReporter: (@Sendable (String) -> Void)?
+    @TaskLocal static var translucentReporter: TaskLocalReporter<String>?
 
     /// The out-of-line half of ``checkOpaque(_:)``: the report, to
     /// ``translucentReporter`` when a task binds one, and otherwise through

@@ -27,8 +27,8 @@ final class DroppedMemberReports: @unchecked Sendable {
     var messages: [String] { lock.withLock { recorded } }
 
     /// The reporter to bind.
-    var record: @Sendable (String) -> Void {
-        { [self] message in lock.withLock { recorded.append(message) } }
+    var record: TaskLocalReporter<String> {
+        TaskLocalReporter { [self] message in lock.withLock { recorded.append(message) } }
     }
 }
 

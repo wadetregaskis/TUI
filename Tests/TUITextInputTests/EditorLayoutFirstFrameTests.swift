@@ -43,7 +43,7 @@ struct EditorLayoutFirstFrameTests {
     /// How many texts `body` splits into lines whole.
     func layouts(_ body: () -> Void) -> Int {
         let count = Mutex(0)
-        EditorLayout.$buildReporter.withValue({ count.withLock { $0 += 1 } }, operation: body)
+        EditorLayout.$buildReporter.withValue(TaskLocalReporter { count.withLock { $0 += 1 } }, operation: body)
         return count.withLock { $0 }
     }
 

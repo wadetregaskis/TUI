@@ -718,7 +718,7 @@ extension AlignmentGuideRun {
     /// Task-local, as the other render-path test seams are
     /// (`TerminalWidthTraits`), so suites running in parallel do not see each
     /// other's reports.
-    @TaskLocal static var guideErrorReporter: (@Sendable (String) -> Void)?
+    @TaskLocal static var guideErrorReporter: TaskLocalReporter<String>?
 
     /// Reports a guide that is a logic error: to ``guideErrorReporter`` when a
     /// task binds one, and otherwise through `SoftTrap`.

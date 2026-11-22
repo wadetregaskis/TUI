@@ -122,7 +122,7 @@ struct SGRStyleSequenceTests {
         }
         ColorDepth.withCurrent(.truecolor) {
             ANSIRenderer.$translucentReporter.withValue(
-                { reports.append($0) },
+                TaskLocalReporter { reports.append($0) },
                 operation: {
                     for (stated, full) in zip(styles(translucent), styles(opaque)) {
                         #expect(ANSIRenderer.styleSequence(for: stated) == ANSIRenderer.styleSequence(for: full))

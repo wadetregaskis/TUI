@@ -54,7 +54,7 @@ private final class GuideErrorReports: @unchecked Sendable {
 @MainActor
 func collectingGuideErrors<T>(_ body: () -> T) -> (T, [String]) {
     let reports = GuideErrorReports()
-    let result = AlignmentGuideRun.$guideErrorReporter.withValue({ reports.append($0) }, operation: body)
+    let result = AlignmentGuideRun.$guideErrorReporter.withValue(TaskLocalReporter { reports.append($0) }, operation: body)
     return (result, reports.messages)
 }
 
