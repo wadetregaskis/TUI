@@ -94,8 +94,8 @@ nonisolated struct _RowEditRestrictionView<Content: View>: View {
     /// rows in a list carrying the modifier evaluate to, that is the case worth
     /// keeping free.
     private func report(_ context: RenderContext) {
-        guard isDisabled, !context.isMeasuring,
-            let restrictions = context.environment.listRowEditRestrictions,
+        guard isDisabled, let restrictions = context.environment.listRowEditRestrictions,
+            restrictions.takesRefusals(measuring: context.isMeasuring),
             let row = restrictions.currentRowIndex
         else { return }
         context.environment.volatileReadTracker?.recordRenderSideEffect()

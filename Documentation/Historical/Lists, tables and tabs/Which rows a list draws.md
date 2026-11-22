@@ -2,8 +2,9 @@
 
 *The places a `List` or `Table` draws rows outside its window, a list that
 does not clip, who owns `.scrollView` in a list, and which loop a hierarchical
-table's slot belongs to. Ids: B-LISTS-2, B-LISTS2-5, B-LISTS2-6,
-B-LISTS2-7; B-D2S-4 and B-D5G-9 (in the scrolling and layout stories).*
+table's slot belongs to, and what a list knows of the rows it has not drawn.
+Ids: B-LISTS-2, B-LISTS2-5, B-LISTS2-6, B-LISTS2-7, HUNT-O-04; B-D2S-4 and
+B-D5G-9 (in the scrolling and layout stories).*
 
 ## In short
 
@@ -11,7 +12,10 @@ A list draws only the rows its window walks, plus the sites lane LISTS
 identified that draw others (gated by lane LISTS2). Under
 `scrollClipDisabled` a list draws the row before and after its window, not
 clickable; a table still clips. A list owns `.scrollView` for the readers in
-its rows but does not predict their places before drawing them.
+its rows but does not predict their places before drawing them. What a row
+refuses (`.deleteDisabled()`, `.moveDisabled()`, `.selectionDisabled()`) is
+kept from frame to frame by row id, and the keys that act on rows no frame
+has drawn draw them as a measure first (HUNT-O-04).
 
 ## For a future reader
 
@@ -128,6 +132,59 @@ loops.
 **The alternative:** aim by the pointer's column, as the outline view does —
 left of the deeper level's indentation, the shallower loop. A drag's column
 is known; about two hours, with the gap drawn at the matching indentation.
+
+### HUNT-O-04. A row's refusals are kept by row id, and the keys that act on rows no frame has drawn draw them as a measure
+
+*`.deleteDisabled()`, `.moveDisabled()` and `.selectionDisabled()` on rows
+outside the window (bug hunt of 2026-11-20, findings LISTS-1 and LISTS-2,
+work item H-11; owner ruling O-04, answer b+c, 2026-11-21)*
+
+A row says what it refuses only as it renders: the flag is written inside the
+row's subtree, so reading it off the row's structure would depend on modifier
+order, which is why `RowEditRestrictions` is a collector. The list rebuilt
+what it knew from each frame's rows alone, on the stated premise that "the
+only rows a user can delete or move are the focused one and the grabbed one,
+and both are on screen by construction". They need not be: the wheel scrolls
+the cursor row away without moving the cursor. Delete then removed a locked
+row, Ctrl+Down moved a pinned one, a grab carried a pinned selected row off
+screen, and Select All, a Shift span and a follow-cursor page key selected the
+`.selectionDisabled()` rows out of sight. The docs said a disabled row was
+routed around "once it has rendered at least once"; the set was per frame,
+so a row drawn and scrolled away was unknown again.
+
+**The ruling (owner, 2026-11-21, b+c):**
+
+- Keep each row's reports across frames by row id (`RowRefusalMemory`): an
+  id is dropped when its row draws without reporting, or leaves the data, so
+  only rows no frame has drawn are unknown. A row with no id (one the
+  selection cannot name) is kept by its place, and forgotten when the row
+  count changes.
+- **(b)** Ctrl+A, a Shift range and a follow-cursor key that selects build
+  each row they take that no frame has drawn and the memory does not hold,
+  when the key is pressed: one view build per such row, drawn as a measure
+  (`LazyListRowContent.refusalProbe`), as type select's search builds rows.
+  A measure registers nothing, so a row far out of sight runs no `.onAppear`,
+  takes no focus stop and puts up no presentation; it reports its refusals
+  because the collector takes them from a measure while it probes
+  (`RowEditRestrictions.probingRefusals(ofRow:_:)`).
+- **(c)** Delete, the move chords, the pick-up chord and a grab's held
+  selection ask their rows the same way before they act, kept rows included,
+  so an edit never acts on a stale answer. Nothing visible changes.
+- The reports are taken only from a render that is not a measure.
+- Not asked of rows no frame has drawn: plain navigation. Up/Down and the
+  page keys route around a `.selectionDisabled()` row once it has drawn;
+  asking every row they pass would cost a build on every arrow key.
+
+**Measured (2026-11-21, debug build):** Ctrl+A over 10,000 rows of
+`HStack { Text; Text }`, ten of them disabled, at the top of a fresh list so
+that every row but the ten drawn is unknown: 0.78 s, against 7.5 ms with the
+probe switched off. The same list's type-select search for a prefix no row
+has, which builds and measures every row the same way, took 0.80 s. A row
+whose type-select text is a plain `Text` is read without a draw there, so a
+list of bare `Text` rows searches faster than this probe asks them; the
+probe has no such shortcut, since the flag can sit anywhere in the row. Once
+asked, a refusing row is kept and not asked again by a bulk key; a row that
+refuses nothing is asked again by the next one.
 
 ### C10. `OutlineSubgroupChildren`
 

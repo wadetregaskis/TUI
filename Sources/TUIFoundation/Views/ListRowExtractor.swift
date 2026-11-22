@@ -516,6 +516,17 @@ extension ListRowsPassThrough {
                 $0.stripped.trimmingCharacters(in: .whitespaces)
             }
         }
+        // What the row refuses, asked only by a key that acts on a row no
+        // frame has drawn (owner ruling O-04): the row's view built and drawn
+        // as a measure that reports its refusals and registers nothing.
+        box.refusalProbe = { [content] in
+            guard let restrictions = context.environment.listRowEditRestrictions else { return }
+            var probe = rowContext
+            probe.isMeasuring = true
+            restrictions.probingRefusals(ofRow: listRowIndex) {
+                _ = TUIView.renderToBuffer(content(element), context: probe)
+            }
+        }
         return box
     }
 

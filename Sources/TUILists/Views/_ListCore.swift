@@ -362,6 +362,31 @@ final class RowSource<SelectionValue: Hashable & Sendable>: ListRowSeparatorDeci
         return content
     }
 
+    /// Whether the row at `index` has drawn this frame, and so reported what
+    /// it refuses to the frame's ``RowEditRestrictions``.
+    func hasRendered(_ index: Int) -> Bool {
+        (materialized[index]?.content ?? materializedContent[index])?.hasRendered == true
+    }
+
+    /// What the row at `index`'s refusals are kept under from frame to frame
+    /// (``RowRefusalMemory``): its row id, read off the row already built
+    /// where it is one, else its place.
+    func refusalKey(at index: Int) -> RowRefusalKey {
+        if case .content(let id) = materialized[index]?.type ?? typeAt(index) { return .id(AnyHashable(id)) }
+        return .place(index)
+    }
+
+    /// Has the row at `index`, which has not drawn this frame, report what it
+    /// refuses: drawn as a measure through its box's
+    /// ``LazyListRowContent/refusalProbe``, or drawn outright where its box
+    /// has none. A box this frame did not build is made for the probe and not
+    /// kept, so Select All over ten thousand rows keeps none of them.
+    func probeRefusals(at index: Int) {
+        let box = materialized[index]?.content ?? materializedContent[index] ?? make(index)
+        guard !box.hasRendered else { return }
+        if let probe = box.refusalProbe { probe() } else { _ = box.buffer.height }
+    }
+
     /// Drops this frame's render of any row already built whose content renders
     /// under one of `identities`, so the next read renders it again — for a row
     /// whose cached render the list has just cleared, which an earlier read this
@@ -1526,7 +1551,9 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
         // A `.dimmed` / `.cursor` drag rewrites the rows here, AFTER the
         // window walk: the drag shows an extra row that is not in the data, so
         // it must not take part in choosing which data rows are visible.
-        applyRowReports(editRestrictions, to: handler)
+        // Not from a measure, whose rows report nothing: it would forget
+        // what the drawn rows refused.
+        if !context.isMeasuring { applyRowReports(editRestrictions, source: source, to: handler) }
         // The rows' `.draggable`s, for the keyboard: Copy and the pick-up
         // chord on the cursor row (A53-KEYBOARD-DRAG).
         handler.offerRowDrags(editRestrictions.rowDrags, context: context)
@@ -1881,18 +1908,31 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
     /// with the indicator style), which left the flag returned and read by
     /// nobody — a warning on every build.
     /// Hands the handler what the rows reported as they rendered.
-    private func applyRowReports(_ editRestrictions: RowEditRestrictions, to handler: ItemListHandler<SelectionValue>) {
-        // The rows have rendered by now, so whatever they refused is known.
-        // Only rows that were DRAWN can have reported, which is exactly the set
-        // an edit can name: Delete acts on the focused row and a drag on the
-        // grabbed one, and both are on screen.
-        handler.deleteDisabledRows = editRestrictions.deleteDisabled
-        handler.moveDisabledRows = editRestrictions.moveDisabled
-        // Selection is the one restriction here `moveFocus(by:wrap:)` also
-        // consults (see `ItemListHandler.isLandable(_:)`), so a row that
-        // reports `.selectionDisabled()` is routed around once it has drawn —
-        // not only refused as a commit target.
-        handler.selectionDisabledRows = editRestrictions.selectionDisabled
+    private func applyRowReports(
+        _ editRestrictions: RowEditRestrictions, source: RowSource<SelectionValue>,
+        to handler: ItemListHandler<SelectionValue>
+    ) {
+        // The rows have rendered by now, so whatever the drawn ones refused is
+        // known. Kept with what earlier frames' rows refused, by row id (owner
+        // ruling O-04, 2026-11-21): the cursor row need not be on screen — the
+        // wheel scrolls it away — and nor need the rows a bulk key takes.
+        handler.rowRefusalMemory.settle(
+            count: source.count, reports: editRestrictions.reports, keyAt: source.refusalKey(at:),
+            hasRendered: source.hasRendered)
+        Self.publishRowRefusals(to: handler)
+        // What the keys that act on rows no frame has drawn ask them by, over
+        // this frame's rows. Weak on the handler, which holds it.
+        handler.refusalProbe = { [weak handler, source, editRestrictions] rows, evenIfKept in
+            guard let handler else { return }
+            for row in rows where row < source.count {
+                let key = source.refusalKey(at: row)
+                if !evenIfKept, !source.hasRendered(row), handler.rowRefusalMemory.keeps(key) { continue }
+                source.probeRefusals(at: row)
+                handler.rowRefusalMemory.learn(editRestrictions.refusals(ofRow: row), key: key, row: row)
+            }
+            handler.rowRefusalMemory.publish()
+            Self.publishRowRefusals(to: handler)
+        }
         // The sections whose actions the pointer shows (owner ruling
         // B78-VISIBILITY), as the next pointer move finds them.
         handler.sectionActionSpans = editRestrictions.sectionActionSpans
@@ -1914,6 +1954,17 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             open()
             return true
         }
+    }
+
+    /// Hands the handler the refusals its memory keeps. Selection is the one
+    /// `moveFocus(by:wrap:)` also consults (see `ItemListHandler.isLandable(_:)`),
+    /// so a row that reported `.selectionDisabled()` is routed around once it
+    /// has drawn — not only refused as a commit target.
+    private static func publishRowRefusals(to handler: ItemListHandler<SelectionValue>) {
+        let memory = handler.rowRefusalMemory
+        handler.deleteDisabledRows = memory.deleteDisabled
+        handler.moveDisabledRows = memory.moveDisabled
+        handler.selectionDisabledRows = memory.selectionDisabled
     }
 
     /// The list's rows, extracted as `rowContext` draws them, with the row and

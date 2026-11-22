@@ -18,12 +18,13 @@ extension View {
     ///
     /// Applied to a list row, this row cannot become the `List`'s selection —
     /// Enter/Space and a click on it do nothing — and it renders with a
-    /// dimmed foreground to show it. Up/Down, Page Up/Page Down and Home/End
-    /// also route around it, once it has rendered at least once: like
-    /// ``View/deleteDisabled(_:)`` / ``View/moveDisabled(_:)``, the refusal is
-    /// reported to the enclosing `List` as the row draws, so a row that has
-    /// never been on screen has not yet had the chance to report and cannot
-    /// yet be routed around.
+    /// dimmed foreground to show it, and Select All and a Shift range leave it
+    /// out. Up/Down, Page Up/Page Down and Home/End also route around it once
+    /// it has drawn: like ``View/deleteDisabled(_:)`` /
+    /// ``View/moveDisabled(_:)``, the refusal is reported to the enclosing
+    /// `List` as the row draws, and the list remembers it while the row is
+    /// out of sight. A row the list has never drawn is drawn as a measure,
+    /// unseen, by a key that would select it, but not by navigation.
     ///
     /// # Example
     ///

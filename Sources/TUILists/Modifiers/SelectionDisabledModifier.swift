@@ -16,12 +16,14 @@ import TUIFoundation
 /// Reported to the enclosing `List` the same way `.deleteDisabled()` /
 /// `.moveDisabled()` are — as the row renders, via `RowEditRestrictions`,
 /// rather than by inspecting the row's structure, so a modifier written
-/// outside this one (`.selectionDisabled(_:).padding()`) still counts. That
-/// also means the restriction is only known for a row that has actually
-/// drawn: Up/Down, Page Up/Page Down and Home/End route around a
-/// `.selectionDisabled()` row once it has rendered at least once
-/// (`ItemListHandler.moveFocus(by:wrap:)`, `firstLandableRow(orElse:)`), the
-/// same on-screen-only guarantee `.deleteDisabled()` documents.
+/// outside this one (`.selectionDisabled(_:).padding()`) still counts. The
+/// list keeps what a row reported by its id from frame to frame, until the
+/// row draws without it or leaves the data (owner ruling O-04, 2026-11-21).
+/// Select All, a Shift span and a key that selects the cursor row first draw
+/// any row they take that no frame has drawn, as a measure, so it can report;
+/// Up/Down, Page Up/Page Down and Home/End route around a
+/// `.selectionDisabled()` row once it has drawn
+/// (`ItemListHandler.moveFocus(by:wrap:)`, `firstLandableRow(orElse:)`).
 ///
 /// ## Usage
 ///
@@ -96,8 +98,8 @@ extension SelectionDisabledModifier: Equatable where Content: Equatable {
     /// and then silently forgotten on every frame the cache served instead of
     /// re-rendering.
     private func report(_ context: RenderContext) {
-        guard isDisabled, !context.isMeasuring,
-            let restrictions = context.environment.listRowEditRestrictions,
+        guard isDisabled, let restrictions = context.environment.listRowEditRestrictions,
+            restrictions.takesRefusals(measuring: context.isMeasuring),
             let row = restrictions.currentRowIndex
         else { return }
         context.environment.volatileReadTracker?.recordRenderSideEffect()
@@ -109,8 +111,9 @@ extension SelectionDisabledModifier: Equatable where Content: Equatable {
 
 @MainActor extension SelectionDisabledModifier: Layoutable {
     /// Measures `content` unchanged: dimming a row's colour does not change
-    /// its size, and measurement never reports a restriction (`report(_:)`
-    /// guards `!context.isMeasuring`, matching `.deleteDisabled()`).
+    /// its size, and a measure reports no restriction (`report(_:)` reports
+    /// only from a render, and from a measuring one only while the list probes
+    /// the row for it, matching `.deleteDisabled()`).
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureChild(content, proposal: proposal, context: context)
     }

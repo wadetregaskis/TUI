@@ -59,6 +59,14 @@ package func deferredListRow(
         return LazyListRowContent.typeSelectText(
             drawnIn: child.render(width: context.availableWidth, height: context.availableHeight, context: probe))
     }
+    box.refusalProbe = {
+        guard let restrictions = context.environment.listRowEditRestrictions else { return }
+        var probe = context
+        probe.isMeasuring = true
+        restrictions.probingRefusals(ofRow: listRow) {
+            _ = child.render(width: context.availableWidth, height: context.availableHeight, context: probe)
+        }
+    }
     return box
 }
 

@@ -15,13 +15,15 @@ import TUIView
 /// padding outermost — so reading it structurally would depend on modifier
 /// order. Reporting on render does not.
 ///
-/// One per `List` per frame. Absence means allowed, which is what makes a row
-/// that never rendered (off the window) harmless for delete/move: the only
-/// rows a user can delete or move are the focused one and the grabbed one,
-/// and both are on screen by construction. Selection is the one restriction
-/// here that is not so contained — Up/Down can land the cursor on a row that
-/// has never rendered — so a `.selectionDisabled()` row is only skipped by
-/// navigation once a frame has drawn it and reported it here; see
+/// One per `List` per frame. Absence means allowed. The list keeps what its
+/// rows reported here from frame to frame, by row id (`RowRefusalMemory`,
+/// owner ruling O-04, 2026-11-21), so a row that drew once and scrolled away
+/// still refuses; a row no frame has drawn has had no chance to report, so
+/// the keys that act on rows out of sight first draw them as a measure that
+/// reports here and registers nothing (``probingRefusals(ofRow:_:)``): Delete
+/// and the move keys their cursor row and held rows, Select All and a Shift
+/// span every row they take. Plain navigation does not, so Up/Down route
+/// around a `.selectionDisabled()` row once it has drawn; see
 /// ``ItemListHandler/selectionDisabledRows``.
 /// `@usableFromInline`: the type of an `@inlinable` environment accessor (module split step A3).
 @MainActor
@@ -227,6 +229,60 @@ package final class RowEditRestrictions {
     package func disableDelete(row: Int) { _deleteDisabled.insert(row) }
     package func disableMove(row: Int) { _moveDisabled.insert(row) }
     package func disableSelection(row: Int) { _selectionDisabled.insert(row) }
+
+    /// What the row at list row `row` refused, as far as it reported here.
+    package func refusals(ofRow row: Int) -> RowRefusals {
+        var refusals: RowRefusals = []
+        if _deleteDisabled.contains(row) { refusals.insert(.delete) }
+        if _moveDisabled.contains(row) { refusals.insert(.move) }
+        if _selectionDisabled.contains(row) { refusals.insert(.selection) }
+        return refusals
+    }
+
+    /// Every row that refused something, with what it refused.
+    package var reports: [Int: RowRefusals] {
+        var reports: [Int: RowRefusals] = [:]
+        for row in _deleteDisabled { reports[row, default: []].insert(.delete) }
+        for row in _moveDisabled { reports[row, default: []].insert(.move) }
+        for row in _selectionDisabled { reports[row, default: []].insert(.selection) }
+        return reports
+    }
+
+    /// Whether a row drawing now reports its refusals here: always in a
+    /// drawing render, and in a measuring one only while a row is probed
+    /// (``probingRefusals(ofRow:_:)``). A measure otherwise reports nothing,
+    /// as it registers nothing.
+    package func takesRefusals(measuring: Bool) -> Bool { !measuring || _probesRefusals }
+
+    /// Runs `draw` — a MEASURING render of the row at list row `row` — with
+    /// the row stamped and refusals taken from a measure, so the row reports
+    /// what it refuses without drawing anything or registering anything: what
+    /// a key acting on rows out of sight learns them by (owner ruling O-04,
+    /// 2026-11-21). A measure, as type select's probe is, so a row far out of
+    /// sight puts up no presentation, takes no focus stop and runs no
+    /// `.onAppear`.
+    package func probingRefusals(ofRow row: Int, _ draw: () -> Void) {
+        let saved = (_currentRowIndex, _probesRefusals)
+        (_currentRowIndex, _probesRefusals) = (row, true)
+        defer { (_currentRowIndex, _probesRefusals) = saved }
+        draw()
+    }
+
+    private var _probesRefusals = false
+}
+
+/// What a list row refuses: the edits `.deleteDisabled()` and
+/// `.moveDisabled()` refuse, and the selection `.selectionDisabled()` does.
+package struct RowRefusals: OptionSet, Hashable, Sendable {
+    package let rawValue: UInt8
+    package init(rawValue: UInt8) { self.rawValue = rawValue }
+
+    /// `.deleteDisabled()`.
+    package static let delete = Self(rawValue: 1 << 0)
+    /// `.moveDisabled()`.
+    package static let move = Self(rawValue: 1 << 1)
+    /// `.selectionDisabled()`.
+    package static let selection = Self(rawValue: 1 << 2)
 }
 
 extension EnvironmentValues {

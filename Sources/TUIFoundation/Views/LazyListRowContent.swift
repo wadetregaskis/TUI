@@ -156,6 +156,7 @@ package final class LazyListRowContent {
     private var _gradientRamp: ListRowRamp?
     private var _rowIndex = 0
     private var _typeSelectProbe: (() -> String?)?
+    private var _refusalProbe: (() -> Void)?
 
     /// `buffer` with blank lines above and below to make ``minimumHeight``,
     /// the content in the middle; `buffer` itself when it is tall enough.
@@ -254,6 +255,18 @@ package final class LazyListRowContent {
     /// (``typeSelectText``).
     package var typeSelectProbe: (() -> String?)? { get { _typeSelectProbe } set { _typeSelectProbe = newValue } }
 
+    /// Draws the row's view as a measure that reports what it refuses —
+    /// `.deleteDisabled()`, `.moveDisabled()`, `.selectionDisabled()` — to the
+    /// list, through ``RowEditRestrictions/probingRefusals(ofRow:_:)``, and
+    /// registers nothing: what a key acting on a row no frame has drawn learns
+    /// its refusals by (owner ruling O-04, 2026-11-21). `nil` for a row handed
+    /// over already drawn, which reported as it drew.
+    package var refusalProbe: (() -> Void)? { get { _refusalProbe } set { _refusalProbe = newValue } }
+
+    /// Whether the row has rendered in this box — so, a box living for one
+    /// frame's rows, whether it drew this frame and reported what it refuses.
+    package var hasRendered: Bool { cached != nil }
+
     /// The text a typed prefix matches this row by: its stated equivalent
     /// (``View/typeSelectEquivalent(_:)-(Text?)``), else its first line of
     /// text — asked of the row's view where there is one, so a row out of
@@ -338,6 +351,7 @@ package final class LazyListRowContent {
             mapped = LazyListRowContent(buffer: transform(rendered.buffer), rowBadge: rendered.badge)
         }
         mapped.typeSelectProbe = typeSelectProbe
+        mapped.refusalProbe = refusalProbe
         return mapped
     }
 

@@ -823,7 +823,13 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
             // of a list whose OTHER section is the editable one). Refusing here
             // is the point: the alternative is an offset that lands in a
             // collection the user was not pointing at.
-            let span = deletableSpan(of: focusedIndex),
+            let span = deletableSpan(of: focusedIndex)
+        else { return false }
+        // The cursor row asked first where this frame did not draw it — the
+        // wheel scrolls it away without moving the cursor — so a locked row
+        // out of sight is not deleted (owner ruling O-04 (c), 2026-11-21).
+        learnRefusals(of: IndexSet(integer: focusedIndex), evenIfKept: true)
+        guard
             // `.deleteDisabled()` on the row. Returning FALSE rather than true:
             // a refused row must leave Delete alone entirely, so it falls
             // through to whatever else wants the key — exactly as it does in a
@@ -914,7 +920,8 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     }
 
     /// LIST ROWS carrying `.deleteDisabled()`, republished each frame by the
-    /// `List` from what the drawn rows reported.
+    /// `List` from what its rows reported as they drew, kept across frames by
+    /// row id (``rowRefusalMemory``, owner ruling O-04, 2026-11-21).
     ///
     /// List rows, not offsets into the row's own collection: this is compared
     /// against ``focusedIndex``, which is a list row. The two are the same
@@ -922,24 +929,42 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
     /// Sections the per-collection offsets collide outright, which is why
     /// `RowEditRestrictions` stamps the list row.
     ///
-    /// Absence means allowed. A row that never rendered cannot appear here, and
-    /// does not need to: the only row Delete can name is the focused one, and
-    /// the focus machinery keeps that on screen.
+    /// Absence means allowed. A row stays here once it has drawn and reported,
+    /// until it draws without reporting or leaves the data; a row no frame has
+    /// drawn is not here, which is why Delete first asks the cursor row
+    /// (``learnRefusals(of:evenIfKept:)``): the wheel scrolls the cursor row
+    /// out of sight without moving the cursor.
     var deleteDisabledRows: Set<Int> = []
 
     /// List rows carrying `.moveDisabled()`. Same publication and the same
-    /// reasoning as ``deleteDisabledRows`` — a drag can only grab a row it can
-    /// point at.
+    /// reasoning as ``deleteDisabledRows``: the move keys ask the cursor row,
+    /// and a grab the selection it carries, before they act.
     var moveDisabledRows: Set<Int> = []
 
+    /// What the `List`'s rows refused, kept from frame to frame by row id —
+    /// what ``deleteDisabledRows``, ``moveDisabledRows`` and
+    /// ``selectionDisabledRows`` are published from. A `Table` keeps none.
+    var rowRefusalMemory = RowRefusalMemory()
+
+    /// Has the rows in a set that no frame has drawn report their refusals,
+    /// drawn as a measure (``LazyListRowContent/refusalProbe``), and
+    /// republishes the three sets — kept rows too when the `Bool` is true.
+    /// Installed by the `List` each frame, over that frame's rows; `nil` in a
+    /// `Table`, whose restrictions are its rows' own.
+    var refusalProbe: ((IndexSet, Bool) -> Void)?
+
     /// List rows carrying `.selectionDisabled()`. Same publication
-    /// as ``deleteDisabledRows`` — reported by the row as it renders, absent
-    /// means allowed, and a row that has never been on screen has never had
-    /// the chance to report. Unlike the other two, this restriction also
-    /// governs navigation: ``moveFocus(by:wrap:)`` will not land the cursor on
-    /// a row named here, so a `.selectionDisabled()` row that has rendered at
-    /// least once is skipped by Up/Down/Page Up/Page Down, in addition to
-    /// refusing Enter/Space and a click (``toggleSelectionAtFocusedIndex()``).
+    /// as ``deleteDisabledRows`` — reported by the row as it renders and kept
+    /// by row id; absent means allowed. Select All and a Shift span ask every
+    /// row they take that no frame has drawn (``learnRefusals(of:evenIfKept:)``,
+    /// a measure per row, on the key — owner ruling O-04, 2026-11-21), and a
+    /// key that selects the cursor row asks that row. Unlike the other two,
+    /// this restriction also governs navigation: ``moveFocus(by:wrap:)`` will
+    /// not land the cursor on a row named here, so a `.selectionDisabled()`
+    /// row that has drawn is skipped by Up/Down/Page Up/Page Down, in addition
+    /// to refusing Enter/Space and a click (``toggleSelectionAtFocusedIndex()``).
+    /// Navigation does not ask a row no frame has drawn: it would cost a build
+    /// on every arrow key.
     package var selectionDisabledRows: Set<Int> { get { _selectionDisabledRows } set { _selectionDisabledRows = newValue } }
 
     /// ``selectionDisabledRows``'s storage: private, under the `package` accessor

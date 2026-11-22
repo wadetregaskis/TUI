@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A list's locked rows stay locked when they are out of sight.** A row's `.deleteDisabled()`, `.moveDisabled()` and
+`.selectionDisabled()` were known to its `List` only while the row was drawn, so once the mouse wheel had scrolled the
+cursor row away, Delete deleted a `.deleteDisabled()` row and Ctrl+Down moved a `.moveDisabled()` one, a drag of the
+selection carried a pinned row that was off screen, and Select All or Shift+End selected the `.selectionDisabled()`
+rows off screen. A list now remembers what each row refused by its id until the row draws without it or leaves the
+data, and the keys that act on rows it has never drawn (Delete, the move keys, Select All, a Shift range) look at those
+rows first, without drawing anything. Select All over a long list pays for that once, on the key. Up/Down still pass
+over a `.selectionDisabled()` row only once it has been drawn.
+
 **A link in a `Text` read in a subtree's language opens what it says and breathes when focused.** A key-made `Text`
 with a link, under `.environment(\.locale, …)` naming another language, routed its links by the runs of the app's
 language: a translation with its link in another run crashed, one that swapped two links opened the other, and a

@@ -419,7 +419,8 @@ extension ItemListHandler {
     /// Whether `index` is a valid landing spot for the cursor: within
     /// ``ItemListHandler/selectableIndices`` when that whitelist is non-empty
     /// (the header/footer exclusion `List`'s `Section` path builds), AND not a
-    /// row a `.selectionDisabled()` reported this frame (see
+    /// row a `.selectionDisabled()` reported as it drew, this frame or an
+    /// earlier one (see
     /// ``ItemListHandler/selectionDisabledRows``). Consulted by
     /// `moveFocus(by:wrap:)`, by Home/End and the Page clamp (through
     /// ``firstLandableRow(orElse:)`` / ``lastLandableRow(orElse:)``), and by

@@ -530,6 +530,7 @@ extension ItemListHandler {
     /// the Home/End of reordering.
     @discardableResult
     func moveFocusedRow(to destination: Int) -> Bool {
+        learnMoveRefusalOfFocusedRow()
         guard onMove != nil, itemCount > 1,
             // The rows this one can be moved among — `nil` for a row no movable
             // `ForEach` produced, which refuses the chord exactly as the
@@ -552,8 +553,17 @@ extension ItemListHandler {
         return true
     }
 
+    /// Asks the cursor row whether it refuses to move before a move chord
+    /// acts on it, where this frame did not draw it — the wheel scrolls it
+    /// away without moving the cursor (owner ruling O-04 (c), 2026-11-21).
+    private func learnMoveRefusalOfFocusedRow() {
+        guard onMove != nil, itemCount > 0 else { return }
+        learnRefusals(of: IndexSet(integer: clampedRowIndex(focusedIndex)), evenIfKept: true)
+    }
+
     @discardableResult
     func nudgeFocusedRow(by delta: Int) -> Bool {
+        learnMoveRefusalOfFocusedRow()
         guard onMove != nil, itemCount > 0,
             // See `moveFocusedRow(to:)` — the same two refusals, the same FALSE.
             let span = movableSpan(of: clampedRowIndex(focusedIndex)),
@@ -1180,6 +1190,9 @@ extension ItemListHandler {
         // instead of moving the cursor.
         reorder = nil
         isKeyboardMove = false
+        // A press is on a drawn row, but the pick-up chord takes the cursor
+        // row, which the wheel can have scrolled away (owner ruling O-04 (c)).
+        if onMove != nil { learnRefusals(of: IndexSet(integer: offset), evenIfKept: true) }
         // …and a row no movable `ForEach` produced declines it the same way: a
         // static row, a header, a row of the one Section in this list whose
         // `ForEach` carries no `.onMove`.
@@ -1221,10 +1234,11 @@ extension ItemListHandler {
         // selection can reach across a section boundary, and one `onMove` moves
         // rows within one collection. The rows on the far side stay where they
         // are rather than being handed to the wrong array.
-        let selected = IndexSet(
-            (movableSpan(of: offset) ?? 0..<itemCount).filter { isSelected(at: $0) }
-        )
-        .subtracting(IndexSet(moveDisabledRows))
+        let selection = IndexSet((movableSpan(of: offset) ?? 0..<itemCount).filter { isSelected(at: $0) })
+        // The selected rows out of sight asked first, so a pinned one no
+        // frame has drawn stays behind too (owner ruling O-04 (c)).
+        learnRefusals(of: selection, evenIfKept: true)
+        let selected = selection.subtracting(IndexSet(moveDisabledRows))
         // Whole elements, where an element draws several rows: its rows travel
         // together, as one `onMove` of the element.
         return wholeReorderGroups(of: selected.contains(offset) ? selected : IndexSet(integer: offset))

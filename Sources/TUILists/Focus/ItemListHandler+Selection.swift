@@ -65,8 +65,12 @@ extension ItemListHandler {
     /// moving through a list in a stack does not push each row.
     func followCursor(from previous: Int?) {
         guard selectionFollowsCursor, !cursorIsUnplaced, focusedIndex != previous, compactColumnAdvance == nil,
-            let id = id(at: focusedIndex), !selectionDisabledRows.contains(focusedIndex)
+            let id = id(at: focusedIndex)
         else { return }
+        // A page key or End can land on a row no frame has drawn: asked first
+        // (owner ruling O-04 (b), 2026-11-21).
+        learnRefusals(of: IndexSet(integer: focusedIndex))
+        guard !selectionDisabledRows.contains(focusedIndex) else { return }
         switch selectionMode {
         case .single:
             writeSingleSelection(id)
@@ -161,7 +165,8 @@ extension ItemListHandler {
     /// Replaces the selection with the span between ``selectionAnchor`` and
     /// the focus cursor, skipping the rows ``isSelectableRow(_:)`` refuses —
     /// a `.selectionDisabled()` row inside the span stays out of it, as
-    /// SwiftUI's does. Shared by shift-click
+    /// SwiftUI's does, a row of it no frame has drawn asked first
+    /// (``learnRefusals(of:evenIfKept:)``). Shared by shift-click
     /// and every keyboard extension gesture, so the two pivot around the same
     /// anchor. Both ends are clamped into the current data range first — the
     /// anchor persists across frames and the data can shrink underneath it
@@ -171,11 +176,26 @@ extension ItemListHandler {
         let bound = itemCount - 1
         let anchorRow = max(0, min(bound, anchor))
         let cursorRow = max(0, min(bound, focusedIndex))
+        let rows = min(anchorRow, cursorRow)...max(anchorRow, cursorRow)
+        learnRefusals(of: IndexSet(integersIn: rows))
         var span = Set<SelectionValue>()
-        for row in min(anchorRow, cursorRow)...max(anchorRow, cursorRow) where isSelectableRow(row) {
+        for row in rows where isSelectableRow(row) {
             if let id = id(at: row) { span.insert(id) }
         }
         writeMultiSelection(span)
+    }
+
+    /// Has the rows in `rows` that no frame has drawn report what they refuse
+    /// before a key acts on them (owner ruling O-04, 2026-11-21): each drawn
+    /// as a measure, which registers nothing, through the probe the `List`
+    /// installs over its rows (``ItemListHandler/refusalProbe``). A row kept
+    /// as refusing is asked again only `evenIfKept`, which the edit keys ask
+    /// for, so a delete or a move never acts on a stale answer. A row this
+    /// frame drew is never asked: it reported as it drew. Nothing in a
+    /// `Table`, which installs no probe.
+    func learnRefusals(of rows: IndexSet, evenIfKept: Bool = false) {
+        guard let refusalProbe, !rows.isEmpty else { return }
+        refusalProbe(rows, evenIfKept)
     }
 
     /// Whether a bulk gesture — a span, select-all — may take `row`: every
@@ -188,9 +208,12 @@ extension ItemListHandler {
     /// Selects every selectable row (Ctrl+A): every content row but the
     /// `.selectionDisabled()` ones. The one deliberate O(total)
     /// id materialisation on the windowed `List` path — user-initiated,
-    /// never per-frame.
+    /// never per-frame — and, for the same reason, a measure of every row no
+    /// frame has drawn, to ask it whether it refuses (owner ruling O-04 (b),
+    /// 2026-11-21).
     func selectAll() {
         guard selectionMode == .multi else { return }
+        learnRefusals(of: selectableIndices.isEmpty ? IndexSet(integersIn: 0..<itemCount) : IndexSet(selectableIndices))
         var all = Set<SelectionValue>()
         if selectableIndices.isEmpty {
             all.reserveCapacity(itemCount)
@@ -268,7 +291,8 @@ extension ItemListHandler {
 
     /// Toggles the selection state at the focused index.
     ///
-    /// Refuses on a row that reported `.selectionDisabled()` this frame — the
+    /// Refuses on a row that reports `.selectionDisabled()`, asked first where
+    /// no frame has drawn it (``learnRefusals(of:evenIfKept:)``) — the
     /// choke point for both keyboard selection (Enter/Space, via
     /// ``handleSelectionKey(_:)``) and a single-selection click, and for the
     /// ctrl-/option-click toggle in multi-selection mode. The row keeps its
@@ -276,7 +300,9 @@ extension ItemListHandler {
     /// "still takes focus" precedent.
     @MainActor
     func toggleSelectionAtFocusedIndex() {
-        guard let itemID = id(at: focusedIndex), !selectionDisabledRows.contains(focusedIndex) else { return }
+        guard let itemID = id(at: focusedIndex) else { return }
+        learnRefusals(of: IndexSet(integer: focusedIndex))
+        guard !selectionDisabledRows.contains(focusedIndex) else { return }
         if let compactColumnAdvance, chooseRow(itemID) {
             compactColumnAdvance()
             return

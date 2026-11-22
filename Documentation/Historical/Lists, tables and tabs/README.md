@@ -15,5 +15,5 @@ table row drag and drop is with drag and drop.
 | [Table columns: resizing, customization and their cost](<Table columns - resizing, customization and their cost.md>) | Column gestures and the keyboard mode, and their cost won back (D4T, LISTSPERF). |
 | [Moving through a list: type select, Home and End](<Moving through a list - type select, Home and End.md>) | Type select and bare keys, Home and End (B77, LISTS2). |
 | [The first key from an empty selection](<The first key from an empty selection.md>) | The first arrow, Home, End, page key and typed letter with nothing selected, beside macOS, and a staged plan (FIRSTKEY). **Open:** A-FIRSTKEY-1 to 3. |
-| [Which rows a list draws](<Which rows a list draws.md>) | Rows outside the window, unclipped lists, `.scrollView` in a list, hierarchical tables (LISTS, LISTS2). |
+| [Which rows a list draws](<Which rows a list draws.md>) | Rows outside the window, unclipped lists, `.scrollView` in a list, hierarchical tables, what a list knows of rows it has not drawn (LISTS, LISTS2, HUNT-O-04). |
 | [Tab views: labels, sidebars, customization and minimizing](<Tab views - labels, sidebars, customization and minimizing.md>) | Tab labels, the sidebar style, customization, minimizing, image forms, declined forms (B75, B76, B79, B96, C11, C16, A50). **Owed:** B75's custom labels. |
