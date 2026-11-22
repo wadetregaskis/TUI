@@ -113,38 +113,14 @@ extension TextEditorHandler {
     }
 
     /// What the session is told of `edit`, made from `before` (which must
-    /// not have been laid out into its successor yet): the change by whole
-    /// lines at both ends, so its byte ranges start at a line's start, and
-    /// how the tokens of each line edited in place in the window move. `nil`
-    /// without a session, or where the session's text is not `before`'s.
+    /// not have been laid out into its successor yet): `nil` without a
+    /// session, or where the session's text is not `before`'s.
     func highlightEdit(_ edit: EditorLayout.Edit, from before: EditorLayout) -> EditorHighlightEdit? {
         guard let connection = highlightConnection, connection.syncedLayout === before, !edit.isUnchanged else {
             return nil
         }
-        let oldCount = before.lines.count
-        let reachesEnd = edit.replaced.upperBound == oldCount
-        // Lines added or taken at the end change the line before too: its
-        // break, which the edit's bytes start with.
-        var first = edit.replaced.lowerBound
-        if reachesEnd, edit.replaced.isEmpty || edit.replacement.isEmpty, first > 0 { first -= 1 }
-        let (oldTotal, newTotal) = (before.text.utf8.count, edit.text.utf8.count)
-        let suffix = reachesEnd ? 0 : oldTotal - before.lineStarts[edit.replaced.upperBound]
-        let start = before.lineStarts[first]
-        var change = EditorHighlightEdit(
-            change: TextEditorTextChange(
-                oldLines: first..<edit.replaced.upperBound, newLines: first..<edit.replacement.upperBound,
-                oldUTF8: start..<(oldTotal - suffix), newUTF8: start..<(newTotal - suffix)),
-            replaced: edit.replaced, replacementCount: edit.replacement.count)
-        if edit.replaced.count == edit.replacement.count {
-            let window = connection.feed.window
-            for line in edit.replaced where window.contains(line) {
-                change.carried[line] = EditorLineShift(
-                    from: before.lines[line].lazy.flatMap(\.utf8),
-                    to: edit.lines[line - edit.replaced.lowerBound].lazy.flatMap(\.utf8))
-            }
-        }
-        if connection.feed.hasMarks { change.marks = EditorMarkEdit(edit, from: before) }
-        return change
+        return EditorHighlightEdit(
+            edit, from: before, window: connection.feed.window, carryingMarks: connection.feed.hasMarks)
     }
 
     /// Tells the session of `edit`, which left `after`.
@@ -178,5 +154,38 @@ extension TextEditorHandler {
             _ = highlightLayer?.styles.index(of: UInt16(next)) { connection.style($0) }
         }
         lineStyleCache.forgetDrawnRuns(ofEach: feed.show(lines: visibleLines))
+    }
+}
+
+extension EditorHighlightEdit {
+    /// `edit`, made from `before`, as a session is told it, whether by the
+    /// editor (``TextEditorHandler/highlightEdit(_:from:)``) or by a test
+    /// playing it (`EditorHighlightHarness`): the change by whole lines at
+    /// both ends, so its byte ranges start at a line's start; how the tokens
+    /// of each line of `window` edited in place move; and, `carryingMarks`,
+    /// the edit by its bytes, which the highlighter's marks move by.
+    init(_ edit: EditorLayout.Edit, from before: EditorLayout, window: Range<Int>, carryingMarks: Bool) {
+        let oldCount = before.lines.count
+        let reachesEnd = edit.replaced.upperBound == oldCount
+        // Lines added or taken at the end change the line before too: its
+        // break, which the edit's bytes start with.
+        var first = edit.replaced.lowerBound
+        if reachesEnd, edit.replaced.isEmpty || edit.replacement.isEmpty, first > 0 { first -= 1 }
+        let (oldTotal, newTotal) = (before.text.utf8.count, edit.text.utf8.count)
+        let suffix = reachesEnd ? 0 : oldTotal - before.lineStarts[edit.replaced.upperBound]
+        let start = before.lineStarts[first]
+        self.init(
+            change: TextEditorTextChange(
+                oldLines: first..<edit.replaced.upperBound, newLines: first..<edit.replacement.upperBound,
+                oldUTF8: start..<(oldTotal - suffix), newUTF8: start..<(newTotal - suffix)),
+            replaced: edit.replaced, replacementCount: edit.replacement.count)
+        if edit.replaced.count == edit.replacement.count {
+            for line in edit.replaced where window.contains(line) {
+                carried[line] = EditorLineShift(
+                    from: before.lines[line].lazy.flatMap(\.utf8),
+                    to: edit.lines[line - edit.replaced.lowerBound].lazy.flatMap(\.utf8))
+            }
+        }
+        if carryingMarks { marks = EditorMarkEdit(edit, from: before) }
     }
 }
