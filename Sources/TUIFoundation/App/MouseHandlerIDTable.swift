@@ -173,8 +173,12 @@ extension MouseHandlerIDTable {
     ///   entry at or above this identity was served this pass, so nothing at it
     ///   was visited and it registered nothing, yet its buffer (and the ids in
     ///   its regions) is still what the frame drew.
-    func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool) {
+    /// - Returns: The ids dropped. None is ever minted again, so whatever is
+    ///   kept by one of them can go with it.
+    @discardableResult
+    func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool) -> [HitTestRegion.HandlerID] {
         let serial = pruneSerial
+        pruneSerial &+= 1
         // Collect then remove: mutating a dictionary inside its own `for` loop
         // copies the whole table on the first removal.
         var stale: [Key] = []
@@ -182,10 +186,15 @@ extension MouseHandlerIDTable {
         where record.askedAt != serial && !isRetained(key.identity) {
             stale.append(key)
         }
+        guard !stale.isEmpty else { return [] }
+        var dropped: [HitTestRegion.HandlerID] = []
+        dropped.reserveCapacity(stale.count)
         for key in stale {
-            if let record = interned.removeValue(forKey: key) { owners.removeValue(forKey: record.id) }
+            guard let record = interned.removeValue(forKey: key) else { continue }
+            owners.removeValue(forKey: record.id)
+            dropped.append(record.id)
         }
-        pruneSerial &+= 1
+        return dropped
     }
 }
 
@@ -194,9 +203,18 @@ extension MouseHandlerIDTable {
 extension MouseEventDispatcher: InternedIDTable {
     /// The render cache's end-of-pass prune, forwarded to both tables: a stored
     /// buffer carries geometry markers in its regions as it carries handler ids.
+    ///
+    /// The markers dropped are handed to the geometry coordinator, which keeps
+    /// what it was told about each by marker id: one id dropped is a view whose
+    /// next marker, if it ever draws again, is a new id, so nothing kept under
+    /// the old one can be asked for again (SCROLL-4). Its own retention rule,
+    /// which asks `StateStorage`, could not see that: a lazy container retains
+    /// every row's state, the rows it windowed out included, and their entries
+    /// stayed for the container's life, one per trip out of the window.
     package func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool) {
         handlerIDs.pruneInternedIDs(retaining: isRetained)
-        geometryMarkerIDs.pruneInternedIDs(retaining: isRetained)
+        let droppedMarkers = geometryMarkerIDs.pruneInternedIDs(retaining: isRetained)
+        if !droppedMarkers.isEmpty { geometry.forgetMarkers(droppedMarkers) }
     }
 }
 

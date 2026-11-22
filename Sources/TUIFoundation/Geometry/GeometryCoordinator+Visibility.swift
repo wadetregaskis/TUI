@@ -102,7 +102,9 @@ extension GeometryCoordinator {
     /// window of a lazy container — still in the tree, its state kept, and
     /// certainly not on screen — or left the tree. The first is reported hidden
     /// if it was shown; the second is not reported at all, as SwiftUI reports
-    /// nothing for a removed view (measured).
+    /// nothing for a removed view (measured). What the first was told is kept
+    /// until its marker id is dropped (``forgetMarkers(_:)``) — it comes back
+    /// under a new one — or a sweep finds it undrawn (``RetentionSweep``).
     ///
     /// A registration whose marker no scroll view measured and the finished
     /// frame does not carry was not drawn — its buffer was thrown away — and
@@ -138,6 +140,10 @@ extension GeometryCoordinator {
                 }
             }
             for id in removed { reported.removeValue(forKey: id) }
+        }
+        if reportedSweep.isDue(reported.count) {
+            reported = reported.filter { drawn.contains($0.key) }
+            reportedSweep.swept(leaving: reported.count)
         }
         // After the books are settled: an action may write state, and nothing
         // here should be half-updated when it does.

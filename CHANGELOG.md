@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A lazy stack whose rows watch their geometry no longer keeps an entry per row each time one scrolls out of its
+window.** A row with `onScrollVisibilityChange`, `onGeometryChange` asking another coordinate space, or a
+`GeometryReader` that left a `LazyVStack`'s window and came back left what had been kept for it behind, for as long as
+the stack lived, and every later frame walked all of it: a hundred trips over one screenful of rows kept some 1,300.
+They now go when the row's marker does.
+
 **A row's `onScrollVisibilityChange` is no longer told `true` and then `false` while it is on screen.** Once a
 `ForEach` row had been served from its memo, the next time it was drawn afresh (a terminal resize did it for every
 row, as did a change to the row) its observer was reported as a newly appeared view, and its earlier registration as

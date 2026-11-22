@@ -283,6 +283,40 @@ struct ScrollVisibilityTests {
         #expect(log.take().isEmpty)
     }
 
+    @Test("A lazy stack scrolled away and back a hundred times keeps no entry per trip")
+    func windowedOutRowsLeaveNothingBehind() {
+        let frames = Frames()
+        let log = Log()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+        let view = ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                ForEach(0..<100, id: \.self) { index in
+                    Text("row \(index)")
+                        .onScrollVisibilityChange { log.reports.append((index, $0)) }
+                        .onGeometryChange(for: Int.self) { $0.frame(in: .scrollView).minY } action: { _ in }
+                }
+            }
+        }
+        .scrollPosition(binding)
+        let geometry = frames.tuiContext.mouseEventDispatcher.geometry
+        func trip() {
+            position.scrollTo(y: 60)
+            frames.render(view)
+            position.scrollTo(y: 0)
+            frames.render(view)
+        }
+        frames.render(view)
+        trip()
+        let (reported, kept) = (geometry.reported.count, geometry.kept.count)
+        for _ in 0..<100 { trip() }
+        // Bounded by the rows one trip draws, not by the trips.
+        #expect(geometry.reported.count <= reported, "\(geometry.reported.count) reported after 100 trips")
+        #expect(geometry.kept.count <= kept, "\(geometry.kept.count) kept after 100 trips")
+        #expect(geometry.lateAsks.count <= kept)
+        #expect(log.take().contains("0+"))
+    }
+
     @Test("A scroll view served from a memo keeps what it measured: a row off screen is not reported shown")
     func servedScrollViewKeepsItsMeasures() {
         let frames = Frames()

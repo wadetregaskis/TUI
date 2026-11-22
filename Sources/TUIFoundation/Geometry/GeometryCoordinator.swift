@@ -86,6 +86,10 @@ package final class GeometryCoordinator {
     /// What each observer was last told.
     var reported: [HitTestRegion.HandlerID: Reported] = [:]
 
+    /// How many entries ``reported`` held after its last sweep — see
+    /// ``RetentionSweep``.
+    var reportedSweep = RetentionSweep()
+
     // MARK: - Coordinate Spaces (state; GeometryCoordinator+Spaces.swift)
 
     /// What owners found for one view, kept across frames: what the view is
@@ -121,6 +125,10 @@ package final class GeometryCoordinator {
 
     /// What owners found, across frames, by marker id.
     var kept: [HitTestRegion.HandlerID: KeptObservations] = [:]
+
+    /// How many entries ``kept`` held after its last sweep — see
+    /// ``RetentionSweep``.
+    var keptSweep = RetentionSweep()
 
     /// Whether a reader is among the views ``kept`` holds — set when one
     /// registers, and settled at the end of each frame from what is kept
@@ -213,6 +221,19 @@ package final class GeometryCoordinator {
         matchedGeometry.endFrame()
     }
 
+    /// Lets go of everything kept for the markers `ids` named, which the
+    /// marker table has dropped (`MouseEventDispatcher.pruneInternedIDs`): an
+    /// id is never minted twice, so nothing can ask for these again.
+    func forgetMarkers(_ ids: [HitTestRegion.HandlerID]) {
+        var forgotReader = false
+        for id in ids {
+            if let entry = kept.removeValue(forKey: id), entry.isReader { forgotReader = true }
+            reported.removeValue(forKey: id)
+            lateAsks.removeValue(forKey: id)
+        }
+        if forgotReader { keepsReaders = kept.values.contains(where: \.isReader) }
+    }
+
     /// ``endFrame(frame:isRetained:)``, asking `storage` which identities are
     /// still in the tree — and only if some view vanished, since building the
     /// index is the cost.
@@ -224,6 +245,30 @@ package final class GeometryCoordinator {
             return retained?.retains(identity) ?? false
         }
     }
+}
+
+// MARK: - Sweeping
+
+/// When a table kept across frames is swept of the entries this frame did not
+/// draw, however retained their identities are: once it holds more than twice
+/// what it held after its last sweep, and 64 more — the schedule
+/// `StateStorage` sweeps its records on.
+///
+/// The marker table's prune is what drops an entry whose view has gone
+/// (``GeometryCoordinator/forgetMarkers(_:)``). This is the backstop for an
+/// entry it cannot reach — a coordinator with no render cache to prune its
+/// ids, or a view kept alive by a memo that served it without registering —
+/// so a table never grows by one entry a frame for the life of the app. What
+/// a sweep drops is undrawn, so the worst it costs is a view that comes back
+/// being treated as one appearing for the first time.
+struct RetentionSweep {
+    private var countAfterSweep = 0
+
+    /// Whether a table of `count` entries is due a sweep.
+    func isDue(_ count: Int) -> Bool { count > 2 * countAfterSweep + 64 }
+
+    /// Notes what a sweep left.
+    mutating func swept(leaving count: Int) { countAfterSweep = count }
 }
 
 // MARK: - Corrections

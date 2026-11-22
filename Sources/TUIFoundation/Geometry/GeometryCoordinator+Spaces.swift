@@ -196,8 +196,10 @@ extension GeometryCoordinator {
     ///
     /// A view that asked last frame and drew nothing this one keeps what was
     /// kept for it while a lazy container still holds it — windowed out, its
-    /// state kept — so it is told the same when it comes back; otherwise it
-    /// has left the tree, and so does what was kept.
+    /// state kept — until its marker id is dropped
+    /// (``forgetMarkers(_:)``); otherwise it has left the tree, and so does
+    /// what was kept. A table grown well past what it held is swept of what
+    /// this walk did not ask (``RetentionSweep``).
     func endSpacesFrame(isRetained: (ViewIdentity) -> Bool) {
         guard !kept.isEmpty || !asks.isEmpty else { return }
         var reports: [(report: (GeometryProxy) -> Void, proxy: GeometryProxy)] = []
@@ -211,6 +213,10 @@ extension GeometryCoordinator {
                 gone.append(id)
             }
             for id in gone { kept.removeValue(forKey: id) }
+        }
+        if keptSweep.isDue(kept.count) {
+            kept = kept.filter(\.value.askedThisWalk)
+            keptSweep.swept(leaving: kept.count)
         }
         // A space asked late about a view no owner has ever found is kept only
         // until that view's next render, which asks for it.
