@@ -329,7 +329,7 @@ extension CursorTimer {
     /// ``standardBlinkCycle``, 350 ms. What a host's own blink rate is read
     /// against (Windows's 530 ms is a rate of about 0.66).
     nonisolated package static var standardBlinkHalf: Duration {
-        .milliseconds(Int((standardBlinkCycle * 500).rounded()))
+        .milliseconds(Int(clamping: (standardBlinkCycle * 500).rounded()))
     }
 
     /// A breath's cycle at the standard speed, bright to dim to bright: 800 ms.

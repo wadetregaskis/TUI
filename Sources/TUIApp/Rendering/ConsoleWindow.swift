@@ -44,7 +44,8 @@ enum ConsoleWindow {
             return (TerminalCellPixels(width: area.width / grid.width, height: area.height / grid.height), scale)
         }
         let scaled = TerminalCellPixels(
-            width: Int((Double(font.width) * scale).rounded()), height: Int((Double(font.height) * scale).rounded()))
+            width: Int(clamping: (Double(font.width) * scale).rounded()),
+            height: Int(clamping: (Double(font.height) * scale).rounded()))
         return (scaled, scale)
     }
 

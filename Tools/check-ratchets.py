@@ -33,11 +33,15 @@ RATCHETS = [
     },
     # A test that sleeps is slow, or racy, or both. A thread's sleep is as much
     # one as a task's, so `Thread.sleep`, `usleep` and `nanosleep` count too.
+    # 7 since staging's Windows port (rebased under local work 2026-11-21):
+    # WindowsSessionEndTests waits twice for what the system's own thread does
+    # with the hidden window (its making, and a posted WM_ENDSESSION), which no
+    # clock of the test's steps.
     {
         "name": "sleeps in tests",
         "pattern": r"^(?!\s*//).*\b(Task\.sleep|Thread\.sleep|usleep|nanosleep)\b",
         "paths": ["Tests"],
-        "limit": 5,
+        "limit": 7,
         "instead": "wait for what the test wants, or step a clock of the test's own",
     },
     # Lines that convert to an integer with the TRAPPING initialiser over what reads as

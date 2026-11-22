@@ -27,7 +27,7 @@ struct PreciseSleepTests {
         }
     }
 
-    @Test("Cancelling the task ends the sleep at once, as Task.sleep's cancellation does")
+    @Test("Cancelling the task ends the sleep at once, as cancelling a task's own sleep does")
     func cancelled() async {
         let clock = ContinuousClock()
         let started = clock.now
