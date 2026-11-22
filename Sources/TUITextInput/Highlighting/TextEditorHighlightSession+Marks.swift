@@ -35,9 +35,11 @@ public struct TextEditorHighlightMark<Token: Hashable & Sendable>: Sendable, Equ
 
 extension TextEditorHighlightSession {
     /// Publishes `marks`, ranges of the text of `version`, in place of the
-    /// marks published before (B-ATTRED-59). Returns whether they were
-    /// taken: `false` for a text that is no longer the editor's, as for
-    /// tokens, and then kept nowhere.
+    /// marks published before (B-ATTRED-59). Returns what became of them, as
+    /// a publish of tokens does (B-ATTRED-64): refused for a text that is no
+    /// longer the editor's, and then kept nowhere, the marks published before
+    /// staying; else kept for every line of the text, `.kept(0..<lineCount)`,
+    /// since marks are kept for the whole text, not the window.
     ///
     /// The editor carries them through its edits from then on, as it carries
     /// an app's marks: text typed before a mark moves it, text typed inside
@@ -48,10 +50,9 @@ extension TextEditorHighlightSession {
     /// finds them changed, and never needs to state them again for a text
     /// the editor has moved on from. Offsets past the text are clamped to it.
     @discardableResult
-    public func publish(marks: [TextEditorHighlightMark<Token>], of version: Int) -> Bool {
+    public func publish(marks: [TextEditorHighlightMark<Token>], of version: Int) -> TextEditorPublishOutcome {
         guard let (text, _) = state.withLock({ $0.publishable(version: version) }) else {
-            _ = observed(.refused, lines: nil, marks: marks.count, of: version)
-            return false
+            return observed(.refused, lines: nil, marks: marks.count, of: version)
         }
         let total = text.utf8Count
         let kept = marks.filter { max(0, $0.utf8.lowerBound) < min($0.utf8.upperBound, total) }
@@ -69,9 +70,8 @@ extension TextEditorHighlightSession {
             return .kept(0..<0, askForFrame: true)
         }
         if case .kept(_, true) = outcome { requestFrame() }
-        let refused = outcome == .refused
-        _ = observed(refused ? .refused : .kept(0..<0), lines: nil, marks: marks.count, of: version)
-        return !refused
+        return observed(
+            outcome == .refused ? .refused : .kept(0..<text.lineCount), lines: nil, marks: marks.count, of: version)
     }
 
     /// Whether the session holds marks: an edit then finds what carries them.

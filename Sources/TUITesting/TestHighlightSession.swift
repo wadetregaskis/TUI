@@ -44,8 +44,8 @@ public final class TestHighlightSession<Token: Hashable & Sendable> {
         public var kind: Kind
         /// The version of the text it was for.
         public var version: Int
-        /// What became of it: marks are kept for the whole text, `.kept`
-        /// with no lines, or refused.
+        /// What became of it, as the publish returned it: marks are kept
+        /// for every line of the text, or refused.
         public var outcome: TextEditorPublishOutcome
 
         /// A publish of `kind`, for `version`, and what became of it.

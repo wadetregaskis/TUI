@@ -1548,6 +1548,13 @@ tuitree's adapter, adopting those, reported two more (`TUI-FEEDBACK.md`, items 1
   reason (a line past the end, a batch not one a line) is the highlighter's mistake, for the editor's own text, and
   marks nothing. The alternative, a sentence on `.refused` that the lines are the highlighter's to restyle, would have
   left every tree styler a record of lines to move through edits it is told only as one folded change.
+- **B-ATTRED-64. A publish of marks says what became of it as a publish of tokens does** (item 11).
+  `publish(marks:of:)` returned a `Bool` while a token publish returns `TextEditorPublishOutcome` (B-ATTRED-57), and
+  `TestHighlightSession` recorded a marks publish taken as `.kept(0..<0)`, the range that for tokens says the window
+  had moved. It now returns the outcome: `.refused` as before, or `.kept` of every line of the text, since marks are
+  kept for the whole text, not the window (B-ATTRED-59), and the record is the same. A case of its own was the other
+  offer; it would make every switch over an outcome name a case that a token publish never returns. The `Bool` went
+  with no shim (the SPI promises nothing, A-ATTRED-10).
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 

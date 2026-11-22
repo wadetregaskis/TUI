@@ -64,7 +64,8 @@ TUITextInput.
 highlighting seam (SPI), `publish(marks:of:)` gives the editor ranges of a version of its text, each drawn in a
 token's style over the highlighting and under the app's own `.textEditorMarks`. The editor carries them through its
 edits, its undo and redo, and the app's writes, as it carries an app's marks, so a highlighter publishes them again
-only when they change, and no longer has to send them round through the app's state and a view's body.
+only when they change, and no longer has to send them round through the app's state and a view's body. It returns
+a `TextEditorPublishOutcome`, as a publish of tokens does: `.kept` of every line of the text, or `.refused`.
 
 **Undo and redo in a highlighted `TextEditor` keep the colours of the lines they don't touch.** They write the text
 whole, as an app's write to the binding does, and the editor forgot every line's highlighting at once, so the whole

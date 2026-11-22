@@ -77,10 +77,11 @@ struct TestHighlightSessionTests {
         #expect(test.tokens(ofLine: 0) == nil, "never published")
         // Marks, through the session, carried by an edit.
         let next = try #require(await test.session.nextUpdate())
-        #expect(test.session.publish(marks: [TextEditorHighlightMark(2..<3, token: .plain)], of: next.text.version))
+        let marked = test.session.publish(marks: [TextEditorHighlightMark(2..<3, token: .plain)], of: next.text.version)
+        #expect(marked == .kept(0..<2), "every line of the text, as a token publish says its lines")
         test.replace(0..<0, with: "!")
         #expect(test.marks == [TextEditorHighlightMark(3..<4, token: .plain)])
-        #expect(test.publications.last?.kind == .marks(count: 1))
+        #expect(test.publications.last == .init(kind: .marks(count: 1), version: 1, outcome: .kept(0..<2)))
     }
 
     @Test("A change that reaches the text's end ends mid-line, its end point found from the text as documented")

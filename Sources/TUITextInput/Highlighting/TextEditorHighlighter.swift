@@ -331,15 +331,16 @@ public struct TextEditorHighlightUpdate: Sendable {
     public var linesToStyle: [Range<Int>]
 }
 
-/// TUI-specific. What became of tokens published to a
-/// ``TextEditorHighlightSession`` (B-ATTRED-57).
+/// TUI-specific. What became of tokens or marks published to a
+/// ``TextEditorHighlightSession`` (B-ATTRED-57, 64).
 @_spi(TextEditorHighlighting)
 public enum TextEditorPublishOutcome: Sendable, Equatable {
     /// Taken, and kept for these lines: those published that are in the
     /// editor's window. A publish's other lines are kept nowhere, so a range
     /// short of the lines published, or empty, says the window moved; the
     /// next update lists the lines in
-    /// ``TextEditorHighlightUpdate/linesToStyle`` once they are in it.
+    /// ``TextEditorHighlightUpdate/linesToStyle`` once they are in it. Marks
+    /// are kept for every line of the text, whatever the window.
     case kept(Range<Int>)
     /// Refused, and kept nowhere: the text is no longer the editor's (take
     /// the next update), a line is past its end, or a batch's tokens are not
