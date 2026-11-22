@@ -625,7 +625,7 @@ extension FrameBuffer {
         // starts — the later child drawn over the earlier, as SwiftUI's is.
         // Joined like a positive gap, a row kept both halves whole while the
         // width took the overlap off, and the two disagreed.
-        let spacingApplied = priorWidth > 0 && other.width > 0 ? max(spacing, -priorWidth) : 0
+        let spacingApplied = Self.appliedGap(spacing, after: priorWidth, before: other.width)
         let leftColumns = myWidth + min(0, spacingApplied)
         coverOverflow(under: other, at: (x: myWidth + spacingApplied, y: 0))
 
@@ -718,6 +718,20 @@ extension FrameBuffer {
             opacityRegions.append(
                 contentsOf: other.shiftedOpacityRegions(byX: myWidth + spacingApplied, y: 0))
         }
+    }
+
+    /// The gap ``appendVertically(_:spacing:)`` and
+    /// ``appendHorizontally(_:spacing:)`` put before a buffer `extent` long,
+    /// with `placedExtent` already placed along the same axis.
+    ///
+    /// None where either is empty: a gap belongs between two occupied ranges.
+    /// Otherwise `spacing`, a negative one held to `-placedExtent`, so a later
+    /// child is pulled back over the ones before it no further than the first
+    /// of them. Every walk that predicts where an append puts a child — a
+    /// stack's measure, its distribution, its glide — charges this gap, so
+    /// the extent a stack reports is the extent it draws, and never negative.
+    package static func appliedGap(_ spacing: Int, after placedExtent: Int, before extent: Int) -> Int {
+        placedExtent > 0 && extent > 0 ? max(spacing, -placedExtent) : 0
     }
 
     /// The visible width of row `row`, whose string is `line`: none past the
