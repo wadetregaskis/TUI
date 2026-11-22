@@ -452,9 +452,16 @@ extension Terminal {
     /// every app makes anyway, so a terminal that does not speak the protocol
     /// pays no round trip for being asked. The answer is kept in
     /// ``keyboardProtocolAnswer`` for ``negotiateKeyboardProtocol(timeout:)``.
+    ///
+    /// So does the probe that learns whether the terminal draws ambiguous
+    /// characters wide (``TerminalAmbiguousWidthQuery``), on every host at
+    /// least two rows high, for the same reason. Its answer is kept in
+    /// ``drawsAmbiguousWide`` for the frame writer.
     func queryColors(timeout: Double = TerminalColorQuery.startupTimeout) -> TerminalColorReport? {
         guard isatty(STDIN_FILENO) == 1, isRawMode else { return nil }
-        return askColors(isTmux: TerminalHost.isTmux, timeout: timeout, askingKeyboardFlags: asksKeyboardProtocol)
+        return askColors(
+            isTmux: TerminalHost.isTmux, timeout: timeout, askingKeyboardFlags: asksKeyboardProtocol,
+            probingAmbiguousWidth: getSize().height >= TerminalAmbiguousWidthQuery.row)
     }
 
     /// The exchange behind ``queryColors(timeout:)``, without its guard.
@@ -468,18 +475,28 @@ extension Terminal {
     ///   ahead of the colours, so its answer lands before the fence. Its
     ///   answer, or `nil`, goes to ``keyboardProtocolAnswer``; the reply is
     ///   not handed back to the input parser.
+    /// - Parameter probingAmbiguousWidth: Whether to run
+    ///   ``TerminalAmbiguousWidthQuery``'s probe too, first. Its answer, or
+    ///   `nil`, goes to ``drawsAmbiguousWide``; its cursor report is not
+    ///   handed back to the input parser.
     func askColors(
-        isTmux: Bool, timeout: Double = TerminalColorQuery.startupTimeout, askingKeyboardFlags: Bool = false
+        isTmux: Bool, timeout: Double = TerminalColorQuery.startupTimeout, askingKeyboardFlags: Bool = false,
+        probingAmbiguousWidth: Bool = false
     ) -> TerminalColorReport {
+        let probe = probingAmbiguousWidth ? TerminalAmbiguousWidthQuery.request : ""
         let question = askingKeyboardFlags ? KeyboardProtocolQuery.question : ""
         let collected = fencedExchange(
-            request: question + TerminalColorQuery.startupRequest(isTmux: isTmux), timeout: timeout,
+            request: probe + question + TerminalColorQuery.startupRequest(isTmux: isTmux), timeout: timeout,
             sawFence: TerminalQueryReplies.sawStatusFence)
         handBackUnconsumed(
             from: collected,
-            isReply: { TerminalColorQuery.isReply($0) || (askingKeyboardFlags && KeyboardProtocolQuery.isReply($0)) },
+            isReply: {
+                TerminalColorQuery.isReply($0) || (askingKeyboardFlags && KeyboardProtocolQuery.isReply($0))
+                    || (probingAmbiguousWidth && TerminalAmbiguousWidthQuery.isReply($0))
+            },
             isFence: TerminalQueryReplies.isStatusFence)
         if askingKeyboardFlags { keyboardProtocolAnswer = KeyboardProtocolQuery.flags(in: collected) }
+        if probingAmbiguousWidth { drawsAmbiguousWide = TerminalAmbiguousWidthQuery.drawsWide(in: collected) }
         return TerminalColorQuery.parse(collected)
     }
 }

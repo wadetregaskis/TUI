@@ -309,6 +309,13 @@ final class Terminal: HostStateKeeping {
     /// asked.
     var keyboardProtocolAnswer: KittyKeyboardFlags?
 
+    /// Whether the terminal draws East Asian Ambiguous characters two cells
+    /// wide, as the probe on the startup colour exchange measured it
+    /// (``TerminalAmbiguousWidthQuery``): `nil` where it was not asked, or
+    /// did not answer. The run loop's frame writer writes no spans where it
+    /// is `true` (`FrameDiffWriter.writesSpans`).
+    var drawsAmbiguousWide: Bool?
+
     /// What the negotiation pushed, and which of it the terminal said it took,
     /// or `nil` when the terminal does not speak the kitty keyboard protocol
     /// (or was never asked). Kept across a suspend, so the resume pushes the

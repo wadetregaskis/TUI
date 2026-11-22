@@ -218,7 +218,7 @@ def run(binary, case, config_dir, seconds):
                     # fences would test their timeouts instead of this one.
                     os.write(fd, b"\x1b[0n")
                 elif sequence == b"\x1b[6n":
-                    os.write(fd, b"\x1b[1;1R")   # a cursor report, should anything ask
+                    os.write(fd, b"\x1b[2;3R")   # a cursor report, off row 1 (a key's shape there): a narrow ambiguous-width answer
         waited, _ = os.waitpid(pid, os.WNOHANG)
         if waited == pid:
             exited = True

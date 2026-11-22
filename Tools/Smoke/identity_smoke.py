@@ -130,7 +130,7 @@ def run(binary, replies, seconds, config_dir):
             elif sequence == b"\x1b[5n":
                 os.write(fd, b"\x1b[0n")       # the fence every terminal answers
             elif sequence == b"\x1b[6n":
-                os.write(fd, b"\x1b[1;1R")     # a cursor report, should anything ask
+                os.write(fd, b"\x1b[2;3R")     # a cursor report, off row 1 (a key's shape there): a narrow ambiguous-width answer
     os.write(fd, b"\x11")  # ⌃Q
     time.sleep(0.3)
     try:

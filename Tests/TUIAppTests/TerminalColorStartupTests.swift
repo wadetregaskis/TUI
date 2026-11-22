@@ -232,4 +232,31 @@ struct TerminalColorStartupTests {
                 .key(KeyEvent(character: "q")), .focusChanged(isFocused: true), .key(KeyEvent(character: "j")),
             ])
     }
+
+    // MARK: - The ambiguous-width probe riding the exchange
+
+    @Test("The ambiguous-width probe goes first, in the same write as the colour request")
+    func probeRidesTheRequest() {
+        let (terminal, script) = makeTerminal(reads: [Self.fence])
+        _ = terminal.askColors(isTmux: false, probingAmbiguousWidth: true)
+        #expect(script.requests == [TerminalAmbiguousWidthQuery.request + TerminalColorQuery.nativeRequest])
+    }
+
+    @Test(
+        "The probe's report says wide, narrow or nothing, and is not handed back; a key beside it is",
+        arguments: [("\u{1B}[2;5R", true), ("\u{1B}[2;3R", false), ("", nil)] as [(String, Bool?)])
+    func probeAnswer(report: String, wide: Bool?) {
+        let (terminal, _) = makeTerminal(reads: ["q" + report + Self.ghosttyColourReplies + Self.fence])
+        let colours = terminal.askColors(isTmux: false, probingAmbiguousWidth: true)
+        #expect(terminal.drawsAmbiguousWide == wide)
+        #expect(colours.background == Self.ghosttyBackground)
+        #expect(events(terminal) == [.key(KeyEvent(character: "q"))])
+    }
+
+    @Test("Not probing leaves the answer unknown, whatever report arrives")
+    func noProbeNoAnswer() {
+        let (terminal, _) = makeTerminal(reads: ["\u{1B}[2;5R" + Self.fence])
+        _ = terminal.askColors(isTmux: false)
+        #expect(terminal.drawsAmbiguousWide == nil)
+    }
 }

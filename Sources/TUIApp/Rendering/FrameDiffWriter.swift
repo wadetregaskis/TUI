@@ -266,6 +266,21 @@ final class FrameDiffWriter {
     /// before the host has a say. See ``ScrollOutput``.
     var scrollOutput = ScrollOutput.configured
 
+    /// Whether a changed row may be written as the cell runs that differ
+    /// (``ANSICellDiff/spans(_:)``), or only whole.
+    ///
+    /// `false` where the terminal draws East Asian Ambiguous characters wide
+    /// (`Terminal.drawsAmbiguousWide`, set by the run loop's maker): box
+    /// drawing, arrows, Greek and the like advance two there against TUI's
+    /// count of one, so a span would land left of where its row was drawn and
+    /// leave old glyphs beside the new. A whole row re-anchors at column 1, so
+    /// it is shifted but coherent. A band moves whole-width rows only then
+    /// (``ScrollOutput/exact``): the levels above it repair or bound a band by
+    /// column. Ideally the widths would follow the host instead; that is out
+    /// of scope, and this only stops spans compounding a layout that is
+    /// already wrong there.
+    var writesSpans = true
+
     /// Whether frames are held (mode 2026), which the host's say depends on.
     var framesAreHeld = Terminal.synchronizedOutputAllowed(environment: ProcessInfo.processInfo.environment)
 
@@ -1032,9 +1047,9 @@ extension FrameDiffWriter {
         }
         var program = TerminalClient.Program.unidentified
         if case .program(let named) = model { program = named }
+        let hostLevel = ScrollOutput.level(scrollOutput, on: program, holds: framesAreHeld)
         let level: ScrollOutput =
-            marksOnScreen || marksOnBuiltRows
-            ? .off : ScrollOutput.level(scrollOutput, on: program, holds: framesAreHeld)
+            marksOnScreen || marksOnBuiltRows ? .off : writesSpans ? hostLevel : min(hostLevel, .exact)
         var planner = make()
         let plan = planner.plan(at: level)
         if let scrollCensus {
@@ -1078,12 +1093,13 @@ extension FrameDiffWriter {
     private static let spanMergeGap = 8
 
     /// The per-row plan, or ``ANSICellDiff/wholeLine`` when there is no previous
-    /// row to diff against or the row is one the cell walk declines.
+    /// row to diff against, the row is one the cell walk declines, or this
+    /// writer writes no spans (``writesSpans``).
     private func spanDiff(
         newLines: [String], previousLines: [String], row: Int, terminalWidth: Int,
         newCells: [ANSIRowCells??], cache: inout CellCache, emitted: inout SGRState?
     ) -> ANSICellDiff {
-        guard row < previousLines.count else { return .wholeLine }
+        guard writesSpans, row < previousLines.count else { return .wholeLine }
         let previous =
             cache.cells(matching: previousLines[row], at: row)
             ?? ANSIRowCells(decomposing: previousLines[row], width: terminalWidth)

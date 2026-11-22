@@ -468,7 +468,11 @@ border and arrow already advances two, and TUI's answer to that setting is
 autowrap off — a row too wide by its own count loses its last cells rather
 than wrapping and scrolling the screen (see "Autowrap off while the app runs" below) — not a wider
 claim, which would be wrong on every other host. `⇧`, `↖` and `↘` join the
-arrows and the borders in that class and add no new kind of failure. The
+arrows and the borders in that class and add no new kind of failure. Since
+2026-11-22 TUI also asks, at startup, whether the host draws them wide, and
+where it does writes whole rows only, because a span written by the cell diff
+lands left of where its row was drawn ("Ambiguous characters drawn wide: the
+startup probe" below). The
 symbols that were measured to overhang on Warp keep the per-host two-cell
 claim and `ECH`+`CUF` walk described above.
 
@@ -534,6 +538,59 @@ measured unable to draw the symbols**, so none defaults to the names: the
 symbols are the default everywhere until a measurement above says otherwise,
 and such a host's default would be set where the app runner reads
 `TUI_KEY_SYMBOLS` (`TerminalClient.keyNotationRequested`).
+
+### Ambiguous characters drawn wide: the startup probe — added 2026-11-22, wide answers UNMEASURED
+
+**Which hosts have the setting** (from each host's settings and documentation,
+not measured here): iTerm2 (Settings → Profiles → Text, "Ambiguous characters
+are double-width"), Apple Terminal (Settings → Profiles → Advanced, "Unicode
+East Asian Ambiguous characters are wide") and GNOME Terminal (Preferences →
+profile → Compatibility, "Ambiguous-width characters"), of the hosts TUI
+supports; and WezTerm (`treat_east_asian_ambiguous_width_as_wide`), xterm
+(`cjkWidth`) and mintty (`Charwidth=ambig-wide`) of those it does not. Ghostty,
+Warp, kitty and Windows Terminal have none that this survey knows of. tmux has
+none, and answers a cursor report from its own grid, which is the grid TUI's
+columns address in a pane.
+
+**What goes wrong with it on.** Box drawing, arrows, `●`, Greek, Cyrillic and
+much of accented Latin-1 advance two against TUI's claim of one. A row written
+whole is shifted but coherent and loses its last cells (autowrap is off, above).
+A span the cell diff writes (`String+CellSpanDiff.swift`) goes to the column TUI
+counted, which is left of where the row was drawn, so the old glyphs stay beside
+the new and the row is garbled until it is next written whole (WRITER-9, hunt of
+2026-11-20).
+
+**The probe** (`TerminalAmbiguousWidthQuery`) rides the startup colour exchange,
+which every host is asked and every measured host answers, so it adds 33 bytes
+and no round trip. It is not on the identity exchange, which a host the
+environment names (a local iTerm2 or Apple Terminal, the cases that matter
+most) is never sent. It saves the cursor, moves to row 2, column 1 of the
+alternate screen, writes `─●` (U+2500, U+25CF) concealed (`SGR 8`), asks for a
+cursor report, erases what it wrote and restores the cursor, all in one write,
+before the first frame and with the cursor hidden. Column 3 is narrow, 4 or 5
+wide; anything else, or no report, is no answer. Row 2 because a row-1 report,
+`CSI 1;m R`, is a modified F3's shape (below), so it is asked only of a terminal
+at least two rows high. Every host, not only those with the setting: three
+hosts TUI supports have one, a host reached over ssh is not named until its
+identity is asked, and asking costs nothing anyone can see or wait for.
+
+**With a wide answer** the frame writer writes whole rows only for the session
+(`FrameDiffWriter.writesSpans`), and moves bands of rows only whole-width
+(`ScrollOutput.exact`), since the levels above it repair or bound a band by
+column. The widths themselves do not follow the host: a border is still claimed
+one cell where it advances two, which is the layout's standing degradation
+there, not something the probe repairs.
+
+| Host | Version | Probe answer, default settings | Probe answer, setting on |
+|---|---|---|---|
+| iTerm2 | — | UNMEASURED (narrow expected: every chrome glyph measured 1) | UNMEASURED (wide expected) |
+| Apple Terminal | — | UNMEASURED (narrow expected) | UNMEASURED (wide expected; whether its internal column, which a cursor report reads, agrees with its paint for a single Ambiguous scalar is unmeasured too) |
+| GNOME Terminal | — | UNMEASURED (narrow expected) | UNMEASURED (wide expected) |
+| Ghostty, Warp, kitty, tmux | — | UNMEASURED (narrow expected) | no setting |
+
+Measure with `Tools/TerminalProbes/advance_probe.py` (the `chrome_*` rows) on a
+profile with the setting on, then check a span-heavy page (a divider drag) for
+stale glyphs.
 
 ### The drop-operation badge — advance measured 2026-10-13
 
@@ -6840,12 +6897,14 @@ four until 2026-10-05. It reads them now, for the first parameter 1 and a
 modifier code from 1 to 16, and nothing else ending in those letters.
 
 `CSI 1;m R` is also a cursor-position report for row 1, column m. That is safe
-to read as F3 only because TUI asks for no cursor report: since the startup
+to read as F3 only because TUI asks for no cursor report on row 1: since the startup
 exchanges moved to the `CSI 5 n` fence (same day, "Asking the terminal —
-Device Attributes"), nothing in TUI sends `CSI 6 n`, and
-`CursorReportRequestScanTests` fails if any code under `Sources/` spells one.
-Anything that brings a cursor-report request back must stop decoding `R`
-first, or its report arrives as Shift-F3 and the like. (An app that writes
+Device Attributes"), the only senders of `CSI 6 n` are the graphics handshake
+and, since 2026-11-22, the ambiguous-width probe, each of which moves off row 1
+before it asks and counts no row-1 report, and
+`CursorReportRequestScanTests` fails if any other code under `Sources/` spells one.
+Anything that brings a cursor-report request back must move off row 1 too, or
+stop decoding `R` first, or its report arrives as Shift-F3 and the like. (An app that writes
 `CSI 6 n` to the terminal itself is outside what the scan can see.) Under the kitty keyboard protocol F3 is
 `CSI 13 ~`, precisely to avoid this collision; P, Q and S keep their letters
 there and are decoded by `KittyKeyDecoder`.

@@ -132,8 +132,11 @@ extension String {
     ///   Apple Terminal's and GNOME Terminal's equivalents). A span on such a
     ///   host lands left of where the row was drawn, and the row stays garbled
     ///   until it is next written whole. This walk accepts them regardless,
-    ///   because they are the ordinary row; see the survey's "Key symbols"
-    ///   section, "Width: every glyph claims one cell".
+    ///   because they are the ordinary row; the app asks the terminal at
+    ///   startup whether it draws them wide, and there its frame writer
+    ///   writes whole rows only (`TerminalAmbiguousWidthQuery`,
+    ///   `FrameDiffWriter.writesSpans`). See the survey's "Ambiguous
+    ///   characters drawn wide: the startup probe".
     /// - **A row that does not decompose to exactly `width` columns** — an empty
     ///   row against a full one, most often.
     ///

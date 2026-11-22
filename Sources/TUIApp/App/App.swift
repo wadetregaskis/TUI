@@ -501,6 +501,9 @@ extension AppRunner {
         // And the one that sends the terminal a progress bar, where the
         // terminal it identified takes one.
         loop.sendsProgressReports = TerminalClient.progressReportsSupported
+        // And whole rows only, where the startup probe found ambiguous
+        // characters drawn wide (`TerminalAmbiguousWidthQuery`).
+        loop.diffWriter.writesSpans = terminal.drawsAmbiguousWide != true
         loop.statedByVariables[.focusFollowsPointer] = TerminalClient.focusFollowsPointerRequested
         // And the one that keeps TUI's settings: this program's in the store
         // an `@AppStorage` that names none uses, and the person's for all

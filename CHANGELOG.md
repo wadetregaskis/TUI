@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Rows stay whole on a terminal set to draw ambiguous characters wide.** Where iTerm2's "Ambiguous characters are
+double-width", or Apple Terminal's or GNOME Terminal's equivalent, is on, box drawing, arrows, `●`, Greek and Cyrillic
+advance two cells, and a part of a row rewritten on its own landed left of where the row was drawn, leaving old glyphs
+beside the new. TUI now asks at startup, inside an exchange it already makes, and on such a terminal rewrites changed
+rows whole. Layout still counts those characters one cell there.
+
 **An `AnyView` whose content changes type starts the new content's state afresh.** In
 `loggedIn ? AnyView(Home()) : AnyView(Login())`, or a wizard's `AnyView` steps, the view swapped in was handed the
 `@State` of the one it replaced wherever their states lined up, so text typed in one screen showed in the next,

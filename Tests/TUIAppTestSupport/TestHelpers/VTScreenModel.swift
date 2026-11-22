@@ -42,10 +42,18 @@ struct VTScreenModel {
     /// How many times `CSI S` or `CSI T` came through.
     private(set) var scrolls = 0
     private var saved = (row: 0, column: 0)
+    /// How many cells a scalar advances: one, unless the model is told
+    /// otherwise, as a host set to draw ambiguous characters wide would be
+    /// (``ambiguousWide(_:)``).
+    private let advance: (Unicode.Scalar) -> Int
 
-    init(width: Int, height: Int) {
+    /// What a wide scalar leaves in the cell its right half covers.
+    static let wideTail: Unicode.Scalar = "\u{0}"
+
+    init(width: Int, height: Int, advance: @escaping (Unicode.Scalar) -> Int = { _ in 1 }) {
         self.width = width
         self.height = height
+        self.advance = advance
         bottom = height - 1
         right = width - 1
         cells = Array(repeating: Array(repeating: Cell(), count: width), count: height)
@@ -73,7 +81,25 @@ struct VTScreenModel {
     private mutating func put(_ scalar: Unicode.Scalar) {
         guard row < height, column < width else { return }
         cells[row][column] = Cell(scalar: scalar, style: pen)
-        column = min(width - 1, column + 1)
+        let cells = advance(scalar)
+        if cells > 1, column + 1 < width { self.cells[row][column + 1] = Cell(scalar: Self.wideTail, style: pen) }
+        column = min(width - 1, column + cells)
+    }
+
+    /// Two cells for the East Asian Ambiguous blocks a page of TUI's chrome
+    /// draws, one for anything else: what a host set to draw ambiguous
+    /// characters wide does (iTerm2's "Ambiguous characters are double-width").
+    /// Whole blocks, a little more than their Ambiguous members and much less
+    /// than the property: Greek and Cyrillic letters, arrows, box drawing,
+    /// block elements and geometric shapes.
+    static func ambiguousWide(_ scalar: Unicode.Scalar) -> Int {
+        switch scalar.value {
+        case 0x0391...0x03C9, 0x0401, 0x0410...0x044F, 0x0451,
+            0x2190...0x2199, 0x2500...0x257F, 0x2580...0x259F, 0x25A0...0x25FF:
+            2
+        default:
+            1
+        }
     }
 
     private mutating func escape(_ scalars: [Unicode.Scalar], at start: Int) -> Int {
