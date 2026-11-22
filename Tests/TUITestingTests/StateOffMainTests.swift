@@ -4,11 +4,15 @@
 //  `State` and `Binding` are `Sendable`, as SwiftUI's are, and a `@State` is
 //  read and written off the main actor (the owner's O-25, 2026-11-21). Before
 //  it, none of this compiled in Swift 6 mode: a `Binding` could not be handed
-//  to a `@Sendable` closure, a detached task among them.
+//  to a `@Sendable` closure, a detached task among them. And no access off
+//  the main actor waits for it (O-25-FIRSTREAD, 2026-11-22): the first read
+//  used to, a deadlock where the main actor waited on the reading thread.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
+import Synchronization
 import Testing
 import TUITesting
 
@@ -41,6 +45,26 @@ private func sendableClosure(_ body: @escaping @Sendable () -> Void) {
 }
 
 private func requireSendable<T: Sendable>(_: T.Type) {}
+
+/// What a thread of its own read, handed back to the test.
+private final class Handoff: Sendable {
+    let read = Mutex<[Int]?>(nil)
+}
+
+/// Runs `body` on a thread of its own while the main actor waits for it
+/// synchronously — as a semaphore, a `DispatchQueue.sync` or a group's
+/// `wait()` would — and returns whether it finished within ten seconds: it
+/// does in microseconds unless something it does waits for the main actor,
+/// which is then a deadlock the time limit breaks.
+@MainActor
+private func whileMainActorWaits(_ body: @escaping @Sendable () -> Void) -> Bool {
+    let finished = DispatchSemaphore(value: 0)
+    Thread.detachNewThread {
+        body()
+        finished.signal()
+    }
+    return finished.wait(timeout: .now() + .seconds(10)) == .success
+}
 
 @MainActor
 @Suite("@State off the main actor")
@@ -115,5 +139,44 @@ struct StateOffMainTests {
         let last = await Task.detached { binding.wrappedValue.first }.value
         #expect(last == rounds)
         #expect(app.screen.text == "Count: \(width)")
+    }
+
+    @Test("The first read off the main actor waits for nothing: the main actor waiting on that thread is no deadlock")
+    func firstOffMainReadNeverWaits() throws {
+        let captured = Captured()
+        let app = TestApp(width: 20, height: 1) { Log(captured: captured) }
+        #expect(app.screen.text == "Count: 0")
+        let binding = try #require(captured.binding)
+        binding.wrappedValue = [7]
+        let handoff = Handoff()
+        // The box's first read off the main actor, while the main actor is
+        // blocked until it returns. SwiftUI's never waits (O-25-FIRSTREAD).
+        let finished = whileMainActorWaits {
+            let value = binding.wrappedValue
+            handoff.read.withLock { $0 = value }
+        }
+        #expect(finished)
+        #expect(handoff.read.withLock { $0 } == [7])
+    }
+
+    @Test("A write off the main actor waits for nothing, its thread reads it back at once, and the main actor's next turn sees it")
+    func offMainWriteNeverWaits() async throws {
+        let captured = Captured()
+        let app = TestApp(width: 20, height: 1) { Log(captured: captured) }
+        #expect(app.screen.text == "Count: 0")
+        let binding = try #require(captured.binding)
+        let handoff = Handoff()
+        let finished = whileMainActorWaits {
+            binding.wrappedValue = [42]
+            let value = binding.wrappedValue
+            handoff.read.withLock { $0 = value }
+        }
+        #expect(finished)
+        #expect(handoff.read.withLock { $0 } == [42])
+        // One turn of the main actor: whatever the write left to make there
+        // was posted before it.
+        await Task.yield()
+        #expect(binding.wrappedValue == [42])
+        #expect(app.screen.text == "Count: 1")
     }
 }
