@@ -1455,6 +1455,31 @@ work round, each item pinned by a test of its own (tuitree's `TUI-FEEDBACK.md`, 
   in every kind of line break: the bytes outside it shared, its ends line starts of both, the lines the tokens move
   past the same lines, and each shift its line's own. Replace All was already one of the editor's own edits
   (TEXTIN-1); in a text with more than one kind of break it is written whole, and so is now found as one too.
+- **B-ATTRED-59. A highlighter publishes marks through its session, in byte ranges of a version** (item 3). A tree
+  styler finds syntax errors in the parse that makes its tokens, on the session's task, for a text the session knows
+  by version; marks were a view modifier taking a `String`, so tuitree's errors hopped to the main actor, changed app
+  state, evaluated the body, and came back through `.textEditorMarks(_:in:)`, where the editor found their text again
+  by comparing strings. To avoid an evaluation a key while an error stood, the adapter re-implemented TUI's rules for
+  carrying marks (shifted by an edit, hidden by a whole write, forgotten after four edits, B-ATTRED-48) to know when
+  to state them again. Now `session.publish(marks:of:)` takes `TextEditorHighlightMark`s, a UTF-8 range of that
+  version's text and a token, refused for a version that is not the editor's as tokens are. The session keeps them
+  in offsets of the editor's text (B-ATTRED-46's units) and carries them through each edit by B-ATTRED-47's rules
+  (`EditorMarkEdit`, found from the edited lines, and only while there are marks to carry), and through a text written
+  whole by the bytes B-ATTRED-58 finds it shares with the last; a text that shares nothing drops them, with the
+  tokens. So there is no history to keep and no old version to find: a highlighter's marks are always of the
+  editor's text, and it publishes again only when its parse finds them changed. The same marks published again
+  change nothing and ask for no frame. The rules are the app's marks' rules, applied to the edits the session is
+  told, which since B-ATTRED-58 include a whole write's: a whole write still hides the app's marks, which are stated
+  with a `String` and found again by it, but needs not hide a highlighter's, whose next parse states them anyway.
+
+  They are drawn in their token's style, the modifier's `style`, interned with the tokens, so a highlighter's error
+  is a token of its own (`.error`, a curly underline) and no `AttributeContainer` crosses from its task: over the
+  highlighting, under the app's own marks, which are the app's word on the text, and under the selection and the
+  find bar's matches. They join a line's runs where its highlighting does (`highlightedStyles`, B-ATTRED-31), so a
+  line's marks are kept with its drawn runs: a carry needs no line drawn again but those its edit touched, which it
+  forgets already, and a publish that changes them forgets the drawn lines, once. The lines each covers are found by
+  `EditorMarkStore.byLine`, the app's marks' own, again only when the text or the marks change. They are kept for
+  the whole text, not the window: errors are few, and an edit's carry is a pass over them.
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 

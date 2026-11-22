@@ -105,6 +105,10 @@ enum EditorWrittenText {
             }
         }
         var edit = EditorHighlightEdit(change: change, replaced: replaced, replacementCount: replacementCount)
+        // The highlighter's marks are carried by the bytes themselves, the
+        // shared end short of the shared start (B-ATTRED-59).
+        let markSuffix = min(suffix, min(oldTotal, newTotal) - prefix)
+        edit.marks = EditorMarkEdit(start: prefix, oldEnd: oldTotal - markSuffix, newEnd: newTotal - markSuffix)
         if replaced.count == replacementCount, replaced.overlaps(window), replaced.count <= 4 * max(1, window.count),
             replacedStart <= oldEnd
         {

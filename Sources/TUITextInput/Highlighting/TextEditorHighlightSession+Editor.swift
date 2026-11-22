@@ -35,6 +35,12 @@ protocol EditorHighlightFeed: AnyObject, Sendable {
     var tokenCount: Int { get }
     /// The lines tokens are kept for: those on screen and a screen either side.
     var window: Range<Int> { get }
+    /// Whether the session holds marks, which an edit must carry
+    /// (B-ATTRED-59).
+    var hasMarks: Bool { get }
+    /// The marks as they are now, and whether a publish changed them, if
+    /// they changed since this was last asked.
+    func takeMarks() -> (marks: [EditorMark], published: Bool)?
     /// The editor has gone: the highlighter's next update is `nil`.
     func close()
 }
@@ -51,6 +57,9 @@ struct EditorHighlightEdit: Sendable {
     /// For each line in the window edited in place (as many lines after the
     /// edit as before), how its tokens' offsets move (B-ATTRED-28).
     var carried: [Int: EditorLineShift] = [:]
+    /// The edit by its bytes, which the highlighter's marks are carried
+    /// through (B-ATTRED-59): `nil` where the session held none to carry.
+    var marks: EditorMarkEdit?
 }
 
 /// How the offsets of a line edited in place move: those from where its
@@ -151,6 +160,10 @@ struct EditorHighlightState: Sendable {
     var viewportMoved = false
     /// The highlighter, waiting for the next update.
     var waiter: CheckedContinuation<Void, Never>?
+    /// The highlighter's marks, in UTF-8 offsets of the editor's text, and how
+    /// they changed since the editor last took them (B-ATTRED-59).
+    var marks: [EditorMark] = []
+    var marksChange: EditorHighlightMarksChange?
 
     init(string: String, lineCount: Int, utf8Count: Int) {
         self.string = string
@@ -334,6 +347,7 @@ extension TextEditorHighlightSession: EditorHighlightFeed {
                 state.lines.removeAll()
                 state.changed.removeAll()
             }
+            state.carryMarks(through: edit?.marks)
             (state.string, state.lineCount, state.utf8Count) = (string, max(1, lineCount), string.utf8.count)
             return (state.placeWindow(), state.takeWaiter())
         }
@@ -371,6 +385,7 @@ extension TextEditorHighlightSession: EditorHighlightFeed {
         state.withLock { state -> CheckedContinuation<Void, Never>? in
             state.isClosed = true
             state.lines.removeAll()
+            state.marks.removeAll()
             return state.takeWaiter()
         }?.resume()
     }

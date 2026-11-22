@@ -55,7 +55,11 @@ extension TextEditorHandler {
         guard line < layout.lines.count else { return [] }
         let own = lineStyler.map { lineStyleCache.runs(ofLine: line, reading: $0) } ?? []
         let highlighted = EditorHighlightRun.styledRuns(layer.runs(line), in: layout.lines[line], styles: layer.styles)
-        let drawn = EditorStyledRun.overlaying(highlighted, on: own)
+        var drawn = EditorStyledRun.overlaying(highlighted, on: own)
+        // The highlighter's marks over its tokens (B-ATTRED-59); the app's go over both.
+        if let connection = highlightConnection {
+            drawn = connection.marked(drawn, ofLine: line, in: layout, styles: layer.styles)
+        }
         lineStyleCache.keepDrawnRuns(drawn, ofLine: line)
         return drawn
     }
@@ -75,6 +79,12 @@ final class EditorHighlightConnection {
     /// layout (the binding kept a text of its own) is told as a text written
     /// whole, its change found from the bytes the two texts share.
     weak var syncedLayout: EditorLayout?
+
+    /// The highlighter's marks as last taken, and the lines each covers in
+    /// the layout they were found for (B-ATTRED-59).
+    var marks: [EditorMark] = []
+    var marksByLine: [Int: [EditorMark]]?
+    weak var marksLayout: EditorLayout?
 
     init(key: EditorHighlighterKey, feed: any EditorHighlightFeed, style: @escaping @MainActor (UInt16) -> AttributeContainer) {
         self.key = key
@@ -133,6 +143,7 @@ extension TextEditorHandler {
                     to: edit.lines[line - edit.replaced.lowerBound].lazy.flatMap(\.utf8))
             }
         }
+        if connection.feed.hasMarks { change.marks = EditorMarkEdit(edit, from: before) }
         return change
     }
 
@@ -158,6 +169,9 @@ extension TextEditorHandler {
             connection.syncedLayout = layout
         }
         lineStyleCache.forgetDrawnRuns(ofEach: feed.takeChangedLines())
+        // Marks published anew may be on any line; carried, only on those the
+        // edit touched, which it forgot already (B-ATTRED-59).
+        if connection.takeMarks() { lineStyleCache.forgetDrawnRuns() }
         // In the session's order, so a session's style index is the layer's.
         let interned = feed.tokenCount
         while let next = highlightLayer?.styles.containers.count, next <= interned, next <= Int(UInt16.max) {

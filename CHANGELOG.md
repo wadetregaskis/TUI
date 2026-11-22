@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A `TextEditor`'s highlighter can mark ranges of the text itself, such as its parse's errors.** Through the
+highlighting seam (SPI), `publish(marks:of:)` gives the editor ranges of a version of its text, each drawn in a
+token's style over the highlighting and under the app's own `.textEditorMarks`. The editor carries them through its
+edits, its undo and redo, and the app's writes, as it carries an app's marks, so a highlighter publishes them again
+only when they change, and no longer has to send them round through the app's state and a view's body.
+
 **Undo and redo in a highlighted `TextEditor` keep the colours of the lines they don't touch.** They write the text
 whole, as an app's write to the binding does, and the editor forgot every line's highlighting at once, so the whole
 pane drew plain until the highlighter answered, and the highlighter was told the text was all new. The editor now
