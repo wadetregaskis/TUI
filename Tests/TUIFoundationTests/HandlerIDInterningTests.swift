@@ -194,4 +194,27 @@ struct HandlerIDInterningTests {
         #expect(third.region(atRow: 0)?.handlerID != first.region(atRow: 0)?.handlerID)
         #expect(third.region(atRow: 2)?.handlerID == first.region(atRow: 2)?.handlerID)
     }
+
+    @Test("A handler interned at a memo's own identity is kept while the memo serves it, and names its control")
+    func idAtAServedMemoRootIsKept() {
+        let harness = WalkHarness()
+        // `ForEach` memoizes each row at the row's own identity, and the
+        // handler is registered there: nothing above the row covers it, and a
+        // served row asks the table for nothing.
+        let page = VStack(alignment: .leading, spacing: 0) {
+            ForEach(0..<3, id: \.self) { index in
+                Text("row \(index)").onMouseEvent { _ in false }
+            }
+        }
+        let first = harness.frame(page)
+        #expect(first.hitTestRegions.count == 3)
+        for _ in 0..<3 {
+            let served = harness.frame(page)
+            #expect(served.region(atRow: 1)?.handlerID == first.region(atRow: 1)?.handlerID)
+            #expect(harness.dispatcher.handlerIDs.count == 3, "a served row's id was dropped")
+            for region in served.hitTestRegions {
+                #expect(harness.dispatcher.owner(of: region.handlerID) != nil, "a served region names no control")
+            }
+        }
+    }
 }

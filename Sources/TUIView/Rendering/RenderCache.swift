@@ -1425,7 +1425,17 @@ extension RenderCache {
         // handler id baked into a stored buffer's regions must still name its
         // control for as long as that buffer can be served, so retention — not
         // merely "something asked for it this pass" — is what keeps one.
-        internedIDTable?.pruneInternedIDs { retained.retains($0) }
+        //
+        // And the identity itself counts, as it does for the entries above: a
+        // memo marks its own identity active and retains strictly BELOW it, so
+        // an id interned AT a served memo's identity — a modifier written
+        // outermost on a `ForEach` row, which a `Renderable` row memo shares
+        // its identity with — asked for nothing and was covered by nothing.
+        // Dropped on the first frame it was served, it came back under a new
+        // id on the row's next miss: a scroll visibility observer on screen
+        // was told it appeared and that its old id had left (SCROLL-2), and a
+        // tap's region named no control while the row was served.
+        internedIDTable?.pruneInternedIDs { active.contains($0) || retained.retains($0) }
         lastPrune = (
             renderEntries: entries.count + staleKeys.count, sizeEntries: sizeEntries.count + staleSizeKeys.count,
             retainedChecks: retainedChecks, prunedRender: staleKeys.count, prunedSizes: staleSizeKeys.count)

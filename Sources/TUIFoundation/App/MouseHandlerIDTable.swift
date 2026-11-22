@@ -170,9 +170,9 @@ extension MouseHandlerIDTable {
     /// subtree still covers.
     ///
     /// - Parameter isRetained: The render cache's question — whether a stored
-    ///   entry above this identity was served this pass, so nothing below it was
-    ///   visited and it registered nothing, yet its buffer (and the ids in its
-    ///   regions) is still what the frame drew.
+    ///   entry at or above this identity was served this pass, so nothing at it
+    ///   was visited and it registered nothing, yet its buffer (and the ids in
+    ///   its regions) is still what the frame drew.
     func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool) {
         let serial = pruneSerial
         // Collect then remove: mutating a dictionary inside its own `for` loop

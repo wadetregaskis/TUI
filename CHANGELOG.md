@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A row's `onScrollVisibilityChange` is no longer told `true` and then `false` while it is on screen.** Once a
+`ForEach` row had been served from its memo, the next time it was drawn afresh (a terminal resize did it for every
+row, as did a change to the row) its observer was reported as a newly appeared view, and its earlier registration as
+one that had left, so the app went on believing a visible row was hidden. A mouse handler written outermost on such a
+row lost its owner the same way while the row was served.
+
 **A suggested token's view holding `@State` no longer breaks the search field's suggestions menu.** The `token`
 view of `searchable(text:tokens:suggestedTokens:token:)` was drawn, for each suggested token in the menu, where the
 field keeps its own state, so its first `@State` took the place of the field's, and the menu never stayed open; every

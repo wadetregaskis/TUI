@@ -914,7 +914,9 @@ same way, and so is the mouse. A handler id is the control's own — interned pe
 view identity and slot rather than counted off in registration order — so the id
 baked into a stored buffer's regions still names the control it was taken from
 on every frame that serves it, and the replay files that control's own closure
-back under it. The per-frame feature requests that go with it (`.motion` for a
+back under it. So the id is kept as long as the cache holds that identity: one
+no walk asked for survives the end-of-pass prune if a memo was served at its
+identity or above it, the same rule the cache's entries are kept by. The per-frame feature requests that go with it (`.motion` for a
 control that lifts under the pointer, `.drag` for one that tracks it) are
 recorded beside it, because they lapse every walk as well: without them a page
 whose only hovering control was memoized would stop being told where the pointer

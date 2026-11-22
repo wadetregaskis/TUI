@@ -263,6 +263,26 @@ struct ScrollVisibilityTests {
         #expect(log.take() == ["0-", "5+", "6-"])
     }
 
+    @Test("A served row drawn again, at a new width, is not reported: it keeps the marker it was reported under")
+    func servedRowRedrawnKeepsItsMarker() {
+        let frames = Frames()
+        let log = Log()
+        var position = ScrollPosition()
+        let binding = Binding(get: { position }, set: { position = $0 })
+        let view = scrolled(rows(40, lazy: true, log: log), binding)
+        frames.render(view)
+        _ = log.take()
+        // Served: no walk asks for the rows' marker ids, which a memo root's
+        // own identity holds.
+        frames.render(view)
+        #expect(log.take().isEmpty)
+        // Every row misses at a new width and claims its marker again. A
+        // marker dropped while served came back under a new id: each row on
+        // screen was told it appeared, then that its old id vanished.
+        frames.render(view, width: 19)
+        #expect(log.take().isEmpty)
+    }
+
     @Test("A scroll view served from a memo keeps what it measured: a row off screen is not reported shown")
     func servedScrollViewKeepsItsMeasures() {
         let frames = Frames()

@@ -30,8 +30,9 @@ package protocol InternedIDTable: AnyObject {
     /// Drops every interned id whose identity neither asked for it since the
     /// last prune nor is retained.
     ///
-    /// - Parameter isRetained: Whether a cached subtree still covers this
-    ///   identity, even though nothing under it was visited this pass — the
-    ///   cache's own ``RetainedSubtreeIndex`` question.
+    /// - Parameter isRetained: Whether the cache still holds this identity,
+    ///   even though nothing at it may have been visited this pass: marked
+    ///   active (a memo served AT it), or under a cached subtree served this
+    ///   pass (the cache's own ``RetainedSubtreeIndex`` question).
     func pruneInternedIDs(retaining isRetained: (ViewIdentity) -> Bool)
 }
