@@ -143,6 +143,15 @@ struct TypeWalkTests {
         #expect(verdict(PODVoid.self) == Self.leaf)
     }
 
+    /// `type`'s name as the runtime spells it, as the walk names a type it was
+    /// handed. Unoptimised, for a compiler bug: where Swift 6.2 and 6.3 know the
+    /// type at `-O`, they name a `fileprivate` one with its private
+    /// discriminator, `(String, (Payload in _859DEA…))` where the runtime says
+    /// `(String, Payload)` (report "an optimised build names a fileprivate type
+    /// with its discriminator", 2026-11-21; fixed in 6.4).
+    @_optimize(none)
+    private static func runtimeName(of type: Any.Type) -> String { "\(type)" }
+
     @Test("A struct or tuple that is not POD and lists no fields is refused: its field metadata was stripped")
     func strippedMetadataRefused() {
         // What the runtime does for a type from a module built without
@@ -151,7 +160,7 @@ struct TypeWalkTests {
         var walk = TypeWalk(listFields: { _, _, _ in true })
         #expect(walk.verdict(for: HoldsExistential.self).refusal == .noFieldMetadata(path: "HoldsExistential"))
         let tuple = (String, any Payload).self
-        #expect(walk.verdict(for: tuple).refusal == .noFieldMetadata(path: "\(tuple)"))
+        #expect(walk.verdict(for: tuple).refusal == .noFieldMetadata(path: Self.runtimeName(of: tuple)))
         #expect(
             walk.verdict(for: Plain.self) == Self.leaf,
             "POD is a leaf before its fields are asked")

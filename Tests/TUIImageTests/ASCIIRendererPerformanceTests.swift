@@ -99,7 +99,7 @@ struct ASCIIRendererPerformanceTests {
         var sink = 0
         for _ in 0..<rounds {
             let walkStart = Date()
-            for pixel in image.pixels { sink &+= Int(pixel.r) &+ Int(pixel.g) &+ Int(pixel.b) }
+            sink &+= Self.walk(image.pixels)
             bestWalk = min(bestWalk, Date().timeIntervalSince(walkStart))
             let bodyStart = Date()
             body()
@@ -108,6 +108,21 @@ struct ASCIIRendererPerformanceTests {
         // Read, so the walk is not work nothing uses.
         withExtendedLifetime(sink) {}
         return bestBody / max(bestWalk, 1e-9)
+    }
+
+    /// One plain walk over `pixels`, summing their channels: the yardstick.
+    ///
+    /// Unoptimised in every build, as the ceilings were measured in debug ones,
+    /// and so that an optimised build can neither move the walk out from between
+    /// the clock's readings nor do it once for every round. A release build of
+    /// the tests did one or the other, the walk took no time at all, and the
+    /// multiple was a renderer's time over the floor of a nanosecond: 211,716×
+    /// for braille (Swift 6.2.4, Windows, 2026-11-21).
+    @_optimize(none)
+    private static func walk(_ pixels: [RGBA]) -> Int {
+        var sum = 0
+        for pixel in pixels { sum &+= Int(pixel.r) &+ Int(pixel.g) &+ Int(pixel.b) }
+        return sum
     }
 
     @Test("The shape-vector renderer converts a whole frame, and cheaply")
