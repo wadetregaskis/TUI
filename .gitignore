@@ -1,5 +1,9 @@
 .DS_Store
 .build
+# A second build directory beside it, for building with another toolchain
+# (`--scratch-path .build-64`, say) without mixing two compilers' products in
+# one directory.
+.build-*/
 /Packages
 xcuserdata/
 DerivedData/
