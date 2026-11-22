@@ -18,11 +18,15 @@ RATCHETS = [
     # 12 since staging's Windows port (rebased under local work 2026-11-21):
     # ConsoleInput, the console reader's queue, is @unchecked Sendable because its
     # state is guarded by the NSCondition its reader waits on, which no Mutex is.
+    # 15 since O-25 (2026-11-21): `Binding`'s `@unchecked Sendable`, SwiftUI's own
+    # spelling; `StateBacking`'s, which `State`'s checked conformance (SwiftUI's)
+    # needs; and `OffMainCell`, the lock a `@State` read or written off the main
+    # actor goes through, holding a value that need not be `Sendable`.
     {
         "name": "unsafe-concurrency exceptions",
         "pattern": r"disable:this concurrency_escape",
         "paths": ["Sources"],
-        "limit": 12,
+        "limit": 15,
         "instead": "try dropping Sendable, a Mutex, an Atomic, @MainActor or sending",
     },
     # The exceptions to the SwiftLint rule `safe_escape`: a type marked `@safe`, which

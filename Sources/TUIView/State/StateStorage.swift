@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Synchronization
 import TUICore
 
 // MARK: - State Storage
@@ -1105,7 +1106,11 @@ package final class StateBox<Value> {
     }
 
     /// Tells the sink that the value changed: softly, for a parent's write.
+    /// First, hands the value to the readers off the main actor, if any has
+    /// ever asked (``openOffMainChannel()``): one load where none has.
     private func reportChange() {
+        let channel = offMainChannelBits.load(ordering: .relaxed)
+        if channel != 0 { OffMainPointer.object(channel, as: OffMainChannel<Value>.self).publish(stored) }
         writeCount &+= 1
         if invalidatesSoftly, let identity {
             invalidationSink?.invalidateRenderSoftly(for: identity)
@@ -1131,6 +1136,14 @@ package final class StateBox<Value> {
     /// the instance has room for it.
     private(set) var writeCount: UInt32 = 0
 
+    /// What a read off the main actor reads: a copy of the value, which every
+    /// write here republishes, made on the main actor the first time a
+    /// `@State` bound to this box is read off it, and kept as long as the box
+    /// (``openOffMainChannel()``). `0` until then, so a box no other thread
+    /// reads pays one load a write. Retained by hand, as an `Atomic` holds no
+    /// strong reference: an ``OffMainPointer``'s bits, released in `deinit`.
+    private let offMainChannelBits = Atomic<UInt>(0)
+
     /// Creates a state box with an initial value.
     ///
     /// - Parameter value: The initial value.
@@ -1142,6 +1155,22 @@ package final class StateBox<Value> {
     init(_ value: Value, invalidatesSoftly: Bool) {
         stored = value
         self.invalidatesSoftly = invalidatesSoftly
+    }
+
+    deinit {
+        let bits = offMainChannelBits.load(ordering: .acquiring)
+        if bits != 0 { OffMainPointer.release(bits) }
+    }
+
+    /// The channel reads off the main actor take the value from, made now,
+    /// holding the value, if there is none yet. On the main actor only, as
+    /// every other member: it reads the value.
+    func openOffMainChannel() -> OffMainChannel<Value> {
+        let bits = offMainChannelBits.load(ordering: .relaxed)
+        if bits != 0 { return OffMainPointer.object(bits, as: OffMainChannel<Value>.self) }
+        let channel = OffMainChannel(OffMainCopy(value: stored))
+        offMainChannelBits.store(OffMainPointer.retainedBits(of: channel), ordering: .releasing)
+        return channel
     }
 }
 

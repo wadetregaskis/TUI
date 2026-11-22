@@ -5,6 +5,7 @@
 //  License: MIT
 
 import Foundation
+import Synchronization
 import TUICore
 
 // MARK: - App State
@@ -341,7 +342,9 @@ extension AppState: AppRenderState {
     /// through the render cache's link — and notes when it was made with no
     /// transaction in force.
     ///
-    /// Thread-safe: a `@State` may be written on any thread.
+    /// Called on the main actor, where a `@State`'s box is written: a write
+    /// made off it is posted there and made there (`StateBacking.value`).
+    /// Behind the app's lock all the same, as every report here is.
     package func setNeedsRenderForStateChange() {
         let observers = lock.withLock { state -> [@Sendable () -> Void] in
             state.needsRender = true
@@ -505,12 +508,15 @@ extension AppState {
 
 /// Receives render-invalidation requests raised by state mutations.
 ///
-/// A `@State` write fires ``StateBox``'s `didSet`, which must (a) drop the
-/// cached buffers for the affected subtree and (b) request a re-render. The
-/// write can originate off the main actor (a `@State` mutated from a background
-/// `Task`), and ``RenderCache`` is single-threaded — so the box must not touch
-/// the cache directly. Instead it calls this sink, whose conformer records the
-/// invalidation behind a lock and applies it on the main-actor frame boundary.
+/// A `@State` write reaches ``StateBox``'s `value` setter, which must (a) drop
+/// the cached buffers for the affected subtree and (b) request a re-render. The
+/// box is written on the main actor only — a `@State` written off it, from a
+/// background `Task`, has its write posted to the main actor and made there
+/// (`StateBacking.value`) — but other reports reach the sink from any thread:
+/// an `@Observable` write's observation fires on the writer's. ``RenderCache``
+/// is single-threaded, so nothing touches it directly: this sink's conformer
+/// records the invalidation behind a lock and applies it on the main-actor
+/// frame boundary.
 ///
 /// ``RenderCache`` conforms (it is the per-context object that owns the cached
 /// buffers, so routing through it keeps each context's invalidations isolated),
@@ -890,17 +896,22 @@ public struct State<Value> {
     private var backing: StateBacking<Value>
 
     /// The current state value.
+    ///
+    /// Read and written on any thread, as SwiftUI's: on the main actor in
+    /// place, and elsewhere through the main actor, a write applied there
+    /// before the next frame and a read given the last value written
+    /// (`StateBacking.value`).
     public var wrappedValue: Value {
-        get { backing.box.value }
-        nonmutating set { backing.box.value = newValue }
+        get { backing.value }
+        nonmutating set { backing.value = newValue }
     }
 
     /// A binding to the state value.
     public var projectedValue: Binding<Value> {
         let backing = self.backing
         return Binding(
-            get: { backing.box.value },
-            set: { backing.box.value = $0 }
+            get: { backing.value },
+            set: { backing.value = $0 }
         )
     }
 
@@ -929,6 +940,12 @@ public struct State<Value> {
     }
 }
 
+/// A `State` crosses to another thread, as SwiftUI's does, where its value
+/// can: SwiftUI's conformance exactly (`SwiftUICore.swiftinterface`, macOS 26.2
+/// SDK). What it does there is `StateBacking.value`'s to say
+/// (State+OffMain.swift).
+extension State: Sendable where Value: Sendable {}
+
 // MARK: - State backing
 
 /// Reference-typed backing for ``State``: the box the state's value is in,
@@ -954,14 +971,26 @@ public struct State<Value> {
 /// holding it, in the pass that walks it, which ``createdIn`` tells.
 final class StateBacking<Value> {
     let defaultValue: Value
-    private(set) var box: StateBox<Value>
+    /// The box the value is in. Written on the main actor only, as every
+    /// member here but ``value``'s way off it; the route a read off the main
+    /// actor takes, once one has, follows it here.
+    private(set) var box: StateBox<Value> {
+        didSet { offMainRouteDidMove() }
+    }
+    /// The way a read off the main actor reaches ``box``'s value without
+    /// reading ``box``, made on the main actor the first time one does
+    /// (``StateBacking/value``), and kept as long as the backing. `0` until
+    /// then. Retained by hand, as an `Atomic` holds no strong reference: an
+    /// ``OffMainPointer``'s bits.
+    let offMainRouteBits = Atomic<UInt>(0)
     /// What ``box`` is: the one made with the backing, one `StateStorage`
     /// keeps for a place, or an object's own.
     ///
     /// Before ``createdIn``, and both after the stored fields of any type, so
     /// the two share the word the binding byte alone would pad out:
-    /// `StateBacking<Int>`, `<String>` and `<Bool>` keep their instance sizes
-    /// (40, 48 and 40 bytes) and their 48-byte allocations.
+    /// `StateBacking<Int>`, `<String>` and `<Bool>` are 48, 56 and 48 bytes
+    /// (40, 48 and 40 before ``offMainRouteBits``), in 48-, 64- and 48-byte
+    /// allocations.
     private(set) var bound = BackingBinding.unbound
     /// The render pass the backing was made in — ``StateRegistration/renderPass``
     /// when it was made, a serial of ``StateStorage/currentPass``'s — or `0`
@@ -973,6 +1002,11 @@ final class StateBacking<Value> {
         self.defaultValue = value
         self.box = StateBox(value)
         self.createdIn = StateRegistration.renderPass
+    }
+
+    deinit {
+        let bits = offMainRouteBits.load(ordering: .acquiring)
+        if bits != 0 { OffMainPointer.release(bits) }
     }
 
     /// A backing bound to `box` from the start, made by a walk in render pass

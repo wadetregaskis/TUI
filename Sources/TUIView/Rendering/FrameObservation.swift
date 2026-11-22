@@ -173,7 +173,7 @@ package enum BindingReads {
     /// `Toggle`'s binding went unnoted, and a write to it asked for no frame —
     /// with a thread-local slot of the system's. Elsewhere the main actor is
     /// the main thread.
-    private static var isWalkingThread: Bool {
+    static var isWalkingThread: Bool {
         #if canImport(WASILibc)
             true
         #elseif canImport(Glibc) || canImport(Musl)

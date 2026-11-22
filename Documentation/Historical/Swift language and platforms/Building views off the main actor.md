@@ -47,7 +47,9 @@ with a raise of the minimum Swift open if the benefit was significant.
 ## Where it stands
 
 Design A without `@preconcurrency` is shipped. Design B's overloads and the
-press policies are declined.
+press policies are declined. Open question 2 was ruled on 2026-11-21 (O-25):
+`State` and `Binding` are `Sendable` as SwiftUI's are, with no lock on the
+main actor's reads and writes (section 12).
 
 ## For a future reader
 
@@ -368,3 +370,22 @@ The owner asked to avoid `@preconcurrency`, whether an async action blocks rende
 **Re-entrancy and order, unguarded.** Two presses of a save on an actor both saw `n=2` and left `n=3`: a lost update, as an actor gives up isolation across `await`. Start order: 200/200 for main-actor closures, 193 to 194/200 for nonisolated ones.
 
 **Proposal.** A per-button policy: ignore a press while its action runs (default), queue in press order, restart, or concurrent; a container modifier for one queue across buttons. Don't cancel when the button leaves the screen, which would lose a save: this reverses the suggestion in section 9, question 4.
+
+#### 12. Addendum: `State` and `Binding` are `Sendable` (O-25, 2026-11-21)
+
+**The ruling.** Open question 2 came back through the bug hunt of 2026-11-20 (VIEWS-7): three texts promised that a `@State` "may be written on any thread" while `StateBox` had no lock, and a SwiftUI program handing a `Binding` to a `@Sendable` closure did not compile. The owner chose option 2, "let's try option 2": make both `Sendable`, without a lock on the main actor's path.
+
+**SwiftUI's conformances,** from `SwiftUICore.swiftinterface` in the macOS 26.2 SDK, matched exactly: `extension State : Sendable where Value : Sendable` (checked) and `extension Binding : @unchecked Sendable where Value : Sendable`. SwiftUI's `Binding(get:set:)` also takes `@preconcurrency @Sendable @isolated(any)` closures; TUI's still takes plain ones, unchanged here.
+
+**The design** (`Sources/TUIView/State/State+OffMain.swift`):
+
+- *The check.* `State.wrappedValue` and a `@State`'s binding ask whether they run on the main actor (`MainActorCheck.isCurrent`, moved to `TUICore` from `TUIApp`): `pthread_main_np` on Darwin, about 2 ns, where the main actor is the main thread; elsewhere the walking thread's mark, then `Thread.isMainThread`, then the main queue's specific, since a pool thread drains the main actor on Linux. Swift's own executor check has no non-trapping public spelling (an `@_silgen_name` of `swift_task_isCurrentExecutor` does not even type-check against the runtime's signature), and `Thread.isMainThread` costs 4 ns.
+- *Main-actor reads and writes* are what they were: `StateBox.value`'s `_read` and `_modify`, in place, unlocked. A write adds one relaxed atomic load, of the box's channel pointer (below), which is `nil` until a thread other than the main actor's reads the box.
+- *A write off the main actor* is posted with `DispatchQueue.main.async`, the main actor's queue, and made there under the transaction it was made in: in order, since the queue is FIFO, and before any frame that starts after it. Invalidation follows from the main-actor write as for any other.
+- *A read off the main actor* reads a copy. The box keeps an `OffMainChannel` (a `Mutex` and the copy), made on the main actor the first time a read off it asks, and every write republishes the value there once it exists. A first read cannot copy the box itself, which may be mid-write, so it waits for the main actor once (`DispatchQueue.main.sync`); after that no read waits. A write off the main actor publishes its value to the channel at once, so `binding.wrappedValue.append(x)` in a loop reads back its own writes; a first read is queued behind the writes its thread posted, so it sees them too. The channel counts the writes published there and not yet made, and while any is on its way the box's own writes are not republished: the first version republished each posted write as the main actor made it, over the newer ones already published, and the test's 200 appends kept 179 (`[0, 22, 23, …]`).
+- *The backing's box* is reassigned on the main actor as a view rebinds. A thread other than the main actor's cannot read that field, so the backing keeps an `OffMainRoute`, the current box's channel behind a lock, which a `didSet` on `box` moves (another relaxed load, on rebinding only).
+- *No lock across a `yield`*: the channel is republished after the `_modify` has returned, and its old value is released after the lock is let go.
+
+**What it costs.** Nothing is locked on the main actor until another thread has read the box; then each write copies the value into the channel, so the next in-place write of an array or a string copies it (copy-on-write). One word each on `StateBox` and `StateBacking`: `StateBacking<String>` goes from a 48- to a 64-byte allocation, `<Int>` and `<Bool>` stay at 48. Against its base, `ab_bench.py` found `stateful`, `churn`, `keyrows`, `kitchensink` and the `editor`, `settings` and `inbox` sessions indistinguishable, and `chat` +2.8% once and +0.1% on a rerun. A first version kept the two pointers as `Atomic<Unmanaged<…<Value>>?>`, whose load in a generic class goes through generic witnesses where it is not specialized (every `deinit`), 39 ns against 1.3 for an `Atomic<UInt>`: `stateful` ran 4.3% slower until they became the bits of the pointer (`OffMainPointer`).
+
+**What it does not cover.** Bindings TUI makes for other things — `@FocusState`, `@AppStorage`, `@SceneStorage`, presentations, `@Bindable` — are `Sendable` by the same conformance but remain the main actor's: their getters and setters run where they are called. A first off-main read waits for the main actor, so it never returns while the main actor is blocked waiting on the reading thread, as `DispatchQueue.main.sync` never does.
