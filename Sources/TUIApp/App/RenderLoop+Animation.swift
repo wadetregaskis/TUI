@@ -13,11 +13,6 @@
 import Foundation
 import TUIFoundation
 
-#if canImport(Dispatch)
-    import Dispatch
-    import Synchronization
-#endif
-
 extension RenderLoop {
     /// Publishes everything this frame's animations are a function of: the two
     /// clocks, the scheduler they declare their rates to, this frame's `now`,
@@ -169,29 +164,4 @@ extension RenderLoop {
         tuiContext.mouseEventDispatcher.setActiveSupport(effectiveMouseSupport(), isFrameFinal: true)
         return true
     }
-}
-
-/// Whether the thread asking is running the main actor's work, asked of the
-/// queue and not the thread: on Linux the main actor is drained by a pool thread
-/// after the first suspension (see `StackGuard`), so `Thread.isMainThread` is
-/// false for it there, and `MainActor.assumeIsolated` would be a trap, not an
-/// answer. A false answer costs only an update: the change waits for the frame.
-enum MainActorCheck {
-    #if canImport(Dispatch)
-        /// Set on the main queue once, by whoever asks first. In a `Mutex`, which
-        /// only ever lends it to `getSpecific`, as the open-source Dispatch does
-        /// not call the key `Sendable`, and Apple's does.
-        private static let key: Mutex<DispatchSpecificKey<Bool>> = {
-            let key = DispatchSpecificKey<Bool>()
-            DispatchQueue.main.setSpecific(key: key, value: true)
-            return Mutex(key)
-        }()
-
-        static var isCurrent: Bool {
-            key.withLock { DispatchQueue.getSpecific(key: $0) == true }
-        }
-    #else
-        /// One thread: WebAssembly's, with no queue to ask.
-        static var isCurrent: Bool { true }
-    #endif
 }
