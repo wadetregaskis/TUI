@@ -2,7 +2,8 @@
 
 The project site is built and deployed by
 [`.github/workflows/pages.yml`](../../.github/workflows/pages.yml) whenever `main`
-moves (`promote.yml` calls it once CI has passed a push to `staging`), on a
+moves (`promote.yml` calls it once CI has passed a push to `staging`, naming the commit it promoted, since
+the call would otherwise build the commit before it), on a
 release, and on demand (*Actions → Pages → Run workflow*). It is published
 as an Actions artifact, never committed: there is no `gh-pages` branch, so the
 generated files never enter the history and clones do not grow.

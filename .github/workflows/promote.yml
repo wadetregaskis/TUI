@@ -85,6 +85,11 @@ jobs:
     needs: promote
     if: needs.promote.outputs.moved == 'true'
     uses: ./.github/workflows/pages.yml
+    # The commit just promoted; see pages.yml's `ref` input. Two promotions
+    # finishing out of order can leave the older one's site up until the next
+    # deploy: accepted, since promotions are minutes apart and each redeploys.
+    with:
+      ref: ${{ github.event.workflow_run.head_sha }}
     permissions:
       contents: read
       pages: write

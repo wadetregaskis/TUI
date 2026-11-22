@@ -27,7 +27,16 @@ on:
   # `main` made by hand, which only an admin bypassing its ruleset can make.
   push:
     branches: [main]
+  # promote.yml passes the commit it moved `main` to. A called workflow's
+  # `github.sha` is the caller's, and a `workflow_run` caller's is the default
+  # branch's tip when the run started: the commit BEFORE the promotion, so
+  # without `ref` every promotion would publish the previous one's site.
   workflow_call:
+    inputs:
+      ref:
+        description: The commit to build the site from.
+        type: string
+        required: false
   # A version's release brings its clips (media/<version>/, and media/latest/);
   # Tools/Release/release.sh publishes the release once its assets are up.
   release:
@@ -75,6 +84,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Empty unless promote.yml called: checkout then takes its default, the event's own commit.
+          ref: ${{ inputs.ref }}
 
       - name: Select Xcode 26 (Swift 6.2+)
         uses: maxim-lobanov/setup-xcode@v1
@@ -126,6 +138,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Empty unless promote.yml called: checkout then takes its default, the event's own commit.
+          ref: ${{ inputs.ref }}
 
       - name: Trust the workspace
         run: git config --global --add safe.directory '*'
@@ -174,6 +189,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          # Empty unless promote.yml called: checkout then takes its default, the event's own commit.
+          ref: ${{ inputs.ref }}
 
       - name: Download the docs
         uses: actions/download-artifact@v8
