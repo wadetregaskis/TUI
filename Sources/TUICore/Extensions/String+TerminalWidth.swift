@@ -1322,8 +1322,10 @@ extension String {
         // for the terminator so a trailing Extend scalar stays visible.
         let scalars = unicodeScalars
         var index = scalars.startIndex
-        var runStart = index
-        var hasRun = false  // whether [runStart, index) holds visible scalars
+        // Where the visible run in progress began, or nil between runs: one
+        // optional, not an index and a flag, for a compiler bug
+        // (`sanitizedForTerminal` says which).
+        var runStart: String.Index?
 
         var state = EscapeScanState.normal
 
@@ -1332,11 +1334,10 @@ extension String {
             switch state {
             case .normal:
                 if value == 0x1B {  // ESC ends the current run
-                    if hasRun { body(scalars[runStart..<index]); hasRun = false }
+                    if let start = runStart { body(scalars[start..<index]); runStart = nil }
                     state = .sawESC
-                } else if !hasRun {  // first visible scalar of a new run
+                } else if runStart == nil {  // first visible scalar of a new run
                     runStart = index
-                    hasRun = true
                 }
 
             case .sawESC:
@@ -1344,7 +1345,6 @@ extension String {
                 state = seen.state
                 if seen.visible {  // the ESC is dropped; this scalar starts a run
                     runStart = index
-                    hasRun = true
                 }
 
             case .escIntermediate, .string, .stringSawESC:
@@ -1360,13 +1360,12 @@ extension String {
                     state = .sawESC
                 } else {  // not a CSI byte at all where a terminator was
                     runStart = index  // expected: it starts a visible run
-                    hasRun = true
                     state = .normal
                 }
             }
             index = scalars.index(after: index)
         }
-        if hasRun { body(scalars[runStart..<index]) }  // index == endIndex
+        if let start = runStart { body(scalars[start..<index]) }  // index == endIndex
     }
 
     /// The string with all ANSI escape codes removed — CSI and the

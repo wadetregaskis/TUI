@@ -87,8 +87,13 @@ extension String {
         result.reserveCapacity(utf8.count)
 
         var index = scalars.startIndex
-        var runStart = index
-        var hasRun = false
+        // Where the visible run in progress began, or nil between runs: one
+        // optional, not an index and a flag, for a compiler bug. With the
+        // pair, Swift 6.4's copy propagation finds an ownership error in this
+        // loop and stops the build, where assertions are on in an optimised
+        // build (`-assert-config Debug`; report "Found ownership error?! in
+        // CopyPropagation with -assert-config Debug", 2026-11-21).
+        var runStart: String.Index?
         var state = EscapeScanState.normal
 
         while index < scalars.endIndex {
@@ -96,25 +101,24 @@ extension String {
             switch state {
             case .normal:
                 if value == 0x1B {
-                    if hasRun {
-                        result += self[runStart..<index]
-                        hasRun = false
+                    if let start = runStart {
+                        result += self[start..<index]
+                        runStart = nil
                     }
                     state = .sawESC
                 } else if Self.isDroppedC0(value) {
-                    if hasRun {
-                        result += self[runStart..<index]
-                        hasRun = false
+                    if let start = runStart {
+                        result += self[start..<index]
+                        runStart = nil
                     }
                 } else if let opened = Self.escapeState(openedByC1: value) {
-                    if hasRun {
-                        result += self[runStart..<index]
-                        hasRun = false
+                    if let start = runStart {
+                        result += self[start..<index]
+                        runStart = nil
                     }
                     state = opened
-                } else if !hasRun {
+                } else if runStart == nil {
                     runStart = index
-                    hasRun = true
                 }
 
             case .sawESC:
@@ -156,7 +160,6 @@ extension String {
                     // Not a CSI byte where a terminator was expected: the
                     // sequence is malformed, and this scalar is visible again.
                     runStart = index
-                    hasRun = true
                     state = .normal
                 }
 
@@ -175,8 +178,8 @@ extension String {
         }
         // An unterminated sequence ends with the string and is dropped; only a
         // visible run still in progress survives.
-        if hasRun {
-            result += self[runStart..<index]
+        if let start = runStart {
+            result += self[start..<index]
         }
         return result
     }

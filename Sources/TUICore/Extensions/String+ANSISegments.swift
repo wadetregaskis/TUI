@@ -307,14 +307,15 @@ extension String {
     package func forEachANSISegment(_ body: (ANSISegment) -> Bool) -> Bool {
         let scalars = unicodeScalars
         var index = scalars.startIndex
-        var runStart = index
-        var hasRun = false
+        // Where the visible run in progress began, or nil between runs: one
+        // optional, not an index and a flag, for a compiler bug
+        // (`sanitizedForTerminal` says which).
+        var runStart: String.Index?
 
         /// Yields the visible run `[runStart, end)`; `false` if `body` stopped.
         func flushVisible(before end: UnicodeScalarView.Index) -> Bool {
-            guard hasRun else { return true }
-            hasRun = false
-            var cursor = runStart
+            guard var cursor = runStart else { return true }
+            runStart = nil
             while cursor < end {
                 let value = scalars[cursor].value
                 let next = scalars.index(after: cursor)
@@ -344,9 +345,8 @@ extension String {
 
         while index < scalars.endIndex {
             guard scalars[index].value == 0x1B else {  // not ESC → visible
-                if !hasRun {
+                if runStart == nil {
                     runStart = index
-                    hasRun = true
                 }
                 index = scalars.index(after: index)
                 continue

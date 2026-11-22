@@ -297,7 +297,17 @@ extension View {
     ///   - onDismiss: Run on the presented → dismissed transition.
     ///   - modal: Builds the content to present — only while it is presented
     ///     (``ModalPresentationModifier/modal``).
-    nonisolated private func modalPresentation<Modal: View>(
+    ///
+    /// Internal, not private, for a compiler bug: a public function whose
+    /// opaque result is a public function's, whose result is a private
+    /// function's, breaks the importing module's optimised build where
+    /// cross-module optimisation serialized the public one's body (Swift 6.2
+    /// and 6.3, "Value Type mismatch?" in `PerformanceSILLinker`, deserializing
+    /// `sheet(isPresented:onDismiss:content:)`; report "a chain of opaque
+    /// results ending at a private function breaks SIL deserialization",
+    /// 2026-11-21). An internal one is fine wherever its body is serialized,
+    /// which `-enable-testing` does.
+    nonisolated func modalPresentation<Modal: View>(
         isPresented: Binding<Bool>,
         style: ModalPresentationModifier<Self, Modal>.Style,
         itemKey: String?,
