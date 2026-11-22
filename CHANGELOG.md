@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A gradient of named colours takes the dark values on a dark palette.** `LinearGradient(colors: [.mint, .blue], …)`,
+and any gradient whose stops were all named colours (`Color.red`, `.mint` and the others) or asset catalogue colours,
+drew their light values on every dark palette, while the same colour on its own drew its dark value. Its stops are
+now chosen for the palette's scheme as a lone colour is, so such a gradient changes on a dark palette.
+
 **An arrow key or mouse report split across two reads is no longer read as Escape and typing.** The input parser's
 waits for a lone `ESC`, an unfinished sequence and a paste that pauses were counted in passes of the run loop, and any
 wake of the loop is a pass: on a screen that animates or writes state from a task, an arrow whose `ESC` and `[A`

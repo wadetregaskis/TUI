@@ -193,10 +193,17 @@ extension Gradient {
     /// style becomes a ``Paint``, which is the first point the palette is
     /// known. See `ShapeStyle.paint(in:)`.
     ///
+    /// A named colour (`Color.mint`) and an asset catalogue's colour are
+    /// resolved here too, to their value for the palette's scheme, as they are
+    /// as a lone colour. They have RGB before then, their light value, so the
+    /// test is what resolving would change (`Color.needsPaletteResolution`),
+    /// not whether a stop has RGB: on the second test, `[.mint, .blue]` passed
+    /// as concrete and was drawn in its light values on every dark palette.
+    ///
     /// - Parameter palette: The palette to look roles up in.
     /// - Returns: The same ramp, with concrete colours.
     public func resolvingStops(with palette: any Palette) -> Self {
-        guard stops.contains(where: { $0.color.rgbComponents == nil }) else { return self }
+        guard stops.contains(where: \.color.needsPaletteResolution) else { return self }
         return withStops(
             stops.map { Stop(color: $0.color.resolve(with: palette), location: $0.location) })
     }

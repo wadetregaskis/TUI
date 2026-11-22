@@ -170,6 +170,33 @@ struct GradientPaletteResolutionTests {
         #expect(Color.accentColor.paint(in: environment) == .color(accent))
     }
 
+    /// A named colour has RGB (its light value), so a ramp of nothing but named
+    /// colours used to pass the "has a role in it" gate as concrete and be drawn
+    /// in its light values on a dark page, while the same colour as a plain
+    /// style took the dark one (STYLE-1).
+    @Test("A ramp of named colours takes the palette's scheme")
+    func namedColoursFollowTheScheme() {
+        var environment = EnvironmentValues()
+        environment.palette = SystemPalette.green
+        #expect(SystemPalette.green.colorScheme == .dark, "the premise: Green is dark")
+        guard case .gradient(let painted) = Gradient(colors: [.mint, .blue]).paint(in: environment) else {
+            Issue.record("not a gradient")
+            return
+        }
+        #expect(
+            painted.gradient.stops.map(\.color)
+                == [Color.SystemColor.mint.color(in: .dark), Color.SystemColor.blue.color(in: .dark)])
+    }
+
+    /// An asset catalogue's colour (light and dark values of its own) is chosen
+    /// the same way, however far apart its two values are.
+    @Test("A ramp of light-and-dark colours takes the palette's scheme")
+    func lightDarkColoursFollowTheScheme() throws {
+        let brand = try #require(Color.lightDark(light: .rgb(204, 102, 51), dark: .rgb(16, 128, 255)))
+        let resolved = Gradient(colors: [brand, .rgb(1, 2, 3)]).resolvingStops(with: SystemPalette.green)
+        #expect(resolved.stops.map(\.color) == [.rgb(16, 128, 255), .rgb(1, 2, 3)])
+    }
+
     /// `resolvingStops` returns the same value when there is nothing to look
     /// up, so the common ramp does not pay for a rebuild.
     @Test("A ramp with no roles in it is returned unchanged")

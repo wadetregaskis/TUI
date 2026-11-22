@@ -116,6 +116,14 @@ plain colour, which no longer follows the scheme. `resolve(in:)` answers each
 environment's value. `.white`, `.black` and TUI's `.magenta` stay plain RGB,
 the same in both schemes.
 
+**Paths that did not resolve (2026-11-22, hunt H-25):** "every path that
+draws a colour already resolves it there" was not true of every path, and the
+ones that did not drew a name at its light value on a dark palette. A
+gradient's stops were resolved only where one had no RGB, the test for "names a
+palette role" from before named colours existed, so `[.mint, .blue]` passed as
+concrete; they are now resolved wherever resolving would change one
+(`Color.needsPaletteResolution`: `.semantic`, `.system`, `.lightDark`).
+
 **Measured:** the dark values are SwiftUI's, `Color.resolve(in:)` under a dark
 `EnvironmentValues` on macOS 15.8.1, and agree with `NSColor.systemRed` and
 friends under darkAqua

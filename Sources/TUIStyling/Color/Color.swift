@@ -510,6 +510,21 @@ public struct Color: Sendable, Hashable {
         case .rgb, .semantic, .system, .lightDark: return false
         }
     }
+
+    /// Whether ``resolve(with:)`` would change this colour: a palette role, a
+    /// named colour that follows the scheme (``SystemColor``), or one with light
+    /// and dark values of its own (``ColorValue/lightDark(_:)``).
+    ///
+    /// Not "has no RGB", which is what a gradient's stops were once gated on: a
+    /// named colour HAS RGB, its light value, so a ramp of nothing but named
+    /// colours passed as concrete and was drawn light on every dark palette. The
+    /// cases are listed here so the next one added is listed once.
+    package var needsPaletteResolution: Bool {
+        switch value {
+        case .semantic, .system, .lightDark: return true
+        case .ansi, .terminalDefault, .palette256, .rgb, .terminalForeground, .terminalBackground: return false
+        }
+    }
 }
 
 // MARK: - Public API
