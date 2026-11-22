@@ -7995,3 +7995,24 @@ and again by the veil (§14.4), sixteen copies against the eight kept.
 `DerivedImageTests` resolves a 4-row picture under a 20-step breath, inside the fade and behind a breathing
 scrim: before, 24 and 31 copies sent, and the frames named copies deleted after them (16 ids inside the fade);
 now one copy a level, at most eight, and none deleted.
+
+
+## 121. The colour effects' arithmetic kept no alpha, and an inactive tinted glass went solid (2026-11-22)
+
+The six derivations under `.saturation(_:)`, `.brightness(_:)`, `.contrast(_:)`,
+`.hueRotation(_:)`, `.colorInvert()` and `.colorMultiply(_:)` (`saturated(keeping:)`,
+`brightened(by:)`, `contrasted(by:)`, `hueRotated(byDegrees:)`, `inverted` and
+`multiplied(by:)`, in `Color+ColorSpaces.swift`) each rebuilt the colour with `.rgb(…)` or
+`Color.hsl(…)`, which start at alpha 255: §71's shape again. Their usual inputs are opaque,
+the colours parsed from a line's escapes and a canvas pixel's RGB with its alpha kept
+beside the arithmetic, so it showed in one place: an inactive glass greys its tint through
+`saturated(keeping:)` (`Glass.shownTint`), so `.glassEffect(.regular.tint(.blue.opacity(0.3)))`
+lost the tint's 0.3 as the terminal lost focus, and the glass got more solid as it went
+inactive.
+
+Each now ends in `carryingAlpha(of: self)` (`saturated(keeping:)`, `hueRotated` and
+`multiplied` themselves, the other three through `mappingChannels`), and
+`ColourAlphaStorageTests.derivationsCarryAlpha` has a row for each of the six. Carried,
+not composed: the result is the same colour re-spelled. `multiplied(by:)` keeps the
+colour's own alpha and not the tint's, because the modifier spends the tint's alpha on the
+layer (§25) and a canvas filter keeps the pixel's.

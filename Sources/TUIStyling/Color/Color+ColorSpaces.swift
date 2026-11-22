@@ -301,7 +301,7 @@ extension Color {
     package func saturated(keeping amount: Double) -> Color {
         guard let rgb = rgbComponents else { return self }
         let moved = Self.saturated(red: rgb.red, green: rgb.green, blue: rgb.blue, keeping: amount)
-        return .rgb(moved.red, moved.green, moved.blue)
+        return Self.rgb(moved.red, moved.green, moved.blue).carryingAlpha(of: self)
     }
 }
 
@@ -326,6 +326,7 @@ extension Color {
         guard let rgb = rgbComponents else { return self }
         let hsl = Self.rgbToHSL(red: rgb.red, green: rgb.green, blue: rgb.blue)
         return Self.hsl((hsl.hue + degrees).truncatingRemainder(dividingBy: 360), hsl.saturation, hsl.lightness)
+            .carryingAlpha(of: self)
     }
 
     /// This colour's channels inverted, as `.colorInvert()` draws it; itself
@@ -336,12 +337,17 @@ extension Color {
 
     /// This colour multiplied channel by channel by `tint`, as
     /// `.colorMultiply(_:)` draws it; itself where either has no RGB.
+    ///
+    /// This colour's alpha is kept and the tint's is not multiplied in: the
+    /// modifier fades the LAYER by the tint's alpha (see `_ColorEffectView`), and a
+    /// `GraphicsContext` filter keeps a pixel's alpha beside this arithmetic.
     package func multiplied(by tint: Color) -> Color {
         guard let rgb = rgbComponents, let other = tint.rgbComponents else { return self }
-        return .rgb(
+        return Self.rgb(
             clampedByte(Double(rgb.red) * Double(other.red) / 255),
             clampedByte(Double(rgb.green) * Double(other.green) / 255),
-            clampedByte(Double(rgb.blue) * Double(other.blue) / 255))
+            clampedByte(Double(rgb.blue) * Double(other.blue) / 255)
+        ).carryingAlpha(of: self)
     }
 
     /// Each channel through `transform`, clamped back into a byte (every
@@ -349,10 +355,11 @@ extension Color {
     /// itself where it has no RGB.
     private func mappingChannels(_ transform: (Double) -> Double) -> Color {
         guard let rgb = rgbComponents else { return self }
-        return .rgb(
+        return Self.rgb(
             clampedByte(transform(Double(rgb.red))),
             clampedByte(transform(Double(rgb.green))),
-            clampedByte(transform(Double(rgb.blue))))
+            clampedByte(transform(Double(rgb.blue)))
+        ).carryingAlpha(of: self)
     }
 }
 

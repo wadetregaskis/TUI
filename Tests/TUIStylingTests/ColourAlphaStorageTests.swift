@@ -104,6 +104,14 @@ struct ColourAlphaStorageTests {
             // as `self`, and would pass with the carry deleted.
             ("lighter(by:)", faded.lighter(by: 0.2)),
             ("darker(by:)", faded.darker(by: 0.2)),
+            // The colour effects' arithmetic, which an inactive tinted glass greys
+            // its tint through (`Glass.shownTint`).
+            ("saturated(keeping:)", faded.saturated(keeping: 0.25)),
+            ("brightened(by:)", faded.brightened(by: 0.2)),
+            ("contrasted(by:)", faded.contrasted(by: 2)),
+            ("hueRotated(byDegrees:)", faded.hueRotated(byDegrees: 120)),
+            ("inverted", faded.inverted),
+            ("multiplied(by:)", faded.multiplied(by: .rgb(80, 160, 255))),
         ]
         for (name, derived) in derivations {
             #expect(derived.alpha == 128, "\(name) dropped the alpha: got \(derived.alpha)")
