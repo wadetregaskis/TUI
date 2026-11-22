@@ -50,8 +50,12 @@ package final class ModifierKeyMonitor {
     /// keyed by the modified view's identity — see ``alternateShown(at:focusManager:)``.
     private var heldFocus: [ViewIdentity: HeldFocus] = [:]
 
-    /// Counts walks of the scene, so a held focus knows whether the last walk
-    /// drew its alternate.
+    /// Counts resets of the walk (``beginSceneRender()``), so a held focus
+    /// knows whether the walk in progress, or the last one, drew its
+    /// alternate. Not a count of walks: the run loop resets twice before a
+    /// frame's first walk (`RenderLoop.beginRenderPass()` and the scene's own
+    /// reset), which is why a held focus is aged at the frame's end
+    /// (``endFrame()``) rather than here.
     private var walk = 0
 
     /// The focus a modified view held when an alternate replaced it.
@@ -78,14 +82,17 @@ package final class ModifierKeyMonitor {
     init() {}
 
     /// Forgets the last walk's observers and drawing; the walk about to start
-    /// registers its own. A held focus whose view drew nothing last walk has
-    /// left the scene, and goes too.
+    /// registers its own.
+    ///
+    /// Safe to call more than once before a walk, as the run loop does: it
+    /// drops no held focus (``endFrame()`` does, once a frame). Until
+    /// 2026-11-22 it dropped one its alternate had not drawn since the last
+    /// call, and the run loop's second call before a frame's walk dropped
+    /// every one on the alternate's second frame: the keys' release left the
+    /// focus where the recovery had put it (hunt H-22, FOCUS-2).
     func beginSceneRender() {
         observers.removeAll()
         drawnFrom = []
-        if !heldFocus.isEmpty {
-            heldFocus = heldFocus.filter { $0.value.touched >= walk }
-        }
         walk &+= 1
     }
 
@@ -117,11 +124,16 @@ package final class ModifierKeyMonitor {
             focusManager: focusManager, showsAlternate: showsAlternate, touched: walk)
     }
 
-    /// Ends a frame, once its focus pass has (`FocusManager.endRenderPass`):
-    /// a held focus whose alternate this frame drew for the first time takes
-    /// where the focus is now — where the recovery put it.
+    /// Ends a frame, once its focus pass has (`FocusManager.endRenderPass`).
+    ///
+    /// A held focus whose alternate the frame's last walk did not draw has
+    /// left the scene with its view, and goes: the walk drawn is the last
+    /// one, with no reset after it, so its count is still `walk`. One whose
+    /// alternate this frame drew for the first time takes where the focus is
+    /// now — where the recovery put it.
     package func endFrame() {
         guard !heldFocus.isEmpty else { return }
+        heldFocus = heldFocus.filter { $0.value.touched == walk }
         for (identity, held) in heldFocus where !held.landed {
             var landing = held
             landing.landedID = held.focusManager?.currentFocusedID

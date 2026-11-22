@@ -176,6 +176,30 @@ struct ModifierKeyAlternateTests {
         #expect(harness.focusManager.currentFocusedID == "forward")
     }
 
+    /// Through the run loop, which resets the walk's handlers twice before a
+    /// frame's first walk (`RenderLoop.beginRenderPass` and the scene's own):
+    /// the monitor counted resets as walks, and forgot the held focus on the
+    /// alternate's second frame.
+    @Test("The focus goes back through the run loop, whose frames reset twice", arguments: [1, 3])
+    func focusReturnsThroughTheRunLoop(framesHeld: Int) {
+        let app = TestApp(AlternateFocusApp(), width: 30, height: 6)
+        app.services.keyboardReporting = KeyboardReporting(flags: .requested)
+        var now: Int64 = 0
+        func frame() {
+            now += 16_666_667
+            app.frame(atNanos: now)
+        }
+        frame()
+        frame()
+        #expect(app.focusedID == "forward", "precondition")
+        app.services.modifierKeys.record(ModifierKeyState(option: true))
+        for _ in 0..<framesHeld { frame() }
+        #expect(app.focusedID == "other", "precondition: the recovery moves it off the hidden control")
+        app.services.modifierKeys.record(ModifierKeyState())
+        frame()
+        #expect(app.focusedID == "forward")
+    }
+
     @Test("A focus the user moved while the alternate showed stays where they put it")
     func movedFocusStays() {
         let harness = InputChainHarness(keyboard: .requested)
@@ -285,6 +309,20 @@ struct ModifierKeyAlternateTests {
 /// What a view's lifecycle hears, in order.
 final class AlternateLifecycleLog: @unchecked Sendable {
     var entries: [String] = []
+}
+
+/// Two buttons, the first with an alternate on Option that has no control of
+/// its own (`ModifierKeyAlternateTests.focusPage()`, as an app).
+struct AlternateFocusApp: App {
+    var body: some Scene {
+        WindowGroup {
+            VStack {
+                Button("Forward") {}.focusID("forward")
+                    .modifierKeyAlternate(.option) { Text("Go to…") }
+                Button("Other") {}.focusID("other")
+            }
+        }
+    }
 }
 
 /// A view with a lifecycle of its own, and an alternate on Option.

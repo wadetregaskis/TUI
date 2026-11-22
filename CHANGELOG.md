@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A modifier-key alternate gives the focus back in a running app.** Under the kitty keyboard protocol, with
+`Button("Forward") {}.modifierKeyAlternate(.option) { Text("Go to…") }` focused, holding Option for more than a frame
+and letting go left the focus on the control the alternate had moved it to, instead of returning it to "Forward". The
+run loop starts each frame's walk twice, and the held focus was aged by those starts rather than by frames, so it was
+forgotten on the second frame. The tests drove one start a frame and passed.
+
 **A negative `Grid` row spacing overlaps the rows; a negative column spacing is held at zero.**
 `Grid(verticalSpacing: -1)` drew its rows apart while reporting them overlapped, and every row's buttons after the
 first answered clicks a line above where they were drawn; the rows now overlap, the later on top, as a column's
