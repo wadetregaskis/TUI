@@ -211,38 +211,29 @@ passes again with those fixes in.
 6.4.2 (639 s, with `--build-system native`, as 6.4's default stops beside 6.3.3) all but two cost bounds that read the
 wall clock here (below).
 
-**In release** (2026-11-20, arm64): `swift build -c release`, as CI's macOS and Linux lanes build it, has no
-diagnostics on 6.2.4, 6.3.3 and 6.4.2 (8 to 11 minutes each). The suite in release with the invariant checks on
-(`parallel_test.py --release`, CI's release lanes on macOS and Linux) does not build on any of the three, each for a
-bug in the compiler that its internal checks catch. swift.org's Windows toolchains are built with those checks on
-(`6.3.3+Asserts`), its macOS and Linux ones without, so those lanes have never run them:
+**In release** (arm64): `swift build -c release`, as CI's macOS and Linux lanes build it, has no diagnostics on
+6.2.4, 6.3.3 and 6.4.2 (8 to 11 minutes each, 2026-11-20). The suite in release with the invariant checks on
+(`parallel_test.py --release`, CI's release lanes on macOS and Linux) builds and passes on all three since
+2026-11-22: 15,763 tests each, in 197 s (6.2.4), 168 s (6.3.3) and 147 s (6.4.2), 127 known issues. swift.org's
+Windows toolchains are built with the compiler's internal checks on (`6.3.3+Asserts`), its macOS and Linux ones
+without, so some of what it met had never shown on CI. Each has a standalone repro, to report upstream:
 
-- **6.2.4 and 6.3.3**: `Assertion failed: Entry->getType() == Type && "Value Type mismatch?"`
-  (`DeserializeSIL.cpp`, line 335 and 395), in `PerformanceSILLinker` while optimising `TUIApp`, deserializing
-  `View.sheet(isPresented:onDismiss:content:)` from `TUIPresentation`. `-enable-testing` alone sets it off (6.3.3,
-  `swift build -c release --target TUIApp -Xswiftc -enable-testing`); `-DTUI_TEST_SUPPORT` and `-DDEBUG` alone build.
-  After it, a second compile of 6.3.3's sat idle for 50 minutes, and the build with it, until stopped.
-- **6.4.2**: "Found ownership error?!" in `CopyPropagation` on `String.sanitizedForTerminal` (`TUICore`), a fatal
-  error. `-assert-config Debug` alone sets it off (`swift build -c release --build-system native --target TUICore
-  -Xswiftc -assert-config -Xswiftc Debug`), and turning the SIL verifier off (`-Xfrontend -sil-verify-none`, or
-  `-disable-sil-ownership-verifier`) does not get past it.
+| What | Toolchains | Worked round |
+|---|---|---|
+| "Value Type mismatch?" deserializing `View.sheet(isPresented:onDismiss:content:)`: a public function whose opaque result is a public function's, whose result is a private one's, breaks a client's cross-module optimisation | 6.2, 6.3 (a non-generic form, 6.4 too) | `modalPresentation` internal |
+| "Found ownership error?!" in CopyPropagation, with `-assert-config Debug`, on a loop keeping a `String.Index` and a flag | 6.4 | One optional index, in `sanitizedForTerminal`, `forEachVisibleANSIRun` and `forEachANSISegment` |
+| At `-O`, the thunk that starts a module's async `main` is specialised under a name the same in every module, so the test runner started the Example app | 6.2, 6.3, 6.4 | `--release` turns capture propagation off on Windows |
+| Binding a task-local whose value is a function crashes in `swift_task_localValuePush` at `-O` | 6.3 | `TaskLocalReporter`, a struct round the function |
+| "Sending 'x' risks causing data races" at `-O` only: a nested function's specialised copy loses its `@MainActor` | 6.2, 6.3 | `MainActorBox`, or `let` copies, in seven tests |
+| At `-O`, a `fileprivate` type the optimiser knows is named with its private discriminator | 6.2, 6.3 | A test's expected name taken from the runtime |
 
-Neither flag can go: `@testable import` needs the first, and the run is for the second. Tried, to work round them
-with a switch where that was not hard and cost nothing notable (the owner, 2026-11-20), and given up:
-
-- 6.2 and 6.3: `-Xfrontend -disable-cmo` loses to SwiftPM's own `-enable-default-cmo`, and `-Xllvm
-  -sil-disable-pass=performance-sil-linker` left the pass running. Nothing short of reshaping `View.sheet` for a
-  compiler's sake avoids it.
-- 6.4.2: copy propagation off (`-Xfrontend -enable-copy-propagation=false`) builds `TUICore`, and the build then
-  stops in `SemanticARCOpts` compiling `SwiftSyntax` ("Invalid SIL provided to OSSACompleteLifetime?!", on
-  `SyntaxProtocol.debugWrite`). With the ownership verifier off as well (`-disable-sil-ownership-verifier`, which that
-  message names), it stops lowering `TUIEnvironmentDocs` to SIL: "SIL verification failed: switch_enum default
-  destination must take no arguments", on a `switch` over a pair of `TUIEnvironmentVariable.CodeSetting`s. Each
-  crash also left a compile idle and the build waiting on it, until stopped. Three bugs deep, the switches stopped
-  short of a workaround and were taken back out.
-
-All of them are to be reported upstream, with these commands as the reproduction (the function alone, with what it
-calls, did not reduce quickly); the release suite runs on Windows once they are fixed.
+And two that weren't the compiler's: the ASCII renderers' throughput bounds timed a yardstick loop the optimiser moved
+or did once (it is unoptimised now), and with 6.4.2 one compile of the largest test module takes 5.9 GB, so a 16 GiB
+machine at one compile a core ran out, crashing the compiler somewhere new each time (`--build-jobs 2`). A crash
+in SemanticARCOpts compiling swift-syntax (6.4, "Invalid SIL provided to OSSACompleteLifetime?!") and one in
+CopyPropagation on an `unsafeAddress` read (all three) were met only with copy propagation off, or reducing, and
+TUI does not hit them. Nor is the "switch_enum default destination must take no arguments" failure a bug: it comes
+from `-disable-sil-ownership-verifier`, which fails on any code.
 
 **Windows's own settings** (2026-11-20). Foundation on Windows reads neither the user's languages nor their region:
 `Locale.preferredLanguages` is `["en-001"]` and `Locale.current` is `en_001` on a machine set to `en-US` (Swift 6.3.3),
@@ -326,8 +317,8 @@ Two things about the environment the runs needed:
 ## Still to do
 
 - **CI**: a run of every Windows step, then binding, per the ratchet (the owner, 2026-11-20: not binding yet).
-- **The release suite**: blocked on all three toolchains by compiler bugs that their assert-enabled Windows builds
-  catch ("The tests", "In release"); to report upstream.
+- **The compiler bugs** "In release" met, to report upstream, each with its repro; their workarounds come out
+  once a toolchain CI uses has the fix.
 - **What Windows has that TUI does not read yet** (a survey of the sources, 2026-11-20), each left for a reason:
   colour management in WIC's pictures, and APNG's frames (set aside, 2026-11-20); the display's scale in Windows
   Terminal, which says nothing of its cell; press-and-hold repeat, which no Windows setting governs (its keyboard
