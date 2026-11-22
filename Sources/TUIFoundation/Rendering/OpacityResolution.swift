@@ -628,6 +628,9 @@ extension FrameBuffer {
             // Read from the claim, not the substitute: a cycling region's phase
             // is an alpha the claim's frost stays under (§111).
             cell.frosts = region.frosts
+            // And whether it cycles, which the line and every frame both read: a
+            // picture under it is copied at the cycle's coarse levels in each.
+            cell.cycles = region.cycle != nil
             let from = max(columns.lowerBound, region.offsetX)
             let upTo = min(columns.upperBound, region.offsetX + region.width)
             guard from < upTo else { continue }
@@ -646,6 +649,7 @@ extension FrameBuffer {
                     // out — the topmost first.
                     result[index]?.painterFields.append(painted)
                     if cell.frosts { result[index]?.frosts = true }
+                    if cell.cycles { result[index]?.cycles = true }
                 }
                 continue
             }
@@ -667,6 +671,7 @@ extension FrameBuffer {
                 if accumulated.mode == .normal { accumulated.mode = cell.mode }
                 // A material anywhere in the stack frosts what is behind all of it.
                 accumulated.frosts = accumulated.frosts || cell.frosts
+                accumulated.cycles = accumulated.cycles || cell.cycles
                 result[index] = accumulated
             }
         }

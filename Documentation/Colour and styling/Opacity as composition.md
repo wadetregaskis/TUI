@@ -7955,3 +7955,41 @@ now carrying runs they did not have; `translucent/material` +0.8% [+0.1%, +1.2%]
 indistinguishable. The breath itself is the expensive part, and was before: 170 ms a frame against
 5.2 ms for the same page without it, every row rebuilt once per phase at every render (BLEND-7, hunt
 11-20 H-15).
+
+## 120. A picture under a repeating fade is copied at eight levels (2026-11-22)
+
+A repeating fade's frames are its rows rebuilt once per phase (§6b, §6b.1), by the same function that
+rebuilds the lines, and where the store is known a picture's cell in a rebuilt row asks it for a copy of the
+picture mixed by that phase (graphics notes §14.3; behind the fade, §14.2). The rows are the outer loop and the
+phases the inner, and the store keeps eight copies of a picture, the oldest pushed out. So a cycle with more
+levels than eight made every copy again on every row, each row's pushing out the row before's: one render of
+a 4-row picture under a 20-step breath (eleven levels) sent 24 copies, 31 under a breathing scrim, a 20-row
+picture under a 40-step ease some four hundred, each the picture's own pixels where those were kept. And the
+copies pushed out were deleted after the frame, so the frames of every row but the last, and the line itself,
+named pictures the terminal no longer had (hunt 11-20, BLEND-1, H-15). It was paid again at every render.
+
+**The rule.** Under a repeating fade's claim, a picture's copy mixes away one of `DerivedImages.limit` levels,
+from none to all in sevenths (`FrameBuffer.pictureFraction(_:in:)`), where a fade elsewhere mixes in 64ths. A
+cell knows it is under such a claim from the claims folded over it (`CellAlpha.cycles`, any covering claim's),
+which the line and every frame both read, so the line is copied at the same level as the frame at the step the
+render drew, and that frame is the line, cell for cell. A cycle's copies of one picture over one ground are
+then never more than the store keeps (the identity is a level too: a glyph over a picture asks for it), each is
+made once, the first render sends at most eight, a later render none, and every frame names a copy still held.
+
+The trade is in the picture: it fades in at most eight steps over the whole range where the text beside it
+fades smoothly; a breath from 1 to 0.3 is six of them.
+
+The two other answers BLEND-1 offered were weighed. Declining the cycle for a row that draws a picture and
+rendering it per frame instead, as an ordinary fade is, keeps one copy alive at a time but asks for one per
+frame: a breath has more levels than the store keeps, so every frame would send a whole copy of the picture,
+for as long as the page is up, where the frames send nothing. And building the steps outermost makes each
+level once per render, but with more than eight the copies the earlier steps made are still pushed out, and
+the frames that name them still name deleted pictures.
+
+Not covered: a picture over several grounds (a transparent picture over a gradient) is copied per ground at
+each level, as a still fade over it already is, and a breathing picture behind a sheet is copied by the fade
+and again by the veil (§14.4), sixteen copies against the eight kept.
+
+`DerivedImageTests` resolves a 4-row picture under a 20-step breath, inside the fade and behind a breathing
+scrim: before, 24 and 31 copies sent, and the frames named copies deleted after them (16 ids inside the fade);
+now one copy a level, at most eight, and none deleted.

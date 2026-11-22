@@ -26,6 +26,29 @@ extension FrameBuffer {
             ?? overPicture(behindCells, at: column, under: cell, alpha: alpha, images: images)
     }
 
+    /// How much of a picture's colour a copy mixes away, `fraction`, as the store
+    /// is asked for it under `alpha`: as it is, or, under a repeating fade, at the
+    /// nearest of `DerivedImages.limit` levels from none to all (hunt 11-20, H-15).
+    ///
+    /// A repeating fade is replayed from frames built for every phase of every row
+    /// it covers, at each render, and each frame's picture cells ask for a copy at
+    /// that phase: rows outermost, so with more levels than the store keeps of one
+    /// picture, each row made them all again and pushed out the row before's. One
+    /// render of a 20-row picture under a 40-step breath sent some four hundred
+    /// copies, and the frames of every row but the last named copies deleted after
+    /// it. At these levels a cycle's copies of one picture over one ground are never
+    /// more than the store keeps, the identity among them (a cell drawing a glyph
+    /// over it asks for that too): each is made once, and every frame, the line's
+    /// own at the drawn step included, names one still held. The line is copied at
+    /// the same levels as the frames, so the frame at the step the render drew is
+    /// the line, cell for cell. A picture fades in up to eight steps where text
+    /// beside it fades smoothly.
+    static func pictureFraction(_ fraction: Double, in alpha: CellAlpha) -> Double {
+        guard alpha.cycles else { return fraction }
+        let steps = Double(DerivedImages.limit - 1)
+        return (min(1, max(0, fraction)) * steps).rounded() / steps
+    }
+
     /// ``overPicture(_:under:alpha:images:)`` for the cell at `column` of
     /// `cells` — `nil` where there is no such cell, no alpha over it, or no
     /// store to draw a copy from. The one call `blendedSpan` makes per covered
@@ -53,7 +76,7 @@ extension FrameBuffer {
             let picture = KittyGraphics.placeholderCell(cell.character, foreground: ink)
         else { return nil }
         let ground = (behind?.background ?? surface).rgbComponents
-        let fraction = 1 - alpha.layer
+        let fraction = pictureFraction(1 - alpha.layer, in: alpha)
         let transform = ImageTransform(blurs: false, toward: ground ?? (0, 0, 0), fraction: fraction)
         // Unfaded, or over a ground with no colour to mix toward: the picture as it is.
         guard !transform.isIdentity, ground != nil else { return cell }
@@ -102,7 +125,8 @@ extension FrameBuffer {
         // alphas. A painter's field the cell shows is the cell's background.
         let painter = alpha.painterFields.first
         let field = (painter?.colour ?? cell.background)?.rgbComponents
-        let fraction = field == nil ? 0 : painter.map { $0.layer * $0.field } ?? alpha.layer * alpha.field
+        let fraction = pictureFraction(
+            field == nil ? 0 : painter.map { $0.layer * $0.field } ?? alpha.layer * alpha.field, in: alpha)
         let paintsGlyph = cell.character != " " || cell.style.paintsInkOnBlankCell
         let isBackdrop = images.isBackdrop(picture.id)
         let laysUnder = KittyGraphics.isPictureUnderTextSupported && (paintsGlyph || isBackdrop)

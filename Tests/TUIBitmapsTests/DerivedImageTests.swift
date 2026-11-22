@@ -16,6 +16,7 @@ import Testing
 @testable import TUICore
 @testable import TUIFoundation
 @testable import TUITestSupport
+@testable import TUIView
 
 @MainActor
 @Suite("Derived copies of a terminal picture")
@@ -28,11 +29,11 @@ struct DerivedImageTests {
             terminalColors: .unknown)
     }
 
-    /// A store holding one 4 × 2 picture, its pending escapes taken.
-    private func storeWithPicture() -> (TerminalImageStore, [String]) {
+    /// A store holding one 4 × `rows` picture, its pending escapes taken.
+    private func storeWithPicture(rows count: Int = 2) -> (TerminalImageStore, [String]) {
         let store = TerminalImageStore()
         let rows = store.placeholderRows(
-            token: "a", signature: signature("one"), columns: 4, rows: 2,
+            token: "a", signature: signature("one"), columns: 4, rows: count,
             pixels: { ([UInt8](repeating: 0x80, count: 8 * 8 * 4), .rgba, 8, 8) })
         _ = store.takePending()
         return (store, rows ?? [])
@@ -317,5 +318,49 @@ struct DerivedImageTests {
         let throughTheCopy = store.average(of: faded, by: veil).map { [$0.red, $0.green, $0.blue] }
         let fromThePicture = store.average(of: picture, by: fade.followed(by: veil)).map { [$0.red, $0.green, $0.blue] }
         #expect(throughTheCopy == fromThePicture)
+    }
+
+    /// A picture inside a repeating fade, or behind one, is replayed from frames
+    /// built for every phase of every row at each render. Each frame's cells asked
+    /// the store for a copy at that phase, rows outermost, so with more levels than
+    /// the store keeps of one picture each row made them all again, evicting the
+    /// last row's: about rows × levels transmits in one render, and frames naming
+    /// copies deleted after it (hunt 11-20, H-15). Under a cycle a picture's copy
+    /// is now taken at one of `DerivedImages.limit` levels, so the cycle's copies
+    /// fit the store and every frame names one it still holds.
+    @Test("A picture in or behind a repeating fade is copied once per level, and every frame names a copy still held",
+        arguments: [false, true])
+    func cyclingFadeOverPicture(behind: Bool) throws {
+        let (store, rows) = storeWithPicture(rows: 4)
+        // A 20-phase breath from 1 down to 0.3 and back, eleven levels, drawn at its fourth.
+        let phases = (0..<20).map { 1 - 0.07 * Double(min($0, 20 - $0)) }
+        let cycle = OpacityCycle(phases: phases, clock: .content)
+        let context = makeRenderContext(width: 4, height: 4)
+        let palette = context.environment.palette
+        let resolved: FrameBuffer
+        if behind {
+            var scrim = renderToBuffer(Color.rgb(0, 0, 255).opacity(0.5).frame(width: 4, height: 4), context: context)
+            // As `.opacity` stamps its cycle: on its rectangle and on the claim inside.
+            scrim.opacityRegions = OpacityFading.fading(
+                scrim.opacityRegions, by: phases[3], cycle: cycle, wholeOf: scrim, appendingRectangle: true)
+            resolved = FrameBuffer(lines: rows).compositedResolvingOpacity(
+                with: scrim, at: (x: 0, y: 0), palette: palette, images: store)
+        } else {
+            var page = FrameBuffer(lines: rows)
+            page.opacityRegions = [
+                OpacityRegion(offsetX: 0, offsetY: 0, width: 4, height: 4, opacity: phases[3], cycle: cycle)
+            ]
+            resolved = page.resolvingOpacity(surface: .rgb(10, 20, 30), palette: palette, images: store)
+        }
+        #expect(resolved.animatedCells.count == 4, "every row still replays its cycle")
+        let transmits = store.takePending().components(separatedBy: "a=t,q=2").count - 1
+        #expect(transmits <= DerivedImages.limit, "one copy per level, not per row")
+        let named = Set(
+            (resolved.lines + resolved.animatedCells.flatMap(\.frames)).flatMap(pictureCells).compactMap { $0?.id })
+        #expect(named.count > 1, "the frames draw copies")
+        let deletes = store.takeDeletes()
+        for id in named.sorted() {
+            #expect(!names(deletes, id), "image \(id), named by a frame, is still held")
+        }
     }
 }

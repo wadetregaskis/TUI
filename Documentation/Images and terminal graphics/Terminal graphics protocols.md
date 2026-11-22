@@ -1509,6 +1509,10 @@ pixels too, up to 4 MiB a picture, and makes an unblurred copy from them at
 the picture's own size. A larger picture fades from its small copy, soft
 rather than unbounded.
 
+Under a repeating fade the copies are taken at eight levels rather than in 64ths, so a cycle's copies fit the
+eight kept of a picture (2026-11-22, `Opacity as composition.md` §120): its frames are built for every phase at
+each render, and at 64ths they made each copy again on every row and named the ones they pushed out.
+
 ### 14.4 A picture behind a sheet, and copies of copies (2026-10-26)
 
 The modal veil rewrites the page's colours toward the overlay colour

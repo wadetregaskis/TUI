@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A picture inside a repeating fade, or behind one, keeps drawing.** On a terminal that draws pictures, a
+`repeatForever` `.opacity` breath over an `Image`, or a breathing scrim laid over one, sent a copy of the picture for
+every level of the breath on every row at each render, megabytes in one frame, and its frames named copies already
+deleted, so the picture vanished for most of the breath. A picture under a repeating fade now fades in eight steps,
+each copy is sent once, and every frame names one the terminal still holds.
+
 **A view with a fade of its own inside a repeating `.opacity` breathes with it.** In
 `VStack { Text("a"); Text("b").opacity(0.5) }.opacity(on ? 0.3 : 1)` under `.repeatForever`, `a` breathed and `b`
 stood still at whatever value the last render drew, jumping when anything else rendered. The same held for

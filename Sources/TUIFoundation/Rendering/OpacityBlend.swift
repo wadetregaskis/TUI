@@ -102,6 +102,12 @@ extension FrameBuffer {
         /// claim's, as for ``mode``.
         var linearLight = false
 
+        /// Whether a repeating fade's claim covers the cell (``OpacityRegion/cycle``):
+        /// any covering claim's. A picture there is copied at one of
+        /// `DerivedImages.limit` levels (`FrameBuffer.pictureFraction(_:in:)`), so
+        /// every phase of the cycle fits the copies the store keeps of it.
+        var cycles = false
+
         init(layer: Double, ink: Double = 1, field: Double = 1, mode: BlendMode = .normal) {
             self.layer = layer
             self.ink = ink
