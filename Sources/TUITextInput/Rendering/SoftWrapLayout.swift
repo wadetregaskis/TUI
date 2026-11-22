@@ -105,7 +105,7 @@ struct SoftWrapLayout: Equatable {
     ///   - width: The cells a row may draw on, the margin included.
     ///   - cellWidth: A character's width in cells. Called for every character
     ///     that is not a newline.
-    init(_ characters: [Character], width: Int, cellWidth: (Character) -> Int) {
+    init(_ characters: TextCharacters, width: Int, cellWidth: (Character) -> Int) {
         self.init(characters, width: width) { character, column in column + cellWidth(character) }
     }
 
@@ -120,7 +120,7 @@ struct SoftWrapLayout: Equatable {
     ///     ``TabLayout/advance(from:over:tabWidth:)``'s shape. Called for every
     ///     character that is not a newline, perhaps twice: once as the row
     ///     before it looks for where to break, and once on its own row.
-    init(_ characters: [Character], width: Int, advance: (_ character: Character, _ column: Int) -> Int) {
+    init(_ characters: TextCharacters, width: Int, advance: (_ character: Character, _ column: Int) -> Int) {
         let width = max(1, width)
         let budget = max(1, width - 1)
         var widths = [Int](repeating: 0, count: characters.count)
@@ -151,7 +151,7 @@ struct SoftWrapLayout: Equatable {
     /// of which ends the paragraph, writing each character's width on its own
     /// row into `widths`.
     private static func wrap(
-        _ characters: [Character], from start: Int, to end: Int, budget: Int,
+        _ characters: TextCharacters, from start: Int, to end: Int, budget: Int,
         advance: (Character, Int) -> Int, widths: inout [Int], into rows: inout [Row]
     ) {
         var rowStart = start
@@ -173,7 +173,7 @@ struct SoftWrapLayout: Equatable {
     /// Where the row starting at `start` ends: `end` when the rest of the
     /// paragraph fits, else the last place it may break.
     private static func rowBreak(
-        _ characters: [Character], from start: Int, to end: Int, budget: Int,
+        _ characters: TextCharacters, from start: Int, to end: Int, budget: Int,
         advance: (Character, Int) -> Int, widths: inout [Int]
     ) -> Int {
         var cells = 0  // the row's cells, not counting a run of spaces at its end

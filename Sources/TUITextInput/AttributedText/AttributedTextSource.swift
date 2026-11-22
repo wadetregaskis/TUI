@@ -173,7 +173,7 @@ final class AttributedTextSource {
             }
             let lower = text.characters.index(text.startIndex, offsetBy: start)
             let upper = text.characters.index(lower, offsetBy: end - start)
-            let inserted = replacement.replacement.map { String($0) }.joined(separator: layout.lineEnding)
+            let inserted = replacement.replacement.map(\.string).joined(separator: layout.lineEnding)
             text.replaceSubrange(lower..<upper, with: insertion(inserted, replacing: lower..<upper, in: text))
             // Held for the insertion after a selection's removal, and spent by it.
             if !inserted.isEmpty { (heldTypingAttributes, heldInsertion) = (nil, nil) }
@@ -198,7 +198,7 @@ final class AttributedTextSource {
             let lower = text.characters.index(taken, offsetBy: start - takenOffset)
             let upper = text.characters.index(lower, offsetBy: end - start)
             result.append(text[taken..<lower])
-            let inserted = replacement.replacement.map { String($0) }.joined(separator: layout.lineEnding)
+            let inserted = replacement.replacement.map(\.string).joined(separator: layout.lineEnding)
             result.append(insertion(inserted, replacing: lower..<upper, in: text))
             if !inserted.isEmpty { (heldTypingAttributes, heldInsertion) = (nil, nil) }
             (taken, takenOffset) = (upper, end)
@@ -337,7 +337,7 @@ final class AttributedTextSource {
 
     /// The character offset of `position` in `lines`, joined by one-character
     /// line breaks.
-    private static func offset(of position: TextEditorPosition, in lines: [[Character]]) -> Int {
+    private static func offset(of position: TextEditorPosition, in lines: [TextCharacters]) -> Int {
         lines[..<position.line].reduce(position.column) { $0 + $1.count + 1 }
     }
 }

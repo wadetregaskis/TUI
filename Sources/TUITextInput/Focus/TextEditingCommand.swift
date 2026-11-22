@@ -144,7 +144,9 @@ extension TextEditingCommand {
     /// This is a plain function of a character array and an index, like
     /// ``WordBoundary``, so it belongs to no one control: the editor passes one
     /// line, and a single-line field's whole text is a line too.
-    static func transpose(in line: inout [Character], at column: Int) -> Int? {
+    static func transpose<Line: MutableCollection & RandomAccessCollection<Character>>(
+        in line: inout Line, at column: Int
+    ) -> Int? where Line.Index == Int {
         guard line.count >= 2, column > 0 else { return nil }
         if column >= line.count {
             line.swapAt(line.count - 2, line.count - 1)
@@ -169,7 +171,9 @@ extension StandInEditingCommand {
     /// A plain function of a character array and an index, like
     /// ``TextEditingCommand/transpose(in:at:)``: the editor passes one line,
     /// and a field passes its text.
-    static func wordRuboutStart(in line: [Character], before column: Int, lineStart: Int = 0) -> Int {
+    static func wordRuboutStart<Line: RandomAccessCollection<Character>>(
+        in line: Line, before column: Int, lineStart: Int = 0
+    ) -> Int where Line.Index == Int {
         var start = min(column, line.count)
         while start > lineStart, line[start - 1].isWhitespace { start -= 1 }
         while start > lineStart, !line[start - 1].isWhitespace { start -= 1 }

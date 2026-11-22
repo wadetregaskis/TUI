@@ -18,7 +18,7 @@ extension TextFieldContentRenderer {
         let layout: SoftWrapLayout
 
         /// The characters ``layout`` laid out.
-        let characters: [Character]
+        let characters: TextCharacters
 
         /// Whether ``characters`` are the prompt's, drawn as a placeholder.
         let isPrompt: Bool
@@ -78,7 +78,7 @@ extension TextFieldContentRenderer {
                 return buildTextContent(text: "", palette: palette, background: surface, width: rows.width)
             }
             let row = layout.rows[index]
-            let text = String(rows.characters[row.start..<row.end])
+            let text = rows.characters.string(in: row.start..<row.end)
             if rows.isPrompt {
                 guard index == caretRow else {
                     return buildPromptContent(palette: palette, background: surface, width: rows.width, text: text)

@@ -350,7 +350,7 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     /// The bound text as per-line character arrays (always at least one line).
-    func readLines() -> [[Character]] {
+    func readLines() -> [TextCharacters] {
         layout().lines
     }
 
@@ -375,7 +375,7 @@ final class TextEditorHandler: PersistedFocusable {
     }
 
     /// The lines as drawn (``displayLayout()``).
-    func displayLines() -> [[Character]] {
+    func displayLines() -> [TextCharacters] {
         displayLayout().lines
     }
 
@@ -452,7 +452,7 @@ final class TextEditorHandler: PersistedFocusable {
 
     /// Whether `position` denotes a real place in `lines` (column may sit at
     /// the end-of-line insertion point).
-    private func isInBounds(_ position: TextEditorPosition, lines: [[Character]]) -> Bool {
+    private func isInBounds(_ position: TextEditorPosition, lines: [TextCharacters]) -> Bool {
         position.line >= 0 && position.line < lines.count
             && position.column >= 0 && position.column <= lines[position.line].count
     }
@@ -808,7 +808,7 @@ final class TextEditorHandler: PersistedFocusable {
         guard !normalized.isEmpty else { return }
         let inserted = normalized
             .split(separator: "\n", omittingEmptySubsequences: false)
-            .map { Array($0) }
+            .map { TextCharacters($0) }
 
         let line = readLines()[cursorLine]
         let caret = cursor
@@ -818,7 +818,7 @@ final class TextEditorHandler: PersistedFocusable {
         // put the caret a column late. The lines themselves are written as
         // their strings' characters (``EditorLayout/segmented(_:)``).
         if inserted.count == 1 {
-            let head = EditorLayout.segmented(Array(line[..<cursorColumn]) + inserted[0])
+            let head = EditorLayout.segmented(line.characters(in: 0..<cursorColumn) + inserted[0])
             cursorColumn = min(head.count, head.count + line.count - cursorColumn)
         } else {
             let head = inserted[inserted.count - 1]
@@ -951,13 +951,13 @@ final class TextEditorHandler: PersistedFocusable {
     /// See ``WordBoundary``, which `TextField` shares — the two used to
     /// disagree about the underscore. One column, where the text is hidden
     /// (``isSecure``), as a secure field's word motion goes.
-    private func wordBoundaryLeft(_ line: [Character], from column: Int) -> Int {
+    private func wordBoundaryLeft(_ line: TextCharacters, from column: Int) -> Int {
         isSecure ? max(0, column - 1) : WordBoundary.previous(in: line, from: column)
     }
 
     /// The column to the right of `column` at the next word boundary, or the
     /// next column where the text is hidden.
-    private func wordBoundaryRight(_ line: [Character], from column: Int) -> Int {
+    private func wordBoundaryRight(_ line: TextCharacters, from column: Int) -> Int {
         isSecure ? min(line.count, column + 1) : WordBoundary.next(in: line, from: column)
     }
 
@@ -1011,7 +1011,7 @@ final class TextEditorHandler: PersistedFocusable {
         let line = lines[cursorLine]
         if cursorColumn < line.count {
             // Hidden text is deleted, and none of it kept (``isSecure``).
-            if !isSecure { killRing = String(line[cursorColumn...]) }
+            if !isSecure { killRing = line.string(in: cursorColumn..<line.count) }
             writeReplacing([TextEditorReplacement(line: cursorLine, columns: cursorColumn..<line.count)])
         } else if cursorLine < lines.count - 1 {
             if !isSecure { killRing = "\n" }
@@ -1036,7 +1036,7 @@ final class TextEditorHandler: PersistedFocusable {
         // The two characters swapped, which end where the caret steps to.
         let swapped = (column - 2)..<column
         cursorColumn = column
-        writeReplacing([TextEditorReplacement(line: cursorLine, columns: swapped, with: Array(line[swapped]))])
+        writeReplacing([TextEditorReplacement(line: cursorLine, columns: swapped, with: line.characters(in: swapped))])
         syncDesiredColumn()
     }
 

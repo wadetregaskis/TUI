@@ -43,7 +43,7 @@ struct WrappedRows {
 
     /// Wraps `lines` at `width`, tabs reaching their stops from each row's
     /// start.
-    init(lines: [[Character]], width: Int, tabWidth: TabWidth) {
+    init(lines: [TextCharacters], width: Int, tabWidth: TabWidth) {
         self.width = max(1, width)
         var layouts: [SoftWrapLayout] = []
         layouts.reserveCapacity(lines.count)
@@ -59,7 +59,7 @@ struct WrappedRows {
 
     /// One line wrapped at `width`, tabs reaching their stops from each row's
     /// start.
-    private static func layout(of line: [Character], width: Int, tabWidth: TabWidth) -> SoftWrapLayout {
+    private static func layout(of line: TextCharacters, width: Int, tabWidth: TabWidth) -> SoftWrapLayout {
         SoftWrapLayout(line, width: width) { character, column in
             TabLayout.advance(from: column, over: character, tabWidth: tabWidth)
         }
@@ -86,7 +86,7 @@ struct WrappedRows {
     /// away: an edit's lines wrapped again, and no other
     /// (``EditorLayout/laidOut(_:reusingStorage:)``). In place, where the rows
     /// are this value's alone.
-    mutating func replaceLines(_ replaced: Range<Int>, with newLines: ArraySlice<[Character]>, tabWidth: TabWidth) {
+    mutating func replaceLines(_ replaced: Range<Int>, with newLines: ArraySlice<TextCharacters>, tabWidth: TabWidth) {
         // Only an unspaced wrapping is kept across an edit: its spaced rows
         // are made again from it (``spaced(by:)``).
         assert(gaps == nil, "an edit replaces the lines of unspaced rows")

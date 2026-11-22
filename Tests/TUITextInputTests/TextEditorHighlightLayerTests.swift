@@ -384,7 +384,7 @@ struct TextEditorHighlightLayerTests {
         let word = styles.index(of: Token.word, style: Self.style)
         _ = styles.adopt(EditorAttributedStyling(in: EnvironmentValues()))
         // a: byte 0; é: 1–2; 😀: 3–6; b: 7; c: 8.
-        let line = Array("aé😀bc")
+        let line = TextCharacters("aé😀bc")
         func columns(_ runs: [(Int, UInt16)]) -> [Range<Int>] {
             EditorHighlightRun.styledRuns(
                 runs.map { EditorHighlightRun(utf8Offset: $0.0, style: $0.1) }, in: line, styles: styles

@@ -108,7 +108,7 @@ struct FindMatchSetTests {
             let inserted = random.text(random.below(5), from: Self.alphabet)
             let replacement = TextEditorReplacement(
                 from: start, to: end,
-                with: inserted.split(separator: "\n", omittingEmptySubsequences: false).map { Array($0) })
+                with: inserted.split(separator: "\n", omittingEmptySubsequences: false).map { TextCharacters($0) })
             let (carried, after) = Self.carry(set, through: replacement)
             let fresh = FindMatchSet(query: query, options: options, text: after)
             if carried.utf8 != fresh.utf8 || carried.text != after {

@@ -42,7 +42,7 @@ struct EditorHighlightRun: Equatable, Sendable {
     /// it, and one past the line as its end. Walks the line only as far as
     /// the last run's start.
     static func styledRuns(
-        _ runs: [Self], in line: [Character], styles: EditorHighlightStyles
+        _ runs: [Self], in line: TextCharacters, styles: EditorHighlightStyles
     ) -> [EditorStyledRun] {
         guard !runs.isEmpty, !line.isEmpty else { return [] }
         var styled: [EditorStyledRun] = []
@@ -57,8 +57,8 @@ struct EditorHighlightRun: Equatable, Sendable {
         }
         for run in runs {
             floor = max(floor, Int(run.utf8Offset))
-            while column < line.count, byte + line[column].utf8.count <= floor {
-                byte += line[column].utf8.count
+            while column < line.count, byte + line.utf8Length(of: column) <= floor {
+                byte += line.utf8Length(of: column)
                 column += 1
             }
             close(at: column)

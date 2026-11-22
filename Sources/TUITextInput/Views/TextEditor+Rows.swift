@@ -21,7 +21,7 @@ extension _TextEditorCore {
     /// (``SoftWrapLayout/column(of:inRow:)``). A paragraph's line height's
     /// blank rows (``WrappedRows``) are drawn empty, in the well's field.
     func renderWrappedRows(
-        _ rows: WrappedRows, lines: [[Character]], handler: TextEditorHandler, height: Int,
+        _ rows: WrappedRows, lines: [TextCharacters], handler: TextEditorHandler, height: Int,
         tabWidth: TabWidth, caret: RowCaret?, styling: RowStyling
     ) -> (lines: [String], claims: [OpacityRegion], caret: AnimatedCellRun?) {
         var output: [String] = []
@@ -71,7 +71,7 @@ extension _TextEditorCore {
                 // The line's styles, in this row's columns.
                 let styles = EditorStyledRun.clipping(handler.styles(ofLine: line), toColumns: span.start, end)
                 rendered = styledRow(
-                    Array(lines[line][span.start..<end]), tabWidth: tabWidth, scrollColumn: 0, leadingCells: aligned,
+                    lines[line].characters(in: span.start..<end), tabWidth: tabWidth, scrollColumn: 0, leadingCells: aligned,
                     width: rows.width,
                     caret: top + screenRow == caretRow && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
@@ -106,7 +106,7 @@ extension _TextEditorCore {
     }
 
     func renderRows(
-        _ displayLines: [[Character]], handler: TextEditorHandler, width: Int, height: Int,
+        _ displayLines: [TextCharacters], handler: TextEditorHandler, width: Int, height: Int,
         tabWidth: TabWidth, caret: RowCaret?, styling: RowStyling
     ) -> (lines: [String], claims: [OpacityRegion], caret: AnimatedCellRun?) {
         var lines: [String] = []
@@ -351,7 +351,7 @@ extension _TextEditorCore {
     /// field. The caret's, the selection's and the matches' columns stay the
     /// line's own, and so do its tab stops.
     func styledRow(
-        _ chars: [Character], tabWidth: TabWidth, scrollColumn: Int, leadingCells: Int = 0, width: Int,
+        _ chars: TextCharacters, tabWidth: TabWidth, scrollColumn: Int, leadingCells: Int = 0, width: Int,
         caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styles: [EditorStyledRun] = [],
         styling: RowStyling
     ) -> RenderedRow {

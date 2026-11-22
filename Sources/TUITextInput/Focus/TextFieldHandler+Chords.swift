@@ -103,7 +103,7 @@ extension TextFieldHandler {
             let start = isSecure
                 ? max(wordBoundary(forward: false), lineKillStart())
                 : StandInEditingCommand.wordRuboutStart(
-                    in: Array(text.wrappedValue), before: cursorPosition, lineStart: lineKillStart())
+                    in: TextCharacters(text.wrappedValue), before: cursorPosition, lineStart: lineKillStart())
             killToStart(at: start)
         }
         return true
@@ -210,12 +210,12 @@ extension TextFieldHandler {
     @MainActor
     private func transpose() {
         clearSelection()
-        var characters = Array(text.wrappedValue)
+        var characters = TextCharacters(text.wrappedValue)
         guard let caret = TextEditingCommand.transpose(in: &characters, at: cursorPosition)
         else { return }
         resetSuggestionNavigation()
         pushUndoState()
-        if write(String(characters)) { cursorPosition = caret }
+        if write(characters.string) { cursorPosition = caret }
     }
 
     /// Ctrl-U: kills from `start` to the caret into ``killRing``, as one

@@ -65,8 +65,8 @@ enum TabLayout {
     /// Whether every character in `chars` occupies exactly one display cell
     /// (no tabs, no wide characters) — the fast-path predicate under which
     /// character index and display column coincide.
-    private static func isPlain(_ chars: [Character]) -> Bool {
-        !chars.contains { $0 == "\t" || $0.terminalWidth != 1 }
+    private static func isPlain(_ chars: TextCharacters) -> Bool {
+        chars.isPrintableASCII || !chars.contains { $0 == "\t" || $0.terminalWidth != 1 }
     }
 
     /// The display column after `character` when it begins at `column`: the
@@ -82,7 +82,7 @@ enum TabLayout {
     /// The display column at which the character at `charIndex` begins
     /// (`charIndex == chars.count` gives the line's total display width).
     static func displayColumn(
-        ofCharIndex charIndex: Int, in chars: [Character], tabWidth: TabWidth
+        ofCharIndex charIndex: Int, in chars: TextCharacters, tabWidth: TabWidth
     ) -> Int {
         guard !isPlain(chars) else { return min(charIndex, chars.count) }
         var column = 0
@@ -98,7 +98,7 @@ enum TabLayout {
     /// map to the end-of-line insertion point (`chars.count`), matching a
     /// click beyond the last character.
     static func charIndex(
-        forDisplayColumn displayColumn: Int, in chars: [Character], tabWidth: TabWidth
+        forDisplayColumn displayColumn: Int, in chars: TextCharacters, tabWidth: TabWidth
     ) -> Int {
         guard !isPlain(chars) else { return min(max(0, displayColumn), chars.count) }
         var column = 0

@@ -43,7 +43,7 @@ extension TextEditorHandler {
         let positions = layout().positions(ofUTF8: matches.flatMap { [$0.lowerBound, $0.upperBound] })
         let inserted = replacement.split(omittingEmptySubsequences: false) {
             $0 == "\n" || $0 == "\r\n" || $0 == "\r"
-        }.map { EditorLayout.segmented(Array($0)) }
+        }.map { TextCharacters($0) }
         let replacements = stride(from: matches.count - 1, through: 0, by: -1).map { index in
             TextEditorReplacement(from: positions[index * 2], to: positions[index * 2 + 1], with: inserted)
         }

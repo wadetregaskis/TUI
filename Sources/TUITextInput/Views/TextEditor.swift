@@ -688,7 +688,7 @@ struct _TextEditorCore: View, Renderable, Layoutable {
     /// more lines than the view has rows; what it wraps at stays in the
     /// layout, so it is not laid out again the next frame.
     private func window(
-        _ handler: TextEditorHandler, lines: [[Character]], width: Int, height: Int, tabWidth: TabWidth,
+        _ handler: TextEditorHandler, lines: [TextCharacters], width: Int, height: Int, tabWidth: TabWidth,
         wraps: Bool, follows: Bool, barWidth: Int
     ) -> Window {
         if let pulledTop {

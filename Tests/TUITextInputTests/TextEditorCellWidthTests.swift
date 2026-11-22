@@ -51,7 +51,7 @@ struct TextEditorCellWidthTests {
     func displayColumnCountsCells(line: String, charIndex: Int, interval: Int, expected: Int) {
         #expect(
             TabLayout.displayColumn(
-                ofCharIndex: charIndex, in: Array(line), tabWidth: .periodic(interval)) == expected)
+                ofCharIndex: charIndex, in: TextCharacters(line), tabWidth: .periodic(interval)) == expected)
     }
 
     @Test(
@@ -70,7 +70,7 @@ struct TextEditorCellWidthTests {
     func charIndexMapsCellSpans(line: String, displayColumn: Int, expected: Int) {
         #expect(
             TabLayout.charIndex(
-                forDisplayColumn: displayColumn, in: Array(line), tabWidth: .periodic(4)) == expected)
+                forDisplayColumn: displayColumn, in: TextCharacters(line), tabWidth: .periodic(4)) == expected)
     }
 
     // MARK: - Render: row geometry

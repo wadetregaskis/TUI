@@ -107,7 +107,7 @@ extension _TextEditorCore {
     /// whole width (it draws no bar), the caret followed across but not down
     /// — the scroll view follows it down.
     func pulledWindow(
-        _ handler: TextEditorHandler, top: Int, lines: [[Character]], width: Int, height: Int, tabWidth: TabWidth,
+        _ handler: TextEditorHandler, top: Int, lines: [TextCharacters], width: Int, height: Int, tabWidth: TabWidth,
         wraps: Bool, follows: Bool
     ) -> Window {
         guard wraps else {

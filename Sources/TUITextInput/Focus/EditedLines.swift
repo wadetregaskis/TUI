@@ -18,22 +18,22 @@
 /// and never written; the replacement holds the lines the edit reached.
 struct EditedLines {
     /// The lines before the edit.
-    let base: [[Character]]
+    let base: [TextCharacters]
     /// The lines of ``base`` the edit replaced.
     private(set) var replaced: Range<Int>
     /// What took their place: never all of the text's lines unless the edit
     /// replaced them all.
-    private(set) var replacement: [[Character]]
+    private(set) var replacement: [TextCharacters]
 
     /// `lines`, unedited.
-    init(_ lines: [[Character]]) {
+    init(_ lines: [TextCharacters]) {
         base = lines
         replaced = 0..<0
         replacement = []
     }
 
     /// `base` with `replaced` given way to `replacement`.
-    init(base: [[Character]], replacing replaced: Range<Int>, with replacement: [[Character]]) {
+    init(base: [TextCharacters], replacing replaced: Range<Int>, with replacement: [TextCharacters]) {
         self.base = base
         self.replaced = replaced
         self.replacement = replacement
@@ -47,7 +47,7 @@ struct EditedLines {
 
     /// Line `index`, from the replacement where the edit reached it and from
     /// the base elsewhere.
-    subscript(index: Int) -> [Character] {
+    subscript(index: Int) -> TextCharacters {
         if index < replaced.lowerBound { return base[index] }
         let inside = index - replaced.lowerBound
         if inside < replacement.count { return replacement[inside] }
@@ -56,9 +56,9 @@ struct EditedLines {
 
     /// Every line, as one array: what the lines were as an array, for an edit
     /// that is joined whole.
-    var array: [[Character]] {
+    var array: [TextCharacters] {
         if isUnedited { return base }
-        var lines: [[Character]] = []
+        var lines: [TextCharacters] = []
         lines.reserveCapacity(count)
         lines += base[..<replaced.lowerBound]
         lines += replacement
@@ -80,7 +80,7 @@ struct EditedLines {
         // it the base's moved by the difference the replacement makes.
         let baseLower = lower
         let baseUpper = isUnedited ? upper : upper - replacement.count + replaced.count
-        var window: [[Character]] = []
+        var window: [TextCharacters] = []
         window.reserveCapacity(upper - lower)
         for index in lower..<upper { window.append(self[index]) }
         TextEditorReplacement(
@@ -106,8 +106,8 @@ struct EditedLines {
     mutating func apply(descending edits: [TextEditorReplacement]) {
         guard let highest = edits.first, let lowest = edits.last else { return }
         precondition(isUnedited, "the edits are made on the lines unedited")
-        var window: [[Character]] = []
-        var current: [Character] = []
+        var window: [TextCharacters] = []
+        var current: TextCharacters = []
         // Where in the base the text not yet taken starts.
         var (line, column) = (lowest.start.line, lowest.start.column)
         current += base[line][..<column]

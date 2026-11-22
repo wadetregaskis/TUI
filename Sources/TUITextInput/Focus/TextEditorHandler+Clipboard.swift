@@ -84,7 +84,7 @@ extension TextEditorHandler {
     func killToStartOfLine() {
         clearSelection()
         guard cursorColumn > 0 else { return }
-        if !isSecure { killRing = String(readLines()[cursorLine][..<cursorColumn]) }
+        if !isSecure { killRing = readLines()[cursorLine].string(in: 0..<cursorColumn) }
         let end = cursorColumn
         cursorColumn = 0
         writeReplacing([TextEditorReplacement(line: cursorLine, columns: 0..<end)])
@@ -103,7 +103,7 @@ extension TextEditorHandler {
             ? max(0, cursorColumn - 1)
             : StandInEditingCommand.wordRuboutStart(in: lines[cursorLine], before: cursorColumn)
         guard start < cursorColumn else { return }
-        if !isSecure { killRing = String(lines[cursorLine][start..<cursorColumn]) }
+        if !isSecure { killRing = lines[cursorLine].string(in: start..<cursorColumn) }
         let end = cursorColumn
         cursorColumn = start
         writeReplacing([TextEditorReplacement(line: cursorLine, columns: start..<end)])
@@ -236,11 +236,11 @@ extension TextEditorHandler {
         let (start, end) = clamped(span, in: lines)
         if start.line == end.line {
             let line = lines[start.line]
-            return String(line[min(start.column, end.column)..<max(start.column, end.column)])
+            return line.string(in: min(start.column, end.column)..<max(start.column, end.column))
         }
-        var parts = [String(lines[start.line][start.column...])]
-        parts += lines[(start.line + 1)..<end.line].map { String($0) }
-        parts.append(String(lines[end.line][..<end.column]))
+        var parts = [lines[start.line].string(in: start.column..<lines[start.line].count)]
+        parts += lines[(start.line + 1)..<end.line].map(\.string)
+        parts.append(lines[end.line].string(in: 0..<end.column))
         return parts.joined(separator: "\n")
     }
 }

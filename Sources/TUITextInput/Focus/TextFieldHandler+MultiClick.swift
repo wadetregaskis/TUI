@@ -39,7 +39,7 @@ extension TextFieldHandler {
     /// also joins letters across a full stop (`abc.def`); TUI's word is
     /// ``WordBoundary``'s, which Option-arrows already use.
     func range(of granularity: TextSelectionGranularity, around offset: Int) -> Range<Int> {
-        let characters = Array(text.wrappedValue)
+        let characters = TextCharacters(text.wrappedValue)
         switch granularity {
         case .word where isSecure:
             return 0..<characters.count

@@ -182,8 +182,8 @@ extension EditorHighlightEdit {
         if edit.replaced.count == edit.replacement.count {
             for line in edit.replaced where window.contains(line) {
                 carried[line] = EditorLineShift(
-                    from: before.lines[line].lazy.flatMap(\.utf8),
-                    to: edit.lines[line - edit.replaced.lowerBound].lazy.flatMap(\.utf8))
+                    from: before.lines[line].string.utf8,
+                    to: edit.lines[line - edit.replaced.lowerBound].string.utf8)
             }
         }
         if carryingMarks { marks = EditorMarkEdit(edit, from: before) }

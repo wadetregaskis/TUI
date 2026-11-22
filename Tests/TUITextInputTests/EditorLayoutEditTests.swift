@@ -22,19 +22,19 @@ import Testing
 struct EditorLayoutEditTests {
     /// The edit of `layout`'s lines to `newLines`, every line given as
     /// replaced, so the scans for what changed run from the ends.
-    private static func replacing(_ layout: EditorLayout, with newLines: [[Character]]) -> EditorLayout.Edit? {
+    private static func replacing(_ layout: EditorLayout, with newLines: [TextCharacters]) -> EditorLayout.Edit? {
         layout.replacing(EditedLines(base: layout.lines, replacing: 0..<layout.lines.count, with: newLines))
     }
 
     /// `lines` joined, as the editor wrote every edit before.
-    private static func joined(_ lines: [[Character]], _ ending: String) -> String {
+    private static func joined(_ lines: [TextCharacters], _ ending: String) -> String {
         lines.map { String($0) }.joined(separator: ending)
     }
 
     /// Checks the edit of `text` to `newLines` against the layout of the
     /// joined text made afresh: its text, its lines' starts in bytes and in
     /// characters, and its rows at two widths.
-    private func check(_ text: String, _ edit: ([[Character]]) -> [[Character]], _ comment: Comment) throws {
+    private func check(_ text: String, _ edit: ([TextCharacters]) -> [TextCharacters], _ comment: Comment) throws {
         let before = EditorLayout(text: text)
         let wrapped = [before.wrapped(width: 7, tabWidth: .periodic(4)), before.wrapped(width: 3, tabWidth: .periodic(4))]
         #expect(wrapped.count == 2)
@@ -88,10 +88,10 @@ struct EditorLayoutEditTests {
     func randomEditsMatchARebuild(ending: String) throws {
         let pieces: [Character] = ["a", "b", " ", "é", "e\u{301}", "🇦🇺", "\t", "語"]
         var random = SplitMix(state: UInt64(ending.utf8.reduce(0) { $0 &* 31 &+ Int($1) }))
-        func line(_ max: Int) -> [Character] {
-            (0..<Int.random(in: 0...max, using: &random)).map { _ in pieces.randomElement(using: &random)! }
+        func line(_ max: Int) -> TextCharacters {
+            TextCharacters((0..<Int.random(in: 0...max, using: &random)).map { _ in pieces.randomElement(using: &random)! })
         }
-        func position(in lines: [[Character]]) -> TextEditorPosition {
+        func position(in lines: [TextCharacters]) -> TextEditorPosition {
             // The ends a third of the time each way: where an edit is likeliest wrong.
             let roll = Int.random(in: 0..<6, using: &random)
             if roll == 0 { return TextEditorPosition(line: 0, column: 0) }

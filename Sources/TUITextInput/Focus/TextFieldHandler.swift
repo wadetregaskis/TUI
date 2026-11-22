@@ -1074,7 +1074,7 @@ extension TextFieldHandler {
         if isSecure {
             return forward ? min(cursorPosition + 1, count) : max(cursorPosition - 1, 0)
         }
-        let characters = Array(text.wrappedValue)
+        let characters = TextCharacters(text.wrappedValue)
         return forward
             ? WordBoundary.next(in: characters, from: cursorPosition)
             : WordBoundary.previous(in: characters, from: cursorPosition)

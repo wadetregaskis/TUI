@@ -275,7 +275,7 @@ struct TextEditorMarkTests {
                 palette: rig.context.environment.palette, isDisabled: false, background: nil)
             let row = TextEditorHighlightLayerTests.cells(
                 core.styledRow(
-                    Array("one two one"), tabWidth: rig.context.environment.tabWidth, scrollColumn: 0, width: 20,
+                    TextCharacters("one two one"), tabWidth: rig.context.environment.tabWidth, scrollColumn: 0, width: 20,
                     caret: nil, selection: 4..<7, matches: rig.handler.findColumns(ofLine: 0),
                     styles: rig.handler.styles(ofLine: 0), styling: styling
                 ).line)
@@ -350,7 +350,7 @@ struct TextEditorMarkTests {
         let before = EditorLayout(text: "abc\ndef\nghi")
         func edit(_ line: Int, to new: String) -> EditorMarkEdit? {
             var lines = EditedLines(before.lines)
-            lines.apply(TextEditorReplacement(line: line, columns: 0..<before.lines[line].count, with: Array(new)))
+            lines.apply(TextEditorReplacement(line: line, columns: 0..<before.lines[line].count, with: TextCharacters(new)))
             return before.replacing(lines).map { EditorMarkEdit($0, from: before) }
         }
         #expect(edit(1, to: "dXef") == EditorMarkEdit(start: 5, oldEnd: 5, newEnd: 6))

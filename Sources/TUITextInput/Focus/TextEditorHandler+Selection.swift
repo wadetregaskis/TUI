@@ -94,7 +94,7 @@ extension TextEditorHandler {
     /// `span` clamped into `lines`: each end on a real line, at a real column.
     /// A corrupt span's clamped columns can come out inverted on one line;
     /// the callers order them.
-    func clamped(_ span: SelectionSpan, in lines: [[Character]]) -> SelectionSpan {
+    func clamped(_ span: SelectionSpan, in lines: [TextCharacters]) -> SelectionSpan {
         let startLine = min(max(0, span.start.line), lines.count - 1)
         let endLine = min(max(0, span.end.line), lines.count - 1)
         return (

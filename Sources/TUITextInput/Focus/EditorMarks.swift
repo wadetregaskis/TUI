@@ -297,7 +297,7 @@ struct EditorMarkStore {
     /// The runs `marks`, a line's in UTF-8 offsets from its start, are drawn
     /// in, in `styles`, in the line's columns: a mark stated later drawn over
     /// one before it. The app's marks' and a highlighter's (B-ATTRED-59).
-    static func runs(of marks: [EditorMark], inLine line: [Character], styles: EditorHighlightStyles) -> [EditorStyledRun] {
+    static func runs(of marks: [EditorMark], inLine line: TextCharacters, styles: EditorHighlightStyles) -> [EditorStyledRun] {
         var runs: [EditorStyledRun] = []
         for (mark, columns) in zip(marks, columns(of: marks.map(\.utf8), in: line)) where !columns.isEmpty {
             guard var run = styles.style(mark.style) else { continue }
@@ -332,7 +332,7 @@ struct EditorMarkStore {
     /// `ranges`, UTF-8 offsets into `line`, as its columns, in one walk of
     /// the line as far as the last: a start inside a character takes in the
     /// character, and so does an end; past the line, its end.
-    static func columns(of ranges: [Range<Int>], in line: [Character]) -> [Range<Int>] {
+    static func columns(of ranges: [Range<Int>], in line: TextCharacters) -> [Range<Int>] {
         guard !ranges.isEmpty else { return [] }
         // Each end, starts before ends at one offset.
         var bounds: [(offset: Int, slot: Int)] = []
@@ -348,14 +348,14 @@ struct EditorMarkStore {
         var (column, byte, previous) = (0, 0, 0)
         for (offset, slot) in bounds {
             if slot & 1 == 0 {
-                while column < line.count, byte + line[column].utf8.count <= offset {
-                    (previous, byte, column) = (byte, byte + line[column].utf8.count, column + 1)
+                while column < line.count, byte + line.utf8Length(of: column) <= offset {
+                    (previous, byte, column) = (byte, byte + line.utf8Length(of: column), column + 1)
                 }
                 // An end before it, inside one character, walked past it.
                 columns[slot] = byte > offset && previous <= offset ? column - 1 : column
             } else {
                 while column < line.count, byte < offset {
-                    (previous, byte, column) = (byte, byte + line[column].utf8.count, column + 1)
+                    (previous, byte, column) = (byte, byte + line.utf8Length(of: column), column + 1)
                 }
                 columns[slot] = column
             }

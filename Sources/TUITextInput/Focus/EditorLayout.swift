@@ -25,7 +25,7 @@ final class EditorLayout {
 
     /// Its lines, as characters, a newline between each and the next. Never
     /// empty: an empty text is one empty line.
-    private(set) var lines: [[Character]]
+    private(set) var lines: [TextCharacters]
 
     /// The line ending separator detected from the text ("\n", "\r\n", or "\r").
     let lineEnding: String
@@ -65,13 +65,13 @@ final class EditorLayout {
         Self.buildReporter?()
         let parts = text.split(omittingEmptySubsequences: false, whereSeparator: {
             $0 == "\n" || $0 == "\r\n" || $0 == "\r"
-        }).map { Array($0) }
+        }).map { TextCharacters($0) }
         self.init(text: text, lines: parts)
     }
 
     /// The layout of `text`, whose lines the caller already has — the editor's
     /// own edit, written as these lines joined.
-    init(text: String, lines: [[Character]], lineEnding: String? = nil) {
+    init(text: String, lines: [TextCharacters], lineEnding: String? = nil) {
         let breaks = Self.lineBreaks(in: text)
         self.text = text
         self.lines = lines.isEmpty ? [[]] : lines
@@ -84,7 +84,7 @@ final class EditorLayout {
     /// A layout made by ``laidOut(_:reusingStorage:)``, with its parts
     /// worked out there.
     private init(
-        text: String, lines: [[Character]], lineEnding: String, lineStarts: [Int], characterStarts: [Int]
+        text: String, lines: [TextCharacters], lineEnding: String, lineStarts: [Int], characterStarts: [Int]
     ) {
         self.text = text
         self.lines = lines
@@ -146,7 +146,7 @@ final class EditorLayout {
 
     /// Where each of `lines` starts, in characters, a line break between each
     /// and the next.
-    private static func characterStarts(of lines: [[Character]]) -> [Int] {
+    private static func characterStarts(of lines: [TextCharacters]) -> [Int] {
         var starts: [Int] = []
         starts.reserveCapacity(lines.count)
         var next = 0
@@ -173,7 +173,7 @@ extension EditorLayout {
         let replaced: Range<Int>
         let replacement: Range<Int>
         /// The lines in ``replacement``, each as its string's characters.
-        let lines: [[Character]]
+        let lines: [TextCharacters]
         /// Where they start in the text, in bytes and in characters.
         fileprivate let lineStarts: [Int]
         fileprivate let characterStarts: [Int]
@@ -246,7 +246,7 @@ extension EditorLayout {
             span = lineStarts[replaced.lowerBound]..<lineStarts[replaced.upperBound]
             firstStart = span.lowerBound
             for line in newLines {
-                let utf8 = String(line).utf8
+                let utf8 = line.string.utf8
                 lengths.append(utf8.count)
                 bytes += utf8
                 bytes += ending
@@ -261,7 +261,7 @@ extension EditorLayout {
             firstStart = span.lowerBound
             for (index, line) in newLines.enumerated() {
                 if index > 0 { bytes += ending }
-                let utf8 = String(line).utf8
+                let utf8 = line.string.utf8
                 lengths.append(utf8.count)
                 bytes += utf8
             }
@@ -270,7 +270,7 @@ extension EditorLayout {
             span = total..<total
             firstStart = total + ending.count
             for line in newLines {
-                let utf8 = String(line).utf8
+                let utf8 = line.string.utf8
                 lengths.append(utf8.count)
                 bytes += ending
                 bytes += utf8
@@ -388,28 +388,15 @@ extension EditorLayout {
     /// line put the caret, and the next character typed, between them: the
     /// accent went to the "Y" typed after the "e". An insertion's characters
     /// merge as they are typed, as the string's own do.
-    static func segmented(_ line: [Character]) -> [Character] {
-        Array(String(line))
+    static func segmented(_ line: TextCharacters) -> TextCharacters {
+        line.segmented()
     }
 
-    /// Whether two lines are the same characters, byte for byte: at once where
-    /// they share storage, as the lines an edit left alone do. Not `==`, which
-    /// takes canonically equivalent characters for one.
-    private static func same(_ a: [Character], _ b: [Character]) -> Bool {
-        guard a.count == b.count else { return false }
-        // The closures' pointer types are unsafe before Swift 6.4, and not
-        // from it, which warns of an `unsafe` with nothing unsafe in it.
-        #if compiler(>=6.4)
-            let shared = a.withUnsafeBufferPointer { x in
-                b.withUnsafeBufferPointer { y in unsafe x.baseAddress == y.baseAddress }
-            }
-        #else
-            let shared = unsafe a.withUnsafeBufferPointer { x in
-                unsafe b.withUnsafeBufferPointer { y in unsafe x.baseAddress == y.baseAddress }
-            }
-        #endif
-        if shared { return true }
-        return zip(a, b).allSatisfy { $0.utf8.elementsEqual($1.utf8) }
+    /// Whether two lines are the same characters, byte for byte
+    /// (``TextCharacters/hasSameBytes(as:)``). Not `==`, which takes
+    /// canonically equivalent characters for one.
+    private static func same(_ a: TextCharacters, _ b: TextCharacters) -> Bool {
+        a.hasSameBytes(as: b)
     }
 }
 
@@ -450,8 +437,7 @@ extension EditorLayout: TextCharacterOffsets {
         guard offset <= characterOffset(of: TextEditorPosition(line: lines.count - 1, column: .max)) else {
             return text.endIndex
         }
-        let line = lines[position.line]
-        let bytes = line[..<position.column].reduce(0) { $0 + $1.utf8.count }
+        let bytes = lines[position.line].utf8Offset(of: position.column)
         return text.utf8.index(text.utf8.startIndex, offsetBy: lineStarts[position.line] + bytes)
     }
 
@@ -467,7 +453,7 @@ extension EditorLayout: TextCharacterOffsets {
             if found != line { (line, column, byte) = (found, 0, lineStarts[found]) }
             let characters = lines[line]
             while column < characters.count, byte < offset {
-                byte += characters[column].utf8.count
+                byte += characters.utf8Length(of: column)
                 column += 1
             }
             positions.append(TextEditorPosition(line: line, column: column))

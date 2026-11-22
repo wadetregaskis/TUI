@@ -192,7 +192,7 @@ struct RichTextEditorTests {
         // Characters the app replaced: laid out afresh, and the history forgotten.
         text.value = AttributedString("new")
         _ = drawn.render()
-        #expect(drawn.handler.readLines() == [Array("new")])
+        #expect(drawn.handler.readLines() == [TextCharacters("new")])
     }
 
     @Test("The selection is written as the caret moves and after every edit, and the app's moves the caret")

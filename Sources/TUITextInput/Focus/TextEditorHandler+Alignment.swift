@@ -63,7 +63,7 @@ extension TextEditorHandler {
     /// its paragraph's alignment within the editor's width less the caret's
     /// margin, where the line fits in that; none where it does not, which
     /// scrolls as any long line does.
-    func alignmentCells(ofLine line: Int, characters: [Character]) -> Int {
+    func alignmentCells(ofLine line: Int, characters: TextCharacters) -> Int {
         guard let width = sidewaysWidth, let alignment = paragraphAlignment(ofLine: line), alignment != .leading
         else { return 0 }
         let cells = TabLayout.displayColumn(ofCharIndex: characters.count, in: characters, tabWidth: tabWidth)
@@ -74,7 +74,7 @@ extension TextEditorHandler {
     /// The character of `line` of `lines` (as drawn) whose cells hold
     /// `column` across an editor that scrolls sideways, unscrolled: after the
     /// line's alignment, the column the vertical keys keep.
-    func characterIndex(atColumn column: Int, inLine line: Int, of lines: [[Character]]) -> Int {
+    func characterIndex(atColumn column: Int, inLine line: Int, of lines: [TextCharacters]) -> Int {
         let aligned = alignmentCells(ofLine: line, characters: lines[line])
         return TabLayout.charIndex(forDisplayColumn: max(0, column - aligned), in: lines[line], tabWidth: tabWidth)
     }

@@ -27,11 +27,11 @@ struct EditedLinesTests {
 
     private static let pieces: [Character] = ["a", "b", " ", "é", "e\u{301}", "🇦🇺", "\t", "語"]
 
-    private static func line(_ max: Int, _ random: inout SplitMix) -> [Character] {
-        (0..<Int.random(in: 0...max, using: &random)).map { _ in pieces.randomElement(using: &random)! }
+    private static func line(_ max: Int, _ random: inout SplitMix) -> TextCharacters {
+        TextCharacters((0..<Int.random(in: 0...max, using: &random)).map { _ in pieces.randomElement(using: &random)! })
     }
 
-    private static func position(in lines: [[Character]], _ random: inout SplitMix) -> TextEditorPosition {
+    private static func position(in lines: [TextCharacters], _ random: inout SplitMix) -> TextEditorPosition {
         // The ends a third of the time each way: where an edit is likeliest wrong.
         let roll = Int.random(in: 0..<6, using: &random)
         if roll == 0 { return TextEditorPosition(line: 0, column: 0) }
@@ -43,8 +43,8 @@ struct EditedLinesTests {
     /// One to four replacements, each on the lines the one before left — a
     /// block's rows last first among them — as the editor makes them.
     private static func replacements(
-        in lines: [[Character]], _ random: inout SplitMix
-    ) -> (made: [TextEditorReplacement], lines: [[Character]]) {
+        in lines: [TextCharacters], _ random: inout SplitMix
+    ) -> (made: [TextEditorReplacement], lines: [TextCharacters]) {
         var lines = lines
         var made: [TextEditorReplacement] = []
         for _ in 0..<Int.random(in: 1...4, using: &random) {
@@ -124,7 +124,7 @@ struct EditedLinesTests {
         let edit = try #require(layout.replacing(edited))
         let after = layout.laidOut(edit, reusingStorage: true)
         #expect(after.text == "one\nXtwo\nthree")
-        let empty: [[Character]] = [[]]
+        let empty: [TextCharacters] = [[]]
         #expect(layout.text.isEmpty)
         #expect(layout.lines == empty)
         #expect(layout.lineStarts == [0])

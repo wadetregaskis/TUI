@@ -125,7 +125,7 @@ extension TextEditorHandler {
     func blockText(_ block: TextEditorBlock) -> String {
         let lines = readLines()
         return blockSpans(block)
-            .map { String(lines[$0.line][$0.characters]) }
+            .map { lines[$0.line].string(in: $0.characters) }
             .joined(separator: "\n")
     }
 

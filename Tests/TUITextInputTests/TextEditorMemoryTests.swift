@@ -71,6 +71,10 @@ struct TextEditorMemoryTests {
         _ = await Self.measure("lines alone ([[Character]])", lines: lines) {
             text.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "\n" }).map { Array($0) }
         }
+        // What the editor holds them as since EDMEM-1, beside the shape it replaced.
+        _ = await Self.measure("lines alone ([TextCharacters])", lines: lines) {
+            text.split(omittingEmptySubsequences: false, whereSeparator: { $0 == "\n" }).map { TextCharacters($0) }
+        }
         _ = await Self.measure("EditorLayout(text:)", lines: lines) { EditorLayout(text: text) }
         let layout = EditorLayout(text: text)
         _ = await Self.measure("WrappedRows at 79 cells", lines: lines) {

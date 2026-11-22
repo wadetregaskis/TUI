@@ -43,7 +43,7 @@ extension TextEditorHandler {
     /// of line break, its lines joined afresh.
     private enum LinesEdit {
         case spliced(EditorLayout.Edit)
-        case joined([[Character]])
+        case joined([TextCharacters])
     }
 
     /// Makes `replacements` in an ``EditedLines`` over the layout's lines,
@@ -115,8 +115,8 @@ extension TextEditorHandler {
 
     /// Writes `lines` joined by `ending`: an edit of a text with more than
     /// one kind of line break, which writes each as `ending`.
-    private func writeJoined(_ lines: [[Character]], ending: String) {
-        let joined = lines.map { String($0) }.joined(separator: ending)
+    private func writeJoined(_ lines: [TextCharacters], ending: String) {
+        let joined = lines.map(\.string).joined(separator: ending)
         write(joined)
         // The lines just written are the layout of the text just written —
         // unless the binding kept something else (one that transforms what it

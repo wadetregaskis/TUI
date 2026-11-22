@@ -15,7 +15,7 @@ import Testing
 
 /// The layout of `text` at `width`, one cell per character but for CJK.
 private func layout(_ text: String, width: Int) -> SoftWrapLayout {
-    SoftWrapLayout(Array(text), width: width) { max(1, $0.terminalWidth) }
+    SoftWrapLayout(TextCharacters(text), width: width) { max(1, $0.terminalWidth) }
 }
 
 /// Each row's characters, as strings.
@@ -117,7 +117,7 @@ struct SoftWrapLayoutTests {
 
     /// Tabs to stops every four cells, as the editor lays them out.
     private func tabbed(_ text: String, width: Int) -> SoftWrapLayout {
-        SoftWrapLayout(Array(text), width: width) { character, column in
+        SoftWrapLayout(TextCharacters(text), width: width) { character, column in
             TabLayout.advance(from: column, over: character, tabWidth: .periodic(4))
         }
     }
@@ -146,7 +146,7 @@ struct SoftWrapLayoutTests {
     /// to a stop 300 cells out is 300 cells, not 255.
     @Test("A character 255 cells wide or wider keeps its width")
     func wideCellsKeepTheirWidth() {
-        let layout = SoftWrapLayout(Array("\tab"), width: 1_000) { character, column in
+        let layout = SoftWrapLayout(TextCharacters("\tab"), width: 1_000) { character, column in
             TabLayout.advance(from: column, over: character, tabWidth: .periodic(300))
         }
         #expect(layout.cellWidths == [300, 1, 1])

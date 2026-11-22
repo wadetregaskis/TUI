@@ -6,7 +6,7 @@ editor's keys and caret, the find bar, Ctrl-U, a drag selection kept to a
 bordered container, rich-text editing, and what a key costs in a large
 document. Ids: B62 to B65, B62-FULLER, B63-CTRLJ, B63-KITTY, B-D4X-10 to 12,
 B-D4X-16, D4X-FULLER, B81, A-TEXT2-1, B-TEXT2-1, B-TEXT2-2, TEXT2-INTERIOR,
-A42, A42-Q8, EDITOR-SPLICE.*
+A42, A42-Q8, EDITOR-SPLICE, EDITOR-FIRST, EDMEM-1.*
 
 ## In short
 
@@ -44,8 +44,8 @@ B65's several ranges, after A42's first stage; A42 itself.
 
 ## For a future reader
 
-- **A key in a large `TextEditor` costs its lines, not the document** (EDITOR-SPLICE, 2026-11-15, below); what is
-  left of the per-character storage is listed there.
+- **A key in a large `TextEditor` costs its lines, not the document** (EDITOR-SPLICE, 2026-11-15, below), and its
+  lines are held as UTF-8, not as arrays of `Character` (EDMEM-1, 2026-11-22, below).
 - **Every `NSTextContentType` is spelled**, free-text types filter nothing, and a `TextEditor` filters as a field does (B-PARITYMISC-2, below).
 
 ## The record
@@ -684,7 +684,7 @@ only the part before the caret, which places the caret, so a typed key walks
 the line's characters as often as it did.
 
 **Left open:** the text is still held as lines of `Character`s, 16 bytes a
-character, beside the string; an editor keeping its text as the string's
+character, beside the string (held as UTF-8 since EDMEM-1, below); an editor keeping its text as the string's
 UTF-8 and its lines as offsets would take that to the line starts alone, and
 the lines' array copy with it. That is a redesign of every edit in
 `TextEditorHandler`, which index lines of `Character`s throughout, and is not
@@ -727,3 +727,60 @@ indistinguishable.
 comparisons and copies every line into a `[Character]`; building the lines
 from the line starts `lineBreaks(in:)` already finds, decoding each line's
 bytes once, would make it cheaper (the feedback's second suggestion).
+
+### EDMEM-1. An editor's lines are UTF-8, not arrays of `Character` (2026-11-22)
+
+*`TextCharacters`, `EditorLayout.lines`, `EditedLines`, `TextEditorReplacement`, `SoftWrapLayout`, `TabLayout`*
+
+A 10 MB JSON document of 353 thousand lines cost its `TextEditor` about 240 MB
+of heap, 680 bytes a line, and 491 of them were the line held as a
+`[Character]`: 16 bytes a character, in an array of its own, beside the
+`String` the binding holds. The owner (2026-11-22): text content is never held
+as a collection of `Character`; a few characters (a shortcut, a mnemonic) may
+be.
+
+**The design.** A line is a `TextCharacters`: its UTF-8 in one native
+`String` (no allocation of its own up to 15 bytes, the string's own storage
+past that), and, only where some character is more than one byte, a `UInt32`
+a character saying where each starts. An ASCII line is indexed by its bytes,
+O(1); any other by its table, O(1) too. It conforms to
+`RandomAccessCollection`, `MutableCollection` and `RangeReplaceableCollection`
+with `Int` indices and `Character` elements, so the editor's code, which
+indexes lines by character throughout, reads it as it read the array.
+
+- **It is the array, not the string.** The table is a partition of the bytes
+  into the characters the line was made of, not the string's own grapheme
+  breaks: "e" with a combining acute appended stays two characters, as two
+  array elements did, until `segmented()` (what `EditorLayout.segmented(_:)`
+  calls) splits the bytes as the string does. So every edit leaves exactly
+  the characters, the counts and the caret columns the arrays left, and the
+  joined-character fix of 2026-11-17 keeps working as it did.
+- **The table is built when the line is made**, not on first use: the
+  editor indexes a line as soon as it draws or moves through it, a lazy table
+  would need a class box or a mutating read, and a line of ASCII, the common
+  case, is told by one pass of its bytes and keeps none.
+- **Strings are taken from the bytes, not rebuilt from characters**: a line's
+  text, a span's (the kill ring, a copy, a row of a vertical field), and a
+  column's UTF-8 offset (`utf8Offset(of:)`, which an index into the text and a
+  find match's column need) are a slice of the storage.
+- **The vertical `TextField`** lays its text out from a `TextCharacters` too,
+  in place of the `[Character]` it made for every measure, render and key.
+  The helpers both controls share (`WordBoundary`, transpose, word rubout)
+  take any random-access collection of characters indexed from 0.
+
+**Measured** with `TextEditorMemoryTests` (`TUI_EDITOR_MEMORY=1,10`, a debug
+build, the heap malloc's zones hold after each), the JSON-like document of
+about 30 bytes a line:
+
+| Held, per line | 1 MB before | 1 MB after | 10 MB before | 10 MB after |
+|---|---|---|---|---|
+| `EditorLayout(text:)` | 450.9 B | 97.8 B | 518.1 B | 108.1 B |
+| `TextEditor`, first frame | 506.4 B | 344.9 B | 665.5 B | 290.5 B |
+| `TextEditor` highlighted, first publish | 700.6 B | 201.1 B | 713.9 B | 266.7 B |
+
+The editor's 10 MB document went from about 224 MB to about 98 MB. Each
+figure is one run of a heap that frees and reuses as it goes, so they move a
+few tens of bytes from run to run; the layout's 410 bytes a line saved is the
+size the design predicted. What a first frame holds now is mostly its
+wrapping (`WrappedRows`, 183.6 bytes a line at 79 cells: a `SoftWrapLayout`
+a line, its rows and its widths in arrays of their own), unchanged here.

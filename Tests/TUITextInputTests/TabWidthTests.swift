@@ -24,21 +24,21 @@ struct TabLayoutTests {
 
     @Test("Periodic tabs snap to the next multiple of the interval")
     func periodicSnapping() {
-        let line = Array("ab\tX")
+        let line = TextCharacters("ab\tX")
         // Tab starts at column 2 → next multiple of 4 is 4 → X at column 4.
         #expect(TabLayout.displayColumn(ofCharIndex: 3, in: line, tabWidth: .periodic(4)) == 4)
     }
 
     @Test("A tab starting exactly on a stop advances a full interval")
     func tabOnStopAdvancesFullInterval() {
-        let line = Array("abcd\tX")
+        let line = TextCharacters("abcd\tX")
         // Tab starts at column 4 (a stop) → advances to 8, not 4.
         #expect(TabLayout.displayColumn(ofCharIndex: 5, in: line, tabWidth: .periodic(4)) == 8)
     }
 
     @Test("Fixed tabs always advance the same number of cells")
     func fixedAdvance() {
-        let line = Array("ab\tX\tY")
+        let line = TextCharacters("ab\tX\tY")
         // ab(2) + tab(2) → X at 4; X(1) + tab(2) → Y at 7.
         #expect(TabLayout.displayColumn(ofCharIndex: 3, in: line, tabWidth: .fixed(2)) == 4)
         #expect(TabLayout.displayColumn(ofCharIndex: 5, in: line, tabWidth: .fixed(2)) == 7)
@@ -46,7 +46,7 @@ struct TabLayoutTests {
 
     @Test("Any display column within a tab's span maps to the tab character")
     func clickWithinTabSpanHitsTheTab() {
-        let line = Array("a\tX")  // a=col 0, tab spans 1..<4, X at 4
+        let line = TextCharacters("a\tX")  // a=col 0, tab spans 1..<4, X at 4
         for column in 1...3 {
             #expect(
                 TabLayout.charIndex(forDisplayColumn: column, in: line, tabWidth: .periodic(4)) == 1,
@@ -59,7 +59,7 @@ struct TabLayoutTests {
 
     @Test("Tab-free lines are the identity (fast path)")
     func tabFreeIdentity() {
-        let line = Array("hello")
+        let line = TextCharacters("hello")
         #expect(TabLayout.displayColumn(ofCharIndex: 3, in: line, tabWidth: .periodic(4)) == 3)
         #expect(TabLayout.charIndex(forDisplayColumn: 3, in: line, tabWidth: .periodic(4)) == 3)
     }

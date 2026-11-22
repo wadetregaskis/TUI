@@ -64,9 +64,9 @@ extension TextFieldHandler {
     /// (``isSecure``), a glyph a character with its line breaks kept, so the
     /// rows the keys move by break where the drawn mask does
     /// (``redactedDisplay(_:keepingLineBreaks:)``), not where a hidden word does.
-    private var layoutCharacters: [Character] {
-        guard isSecure else { return Array(text.wrappedValue) }
-        return text.wrappedValue.map { $0.isNewline ? $0 : TerminalSymbols.maskBullet }
+    private var layoutCharacters: TextCharacters {
+        guard isSecure else { return TextCharacters(text.wrappedValue) }
+        return TextCharacters(text.wrappedValue.lazy.map { $0.isNewline ? $0 : TerminalSymbols.maskBullet })
     }
 
     /// Scrolls a vertical field showing `rowCount` rows by `delta` of them,
@@ -235,7 +235,7 @@ extension TextFieldHandler {
     /// The offset where the caret's line starts: just after the newline before
     /// the caret, or the start of the text.
     private func lineStart() -> Int {
-        let characters = Array(text.wrappedValue)
+        let characters = TextCharacters(text.wrappedValue)
         var offset = min(cursorPosition, characters.count)
         while offset > 0, !characters[offset - 1].isNewline { offset -= 1 }
         return offset
@@ -244,7 +244,7 @@ extension TextFieldHandler {
     /// The offset where the caret's line ends: at the newline after the caret,
     /// or the end of the text.
     private func lineEnd() -> Int {
-        let characters = Array(text.wrappedValue)
+        let characters = TextCharacters(text.wrappedValue)
         var offset = min(cursorPosition, characters.count)
         while offset < characters.count, !characters[offset].isNewline { offset += 1 }
         return offset

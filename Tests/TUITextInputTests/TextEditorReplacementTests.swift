@@ -47,14 +47,15 @@ struct TextEditorReplacementTests {
 
     @Test("The lines a replacement does not reach keep their storage")
     func untouchedLinesShareStorage() {
-        let before = EditorLayout(text: "alpha\nbeta\ngamma").lines
+        // Past 15 bytes, so each line's string has storage of its own.
+        let before = EditorLayout(text: "alpha alpha alpha alpha\nbeta\ngamma gamma gamma gamma").lines
         var after = before
         TextEditorReplacement(line: 1, columns: 0..<1).apply(to: &after)
         for index in [0, 2] {
-            let shared = before[index].withUnsafeBufferPointer { old in
-                after[index].withUnsafeBufferPointer { new in unsafe old.baseAddress == new.baseAddress }
+            let shared = before[index].string.utf8.withContiguousStorageIfAvailable { old in
+                after[index].string.utf8.withContiguousStorageIfAvailable { new in unsafe old.baseAddress == new.baseAddress }
             }
-            #expect(shared, "line \(index)")
+            #expect(shared == true, "line \(index)")
         }
     }
 

@@ -52,7 +52,9 @@ package enum WordBoundary {
     /// input selects. At the end of the text it is the run before, as a
     /// double-click past the last word selects that word; a line break is a
     /// run of its own, as `NSTextView` selects one alone (macOS 15.8).
-    package static func run(in characters: [Character], around index: Int) -> Range<Int> {
+    package static func run<Characters: RandomAccessCollection<Character>>(
+        in characters: Characters, around index: Int
+    ) -> Range<Int> where Characters.Index == Int {
         guard !characters.isEmpty else { return 0..<0 }
         let index = min(max(0, index), characters.count - 1)
         guard !characters[index].isNewline else { return index..<(index + 1) }
@@ -72,7 +74,9 @@ package enum WordBoundary {
     ///
     /// From the start of a word this lands on the start of the PREVIOUS word,
     /// which is what makes repeated Option-Left walk backwards a word at a time.
-    package static func previous(in characters: [Character], from index: Int) -> Int {
+    package static func previous<Characters: RandomAccessCollection<Character>>(
+        in characters: Characters, from index: Int
+    ) -> Int where Characters.Index == Int {
         var position = min(index, characters.count)
         while position > 0, !isWordCharacter(characters[position - 1]) { position -= 1 }
         while position > 0, isWordCharacter(characters[position - 1]) { position -= 1 }
@@ -81,7 +85,9 @@ package enum WordBoundary {
 
     /// The index of the end of the word at or after `index`: skip any separator
     /// run, then the word run.
-    package static func next(in characters: [Character], from index: Int) -> Int {
+    package static func next<Characters: RandomAccessCollection<Character>>(
+        in characters: Characters, from index: Int
+    ) -> Int where Characters.Index == Int {
         var position = max(0, index)
         while position < characters.count, !isWordCharacter(characters[position]) {
             position += 1

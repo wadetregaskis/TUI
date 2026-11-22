@@ -22,9 +22,9 @@ struct TextEditorReplacement: Equatable {
     let end: TextEditorPosition
     /// What takes their place, as lines: one more than it has line breaks,
     /// so never empty, and `[[]]` for a deletion.
-    let replacement: [[Character]]
+    let replacement: [TextCharacters]
 
-    init(from start: TextEditorPosition, to end: TextEditorPosition, with replacement: [[Character]] = [[]]) {
+    init(from start: TextEditorPosition, to end: TextEditorPosition, with replacement: [TextCharacters] = [[]]) {
         self.start = start
         self.end = end
         self.replacement = replacement.isEmpty ? [[]] : replacement
@@ -32,7 +32,7 @@ struct TextEditorReplacement: Equatable {
 
     /// Replaces the characters from `start` to `end` of one line with
     /// `characters`.
-    init(line: Int, columns: Range<Int>, with characters: [Character] = []) {
+    init(line: Int, columns: Range<Int>, with characters: TextCharacters = []) {
         self.init(
             from: TextEditorPosition(line: line, column: columns.lowerBound),
             to: TextEditorPosition(line: line, column: columns.upperBound), with: [characters])
@@ -53,9 +53,9 @@ struct TextEditorReplacement: Equatable {
     /// line, then the replacement's lines, then the text after ``end`` on
     /// its line. The lines it does not reach keep their storage, which is
     /// how ``EditorLayout/replacing(_:)`` tells them unchanged at once.
-    func apply(to lines: inout [[Character]]) {
+    func apply(to lines: inout [TextCharacters]) {
         var spliced = replacement
-        spliced[0] = Array(lines[start.line][..<start.column]) + spliced[0]
+        spliced[0] = lines[start.line].characters(in: 0..<start.column) + spliced[0]
         spliced[spliced.count - 1] += lines[end.line][end.column...]
         lines.replaceSubrange(start.line...end.line, with: spliced)
     }

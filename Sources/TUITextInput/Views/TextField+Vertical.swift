@@ -37,7 +37,7 @@ extension _TextFieldCore {
     /// is empty — its prompt, which the field grows to fit as SwiftUI's does,
     /// spelled as the context spells a `Text` (``RenderContext/textSpelling``).
     /// What was typed keeps its own characters.
-    private func verticalSource(in context: RenderContext) -> (characters: [Character], isPrompt: Bool) {
+    private func verticalSource(in context: RenderContext) -> (characters: TextCharacters, isPrompt: Bool) {
         let string = text.wrappedValue
         // Redacted, the text is a glyph a character and the prompt a skeleton
         // (``TextFieldHandler/redactedDisplay(_:keepingLineBreaks:)``), laid out
@@ -45,18 +45,18 @@ extension _TextFieldCore {
         let reasons = context.environment.effectiveRedactionReasons
         guard string.isEmpty, prompt != nil else {
             guard let hidden = TextFieldHandler.redactedDisplay(reasons, keepingLineBreaks: true) else {
-                return (Array(string), false)
+                return (TextCharacters(string), false)
             }
-            return (string.map(hidden), false)
+            return (TextCharacters(string.lazy.map(hidden)), false)
         }
         let promptText = TextFieldContentRenderer.promptParagraphs(prompt, spelling: context.textSpelling)
-        return (Array(reasons.redacting(promptText)), true)
+        return (TextCharacters(reasons.redacting(promptText)), true)
     }
 
     /// The layout of `source` in a field `contentWidth` cells wide inside its
     /// caps, less the `▾` when it draws one.
     private func verticalLayout(
-        _ source: [Character], contentWidth: Int, hasDisclosure: Bool
+        _ source: TextCharacters, contentWidth: Int, hasDisclosure: Bool
     ) -> SoftWrapLayout {
         let textWidth = hasDisclosure ? max(minContentWidth, contentWidth - 2) : contentWidth
         return SoftWrapLayout(source, width: textWidth, cellWidth: TextFieldHandler.verticalCellWidth)
