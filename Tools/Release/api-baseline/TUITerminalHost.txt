@@ -56,6 +56,8 @@ TerminalClient.Program.termProgramName | var termProgramName: String? { get }
 TerminalClient.Program.tmux | case tmux
 TerminalClient.Program.unidentified | case unidentified
 TerminalClient.Program.warp | case warp
+TerminalClient.Program.windowsConsole | case windowsConsole
+TerminalClient.Program.windowsTerminal | case windowsTerminal
 TerminalClient.Program.xtermJS | case xtermJS
 TerminalClient.Signal | enum Signal
 TerminalClient.Signal.deviceAttributes | case deviceAttributes

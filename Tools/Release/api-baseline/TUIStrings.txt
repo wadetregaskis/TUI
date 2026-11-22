@@ -233,6 +233,7 @@ LocalizationKey.StatusBar.menuPopUp | case menuPopUp
 LocalizationKey.StatusBar.move | case move
 LocalizationKey.StatusBar.notCopiedHelperFailed | case notCopiedHelperFailed
 LocalizationKey.StatusBar.notCopiedNoClipboard | case notCopiedNoClipboard
+LocalizationKey.StatusBar.notCopiedTooLarge | case notCopiedTooLarge
 LocalizationKey.StatusBar.open | case open
 LocalizationKey.StatusBar.openMenu | case openMenu
 LocalizationKey.StatusBar.pasteWithTerminal | case pasteWithTerminal

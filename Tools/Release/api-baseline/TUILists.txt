@@ -188,6 +188,7 @@ RowReorderFeedback.live | case live
 RowShortcuts | struct RowShortcuts
 RowShortcuts.default | static let `default`: RowShortcuts
 RowShortcuts.hint(for:commandKey:) | func hint(for action: RowAction, commandKey: CommandKeyBinding = .control) -> String?
+RowShortcuts.hint(for:on:commandKey:) | func hint(for action: RowAction, on terminal: TerminalCapabilities, commandKey: CommandKeyBinding = .control) -> String?
 RowShortcuts.init(_:) | init(_ overrides: [RowAction : ShortcutSet] = [:])
 RowShortcuts.overrides | let overrides: [RowAction : ShortcutSet]
 RowShortcuts.shortcuts(for:commandKey:) | func shortcuts(for action: RowAction, commandKey: CommandKeyBinding = .control) -> [KeyboardShortcut]

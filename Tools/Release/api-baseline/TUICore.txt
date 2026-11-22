@@ -181,6 +181,10 @@ Character.terminalWidth | var terminalWidth: Int { get }
 Character.tmuxCursorAdvance | var tmuxCursorAdvance: Int { get }
 Character.unidentifiedHostCursorAdvance | var unidentifiedHostCursorAdvance: Int { get }
 Character.warpCursorAdvance | var warpCursorAdvance: Int { get }
+Character.windowsConsoleCells | var windowsConsoleCells: Int { get }
+Character.windowsConsoleCursorAdvance | var windowsConsoleCursorAdvance: Int { get }
+Character.windowsConsoleRespelling | var windowsConsoleRespelling: Character? { get }
+Character.windowsTerminalCursorAdvance | var windowsTerminalCursorAdvance: Int { get }
 Character.xtermJSCursorAdvance | var xtermJSCursorAdvance: Int { get }
 CustomAnimation | protocol CustomAnimation : Hashable, Sendable
 CustomAnimation.animate(value:time:context:) | nonisolated func animate<V>(value: V, time: TimeInterval, context: inout AnimationContext<V>) -> V? where V : VectorArithmetic
@@ -570,6 +574,8 @@ String.withSkinToneFallback(scope:) | func withSkinToneFallback(scope: String.Sk
 String.withTerminalAppCursorCompensation() | func withTerminalAppCursorCompensation() -> String
 String.withTmuxCursorCompensation() | func withTmuxCursorCompensation() -> String
 String.withWarpCursorCompensation() | func withWarpCursorCompensation() -> String
+String.withWindowsConsoleCursorCompensation() | func withWindowsConsoleCursorCompensation() -> String
+String.withWindowsTerminalCursorCompensation() | func withWindowsTerminalCursorCompensation() -> String
 String.withXtermJSCursorCompensation() | func withXtermJSCursorCompensation() -> String
 SystemZlib.compress(_:level:) | static func compress(_ bytes: [UInt8], level: Int32 = 6) -> [UInt8]?
 SystemZlib.isAvailable | static var isAvailable: Bool { get }
