@@ -5,8 +5,8 @@ What it took for TUI to be fully supported on Windows, which the owner made a 1.
 It was the starting point for the session that did it, on a Windows VM, and is the record it kept as it went, as
 [WebAssembly port.md](<WebAssembly port.md>) is for that port. **Windows is supported since 2026-11-20**, and the
 docs say so: what an app's author needs to know is the Running on Windows article
-(`Sources/TUI/TUI.docc/Articles/RunningOnWindows.md`). What is left is "Still to do": a real logoff, and CI's
-Windows jobs made binding, which waits for them to pass there (the owner, 2026-11-20: not binding yet).
+(`Sources/TUI/TUI.docc/Articles/RunningOnWindows.md`). What is left is "Still to do": CI's Windows jobs made
+binding, which waits for them to pass there (the owner, 2026-11-20: not binding yet).
 
 ## Where it stands (2026-11-20, on the VM)
 
@@ -150,7 +150,7 @@ code, which is unchanged. What each piece became, and why:
 | `write(2)` to stdout | `WriteFile` on the standard output handle | The C library's descriptor 1 is in text mode and would turn each line feed into CR LF |
 | `TIOCGWINSZ` | `GetConsoleScreenBufferInfo`'s window | The buffer is often far taller than the window; the pixel fields have no counterpart, so the cell's pixel size falls back to its default, as on a terminal that reports zeros |
 | `SIGINT`, `SIGTERM`, `SIGHUP` | `SetConsoleCtrlHandler`: `CTRL_C_EVENT` (sent, or the key outside raw mode), `CTRL_CLOSE_EVENT`, logoff and shutdown set `shouldShutdown`; for the last three the handler waits up to 5 s for the teardown, as the system ends the process when it returns, and the teardown leaves the handler installed (with nothing to route to) while it runs | An orderly quit, as on POSIX. Taking the handler out waits for every running handler to return, so the teardown stalled there and was ended after 5 s, closing conhost's window or Windows Terminal's (measured 2026-11-21, a probe logging each step of the teardown); it now ends in 25 ms. But logoff and shutdown never come: the system does not send them to a process that has loaded `user32.dll` (`SetConsoleCtrlHandler`'s documentation), and the clipboard and the shell's opener load it (the Example has it loaded, 2026-11-18) |
-| The same, for a logoff or a shutdown | A hidden top-level window on a thread of its own (`SessionEndWatch`): `WM_QUERYENDSESSION` answered yes, and `WM_ENDSESSION` for a session that is ending sets `shouldShutdown` and waits up to 5 s for the teardown | How the system tells a process with `user32.dll` loaded; a message-only window gets no broadcast. Tested by sending the window the messages; a real logoff is unmeasured |
+| The same, for a logoff or a shutdown | A hidden top-level window on a thread of its own (`SessionEndWatch`): `WM_QUERYENDSESSION` answered yes, and `WM_ENDSESSION` for a session that is ending sets `shouldShutdown` and waits up to 5 s for the teardown | How the system tells a process with `user32.dll` loaded; a message-only window gets no broadcast. Tested by sending the window the messages, and by a real logoff (2026-11-21, a probe app logging each step, in conhost and in Windows Terminal): both quit in order. In conhost the window's shutdown did it; in Windows Terminal the tab's `CTRL_CLOSE_EVENT` came 90 ms after `WM_ENDSESSION` and did it first. The system seems to send `WM_ENDSESSION` to a process's windows one after another: in conhost this window heard it 5 s late, once the probe's own window had waited its 5 s |
 | Job control | None | Nothing suspends a Windows process from its console; ⌃Z is a key |
 | A hand-off ignoring `SIGINT` and `SIGQUIT`, as `system(3)` does | While the console is handed over, both handlers take ⌃C and Ctrl-Break and do nothing (`SignalManager.isHandingOff`) | The console raises them in every process sharing it, the app included: ⌃C shut the app down when the program returned, and Ctrl-Break ended it |
 | `posix_spawn` for `handOffTerminal(running:)` | `CreateProcessW` in the app's console, no handles inherited, waited on; its exit code is the ending, as there are no signals | The program shares the console as a POSIX one shares the foreground group |
@@ -325,8 +325,6 @@ Two things about the environment the runs needed:
 
 ## Still to do
 
-- **A real logoff or shutdown**: the hidden window that hears of one is tested only by sending it the messages, as
-  logging the session off would end the test with it. Worth a run in a virtual machine.
 - **CI**: a run of every Windows step, then binding, per the ratchet (the owner, 2026-11-20: not binding yet).
 - **The release suite**: blocked on all three toolchains by compiler bugs that their assert-enabled Windows builds
   catch ("The tests", "In release"); to report upstream.

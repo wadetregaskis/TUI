@@ -208,7 +208,7 @@ passes, and the Example runs in Windows Terminal and in the classic console (con
 hosts (the terminal survey's "Windows Terminal and the classic console"). What an app's author needs to know is in
 the Running on Windows article (`Sources/TUI/TUI.docc/Articles/RunningOnWindows.md`);
 [`Documentation/Windows port.md`](<Documentation/Windows port.md>) is the record of the port, with what each piece
-of the console layer became and why, and what is left: a real logoff, and CI's Windows jobs made binding.
+of the console layer became and why, and what is left: CI's Windows jobs made binding.
 
 The CI job is a **ratchet**: every step says for itself whether it is allowed
 to fail, so the job as a whole promises exactly *"everything that builds on
