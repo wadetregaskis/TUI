@@ -63,6 +63,24 @@ struct TooltipAlwaysTests {
         #expect(panels(buffer).count == 3, "one per help: \(panels(buffer).count)")
     }
 
+    /// The panel is wrapped against the screen, not against the control: an
+    /// `HStack` (a toolbar run, a fixed frame) offers a button only its own
+    /// width, and wrapped at that, "Save the document to disk" was a column of
+    /// fragments four cells wide. A `VStack` offers its own width, which is
+    /// why `everyPanelDraws` never saw it.
+    @Test("A help in an HStack is wrapped to the screen, not to its button")
+    func panelInARowIsNotWrappedToItsControl() {
+        let h = harness(trigger: .always)
+        let view = HStack { Button("Save") {}.help("Save the document to disk") }
+        let found = panels(renderToBuffer(view, context: h.context))
+        #expect(found.count == 1, "one panel: \(found.count)")
+        let rows = found.first?.content.lines.map(\.stripped) ?? []
+        #expect(rows.count == 3, "top, one text row, bottom: \(rows)")
+        #expect(
+            rows.contains { $0.contains("Save the document to disk") },
+            "the sentence on one row: \(rows)")
+    }
+
     /// …and `.automatic` draws none of them without a hover or the help key, which
     /// is what makes the count above mean something.
     @Test("Under .automatic nothing draws unprompted")

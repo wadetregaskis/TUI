@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A popover tooltip is no longer wrapped to the width of its control.** Help on a view in an `HStack`, a toolbar or a
+fixed `.frame(width:)` was wrapped at the few cells the view was given, so `Button("Save") {}.help("Save the document
+to disk")` in a row showed its help a word or a fragment per row, and Help ▸ Show All Tooltips (Shift-F1) did so for
+every toolbar button. The panel now wraps to the terminal's width, capped at 44 cells as before.
+
 **A scroll view that draws its content twice in a frame reports only what the second drawing shows.** When a scroll
 view drew its content again in the same frame (a seek whose measure turned out wrong, a focus reveal), the rows only
 the first drawing had drawn were reported anyway: an `onGeometryChange` asking `.scrollView` was told where a row the

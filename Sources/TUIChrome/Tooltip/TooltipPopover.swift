@@ -37,7 +37,9 @@ import TUIStyling
 /// uses of it, and rule 4 is explicitly ranked below 1–3 by the design. The
 /// panel wraps to a fixed sensible width and takes the placement the shared rule
 /// gives it. A tooltip in the way is dismissed by moving the pointer, or by the
-/// help key if it was revealed by one.
+/// help key if it was revealed by one. "Fixed" means the screen's width capped
+/// at ``maxTextWidth``, never the control's: a control's own width is often
+/// what its parent offered it, and a button's is a few cells.
 ///
 /// ## Many panels at once
 ///
@@ -62,7 +64,7 @@ enum TooltipPopover {
     /// - Parameters:
     ///   - text: The help text.
     ///   - buffer: The control's own buffer — the anchor.
-    ///   - context: The render context, for the palette and the available width.
+    ///   - context: The render context, for the palette and the screen's width.
     ///   - peerRank: For a panel drawn as one of a set (`.tooltips(.always)`),
     ///     its ``OverlayLayer/PeerPlacement/rank``: the root then places it
     ///     among the others rather than where it would go alone. `nil` for the
@@ -70,7 +72,14 @@ enum TooltipPopover {
     static func attach(
         text: String, to buffer: inout FrameBuffer, context: RenderContext, peerRank: Int? = nil
     ) {
-        let panel = panel(text: text, maxWidth: context.availableWidth, context: context)
+        // Wrapped against the SCREEN (`terminalWidth`, as a `.popover`'s
+        // content and a menu's are laid out), not `availableWidth`: that is
+        // what the parent offered the control, which an `HStack`, a toolbar
+        // run or a `.frame(width:)` sets to the control's own width, and
+        // "Save the document to disk" at a button was a column of fragments
+        // four cells wide (hunt 11-20, REST-1). `maxTextWidth` still caps it,
+        // and the root's placer moves a panel wider than its control.
+        let panel = panel(text: text, maxWidth: context.environment.terminalWidth, context: context)
         guard !panel.lines.isEmpty else { return }
         var layer = OverlayLayer(
             // Directly beneath the control, left-aligned to it — §5's rule 1.

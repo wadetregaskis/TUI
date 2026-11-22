@@ -240,6 +240,13 @@ This is `DropdownMenuRenderer`'s problem with one extra constraint, and that
 renderer already solves flipping and clamping (`OverlayLayer.placed(maxWidth:maxHeight:)`).
 The popover reuses it.
 
+The panel's text wraps to the **screen's** width, capped at 44 cells
+(`TooltipPopover.maxTextWidth`), never to the control's: the width a view is
+drawn at is what its parent offered it, which in an `HStack`, a toolbar or a
+`.frame(width:)` is the control's own few cells, and the help of a button
+there was a column of fragments (hunt 11-20, REST-1, fixed 2026-11-22). The
+placement above moves a panel wider than its control.
+
 It **cannot take focus** and must not move focus when it appears or
 disappears — it is not in the focus ring at all, which is simply not
 registering. It **dismisses on any click**, as the escape hatch for the case
