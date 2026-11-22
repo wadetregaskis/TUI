@@ -102,17 +102,19 @@ struct LiftedDragPreviewFadeTests {
         environment.scrollIndicatorStyle = .text
         environment.applyRuntimeServices(from: tui)
         tui.mouseEventDispatcher.setActiveSupport(.full)
-        var items = ["one", "two", "three"]
+        let items = MainActorBox(["one", "two", "three"])
+        // `render` captures only `let`s: `MainActorBox` says why.
+        let configured = environment
         func render() -> FrameBuffer {
             tui.mouseEventDispatcher.beginRenderPass()
             let list = List(selection: .constant(String?.none)) {
-                ForEach(items, id: \.self) { item in
+                ForEach(items.value, id: \.self) { item in
                     HStack(spacing: 0) { Text("ab").opacity(0.3); Text("cd"); Text(item) }
                 }
-                .onMove { items.move(fromOffsets: $0, toOffset: $1) }
+                .onMove { items.value.move(fromOffsets: $0, toOffset: $1) }
             }
             .frame(height: 5)
-            var context = RenderContext(availableWidth: 20, availableHeight: 7, environment: environment, tuiContext: tui)
+            var context = RenderContext(availableWidth: 20, availableHeight: 7, environment: configured, tuiContext: tui)
             context.hasExplicitHeight = true
             let buffer = ColorDepth.withCurrent(.truecolor) { renderToBuffer(list, context: context) }
             tui.mouseEventDispatcher.setRegions(buffer.hitTestRegions)

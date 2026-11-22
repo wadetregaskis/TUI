@@ -13,8 +13,8 @@ import TUIFoundation
 /// to the main actor.
 ///
 /// Being main-actor isolated makes the box `Sendable`, and that is what it is
-/// for. Swift 6.3.3 rejects a common test shape at `-O`, but not at `-Onone`.
-/// Swift 6.2.4 accepts a reduced copy of it at both. The shape is a nested `func` in a
+/// for. Swift 6.2.4 and 6.3.3 reject a common test shape at `-O`, but not at
+/// `-Onone`; 6.4.2 accepts it at both. The shape is a nested `func` in a
 /// `@MainActor` test that captures a non-`Sendable` local (a `var` array, or an
 /// instance of a plain class) and at least one other local, and passes a
 /// closure capturing the first to a main-actor API:
@@ -30,13 +30,17 @@ import TUIFoundation
 /// "task-isolated 'seen' is captured by a main actor-isolated closure". It is a
 /// false positive. The test, the nested `func` and the closure all run on the
 /// main actor, and nothing nonisolated touches `seen`. Marking the nested
-/// `func` `@MainActor` does not silence it. A `Sendable` capture gives the
-/// region checker nothing to send, so this box compiles at both levels.
+/// `func` `@MainActor` does not silence it. At `-O`, moving a captured `var`
+/// to the stack specialises the nested `func`, and the copy loses its
+/// `@MainActor`, so the check sees a nonisolated function (report "sending 'a'
+/// risks causing data races at -O only", 2026-11-21). A `Sendable` capture
+/// gives the region checker nothing to send, so this box compiles at both
+/// levels. So does a `let` copy, where the closure only reads the value.
 ///
 /// Debug builds never report it, so `swift test` and CI never saw it. A release
 /// test build does: `swift build -c release --build-tests -Xswiftc -enable-testing
-/// -Xswiftc -DTUIKIT_TEST_SUPPORT` (the define turns this module on; see
-/// TUITestSupport in Package.swift).
+/// -Xswiftc -DTUI_TEST_SUPPORT` (the define turns this module on; see
+/// TUITestSupport in Package.swift), as `parallel_test.py --release` builds.
 @MainActor
 final class MainActorBox<Value> {
     var value: Value

@@ -157,50 +157,50 @@ struct TextSuggestionMemoTests {
     @Test("Changed suggestions reach the handler with no render in between")
     func changedSuggestionsReachTheHandler() {
         let loop = SuggestionLoop()
-        var text = ""
-        var options = ["alpha"]
-        let binding = Binding(get: { text }, set: { text = $0 })
+        let text = MainActorBox("")
+        let options = MainActorBox(["alpha"])  // boxed: `MainActorBox` says why
+        let binding = Binding(get: { text.value }, set: { text.value = $0 })
         func view() -> some View {
             VStack {
                 Button("Other") {}.focusID("other")
                 FieldCard(title: "t", text: binding).equatable()
             }
-            .textInputSuggestions(options, id: \.self) { Text($0) }
+            .textInputSuggestions(options.value, id: \.self) { Text($0) }
         }
         loop.frame(view())
         loop.focus.focus(id: "other")
         loop.frame(view())
         loop.frame(view())
-        options = ["beta"]
+        options.value = ["beta"]
         loop.frame(view())
 
         loop.focus.focus(id: "combo")
         _ = loop.focus.dispatchKeyEvent(KeyEvent(key: .down))
         _ = loop.focus.dispatchKeyEvent(KeyEvent(key: .enter))
-        #expect(text == "beta", "the field was served with the old completions: \(text)")
+        #expect(text.value == "beta", "the field was served with the old completions: \(text.value)")
     }
 
     @Test("The ▾ follows whether there are suggestions")
     func theDisclosureFollowsEmptiness() {
         let loop = SuggestionLoop()
-        var text = ""
-        var options: [String] = []
-        let binding = Binding(get: { text }, set: { text = $0 })
+        let text = MainActorBox("")
+        let options = MainActorBox([String]())  // boxed: `MainActorBox` says why
+        let binding = Binding(get: { text.value }, set: { text.value = $0 })
         func screen() -> String {
             loop.frame(
                 VStack {
                     Button("Other") {}.focusID("other")
                     FieldCard(title: "t", text: binding).equatable()
                 }
-                .textInputSuggestions(options, id: \.self) { Text($0) }
+                .textInputSuggestions(options.value, id: \.self) { Text($0) }
             ).map(\.stripped).joined(separator: "\n")
         }
         _ = screen()
         loop.focus.focus(id: "other")
         #expect(!screen().contains(DropdownMenu.closedCaret), "no suggestions, no ▾")
-        options = ["alpha"]
+        options.value = ["alpha"]
         #expect(screen().contains(DropdownMenu.closedCaret), "suggestions arrived, the ▾ did not")
-        options = []
+        options.value = []
         #expect(!screen().contains(DropdownMenu.closedCaret), "suggestions went, the ▾ did not")
     }
 
@@ -210,20 +210,20 @@ struct TextSuggestionMemoTests {
     @Test("New suggestions clear nothing; running out of them clears")
     func contentChangesDoNotClear() {
         let loop = SuggestionLoop()
-        var text = ""
-        var options = ["a"]
+        let text = MainActorBox("")
+        let options = MainActorBox(["a"])  // boxed: `MainActorBox` says why
         func view() -> some View {
             VStack(alignment: .leading, spacing: 0) {
                 Rows()
-                TextField("Field", text: Binding(get: { text }, set: { text = $0 }))
+                TextField("Field", text: Binding(get: { text.value }, set: { text.value = $0 }))
             }
-            .textInputSuggestions(options, id: \.self) { Text($0) }
+            .textInputSuggestions(options.value, id: \.self) { Text($0) }
         }
         loop.frame(view())
         loop.frame(view())
-        options = ["b"]
+        options.value = ["b"]
         #expect(loop.clears(view()) == 0, "a change of content cleared the subtree")
-        options = []
+        options.value = []
         #expect(loop.clears(view()) >= 1, "running out of suggestions cleared nothing")
     }
 

@@ -369,14 +369,14 @@ struct ScrollWindowHoldTests {
         let tuiContext = TUIContext()
         let focusManager = FocusManager()
         var items = Array(0..<60)
-        var position = ScrollPosition()
+        let position = MainActorBox(ScrollPosition())
         func frame() -> [String] {
             let view = ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0) {
                     ForEach(items, id: \.self) { Button("row \($0)") {} }
                 }
             }
-            .scrollPosition(Binding(get: { position }, set: { position = $0 }))
+            .scrollPosition(Binding(get: { position.value }, set: { position.value = $0 }))
             var environment = EnvironmentValues()
             environment.focusManager = focusManager
             environment.verticalScrollIndicatorVisibility = .hidden
@@ -400,7 +400,7 @@ struct ScrollWindowHoldTests {
             focusManager.currentFocusedID.flatMap { $0.matches(of: /\[(\d+)\]/).last }.flatMap { Int($0.1) }
         }
         _ = frame()
-        position.scrollTo(y: 30)
+        position.value.scrollTo(y: 30)
         _ = frame()
         _ = frame()
         // The last row on screen focused, and revealed if it was not.

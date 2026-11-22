@@ -305,12 +305,13 @@ struct ControlSizeButtonTests {
         "In whole cells a face keeps only the cells its shape covers whole: the corners go, the capsule's ends more",
         arguments: [ControlSize.large, .extraLarge])
     func wholeCellsFollowTheShape(size: ControlSize) {
-        var context = context()
-        context.environment.blockElementsFillTheLine = false
+        var configured = context()
+        configured.environment.blockElementsFillTheLine = false
+        let frame = configured  // a `let` for the closure below: `MainActorBox` says why
         /// Which cells of each row the face paints, `#` for a field and `.` for none.
         func painted(_ shape: ButtonBorderShape) -> [String] {
             let button = Button("OK") {}.controlSize(size).buttonBorderShape(shape).controlStyle(.block)
-            let lines = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: context).lines }
+            let lines = ColorDepth.withCurrent(.truecolor) { renderToBuffer(button, context: frame).lines }
             return lines.map { paintedCells($0).map { $0.background.isEmpty ? "." : "#" }.joined() }
         }
         let square = painted(.roundedRectangle(radius: 0))

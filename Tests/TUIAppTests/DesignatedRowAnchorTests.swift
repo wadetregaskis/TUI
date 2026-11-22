@@ -231,7 +231,7 @@ struct DesignatedRowAnchorTests {
     func anchoredWalkRideUpScrollsToTheTop() {
         let tuiContext = TUIContext()
         let focusManager = FocusManager()
-        var position = ScrollPosition()
+        let position = MainActorBox(ScrollPosition())
         var items = Array(0..<400)
         func frame(_ row: Int?) -> [String] {
             let list = ScrollView {
@@ -241,14 +241,14 @@ struct DesignatedRowAnchorTests {
                     }
                 }
             }
-            .scrollPosition(Binding(get: { position }, set: { position = $0 }))
+            .scrollPosition(Binding(get: { position.value }, set: { position.value = $0 }))
             .scrollIndicatorStyle(.text)
             .frame(height: Self.viewport)
             return renderVisible(list, anchored: row, tuiContext: tuiContext, focusManager: focusManager)
         }
 
         _ = frame(nil)
-        position.scrollTo(y: 30)
+        position.value.scrollTo(y: 30)
         let scrolled = frame(nil)
         // The row that starts lowest on screen, held where it sits.
         guard

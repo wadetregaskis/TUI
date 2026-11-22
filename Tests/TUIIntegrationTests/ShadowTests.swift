@@ -225,15 +225,19 @@ struct ShadowTests {
     /// `before` drawn and settled, then `after` drawn `millis` into a
     /// one-second linear animation to it.
     private func animated<V: View>(from before: V, to after: V, atMillis millis: Int) -> FrameBuffer {
-        var context = makeRenderContext(width: 30, height: 4)
-        context.environment.canAnimate = true
-        context.environment.transaction = Transaction(animation: .linear(duration: 1))
+        var animating = makeRenderContext(width: 30, height: 4)
+        animating.environment.canAnimate = true
+        animating.environment.transaction = Transaction(animation: .linear(duration: 1))
+        // `render` captures only `let`s: `MainActorBox` says why.
+        let base = animating
         func render(_ view: V, atMillis millis: Int) -> FrameBuffer {
+            var context = base
             context.environment.frameNowNanos = Int64(millis) * 1_000_000
             let storage = context.environment.stateStorage!
             storage.beginRenderPass()
             defer { storage.endRenderPass() }
-            return ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: context) }
+            let frame = context
+            return ColorDepth.withCurrent(.truecolor) { renderToBuffer(view, context: frame) }
         }
         _ = render(before, atMillis: 0)
         _ = render(after, atMillis: 0)

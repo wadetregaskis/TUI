@@ -453,13 +453,16 @@ struct FadeInsideAPainterTests {
     /// for every frame below one half and came back at it.
     @Test("A fade crossing one half inside a background leaves the background where it was")
     func aFadeCrossingOneHalfInsideABackground() throws {
-        var context = makeRenderContext(width: 24, height: 3) { environment, _ in
+        var animating = makeRenderContext(width: 24, height: 3) { environment, _ in
             environment.palette = terminalPagePalette
         }
-        context.environment.canAnimate = true
-        context.environment.transaction = Transaction(animation: .linear(duration: 1))
+        animating.environment.canAnimate = true
+        animating.environment.transaction = Transaction(animation: .linear(duration: 1))
+        // `row` captures only `let`s: `MainActorBox` says why.
+        let base = animating
         let blue = Self.spelled(try #require(Color.blue.rgbComponents))
         func row(_ alpha: Double, atMillis millis: Int) -> [PaintedCell] {
+            var context = base
             context.environment.frameNowNanos = Int64(millis) * 1_000_000
             let view = HStack(spacing: 0) {
                 Text("x").background(Color.rgb(40, 40, 200))
@@ -467,9 +470,10 @@ struct FadeInsideAPainterTests {
                 Text("ab").background(Color.default)
             }
             .opacity(alpha).background(Color.blue)
+            let frame = context
             return ColorDepth.withCurrent(.truecolor) {
                 writtenRows(
-                    renderToScreen(view, context: context), palette: context.environment.palette, width: 24)
+                    renderToScreen(view, context: frame), palette: frame.environment.palette, width: 24)
             }.first ?? []
         }
         _ = row(0.2, atMillis: 0)
