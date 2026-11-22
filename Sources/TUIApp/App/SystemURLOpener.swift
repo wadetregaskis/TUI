@@ -21,7 +21,7 @@ import TUIFoundation
 /// ``TerminalClient/urlOpeningSupport`` for why that is off by default.
 struct SystemURLOpener: URLOpenerBackend {
     /// Hands `url` to the system opener. Tries `open` (macOS) then `xdg-open`
-    /// (Linux) — whichever exists — passing the URL as a single argument (no
+    /// on `PATH` (Linux) — whichever exists — passing the URL as a single argument (no
     /// shell, so nothing in the URL is interpreted). A no-op when neither
     /// opener is present. Returns whether an opener was started.
     ///
@@ -70,11 +70,14 @@ struct SystemURLOpener: URLOpenerBackend {
         #endif
     }
 
-    /// The opener ``open(_:)`` starts on macOS and Linux: `open`, else
-    /// `xdg-open`, whichever `exists`; `nil` where neither does. Posed on the
-    /// environment and the files that exist, so a test can ask without either.
+    /// The opener ``open(_:)`` starts on macOS and Linux: macOS's
+    /// `/usr/bin/open`, else `xdg-open` found on `PATH`
+    /// (``ExecutableSearchPath``), as a shell would find it; `nil` where
+    /// neither `exists`. Posed on the environment and the files that exist, so
+    /// a test can ask without either.
     static func opener(environment: [String: String], exists: (String) -> Bool) -> String? {
-        ["/usr/bin/open", "/usr/bin/xdg-open"].first(where: exists)
+        if exists("/usr/bin/open") { return "/usr/bin/open" }
+        return ExecutableSearchPath.find("xdg-open", in: environment, isExecutable: exists)
     }
 
     /// What the Windows shell is handed for `url`: its text, where it names a

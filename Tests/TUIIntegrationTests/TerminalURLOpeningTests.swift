@@ -280,4 +280,13 @@ struct URLOpenerBackendTests {
                 == "https://example.com/a")
         #expect(SystemURLOpener.shellTarget(for: try #require(URL(string: "mailto:a@example.com"))) != nil)
     }
+
+    @Test("xdg-open is found on PATH, wherever it puts it; macOS's open at its own place")
+    func openerIsFoundOnPath() {
+        let environment = ["PATH": "/home/u/.local/bin:/usr/bin"]
+        let local = "/home/u/.local/bin/xdg-open"
+        #expect(SystemURLOpener.opener(environment: environment, exists: { $0 == local }) == local)
+        #expect(SystemURLOpener.opener(environment: environment, exists: { _ in true }) == "/usr/bin/open")
+        #expect(SystemURLOpener.opener(environment: [:], exists: { $0 == "/usr/bin/xdg-open" }) == nil, "no PATH")
+    }
 }

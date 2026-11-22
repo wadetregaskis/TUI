@@ -94,7 +94,7 @@ extension TUIEnvironmentVariables {
         terminalSets("WAYLAND_DISPLAY", .session, "On Linux, there's a Wayland desktop, so the program can copy with `wl-copy`, and post a notification the terminal can't show with `notify-send`."),
         terminalSets("DBUS_SESSION_BUS_ADDRESS", .session, "On Linux, there's a desktop session for `notify-send` to post notifications to."),
         terminalSets("XDG_RUNTIME_DIR", .session, "On Linux, where to look for that desktop session, when `DBUS_SESSION_BUS_ADDRESS` doesn't say."),
-        terminalSets("PATH", .session, "Where to look for `notify-send`."),
+        terminalSets("PATH", .session, "Where to look for `notify-send`, and on Linux for `xdg-open` and the clipboard helpers `wl-copy`, `wl-paste`, `xclip` and `xsel`."),
     ]
 
     private static func terminalSets(

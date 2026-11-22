@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**On Linux, the clipboard helpers and `xdg-open` are found on `PATH`.** `wl-copy`, `wl-paste`, `xclip` and `xsel`
+were looked for in `/usr/bin` (and `wl-copy` in `/usr/local/bin`) only, and `xdg-open` in `/usr/bin` only, so one
+installed anywhere else, such as a Nix or Homebrew profile or `~/.local/bin`, was not used: copies went nowhere and
+links did not open. They are now looked for as a shell looks for a command, as `notify-send` already was. macOS's
+`pbcopy`, `pbpaste` and `open` are still taken from `/usr/bin`.
+
 **A paste from this machine's clipboard keeps the line break it ends with.** A paste read through `pbpaste`,
 `xclip` or `xsel` dropped one line break from its end, on the belief that the helper had added it, which none does:
 a whole line cut and pasted elsewhere was joined to the line after it, on macOS too. The text now comes as the

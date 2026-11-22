@@ -19,7 +19,8 @@ import TUIFoundation
 
 /// This machine's clipboard, reached through the platform's helper binaries
 /// (`pbcopy`/`pbpaste` on macOS; `wl-copy`/`wl-paste` under Wayland and
-/// `xclip`/`xsel` under X11 on Linux) with hardened child I/O, and on Windows
+/// `xclip`/`xsel` under X11 on Linux, found on `PATH`) with hardened child
+/// I/O, and on Windows
 /// through the Win32 clipboard itself, with no helper.
 ///
 /// **This machine's, which is not always the user's.** Over ssh it is the
@@ -207,10 +208,18 @@ enum SystemClipboard {
 
     /// The Linux helpers ``helpers(environment:exists:)`` finds there: on
     /// every POSIX platform, so a test on any of them can ask.
+    ///
+    /// Each is looked for on `PATH` (``ExecutableSearchPath``), as a shell
+    /// would find it, and not in `/usr/bin` alone: a Nix or Homebrew profile,
+    /// `~/.local/bin` or `/usr/local/bin` holds them as often. `wl-paste` is
+    /// taken from the directory `wl-copy` was found in, as one package ships
+    /// both.
     static func linuxHelpers(environment: [String: String], exists: (String) -> Bool) -> [Helper] {
         var found: [Helper] = []
         if environment["WAYLAND_DISPLAY"]?.isEmpty == false,
-            let directory = ["/usr/bin", "/usr/local/bin"].first(where: { exists("\($0)/wl-copy") })
+            let directory = ExecutableSearchPath.directories(in: environment).first(where: {
+                exists("\($0)/wl-copy")
+            })
         {
             found.append(
                 Helper(
@@ -218,17 +227,17 @@ enum SystemClipboard {
                     pasteTool: "\(directory)/wl-paste", pasteArguments: ["--no-newline"]))
         }
         if environment["DISPLAY"]?.isEmpty == false {
-            if exists("/usr/bin/xclip") {
+            if let xclip = ExecutableSearchPath.find("xclip", in: environment, isExecutable: exists) {
                 found.append(
                     Helper(
-                        copyTool: "/usr/bin/xclip", copyArguments: ["-selection", "clipboard"],
-                        pasteTool: "/usr/bin/xclip", pasteArguments: ["-selection", "clipboard", "-o"]))
+                        copyTool: xclip, copyArguments: ["-selection", "clipboard"],
+                        pasteTool: xclip, pasteArguments: ["-selection", "clipboard", "-o"]))
             }
-            if exists("/usr/bin/xsel") {
+            if let xsel = ExecutableSearchPath.find("xsel", in: environment, isExecutable: exists) {
                 found.append(
                     Helper(
-                        copyTool: "/usr/bin/xsel", copyArguments: ["--clipboard", "--input"],
-                        pasteTool: "/usr/bin/xsel", pasteArguments: ["--clipboard", "--output"]))
+                        copyTool: xsel, copyArguments: ["--clipboard", "--input"],
+                        pasteTool: xsel, pasteArguments: ["--clipboard", "--output"]))
             }
         }
         return found

@@ -5,8 +5,9 @@
 //  License: MIT
 
 /// Where a helper program is looked for: the directories of `PATH`, as a shell
-/// looks for a command, for a helper TUI starts by a path of its own, such as
-/// `notify-send`.
+/// looks for a command, for the helpers TUI starts by a path of its own:
+/// `notify-send`, the Linux clipboard's `wl-copy`, `wl-paste`, `xclip` and
+/// `xsel`, and `xdg-open`.
 ///
 /// Read from the environment it is handed, so a test can pose one. POSIX's
 /// `PATH`, its directories separated by `:`: only POSIX helpers are looked up
