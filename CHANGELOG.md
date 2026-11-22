@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A test can ask what a cell is drawn in.** `TestScreen.style(at:)` and `style(of:)` give a cell's foreground and
+background as the terminal is sent them, and whether it is bold, faint, italic, underlined (and in which shape),
+struck through or reversed, so a test of colour no longer parses escape codes out of `styledLines`.
+
 **A highlighter can ask whether its text is still the editor's.** Under the highlighting seam's SPI, a session's
 `isCurrent(_:)` says whether a version is the one a publish would be taken for, so a long parse can stop for a newer
 text without publishing to find out.

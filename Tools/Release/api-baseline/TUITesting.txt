@@ -51,6 +51,19 @@ TestClock.sleep(until:tolerance:) | func sleep(until deadline: TestClock.Instant
 TestClock.sleepers | var sleepers: Int { get }
 TestScreen | struct TestScreen
 TestScreen.==(_:_:) | static func == (lhs: TestScreen, rhs: TestScreen) -> Bool
+TestScreen.CellStyle | struct CellStyle
+TestScreen.CellStyle.Colour | enum Colour
+TestScreen.CellStyle.Colour.indexed(_:) | case indexed(Int)
+TestScreen.CellStyle.Colour.named(_:) | case named(Int)
+TestScreen.CellStyle.Colour.rgb(red:green:blue:) | case rgb(red: Int, green: Int, blue: Int)
+TestScreen.CellStyle.background | var background: TestScreen.CellStyle.Colour?
+TestScreen.CellStyle.foreground | var foreground: TestScreen.CellStyle.Colour?
+TestScreen.CellStyle.isBold | var isBold: Bool
+TestScreen.CellStyle.isFaint | var isFaint: Bool
+TestScreen.CellStyle.isItalic | var isItalic: Bool
+TestScreen.CellStyle.isReversed | var isReversed: Bool
+TestScreen.CellStyle.isStruckThrough | var isStruckThrough: Bool
+TestScreen.CellStyle.underline | var underline: Int?
 TestScreen.compareToSnapshot(_:filePath:) | func compareToSnapshot(_ name: String, filePath: String = #filePath) throws
 TestScreen.contains(_:) | func contains(_ text: String) -> Bool
 TestScreen.description | var description: String { get }
@@ -58,5 +71,7 @@ TestScreen.line(containing:) | func line(containing text: String) -> String?
 TestScreen.lines | let lines: [String]
 TestScreen.location(of:) | func location(of text: String) -> CellPoint?
 TestScreen.locations(of:) | func locations(of text: String) -> [CellPoint]
+TestScreen.style(at:) | func style(at point: CellPoint) -> TestScreen.CellStyle?
+TestScreen.style(of:) | func style(of text: String) -> TestScreen.CellStyle?
 TestScreen.styledLines | let styledLines: [String]
 TestScreen.text | var text: String { get }

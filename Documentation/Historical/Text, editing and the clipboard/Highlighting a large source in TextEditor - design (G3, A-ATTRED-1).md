@@ -1516,6 +1516,15 @@ Item 8, that the SPI spreads to an adapter's own API (a public type cannot confo
 tuitree's `TreeSitterHighlighter` is SPI too), is what SPI is, and changes only with the seam's promotion
 (A-ATTRED-10); nothing was done for it but to note it as one more reason to promote the seam once it settles.
 
+- **B-ATTRED-62. A test asks what a cell is drawn in** (item 9). `TestScreen.styledLines` are a row's escape codes,
+  drawn through a theme at 24 bits, so a highlighted row could not be matched as text and tuitree wrote an SGR
+  parser in two test files. `TestScreen.style(at:)` and `style(of:)` give a `CellStyle`: foreground and background
+  as the terminal is sent them (named, indexed or 24-bit components), bold, faint, italic, the underline's shape,
+  strike and reverse video, read with TUI's own `SGRState`, the parser the editor's tests already used. Public, not
+  SPI: it is TUITesting's, and any app's test can want it. Colours are given as sent, not as `Color`s, since a
+  theme's 24-bit rendering of `.cyan` is not `.cyan`, and a test that compared `Color`s would pass or fail by the
+  theme.
+
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 
 *A-ATTRED-5 (b) made the line lexer public beside the seam. With tree-sitter as the only real styler, it has no

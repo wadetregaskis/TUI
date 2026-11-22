@@ -762,6 +762,13 @@ package struct SGRState: Sendable, Equatable {
     /// Whether strikethrough (SGR 9) is in force.
     package var isStruckThrough: Bool { attributes & Self.bit(9) != 0 }
 
+    /// The underline in force, as SGR `4:n` numbers its shape (1 single, 2
+    /// double, 3 curly, 4 dotted, 5 dashed), or `nil` for none.
+    package var underline: Int? {
+        guard attributes & Self.bit(4) != 0 else { return nil }
+        return underlineShape == 0 ? 1 : Int(underlineShape)
+    }
+
     /// Whether an attribute in force draws in the foreground colour on a blank
     /// cell — underline, blink, strike — so the foreground is visible there.
     package var paintsInkOnBlankCell: Bool {

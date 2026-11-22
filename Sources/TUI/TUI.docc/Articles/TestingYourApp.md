@@ -90,6 +90,7 @@ app.screen.text                      // All of it, for comparing the whole.
 app.screen.location(of: "Add")       // The cell it starts at, as a CellPoint.
 app.screen.locations(of: "Add")      // Every place it shows.
 app.screen.styledLines               // The rows with their escape codes.
+app.screen.style(of: "Add")          // What its first cell is drawn in: colours, bold, underline.
 ```
 
 To ask what has the keyboard focus, read ``TestApp/focusedID``. Name the controls you care about with `.focusID(_:)`:
@@ -333,8 +334,9 @@ The first run writes it and throws, so that you look at it. When a change is wha
   variable that the content closure reads can go unnoticed by a part of the screen TUI has kept from an earlier frame.
 - **`main` does not run.** `TestApp(MyApp())` runs your app's `body`, and the `init()` you called. If your app registers
   its translations in `main`, a `Text` shows its key in a test. Register them in the test, or in `init()`.
-- **Colours are in the escape codes.** ``TestScreen/styledLines`` has them, but TUI has no API for asking what colour a
-  cell is. To test that something changes colour, compare rows of `styledLines`.
+- **Colours are as the terminal is sent them.** ``TestScreen/style(at:)`` and ``TestScreen/style(of:)`` read a cell's
+  colours as 24-bit components (a named colour as the theme draws it, not as `.red`), with its weight, slant,
+  underline and strike; to test that a whole row changes, compare rows of ``TestScreen/styledLines``.
 - **It draws in 24-bit colour, whatever the environment says.** `swift test` sets `NO_COLOR` whenever its output isn't a
   terminal, and `TERM` and `COLORTERM` differ from one machine to the next, so a running app's colours would differ from
   one run of a test to the next. To test fewer colours, wrap the test in `ColorDepth.withCurrent(.basic16) { … }`.
