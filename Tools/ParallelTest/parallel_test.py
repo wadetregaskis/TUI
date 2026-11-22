@@ -456,6 +456,18 @@ def build_configuration_args(release, scratch_path=None, build_system=None, wind
     return chosen + ["-c", "release"] + RELEASE_TEST_FLAGS + (WINDOWS_RELEASE_TEST_FLAGS if windows else [])
 
 
+def build_command(configuration, build_jobs=None):
+    """The arguments to `swift` that build the tests in `configuration`.
+
+    `build_jobs` caps the compiles run at once, which SwiftPM otherwise sets
+    to one a core: built optimised with Swift 6.4.2, the largest test module
+    takes 5.9 GB to compile (TUIAppTests, Windows, 2026-11-22), and at one a
+    core a 16 GB machine ran out, the compiler crashing somewhere new each
+    time. `--build-jobs 2` built them all.
+    """
+    return ["build", "--build-tests"] + (["-j", str(build_jobs)] if build_jobs else []) + configuration
+
+
 def swift_command(environ=None, windows=None):
     """The `swift` to drive, as an argv prefix.
 
@@ -1236,6 +1248,10 @@ def main():
                     help="the build directory, when it is not .build (as `swift build` takes it)")
     ap.add_argument("--build-system", default=None,
                     help="SwiftPM's build system (native, swiftbuild), when not its default")
+    ap.add_argument("--build-jobs", type=int, default=None,
+                    help="how many compiles the build runs at once (`swift build -j`), when not "
+                         "one a core: a release build of the tests on Windows with 6.4 takes "
+                         "up to 6 GB a compile")
     ap.add_argument("--expect-known-issues", type=int, default=None,
                     help="fail unless the known-issue total equals this")
     ap.add_argument("--full-failing-logs", action="store_true",
@@ -1288,7 +1304,7 @@ def main():
     if not args.no_build:
         # The ONLY place the SwiftPM build database is touched. Everything
         # after this is the helper, which never opens it.
-        rc = subprocess.run(swift + ["build", "--build-tests"] + configuration, cwd=REPO).returncode
+        rc = subprocess.run(swift + build_command(configuration, args.build_jobs), cwd=REPO).returncode
         if rc != 0:
             return 2
     binaries = test_binaries(bin_dir, tc.darwin)

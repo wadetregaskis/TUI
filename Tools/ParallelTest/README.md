@@ -118,6 +118,7 @@ It still differs from `swift test` in three ways worth knowing:
 | `--no-build` | skip `swift build --build-tests` |
 | `--scratch-path DIR` | the build directory, when not `.build` (each toolchain building into its own) |
 | `--build-system NAME` | SwiftPM's `--build-system` (`native`, `swiftbuild`), when not its default |
+| `--build-jobs N` | compiles the build runs at once (`swift build -j`), when not one a core: `2` for a release build with 6.4.2 on 16 GiB |
 | `--expect-known-issues N` | fail unless the known-issue total is exactly N |
 | `--full-failing-logs` | print the whole log of every failing process, not only its issues |
 | `--json PATH` | write the full result, per group, as JSON |
@@ -550,10 +551,14 @@ every test in 639.3 s, all passing but two cost bounds read on the wall clock
 (see "Known order dependence, and flakes"). 6.2.4, unpacked rather than
 installed, with `--scratch-path .build-6.2.4`: all 15,726 passed, in 594.3 s.
 
-`--release` does not build on Windows yet: swift.org's Windows toolchains are
-built with the compiler's own assertions on, and each of 6.2.4, 6.3.3 and
-6.4.2 stops on one of them building the tests optimised (Windows port.md, "In
-release").
+`--release` builds and passes on Windows with all three (2026-11-22): 15,763
+tests each, in 197 s on 6.2.4, 168 s on 6.3.3 and 147 s on 6.4.2, once the
+compiler bugs it met there were worked round (Windows port.md, "In release").
+On Windows it adds `-Xllvm -sil-disable-pass=capture-prop` to the build
+(`WINDOWS_RELEASE_TEST_FLAGS` says why). And on a 16 GiB machine, 6.4.2 needs
+`--build-jobs 2`: at SwiftPM's one compile a core the build ran out of memory,
+the compiler crashing somewhere new each time, as one compile takes up to
+5.9 GB (`build_command`).
 
 ## Tests
 
@@ -561,7 +566,7 @@ release").
 python3 Tools/ParallelTest/test_parallel_test.py
 ```
 
-87 tests covering the parts that can be tested without running the suite: ID
+89 tests covering the parts that can be tested without running the suite: ID
 escaping and pattern anchoring, the partition proof rejecting a gap or an
 overlap, bin packing, both weight paths, all eight shapes of the summary line
 in both their singular and plural wordings, the malformed-xunit recovery, the

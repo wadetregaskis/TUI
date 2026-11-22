@@ -733,6 +733,11 @@ class TestBuildConfiguration(unittest.TestCase):
                          ["-c", "release"] + pt.RELEASE_TEST_FLAGS + pt.WINDOWS_RELEASE_TEST_FLAGS)
         self.assertEqual(pt.build_configuration_args(False, windows=True), [])
 
+    def test_build_jobs_cap_the_build_alone(self):
+        self.assertEqual(pt.build_command(["-c", "release"]), ["build", "--build-tests", "-c", "release"])
+        self.assertEqual(pt.build_command(["-c", "release"], 2),
+                         ["build", "--build-tests", "-j", "2", "-c", "release"])
+
     def test_a_build_system_comes_after_the_scratch_path(self):
         self.assertEqual(pt.build_configuration_args(False, ".b", "native"),
                          ["--scratch-path", ".b", "--build-system", "native"])
