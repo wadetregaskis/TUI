@@ -61,18 +61,52 @@ final class EditorLayout {
     @TaskLocal static var buildReporter: TaskLocalReporter<Void>?
 
     /// Splits `text` into its lines.
+    ///
+    /// Each line is its bytes between the breaks ``lineBreaks(in:)`` finds, a
+    /// byte at a time: not the text split on `Character` comparisons, which
+    /// walked every character of it, as a layout was made until EDMEM-1
+    /// (2026-11-22). A line break is a character of its own (GB4, GB5), so a
+    /// line's bytes are the characters the split found.
     convenience init(text: String) {
         Self.buildReporter?()
-        let parts = text.split(omittingEmptySubsequences: false, whereSeparator: {
-            $0 == "\n" || $0 == "\r\n" || $0 == "\r"
-        }).map { TextCharacters($0) }
-        self.init(text: text, lines: parts)
+        let breaks = Self.lineBreaks(in: text)
+        // Bridged text read as UTF-8 once, so the offsets below are O(1).
+        var source = text
+        source.makeContiguousUTF8()
+        let utf8 = source.utf8
+        let starts = breaks.starts
+        var lines: [TextCharacters] = []
+        lines.reserveCapacity(starts.count)
+        var lower = utf8.startIndex
+        for index in starts.indices {
+            var length = utf8.count - starts[index]
+            if index + 1 < starts.count {
+                // Less the break: a CRLF's two bytes, a CR's or an LF's one.
+                length = starts[index + 1] - starts[index] - 1
+                if length > 0, utf8[utf8.index(lower, offsetBy: length)] == 0x0A,
+                    utf8[utf8.index(lower, offsetBy: length - 1)] == 0x0D
+                {
+                    length -= 1
+                }
+            }
+            let upper = utf8.index(lower, offsetBy: length)
+            lines.append(TextCharacters(source[lower..<upper]))
+            if index + 1 < starts.count { lower = utf8.index(utf8.startIndex, offsetBy: starts[index + 1]) }
+        }
+        self.init(text: text, lines: lines, breaks: breaks)
     }
 
     /// The layout of `text`, whose lines the caller already has — the editor's
     /// own edit, written as these lines joined.
-    init(text: String, lines: [TextCharacters], lineEnding: String? = nil) {
-        let breaks = Self.lineBreaks(in: text)
+    convenience init(text: String, lines: [TextCharacters], lineEnding: String? = nil) {
+        self.init(text: text, lines: lines, lineEnding: lineEnding, breaks: Self.lineBreaks(in: text))
+    }
+
+    /// The layout of `text`, whose lines and breaks the caller has found.
+    private init(
+        text: String, lines: [TextCharacters], lineEnding: String? = nil,
+        breaks: (starts: [Int], ending: String, isUniform: Bool)
+    ) {
         self.text = text
         self.lines = lines.isEmpty ? [[]] : lines
         self.lineEnding = lineEnding ?? breaks.ending

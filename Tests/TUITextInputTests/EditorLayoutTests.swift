@@ -38,6 +38,23 @@ struct EditorLayoutTests {
         #expect(cr.lineEnding == "\r")
     }
 
+    /// Texts whose lines a split on bytes could cut differently from a split
+    /// on characters: every kind of break, mixed, at the ends and doubled;
+    /// a combining mark after a break; empty lines; multi-byte characters
+    /// either side of a break.
+    nonisolated static let splitTexts = [
+        "", "\n", "\r", "\r\n", "\n\n", "\r\r", "\r\n\r\n", "\n\r", "a", "a\n", "\na",
+        "a\r\nb\rc\nd", "x\r\n\u{301}y", "\u{1F1EF}\u{1F1F5}\r\u{4E2D}\n", "e\u{301}\r\n\r\n\u{05E9}", "\t\r\n\t",
+    ]
+
+    @Test("The lines are the text split on its line-break characters, byte for byte", arguments: splitTexts)
+    func linesAreTheCharacterSplit(_ text: String) {
+        let split = text.split(omittingEmptySubsequences: false) { $0 == "\n" || $0 == "\r\n" || $0 == "\r" }
+        let lines = EditorLayout(text: text).lines
+        #expect(lines.map(\.string) == split.map(String.init))
+        #expect(lines.map { Array($0) } == split.map { Array($0) })
+    }
+
     @Test("Editing text with CRLF preserves the CRLF line endings")
     func editPreservesCRLF() {
         let box = Box("first\r\nsecond")

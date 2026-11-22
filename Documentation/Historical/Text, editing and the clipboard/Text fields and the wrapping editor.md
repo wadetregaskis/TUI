@@ -726,7 +726,8 @@ indistinguishable.
 **Left open:** the one layout still splits the text on `Character`
 comparisons and copies every line into a `[Character]`; building the lines
 from the line starts `lineBreaks(in:)` already finds, decoding each line's
-bytes once, would make it cheaper (the feedback's second suggestion).
+bytes once, would make it cheaper (the feedback's second suggestion). Done
+with EDMEM-1 (below): the lines are cut from the text's bytes at those starts.
 
 ### EDMEM-1. An editor's lines are UTF-8, not arrays of `Character` (2026-11-22)
 
@@ -763,6 +764,9 @@ indexes lines by character throughout, reads it as it read the array.
   text, a span's (the kill ring, a copy, a row of a vertical field), and a
   column's UTF-8 offset (`utf8Offset(of:)`, which an index into the text and a
   find match's column need) are a slice of the storage.
+- **A new layout cuts its lines from the text's bytes** at the starts
+  `lineBreaks(in:)` finds, a byte at a time, where it split the text on
+  `Character` comparisons, walking every character of it.
 - **The vertical `TextField`** lays its text out from a `TextCharacters` too,
   in place of the `[Character]` it made for every measure, render and key.
   The helpers both controls share (`WordBoundary`, transpose, word rubout)
