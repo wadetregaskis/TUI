@@ -460,6 +460,19 @@ struct CanvasTests {
         #expect(drawn.raster[0, 0] == opaqueRed)
     }
 
+    /// A role has no RGB until it is resolved, so a multiply by one coloured
+    /// nothing (STYLE-2).
+    @Test("A colour filter's tint is resolved against the palette")
+    func colourFilterResolvesItsTint() throws {
+        let palette = makeRenderContext(width: 1, height: 1).environment.palette
+        let accent = try #require(Color.accentColor.resolve(with: palette).rgbComponents)
+        let drawn = canvasSurface(columns: 1, rows: 1) { context, _ in
+            context.addFilter(.colorMultiply(.accentColor))
+            context.fill(Path(CGRect(x: 0, y: 0, width: 1, height: 2)), with: .color(white))
+        }
+        #expect(drawn.raster[0, 0] == CanvasRGBA(red: accent.red, green: accent.green, blue: accent.blue, alpha: 255))
+    }
+
     @Test("A blur spreads a drawing past its edge, and fades it")
     func blur() {
         let drawn = canvasSurface(columns: 12, rows: 1, grain: .halfBlocks) { context, _ in

@@ -173,8 +173,15 @@ extension GraphicsContext {
 
     /// Adds `filter` to what the next draws are drawn through — mirrors
     /// SwiftUI's `addFilter(_:options:)`.
+    ///
+    /// A multiply's tint is resolved against the palette here, as every colour
+    /// drawn is: a palette role has no RGB until then, and multiplied nothing.
     public mutating func addFilter(_ filter: Filter, options: FilterOptions = FilterOptions()) {
-        filters.append(filter)
+        if case .multiply(let tint) = filter.kind, tint.needsPaletteResolution {
+            filters.append(.colorMultiply(tint.resolve(with: environment.palette)))
+        } else {
+            filters.append(filter)
+        }
     }
 
     // MARK: Filters over pixels

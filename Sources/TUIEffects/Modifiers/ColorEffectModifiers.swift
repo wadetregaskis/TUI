@@ -142,8 +142,11 @@ enum _ColorEffect: Equatable {
     /// the terminal's foreground or page) is the identity too. It has no RGB, so
     /// `applied(to:amount:)` returns every colour as it was, but walking the line
     /// still re-spells a 39 as the palette's ink. Reported, it multiplies by the
-    /// reported colour. A semantic tint is not one of these: it is a colour
-    /// waiting to be resolved, not one that cannot be measured.
+    /// reported colour. A palette role is not one of these: it is a colour
+    /// waiting to be resolved, not one that cannot be measured, and it has been
+    /// resolved by the time this is asked (``resolved(with:)``), so
+    /// `.colorMultiply(.palette.x)` where the role is `.white` still takes the
+    /// spelling shortcut.
     func isIdentity(at amount: Double) -> Bool {
         switch self {
         case .brightness, .grayscale, .hueRotation: amount == 0
@@ -152,6 +155,16 @@ enum _ColorEffect: Equatable {
         case .multiply(let color):
             color.opaqueSpelling == .white || (color.isTerminalDefined && color.rgbComponents == nil)
         }
+    }
+
+    /// This effect with its tint resolved against `palette`, as every colour
+    /// drawn is: a palette role has no RGB until then, so it multiplied
+    /// nothing, and a named colour (`Color.orange`) measures as its light value,
+    /// so it multiplied by that on a dark palette. Itself for every other effect,
+    /// and for a tint resolving would not change.
+    func resolved(with palette: any Palette) -> Self {
+        guard case .multiply(let tint) = self, tint.needsPaletteResolution else { return self }
+        return .multiply(tint.resolve(with: palette))
     }
 }
 
@@ -193,6 +206,14 @@ nonisolated struct _ColorEffectView<Content: View>: View {
         // the same reason, which this twin never was.
         guard !buffer.isEmpty || !buffer.overlays.isEmpty else { return buffer }
 
+        // Resolve first: a semantic colour is a silent no-op through the
+        // arithmetic and makes `ANSIRenderer` trap outright, and a named one is
+        // its light value there. The tint before anything reads it, so a role's
+        // own alpha fades the layer below and a role that is white is the
+        // identity.
+        let palette = context.environment.palette
+        let effect = self.effect.resolved(with: palette)
+
         // A translucent multiply tint fades the LAYER, and that is not a stylistic
         // reading: `colorMultiply` multiplies RGBA, so an alpha of 0.5 in the tint
         // halves the alpha of everything under it. The RGB half is the arithmetic in
@@ -215,13 +236,10 @@ nonisolated struct _ColorEffectView<Content: View>: View {
         let rewrites = !effect.isIdentity(at: amount)
         guard rewrites || layerFade != nil else { return buffer }
 
-        // Resolve first: a semantic colour is a silent no-op through the
-        // arithmetic and makes `ANSIRenderer` trap outright.
-        let palette = context.environment.palette
         let surface = palette.background.resolve(with: palette)
         let foreground = palette.foreground.resolve(with: palette)
         return effected(
-            buffer, rewrites: rewrites, layerFade: layerFade,
+            buffer, effect: effect, rewrites: rewrites, layerFade: layerFade,
             foreground: foreground, surface: surface, images: context.environment.terminalImageStore)
     }
 }
@@ -237,11 +255,12 @@ nonisolated struct _ColorEffectView<Content: View>: View {
     /// `b` in colour. A **centred** layer is a `.sheet`/`.alert` over the whole
     /// screen, which a modifier on its presenter recolours no more than it fades.
     /// Recursive, because a layer's content can carry layers.
+    ///
+    /// `effect` is this view's, resolved against the palette (`renderToBuffer`).
     private func effected(
-        _ buffer: FrameBuffer, rewrites: Bool, layerFade: Double?,
+        _ buffer: FrameBuffer, effect: _ColorEffect, rewrites: Bool, layerFade: Double?,
         foreground: Color, surface: Color, images: TerminalImageStore?
     ) -> FrameBuffer {
-        let effect = self.effect
         let amount = self.amount
         // A picture's cells name their image, not a colour: they draw a copy
         // of the picture under the same effect (`SGRColorRewrite`'s picture
@@ -296,7 +315,7 @@ nonisolated struct _ColorEffectView<Content: View>: View {
             // A surface's own fades are behind its surface, and this tint's is not
             // (`OverlayLayer.claimsFromOutside`), so it is claimed apart from them.
             drawn.content = effected(
-                layer.content, rewrites: rewrites, layerFade: layer.isOpaque ? nil : layerFade,
+                layer.content, effect: effect, rewrites: rewrites, layerFade: layer.isOpaque ? nil : layerFade,
                 foreground: foreground, surface: surface, images: images)
             if layer.isOpaque, let layerFade {
                 drawn.content.overlays = OpacityFading.fadingOverlays(drawn.content.overlays, by: layerFade)

@@ -5448,9 +5448,11 @@ multiplies by the reported colour: on Apple Terminal "Basic", slot 4 is (0, 0, 1
 
 What it leaves alone:
 - **A semantic tint.** `.colorMultiply(Color.accentColor)` has no RGB either, but it is
-  waiting to be resolved against the palette, not one the terminal decides. It is not
-  resolved today, so it walks the line and multiplies nothing. That is a gap of its own,
-  not this rule's.
+  waiting to be resolved against the palette, not one the terminal decides. It is resolved
+  before anything reads it (2026-11-22, STYLE-2), as a named colour such as `.orange` is
+  (which until then multiplied by its light value on a dark palette): what it resolves to
+  then meets this rule like any other tint, and its alpha fades the layer as §25 says.
+  A `GraphicsContext` filter's tint is resolved the same way, as it is added.
 - **Every other effect.** Brightness, contrast, saturation, grayscale, hue rotation and
   inversion take their amount from the call, not from a colour, so a colour with no RGB
   under them is left as it is and the rest of the line still changes.

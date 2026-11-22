@@ -34,6 +34,21 @@ struct ColorEffectTests {
         #expect(drawn(base.brightness(-1)).contains("0;0;0"))
     }
 
+    /// A tint that names a palette role, or a colour that follows the scheme, is
+    /// resolved against the palette before it multiplies, as every colour drawn
+    /// is. A role has no RGB until then, so it multiplied nothing; a named colour
+    /// multiplied by its light value on a dark palette (STYLE-2).
+    @Test("A multiply tint is resolved against the palette first")
+    func multiplyTintIsResolved() {
+        let palette = context.environment.palette
+        #expect(palette.colorScheme == .dark, "the premise: the default palette is dark")
+        let white = Text("hi").foregroundStyle(Color.white)
+        for tint in [Color.accentColor, .orange] {
+            let expected = drawn(Text("hi").foregroundStyle(tint.resolve(with: palette)))
+            #expect(drawn(white.colorMultiply(tint)) == expected, "\(tint)")
+        }
+    }
+
     @Test("Contrast pushes away from mid-grey")
     func contrastPushes() {
         let base = Text("ab").foregroundStyle(Color.rgb(160, 160, 160))

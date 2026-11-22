@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**`.colorMultiply(_:)` by a palette role multiplies, and a named colour multiplies by the value it draws as.**
+`.colorMultiply(.accentColor)`, or by any palette role, changed nothing, text or picture, and
+`.colorMultiply(.orange)` multiplied by orange's light value on a dark palette. The tint is now resolved against the
+palette first, as every colour drawn is. The same for a `Canvas`'s `GraphicsContext.Filter.colorMultiply(_:)`.
+
 **A gradient of named colours takes the dark values on a dark palette.** `LinearGradient(colors: [.mint, .blue], …)`,
 and any gradient whose stops were all named colours (`Color.red`, `.mint` and the others) or asset catalogue colours,
 drew their light values on every dark palette, while the same colour on its own drew its dark value. Its stops are

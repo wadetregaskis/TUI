@@ -96,6 +96,22 @@ struct ColorEffectPictureTests {
         }
     }
 
+    /// A palette role has no RGB until it is resolved, so a multiply by one had
+    /// no form for pictures and drew the picture unchanged (STYLE-2).
+    @Test("A picture under a multiply by a palette role is recoloured by the role's colour")
+    func pictureUnderRoleTint() throws {
+        let (store, row, id) = try redPicture()
+        let palette = makeRenderContext(width: 8, height: 1).environment.palette
+        let accent = try #require(Color.accentColor.resolve(with: palette).rgbComponents)
+        let packed = UInt32(accent.red) << 16 | UInt32(accent.green) << 8 | UInt32(accent.blue)
+        let expected = try #require(
+            store.derived(.init(id: id, row: 0, column: 0), by: ImageTransform(recolouring: .multiply(packed))))
+        let line = drawn(Lines(lines: [row]).colorMultiply(.accentColor), images: store)
+        #expect(
+            pictureCells(line).prefix(4).map { $0?.id } == Array(repeating: expected.id, count: 4),
+            "\(line.debugDescription)")
+    }
+
     @Test("A greyed copy's pixels are grey")
     func greyedPixelsAreGrey() {
         let pixels = DerivedImages.applying(
