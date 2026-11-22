@@ -288,23 +288,29 @@ struct EditorMarkStore {
         }
         if drawsApp {
             if byLine == nil { byLine = Self.byLine(app.marks, in: layout) }
-            let marks = byLine?[line] ?? []
-            for (mark, columns) in zip(marks, Self.columns(of: marks.map(\.utf8), in: layout.lines[line]))
-            where !columns.isEmpty {
-                guard var run = styles.style(mark.style) else { continue }
-                run.columns = columns
-                // Stated later, drawn over.
-                made.runs = EditorStyledRun.overlaying([run], on: made.runs)
-            }
+            made.runs = Self.runs(of: byLine?[line] ?? [], inLine: layout.lines[line], styles: styles)
         }
         drawn[line] = made
         return made
     }
 
+    /// The runs `marks`, a line's in UTF-8 offsets from its start, are drawn
+    /// in, in `styles`, in the line's columns: a mark stated later drawn over
+    /// one before it. The app's marks' and a highlighter's (B-ATTRED-59).
+    static func runs(of marks: [EditorMark], inLine line: [Character], styles: EditorHighlightStyles) -> [EditorStyledRun] {
+        var runs: [EditorStyledRun] = []
+        for (mark, columns) in zip(marks, columns(of: marks.map(\.utf8), in: line)) where !columns.isEmpty {
+            guard var run = styles.style(mark.style) else { continue }
+            run.columns = columns
+            runs = EditorStyledRun.overlaying([run], on: runs)
+        }
+        return runs
+    }
+
     /// `marks` by the lines they cover, each in UTF-8 offsets from its
     /// line's start: a mark across a line break covers the end of one line
     /// and the start of the next.
-    private static func byLine(_ marks: [EditorMark], in layout: EditorLayout) -> [Int: [EditorMark]] {
+    static func byLine(_ marks: [EditorMark], in layout: EditorLayout) -> [Int: [EditorMark]] {
         var table: [Int: [EditorMark]] = [:]
         let starts = layout.lineStarts
         for mark in marks {
