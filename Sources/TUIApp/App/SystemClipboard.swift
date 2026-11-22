@@ -318,7 +318,10 @@ enum SystemClipboard {
         process.standardError = FileHandle.nullDevice
 
         let stdinPipe = input != nil ? Pipe() : nil
-        if let stdinPipe { process.standardInput = stdinPipe }
+        // With nothing to write, the null device: never the app's own stdin,
+        // the terminal in raw mode, where a helper could take the person's
+        // keys.
+        process.standardInput = stdinPipe ?? FileHandle.nullDevice
         let stdoutPipe = readsOutput ? Pipe() : nil
         // Never the app's own stdout, which is the terminal: `wl-copy` leaves a
         // child behind to serve the clipboard, and it would hold the tty.

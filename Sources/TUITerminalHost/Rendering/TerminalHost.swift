@@ -813,7 +813,16 @@ package enum TerminalHost {
     /// which cannot itself block only because every command sent through here
     /// answers with at most a few lines, far under the pipe buffer. A command
     /// that may say more must not use this.
-    package static func runBounded(_ command: [String]) -> String? {
+    ///
+    /// Its input is the null device, never the app's own, which is the
+    /// terminal in raw mode: a command that read it would take the person's
+    /// keys, or change the terminal's mode under the app.
+    ///
+    /// `timeoutMilliseconds` is for a test, whose machine may be too loaded to
+    /// start a process inside the usual bound.
+    package static func runBounded(
+        _ command: [String], timeoutMilliseconds: Int = commandTimeoutMilliseconds
+    ) -> String? {
         #if canImport(WASILibc)
             // No subprocesses on wasip1, and nothing to ask: a wasm program in
             // a browser is not inside tmux, nor on a desktop. `nil` is the
@@ -825,6 +834,7 @@ package enum TerminalHost {
         process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
         process.arguments = command
         let pipe = Pipe()
+        process.standardInput = FileHandle.nullDevice
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
         do {
@@ -832,7 +842,7 @@ package enum TerminalHost {
         } catch {
             return nil  // not on PATH, or exec refused
         }
-        let deadline = MonotonicClock.nowNanoseconds &+ UInt64(commandTimeoutMilliseconds) &* 1_000_000
+        let deadline = MonotonicClock.nowNanoseconds &+ UInt64(max(0, timeoutMilliseconds)) &* 1_000_000
         while process.isRunning {
             if MonotonicClock.nowNanoseconds >= deadline {
                 process.terminate()
@@ -850,7 +860,7 @@ package enum TerminalHost {
     /// Two orders of magnitude above tmux's normal few-ms reply, so a
     /// loaded machine is not mistaken for a wedged one, yet short enough to be
     /// invisible on the rare occasions a command runs.
-    private static let commandTimeoutMilliseconds = 250
+    package static let commandTimeoutMilliseconds = 250
 
     /// Parses `list-clients` output into one entry per attached client.
     ///

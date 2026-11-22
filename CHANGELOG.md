@@ -19,6 +19,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**The programs TUI starts for a link, a paste or a question to tmux read none of your keys.** `open`/`xdg-open`, the
+clipboard's paste helpers, and `tmux` and `gsettings` were started with the app's own input, the terminal in raw mode,
+so one that read it could take keys meant for the app or change the terminal's mode under it: a terminal browser
+that `xdg-open` falls back to without a desktop would have done both. Their input is now the null device, as
+`notify-send`'s already was.
+
 **On Linux, the clipboard helpers and `xdg-open` are found on `PATH`.** `wl-copy`, `wl-paste`, `xclip` and `xsel`
 were looked for in `/usr/bin` (and `wl-copy` in `/usr/local/bin`) only, and `xdg-open` in `/usr/bin` only, so one
 installed anywhere else, such as a Nix or Homebrew profile or `~/.local/bin`, was not used: copies went nowhere and

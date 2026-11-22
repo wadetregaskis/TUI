@@ -25,12 +25,14 @@ struct SystemURLOpener: URLOpenerBackend {
     /// shell, so nothing in the URL is interpreted). A no-op when neither
     /// opener is present. Returns whether an opener was started.
     ///
-    /// The child's output goes to `/dev/null`. It inherits this process's
-    /// descriptors otherwise, and stdout/stderr here are the terminal the app
-    /// is drawing on: `xdg-open`'s "no method available for opening" (or
-    /// `open`'s own complaints) would land in the middle of the frame, at
-    /// whatever cursor position the renderer was using, with nothing to
-    /// repaint over it until the next full redraw.
+    /// The child's input and output are `/dev/null`. Inherited, they would be
+    /// the terminal the app is drawing on: `xdg-open`'s "no method available
+    /// for opening" (or `open`'s own complaints) would land in the middle of
+    /// the frame, at whatever cursor position the renderer was using, with
+    /// nothing to repaint over it until the next full redraw; and a terminal
+    /// browser `xdg-open` falls back to without a desktop (`lynx`, `w3m`)
+    /// would read the person's keys and set the terminal's mode under the
+    /// app.
     func open(_ url: URL) -> Bool {
         // Launching anything is a subprocess, which wasip1 has no way to make.
         // Nothing is lost that the user can act on: a `Link` under a host that
@@ -64,6 +66,7 @@ struct SystemURLOpener: URLOpenerBackend {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: opener)
         process.arguments = [url.absoluteString]
+        process.standardInput = FileHandle.nullDevice
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
         return (try? process.run()) != nil
