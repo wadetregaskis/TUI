@@ -35,6 +35,10 @@ swift run Stress --check-counts
 
 # Headless benchmark of one scenario (no PTY — see "Profiling" below).
 swift run -c release Stress -- --bench --scenario fanout --iterations 2000 --cold
+
+# What one @State read and write costs: on the main actor outside a render and
+# in a body, and off the main actor (StateAccessBench.swift), median of 7 runs.
+swift run -c release Stress -- --state-access
 ```
 
 ### Configuration (environment variable | CLI flag)

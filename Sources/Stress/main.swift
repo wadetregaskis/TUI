@@ -15,6 +15,7 @@
 //    --selfcheck    render every scenario once headlessly; non-zero exit on empty
 //                   [--full-length] play every session 150 steps resized every 37 (perf cases, bigtext-open)
 //    --bench        timed render loop of one scenario (no PTY; for xctrace --launch)
+//    --state-access what one @State read and write costs, on and off the main actor
 //
 //  Common options (env var | flag):
 //    TUI_STRESS_SCENARIO | --scenario <id>   pick a scenario
@@ -84,6 +85,7 @@ let usageText = """
     Benchmark:    Stress --bench --scenario <id> [--variant V] [--iterations N] [--cols C] [--rows R] [--cold] [--stripes automatic|enabled|disabled]
                   [--frame-checksums]  (each frame's checksum, for Tools/Profiling/frame_parity.py)
                   [--cache-sizes N]  (every cache's entry count, every N frames)
+    State access: Stress --state-access  (one @State read and write, on and off the main actor, in ns)
     Variants:     Stress --variants
     Sessions:     Stress --sessions
     Session:      Stress --session <id> [--steps N] [--verify] [--resize-every N] [--cols C] [--rows R] [--show]
@@ -183,6 +185,10 @@ if rawArgs.contains("--help") || rawArgs.contains("-h") {
     options.shows = rawArgs.contains("--show")
     let code = await MainActor.run { CountCheck.run(options) }
     exit(code)
+} else if rawArgs.contains("--state-access") {
+    // What one `@State` read and write costs, on the main actor and off it
+    // (StateAccessBench.swift).
+    exit(await StateAccessBench.run())
 } else if rawArgs.contains("--selfcheck") {
     refuseStripes(in: "selfcheck")
     let fullLength = rawArgs.contains("--full-length")
