@@ -495,7 +495,7 @@ While the view tree is walked each frame, **individual subtrees** skip rendering
 When a view is wrapped in `.equatable()`, the rendering system:
 
 1. Looks up the cached ``FrameBuffer`` for this view's `ViewIdentity`
-2. Compares the **current view value** with the cached snapshot via `Equatable.==`
+2. Compares the **current view value** with the cached snapshot via `Equatable.==`, and for a view of plain data every byte of which is defined, by its bytes too: equal when either says so, as SwiftUI compares an `EquatableView` (measured), so a view holding a NaN is served
 3. Checks that the available **width and height** haven't changed
 4. On **cache hit**: returns the cached buffer: the entire subtree is skipped
 5. On **cache miss**: renders normally and stores the result
@@ -693,10 +693,16 @@ that goes stale.
 
 **What it compares.** Each field, by a comparison made once per type from its
 field metadata: `@State`, `@Environment`, `@FocusState` and `@Namespace` are
-skipped, since a write to them invalidates by itself; `==` where the field has
-it; a struct, a tuple, an optional by its parts; a class by identity. A type
-holding what can't be compared, an existential or a payload enum, isn't
-memoized. And the environment it is drawn under, by stamp, on every hit.
+skipped, since a write to them invalidates by itself; plain data every byte of
+which is defined (numbers, `Bool`s and structs of them, with no padding) by its
+bytes, whatever its `==` says, as SwiftUI compares it (measured): `-0.0` after
+`0.0` is drawn, a NaN is served, and a change an `==` leaves out is drawn; `==`
+where another field has it (a `String`, an array, a struct with padding); a
+struct, a tuple, an optional by its parts; a class by identity. A view of plain
+data is compared by its bytes too, `Equatable` or not, unless it is in
+`.equatable()`. A type holding what can't be compared, an existential or a
+payload enum, isn't memoized. And the environment it is drawn under, by stamp,
+on every hit.
 
 **A closure or a `Binding`** has bytes that differ each time it is made, and
 TUI can't see what a closure captured. So there are two questions. Where nothing

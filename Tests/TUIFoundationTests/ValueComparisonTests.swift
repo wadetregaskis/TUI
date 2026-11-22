@@ -74,6 +74,49 @@ struct ValueComparisonTests {
         #expect(same(Ignoring(key: 1) {}, Ignoring(key: 2) {}) == false)
     }
 
+    /// Plain data whose `==` reads fewer fields than its value holds.
+    private struct ByID: Equatable {
+        var id: Int
+        var name: Int
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    }
+
+    /// The same, with padding after `flag`: its bytes are not all defined.
+    private struct PaddedByID: Equatable {
+        var flag: UInt8
+        var id: Int
+        static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+    }
+
+    @Test("Plain data every byte of which is defined compares by its bytes, not its `==` (O-26)")
+    func plainDataByBytes() {
+        #expect(same(0.0, -0.0) == false)
+        #expect(same(Double.nan, .nan) == true)
+        #expect(same(ByID(id: 1, name: 1), ByID(id: 1, name: 2)) == false)
+        #expect(same(ByID(id: 1, name: 1), ByID(id: 1, name: 1)) == true)
+        struct Holder {
+            var value: Double
+            var item: ByID
+            var maybe: Double?
+        }
+        #expect(same(Holder(value: 0, item: ByID(id: 1, name: 1), maybe: 0), Holder(value: -0.0, item: ByID(id: 1, name: 1), maybe: 0)) == false)
+        #expect(same(Holder(value: .nan, item: ByID(id: 1, name: 1), maybe: .nan), Holder(value: .nan, item: ByID(id: 1, name: 1), maybe: .nan)) == true)
+        #expect(same(Holder(value: 1, item: ByID(id: 1, name: 1), maybe: 0), Holder(value: 1, item: ByID(id: 1, name: 1), maybe: -0.0)) == false)
+    }
+
+    @Test("Where a byte may be undefined, or the type is not plain data, its `==` still decides")
+    func notPlainDataByEquality() {
+        // Padding: never read, so the type's `==` answers.
+        #expect(same(PaddedByID(flag: 1, id: 1), PaddedByID(flag: 2, id: 1)) == true)
+        struct Named: Equatable {
+            var id: Int
+            var name: String
+            static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
+        }
+        #expect(same(Named(id: 1, name: "a"), Named(id: 1, name: "b")) == true)
+        #expect(same(Named(id: 1, name: "a"), Named(id: 2, name: "a")) == false)
+    }
+
     @Test("A closure and a `Binding` are ignored, unless strict, where they are changed")
     func opaque() {
         struct Closure {

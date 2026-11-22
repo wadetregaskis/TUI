@@ -790,8 +790,12 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   a `Binding` in a composite counts as changed, for good, so the view is drawn
   again each time; a `ForEach` row or `.equatable()` view holding either isn't
   re-checked and is drawn again too. A type holding an existential isn't
-  memoized at all. A row of plain values is compared by its `==`, or by its
-  fields, never by its bytes. Its environment is compared whole — every key, but
+  memoized at all. A composite's field of plain data every byte of which is
+  defined is compared by its bytes, as SwiftUI compares it (measured, O-26,
+  2026-11-21: `Documentation/SwiftUI parity/POD-COMPARE`), and so is a view of
+  such data, `Equatable` or not; `.equatable()` by its bytes or its `==`; another
+  field by its `==`, or by its fields; a `ForEach` row by its element's `==`. Its
+  environment is compared whole — every key, but
   the few no row can draw differently for — not key by key as the row read them
   ([RenderCycle.md](../../Sources/TUI/TUI.docc/Articles/RenderCycle.md),
   "Re-checking Rows After a Parent Writes" and "Memoizing Your Own Views";

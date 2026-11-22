@@ -265,6 +265,17 @@ extension ValueHashPlans {
     }
 }
 
+extension ValueHashPlans {
+    /// Whether every byte of every value of `T` is defined and read whole:
+    /// plain data whose plan is one run over all of it, as
+    /// ``ValueHashPlanBuilder/readsWhole(_:)`` decides for a comparison. What an
+    /// `.equatable()` view may compare by its bytes before it asks `==`.
+    @inline(__always)
+    package func readsWhole<T>(_: T.Type) -> Bool {
+        _isPOD(T.self) && entry(for: T.self).shape == .dense
+    }
+}
+
 // MARK: - Running a plan
 
 extension ValueHashPlans {

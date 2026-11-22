@@ -226,10 +226,30 @@ package struct ValueHashPlan {
         listFields: @escaping FieldLister = { RuntimeFields.fields(of: $0) },
         openers: [any ValueHashOpener.Type] = [], comparing: Bool = false
     ) {
+        unsafe self.init(
+            listFields: listFields,
+            openers: Dictionary(
+                openers.map { (ObjectIdentifier($0.existential), $0) }, uniquingKeysWith: { first, _ in first }),
+            comparing: comparing)
+    }
+
+    private init(
+        listFields: @escaping FieldLister, openers: [ObjectIdentifier: any ValueHashOpener.Type], comparing: Bool
+    ) {
         unsafe self.listFields = listFields
+        unsafe self.openers = openers
         unsafe self.comparing = comparing
-        unsafe self.openers = Dictionary(
-            openers.map { (ObjectIdentifier($0.existential), $0) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    /// Whether every byte of every value of `type` is defined and read whole:
+    /// plain data (`_isPOD`) whose hash plan is one run over all of it — never
+    /// padding, a payload enum or a typed step. What a comparison may compare
+    /// by its bytes (``describeForComparison(_:at:path:into:)``).
+    func readsWhole(_ type: Any.Type) -> Bool {
+        guard unsafe Self.isTrivial(type) else { return false }
+        let hashing = unsafe Self(listFields: listFields, openers: openers, comparing: false)
+        guard case .success(let items) = unsafe hashing.items(for: type) else { return false }
+        return unsafe Self.coversWhole(items, size: Self.layout(of: type).size)
     }
 
     /// The parts of `type`'s plan, or why it bypasses.
@@ -346,7 +366,10 @@ package struct ValueHashPlan {
     /// binds says nothing in its bytes, and is skipped; a `Binding` is `.opaque`;
     /// another dynamic property is unknown, and refused; a type that reads itself (an optional's case, a conditional's branch) does, if
     /// what it holds can be compared; and an `Equatable` type has its own `==`,
-    /// whatever its bytes or its fields would say.
+    /// whatever its fields would say — unless it is plain data every byte of
+    /// which is defined (``readsWhole(_:)``): its bytes, whatever its `==` says.
+    /// SwiftUI's rule, measured (O-26, owner 2026-11-21; `Documentation/SwiftUI
+    /// parity/POD-COMPARE`): `-0.0` after `0.0` differs, a NaN is the same.
     private func describeForComparison(
         _ type: Any.Type, at base: Int, path: PlanPath, into items: inout [Item]
     ) throws -> Bool {
@@ -363,7 +386,11 @@ package struct ValueHashPlan {
             return true
         }
         if let equatable = type as? any Equatable.Type {
-            unsafe items.append(.compared(offset: base, .equatable(equatable)))
+            if unsafe readsWhole(type) {
+                unsafe items.append(.bytes(offset: base, count: Self.layout(of: type).size, leaf: .other))
+            } else {
+                unsafe items.append(.compared(offset: base, .equatable(equatable)))
+            }
             return true
         }
         return false

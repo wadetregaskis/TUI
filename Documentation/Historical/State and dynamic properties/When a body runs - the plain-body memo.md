@@ -330,3 +330,40 @@ What regressed, in the order found:
 Not worth it, measured: a serve taking one failure off the gate rather than
 all, and a size stored in consecutive passes counted as a failure. Neither
 moved the counters.
+
+### O-26. Plain data compared by its bytes, 2026-11-21
+
+The comparison a composite's memo is keyed by took a field's `==` before it
+looked at its kind, so a `Double` field compared with `==`: `-0.0` after `0.0`
+was served showing `0.0`, a field holding `.nan` was drawn every frame, and a
+plain struct whose `==` reads an id alone was served stale when another field
+changed (bug hunt UNSAFE-4). A SwiftUI probe settled the rule
+(`Documentation/SwiftUI parity/POD-COMPARE`, macOS 15.8.3, SwiftUI 6.5.4): a view
+of plain data is compared by its bits, `Equatable` or not; a field of plain data
+in any view by its bits; a view that is not plain data and is `Equatable` by its
+`==`; `.equatable()` and `EquatableView` as equal when the bits OR `==` say so.
+(SwiftUI's very first compare of a type is bitwise wherever it is, while its
+layout is computed in the background, which `AG_ASYNC_LAYOUTS=0` removes; TUI
+copies the steady state.)
+
+Asked as O-26 ("compare a POD field with all bytes defined by its bytes?"), the
+owner chose (a), bytes, on 2026-11-21. Built so:
+
+- A type that is `_isPOD` and whose hash plan reads it whole — every byte
+  proved defined by the rules the value hash already goes by, no padding, no
+  payload enum, no step — is compared by its bytes, and its `==` is not asked
+  (`ValueHashPlanBuilder.readsWhole`). Anything else keeps its `==`: a
+  `String`, an array, a struct with padding, a payload enum, a reference, a type
+  whose metadata the walk cannot read. Padding is never read: the owner's
+  standing rule, after `Text`'s padding once made memos miss at random on Linux.
+- `EquatableView` asks its lookups to compare bytes too (`comparesBytes`):
+  equal when the bytes are the same, where every one is defined, or `==` says
+  so, for its buffer and its size. The re-check below a parent's write does the
+  same for every row type of plain data: the same bytes build the same row.
+  (A key wrapper around the content did the same first, but it made the memo's
+  key a different type, and with it the reader a kept scope is filed under:
+  `ObservationLeaseTests.servedMemoKeepsItsScope` counted one scope fewer.)
+- A `ForEach` row is still keyed by its element's `==`: SwiftUI's rule for that
+  key was not measured.
+
+Pinned by `PlainDataComparisonTests` and `ValueComparisonTests`.

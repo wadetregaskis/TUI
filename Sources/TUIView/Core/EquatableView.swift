@@ -39,6 +39,15 @@ import TUICore
 /// When `name` and `score` are unchanged between frames, the `VStack` and both
 /// `Text` views are never re-rendered — the cached buffer is returned directly.
 ///
+/// ## How It Compares
+///
+/// By `==`, and, for a view of plain data every byte of which is defined (only
+/// numbers, `Bool`s and structs of them, with no padding), by its bytes too:
+/// the content is unchanged when its bytes are the same OR its `==` says so, as
+/// SwiftUI compares an `EquatableView` (measured). So a view holding a NaN is
+/// served though `NaN != NaN`. A view that is not plain data, one holding a
+/// `String` say, is compared by its `==` alone.
+///
 /// ## When to Use
 ///
 /// - **Large static subtrees** — views with many children that rarely change
@@ -96,8 +105,8 @@ nonisolated public struct EquatableView<Content: View & Equatable>: View {
     /// at that type rather than once in the shared code.
     public func renderToBuffer(context: RenderContext) -> FrameBuffer {
         renderValueMemoized(
-            key: content, viewType: Content.self, context: context, build: { content },
-            render: { TUIView.renderToBuffer($0, context: $1) })
+            key: content, viewType: Content.self, context: context, comparesBytes: comparesBytes(context),
+            build: { content }, render: { TUIView.renderToBuffer($0, context: $1) })
     }
 }
 
@@ -105,8 +114,8 @@ nonisolated public struct EquatableView<Content: View & Equatable>: View {
 
 @MainActor extension EquatableView: Layoutable {
     /// Measures the wrapped content, memoized by the content's *value*
-    /// (`Equatable.==`) — the size twin of the buffer memo above, and the same
-    /// shared implementation.
+    /// (`Equatable.==`, or its bytes where every one is defined) — the size
+    /// twin of the buffer memo above, and the same shared implementation.
     ///
     /// Two-pass layout measures the same subtree repeatedly, and across frames a
     /// static subtree measures to the same size every time. Because the memo is
@@ -117,8 +126,24 @@ nonisolated public struct EquatableView<Content: View & Equatable>: View {
     /// measure memo is not.
     public func sizeThatFits(proposal: ProposedViewSize, context: RenderContext) -> ViewSize {
         measureValueMemoized(
-            key: content, proposal: proposal, context: context, build: { content },
-            measure: { measureChild($0, proposal: proposal, context: $1) })
+            key: content, proposal: proposal, context: context, comparesBytes: comparesBytes(context),
+            build: { content }, measure: { measureChild($0, proposal: proposal, context: $1) })
+    }
+}
+
+@MainActor extension EquatableView {
+    /// Whether the content is also equal when its bytes are the same: plain
+    /// data every byte of which is defined (``ValueHashPlans/readsWhole(_:)``).
+    /// SwiftUI's rule for `.equatable()` and `EquatableView`, measured (O-26,
+    /// owner 2026-11-21; `Documentation/SwiftUI parity/POD-COMPARE`): a view
+    /// of plain data is unchanged when its bits are the same OR its `==` says
+    /// so — a NaN field is served, and so is a field an `==` leaves out. A view
+    /// that is not plain data (a `String` field, a reference, padding) is
+    /// compared by its `==` alone: its bytes are never read where one may be
+    /// undefined.
+    @inline(__always)
+    private func comparesBytes(_ context: RenderContext) -> Bool {
+        context.renderCache?.valueHashPlans.readsWhole(Content.self) ?? false
     }
 }
 

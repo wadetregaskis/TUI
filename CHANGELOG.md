@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A view of plain data is compared by its bits, as SwiftUI compares it.** A view holding a `Double` that went from
+`0.0` to `-0.0` kept showing `0.0`, a view holding `.nan` ran its `body` on every frame, and a view holding a struct
+whose `==` compares an id alone was served stale when another of its fields changed. A field of plain data every byte
+of which is defined (numbers, `Bool`s and structs of them, with no padding) is now compared by its bytes, `Equatable`
+or not, and an `.equatable()` view is unchanged when its bytes or its `==` say so, as measured on SwiftUI. Anything
+else, a `String` above all, is compared by its `==` as before.
+
 **A test can ask what a cell is drawn in.** `TestScreen.style(at:)` and `style(of:)` give a cell's foreground and
 background as the terminal is sent them, and whether it is bold, faint, italic, underlined (and in which shape),
 struck through or reversed, so a test of colour no longer parses escape codes out of `styledLines`.

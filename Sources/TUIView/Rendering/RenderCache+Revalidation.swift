@@ -198,10 +198,14 @@ package final class RevalidationState {
         }
         lastEquality = nil
         guard eligibility(ofRowsOf: type) == .eligible, let equatable = type as? any Equatable.Type else { return nil }
+        // A row of plain data every byte of which is defined is also equal when
+        // its bytes are, as an `.equatable()` view's lookup is (O-26): the same
+        // bytes build the same row, whatever its `==` says of a NaN.
+        let comparesBytes = unsafe ValueHashPlanBuilder().readsWhole(type)
         func make<E: Equatable>(_: E.Type) -> (Any, Any) -> Bool {
             { lhs, rhs in
                 guard let left = lhs as? E, let right = rhs as? E else { return false }
-                return left == right
+                return (comparesBytes && sameBytes(left, right)) || left == right
             }
         }
         let equal = make(equatable)

@@ -843,7 +843,8 @@ extension RenderCache {
         rebuild: () -> Row,
         recheckingUnder environment: EnvironmentValues?,
         depth: Int,
-        slot: Int = 0
+        slot: Int = 0,
+        comparesBytes: Bool = false
     ) -> CacheEntry? {
         // Read at most once, and only for an entry that has registrations.
         var scopeRead: EffectScope?
@@ -900,7 +901,9 @@ extension RenderCache {
             logDebug("MISS (gradient moved) \(identity.path)")
             return nil
         }
-        guard oldView == view else {
+        // `comparesBytes`: an `.equatable()` view of plain data is also equal
+        // when its bytes are (O-26).
+        guard (comparesBytes && sameBytes(oldView, view)) || oldView == view else {
             stats.misses += 1
             logDebug("MISS (view changed) \(identity.path)")
             return nil
@@ -1103,7 +1106,8 @@ extension RenderCache {
     /// ``lookupHeldSize(key:view:)`` for the value memo, which can re-check a
     /// suspect: see ``lookupEntryRechecking(identity:view:contextWidth:contextHeight:gradientFrame:surfaceBackground:effectScope:animationMustBeCurrent:rebuild:recheckingUnder:depth:)``.
     package func lookupHeldSize<V: Equatable, Row>(
-        key: SizeKey, view: V, rebuild: () -> Row, recheckingUnder environment: EnvironmentValues?, depth: Int
+        key: SizeKey, view: V, rebuild: () -> Row, recheckingUnder environment: EnvironmentValues?, depth: Int,
+        comparesBytes: Bool = false
     ) -> (size: ViewSize, lapsesAt: Date?)? {
         // One lookup of the table, the suspect check behind it: a second one
         // on this path, which `fanout` takes 4,000 times a frame, cost it 5%.
@@ -1124,7 +1128,9 @@ extension RenderCache {
                 return nil
             }
         }
-        guard let entry = found, let old = entry.viewSnapshot as? V, old == view, holds(lapsingAt: entry.lapsesAt) else {
+        guard let entry = found, let old = entry.viewSnapshot as? V,
+            (comparesBytes && sameBytes(old, view)) || old == view, holds(lapsingAt: entry.lapsesAt)
+        else {
             stats.misses += 1
             return nil
         }

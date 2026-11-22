@@ -76,6 +76,7 @@ func renderValueMemoized<Key: Equatable, Row>(
     viewType: @autoclosure () -> Any.Type,
     context: RenderContext,
     slot: Int = 0,
+    comparesBytes: Bool = false,
     build: () -> Row,
     render: (Row, RenderContext) -> FrameBuffer
 ) -> FrameBuffer {
@@ -96,7 +97,8 @@ func renderValueMemoized<Key: Equatable, Row>(
         effectScope: context.effectScope,
         // A measure draws nothing, and a run's frames are all one width.
         animationMustBeCurrent: !context.isMeasuring,
-        rebuild: build, recheckingUnder: context.environment, depth: context.environmentApplicationDepth, slot: slot)
+        rebuild: build, recheckingUnder: context.environment, depth: context.environmentApplicationDepth, slot: slot,
+        comparesBytes: comparesBytes)
     {
         // Keep the cached subtree's state alive for GC — the WHOLE subtree, not
         // just this identity: nothing below is visited on a hit, so a `@State`
@@ -447,6 +449,7 @@ func measureValueMemoized<Key: Equatable, Row>(
     proposal: ProposedViewSize,
     context: RenderContext,
     slot: Int = 0,
+    comparesBytes: Bool = false,
     build: () -> Row,
     measure: (Row, RenderContext) -> ViewSize
 ) -> ViewSize {
@@ -468,7 +471,7 @@ func measureValueMemoized<Key: Equatable, Row>(
     // As the buffer half's lookup: a suspect is re-checked by its rebuilt row.
     if let cached = cache.lookupHeldSize(
         key: sizeKey, view: key, rebuild: build, recheckingUnder: context.environment,
-        depth: context.environmentApplicationDepth)?.size
+        depth: context.environmentApplicationDepth, comparesBytes: comparesBytes)?.size
     {
         if RenderCache.verifiesMeasureMemo {
             return verifyServedSize(

@@ -59,7 +59,11 @@ package protocol _ValueComparing {
 ///   counts as changed and otherwise is ignored. TUI cannot see a closure's
 ///   captures, and its bytes differ every time it is made;
 /// - ``_ValueComparing``: read through typed Swift;
-/// - `Equatable`: its own `==`;
+/// - plain data every byte of which is defined (`_isPOD`, and read whole by its
+///   hash plan): its bytes, whatever its `==` says, as SwiftUI compares it
+///   (O-26, owner 2026-11-21: `-0.0` after `0.0` differs, a NaN is the same);
+/// - another `Equatable`: its own `==` (a `String`, an array, a type with
+///   padding, a payload enum);
 /// - a struct or tuple: its fields; a class: by identity; a one-byte enum or an
 ///   existential metatype: its bytes;
 /// - anything else (an existential, a payload enum that is not `Equatable`): no
@@ -152,6 +156,18 @@ package final class ValueComparison {
             withUnsafePointer(to: rhs) { right in
                 unsafe equal(UnsafeRawPointer(left), UnsafeRawPointer(right), strict: strict, plans: plans)
             }
+        }
+    }
+}
+
+/// Whether two values lie in the same bytes. Asked only of a type every byte of
+/// which is defined (``ValueHashPlans/readsWhole(_:)``): elsewhere padding, which
+/// no store writes, would be read.
+func sameBytes<T>(_ lhs: T, _ rhs: T) -> Bool {
+    withUnsafeBytes(of: lhs) { left in
+        withUnsafeBytes(of: rhs) { right in
+            guard let leftStart = left.baseAddress, let rightStart = right.baseAddress else { return true }
+            return unsafe memcmp(leftStart, rightStart, left.count) == 0
         }
     }
 }
