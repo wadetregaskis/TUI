@@ -38,6 +38,8 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
     let interned = Mutex(EditorHighlightTokens<Token>())
     /// Asks the editor for a frame: a line on screen changed its tokens.
     let requestFrame: @Sendable () -> Void
+    /// Told of each publish and what became of it: a test's (B-ATTRED-60).
+    let publishObserver = Mutex<(@Sendable (EditorHighlightPublishRecord) -> Void)?>(nil)
 
     /// Lines longer than this many UTF-8 bytes are drawn unstyled, and their
     /// tokens refused (B-ATTRED-15, 30): a minified file's one line would be
@@ -86,14 +88,16 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
     private func waitForChange() async {
         await withTaskCancellationHandler {
             await withCheckedContinuation { (waiter: CheckedContinuation<Void, Never>) in
-                let resume = state.withLock { state -> Bool in
+                let (resume, idle) = state.withLock { state -> (Bool, [CheckedContinuation<Void, Never>]) in
                     // Rung since the update was looked for, or never to ring.
-                    guard !state.hasUpdate, !state.isClosed, !Task.isCancelled else { return true }
+                    guard !state.hasUpdate, !state.isClosed, !Task.isCancelled else { return (true, []) }
                     state.waiter?.resume()
                     state.waiter = waiter
-                    return false
+                    // Waiting with nothing to take: a test's step is done.
+                    return (false, state.takeIdleWaiters())
                 }
                 if resume { waiter.resume() }
+                for stepped in idle { stepped.resume() }
             }
         } onCancel: {
             state.withLock { $0.takeWaiter() }?.resume()
@@ -108,7 +112,8 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
     /// kept as drawn unstyled, whatever its tokens.
     @discardableResult
     public func publish(_ tokens: TextEditorTokens<Token>, forLine line: Int, of version: Int) -> TextEditorPublishOutcome {
-        keepPublished(CollectionOfOne(tokens), forLines: line..<(line + 1), of: version)
+        let lines = line..<(line + 1)
+        return observed(keepPublished(CollectionOfOne(tokens), forLines: lines, of: version), lines: lines, of: version)
     }
 
     /// Publishes each of `tokens` for the line of `lines` at its place, under
@@ -119,7 +124,7 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
     public func publish(
         _ tokens: [TextEditorTokens<Token>], forLines lines: Range<Int>, of version: Int
     ) -> TextEditorPublishOutcome {
-        keepPublished(tokens, forLines: lines, of: version)
+        observed(keepPublished(tokens, forLines: lines, of: version), lines: lines, of: version)
     }
 
     /// Ends a slice of work: throws if the task is cancelled or the editor
@@ -133,7 +138,7 @@ public final class TextEditorHighlightSession<Token: Hashable & Sendable>: Senda
     /// Runs `highlighter` on this session, off the main actor, and closes
     /// the session when it returns (B-ATTRED-22).
     @concurrent
-    func run<Highlighter: TextEditorHighlighter>(_ highlighter: Highlighter) async
+    package func run<Highlighter: TextEditorHighlighter>(_ highlighter: Highlighter) async
     where Highlighter.Token == Token {
         await highlighter.highlight(self)
         close()

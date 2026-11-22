@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A highlighter can be tested without an editor.** Under the highlighting seam's SPI, TUITesting's
+`TestHighlightSession` plays the editor (an edit, a whole write, a scroll) exactly as a `TextEditor` tells its
+highlighter of them, runs a highlighter and steps it until it waits for the next update, and reads back the tokens
+and marks it published and every publish's outcome. `TextEditorText(_:version:)` makes a text as an editor hands it
+over, and `TextEditorTokens` reads back as a collection of offsets and tokens. TUITesting now depends on
+TUITextInput.
+
 **A `TextEditor`'s highlighter can mark ranges of the text itself, such as its parse's errors.** Through the
 highlighting seam (SPI), `publish(marks:of:)` gives the editor ranges of a version of its text, each drawn in a
 token's style over the highlighting and under the app's own `.textEditorMarks`. The editor carries them through its

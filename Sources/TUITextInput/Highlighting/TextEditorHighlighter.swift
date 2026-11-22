@@ -63,14 +63,26 @@ public protocol TextEditorHighlighter: Sendable {
 /// Never trusted: an offset that goes backwards is taken as the one before
 /// it, one past the line as its end, and one inside a character styles the
 /// whole character.
+///
+/// Read back in order, each token with its offset as published, before the
+/// session clamps it: so a highlighter's own tests can check what it made
+/// (B-ATTRED-60).
 @_spi(TextEditorHighlighting)
-public struct TextEditorTokens<Token: Hashable & Sendable>: Sendable {
+public struct TextEditorTokens<Token: Hashable & Sendable>: Sendable, RandomAccessCollection {
     /// Each token, and where it starts.
     var tokens: [Token] = []
     var offsets: [Int] = []
 
     /// No tokens: a line drawn in the editor's own ink.
     public init() {}
+
+    public var startIndex: Int { 0 }
+    public var endIndex: Int { tokens.count }
+
+    /// The `index`th token, and the UTF-8 offset in the line it starts at.
+    public subscript(index: Int) -> (utf8Offset: Int, token: Token) {
+        (offsets[index], tokens[index])
+    }
 
     /// Adds `token`, starting at `utf8Offset` of the line.
     public mutating func append(_ token: Token, at utf8Offset: Int) {
@@ -105,6 +117,18 @@ public struct TextEditorText: Sendable {
     /// editor's layout, whose own array each key splices in place
     /// (B-ATTRED-34).
     let lineStarts: [Int]
+
+    /// `string` as version `version` of an editor's text, as a highlighter
+    /// is given it: its lines found as the editor finds them, at LF, CRLF and
+    /// a lone CR. For a highlighter's tests, and for code that takes a text
+    /// to be measured without an editor (B-ATTRED-60).
+    ///
+    /// - Parameters:
+    ///   - string: The text.
+    ///   - version: Its version: what a publish names.
+    public init(_ string: String, version: Int) {
+        self.init(version: version, string: string)
+    }
 
     /// `string` as version `version`, its lines found as ``EditorLayout``
     /// finds them, and its bytes made contiguous for ``withUTF8(_:)``.

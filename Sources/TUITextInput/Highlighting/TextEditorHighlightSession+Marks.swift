@@ -50,6 +50,7 @@ extension TextEditorHighlightSession {
     @discardableResult
     public func publish(marks: [TextEditorHighlightMark<Token>], of version: Int) -> Bool {
         guard let (text, _) = state.withLock({ $0.publishable(version: version) }) else {
+            _ = observed(.refused, lines: nil, marks: marks.count, of: version)
             return false
         }
         let total = text.utf8Count
@@ -68,7 +69,9 @@ extension TextEditorHighlightSession {
             return .kept(0..<0, askForFrame: true)
         }
         if case .kept(_, true) = outcome { requestFrame() }
-        return outcome != .refused
+        let refused = outcome == .refused
+        _ = observed(refused ? .refused : .kept(0..<0), lines: nil, marks: marks.count, of: version)
+        return !refused
     }
 
     /// Whether the session holds marks: an edit then finds what carries them.

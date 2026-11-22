@@ -1480,6 +1480,27 @@ work round, each item pinned by a test of its own (tuitree's `TUI-FEEDBACK.md`, 
   forgets already, and a publish that changes them forgets the drawn lines, once. The lines each covers are found by
   `EditorMarkStore.byLine`, the app's marks' own, again only when the text or the marks change. They are kept for
   the whole text, not the window: errors are few, and an edit's carry is a pass over them.
+- **B-ATTRED-60. A session a test drives, a text a test makes, and tokens a test reads, under the seam's SPI** (item
+  4). `TextEditorText`'s and the session's initialisers were internal and `TextEditorTokens` could not be read, so
+  tuitree tested its highlighter's loop only through a `TextEditor` in a `TestApp`, with waits, read tokens through
+  `@testable import` (debug builds only), and kept a second text type that found lines by TUI's rules again. What
+  the risk table promised for promotion is done now, under the same `@_spi(TextEditorHighlighting)`:
+  - `TestHighlightSession<Token>`, in TUITesting. The test plays the editor with `replace(_:with:)` (an edit by
+    UTF-8 range, spliced as the editor splices it and told through the same `EditorHighlightEdit` the handler makes),
+    `write(_:)` (a whole write, B-ATTRED-58) and `show(lines:)`; runs a highlighter with `run(_:)`, or plays it
+    through `session`; `step()`s; and reads `tokens(ofLine:)`, `isProvisional(line:)`, `marks`, `framesAsked` and
+    `publications`, each publish with its version and outcome, refused ones included. Its engine is
+    `EditorHighlightHarness`, `package` in TUITextInput, so the editor's own code plays the editor and no app reaches
+    it. A step waits on the session itself: it returns once the highlighter waits in `nextUpdate()` with nothing to
+    take, or has returned, so nothing sleeps or polls. A highlighter that waits on something else first is waited
+    for until it asks again, which is the step a test of it means.
+  - `TextEditorText(_:version:)`, its lines found as the editor finds them, so an adapter's code can be given a
+    text without an editor and needs no line splitter of its own.
+  - `TextEditorTokens` is a `RandomAccessCollection` of `(utf8Offset:, token:)`, read back as published.
+
+  TUITesting now depends on TUITextInput, which a test target using TUITesting compiles even if its app has no text
+  input. TUITesting is for test targets alone, and the alternative, a product of its own for one type under an SPI,
+  would be one more thing for an adapter's tests to find.
 
 #### A-ATTRED-15. Whether TUI keeps a line lexer
 

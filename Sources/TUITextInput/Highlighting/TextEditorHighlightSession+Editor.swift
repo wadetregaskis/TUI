@@ -164,6 +164,9 @@ struct EditorHighlightState: Sendable {
     /// they changed since the editor last took them (B-ATTRED-59).
     var marks: [EditorMark] = []
     var marksChange: EditorHighlightMarksChange?
+    /// A test's steps, waiting until the highlighter waits for an update
+    /// there is not, or the session closes (B-ATTRED-60).
+    var idleWaiters: [CheckedContinuation<Void, Never>] = []
 
     init(string: String, lineCount: Int, utf8Count: Int) {
         self.string = string
@@ -382,12 +385,14 @@ extension TextEditorHighlightSession: EditorHighlightFeed {
     var window: Range<Int> { state.withLock { $0.window } }
 
     func close() {
-        state.withLock { state -> CheckedContinuation<Void, Never>? in
+        let (waiter, idle) = state.withLock { state in
             state.isClosed = true
             state.lines.removeAll()
             state.marks.removeAll()
-            return state.takeWaiter()
-        }?.resume()
+            return (state.takeWaiter(), state.takeIdleWaiters())
+        }
+        waiter?.resume()
+        for stepped in idle { stepped.resume() }
     }
 
     /// `line`'s tokens as kept, for a test.

@@ -741,9 +741,11 @@ let package = Package(
         // What a client's tests drive an app with, and the suite's too (Sources/TUI/TUI.docc/Articles/TestingYourApp.md).
         // On TUIApp's headless render loop through `package` API, so it needs no testability and builds in release.
         // The umbrella does not re-export it: an app's tests depend on it beside what the app depends on.
+        // TUITextInput for `TestHighlightSession`, a highlighter's test session (under the highlighting seam's SPI),
+        // whose engine is TUITextInput's `package` `EditorHighlightHarness`.
         .target(
             name: "TUITesting",
-            dependencies: ["TUIApp", "TUICore", "TUIFoundation"],
+            dependencies: ["TUIApp", "TUICore", "TUIFoundation", "TUITextInput"],
             swiftSettings: [.enableUpcomingFeature("MemberImportVisibility")]
         ),
 
