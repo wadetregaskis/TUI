@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A lazy stack whose spacing comes to minus its row height no longer crashes.** In
+`ScrollView { LazyVStack(spacing: compact ? -1 : 0) { … } }` over one-line rows, the frame `compact` became true
+divided by zero.
+
 **A negative `spacing` in a column overlaps its rows, as SwiftUI's does.** `VStack(spacing: -1) { Text("a\nb\nc");
 Button("x") {} }` drew four rows while reporting three, with the button's click region a row above where it was drawn,
 and a parent that gave the column the rows it reported cut its last row off. Each child is now pulled up over the rows

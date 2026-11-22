@@ -97,4 +97,28 @@ struct NegativeColumnSpacingTests {
         #expect(measured.height == 2)
         #expect(drawn.lines.map(\.stripped) == ["a", "x"], "\(drawn.lines.map(\.stripped))")
     }
+
+    /// The hypothesis the first frame seeds (one-line rows) meets a spacing of
+    /// minus that line on the next: the measure divided by a pitch of zero.
+    @Test("A lazy stack whose spacing comes to minus its row height draws")
+    func lazyStackAtZeroPitch() {
+        struct Rows: View {
+            let spacing: Int
+            var body: some View {
+                ScrollView {
+                    LazyVStack(spacing: spacing) {
+                        ForEach(0..<400, id: \.self) { Text("row \($0)") }
+                    }
+                }
+            }
+        }
+        let context = makeRenderContext(width: 20, height: 6)
+        let storage = context.environment.stateStorage!
+        for spacing in [0, -1, -2] {
+            storage.beginRenderPass()
+            let buffer = renderToBuffer(Rows(spacing: spacing), context: context)
+            storage.endRenderPass()
+            #expect(buffer.height <= 6)
+        }
+    }
 }

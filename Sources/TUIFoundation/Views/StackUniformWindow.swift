@@ -1011,6 +1011,12 @@ final class StackWindowState {
         // row.
         guard !children[0].mayHaveExplicitGuide(.horizontal(alignment)) else { return nil }
         let pitch = extent + spacing
+        // Declined as the render declines it (`renderUniformSeekWindow`'s own guard):
+        // a spacing of minus the row height or less pulls every row onto the
+        // first, which no pitch describes. The guard there cannot cover this:
+        // the frame that changes the spacing measures before it renders, with
+        // the hypothesis the last frame seeded, and divided by zero.
+        guard pitch > 0 else { return nil }
         let widthLimit = proposal.width ?? context.availableWidth
         let heightLimit = proposal.height ?? context.availableHeight
 
