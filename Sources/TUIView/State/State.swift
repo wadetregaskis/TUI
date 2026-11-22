@@ -342,8 +342,9 @@ extension AppState: AppRenderState {
     /// through the render cache's link — and notes when it was made with no
     /// transaction in force.
     ///
-    /// Called on the main actor, where a `@State`'s box is written: a write
-    /// made off it is posted there and made there (`StateBacking.value`).
+    /// Called on the main actor, where a `@State`'s write is reported: one
+    /// made off it is stored at once, and its report posted there
+    /// (`StateBacking.value`).
     /// Behind the app's lock all the same, as every report here is.
     package func setNeedsRenderForStateChange() {
         let observers = lock.withLock { state -> [@Sendable () -> Void] in
@@ -509,10 +510,11 @@ extension AppState {
 /// Receives render-invalidation requests raised by state mutations.
 ///
 /// A `@State` write reaches ``StateBox``'s `value` setter, which must (a) drop
-/// the cached buffers for the affected subtree and (b) request a re-render. The
-/// box is written on the main actor only — a `@State` written off it, from a
-/// background `Task`, has its write posted to the main actor and made there
-/// (`StateBacking.value`) — but other reports reach the sink from any thread:
+/// the cached buffers for the affected subtree and (b) request a re-render. A
+/// `@State`'s write reaches it on the main actor only — one made off it, from
+/// a background `Task`, stores the value at once and posts its report to the
+/// main actor (`StateBacking.value`) — but other reports reach the sink from
+/// any thread:
 /// an `@Observable` write's observation fires on the writer's. ``RenderCache``
 /// is single-threaded, so nothing touches it directly: this sink's conformer
 /// records the invalidation behind a lock and applies it on the main-actor
@@ -897,10 +899,10 @@ public struct State<Value> {
 
     /// The current state value.
     ///
-    /// Read and written on any thread, as SwiftUI's: on the main actor in
-    /// place, and elsewhere through the main actor, a write applied there
-    /// before the next frame and a read given the last value written
-    /// (`StateBacking.value`).
+    /// Read and written on any thread, as SwiftUI's, never waiting for the
+    /// main actor: one value behind a lock of its box's, which a write on any
+    /// thread stores at once and every read takes, but one in a render pass on
+    /// the main actor, which reads the pass's snapshot (`StateBacking.value`).
     public var wrappedValue: Value {
         get { backing.value }
         nonmutating set { backing.value = newValue }
@@ -971,25 +973,24 @@ extension State: Sendable where Value: Sendable {}
 /// holding it, in the pass that walks it, which ``createdIn`` tells.
 final class StateBacking<Value> {
     let defaultValue: Value
-    /// The box the value is in. Written on the main actor only, as every
-    /// member here but ``value``'s way off it; the route a read off the main
-    /// actor takes, once one has, follows it here.
-    private(set) var box: StateBox<Value> {
-        didSet { offMainRouteDidMove() }
-    }
-    /// The way a read off the main actor reaches ``box``'s value without
-    /// reading ``box``, made on the main actor the first time one does
-    /// (``StateBacking/value``), and kept as long as the backing. `0` until
-    /// then. Retained by hand, as an `Atomic` holds no strong reference: an
-    /// ``OffMainPointer``'s bits.
-    let offMainRouteBits = Atomic<UInt>(0)
+    /// The box the value is in. Moved on the main actor only, as every member
+    /// here but ``value``'s way off it, and under ``boxLock``: the main actor
+    /// reads it as is, and a thread other than the main actor's under the
+    /// lock (``boxOffMain()``).
+    var box: StateBox<Value> { heldBox }
+    /// What ``box`` reads.
+    private var heldBox: StateBox<Value>
+    /// The lock the main actor moves ``box`` under, and a read of it off the
+    /// main actor takes: `Mutex` in place, as `Lock` is the same lock in an
+    /// object of its own, which would be one more allocation a backing.
+    private let boxLock = Mutex(())
     /// What ``box`` is: the one made with the backing, one `StateStorage`
     /// keeps for a place, or an object's own.
     ///
     /// Before ``createdIn``, and both after the stored fields of any type, so
     /// the two share the word the binding byte alone would pad out:
-    /// `StateBacking<Int>`, `<String>` and `<Bool>` are 48, 56 and 48 bytes
-    /// (40, 48 and 40 before ``offMainRouteBits``), in 48-, 64- and 48-byte
+    /// `StateBacking<Int>`, `<String>` and `<Bool>` are 44, 52 and 44 bytes
+    /// with a 4-byte lock (Darwin's and Linux's), in 48-, 64- and 48-byte
     /// allocations.
     private(set) var bound = BackingBinding.unbound
     /// The render pass the backing was made in — ``StateRegistration/renderPass``
@@ -1000,20 +1001,15 @@ final class StateBacking<Value> {
 
     init(_ value: Value) {
         self.defaultValue = value
-        self.box = StateBox(value)
+        self.heldBox = StateBox(value)
         self.createdIn = StateRegistration.renderPass
-    }
-
-    deinit {
-        let bits = offMainRouteBits.load(ordering: .acquiring)
-        if bits != 0 { OffMainPointer.release(bits) }
     }
 
     /// A backing bound to `box` from the start, made by a walk in render pass
     /// `pass`: the walk knows the pass, so the task local is not read.
     init(defaultValue: Value, boundTo box: StateBox<Value>, createdIn pass: UInt32) {
         self.defaultValue = defaultValue
-        self.box = box
+        self.heldBox = box
         self.bound = .place
         self.createdIn = pass
     }
@@ -1022,22 +1018,22 @@ final class StateBacking<Value> {
     /// redrawing what `sink` redraws: made by a walk in render pass `pass`.
     init(ownDefault defaultValue: Value, sink: (any RenderInvalidationSink)?, createdIn pass: UInt32) {
         self.defaultValue = defaultValue
-        self.box = StateBox(defaultValue)
-        self.box.setInvalidationSink(sink)
+        self.heldBox = StateBox(defaultValue)
+        self.heldBox.setInvalidationSink(sink)
         self.bound = .own
         self.createdIn = pass
     }
 
     /// Binds the backing to `box`, one `StateStorage` keeps for a place.
     func bind(to box: StateBox<Value>) {
-        self.box = box
+        hold(box)
         bound = .place
     }
 
     /// Binds the backing, for a measure, to `box`, one `StateStorage` keeps
     /// for a place already: a render confirms or replaces it.
     func bindProvisionally(to box: StateBox<Value>) {
-        self.box = box
+        hold(box)
         bound = .provisional
     }
 
@@ -1055,7 +1051,7 @@ final class StateBacking<Value> {
     /// with no sink until now.
     func take(_ box: StateBox<Value>, sink: ObjectHub) {
         box.setInvalidationSink(sink)
-        self.box = box
+        hold(box)
         bound = .own
     }
 
@@ -1063,10 +1059,29 @@ final class StateBacking<Value> {
     /// own, holding the value the place's holds: the object outlived the pass
     /// it was made in.
     func convert(sink: (any RenderInvalidationSink)?) {
-        let own = StateBox(box.value)
+        let own = StateBox(box.lockedValue())
         own.setInvalidationSink(sink)
-        box = own
+        hold(own)
         bound = .own
+    }
+
+    /// Moves the backing to `newBox`, on the main actor, under the lock a read
+    /// of ``box`` off it takes; the box it held is let go of after the lock.
+    private func hold(_ newBox: StateBox<Value>) {
+        guard newBox !== heldBox else { return }
+        var displaced = newBox
+        boxLock.withLock { _ in swap(&heldBox, &displaced) }
+    }
+
+    /// ``box``, read off the main actor: under the lock the main actor moves
+    /// it under, and retained before the lock is let go, so nothing the main
+    /// actor lets go of meanwhile can take it along. Never waits for the main
+    /// actor, which holds the lock only to swap one reference for another.
+    func boxOffMain() -> StateBox<Value> {
+        var held: StateBox<Value>?
+        boxLock.withLock { _ in held = heldBox }
+        // swiftlint:disable:next force_unwrapping
+        return held!
     }
 }
 

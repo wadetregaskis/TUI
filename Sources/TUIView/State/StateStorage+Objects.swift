@@ -117,7 +117,7 @@ extension StateStorage {
     ) -> StateBox<Value> {
         if adopting, let kept = values[key] as? StateBox<Value> {
             if let predecessor, predecessor.object != nil {
-                predecessor.keep(StateBox(kept.value), handedOverWith: kept)
+                predecessor.keep(StateBox(kept.lockedValue()), handedOverWith: kept)
             }
             return kept
         }

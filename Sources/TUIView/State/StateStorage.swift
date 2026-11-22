@@ -1106,11 +1106,7 @@ package final class StateBox<Value> {
     }
 
     /// Tells the sink that the value changed: softly, for a parent's write.
-    /// First, hands the value to the readers off the main actor, if any has
-    /// ever asked (``openOffMainChannel()``): one load where none has.
     private func reportChange() {
-        let channel = offMainChannelBits.load(ordering: .relaxed)
-        if channel != 0 { OffMainPointer.object(channel, as: OffMainChannel<Value>.self).publish(stored) }
         writeCount &+= 1
         if invalidatesSoftly, let identity {
             invalidationSink?.invalidateRenderSoftly(for: identity)
@@ -1136,13 +1132,23 @@ package final class StateBox<Value> {
     /// the instance has room for it.
     private(set) var writeCount: UInt32 = 0
 
-    /// What a read off the main actor reads: a copy of the value, which every
-    /// write here republishes, made on the main actor the first time a
-    /// `@State` bound to this box is read off it, and kept as long as the box
-    /// (``openOffMainChannel()``). `0` until then, so a box no other thread
-    /// reads pays one load a write. Retained by hand, as an `Atomic` holds no
-    /// strong reference: an ``OffMainPointer``'s bits, released in `deinit`.
-    private let offMainChannelBits = Atomic<UInt>(0)
+    /// The lock a `@State`'s every access takes but a read in a render pass
+    /// on the main actor (``stateValueOnMainActor()``): ``stored``'s, for a
+    /// box a `@State` holds, and ``snapshotPass``'s writes'. `Mutex` in place,
+    /// as `Lock` is the same lock in an object of its own, which would be one
+    /// more allocation a box. A core's slot, which only the main actor
+    /// reaches, reads and writes ``value`` as is.
+    private let lock = Mutex(())
+
+    /// The value as the render pass ``snapshotPass`` names reads it, taken by
+    /// the pass's first read: what a read in that pass on the main actor
+    /// takes, unlocked. Read and written on the main actor only.
+    private var renderSnapshot: Value?
+
+    /// The render pass ``renderSnapshot`` is good for: `0` for none. Written
+    /// under ``lock``, where a write drops it, and read on the main actor
+    /// unlocked.
+    private let snapshotPass = Atomic<UInt32>(0)
 
     /// Creates a state box with an initial value.
     ///
@@ -1156,21 +1162,62 @@ package final class StateBox<Value> {
         stored = value
         self.invalidatesSoftly = invalidatesSoftly
     }
+}
 
-    deinit {
-        let bits = offMainChannelBits.load(ordering: .acquiring)
-        if bits != 0 { OffMainPointer.release(bits) }
+// MARK: - A @State's reads and writes, on any thread
+
+extension StateBox {
+    /// The value as a `@State` reads it on the main actor: in a render pass,
+    /// the pass's snapshot, unlocked once the pass's first read has taken it;
+    /// elsewhere — an action, a handler — under the lock.
+    func stateValueOnMainActor() -> Value {
+        let pass = StateRegistration.renderPass
+        guard pass != 0 else { return lockedValue() }
+        if snapshotPass.load(ordering: .acquiring) == pass, let renderSnapshot { return renderSnapshot }
+        var value: Value?
+        lock.withLock { _ in
+            value = stored
+            snapshotPass.store(pass, ordering: .releasing)
+        }
+        // After the lock, letting go of the last pass's.
+        renderSnapshot = value
+        // swiftlint:disable:next force_unwrapping
+        return value!
     }
 
-    /// The channel reads off the main actor take the value from, made now,
-    /// holding the value, if there is none yet. On the main actor only, as
-    /// every other member: it reads the value.
-    func openOffMainChannel() -> OffMainChannel<Value> {
-        let bits = offMainChannelBits.load(ordering: .relaxed)
-        if bits != 0 { return OffMainPointer.object(bits, as: OffMainChannel<Value>.self) }
-        let channel = OffMainChannel(OffMainCopy(value: stored))
-        offMainChannelBits.store(OffMainPointer.retainedBits(of: channel), ordering: .releasing)
-        return channel
+    /// The value, copied under the lock: a `@State`'s read on any thread.
+    func lockedValue() -> Value {
+        var value: Value?
+        lock.withLock { _ in value = stored }
+        // swiftlint:disable:next force_unwrapping
+        return value!
+    }
+
+    /// Stores `newValue` under the lock, dropping the render pass's snapshot,
+    /// on any thread; what it displaces is let go of after the lock. Reports
+    /// nothing: the caller does, on the main actor.
+    func storeStateValue(_ newValue: Value) {
+        var displaced = newValue
+        lock.withLock { _ in
+            swap(&stored, &displaced)
+            snapshotPass.store(0, ordering: .relaxed)
+        }
+    }
+
+    /// A `@State`'s write on the main actor: stored under the lock, and
+    /// reported as ``value``'s setter reports one.
+    func setStateValue(_ newValue: Value) {
+        invalidationSink?.willInvalidateRender()
+        storeStateValue(newValue)
+        reportChange()
+    }
+
+    /// Reports, on the main actor, a write ``storeStateValue(_:)`` stored off
+    /// it: as ``value``'s setter reports one, but after the store, which any
+    /// thread may already have read.
+    func reportStoredWrite() {
+        invalidationSink?.willInvalidateRender()
+        reportChange()
     }
 }
 
@@ -1198,7 +1245,8 @@ protocol DroppableBox: AnyObject {
 extension StateBox: DroppableBox {
     func markDropped() {
         wasDropped = true
-        (stored as? any StateStorageDeparting)?.storageDidDrop()
+        // Under the lock: a `@State`'s box may be written off the main actor.
+        (lockedValue() as? any StateStorageDeparting)?.storageDidDrop()
     }
 }
 
