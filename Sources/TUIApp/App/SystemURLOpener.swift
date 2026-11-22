@@ -57,17 +57,24 @@ struct SystemURLOpener: URLOpenerBackend {
             // Greater than 32 on success, by the function's own contract.
             return Int(bitPattern: result) > 32
         #else
-        for opener in ["/usr/bin/open", "/usr/bin/xdg-open"]
-        where FileManager.default.fileExists(atPath: opener) {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: opener)
-            process.arguments = [url.absoluteString]
-            process.standardOutput = FileHandle.nullDevice
-            process.standardError = FileHandle.nullDevice
-            return (try? process.run()) != nil
-        }
-        return false
+        guard
+            let opener = Self.opener(
+                environment: ProcessInfo.processInfo.environment, exists: FileManager.default.fileExists(atPath:))
+        else { return false }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: opener)
+        process.arguments = [url.absoluteString]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        return (try? process.run()) != nil
         #endif
+    }
+
+    /// The opener ``open(_:)`` starts on macOS and Linux: `open`, else
+    /// `xdg-open`, whichever `exists`; `nil` where neither does. Posed on the
+    /// environment and the files that exist, so a test can ask without either.
+    static func opener(environment: [String: String], exists: (String) -> Bool) -> String? {
+        ["/usr/bin/open", "/usr/bin/xdg-open"].first(where: exists)
     }
 
     /// What the Windows shell is handed for `url`: its text, where it names a

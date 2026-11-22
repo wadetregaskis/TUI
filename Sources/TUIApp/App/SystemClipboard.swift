@@ -201,31 +201,37 @@ enum SystemClipboard {
                     pasteArguments: [])
             ]
         #else
-            var found: [Helper] = []
-            if environment["WAYLAND_DISPLAY"]?.isEmpty == false,
-                let directory = ["/usr/bin", "/usr/local/bin"].first(where: { exists("\($0)/wl-copy") })
-            {
+            return linuxHelpers(environment: environment, exists: exists)
+        #endif
+    }
+
+    /// The Linux helpers ``helpers(environment:exists:)`` finds there: on
+    /// every POSIX platform, so a test on any of them can ask.
+    static func linuxHelpers(environment: [String: String], exists: (String) -> Bool) -> [Helper] {
+        var found: [Helper] = []
+        if environment["WAYLAND_DISPLAY"]?.isEmpty == false,
+            let directory = ["/usr/bin", "/usr/local/bin"].first(where: { exists("\($0)/wl-copy") })
+        {
+            found.append(
+                Helper(
+                    copyTool: "\(directory)/wl-copy", copyArguments: [],
+                    pasteTool: "\(directory)/wl-paste", pasteArguments: ["--no-newline"]))
+        }
+        if environment["DISPLAY"]?.isEmpty == false {
+            if exists("/usr/bin/xclip") {
                 found.append(
                     Helper(
-                        copyTool: "\(directory)/wl-copy", copyArguments: [],
-                        pasteTool: "\(directory)/wl-paste", pasteArguments: ["--no-newline"]))
+                        copyTool: "/usr/bin/xclip", copyArguments: ["-selection", "clipboard"],
+                        pasteTool: "/usr/bin/xclip", pasteArguments: ["-selection", "clipboard", "-o"]))
             }
-            if environment["DISPLAY"]?.isEmpty == false {
-                if exists("/usr/bin/xclip") {
-                    found.append(
-                        Helper(
-                            copyTool: "/usr/bin/xclip", copyArguments: ["-selection", "clipboard"],
-                            pasteTool: "/usr/bin/xclip", pasteArguments: ["-selection", "clipboard", "-o"]))
-                }
-                if exists("/usr/bin/xsel") {
-                    found.append(
-                        Helper(
-                            copyTool: "/usr/bin/xsel", copyArguments: ["--clipboard", "--input"],
-                            pasteTool: "/usr/bin/xsel", pasteArguments: ["--clipboard", "--output"]))
-                }
+            if exists("/usr/bin/xsel") {
+                found.append(
+                    Helper(
+                        copyTool: "/usr/bin/xsel", copyArguments: ["--clipboard", "--input"],
+                        pasteTool: "/usr/bin/xsel", pasteArguments: ["--clipboard", "--output"]))
             }
-            return found
-        #endif
+        }
+        return found
     }
 
     /// This process's helpers, found once.
