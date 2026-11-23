@@ -121,6 +121,20 @@ struct SoftWrapLayout: Equatable {
     ///     character that is not a newline, perhaps twice: once as the row
     ///     before it looks for where to break, and once on its own row.
     init(_ characters: TextCharacters, width: Int, advance: (_ character: Character, _ column: Int) -> Int) {
+        // An ASCII line walked through its bytes, which a wrap reads two or
+        // three times a character: through the string's index arithmetic it
+        // was 80 ms of `bigtext-find`'s first click (EDMEM-1).
+        if let bytes = characters.asciiBytes {
+            self.init(laying: bytes, width: width, advance: advance)
+        } else {
+            self.init(laying: characters, width: width, advance: advance)
+        }
+    }
+
+    /// ``init(_:width:advance:)`` of any characters indexed from 0.
+    private init<Characters: RandomAccessCollection<Character>>(
+        laying characters: Characters, width: Int, advance: (_ character: Character, _ column: Int) -> Int
+    ) where Characters.Index == Int {
         let width = max(1, width)
         let budget = max(1, width - 1)
         var widths = [Int](repeating: 0, count: characters.count)
@@ -150,10 +164,10 @@ struct SoftWrapLayout: Equatable {
     /// Lays one paragraph, `start..<end`, into rows of `budget` cells, the last
     /// of which ends the paragraph, writing each character's width on its own
     /// row into `widths`.
-    private static func wrap(
-        _ characters: TextCharacters, from start: Int, to end: Int, budget: Int,
+    private static func wrap<Characters: RandomAccessCollection<Character>>(
+        _ characters: Characters, from start: Int, to end: Int, budget: Int,
         advance: (Character, Int) -> Int, widths: inout [Int], into rows: inout [Row]
-    ) {
+    ) where Characters.Index == Int {
         var rowStart = start
         while true {
             // Each row walks from its own start, so a character the row before
@@ -172,10 +186,10 @@ struct SoftWrapLayout: Equatable {
 
     /// Where the row starting at `start` ends: `end` when the rest of the
     /// paragraph fits, else the last place it may break.
-    private static func rowBreak(
-        _ characters: TextCharacters, from start: Int, to end: Int, budget: Int,
+    private static func rowBreak<Characters: RandomAccessCollection<Character>>(
+        _ characters: Characters, from start: Int, to end: Int, budget: Int,
         advance: (Character, Int) -> Int, widths: inout [Int]
-    ) -> Int {
+    ) -> Int where Characters.Index == Int {
         var cells = 0  // the row's cells, not counting a run of spaces at its end
         var hanging = 0  // that run's cells
         var lastBreak: Int?  // the latest offset the row may end at

@@ -92,6 +92,22 @@ struct TextCharacters {
         return index < starts.count ? Int(starts[index]) : storage.utf8.count
     }
 
+    /// The characters as their bytes, where each is one ASCII byte (`nil`
+    /// where one is not): read a byte at a time, without the string's index
+    /// arithmetic, by a walk of every character (``SoftWrapLayout``).
+    var asciiBytes: ASCIIBytes? {
+        starts == nil ? ASCIIBytes(bytes: Array(storage.utf8)) : nil
+    }
+
+    /// Characters of one ASCII byte each, read from an array of the bytes.
+    struct ASCIIBytes: RandomAccessCollection {
+        typealias Indices = Range<Int>
+        let bytes: [UInt8]
+        var startIndex: Int { 0 }
+        var endIndex: Int { bytes.count }
+        subscript(position: Int) -> Character { TextCharacters.ascii[Int(bytes[position])] }
+    }
+
     /// Whether every character is one printable ASCII byte, a space to a
     /// tilde: one cell each, told from the bytes alone (``TabLayout``'s fast
     /// path).
@@ -178,7 +194,7 @@ extension TextCharacters: RandomAccessCollection, MutableCollection, RangeReplac
     /// subscript hands back, where `Character(Unicode.Scalar(byte))` made a
     /// string for every character drawn (0.9% of `bigtext-find`'s time).
     /// 128 characters, not text: a table of glyphs, as a mnemonic's are.
-    private static let ascii: [Character] = (0..<128).map { Character(Unicode.Scalar(UInt8($0))) }
+    fileprivate static let ascii: [Character] = (0..<128).map { Character(Unicode.Scalar(UInt8($0))) }
 
     mutating func append(_ character: Character) {
         let length = character.utf8.count
