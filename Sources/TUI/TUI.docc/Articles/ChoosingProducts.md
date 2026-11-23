@@ -11,7 +11,7 @@ nothing below needs your attention.
 TUI is also built as separate modules, and each module an app may want on its own is a library product of its
 own. An app can list the products of the modules it uses instead of `TUI`, and SwiftPM then compiles and links
 only those modules and the ones they are built on. A stripped release build of a hello world that depends only on
-`TUIApp` comes out about 40% smaller than one that depends on `TUI`, and it builds a little faster. Some of that was given back on 2026-10-31, when `TUIApp` began linking `TUIPresentation` for its quit dialog: with Swift 6.2.4 its hello world went from 8,742,344 to 9,059,544 stripped bytes (+3.6%).
+`TUIApp` came out about 40% smaller than one that depends on `TUI` when last measured, and it builds a little faster. Some of that was given back on 2026-10-31, when `TUIApp` began linking `TUIPresentation` for its quit dialog: with Swift 6.2.4 its hello world went from 8,742,344 to 9,059,544 stripped bytes (+3.6%). Since 2026-11-08 it links `TUIForms` and `TUIPickers` as well, for the settings panel, at a cost not yet measured.
 <doc:ShippingAnApp#Shipping-Size> has the other ways to make a program smaller.
 
 ### Depending on modules
@@ -36,8 +36,9 @@ import TUITables
 Every app needs `TUIApp`: `App`, `Scene`, `WindowGroup`, the run loop and the terminal. It brings the two modules
 it is built on: `TUIFoundation`, which has `View`, `Text`, the stacks, `ScrollView`, `Button`, `Toggle`, `Label`,
 layout, state, the environment and focus, and `TUIChrome`, which has the status bar, the toolbars, the
-notifications and `.help`. It links `TUIPresentation` too, for the alert the quit keys ask with, without showing you
-`alert` or `sheet`: for those, list that product. Then add the product of each module whose names you use:
+notifications and `.help`. It links three more without showing you their names: `TUIPresentation`, for the alert
+the quit keys ask with, and `TUIForms` and `TUIPickers`, for the settings panel every app has on F2. For `alert` or
+`sheet`, `Form` or `Picker`, list that product. Then add the product of each module whose names you use:
 
 | Product | What it has | Brings with it |
 |---|---|---|
@@ -51,7 +52,7 @@ notifications and `.help`. It links `TUIPresentation` too, for the alert the qui
 | `TUIMenus` | `Menu`, `ControlGroup`, `.contextMenu`, the menu styles | |
 | `TUIFilePanels` | `fileImporter`, `fileExporter`, `fileMover`, the `fileDialog` modifiers: the open and save panels | `TUINavigation`, `TUIPickers`, `TUIPresentation`, `TUITables`, `TUITextInput` |
 | `TUIDocuments` | `DocumentGroup` and its configurations, `newDocument`, `openDocument`: an app that opens and saves a document | `TUIApp`, `TUICommands`, `TUIFilePanels`, `TUIPresentation` |
-| `TUICommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIApp`, `TUIPresentation`; links `TUIPickers` without showing it |
+| `TUICommands` | `Commands`, `CommandMenu`, `CommandGroup`, `CommandGroupPlacement`: the menu bar | `TUIApp`, `TUIPresentation` |
 | `TUIScenes` | `Settings` (presented as a sheet) and `AlertScene`, and the scene modifiers for alerts | `TUIApp`, `TUIPresentation` |
 | `TUITextInput` | `TextField`, `SecureField`, `TextEditor` | |
 | `TUIPickers` | `Picker`, `RadioButtonGroup`, `DatePicker` | |

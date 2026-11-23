@@ -55,11 +55,13 @@ extension EnvironmentValues {
     ///   the same for Ctrl-Z and Ctrl-Shift-Z, so in a legacy encoding all of
     ///   those undo. A focused text control's Ctrl-Z, the stand-in for ⌘Z, is
     ///   this undo too, and its Ctrl-Shift-Z this redo.
-    /// - **Redo:** Ctrl-Shift-Z and Ctrl-_ (Ctrl-Shift-minus) where the
-    ///   terminal tells them from Ctrl-Z and Ctrl-minus — the kitty keyboard
-    ///   protocol, ``TerminalCapabilities/Feature/shiftedKeys``; and Option-_
-    ///   where the terminal sends Option as Meta (or reports Option under the
-    ///   protocol). Ctrl-Y is the text controls' yank, and is not taken.
+    /// - **Redo:** Ctrl-Y, on every terminal; Ctrl-Shift-Z and Ctrl-_
+    ///   (Ctrl-Shift-minus) where the terminal tells them from Ctrl-Z and
+    ///   Ctrl-minus — the kitty keyboard protocol,
+    ///   ``TerminalCapabilities/Feature/shiftedKeys``; and Option-_ where the
+    ///   terminal sends Option as Meta (or reports Option under the protocol).
+    ///   Ctrl-Y is the text controls' yank too: a focused text field or editor
+    ///   takes it first, so there it yanks, and redo is one of the others.
     /// - **Ctrl-Z is the shell's suspend key too.** Bound to undo, with
     ///   nothing to undo it does nothing; an app whose users expect it to
     ///   stop the app takes it out of undo with ``Scene/undoShortcuts(_:)``,
