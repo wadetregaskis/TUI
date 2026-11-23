@@ -239,8 +239,14 @@ final class BundleStringTables {
             return code
         }
         guard let wanted = LanguageTag(code) else { return nil }
-        let alike = localizations.filter { LanguageTag($0)?.bare == wanted.bare }
-        return alike.first { LanguageTag($0) == wanted } ?? alike.first { LanguageTag($0)?.region == nil }
-            ?? alike.first
+        // Each candidate read once, and the three choices as statements: as one
+        // `??` chain of closures the solver ran past its scope threshold.
+        let alike: [(name: String, tag: LanguageTag)] = localizations.compactMap { name in
+            guard let tag = LanguageTag(name), tag.bare == wanted.bare else { return nil }
+            return (name, tag)
+        }
+        if let same = alike.first(where: { $0.tag == wanted }) { return same.name }
+        if let bare = alike.first(where: { $0.tag.region == nil }) { return bare.name }
+        return alike.first?.name
     }
 }
