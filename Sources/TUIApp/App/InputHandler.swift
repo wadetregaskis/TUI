@@ -412,13 +412,10 @@ extension InputHandler {
         // The one key the text input is not offered: an editing chord it
         // gives up to an app shortcut. It goes on down the chain as a chord
         // the input does not bind would, and Layer 3.5 fires the shortcut.
-        if focusManager.hasTextInputFocus, !textInputGivesWay(event) {
-            if focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) {
-                // Typing or selecting in a field is the newest thing the user
-                // did; a selection on the screen gives way to it.
-                screenSelection?.clear()
-                return true
-            }
+        //
+        // And mid-drag the navigators come first (``offerToTextInput(_:)``).
+        if focusManager.hasTextInputFocus, offerToTextInput(event) {
+            return true
         }
 
         // Modal-claimed ESC: when an open Picker drop-down (or similar
@@ -652,6 +649,33 @@ extension InputHandler {
     private func openMenuTypeSelect(_ event: KeyEvent) -> Bool {
         guard let menu = keyEventDispatcher.typeSelectTarget else { return false }
         return menu.typeSelect(event)
+    }
+
+    /// Layer 0, with a text input focused: offers `event` to it, unless the
+    /// input gives it up to an app shortcut (``textInputGivesWay(_:)``), and
+    /// reports whether it was taken.
+    ///
+    /// While a pointer drag is in flight the mid-drag navigators (Layer 0.5)
+    /// are offered it first. A `.draggable` takes no focus, so a field or
+    /// editor focused before the drag still holds it, and took them — End
+    /// moved its caret, Page Down paged its text — while the view under the
+    /// pointer, the one the drag was aimed into, never moved (hunt DND-9). The
+    /// navigators decline unless the pointer is over something the drag can
+    /// land in, and every other key, typing included, stays the input's. Not
+    /// for a carry, which the keyboard holds, and whose focus a text input it
+    /// stopped at is.
+    @MainActor
+    private func offerToTextInput(_ event: KeyEvent) -> Bool {
+        if let session = dragAndDropSession, !session.isKeyboardCarry, session.handleDragNavigator(event) {
+            return true
+        }
+        guard !textInputGivesWay(event), focusManager.dispatchKeyEvent(event, commands: focusedViewCommands) else {
+            return false
+        }
+        // Typing or selecting in a field is the newest thing the user did; a
+        // selection on the screen gives way to it.
+        screenSelection?.clear()
+        return true
     }
 
     /// Offers `event` to the focused view's commands — SwiftUI's move, exit and

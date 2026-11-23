@@ -103,6 +103,11 @@ nothing until the list's identity changed. A `List` now takes its kind from the 
 table takes it again every frame, so a `Table` rebuilt at the same place from `Table(_:columns:)` to a `Set`
 `selection:` initializer selects too.
 
+**Mid-drag, the arrow, paging, Home and End keys scroll the view under the pointer with a text field focused too.** A
+`.draggable` takes no focus, so a `TextField` or `TextEditor` focused before the drag kept it and took those keys
+for its caret, and the view the drag was aimed into never moved. They now reach the drag first, as they do with
+anything else focused; typing still goes to the field.
+
 **A drag of a `List`'s selection carries it all, however fast it is dropped.** A press, a drag and a release read
 together — on a slow frame, or over a link that delivers the reports in one burst — dropped the grabbed row alone and
 left the rest of the selection behind, because a list learns its selected rows' values on the frame after the drag
