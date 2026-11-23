@@ -76,6 +76,24 @@ doing nothing: `registerUndo(withTarget:selector:object:)` and
 `prepare(withInvocationTarget:)` (Objective-C only), `runLoopModes`, and the
 `NSUndoManager…` notifications.
 
+**Titles (2026-11-23, hunt FENV-15).** A named step's title was the verb, a
+space and the name in every language ("Widerrufen Löschen"). It is now
+Foundation's own format for the language, the `Undo %@` and `Redo %@` of its
+`Undo.loctable`, read on macOS 15 (Darwin 24.6) by
+`UndoManager().undoMenuTitle(forUndoActionName:)` and its redo twin, run once
+per language under `-AppleLanguages`: English "Undo %@" and "Redo %@", German
+"%@ widerrufen" and "%@ wiederholen", Spanish "Deshacer %@" and "Rehacer %@",
+French "Annuler %@" and "Rétablir %@", Italian "Annulla %@" and
+"Ripristina %@", Japanese "取り消す- %@" and "やり直す- %@", Chinese "撤销%@"
+and "重做%@". Japanese's hyphen and Chinese's missing space are Foundation's,
+kept as it writes them (`undoTitle.*`, `UndoTitleTests`). A step with no name
+is titled with the verb alone, as before; Foundation writes its format there
+too, leaving a trailing space. Its bare verbs were TUI's already, but for
+Italian's Redo, "Ripeti" until then and Foundation's "Ripristina" since. The
+menu bar's Edit ▸ Undo and Redo use the same formats on every platform, macOS
+included: they are in the scene's language, which Foundation's `UndoManager`
+does not know.
+
 **The fuller version** posts the eight notifications through
 `NotificationCenter` under Foundation's names, for an app that observes them
 (`checkpoint`, `didOpenUndoGroup`, `willCloseUndoGroup`, `didCloseUndoGroup`,

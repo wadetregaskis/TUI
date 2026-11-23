@@ -140,19 +140,18 @@ open class UndoManager {
     open var redoMenuItemTitle: String { redoMenuTitle(forUndoActionName: redoActionName) }
 
     /// The complete, localized title of the Undo menu command for the action
-    /// identified by `actionName`.
+    /// identified by `actionName`: joined as macOS's Foundation joins it in
+    /// the app's language ("Undo Delete", "Löschen widerrufen"), from its own
+    /// formats; the verb alone where `actionName` is empty.
     open func undoMenuTitle(forUndoActionName actionName: String) -> String {
-        Self.title(LocalizationService.shared.string(for: LocalizationKey.Menu.undo), actionName)
+        LocalizationService.shared.undoMenuTitle(forUndoActionName: actionName)
     }
 
     /// The complete, localized title of the Redo menu command for the action
-    /// identified by `actionName`.
+    /// identified by `actionName`, joined as ``undoMenuTitle(forUndoActionName:)``
+    /// joins Undo's.
     open func redoMenuTitle(forUndoActionName actionName: String) -> String {
-        Self.title(LocalizationService.shared.string(for: LocalizationKey.Menu.redo), actionName)
-    }
-
-    private static func title(_ verb: String, _ actionName: String) -> String {
-        actionName.isEmpty ? verb : "\(verb) \(actionName)"
+        LocalizationService.shared.redoMenuTitle(forUndoActionName: actionName)
     }
 
     /// Sets whether the next undo or redo action is discardable.

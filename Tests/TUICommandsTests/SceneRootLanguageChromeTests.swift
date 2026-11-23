@@ -102,7 +102,7 @@ struct SceneRootLanguageChromeTests {
         #expect(page.contains("Speichern"), "the status bar's page item: \(page)")
         #expect(page.contains("widerrufen"), "the status bar's undo item: \(page)")
         #expect(page.contains("Abbrechen"), "the page: \(page)")
-        #expect(menu.contains("Widerrufen Löschen"), "the undo title: \(menu)")
+        #expect(menu.contains("Löschen widerrufen"), "the undo title, as AppKit joins it: \(menu)")
     }
 
     @Test("A subtree's locale has its own words, and changes none of those")
@@ -112,7 +112,7 @@ struct SceneRootLanguageChromeTests {
         #expect(page.contains("Bearbeiten"), "the menu bar: \(page)")
         #expect(page.contains("Speichern"), "the status bar's page item: \(page)")
         #expect(page.contains("widerrufen"), "the status bar's undo item: \(page)")
-        #expect(menu.contains("Widerrufen Löschen"), "the undo title: \(menu)")
+        #expect(menu.contains("Löschen widerrufen"), "the undo title, as AppKit joins it: \(menu)")
     }
 
     @Test("A scene that states no locale has the process's language")

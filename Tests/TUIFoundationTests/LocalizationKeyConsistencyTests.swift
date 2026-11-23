@@ -392,6 +392,7 @@ final class LocalizationKeyConsistencyTests {
         // The words of TUI's controls with no public key
         // (`LocalizationKeys+Controls.swift`), each family enumerated.
         enumKeys.formUnion(LocalizationKey.ImagePlaceholder.allCases.map(\.rawValue))
+        enumKeys.formUnion(LocalizationKey.UndoTitle.allCases.map(\.rawValue))
 
         // Check for extraneous keys
         let translationKeys = Set(englishTranslations.keys)
@@ -411,6 +412,7 @@ final class LocalizationKeyConsistencyTests {
             + LocalizationKey.Document.allCases.count
             + LocalizationKey.ControlStyle.allCases.count + LocalizationKey.NoTerminal.allCases.count
             + LocalizationKey.ImagePlaceholder.allCases.count
+            + LocalizationKey.UndoTitle.allCases.count
         #expect(
             englishTranslations.count == expectedKeyCount,
             "Expected \(expectedKeyCount) keys in translations, but got \(englishTranslations.count)"

@@ -14,6 +14,17 @@ extension LocalizationKey {
     package enum ImagePlaceholder: String, CaseIterable {
         case failed = "imagePlaceholder.failed"
     }
+
+    /// An Undo or Redo command's title for a step with a name, the name as
+    /// `%@`: Foundation's own format in each language (`Undo %@` and
+    /// `Redo %@` of its `Undo.loctable`, read off macOS), where the word comes
+    /// first in some and last in others. A step with no name is titled
+    /// ``Menu/undo`` or ``Menu/redo`` alone. Read through
+    /// `LocalizationService.undoMenuTitle(forUndoActionName:)`.
+    package enum UndoTitle: String, CaseIterable {
+        case undo = "undoTitle.undo"
+        case redo = "undoTitle.redo"
+    }
 }
 
 extension LocalizationKey.ImagePlaceholder: FrameworkLocalizationKey {}

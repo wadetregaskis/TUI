@@ -316,5 +316,7 @@
   "timeSpan.month.wide.other": "%@个月",
   "timeSpan.month.abbreviated.one": "%@个月",
   "timeSpan.month.abbreviated.other": "%@个月",
-  "imagePlaceholder.failed": "错误：%@"
+  "imagePlaceholder.failed": "错误：%@",
+  "undoTitle.undo": "撤销%@",
+  "undoTitle.redo": "重做%@"
 }

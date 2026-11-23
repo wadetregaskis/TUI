@@ -316,5 +316,7 @@
   "timeSpan.month.wide.other": "%@か月",
   "timeSpan.month.abbreviated.one": "%@か月",
   "timeSpan.month.abbreviated.other": "%@か月",
-  "imagePlaceholder.failed": "エラー：%@"
+  "imagePlaceholder.failed": "エラー：%@",
+  "undoTitle.undo": "取り消す- %@",
+  "undoTitle.redo": "やり直す- %@"
 }

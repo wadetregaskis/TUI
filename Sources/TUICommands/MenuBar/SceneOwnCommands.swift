@@ -251,10 +251,12 @@ struct SceneOwnCommands {
         // The key named follows the focus, as the status bar's does: a text
         // field's own ⌃Y yanks (FB9-REDO).
         let focus = environment.focusManager?.currentFocused as? any TextInputFocusHandler
+        // TUI's titles rather than `undoMenuItemTitle`, on macOS too: these are
+        // in the scene's language, which Foundation's `UndoManager` does not
+        // know. Joined with the step's name as Foundation joins it.
         let service = LocalizationService.shared
-        func title(_ verb: String, _ action: String) -> String { action.isEmpty ? verb : "\(verb) \(action)" }
-        let undo = title(service.string(for: LocalizationKey.Menu.undo), undoManager.undoActionName)
-        let redo = title(service.string(for: LocalizationKey.Menu.redo), undoManager.redoActionName)
+        let undo = service.undoMenuTitle(forUndoActionName: undoManager.undoActionName)
+        let redo = service.redoMenuTitle(forUndoActionName: undoManager.redoActionName)
         return Self.items("undo") {
             Button(undo) { _ = UndoCommand.undo.perform(on: undoManager) }
                 .keyboardShortcutHint(keys?.shortcut(for: .undo, sparing: focus))

@@ -347,7 +347,10 @@ extension LocalizationService {
       "timeSpan.month.abbreviated.one": "%@ mth",
       "timeSpan.month.abbreviated.other": "%@ mths",
 
-      "imagePlaceholder.failed": "Error: %@"
+      "imagePlaceholder.failed": "Error: %@",
+
+      "undoTitle.undo": "Undo %@",
+      "undoTitle.redo": "Redo %@"
     }
     """#
 }

@@ -316,5 +316,7 @@
   "timeSpan.month.wide.other": "%@ Monate",
   "timeSpan.month.abbreviated.one": "%@ Mon.",
   "timeSpan.month.abbreviated.other": "%@ Mon.",
-  "imagePlaceholder.failed": "Fehler: %@"
+  "imagePlaceholder.failed": "Fehler: %@",
+  "undoTitle.undo": "%@ widerrufen",
+  "undoTitle.redo": "%@ wiederholen"
 }
