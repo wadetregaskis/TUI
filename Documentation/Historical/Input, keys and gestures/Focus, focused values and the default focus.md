@@ -43,7 +43,10 @@ still answered with its old value, agreed with every reader that had read it,
 and no frame was asked for: a command gated on the value stayed enabled until
 some other event drew a frame. A modifier publishing `nil` now posts an empty
 table, which stands in for its last publication, so a reader drawn after it
-reads nothing at once.
+reads nothing at once. And a reading is kept from one read to the next until a
+publication, a new walk or a different focus (the menu-open focus included)
+changes it (FOCUS-10): every read had merged, filtered and sorted every
+publication afresh — 120 readings a frame for 30 readers, now 2.
 
 Two smaller readings, both SwiftUI-silent:
 

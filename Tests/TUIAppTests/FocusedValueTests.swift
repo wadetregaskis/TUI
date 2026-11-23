@@ -265,6 +265,29 @@ struct FocusedValueTests {
         #expect(requests == settled + 1, "a steady page asks for nothing more")
     }
 
+    /// FOCUS-10: every read merged, filtered and sorted every publication
+    /// afresh, so thirty readers made thirty readings a walk.
+    @Test("Readers between two publications share one reading")
+    func readersShareOneReading() {
+        let harness = InputChainHarness()
+        let seen = Seen()
+        let page = {
+            VStack {
+                Button("A") {}.focusedValue(\.note, "a")
+                Text("pane").focusedSceneValue(\.note, "pane")
+                ForEach(0..<30, id: \.self) { _ in NoteReader(seen: seen) }
+            }
+        }
+        for _ in 0..<3 { harness.frame(page()) }
+        let registry = harness.focusManager.focusedValues
+        let before = registry.readingsMade
+        harness.frame(page())
+        #expect(seen.note == "a")
+        // A measure's reads and a render's, each after the last publication:
+        // two readings, however many readers.
+        #expect(registry.readingsMade - before <= 2, "\(registry.readingsMade - before) readings for 30 readers")
+    }
+
     @Test("A closure published afresh every frame does not ask for frames forever")
     func uncomparableValueSettles() {
         let harness = InputChainHarness()

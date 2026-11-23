@@ -78,6 +78,27 @@ package final class FocusedValueRegistry {
     /// The tables handed to readers this walk, each kept once in a row.
     private var reads: [FocusedValues] = []
 
+    /// The last reading ``tableAtTheFocus()`` made, and the focus it was made
+    /// at — the menu-open focus while a menu is open
+    /// (`FocusManager.focusedValuesIdentity`), so a menu opening or closing
+    /// cannot be answered for the other's focus.
+    ///
+    /// A reading changes only when a publication does or the focus moves, and
+    /// every read made one afresh: it merged this walk's publications over
+    /// the last pass's, filtered and sorted them, and overlaid every table —
+    /// for every reader, every frame (FOCUS-10). Dropped by whatever changes
+    /// either set of publications: ``post(_:by:isScene:)``, ``beginWalk()``,
+    /// ``carryWalkForward()`` and ``endPass(focusedAt:)``.
+    ///
+    /// Kept outside a walk too, for the reads an event's closures make, and
+    /// never wrong for it: a hit was made in the same state, so while
+    /// rendering it is already the last of ``reads``.
+    private var reading: (focus: ViewIdentity?, table: FocusedValues)?
+
+    /// How many readings ``tableAtTheFocus()`` made rather than kept, for the
+    /// tests that hold it to one per change.
+    private(set) var readingsMade = 0
+
     /// The manager that made this registry, whose focus every reading follows
     /// (``tableAtTheFocus()``). Weak: the manager holds the registry.
     ///
@@ -107,6 +128,7 @@ package final class FocusedValueRegistry {
     func beginWalk() {
         current.removeAll(keepingCapacity: true)
         reads.removeAll(keepingCapacity: true)
+        reading = nil
         order = 0
         isRendering = true
     }
@@ -122,6 +144,7 @@ package final class FocusedValueRegistry {
     /// so a reader drawn after it reads nothing there at once, rather than
     /// last frame's value until the frame the end of the pass asks for.
     func post(_ table: FocusedValues, by identity: ViewIdentity, isScene: Bool) {
+        reading = nil
         let key = Key(identity: identity, isScene: isScene)
         let stamped = table.published(by: identity)
         if let existing = current[key] {
@@ -141,10 +164,14 @@ package final class FocusedValueRegistry {
     /// ``endPass(focusedAt:)`` repeats the reading at — and while a menu is
     /// open, the focus it was opened over (`FocusManager.focusedValuesIdentity`).
     func tableAtTheFocus() -> FocusedValues {
+        let focus = owner?.focusedValuesIdentity
+        if let reading, reading.focus == focus { return reading.table }
+        readingsMade &+= 1
         var publications = previous
         publications.merge(current) { _, new in new }
-        let table = Self.resolve(publications, focusedAt: owner?.focusedValuesIdentity)
+        let table = Self.resolve(publications, focusedAt: focus)
         if isRendering, reads.last != table { reads.append(table) }
+        reading = (focus, table)
         return table
     }
 
@@ -158,6 +185,7 @@ package final class FocusedValueRegistry {
     /// after showed its value.
     func carryWalkForward() {
         previous.merge(current) { _, new in new }
+        reading = nil
     }
 
     /// Ends the pass: keeps what its last walk published, and asks for one
@@ -170,6 +198,7 @@ package final class FocusedValueRegistry {
         previous = current
         current = [:]
         reads.removeAll()
+        reading = nil
         if stale { requestFrame?() }
     }
 
