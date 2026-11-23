@@ -64,6 +64,13 @@ own (every instance prints as the type's name), two `Date`s in one second, or an
 `@State`, focus and kept subtree: a draft typed in one document's tab showed in the next. A tab is now known by its
 value as a `ForEach` row is by its id; a `String`, `Int` or `UUID` value keys as before.
 
+**A faint paint in a `Canvas` no longer erases the text under it.** A fill or stroke drawn over a glyph removed it
+wherever its shape covered half the cell, at any opacity: a highlight at `opacity = 0.15`, a colour at 20 % and a
+fill at opacity 0, which paints nothing, all deleted the labels beneath. A paint now covers a glyph where it hides at
+least half the cell, its share of the cell times its alpha and the context's opacity, through a filter or a layer
+too. The glyph it leaves keeps its ink untinted, with the paint as its field (a cell is a glyph or pixels), where
+SwiftUI's text shows through tinted; `DrawingWithCanvas` says why the line is at half.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It

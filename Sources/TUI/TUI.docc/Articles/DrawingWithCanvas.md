@@ -52,7 +52,9 @@ A finer grain gives sharper edges, not more colours: a cell still holds two. A c
 
 A text and a resolved symbol draw the cells their views draw. A glyph lands on the whole cell its origin rounds to, at its own size and angle whatever the transform scales or turns. Paths and images honour the whole transform.
 
-Each cell is a glyph or pixels, never both at once. Whichever was drawn later takes it: a glyph over pixels takes their colour as its field, and a shape painted over at least half of a glyph's cell removes the glyph. A clip keeps a glyph whole or not at all, by whether it keeps at least half the cell.
+Each cell is a glyph or pixels, never both at once. A glyph drawn over pixels takes their colour as its field. A paint over a glyph removes it where the paint hides at least half the glyph's cell: the share of the cell it covers, times its colour's alpha and the context's opacity. So an opaque fill over most of the cell takes it, and a faint one, a highlight at `opacity = 0.15` or a colour at 20 %, leaves the glyph with the paint as its field. A clip keeps a glyph whole or not at all, by whether it keeps at least half the cell.
+
+The glyph a faint paint leaves isn't tinted by it. SwiftUI composites the paint over the text's pixels, so its text shows through a 10 % fill a tenth of the way to the fill's colour; a cell's ink is one colour, and nothing drawn over it can mix into it. The half is where the eye sees more of the paint than of what is under it.
 
 A symbol is a view you can draw as often as you like. It's found by its tag, and takes no input:
 

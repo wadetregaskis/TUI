@@ -143,8 +143,35 @@ extension GraphicsContext {
         // A layer covers what is older when it lands, not as it is drawn: what
         // it holds so far is not yet over anything.
         guard layer == nil else { return }
+        let opacity = opacity
         surface.coverGlyphs(olderThan: Int.max) { column, row in
-            share(column, row) * clippedShare(column: column, row: row)
+            // How much of the cell the paint hides: its share of the cell, as
+            // strong as it is drawn. A see-through paint hides less than it
+            // covers, and one at opacity 0 nothing.
+            let hidden = share(column, row) * clippedShare(column: column, row: row) * opacity
+            // The source's alpha only lowers it: under the bar already, it
+            // needs no samples.
+            guard hidden >= Surface.coveringShare else { return hidden }
+            return hidden * meanAlpha(of: mapped, column: column, row: row)
+        }
+    }
+
+    /// The mean alpha, 0 to 1, of `source` over cell (`column`, `row`)'s
+    /// pixels; 0 for a cell off the raster, where nothing lands.
+    private func meanAlpha(of source: CanvasSource, column: Int, row: Int) -> Double {
+        let grid = surface.grid
+        let raster = target
+        guard column >= 0, row >= 0, (column + 1) * grid.across <= raster.width, (row + 1) * grid.down <= raster.height
+        else { return 0 }
+        switch source {
+        case .flat(let colour):
+            return Double(colour.alpha) / 255
+        case .sampled(let sample):
+            var total = 0
+            for y in (row * grid.down)..<((row + 1) * grid.down) {
+                for x in (column * grid.across)..<((column + 1) * grid.across) { total += Int(sample(x, y).alpha) }
+            }
+            return Double(total) / Double(255 * grid.across * grid.down)
         }
     }
 
@@ -164,18 +191,21 @@ extension GraphicsContext {
         coverGlyphs(by: drawing, olderThan: Int.max)
     }
 
+    /// Takes off the glyphs older than `serial` that `drawing`, landing at this
+    /// context's opacity through its clip, hides: by the rule a path's paint
+    /// covers by, its mean alpha over the cell, as strong as it lands.
     private func coverGlyphs(by drawing: CanvasRaster, olderThan serial: Int) {
         let grid = surface.grid
+        let opacity = opacity
         surface.coverGlyphs(olderThan: serial) { column, row in
             guard column >= 0, row >= 0, (column + 1) * grid.across <= drawing.width, (row + 1) * grid.down <= drawing.height
             else { return 0 }
-            var there = 0
+            var total = 0
             for y in (row * grid.down)..<((row + 1) * grid.down) {
-                for x in (column * grid.across)..<((column + 1) * grid.across) where drawing[x, y].alpha >= 128 {
-                    there += 1
-                }
+                for x in (column * grid.across)..<((column + 1) * grid.across) { total += Int(drawing[x, y].alpha) }
             }
-            return Double(there) / Double(grid.across * grid.down)
+            let hidden = Double(total) / Double(255 * grid.across * grid.down) * opacity
+            return hidden * clippedShare(column: column, row: row)
         }
     }
 

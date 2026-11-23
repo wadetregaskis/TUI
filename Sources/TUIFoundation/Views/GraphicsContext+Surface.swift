@@ -185,14 +185,26 @@ extension GraphicsContext {
             rows[row] = line
         }
 
-        /// Removes the glyphs older than `serial` whose cell `share` says was
-        /// painted at least half over. A glyph and pixels cannot share a cell,
-        /// so whichever was drawn over the other takes it.
+        /// How much of a glyph's cell a paint must hide to cover the glyph:
+        /// its share of the cell times its alpha and opacity
+        /// (``coverGlyphs(olderThan:share:)``).
+        ///
+        /// SwiftUI composites a paint over text pixel by pixel, so text under a
+        /// faint fill shows through it, tinted. A cell holds a glyph or pixels,
+        /// not both, and a glyph's ink cannot be tinted by what is over it; so
+        /// the cell goes to whichever the eye would see more of. A paint that
+        /// hides less than half the cell leaves the glyph, untinted, with the
+        /// paint as its field; one that hides more takes the cell.
+        static let coveringShare = 0.5
+
+        /// Removes the glyphs older than `serial` whose cell `share` says the
+        /// paint hides at least ``coveringShare`` of. A glyph and pixels cannot
+        /// share a cell, so a paint that hides most of one takes it.
         func coverGlyphs(olderThan serial: Int, share: (_ column: Int, _ row: Int) -> Double) {
             guard !rows.isEmpty else { return }
             for (row, line) in rows {
                 var kept = line
-                for (column, cell) in line where cell.serial < serial && share(column, row) >= 0.5 {
+                for (column, cell) in line where cell.serial < serial && share(column, row) >= Self.coveringShare {
                     kept[column] = nil
                 }
                 rows[row] = kept

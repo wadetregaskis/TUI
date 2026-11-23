@@ -32,8 +32,10 @@ import TUICore
 /// and at its own size and angle whatever the transform scales or turns, since a
 /// glyph cannot be scaled or rotated either. Its colours are faded and filtered
 /// cell by cell, as `View.opacity(_:)` and the colour-effect modifiers fade and
-/// filter them. A shape painted over at least half of a glyph's cell covers the
-/// glyph; a glyph drawn over pixels takes them as its field.
+/// filter them. A paint that hides at least half of a glyph's cell, its share of
+/// the cell times its alpha and opacity, covers the glyph; a fainter one leaves
+/// it, its ink untinted, with the paint as its field. A glyph drawn over pixels
+/// takes them as its field.
 ///
 /// A value: copying a context copies its state (opacity, transform, filters,
 /// clip), and both copies draw into the same destination, as SwiftUI's do.
