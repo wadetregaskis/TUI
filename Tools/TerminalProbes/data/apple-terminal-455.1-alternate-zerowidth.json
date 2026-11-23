@@ -1,0 +1,49 @@
+{
+ "advances": {
+  "ascii_a": {
+   "advance": 1,
+   "cluster": "U+0061"
+  },
+  "cjk": {
+   "advance": 2,
+   "cluster": "U+4E2D"
+  },
+  "zerowidth_between": {
+   "advance": 3,
+   "cluster": "U+0061 U+200B U+0062"
+  },
+  "zerowidth_bom": {
+   "advance": 1,
+   "cluster": "U+FEFF"
+  },
+  "zerowidth_lone_acute": {
+   "advance": 0,
+   "cluster": "U+0301"
+  },
+  "zerowidth_soft_hyphen": {
+   "advance": 1,
+   "cluster": "U+00AD"
+  },
+  "zerowidth_zwsp": {
+   "advance": 1,
+   "cluster": "U+200B"
+  }
+ },
+ "stamp": {
+  "env": {
+   "TERM": "xterm-256color",
+   "TERM_PROGRAM": "Apple_Terminal",
+   "TERM_PROGRAM_VERSION": "455.1",
+   "TERM_SESSION_ID": "87A4065E-25EF-456A-A364-7BD85DD0B15C",
+   "__CFBundleIdentifier": "com.apple.Terminal"
+  },
+  "machine": "arm64",
+  "measured": "2026-11-23T10:46:06-08:00",
+  "method": "DSR cursor report \u2014 confirm any disagreement with visual_card.py",
+  "mode_2027_grapheme_clustering": "not asked (Apple Terminal prints this query's final byte)",
+  "os": "macOS 15.8.3",
+  "probe": "advance_probe.py",
+  "screen": "alternate",
+  "terminal_app_build": "455.1"
+ }
+}

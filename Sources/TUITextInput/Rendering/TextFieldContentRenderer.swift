@@ -349,7 +349,10 @@ struct TextFieldContentRenderer: FieldTextLayout {
     /// The per-character display widths, in terminal cells, for `text`.
     ///
     /// The *display* character decides the width — a `SecureField` bullet is
-    /// one cell however wide the hidden character is. Everything that lays the
+    /// one cell however wide the hidden character is, and a character with no
+    /// width of its own is drawn as a one-cell stand-in
+    /// (``TextFieldHandler/displayCharacter(_:)``), so the floor at one cell
+    /// here is a cell the row really takes (H-48). Everything that lays the
     /// field out (rendering, horizontal scroll, click-to-caret mapping) must
     /// use these same widths, or a wide character (emoji, CJK) desynchronises
     /// the field's width from its neighbours and its hit regions — the combo

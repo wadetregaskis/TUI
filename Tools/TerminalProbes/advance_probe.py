@@ -190,6 +190,14 @@ BATTERY.update({
     "invisible_separator": "\u2063",
     "invisible_plus": "\u2064",
     "mongolian_vowel_separator": "\u180E",
+    # The zero-width characters a text input holds most often, alone (H-48,
+    # 2026-11-23): a pasted ZWSP, a file's BOM, a soft hyphen, and a combining
+    # mark with no base. `--only zerowidth_` takes just these.
+    "zerowidth_zwsp": "\u200B",
+    "zerowidth_bom": "\uFEFF",
+    "zerowidth_soft_hyphen": "\u00AD",
+    "zerowidth_lone_acute": "\u0301",
+    "zerowidth_between": "a\u200Bb",
     # Fullwidth Latin and a three-mark NFD stack, the two rows added to
     # existing corpus classes on the same date.
     "fullwidth_latin_a": "\uFF21",

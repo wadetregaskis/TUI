@@ -40,7 +40,8 @@ extension TextFieldHandler {
 
     /// What a vertical field draws for `character`: a tab as one space, since a
     /// raw tab would move the terminal's cursor to its next tab stop, and any
-    /// other control character as a replacement character `\u{FFFD}`.
+    /// other control character, or a character with no width of its own, as a
+    /// replacement character `\u{FFFD}` (``displayCharacter(_:)``).
     nonisolated static func verticalDisplayCharacter(_ character: Character) -> Character {
         displayCharacter(character)
     }

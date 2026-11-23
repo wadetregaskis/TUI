@@ -97,6 +97,14 @@ is now its label's words as written: a `Text`'s, a `Label`'s title's, or what an
 SwiftUI shows such a suggestion but leaves it inert; TUI keeps it pickable, a deliberate deviation by the owner's
 ruling of 2026-11-23.
 
+**A ZWSP or a BOM in a text field or editor is drawn as a visible cell.** A character that takes no cell of its own
+standing alone — a zero-width space pasted from a web page, the byte-order mark a file was read with, a soft hyphen, a
+bidi mark, a combining mark at the start of a line — was counted as one cell and written as it was, which a terminal
+such as Ghostty gives no cell: the row came out a cell short, the editor's scroll bar and the field's closing cap a
+column to the left, and a caret on the character drew nothing. `TextField`, a vertical `TextField` and `TextEditor`
+now draw it as `�` (U+FFFD), as they already drew a control character. An accent or joiner that is part of the
+character before it is drawn as before.
+
 **A `RadioButtonGroup`'s options can come from an `if`, an `if let` or a `for` loop.** The builder's documentation
 promised all three, mixed with options written out, but none compiled: the block took options one by one, with
 nowhere for the list a loop or a conditional makes to go. `RadioButtonGroupBuilder` now joins each statement's options

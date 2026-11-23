@@ -1,0 +1,50 @@
+{
+ "advances": {
+  "ascii_a": {
+   "advance": 1,
+   "cluster": "U+0061"
+  },
+  "cjk": {
+   "advance": 2,
+   "cluster": "U+4E2D"
+  },
+  "zerowidth_between": {
+   "advance": 2,
+   "cluster": "U+0061 U+200B U+0062"
+  },
+  "zerowidth_bom": {
+   "advance": 0,
+   "cluster": "U+FEFF"
+  },
+  "zerowidth_lone_acute": {
+   "advance": 0,
+   "cluster": "U+0301"
+  },
+  "zerowidth_soft_hyphen": {
+   "advance": 1,
+   "cluster": "U+00AD"
+  },
+  "zerowidth_zwsp": {
+   "advance": 0,
+   "cluster": "U+200B"
+  }
+ },
+ "stamp": {
+  "env": {
+   "COLORTERM": "truecolor",
+   "GHOSTTY_RESOURCES_DIR": "/Applications/Ghostty.app/Contents/Resources/ghostty",
+   "TERM": "xterm-ghostty",
+   "TERMINFO": "/Applications/Ghostty.app/Contents/Resources/terminfo",
+   "TERM_PROGRAM": "ghostty",
+   "TERM_PROGRAM_VERSION": "1.4.0",
+   "__CFBundleIdentifier": "com.mitchellh.ghostty"
+  },
+  "machine": "arm64",
+  "measured": "2026-11-23T10:45:59-08:00",
+  "method": "DSR cursor report \u2014 confirm any disagreement with visual_card.py",
+  "mode_2027_grapheme_clustering": "set",
+  "os": "macOS 15.8.3",
+  "probe": "advance_probe.py",
+  "screen": "alternate"
+ }
+}

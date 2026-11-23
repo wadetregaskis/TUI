@@ -471,14 +471,35 @@ extension TextFieldHandler {
     }
 
     /// What a text field draws for `character`: a tab as one space (since a
-    /// raw tab would move the terminal's cursor to its next tab stop) and any
+    /// raw tab would move the terminal's cursor to its next tab stop), any
     /// other control character as a replacement character `\u{FFFD}` so escape
-    /// injection and raw control characters cannot reach the screen.
+    /// injection and raw control characters cannot reach the screen, and a
+    /// character that takes no cell of its own as `\u{FFFD}` too.
+    ///
+    /// That last is a character standing ALONE with no width — a ZWSP pasted
+    /// from a web page, a file's BOM, a soft hyphen, a bidi mark, a combining
+    /// mark with no base before it (H-48). Every text input counts each
+    /// character as at least one cell (a caret needs one to sit on, and a
+    /// layout walk must advance), so written raw it was counted a cell the
+    /// terminal did not give it: on Ghostty 1.4.0 a ZWSP or a BOM advances
+    /// nothing, and the row came out a cell short, the editor's scroll bar and
+    /// the field's closing cap drawn a column to the left and a caret on it
+    /// drawing nothing; Apple Terminal 455.1 advances both one cell, so the
+    /// same row was right there by accident (`advance_probe.py`'s
+    /// `zerowidth_` rows, Terminal compatibility survey, "Zero-width
+    /// characters a text input holds"). The stand-in takes one cell on every
+    /// host. A mark or joiner merged into the character before it is part of
+    /// THAT character, whose width is its base's, so `"e\u{301}"` and a ZWJ
+    /// emoji sequence are drawn as they are.
+    ///
+    /// An ASCII character is told from its byte (``displayCharacter(ascii:)``):
+    /// none is zero-width, and the byte path asks no property of it.
     nonisolated static func displayCharacter(_ character: Character) -> Character {
-        if character == "\t" { return " " }
+        if let byte = character.asciiValue { return displayCharacter(ascii: byte) }
         if character.unicodeScalars.contains(where: { $0.properties.generalCategory == .control }) {
             return "\u{FFFD}"
         }
+        if character.terminalWidth == 0 { return "\u{FFFD}" }
         return character
     }
 

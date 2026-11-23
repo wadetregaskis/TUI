@@ -15,7 +15,9 @@ conditions. Twenty-one kinds of file live here:
   (`advance_probe.py --only PREFIX`): the same reports for the battery rows
   named `PREFIX…` and the two calibration rows, for rows added since a host's
   last full record, without re-taking the rest. `-chrome-emoji` holds a
-  toast's style glyphs (2026-11-08), read by `ChromeGlyphAdvanceTests`.
+  toast's style glyphs (2026-11-08), read by `ChromeGlyphAdvanceTests`;
+  `-zerowidth` the zero-width characters a text input holds (ZWSP, BOM, soft
+  hyphen, a lone combining mark; 2026-11-23, H-48), on both screens.
 - **`<terminal>-<version>-<screen>-landing.json`** — LANDING records
   (`landing_probe.py` + `landing_analyze.py`): per corpus row, all four
   facts — advance (DSR), landing and ink (pixels), reserve (the wrap test).

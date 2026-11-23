@@ -518,7 +518,9 @@ extension _TextEditorCore {
                 // A control character the text holds — an app's binding can
                 // hold anything, past what a paste lets in — is drawn as U+FFFD,
                 // as a field draws it: an ESC sent as it is would be obeyed, a
-                // log's \u{1B}[2J clearing the screen.
+                // log's \u{1B}[2J clearing the screen. So is a character with no
+                // width of its own (a ZWSP, a BOM): it was counted one cell, and
+                // written raw the terminal gave it none (H-48).
                 emitClipped(shown, cells: cells, foreground: foreground, background: cellBackground, reversed: reversed)
             }
         }

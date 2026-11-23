@@ -8971,6 +8971,61 @@ about. (``SGRState/apply(_:)`` still *honours* both readings when parsing,
 because there the conservative direction is the opposite one — treating an
 off-code as a no-op would leave styling on that the source cleared.)
 
+## Zero-width characters a text input holds — measured 2026-11-23
+
+What a `TextField` or `TextEditor` holds is not what a `Text` draws: a ZWSP
+(U+200B) pasted from a web page or a chat, a BOM (U+FEFF) a file was read with,
+a soft hyphen (U+00AD), a bidi mark, a combining mark at the start of a line.
+Each is a `Character` of its own, and `Character.terminalWidth` is 0 for every
+one. The text inputs count every character as at least one cell — a caret needs
+one to sit on, and a layout walk must advance — and until H-48 wrote such a
+character raw. What a host then does with it decides the row.
+
+**Advance, by DSR** (`advance_probe.py --only zerowidth_`, both screens, the same
+on each; records `data/apple-terminal-455.1-zerowidth.json`,
+`data/apple-terminal-455.1-alternate-zerowidth.json`,
+`data/ghostty-1.4.0-zerowidth.json`, `data/ghostty-1.4.0-alternate-zerowidth.json`):
+
+| Row | Cluster | Apple Terminal 455.1 (macOS 15.8.3) | Ghostty 1.4.0 (mode 2027 set) | pyte 0.8.2 / wcwidth 0.9.1 |
+|-----|---------|------|------|------|
+| `zerowidth_zwsp` | U+200B | 1 | 0 | 0 (drops the rest of the run, below) |
+| `zerowidth_bom` | U+FEFF | 1 | 0 | 0 (the same) |
+| `zerowidth_soft_hyphen` | U+00AD | 1 | 1 | 1 |
+| `zerowidth_lone_acute` | U+0301 alone | 0 | 0 | 0 (combines with the cell before) |
+| `zerowidth_between` | a U+200B b | 3 | 2 | — |
+
+So the hosts disagree, and neither agrees with TUI's own measure everywhere: a
+raw ZWSP or BOM written into a row TUI counted at one cell for it came out a
+cell short on Ghostty and right, by accident, on Apple Terminal. The soft hyphen
+advances a cell on both, where `Character.terminalWidth` says 0 — a `Text`
+holding one draws a cell wider than it measures on both hosts (not changed by
+H-48; open).
+
+**pyte, the PTY harness's terminal** (a throwaway probe app, a `TextField` 14
+wide over a 12-by-4 scrolling `TextEditor`, both over `"a\u{200B}b"`, driven
+through a PTY as `Tools/Smoke/tui_walk.py` drives an app; before the fix):
+pyte's `Screen.draw` stops at a width-0 character that is not a combining mark
+and DISCARDS the rest of the text it was handed, so a row shows `a` and
+nothing after it in that run: the field's row lost `b` and its closing cap
+landed two columns early (column 24, where the fixed build draws it at 26), and
+the editor's row lost `b`, its padding and its scroll bar's cell. That part is
+pyte's own behaviour, not a terminal's, but it is what a PTY smoke over such
+text sees. With the field's caret on the ZWSP, the caret's run held the ZWSP
+alone: pyte dropped it and drew the rest, so `b` took the caret's cell and the
+cap landed one column early (25), which is what a zero-advance host such as
+Ghostty does with the same bytes. The caret's cell showed nothing.
+
+**What TUI does (H-48, 2026-11-23).** The text inputs draw a standalone
+character whose `terminalWidth` is 0 as U+FFFD, the one-cell stand-in a control
+character already had (`TextFieldHandler.displayCharacter`, so the field, the
+vertical field and the editor alike). U+FFFD advances one cell on every host
+measured, so the cells counted and the cells drawn agree everywhere and the
+caret has a visible cell. A mark or joiner merged into the character before it
+is part of that character and is drawn as it is (`ZeroWidthCharacterTests`).
+After the fix the same pyte run shows `a�b` in both, the field's cap at column
+26 and the editor's ZWSP row as wide as the rows under it, with the caret on
+the ZWSP or not. Not measured: iTerm2, WezTerm, Warp, kitty, tmux, Windows Terminal.
+
 ## Right-to-left text — measured 2026-09-01, in part
 
 Run in each host with `Tools/TerminalProbes/bidi_card.py`, in the four installs

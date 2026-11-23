@@ -71,8 +71,10 @@ enum TabLayout {
 
     /// The display column after `character` when it begins at `column`: the
     /// next tab stop for a tab, `column` + the character's cell width
-    /// otherwise (floored at one cell so a zero-width oddity can't stall a
-    /// layout walk).
+    /// otherwise, floored at one cell so a zero-width oddity can't stall a
+    /// layout walk. That cell is DRAWN: a character with no width of its own
+    /// is written as a one-cell stand-in (`TextFieldHandler.displayCharacter`),
+    /// so the cells counted here are the cells the row takes (H-48).
     static func advance(from column: Int, over character: Character, tabWidth: TabWidth) -> Int {
         character == "\t"
             ? tabWidth.advance(from: column)
