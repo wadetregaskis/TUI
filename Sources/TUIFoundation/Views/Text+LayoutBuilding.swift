@@ -61,14 +61,30 @@ import TUICore
                 case .ansi(let sequence, let isSGR):
                     if isSGR { state.apply(sequence) }
                 case .visible(let character):
-                    let width = max(1, character.terminalWidth)
-                    defer { column += width }
+                    let width = character.terminalWidth
                     // Skip the words' blanks the drawing dropped at a wrap.
                     while next < words.count, words[next].character != character,
                         words[next].character.isWhitespace
                     {
                         next += 1
                     }
+                    // A zero-width grapheme of its own (a zero-width space, a
+                    // bidi mark) takes no cell: it is part of the glyph before
+                    // it, or dropped where there is none, and still counts
+                    // among the words. A glyph 0 cells wide would put the rest
+                    // of the row a column right, and stall the surface's walk.
+                    guard width > 0 else {
+                        if next < words.count, words[next].character == character { next += 1 }
+                        if !glyphs.isEmpty {
+                            glyphs[glyphs.count - 1].character.append(character)
+                        } else if let run = runs.last, var last = run.glyphs.last {
+                            last.character.append(character)
+                            runs[runs.count - 1] = Layout.Run(
+                                glyphs: Array(run.glyphs.dropLast()) + [last], style: run.style, attributes: run.attributes)
+                        }
+                        return true
+                    }
+                    defer { column += width }
                     let index: Int
                     let attributes: TextAttributes?
                     if next < words.count, words[next].character == character {

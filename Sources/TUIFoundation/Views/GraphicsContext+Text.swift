@@ -97,14 +97,30 @@ extension GraphicsContext {
     /// `origin` lands on, under this context's state. A blank with no field of
     /// its own is not drawn, so a text's padding does not cover what is beneath
     /// it, as it would not in a `ZStack` of glyphs.
+    ///
+    /// A zero-width grapheme of its own (a zero-width space, a bidi mark) takes
+    /// no cell, as the terminal advances none for it: it is written with the
+    /// glyph before it, or dropped where there is none. Given a cell, it put the
+    /// rest of the row a column right of where the text was measured, in a row
+    /// a column narrower on screen than its buffer said.
     func stamp(_ cells: FrameBuffer, atCellOf origin: CGPoint) {
         let cell = CGPoint(x: origin.x, y: origin.y / surface.unitsPerRow)
         // Held while still floats: `Int(_:)` traps on a far-off coordinate.
         guard cell.x.isFinite, cell.y.isFinite, abs(cell.x) < 1_048_576, abs(cell.y) < 1_048_576 else { return }
         let (left, top) = (Int(cell.x.rounded()), Int(cell.y.rounded()))
         for (rowOffset, line) in cells.lines.enumerated() {
+            let row = top + rowOffset
             var state = SGRState()
             var column = left
+            // The glyph read last, written once the next starts or the line
+            // ends: a zero-width mark after it is written with it.
+            var pending: (character: String, width: Int, style: SGRState, column: Int)?
+            func writePending() {
+                guard let glyph = pending else { return }
+                pending = nil
+                guard surface.reaches(CGPoint(x: CGFloat(glyph.column), y: CGFloat(row))) else { return }
+                writeGlyph(glyph.character, width: glyph.width, style: glyph.style, column: glyph.column, row: row)
+            }
             _ = line.forEachANSISegment { segment in
                 switch segment {
                 // A rendered line's escape, not a colour: the rule matches
@@ -113,16 +129,19 @@ extension GraphicsContext {
                 case .ansi(let sequence, let isSGR):
                     if isSGR { state.apply(sequence) }
                 case .visible(let character):
-                    let width = max(1, character.terminalWidth)
+                    let width = character.terminalWidth
+                    guard width > 0 else {
+                        pending?.character.append(character)
+                        return true
+                    }
+                    writePending()
                     defer { column += width }
                     if character == " ", !state.namesBackground, !state.reversesVideo, !state.paintsInkOnBlankCell { return true }
-                    let target = CGPoint(x: CGFloat(column), y: CGFloat(top + rowOffset))
-                    if surface.reaches(target) {
-                        writeGlyph(String(character), width: width, style: state, column: column, row: top + rowOffset)
-                    }
+                    pending = (String(character), width, state, column)
                 }
                 return true
             }
+            writePending()
         }
     }
 }

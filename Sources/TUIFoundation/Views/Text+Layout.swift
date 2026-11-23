@@ -221,7 +221,8 @@ import TUICore
 
         /// One grapheme cluster where it is drawn.
         struct Glyph: Equatable, Sendable {
-            let character: String
+            /// The grapheme, with any zero-width one drawn after it.
+            var character: String
             let column: Int
             let row: Int
             let width: Int

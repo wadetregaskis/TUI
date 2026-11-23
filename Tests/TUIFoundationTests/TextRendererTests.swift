@@ -279,4 +279,17 @@ struct TextRendererTests {
             #expect(buffer.width == 2 && buffer.height == 1, "\(distance): \(buffer.width)×\(buffer.height)")
         }
     }
+
+    @Test("A zero-width grapheme takes no cell: it rides with the glyph before it")
+    func zeroWidthGrapheme() throws {
+        let probe = LayoutProbe()
+        let buffer = rendered(Text(verbatim: "a\u{200B}b\u{200E}c").textRenderer(Recording(probe: probe)))
+        let run = try #require(probe.layout?.first?.first)
+        #expect(run.glyphs.map(\.character) == ["a\u{200B}", "b\u{200E}", "c"])
+        #expect(run.glyphs.map(\.column) == [0, 1, 2])
+        #expect(run.glyphs.map(\.characterIndex.offset) == [0, 2, 4], "the marks still count among the words")
+        #expect(buffer.width == 3 && buffer.overlays.isEmpty, "drawn in its own frame, not displaced")
+        #expect(buffer.lines[0].strippedLength == buffer.lineWidths?[0] ?? buffer.width)
+        #expect(ScreenSelection.cells(of: buffer.lines[0]) == ["a", "b", "c"], "a mark draws in no cell of its own")
+    }
 }

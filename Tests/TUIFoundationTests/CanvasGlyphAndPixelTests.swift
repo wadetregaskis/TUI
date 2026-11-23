@@ -71,6 +71,20 @@ struct CanvasGlyphAndPixelTests {
         #expect(paintedCells(canvasDrawn(canvas).lines[0])[0].ink == .rgb(255, 0, 0))
     }
 
+    @Test("A zero-width grapheme in a text takes no cell: it is written with the glyph before it")
+    func zeroWidthGrapheme() {
+        let surface = canvasSurface(columns: 4, rows: 1) { context, _ in
+            context.draw(Text(verbatim: "a\u{200B}b"), at: .zero, anchor: .topLeading)
+            context.draw(Text(verbatim: "\u{200F}c"), at: CGPoint(x: 3, y: 0), anchor: .topLeading)
+        }
+        #expect(surface.rows[0]?[0]?.character == "a\u{200B}")
+        #expect(surface.rows[0]?[1]?.character == "b")
+        #expect(surface.rows[0]?[3]?.character == "c", "a mark with no glyph before it is dropped")
+        #expect(surface.rows[0]?.count == 3)
+        let buffer = surface.buffer(covering: surface.extent(including: 4, 1))
+        #expect(buffer.lines[0].strippedLength == buffer.lineWidths?[0])
+    }
+
     @Test("A shape over most of a glyph's cell covers the glyph; a glyph drawn after it stays")
     func glyphsAndPixelsTakeTurns() {
         let canvas = Canvas { context, _ in

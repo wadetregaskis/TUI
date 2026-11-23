@@ -64,6 +64,12 @@ own (every instance prints as the type's name), two `Date`s in one second, or an
 `@State`, focus and kept subtree: a draft typed in one document's tab showed in the next. A tab is now known by its
 value as a `ForEach` row is by its id; a `String`, `Int` or `UUID` value keys as before.
 
+**A zero-width character no longer takes a cell in a `Canvas`'s text or under a `TextRenderer`.** A zero-width space
+or a bidi mark (U+200B, U+200E/F, U+2066 to U+2069, as formatted dates and pasted names carry) was given a cell of its
+own, so the rest of its row was drawn a column right of where the text was measured, and the row was a column
+narrower on screen than it claimed: what was right of it on that terminal row moved left. It now rides with the glyph
+before it, as the terminal draws it, and still counts as a character of the words (`Text.Layout.CharacterIndex`).
+
 **A faint paint in a `Canvas` no longer erases the text under it.** A fill or stroke drawn over a glyph removed it
 wherever its shape covered half the cell, at any opacity: a highlight at `opacity = 0.15`, a colour at 20 % and a
 fill at opacity 0, which paints nothing, all deleted the labels beneath. A paint now covers a glyph where it hides at
