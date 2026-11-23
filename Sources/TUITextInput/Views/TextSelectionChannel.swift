@@ -41,9 +41,11 @@ struct WalkedCharacterOffsets: TextCharacterOffsets {
 /// a type every deployment target can store; the closures are made where the
 /// binding is, behind the same availability.
 struct _TextSelectionChannel {
-    /// The selection the app holds, as character offsets found by `offsets` —
-    /// `nil` when it holds none.
-    let read: (_ offsets: any TextCharacterOffsets) -> Range<Int>?
+    /// The selection the app holds, as character offsets into `text` found by
+    /// `offsets` — `nil` when it holds none. The text is passed, not read
+    /// from the binding, so the selection can be read in the text before an
+    /// edit of the app's as well as the one after (``TextEditorHandler/followAppEdit()``).
+    let read: (_ offsets: any TextCharacterOffsets, _ text: String) -> Range<Int>?
 
     /// Records a selection, as character offsets, in `text`, with `affinity`,
     /// its indices found by `offsets`.
@@ -52,7 +54,7 @@ struct _TextSelectionChannel {
     /// A channel of the given closures — the find bar's, which steers an
     /// editor's selection to a match without a `TextSelection` of its own.
     init(
-        read: @escaping (any TextCharacterOffsets) -> Range<Int>?,
+        read: @escaping (any TextCharacterOffsets, String) -> Range<Int>?,
         write: @escaping (Range<Int>, String, TextSelectionAffinity, any TextCharacterOffsets) -> Void
     ) {
         self.read = read
@@ -60,9 +62,8 @@ struct _TextSelectionChannel {
     }
 
     init(_ binding: Binding<TextSelection?>, text: Binding<String>) {
-        self.read = { locator in
+        self.read = { locator, string in
             guard let range = binding.wrappedValue?.firstRange else { return nil }
-            let string = text.wrappedValue
             let lower = locator.offset(of: range.lowerBound, in: string)
             return lower..<max(lower, locator.offset(of: range.upperBound, in: string))
         }

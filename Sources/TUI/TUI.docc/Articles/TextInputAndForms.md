@@ -275,6 +275,8 @@ TextField("City", text: $city)
 
 **The selection.** `TextField(_:text:selection:)` and `TextEditor(text:selection:)` take a binding to the selected text, which your code can read and set. `onEditingChanged(_:)` on a field tells you when editing starts and stops.
 
+**Changing the text under a selection.** When your code changes the text a field or an editor is bound to, the selection moves through the change as an `NSTextView`'s does: text added or removed before it shifts it, a change after it leaves it, and a change that touches it leaves a caret at the end of the text put in. So a log you append lines to keeps the user's selection, lines put in above it carry it down, and a document loaded in place of another leaves a caret at its end. The change is found by comparing the old text with the new from both ends, so a new text that starts or ends like the old one is taken as an edit of the middle. If you set the selection in the same update, yours is used. This keeps more of the selection than SwiftUI does: its `TextEditor(text:)` puts the caret at the end on any change, and with a `selection:` binding it keeps the selection's numbers, which traps if they no longer fit (a deliberate deviation, by the owner's ruling of 2026-11-22).
+
 ## See Also
 
 - <doc:KeyboardShortcuts>

@@ -2,6 +2,7 @@
 //
 // Part 1: NSTextView (TextKit 1 and TextKit 2), selection {2,5} ("cdefg") of "abcdefghij", then
 //         a whole-string assignment or a textStorage edit; selectedRange read back.
+// Part 1b: NSTextView, edits that meet the selection (or a caret) at an edge.
 // Part 2: NSTextField with its field editor active and a selection, then `stringValue = ...`.
 // Part 3: SwiftUI TextEditor(text:) / TextField(text:), focused, selection made through the
 //         underlying NSTextView / field editor, then the @State the binding reads is set.
@@ -15,6 +16,7 @@
 //
 // Build: DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -swift-version 6 \
 //          -parse-as-library probe.swift -o probe && ./probe
+//        PROBE_EDGES=1 ./probe > probe-edges.out      # Part 1b alone
 import AppKit
 import SwiftUI
 
@@ -84,6 +86,52 @@ func show(_ s: String) -> String { "\"\(s)\"" }
             precondition(tk2 == (tv.textLayoutManager != nil))
         }
         print("| \(label) | \(show(text)) | \(cols[0]) | \(cols[1]) |")
+    }
+    print()
+}
+
+// MARK: - Part 1b: NSTextView, edits that meet the selection at an edge
+
+/// An edit that ends where the selection starts, or starts where it ends, or
+/// meets a caret: Part 1's rows leave these open (added for O-28 (a), 2026-11-23).
+@MainActor func part1b() {
+    print("## Part 1b: NSTextView, edits at the selection's edges, in \(show(original))\n")
+    typealias Edge = (String, NSRange, NSRange, String)
+    let edges: [Edge] = [
+        ("insert at the selection's start", startSel, NSRange(location: 2, length: 0), "XY"),
+        ("insert at the selection's end", startSel, NSRange(location: 7, length: 0), "XY"),
+        ("replace ending at the start", startSel, NSRange(location: 0, length: 2), "Q"),
+        ("replace starting at the end", startSel, NSRange(location: 7, length: 2), "Q"),
+        ("delete ending at the start", startSel, NSRange(location: 0, length: 2), ""),
+        ("delete starting at the end", startSel, NSRange(location: 7, length: 2), ""),
+        ("delete inside", startSel, NSRange(location: 3, length: 2), ""),
+        ("insert inside", startSel, NSRange(location: 4, length: 0), "XY"),
+        ("delete the selection exactly", startSel, NSRange(location: 2, length: 5), ""),
+        ("insert at a caret", NSRange(location: 5, length: 0), NSRange(location: 5, length: 0), "XY"),
+        ("replace starting at a caret", NSRange(location: 5, length: 0), NSRange(location: 5, length: 2), "Q"),
+        ("replace ending at a caret", NSRange(location: 5, length: 0), NSRange(location: 3, length: 2), "Q"),
+        ("replace across a caret", NSRange(location: 5, length: 0), NSRange(location: 4, length: 2), "Q"),
+        ("append at a caret at the end", NSRange(location: 10, length: 0), NSRange(location: 10, length: 0), "XY"),
+        ("insert at 0, caret at 0", NSRange(location: 0, length: 0), NSRange(location: 0, length: 0), "XY"),
+    ]
+    print("| edit | selection before | replaced | with | text after | TextKit 1 | TextKit 2 |")
+    print("|---|---|---|---|---|---|---|")
+    for (label, selection, range, replacement) in edges {
+        var cols: [String] = []
+        var text = ""
+        for tk2 in [false, true] {
+            let tv = NSTextView(usingTextLayoutManager: tk2)
+            tv.string = original
+            let w = window(tv)
+            w.makeFirstResponder(tv)
+            tv.setSelectedRange(selection)
+            spin(0.05)
+            tv.textStorage!.replaceCharacters(in: range, with: replacement)
+            spin(0.1)
+            if !tk2 { text = tv.string }
+            cols.append(r(tv.selectedRange()))
+        }
+        print("| \(label) | \(r(selection)) | \(r(range)) | \(show(replacement)) | \(show(text)) | \(cols[0]) | \(cols[1]) |")
     }
     print()
 }
@@ -311,6 +359,7 @@ let sdk = "26.2"
             _ = NSApplication.shared
             NSApp.setActivationPolicy(.accessory)
             if ProcessInfo.processInfo.environment["PROBE_PAST_END"] != nil { part4(); return }
+            if ProcessInfo.processInfo.environment["PROBE_EDGES"] != nil { part1b(); return }
             part1(); fflush(stdout)
             part2(); fflush(stdout)
             part3(); fflush(stdout)

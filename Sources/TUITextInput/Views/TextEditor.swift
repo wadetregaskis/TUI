@@ -141,6 +141,19 @@ import TUIFoundation
 /// on one row and scrolls sideways to follow the caret instead, as many terminal
 /// editors do; Up and Down then move by lines and stop at the first and last.
 ///
+/// ## Text the app changes
+///
+/// When the app changes the bound text — lines appended to a log, another
+/// user's edit synced in, a reformat — the selection moves through the change
+/// as an `NSTextView`'s does: a change before it shifts it, one after it
+/// leaves it, and one that touches it leaves a caret at the end of the text
+/// put in, so a text replaced whole leaves a caret at its end. The change is
+/// what lies between the old and new texts' common start and end. A selection
+/// the app writes in the same update wins. SwiftUI's `TextEditor(text:)` puts the
+/// caret at the end on any change, and with a selection binding keeps the
+/// selection's numbers, trapping where they no longer fit: a deliberate
+/// deviation, by the owner's ruling O-28 (a) of 2026-11-22.
+///
 /// ## The selection and the caret where the terminal decides the colours
 ///
 /// A selection is a tint of the palette's accent over the editor's well, and a
@@ -182,7 +195,10 @@ public struct TextEditor {
     ///
     /// The editor writes its caret and selection to `selection` as they move,
     /// and a selection the app writes moves them. An editor selects one range,
-    /// so a multiple selection selects its first.
+    /// so a multiple selection selects its first. Text the app writes without
+    /// a selection carries the editor's through the change, as described
+    /// under "Text the app changes" above, and the binding is told at the
+    /// next key or click.
     ///
     /// - Parameters:
     ///   - text: The multi-line text to edit.
@@ -493,8 +509,10 @@ struct _TextEditorCore: View, Renderable, Layoutable {
         handler.tabWidth = tabWidth
         handler.textContentType = context.environment.textContentType
         handler.bell = context.environment.terminalBell
-        handler.clampCursor()
+        // The channel first: carrying the selection through an edit of the
+        // app's asks it whether the app wrote a selection of its own too.
         handler.selectionChannel = selection ?? handler.attributedSelectionChannel
+        handler.clampCursor()
         handler.selectionAffinity = context.environment.textSelectionAffinity
         // The app's selection is taken by the render that draws it: a measure
         // moves no caret.

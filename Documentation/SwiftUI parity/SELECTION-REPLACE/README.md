@@ -7,6 +7,7 @@ with Xcode 26.3 (17C529), Swift 6.2.4, macOS 26.2 SDK. Raw output: `probe.out`, 
 ```
 DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer xcrun swiftc -swift-version 6 -parse-as-library probe.swift -o probe
 ./probe > probe.out
+PROBE_EDGES=1 ./probe > probe-edges.out                                  # Part 1b alone
 PROBE_PAST_END=TextEditor ./probe; PROBE_PAST_END=TextField ./probe     # each traps, see Part 4
 ```
 
@@ -40,6 +41,36 @@ The rule: an edit wholly before the selection shifts it; an edit wholly after le
 that touches the selection at all collapses it to a caret at the END of the replacement text. A
 whole-text replacement (`string =`, `setAttributedString`, or `replaceCharacters` over all of it) is
 that last case: a caret at the end of the new text.
+
+## Part 1b: NSTextView, edits that meet the selection at an edge
+
+Added 2026-11-23 for O-28 (a), on the same machine and toolchain: Part 1 leaves open what an edit
+ending at the selection's start, starting at its end, or meeting a caret does. `PROBE_EDGES=1 ./probe`
+runs this part alone; raw output `probe-edges.out`. Each row is a `textStorage.replaceCharacters`.
+
+| edit | selection before | replaced | with | text after | TextKit 1 | TextKit 2 |
+|---|---|---|---|---|---|---|
+| insert at the selection's start | {2,5} | {2,0} | "XY" | "abXYcdefghij" | {4,5} | {4,5} |
+| insert at the selection's end | {2,5} | {7,0} | "XY" | "abcdefgXYhij" | {2,5} | {2,5} |
+| replace ending at the start | {2,5} | {0,2} | "Q" | "Qcdefghij" | {1,5} | {1,5} |
+| replace starting at the end | {2,5} | {7,2} | "Q" | "abcdefgQj" | {2,5} | {2,5} |
+| delete ending at the start | {2,5} | {0,2} | "" | "cdefghij" | {0,5} | {0,5} |
+| delete starting at the end | {2,5} | {7,2} | "" | "abcdefgj" | {2,5} | {2,5} |
+| delete inside | {2,5} | {3,2} | "" | "abcfghij" | {3,0} | {3,0} |
+| insert inside | {2,5} | {4,0} | "XY" | "abcdXYefghij" | {6,0} | {6,0} |
+| delete the selection exactly | {2,5} | {2,5} | "" | "abhij" | {2,0} | {2,0} |
+| insert at a caret | {5,0} | {5,0} | "XY" | "abcdeXYfghij" | {7,0} | {7,0} |
+| replace starting at a caret | {5,0} | {5,2} | "Q" | "abcdeQhij" | {6,0} | {6,0} |
+| replace ending at a caret | {5,0} | {3,2} | "Q" | "abcQfghij" | {4,0} | {4,0} |
+| replace across a caret | {5,0} | {4,2} | "Q" | "abcdQghij" | {5,0} | {5,0} |
+| append at a caret at the end | {10,0} | {10,0} | "XY" | "abcdefghijXY" | {12,0} | {12,0} |
+| insert at 0, caret at 0 | {0,0} | {0,0} | "XY" | "XYabcdefghij" | {2,0} | {2,0} |
+
+So "wholly before" takes in an edit ending at the selection's start (an insertion there too), and
+"wholly after" one starting at its end. A caret differs at one edge only: an insertion at it moves it
+(it is before), and a replacement starting at it collapses it to the replacement's end (it touches).
+An insertion inside a selection touches it. TUI's `AppTextEdit` is these rules, and
+`AppTextEditSelectionTests` has a case for each row of Parts 1 and 1b.
 
 ## Part 2: NSTextField with its field editor active
 

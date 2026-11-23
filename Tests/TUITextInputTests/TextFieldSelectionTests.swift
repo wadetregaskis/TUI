@@ -123,8 +123,11 @@ struct TextFieldSelectionTests {
         #expect(handler.selectionAnchor == nil)
     }
 
-    @Test("Clamp keeps an anchor the text still contains")
-    func clampKeepsValidSelectionAnchor() {
+    @Test("Clamp collapses a selection the app's shortening of the text reached, to a caret where the edit ends")
+    func clampCarriesSelectionThroughAppEdit() {
+        // Until O-28 (a) (2026-11-22) an anchor the shorter text still held
+        // was kept, and the next key replaced text nobody selected; the
+        // selection now moves as an NSTextView's does (`AppTextEditSelectionTests`).
         var text = "Hello World"
         let binding = Binding(get: { text }, set: { text = $0 })
         let handler = TextFieldHandler(focusID: "test", text: binding, cursorPosition: 10)
@@ -135,7 +138,7 @@ struct TextFieldSelectionTests {
         handler.clampCursorPosition()
 
         #expect(handler.cursorPosition == 5)
-        #expect(handler.selectionAnchor == 3, "an in-bounds anchor survives the shrink")
+        #expect(handler.selectionAnchor == nil, "\" World\" went from inside the selection: a caret where it was")
     }
 
     // MARK: - Selection Keyboard Handling

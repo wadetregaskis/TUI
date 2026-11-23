@@ -151,6 +151,19 @@ import TUIFoundation
 /// is macOS's too, and arrives from every terminal. macOS's Ctrl+Return, which
 /// inserts a line separator, arrives from a terminal as a plain Return.
 ///
+/// ## Text the app changes
+///
+/// When the app changes the bound text — lines appended to a log, another
+/// user's edit synced in, a reformat — the selection moves through the change
+/// as an `NSTextView`'s does: a change before it shifts it, one after it
+/// leaves it, and one that touches it leaves a caret at the end of the text
+/// put in, so a text replaced whole leaves a caret at its end. The change is
+/// what lies between the old and new texts' common start and end. A selection
+/// the app writes in the same update wins. SwiftUI's `TextField(text:)` puts the
+/// caret at the end on any change, and with a selection binding keeps the
+/// selection's numbers, trapping where they no longer fit: a deliberate
+/// deviation, by the owner's ruling O-28 (a) of 2026-11-22.
+///
 /// ## The selection and the caret where the terminal decides the colours
 ///
 /// A selection is a tint of the palette's accent over the field, and a block
@@ -462,7 +475,9 @@ extension TextField where Label == Text {
     /// The field writes its caret and selection to `selection` as they move,
     /// and a selection the app writes moves them — a ``TextSelection`` whose
     /// range is empty is the caret. A field selects one range, so a multiple
-    /// selection selects its first.
+    /// selection selects its first. Text the app writes without a selection
+    /// carries the field's through the change, as described under "Text the
+    /// app changes" above, and the binding is told at the next key or click.
     ///
     /// ```swift
     /// @State private var message = ""
@@ -1044,8 +1059,10 @@ struct _TextFieldCore<Label: View>: View, Renderable, Layoutable {
         // A drawing render's to say: a measure's probe width would leave the
         // keys moving by rows nobody sees (`TextField+Vertical`).
         if !context.isMeasuring { handler.wrapWidth = nil }
-        handler.clampCursorPosition()
+        // The channel first: carrying the selection through an edit of the
+        // app's asks it whether the app wrote a selection of its own too.
         handler.selectionChannel = selection
+        handler.clampCursorPosition()
         // The app's selection is taken by the render that draws it.
         if !context.isMeasuring { handler.adoptSelectionFromApp() }
         return handler

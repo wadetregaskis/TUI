@@ -1470,6 +1470,38 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   [G3 design](<../Historical/Text, editing and the clipboard/An attributed TextEditor - design (G3).md>)
   §7. **Owner.**
 
+### T15. The selection moves through the app's edit of the text, as `NSTextView`'s does
+
+- **SwiftUI (measured, macOS 15.8.3, 2026-11-21):** when the app sets the
+  `@State` a `TextEditor(text:)` or `TextField(text:)` is bound to, any change
+  at all — a pure append included — puts a caret at the end of the new text;
+  only the same string again keeps the selection. With a selection binding
+  (`TextEditor(text:selection:)`, `TextField(text:selection:)`) a text-only
+  write keeps the binding's selection by its numbers, never shifted, and one
+  that shortens the text under it traps ("String index is out of bounds"). An
+  `NSTextView` whose storage is edited moves its selection instead
+  (`Documentation/SwiftUI parity/SELECTION-REPLACE/`, Parts 1, 1b, 3 and 4).
+- **TUI:** a `TextField`, a `SecureField` and a `TextEditor` move their
+  selection through the app's edit as `NSTextView` does: an edit wholly
+  before it shifts it, one wholly after it leaves it, one that touches it
+  collapses it to a caret at the end of what the edit put in, so a text
+  replaced whole leaves a caret at its end. The edit is what lies between the
+  old and new texts' common start and end, compared as bytes
+  (`AppTextEdit`; `AppTextEditSelectionTests`, a test for each measured row,
+  `AppTextEditBindingTests`). A selection the app writes in the same update
+  wins; a text-only write with a selection binding carries the selection, so
+  the app sees it shifted where SwiftUI would have kept its numbers; nothing
+  traps. An editor's block is carried where the lines it spans are untouched,
+  and dropped otherwise (in an editor bound to an `AttributedString`, on any
+  edit not wholly after it). Undo, redo and Replace All set the selection
+  they always did.
+- **Why:** a log streamed into an editor, a text synced from another user, a
+  reformat: SwiftUI's caret at the end loses the user's place on every
+  change, and its kept numbers (before the ruling, TUI's too, while they
+  fitted) leave a selection over text nobody selected, which the next key
+  replaces (hunt finding TEXTIN-11).
+- **Decided:** the owner's ruling O-28 (a), 2026-11-22. **Owner.**
+
 ---
 
 ## Colour and drawing

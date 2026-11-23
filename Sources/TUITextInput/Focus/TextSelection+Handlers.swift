@@ -20,7 +20,7 @@ extension TextFieldHandler {
     /// Adopts a selection the app wrote, if it changed since the last exchange.
     /// Called at render, before the field draws.
     func adoptSelectionFromApp() {
-        guard let channel = selectionChannel, let wanted = channel.read(WalkedCharacterOffsets()),
+        guard let channel = selectionChannel, let wanted = channel.read(WalkedCharacterOffsets(), text.wrappedValue),
             wanted != exchangedSelection
         else { return }
         let count = text.wrappedValue.count
@@ -57,7 +57,7 @@ extension TextEditorHandler {
     /// Adopts a selection the app wrote, if it changed since the last exchange.
     func adoptSelectionFromApp() {
         let layout = layout()
-        guard let channel = selectionChannel, let wanted = channel.read(layout), wanted != exchangedSelection
+        guard let channel = selectionChannel, let wanted = channel.read(layout, layout.text), wanted != exchangedSelection
         else { return }
         let caret = layout.position(ofCharacter: wanted.upperBound)
         selectionAnchor = wanted.isEmpty ? nil : layout.position(ofCharacter: wanted.lowerBound)

@@ -209,6 +209,12 @@ final class TextFieldHandler: PersistedFocusable {
     /// each side writes only a change.
     var exchangedSelection: Range<Int>?
 
+    /// The text the caret and the selection are places in: the one the field
+    /// last wrote, or carried them into. A bound text that is not this one is
+    /// an edit of the app's, which they are carried through
+    /// (``followAppEdit()``).
+    var selectionText: String
+
     /// The cells a vertical field's text wraps in, or `nil` for a field on
     /// one line. Synced by the field's render pass; the vertical field's keys
     /// lay the text out at it (``softWrapLayout()``).
@@ -342,6 +348,7 @@ final class TextFieldHandler: PersistedFocusable {
         self.bell = bell
         self.cursorPosition = cursorPosition ?? text.wrappedValue.count
         self.selectionAnchor = nil
+        self.selectionText = text.wrappedValue
     }
 
     /// A field that goes away takes its steps out of the app's undo manager,
@@ -1080,8 +1087,11 @@ extension TextFieldHandler {
             : WordBoundary.previous(in: characters, from: cursorPosition)
     }
 
-    /// Ensures the cursor position and selection anchor are within valid bounds.
+    /// Ensures the cursor position and selection anchor are within valid
+    /// bounds, after carrying them through what the app changed
+    /// (``followAppEdit()``).
     func clampCursorPosition() {
+        followAppEdit()
         let maxPos = text.wrappedValue.count
         cursorPosition = max(0, min(cursorPosition, maxPos))
         // A stale anchor (the bound text shrank underneath it) is DROPPED, not
@@ -1101,6 +1111,7 @@ extension TextFieldHandler {
     /// text becomes a phantom selection after a backspace (anchor 11, cursor
     /// 10) and the next delete indexes past the end of the string - a crash.
     func normalizeStaleState() {
+        followAppEdit()
         let maxPos = text.wrappedValue.count
         cursorPosition = max(0, min(cursorPosition, maxPos))
         if let anchor = selectionAnchor,
@@ -1131,7 +1142,11 @@ extension TextFieldHandler {
         text.wrappedValue = newText
         let kept = text.wrappedValue
         undoHistory.noteWritten(kept)
-        return kept != previous || newText == previous
+        let took = kept != previous || newText == previous
+        // The text the caller puts the caret in: a binding that kept something
+        // else edited it, from this (``followAppEdit()``).
+        if took { selectionText = newText }
+        return took
     }
 
     /// Pushes the current state onto the undo stack, after forgetting the

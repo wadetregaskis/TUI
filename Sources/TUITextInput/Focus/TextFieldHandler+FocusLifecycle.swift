@@ -34,6 +34,7 @@ extension TextFieldHandler {
         commit()
         let after = text.wrappedValue
         guard after != before else { return }
+        selectionText = after
         cursorPosition = after.count
         clearSelection()
     }

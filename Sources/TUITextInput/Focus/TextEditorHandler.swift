@@ -133,6 +133,18 @@ final class TextEditorHandler: PersistedFocusable {
     /// The selection last exchanged with the app, as character offsets, so
     /// each side writes only a change.
     var exchangedSelection: Range<Int>?
+
+    /// The text the caret, the selection and a block are places in: the one
+    /// the editor last wrote, or carried them into. A bound text that is not
+    /// this one is an edit of the app's, which they are carried through
+    /// (``followAppEdit()``).
+    var selectionText: String
+
+    /// The layout of ``selectionText`` the editor last drew, kept where the
+    /// app's edit had the text laid out afresh before ``followAppEdit()``
+    /// came to carry the selection from it.
+    var layoutBeforeAppEdit: EditorLayout?
+
     /// The DISPLAY column vertical motion tries to preserve (so Up/Down
     /// through a short line don't lose the horizontal position). Display, not
     /// character, space: on tab-bearing lines the visual column runs ahead of
@@ -293,6 +305,7 @@ final class TextEditorHandler: PersistedFocusable {
         self.text = text
         self.canBeFocused = canBeFocused
         self.clipboard = clipboard
+        self.selectionText = text.wrappedValue
     }
 
     /// Whether the editor has left the screen with its steps in the app's
@@ -341,6 +354,11 @@ final class TextEditorHandler: PersistedFocusable {
     /// the handler next.
     func layout(of current: String) -> EditorLayout {
         if let cachedLayout, cachedLayout.text == current { return cachedLayout }
+        // The layout of the text the caret is in, kept for the app's edit to
+        // be carried from (``followAppEdit()``).
+        if let cachedLayout, layoutBeforeAppEdit == nil, TextEdit.sameBytes(cachedLayout.text, selectionText) {
+            layoutBeforeAppEdit = cachedLayout
+        }
         let fresh = EditorLayout(text: current)
         cachedLayout = fresh
         // A text replaced whole: its lines are not the ones styled.
@@ -397,7 +415,13 @@ final class TextEditorHandler: PersistedFocusable {
         let previous = text.wrappedValue
         text.wrappedValue = newText
         let kept = text.wrappedValue
-        if kept == previous, newText != previous { refusedWrite = true }
+        if kept == previous, newText != previous {
+            refusedWrite = true
+        } else {
+            // The text the caller puts the caret in: a binding that kept
+            // something else edited it, from this (``followAppEdit()``).
+            selectionText = newText
+        }
         if let attributedSource {
             undoHistory.noteWritten(.attributed(attributedSource.value))
             // The app's selection was made in the value before: written anew
@@ -436,12 +460,15 @@ final class TextEditorHandler: PersistedFocusable {
     var lineCount: Int { readLines().count }
 
     /// Clamps the cursor into the current text — called each render because
-    /// the bound string can change outside the editor. A selection anchor the
+    /// the bound string can change outside the editor, after carrying the
+    /// caret and the selection through what the app changed
+    /// (``followAppEdit()``). A selection anchor the
     /// text no longer contains is DROPPED, not clamped: clamping would
     /// manufacture a selection the user never made, and the next edit key
     /// would replace text they never selected. A collapsed (anchor == cursor)
     /// anchor is kept — a drag in progress anchors before its first movement.
     func clampCursor() {
+        followAppEdit()
         let lines = readLines()
         cursorLine = min(max(0, cursorLine), lines.count - 1)
         cursorColumn = min(max(0, cursorColumn), lines[cursorLine].count)
@@ -464,6 +491,7 @@ final class TextEditorHandler: PersistedFocusable {
     /// phantom selection spanning past the end of the document, and the next
     /// edit key replaces text the user never selected.
     func normalizeStaleState() {
+        followAppEdit()
         let lines = readLines()
         cursorLine = min(max(0, cursorLine), lines.count - 1)
         cursorColumn = min(max(0, cursorColumn), lines[cursorLine].count)
@@ -1071,6 +1099,7 @@ extension TextEditorHandler: StateStorageDeparting {
     func storageDidDrop() {
         isOffScreen = true
         cachedLayout = nil
+        layoutBeforeAppEdit = nil
         cachedDisplayLayout = nil
         guard undoManager != nil, !undoHistory.allMarks.isEmpty else { return }
         departedUndoSteps?.keep(self)

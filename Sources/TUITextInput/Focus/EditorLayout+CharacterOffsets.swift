@@ -67,6 +67,13 @@ extension EditorLayout: TextCharacterOffsets {
         return positions
     }
 
+    /// `position` as a UTF-8 offset into the text, clamped into it: the way
+    /// back from ``positions(ofUTF8:)``.
+    func utf8Offset(of position: TextEditorPosition) -> Int {
+        let line = min(max(0, position.line), lines.count - 1)
+        return lineStarts[line] + lines[line].utf8Offset(of: min(max(0, position.column), lines[line].count))
+    }
+
     /// The line the byte at `offset` is in, a line's break counted as its
     /// own: the last line for an offset past the text.
     func line(containingUTF8Offset offset: Int) -> Int {

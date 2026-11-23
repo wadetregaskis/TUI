@@ -1,0 +1,20 @@
+## Part 1b: NSTextView, edits at the selection's edges, in "abcdefghij"
+
+| edit | selection before | replaced | with | text after | TextKit 1 | TextKit 2 |
+|---|---|---|---|---|---|---|
+| insert at the selection's start | {2,5} | {2,0} | "XY" | "abXYcdefghij" | {4,5} | {4,5} |
+| insert at the selection's end | {2,5} | {7,0} | "XY" | "abcdefgXYhij" | {2,5} | {2,5} |
+| replace ending at the start | {2,5} | {0,2} | "Q" | "Qcdefghij" | {1,5} | {1,5} |
+| replace starting at the end | {2,5} | {7,2} | "Q" | "abcdefgQj" | {2,5} | {2,5} |
+| delete ending at the start | {2,5} | {0,2} | "" | "cdefghij" | {0,5} | {0,5} |
+| delete starting at the end | {2,5} | {7,2} | "" | "abcdefgj" | {2,5} | {2,5} |
+| delete inside | {2,5} | {3,2} | "" | "abcfghij" | {3,0} | {3,0} |
+| insert inside | {2,5} | {4,0} | "XY" | "abcdXYefghij" | {6,0} | {6,0} |
+| delete the selection exactly | {2,5} | {2,5} | "" | "abhij" | {2,0} | {2,0} |
+| insert at a caret | {5,0} | {5,0} | "XY" | "abcdeXYfghij" | {7,0} | {7,0} |
+| replace starting at a caret | {5,0} | {5,2} | "Q" | "abcdeQhij" | {6,0} | {6,0} |
+| replace ending at a caret | {5,0} | {3,2} | "Q" | "abcQfghij" | {4,0} | {4,0} |
+| replace across a caret | {5,0} | {4,2} | "Q" | "abcdQghij" | {5,0} | {5,0} |
+| append at a caret at the end | {10,0} | {10,0} | "XY" | "abcdefghijXY" | {12,0} | {12,0} |
+| insert at 0, caret at 0 | {0,0} | {0,0} | "XY" | "XYabcdefghij" | {2,0} | {2,0} |
+

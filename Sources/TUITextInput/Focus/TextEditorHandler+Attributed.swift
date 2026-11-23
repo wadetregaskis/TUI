@@ -120,7 +120,7 @@ extension TextEditorHandler {
     var attributedSelectionChannel: _TextSelectionChannel? {
         guard let source = attributedSource, source.selection != nil else { return nil }
         return _TextSelectionChannel(
-            read: { [weak source] _ in
+            read: { [weak source] _, _ in
                 guard let source, let chosen = source.selection?.wrappedValue else { return nil }
                 if let published = source.published, published.selection == chosen { return published.offsets }
                 let value = source.value

@@ -39,6 +39,16 @@ since 2026-11-10: its stdin was pointed at `/dev/tty`, which macOS's `poll` and 
 loop took it for input at its end. Stdin and stdout are now pointed at the terminal's own device (`/dev/ttys005`), as
 `ps` names it, on macOS; Linux keeps `/dev/tty`, which it waits on as any terminal.
 
+**A selection follows the app's edits of the text, as in an `NSTextView`.** When an app changes the text bound to a
+`TextField`, a `SecureField` or a `TextEditor` — lines appended to a log, another user's change synced in, a reformat
+— an edit before the selection shifts it, one after it leaves it, and one that touches it leaves a caret at the end of
+what it put in, so a text replaced whole leaves a caret at its end. A selection was kept by its numbers while they
+fitted the new text, and the next key replaced text nobody had selected. A selection the app writes in the same update
+(`selection:`) still wins; a text-only write now shifts the selection where SwiftUI keeps its numbers (and traps when
+they no longer fit), and SwiftUI's `TextEditor(text:)` puts the caret at the end on any change: both are deliberate
+deviations, by the owner's ruling of 2026-11-22. A binding that formats as it is typed (a hyphen put in a phone
+number) leaves the caret after the character typed, not before it.
+
 **A large `TextEditor` holds a fifth of the memory it did.** Its lines were kept as arrays of `Character`, 16 bytes a
 character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224 MB of
 heap once its editor had drawn, and takes about 44 MB (665 to 129 bytes a line; the lines' own share went from 518 to

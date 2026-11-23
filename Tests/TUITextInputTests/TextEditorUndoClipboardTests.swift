@@ -158,11 +158,13 @@ struct TextEditorUndoClipboardTests {
         let first = TextEditorHandler(focusID: "first", text: binding)
         let second = TextEditorHandler(focusID: "second", text: binding)
         _ = second.handleKeyEvent(typed("S"))
+        // The second's "S", put in at the first's caret, moved it on, as an
+        // NSTextView's caret moves through an insertion at it (O-28 (a)).
         _ = first.handleKeyEvent(typed("F"))
-        #expect(box.text == "FSab", "precondition: both edited")
+        #expect(box.text == "SFab", "precondition: both edited")
 
         _ = second.handleKeyEvent(ctrl("z"))
-        #expect(box.text == "FSab", "the second editor undid the first one's edit")
+        #expect(box.text == "SFab", "the second editor undid the first one's edit")
         _ = first.handleKeyEvent(ctrl("z"))
         #expect(box.text == "Sab", "the first editor's own undo")
     }
