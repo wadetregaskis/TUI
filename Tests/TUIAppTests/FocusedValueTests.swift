@@ -206,6 +206,65 @@ struct FocusedValueTests {
         #expect(requests == 1, "a steady page asks for nothing more")
     }
 
+    /// FOCUS-4: a scene value set to `nil` posted nothing, so every reader
+    /// went on reading last frame's value through the frame, the end of the
+    /// pass read it too and agreed, and no frame was asked for.
+    @Test("A scene value set to nil asks for one frame, and then no reader sees it")
+    func sceneValueSetToNil() {
+        let harness = InputChainHarness()
+        var requests = 0
+        harness.focusManager.focusedValues.requestFrame = { requests += 1 }
+        let above = Seen()
+        let below = Seen()
+        var note: String? = "pane"
+        let page = {
+            VStack {
+                NoteReader(seen: above)
+                Text("pane").focusedSceneValue(\.note, note)
+                NoteReader(seen: below)
+                Button("A") {}
+            }
+        }
+        for _ in 0..<3 { harness.frame(page()) }
+        #expect(above.note == "pane" && below.note == "pane")
+        let settled = requests
+        note = nil
+        harness.frame(page())
+        #expect(below.note == nil, "a reader drawn after the publisher reads its nil in the same frame")
+        #expect(requests == settled + 1, "the reader above read the old value: the pass asks for one frame")
+        let next = harness.frame(page())
+        #expect(above.note == nil && below.note == nil, "the next frame's readers see nothing")
+        #expect(!next.lines.contains { $0.stripped.contains("note: pane") })
+        harness.frame(page())
+        #expect(requests == settled + 1, "a steady page asks for nothing more")
+    }
+
+    @Test("A publisher taken away asks for one frame, and then no reader sees its value")
+    func removedPublisher() {
+        let harness = InputChainHarness()
+        var requests = 0
+        harness.focusManager.focusedValues.requestFrame = { requests += 1 }
+        let seen = Seen()
+        var shows = true
+        let page = {
+            VStack {
+                NoteReader(seen: seen)
+                if shows { Text("pane").focusedSceneValue(\.note, "pane") }
+                Button("A") {}.focusedValue(\.note, shows ? "a" : nil)
+            }
+        }
+        for _ in 0..<3 { harness.frame(page()) }
+        #expect(seen.note == "a", "the focused button's value wins over the scene value")
+        let settled = requests
+        shows = false
+        harness.frame(page())
+        #expect(requests == settled + 1, "the reader read values no publisher published: one frame is asked for")
+        harness.frame(page())
+        #expect(seen.note == nil, "the next frame's reader sees neither the scene value nor the focused one")
+        harness.frame(page())
+        #expect(requests == settled + 1, "a steady page asks for nothing more")
+    }
+
     @Test("A closure published afresh every frame does not ask for frames forever")
     func uncomparableValueSettles() {
         let harness = InputChainHarness()

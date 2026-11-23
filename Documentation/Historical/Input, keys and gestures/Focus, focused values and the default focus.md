@@ -35,6 +35,16 @@ did not change at once. A value that cannot be compared — a closure, a
 rebuilt every render cannot keep the loop spinning; a `Binding` reads through
 to its source wherever it is read, so it is never stale either.
 
+**Amended 2026-11-23 (H-42, from hunt finding FOCUS-4):** the
+repeat at the end of the pass reads this walk's publications alone, not last
+frame's beneath them as a reader does. Repeated through both, a publisher gone
+this frame — taken away by an `if`, or publishing `nil`, which posted nothing —
+still answered with its old value, agreed with every reader that had read it,
+and no frame was asked for: a command gated on the value stayed enabled until
+some other event drew a frame. A modifier publishing `nil` now posts an empty
+table, which stands in for its last publication, so a reader drawn after it
+reads nothing at once.
+
 Two smaller readings, both SwiftUI-silent:
 
 - Of several scene values for one key with none on the focus's path, the

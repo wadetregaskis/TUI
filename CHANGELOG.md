@@ -29,6 +29,13 @@ slow frame) ran the focused button's action, and could draw a frame, in an app t
 typed behind it reached the app too. A quit now ends the reading of input where it is read, and the app leaves at
 once, dropping the rest, as it already did when the keys arrived a moment later.
 
+**A focused value whose publisher stops publishing is gone from the next frame.** When a view publishing a
+`.focusedValue` or a `.focusedSceneValue` was taken away, or published `nil`, every `@FocusedValue` reader went on
+reading its old value, and no frame was asked for to show it gone: a command written `.disabled(selection == nil)`
+stayed enabled, its shortcut working, until some other event drew a frame. The end of the frame now checks the
+readings against what this frame published alone, and asks for the one frame that shows the value gone; a reader
+drawn after a publisher of `nil` reads nothing at once.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It

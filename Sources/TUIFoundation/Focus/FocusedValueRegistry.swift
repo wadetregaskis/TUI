@@ -32,10 +32,17 @@ import TUIView
 /// frame's where it has not yet.
 ///
 /// That is right unless a publisher's value changed this frame after a reader
-/// read the old one. Every table handed to a reader during a render is kept,
-/// and at the end of the pass the reading is repeated against the frame's
-/// final tables and focus: if any differs, ``requestFrame`` asks for one more
-/// frame, which reads what this one published. A value that cannot be compared
+/// read the old one, or the publisher published nothing this frame — it was
+/// removed, or it publishes `nil` — and a reader read what it published last.
+/// Every table handed to a reader during a render is kept, and at the end of
+/// the pass the reading is repeated against this frame's walk alone, at the
+/// frame's final focus: if any differs, ``requestFrame`` asks for one more
+/// frame, which reads what this one published. The repeat reads the walk
+/// alone, NOT last frame's tables beneath it as a reader does: through those,
+/// a publisher gone this frame still answered with its old value, the check
+/// agreed with every reader that had read it, and nothing asked for the frame
+/// that shows it gone (a menu item enabled by it stayed enabled until some
+/// other event drew a frame). A value that cannot be compared
 /// (a closure, a `Binding`) counts as unchanged while the same view publishes
 /// it — so the check cannot ask for frames forever over a closure rebuilt each
 /// render — and it is read through at the moment it is used anyway.
@@ -109,8 +116,12 @@ package final class FocusedValueRegistry {
     /// Two modifiers of one kind on one view meet here at one identity; the
     /// later of them is the inner one, nearer the view, and its value for a
     /// key both name wins.
+    ///
+    /// An empty table — a modifier publishing `nil` — is recorded too: it
+    /// stands in this walk for what the same modifier published last frame,
+    /// so a reader drawn after it reads nothing there at once, rather than
+    /// last frame's value until the frame the end of the pass asks for.
     func post(_ table: FocusedValues, by identity: ViewIdentity, isScene: Bool) {
-        guard !table.isEmpty else { return }
         let key = Key(identity: identity, isScene: isScene)
         let stamped = table.published(by: identity)
         if let existing = current[key] {
@@ -130,7 +141,9 @@ package final class FocusedValueRegistry {
     /// ``endPass(focusedAt:)`` repeats the reading at — and while a menu is
     /// open, the focus it was opened over (`FocusManager.focusedValuesIdentity`).
     func tableAtTheFocus() -> FocusedValues {
-        let table = resolve(focusedAt: owner?.focusedValuesIdentity)
+        var publications = previous
+        publications.merge(current) { _, new in new }
+        let table = Self.resolve(publications, focusedAt: owner?.focusedValuesIdentity)
         if isRendering, reads.last != table { reads.append(table) }
         return table
     }
@@ -148,10 +161,11 @@ package final class FocusedValueRegistry {
     }
 
     /// Ends the pass: keeps what its last walk published, and asks for one
-    /// more frame if a reader was handed something the frame then changed.
+    /// more frame if a reader was handed something the frame then changed,
+    /// or something no publisher published this frame (the type's notes).
     func endPass(focusedAt focused: ViewIdentity?) {
         isRendering = false
-        let final = resolve(focusedAt: focused)
+        let final = Self.resolve(current, focusedAt: focused)
         let stale = reads.contains { $0 != final }
         previous = current
         current = [:]
@@ -159,10 +173,10 @@ package final class FocusedValueRegistry {
         if stale { requestFrame?() }
     }
 
-    /// The reading itself — see the type's notes.
-    private func resolve(focusedAt focused: ViewIdentity?) -> FocusedValues {
-        var publications = previous
-        publications.merge(current) { _, new in new }
+    /// The reading of `publications` at `focused` — see the type's notes.
+    private static func resolve(_ publications: [Key: Publication], focusedAt focused: ViewIdentity?)
+        -> FocusedValues
+    {
         var table = FocusedValues()
         guard !publications.isEmpty else { return table }
         // Scene values, the first published winning: overlaid last to first.
@@ -175,7 +189,7 @@ package final class FocusedValueRegistry {
         let path = publications.values.filter {
             $0.identity == focused || $0.identity.isAncestor(of: focused)
         }
-        for publication in path.sorted(by: Self.outermostFirst) {
+        for publication in path.sorted(by: outermostFirst) {
             table.overlay(publication.table)
         }
         return table

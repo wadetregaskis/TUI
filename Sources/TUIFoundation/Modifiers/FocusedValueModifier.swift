@@ -175,10 +175,13 @@ nonisolated struct _FocusedValueModifier<Content: View, Publishing: FocusedValue
     /// must publish again, which it can — what it published is a value, and it
     /// is the same value on every hit, since a hit is a frame on which nothing
     /// the subtree's buffer depends on changed.
+    ///
+    /// A `nil` value publishes an empty table, not nothing: it takes the place
+    /// of what this modifier published last frame for the readers drawn after
+    /// it (`FocusedValueRegistry.post(_:by:isScene:)`).
     private func publish(context: RenderContext) {
         var table = FocusedValues()
         publishing.write(into: &table)
-        guard !table.isEmpty else { return }
         let identity = context.identity
         let isScene = isScene
         FocusedValueRegistrar.post(table, by: identity, isScene: isScene, context: context)
