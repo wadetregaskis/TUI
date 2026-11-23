@@ -767,23 +767,7 @@ extension AppRunner {
             // the wait below resumed on.
             FatalSignalTerminalRestore.provideAlternateStack()
 
-            // Check for graceful shutdown request (from SIGINT handler)
-            if signals.shouldShutdown {
-                isRunning = false
-                break
-            }
-
-            // Check for an in-app `@Environment(\.dismiss)` call. Lets a
-            // view exit the run loop cleanly without resorting to `exit()`,
-            // which skips the teardown below: the terminal is paid back by
-            // `FatalSignalTerminalRestore`'s `atexit` handler, as for a
-            // SIGQUIT, but settings are not flushed. The
-            // top-level action asks this app's render state
-            // (`TUIContext.exitAction`).
-            if appState.consumeShouldExit() {
-                isRunning = false
-                break
-            }
+            if runHasEnded() { break }
 
             // Terminal resize (SIGWINCH): rewrite every line at the new size.
             if signals.consumeResizeFlag() {
@@ -805,6 +789,13 @@ extension AppRunner {
             if drainTerminalEvents(inputHandler: inputHandler, renderer: renderer, cursorTimer: cursorTimer, hold: &hold) {
                 await Task.yield()
             }
+
+            // A quit among those events ended the drain where it was read
+            // (⌃Q, a confirmed quit, a `dismiss()` from a key handler): leave
+            // now, with no frame. What was typed behind it is not dispatched,
+            // and the teardown's flush drops it with any type-ahead still
+            // unread, as it would have been had it arrived a read later.
+            if runHasEnded() { break }
 
             // Fold a state change, and any animation tick the cheap path could
             // not serve, into the pending-render flag.
@@ -964,6 +955,24 @@ extension AppRunner {
                 quitKeyWatch.stop()
             }
         #endif
+    }
+
+    /// Whether the run has been ended, by the quit (``isRunning`` cleared), a
+    /// graceful shutdown's signal (SIGINT, SIGTERM) or an in-app
+    /// `@Environment(\.dismiss)` call, and the loop is to leave: asked at the
+    /// top of each iteration, after the drain, and by the drain before each
+    /// event it reads, so nothing read behind a quit is dispatched.
+    ///
+    /// `dismiss()` lets a view exit the run loop cleanly without resorting to
+    /// `exit()`, which skips the teardown: the terminal is paid back by
+    /// `FatalSignalTerminalRestore`'s `atexit` handler, as for a SIGQUIT, but
+    /// settings are not flushed. The top-level action asks this app's render
+    /// state (`TUIContext.exitAction`).
+    private func runHasEnded() -> Bool {
+        if signals.shouldShutdown || appState.consumeShouldExit() {
+            isRunning = false
+        }
+        return !isRunning
     }
 
     /// Whether a host with no SIGWINCH said it has a new size, among the input just
@@ -1212,6 +1221,9 @@ extension AppRunner {
     /// level-triggered, so a byte left there would wake the loop over and over
     /// until the frame-rate cap cleared.
     ///
+    /// A quit ends the reading for good (``runHasEnded()``): nothing behind it
+    /// is dispatched, and the loop leaves without a frame.
+    ///
     /// - Returns: Whether an action ended the reading in this call.
     fileprivate func drainTerminalEvents(
         inputHandler: InputHandler,
@@ -1233,6 +1245,10 @@ extension AppRunner {
         let maxEventsPerFrame = 128
         var stoppedForAction = false
         while true {
+            // A quit read in this batch ends it: the keys typed behind ⌃Q (a
+            // Return, say, which would run the focused button's action) are not
+            // the app's any more. The loop leaves when this returns.
+            if runHasEnded() { break }
             // Before each read rather than after each event, so an action run
             // between drains (a key owed after a frame) holds the next read too.
             if appState.consumeControlActivated(), hold.actionRan(atNanos: MonotonicClock.nowNanoseconds) {

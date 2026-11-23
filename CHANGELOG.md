@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**Keys typed behind ⌃Q are no longer handled.** ⌃Q and a Return read together (typed quickly, over ssh, during a
+slow frame) ran the focused button's action, and could draw a frame, in an app that was quitting; anything else
+typed behind it reached the app too. A quit now ends the reading of input where it is read, and the app leaves at
+once, dropping the rest, as it already did when the keys arrived a moment later.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It

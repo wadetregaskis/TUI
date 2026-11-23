@@ -25,6 +25,8 @@ so they arrive together, and checks:
      than working through a backlog of presses a frame at a time.
   6. Under a low frame-rate cap: input arriving while a frame waits for the cap
      is not lost, and the wait does not spin.
+  7. Keys behind the quit key in one write: none of them is dispatched, no action
+     runs and no frame is drawn before the app exits.
 
 Usage:  python3 Tools/Smoke/activation_batch_smoke.py [path-to-IdleProbe]
 Exits 0 when every case holds. Uses an isolated TUI_CONFIG_DIR, and no
@@ -313,6 +315,34 @@ print(f"     cap of 5 FPS: {len(times)} of {presses} ran, {len(frames)} frames, 
 check(len(times) == presses, f"under a low cap, nothing is lost ({len(times)} of {presses})")
 check(min(gaps) >= 0.18, f"under a low cap, the frames keep to it ({min(gaps):.3f} s apart at the closest)")
 check(cpu < 1.0, f"under a low cap, the wait for the frame does not spin ({cpu:.2f} s of CPU in about 3 s)")
+
+# 7. Keys read behind the quit key, in the same write: the run has ended, so
+# none of them runs. A Return typed after ⌃Q ran the focused button's action in
+# an app the person had already left, and a frame could be drawn before it went.
+for label, behind in (("Return", RETURN), ("Return, Return and letters", RETURN + RETURN + b"abc")):
+    trace = tempfile.mktemp(dir=SCRATCH)
+    app = App("button", gated=False, TUI_FRAME_TRACE=trace)
+    start = len(app.lines())
+    frames_before = len(open(trace).readlines())
+    os.write(app.master, b"\x11" + behind)
+    deadline, status = time.time() + 5, None
+    while time.time() < deadline and status is None:
+        app.pump(0.05)
+        done, code = os.waitpid(app.pid, os.WNOHANG)
+        if done == app.pid:
+            status = code
+    if status is None:
+        app.finish()
+    else:
+        os.close(app.master)
+    after = app.lines(start)
+    check(status == 0, f"⌃Q then {label} in one write: the app quits ({status})")
+    check(not [what for what in after if what.startswith("ran ")],
+          f"⌃Q then {label} in one write: the action does not run ({after})")
+    check(not [what for what in after if what.startswith("body")],
+          f"⌃Q then {label} in one write: no view is drawn after the quit ({after})")
+    frames_after = len(open(trace).readlines()) - frames_before
+    check(frames_after == 0, f"⌃Q then {label} in one write: no frame is traced after the quit ({frames_after})")
 
 if failures:
     print(f"\n{len(failures)} failure(s)")

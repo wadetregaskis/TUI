@@ -84,6 +84,8 @@ What stops the reading is a `Button` however it is pressed, a `Toggle`, a `Link`
 
 A key held on a button that stays enabled gets a frame per press. If frames are slower than the repeat, the loop falls behind, and after a quarter of a second it stops drawing between actions until it has caught up, so the action stops within a frame or so of that after the key is released.
 
+A quit ends the reading for good: ⌃Q, the Quit of a confirmation dialog, a menu's Quit, a top-level `dismiss()` from a key handler, and SIGINT or SIGTERM. Nothing read behind it is handled, so a Return typed after ⌃Q does not run the focused button's action, and the loop leaves without drawing another frame; what is left is dropped with the rest of the type-ahead as the terminal is handed back.
+
 ### Re-render Triggers
 
 Several sources cause a new frame to be rendered. Each sets state the loop checks and `wake()`s the loop if it is currently idle-blocked:
