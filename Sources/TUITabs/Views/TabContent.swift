@@ -138,6 +138,14 @@ struct _RawTab {
     func springLoads(inheriting inherited: SpringLoadingBehavior) -> Bool {
         !isDisabled && (springLoading ?? inherited).allows(byDefault: true)
     }
+
+    /// The key the tab's identity is made from: its content's branch, its
+    /// label's, its interactions' host. `identityKey(_:)`, as `ForEach` keys a
+    /// row, and NOT the value's description: two values that print alike (a
+    /// `Hashable` class with no description, two `Date`s in one second, an enum
+    /// wrapping either) would share one `@State`, focus and retained subtree.
+    /// A `String`, `Int` or `UUID` value keys as its description did.
+    var identityKey: String { TUICore.identityKey(value) }
 }
 
 /// The ``TabSection`` a tab was declared in.

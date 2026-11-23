@@ -470,7 +470,7 @@ extension _TabViewCore {
                         hoverBox.value = nil
                     }
                 })
-            let hostContext = context.withChildIdentity(erasedType: _RawTab.self, key: "\(tab.value)")
+            let hostContext = context.withChildIdentity(erasedType: _RawTab.self, key: tab.identityKey)
             let hosted = TUIView.renderToBuffer(host, context: hostContext)
             buffer.appendHitTestRegions(of: hosted, shiftedByX: region.x, y: region.y)
             buffer.overlays += hosted.shiftedOverlays(byX: region.x, y: region.y)

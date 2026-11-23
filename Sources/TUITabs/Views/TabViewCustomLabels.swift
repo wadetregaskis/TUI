@@ -59,7 +59,7 @@ extension _TabViewCore {
     }
 
     /// The branch a tab's own label renders under, measured and drawn alike.
-    private static func labelBranch(_ tab: _RawTab) -> String { "tab-label-\(tab.value)" }
+    private static func labelBranch(_ tab: _RawTab) -> String { "tab-label-\(tab.identityKey)" }
 
     /// How many lines a row of the strip's labels takes: one for text labels,
     /// and as many as the tallest label of the app's own on it.

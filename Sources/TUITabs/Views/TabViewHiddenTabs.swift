@@ -22,7 +22,7 @@ extension _TabViewCore {
         for (index, tab) in tabs.enumerated() where index != selectedIndex {
             // The branch itself as well as what is below it: a retained subtree
             // is its root's strict descendants.
-            let hidden = context.identity.branch("tab-\(tab.value)")
+            let hidden = context.identity.branch("tab-\(tab.identityKey)")
             stateStorage.markActive(hidden)
             stateStorage.retainSubtree(hidden)
         }

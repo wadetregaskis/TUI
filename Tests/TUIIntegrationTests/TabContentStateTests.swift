@@ -10,6 +10,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 import TUI
@@ -45,6 +46,32 @@ private struct TwoTabs: View {
     }
 }
 
+/// A `Hashable` class with no description of its own: every instance prints
+/// as its type's name, so a tab keyed by its value's description gave every
+/// tab over one of these the same identity.
+private final class Document: Hashable {
+    static func == (lhs: Document, rhs: Document) -> Bool { lhs === rhs }
+    func hash(into hasher: inout Hasher) { hasher.combine(ObjectIdentifier(self)) }
+}
+
+/// Two tabs over `values`, each with a counter of its own.
+private struct CounterTabs<Value: Hashable>: View {
+    let values: [Value]
+    @State private var selection: Value
+
+    init(values: [Value]) {
+        self.values = values
+        _selection = State(initialValue: values[0])
+    }
+
+    var body: some View {
+        TabView(selection: $selection) {
+            Tab("Alpha", value: values[0]) { Counter() }
+            Tab("Beta", value: values[1]) { Counter() }
+        }
+    }
+}
+
 @MainActor
 @Suite("A tab's content keeps its state while another tab is shown")
 struct TabContentStateTests {
@@ -71,5 +98,35 @@ struct TabContentStateTests {
         try app.click("Two")
         app.press(.left)
         #expect(app.screen.contains("PUSHED 5"), "\(app.screen)")
+    }
+
+    /// Bumps the first tab's counter twice, then shows the second tab.
+    private func bumpFirstThenShowSecond(_ app: TestApp) throws {
+        try app.click("Count 0")
+        try app.click("Count 1")
+        try app.click("Beta")
+    }
+
+    @Test("Tabs over distinct instances of a description-less class keep separate state")
+    func classValuedTabsKeepSeparateState() throws {
+        // Made once: the closure runs every frame, and new instances are new tabs.
+        let documents = [Document(), Document()]
+        let app = TestApp(width: 50, height: 12) { CounterTabs(values: documents) }
+        try bumpFirstThenShowSecond(app)
+        #expect(app.screen.contains("Count 0"), "\(app.screen)")
+        try app.click("Alpha")
+        #expect(app.screen.contains("Count 2"), "\(app.screen)")
+    }
+
+    @Test("Tabs over two Dates within one second, which describe alike, keep separate state")
+    func dateValuedTabsKeepSeparateState() throws {
+        let first = Date(timeIntervalSinceReferenceDate: 0)
+        let second = Date(timeIntervalSinceReferenceDate: 0.5)
+        #expect(first.description == second.description)  // the premise: they print alike
+        let app = TestApp(width: 50, height: 12) { CounterTabs(values: [first, second]) }
+        try bumpFirstThenShowSecond(app)
+        #expect(app.screen.contains("Count 0"), "\(app.screen)")
+        try app.click("Alpha")
+        #expect(app.screen.contains("Count 2"), "\(app.screen)")
     }
 }

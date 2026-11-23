@@ -46,6 +46,12 @@ drawn after a publisher of `nil` reads nothing at once.
 publication afresh; a reading is now kept until a publication or the focus changes it, so a frame with thirty
 readers (menu commands, toolbar buttons) makes two readings rather than a hundred and twenty.
 
+**Tabs whose values print alike keep state of their own.** A tab's content, its label and its context menu were
+kept at an identity made from its value's `description`, so tabs over a `Hashable` class with no description of its
+own (every instance prints as the type's name), two `Date`s in one second, or an enum case wrapping either shared one
+`@State`, focus and kept subtree: a draft typed in one document's tab showed in the next. A tab is now known by its
+value as a `ForEach` row is by its id; a `String`, `Int` or `UUID` value keys as before.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It

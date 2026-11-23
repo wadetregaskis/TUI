@@ -284,7 +284,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     /// across, that height down — as its `containerRelativeFrame` container.
     private func contentContext(_ context: RenderContext, stripHeight: Int, available: Int) -> RenderContext {
         retainHiddenTabs(besides: selectedIndex, context: context)
-        var child = context.withBranchIdentity("tab-\(tabs[selectedIndex].value)")
+        var child = context.withBranchIdentity("tab-\(tabs[selectedIndex].identityKey)")
         child.availableHeight = max(0, context.availableHeight - stripHeight)
         child = child.publishingContainerSize(CellSize(width: max(0, available), height: child.availableHeight))
         // The body is painted on the strip's surface, so anything inside that
@@ -297,7 +297,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
 
     /// The branch the selected tab's content is drawn at.
     private func selectedContentIdentity(_ context: RenderContext) -> ViewIdentity {
-        context.identity.branch("tab-\(tabs[selectedIndex].value)")
+        context.identity.branch("tab-\(tabs[selectedIndex].identityKey)")
     }
 
     /// The lines of the panel below the selected tab's content: what pads it
@@ -320,7 +320,7 @@ struct _TabViewCore<SelectionValue: Hashable>: View, Renderable, Layoutable {
     private func tabMeasureContext(
         _ index: Int, available: Int, context: RenderContext
     ) -> RenderContext {
-        var branch = context.withBranchIdentity("tab-\(tabs[index].value)")
+        var branch = context.withBranchIdentity("tab-\(tabs[index].identityKey)")
         branch.availableWidth = available
         branch.availableHeight = contentMeasureHeight(available: available, context: context)
         // The tab is its content's `containerRelativeFrame` container, as in
