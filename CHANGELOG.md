@@ -110,6 +110,10 @@ promised all three, mixed with options written out, but none compiled: the block
 nowhere for the list a loop or a conditional makes to go. `RadioButtonGroupBuilder` now joins each statement's options
 in written order, as the status bar's builder does.
 
+**A table behind a sheet stays faint past a bold cell.** On a terminal that has not reported its background, the
+page behind a sheet or an alert is drawn faint, and a `Table` row's bold cell closes with SGR 22, which ends faint
+too: the rest of the row came back to full strength. Faint is stated again after any 22, a table's or an app's own.
+
 **Glass joined in a `GlassEffectContainer` frosts what is behind it all the way across.** Under each member the text
 behind lost its glyphs, but the cells the container draws between the members let it through, tinted: two legible
 stripes through a frosted pill. Those cells now frost with the first member's frost, as its own part does.

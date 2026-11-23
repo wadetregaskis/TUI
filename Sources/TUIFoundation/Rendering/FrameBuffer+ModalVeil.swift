@@ -59,7 +59,9 @@ extension FrameBuffer {
     /// keeps moving. A row holding a terminal-graphics picture is passed over:
     /// its foreground is the image's id, not a colour. Where the scrim is the
     /// terminal's own background, not yet reported, there is nothing to blend
-    /// toward, and the page is drawn faint (SGR 2) instead.
+    /// toward, and the page is drawn faint (SGR 2) instead, restated after
+    /// every escape that ends it: a reset, and the SGR 22 that closes a bold
+    /// run (a table's bold cell).
     ///
     /// Not the opacity resolution itself, which this first was: a region over
     /// the whole page resolved cell by cell, contests and all, every frame a
@@ -232,6 +234,14 @@ private struct Veil {
 
     init(scrim: Color) { self.scrim = scrim }
 
+    /// A state with faint (SGR 2) in force and nothing else: what a faint row's
+    /// escape is folded into, to see whether it leaves faint on.
+    private static let faintAlone: SGRState = {
+        var state = SGRState()
+        state.apply("\u{1B}[2m")
+        return state
+    }()
+
     subscript(colour: Color) -> Color {
         mutating get {
             if let known = memo[colour] { return known }
@@ -250,9 +260,16 @@ private struct Veil {
         keepsUnderline: Bool
     ) -> String {
         guard !faint else {
-            var reset = false
-            SGRColorRewrite.readingColors(sequence) { slot, _ in if case .reset = slot { reset = true } }
-            return reset ? sequence + restated : sequence
+            // Faint is restated after whatever the row's escape does to it, read
+            // as `SGRState` reads it: a reset clears it, and so does SGR 22
+            // (normal intensity), which ends a bold run — a table's
+            // `ESC[22;39m` — and takes faint with it. Not a colour reading,
+            // which saw only the reset and let the rest of such a row draw at
+            // full strength behind the modal. Not the table's to change either:
+            // 22 is how any row says "bold off", an app's own text included.
+            var state = Self.faintAlone
+            state.apply(sequence)
+            return state.isFaint ? sequence : sequence + restated
         }
         var setsForeground = false
         var setsBackground = false

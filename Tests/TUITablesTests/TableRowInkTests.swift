@@ -308,4 +308,21 @@ struct TableRowInkTests {
             cells[size].ink == cells[name].ink,
             "the ink was not stated again after the bold cell's reset: \(row.debugDescription)")
     }
+
+    /// Behind a modal whose scrim is the terminal's own background, unreported,
+    /// the veil draws the page faint (SGR 2). The table closes a bold run with
+    /// `ESC[22;39m`, and 22 ends faint along with bold: the veil states faint
+    /// again after it, so the rest of the row stays behind the modal.
+    @Test("Behind a modal drawn faint, a table row stays faint past the close of a bold run")
+    func veiledFaintOutlastsTheBoldClose() throws {
+        let row = "a\u{1B}[1mb" + TableRowInk.normalWeightDefaultForeground + "c"
+        let veiled = FrameBuffer(lines: [row])
+            .veiledAsBackdrop(by: .default, surface: .default, palette: EnvironmentValues().palette)
+        let cells = paintedCells(veiled.lines[0])
+        let first = try #require(cells.first { $0.glyph == "a" })
+        let last = try #require(cells.first { $0.glyph == "c" })
+        #expect(first.state.isFaint, "the veil did not draw the row faint: \(veiled.lines[0].debugDescription)")
+        #expect(last.state.isFaint, "the bold run's close left the row at full strength: \(veiled.lines[0].debugDescription)")
+        #expect(!last.state.isBold)
+    }
 }
