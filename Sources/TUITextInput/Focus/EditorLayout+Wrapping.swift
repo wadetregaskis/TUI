@@ -60,9 +60,7 @@ struct WrappedRows {
     /// One line wrapped at `width`, tabs reaching their stops from each row's
     /// start.
     private static func layout(of line: TextCharacters, width: Int, tabWidth: TabWidth) -> SoftWrapLayout {
-        SoftWrapLayout(line, width: width) { character, column in
-            TabLayout.advance(from: column, over: character, tabWidth: tabWidth)
-        }
+        SoftWrapLayout(line, width: width, tabWidth: tabWidth)
     }
 
     /// These rows with `gaps[line]` blank rows after each of `line`'s

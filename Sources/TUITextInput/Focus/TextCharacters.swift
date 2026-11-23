@@ -92,20 +92,34 @@ struct TextCharacters {
         return index < starts.count ? Int(starts[index]) : storage.utf8.count
     }
 
-    /// The characters as their bytes, where each is one ASCII byte (`nil`
-    /// where one is not): read a byte at a time, without the string's index
-    /// arithmetic, by a walk of every character (``SoftWrapLayout``).
-    var asciiBytes: ASCIIBytes? {
-        starts == nil ? ASCIIBytes(bytes: Array(storage.utf8)) : nil
+    /// Calls `body` with the characters' bytes, the character at an index the
+    /// byte there, where each is one ASCII byte; `nil`, without calling it,
+    /// where one is not. Borrowed from the storage, not copied: what a walk of
+    /// every character of a line reads (`SoftWrapLayout`), where a
+    /// `Character` made of each, compared and measured, was most of the time
+    /// a document took to wrap. The buffer is valid only while `body` runs.
+    func withASCIIBytes<Result>(_ body: (UnsafeBufferPointer<UInt8>) throws -> Result) rethrows -> Result? {
+        guard starts == nil else { return nil }
+        // Native and contiguous since `init(_:)`; copied only if not.
+        if let result = try storage.utf8.withContiguousStorageIfAvailable(body) { return result }
+        return try Array(storage.utf8).withUnsafeBufferPointer(body)
     }
 
-    /// Characters of one ASCII byte each, read from an array of the bytes.
-    struct ASCIIBytes: RandomAccessCollection {
-        typealias Indices = Range<Int>
-        let bytes: [UInt8]
-        var startIndex: Int { 0 }
-        var endIndex: Int { bytes.count }
-        subscript(position: Int) -> Character { TextCharacters.ascii[Int(bytes[position])] }
+    /// The byte of the character at `index` where it is one ASCII byte, `nil`
+    /// where it is more: what a row's drawing asks of each character before it
+    /// asks the character (`TabLayout.advance(from:overASCII:tabWidth:)`).
+    /// A tab, a newline and every control character are one byte, so `nil`
+    /// says the character is none of them.
+    func asciiByte(at index: Int) -> UInt8? {
+        let utf8 = storage.utf8
+        guard let starts else { return utf8[utf8.index(utf8.startIndex, offsetBy: index)] }
+        guard utf8Length(of: index) == 1 else { return nil }
+        return utf8[utf8.index(utf8.startIndex, offsetBy: Int(starts[index]))]
+    }
+
+    /// The character an ASCII byte is, from a table made once.
+    static func character(ascii byte: UInt8) -> Character {
+        ascii[Int(byte)]
     }
 
     /// Whether every character is one printable ASCII byte, a space to a

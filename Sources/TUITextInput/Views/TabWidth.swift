@@ -79,6 +79,15 @@ enum TabLayout {
             : column + max(1, character.terminalWidth)
     }
 
+    /// `advance(from:over:tabWidth:)` over the character `byte` is, an
+    /// ASCII one: the next stop for a tab, else one cell, since every other
+    /// ASCII character — a control character's 0 floored — is one. Told from
+    /// the byte, without the character's comparison and width lookup, which
+    /// were most of what a row of ASCII cost to draw and to wrap (EDMEM-2).
+    static func advance(from column: Int, overASCII byte: UInt8, tabWidth: TabWidth) -> Int {
+        byte == 0x09 ? tabWidth.advance(from: column) : column + 1
+    }
+
     /// The display column at which the character at `charIndex` begins
     /// (`charIndex == chars.count` gives the line's total display width).
     static func displayColumn(

@@ -6,7 +6,7 @@ editor's keys and caret, the find bar, Ctrl-U, a drag selection kept to a
 bordered container, rich-text editing, and what a key costs in a large
 document. Ids: B62 to B65, B62-FULLER, B63-CTRLJ, B63-KITTY, B-D4X-10 to 12,
 B-D4X-16, D4X-FULLER, B81, A-TEXT2-1, B-TEXT2-1, B-TEXT2-2, TEXT2-INTERIOR,
-A42, A42-Q8, EDITOR-SPLICE, EDITOR-FIRST, EDMEM-1.*
+A42, A42-Q8, EDITOR-SPLICE, EDITOR-FIRST, EDMEM-1, EDMEM-2.*
 
 ## In short
 
@@ -45,7 +45,8 @@ B65's several ranges, after A42's first stage; A42 itself.
 ## For a future reader
 
 - **A key in a large `TextEditor` costs its lines, not the document** (EDITOR-SPLICE, 2026-11-15, below), and its
-  lines are held as UTF-8, not as arrays of `Character` (EDMEM-1, 2026-11-22, below).
+  lines are held as UTF-8, not as arrays of `Character` (EDMEM-1, 2026-11-22, below), and an ASCII line is wrapped and
+  drawn from its bytes (EDMEM-2, below).
 - **Every `NSTextContentType` is spelled**, free-text types filter nothing, and a `TextEditor` filters as a field does (B-PARITYMISC-2, below).
 
 ## The record
@@ -821,4 +822,49 @@ bytes (`asciiBytes`). At b1792a207, 16 reps: `bigtext-find` +2.1% (+0.6% to
 **Left:** those two small costs, both in reading a line's characters one at a
 time (the 18 ms of the click is the whole document wrapped through the byte
 arrays, each line's bytes copied into one); and the wrapping itself, now most
-of what a large editor holds.
+of what a large editor holds. The first is EDMEM-2's (below).
+
+### EDMEM-2. An ASCII line is wrapped and drawn from its bytes (2026-11-22)
+
+*`SoftWrapLayout`, `TextCharacters`, `TabLayout`, `_TextEditorCore.styledRow`*
+
+EDMEM-1 left `bigtext-find` +2.1% and `bigtext` +1.4% against 0c27c1151, both
+in reading a line's characters one at a time.
+
+**Profiled** with `Tools/Profiling` (the Time Profiler attached to Stress by
+pid: `xctrace --launch` hangs on this machine). A whole-document wrap, forced
+by `--session bigtext --resize-every 2`, was 91% of the samples at the base
+and at EDMEM-1's tip alike, and nearly all of it was the characters: the
+walk's comparisons of each with a space, a tab and the newlines
+(`_stringCompareWithSmolCheck`, 10%), `Character.terminalWidth` and the string
+machinery it reads through (`UnicodeScalarView.distance`,
+`validateInclusiveScalarIndex`, `_decodeScalar`, `Unicode.Scalar.Properties`,
+`Collection.first`: about 35%), and the bridge objects' retains and releases
+(12%). Drawing a row was the same story: `_swift_stdlib_getGeneralCategory`,
+`displayCharacter`'s test for a control character, was 7.8% of `bigtext` on
+its own. Both had been as slow over the arrays; EDMEM-1 added the subscript's
+index arithmetic and a copy of each line's bytes on top.
+
+**The change.** An ASCII character's rules are its byte's: a tab advances to
+its stop and every other ASCII character is one cell
+(`TabLayout.advance(from:overASCII:tabWidth:)`), a C0 control or DEL is drawn
+as U+FFFD (`TextFieldHandler.displayCharacter(ascii:)`), and LF, VT, FF and CR
+are the newlines. `SoftWrapLayout`'s walk is generic over what it reads (a
+`SoftWrapMeasure`: characters, or the bytes ASCII characters are) and an
+editor's ASCII line is walked over its bytes, borrowed from its storage
+(`TextCharacters.withASCIIBytes`) where EDMEM-1 copied them into an array, its
+widths written straight into their bytes where they went through an `Int` a
+character. A drawn row asks each character for its byte first
+(`asciiByte(at:)`), so a line with some non-ASCII in it still draws its ASCII
+from the bytes. `ASCIIFastPathTests` checks every byte's rules against its
+character's, and the byte walks against the character walk over random lines
+of spaces, tabs, lone CRs, controls and long words.
+
+**Measured.** `bigtext-find`'s `focus` step, its one whole-document wrap
+(400-step runs): 102.3 ms at the base, 115.8 at EDMEM-1's tip, 23.6 here. A/B
+(`ab_bench.py`, cpu-per-frame, 16 reps) against EDMEM-1's tip f3cbe1a00:
+`bigtext` -19.8% (95% CI -20.0% to -19.3%), `bigtext-find` -11.2% (-12.4% to
+-10.7%), `bigtext-open` -69.1%, `bigtext-replace-all` -16.5%, `bigtext-rich`
+-15.3%, `bigtext-highlighted` -13.9%, `bigtext-find-query` -0.3%. That puts
+the two scenarios EDMEM-1 left slower well under 0c27c1151's times as well,
+since they were 2.1% and 1.4% over them.

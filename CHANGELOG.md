@@ -19,6 +19,15 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A large `TextEditor` holds less than half the memory it did.** Its lines were kept as arrays of `Character`, 16 bytes
+a character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224 MB of
+heap once its editor had drawn, and takes about 94 MB (665 to 279 bytes a line; the lines' own share went from 518 to
+79). Opening one takes 81% less time, as its lines are cut from the text's bytes and wrapped from them, and laying out a
+text an app replaces whole a third less. A line of ASCII is wrapped and drawn from its bytes, without a `Character`
+made, compared and measured for each: wrapping a whole document again, as a click into a large editor does, takes a
+fifth of the time it did (102 to 24 ms for Stress's 3.2 MB `bigtext-find`), and a key in Stress's `bigtext` costs 18%
+less. A vertical `TextField` lays its text out the same way. Nothing an app sees changes.
+
 **SwiftUI's endless list runs in an app.** `ScrollView { LazyVStack { ForEach(0..<Int.max, id: \.self) { … } } }`
 trapped on an app's first frame, and a lazy stack of ten million rows built ten million on it: the walk the first
 frame makes of the page to learn its bars drew the stack's top screenful from every one of its rows. Past 256 rows,
@@ -83,13 +92,6 @@ $picked : nil)`, SwiftUI's edit-mode idiom, took its kind of selection from the 
 nothing until the list's identity changed. A `List` now takes its kind from the initializer called, and a list or
 table takes it again every frame, so a `Table` rebuilt at the same place from `Table(_:columns:)` to a `Set`
 `selection:` initializer selects too.
-
-**A large `TextEditor` holds less than half the memory it did.** Its lines were kept as arrays of `Character`, 16
-bytes a character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224
-MB of heap once its editor had drawn, and takes about 94 MB (665 to 279 bytes a line; the lines' own share went from
-518 to 79). Opening one takes 41% less time, as its lines are cut from the text's bytes, and laying out a text an app
-replaces whole a third less; a key in Stress's `bigtext` session costs 1.4% more. A vertical `TextField` lays its text
-out the same way. Nothing an app sees changes.
 
 **A tinted glass keeps its tint's transparency while the window is inactive.** `.glassEffect(.regular.tint(…))` with a
 translucent tint went more solid as the terminal lost focus, because greying the tint dropped its alpha. The colour

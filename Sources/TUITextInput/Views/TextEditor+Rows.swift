@@ -338,6 +338,27 @@ extension _TextEditorCore {
         }
     }
 
+    /// The cells the character at `position` of `line` takes from `column`,
+    /// the glyph a row draws for it, and whether it is a tab. A character of
+    /// one ASCII byte — a tab is one — is told from its byte, without the
+    /// character compared or its properties looked up, which were most of a
+    /// row's cost to draw (EDMEM-2).
+    static func glyph(
+        at position: Int, of line: TextCharacters, column: Int, tabWidth: TabWidth
+    ) -> (cells: Int, shown: Character, isTab: Bool) {
+        if let byte = line.asciiByte(at: position) {
+            return (
+                TabLayout.advance(from: column, overASCII: byte, tabWidth: tabWidth) - column,
+                TextFieldHandler.displayCharacter(ascii: byte), byte == 0x09
+            )
+        }
+        let character = line[position]
+        return (
+            TabLayout.advance(from: column, over: character, tabWidth: tabWidth) - column,
+            TextFieldHandler.displayCharacter(character), false
+        )
+    }
+
     /// `styles` are the line's own (``EditorStyledRun``), with any
     /// highlighting already drawn over them
     /// (``TextEditorHandler/highlightedStyles(ofLine:in:)``), in the columns of
@@ -448,8 +469,9 @@ extension _TextEditorCore {
 
         // The style run of the character being drawn, found in one pass.
         var styleCursor = 0
-        for (index, character) in chars.enumerated() {
-            let cells = TabLayout.advance(from: cellX, over: character, tabWidth: tabWidth) - cellX
+        let line = chars.base
+        for (index, position) in chars.indices.enumerated() {
+            let (cells, shown, isTab) = Self.glyph(at: position, of: line, column: cellX, tabWidth: tabWidth)
             let isSelected = selection.map { $0.contains(cellX) } ?? false
             let styled = styles.isEmpty ? nil : EditorStyledRun.run(at: index, in: styles, cursor: &styleCursor)
             decoration = styled?.decoration
@@ -458,7 +480,7 @@ extension _TextEditorCore {
             // A blink-OFF frame comes through here too — it is a frame of the
             // cycle showing the character unadorned, not an absent caret.
             if let caret, caret.column == cellX {
-                if character == "\t" {
+                if isTab {
                     // Caret on a tab: the caret occupies the stop run's first
                     // cell, and the rest of the run pads — cell by cell, as an
                     // uncareted tab's run does. `emitClipped` draws ONE character
@@ -475,9 +497,7 @@ extension _TextEditorCore {
                             reversed: isSelected && selectionStyle.isReversed)
                     }
                 } else {
-                    emitCaret(
-                        TextFieldHandler.displayCharacter(character), cells: cells, cycle: caret.cycle,
-                        isSelected: isSelected)
+                    emitCaret(shown, cells: cells, cycle: caret.cycle, isSelected: isSelected)
                 }
                 continue
             }
@@ -487,7 +507,7 @@ extension _TextEditorCore {
             let cellBackground =
                 isSelected ? selectionStyle.background : isMatched ? styling.match : styled?.background ?? background
             let reversed = isSelected && selectionStyle.isReversed
-            if character == "\t" {
+            if isTab {
                 // A tab is its stop run of spaces — emitted cell by cell so
                 // the window clips it naturally (and a selected tab
                 // highlights its whole span, as in any editor).
@@ -499,9 +519,7 @@ extension _TextEditorCore {
                 // hold anything, past what a paste lets in — is drawn as U+FFFD,
                 // as a field draws it: an ESC sent as it is would be obeyed, a
                 // log's \u{1B}[2J clearing the screen.
-                emitClipped(
-                    TextFieldHandler.displayCharacter(character), cells: cells, foreground: foreground,
-                    background: cellBackground, reversed: reversed)
+                emitClipped(shown, cells: cells, foreground: foreground, background: cellBackground, reversed: reversed)
             }
         }
         decoration = nil

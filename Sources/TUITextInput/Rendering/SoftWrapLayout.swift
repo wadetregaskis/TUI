@@ -109,6 +109,28 @@ struct SoftWrapLayout: Equatable {
         self.init(characters, width: width) { character, column in column + cellWidth(character) }
     }
 
+    /// Lays out an editor's line in rows `width` cells wide, each character
+    /// advancing as `TabLayout.advance(from:over:tabWidth:)` says: a tab to
+    /// its next stop, the stops counted from its row's start.
+    ///
+    /// A line of ASCII is walked through its bytes, each told from its byte
+    /// alone (`TabLayout.advance(from:overASCII:tabWidth:)`). A wrap reads
+    /// each character two or three times, and made into a `Character`,
+    /// compared with a space, a tab and the newlines and measured, the
+    /// characters were 90% of the time a document took to wrap (EDMEM-2).
+    init(_ characters: TextCharacters, width: Int, tabWidth: TabWidth) {
+        let laid = unsafe characters.withASCIIBytes { bytes in
+            unsafe Self(laying: bytes, width: width, measure: ASCIITabs(tabWidth: tabWidth))
+        }
+        if let laid {
+            self = laid
+        } else {
+            self.init(characters, width: width) { character, column in
+                TabLayout.advance(from: column, over: character, tabWidth: tabWidth)
+            }
+        }
+    }
+
     /// Lays out `characters` in rows `width` cells wide, each character's
     /// width depending on the column it starts at, counted from its row's
     /// start.
@@ -124,57 +146,56 @@ struct SoftWrapLayout: Equatable {
         // An ASCII line walked through its bytes, which a wrap reads two or
         // three times a character: through the string's index arithmetic it
         // was 80 ms of `bigtext-find`'s first click (EDMEM-1).
-        if let bytes = characters.asciiBytes {
-            self.init(laying: bytes, width: width, advance: advance)
-        } else {
-            self.init(laying: characters, width: width, advance: advance)
+        self = withoutActuallyEscaping(advance) { advance in
+            let laid = unsafe characters.withASCIIBytes { bytes in
+                unsafe Self(laying: bytes, width: width, measure: ASCIIAdvance(step: advance))
+            }
+            return laid ?? Self(laying: characters, width: width, measure: CharacterAdvance(step: advance))
         }
     }
 
-    /// ``init(_:width:advance:)`` of any characters indexed from 0.
-    private init<Characters: RandomAccessCollection<Character>>(
-        laying characters: Characters, width: Int, advance: (_ character: Character, _ column: Int) -> Int
+    /// `init(_:width:advance:)` of any characters, each read and measured
+    /// as a character: the walk the byte walks are checked against
+    /// (`SoftWrapLayoutTests`).
+    init<Characters: RandomAccessCollection<Character>>(
+        walking characters: Characters, width: Int, advance: (_ character: Character, _ column: Int) -> Int
     ) where Characters.Index == Int {
+        self = withoutActuallyEscaping(advance) { advance in
+            Self(laying: characters, width: width, measure: CharacterAdvance(step: advance))
+        }
+    }
+
+    /// Lays out `text`, its units indexed from 0, as `measure` measures them.
+    private init<Text: RandomAccessCollection, Measure: SoftWrapMeasure>(
+        laying text: Text, width: Int, measure: Measure
+    ) where Text.Index == Int, Text.Element == Measure.Unit {
         let width = max(1, width)
         let budget = max(1, width - 1)
-        var widths = [Int](repeating: 0, count: characters.count)
+        var widths = WidthWriter(count: text.count)
         var rows: [Row] = []
         var start = 0
-        for (offset, character) in characters.enumerated() where character.isNewline {
-            Self.wrap(
-                characters, from: start, to: offset, budget: budget, advance: advance, widths: &widths,
-                into: &rows)
+        for offset in 0..<text.count where measure.isNewline(text[offset]) {
+            Self.wrap(text, from: start, to: offset, budget: budget, measure: measure, widths: &widths, into: &rows)
             start = offset + 1
         }
-        Self.wrap(
-            characters, from: start, to: characters.count, budget: budget, advance: advance, widths: &widths,
-            into: &rows)
+        Self.wrap(text, from: start, to: text.count, budget: budget, measure: measure, widths: &widths, into: &rows)
         (self.rows, self.width) = (rows, width)
-        narrowWidths = widths.map { UInt8(clamping: $0) }
-        var wide: [Int: Int] = [:]
-        for (offset, cells) in widths.enumerated() where cells >= Int(UInt8.max) { wide[offset] = cells }
-        wideCells = wide
-    }
-
-    /// Whether a row may break after `character`, hanging it past the margin.
-    private static func hangs(_ character: Character) -> Bool {
-        character == " " || character == "\t"
+        (narrowWidths, wideCells) = (widths.narrow, widths.wide)
     }
 
     /// Lays one paragraph, `start..<end`, into rows of `budget` cells, the last
     /// of which ends the paragraph, writing each character's width on its own
     /// row into `widths`.
-    private static func wrap<Characters: RandomAccessCollection<Character>>(
-        _ characters: Characters, from start: Int, to end: Int, budget: Int,
-        advance: (Character, Int) -> Int, widths: inout [Int], into rows: inout [Row]
-    ) where Characters.Index == Int {
+    private static func wrap<Text: RandomAccessCollection, Measure: SoftWrapMeasure>(
+        _ text: Text, from start: Int, to end: Int, budget: Int, measure: Measure, widths: inout WidthWriter,
+        into rows: inout [Row]
+    ) where Text.Index == Int, Text.Element == Measure.Unit {
         var rowStart = start
         while true {
             // Each row walks from its own start, so a character the row before
             // measured while looking for its break is measured again here, at
             // the column it really starts at.
-            let rowEnd = rowBreak(
-                characters, from: rowStart, to: end, budget: budget, advance: advance, widths: &widths)
+            let rowEnd = rowBreak(text, from: rowStart, to: end, budget: budget, measure: measure, widths: &widths)
             guard rowEnd < end else {
                 rows.append(Row(start: rowStart, end: end, endsParagraph: true))
                 return
@@ -186,19 +207,19 @@ struct SoftWrapLayout: Equatable {
 
     /// Where the row starting at `start` ends: `end` when the rest of the
     /// paragraph fits, else the last place it may break.
-    private static func rowBreak<Characters: RandomAccessCollection<Character>>(
-        _ characters: Characters, from start: Int, to end: Int, budget: Int,
-        advance: (Character, Int) -> Int, widths: inout [Int]
-    ) -> Int where Characters.Index == Int {
+    private static func rowBreak<Text: RandomAccessCollection, Measure: SoftWrapMeasure>(
+        _ text: Text, from start: Int, to end: Int, budget: Int, measure: Measure, widths: inout WidthWriter
+    ) -> Int where Text.Index == Int, Text.Element == Measure.Unit {
         var cells = 0  // the row's cells, not counting a run of spaces at its end
         var hanging = 0  // that run's cells
         var lastBreak: Int?  // the latest offset the row may end at
         var offset = start
         while offset < end {
+            let unit = text[offset]
             let column = cells + hanging
-            let width = max(0, advance(characters[offset], column) - column)
-            widths[offset] = width
-            if hangs(characters[offset]) {
+            let width = max(0, measure.advance(over: unit, from: column) - column)
+            widths.write(width, at: offset)
+            if measure.hangs(unit) {
                 hanging += width
                 offset += 1
                 lastBreak = offset
@@ -305,5 +326,79 @@ struct SoftWrapLayout: Equatable {
             cellX = next
         }
         return last
+    }
+}
+
+// MARK: - What a wrap measures
+
+/// What a wrap asks of each unit of its text — a character, or the byte an
+/// ASCII character is. A protocol, not closures, so each walk is compiled for
+/// its own units and asks them nothing through a call it cannot see into.
+private protocol SoftWrapMeasure {
+    associatedtype Unit
+
+    /// Whether `unit` ends a paragraph: drawn nowhere, in no cells.
+    func isNewline(_ unit: Unit) -> Bool
+
+    /// Whether a row may break after `unit`, hanging it past the margin: a
+    /// space or a tab.
+    func hangs(_ unit: Unit) -> Bool
+
+    /// The column after `unit` when it starts at `column`.
+    func advance(over unit: Unit, from column: Int) -> Int
+}
+
+/// Characters, each measured by `step`.
+private struct CharacterAdvance: SoftWrapMeasure {
+    let step: (Character, Int) -> Int
+
+    func isNewline(_ unit: Character) -> Bool { unit.isNewline }
+    func hangs(_ unit: Character) -> Bool { unit == " " || unit == "\t" }
+    func advance(over unit: Character, from column: Int) -> Int { step(unit, column) }
+}
+
+/// ASCII characters as their bytes, each measured by `step` as the character
+/// it is. A byte is a newline as its character is: LF, VT, FF or CR, the
+/// ASCII ones of `Character.isNewline`'s.
+private struct ASCIIAdvance: SoftWrapMeasure {
+    let step: (Character, Int) -> Int
+
+    func isNewline(_ unit: UInt8) -> Bool { (0x0A...0x0D).contains(unit) }
+    func hangs(_ unit: UInt8) -> Bool { unit == 0x20 || unit == 0x09 }
+    func advance(over unit: UInt8, from column: Int) -> Int { step(TextCharacters.character(ascii: unit), column) }
+}
+
+/// An editor's ASCII line as its bytes: each one cell, a tab to its next stop.
+private struct ASCIITabs: SoftWrapMeasure {
+    let tabWidth: TabWidth
+
+    func isNewline(_ unit: UInt8) -> Bool { (0x0A...0x0D).contains(unit) }
+    func hangs(_ unit: UInt8) -> Bool { unit == 0x20 || unit == 0x09 }
+    func advance(over unit: UInt8, from column: Int) -> Int {
+        TabLayout.advance(from: column, overASCII: unit, tabWidth: tabWidth)
+    }
+}
+
+/// Each character's width as a wrap writes it: a byte each, one of 255 and
+/// more kept beside (`SoftWrapLayout`'s `narrowWidths` and `wideCells`),
+/// written straight into them rather than through an `Int` a character. A
+/// character measured twice — by the row before, looking for its break, and
+/// on its own row — keeps its second width.
+private struct WidthWriter {
+    var narrow: [UInt8]
+    var wide: [Int: Int] = [:]
+
+    init(count: Int) {
+        narrow = [UInt8](repeating: 0, count: count)
+    }
+
+    mutating func write(_ cells: Int, at offset: Int) {
+        if cells >= Int(UInt8.max) {
+            narrow[offset] = .max
+            wide[offset] = cells
+        } else {
+            if narrow[offset] == .max { wide[offset] = nil }
+            narrow[offset] = UInt8(cells)
+        }
     }
 }

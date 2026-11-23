@@ -45,6 +45,17 @@ extension TextFieldHandler {
         displayCharacter(character)
     }
 
+    /// `displayCharacter(_:)` of the character `byte` is, an ASCII one,
+    /// told from the byte: a tab a space, a C0 control or DEL (the ASCII
+    /// characters whose category is `control`) `\u{FFFD}`. An editor's row of
+    /// ASCII is drawn through this, without a property lookup a character,
+    /// which was the hottest leaf of drawing one (EDMEM-2).
+    nonisolated static func displayCharacter(ascii byte: UInt8) -> Character {
+        if byte == 0x09 { return " " }
+        if byte < 0x20 || byte == 0x7F { return "\u{FFFD}" }
+        return TextCharacters.character(ascii: byte)
+    }
+
     /// The cells a vertical field gives `character`, at least one.
     nonisolated static func verticalCellWidth(_ character: Character) -> Int {
         max(1, verticalDisplayCharacter(character).terminalWidth)
