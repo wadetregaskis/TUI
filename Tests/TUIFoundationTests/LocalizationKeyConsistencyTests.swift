@@ -82,21 +82,8 @@ final class LocalizationKeyConsistencyTests {
         return dict
     }
 
-    // MARK: - Cross-language parity
-
-    @Test("Every language file has exactly the English key set")
-    func everyLanguageHasEnglishKeys() {
-        let englishKeys = Set(englishTranslations.keys)
-        #expect(!englishKeys.isEmpty, "English translations failed to load")
-        for language in LocalizationService.Language.allCases where language != .english {
-            let keys = Set(Self.loadTranslations(language: language.rawValue).keys)
-            let missing = englishKeys.subtracting(keys).sorted()
-            let extra = keys.subtracting(englishKeys).sorted()
-            #expect(
-                keys == englishKeys,
-                "\(language.rawValue).json differs from en.json — missing: \(missing); extra: \(extra)")
-        }
-    }
+    // Every language's key set against English's, and their translations:
+    // `FrameworkLocalizationParityTests`.
 
     // MARK: - Button Key Tests
 
@@ -392,30 +379,15 @@ final class LocalizationKeyConsistencyTests {
             enumKeys.insert(key.rawValue)
         }
 
-        // A span's year and month names — enumerated, as the status bar's are.
-        for key in LocalizationKey.TimeSpan.allCases {
-            enumKeys.insert(key.rawValue)
-        }
-
-        // The keys named by a word rather than a symbol (the space bar).
-        for key in LocalizationKey.KeyName.allCases {
-            enumKeys.insert(key.rawValue)
-        }
-
-        // The file panels' words — enumerated, as the status bar's are.
-        for key in LocalizationKey.FilePanel.allCases {
-            enumKeys.insert(key.rawValue)
-        }
-
-        // A document scene's words — enumerated, as the status bar's are.
-        for key in LocalizationKey.Document.allCases {
-            enumKeys.insert(key.rawValue)
-        }
-
-        // What an app with no terminal says — enumerated, as the status bar's are.
-        for key in LocalizationKey.NoTerminal.allCases {
-            enumKeys.insert(key.rawValue)
-        }
+        // A span's year and month names; the keys named by a word rather than a
+        // symbol (the space bar); the file panels' words; a document scene's;
+        // what an app with no terminal says — each enumerated, as the status
+        // bar's are.
+        enumKeys.formUnion(LocalizationKey.TimeSpan.allCases.map(\.rawValue))
+        enumKeys.formUnion(LocalizationKey.KeyName.allCases.map(\.rawValue))
+        enumKeys.formUnion(LocalizationKey.FilePanel.allCases.map(\.rawValue))
+        enumKeys.formUnion(LocalizationKey.Document.allCases.map(\.rawValue))
+        enumKeys.formUnion(LocalizationKey.NoTerminal.allCases.map(\.rawValue))
 
         // Check for extraneous keys
         let translationKeys = Set(englishTranslations.keys)
