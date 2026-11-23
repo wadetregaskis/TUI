@@ -216,12 +216,22 @@ enum NotificationOverlay {
             self.context = drawing
         }
 
-        /// What choosing a button on the toast of `id` does after its action:
-        /// dismisses the toast and moves the focus on.
-        func chosen(_ id: NotificationID) -> @MainActor () -> Void {
+        /// What choosing a button on the toast of `id` does with its action:
+        /// runs it, dismisses the toast and moves the focus on.
+        ///
+        /// Only while the toast is not yet dismissed. A chosen toast fades out
+        /// for `NotificationTiming.fadeOutDuration` drawn as it was, its
+        /// layer keeping its buttons and their hit regions, so a second click
+        /// in that moment — a double click on Undo — reached a live button and
+        /// ran the action again (CHROME-3). Checked here, against the service
+        /// at the click, rather than by drawing a dismissed toast's buttons
+        /// disabled, which would change how its fade looks.
+        func choose(_ id: NotificationID) -> @MainActor (@escaping @MainActor @Sendable () -> Void) -> Void {
             let (service, withButtons) = (service, withButtons)
             let focusManager = context.environment.focusManager
-            return { [weak focusManager] in
+            return { [weak focusManager] action in
+                guard service.isUndismissed(id) else { return }
+                action()
                 service.dismiss(id)
                 if let focusManager { NotificationKeyboard.moveOn(after: id, among: withButtons, focusManager: focusManager) }
             }
@@ -258,7 +268,7 @@ enum NotificationOverlay {
             var toastContext = base.withChildIdentity(
                 erasedType: NotificationToast.self, key: entry.id.rawValue.uuidString)
             toastContext.availableWidth = width
-            let toast = NotificationToast(entry: entry, width: width, opacity: opacity, chosen: context.chosen(entry.id))
+            let toast = NotificationToast(entry: entry, width: width, opacity: opacity, choose: context.choose(entry.id))
             let size = measureChild(toast, proposal: ProposedViewSize(width: width, height: nil), context: toastContext)
             guard drawn.isEmpty || height + size.height <= maxHeight else { break }
             let buffer = TUIView.renderToBuffer(toast, context: toastContext)

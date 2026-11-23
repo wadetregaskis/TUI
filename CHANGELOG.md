@@ -19,6 +19,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A toast's action runs once, however quickly its button is clicked again.** A toast fades out for 0.3 seconds
+after one of its buttons is chosen, drawn as it was, and a second click in that moment (a double click on Undo) ran
+the action again. Choosing a button on a toast already dismissed now does nothing.
+
 **The colour picker's channel fields read digits of any script, and fractions.** Typing "٥٠" or "５０" into a
 channel set it to its maximum, and "12.5" in a percentage field read as 125, so 100%. Digits are now read by value,
 in any script, and a point, a comma or the Arabic decimal separator starts a fraction, as macOS's colour panel takes

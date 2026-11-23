@@ -40,9 +40,10 @@ struct NotificationToast: View {
     /// life. Read here only for its emoji, which wait for a full 1.
     let opacity: Double
 
-    /// Called after one of the toast's buttons ran its action: dismisses the
-    /// toast and moves the focus on.
-    let chosen: @MainActor () -> Void
+    /// What choosing one of the toast's buttons does with its action: runs it,
+    /// dismisses the toast and moves the focus on — once, as the toast's are
+    /// still drawn, and still take a click, for the fade-out that follows.
+    let choose: @MainActor (_ action: @escaping @MainActor @Sendable () -> Void) -> Void
 
     /// The cells the border takes from the width: its line and the blank cell
     /// inside it, either side.
@@ -68,8 +69,7 @@ struct NotificationToast: View {
                 HStack(spacing: 1) {
                     ForEach(buttons.indices, id: \.self) { index in
                         Button(buttons[index].title, role: buttons[index].role) {
-                            buttons[index].handler()
-                            chosen()
+                            choose(buttons[index].handler)
                         }
                         .focusID(NotificationKeyboard.focusID(entry.id, button: index))
                     }

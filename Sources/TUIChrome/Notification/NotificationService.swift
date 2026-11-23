@@ -400,6 +400,12 @@ extension NotificationService {
         }
     }
 
+    /// Whether the notification `id` names is up and not yet dismissed: one
+    /// whose button may still be chosen.
+    func isUndismissed(_ id: NotificationID) -> Bool {
+        storage.state.withLock { state in state.entries.contains { $0.id == id && !$0.isDismissed } }
+    }
+
     /// Fades out the notifications `matches` picks, and asks the apps that
     /// draw them for a frame.
     func dismiss(where matches: (NotificationEntry) -> Bool) {
