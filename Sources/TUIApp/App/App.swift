@@ -196,6 +196,9 @@ internal final class AppRunner<A: App> {
     /// the loop holds (see `terminalFocusChanged(isFocused:cursorTimer:)`).
     let tuiContext: TUIContext
     private var isRunning = false
+    /// Wakes the run loop from its wait, while it runs: what the quit calls,
+    /// after ending the run.
+    private var wakeLoop: (() -> Void)?
 
     /// Which of ⌃4, ⌃| and ⌃⇧\\ the host may send ⌃\\'s byte for in its
     /// legacy encoding (`TerminalClient.quitByteAliases(_:)`): settled once
@@ -299,8 +302,13 @@ extension AppRunner {
             dragAndDropSession: tuiContext.dragAndDropSession,
             tooltipState: tuiContext.tooltipState,
             unhandledKeyBell: tuiContext.terminalBell, shortcutOverlay: shortcutOverlay, settingsPanel: settingsPanel,
+            // Woken as well as ended: a quit made outside the drain (a menu's
+            // Quit, pressed once its frame is up) must get the loop past its
+            // wait to see it, and no render request is left to do that once
+            // they are coalesced (`RenderRequestWake`).
             onQuit: { [weak self] in
                 self?.isRunning = false
+                self?.wakeLoop?()
             },
             // Ctrl-Z, unconsumed by any view: give it its shell meaning by
             // re-raising the signal it would have been in cooked mode. The
@@ -618,6 +626,8 @@ extension AppRunner {
         let stdinArrival = StdinArrivalNotifier()
         stdinArrival.start()
         defer { stdinArrival.stop() }
+        wakeLoop = { [weak stdinArrival] in stdinArrival?.wake() }
+        defer { wakeLoop = nil }
 
         // Setup: install the dispatch signal sources (SIGWINCH resize, SIGINT /
         // SIGTERM graceful shutdown, SIGTSTP / SIGCONT job control) and set
@@ -698,13 +708,13 @@ extension AppRunner {
         // Register for state changes: wake the (possibly idle-blocked) loop.
         // `setNeedsRender` already set `appState.needsRender` synchronously (the
         // loop polls it), so the observer's only job is to rouse the loop.
-        // `setNeedsRender`'s observers can fire off the main actor, so hop to the
-        // main actor to touch the MainActor-isolated notifier. `stdinArrival` is
-        // captured weakly so this persistent observer doesn't keep it alive past
-        // the run.
-        appState.observe { [weak stdinArrival] in
-            Task { @MainActor in stdinArrival?.wake() }
-        }
+        // `setNeedsRender`'s observers can fire off the main actor, so the wake
+        // hops to the main actor to touch the MainActor-isolated notifier: one
+        // hop a pass however many requests, and none for a request the pass
+        // read (`RenderRequestWake`). `stdinArrival` is captured weakly so this
+        // persistent observer doesn't keep it alive past the run.
+        let renderWake = RenderRequestWake(wake: { [weak stdinArrival] in stdinArrival?.wake() })
+        appState.observe { renderWake.request() }
 
         wireFocusRepaints(cursorTimer: cursorTimer)
 
@@ -789,6 +799,10 @@ extension AppRunner {
             if drainTerminalEvents(inputHandler: inputHandler, renderer: renderer, cursorTimer: cursorTimer, hold: &hold) {
                 await Task.yield()
             }
+
+            // What has been asked for so far is read from here on, by the fold
+            // and the exit's check: no wake is owed for it.
+            renderWake.served()
 
             // A quit among those events ended the drain where it was read
             // (⌃Q, a confirmed quit, a `dismiss()` from a key handler): leave

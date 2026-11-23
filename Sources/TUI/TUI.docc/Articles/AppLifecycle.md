@@ -46,7 +46,7 @@ Before the main loop starts, `run()` prepares the terminal:
 | 4b | Ask about the kitty keyboard protocol | Where the terminal speaks it, push its flags, so key releases, repeats, modifier keys alone, Caps Lock and the keypad are reported (``EnvironmentValues/terminalCapabilities``' keyboard features); one round trip where it does not |
 | 4c | Start reading the machine's settings | Reduce Motion and the other accessibility settings, read again each time the terminal regains the focus; under tmux, install hooks so a client attaching or changing its theme is noticed |
 | 4d | Turn on mouse tracking | Standard tracking to start with, so clicks are reported from the first frame; from then on each frame applies what the scene's ``MouseSupport`` and its views ask for |
-| 5 | Register state observer | `AppState` changes set `appState.needsRender` and `wake()` the loop |
+| 5 | Register state observer | `AppState` changes set `appState.needsRender` and `wake()` the loop, once a pass however many there are (`RenderRequestWake`) |
 | 6 | Register focus observer | Focus changes restart the breath (so the newly focused control is at its brightest) and trigger re-renders |
 | 7 | Prepare the animation clock | CursorTimer (50 ms), started on demand only while a rendered frame consumes it |
 | 8 | Render first frame | Show the initial UI immediately |
@@ -88,7 +88,7 @@ A quit ends the reading for good: ⌃Q, the Quit of a confirmation dialog, a men
 
 ### Re-render Triggers
 
-Several sources cause a new frame to be rendered. Each sets state the loop checks and `wake()`s the loop if it is currently idle-blocked:
+Several sources cause a new frame to be rendered. Each sets state the loop checks and `wake()`s the loop if it is currently idle-blocked. The app state's requests share one wake a pass: the loop marks them served just before it reads them, so a request it has read wakes nothing, and one made after (a body writing its state as the frame draws, a task's write) wakes it for the next pass. The two clocks' ticks of one timer wake are one pass, not two. The sources:
 
 | Trigger | Path | Main loop check |
 |---------|------|-----------------|
