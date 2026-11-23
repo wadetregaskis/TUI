@@ -26,6 +26,11 @@ extension DragAndDropSession {
     /// (Return presses one, and the carry goes on), and the stop it was picked
     /// up from, where Return puts it back. A stray Return cannot drop it on an
     /// unrelated list, because unrelated lists are not among them.
+    ///
+    /// A destination under `.disabled(true)` is among them too, though it is
+    /// no focus stop, since the pointer drops there (owner 2026-11-23,
+    /// H35-DROP (c)): the carry is at it without the focus, which waits at the
+    /// origin meanwhile (``unfocusedStop``).
     package struct Carry {
         /// The focus stop it was picked up from.
         let origin: String
@@ -59,9 +64,35 @@ extension DragAndDropSession {
         /// ``carryCues`` marks, as of the frame before the one drawing.
         var reachable: [HitTestRegion] = []
 
-        /// Whether the carry is home at the focus stop `focused`: at its
-        /// origin, pointing at the row it was picked up from.
-        func isHome(at focused: String?) -> Bool { focused == origin && row == originRow }
+        /// The stop it is at that takes no focus — a disabled destination's
+        /// (``DragAndDropSession/Target/focusIDsTakeFocus``) — while the focus
+        /// waits at ``origin``; `nil` while it is at the focused stop.
+        ///
+        /// The origin, because the destination cannot hold the focus and the
+        /// stop it came from would go on drawing it: the origin is drawn as
+        /// gone while it is carried, and is where Escape, or a drop there,
+        /// leaves the focus anyway.
+        var unfocusedStop: String?
+
+        /// The stop it is at, given the focus is at `focused`.
+        func stop(focused: String?) -> String? { unfocusedStop ?? focused }
+
+        /// Whether the carry is home at the stop `stop`: at its origin,
+        /// pointing at the row it was picked up from.
+        func isHome(at stop: String?) -> Bool { stop == origin && row == originRow }
+    }
+
+    /// The stop the carry under way is at (``Carry/stop(focused:)``).
+    private var carryStop: String? {
+        guard let carry else { return nil }
+        // Only while the focus waits at the origin: moved off it by anything
+        // but the carry — a recovery, say — the carry is where the focus is.
+        let focused = carry.focusManager?.currentFocusedID
+        if carry.unfocusedStop != nil, focused != carry.origin {
+            self.carry?.unfocusedStop = nil
+            return focused
+        }
+        return carry.stop(focused: focused)
     }
 
     /// The chord that picks a focused `.draggable` up and, again, puts it
@@ -159,7 +190,7 @@ extension DragAndDropSession {
     /// render loop asks before each frame, so the drag follows a stop that
     /// moved, and what a move of the carry asks at once.
     package func followCarry() {
-        guard carry != nil, active != nil, let focused = carry?.focusManager?.currentFocusedID else { return }
+        guard carry != nil, active != nil, let focused = carryStop else { return }
         let stops = carryStops()
         carry?.reachable = stops.filter { $0.id != focused }.map(\.rect)
         guard let rect = stops.first(where: { $0.id == focused })?.rect ?? stopRect(focused) else { return }
@@ -187,7 +218,7 @@ extension DragAndDropSession {
         guard let carry, active != nil else { return nil }
         let service = LocalizationService.shared
         let putBack = service.string(for: LocalizationKey.StatusBar.cancelMove)
-        let focused = carry.focusManager?.currentFocusedID
+        let focused = carryStop
         if focused == nil || carry.isHome(at: focused) { return (putBack, putBack) }
         let drops = proposedOperation.map { $0 != .forbidden && $0 != .cancel } ?? false
         return (drops ? service.string(for: LocalizationKey.StatusBar.dropCarried) : nil, putBack)
@@ -204,34 +235,36 @@ extension DragAndDropSession {
     /// Whether the keyboard flips the operation of the carry under way.
     var carryFlipsOperation: Bool { carry?.flipsOperation == true }
 
-    /// The focus stops a carry can be at, in reading order, each with where
-    /// it is drawn (``Carry``).
-    func carryStops() -> [(id: String, rect: HitTestRegion)] {
+    /// The stops a carry can be at, in reading order, each with where it is
+    /// drawn and whether it takes the focus (``Carry``).
+    func carryStops() -> [(id: String, rect: HitTestRegion, takesFocus: Bool)] {
         guard let carry, let drag = active, let dispatcher else { return [] }
         // Each stop, with where it is drawn should no region name it — a
-        // view's own stop, which its modifier's region draws.
-        var candidates: [(id: String, fallback: HitTestRegion?)] = []
+        // view's own stop, which its modifier's region draws, or a disabled
+        // destination's, which no region names — and whether it takes the
+        // focus.
+        var candidates: [(id: String, fallback: HitTestRegion?, takesFocus: Bool)] = []
         // The stops of each destination that accepts the payload: those it
         // filed, or else the stops drawn inside it.
         for target in targets where target.accepts(drag.payload) {
             let zone = dispatcher.regionRect(for: target.handlerID)
             if !target.focusIDs.isEmpty {
-                candidates += target.focusIDs.map { ($0, zone) }
+                candidates += target.focusIDs.map { ($0, zone, target.focusIDsTakeFocus) }
             } else if let zone {
                 candidates += dispatcher.regions.lazy.filter { Self.contains(zone, $0) }.compactMap(\.focusID)
-                    .map { ($0, nil) }
+                    .map { ($0, nil, true) }
             }
         }
         // The controls a pause would press.
         for spring in springLoadTargets {
             candidates += dispatcher.regions.lazy.filter { $0.handlerID == spring.handlerID }.compactMap(\.focusID)
-                .map { ($0, nil) }
+                .map { ($0, nil, true) }
         }
-        candidates.append((carry.origin, carry.originRect))
+        candidates.append((carry.origin, carry.originRect, true))
         var seen: Set<String> = []
-        var stops: [(id: String, rect: HitTestRegion)] = []
-        for (id, fallback) in candidates where seen.insert(id).inserted {
-            if let rect = stopRect(id) ?? fallback { stops.append((id, rect)) }
+        var stops: [(id: String, rect: HitTestRegion, takesFocus: Bool)] = []
+        for (id, fallback, takesFocus) in candidates where seen.insert(id).inserted {
+            if let rect = stopRect(id) ?? fallback { stops.append((id, rect, takesFocus)) }
         }
         return stops.sorted { ($0.rect.offsetY, $0.rect.offsetX) < ($1.rect.offsetY, $1.rect.offsetX) }
     }
@@ -245,7 +278,7 @@ extension DragAndDropSession {
     /// pointer, until the slot moves: a key that moved nothing, as many times
     /// as there are rows carried, reads as a key that does not work.
     private func moveCarryRow(by step: Int) -> Bool {
-        guard let carry, proposedOperation != nil, let focused = carry.focusManager?.currentFocusedID,
+        guard let carry, proposedOperation != nil, let focused = carryStop,
             let rect = carryStops().first(where: { $0.id == focused })?.rect
         else { return false }
         var row = carry.row + step
@@ -260,36 +293,41 @@ extension DragAndDropSession {
         return true
     }
 
-    /// Moves the focus `step` stops on among ``carryStops()``, round the end.
+    /// Moves the carry `step` stops on among ``carryStops()``, round the end:
+    /// the focus with it, but to a stop that takes none, where the focus
+    /// waits at the origin (``Carry/unfocusedStop``).
     private func moveCarry(by step: Int) {
-        guard let focusManager = carry?.focusManager else { return }
+        guard let focusManager = carry?.focusManager, let origin = carry?.origin else { return }
         let stops = carryStops()
         guard !stops.isEmpty else { return }
         let count = stops.count
         let next: Int
-        if let focused = focusManager.currentFocusedID, let here = stops.firstIndex(where: { $0.id == focused }) {
+        if let focused = carryStop, let here = stops.firstIndex(where: { $0.id == focused }) {
             next = ((here + step) % count + count) % count
         } else {
             next = step > 0 ? 0 : count - 1
         }
-        focusManager.focus(id: stops[next].id)
+        carry?.unfocusedStop = stops[next].takesFocus ? nil : stops[next].id
+        focusManager.focus(id: stops[next].takesFocus ? stops[next].id : origin)
         let row = stops[next].id == carry?.origin ? carry?.originRow ?? 0 : 0
         carry?.row = row
         followCarry()
     }
 
-    /// Ends the carry: drops it where the focus is — or presses the
+    /// Ends the carry: drops it at the stop it is at — or presses the
     /// spring-loaded control there and carries on — or puts it back at its
-    /// origin.
+    /// origin. Dropped on a stop that takes no focus, it leaves the focus at
+    /// the origin, where it waited.
     ///
     /// Dropped only on a stop still drawn (``carryStops()``): a stop can keep
     /// the focus while drawn nowhere — scrolled or clipped out of sight —
     /// and the carry's pointer stays where it last followed the focus, so it
     /// dropped there, on whatever is drawn there now. It goes back instead.
     private func endCarry(dropping: Bool) {
-        guard let carry else { return }
+        guard carry != nil else { return }
         followCarry()
-        if dropping, let focused = carry.focusManager?.currentFocusedID, !carry.isHome(at: focused),
+        guard let carry else { return }
+        if dropping, let focused = carryStop, !carry.isHome(at: focused),
             carryStops().contains(where: { $0.id == focused })
         {
             if let point = lastAbsoluteEvent, springLoadTarget(at: point) != nil, proposedOperation == nil {

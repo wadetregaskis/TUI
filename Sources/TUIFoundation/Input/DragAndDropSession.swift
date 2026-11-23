@@ -146,6 +146,13 @@ package final class DragAndDropSession {
         /// for one that names none, whose stops drawn inside it are taken.
         package var focusIDs: [String] = []
 
+        /// Whether ``focusIDs`` take the focus: `false` for a destination under
+        /// `.disabled(true)`, whose own stop takes none and answers no key, but
+        /// which a carry reaches all the same, as the pointer's drag does
+        /// (owner 2026-11-23, H35-DROP (c)). The focus waits at the carry's
+        /// origin while the carry is there (``Carry/unfocusedStop``).
+        package var focusIDsTakeFocus = true
+
         /// Which of the destinations filed under one region id this one is, for
         /// a container that files one per row at its own identity: a `Table`'s
         /// rows, each its data row's index. `nil` for a destination of its own.

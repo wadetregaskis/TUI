@@ -117,9 +117,14 @@ keyboard, and is no focus stop, though it keeps its place in the focus order.
 The scope is the environment's, as in SwiftUI: `.draggable(x).disabled(true)`
 stops the drag, and `.disabled(true).draggable(x)`, whose disabled view is only
 the content, does not. A drop destination under `.disabled(true)` still takes
-the pointer's drop, as SwiftUI's does, but it is no focus stop, so a carry
-passes it by and Paste does not reach it. `dropDestination(for:isEnabled:action:)`
-with `isEnabled: false` turns a destination off for both.
+the pointer's drop, as SwiftUI's does, and so a carry reaches it too: Tab and
+the arrows stop there while carrying, it is targeted as under the pointer, with
+the carried picture beside it, and Return drops there. It takes no focus all
+the same: outside a carry Tab passes it by, and while the carry is at it the
+focus waits at the stop the carry came from, where it stays after the drop.
+Being no focus stop, it cannot be pasted on, so Paste does not reach it.
+`dropDestination(for:isEnabled:action:)` with `isEnabled: false` turns a
+destination off for the pointer and the keyboard alike.
 
 ## Spring Loading
 

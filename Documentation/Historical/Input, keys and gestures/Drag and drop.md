@@ -3,7 +3,7 @@
 *How drag and drop came to TUI: item-provider drags kept in the app, drop
 badges, table rows dragged, spring loading, the session values, keyboard
 drags, and what is still open. Ids: B10, B80, B82, B83, A53, C12,
-B-BITEMS1-1, A53-KEYBOARD-DRAG, DEPR-DROPDEST, DRAG-SELECTION.*
+B-BITEMS1-1, A53-KEYBOARD-DRAG, DEPR-DROPDEST, DRAG-SELECTION, H35-DROP.*
 
 ## In short
 
@@ -33,6 +33,10 @@ session values ship; nothing hands them out yet.
    tables do (DRAG-SELECTION). The owner, 2026-10-27: the Mac's way, whatever
    SwiftUI does, Shift-drag extending the selection first, as in Finder. Built
    the same day (below).
+6. **2026-11-23, H35-DROP.** H-35 found SwiftUI takes the pointer's drop on
+   a disabled destination, so TUI's does too, but a carry could not reach it,
+   which left that drop mouse-only. The owner ruled (c): a carry reaches it,
+   and it still takes no focus (A53-KEYBOARD-DRAG below).
 
 ## Where it stands
 
@@ -510,6 +514,22 @@ three-party operation, a delegate's moves, and the drop itself.
   and the carry goes on; at the origin, it puts the drag back. Escape, or
   Ctrl-R again, puts it back and returns the focus to the origin. A refused
   drop also puts it back.
+- **A disabled destination (owner 2026-11-23, H35-DROP (c)).** One under
+  `.disabled(true)` takes the pointer's drop, as SwiftUI's does (H-35's probe,
+  `Tools/SwiftUIProbes/Drags and drops on a disabled view (H-35)`), so a carry
+  reaches it too: the owner's rule is a keyboard route or neither. Its own
+  stop is registered unfocusable, so it files that stop as one that takes no
+  focus (`Target.focusIDsTakeFocus`, from `TransferKeys.unfocusableStop`),
+  drawn where its zone is; the region does not carry it, so a click does not
+  ask the focus for it. The carry stops there, targets it, draws the picture
+  beside it and the status line's "drop", and Return drops there, as at any
+  destination. The focus waits at the origin meanwhile (`Carry.unfocusedStop`):
+  the destination cannot hold it, the stop the carry came from would go on
+  drawing it, and the origin is drawn as gone while carried. It stays there
+  after the drop. Outside a carry Tab still passes it by, and Paste, which
+  needs the focus, does not reach it. Its look is the pointer's over it: the
+  app's own `isTargeted` drawing over its disabled styling, with no focus
+  indicator. Tests: `DisabledDragAndDropTests`.
 - **Other keys:** Space flips the operation, as Option does for the pointer
   (B-BITEMS1-1's sixth point). The paging keys go on to the drag navigators,
   which scroll what the carry is over. A chord goes on its way, so the quit

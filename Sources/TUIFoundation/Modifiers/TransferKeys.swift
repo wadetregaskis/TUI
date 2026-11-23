@@ -66,6 +66,16 @@ package enum TransferKeys {
         return enabled ? [ownID] : []
     }
 
+    /// The stop a drag carried from the keyboard can be at on a drop
+    /// destination under `.disabled(true)`, which ``stops(of:ownID:context:)``
+    /// gave none: its own, `own`, which takes no focus (owner 2026-11-23,
+    /// H35-DROP (c): the pointer drops there, as on SwiftUI's, so the keyboard
+    /// must reach it too). `nil` where `stops` are the destination's stops, or
+    /// where it has no own stop (a list row's, which its list answers for).
+    static func unfocusableStop(own: String?, stops: [String], context: RenderContext) -> String? {
+        stops.isEmpty && !context.environment.isEnabled ? own : nil
+    }
+
     /// Answers the clipboard command `key` (`"c"` or `"v"`) with `perform`
     /// while one of `focusIDs` holds the focus — and, for `"v"`, the terminal's
     /// own paste. Replayable, so a memo serving the view registers it again.

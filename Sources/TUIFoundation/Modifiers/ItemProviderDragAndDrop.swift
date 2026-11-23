@@ -344,12 +344,15 @@
             var buffer = TUIView.renderToBuffer(content, context: contentContext)
             guard !context.isMeasuring else { return buffer }
             let stops = own.map { TransferKeys.stops(of: buffer, ownID: $0.id, context: context) } ?? []
-            install(context, &buffer, focusIDs: stops, ownFocusID: own.flatMap { stops == [$0.id] ? $0.id : nil })
+            install(
+                context, &buffer, focusIDs: stops, ownFocusID: own.flatMap { stops == [$0.id] ? $0.id : nil },
+                unfocusableStop: TransferKeys.unfocusableStop(own: own?.id, stops: stops, context: context))
             return buffer
         }
 
         private func install(
-            _ context: RenderContext, _ buffer: inout FrameBuffer, focusIDs stops: [String], ownFocusID: String?
+            _ context: RenderContext, _ buffer: inout FrameBuffer, focusIDs stops: [String], ownFocusID: String?,
+            unfocusableStop: String?
         ) {
             let supportedContentTypes = self.supportedContentTypes
             let accepts = { (payload: Any) in !ItemProviders.of(payload, conformingTo: supportedContentTypes).isEmpty }
@@ -363,7 +366,8 @@
                     on: &buffer, context: context, accepts: accepts, perform: perform,
                     setTargeted: { isTargeted?.wrappedValue = $0 },
                     // What SwiftUI's view without a delegate proposes.
-                    proposedOperation: { .copy }, focusIDs: stops, ownFocusID: ownFocusID)
+                    proposedOperation: { .copy }, focusIDs: stops, ownFocusID: ownFocusID,
+                    unfocusableStop: unfocusableStop)
             case .delegate(let delegate):
                 guard let storage = context.stateStorage else { return }
                 storage.markActive(context.identity)
@@ -378,7 +382,8 @@
                     perform: session.perform,
                     setTargeted: session.setTargeted,
                     hoveringInfo: session.hovering,
-                    proposedOperation: session.proposedOperation, focusIDs: stops, ownFocusID: ownFocusID)
+                    proposedOperation: session.proposedOperation, focusIDs: stops, ownFocusID: ownFocusID,
+                    unfocusableStop: unfocusableStop)
             }
         }
 

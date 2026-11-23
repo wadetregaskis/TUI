@@ -470,8 +470,10 @@ private final class DragScratch {
 /// Under `.disabled(true)` the pointer still drops here, as it does on
 /// SwiftUI's (`Tools/SwiftUIProbes/Drags and drops on a disabled view
 /// (H-35)`: the destination is registered and takes the drop, the modifier
-/// inside the disabled scope or outside it); the keyboard does not, since a
-/// disabled view is no focus stop.
+/// inside the disabled scope or outside it). So does a drag carried from the
+/// keyboard, which reaches it though it is no focus stop (owner 2026-11-23,
+/// H35-DROP (c): a keyboard route or neither); Paste does not, since nothing
+/// focuses it.
 nonisolated package struct DropDestinationModifier<Content: View, Payload>: View {
     let content: Content
     /// Whether the view takes drops at all. Off, it registers no zone, so a
@@ -539,7 +541,8 @@ private enum DropDestinationStateIndex {
                 guard !typed.isEmpty else { return false }
                 return action(typed, info)
             },
-            setTargeted: isTargeted, focusIDs: stops, ownFocusID: own.flatMap { stops == [$0.id] ? $0.id : nil })
+            setTargeted: isTargeted, focusIDs: stops, ownFocusID: own.flatMap { stops == [$0.id] ? $0.id : nil },
+            unfocusableStop: TransferKeys.unfocusableStop(own: own?.id, stops: stops, context: context))
         return buffer
     }
 }
@@ -575,6 +578,12 @@ package enum DropZone {
     ///     none, which the zone's region carries, so a scroll view brings the
     ///     destination into sight when Tab reaches it — a carried drag's Tab
     ///     included — as it does a `.focusable()` view.
+    ///   - unfocusableStop: The stop of a destination under `.disabled(true)`,
+    ///     which takes no focus but which a carried drag can be at all the
+    ///     same, as the pointer's can drop there
+    ///     (``TransferKeys/unfocusableStop(own:stops:context:)``); `nil`
+    ///     where `focusIDs` are the stops. The region does not carry it: it
+    ///     is no focus stop, and a click must not ask for it.
     ///   - token: Which of the zones a container files at its own identity
     ///     this one is (``DragAndDropSession/Target/token``); `nil` for a
     ///     destination of its own.
@@ -589,6 +598,7 @@ package enum DropZone {
         proposedOperation: (() -> DropOperation?)? = nil,
         focusIDs: [String] = [],
         ownFocusID: String? = nil,
+        unfocusableStop: String? = nil,
         token: Int? = nil
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher,
@@ -645,6 +655,10 @@ package enum DropZone {
             identity: context.identity
         )
         target.focusIDs = focusIDs
+        if focusIDs.isEmpty, let unfocusableStop {
+            target.focusIDs = [unfocusableStop]
+            target.focusIDsTakeFocus = false
+        }
         target.token = token
         if hovering != nil || hoveringInfo != nil {
             target.hovering = { [weak session] x, y in
