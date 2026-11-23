@@ -28,6 +28,11 @@ made, compared and measured for each: wrapping a whole document again, as a clic
 fifth of the time it did (102 to 24 ms for Stress's 3.2 MB `bigtext-find`), and a key in Stress's `bigtext` costs 18%
 less. A vertical `TextField` lays its text out the same way. Nothing an app sees changes.
 
+**`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
+`handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
+`fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It
+now asks for 50 ms before it stops with a program that stopped alone.
+
 **An app drawing on its controlling terminal hears its keys again on macOS.** An app in a pipeline (`cat data |
 app`) that answered `runWithoutTerminal` with `.drawOnControllingTerminal` drew, but no key reached it, ⌃Q included,
 since 2026-11-10: its stdin was pointed at `/dev/tty`, which macOS's `poll` and `kqueue` cannot wait on, and the

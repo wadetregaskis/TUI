@@ -110,13 +110,8 @@
                 // Stopped. A ⌃Z stopped this process too, before it saw the
                 // report, and it sees it only once `fg` has continued both: a
                 // stop to make again only if the child has not been continued
-                // since. (`WCONTINUED` reports one continuing, `WNOHANG` returns
-                // 0 while there is nothing new to report.)
-                let again = unsafe waitpid(child, &status, WNOHANG | WCONTINUED)
-                if again < 0 {
-                    guard errno == EINTR else { throw .couldNotWait(errno: errno) }
-                    continue
-                }
+                // since (`continuedOrEnded(_:status:polls:)`).
+                let again = try continuedOrEnded(child, status: &status)
                 if again == child, let ended = WaitStatus(status).termination { return ended }
                 if again == 0 {
                     // The stop the line discipline sends for ⌃Z: this process
@@ -124,6 +119,40 @@
                     // over (`SignalManager.beginHandOff()`).
                     raise(SIGTSTP)
                 }
+            }
+        }
+
+        /// What `waitpid(WNOHANG | WCONTINUED)` reports of a `child` just seen
+        /// stopped, asked until it reports something or `polls` have passed:
+        /// `child` once it has been continued or has ended, 0 if it is stopped
+        /// still. (`WCONTINUED` reports a continuing; `WNOHANG` returns 0 while
+        /// there is nothing new to report.)
+        ///
+        /// Asked over a while, not once. `fg` continues the job with one
+        /// `killpg`, which continues its processes one at a time, and this
+        /// process, continued first and run on another core at once, asked
+        /// before the child had been: it took the ⌃Z for a stop of the child's
+        /// own and stopped itself again, alone, after `fg`, while the child ran
+        /// on (hand_off_smoke case 3 under load: 1 run in 4 on macOS with
+        /// every core busy, 2026-11-23; CI 106 Linux 6.2 and CI 109 Linux
+        /// nightly). The while also lets ⌃Z's own stop land where the report
+        /// was read before it. Counted in polls of 2 ms, not on a clock, so a
+        /// stop in the middle of it doesn't use it up: at least 50 ms of this
+        /// process running, which a child that stops alone costs before the
+        /// app stops with it.
+        private static func continuedOrEnded(
+            _ child: pid_t, status: inout Int32, polls: Int = 25
+        ) throws(LaunchError) -> pid_t {
+            var left = polls
+            while true {
+                let again = unsafe waitpid(child, &status, WNOHANG | WCONTINUED)
+                if again < 0 {
+                    guard errno == EINTR else { throw .couldNotWait(errno: errno) }
+                    continue
+                }
+                if again != 0 || left == 0 { return again }
+                left -= 1
+                usleep(2_000)
             }
         }
     }
