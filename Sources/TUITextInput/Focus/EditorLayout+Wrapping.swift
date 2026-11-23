@@ -52,7 +52,7 @@ struct WrappedRows {
         for line in lines {
             let layout = Self.layout(of: line, width: self.width, tabWidth: tabWidth)
             layouts.append(layout)
-            starts.append(starts[starts.count - 1] + layout.rows.count)
+            starts.append(starts[starts.count - 1] + layout.rowCount)
         }
         (self.lines, rowStarts) = (layouts, starts)
     }
@@ -73,7 +73,7 @@ struct WrappedRows {
         var next = 0
         for line in lines.indices {
             spaced.rowStarts[line] = next
-            next += lines[line].rows.count * (1 + spaced.gap(ofLine: line))
+            next += lines[line].rowCount * (1 + spaced.gap(ofLine: line))
         }
         spaced.rowStarts[lines.count] = next
         return spaced
@@ -93,7 +93,7 @@ struct WrappedRows {
         ends.reserveCapacity(layouts.count)
         var next = rowStarts[replaced.lowerBound]
         for layout in layouts {
-            next += layout.rows.count
+            next += layout.rowCount
             ends.append(next)
         }
         let shift = next - rowStarts[replaced.upperBound]
@@ -109,7 +109,7 @@ struct WrappedRows {
     /// The row a line's `rowInLine` is, among all of them.
     func row(line: Int, rowInLine: Int) -> Int {
         let line = min(max(0, line), lines.count - 1)
-        return rowStarts[line] + min(max(0, rowInLine), lines[line].rows.count - 1) * (1 + gap(ofLine: line))
+        return rowStarts[line] + min(max(0, rowInLine), lines[line].rowCount - 1) * (1 + gap(ofLine: line))
     }
 
     /// The line `row` belongs to, and which of its rows it is: a blank row's
@@ -141,7 +141,7 @@ struct WrappedRows {
         if place.blank < gap(ofLine: place.line) {
             return RowPlacement(line: place.line, rowInLine: place.rowInLine, blank: place.blank + 1)
         }
-        if place.rowInLine + 1 < lines[place.line].rows.count {
+        if place.rowInLine + 1 < lines[place.line].rowCount {
             return RowPlacement(line: place.line, rowInLine: place.rowInLine + 1, blank: 0)
         }
         return RowPlacement(line: place.line + 1, rowInLine: 0, blank: 0)

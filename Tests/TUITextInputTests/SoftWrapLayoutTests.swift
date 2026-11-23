@@ -28,13 +28,13 @@ private func rowTexts(_ text: String, width: Int) -> [String] {
 struct SoftWrapLayoutTests {
     @Test("A newline ends a row and is drawn nowhere; a trailing one leaves an empty row")
     func newlines() {
-        let rows = layout("ab\ncd\n", width: 10).rows
+        let rows = Array(layout("ab\ncd\n", width: 10).rows)
         #expect(rows == [
             .init(start: 0, end: 2, endsParagraph: true),
             .init(start: 3, end: 5, endsParagraph: true),
             .init(start: 6, end: 6, endsParagraph: true),
         ])
-        #expect(layout("", width: 10).rows == [.init(start: 0, end: 0, endsParagraph: true)])
+        #expect(Array(layout("", width: 10).rows) == [.init(start: 0, end: 0, endsParagraph: true)])
     }
 
     @Test("A row breaks after a run of spaces, which hangs at the end of the row it breaks")
@@ -157,7 +157,7 @@ struct SoftWrapLayoutTests {
     @Test("A tab is a place to break, and hangs past the margin as a space does")
     func tabsHang() {
         let layout = tabbed("aaaaaaaa\tb", width: 10)
-        #expect(layout.rows == [
+        #expect(Array(layout.rows) == [
             .init(start: 0, end: 9, endsParagraph: false),
             .init(start: 9, end: 10, endsParagraph: true),
         ])

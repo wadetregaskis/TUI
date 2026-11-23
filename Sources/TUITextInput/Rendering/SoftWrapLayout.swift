@@ -69,7 +69,24 @@ struct SoftWrapLayout: Equatable {
     }
 
     /// The rows, top to bottom. Never empty: an empty text is one empty row.
-    let rows: [Row]
+    var rows: Rows { Rows(laidOut: laidOutRows) }
+
+    /// How many rows: `rows.count`, read without the rows.
+    var rowCount: Int { laidOutRows.count }
+
+    /// A layout's rows, read as an array of them is.
+    struct Rows: RandomAccessCollection {
+        typealias Indices = Range<Int>
+
+        fileprivate let laidOut: [Row]
+
+        var startIndex: Int { 0 }
+        var endIndex: Int { laidOut.count }
+        subscript(position: Int) -> Row { laidOut[position] }
+    }
+
+    /// The rows, as the walk made them.
+    private let laidOutRows: [Row]
 
     /// Each character's width in cells, by offset, a newline's 0: a byte
     /// each, for a width under 255 — every character but a tab past a stop
@@ -179,7 +196,7 @@ struct SoftWrapLayout: Equatable {
             start = offset + 1
         }
         Self.wrap(text, from: start, to: text.count, budget: budget, measure: measure, widths: &widths, into: &rows)
-        (self.rows, self.width) = (rows, width)
+        (laidOutRows, self.width) = (rows, width)
         (narrowWidths, wideCells) = (widths.narrow, widths.wide)
     }
 
