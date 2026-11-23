@@ -103,6 +103,11 @@ nothing until the list's identity changed. A `List` now takes its kind from the 
 table takes it again every frame, so a `Table` rebuilt at the same place from `Table(_:columns:)` to a `Set`
 `selection:` initializer selects too.
 
+**A drop destination scrolled under a still pointer is targeted.** A drag held still at a scroll view's edge
+auto-scrolls it, and the wheel and the paging keys move the page under it too; the destination it was over when the
+pointer last moved kept `isTargeted` and the badge as it scrolled away, the one under the pointer was never told, and
+an `onDrop` delegate heard neither leave nor enter. Each frame now asks again what is under the pointer.
+
 **A `Table` row that takes a drop is lit while the drag is over it, whichever row has scrolled there.** With a drag
 held over a row's `dropDestination`, rows scrolled under the pointer by the wheel, the edge auto-scroll or a paging
 key left the first row lit as it scrolled away and the row under the pointer unlit, however the pointer moved along

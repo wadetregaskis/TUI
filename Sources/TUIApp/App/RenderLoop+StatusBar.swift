@@ -74,7 +74,7 @@ extension RenderLoop {
     ///   - scheduler: Where the next frame is asked for.
     /// - Returns: Whether the reshape changed what the frame shows under the
     ///   pointer after it was drawn — a held menu's highlight moved, a control
-    ///   lit or unlit — so the next frame must be drawn before the next input
+    ///   lit or unlit, a held drag's destination changed — so the next frame must be drawn before the next input
     ///   is handled (``RenderLoop/owesPointerFrame``).
     func publishHitTestRegions(
         _ regions: [HitTestRegion], tooltipMovedThePage: Bool, nowNanos: Int64, scheduler: AnimationScheduler?
@@ -91,6 +91,13 @@ extension RenderLoop {
             // A held menu's highlight moved to the option the reshape put
             // under the pointer: the next frame draws it.
             scheduler?.requestWake("held-drag-reshape", at: nowNanos &+ 1)
+        }
+        if reshaped.contains(.retargetedDrag) {
+            // The destination under a still pointer changed: its highlight,
+            // the one it left and the preview's badge are drawn by the next
+            // frame, which a plain `isTargeted` closure writing no state would
+            // not ask for.
+            tuiContext.appState.setNeedsRender()
         }
         if reshaped.contains(.movedHover) {
             // A control the reshape slid under the resting pointer, or off it,

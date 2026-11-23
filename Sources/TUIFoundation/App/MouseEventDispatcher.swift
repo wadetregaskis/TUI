@@ -686,8 +686,9 @@ extension MouseEventDispatcher {
     ///
     /// - Returns: What the reshape did under the pointer that the next frame
     ///   has to draw: a held drag delivered again (``redeliverHeldDrag()``),
-    ///   or a hover transition a handler said meant something
-    ///   (``reconcileHoverAfterReshape()``).
+    ///   a hover transition a handler said meant something
+    ///   (``reconcileHoverAfterReshape()``), or a drag in flight moved to
+    ///   another drop destination (``DragAndDropSession/retargetAfterReshape()``).
     @discardableResult
     package func setRegions(_ regions: [HitTestRegion]) -> ReshapeOutcome {
         self.regions = regions
@@ -695,6 +696,10 @@ extension MouseEventDispatcher {
         var outcome: ReshapeOutcome = []
         if reconcileHoverAfterReshape() { outcome.insert(.movedHover) }
         if redeliverHeldDrag() { outcome.insert(.redeliveredHeldDrag) }
+        // A payload in hand: the destination under the pointer is asked again
+        // here, where this frame's targets and rectangles both are, and not at
+        // the top of the next frame, which still has the last frame's.
+        if dragAndDropSession?.retargetAfterReshape() == true { outcome.insert(.retargetedDrag) }
         return outcome
     }
 

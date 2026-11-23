@@ -911,6 +911,33 @@ package final class DragAndDropSession {
         trackSpringLoading()
     }
 
+    /// Asks again which destination is under the pointer, once a frame's
+    /// regions and drop targets are in place (``MouseEventDispatcher/setRegions(_:)``),
+    /// and moves the drag there if it is another.
+    ///
+    /// ``dragMoved()`` is otherwise asked only when the pointer reports, and a
+    /// pointer held still reports nothing — which is how a drag auto-scrolls,
+    /// and the wheel and the mid-drag paging keys move the page under it too.
+    /// So `isTargeted`, the badge and a delegate stayed on the destination
+    /// that scrolled away, while the one under the pointer heard nothing, and
+    /// a release there dropped on a destination never lit (hunt DND-2). The
+    /// same for a carry whose stop stays put while its rows scroll.
+    ///
+    /// Only a change of destination moves the drag, so a destination that
+    /// follows the pointer within itself — a list's landing slot — is not
+    /// told of every frame: it asks again from its own rows as they are
+    /// republished.
+    ///
+    /// - Returns: Whether the destination changed, so the frame that draws
+    ///   it is owed.
+    package func retargetAfterReshape() -> Bool {
+        guard let drag = active, let event = lastAbsoluteEvent else { return false }
+        let under = resolveTarget(atX: event.x, y: event.y, payload: drag.payload)
+        guard under?.handlerID != drag.targetedID || under?.token != drag.targeted?.token else { return false }
+        dragMoved()
+        return true
+    }
+
     /// Drops the payload on the destination under the cursor (if any), ends
     /// the drag, and reports whether a destination took the payload.
     ///

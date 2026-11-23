@@ -163,7 +163,10 @@ indicator every row wears is an indicator none of them wears.
 The landing slot rides the pointer, not the rows: hold still near a scrollable's
 edge and it auto-scrolls, and the slot stays where you are pointing while the
 rows stream past underneath. It is a place in the list you are aiming at, and
-you have not moved.
+you have not moved. Any destination follows the pointer the same way: when the
+page moves under a still pointer, by auto-scroll, the wheel or the paging keys,
+the destination that arrives under it is targeted — its `isTargeted` told, its
+badge shown — and the one that moved away is told it no longer is.
 
 *Near* the edge is not the same as *past* it. Auto-scroll engages from a hot
 margin just inside the control, where the pointer is still on a row; dragged
