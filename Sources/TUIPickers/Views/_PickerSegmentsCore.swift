@@ -289,7 +289,7 @@ struct _PickerSegmentsCore<SelectionValue: Hashable>: View, Renderable, Layoutab
                 canBeFocused: !isDisabled))
         let handler = box.value
         handler.selection = erased
-        handler.itemValues = values
+        handler.adopt(itemValues: values)
         handler.orientation = .horizontal
         handler.canBeFocused = !isDisabled
         handler.edgeBehavior = .wrap

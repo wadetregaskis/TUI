@@ -105,6 +105,22 @@ extension RadioButtonGroupHandler {
         focusedIndex = index
     }
 
+    /// Takes this render's options, the cursor going with its option: to the
+    /// option's new place when the options were reordered, and onto the last
+    /// option when its own is gone and its place is past the end. The cursor
+    /// was a place alone: reordered, it sat on another option, and a focused
+    /// group whose options shrank from under it showed the focus on none until
+    /// a key clamped it.
+    func adopt(itemValues newValues: [AnyHashable]) {
+        defer { itemValues = newValues }
+        guard newValues != itemValues else { return }
+        if itemValues.indices.contains(focusedIndex), let moved = newValues.firstIndex(of: itemValues[focusedIndex]) {
+            focusedIndex = moved
+        } else {
+            focusedIndex = max(0, min(focusedIndex, newValues.count - 1))
+        }
+    }
+
     /// The cursor starts on the selection, wherever that is now: it may have
     /// been chosen elsewhere while the group did not hold the focus — a second
     /// control over the same binding — and a Space on a cursor left where the

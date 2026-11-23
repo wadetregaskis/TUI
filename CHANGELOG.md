@@ -46,6 +46,13 @@ drawn after a publisher of `nil` reads nothing at once.
 publication afresh; a reading is now kept until a publication or the focus changes it, so a frame with thirty
 readers (menu commands, toolbar buttons) makes two readings rather than a hundred and twenty.
 
+**A radio group knows its options by value.** An option's label and content were kept at its place in the group, so
+a group built from changing data moved an option's `@State` (a slider's drag, a field's draft) to whichever option
+came to stand there; they now go with the option, as a `ForEach` row's go with its id. The keyboard's cursor goes
+with its option too, and onto the last option when the options shrink from under it, where a focused group showed
+the focus on no option until a key was pressed. And an option whose label takes several lines is chosen by a click
+on any of them, not on its first line alone; where the focus is drawn in reverse, all of them are reversed.
+
 **Tabs whose values print alike keep state of their own.** A tab's content, its label and its context menu were
 kept at an identity made from its value's `description`, so tabs over a `Hashable` class with no description of its
 own (every instance prints as the type's name), two `Date`s in one second, or an enum case wrapping either shared one

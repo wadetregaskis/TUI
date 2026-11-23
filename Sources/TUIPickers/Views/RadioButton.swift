@@ -471,7 +471,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         context: RenderContext
     ) {
         handler.selection = selection
-        handler.itemValues = itemValues
+        handler.adopt(itemValues: itemValues)
         handler.disabledIndices = Set(items.indices.filter { items[$0].isDisabled })
         handler.orientation = orientation
         handler.canBeFocused = !isDisabled
@@ -625,7 +625,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                 mouseDispatcher.fileClickRecognizer(.plain, for: mouseHandlerID, in: context)
                 buffer.hitTestRegions.append(
                     HitTestRegion(
-                        offsetX: region.x, offsetY: region.y, width: region.width, height: 1,
+                        offsetX: region.x, offsetY: region.y, width: region.width, height: region.height,
                         handlerID: mouseHandlerID))
             }
             Self.publishFocusRegions(
@@ -653,7 +653,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
     /// them all.
     @MainActor
     private static func publishFocusRegions(
-        to buffer: inout FrameBuffer, itemRegions: [(x: Int, y: Int, width: Int)], handler: RadioButtonGroupHandler,
+        to buffer: inout FrameBuffer, itemRegions: [OptionRegion], handler: RadioButtonGroupHandler,
         focusID: String, dispatcher: MouseEventDispatcher, context: RenderContext
     ) {
         let cursor = handler.focusedIndex
@@ -673,7 +673,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                     }
                 }
                 return HitTestRegion(
-                    offsetX: region.x, offsetY: region.y, width: region.width, height: 1, handlerID: inert,
+                    offsetX: region.x, offsetY: region.y, width: region.width, height: region.height, handlerID: inert,
                     focusID: focusID)
             },
             at: 0)
@@ -686,12 +686,16 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
     /// a bare `FrameBuffer(lines:)` would drop all four.
     ///
     /// The regions are the group's click targets, and they cover the OPTION
-    /// rows only: the rows below an option belong to its content, which answers
-    /// the pointer itself.
+    /// rows only, every line of a label that takes several: the rows below an
+    /// option belong to its content, which answers the pointer itself.
     private struct RenderedItems {
         let buffer: FrameBuffer
-        let regions: [(x: Int, y: Int, width: Int)]
+        let regions: [OptionRegion]
     }
+
+    /// Where one option's rows sit within the items' buffer: its indicator and
+    /// every line of its label, not its content.
+    private typealias OptionRegion = (x: Int, y: Int, width: Int, height: Int)
 
     private func renderVerticalWithRegions(
         context: RenderContext,
@@ -701,10 +705,9 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         palette: Palette
     ) -> RenderedItems {
         var buffer = FrameBuffer(lines: [])
-        var regions: [(x: Int, y: Int, width: Int)] = []
+        var regions: [OptionRegion] = []
         for (index, item) in items.enumerated() {
             let rendered = renderItem(
-                index: index,
                 item: item,
                 isFocused: handler.focusedIndex == index && groupHasFocus,
                 isSelected: !isMixed && selection.wrappedValue == item.value,
@@ -714,7 +717,8 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
             )
             // Each item starts where the last one ended — which is one row on
             // for a plain option, and more when it carries content.
-            regions.append((x: 0, y: buffer.lines.count, width: rendered.optionWidth))
+            regions.append(
+                (x: 0, y: buffer.lines.count, width: rendered.optionWidth, height: rendered.optionHeight))
             buffer.appendVertically(rendered.buffer)
         }
         return RenderedItems(buffer: buffer, regions: regions)
@@ -729,10 +733,9 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
     ) -> RenderedItems {
         let spacingWidth = 2
         var buffer = FrameBuffer(lines: [])
-        var regions: [(x: Int, y: Int, width: Int)] = []
+        var regions: [OptionRegion] = []
         for (index, item) in items.enumerated() {
             let rendered = renderItem(
-                index: index,
                 item: item,
                 isFocused: handler.focusedIndex == index && groupHasFocus,
                 isSelected: !isMixed && selection.wrappedValue == item.value,
@@ -744,7 +747,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
             // only between two occupied column ranges, so the first item starts
             // at column 0 whatever it rendered.
             let originX = buffer.width > 0 ? buffer.width + spacingWidth : 0
-            regions.append((x: originX, y: 0, width: rendered.optionWidth))
+            regions.append((x: originX, y: 0, width: rendered.optionWidth, height: rendered.optionHeight))
             buffer.appendHorizontally(rendered.buffer, spacing: spacingWidth)
         }
         return RenderedItems(buffer: buffer, regions: regions)
@@ -754,18 +757,20 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
     /// carries.
     private struct RenderedItem {
         let buffer: FrameBuffer
-        /// The option row's own width — see ``RenderedItems``.
+        /// The option's own width, its widest label line's — see ``RenderedItems``.
         let optionWidth: Int
+        /// The option's own rows: one for each line of its label.
+        let optionHeight: Int
     }
 
-    /// Renders one item: its indicator and label on the first row, and its
-    /// content — if it has any — indented underneath.
+    /// Renders one item: its indicator and label on the first row, the label's
+    /// further lines under it, and its content — if it has any — indented
+    /// underneath.
     ///
     /// The indent is the indicator plus the space after it, so the content
     /// starts under the LABEL rather than under the bullet: an option and the
     /// controls that configure it read as one thing.
     private func renderItem(
-        index: Int,
         item: RadioButtonItem<Value>,
         isFocused: Bool,
         isSelected: Bool,
@@ -859,9 +864,12 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
         // its label and content at one step further apiece. Without that the
         // items would share the group's storage slots with each other AND with
         // the group's own handler at index 0 — two sliders under two options
-        // would be one slider.
+        // would be one slider. Keyed by the option's value, as `ForEach` keys a
+        // row by its id, so an option's state goes with it when the options
+        // are reordered or one is put in before it; by its place, it stayed
+        // at the place, under whichever option came to be there.
         var itemContext = context.withChildIdentity(
-            erasedType: RadioButtonItem<Value>.self, index: index)
+            erasedType: RadioButtonItem<Value>.self, key: identityKey(item.value))
         // A disabled option's label and content are drawn as a disabled
         // control's are.
         if item.isDisabled { itemContext = itemContext.settingNotedEnvironment(\.isEnabled, to: false) }
@@ -932,10 +940,12 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
             // resolve every phase at the alpha of the one drawn now.
             buffer.opacityRegions.append(claim)
         }
-        let optionWidth = lines[0].strippedLength
+        // Every line of the label is the option: a click on its second line
+        // chooses it, and the focus reverses them all.
+        let optionWidth = lines.reduce(0) { max($0, $1.strippedLength) }
         buffer = buffer
             .reversedWithoutBreath(
-                if: isFocused && !isDisabled, rows: 0..<1,
+                if: isFocused && !isDisabled, rows: 0..<lines.count,
                 columns: optionWidth > indentWidth ? indentWidth..<optionWidth : nil, context: context)
             .fadedWithoutColor(if: isDisabled, context: context)
 
@@ -954,7 +964,7 @@ private struct _RadioButtonGroupCore<Value: Hashable>: View, Renderable, Layouta
                     context: contentChildContext))
         }
 
-        return RenderedItem(buffer: buffer, optionWidth: optionWidth)
+        return RenderedItem(buffer: buffer, optionWidth: optionWidth, optionHeight: lines.count)
     }
 }
 
