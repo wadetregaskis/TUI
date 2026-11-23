@@ -145,6 +145,9 @@ app — pick a row up on one page, navigate to another, drop it there — and th
 requires the navigation keys to keep navigating while something is in hand.
 <kbd>Escape</kbd> was the obvious candidate and is exactly the key that
 navigation needs, so releasing over nothing is the cancel, as it is on macOS.
+A release the terminal never reports — the button let go outside the window,
+say — ends the drag at the next press instead, the same way: the preview walks
+home, and the press goes on to do what it would have done.
 The movement keys are the other half of the same rule: mid-drag they scroll
 rather than move the cursor, so a destination that is off screen can be reached
 without letting go. They scroll **the view under the pointer**, not the one the

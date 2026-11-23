@@ -103,6 +103,11 @@ nothing until the list's identity changed. A `List` now takes its kind from the 
 table takes it again every frame, so a `Table` rebuilt at the same place from `Table(_:columns:)` to a `Set`
 `selection:` initializer selects too.
 
+**A drag whose release was lost ends at the next press.** When the terminal never reported the button coming up —
+let go outside the window, or behind a multiplexer — the drag stayed in flight for good: the source drawn blank, the
+destination targeted, `onKeyPress` handlers deaf, and nothing but another drag to end it. The next press now ends it
+as a release over nothing does, the preview walking home, and then does what it would have done.
+
 **A drop destination scrolled under a still pointer is targeted.** A drag held still at a scroll view's edge
 auto-scrolls it, and the wheel and the paging keys move the page under it too; the destination it was over when the
 pointer last moved kept `isTargeted` and the badge as it scrolled away, the one under the pointer was never told, and

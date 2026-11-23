@@ -1025,6 +1025,32 @@ extension MouseEventDispatcher {
         }
     }
 
+    /// Ends a pointer drag whose release never arrived, as a left press comes
+    /// in with it still in flight: the button came up where nothing reported
+    /// it (outside the window, behind a multiplexer), and this press is a new
+    /// gesture.
+    ///
+    /// Before it was told nobody, as ``trackHeldGesture(_:)`` forgets the
+    /// last press silently, and the drag stayed in flight for good: the source
+    /// drawn blank, the destination targeted, the focus path's keys dead, the
+    /// paging keys scrolling whatever the pointer had last pressed on — and a
+    /// pointer drag answers no cancel key, so nothing but another drag ended
+    /// it (hunt DND-3). It ends now as a release over nothing would, the
+    /// picture walking home, through ``DragAndDropSession/cancelForLostMouseReporting()``,
+    /// which unwinds a row reorder too and arms no latch to swallow this
+    /// press's own release. The press that began the drag is given up, as a
+    /// gesture arena gives up a press a new one supersedes: its click
+    /// recognizer cancelled and its capture let go, so the new press is routed
+    /// as any other.
+    ///
+    /// Not for a carry, which the keyboard holds and a click does not end.
+    @MainActor
+    private func supersedeLostDrag() {
+        guard let session = dragAndDropSession, session.active != nil, session.carry == nil else { return }
+        session.cancelForLostMouseReporting()
+        pressedHandlers.removeValue(forKey: .left)?.recognizer?.cancel()
+    }
+
     /// Whether `event` is a drag report that says nothing but where in the cell
     /// the pointer is: pixel reporting sends them, for a gesture to read, which
     /// ``dispatch(_:)`` has given it by now. A control hears what it would hear
@@ -1107,6 +1133,8 @@ extension MouseEventDispatcher {
                 pressPopup = nil
             }
         }
+
+        if event.phase == .pressed, event.button == .left { supersedeLostDrag() }
 
         // Give the drag-and-drop session the absolute cursor before any
         // localisation (drop targeting hit-tests screen coordinates).
