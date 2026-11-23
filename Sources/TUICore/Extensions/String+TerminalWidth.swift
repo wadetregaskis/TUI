@@ -923,65 +923,6 @@ extension String {
         return marks
     }
 
-    /// Whether SGR styling is still in force at the end of this string — i.e.
-    /// whether text appended to it would inherit colour or attributes.
-    ///
-    /// The terminal applies SGR parameters in order, so only the LAST sequence
-    /// decides: a pure reset (`ESC[0m`, a bare `ESC[m`, an all-zero parameter
-    /// list) closes everything, and anything else leaves something on.
-    ///
-    /// Erring toward `true` costs a redundant four-byte reset; erring toward
-    /// `false` bleeds the attribute over whatever the caller appends. So a
-    /// sequence this cannot prove is a reset counts as open.
-    public var leavesSGROpen: Bool {
-        guard utf8.contains(0x1B) else { return false }  // plain text: no scan
-        var open = false
-        forEachANSISegment { segment in
-            if case .ansi(let sequence, isSGR: true) = segment {
-                open = !Self.isSGRReset(sequence)
-            }
-            return true
-        }
-        return open
-    }
-
-    /// Whether an SGR sequence turns everything off.
-    ///
-    /// Byte-wise, because this runs once per SGR sequence of every clipped
-    /// line: the `split(separator:)` it replaces built an array of `Substring`
-    /// — and `Int(_:)` per element — for every sequence, which made asking a
-    /// 100-cell styled line whether it left anything open cost 16.6 µs, more
-    /// than twice what segmenting the line cost in the first place.
-    private static func isSGRReset(_ sequence: String) -> Bool {
-        // `ESC [ <params> m`: skip the two-byte introducer and the terminator.
-        // Every parameter has to be zero, and a parameter is zero exactly when
-        // every digit of it is `0` — so the whole test is "nothing but `0` and
-        // `;`". An empty parameter is ECMA-48's default of 0, and an empty body
-        // (a bare `ESC[m`) is a reset, which both fall out of the loop running
-        // no iterations that fail.
-        //
-        // Stricter than the `Int(_:)` parse it replaces in exactly one place:
-        // that read `ESC[-0m` as a reset, because `Int("-0")` is 0. `-` is a
-        // legal CSI parameter byte and not a legal SGR one, so it is a sequence
-        // this cannot prove is a reset — which the doc comment above says
-        // counts as open.
-        //
-        // `dropFirst(2).dropLast()` walked a `Slice` of the view through its
-        // Collection witness; the bytes are read directly instead, for the
-        // reason ``asciiStrippedLength(bounded:limit:)`` gives.
-        func allZero(_ bytes: UnsafeBufferPointer<UInt8>) -> Bool {
-            guard bytes.count > 3 else { return true }  // `ESC [ m` or shorter
-            for index in 2..<(bytes.count - 1) where unsafe bytes[index] != 0x30 && bytes[index] != 0x3B {
-                return false
-            }
-            return true
-        }
-        if let contiguous = sequence.utf8.withContiguousStorageIfAvailable(allZero) {
-            return contiguous
-        }
-        return Array(sequence.utf8).withUnsafeBufferPointer(allZero)
-    }
-
     /// How many parameters after `index` are the arguments of a `;`-form
     /// extended-colour introducer (38 / 48 / 58).
     ///
