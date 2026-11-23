@@ -237,7 +237,7 @@ extension PlatformImageLoader {
 
         /// Decodes in-memory data with stb_image into straight-alpha, row-major
         /// RGBA, and the picture's size: at `reduction` (a power of two) of it
-        /// each way, averaged down (``RGBAImage/boxReduced(by:)``) once it is
+        /// each way, averaged down (``RGBAImage/reduced(by:)``) once it is
         /// decoded, stb_image having no way to decode a picture smaller.
         func decodeWithSTB(
             data: Data, maxPixelCount: Int?, reducedBy reduction: Int = 1
@@ -274,7 +274,7 @@ extension PlatformImageLoader {
             }
 
             let image = unsafe RGBAImage(rgbaBytes: pixels, width: Int(width), height: Int(height))
-            return (image.boxReduced(by: reduction), Int(width), Int(height))
+            return (image.reduced(by: reduction), Int(width), Int(height))
         }
     }
 #endif

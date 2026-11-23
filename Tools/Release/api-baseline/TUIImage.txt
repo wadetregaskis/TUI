@@ -151,14 +151,13 @@ RGBA.luminance | var luminance: Double { get }
 RGBA.r | var r: UInt8
 RGBAImage | struct RGBAImage
 RGBAImage.addError(at:_:rError:gError:bError:) | mutating func addError(at x: Int, _ y: Int, rError: Int16, gError: Int16, bError: Int16)
-RGBAImage.boxReduced(by:) | func boxReduced(by factor: Int) -> RGBAImage
 RGBAImage.height | let height: Int
 RGBAImage.init(width:height:pixels:) | init(width: Int, height: Int, pixels: [RGBA])
 RGBAImage.mapPixels(_:) | mutating func mapPixels(_ transform: (RGBA) -> RGBA)
 RGBAImage.pixel(at:_:) | func pixel(at x: Int, _ y: Int) -> RGBA
 RGBAImage.pixels | var pixels: [RGBA] { get }
+RGBAImage.resampled(to:_:) | func resampled(to targetWidth: Int, _ targetHeight: Int) -> RGBAImage
 RGBAImage.scaled(to:_:) | func scaled(to targetWidth: Int, _ targetHeight: Int) -> RGBAImage
-RGBAImage.scaledBilinear(to:_:) | func scaledBilinear(to targetWidth: Int, _ targetHeight: Int) -> RGBAImage
 RGBAImage.setPixel(at:_:value:) | mutating func setPixel(at x: Int, _ y: Int, value: RGBA)
 RGBAImage.sharpened(amount:radiusX:radiusY:) | func sharpened(amount: Double, radiusX: Int = 1, radiusY: Int = 1) -> RGBAImage
 RGBAImage.width | let width: Int

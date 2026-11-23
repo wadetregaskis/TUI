@@ -101,14 +101,19 @@ extension View {
 
     /// Sets the area-sampling factor for every non-shape renderer: each
     /// sample — a ramp cell's tone, a solid or half-block pixel, a braille
-    /// dot — is averaged from a factor×factor block of source pixels
-    /// instead of the bilinear scaler's 2×2 point read, which aliases fine
-    /// textures on heavy downscales. Clamped to 1...4. Pass `nil` to
+    /// dot — is averaged from a factor×factor block of sub-samples. A picture
+    /// shrunk to its cells already averages every pixel each sample covers,
+    /// so the factor tells only where the picture is smaller than the cells'
+    /// grid: there it is enlarged factor× and averaged back down, which
+    /// softens the enlargement. Clamped to 1...4. Pass `nil` to
     /// restore the default (2 for luminance ramps longer than 12 levels,
     /// else 1). Ignored when ``imageShapeAware(_:)`` is on — the shape
     /// matcher already reads 96 staggered samples per cell.
     nonisolated public func imageSupersampling(_ factor: Int?) -> some View {
-        environment(\.imageSupersampling, factor)
+        // Clamped here, not only by the converter: a factor below 1 is how an
+        // image's own `.interpolation(.none)` asks for a nearest-pixel read
+        // (`ASCIIConverter.nearestSamplingFactor`), and an app's 0 means 1.
+        environment(\.imageSupersampling, factor.map { min(4, max(1, $0)) })
     }
 
     /// Sets the minimum Sobel gradient magnitude for a shape-aware cell

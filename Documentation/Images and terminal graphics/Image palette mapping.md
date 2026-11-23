@@ -290,7 +290,7 @@ them. It is the thing a tone curve is the one-dimensional case of, and the
 question is whether it is worth having.
 
 **Mechanically it is easy, and cheap.** It would sit exactly where the tone
-curve does, in the `mapPixels` immediately after the box reduction — so it sees
+curve does, in the `mapPixels` immediately after the resample — so it sees
 the *sampling* grid, not the source image. That grid is `cols × grid.x` by
 `rows × grid.y`: 25,600 pixels for braille at 80×40 cells, and 160,000 in the
 heaviest case (the shape matcher's 5×10). A 33³ cube is 108 KB of bytes and a

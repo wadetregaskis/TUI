@@ -126,8 +126,8 @@ extension ASCIIConverter {
                         let r = Int(pixel.r)
                         let g = Int(pixel.g)
                         let b = Int(pixel.b)
-                        // PREMULTIPLIED, for the reason `boxReduced(by:)` and
-                        // `scaledBilinear(to:_:)` are (§41.1): a transparent dot's colour
+                        // PREMULTIPLIED, for the reason `resampled(to:_:)` is
+                        // (§41.1): a transparent dot's colour
                         // is meaningless and the decoders write it black, so averaging it
                         // straight pulls the cell's ink toward black. Eight dots is a
                         // small enough neighbourhood that one transparent corner visibly

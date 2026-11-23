@@ -191,62 +191,65 @@ struct ImageFidelityConfigTests {
 
     // MARK: - Supersampling
 
-    @Test("Explicit supersampling smooths a checkerboard the 1× path aliases")
+    // A shrink averages every pixel each sample covers at any factor (owner
+    // 2026-11-22, O-36 (a)); these used to pin that 1× point-sampled a
+    // checkerboard to black or white and only 2× averaged it.
+
+    @Test("A shrink averages at 1× already; supersampling changes only an enlargement")
     func supersamplingAverages() {
-        // A 1-px checkerboard: at 1× each cell reads a single pixel (pure black
-        // or white); at 2× each cell averages four pixels to mid-grey — so the
-        // two renders MUST differ, and the 2× one must use interior ramp levels.
+        // A 1-px checkerboard at half its size: every cell averages four
+        // pixels to mid-grey at 1× and at 2× alike.
         let img = image(40, 8) { x, y in (x + y).isMultiple(of: 2) ? 0 : 255 }
         let ramp = GlyphRepertoire.densityRamp(from: GlyphRepertoire.ascii, count: 10)
         let oneX = render(img, w: 20, h: 4, .ascii(glyphs: 10), supersampling: 1)
         let twoX = render(img, w: 20, h: 4, .ascii(glyphs: 10), supersampling: 2)
-        #expect(oneX != twoX, "supersampling changes what the cells read")
+        #expect(oneX == twoX, "a shrink is one average whatever the factor")
         let interior = Set(ramp.dropFirst().dropLast())
         #expect(
-            twoX.contains(where: { interior.contains($0) }),
-            "averaged cells land on interior ramp levels: \(twoX)")
+            oneX.contains(where: { interior.contains($0) }),
+            "averaged cells land on interior ramp levels: \(oneX)")
+        // Drawn larger than it is, the picture is enlarged: 2× enlarges to
+        // twice the grid and averages back down, which softens it.
+        let small = image(10, 2) { x, y in (x + y).isMultiple(of: 2) ? 0 : 255 }
+        let enlargedOnce = render(small, w: 20, h: 4, .ascii(glyphs: 10), supersampling: 1)
+        let enlargedTwice = render(small, w: 20, h: 4, .ascii(glyphs: 10), supersampling: 2)
+        #expect(enlargedOnce != enlargedTwice, "supersampling changes an enlargement")
     }
 
-    @Test("Solid blocks supersample: point-sampled checkerboard becomes area-averaged grey")
+    @Test("Solid blocks average a checkerboard to grey at any factor")
     func solidSupersamplingAverages() {
-        // A 1-px checkerboard downscaled 2:1. At 1× the bilinear scaler's
-        // sample points land exactly on even source coordinates — pure
-        // point sampling, every cell reads black. At 2× each cell averages
-        // its 2×2 source block to mid-grey.
+        // A 1-px checkerboard downscaled 2:1: each cell's pixel is the
+        // average of its 2×2 source block, 127.5, rounded to 128.
         let img = image(40, 8) { x, y in (x + y).isMultiple(of: 2) ? 0 : 255 }
-        let oneX = renderColor(img, w: 20, h: 4, .blocks(.solid), supersampling: 1)
-        let twoX = renderColor(img, w: 20, h: 4, .blocks(.solid), supersampling: 2)
-        #expect(oneX != twoX, "supersampling changes what the cells read")
-        #expect(oneX.contains("48;2;0;0;0"), "1× point-samples the black pixels: \(oneX)")
-        #expect(twoX.contains("48;2;127;127;127"), "2× area-averages to mid-grey: \(twoX)")
-        #expect(!twoX.contains("48;2;0;0;0"), "no aliased solid-black cells at 2×: \(twoX)")
+        for factor in [1, 2] {
+            let out = renderColor(img, w: 20, h: 4, .blocks(.solid), supersampling: factor)
+            #expect(out.contains("48;2;128;128;128"), "\(factor)× area-averages to mid-grey: \(out)")
+            #expect(!out.contains("48;2;0;0;0"), "no aliased solid-black cells at \(factor)×: \(out)")
+        }
     }
 
-    @Test("Half blocks supersample: each sub-cell pixel is area-averaged")
+    @Test("Half blocks: each sub-cell pixel is area-averaged at any factor")
     func halfBlocksSupersamplingAverages() {
         // Same checkerboard; the half-block mode reads two pixels per cell
-        // (top = background, bottom = foreground), each of which must be an
-        // area average at 2× rather than an aliased point read.
+        // (top = background, bottom = foreground), each an area average.
         let img = image(40, 16) { x, y in (x + y).isMultiple(of: 2) ? 0 : 255 }
-        let oneX = renderColor(img, w: 20, h: 4, .blocks(.fine), supersampling: 1)
-        let twoX = renderColor(img, w: 20, h: 4, .blocks(.fine), supersampling: 2)
-        #expect(oneX != twoX, "supersampling changes what the sub-pixels read")
-        #expect(twoX.contains("2;127;127;127"), "2× sub-pixels average to mid-grey: \(twoX)")
+        for factor in [1, 2] {
+            let out = renderColor(img, w: 20, h: 4, .blocks(.fine), supersampling: factor)
+            #expect(out.contains("2;128;128;128"), "\(factor)× sub-pixels average to mid-grey: \(out)")
+        }
     }
 
-    @Test("Braille supersamples per dot: sparse texture thresholds from the average")
+    @Test("Braille thresholds each dot from its area average at any factor")
     func brailleSupersamplingAverages() {
-        // One black pixel per 2×2 tile, sitting exactly on the even source
-        // coordinates the 1× scaler point-samples — so at 1× every braille
-        // dot reads black and switches OFF (dots mark bright pixels, like
-        // the ramp convention), while at 2× each dot averages its tile to
-        // 191 (light) and switches ON. The image is 75% white either way;
-        // only area averaging sees that.
+        // One black pixel per 2×2 tile, on the even source coordinates a
+        // 2 × 2 read used to land on — so at 1× every dot read black and
+        // switched OFF. Each dot averages its tile to 191 (light) and
+        // switches ON: the image is 75% white, and an area average sees it.
         let img = image(80, 32) { x, y in (x.isMultiple(of: 2) && y.isMultiple(of: 2)) ? 0 : 255 }
-        let oneX = render(img, w: 20, h: 4, .blocks(.braille), supersampling: 1)
-        let twoX = render(img, w: 20, h: 4, .blocks(.braille), supersampling: 2)
-        #expect(!oneX.contains("⣿"), "1× aliases every dot to the black point samples: \(oneX)")
-        #expect(twoX.contains("⣿"), "2× thresholds each dot from its area average: \(twoX)")
+        for factor in [1, 2] {
+            let out = render(img, w: 20, h: 4, .blocks(.braille), supersampling: factor)
+            #expect(out.contains("⣿"), "\(factor)× thresholds each dot from its area average: \(out)")
+        }
     }
 
     // MARK: - Edge threshold

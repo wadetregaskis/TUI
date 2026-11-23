@@ -62,8 +62,9 @@ struct HostileNumbersImageTests {
         let image = RGBAImage(width: 4, height: 4, pixels: Array(repeating: RGBA(r: 1, g: 2, b: 3), count: 16))
         let size = min(max(value, -4), 64)
         _ = image.scaled(to: size, size)
-        _ = image.scaledBilinear(to: size, size)
-        _ = image.boxReduced(by: value)
+        _ = image.resampled(to: size, size)
+        _ = image.resampled(to: 1, size)
+        _ = image.reduced(by: value)
         _ = image.sharpened(amount: 1, radiusX: size, radiusY: size)
     }
 }

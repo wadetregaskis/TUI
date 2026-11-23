@@ -13,10 +13,11 @@
     /// interpolation, such as a scaled image — mirrors SwiftUI's
     /// `Image.Interpolation`.
     ///
-    /// A raster image here is resampled into cells, and the quality is how
-    /// many samples each cell's sub-pixels average: one for `.none` (the
-    /// nearest pixel), two, three and four for `.low`, `.medium` and `.high`.
-    /// It is ``View/imageSupersampling(_:)``'s factor, set on the one image.
+    /// A raster image here is resampled into cells. `.none` reads each of a
+    /// cell's sub-pixels from the one pixel it falls on, as SwiftUI's does;
+    /// the others average, a shrink every pixel each sub-pixel covers, and
+    /// are ``View/imageSupersampling(_:)``'s factors two, three and four,
+    /// which tell apart only where the picture is enlarged.
     public enum Interpolation: Sendable, Hashable {
         /// No interpolation: each sample is the nearest pixel.
         case none
@@ -30,15 +31,22 @@
         /// A high level of interpolation quality.
         case high
 
-        /// The supersampling factor this quality draws with.
+        /// The supersampling factor this quality draws with; for `.none`, the
+        /// one that stands for a nearest-pixel read
+        /// (`ASCIIConverter.nearestSamplingFactor`, which this module cannot
+        /// name), below the factors an app can give.
         var samplingFactor: Int {
             switch self {
-            case .none: 1
+            case .none: Self.nearestSamplingFactor
             case .low: 2
             case .medium: 3
             case .high: 4
             }
         }
+
+        /// `ASCIIConverter.nearestSamplingFactor`, which `TUIBitmaps` checks
+        /// it against.
+        package static let nearestSamplingFactor = 0
     }
 
     /// Specifies the current level of quality for rendering an image that

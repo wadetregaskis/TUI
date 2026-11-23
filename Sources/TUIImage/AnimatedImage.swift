@@ -128,7 +128,7 @@ struct AnimatedImageBuilder {
         }
         let scaled =
             (image.width, image.height) == (plan.frameWidth, plan.frameHeight)
-            ? image : image.scaledBilinear(to: plan.frameWidth, plan.frameHeight)
+            ? image : image.resampled(to: plan.frameWidth, plan.frameHeight)
         frames.append(AnimatedImage.Frame(image: scaled, delayNanos: delayNanos))
     }
 }

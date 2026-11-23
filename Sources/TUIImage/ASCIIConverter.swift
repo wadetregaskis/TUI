@@ -377,15 +377,34 @@ public struct ASCIIConverter: Sendable {
 
     /// The area-sampling factor for every non-shape renderer: each sample —
     /// a ramp cell's tone, a solid/half-block pixel, a braille dot — is
-    /// averaged from an N×N block of source pixels instead of the bilinear
-    /// scaler's 2×2 point read, which aliases fine textures on heavy
-    /// downscales. `nil` keeps the default (2 for luminance ramps longer
-    /// than 12 levels, whose extra tonal levels only resolve with averaged
-    /// sampling; 1 otherwise). Clamped to 1...4; higher factors cost
-    /// quadratically more sampling for no visible gain. Ignored when
-    /// shape-aware — the shape matcher already reads 96 staggered samples
-    /// per cell.
+    /// averaged from an N×N block of sub-samples. A picture larger than the
+    /// grid already gives every sample the average of all the pixels it
+    /// covers (``RGBAImage/resampled(to:_:)``), which an N×N block of it
+    /// would only repeat, so it goes straight to the grid; the factor tells
+    /// where the picture is smaller than the grid on either axis, where it is
+    /// enlarged N× and averaged back down, which softens the enlargement.
+    /// `nil` keeps the default (2 for luminance ramps longer than 12 levels,
+    /// whose extra tonal levels only resolve with averaged sampling; 1
+    /// otherwise). Clamped to 1...4; higher factors cost quadratically more
+    /// sampling for no visible gain. Ignored when shape-aware — the shape
+    /// matcher already reads 96 staggered samples per cell.
     let supersampling: Int?
+
+    /// Whether each sample is the one source pixel it falls on rather than an
+    /// average: what ``Image/interpolation(_:)`` `.none` and
+    /// ``Image/antialiased(_:)`` `false` ask for, SwiftUI's nearest-neighbour
+    /// read (`RGBAImage.scaled(to:_:)`). Set by the image view, which reads
+    /// the request from ``nearestSamplingFactor`` in its sampling factor.
+    ///
+    /// It needs saying since every shrink became an area average (O-36):
+    /// before, `.none` was a factor of 1, and a factor of 1 was a 2 × 2
+    /// bilinear read, which at a whole ratio lands on single pixels.
+    package var samplesNearest = false
+
+    /// The sampling factor that stands for ``samplesNearest`` on its way from
+    /// an image's own modifiers to its converter, below the public range
+    /// (`imageSupersampling` clamps what an app gives it to 1...4).
+    package static let nearestSamplingFactor = 0
 
     /// The minimum Sobel gradient magnitude (in 0…1 darkness units, practical
     /// range roughly 0.3…2) for a cell to be drawn as a directional line
@@ -570,12 +589,13 @@ extension ASCIIConverter {
         //   .blocks(.fine)         : 1×2  (two vertical pixels per cell)
         //   .blocks(.braille)      : 2×4  (eight dots per cell)
         //   shape-aware (any)      : 5×10 (sampled at six staggered circles)
-        // Every non-shape grid is scaled by the supersampling factor and then
-        // box-reduced, so each sample — a cell's tone, a half-cell pixel, a
-        // braille dot — is a true N×N area average rather than the bilinear
-        // scaler's 2×2 point read (which aliases fine textures on heavy
-        // downscales). The shape matcher needs no factor: it already reads
-        // 96 staggered samples per cell. (``cellGrid`` and ``samplesPerCell``.)
+        // The picture is resampled to that grid in one step, and where it
+        // shrinks, each sample — a cell's tone, a half-cell pixel, a braille
+        // dot — is the average of every source pixel it covers
+        // (``RGBAImage/resampled(to:_:)``; owner 2026-11-22, O-36 (a)). The
+        // supersampling factor matters only where the picture is smaller than
+        // the grid, below. The shape matcher takes no factor: it reads 96
+        // staggered samples per cell. (``cellGrid`` and ``samplesPerCell``.)
         //
         // The sub-cell pixel grid, kept because `edgeContrast` measures its
         // neighbourhood in cells rather than in pixels.
@@ -585,20 +605,30 @@ extension ASCIIConverter {
         let pixelWidth = width * sampled.x
         let pixelHeight = height * sampled.y
 
-        // Scale to the (supersampled) pixel grid, then area-average down to
-        // the render grid BEFORE dithering — error diffusion belongs at the
-        // resolution the glyphs actually quantise (dither-then-average would
-        // just smooth the pattern back out).
+        // Resampled to the render grid BEFORE dithering — error diffusion
+        // belongs at the resolution the glyphs actually quantise
+        // (dither-then-average would just smooth the pattern back out).
         // NOT flattened. It used to be, "over black, explicitly", because the glyph
         // renderers read colour and never alpha — which made every transparent pixel
         // black and a logo's surround a black rectangle. The renderers read coverage
         // now (§42): a cell with none states no colour at all, and a partly covered one
         // states its colour and reports what it was drawn at. `flattenedOverBlack()`
         // survives for the callers that genuinely want a flatten.
-        var scaled = image.scaledBilinear(to: pixelWidth, pixelHeight)
-        if factor > 1 {
-            scaled = scaled.boxReduced(by: factor)
-        }
+        //
+        // A picture at least as large as the grid each way goes to it in one
+        // step: every sample already averages all it covers, and averaging
+        // `factor` × `factor` sub-samples of that would be the same average,
+        // twice rounded. One smaller on either axis keeps what supersampling
+        // did there: enlarged to `factor` × the grid, then averaged back down
+        // by `factor`, which softens the enlargement.
+        let renderWidth = pixelWidth / factor
+        let renderHeight = pixelHeight / factor
+        var scaled =
+            samplesNearest
+            ? image.scaled(to: renderWidth, renderHeight)
+            : factor > 1 && (image.width < renderWidth || image.height < renderHeight)
+                ? image.resampled(to: pixelWidth, pixelHeight).resampled(to: renderWidth, renderHeight)
+                : image.resampled(to: renderWidth, renderHeight)
 
         // Recolouring comes FIRST, before anything measures or quantises the
         // image. An inversion moves where the ink/background split falls, so a

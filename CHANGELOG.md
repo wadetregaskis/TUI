@@ -61,6 +61,19 @@ reach it and Paste never landed there: only the pointer could drop on it. It is 
 or answers on its content's own: a carried drag stops there and Return drops it, and Paste drops what was copied, as
 the item providers a drag of it would carry, so a `DropDelegate` hears the whole of a drop's calls.
 
+**A picture shrunk to its box averages every pixel it covers.** A URL's picture, a decoded image and an animation's
+frames were shrunk by a bilinear read of 2 × 2 source pixels per target pixel however large the source, so a
+4000 × 3000 photo in a 40 × 12 box saw about one pixel in ten and fine lines broke up; a file's picture was averaged
+down by whole blocks first and then read the same way. Every picture now goes through one resampler, an area average
+in one pass: each pixel of the glyph grid, or of what a graphics protocol is sent, is the average of every source
+pixel it covers, weighted by how much of each it covers and by its alpha, so a transparent pixel lends no colour.
+Enlarging is as it was, and `imageSupersampling` now only softens an enlargement, a shrink having nothing left for it
+to average. An image's `.interpolation(.none)` or `.antialiased(false)` reads each sample from the one pixel it falls
+on, SwiftUI's nearest-neighbour read, where it used to mean that 2 × 2 read. A picture drawn smaller than it is comes out slightly different; a large one costs what its size says
+(7.6 ms to shrink a 4000 × 3000 photo to 80 × 48 in release, where the bilinear read took 0.03 ms and the old file
+path 17.6 ms). `RGBAImage.scaledBilinear(to:_:)` and `RGBAImage.boxReduced(by:)` are gone: call
+`resampled(to:_:)`.
+
 **A large `TextEditor` holds a fifth of the memory it did.** Its lines were kept as arrays of `Character`, 16 bytes a
 character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224 MB of
 heap once its editor had drawn, and takes about 44 MB (665 to 129 bytes a line; the lines' own share went from 518 to

@@ -247,7 +247,7 @@ extension PlatformImageLoader {
         let image = try unsafe rotator.withMemoryRebound(to: IWICBitmapSource.self, capacity: 1) {
             try unsafe Self.straightRGBA(of: $0)
         }
-        return (image.boxReduced(by: reduction), image.width, image.height)
+        return (image.reduced(by: reduction), image.width, image.height)
     }
 
     /// `source`'s pixels converted to straight-alpha 32-bit RGBA, row 0 the top.

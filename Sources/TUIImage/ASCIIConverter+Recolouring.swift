@@ -87,7 +87,7 @@ extension ASCIIConverter {
             return RGBAImage(width: 0, height: 0, pixels: [])
         }
 
-        var scaled = image.scaledBilinear(to: width, height)
+        var scaled = image.resampled(to: width, height)
 
         // Recolouring first, before anything measures or quantises — the same
         // order, and the same reason, as `convert(_:width:height:)`: an

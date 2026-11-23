@@ -119,12 +119,12 @@ struct RGBAImageTests {
         #expect(scaled.height == 5)
     }
 
-    @Test("Bilinear scaling produces correct dimensions")
-    func bilinearScaling() {
+    @Test("Resampling produces correct dimensions")
+    func resampling() {
         let pixels = [RGBA](repeating: RGBA(r: 128, g: 128, b: 128), count: 100)
         let image = RGBAImage(width: 10, height: 10, pixels: pixels)
 
-        let scaled = image.scaledBilinear(to: 20, 20)
+        let scaled = image.resampled(to: 20, 20)
         #expect(scaled.width == 20)
         #expect(scaled.height == 20)
     }

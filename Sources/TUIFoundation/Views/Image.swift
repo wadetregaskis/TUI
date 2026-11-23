@@ -129,11 +129,11 @@ nonisolated public struct Image: View {
     var resizing: _ImageResizing?
 
     /// The supersampling factor this image's own modifiers ask for, or `nil`
-    /// to take the environment's: an interpolation quality, else `1` for an
-    /// image told not to antialias.
+    /// to take the environment's: an interpolation quality, else a
+    /// nearest-pixel read for an image told not to antialias.
     @MainActor private var samplingFactor: Int? {
         if let interpolationQuality { return interpolationQuality.samplingFactor }
-        return isAntialiased == false ? 1 : nil
+        return isAntialiased == false ? Interpolation.nearestSamplingFactor : nil
     }
 
     /// Creates an image of the picture the bitmap path made: what

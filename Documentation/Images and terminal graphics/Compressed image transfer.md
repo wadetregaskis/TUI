@@ -181,7 +181,7 @@ the analysis is not repeated:
    `edgeContrast` is too, so the obvious `toneCurve == nil && edgeContrast == 0`
    is wrong in both directions.
 4. **`imageAspectRatio != nil`.** `.aspectRatio(_:contentMode:)` replaces the
-   source ratio and `scaledBilinear` then stretches the picture into the box.
+   source ratio and the resampler (`RGBAImage.resampled`) then stretches the picture into the box.
    That distortion is the modifier's entire point, and passthrough would
    silently make it inert. `.fill` is *not* a disqualifier — both `targetSize`
    branches preserve the corrected ratio, so it changes the box's size and not

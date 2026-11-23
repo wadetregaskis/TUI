@@ -354,7 +354,14 @@ struct AdaptivePaletteTests {
         #else
             let decoded = try PlatformImageLoader().loadImage(from: path)
         #endif
-        let image = decoded.scaledBilinear(to: 96, 94)
+        // Sampled by the 2 × 2 bilinear read the picture was shrunk with when this
+        // test was written, not by today's area average (O-36): this pins a
+        // property of THAT picture. The area-averaged one, smoother, leaves one
+        // entry drawing nothing at 42 to 64 colours, for gains of 0.006 and less
+        // (measured 2026-11-23): the same limit of deriving from buckets as the
+        // Windows note above, which reseeding does not move.
+        let image = RGBAImage(
+            width: 96, height: 94, pixels: ResamplingEquivalenceTests.reference(decoded, to: 96, 94))
         let wasted = Self.wastedCounts(image, depth: .palette256, counts: 20...64)
         #expect(wasted.isEmpty, "\(wasted)")
     }

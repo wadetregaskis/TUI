@@ -319,23 +319,28 @@ struct ASCIIPaletteTests {
     /// falls, so the curve has to run BEFORE the threshold is measured.
     @Test("Inverting an image inverts which cells are ink")
     func curveRunsBeforeTheThreshold() {
-        func inkCount(curve: ASCIIToneCurve?) -> Int {
+        func ink(curve: ASCIIToneCurve?) -> [Bool] {
             let converter = ASCIIConverter(
                 characterSet: .blocks(.solid), colorMode: .mono, toneCurve: curve)
             let lines = ColorDepth.withCurrent(.noColor) {
                 converter.convert(gradient(width: 40, height: 20), width: 20, height: 10).lines
             }
-            return lines.joined().filter { $0 != " " && !$0.isNewline }.count
+            return lines.joined().filter { !$0.isNewline }.map { $0 != " " }
         }
-        let plain = inkCount(curve: nil)
-        let inverted = inkCount(curve: .inverted)
-        #expect(plain > 0 && inverted > 0)
+        let plain = ink(curve: nil)
+        let inverted = ink(curve: .inverted)
+        let plainCount = plain.filter { $0 }.count
+        let invertedCount = inverted.filter { $0 }.count
+        #expect(plainCount > 0 && invertedCount > 0)
         // Otsu re-measures the inverted image, so the two sides swap: what was
-        // ink is now background and the counts are complementary, not equal.
+        // ink is now background and the counts are complementary. (Equal, on
+        // this gradient averaged two pixels to a cell: it splits it in half.)
         let cells = 20 * 10
-        #expect(abs((plain + inverted) - cells) <= cells / 10,
-                "\(plain) + \(inverted) should account for the \(cells) cells")
+        #expect(abs((plainCount + invertedCount) - cells) <= cells / 10,
+                "\(plainCount) + \(invertedCount) should account for the \(cells) cells")
         #expect(plain != inverted, "the curve changed nothing")
+        let swapped = zip(plain, inverted).filter { $0 != $1 }.count
+        #expect(swapped >= cells * 9 / 10, "only \(swapped) of \(cells) cells changed sides")
     }
 
     @Test("A curve stop may name a theme colour")

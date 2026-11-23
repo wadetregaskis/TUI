@@ -44,14 +44,17 @@ cuts), or the box it is fitted or filled to — times what each cell reads:
 Never reduced: an image drawn in slices (`resizable(capInsets:)`), whose caps
 are cut in its own pixels; a URL's picture (downloaded bytes, a different
 path, and not what the ruling was about); an image that came decoded; and a
-playing animation's frames, which `FramePlan` already sizes.
+playing animation's frames, which `FramePlan` already sizes. Not reduced at
+decode, that is: each is still shrunk to the box it is drawn in by the same
+area average (below, "One resampler").
 
 ### Why a power of two
 
 - JPEG decodes natively at a half, a quarter and an eighth of its size, from
   its own coefficients, so ImageIO's thumbnail is cheapest at exactly those.
-- stb_image cannot decode smaller at all; its picture is averaged down by
-  whole blocks (`RGBAImage.boxReduced(by:)`, alpha-weighted).
+- stb_image cannot decode smaller at all; its picture is decoded whole and
+  averaged down by the one resampler (`RGBAImage.reduced(by:)`), which could
+  take any factor and takes the same one, so a file is kept alike everywhere.
 - A box growing or shrinking a cell at a time — a window dragged, a zoom —
   decodes again only when it crosses a power of two, not on every frame. What
   is kept is at most twice what is needed on each axis.
@@ -117,6 +120,64 @@ used to resample the whole picture with a bilinear 2 × 2 point read, which
 aliases on a heavy downscale, and now resamples a copy the decoder has
 already filtered down. The owner accepted the shift. No golden snapshot
 draws a file picture small enough to be reduced, so none changed.
+
+## One resampler (owner 2026-11-22, O-36 (a))
+
+What this page first built left two steps for a file on Linux, Windows and
+WebAssembly — averaged down by whole blocks at decode, then read bilinearly
+to the cell grid — and one bad step for everything else: a URL's picture, a
+decoded image and an animation's frames were shrunk by the bilinear read
+alone, 2 × 2 source pixels per target pixel however large the source. A
+4000 × 3000 photo in a 40 × 12 box read about 4 of every 39 pixels, and fine
+lines broke up (hunt IMAGE-15). The fix proposed was a third arrangement:
+box-reduce by the largest whole factor first, then read bilinearly. The owner
+asked why two steps, and ruled for one: **"one-step area average, files
+too"**, with the shifted glyphs and golden snapshots accepted.
+
+So every picture is now resized by one resampler, `PixelResampler`
+(`RGBAImage.resampled(to:_:)` for an image): each target pixel is the average
+of every source pixel it covers, weighted by how much of each it covers, in
+one separable pass (across, then down, with each axis's spans and weights
+worked out before a pixel is read). Why one step rather than two: two steps
+are two filters and two roundings where one does the job exactly, a whole
+factor ahead of a fractional one is still a fractional read at the end, and
+there is then one place to get premultiplication, rounding and speed right.
+
+- **Where it runs**: the converter's glyph grid (`ASCIIConverter.convert`),
+  the pixels a graphics protocol is sent (`recoloured`), an animation's frames
+  sized by `FramePlan`, the shared ink threshold's sample, and stb_image's
+  and WIC's reduction at decode. ImageIO's thumbnail (Apple platforms) is
+  ImageIO's own filter; what it hands back is resampled to the grid by this
+  one.
+- **Enlarging** is as it was: an axis the target is longer on reads the two
+  nearest source pixels at `x × source / target`, bilinearly. Each axis is
+  decided alone, so a picture squeezed across and stretched down averages
+  across and interpolates down. `imageSupersampling` keeps its part there:
+  a picture smaller than the grid on either axis is enlarged `factor`× and
+  averaged back down by `factor`; one at least as large goes straight to the
+  grid, since averaging sub-samples of an area average repeats it. An image's
+  `.interpolation(.none)` or `.antialiased(false)`, which used to be a factor
+  of 1 and so the 2 × 2 read, is now a nearest-pixel read on the glyph path
+  (`ASCIIConverter.samplesNearest`, `RGBAImage.scaled(to:_:)`), as SwiftUI's
+  is: a factor of 1 averages now, and would have dropped its meaning.
+- **Colour** is averaged in the encoded sRGB values the pixels hold, as both
+  old steps were; not in linear light. **Alpha** weights it (premultiplied),
+  as both old steps did: a transparent pixel lends no colour, and a target
+  with no coverage is `(0, 0, 0, 0)`. What changed is rounding: to nearest
+  everywhere, where the box reduction truncated.
+- **Files** still decode at a power of two of their size, for the memory this
+  page is about, so a file reduced at decode is averaged twice: once to what
+  is kept, once to the grid. Both are the same area average.
+
+Cost: the area average reads every source pixel, where the bilinear read
+took four per target pixel, so a large picture costs what its size says. One
+4000 × 3000 → 80 × 48 shrink, release, best of 15: 0.025 ms by the bilinear
+read (reading 15,360 of 12 million pixels), 17.6 ms by the old file path
+(32× box then bilinear), 7.6 ms now; debug, 1.0 ms, 1,390 ms and 88 ms. An
+enlargement is cheaper than before, the separable pass doing two taps an
+axis rather than four products a pixel: 200 × 150 → 960 × 850 went from
+5.2 ms to 3.5 ms in release and 192 ms to 44 ms in debug. The Stress and
+ImageHarness A/B is in the commit that made the change.
 
 ## Measured
 

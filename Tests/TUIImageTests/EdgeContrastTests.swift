@@ -144,8 +144,8 @@ struct EdgeContrastTests {
 /// only interleaved with the other columns' — and bit-exactness is not
 /// something to assert about a floating-point sum whose `.rounded()` turns a
 /// last-bit difference into a different pixel value. So it is checked against
-/// the arithmetic it replaced, exactly as `ResamplingEquivalenceTests` checks
-/// the resampler, and on the shapes where the edge clamps decide the answer.
+/// the arithmetic it replaced, as `ResamplingEquivalenceTests` checks the
+/// resampler's enlargement, and on the shapes where the edge clamps decide the answer.
 @Suite("Sharpening is bit-exact")
 struct SharpeningEquivalenceTests {
 

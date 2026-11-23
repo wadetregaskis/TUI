@@ -68,9 +68,9 @@ extension ASCIIConverter {
     /// be wrong about, so this was invisible while the only consumer was the
     /// character renderer — and it stops being invisible the moment the same
     /// quantisation is applied to pixels that go to the TERMINAL, which is
-    /// what composites them over the page. Same defect as the one
-    /// `RGBAImage.scaledBilinear` had, in the same shape: `RGBA(r:g:b:)`
-    /// defaults alpha to opaque.
+    /// what composites them over the page. Same defect as the one the
+    /// bilinear resampler (now `RGBAImage.resampled`) had, in the same shape:
+    /// `RGBA(r:g:b:)` defaults alpha to opaque.
     func quantizePixel(
         _ pixel: RGBA, mode: ASCIIColorMode, monoThreshold: Double,
         table: ASCIIPalette.QuantisationTable? = nil

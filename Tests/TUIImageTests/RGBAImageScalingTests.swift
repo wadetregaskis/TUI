@@ -24,16 +24,16 @@ struct RGBAImageScalingTests {
             ])
     }
 
-    /// `scaledBilinear` interpolated red, green and blue and then built its
-    /// pixel with `RGBA(r:g:b:)`, whose alpha defaults to opaque — so every
+    /// The bilinear resampler interpolated red, green and blue and then built
+    /// its pixel with `RGBA(r:g:b:)`, whose alpha defaults to opaque — so every
     /// transparent picture it touched came out solid.
     ///
     /// Nothing noticed while its only consumers read luminance or RGB to pick
     /// a glyph. A renderer that hands the pixels to the TERMINAL notices at
     /// once, because the terminal is what composites them over the page.
-    @Test("Bilinear scaling carries alpha")
-    func bilinearKeepsAlpha() {
-        let scaled = cornerCutout().scaledBilinear(to: 4, 4)
+    @Test("Enlarging carries alpha")
+    func enlargingKeepsAlpha() {
+        let scaled = cornerCutout().resampled(to: 4, 4)
         #expect(scaled.pixel(at: 0, 0).a == 0, "the transparent corner is still transparent")
         #expect(scaled.pixel(at: 3, 3).a == 255, "and the opaque one is still opaque")
         #expect(
@@ -44,7 +44,7 @@ struct RGBAImageScalingTests {
     /// Both resamplers guarded the TARGET size and never the source. A 0x0
     /// source (which a decode can return as a success, and which `scaled(to:
     /// 0, 0)` produces) then indexed an empty array in `scaled(to:)` and read
-    /// `source[-1]` through an unsafe buffer in `scaledBilinear`.
+    /// `source[-1]` through an unsafe buffer in the bilinear one.
     @Test("An empty source scales to an empty image instead of trapping")
     func emptySourceScales() {
         let sources = [
@@ -54,8 +54,8 @@ struct RGBAImageScalingTests {
         ]
         for source in sources {
             #expect(source.scaled(to: 4, 4).pixels.isEmpty, "\(source.width)x\(source.height)")
-            #expect(source.scaledBilinear(to: 4, 4).pixels.isEmpty, "\(source.width)x\(source.height)")
-            #expect(source.boxReduced(by: 2).pixels.isEmpty, "\(source.width)x\(source.height)")
+            #expect(source.resampled(to: 4, 4).pixels.isEmpty, "\(source.width)x\(source.height)")
+            #expect(source.reduced(by: 2).pixels.isEmpty, "\(source.width)x\(source.height)")
         }
     }
 
@@ -68,7 +68,7 @@ struct RGBAImageScalingTests {
         let source = RGBAImage(
             width: 2, height: 1,
             pixels: [RGBA(r: 255, g: 0, b: 0, a: 255), RGBA(r: 0, g: 0, b: 0, a: 0)])
-        let out = source.scaledBilinear(to: 4, 1)
+        let out = source.resampled(to: 4, 1)
         let edge = out.pixel(at: 1, 0)
         #expect(edge.r == 255 && edge.g == 0 && edge.b == 0, "\(edge)")
         #expect(edge.a == 128, "\(edge)")
@@ -77,58 +77,57 @@ struct RGBAImageScalingTests {
         // Opaque pictures are byte-identical to the plain filter.
         let opaque = RGBAImage(
             width: 2, height: 1, pixels: [RGBA(r: 255, g: 0, b: 0), RGBA(r: 0, g: 0, b: 255)])
-        let mid = opaque.scaledBilinear(to: 4, 1).pixel(at: 1, 0)
+        let mid = opaque.resampled(to: 4, 1).pixel(at: 1, 0)
         #expect(mid.r == 128 && mid.b == 128 && mid.a == 255, "\(mid)")
     }
 
-    /// The other two resamplers already did this; the test is here so a future
-    /// edit to any of the three fails in the same place.
-    @Test("The other resamplers carry it too")
+    /// The nearest-neighbour scaler carries it too, and so does a shrink; the
+    /// test is here so a future edit to either fails in the same place.
+    @Test("The other scalings carry it too")
     func siblingsKeepAlpha() {
         #expect(cornerCutout().scaled(to: 4, 4).pixel(at: 0, 0).a == 0, "nearest neighbour")
         let reduced = RGBAImage(
             width: 2, height: 2,
             pixels: [RGBA](repeating: RGBA(r: 1, g: 2, b: 3, a: 0), count: 4)
-        ).boxReduced(by: 2)
-        #expect(reduced.pixel(at: 0, 0).a == 0, "box reduction")
+        ).resampled(to: 1, 1)
+        #expect(reduced.pixel(at: 0, 0).a == 0, "shrink")
     }
 
-    /// **`boxReduced` averaged straight colour and alpha independently.**
+    /// **The box reduction averaged straight colour and alpha independently** (§41).
     ///
-    /// `scaledBilinear` premultiplies and says at its own loop exactly why: a
+    /// The bilinear read premultiplied and said at its own loop exactly why: a
     /// transparent pixel's colour is meaningless, the decoder writes it BLACK, and
     /// giving it full weight pulls its opaque neighbours toward black. The box
-    /// reduction is the third resampler and had the same hole — benign only because
-    /// `ASCIIConverter` flattened over black *before* calling it, so every alpha it
-    /// ever saw was 255. §41.
+    /// reduction had the same hole — benign only because `ASCIIConverter` flattened
+    /// over black *before* calling it. Both are one area-average resampler now
+    /// (O-36), premultiplied.
     ///
     /// Half a block of white at full coverage and half at none: the answer is WHITE at
     /// half coverage. Averaged independently it is GREY at half coverage, which is a
     /// dark halo around every soft edge.
-    @Test("A box reduction averages colour by coverage, not beside it")
-    func boxReductionIsAlphaWeighted() {
+    @Test("A shrink averages colour by coverage, not beside it")
+    func shrinkIsAlphaWeighted() {
         let opaque = RGBA(r: 255, g: 255, b: 255, a: 255)
         let clear = RGBA(r: 0, g: 0, b: 0, a: 0)
         let reduced = RGBAImage(
             width: 2, height: 2, pixels: [opaque, clear, opaque, clear]
-        ).boxReduced(by: 2)
+        ).resampled(to: 1, 1)
         let pixel = reduced.pixel(at: 0, 0)
-        #expect(pixel.a == 127, "half coverage: \(pixel)")
+        // 127.5, rounded to nearest (the box reduction truncated to 127).
+        #expect(pixel.a == 128, "half coverage: \(pixel)")
         #expect(
             (pixel.r, pixel.g, pixel.b) == (255, 255, 255),
             "the white survives its transparent neighbours: \(pixel)")
     }
 
-    /// And an OPAQUE block must come out byte-identical to what the unweighted average
-    /// gave, because that is what every image in the pipeline is today: with every
-    /// coverage equal the weights cancel, integer division included, so the fix cannot
-    /// have moved a single existing pixel.
-    @Test("An opaque box reduction is byte-identical to the plain average")
-    func opaqueBoxReductionIsUnchanged() {
+    /// An opaque block halved each way is the plain average of its four pixels,
+    /// rounded to nearest: the weights cancel when every coverage is equal.
+    @Test("An opaque shrink by a whole factor is the plain block average")
+    func opaqueShrinkIsThePlainAverage() {
         let values: [UInt8] = [10, 20, 33, 44, 200, 201, 202, 203, 7, 8, 9, 250, 1, 2, 3, 4]
         let source = RGBAImage(
             width: 4, height: 4, pixels: values.map { RGBA(r: $0, g: $0 / 2, b: $0 / 3) })
-        let reduced = source.boxReduced(by: 2)
+        let reduced = source.resampled(to: 2, 2)
         for y in 0..<2 {
             for x in 0..<2 {
                 var sum = (r: 0, g: 0, b: 0)
@@ -138,10 +137,12 @@ struct RGBAImageScalingTests {
                         sum = (sum.r + Int(p.r), sum.g + Int(p.g), sum.b + Int(p.b))
                     }
                 }
+                // Within half a level of the exact quarter: where a sum lands on
+                // a half, a Float's last bit may tip it either way.
                 let got = reduced.pixel(at: x, y)
-                #expect(Int(got.r) == sum.r / 4, "\(x),\(y) red: \(got)")
-                #expect(Int(got.g) == sum.g / 4, "\(x),\(y) green: \(got)")
-                #expect(Int(got.b) == sum.b / 4, "\(x),\(y) blue: \(got)")
+                #expect(abs(Double(got.r) - Double(sum.r) / 4) <= 0.5, "\(x),\(y) red: \(got)")
+                #expect(abs(Double(got.g) - Double(sum.g) / 4) <= 0.5, "\(x),\(y) green: \(got)")
+                #expect(abs(Double(got.b) - Double(sum.b) / 4) <= 0.5, "\(x),\(y) blue: \(got)")
                 #expect(got.a == 255, "\(x),\(y) alpha: \(got)")
             }
         }
@@ -154,27 +155,27 @@ struct RGBAImageScalingTests {
         let ramp = RGBAImage(
             width: 2, height: 1,
             pixels: [RGBA(r: 0, g: 0, b: 0), RGBA(r: 255, g: 255, b: 255)])
-        let scaled = ramp.scaledBilinear(to: 4, 1)
+        let scaled = ramp.resampled(to: 4, 1)
         #expect(scaled.pixel(at: 0, 0).r == 0)
         #expect(scaled.pixel(at: 3, 0).r > 0)
         #expect(scaled.pixels.allSatisfy { $0.a == 255 }, "an opaque image stays opaque")
     }
 }
 
-/// The fast resampler against a transcription of the one it replaced.
+/// An enlargement against a transcription of the bilinear read it was.
 ///
-/// `scaledBilinear` was rewritten to be call-free — unsafe buffers, concrete
-/// `Double(Int(_:))` conversions, the interpolation written out — because at
-/// `-Onone` its inner loop made 41 non-inlined calls and about 26 atomic
-/// retain/release pairs per output pixel. The claim is that it is bit-exact,
-/// and the character renderer's every glyph depends on that being true, so it
-/// is checked against the arithmetic it replaced rather than asserted.
-@Suite("Resampling is bit-exact")
+/// Enlarging kept the bilinear read when shrinking became an area average
+/// (O-36): the same mapping, `x × width / targetWidth`, the same clamps at the
+/// last pixel, premultiplied. Separable now, horizontally then vertically in
+/// Floats, where the read summed four products in Doubles, so a value that
+/// lands on a half can round the other way: within one level, not bit-exact.
+@Suite("Enlarging reads as the bilinear read did")
 struct ResamplingEquivalenceTests {
 
-    /// The previous implementation, transcribed: `pixel(at:)` reads, a helper
-    /// per channel, and `RGBA(r:g:b:)` — alpha aside, which was the bug.
-    private func reference(_ image: RGBAImage, to targetWidth: Int, _ targetHeight: Int)
+    /// The bilinear read, transcribed: `pixel(at:)` reads, a helper per
+    /// channel, premultiplied. Also what `AdaptivePaletteTests` samples the
+    /// Example's demo picture with, to keep testing the picture it was written on.
+    static func reference(_ image: RGBAImage, to targetWidth: Int, _ targetHeight: Int)
         -> [RGBA]
     {
         var result = [RGBA](repeating: RGBA(r: 0, g: 0, b: 0), count: targetWidth * targetHeight)
@@ -241,20 +242,23 @@ struct ResamplingEquivalenceTests {
         return RGBAImage(width: width, height: height, pixels: pixels)
     }
 
-    /// Upscales, downscales, non-integer ratios, and the degenerate shapes
+    /// Upscales, non-integer ratios, the same size, and the degenerate shapes
     /// where the clamping at the edges is what decides the answer.
-    @Test("Every pixel matches the arithmetic it replaced")
+    @Test("Every pixel is within a level of the bilinear read")
     func matchesTheReference() {
         let shapes = [
-            (7, 5, 13, 11), (13, 11, 7, 5), (16, 16, 16, 16),
-            (1, 9, 5, 3), (9, 1, 3, 5), (2, 2, 31, 29), (31, 29, 2, 2),
-            (1, 1, 4, 4), (23, 17, 23, 17),
+            (7, 5, 13, 11), (16, 16, 16, 16), (1, 9, 5, 13), (9, 1, 13, 5), (2, 2, 31, 29),
+            (1, 1, 4, 4), (23, 17, 23, 17), (5, 7, 6, 50),
         ]
         for (index, shape) in shapes.enumerated() {
             let source = noise(shape.0, shape.1, seed: UInt64(index) &* 7919 &+ 3)
-            let fast = source.scaledBilinear(to: shape.2, shape.3)
-            let slow = reference(source, to: shape.2, shape.3)
-            #expect(fast.pixels == slow, "\(shape) diverged")
+            let fast = source.resampled(to: shape.2, shape.3)
+            let slow = Self.reference(source, to: shape.2, shape.3)
+            let apart = zip(fast.pixels, slow).map { got, wanted in
+                [abs(Int(got.r) - Int(wanted.r)), abs(Int(got.g) - Int(wanted.g)),
+                 abs(Int(got.b) - Int(wanted.b)), abs(Int(got.a) - Int(wanted.a))].max() ?? 0
+            }
+            #expect(apart.allSatisfy { $0 <= 1 }, "\(shape) diverged by up to \(apart.max() ?? 0)")
         }
     }
 }

@@ -166,7 +166,7 @@ extension ASCIIConverter {
         for frame in frames where frame.width > 0 && frame.height > 0 {
             var tones =
                 scale < 1
-                ? frame.scaledBilinear(
+                ? frame.resampled(
                     to: max(1, Int(Double(frame.width) * scale)), max(1, Int(Double(frame.height) * scale)))
                 : frame
             adjustments.apply(to: &tones)

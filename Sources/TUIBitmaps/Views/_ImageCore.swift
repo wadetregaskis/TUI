@@ -745,7 +745,7 @@ extension _ImageCore {
             return Self.buffer(for: cache.art, monoColours: monoColours)
         }
 
-        let converter = ASCIIConverter(
+        var converter = ASCIIConverter(
             characterSet: characterSet,
             shapeAware: shapeAware,
             colorMode: colorMode,
@@ -758,6 +758,7 @@ extension _ImageCore {
             adjustments: adjustments,
             posterizationLevels: posterizationLevels
         )
+        converter.samplesNearest = supersampling == ASCIIConverter.nearestSamplingFactor
         // A playing picture's frames are converted ahead, off the main actor;
         // until they are, what to draw instead of converting this one here.
         if let playing,

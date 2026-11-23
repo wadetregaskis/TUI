@@ -29,13 +29,14 @@ extension PlatformImageLoader {
     /// least `needed` pixels on each axis: the largest power of two, 1 where
     /// it cannot be reduced at all.
     ///
-    /// A power of two, not the exact ratio, for three reasons. JPEG decodes
+    /// A power of two, not the exact ratio, for two reasons. JPEG decodes
     /// natively at a half, a quarter and an eighth of its size, from its own
-    /// coefficients, so ImageIO's thumbnail is cheapest at those; stb_image's
-    /// pictures are averaged down by whole blocks (``RGBAImage/boxReduced(by:)``);
-    /// and a box that grows or shrinks a cell at a time — a window dragged, a
-    /// zoom — decodes again only when it crosses a power of two, not on every
-    /// frame. What is kept is at most twice the pixels needed on each axis.
+    /// coefficients, so ImageIO's thumbnail is cheapest at those; and a box
+    /// that grows or shrinks a cell at a time — a window dragged, a zoom —
+    /// decodes again only when it crosses a power of two, not on every frame.
+    /// What is kept is at most twice the pixels needed on each axis. (stb_image's
+    /// pictures, averaged down once decoded by ``RGBAImage/reduced(by:)``, could
+    /// take any factor; they take the same one so a file is kept alike everywhere.)
     package static func reduction(
         of size: (width: Int, height: Int), covering needed: (width: Int, height: Int)
     ) -> Int {
@@ -123,7 +124,7 @@ extension PlatformImageLoader {
     /// Decoded straight to that size where the decoder can: ImageIO's
     /// thumbnail, on Apple platforms, which decodes a JPEG at an eighth of
     /// its size without ever holding it whole. stb_image cannot, so there the
-    /// picture is decoded whole and averaged down (``RGBAImage/boxReduced(by:)``):
+    /// picture is decoded whole and averaged down (``RGBAImage/reduced(by:)``):
     /// only the copy kept is smaller. A PDF is rasterised at the size wanted.
     ///
     /// `maxPixelCount` limits the picture's own size, not the reduced one's:
