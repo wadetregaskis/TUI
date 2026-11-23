@@ -97,6 +97,11 @@ is now its label's words as written: a `Text`'s, a `Label`'s title's, or what an
 SwiftUI shows such a suggestion but leaves it inert; TUI keeps it pickable, a deliberate deviation by the owner's
 ruling of 2026-11-23.
 
+**A `RadioButtonGroup`'s options can come from an `if`, an `if let` or a `for` loop.** The builder's documentation
+promised all three, mixed with options written out, but none compiled: the block took options one by one, with
+nowhere for the list a loop or a conditional makes to go. `RadioButtonGroupBuilder` now joins each statement's options
+in written order, as the status bar's builder does.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It

@@ -103,9 +103,10 @@ RadioButtonGroup.init(selection:orientation:isDisabled:builder:) | init(selectio
 RadioButtonGroup.init(selection:orientation:isDisabled:items:) | init(selection: Binding<Value>, orientation: RadioButtonOrientation = .vertical, isDisabled: Bool = false, items: [RadioButtonItem<Value>])
 RadioButtonGroupBuilder | @resultBuilder enum RadioButtonGroupBuilder<Value> where Value : Hashable
 RadioButtonGroupBuilder.buildArray(_:) | static func buildArray(_ itemGroups: [[RadioButtonItem<Value>]]) -> [RadioButtonItem<Value>]
-RadioButtonGroupBuilder.buildBlock(_:) | static func buildBlock(_ items: RadioButtonItem<Value>...) -> [RadioButtonItem<Value>]
+RadioButtonGroupBuilder.buildBlock(_:) | static func buildBlock(_ components: [RadioButtonItem<Value>]...) -> [RadioButtonItem<Value>]
 RadioButtonGroupBuilder.buildEither(first:) | static func buildEither(first items: [RadioButtonItem<Value>]) -> [RadioButtonItem<Value>]
 RadioButtonGroupBuilder.buildEither(second:) | static func buildEither(second items: [RadioButtonItem<Value>]) -> [RadioButtonItem<Value>]
+RadioButtonGroupBuilder.buildExpression(_:) | static func buildExpression(_ item: RadioButtonItem<Value>) -> [RadioButtonItem<Value>]
 RadioButtonGroupBuilder.buildOptional(_:) | static func buildOptional(_ items: [RadioButtonItem<Value>]?) -> [RadioButtonItem<Value>]
 RadioButtonGroupEdgeBehavior | enum RadioButtonGroupEdgeBehavior
 RadioButtonGroupEdgeBehavior.contain | case contain

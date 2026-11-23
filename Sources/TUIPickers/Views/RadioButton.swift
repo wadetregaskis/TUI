@@ -233,14 +233,48 @@ public struct RadioButtonItem<Value: Hashable> {
 /// - `if`/`else` conditionals
 /// - `if let` optional binding
 /// - `for`...`in` loops
+///
+/// They mix freely, and the items come out in the order they are written:
+///
+/// ```swift
+/// RadioButtonGroup(selection: $format) {
+///     RadioButtonItem("plain", "Plain text")
+///     if showsRichText {
+///         RadioButtonItem("rich", "Rich text")
+///     } else {
+///         RadioButtonItem("html", "Web page")
+///     }
+///     if let recent = recentFormat {
+///         RadioButtonItem(recent, "Last used")
+///     }
+///     for name in customFormats {
+///         RadioButtonItem(name, name)
+///     }
+/// }
+/// ```
+///
+/// Every statement contributes a list of items — one item for an item, none or
+/// some for an `if` or a loop — and the block joins the lists, as
+/// `StatusBarItemBuilder` does. TUI's own API: SwiftUI has no radio group of
+/// this shape (its radio buttons are `Picker` with `.pickerStyle(.radioGroup)`,
+/// on macOS), so there is no SwiftUI builder for it to match.
 @resultBuilder
 public enum RadioButtonGroupBuilder<Value: Hashable> {
-    /// Collects the items written directly in the group's body.
+    /// Joins the items of each statement in the block, in written order.
     ///
     /// The builder's entry point: every `RadioButtonGroup { … }` produces one
-    /// call to this, with the block's items as its arguments.
-    public static func buildBlock(_ items: RadioButtonItem<Value>...) -> [RadioButtonItem<Value>] {
-        Array(items)
+    /// call to this. Each argument is one statement's items: a single item
+    /// (``buildExpression(_:)``), or what an `if` or a loop produced. Taking
+    /// the items themselves, as this once did, left an `if` or a `for` —
+    /// whose result is a list — with nowhere to go, so neither compiled.
+    public static func buildBlock(_ components: [RadioButtonItem<Value>]...) -> [RadioButtonItem<Value>] {
+        components.flatMap { $0 }
+    }
+
+    /// Makes an item written in the block a list of one, so it joins the
+    /// lists an `if` or a loop makes.
+    public static func buildExpression(_ item: RadioButtonItem<Value>) -> [RadioButtonItem<Value>] {
+        [item]
     }
 
     /// Supplies the empty list for an `if` with no `else` that did not run.
