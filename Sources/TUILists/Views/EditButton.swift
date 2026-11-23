@@ -18,7 +18,8 @@ import TUIFoundation
 /// var body: some View {
 ///     VStack {
 ///         EditButton()
-///         List { … }        // reads \.editMode to reveal its edit affordances
+///         if editMode.isEditing { Text("Editing") }   // your own UI reads the mode
+///         List { … }
 ///     }
 ///     .environment(\.editMode, $editMode)
 /// }
@@ -26,6 +27,9 @@ import TUIFoundation
 ///
 /// When no `\.editMode` binding is in scope it renders as a disabled button, like
 /// SwiftUI (whose `EditButton` is inert outside an edit-mode-providing container).
+///
+/// Its title is TUI's own Edit or Done (`button.edit`, `button.done`), in the
+/// app's language and in a subtree's `\.locale`, as SwiftUI's is the system's.
 /// > Important: This does **nothing** in TUI, and is not expected to. It is
 /// > here so that code ported from SwiftUI compiles and reads the same.
 /// >
@@ -44,7 +48,7 @@ public struct EditButton {
     /// The content and behavior of this view.
     @MainActor public var body: some View {
         let isEditing = editMode?.wrappedValue.isEditing ?? false
-        return Button(isEditing ? "Done" : "Edit") {
+        return Button(localized: isEditing ? LocalizationKey.Button.done : .edit) {
             guard let editMode else { return }
             editMode.wrappedValue = editMode.wrappedValue.isEditing ? .inactive : .active
         }

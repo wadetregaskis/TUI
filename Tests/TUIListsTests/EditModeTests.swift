@@ -4,6 +4,7 @@
 //  Created by LAYERED.work
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUIApp
@@ -13,7 +14,7 @@ import Testing
 @testable import TUIView
 
 @MainActor
-@Suite("EditMode / EditButton")
+@Suite("EditMode / EditButton", .rendersEnglishUI)
 struct EditModeTests {
     private final class ModeBox { var mode: EditMode = .inactive }
     private func binding(_ box: ModeBox) -> Binding<EditMode> {
@@ -51,6 +52,22 @@ struct EditModeTests {
         #expect(text().contains("Edit"), "inactive → Edit")
         box.mode = .active
         #expect(text().contains("Done"), "active → Done")
+    }
+
+    @Test("EditButton's Edit and Done are TUI's words, in the subtree's language")
+    func labelIsLocalised() {
+        let box = ModeBox()
+        func text() -> String {
+            let context = makeBareRenderContext(width: 20, height: 3)
+            let button = EditButton().environment(\.editMode, binding(box))
+                .environment(\.locale, Locale(identifier: "de"))
+            return renderToBuffer(button, context: context).lines.joined()
+        }
+        // `button.edit` and `button.done` in de.json; they were the English
+        // literals "Edit" and "Done", which no table has.
+        #expect(text().contains("Bearbeiten"), "inactive → Bearbeiten: \(text())")
+        box.mode = .active
+        #expect(text().contains("Fertig"), "active → Fertig: \(text())")
     }
 
     @Test("EditButton cannot take focus without an editMode in scope (it is disabled)")

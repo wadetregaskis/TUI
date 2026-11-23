@@ -25,6 +25,10 @@ cannot see. An app that draws its own progress or posts its own notice where the
 before; one that tells the person their terminal cannot do them should not. `TUI_NOTIFICATIONS`, `TUI_PROGRESS` and
 `TUI_OSC52` set to `0` still make each unsupported.
 
+**`EditButton` says Edit and Done in the app's language.** Its title was the English "Edit" and "Done", which no
+table has, so every language read them in English; it now reads TUI's own `button.edit` and `button.done`, and
+follows a subtree's `\.locale` as TUI's other buttons do.
+
 **On Windows, closing the app's window or tab quits it in order.** Closing conhost's window or Windows Terminal's
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
