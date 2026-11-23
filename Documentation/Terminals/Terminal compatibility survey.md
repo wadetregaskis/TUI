@@ -2309,6 +2309,7 @@ addons a page loaded, and everything below is the demo's configuration.
 | Block elements, corner triangles | fill the cell under the WebGL renderer, which draws them itself. Not under the DOM renderer, which takes them from the font: in Safari 27.2 a three-row button came apart, owner's report 2026-11-01. The demo loads WebGL; a page that does not would want `blockElementsFillTheLine` false, and nothing can see which it did |
 | Clipboard | not assumed: OSC 52 needs its clipboard addon, which nothing can see (`TUI_OSC52=1` says the page has it) |
 | Emoji chrome, pointer shapes, notifications, progress reports | not assumed, unmeasured or absent |
+| What `\.terminalCapabilities` says of them | clipboard writes, notifications, progress reports and pointer shapes **undetermined**, not unsupported: a page can register its own handler for `OSC 9` or `OSC 9;4`, or load the clipboard addon, which nothing can see, and none of the three was measured (`TerminalCapabilities.hostIntegrationEvidence(_:)`, 2026-11-23, LOOP2-12). TUI sends none of them unless `TUI_NOTIFICATIONS`, `TUI_PROGRESS` or `TUI_OSC52` is `1`; set to `0`, each is unsupported |
 
 ### Why not something else
 

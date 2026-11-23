@@ -20,13 +20,15 @@ extension TerminalCapabilities {
     /// hyperlinks and clipboard writes). The progress bar is the render loop's
     /// to publish, as it learns whether it shows (``progressAbsence(program:environment:)``
     /// says what its absence means), and Option as Meta the input's.
+    ///
+    /// `program` is the terminal TUI identified; a test names one.
     @MainActor
     static func atLaunch(
         features: TerminalFeatures, reporting: KeyboardReporting,
-        environment: [String: String] = ProcessInfo.processInfo.environment
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        program: TerminalClient.Program = TerminalHost.program
     ) -> Self {
-        let program = TerminalHost.program
-        return textDecorations(of: program)
+        textDecorations(of: program)
             .settling(negotiatedKeyboard, from: keyboard(reporting))
             .settling(.pictures, as: picturesStatus(environment: environment))
             .settling(.hyperlinks, as: hyperlinksStatus(environment: environment))
@@ -36,7 +38,7 @@ extension TerminalCapabilities {
                 as: status(
                     uses: features.postsNotifications,
                     forced: isForced(override: nil, variable: "TUI_NOTIFICATIONS", in: environment),
-                    evidence: program == .unidentified ? .unidentified : .known))
+                    evidence: hostIntegrationEvidence(program)))
             .settling(
                 .pointerShapes,
                 as: status(
@@ -88,18 +90,46 @@ extension TerminalCapabilities {
 
     /// The clipboard ladder (`TerminalClient.clipboardWrites`): honoured is
     /// supported, unconfirmed undetermined, unsupported unsupported — but on a
-    /// terminal TUI did not identify, which the table answers "no" for
+    /// terminal TUI did not identify, or whose row is not known
+    /// (``hostIntegrationEvidence(_:)``), which the table answers "no" for
     /// safety. Under tmux, unless forced, undetermined without asking: tmux's
     /// options decide at each copy, and asking them costs a subprocess.
     @MainActor
     static func clipboardWritesStatus(program: TerminalClient.Program, environment: [String: String]) -> Status {
-        let forced = isForced(
-            override: TerminalClient.clipboardWriteSupport, variable: "TUI_OSC52", in: environment)
+        clipboardWritesStatus(
+            program: program, writes: TerminalClient.clipboardWrites,
+            forced: isForced(override: TerminalClient.clipboardWriteSupport, variable: "TUI_OSC52", in: environment))
+    }
+
+    /// The ladder behind ``clipboardWritesStatus(program:environment:)``,
+    /// posed on its inputs: `writes`, what the clipboard ladder decided, and
+    /// `forced`, whether the app or `TUI_OSC52` decided it.
+    static func clipboardWritesStatus(
+        program: TerminalClient.Program, writes: TerminalClient.ClipboardWriteSupport, forced: Bool
+    ) -> Status {
         if program == .tmux, !forced { return .undetermined }
-        switch TerminalClient.clipboardWrites {
+        switch writes {
         case .honoured: return .supported
         case .unconfirmed: return .undetermined
-        case .unsupported: return program == .unidentified && !forced ? .undetermined : .unsupported
+        case .unsupported: return status(uses: false, forced: forced, evidence: hostIntegrationEvidence(program))
+        }
+    }
+
+    /// How far the tables of what a terminal does with notifications
+    /// (`TerminalClient.honoursNotifications`), progress reports
+    /// (`honoursProgressReports`) and clipboard writes
+    /// (`TerminalClient.support(of:)`) reach `program`: every host they name
+    /// but xterm.js. There each is the page's to handle (an `OSC 9` handler
+    /// of its own, its clipboard addon), which nothing can see, and the
+    /// survey measured none of them ("What TUI does about it —
+    /// `TerminalClient.Program.xtermJS`"). TUI sends none of the three
+    /// there, and says it does not know whether the person would see one.
+    static func hostIntegrationEvidence(_ program: TerminalClient.Program) -> HostEvidence {
+        switch program {
+        case .appleTerminal, .iTerm2, .ghostty, .warp, .gnomeTerminal, .windowsTerminal, .windowsConsole, .tmux:
+            .known
+        case .xtermJS: .unknown
+        case .unidentified: .unidentified
         }
     }
 
@@ -118,9 +148,11 @@ extension TerminalCapabilities {
     /// ``Feature/progressReports``, which is supported where it shows:
     /// unsupported where `TUI_PROGRESS` turned it off, on a terminal TUI
     /// knows draws none, and under tmux, which was asked about the terminals
-    /// attached; undetermined on a terminal TUI did not identify.
+    /// attached; undetermined on a terminal TUI did not identify, and on
+    /// xterm.js, whose page may draw one (``hostIntegrationEvidence(_:)``).
     static func progressAbsence(program: TerminalClient.Program, environment: [String: String]) -> Status {
-        let forced = isForced(override: nil, variable: "TUI_PROGRESS", in: environment)
-        return program == .unidentified && !forced ? .undetermined : .unsupported
+        status(
+            uses: false, forced: isForced(override: nil, variable: "TUI_PROGRESS", in: environment),
+            evidence: hostIntegrationEvidence(program))
     }
 }

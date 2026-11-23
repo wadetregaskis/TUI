@@ -15,6 +15,12 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**On xterm.js, `\.terminalCapabilities` says notifications, progress bars and clipboard writes are undetermined.**
+They read as unsupported, a settled answer, though nothing was measured and the page can add any of them, which TUI
+cannot see. An app that draws its own progress or posts its own notice where these are not supported does so as
+before; one that tells the person their terminal cannot do them should not. `TUI_NOTIFICATIONS`, `TUI_PROGRESS` and
+`TUI_OSC52` set to `0` still make each unsupported.
+
 **On Windows, closing the app's window or tab quits it in order.** Closing conhost's window or Windows Terminal's
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.

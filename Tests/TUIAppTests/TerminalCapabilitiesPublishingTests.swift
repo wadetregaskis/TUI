@@ -161,14 +161,45 @@ struct TerminalCapabilitiesPublishingTests {
         #expect(off.status(of: [.notifications, .pointerShapes]) == .unsupported)
     }
 
-    @Test("A bar that does not show says nothing of a terminal TUI did not identify, unless switched off")
+    @Test("A bar that does not show says nothing of a terminal TUI did not identify, or of xterm.js, unless switched off")
     func progressAbsence() {
-        #expect(TerminalCapabilities.progressAbsence(program: .unidentified, environment: [:]) == .undetermined)
-        #expect(
-            TerminalCapabilities.progressAbsence(program: .unidentified, environment: ["TUI_PROGRESS": "0"])
-                == .unsupported)
-        for program in TerminalClient.Program.allCases where program != .unidentified {
+        for program: TerminalClient.Program in [.unidentified, .xtermJS] {
+            #expect(TerminalCapabilities.progressAbsence(program: program, environment: [:]) == .undetermined)
+            #expect(
+                TerminalCapabilities.progressAbsence(program: program, environment: ["TUI_PROGRESS": "0"])
+                    == .unsupported)
+        }
+        for program in TerminalClient.Program.allCases where program != .unidentified && program != .xtermJS {
             #expect(TerminalCapabilities.progressAbsence(program: program, environment: [:]) == .unsupported)
         }
+    }
+
+    /// The survey measured none of notifications, progress or clipboard
+    /// writes on xterm.js, where each is the page's to handle: TUI sends none
+    /// of them, and publishes "undetermined", not "unsupported".
+    @Test("xterm.js's notifications and clipboard writes are undetermined, unless switched off")
+    func xtermJSHostIntegrationIsUndetermined() {
+        let launch = TerminalCapabilities.atLaunch(
+            features: .none, reporting: .legacy, environment: [:], program: .xtermJS)
+        #expect(launch.status(of: .notifications) == .undetermined)
+        let off = TerminalCapabilities.atLaunch(
+            features: .none, reporting: .legacy, environment: ["TUI_NOTIFICATIONS": "0"], program: .xtermJS)
+        #expect(off.status(of: .notifications) == .unsupported)
+        let known = TerminalCapabilities.atLaunch(
+            features: .none, reporting: .legacy, environment: [:], program: .appleTerminal)
+        #expect(known.status(of: .notifications) == .unsupported)
+
+        #expect(
+            TerminalCapabilities.clipboardWritesStatus(program: .xtermJS, writes: .unsupported, forced: false)
+                == .undetermined)
+        #expect(
+            TerminalCapabilities.clipboardWritesStatus(program: .xtermJS, writes: .unsupported, forced: true)
+                == .unsupported)
+        #expect(
+            TerminalCapabilities.clipboardWritesStatus(program: .appleTerminal, writes: .unsupported, forced: false)
+                == .unsupported)
+        #expect(
+            TerminalCapabilities.clipboardWritesStatus(program: .unidentified, writes: .unsupported, forced: false)
+                == .undetermined)
     }
 }
