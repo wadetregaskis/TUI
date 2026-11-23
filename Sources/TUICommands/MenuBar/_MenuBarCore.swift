@@ -88,7 +88,9 @@ struct _MenuBarCore: View, Renderable {
         let isInert = context.environment.drawsBackdrop
         if isInert { state.close() }
         let menus = resolvedMenus(context: context)
-        if let open = state.openMenu ?? state.highlightedTitle, open >= menus.count { state.close() }
+        // The open menu is held by its key, so one put in before it or taken
+        // out leaves it open; one that is gone closes.
+        state.adopt(menuKeys: menus.map(\.key))
         let titles = titleRow(
             menus, open: state.openMenu ?? state.highlightedTitle, walking: state.highlightedTitle != nil,
             context: context)

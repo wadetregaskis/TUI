@@ -46,6 +46,11 @@ drawn after a publisher of `nil` reads nothing at once.
 publication afresh; a reading is now kept until a publication or the focus changes it, so a frame with thirty
 readers (menu commands, toolbar buttons) makes two readings rather than a hundred and twenty.
 
+**The menu bar keeps the same menu open when a menu comes or goes to its left.** The open menu was held by its place
+in the bar, so a menu that appears conditionally (`if` in a `commands` body, or a standard menu whose items all went
+away) put a different menu under the open one's highlight. The bar now holds the open menu, and the title the F10 bar
+mode is on, by the menu itself; one that goes away closes, as before.
+
 **A radio group knows its options by value.** An option's label and content were kept at its place in the group, so
 a group built from changing data moved an option's `@State` (a slider's drag, a field's draft) to whichever option
 came to stand there; they now go with the option, as a `ForEach` row's go with its id. The keyboard's cursor goes

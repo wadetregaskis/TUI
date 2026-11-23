@@ -12,15 +12,31 @@ import TUIFoundation
 /// the keyboard is on with every menu closed (``highlightedTitle``) — a manual
 /// `StateStorage` box (not `@State`) the bar marks active each frame, the
 /// pattern a pop-up `Menu`'s `MenuPopupState` follows.
+///
+/// A menu is held by its identity (``ResolvedCommandMenu/key``), and its place
+/// among the bar's menus is looked up in the frame's: a menu can come or go
+/// between frames (`if` in a `commands` body, a standard menu whose groups all
+/// came up empty), and an open menu held by its place became the menu that
+/// moved into it, under a highlight and a controller that were the other's.
 @MainActor
 final class MenuBarState {
+    /// The keys of the bar's menus, in order, as the last frame resolved them
+    /// (``adopt(menuKeys:)``): what a place the frame's handlers name means.
+    private(set) var menuKeys: [String] = []
+
+    /// The open menu's key, or `nil` with every menu closed.
+    private var openKey: String?
+
+    /// The key of the title the keyboard is on in the bar mode, or `nil`.
+    private var highlightedKey: String?
+
     /// The open menu's place among the bar's menus, or `nil` with every menu
     /// closed.
-    private(set) var openMenu: Int?
+    var openMenu: Int? { openKey.flatMap { menuKeys.firstIndex(of: $0) } }
 
     /// The title the keyboard is on while it walks the bar with every menu
     /// closed — the bar mode F10 enters — or `nil` outside it.
-    private(set) var highlightedTitle: Int?
+    var highlightedTitle: Int? { highlightedKey.flatMap { menuKeys.firstIndex(of: $0) } }
 
     /// The open menu's highlight and rows. A new one for each menu opened, so
     /// a menu never starts from another's rows.
@@ -35,16 +51,30 @@ final class MenuBarState {
     /// Weak, because this state holds it and the dispatcher may hold it past
     /// the bar's removal.
     private(set) lazy var openedPopup = MouseEventDispatcher.OpenedPopup(
-        isOpen: { [weak self] in self?.openMenu != nil },
+        isOpen: { [weak self] in self?.openKey != nil },
         close: { [weak self] in self?.close() })
+
+    /// Takes the frame's menus, by their keys. A menu open or highlighted that
+    /// is no longer among them closes, as one past the end did: the bar has
+    /// nothing to show for it.
+    func adopt(menuKeys keys: [String]) {
+        menuKeys = keys
+        if (openKey != nil && openMenu == nil) || (highlightedKey != nil && highlightedTitle == nil) { close() }
+    }
 
     /// Opens the menu at `index`, with its first row highlighted if
     /// `withSelection` — the keyboard opened it — or with nothing highlighted
-    /// for the pointer, which has chosen nothing yet.
+    /// for the pointer, which has chosen nothing yet. A place past the last
+    /// menu closes the bar.
     func open(_ index: Int, withSelection: Bool) {
-        if openMenu != index { controller = MenuPopupController() }
-        highlightedTitle = nil
-        openMenu = index
+        guard menuKeys.indices.contains(index) else {
+            close()
+            return
+        }
+        let key = menuKeys[index]
+        if openKey != key { controller = MenuPopupController() }
+        highlightedKey = nil
+        openKey = key
         controller.opened(withSelection: withSelection)
     }
 
@@ -59,8 +89,8 @@ final class MenuBarState {
 
     /// Closes the open menu, if any, and leaves the bar mode. Idempotent.
     func close() {
-        openMenu = nil
-        highlightedTitle = nil
+        openKey = nil
+        highlightedKey = nil
         controller.closed()
     }
 
@@ -68,12 +98,12 @@ final class MenuBarState {
     /// highlighted, as F10 does.
     func enterBarMode() {
         close()
-        highlightedTitle = 0
+        highlightedKey = menuKeys.first
     }
 
     /// Highlights title `index` in the bar mode, as the pointer passing over it does.
     func highlight(_ index: Int) {
-        guard highlightedTitle != nil else { return }
-        highlightedTitle = index
+        guard highlightedKey != nil, menuKeys.indices.contains(index) else { return }
+        highlightedKey = menuKeys[index]
     }
 }

@@ -26,6 +26,8 @@ private final class OpeningProbe: @unchecked Sendable {
     var log: [String] = []
     /// Whether ``SheetLaterApp``'s sheet is up.
     var showsSheet = false
+    /// Whether ``LateMenuApp``'s Early menu is in the bar.
+    var showsEarly = false
 }
 
 /// Two menus of two items each, over a page of two buttons; the scene's own
@@ -73,6 +75,23 @@ private struct SheetLaterApp: App {
         }
         .commandsRemoved()
         .commands { CommandMenu("Alpha") { Button("A1") {} } }
+    }
+}
+
+/// Alpha and Beta, with a menu before them while the probe says: a menu that
+/// comes and goes to the left of the open one.
+private struct LateMenuApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { Text("PAGE") }
+            .commandsRemoved()
+            .commands {
+                if OpeningProbe.shared.showsEarly {
+                    CommandMenu("Early") { Button("E1") {} }
+                }
+                CommandMenu("Alpha") { Button("A1") {} }
+                CommandMenu("Beta") { Button("B1") {} }
+            }
     }
 }
 
@@ -487,6 +506,26 @@ struct MenuBarOpeningTests {
         clock.frame(app)
         clock.frame(app)
         #expect(!shows("SHEET", app) && !shows("A1", app), "\(rows(app))")
+    }
+
+    @Test("A menu coming or going to the left of the open one leaves the same menu open")
+    func openMenuFollowsItsMenu() {
+        OpeningProbe.shared.showsEarly = false
+        let (app, clock) = launched(LateMenuApp())
+        for key: Key in [.f10, .right, .enter] {
+            app.send(KeyEvent(key: key))
+            clock.frame(app)
+        }
+        #expect(shows("B1", app), "sanity: Beta is open: \(rows(app))")
+        OpeningProbe.shared.showsEarly = true
+        clock.frame(app)
+        clock.frame(app)
+        #expect(rows(app)[0].contains("Early"), "sanity: Early is in the bar: \(rows(app))")
+        #expect(shows("B1", app) && !shows("A1", app), "\(rows(app))")
+        OpeningProbe.shared.showsEarly = false
+        clock.frame(app)
+        clock.frame(app)
+        #expect(shows("B1", app) && !shows("A1", app), "\(rows(app))")
     }
 
     @Test(
