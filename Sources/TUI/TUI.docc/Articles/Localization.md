@@ -180,6 +180,11 @@ Everything the scene draws reads its words in German — a `Text` or a
 `Button` made from a key, and also the words read where no view is drawing:
 the status bar's and the menu bar's labels, undo titles, a title read when a
 view is made. A subtree's own `.environment(\.locale, …)` still wins below it.
+A locale's script and region count, as in SwiftUI: `zh-Hant` (or `zh_TW`)
+reads your Traditional Chinese strings and never your Simplified ones, and
+`pt_BR` reads your `pt-BR` strings, then your `pt` ones (see
+<doc:Localization#Script-and-Region>). `Text(localized: "key")` follows it as
+`Text("key")` does.
 Words read outside the app's work (on a queue of the app's own) are in the
 process's language, which `setLanguage(_:)` sets and keeps for the next run:
 
@@ -369,6 +374,25 @@ first choice: the app's own strings are read in them first (see below), so a
 Portuguese app speaks Portuguese, and TUI's words fall back to English only
 where the app does not spell them in Portuguese.
 
+### Script and Region
+
+A language is told apart by its script and its region. Each language the
+user asks for is read under its full tag first and then its bare one: under
+`LANG=pt_BR.UTF-8` your keys are looked for in `pt-BR`, then `pt`, then
+English, so a `pt-BR.lproj` (or `pt_BR.lproj`) and strings registered as
+`"pt-BR"` come before your `pt` ones, and a Portuguese user in Portugal reads
+`pt-PT`'s. The same order holds everywhere a key is looked up: the
+environment's languages, a subtree's `\.locale`, the translations you
+register (under any spelling: `"zh_TW"`, `"zh-Hant"`) and your `.lproj`
+folders.
+
+A script other than the language's own is a language of its own, by
+Foundation's likely subtags: `zh_TW`, `zh_HK` and `zh-Hant` are Traditional
+Chinese, which reads `zh-Hant` strings and never `zh`'s, as Foundation's own
+matching gives it no `zh.lproj`. TUI's own Chinese is Simplified, so a
+Traditional reader gets TUI's words in their next language, or English, and
+your Traditional strings first.
+
 ### Fallback Behavior
 
 String resolution goes language by language: the languages the user asked for,
@@ -425,6 +449,9 @@ LocalizationService.shared.register(translations: [
     "de": ["greeting.hello": "Hallo"],
 ])
 ```
+
+The keys are languages, with a script or region where you need one: `"pt-BR"`
+and `"pt"`, `"zh-Hant"` beside `"zh"` (see <doc:Localization#Script-and-Region>).
 
 ## Changing Language While the App Runs
 

@@ -78,7 +78,7 @@ final class FrameworkStringLookupTests {
         ])
         let service = service(files, environment: ["LANG": "pt_BR.UTF-8"])
         #expect(service.currentLanguage == .english, "TUI ships no Portuguese of its own")
-        #expect(service.lookupLanguageCodes == ["pt", "en"])
+        #expect(service.lookupLanguageCodes == ["pt-BR", "pt", "en"])
         #expect(service.string(for: LocalizationKey.Button.ok) == "Certo")
         #expect(rendered(LocalizedString(LocalizationKey.Button.ok), with: service) == "Certo")
         // A preset alert's default title is TUI's word too.
@@ -179,19 +179,19 @@ final class FrameworkStringLookupTests {
 
     @Test("The environment's languages ahead of the first TUI ships are looked up first")
     func languagesAheadOfTUIsAreKept() {
-        #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LANG": "pt_BR.UTF-8"], preferredLanguages: []) == ["pt"])
+        #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LANG": "pt_BR.UTF-8"], preferredLanguages: []) == ["pt-BR"])
         #expect(
             LocalizationService.systemPreferredLanguageCodes(
-                environment: ["LANG": "pt_BR.UTF-8"], preferredLanguages: ["fr-FR"]) == ["pt", "fr"])
+                environment: ["LANG": "pt_BR.UTF-8"], preferredLanguages: ["fr-FR"]) == ["pt-BR", "fr-FR"])
         #expect(
             LocalizationService.systemPreferredLanguageCodes(environment: ["LANGUAGE": "pt:es:fr"], preferredLanguages: [])
                 == ["pt", "es"])
         #expect(
             LocalizationService.systemPreferredLanguageCodes(environment: [:], preferredLanguages: ["pt-BR", "de-DE", "fr"])
-                == ["pt", "de"])
+                == ["pt-BR", "de-DE"])
         // A three-letter code is a language of its own, not the two-letter
         // one it begins with: Filipino is not Finnish.
-        #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LANG": "fil_PH"], preferredLanguages: []) == ["fil"])
+        #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LANG": "fil_PH"], preferredLanguages: []) == ["fil-PH"])
         #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LC_ALL": "C.UTF-8"], preferredLanguages: []).isEmpty)
 
         let service = LocalizationService(

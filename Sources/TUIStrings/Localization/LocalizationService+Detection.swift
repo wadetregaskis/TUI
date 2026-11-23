@@ -31,20 +31,21 @@ extension LocalizationService {
         preferredLanguages: [String] = systemLanguageList
     ) -> Language? {
         systemPreferredLanguageCodes(environment: environment, preferredLanguages: preferredLanguages)
-            .last.flatMap(Language.init(rawValue:))
+            .last.flatMap { LanguageTag($0) }.flatMap(Language.init(reading:))
     }
 
-    /// The languages the environment asks for, as language codes (`"pt"`,
-    /// and `"zh-Hant"` for Chinese in Traditional characters), most preferred
-    /// first: each one up to and including the first this
-    /// framework has translations of — ``systemPreferredLanguage(environment:preferredLanguages:)``
-    /// — or every one, where it has none of them.
+    /// The languages the environment asks for, as language tags (`"pt-BR"`,
+    /// `"zh-Hant-TW"`; ``LanguageTag``), most preferred first: each one up to
+    /// and including the first this framework has translations of —
+    /// ``systemPreferredLanguage(environment:preferredLanguages:)`` — or every
+    /// one, where it has none of them.
     ///
     /// The languages ahead of that one are those TUI ships no translations
     /// of, and they are still the user's first choice: an app's own strings
     /// are read in them first (see ``LocalizationService``), so a Portuguese
     /// app on a Portuguese machine speaks Portuguese, TUI's own words
-    /// included where the app spells them, before anything else.
+    /// included where the app spells them, before anything else. Each is
+    /// read under its full tag and then its bare one: `pt-BR`, then `pt`.
     ///
     /// Searched in the same order as the language itself: the POSIX
     /// variables, then the preferred-languages list.
@@ -52,15 +53,15 @@ extension LocalizationService {
         environment: [String: String] = ProcessInfo.processInfo.environment,
         preferredLanguages: [String] = systemLanguageList
     ) -> [String] {
-        var codes: [String] = []
+        var tags: [LanguageTag] = []
         // These are canonical BCP-47 tags, language subtag first — no
         // `C`/`POSIX` here.
-        let fromList = preferredLanguages.lazy.compactMap { languageCode(of: $0) }
-        for code in posixLanguageCodes(environment) + Array(fromList) where !codes.contains(code) {
-            codes.append(code)
-            if Language(rawValue: code) != nil { break }
+        let fromList = preferredLanguages.lazy.compactMap { LanguageTag($0) }
+        for tag in posixLanguageTags(environment) + Array(fromList) where !tags.contains(tag) {
+            tags.append(tag)
+            if Language(reading: tag) != nil { break }
         }
-        return codes
+        return tags.map(\.identifier)
     }
 
     /// The language named by the POSIX locale variables, if this framework
@@ -73,19 +74,20 @@ extension LocalizationService {
     /// first language actually bundled rather than being consumed by its first
     /// entry — a `pt:es` list should speak Spanish, not English.
     static func posixEnvironmentLanguage(_ environment: [String: String]) -> Language? {
-        posixLanguageCodes(environment).lazy.compactMap(Language.init(rawValue:)).first
+        posixLanguageTags(environment).lazy.compactMap(Language.init(reading:)).first
     }
 
-    /// Every language code the POSIX locale variables name, in gettext's
+    /// Every language the POSIX locale variables name, in gettext's
     /// precedence (see ``posixEnvironmentLanguage(_:)``).
-    private static func posixLanguageCodes(_ environment: [String: String]) -> [String] {
+    private static func posixLanguageTags(_ environment: [String: String]) -> [LanguageTag] {
         ["LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"].flatMap { name in
-            (environment[name] ?? "").split(separator: ":").compactMap { languageCode(of: $0) }
+            (environment[name] ?? "").split(separator: ":").compactMap { LanguageTag($0) }
         }
     }
 
     /// The region the user's locale names, for formatting: the territory of
-    /// the first POSIX variable that names one, in the precedence that decides
+    /// the first POSIX variable that names one (``LanguageTag/region``: `GB` in
+    /// `en_GB.UTF-8`, `TW` in `zh-Hant-TW`, none in `de`), in the precedence that decides
     /// how dates and numbers are written (`LC_ALL`, then `LC_TIME`,
     /// `LC_NUMERIC`, then `LANG`), else `current`'s region — on Darwin the
     /// user's region preference. The world region (`001`), which swift-foundation
@@ -98,37 +100,9 @@ extension LocalizationService {
         current: Locale? = systemLocale
     ) -> Locale.Region? {
         for name in ["LC_ALL", "LC_TIME", "LC_NUMERIC", "LANG"] {
-            if let region = (environment[name]).flatMap(territory(of:)) { return Locale.Region(region) }
+            if let region = environment[name].flatMap({ LanguageTag($0)?.region }) { return Locale.Region(region) }
         }
         guard let region = current?.region, region.identifier != "001" else { return nil }
         return region
-    }
-
-    /// The territory a POSIX locale name or BCP-47 tag names, or `nil`: the
-    /// two letters (or three digits) after the language and any script,
-    /// before an encoding or modifier — `GB` in `en_GB.UTF-8`, `TW` in
-    /// `zh-Hant-TW`, nothing in `de`, `C` or `POSIX`.
-    private static func territory(of name: String) -> String? {
-        let tag = name.prefix { !".@".contains($0) }
-        let parts = tag.split(whereSeparator: { "-_".contains($0) })
-        guard parts.count >= 2, languageCode(of: parts[0]) != nil else { return nil }
-        for part in parts.dropFirst() {
-            if part.count == 2, part.allSatisfy(\.isLetter) { return part.uppercased() }
-            if part.count == 3, part.allSatisfy(\.isNumber) { return String(part) }
-            guard part.count == 4, part.allSatisfy(\.isLetter) else { return nil }  // a script: look further
-        }
-        return nil
-    }
-
-    /// The language a locale name asks for, as the code TUI's strings are
-    /// keyed by, or `nil` where it names none (``LanguageTag``): the language
-    /// code, with the script where it is not the language's own.
-    /// `de_DE.UTF-8@euro` is German (`de`), `zh-Hans-CN` Chinese (`zh`), and
-    /// `zh_TW.UTF-8` and `zh-Hant` Traditional Chinese (`zh-Hant`), which
-    /// TUI's Chinese, being Simplified, does not answer: the walk goes on to
-    /// the next language the user names, and the app's own `zh-Hant` strings
-    /// are still read first. The neutral `C` and `POSIX` locales name none.
-    private static func languageCode(of name: some StringProtocol) -> String? {
-        LanguageTag(name)?.bare
     }
 }

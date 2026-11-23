@@ -67,16 +67,36 @@ extension EnvironmentValues {
     /// `ContentView().environment(\.locale, Locale(identifier: "de"))` shows
     /// the app's German strings. A locale whose language the app has no
     /// strings in reads English, as SwiftUI's development language does.
+    ///
+    /// Its script and region count, as SwiftUI's do (measured 2026-11-23,
+    /// `Tools/SwiftUIProbes/Small parity items (PARITYMISC)/locale-scripts/`):
+    /// `zh-Hant` or `zh_TW` reads the app's Traditional Chinese, never its
+    /// Simplified, and `pt_BR` its Brazilian Portuguese, then its `pt`, the
+    /// owner's O-06 (a), 2026-11-21.
     @inlinable
     public var locale: Locale {
         get { self[LocaleKey.self] }
         set {
             self[LocaleKey.self] = newValue
-            self[StringLanguageKey.self] = newValue.language.languageCode?.identifier
+            self[StringLanguageKey.self] = Self.stringLanguage(of: newValue)
         }
     }
 
-    /// The language a subtree's own strings are read in, as a code, where its
+    /// The language a subtree whose `\.locale` is `locale` reads its strings
+    /// in: the locale's language tag, its script and region kept (`zh-Hant-TW`,
+    /// `pt-BR`), as the service writes the languages it reads in, so a
+    /// subtree's language and the app's compare equal where they are the same.
+    ///
+    /// Read from `locale.identifier` (8 ns) through the service's memo, never
+    /// `locale.language.script`, which infers a script each time it is asked
+    /// (about 1.7 µs): the setter runs wherever a view sets the locale, every
+    /// frame.
+    @usableFromInline
+    static func stringLanguage(of locale: Locale) -> String? {
+        LocalizationService.languageTag(of: locale.identifier)
+    }
+
+    /// The language a subtree's own strings are read in, as a tag, where its
     /// ``locale`` was set for it with `.environment(\.locale, _)`; `nil` where
     /// it was not, and strings are read in the app's language. Written by
     /// ``locale``'s setter; read by a `Text` made from a key when it draws.

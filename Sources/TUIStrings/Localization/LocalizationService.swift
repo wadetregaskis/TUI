@@ -90,14 +90,18 @@ public final class LocalizationService: Sendable {
         /// The language codes a key is looked up in, most preferred first,
         /// ending in English: ``currentLanguage``'s code, after any the
         /// environment asked for ahead of it that TUI has no translations of,
-        /// and then `"en"`. Moved with ``currentLanguage``.
+        /// and then `"en"`. Each language the environment asked for is here
+        /// under its full tag and then its bare one (``LanguageTag/lookupCodes``):
+        /// `pt-BR`, `pt`. Moved with ``currentLanguage``.
         var lookupCodes: [String]
 
         /// Cached translations: [languageCode: [dotPath: localizedString]]
         var translationCache: [String: [String: String]] = [:]
 
-        /// App-supplied translations: [languageCode: [dotPath: localizedString]],
-        /// registered by the host application via ``register(translations:)``. These
+        /// App-supplied translations: [languageTag: [dotPath: localizedString]],
+        /// registered by the host application via ``register(translations:)``,
+        /// keyed by the tag each was registered under as ``LanguageTag`` writes
+        /// it (`zh_TW` is `zh-Hant-TW`), so a lookup code finds it. These
         /// are checked before the bundled framework strings, so an app can add its
         /// own keys and override framework defaults.
         var appTranslations: [String: [String: String]] = [:]
@@ -305,7 +309,7 @@ public final class LocalizationService: Sendable {
         if let stored {
             return (stored, lookupCodes(asked: [], language: stored), true)
         }
-        let language = asked.last.flatMap(Language.init(rawValue:)) ?? .english
+        let language = asked.last.flatMap { LanguageTag($0) }.flatMap(Language.init(reading:)) ?? .english
         return (language, lookupCodes(asked: asked, language: language), false)
     }
 
@@ -317,17 +321,23 @@ public final class LocalizationService: Sendable {
     private static func userLocale(
         _ initial: (language: Language, codes: [String], chosen: Bool), region: Locale.Region?
     ) -> Locale {
-        guard !initial.chosen, let asked = initial.codes.first, asked != initial.language.rawValue,
-            Language(rawValue: asked) == nil
+        guard !initial.chosen, let asked = initial.codes.first, let tag = LanguageTag(asked),
+            Language(reading: tag) == nil
         else { return initial.language.locale(in: region) }
         guard let region else { return Locale(identifier: asked) }
-        return Locale(languageCode: Locale.LanguageCode(asked), languageRegion: region)
+        return Locale(
+            languageCode: Locale.LanguageCode(tag.language), script: tag.script.map { Locale.Script($0) },
+            languageRegion: region)
     }
 
-    /// `asked`, then `language`'s code, then English's, each once.
+    /// Each of `asked` under its full tag and then its bare one
+    /// (``LanguageTag/lookupCodes``: `pt-BR`, `pt`), then `language`'s code,
+    /// then English's, each once — the owner's O-06 (a), 2026-11-21: script
+    /// and region are told apart wherever a key is looked up.
     private static func lookupCodes(asked: [String], language: Language) -> [String] {
-        var codes = asked
-        for code in [language.rawValue, Language.english.rawValue] where !codes.contains(code) {
+        var codes: [String] = []
+        let expanded = asked.flatMap { LanguageTag($0)?.lookupCodes ?? [$0] }
+        for code in expanded + [language.rawValue, Language.english.rawValue] where !codes.contains(code) {
             codes.append(code)
         }
         return codes
@@ -348,6 +358,7 @@ public final class LocalizationService: Sendable {
         state.withLock { state in
             state.resolved = ResolvedStrings()
             for (code, table) in translations {
+                let code = LanguageTag(code)?.identifier ?? code
                 state.appTranslations[code, default: [:]].merge(table) { _, new in new }
                 if !state.registeredKeysSpellSwiftUI, table.keys.contains(where: Self.holdsPrintfConversion) {
                     state.registeredKeysSpellSwiftUI = true
@@ -438,7 +449,8 @@ public final class LocalizationService: Sendable {
     }
 
     /// The language the app's own keys are read in first — the first of the
-    /// languages the user asked for, or the one the app chose — as a code.
+    /// languages the user asked for, or the one the app chose — as a tag
+    /// (`pt-BR`, ``LanguageTag``).
     /// What a `Text` made from a key notes it was read in, so that a subtree
     /// whose `\.locale` names another language can read it again in that one.
     ///
@@ -461,7 +473,10 @@ public final class LocalizationService: Sendable {
     ///
     /// With a `language`, it is read as a subtree whose `\.locale` names that
     /// language reads it, as SwiftUI's `Text` does (measured 2026-10-18): in
-    /// that language first, every place in turn, and then in English — where
+    /// that language first — under its full tag and then its bare one, so
+    /// `zh-Hant-TW` reads `zh-Hant` strings and never `zh`'s, as SwiftUI's
+    /// `\.locale` picks a script's and a region's table (measured 2026-11-23)
+    /// — every place in turn, and then in English — where
     /// SwiftUI shows the key itself when the language's table lacks it
     /// (Deliberate deviations E4). `nil` reads it in the language the app's
     /// scene states at its root (``rootLanguage``), in the app's work, and

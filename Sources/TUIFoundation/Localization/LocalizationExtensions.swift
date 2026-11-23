@@ -66,8 +66,13 @@ extension LocalizationService {
     ///
     /// The framework only bundles translations for its own strings; an app uses
     /// this to localize its own UI through the same service. The outer dictionary
-    /// is keyed by language code (`Language.rawValue` — e.g. `"en"`, `"de"`,
-    /// `"zh"`); the inner dictionary maps dot-notation keys to localized strings.
+    /// is keyed by language (`Language.rawValue` — e.g. `"en"`, `"de"`,
+    /// `"zh"` — or any language tag or locale name, with its script and region:
+    /// `"zh-Hant"`, `"pt-BR"`, `"pt_PT"`); the inner dictionary maps dot-notation
+    /// keys to localized strings. A user is read the strings of their full tag
+    /// first and then their language's: `pt-BR`, then `pt`. A script other
+    /// than the language's own is a language of its own: Traditional Chinese
+    /// (`zh-Hant`, `zh_TW`) never reads `"zh"`'s, which is Simplified.
     /// Registrations merge across calls and take precedence over the bundled
     /// framework strings for the same key. The app draws again, so visible
     /// strings refresh, wherever this is called from — at startup, before the

@@ -1166,7 +1166,8 @@ messages cite that path), and what cites it.
 - **Ran:** macOS 15, 2026-10-18; `locale-scripts/` on macOS 15.8.3, 2026-11-23.
 - **Was:** `PARITYMISC/probes/`.
 - **Cited by:** `Documentation/Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md`,
-  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`, `LocalizationExtensions.swift`.
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`, `Documentation/Historical/Localization/Script,
+  region and the C locale.md`, `LocalizationExtensions.swift`, `LocaleEnvironment.swift`, `LanguageTag.swift`.
 
 ### Undo and the pointer leaving (INPUT)
 

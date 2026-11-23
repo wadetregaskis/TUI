@@ -52,6 +52,21 @@ struct LanguageTag: Hashable, Sendable {
         return identifier
     }
 
+    /// The codes a string is looked up under for this language, the full tag
+    /// first and then the bare one (the owner's O-06 (a), 2026-11-21):
+    /// `["pt-BR", "pt"]`, `["zh-Hant-TW", "zh-Hant"]`, `["de"]`.
+    ///
+    /// Never the language code alone where the script is not the language's
+    /// own: Traditional Chinese does not fall back to `zh`, which is
+    /// Simplified, as Foundation's own matching does not
+    /// (`Bundle.preferredLocalizations` gives `zh-Hant` no `zh.lproj`, and
+    /// SwiftUI's `\.locale` reads `zh-Hant.lproj` for `zh_TW`;
+    /// `Tools/SwiftUIProbes/Small parity items (PARITYMISC)/locale-scripts/`).
+    var lookupCodes: [String] {
+        let full = identifier
+        return full == bare ? [full] : [full, bare]
+    }
+
     /// The language a POSIX locale name or BCP-47 tag names, or `nil` where it
     /// names none: the neutral `C` and `POSIX` locales, an empty value, or
     /// anything whose first part is not a two- or three-letter code. NOT
@@ -144,5 +159,14 @@ extension LocalizationService.Language {
     /// Chinese's (`zh-Hant`), and a German reader in Switzerland reads German.
     init?(reading tag: LanguageTag) {
         self.init(rawValue: tag.bare)
+    }
+}
+
+extension LocalizationService {
+    /// The language tag `name` names — a POSIX locale name, a BCP-47 tag or a
+    /// `Locale`'s identifier — as the service keys its strings (`zh_TW` is
+    /// `zh-Hant-TW`, ``LanguageTag``), or `nil` where it names no language.
+    package static func languageTag(of name: String) -> String? {
+        LanguageTag(name)?.identifier
     }
 }

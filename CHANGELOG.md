@@ -134,6 +134,15 @@ too: the rest of the row came back to full strength. Faint is stated again after
 behind lost its glyphs, but the cells the container draws between the members let it through, tinted: two legible
 stripes through a frosted pill. Those cells now frost with the first member's frost, as its own part does.
 
+**Strings are read in a language's script and region: `pt-BR` before `pt`, `zh-Hant` apart from `zh`.** Every lookup
+used the bare language code, so a `pt-BR.lproj` or strings registered as `"pt-BR"` were never read, a Brazilian and a
+Portuguese user read the same `pt` strings, and `.environment(\.locale, Locale(identifier: "zh-Hant"))` over an app
+with both Chinese tables showed the Simplified one, where SwiftUI shows the Traditional. Each language is now read
+under its full tag and then its bare one (`pt-BR`, then `pt`), everywhere a key is looked up: the languages the
+environment asks for, a subtree's `\.locale`, the translations an app registers (keyed by any spelling, `"zh_TW"` or
+`"zh-Hant-TW"`) and its `.lproj` folders. Traditional Chinese never falls back to `zh`, which is Simplified. By the
+owner's ruling O-06 (a) of 2026-11-21.
+
 **`Text(localized: "key")` follows a subtree's `\.locale`.** It read its key when it was made and kept the words, so
 `.environment(\.locale, Locale(identifier: "de"))` did not change them, where `Text("key")` and
 `LocalizedString("key")` under the same modifier read German. It is now the key's `Text`, read again when it is

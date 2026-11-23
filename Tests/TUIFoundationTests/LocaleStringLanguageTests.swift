@@ -175,6 +175,6 @@ struct LocaleStringLanguageTests {
         environment.publishUserLocale(Locale(identifier: "de_DE"))
         #expect(environment.stringLanguage == nil, "the root's strings are already the user's")
         environment.locale = Locale(identifier: "fr_CA")
-        #expect(environment.stringLanguage == "fr")
+        #expect(environment.stringLanguage == "fr-CA", "its region kept: Canada's strings, then French's (O-06 (a))")
     }
 }

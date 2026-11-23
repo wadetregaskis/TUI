@@ -28,7 +28,7 @@ place:
 | [Input, keys and gestures](<Input, keys and gestures/>) | The kitty keyboard protocol; how keys are named; gestures and taps; drag and drop; large pastes; focus and focused values; keys from another device and the keys F1 lists. |
 | [Layout and geometry](<Layout and geometry/>) | Alignment guides that travel; drawing past a region; stack spacing and what a container counts as its children; sections and pinned headers in lazy stacks; where a view is (coordinate spaces, geometry readers, scroll visibility); sharing space; safe areas, size classes and layout direction. |
 | [Lists, tables and tabs](<Lists, tables and tabs/>) | Stripes, surfaces and separators; badges and row prominence; acting on rows; table columns; type select, Home and End; which rows a list draws; tab views. |
-| [Localization](<Localization/>) | Which language a key is read in. |
+| [Localization](<Localization/>) | Which language a key is read in; script, region and the C locale. |
 | [Menus, toolbars and chrome](<Menus, toolbars and chrome/>) | Pop-up menus; the menu bar; toolbars and opt-in window chrome. |
 | [Module split, compile time and binary size](<Module split, compile time and binary size/>) | The module split; winning back its cost; per-module products; binary size; compile time and the test targets; the linker's RWX warning on Linux aarch64. |
 | [Performance](Performance/) | Stating performance cases as a table: counted in the gate, timed on demand. |
