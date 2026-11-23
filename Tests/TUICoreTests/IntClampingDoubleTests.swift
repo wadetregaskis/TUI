@@ -66,7 +66,9 @@ struct IntClampingDoubleTests {
         #expect(Int64(clamping: -.greatestFiniteMagnitude) == .min)
         #expect(Int64(clamping: .nan) == 0)
         #expect(Int64(clamping: Double(Int64.max)) == .max)
-        #expect(Int64(clamping: 9_223_372_036_854_774_784) == 9_223_372_036_854_774_784)
+        // Typed: on wasm32 an untyped literal in `#expect` is taken as a 32-bit `Int` and overflows.
+        let largestBelowMax: Int64 = 9_223_372_036_854_774_784
+        #expect(Int64(clamping: Double(largestBelowMax)) == largestBelowMax)
     }
 
     @Test(
