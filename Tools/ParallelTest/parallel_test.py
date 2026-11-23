@@ -90,6 +90,7 @@ import posixpath
 import re
 import shlex
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -936,6 +937,14 @@ def reap(running):
     POSIX: `wait4`, which reaps in exit order and says what the child cost.
     Windows has no `wait4`, so each child is polled, and its cost read from its
     process handle (`windows_usage`).
+
+    This is the ONE place a child is reaped. On POSIX nothing else may call
+    `Popen.poll`, `wait` or `kill` (which polls first, since Python 3.9) on a
+    running child: any of them can reap it, and then `wait4` never returns its
+    pid, the run never empties `running`, and with no children left `wait4`
+    raises `ChildProcessError` (H-56, TOOLS-18). Should that happen anyway, the
+    lost child is reported with the exit code its `Popen` recorded rather than
+    as a traceback.
     """
     if not hasattr(os, "wait4"):
         for pid, (_, r) in running.items():
@@ -944,7 +953,13 @@ def reap(running):
                 return (pid, rc) + windows_usage(r["p"])
         return None
     while True:
-        pid, status, ru = os.wait4(-1, os.WNOHANG)
+        try:
+            pid, status, ru = os.wait4(-1, os.WNOHANG)
+        except ChildProcessError:
+            pid, (_, r) = next(iter(running.items()))
+            rc = r["p"].returncode
+            print("parallel-test: %s was reaped outside `reap`" % r["tag"], flush=True)
+            return (pid, 1 if rc is None else rc, 0.0, 0)
         if pid == 0:
             return None
         if pid in running:
@@ -1045,9 +1060,18 @@ def kill_stalled(running, now=time.time, limit=None):
         if size != r.get("logged"):
             r["logged"] = size
             r["grew"] = now()
-        elif now() - r["grew"] > limit and r["p"].poll() is None:
+        elif now() - r["grew"] > limit and not r.get("killed"):
+            # Killed once, and announced once. And never through `Popen.poll`
+            # or `Popen.kill`, which can reap the child out from under `reap`
+            # (see there): its pid is still in `running`, so nothing has reaped
+            # it and it cannot have been reused, and a signal to a child that
+            # has already exited is harmless.
+            r["killed"] = True
             print("parallel-test: %s wrote nothing for %d s: killing it" % (r["tag"], limit), flush=True)
-            r["p"].kill()
+            if WINDOWS:
+                r["p"].kill()  # TerminateProcess; Windows' `reap` is `poll` itself
+            else:
+                os.kill(r["p"].pid, signal.SIGKILL)
 
 
 # The lines of a group's log that explain a failure, for the job log. An issue

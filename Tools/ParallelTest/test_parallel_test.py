@@ -12,13 +12,16 @@ FAILING run writes (whose different wording made an earlier analysis read 13
 known issues out of runs that had 21).
 """
 
+import contextlib
 import importlib.util
+import io
 import os
 import re
 import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -974,6 +977,60 @@ class KillStalledTests(unittest.TestCase):
                 pt.kill_stalled(running, now=lambda: 120.0, limit=10)
                 # `Popen.kill` is SIGKILL on POSIX and TerminateProcess(…, 1) on Windows.
                 self.assertEqual(child.wait(timeout=5), 1 if pt.WINDOWS else -signal.SIGKILL)
+
+
+@unittest.skipIf(pt.WINDOWS, "Windows reaps by polling each child; there is no wait4 to race")
+class ReapAfterKillTests(unittest.TestCase):
+    """Only `reap` reaps (H-56, TOOLS-18). `kill_stalled` used to `poll()` the
+    child, which reaps one that has exited: `wait4` then never saw its pid, and
+    with no children left raised ChildProcessError, a traceback for a run
+    whose only problem was a stalled group."""
+
+    def stalled(self, folder, program):
+        log = os.path.join(folder, "g0.log")
+        with open(log, "wb") as handle:
+            child = subprocess.Popen([sys.executable, "-c", program], stdout=handle)
+        self.addCleanup(lambda: child.returncode is None and child.kill())
+        return child, {child.pid: (0, {"log": log, "tag": "g0", "p": child})}
+
+    def reaped(self, running):
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            exited = pt.reap(running)
+            if exited is not None:
+                return exited
+            time.sleep(0.01)
+        self.fail("reap never returned the child")
+
+    def wait_for_zombie(self, pid):
+        """Until the child has exited, without reaping it (macOS has no waitid)."""
+        deadline = time.time() + 10
+        while time.time() < deadline:
+            stat = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout
+            if stat.strip().startswith("Z"):
+                return
+            time.sleep(0.01)
+        self.fail("the child never exited")
+
+    def test_a_child_that_exits_before_the_kill_is_still_reaped_by_reap(self):
+        with tempfile.TemporaryDirectory() as folder:
+            child, running = self.stalled(folder, "pass")
+            self.wait_for_zombie(child.pid)
+            with contextlib.redirect_stdout(io.StringIO()):
+                pt.kill_stalled(running, now=lambda: 100.0, limit=10)
+                pt.kill_stalled(running, now=lambda: 200.0, limit=10)
+            self.assertEqual(self.reaped(running)[:2], (child.pid, 0))
+
+    def test_a_killed_child_is_killed_and_announced_once_and_reaped_by_reap(self):
+        with tempfile.TemporaryDirectory() as folder:
+            child, running = self.stalled(folder, "import time; time.sleep(30)")
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                pt.kill_stalled(running, now=lambda: 100.0, limit=10)
+                for now in (200.0, 200.1, 200.2):
+                    pt.kill_stalled(running, now=lambda: now, limit=10)
+            self.assertEqual(out.getvalue().count("killing it"), 1)
+            self.assertEqual(self.reaped(running)[:2], (child.pid, -signal.SIGKILL))
 
 
 if __name__ == "__main__":

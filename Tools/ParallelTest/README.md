@@ -577,7 +577,7 @@ the compiler crashing somewhere new each time, as one compile takes up to
 python3 Tools/ParallelTest/test_parallel_test.py
 ```
 
-95 tests covering the parts that can be tested without running the suite: ID
+97 tests covering the parts that can be tested without running the suite: ID
 escaping and pattern anchoring, the partition proof rejecting a gap or an
 overlap, a filter narrower than a suite running only its selected tests, the
 refusal to run from another checkout, bin packing, both weight paths, all
@@ -592,9 +592,11 @@ build directory on the library path, with its place in the order on both
 platforms; test-binary discovery for native and swift-build output on both
 platforms; the helper and direct command lines; the per-binary plan; a slot
 running its invocations in turn while slots run at once; a silent process
-killed once the stall limit passes, and not before; the failure excerpt on real
-Linux (CI) and macOS (probe) output; and the escaping of the `::error`
-annotations. And for Windows: `$SWIFT` with a quoted path, the `PATH` for each
+killed once the stall limit passes, and not before, killed and announced
+once, and reaped only by `reap` even when it exits before the kill; the
+failure excerpt on real Linux (CI) and macOS (probe) output; and the
+escaping of the `::error` annotations. And for Windows: `$SWIFT` with a
+quoted path, the `PATH` for each
 architecture and for a platform with no versions, launchers spelt with `.exe`,
 and a crash's exit code; and `--scratch-path` and `--build-system` reaching
 the build. They run on any of the three, each layout's paths spelt by its own
