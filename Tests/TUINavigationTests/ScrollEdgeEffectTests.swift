@@ -73,7 +73,8 @@ struct ScrollEdgeEffectTests {
         let content = Array(lines.dropFirst(top).dropLast(bottom))
         let shown = rowNumbers(content)
         #expect(shown.last == 29, "scrolled to the end (\(comment)): \(lines)")
-        #expect(shown == Array((shown.first ?? 0)...(shown.last ?? 0)), "unbroken (\(comment)): \(lines)")
+        let unbroken: [Int] = Array((shown.first ?? 0)...(shown.last ?? 0))  // Typed, for the type checker.
+        #expect(shown == unbroken, "unbroken (\(comment)): \(lines)")
         #expect(shown.first.map { $0 > 0 } == true, "rows have scrolled past the top (\(comment)): \(lines)")
         #expect(content.first.map { !rowNumbers([$0]).isEmpty } == true, "content resumes on the row after the bar (\(comment)): \(lines)")
     }

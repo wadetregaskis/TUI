@@ -333,7 +333,7 @@ struct DerivedImageTests {
     func cyclingFadeOverPicture(behind: Bool) throws {
         let (store, rows) = storeWithPicture(rows: 4)
         // A 20-phase breath from 1 down to 0.3 and back, eleven levels, drawn at its fourth.
-        let phases = (0..<20).map { 1 - 0.07 * Double(min($0, 20 - $0)) }
+        let phases = (0..<20).map { (step: Int) -> Double in 1 - 0.07 * Double(min(step, 20 - step)) }  // Typed, for the type checker.
         let cycle = OpacityCycle(phases: phases, clock: .content)
         let context = makeRenderContext(width: 4, height: 4)
         let palette = context.environment.palette

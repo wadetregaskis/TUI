@@ -209,7 +209,8 @@ struct ANSISlotPinTests {
             #expect(Color.palette256(slot.index) != slot.color, "an index and a name are two spellings")
         }
         #expect(Color.default.isTerminalDefined)
-        #expect(Set(Self.slots.map(\.color) + [Color.default]).count == 17)
+        let colors: [Color] = Self.slots.map(\.color) + [Color.default]  // Typed, for the type checker.
+        #expect(Set(colors).count == 17)
         #expect(Self.slots.map(\.index) == Array(0...15))
     }
 }

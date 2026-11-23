@@ -95,8 +95,9 @@ struct ImagePixelsOutOfStateTests {
 
     @Test("A row whose picture the cache let go of draws it again, the same, on the frame it comes back")
     func evictedSmallFileDrawsTheSame() throws {
-        let fixtures = try (0..<40).map { index in
-            try BitmapFixture(width: 8, height: 8, left: (UInt8(index * 6), 0, 0), right: (0, 0, UInt8(index * 6)))
+        let fixtures = try (0..<40).map { (index: Int) throws -> BitmapFixture in  // Typed, for the type checker.
+            let level = UInt8(index * 6)
+            return try BitmapFixture(width: 8, height: 8, left: (level, 0, 0), right: (0, 0, level))
         }
         let cache = URLImageCache(byteLimit: 8 * 8 * 4 * 6)
         let tui = TUIContext()
@@ -111,8 +112,9 @@ struct ImagePixelsOutOfStateTests {
 
     @Test("Reloading a large picture the cache let go of, a row shows what it last drew, not its placeholder")
     func evictedLargeFileShowsItsLastDrawing() async throws {
-        let fixtures = try (0..<20).map { index in
-            try BitmapFixture(width: 8, height: 8, left: (UInt8(index * 10), 0, 0), right: (0, UInt8(index * 10), 0))
+        let fixtures = try (0..<20).map { (index: Int) throws -> BitmapFixture in  // Typed, for the type checker.
+            let level = UInt8(index * 10)
+            return try BitmapFixture(width: 8, height: 8, left: (level, 0, 0), right: (0, level, 0))
         }
         let cache = URLImageCache(byteLimit: 8 * 8 * 4 * 6)
         let tui = TUIContext()

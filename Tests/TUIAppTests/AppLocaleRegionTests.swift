@@ -75,7 +75,7 @@ struct AppLocaleRegionTests {
     @Test("A Windows locale name gives its region, and its language list its languages")
     func windowsNames() {
         #expect(LocalizationService.systemRegion(environment: [:], current: Locale(identifier: "en-AU"))?.identifier == "AU")
-        let list = Array("de-DE".utf16) + [0] + Array("en-US".utf16) + [0, 0]
+        let list: [UInt16] = Array("de-DE".utf16) + [0] + Array("en-US".utf16) + [0, 0]  // Typed, for the type checker.
         #expect(LocalizationService.windowsLanguageList(list) == ["de-DE", "en-US"])
         #expect(LocalizationService.windowsLanguageList([0, 0]) == nil)
         #expect(LocalizationService.systemPreferredLanguageCodes(environment: [:], preferredLanguages: ["de-DE", "en-US"]) == ["de"])

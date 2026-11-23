@@ -82,7 +82,8 @@ struct TerminalCapabilitiesTests {
         #expect(Feature.patternedUnderline == [.curlyUnderline, .dottedUnderline, .dashedUnderline])
         #expect(Feature.textDecorations.isSuperset(of: .patternedUnderline))
         let groups: [Feature] = [.textDecorations, .pictures, .hostIntegration, .keyboard]
-        #expect(groups.map(\.rawValue.nonzeroBitCount).reduce(0, +) == Self.members.count, "no member in two")
+        let bits: Int = groups.map(\.rawValue.nonzeroBitCount).reduce(0, +)  // Typed, for the type checker.
+        #expect(bits == Self.members.count, "no member in two")
         #expect(Feature(groups) == Feature.all)
         #expect(Feature.keyboard.contains(.optionAsMeta))
         #expect(TerminalCapabilities.negotiatedKeyboard == Feature.keyboard.subtracting(.optionAsMeta))

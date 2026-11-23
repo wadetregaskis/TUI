@@ -294,10 +294,10 @@ struct ControlSizeButtonTests {
             : AnyView(Button("OK") {}.controlSize(size).appearance(.block))
         let lines = renderToBuffer(button, context: context).lines
         let padding = size == .extraLarge ? "  " : " "
-        #expect(lines.map(\.stripped) == [
-            String(repeating: " ", count: 4 + 2 * padding.count), " \(padding)OK\(padding) ",
-            String(repeating: " ", count: 4 + 2 * padding.count),
-        ])
+        // The blank row named, and the rows typed, for the type checker.
+        let blank = String(repeating: " ", count: 4 + 2 * padding.count)
+        let expected: [String] = [blank, " \(padding)OK\(padding) ", blank]
+        #expect(lines.map(\.stripped) == expected)
         #expect(!lines.joined().contains { ("\u{2580}"..."\u{259F}").contains($0) })
     }
 

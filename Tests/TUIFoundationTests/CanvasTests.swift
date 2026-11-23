@@ -182,7 +182,7 @@ struct CanvasTests {
             context.translateBy(x: 1, y: 1)
             context.fill(Path(CGRect(x: 0, y: 0, width: 0.5, height: 1)), with: .color(red))
         }
-        #expect(canvasLetters(drawn) == ["....", "..R."].map { String($0) })
+        #expect(canvasLetters(drawn) == ["....", "..R."] as [String])
     }
 
     @Test("A rotation turns a path, where it could not turn a glyph")

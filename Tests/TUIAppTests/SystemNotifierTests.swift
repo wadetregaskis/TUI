@@ -38,7 +38,8 @@ struct SystemNotifierTests {
         let message = "Say \"hi\" & \\ end tell -x"
         let arguments = SystemNotifier.Helper.osascript("/usr/bin/osascript").arguments(title: "Demo", message: message)
         let separator = try #require(arguments.firstIndex(of: "--"))
-        #expect(Array(arguments[(separator + 1)...]) == ["Demo", message])
+        let passed: [String] = Array(arguments[(separator + 1)...])  // Typed, for the type checker.
+        #expect(passed == ["Demo", message])
         // The script, the -e arguments, names argv and holds neither string.
         let script = arguments[..<separator].enumerated().filter { $0.offset % 2 == 1 }.map(\.element)
         #expect(script.joined(separator: "\n").contains("argv"))

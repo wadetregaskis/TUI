@@ -124,8 +124,11 @@ struct FormTests {
         let much = try #require(out.first { $0.contains("a much longer label") }, "\(out)")
         let blockStart = try #require(start(of: "longer label", in: out[longer]))
         #expect(longer > 0 && start(of: "a", in: out[longer - 1]) == blockStart, "the lines lead: \(out)")
+        // Each side named and typed, for the type checker.
+        let blockEnd: Int = blockStart + "longer label".count
+        let pillarEdge: Int = (start(of: "a much longer label", in: much) ?? 0) + 19
         #expect(
-            blockStart + "longer label".count == (start(of: "a much longer label", in: much) ?? 0) + 19,
+            blockEnd == pillarEdge,
             "the block ends at the pillar's trailing edge: \(out)")
     }
 
@@ -392,7 +395,8 @@ struct FormTests {
             row.range(of: "Account email").map { row.distance(from: row.startIndex, to: $0.lowerBound) }
         }
         #expect(label != nil && atEdge != nil)
-        #expect(signOutColumn(out) == (label ?? 0) + (atEdge ?? 0))
+        let expectedColumn: Int = (label ?? 0) + (atEdge ?? 0)  // Typed, for the type checker.
+        #expect(signOutColumn(out) == expectedColumn)
     }
 
     @Test("A columns section header is right-aligned to the pillar")

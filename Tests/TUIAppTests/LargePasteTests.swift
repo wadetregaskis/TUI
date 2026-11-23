@@ -193,7 +193,8 @@ struct LargePasteTests {
         #expect(drain(terminal, source) == [.key(KeyEvent(key: .paste(expected))), Self.typedX])
         #expect(expected.unicodeScalars.count == content.count)
         let decoded = content.withUnsafeBufferPointer { unsafe Terminal.latin1Text($0) }
-        #expect(decoded.utf8.count == content.count + content.filter { $0 >= 0x80 }.count)
+        let highBytes = content.filter { $0 >= 0x80 }.count  // Named apart from the `+`, for the type checker.
+        #expect(decoded.utf8.count == content.count + highBytes)
     }
 
     /// A paste whose end marker never comes still ends at the stall timeout,

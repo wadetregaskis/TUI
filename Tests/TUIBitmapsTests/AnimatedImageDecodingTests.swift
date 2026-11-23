@@ -155,7 +155,10 @@ struct AnimatedImageDecodingTests {
             [0, 0, 0, length] + Array(name.utf8) + [UInt8](repeating: 0, count: Int(length) + 4)
         }
         func webP(flags: UInt8) -> [UInt8] {
-            Array("RIFF".utf8) + [0, 0, 0, 0] + Array("WEBPVP8X".utf8) + [10, 0, 0, 0, flags, 0, 0, 0]
+            // Two typed halves rather than one chain of `+`s, for the type checker.
+            let riff: [UInt8] = Array("RIFF".utf8) + [0, 0, 0, 0]
+            let header: [UInt8] = Array("WEBPVP8X".utf8) + [10, 0, 0, 0, flags, 0, 0, 0]
+            return riff + header
         }
         // By ImageIO's being here, the only decoder of APNG, and of WebP but
         // for WIC on Windows.
@@ -223,7 +226,10 @@ struct AnimatedImageDecodingTests {
         ] {
             let animation = try #require(animation)
             #expect(animation.frames.count == 4)
-            #expect(animation.frames.map { grey($0.image, 0, 0) } == [0, 3, 6, 9].map { GIFFixture.level(UInt8($0 * 10)) })
+            // Both sides typed, and named apart from the `#expect`, for the type checker.
+            let greys: [UInt8] = animation.frames.map { grey($0.image, 0, 0) }
+            let kept: [UInt8] = [0, 3, 6, 9].map { (frame: Int) in GIFFixture.level(UInt8(frame * 10)) }
+            #expect(greys == kept)
             #expect(animation.frames.map { $0.delayNanos / 1_000_000 } == [90, 180, 270, 110])
         }
     }

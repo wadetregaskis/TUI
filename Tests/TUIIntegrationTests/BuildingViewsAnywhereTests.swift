@@ -195,7 +195,8 @@ struct BuildingViewsAnywhereTests {
             return all
         }
         try #require(texts.count == 1_600)
-        #expect(Set(texts.map { drawn($0) }).count == 1)
+        let drawings: Set<String> = Set(texts.map { drawn($0) })  // Typed, for the type checker.
+        #expect(drawings.count == 1)
         #expect(texts.allSatisfy { $0 == texts[0] })
     }
 }

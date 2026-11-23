@@ -60,9 +60,10 @@ func csiSequencesAppleTerminalLeaks(in bytes: String) -> [String] {
 /// - Returns: Each introducer found in `bytes`, as `ESC` and its byte.
 func stringIntroducersAppleTerminalPrints(in bytes: String) -> [String] {
     let scalars = Array(bytes.unicodeScalars)
-    return zip(scalars, scalars.dropFirst()).compactMap { escape, introducer in
-        escape.value == 0x1B && "P_^X".unicodeScalars.contains(introducer)
-            ? "\u{1B}" + String(introducer) : nil
+    // Typed closure and a guard in place of a ternary over `nil`: for the type checker.
+    return zip(scalars, scalars.dropFirst()).compactMap { (escape: Unicode.Scalar, introducer: Unicode.Scalar) -> String? in
+        guard escape.value == 0x1B, "P_^X".unicodeScalars.contains(introducer) else { return nil }
+        return "\u{1B}" + String(introducer)
     }
 }
 

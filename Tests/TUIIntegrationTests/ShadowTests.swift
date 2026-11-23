@@ -65,7 +65,9 @@ struct ShadowTests {
         // Above it: the first ring over the box, the second beside it, and the
         // corner cell two out each way, 2.8 cells off, past the second ring.
         #expect(screen.fields(row: 2, 0..<10) == [page, second, first, first, first, first, first, first, second, page])
-        #expect(screen.fields(row: 1, 0..<10) == [page, page] + Array(repeating: second, count: 6) + [page, page])
+        // The expected row typed, and built apart from the `#expect`, for the type checker.
+        let aboveRing: [Int] = [page, page] + Array(repeating: second, count: 6) + [page, page]
+        #expect(screen.fields(row: 1, 0..<10) == aboveRing)
         #expect(screen.fields(row: 0, 0..<10).allSatisfy { $0 == page })
     }
 
@@ -94,7 +96,9 @@ struct ShadowTests {
         #expect((1...5).map { screen.glyph($0, 1) } == Array(repeating: "x", count: 5))
         #expect(screen.ink(1, 1) == 220)
         #expect((2...5).map { screen.ink($0, 1) } == Array(repeating: darkened(ring, from: 220), count: 4))
-        #expect(screen.fields(row: 1, 1..<7) == [Self.page] + Array(repeating: darkened(ring), count: 4) + [Self.page])
+        // The expected row typed, and built apart from the `#expect`, for the type checker.
+        let shadedRow: [Int] = [Self.page] + Array(repeating: darkened(ring), count: 4) + [Self.page]
+        #expect(screen.fields(row: 1, 1..<7) == shadedRow)
     }
 
     @Test("A shadow is over the views before its view and under the views after it")

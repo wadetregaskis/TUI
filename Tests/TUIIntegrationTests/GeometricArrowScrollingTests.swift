@@ -309,7 +309,8 @@ struct GeometricArrowScrollingTests {
         // and out; Down again through every row, and out at the bottom.
         let rows = (0..<12).map { "r\($0)" }
         #expect(steps(column, .down, times: 12) == rows)
-        #expect(steps(column, .up, times: 12) == rows.dropLast().reversed() + ["above"])
+        let upward: [String] = rows.dropLast().reversed() + ["above"]  // Typed, for the type checker.
+        #expect(steps(column, .up, times: 12) == upward)
         #expect(steps(column, .down, times: 13) == rows + ["below"])
     }
 
@@ -335,8 +336,11 @@ struct GeometricArrowScrollingTests {
     func rowEdges() {
         let row = app { Row() }
         #expect(row.focusedID == "left")
-        #expect(steps(row, .right, times: 13) == (0..<12).map { "c\($0)" } + ["right"])
-        #expect(steps(row, .left, times: 13) == (0..<12).reversed().map { "c\($0)" } + ["left"])
+        // The expected stops are typed, and named apart from the `#expect`s, for the type checker.
+        let rightward: [String] = (0..<12).map { "c\($0)" } + ["right"]
+        let leftward: [String] = (0..<12).reversed().map { "c\($0)" } + ["left"]
+        #expect(steps(row, .right, times: 13) == rightward)
+        #expect(steps(row, .left, times: 13) == leftward)
     }
 
     /// A vertical scroll view of rows, its first row short and one far down

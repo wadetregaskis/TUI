@@ -69,7 +69,9 @@ struct NavigationSplitViewToolbarRemovalTests {
 
         let all = frame(view, context)
         #expect(!has("◀", all))
-        #expect(all.lines.reduce(0) { $0 + $1.stripped.filter { $0 == "◦" }.count } == 3, "the grip is whole")
+        var grips = 0  // A loop rather than a `reduce` of nested closures, for the type checker.
+        for line in all.lines { grips += line.stripped.filter { $0 == "◦" }.count }
+        #expect(grips == 3, "the grip is whole")
         focusManager.activateSection(id: dividerSectionID(in: focusManager) ?? "")
         #expect(!focusManager.dispatchKeyEvent(KeyEvent(key: .enter)))
         #expect(box.visibility == .all)

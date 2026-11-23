@@ -92,9 +92,8 @@ struct FilePanelTextPreviewTests {
         let crExcerpt = try #require(await FilePanelPreview.excerpt(of: crEntry))
         #expect(crExcerpt.text.hasSuffix("\nLine 250"))
         #expect(crExcerpt.isTruncated)
-        #expect(
-            crExcerpt.omittedBytes
-                == Int64(crContent.utf8.count - (1...250).map { "Line \($0)\r" }.joined().utf8.count))
+        let crShown: Int = (1...250).map { "Line \($0)\r" }.joined().utf8.count  // Named apart, for the type checker.
+        #expect(crExcerpt.omittedBytes == Int64(crContent.utf8.count - crShown))
 
         // CRLF
         let crlfUrl = fixture.url("crlf.txt")
@@ -104,9 +103,8 @@ struct FilePanelTextPreviewTests {
         let crlfExcerpt = try #require(await FilePanelPreview.excerpt(of: crlfEntry))
         #expect(crlfExcerpt.text.hasSuffix("\nLine 250"))
         #expect(crlfExcerpt.isTruncated)
-        #expect(
-            crlfExcerpt.omittedBytes
-                == Int64(crlfContent.utf8.count - (1...250).map { "Line \($0)\r\n" }.joined().utf8.count))
+        let crlfShown: Int = (1...250).map { "Line \($0)\r\n" }.joined().utf8.count  // Named apart, for the type checker.
+        #expect(crlfExcerpt.omittedBytes == Int64(crlfContent.utf8.count - crlfShown))
     }
 
     @Test("Exactly 250 lines ending in a newline has no truncation indicator")

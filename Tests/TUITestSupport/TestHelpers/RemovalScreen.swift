@@ -51,8 +51,10 @@ final class RemovalScreen<Content: View> {
     /// included, to two places.
     func fades(_ showing: Bool, atMillis millis: Int) -> [Double] {
         func strengths(_ buffer: FrameBuffer) -> [Double] {
-            buffer.opacityRegions.map { ($0.opacity * 100).rounded() / 100 }
-                + buffer.overlays.flatMap { strengths($0.content) }
+            // Two named halves rather than one `+` of two closures: for the type checker.
+            let own: [Double] = buffer.opacityRegions.map { ($0.opacity * 100).rounded() / 100 }
+            let layers: [Double] = buffer.overlays.flatMap { strengths($0.content) }
+            return own + layers
         }
         return strengths(buffer(showing, atMillis: millis))
     }
