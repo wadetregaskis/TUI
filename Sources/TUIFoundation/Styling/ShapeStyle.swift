@@ -112,29 +112,21 @@ extension Gradient: ShapeStyle {
 // MARK: - Modifying a style
 
 extension ShapeStyle {
-    /// This style at `opacity`, blended toward the surface it will draw on.
+    /// This style at `opacity`: every colour it resolves to — each stop of a
+    /// gradient, not merely its ends — at that fraction of its alpha.
     ///
-    /// A terminal cell has no alpha channel, so this is a mix rather than a
-    /// composite: every colour the style resolves to — each stop of a gradient,
-    /// not merely its ends — is blended toward
-    /// ``Palette/background``, which is the surface a styled view draws on
-    /// unless something has painted over it. Same shape as
-    /// ``Color/opacity(_:over:)``, and the same reason: mixing toward black
-    /// instead (what ``Color/opacity(_:)`` does) turns every "dim" into a smudge
-    /// on a light palette.
-    ///
-    /// Where the surface is genuinely not the page — a label inside a coloured
-    /// panel — the answer is approximate, and the exact one is
-    /// ``View/opacity(_:)``, which composites the rendered cells against what
-    /// they actually land on. SwiftUI's `ShapeStyle.opacity(_:)` does not
-    /// composite either; it multiplies alpha and lets the drawing sort it out.
+    /// It multiplies alpha, as SwiftUI's `ShapeStyle.opacity(_:)` does, and
+    /// leaves the drawing to sort it out: the fade is composited at the cell,
+    /// over whatever is actually behind it, so a faded label over a coloured
+    /// panel fades toward the panel, not the page. A semantic colour stays
+    /// semantic through it, so `.foregroundStyle(.primary.opacity(0.6))` still
+    /// follows the theme.
     ///
     /// ``Color`` has an `opacity(_:)` of its own returning a `Color`, and a
     /// member on the concrete type beats a protocol extension, so
     /// `.red.opacity(0.5)` is that one — as it is in SwiftUI, where `Color`
-    /// shadows `ShapeStyle` identically. It mixes toward black, which on the
-    /// dark palettes this framework ships is the same answer as mixing toward
-    /// their background; the two part company only on a light one.
+    /// shadows `ShapeStyle` identically. The two do the same thing: each
+    /// stores the alpha and defers.
     ///
     /// - Parameter opacity: How much of the style survives, `0…1`.
     public func opacity(_ opacity: Double) -> some ShapeStyle {

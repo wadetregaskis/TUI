@@ -20,10 +20,11 @@ import Synchronization
 ///
 /// - `NO_COLOR` set, whatever its value → ``noColor``. Bold, underline, italics
 ///   and the other text attributes stay: they aren't colour.
-/// - `FORCE_COLOR`: `0` or `false` → ``noColor``, `1` → ``basic16``, `2` →
-///   ``palette256``, `3` or more → ``truecolor``, and anything else, such as `true`,
-///   → what the terminal can do, but at least ``basic16``. That can raise a depth
-///   `TERM` understates, or lower one.
+/// - `FORCE_COLOR`: `0` or `false` → ``noColor``; `1`, `2` and `3` or more →
+///   what the terminal can do, but at least ``basic16``, ``palette256`` and
+///   ``truecolor``; anything else, such as `true`, → what the terminal can do,
+///   but at least ``basic16``. A number can raise a depth `TERM` understates,
+///   never lower one: only `0` or `false` does.
 /// - `CLICOLOR_FORCE` set and not `0` or `false` → what the terminal can do, but at
 ///   least ``basic16``.
 /// - `CLICOLOR` of `0` or `false` → ``noColor``.

@@ -147,7 +147,8 @@ extension Color {
             // #D7875F, #AF875F — and comparing only against the last step let
             // the bounce through, so the "breath" visibly wobbled instead of
             // fading. Each distinct shade appears once, in the order first
-            // reached; `samples` is small (64) so the linear scan is nothing.
+            // reached; `samples` is small (256 by default) and the ramp is
+            // memoised, so the linear scan costs little.
             guard !seen.contains(rendered) else { continue }
             seen.append(rendered)
             if wantsHue && rendered.isAchromatic && rendered != brightRendered { continue }

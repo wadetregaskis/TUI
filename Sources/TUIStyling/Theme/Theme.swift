@@ -998,9 +998,11 @@ extension Palette {
     /// reason a pulse reads as one property of the UI rather than as several
     /// controls that happen to blink.
     ///
-    /// Over ``background`` specifically: ``Color/opacity(_:)`` alone fades
-    /// toward black, which on a light palette is not a dimmer accent but a
-    /// different colour.
+    /// Over ``background`` specifically, as concrete colours: both ends spend
+    /// a translucent accent's alpha against the same ground
+    /// (``Color/breathEnds(dimmedTo:over:)``), so the dim end is the accent
+    /// blended toward the page, not an alpha ``Color/opacity(_:)`` would leave
+    /// to whatever the mark lands on.
     ///
     /// - Parameter surface: What the mark is drawn over, when that is not the
     ///   page — a filled row, a well. The dim end is blended toward it, so the

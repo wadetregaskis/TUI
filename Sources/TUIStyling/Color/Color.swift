@@ -64,13 +64,15 @@ public struct Color: Sendable, Hashable {
     ///
     /// ## What honours it
     ///
-    /// Nothing yet, and that is deliberate rather than unfinished: the paths that
-    /// resolve a colour to SGR bytes assert on it (see `Color+ANSICodes.swift`),
-    /// so a translucent colour reaching one is a debug failure rather than a
-    /// silently opaque cell. The public spellings — `Color.clear`, a real
-    /// `opacity(_:)`, the `opacity:` initialisers — land only once the paths a
-    /// reader will actually use honour it. See `Documentation/Colour and styling/Opacity as
-    /// composition.md`.
+    /// The composite. A view that draws a colour (a background, a fill) spells
+    /// it at full strength (``opaqueSpelling``) and carries the alpha beside
+    /// it as an `OpacityRegion`, which is mixed where what is behind the cell
+    /// is known. The paths that resolve a colour straight to SGR bytes still
+    /// assert it is opaque (see `Color+ANSICodes.swift`), so a translucent
+    /// colour that reaches one without that split is a debug failure rather
+    /// than a silently opaque cell. The public spellings are ``clear``,
+    /// ``opacity(_:)`` and the `opacity:` initialisers. See
+    /// `Documentation/Colour and styling/Opacity as composition.md`.
     public var alpha: UInt8 = 255
 
     /// Whether this colour is fully opaque — the common case, and the one every
@@ -776,14 +778,16 @@ extension Color {
         return copy
     }
 
-    /// Returns the color composited at `opacity` over `surface` — true alpha
-    /// blending, unlike ``opacity(_:)`` which can only mix toward black.
+    /// Returns the color composited at `opacity` over `surface`, a surface the
+    /// caller names, as a concrete colour — where ``opacity(_:)`` carries the
+    /// alpha to the composite, which mixes it over whatever the cell turns out
+    /// to sit on.
     ///
-    /// Over a black surface the two coincide exactly, which is how the
-    /// mix-toward-black shorthand survived on dark palettes; over light
-    /// surfaces it turns every "dim" into a near-black smudge (the
-    /// dark-on-dark controls seen under light palettes), so palette-aware
-    /// rendering should pass the surface the colour actually draws on.
+    /// For a style derived from a palette, where what it sits on is known:
+    /// palette-aware rendering should pass the surface the colour actually
+    /// draws on. A mix toward black instead, which ``opacity(_:)`` used to be,
+    /// turns every "dim" into a near-black smudge on a light palette (the
+    /// dark-on-dark controls once seen there).
     ///
     /// **The mix is in ENCODED sRGB**, which is the whole difference from
     /// ``compositing(_:over:)`` and is deliberate: encoded space is near enough
