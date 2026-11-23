@@ -163,7 +163,7 @@ extension TextCharacters: RandomAccessCollection, MutableCollection, RangeReplac
         get {
             let utf8 = storage.utf8
             guard let starts else {
-                return Character(Unicode.Scalar(utf8[utf8.index(utf8.startIndex, offsetBy: position)]))
+                return Self.ascii[Int(utf8[utf8.index(utf8.startIndex, offsetBy: position)])]
             }
             let lower = Int(starts[position])
             let upper = position + 1 < starts.count ? Int(starts[position + 1]) : utf8.count
@@ -173,6 +173,12 @@ extension TextCharacters: RandomAccessCollection, MutableCollection, RangeReplac
             replaceSubrange(position..<(position + 1), with: CollectionOfOne(newValue))
         }
     }
+
+    /// Each ASCII byte's character, made once: what an ASCII line's
+    /// subscript hands back, where `Character(Unicode.Scalar(byte))` made a
+    /// string for every character drawn (0.9% of `bigtext-find`'s time).
+    /// 128 characters, not text: a table of glyphs, as a mnemonic's are.
+    private static let ascii: [Character] = (0..<128).map { Character(Unicode.Scalar(UInt8($0))) }
 
     mutating func append(_ character: Character) {
         let length = character.utf8.count

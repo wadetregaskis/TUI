@@ -275,7 +275,7 @@ struct TextEditorMarkTests {
                 palette: rig.context.environment.palette, isDisabled: false, background: nil)
             let row = TextEditorHighlightLayerTests.cells(
                 core.styledRow(
-                    TextCharacters("one two one"), tabWidth: rig.context.environment.tabWidth, scrollColumn: 0, width: 20,
+                    TextCharacters("one two one")[...], tabWidth: rig.context.environment.tabWidth, scrollColumn: 0, width: 20,
                     caret: nil, selection: 4..<7, matches: rig.handler.findColumns(ofLine: 0),
                     styles: rig.handler.styles(ofLine: 0), styling: styling
                 ).line)

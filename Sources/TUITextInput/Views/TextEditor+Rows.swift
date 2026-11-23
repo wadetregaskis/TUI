@@ -71,7 +71,7 @@ extension _TextEditorCore {
                 // The line's styles, in this row's columns.
                 let styles = EditorStyledRun.clipping(handler.styles(ofLine: line), toColumns: span.start, end)
                 rendered = styledRow(
-                    lines[line].characters(in: span.start..<end), tabWidth: tabWidth, scrollColumn: 0, leadingCells: aligned,
+                    lines[line][span.start..<end], tabWidth: tabWidth, scrollColumn: 0, leadingCells: aligned,
                     width: rows.width,
                     caret: top + screenRow == caretRow && handler.selectionRange == nil && handler.block == nil
                         ? caret : nil,
@@ -144,7 +144,7 @@ extension _TextEditorCore {
                         ..< TabLayout.displayColumn(ofCharIndex: $0.upperBound, in: lineChars, tabWidth: tabWidth)
                 }
                 rendered = styledRow(
-                    lineChars, tabWidth: tabWidth, scrollColumn: handler.scrollColumn, leadingCells: aligned,
+                    lineChars[...], tabWidth: tabWidth, scrollColumn: handler.scrollColumn, leadingCells: aligned,
                     width: width,
                     // No caret while text is selected, as on a Mac: the
                     // selection is what typing replaces (see the field's
@@ -351,7 +351,7 @@ extension _TextEditorCore {
     /// field. The caret's, the selection's and the matches' columns stay the
     /// line's own, and so do its tab stops.
     func styledRow(
-        _ chars: TextCharacters, tabWidth: TabWidth, scrollColumn: Int, leadingCells: Int = 0, width: Int,
+        _ chars: Slice<TextCharacters>, tabWidth: TabWidth, scrollColumn: Int, leadingCells: Int = 0, width: Int,
         caret: RowCaret?, selection: Range<Int>?, matches: [Range<Int>] = [], styles: [EditorStyledRun] = [],
         styling: RowStyling
     ) -> RenderedRow {
