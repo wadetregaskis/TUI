@@ -134,6 +134,11 @@ too: the rest of the row came back to full strength. Faint is stated again after
 behind lost its glyphs, but the cells the container draws between the members let it through, tinted: two legible
 stripes through a frosted pill. Those cells now frost with the first member's frost, as its own part does.
 
+**`Text(localized: "key")` follows a subtree's `\.locale`.** It read its key when it was made and kept the words, so
+`.environment(\.locale, Locale(identifier: "de"))` did not change them, where `Text("key")` and
+`LocalizedString("key")` under the same modifier read German. It is now the key's `Text`, read again when it is
+drawn, and draws its string's Markdown, as SwiftUI's `Text` of a `LocalizedStringResource` does.
+
 **A reader of Traditional Chinese is no longer given TUI's Simplified Chinese.** Under `LANG=zh_TW.UTF-8`, or a
 Mac whose first language is `zh-Hant`, every one of TUI's words came out Simplified (文件, 编辑), beside English years
 and months: the language was read as its code alone, `zh`. A language is now its code with its script where that is

@@ -1159,11 +1159,14 @@ messages cite that path), and what cites it.
   (`binding_anyhashable.swift`);
   whether `.scrollIndicators(_:axes:)` shows the AppKit scrollers (`shows_indicators.swift`); and the number of
   `NSTextContentType` cases (`tct.swift`). `entry_probe.swift` (SwiftUI's `@Entry`) and `entry_diag.swift` (TUI's
-  macro's diagnostics) check the `@Entry` macro on both sides.
-- **Ran:** macOS 15, 2026-10-18.
+  macro's diagnostics) check the `@Entry` macro on both sides. `locale-scripts/probe.swift` (H-54) asks whether
+  `\.locale` picks a script's and a region's table (`zh-Hans`, `zh-Hant`, `pt`, `pt-BR`, `pt-PT`), and whether
+  `Text` of a `LocalizedStringResource` follows `\.locale` and draws Markdown; `run.sh` builds its bundle and runs
+  it, and `probe.out` is what it printed.
+- **Ran:** macOS 15, 2026-10-18; `locale-scripts/` on macOS 15.8.3, 2026-11-23.
 - **Was:** `PARITYMISC/probes/`.
 - **Cited by:** `Documentation/Historical/Text, editing and the clipboard/Text fields and the wrapping editor.md`,
-  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`.
+  `Documentation/SwiftUI parity/Deliberate deviations from SwiftUI.md`, `LocalizationExtensions.swift`.
 
 ### Undo and the pointer leaving (INPUT)
 

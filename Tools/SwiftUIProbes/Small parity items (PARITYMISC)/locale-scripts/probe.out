@@ -1,0 +1,27 @@
+localizations: ["de", "de", "en", "en", "pt", "pt", "pt-BR", "pt-BR", "pt-PT", "pt-PT", "zh-Hans", "zh-Hans", "zh-Hant", "zh-Hant"] preferred: ["en", "en"]
+default                                          -> Hello
+env locale zh-Hant                               -> Hello-Hant
+env locale zh_TW                                 -> Hello-Hant
+env locale zh-Hant-TW                            -> Hello-Hant
+env locale zh_HK                                 -> Hello-Hant
+env locale zh-Hans                               -> Hello-Hans
+env locale zh                                    -> Hello-Hans
+env locale zh_CN                                 -> Hello-Hans
+env locale zh-Hans-SG                            -> Hello-Hans
+env locale pt-BR                                 -> Ola-BR
+env locale pt_BR                                 -> Ola-BR
+env locale pt-PT                                 -> Ola-PT
+env locale pt_PT                                 -> Ola-PT
+env locale pt                                    -> Ola-pt
+env locale pt_AO                                 -> Ola-PT
+env locale pt_MZ                                 -> Ola-PT
+env zh-Hant, key only in zh-Hans                 -> only.hans
+env zh_TW, key only in zh-Hans                   -> only.hans
+env pt-BR, key only in pt                        -> only.pt
+env pt_AO, key only in pt                        -> only.pt
+env zh-Hant, key only in en                      -> only.en
+resource, default                                -> Hello
+resource, env locale de                          -> Hallo
+resource, env locale zh-Hant                     -> Hello-Hant
+String(localized:), env locale de                -> Hello
+resource with Markdown                           -> drawn as Markdown

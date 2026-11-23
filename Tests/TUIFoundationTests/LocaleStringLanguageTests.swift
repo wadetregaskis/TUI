@@ -94,6 +94,18 @@ struct LocaleStringLanguageTests {
         #expect(english.contains("Cancel"), "\(english)")
     }
 
+    @Test("Text(localized:) with a string reads its key when drawn, so it follows the override, Markdown and all")
+    func localizedStringInitializer() {
+        // SwiftUI's nearest, `Text(_:)` of a `LocalizedStringResource`, does both
+        // (Tools/SwiftUIProbes/Small parity items (PARITYMISC)/locale-scripts/).
+        let english = drawn(Text(localized: "test.localeLanguage.greeting"))
+        #expect(english.contains("Hello"), "\(english)")
+        let german = drawn(Text(localized: "test.localeLanguage.greeting").environment(\.locale, Locale(identifier: "de")))
+        #expect(german.contains("Hallo"), "\(german)")
+        let bold = drawn(Text(localized: "test.localeLanguage.bold").environment(\.locale, Locale(identifier: "de")))
+        #expect(bold.hasPrefix("Fett gedruckt"), "\(bold)")
+    }
+
     @Test("A button titled from a key — the app's or TUI's — follows the override; one titled as written does not")
     func buttonTitles() {
         let german = Locale(identifier: "de")

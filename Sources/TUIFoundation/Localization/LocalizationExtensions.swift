@@ -18,10 +18,18 @@ extension Text {
     /// This is an alternative to `LocalizedString("button.ok")` for cases where
     /// you need a `Text` view directly (e.g., as a return value from a computed property).
     ///
+    /// The `Text` of the key, as `Text(LocalizedStringKey(key))` is: read as the
+    /// app's own keys are (see ``LocalizationService``), and read again when it
+    /// is drawn under a subtree whose `\.locale` names another language, its
+    /// Markdown drawn. So SwiftUI's nearest, `Text(_:)` of a
+    /// `LocalizedStringResource`, reads (measured on macOS 15, 2026-11-23:
+    /// `Tools/SwiftUIProbes/Small parity items (PARITYMISC)/locale-scripts/`).
+    /// It used to resolve the key when it was made and keep the words, so a
+    /// subtree's `\.locale` did not reach it.
+    ///
     /// - Parameter key: The dot-notation key for the localized string.
     public init(localized key: String) {
-        let localizedValue = LocalizationService.shared.string(for: key)
-        self.init(localizedValue)
+        self.init(LocalizedStringKey(key))
     }
 }
 
