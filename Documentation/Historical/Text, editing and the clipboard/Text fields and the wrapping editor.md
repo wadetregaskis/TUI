@@ -774,17 +774,51 @@ indexes lines by character throughout, reads it as it read the array.
 
 **Measured** with `TextEditorMemoryTests` (`TUI_EDITOR_MEMORY=1,10`, a debug
 build, the heap malloc's zones hold after each), the JSON-like document of
-about 30 bytes a line:
+about 30 bytes a line; "lines" is the first commit (the lines as
+`TextCharacters`), "all" with the byte split and the in-place append too:
 
-| Held, per line | 1 MB before | 1 MB after | 10 MB before | 10 MB after |
-|---|---|---|---|---|
-| `EditorLayout(text:)` | 450.9 B | 97.8 B | 518.1 B | 108.1 B |
-| `TextEditor`, first frame | 506.4 B | 344.9 B | 665.5 B | 290.5 B |
-| `TextEditor` highlighted, first publish | 700.6 B | 201.1 B | 713.9 B | 266.7 B |
+| Held, per line | 1 MB before | lines | all | 10 MB before | lines | all |
+|---|---|---|---|---|---|---|
+| `EditorLayout(text:)` | 450.9 B | 97.8 B | 93.6 B | 518.1 B | 108.1 B | 79.1 B |
+| `TextEditor`, first frame | 506.4 B | 344.9 B | 282.9 B | 665.5 B | 290.5 B | 278.9 B |
+| `TextEditor` highlighted, first publish | 700.6 B | 201.1 B | 295.9 B | 713.9 B | 266.7 B | 304.0 B |
 
-The editor's 10 MB document went from about 224 MB to about 98 MB. Each
+The editor's 10 MB document went from about 224 MB to about 94 MB. Each
 figure is one run of a heap that frees and reuses as it goes, so they move a
-few tens of bytes from run to run; the layout's 410 bytes a line saved is the
-size the design predicted. What a first frame holds now is mostly its
-wrapping (`WrappedRows`, 183.6 bytes a line at 79 cells: a `SoftWrapLayout`
+few tens of bytes from run to run; the layout's 410 to 440 bytes a line saved
+is the size the design predicted. What a first frame holds now is mostly its
+wrapping (`WrappedRows`, 183.5 bytes a line at 79 cells: a `SoftWrapLayout`
 a line, its rows and its widths in arrays of their own), unchanged here.
+
+**A/B** (`ab_bench.py`, cpu-per-frame, paired reps, base 0c27c1151), first
+at e69bf08d2 over every editor and field scenario Stress has and
+`kitchensink` (10 reps): faster on `bigtext-open` -12.6% (95% CI -13.2% to
+-11.7%), `bigtext-replace-all` -7.3%, `case:editor-tiny` -9.0%,
+`app-shapes/text-editor-typing` -9.3% and `case:editor-mid-typing` -2.4%;
+the other fourteen indistinguishable, `bigtext-find` among them at +7.1%
+with a wide interval. Peak RSS fell in every large-text session:
+`bigtext-open` 259.6 to 97.6 MB, `bigtext` 182.9 to 125.9 MB,
+`bigtext-replace-all` 173.3 to 85.3 MB, `app-shapes/text-editor-typing`
+101.5 to 36.7 MB.
+
+`bigtext-find` alone, 24 reps on a quiet machine, was a real +6.5% (+5.9% to
++7.1%), with a profile whose shares were the base's to a tenth of a per
+cent. The bench's table by action found it: its one `focus` step, the click
+after which the editor wraps the whole document again, took 95.5 ms at the
+base and 174.7 ms at the tip, the typing steps within 1%. `SoftWrapLayout`
+reads every character two or three times, and each read through a
+`TextCharacters` subscript was the string's index arithmetic and a new
+`Character` (`Character(Unicode.Scalar(byte))` makes a string). Two commits
+followed: a table of the 128 ASCII characters for the subscript, and a drawn
+row passed as a slice of its line rather than copied (no change to the
+regression alone, +7.4%); then an ASCII line wrapped through an array of its
+bytes (`asciiBytes`). At b1792a207, 16 reps: `bigtext-find` +2.1% (+0.6% to
++2.8%), its `focus` step 100.9 to 119.3 ms; `bigtext` +1.4% (+1.0% to
++2.0%); `bigtext-open` -40.9% (-41.8% to -39.8%);
+`app-shapes/text-editor-typing` -33.1%; `case:editor-tiny` -15.3%;
+`kitchensink` indistinguishable.
+
+**Left:** those two small costs, both in reading a line's characters one at a
+time (the 18 ms of the click is the whole document wrapped through the byte
+arrays, each line's bytes copied into one); and the wrapping itself, now most
+of what a large editor holds.

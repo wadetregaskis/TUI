@@ -20,9 +20,11 @@ tab stalled the teardown until the system ended the app five seconds later, so i
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
 **A large `TextEditor` holds less than half the memory it did.** Its lines were kept as arrays of `Character`, 16
-bytes a character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about
-224 MB of heap once its editor had drawn, and takes about 98 MB (665 to 291 bytes a line; the lines' own share went
-from 518 to 108). A vertical `TextField` lays its text out the same way. Nothing an app sees changes.
+bytes a character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224
+MB of heap once its editor had drawn, and takes about 94 MB (665 to 279 bytes a line; the lines' own share went from
+518 to 79). Opening one takes 41% less time, as its lines are cut from the text's bytes, and laying out a text an app
+replaces whole a third less; a key in Stress's `bigtext` session costs 1.4% more. A vertical `TextField` lays its text
+out the same way. Nothing an app sees changes.
 
 **A tinted glass keeps its tint's transparency while the window is inactive.** `.glassEffect(.regular.tint(…))` with a
 translucent tint went more solid as the terminal lost focus, because greying the tint dropped its alpha. The colour
