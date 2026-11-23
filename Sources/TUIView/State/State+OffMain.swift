@@ -47,8 +47,12 @@ extension StateBacking: @unchecked Sendable where Value: Sendable {}  // swiftli
 ///
 /// - **A read in a render pass on the main actor** — a body's, a core's —
 ///   takes the pass's snapshot of the value, unlocked; the first in a pass
-///   takes it, under the lock (``StateBox/stateValueOnMainActor()``). Any
-///   write drops it, so a body that writes its state reads it back.
+///   takes it, under the lock (``StateBox/stateValueOnMainActor()``). Only a
+///   write on the main actor drops it, so a body that writes its state reads
+///   it back, and every other read in the pass agrees with the first, a
+///   child's through a `Binding` included (owner 2026-11-22, O25-D-2: "the
+///   safe option"). A write off the main actor that lands mid-pass shows from
+///   the next pass, which its report asks for.
 /// - **Every other read**, on the main actor (an action's, a handler's) or
 ///   off it, takes the lock.
 /// - **A write, on any thread**, stores the value under the lock at once, so
@@ -63,7 +67,10 @@ extension StateBacking: @unchecked Sendable where Value: Sendable {}  // swiftli
 /// thread updates the graph takes the `State`'s own snapshot, and every other
 /// read the lock; a write stores under it at once and posts its commit to the
 /// main run loop, asynchronously. Its snapshot is the view's, taken as the
-/// body is evaluated; this one is the pass's, taken by its first read.
+/// body is evaluated; this one is the pass's, taken by its first read, which
+/// is stronger: per pass, not per body, so a parent and every child it hands
+/// a binding to read one value in a pass, where in SwiftUI a child's body
+/// evaluated after a write off the main actor may see it.
 extension StateBacking {
     /// The value, read and written on any thread.
     var value: Value {

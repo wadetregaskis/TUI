@@ -1134,21 +1134,23 @@ package final class StateBox<Value> {
 
     /// The lock a `@State`'s every access takes but a read in a render pass
     /// on the main actor (``stateValueOnMainActor()``): ``stored``'s, for a
-    /// box a `@State` holds, and ``snapshotPass``'s writes'. `Mutex` in place,
-    /// as `Lock` is the same lock in an object of its own, which would be one
-    /// more allocation a box. A core's slot, which only the main actor
-    /// reaches, reads and writes ``value`` as is.
+    /// box a `@State` holds. `Mutex` in place, as `Lock` is the same lock in
+    /// an object of its own, which would be one more allocation a box. A
+    /// core's slot, which only the main actor reaches, reads and writes
+    /// ``value`` as is.
     private let lock = Mutex(())
 
     /// The value as the render pass ``snapshotPass`` names reads it, taken by
-    /// the pass's first read: what a read in that pass on the main actor
+    /// the pass's first read: what every read in that pass on the main actor
     /// takes, unlocked. Read and written on the main actor only.
     private var renderSnapshot: Value?
 
-    /// The render pass ``renderSnapshot`` is good for: `0` for none. Written
-    /// under ``lock``, where a write drops it, and read on the main actor
-    /// unlocked.
-    private let snapshotPass = Atomic<UInt32>(0)
+    /// The render pass ``renderSnapshot`` is good for: `0` for none. Read and
+    /// written on the main actor only, as ``renderSnapshot`` is: the pass's
+    /// first read sets it, and only a write on the main actor drops it
+    /// (O25-D-2), so a plain field, not the atomic a write on any thread
+    /// dropping it needed.
+    private var snapshotPass: UInt32 = 0
 
     /// Creates a state box with an initial value.
     ///
@@ -1168,21 +1170,28 @@ package final class StateBox<Value> {
 
 extension StateBox {
     /// The value as a `@State` reads it on the main actor: in a render pass,
-    /// the pass's snapshot, unlocked once the pass's first read has taken it;
-    /// elsewhere — an action, a handler — under the lock.
+    /// the pass's snapshot, unlocked once the pass's first read has taken it
+    /// under the lock; elsewhere — an action, a handler — under the lock.
+    ///
+    /// Every read in a pass agrees with the first, a body's second read and a
+    /// child's through a `Binding` included, however other threads write:
+    /// only a write on the main actor drops the snapshot (``setStateValue(_:)``),
+    /// so a body that writes its state reads it back. A write off the main
+    /// actor that lands after the first read shows from the next pass, which
+    /// its report asks for: the report is posted to the main actor, so it runs
+    /// after this pass, which is drawn on the main actor without a break, and
+    /// the next pass has a serial of its own, so its first read takes the
+    /// value afresh. Stronger than SwiftUI, whose snapshot is each body's
+    /// (owner 2026-11-22, O25-D-2: "the safe option").
     func stateValueOnMainActor() -> Value {
         let pass = StateRegistration.renderPass
         guard pass != 0 else { return lockedValue() }
-        if snapshotPass.load(ordering: .acquiring) == pass, let renderSnapshot { return renderSnapshot }
-        var value: Value?
-        lock.withLock { _ in
-            value = stored
-            snapshotPass.store(pass, ordering: .releasing)
-        }
+        if snapshotPass == pass, let renderSnapshot { return renderSnapshot }
+        let value = lockedValue()
+        snapshotPass = pass
         // After the lock, letting go of the last pass's.
         renderSnapshot = value
-        // swiftlint:disable:next force_unwrapping
-        return value!
+        return value
     }
 
     /// The value, copied under the lock: a `@State`'s read on any thread.
@@ -1193,22 +1202,23 @@ extension StateBox {
         return value!
     }
 
-    /// Stores `newValue` under the lock, dropping the render pass's snapshot,
-    /// on any thread; what it displaces is let go of after the lock. Reports
-    /// nothing: the caller does, on the main actor.
+    /// Stores `newValue` under the lock, on any thread; what it displaces is
+    /// let go of after the lock. Leaves the render pass's snapshot alone, so
+    /// a pass that has read the value goes on reading what it read
+    /// (``stateValueOnMainActor()``). Reports nothing: the caller does, on
+    /// the main actor.
     func storeStateValue(_ newValue: Value) {
         var displaced = newValue
-        lock.withLock { _ in
-            swap(&stored, &displaced)
-            snapshotPass.store(0, ordering: .relaxed)
-        }
+        lock.withLock { _ in swap(&stored, &displaced) }
     }
 
-    /// A `@State`'s write on the main actor: stored under the lock, and
-    /// reported as ``value``'s setter reports one.
+    /// A `@State`'s write on the main actor: stored under the lock, the
+    /// render pass's snapshot dropped, so a body that writes its state reads
+    /// it back, and reported as ``value``'s setter reports one.
     func setStateValue(_ newValue: Value) {
         invalidationSink?.willInvalidateRender()
         storeStateValue(newValue)
+        snapshotPass = 0
         reportChange()
     }
 

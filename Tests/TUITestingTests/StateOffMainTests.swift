@@ -7,6 +7,8 @@
 //  to a `@Sendable` closure, a detached task among them. And no access off
 //  the main actor waits for it (O-25-FIRSTREAD, 2026-11-22): the first read
 //  used to, a deadlock where the main actor waited on the reading thread.
+//  And every read in a render pass agrees, a write off the main actor landing
+//  mid-pass showing from the next (O25-D-2, 2026-11-22).
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -64,6 +66,93 @@ private func whileMainActorWaits(_ body: @escaping @Sendable () -> Void) -> Bool
         finished.signal()
     }
     return finished.wait(timeout: .now() + .seconds(10)) == .success
+}
+
+/// What a test hands a view that reads its `@State` more than once in a body,
+/// and what each read gave.
+@MainActor
+private final class Reads {
+    /// The view's `$items`, taken when it appeared.
+    var binding: Binding<[Int]>?
+    /// Run once, by the next body, between its reads.
+    var between: (() -> Void)?
+    /// What each body read: every read it made, in order.
+    var bodies: [[[Int]]] = []
+    /// What each child body read through the binding its parent handed it.
+    var children: [[Int]] = []
+
+    /// Runs ``between``, once.
+    func runBetween() {
+        let between = between
+        self.between = nil
+        between?()
+    }
+}
+
+/// Reads its state, lets the test act, then reads it again.
+private struct ReadsTwice: View {
+    let reads: Reads
+    @State private var items: [Int] = []
+
+    var body: some View {
+        let first = items
+        // Statements a view builder takes.
+        // swiftlint:disable redundant_discardable_let
+        let _ = reads.runBetween()
+        let second = items
+        let _ = reads.bodies.append([first, second])
+        // swiftlint:enable redundant_discardable_let
+        Text("Count: \(second.count)")
+            .onAppear { reads.binding = $items }
+    }
+}
+
+/// Reads its state, lets the test act, then hands a child the binding.
+private struct HandsDown: View {
+    let reads: Reads
+    @State private var items: [Int] = []
+
+    var body: some View {
+        let first = items
+        // Statements a view builder takes.
+        // swiftlint:disable redundant_discardable_let
+        let _ = reads.runBetween()
+        let _ = reads.bodies.append([first])
+        // swiftlint:enable redundant_discardable_let
+        ReadsThroughBinding(reads: reads, items: $items)
+            .onAppear { reads.binding = $items }
+    }
+}
+
+/// Reads, in its body, the binding its parent hands it.
+private struct ReadsThroughBinding: View {
+    let reads: Reads
+    @Binding var items: [Int]
+
+    var body: some View {
+        // A statement a view builder takes.
+        // swiftlint:disable:next redundant_discardable_let
+        let _ = reads.children.append(items)
+        Text("Count: \(items.count)")
+    }
+}
+
+/// Writes its state in its body, and reads it back.
+private struct WritesInBody: View {
+    let reads: Reads
+    let write: [Int]
+    @State private var items: [Int] = []
+
+    var body: some View {
+        let first = items
+        // Statements a view builder takes.
+        // swiftlint:disable redundant_discardable_let
+        let _ = (items = write)
+        let second = items
+        let _ = reads.bodies.append([first, second])
+        // swiftlint:enable redundant_discardable_let
+        Text("Count: \(second.count)")
+    }
 }
 
 @MainActor
@@ -178,5 +267,63 @@ struct StateOffMainTests {
         await Task.yield()
         #expect(binding.wrappedValue == [42])
         #expect(app.screen.text == "Count: 1")
+    }
+
+    @Test("A body's reads of its state agree when a write off the main actor lands between them; the next frame shows it")
+    func bodyReadsAgreeAcrossAnOffMainWrite() async throws {
+        let reads = Reads()
+        let app = TestApp(width: 20, height: 1) { ReadsTwice(reads: reads) }
+        #expect(app.screen.text == "Count: 0")
+        let binding = try #require(reads.binding)
+        // Between the next body's two reads, a write from a thread of its own,
+        // which the body waits for: no timing, the write has landed.
+        reads.between = {
+            #expect(whileMainActorWaits { binding.wrappedValue = [1, 2] })
+        }
+        reads.bodies.removeAll()
+        // A write on the main actor, so the next frame runs the body.
+        binding.wrappedValue = [1]
+        #expect(app.screen.text == "Count: 1")
+        #expect(reads.between == nil, "the body ran")
+        #expect(reads.bodies.allSatisfy { $0 == [[1], [1]] }, "\(reads.bodies)")
+        // The write's report, posted to the main actor, asks for the next
+        // frame, a pass of its own, which reads the write.
+        await Task.yield()
+        reads.bodies.removeAll()
+        #expect(app.screen.text == "Count: 2")
+        #expect(!reads.bodies.isEmpty, "the body ran again")
+        #expect(reads.bodies.allSatisfy { $0 == [[1, 2], [1, 2]] }, "\(reads.bodies)")
+    }
+
+    @Test("A child reads through a Binding what its parent read, a write off the main actor landing between them")
+    func bindingReadAgreesWithParent() async throws {
+        let reads = Reads()
+        let app = TestApp(width: 20, height: 1) { HandsDown(reads: reads) }
+        #expect(app.screen.text == "Count: 0")
+        let binding = try #require(reads.binding)
+        reads.between = {
+            #expect(whileMainActorWaits { binding.wrappedValue = [1, 2] })
+        }
+        reads.bodies.removeAll()
+        reads.children.removeAll()
+        binding.wrappedValue = [1]
+        #expect(app.screen.text == "Count: 1")
+        #expect(reads.between == nil, "the parent's body ran")
+        #expect(!reads.children.isEmpty, "the child's body ran")
+        #expect(reads.bodies.allSatisfy { $0 == [[1]] }, "\(reads.bodies)")
+        #expect(reads.children.allSatisfy { $0 == [1] }, "\(reads.children)")
+        await Task.yield()
+        reads.children.removeAll()
+        #expect(app.screen.text == "Count: 2")
+        #expect(!reads.children.isEmpty, "the child's body ran again")
+        #expect(reads.children.allSatisfy { $0 == [1, 2] }, "\(reads.children)")
+    }
+
+    @Test("A body that writes its state on the main actor reads its write back")
+    func bodyReadsItsOwnWriteBack() {
+        let reads = Reads()
+        let app = TestApp(width: 20, height: 1) { WritesInBody(reads: reads, write: [5, 6, 7]) }
+        #expect(app.screen.text == "Count: 3")
+        #expect(reads.bodies.first == [[], [5, 6, 7]], "\(reads.bodies)")
     }
 }

@@ -903,6 +903,12 @@ public struct State<Value> {
     /// main actor: one value behind a lock of its box's, which a write on any
     /// thread stores at once and every read takes, but one in a render pass on
     /// the main actor, which reads the pass's snapshot (`StateBacking.value`).
+    ///
+    /// Every read in a frame gives what the frame's first read gave, a
+    /// child's through a `Binding` included: a write from another thread shows
+    /// from the next frame, which it asks for. A body that writes its state
+    /// reads its write back. SwiftUI's snapshot is each body's; this one is
+    /// the frame's (owner 2026-11-22, O25-D-2).
     public var wrappedValue: Value {
         get { backing.value }
         nonmutating set { backing.value = newValue }

@@ -49,6 +49,13 @@ newest toasts that fit, and the older ones aged off screen, so in a burst (ten u
 unseen. A stack now shows the oldest toasts that fit, and the others wait for room with their timers stopped, so
 each is shown for its whole duration. The newest toast is no longer always the one on screen.
 
+**A body's reads of a `@State` all agree, however a background task writes it.** A write from a detached task that
+landed while a body ran could change the value between two of that body's reads, so `if !items.isEmpty {
+Text(items[0]) }` could find the array empty at the subscript and stop the program, and a child reading the state
+through a `Binding` could see a different value from its parent's. Every read in a frame now gives the value the
+frame's first read gave; a write from another thread shows in the next frame, which it asks for. A body that writes
+its own state still reads its write back.
+
 **A toast from a sheet presented over a sheet stays on top once its sheet closes.** A sheet over a sheet that
 posted "Removed" and closed left the toast drawn dimmed under the sheet beneath, its timer stopped until that sheet
 closed too. A closed presentation's toasts now belong to what was beneath it.
