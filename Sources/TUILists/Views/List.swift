@@ -133,10 +133,16 @@ nonisolated public struct List<SelectionValue: Hashable & Sendable, Content: Vie
     /// Binding for multi-selection (Set of IDs).
     let multiSelection: Binding<Set<SelectionValue>>?
 
-    /// The selection mode derived from which binding is set.
-    @MainActor var selectionMode: SelectionMode {
-        multiSelection != nil ? .multi : .single
-    }
+    /// The kind of selection, from the initializer called: `.multi` for a `Set`
+    /// binding even when the binding is `nil`.
+    ///
+    /// Not read off which binding is set: SwiftUI's edit-mode idiom,
+    /// `List(selection: isEditing ? $picked : nil)`, first draws a list with
+    /// no binding and later gives it a `Set`, and a mode derived from the
+    /// first frame made it a single-selection list that never selected
+    /// (hunt item LISTS-3). The handler takes it again every frame
+    /// (`ItemListHandler.adoptSelectionMode(_:)`).
+    let selectionMode: SelectionMode
 
     /// The unique focus identifier for this list.
     var focusID: String?
@@ -222,6 +228,7 @@ extension List {
         self.footer = footer()
         self.singleSelection = selection
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = true
@@ -243,6 +250,7 @@ extension List {
         self.footer = footer()
         self.singleSelection = selection
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = true
@@ -286,6 +294,7 @@ extension List where Footer == EmptyView {
         self.footer = nil
         self.singleSelection = selection
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false
@@ -305,6 +314,7 @@ extension List where Footer == EmptyView {
         self.footer = nil
         self.singleSelection = selection
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false
@@ -353,6 +363,7 @@ extension List {
         self.footer = footer()
         self.singleSelection = nil
         self.multiSelection = selection
+        self.selectionMode = .multi
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = true
@@ -374,6 +385,7 @@ extension List {
         self.footer = footer()
         self.singleSelection = nil
         self.multiSelection = selection
+        self.selectionMode = .multi
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = true
@@ -417,6 +429,7 @@ extension List where Footer == EmptyView {
         self.footer = nil
         self.singleSelection = nil
         self.multiSelection = selection
+        self.selectionMode = .multi
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false
@@ -436,6 +449,7 @@ extension List where Footer == EmptyView {
         self.footer = nil
         self.singleSelection = nil
         self.multiSelection = selection
+        self.selectionMode = .multi
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false
@@ -486,6 +500,7 @@ extension List {
         self.footer = footer()
         self.singleSelection = nil
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = true
@@ -506,6 +521,7 @@ extension List {
         self.footer = footer()
         self.singleSelection = nil
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = true
@@ -541,6 +557,7 @@ extension List where Footer == EmptyView {
         self.footer = nil
         self.singleSelection = nil
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false
@@ -558,6 +575,7 @@ extension List where Footer == EmptyView {
         self.footer = nil
         self.singleSelection = nil
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false
@@ -593,6 +611,7 @@ extension List where SelectionValue == Int, Footer == EmptyView {
         self.footer = nil
         self.singleSelection = nil
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false
@@ -607,6 +626,7 @@ extension List where SelectionValue == Int, Footer == EmptyView {
         self.footer = nil
         self.singleSelection = nil
         self.multiSelection = nil
+        self.selectionMode = .single
         self.focusID = nil
         self.isDisabled = false
         self.showFooterSeparator = false

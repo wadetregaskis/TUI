@@ -2296,6 +2296,7 @@ struct _ListCore<SelectionValue: Hashable & Sendable, Content: View, Footer: Vie
             firstRowHeight: source.content(at: 0).buffer.height)
         if let pulled { pulled.pin(handler) }
         handler.reportScrollPosition(rowID: { source.scrollID(at: $0) }, context: context)
+        handler.adoptSelectionMode(selectionMode)
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
         // Once the binding and the rows' ids are this frame's, as `Table`'s.

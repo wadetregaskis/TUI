@@ -1124,8 +1124,10 @@ package final class ItemListHandler<SelectionValue: Hashable>: PersistedFocusabl
         var dropIndex: Int?
     }
 
-    /// The selection mode (single or multi).
-    let selectionMode: SelectionMode
+    /// The selection mode (single or multi): the view's, taken every frame
+    /// (``adoptSelectionMode(_:)``), since the handler outlives the frame
+    /// that made it. Written only there.
+    var selectionMode: SelectionMode
 
     /// Whether this element can currently receive focus.
     package var canBeFocused: Bool { get { _canBeFocused } set { _canBeFocused = newValue } }

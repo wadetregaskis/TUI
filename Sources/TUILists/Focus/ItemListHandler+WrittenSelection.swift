@@ -43,6 +43,25 @@ extension ItemListHandler {
         seenSelection = .multiple(multiSelection.wrappedValue)
     }
 
+    /// Takes this frame's selection mode, as the bindings are taken: a list
+    /// made with no binding and later given a `Set` one, as SwiftUI's
+    /// `List(selection: isEditing ? $picked : nil)` is, keeps one handler, and
+    /// with the mode it was made with it never selected (hunt item LISTS-3).
+    ///
+    /// A change drops the range anchor and extend mode, which belonged to the
+    /// other kind of selection, and what was seen of it: the selection the
+    /// new binding holds is then followed as one the list starts with
+    /// (``followWrittenSelection()``), so an empty one leaves the cursor where
+    /// it is and one the app filled moves the cursor onto it. Called before
+    /// the binding is followed, in the same frame.
+    package func adoptSelectionMode(_ mode: SelectionMode) {
+        guard mode != selectionMode else { return }
+        selectionMode = mode
+        selectionAnchor = nil
+        isExtendingSelection = false
+        seenSelection = nil
+    }
+
     /// Moves the cursor onto a selection the app wrote since the last frame,
     /// or started with (the first frame, with nothing seen yet): for a single
     /// selection onto its row, and for a multiple one onto its first row in

@@ -3299,6 +3299,9 @@ private struct _TableCore<Value: Identifiable>: View, Renderable, Layoutable {
     /// to its next column where the table is in the column on top of one — the
     /// same on both of the table's paths.
     private func bindSelection(_ handler: ItemListHandler<Value.ID>, context: RenderContext) {
+        // A table rebuilt at the same identity from the selectionless
+        // initializer to a `Set` one keeps its handler (hunt item LISTS-3).
+        handler.adoptSelectionMode(selectionMode)
         handler.singleSelection = singleSelection
         handler.multiSelection = multiSelection
         handler.compactColumnAdvance = context.environment.compactColumnAdvance

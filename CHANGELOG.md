@@ -19,6 +19,13 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**A list first drawn with a `nil` `Set` binding selects once it is given one.** `List(selection: isEditing ?
+$picked : nil)`, SwiftUI's edit-mode idiom, took its kind of selection from the first frame, where the binding was
+`nil`, and kept it: once editing began, no row drew selected and Space, clicks, Shift with an arrow and ⌃A did
+nothing until the list's identity changed. A `List` now takes its kind from the initializer called, and a list or
+table takes it again every frame, so a `Table` rebuilt at the same place from `Table(_:columns:)` to a `Set`
+`selection:` initializer selects too.
+
 **A large `TextEditor` holds less than half the memory it did.** Its lines were kept as arrays of `Character`, 16
 bytes a character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224
 MB of heap once its editor had drawn, and takes about 94 MB (665 to 279 bytes a line; the lines' own share went from

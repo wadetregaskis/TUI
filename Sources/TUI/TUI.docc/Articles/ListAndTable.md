@@ -74,6 +74,11 @@ List("Files", selection: $selectedIDs) {
 }
 ```
 
+The binding may be `nil`, as in SwiftUI's edit-mode idiom
+`List(selection: isEditing ? $selectedIDs : nil)`: the list selects nothing
+until it has one, and it is a multi-selection list from its first frame, so
+Space, clicks, Shift with an arrow and ⌃A work as soon as the binding arrives.
+
 ## Sections
 
 Use ``Section`` to group list items with headers and optional footers:
