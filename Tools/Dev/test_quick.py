@@ -10,6 +10,8 @@ nothing at all, for a run that did not happen (H-56).
 
 import importlib.util
 import os
+import subprocess
+import tempfile
 import unittest
 
 _HERE = os.path.dirname(os.path.abspath(__file__))
@@ -72,6 +74,57 @@ class TestVerdict(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(lines[-1], "tests FAILED (?)")
         self.assertIn("matched no tests", "\n".join(lines))
+
+
+def make_checkouts(test):
+    """Two fresh git checkouts, each with a subdirectory, removed after the test."""
+    folder = tempfile.TemporaryDirectory()
+    test.addCleanup(folder.cleanup)
+    trees = []
+    for name in ("main", "worktree"):
+        path = os.path.realpath(os.path.join(folder.name, name))
+        os.makedirs(os.path.join(path, "Tools", "Dev"))
+        subprocess.run(["git", "init", "-q", path], check=True)
+        trees.append(path)
+    return trees
+
+
+class TestCheckout(unittest.TestCase):
+    """The script tests the checkout it lives in, so it must be run from there (H-56, TOOLS-6)."""
+
+    def test_another_checkout_is_refused_naming_both(self):
+        main, worktree = make_checkouts(self)
+        why = quick.wrong_checkout(worktree, main)
+        self.assertIsNotNone(why)
+        self.assertIn(main, why)
+        self.assertIn(os.path.normcase(worktree), why)
+
+    def test_its_own_checkout_is_fine_from_any_directory_in_it(self):
+        main, _ = make_checkouts(self)
+        self.assertIsNone(quick.wrong_checkout(main, main))
+        self.assertIsNone(quick.wrong_checkout(os.path.join(main, "Tools", "Dev"), main))
+
+    def test_outside_any_checkout_it_must_be_run_from_inside_its_tree(self):
+        with tempfile.TemporaryDirectory() as folder:
+            tree = os.path.realpath(os.path.join(folder, "export"))
+            os.makedirs(os.path.join(tree, "Tools"))
+            elsewhere = os.path.realpath(os.path.join(folder, "elsewhere"))
+            os.makedirs(elsewhere)
+            self.assertIsNone(quick.wrong_checkout(os.path.join(tree, "Tools"), tree))
+            self.assertIn(tree, quick.wrong_checkout(elsewhere, tree) or "")
+
+    def test_the_verdict_names_the_tree_and_its_head(self):
+        main, _ = make_checkouts(self)
+        self.assertEqual(quick.describe_tree(main), main)  # no commit yet: git cannot say
+        subprocess.run(["git", "-C", main, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-q",
+                        "--allow-empty", "-m", "x"], check=True)
+        head = subprocess.run(["git", "-C", main, "rev-parse", "--short", "HEAD"], capture_output=True,
+                              text=True).stdout.strip()
+        self.assertEqual(quick.describe_tree(main), "%s @ %s" % (main, head))
+        out = run_output("parallel-test: 2 tests in 1 suite passed in 0.20s across 1 process "
+                         "(0.50s end to end, 0.2 cpu-s, 1.0x cores) with 0 known issues", [("g0", 2, "ok")])
+        self.assertEqual(quick.test_verdict(0, out, " in " + quick.describe_tree(main))[1][-1],
+                         "tests ok (2) in %s @ %s" % (main, head))
 
 
 if __name__ == "__main__":

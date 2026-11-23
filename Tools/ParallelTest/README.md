@@ -141,6 +141,11 @@ tests out of `TUITests` that way, and dividing it again into a target per
 module (2026-10-14) moved every one of its tests: recalibrate a cache made
 before either.
 
+The harness builds and tests the checkout it lives in, whatever the current
+directory, so it refuses to run from a directory in another checkout, and says
+which two (H-56). Run each tree's own copy. The verdict line names the tree
+and its `HEAD` last: `… with 0 known issues, in /path/to/tree @ 0f745bd88`.
+
 ## One run at a time
 
 A run takes a machine-wide lock (`/tmp/tuikit-parallel-test.lock`, on Windows
@@ -572,11 +577,12 @@ the compiler crashing somewhere new each time, as one compile takes up to
 python3 Tools/ParallelTest/test_parallel_test.py
 ```
 
-94 tests covering the parts that can be tested without running the suite: ID
+95 tests covering the parts that can be tested without running the suite: ID
 escaping and pattern anchoring, the partition proof rejecting a gap or an
-overlap, a filter narrower than a suite running only its selected tests, bin
-packing, both weight paths, all eight shapes of the summary line
-in both their singular and plural wordings, the malformed-xunit recovery, the
+overlap, a filter narrower than a suite running only its selected tests, the
+refusal to run from another checkout, bin packing, both weight paths, all
+eight shapes of the summary line in both their singular and plural wordings,
+the malformed-xunit recovery, the
 event-stream duration join, and the run lock making a second run wait. And,
 for the toolchains: `$SWIFT` parsing; the macOS environment for each of the
 three layouts in "Toolchains and platforms" (a mutation that lets the platform

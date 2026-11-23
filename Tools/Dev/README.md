@@ -22,6 +22,11 @@ tests, so nothing is excused.) And it gives SwiftLint Xcode's toolchain, without
 SourceKit. `TUI_RUN_WRAPPER` prefixes the heavy steps with a
 command of yours, such as a machine-wide build slot.
 
+It builds and tests the checkout it lives in, not the current directory's, so it refuses to run from another checkout
+and names both: main's copy run by absolute path from a worktree used to build and test main, and pass, while the
+worktree's change sat untested. Run each tree's own copy. Every verdict line ends with the tree and its `HEAD`:
+`tests ok (14) in /path/to/worktree @ 0f745bd88`.
+
 On Windows, run it with `python Tools\Dev\quick.py …` (there is no shebang there), with the toolchain that builds on
 `PATH` and `SDKROOT` naming its SDK: unlike on macOS, it keeps `SDKROOT`, which the build and the test runner both need
 there. `lint` needs a `swiftlint` on `PATH`, which the Windows toolchains do not include.

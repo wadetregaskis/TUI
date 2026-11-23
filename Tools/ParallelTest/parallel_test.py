@@ -1188,6 +1188,45 @@ def machine_lock(path=LOCK_PATH, out=sys.stdout):
     return fh
 
 
+def checkout_of(path):
+    """The top of the git checkout `path` is in, spelt for comparison, or None outside one (or with no git)."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=path, capture_output=True, text=True)
+    except OSError:
+        return None
+    top = out.stdout.strip()
+    return os.path.normcase(os.path.realpath(top)) if out.returncode == 0 and top else None
+
+
+def wrong_checkout(cwd, repo):
+    """None when `cwd` is in the checkout `repo` (this script's); otherwise why not, naming both.
+
+    The script builds and tests the checkout it lives in, whatever the current directory, so main's copy run by
+    absolute path from a worktree tested main and passed while the worktree's change sat untested (H-56). Outside
+    any checkout (an export with no git) the current directory must be inside `repo`.
+    """
+    here, mine = checkout_of(cwd), checkout_of(repo) or os.path.normcase(os.path.realpath(repo))
+    if here is None:
+        inside = os.path.normcase(os.path.realpath(cwd))
+        if inside == mine or inside.startswith(mine.rstrip(os.sep) + os.sep):
+            return None
+        here = inside
+    if here == mine:
+        return None
+    return ("this script is in %s, but the current directory is in %s, and it tests the checkout it is in. "
+            "Run %s's copy, or run this one from %s." % (repo, here, here, repo))
+
+
+def describe_tree(repo):
+    """'<repo> @ <short HEAD>', for a verdict line; just the path when git cannot say."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repo, capture_output=True, text=True)
+    except OSError:
+        return repo
+    head = out.stdout.strip()
+    return "%s @ %s" % (repo, head) if out.returncode == 0 and head else repo
+
+
 def plural(n, word):
     return "%d %s%s" % (n, word, "" if n == 1 else "s")
 
@@ -1287,6 +1326,11 @@ def main():
                          "(CI: the logs under .build do not outlive the runner)")
     ap.add_argument("--json", default=None, help="write the full result as JSON")
     args = ap.parse_args()
+
+    wrong = wrong_checkout(os.getcwd(), REPO)
+    if wrong:
+        print("parallel-test: " + wrong)
+        return 2
 
     # A pipe (CI's log) would otherwise hold this output back in a block
     # buffer, behind the build's.
@@ -1478,12 +1522,14 @@ def main():
                  "ok" if s and s["passed"] else "FAILED"))
     print()
 
+    # The tree is named last, so the lines' other readers (gate scripts grep
+    # "passed in") still match.
     print("parallel-test: %s in %s %s in %.2fs across %d process%s "
-          "(%.2fs end to end, %.1f cpu-s, %.1fx cores) with %s"
+          "(%.2fs end to end, %.1f cpu-s, %.1fx cores) with %s, in %s"
           % (plural(len(union), "test"), plural(len(suites), "suite"),
              "passed" if ok else "FAILED", wall, jobs, "" if jobs == 1 else "es",
              time.time() - started, cpu, cpu / wall if wall else 0,
-             plural(known, "known issue")))
+             plural(known, "known issue"), describe_tree(REPO)))
 
     # On GitHub Actions each failure is also an annotation, so it is on the
     # run's summary page and not only somewhere in a long job log.

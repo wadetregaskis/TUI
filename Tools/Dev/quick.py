@@ -7,7 +7,8 @@
     Tools/Dev/quick.py lint [BASE]               # SwiftLint --strict on Swift files changed since BASE
     Tools/Dev/quick.py all [BASE] -- SuiteA ...  # build, test, lint
 
-Each prints one verdict line last: "build ok", "tests ok (N)", "lint ok", or what failed.
+Each prints one verdict line last: "build ok", "tests ok (N)", "lint ok", or what failed, followed by
+"in <checkout> @ <HEAD>": the tree that was built and tested.
 
 Why it exists (see README.md): the plain commands print thousands of lines that are then filtered by hand, and each
 has a trap that cost a whole build-and-run to find:
@@ -15,6 +16,8 @@ has a trap that cost a whole build-and-run to find:
   This runs `Tools/ParallelTest/parallel_test.py`, which does.
 - A run that ran no tests is not a pass: "tests ok (0)" is never printed. A filter matching nothing, or a run whose
   count does not reconcile, is "tests FAILED".
+- It builds and tests the checkout it lives in, so it refuses to run from another one, naming both: main's copy
+  run by absolute path from a worktree used to test main and pass.
 - SwiftLint crashes ("Loading sourcekitdInProc.framework … failed") when DEVELOPER_DIR names the Command Line Tools.
   This points it at Xcode's when that is installed and nothing else was set.
 
@@ -58,6 +61,55 @@ def relative(line):
     return line.replace(REPO + os.sep, "").replace(REPO + "/", "")
 
 
+def checkout_of(path):
+    """The top of the git checkout `path` is in, spelt for comparison, or None outside one (or with no git)."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=path, capture_output=True, text=True)
+    except OSError:
+        return None
+    top = out.stdout.strip()
+    return os.path.normcase(os.path.realpath(top)) if out.returncode == 0 and top else None
+
+
+def wrong_checkout(cwd, repo):
+    """None when `cwd` is in the checkout `repo` (this script's); otherwise why not, naming both.
+
+    The script builds and tests the checkout it lives in, whatever the current directory, so main's copy run by
+    absolute path from a worktree tested main and passed while the worktree's change sat untested (H-56). Outside
+    any checkout (an export with no git) the current directory must be inside `repo`.
+    """
+    here, mine = checkout_of(cwd), checkout_of(repo) or os.path.normcase(os.path.realpath(repo))
+    if here is None:
+        inside = os.path.normcase(os.path.realpath(cwd))
+        if inside == mine or inside.startswith(mine.rstrip(os.sep) + os.sep):
+            return None
+        here = inside
+    if here == mine:
+        return None
+    return ("this script is in %s, but the current directory is in %s, and it tests the checkout it is in. "
+            "Run %s's copy, or run this one from %s." % (repo, here, here, repo))
+
+
+def describe_tree(repo):
+    """'<repo> @ <short HEAD>', for a verdict line; just the path when git cannot say."""
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"], cwd=repo, capture_output=True, text=True)
+    except OSError:
+        return repo
+    head = out.stdout.strip()
+    return "%s @ %s" % (repo, head) if out.returncode == 0 and head else repo
+
+
+_TREE = []
+
+
+def where():
+    """' in <checkout> @ <HEAD>', the suffix of every verdict line; asked of git once."""
+    if not _TREE:
+        _TREE.append(" in " + describe_tree(REPO))
+    return _TREE[0]
+
+
 def build():
     code, out = run(["swift", "build", "--build-tests", "-j", str(max(1, (os.cpu_count() or 4) // 3))])
     problems = sorted({relative(l.strip()) for l in out.splitlines()
@@ -67,9 +119,9 @@ def build():
     if len(problems) > 40:
         print(f"… {len(problems) - 40} more")
     if code != 0 or any(" error: " in p or p.startswith("error:") for p in problems):
-        print("build FAILED")
+        print("build FAILED" + where())
         return False
-    print("build ok" + (f" ({len(problems)} warnings)" if problems else ""))
+    print("build ok" + (f" ({len(problems)} warnings)" if problems else "") + where())
     return not problems
 
 
@@ -82,20 +134,20 @@ def test(suites, build_first=True):
     command = [sys.executable, "Tools/ParallelTest/parallel_test.py", "-j", "4", "--no-build",
                "--filter", "|".join(suites)]
     code, out = run(command)
-    ok, lines = test_verdict(code, out)
+    ok, lines = test_verdict(code, out, where())
     for line in lines:
         print(line)
     return ok
 
 
-def test_verdict(code, out):
+def test_verdict(code, out, tree=""):
     """parallel_test.py's exit code and output -> (passed, the lines to print, the verdict last).
 
     A pass is parallel_test's own: exit 0 and a summary that says "passed", which it gives only when every group
     ran exactly the tests the partition proved it selects. Nothing here overrides a FAILED. An earlier version
     passed a FAILED whose only problems were RECONCILIATION lines, to excuse a filter narrower than a suite
     running the whole suite; that also passed a group that ran FEWER tests than planned, or none (H-56). The
-    partition selects exactly the filtered tests now, so there is nothing left to excuse.
+    partition selects exactly the filtered tests now, so there is nothing left to excuse. `tree` ends the verdict.
     """
     issues, lines = [], []
     for line in out.splitlines():
@@ -113,12 +165,12 @@ def test_verdict(code, out):
         lines.append(f"… {len(issues) - 30} more")
     n = int(summary.group(1)) if summary else None
     if code == 0 and summary and summary.group(2) == "passed" and n:
-        lines.append(f"tests ok ({n})")
+        lines.append(f"tests ok ({n})" + tree)
         return True, lines
     if not issues:
         tail = [l for l in out.splitlines() if l.strip()][-12:]
         lines.extend(relative(l)[:240] for l in tail)
-    lines.append(f"tests FAILED ({'?' if n is None else n})" + (": no test ran" if n == 0 else ""))
+    lines.append(f"tests FAILED ({'?' if n is None else n})" + (": no test ran" if n == 0 else "") + tree)
     return False, lines
 
 
@@ -133,14 +185,14 @@ def lint(base=None):
                     if f.endswith(".swift") and re.match(r"(Sources|Tests)/", f) and "CompileCorpus" not in f
                     and os.path.exists(os.path.join(REPO, f))})
     if not files:
-        print("lint ok (no Swift files changed)")
+        print("lint ok (no Swift files changed)" + where())
         return True
     swiftlint = "/opt/homebrew/bin/swiftlint" if os.path.exists("/opt/homebrew/bin/swiftlint") else "swiftlint"
     code, out = run([swiftlint, "lint", "--strict", "--quiet", "--config", ".swiftlint.yml", *files])
     problems = [relative(l)[:240] for l in out.splitlines() if l.strip()]
     for line in problems:
         print(line)
-    print("lint ok" if code == 0 else f"lint FAILED ({len(problems)} lines, {len(files)} files)")
+    print(("lint ok" if code == 0 else f"lint FAILED ({len(problems)} lines, {len(files)} files)") + where())
     return code == 0
 
 
@@ -149,6 +201,10 @@ def main(argv):
         print(__doc__)
         return 0
     verb, rest = argv[0], argv[1:]
+    wrong = wrong_checkout(os.getcwd(), REPO)
+    if wrong:
+        print("quick.py: " + wrong)
+        return 2
     if verb == "build":
         return 0 if build() else 1
     if verb == "test":

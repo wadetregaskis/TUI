@@ -213,6 +213,20 @@ class TestNarrowFilter(unittest.TestCase):
         self.assertEqual([i["selected"] for i in plan], [1])
 
 
+class TestCheckout(unittest.TestCase):
+    """The harness tests the checkout it lives in, so it refuses to run from
+    another one (H-56, TOOLS-6). quick.py's tests cover the cases; this is
+    the harness's own copy against its own tree."""
+
+    def test_run_from_its_tree_or_refused_naming_both(self):
+        self.assertIsNone(pt.wrong_checkout(pt.REPO, pt.REPO))
+        self.assertIsNone(pt.wrong_checkout(os.path.join(pt.REPO, "Tools"), pt.REPO))
+        with tempfile.TemporaryDirectory() as elsewhere:
+            why = pt.wrong_checkout(elsewhere, pt.REPO)
+        self.assertIn(pt.REPO, why or "")
+        self.assertIn(os.path.normcase(os.path.realpath(elsewhere)), why or "")
+
+
 class TestSummaryParsing(unittest.TestCase):
     def test_passing_run_with_known_issues(self):
         got = pt.parse_summary_text(
