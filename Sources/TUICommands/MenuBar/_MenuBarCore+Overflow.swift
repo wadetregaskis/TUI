@@ -122,8 +122,9 @@ extension _MenuBarCore {
             if scroll.clipsLast, index == scroll.end - 1 {
                 let room = width - (scroll.trailing ? 1 : 0) - line.strippedLength
                 let clipped = title.ansiAwarePrefixWithWidth(visibleCount: room)
-                // The cut drops the title's own reset with its end.
-                title = clipped.prefix + ANSIRenderer.reset
+                // The cut drops the title's own reset with its end, and closes
+                // what that left open itself; a title that fits keeps its own.
+                title = clipped.prefix.leavesSGROpen ? clipped.prefix + ANSIRenderer.reset : clipped.prefix
                 cells = clipped.visibleWidth
             }
             columns[index] = line.strippedLength

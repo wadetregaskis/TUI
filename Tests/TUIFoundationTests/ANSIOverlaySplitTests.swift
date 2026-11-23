@@ -34,8 +34,10 @@ struct ANSIOverlaySplitTests {
             for dropColumns in -1...(width + 2) {
                 let fused = line.ansiOverlaySplit(
                     prefixColumns: prefixColumns, suffixDropColumns: dropColumns)
+                // Left open at the cut, as the splice's prefix is: the overlay
+                // and the restated style before the suffix follow it.
                 let (expectedPrefix, expectedPrefixWidth) =
-                    line.ansiAwarePrefixWithWidth(visibleCount: prefixColumns)
+                    line.ansiAwarePrefixWithWidth(visibleCount: prefixColumns, closingStyling: false)
                 let expectedSuffix = line.ansiAwareSuffix(droppingVisible: dropColumns)
 
                 #expect(

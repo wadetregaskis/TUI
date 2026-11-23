@@ -50,10 +50,13 @@ extension String {
     /// exact walk.
     ///
     /// "By construction" holds only where the walk emits nothing of its OWN at
-    /// the cut, and there is exactly one thing it does emit: the closing
-    /// sequence of a hyperlink the cut leaves open. The width re-scan cannot
-    /// see that — a closing sequence is zero cells — so a line carrying any
-    /// string-terminated escape is handed to the walk instead.
+    /// the cut, and there are two things it does emit. One is a reset, where
+    /// the last SGR before the cut left styling on (see
+    /// ``ansiAwarePrefixWithWidth(visibleCount:)``): this path asks the same
+    /// question of the same bytes and appends the same reset. The other is the
+    /// closing sequence of a hyperlink the cut leaves open. The width re-scan
+    /// cannot see that — a closing sequence is zero cells — so a line carrying
+    /// any string-terminated escape is handed to the walk instead.
     ///
     /// - Parameters:
     ///   - visibleCount: The number of terminal cells to include.
@@ -71,6 +74,21 @@ extension String {
     /// having: it spares the caller a re-scan for right-padding arithmetic).
     public func ansiAwarePrefixWithWidth(
         visibleCount: Int, knownVisibleWidth: Int
+    ) -> (prefix: String, visibleWidth: Int) {
+        ansiAwarePrefixWithWidth(
+            visibleCount: visibleCount, knownVisibleWidth: knownVisibleWidth, closingStyling: true)
+    }
+
+    /// ``ansiAwarePrefixWithWidth(visibleCount:knownVisibleWidth:)``, with the
+    /// close at the cut optional: `closingStyling: false` hands back the bytes
+    /// before the cut and nothing else, styling still open.
+    ///
+    /// For a caller that goes on drawing IN that styling — a truncated text's
+    /// ellipsis, which takes the style of the text it ends — and closes it
+    /// itself. Every other caller wants the close, which is why the public entry
+    /// points have no such parameter.
+    package func ansiAwarePrefixWithWidth(
+        visibleCount: Int, knownVisibleWidth: Int, closingStyling: Bool
     ) -> (prefix: String, visibleWidth: Int) {
         guard visibleCount > 0 else { return ("", 0) }
         let excess = knownVisibleWidth - visibleCount
@@ -93,13 +111,23 @@ extension String {
                 // a character boundary and the slice is valid.
                 let candidate = String(self[..<cutIndex])
                 if candidate.strippedLength == visibleCount {
-                    return (candidate, visibleCount)
+                    // The walk's close at the cut, by the walk's rule: the cut
+                    // is in the spaces, so what it leaves open is whatever the
+                    // last sequence before them left open.
+                    let closed = closingStyling && candidate.leavesSGROpen
+                    return (closed ? candidate + Self.cutReset : candidate, visibleCount)
                 }
             }
         }
-        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount) { return clipped }
-        return exactAnsiAwarePrefixWithWidth(visibleCount: visibleCount)
+        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount, closingStyling: closingStyling) {
+            return clipped
+        }
+        return exactAnsiAwarePrefixWithWidth(visibleCount: visibleCount, closingStyling: closingStyling)
     }
+
+    /// What a cut appends when the styling in force there is still on: a
+    /// reset, zero cells wide.
+    private static let cutReset = "\u{1B}[0m"
 
     /// Whether this string contains a string-terminated escape family — `ESC ]`
     /// (OSC) and its siblings, of which TUI emits one: the OSC 8 hyperlink.
@@ -131,14 +159,34 @@ extension String {
     /// here — a caller that needs it (e.g. to compute right-padding) avoids a
     /// redundant `strippedLength` re-scan of the clipped string. The width is
     /// exactly `prefix.strippedLength` by construction.
+    ///
+    /// A cut through a styled run is closed: where the last SGR sequence
+    /// before the cut left anything on, a reset (`ESC[0m`, zero cells) follows
+    /// the kept bytes. The cut drops the run's own reset with the rest of the
+    /// line, and every caller appends something after it — a sibling, a gap,
+    /// a row's padding — which otherwise drew in the run's background,
+    /// underline or reversal. A line that was already closed at the cut, a
+    /// plain one, and one that fits come back byte for byte as before. The
+    /// rule for "left anything on" is ``leavesSGROpen``'s.
     public func ansiAwarePrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int) {
+        ansiAwarePrefixWithWidth(visibleCount: visibleCount, closingStyling: true)
+    }
+
+    /// ``ansiAwarePrefixWithWidth(visibleCount:)``, with the close at the cut
+    /// optional — see
+    /// `ansiAwarePrefixWithWidth(visibleCount:knownVisibleWidth:closingStyling:)`.
+    package func ansiAwarePrefixWithWidth(
+        visibleCount: Int, closingStyling: Bool
+    ) -> (prefix: String, visibleWidth: Int) {
         guard visibleCount > 0 else { return ("", 0) }
 
         // The byte walk settles the overwhelming majority of lines outright —
         // and settles them in O(cells kept) rather than O(line), which is what
         // makes a clip to a narrow table column cost the column rather than
         // the value.
-        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount) { return clipped }
+        if let clipped = asciiPrefixWithWidth(visibleCount: visibleCount, closingStyling: closingStyling) {
+            return clipped
+        }
 
         // Otherwise: measure once, then hand the width to the twin, which is
         // the one place that knows what a width is worth — the "it already
@@ -153,7 +201,7 @@ extension String {
         // pins that against ``exactAnsiAwarePrefixWithWidth(visibleCount:)``
         // rather than leaving it as an argument.
         return ansiAwarePrefixWithWidth(
-            visibleCount: visibleCount, knownVisibleWidth: strippedLength)
+            visibleCount: visibleCount, knownVisibleWidth: strippedLength, closingStyling: closingStyling)
     }
 
     /// The clip done on UTF-8 bytes, for the lines whose bytes are enough to
@@ -187,21 +235,29 @@ extension String {
     /// about the bytes that are KEPT — which is all the answer depends on. A
     /// line that fits is scanned whole, so there eligibility covers all of it.
     ///
-    /// - Parameter visibleCount: Cells to keep; must be positive.
+    /// The walk's close at a cut is made here too, by the same rule: the scan
+    /// remembers where the last SGR sequence it passed lies, and asks
+    /// ``leavesSGROpen``'s question of those bytes only at a cut.
+    ///
+    /// - Parameters:
+    ///   - visibleCount: Cells to keep; must be positive.
+    ///   - closingStyling: Whether a cut that leaves styling on is closed.
     /// - Returns: The clipped prefix and its visible width, or `nil` to decline.
-    private func asciiPrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int)? {
+    private func asciiPrefixWithWidth(
+        visibleCount: Int, closingStyling: Bool = true
+    ) -> (prefix: String, visibleWidth: Int)? {
         // Raw bytes rather than the `UTF8View`'s element machinery — see
         // ``asciiStrippedLength(bounded:limit:)``, whose loop this mirrors.
-        if let contiguous = utf8.withContiguousStorageIfAvailable({ unsafe scan($0, visibleCount) }) {
+        if let contiguous = utf8.withContiguousStorageIfAvailable({ unsafe scan($0, visibleCount, closingStyling) }) {
             return contiguous
         }
-        return Array(utf8).withUnsafeBufferPointer { unsafe scan($0, visibleCount) }
+        return Array(utf8).withUnsafeBufferPointer { unsafe scan($0, visibleCount, closingStyling) }
     }
 
     /// ``asciiPrefixWithWidth(visibleCount:)``'s loop, over bytes that are
     /// already contiguous.
     private func scan(
-        _ bytes: UnsafeBufferPointer<UInt8>, _ visibleCount: Int
+        _ bytes: UnsafeBufferPointer<UInt8>, _ visibleCount: Int, _ closingStyling: Bool
     ) -> (prefix: String, visibleWidth: Int)? {
         /// The first `count` bytes, as a `String`. Every one of them has been
         /// proven ASCII by the time this is reached, so the boundary is a
@@ -212,6 +268,20 @@ extension String {
             // The lint rule is about `Data`, and there is none.
             // swiftlint:disable:next optional_data_string_conversion
             unsafe String(decoding: UnsafeBufferPointer(rebasing: bytes[..<count]), as: UTF8.self)
+        }
+
+        // Where the escape being read began — a CSI is entered only from the
+        // ESC before it — and the last SGR sequence passed: its first byte and
+        // the one after its `m` (`sgrEnd` 0 for none yet).
+        var escapeStart = 0
+        var sgrStart = 0
+        var sgrEnd = 0
+
+        /// The first `count` bytes, closed with a reset when the last SGR
+        /// among them left styling on — the cut's answer.
+        func cut(_ count: Int) -> String {
+            let lastSGR = unsafe UnsafeBufferPointer(rebasing: bytes[sgrStart..<sgrEnd])
+            return unsafe Self.prefix(of: bytes, count: count, closingAfter: closingStyling ? lastSGR : nil)
         }
 
         var state = EscapeScanState.normal
@@ -225,7 +295,7 @@ extension String {
                 if byte == 0x1B {
                     state = .sawESC
                 } else {
-                    if width == visibleCount { return (prefixBytes(offset), width) }
+                    if width == visibleCount { return (cut(offset), width) }
                     width += 1
                 }
 
@@ -237,19 +307,25 @@ extension String {
                 }
                 let seen = Self.escapeIntroducerScan(on: value)
                 state = seen.state
+                escapeStart = offset - 1
                 if seen.visible {
-                    if width == visibleCount { return (prefixBytes(offset), width) }
+                    if width == visibleCount { return (cut(offset), width) }
                     width += 1
                 }
 
             case .csi:
                 if Self.isCSIBodyByte(value) { break }  // parameter or intermediate
                 if Self.isCSIFinalByte(value) {
+                    // An `m` ends an SGR sequence, now the last one passed;
+                    // any other final leaves the last one where it was.
+                    let isSGR = byte == 0x6D
+                    sgrStart = isSGR ? escapeStart : sgrStart
+                    sgrEnd = isSGR ? offset + 1 : sgrEnd
                     state = .normal  // introducer complete, terminator consumed
                 } else if byte == 0x1B {
                     state = .sawESC  // ESC interrupts a malformed CSI
                 } else {  // not a CSI byte where a terminator was expected
-                    if width == visibleCount { return (prefixBytes(offset), width) }
+                    if width == visibleCount { return (cut(offset), width) }
                     width += 1
                     state = .normal
                 }
@@ -262,6 +338,28 @@ extension String {
         return (self, width)  // the line fits; it is its own prefix
     }
 
+    /// The first `count` of `bytes`, which are ASCII, followed by `ESC[0m`
+    /// when `lastSGR` — the last SGR sequence among them, empty for none —
+    /// left styling on: a cut, closed where it has to be, in one allocation.
+    private static func prefix(
+        of bytes: UnsafeBufferPointer<UInt8>, count: Int, closingAfter lastSGR: UnsafeBufferPointer<UInt8>?
+    ) -> String {
+        guard let lastSGR = unsafe lastSGR, !lastSGR.isEmpty, unsafe !isSGRReset(lastSGR) else {
+            // The lint rule is about `Data`, and there is none.
+            // swiftlint:disable:next optional_data_string_conversion
+            return unsafe String(decoding: UnsafeBufferPointer(rebasing: bytes[..<count]), as: UTF8.self)
+        }
+        return String(unsafeUninitializedCapacity: count + 4) { buffer in
+            guard let base = buffer.baseAddress, let from = bytes.baseAddress else { return 0 }
+            unsafe base.initialize(from: from, count: count)
+            unsafe (base + count).initialize(repeating: 0x1B, count: 1)
+            unsafe (base + count + 1).initialize(repeating: 0x5B, count: 1)  // [
+            unsafe (base + count + 2).initialize(repeating: 0x30, count: 1)  // 0
+            unsafe (base + count + 3).initialize(repeating: 0x6D, count: 1)  // m
+            return count + 4
+        }
+    }
+
     /// The clip with no fast path at all — the segment walk itself.
     ///
     /// Kept reachable so the fast paths in front of it have an oracle to be
@@ -269,12 +367,21 @@ extension String {
     /// byte-identical to this for every input at every cut point, and a test
     /// that could only compare one fast path to another would not be checking
     /// anything.
-    func exactAnsiAwarePrefixWithWidth(visibleCount: Int) -> (prefix: String, visibleWidth: Int) {
+    ///
+    /// - Parameters:
+    ///   - visibleCount: The number of terminal cells to include.
+    ///   - closingStyling: Whether a cut that leaves styling on is closed with
+    ///     a reset (see ``ansiAwarePrefixWithWidth(visibleCount:)``).
+    func exactAnsiAwarePrefixWithWidth(
+        visibleCount: Int, closingStyling: Bool = true
+    ) -> (prefix: String, visibleWidth: Int) {
         guard visibleCount > 0 else { return ("", 0) }
 
         var result = ""
         var visible = 0
         var link = HyperlinkScan()
+        // The last SGR sequence kept, asked about only at a cut.
+        var lastSGR: String?
 
         // Streaming, so the walk STOPS at the cut. Materialising the segments
         // first made a clip cost the whole line however little of it was
@@ -287,16 +394,17 @@ extension String {
                 result += sequence
                 // SGR is the escape a styled line is made of and can never be
                 // a hyperlink, so the scan is asked only about the rest.
-                if !isSGR { link.note(sequence) }
+                if isSGR { lastSGR = sequence } else { link.note(sequence) }
                 return true
             case .visible(let character):
                 let charWidth = character.terminalWidth
                 // A cut, and the only place one happens here — so the only
-                // place a hyperlink can be left open. The natural end of the
-                // walk deliberately does NOT close: there the result is the
-                // caller's own string reassembled, and adding a sequence it
-                // did not contain would break the identity the fast path in
-                // front of this relies on (it returns `self` untouched).
+                // place a hyperlink or a styled run can be left open by THIS
+                // walk. The natural end deliberately does NOT close: there the
+                // result is the caller's own string reassembled, and adding a
+                // sequence it did not contain would break the identity the
+                // fast path in front of this relies on (it returns `self`
+                // untouched).
                 if visible + charWidth > visibleCount {
                     cut = true
                     return false
@@ -307,7 +415,15 @@ extension String {
             }
         }
 
-        return (cut ? result + link.closingIfOpen : result, visible)
+        guard cut else { return (result, visible) }
+        return (result + Self.closing(after: lastSGR, if: closingStyling) + link.closingIfOpen, visible)
+    }
+
+    /// A reset if `lastSGR` — the last SGR sequence before a cut — left styling
+    /// on and the caller wants it closed, else nothing.
+    private static func closing(after lastSGR: String?, if closingStyling: Bool) -> String {
+        guard closingStyling, let lastSGR, !isSGRReset(lastSGR) else { return "" }
+        return cutReset
     }
 
     /// A horizontal slice: the visible columns in
@@ -342,7 +458,10 @@ extension String {
             // every later run a column left.
             let width = strippedLength
             if width <= visibleCount { return self }
-            let (prefix, got) = exactAnsiAwarePrefixWithWidth(visibleCount: visibleCount)
+            // Not closed at the cut: the slice's other windows are not (a run
+            // slicer concatenates them, each restating its own style), and the
+            // window at column zero must not differ from the rest.
+            let (prefix, got) = exactAnsiAwarePrefixWithWidth(visibleCount: visibleCount, closingStyling: false)
             return got < visibleCount ? prefix + Self.spaces(visibleCount - got) : prefix
         }
 
@@ -542,13 +661,14 @@ extension String {
         var result = ""
         var visible = 0
         var link = HyperlinkScan()
+        var lastSGR: String?
 
         var cut = false
         forEachANSISegment { segment in
             switch segment {
             case .ansi(let sequence, let isSGR):
                 result += sequence
-                if !isSGR { link.note(sequence) }
+                if isSGR { lastSGR = sequence } else { link.note(sequence) }
                 return true
             case .visible(let character):
                 let charWidth = character.terminalWidth
@@ -595,7 +715,8 @@ extension String {
             }
         }
 
-        return (cut ? result + link.closingIfOpen : result, visible)
+        guard cut else { return (result, visible) }
+        return (result + Self.closing(after: lastSGR, if: true) + link.closingIfOpen, visible)
     }
 
     /// Returns the accumulated SGR (colour/style) state as of `visibleOffset` visible cells,
@@ -873,7 +994,9 @@ extension String {
     /// The semantics of each field are exactly those of the function it replaces,
     /// including the ones that look like quirks and are not:
     /// - the prefix STOPS at the first visible character that would overrun
-    ///   `prefixColumns`, and takes no further ANSI after that point;
+    ///   `prefixColumns`, and takes no further ANSI after that point — nor does
+    ///   it close what it leaves open there, as a clip does: the overlay is
+    ///   spliced in after it, and the style before the suffix restated;
     /// - the suffix keeps everything — ANSI included — from the first character
     ///   at or beyond `suffixDropColumns`, and nothing before it;
     /// - `styleBeforeSuffix` is the NETTED state at that column, not the

@@ -142,6 +142,12 @@ key left the first row lit as it scrolled away and the row under the pointer unl
 the line afterwards, and after the drop the first row could stay drawn as selected until the next drag. The row under
 the pointer is now the one lit, and none stays lit.
 
+**A view cut to fit no longer paints its background, underline or reversal over what comes after it.** A child
+drawn wider than the room it was given, a negative stack `spacing`, and every other clip of a line cut a styled run's
+closing reset off with the rest of the line, so a sibling to its right, the gap before it and the row's padding out
+to the terminal's edge were drawn in the run's background, underline or reverse video. A cut now closes what it
+leaves open. Lines that were already closed where they were cut are written exactly as before.
+
 **A tinted glass keeps its tint's transparency while the window is inactive.** `.glassEffect(.regular.tint(…))` with a
 translucent tint went more solid as the terminal lost focus, because greying the tint dropped its alpha. The colour
 effects' arithmetic now keeps a colour's alpha.

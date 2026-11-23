@@ -90,7 +90,9 @@ extension String {
             // known-width entry point this used to call directly. Carrying a
             // width from here would mean computing one this mode has no other
             // use for.
-            let prefix = ansiAwarePrefix(visibleCount: keep)
+            // Left open at the cut: the ellipsis is drawn in the style of the
+            // text it ends, and the reset below closes both.
+            let prefix = ansiAwarePrefixWithWidth(visibleCount: keep, closingStyling: false).prefix
             let body =
                 atWordBoundary
                 ? (Self.keepingLeadingWords(of: prefix) ?? Self.droppingTrailingSpaces(prefix))
@@ -123,7 +125,9 @@ extension String {
             // A word-boundary cut in the middle is ill-defined; `.middle`
             // always cuts by character.
             let visible = measured ?? strippedLength
-            let left = ansiAwarePrefix(visibleCount: keep / 2, knownVisibleWidth: visible)
+            let left = ansiAwarePrefixWithWidth(
+                visibleCount: keep / 2, knownVisibleWidth: visible, closingStyling: false
+            ).prefix
             // What the start could not use goes to the end: a wide character
             // is never split, so the start can come up a cell short of its
             // half, and that cell was left blank (`"日…ト"` in seven cells,

@@ -1183,7 +1183,8 @@ extension FrameBuffer {
     /// lines longer than `width` are cut with
     /// ``String/ansiAwarePrefix(visibleCount:knownVisibleWidth:)``, so
     /// the cut counts terminal cells rather than characters, never splits a
-    /// wide glyph, and keeps the styling that was in force.
+    /// wide glyph, keeps the styling that was in force, and closes it where the
+    /// cut left it on, so what is drawn after the line is not drawn in it.
     ///
     /// Hit-test regions are trimmed to the surviving box and dropped when
     /// nothing of them remains — a clamp at a container edge is final, and a
