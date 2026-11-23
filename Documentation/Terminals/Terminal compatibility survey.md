@@ -8141,8 +8141,9 @@ region of its own and must not inherit one.
 ## Moving a band of rows: DECSTBM, DECSLRM, DECCRA — measured 2026-11-01
 
 On by default at `exact` since 2026-11-09 (the owner's ruling SCROLL-REGIONS, after watching the Example scroll on Apple
-Terminal, iTerm2, Warp and Ghostty); `TUI_SCROLL_OUTPUT=off` turns it off: `FrameDiffWriter` moves a band rather than
-rewrite it, where that is cheaper, capped per host by `ScrollOutput.level`. The study is
+Terminal, iTerm2, Warp and Ghostty), **and since 2026-11-22 only on the hosts this section measured** (owner 2026-11-22,
+O-34 (b)); `TUI_SCROLL_OUTPUT=off` turns it off: `FrameDiffWriter` moves a band rather than rewrite it, where that is
+cheaper, capped per host by `ScrollOutput.level`. The study is
 `Documentation/Performance/Scroll regions for output.md`. This section is what the hosts did, read off their pixels by
 `Tools/TerminalProbes/scroll_region_probe.py`: a grid of colours painted, one operation, the whole screen captured, each
 cell's colour compared with each hypothesis. Records: `data/*-scroll.json`. Operations are sent in held updates only where
@@ -8179,6 +8180,37 @@ say what they were filled with.
   flag: `CUB 1`, `DCH 1`, `CUF 1`). Not the whole table of treatments; a row carrying the quirk is refused there anyway.
 
 kitty 0.49.1 cannot open a window on this VM (OpenGL 3.3), xterm, foot and WezTerm are not installed: all UNMEASURED.
+
+**Which hosts get it unasked: the measured ones (owner 2026-11-22, O-34 (b)).** A terminal that ignored `CSI n S` and
+`CSI n T` would show the old rows and the new ones mixed, silently, and nothing TUI can ask tells it which terminals
+those are: terminfo lists IL and DL in 11 of 12 common entries, but SU and SD in only 5 of 12, and the Linux console's
+documented sequences may not include them. So a band moves unasked only where the host is identified (see "Identifying
+the host terminal") and is one this section measured: correctness on a terminal nobody measured beats bytes.
+
+| `TerminalClient.Program` | Unasked | Asked (`TUI_SCROLL_OUTPUT`) | Why |
+|---|---|---|---|
+| Ghostty, iTerm2 | `exact` | up to `margins` | measured above, DECSLRM honoured |
+| Warp | `exact` | up to `residue` | measured above, DECSLRM ignored |
+| Apple Terminal | `exact` | up to `exact` | measured above; no hold (2026), and DECSLRM ignored |
+| tmux | `exact`, or nothing while frames are held | up to `exact`, or nothing while held | tmux 3.7c measured (`tmux_scroll_probe.py`); it redraws for each client by that client's terminfo, so the client attached does not decide |
+| GNOME Terminal, xterm.js, Windows Terminal, conhost | **nothing** | up to `exact` | identified, but regions UNMEASURED |
+| unidentified | **nothing** | up to `exact` | an explicit setting wins: `TUI_SCROLL_OUTPUT=exact` (or `1`) |
+
+A host measured to do it right but not identified gets nothing, so this follows identification exactly:
+
+- **Over ssh**, `TERM_PROGRAM` is gone (see "Identifying the host terminal"): Apple Terminal is named by its Device
+  Attributes, iTerm2 by `LC_TERMINAL` where its shell integration sets it, Ghostty by `TERM=xterm-ghostty` where that
+  was not downgraded, and Warp by nothing. A host left unnamed rewrites its rows, on the link where bytes cost most;
+  `TUI_TERM_PROGRAM` (sent with `SendEnv`) names it, and `TUI_SCROLL_OUTPUT=exact` asks for the band alone.
+- **Under tmux**, `$TMUX` names tmux, and its row above applies whatever terminal is attached.
+- **Under GNU screen**, screen is not detected (see "Asking the terminal — Device Attributes"): with the outer terminal's
+  `TERM_PROGRAM` left in screen's environment, the outer terminal's row applies, and screen, not that terminal, is what
+  interprets the band. GNU screen documents SU and SD, but they are UNMEASURED there. Without such a leak screen's own
+  DA1 (`?1;2c`, DA2 type 83) names nothing, and it rewrites its rows.
+- A hand-built set of quirks (`TerminalClient.simulatedQuirks`, the quirks panel) is a terminal nobody measured, and gets
+  the unidentified row.
+
+Measuring a host here (`scroll_region_probe.py`, then the pixel differential below) is what moves it up the table.
 
 **The pixel differential.** `scroll_region_probe.py drive --replay` plays one session's frames twice on the terminal, `off`
 and scrolling, as held updates, and compares the two pictures at the same steps. No pixel differed on any host: see the

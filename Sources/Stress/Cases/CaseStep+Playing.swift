@@ -98,6 +98,7 @@ extension PerfCase {
             environment.locale = Locale(identifier: "en_US")
             environment.colorScheme = .dark
         }
+        app.movesRowsAsOnAMeasuredHost()
         return app
     }
 }

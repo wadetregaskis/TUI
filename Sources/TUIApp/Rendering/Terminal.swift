@@ -885,7 +885,8 @@ extension Terminal {
     ///   region; what one left by a crashed program confines is scrolling — a
     ///   line feed at its bottom margin scrolls only the region — which no
     ///   frame does but with a region of its own, set and let go in the same
-    ///   breath (``ScrollOutput``, on unless `TUI_SCROLL_OUTPUT=off`).
+    ///   breath (``ScrollOutput``: on the hosts measured to do it right,
+    ///   unless `TUI_SCROLL_OUTPUT=off`).
     /// - `CSI ? 69 l`: left-right margin mode (DECLRMM) off. While it is on,
     ///   left and right margins a program set (DECSLRM; tmux sets them where
     ///   the terminal has them) stop or wrap every row at the right margin,
@@ -1029,7 +1030,7 @@ extension Terminal {
     ///   colours and as one link to the app's last URL.
     var outputModesOff: String {
         (synchronizesOutput ? Self.synchronizedUpdateEnd : "") + Self.autowrapOn + Self.penReset
-            + (ScrollOutput.configured > .off ? Self.scrollRegionReset : "")
+            + (ScrollOutput.configured != .off ? Self.scrollRegionReset : "")
     }
 
     /// `ESC ] 8 ; ; ST` and `CSI 0 m`: whatever hyperlink is open closed
@@ -1041,8 +1042,10 @@ extension Terminal {
     /// A band's region and margins back to the whole screen, should a signal or
     /// a failed write cut a frame between setting them and letting them go.
     /// `CSI r` homes the cursor, so it is saved around them: a crash's report
-    /// starts where the frame left it, not over the top row. Sent only when
-    /// frames can set either (``ScrollOutput``).
+    /// starts where the frame left it, not over the top row. Sent unless
+    /// `TUI_SCROLL_OUTPUT=off`: whether frames can set either is the host's to
+    /// say (``ScrollOutput/level(_:on:holds:)``), and where none can, the
+    /// reset is a no-op every terminal parses.
     static let scrollRegionReset = "\u{1B}7\u{1B}[r\u{1B}[?69l\u{1B}8"
 
     /// What the terminal is owed, should the process die of a signal now:

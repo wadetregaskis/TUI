@@ -56,6 +56,12 @@ through a `Binding` could see a different value from its parent's. Every read in
 frame's first read gave; a write from another thread shows in the next frame, which it asks for. A body that writes
 its own state still reads its write back.
 
+**Scrolling moves rows with a scroll region only on terminals TUI recognises and has measured.** Apple Terminal,
+iTerm2, Ghostty, Warp and tmux are unchanged. Any other terminal, including one TUI could not identify, such as one
+reached over ssh that names itself only as `xterm-256color`, now has a scrolled list's rows redrawn rather than moved,
+which sends more bytes. A terminal that ignored the scroll command would have shown old and new rows mixed.
+`TUI_SCROLL_OUTPUT=1` asks such a terminal to move them anyway.
+
 **A toast from a sheet presented over a sheet stays on top once its sheet closes.** A sheet over a sheet that
 posted "Removed" and closed left the toast drawn dimmed under the sheet beneath, its timer stopped until that sheet
 closed too. A closed presentation's toasts now belong to what was beneath it.

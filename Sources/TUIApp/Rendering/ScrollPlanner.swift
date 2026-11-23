@@ -3,7 +3,8 @@
 //
 //  Deciding whether a frame is cheaper as a moved band of rows and a repair than
 //  as the rows it changed. On by default at `exact` since 2026-11-09, the
-//  owner's ruling: see `Documentation/Performance/Scroll regions for output.md`.
+//  owner's ruling, on the hosts measured to do it right since 2026-11-22 (O-34
+//  (b)): see `Documentation/Performance/Scroll regions for output.md`.
 //
 //  Created by Wade Tregaskis
 //  License: MIT
@@ -14,10 +15,11 @@ import TUIFoundation
 // MARK: - The switch
 
 /// How far the writer may go in moving rows rather than rewriting them.
-/// `TUI_SCROLL_OUTPUT`: `exact` (the default), `off`, `residue` or `margins`.
-/// Each level includes the one before it. `off` is the way out, should a
-/// terminal get regions wrong; `residue` and `margins` are developer levels,
-/// not promised.
+/// `TUI_SCROLL_OUTPUT`: `off` (or `0`), `exact` (or `1`), `residue` or
+/// `margins`; unset, the host decides (``level(_:on:holds:)``). Each level
+/// includes the one before it. `off` is the way out, should a terminal get
+/// regions wrong; `exact` asks for them on a terminal TUI has not measured;
+/// `residue` and `margins` are developer levels, not promised.
 enum ScrollOutput: Int, Comparable, Sendable {
     /// Rows are written where they are, as they always have been.
     case off
@@ -35,33 +37,45 @@ enum ScrollOutput: Int, Comparable, Sendable {
 
     static func < (lhs: Self, rhs: Self) -> Bool { lhs.rawValue < rhs.rawValue }
 
-    /// What the environment asks for.
+    /// What the environment asks for, or `nil` where it asks nothing.
     static let configured = parse(ProcessInfo.processInfo.environment["TUI_SCROLL_OUTPUT"])
 
-    /// A `TUI_SCROLL_OUTPUT` value; unset or anything unknown is the default,
-    /// `exact`.
-    static func parse(_ value: String?) -> Self {
+    /// A `TUI_SCROLL_OUTPUT` value, or `nil` for unset or anything unknown:
+    /// nothing asked, so the host's default (``level(_:on:holds:)``).
+    static func parse(_ value: String?) -> Self? {
         switch value {
         case "off", "0": .off
+        case "exact", "1": .exact
         case "residue": .residue
         case "margins": .margins
-        default: .exact
+        default: nil
         }
     }
 
-    /// What `level` comes to on a host, by what `Tools/TerminalProbes/scroll_region_probe.py`
-    /// measured: where a host's display is not held, nothing fixed may be seen
-    /// to move and come back, so it stops at `exact`; DECSLRM is only for the
-    /// two hosts seen to honour it. Under tmux a held frame repaints the whole
-    /// pane at the client whatever it says (`tmux_scroll_probe.py`), so nothing
-    /// is to be gained unless holds are off.
-    static func level(_ level: Self, on program: TerminalClient.Program, holds: Bool) -> Self {
+    /// What `asked` comes to on a host, by what `Tools/TerminalProbes/scroll_region_probe.py`
+    /// measured; `nil` is nothing asked.
+    ///
+    /// - Only the hosts measured to do regions right move rows unasked: Apple
+    ///   Terminal, iTerm2, Ghostty, Warp, and tmux, which redraws for its
+    ///   client by the client's terminfo. Anything else, a terminal TUI did not
+    ///   identify or one it did not measure scrolling on, has its rows written
+    ///   in place (owner 2026-11-22, O-34 (b)): one that ignored `CSI n S`
+    ///   would show old rows and new mixed, and correctness on an unmeasured
+    ///   terminal beats bytes. A setting wins there, up to `exact`.
+    /// - Where a host's display is not held, nothing fixed may be seen to move
+    ///   and come back, so it stops at `exact`; DECSLRM is only for the two
+    ///   hosts seen to honour it.
+    /// - Under tmux a held frame repaints the whole pane at the client whatever
+    ///   it says (`tmux_scroll_probe.py`), so nothing is to be gained unless
+    ///   holds are off.
+    static func level(_ asked: Self?, on program: TerminalClient.Program, holds: Bool) -> Self {
         switch program {
-        case .ghostty, .iTerm2: level
-        case .warp: min(level, .residue)
-        case .tmux: holds ? .off : min(level, .exact)
-        case .appleTerminal, .gnomeTerminal, .xtermJS, .windowsTerminal, .windowsConsole, .unidentified:
-            min(level, .exact)
+        case .ghostty, .iTerm2: asked ?? .exact
+        case .warp: min(asked ?? .exact, .residue)
+        case .appleTerminal: min(asked ?? .exact, .exact)
+        case .tmux: holds ? .off : min(asked ?? .exact, .exact)
+        case .gnomeTerminal, .xtermJS, .windowsTerminal, .windowsConsole, .unidentified:
+            min(asked ?? .off, .exact)
         }
     }
 }

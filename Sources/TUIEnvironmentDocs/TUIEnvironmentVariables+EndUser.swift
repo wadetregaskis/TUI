@@ -281,8 +281,8 @@ extension TUIEnvironmentVariables {
             reading: .eachUse),
         TUIEnvironmentVariable(
             "TUI_SCROLL_OUTPUT", .endUser, .terminal,
-            values: "`0` or `off`",
-            effect: "Doesn't ask the terminal to scroll part of the screen when a list or a page scrolls, and redraws each changed line instead, which sends more. Try it if lines land in the wrong place after scrolling."),
+            values: "`0` or `1`",
+            effect: "`0`: doesn't ask the terminal to scroll part of the screen when a list or a page scrolls, and redraws each changed line instead, which sends more. Try it if lines land in the wrong place after scrolling. `1`: asks too on a terminal TUI hasn't checked this on, which otherwise isn't asked, because one that ignored it would show old lines and new mixed. It sends less, which matters over a slow link."),
     ]
 
     private static let files: [TUIEnvironmentVariable] = [

@@ -470,6 +470,18 @@ package final class HeadlessApp {
     /// How many bytes every frame so far has written to the terminal.
     package var bytesWritten: Int { terminal.bytesWritten }
 
+    /// Has the writer move rows with a scroll region, as it does on the hosts
+    /// measured to do it right, unless `TUI_SCROLL_OUTPUT` asks otherwise.
+    ///
+    /// A headless app models no terminal, so its writer takes it for one TUI
+    /// has not measured and writes rows in place (owner 2026-11-22, O-34
+    /// (b)). Stress's recorded counts and its benches measure the writer as
+    /// it runs on Apple Terminal, iTerm2, Ghostty, Warp and tmux, and ask for
+    /// this, so they stay comparable with what they recorded before O-34.
+    package func movesRowsAsOnAMeasuredHost() {
+        renderer.diffWriter.scrollOutput = ScrollOutput.configured ?? .exact
+    }
+
     /// Whether the picture commands written are kept for ``graphicsWritten``.
     package var recordsGraphics: Bool {
         get { terminal.recordsGraphics }

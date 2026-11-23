@@ -240,6 +240,7 @@ final class DrivenSession {
                 ? HeadlessApp(CommandsSessionHost(page: session.page), width: width, height: height)
                 : HeadlessApp(SessionHost(page: session.page), width: width, height: height))
         app.clearsRenderCacheEachFrame = cold
+        app.movesRowsAsOnAMeasuredHost()
         // What an app does, learned from the clock as an app's cache learns:
         // `HeadlessApp` turns it off for tests.
         app.renderCache.learnsFromTiming = true

@@ -7,6 +7,16 @@ scroll at `exact` in Apple Terminal, iTerm2, Warp and Ghostty and saw no issues.
 `residue` and `margins` stay as developer levels, unpromised. The rest of this page is the study as written, when it was
 off by default.**
 
+**Since 2026-11-22, only on the hosts measured to do it right (owner 2026-11-22, O-34 (b)).** Apple Terminal, iTerm2,
+Ghostty, Warp and tmux move rows unasked. A terminal TUI has not identified, and one it identifies but has not measured
+regions on (GNOME Terminal, xterm.js, Windows Terminal, conhost), has its changed rows written in place, as with `off`,
+unless `TUI_SCROLL_OUTPUT` asks for a level, which wins there up to `exact`. Why: a terminal that ignored `CSI n S`
+would show old and new rows mixed, silently, and terminfo lists SU and SD in only 5 of 12 common entries (IL and DL in
+11 of 12), so nothing TUI can ask settles it. Correctness on a terminal nobody measured beats bytes. The table of hosts
+is the survey's ("Moving a band of rows"). Section 5's "an unidentified terminal gets `exact`" is what this replaced. `Stress`'s
+headless cases and sessions model no terminal, so they ask for the measured hosts' `exact`
+(`HeadlessApp.movesRowsAsOnAMeasuredHost()`): their recorded counts and benches measure the writer as most apps run it.
+
 Measured again on that day's main, before switching it on (`scroll_output.py sessions`, Ghostty's host, 120×40, the 12
 default sessions, 4,800 frames): `exact` sends **30.2% fewer bytes** than `off` (4,084,163 → 2,852,137), `residue` 30.4%,
 `margins` 31.5%, and every level's screen matches `off`'s at every step. The same sessions with `TUI_SCROLL_OUTPUT` unset
@@ -289,7 +299,8 @@ installed. From memory, unchecked here: xterm and WezTerm have DECSLRM, and kitt
 **DECSLRM is a hazard and not merely an absence.** Where it is ignored, `CSI 11;70 s` is a cursor save, harmless, but the
 scroll then moves *the whole width*, and the writer's picture is wrong in exactly the columns it thought it left alone. It
 cannot be sent on a guess, and asking (DECRQM) is the shape Apple Terminal prints. So `margins` is by named host only, and
-only those measured. An unknown terminal, or a wrong identity over ssh, gets `exact`, which any VT100 does correctly.
+only those measured. An unknown terminal got `exact` as written, on the grounds that any VT100 does it correctly; since
+2026-11-22 it gets nothing unless asked (O-34 (b), the status above), as SU and SD are not VT100's.
 
 **Why not the others.**
 
@@ -458,7 +469,8 @@ the environment switch, which stays as the way out as `TUI_SYNCHRONIZED_OUTPUT` 
 - **Whether it needs a setting:** no. I looked for a use case where one would want it off and found none but a terminal
   that gets it wrong, which is what the environment switch is for. What could still make me wrong is in "Not verified" below.
 - **Default per host:** `exact` for Apple Terminal, iTerm2, Ghostty, Warp and an unidentified terminal. Off under tmux with
-  holds on, which by the other recommendation goes away, and then `exact`.
+  holds on, which by the other recommendation goes away, and then `exact`. (Since 2026-11-22, not an unidentified
+  terminal: see the status at the top.)
 - **`residue` and `margins`:** I would leave these out of the first landing. Measured, `exact` gets 28.6% of the bytes, `residue`
   0.2 more, `margins` 1.4 more, and `margins` is the only part with a real hazard. Keep the code on the branch, or delete it,
   your call. A side-pane app is where they would earn their keep, and that case is measured only on a fixture so far:
@@ -475,7 +487,8 @@ the environment switch, which stays as the way out as `TUI_SYNCHRONIZED_OUTPUT` 
 
 ## The prototype
 
-`TUI_SCROLL_OUTPUT` = `exact` (the default since 2026-11-09), `off`, `residue` or `margins`, read once. A level is the most a host may get:
+`TUI_SCROLL_OUTPUT` = `exact` (or `1`), `off` (or `0`), `residue` or `margins`, read once; unset, the host decides: `exact`
+on a measured host, nothing elsewhere (since 2026-11-22). A level is the most a host may get:
 `ScrollOutput.level(_:on:holds:)`.
 
 - `Sources/TUIApp/Rendering/ScrollPlanner.swift`: the switch, the plan, the planner, the census.

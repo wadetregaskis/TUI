@@ -262,9 +262,11 @@ final class FrameDiffWriter {
     /// previous frame. Exposed for tests and profiling.
     private(set) var rowsBuiltInLastBuild = 0
 
-    /// Whether this writer may move a band of rows rather than rewrite them,
-    /// before the host has a say. See ``ScrollOutput``.
-    var scrollOutput = ScrollOutput.configured
+    /// How far this writer is asked to go in moving a band of rows rather than
+    /// rewriting them, before the host has a say, or `nil` where nothing asked:
+    /// then the host's default, which is nothing on a terminal not measured to
+    /// do it right. See ``ScrollOutput/level(_:on:holds:)``.
+    var scrollOutput: ScrollOutput? = ScrollOutput.configured
 
     /// Whether a changed row may be written as the cell runs that differ
     /// (``ANSICellDiff/spans(_:)``), or only whole.
@@ -938,7 +940,7 @@ extension FrameDiffWriter {
         // A band that moved, if this frame is one. One comparison for the frames
         // that change a few rows, which is nearly all of them.
         var newCells: [ANSIRowCells??] = []
-        if changedRows.count >= ScrollPlanner.minimumChangedRows, scrollOutput > .off || scrollCensus != nil {
+        if changedRows.count >= ScrollPlanner.minimumChangedRows, scrollCensus != nil || hostScrollLevel > .off {
             newCells = movingBand(
                 newLines: newLines, previousLines: &previousLines, changedRows: &changedRows,
                 onto: BandTarget(terminal: terminal, startRow: startRow, width: terminalWidth, bgCode: bgCode),
@@ -1012,6 +1014,14 @@ extension FrameDiffWriter {
         let bgCode: String
     }
 
+    /// How far the host in force lets ``scrollOutput`` go. A hand-built set of
+    /// quirks is a terminal TUI has not measured, and gets what one does.
+    private var hostScrollLevel: ScrollOutput {
+        var program = TerminalClient.Program.unidentified
+        if case .program(let named) = model { program = named }
+        return ScrollOutput.level(scrollOutput, on: program, holds: framesAreHeld)
+    }
+
     /// Whether a row of the frame last built carries a mark.
     private var marksOnBuiltRows: Bool {
         markRows.contains { !$0.hairlines.isEmpty || !$0.pictures.isEmpty || !$0.placeholders.isEmpty }
@@ -1045,9 +1055,7 @@ extension FrameDiffWriter {
                     !line.containsStringFamilyEscape && !(apple && line.containsTerminalAppCursorAdvanceQuirk)
                 })
         }
-        var program = TerminalClient.Program.unidentified
-        if case .program(let named) = model { program = named }
-        let hostLevel = ScrollOutput.level(scrollOutput, on: program, holds: framesAreHeld)
+        let hostLevel = hostScrollLevel
         let level: ScrollOutput =
             marksOnScreen || marksOnBuiltRows ? .off : writesSpans ? hostLevel : min(hostLevel, .exact)
         var planner = make()

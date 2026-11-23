@@ -11,6 +11,7 @@ import Testing
 @testable import TUIAppTestSupport
 @testable import TUICore
 @testable import TUIFoundation
+@testable import TUITerminalHost
 @testable import TUITestSupport
 
 /// A page of rows: a header and a footer that stay, a document that scrolls, and
@@ -80,7 +81,11 @@ private final class Drawn {
     var bytes = 0
     var lastFrame = ""
 
-    init(level: ScrollOutput, program: TerminalClient.Program, width: Int, height: Int) {
+    /// Everything this writer has sent, every frame.
+    var allOutput = ""
+
+    /// `level` `nil` is nothing asked: the host's default.
+    init(level: ScrollOutput?, program: TerminalClient.Program, width: Int, height: Int) {
         writer = FrameDiffWriter(program: program)
         writer.scrollOutput = level
         writer.framesAreHeld = true
@@ -96,6 +101,7 @@ private final class Drawn {
             newLines: lines, terminal: terminal, startRow: 1, terminalWidth: width,
             bgCode: Page.pageCode, reset: Page.resetCode)
         lastFrame = terminal.allOutput
+        allOutput += lastFrame
         bytes += lastFrame.utf8.count
         screen.feed(lastFrame)
     }
@@ -148,10 +154,10 @@ struct ScrollOutputTests {
         }
     }
 
-    @Test("Exact is the default, and off is the way out")
+    @Test("Unset asks nothing, and off is the way out")
     func parsesTheSwitch() {
-        #expect(ScrollOutput.parse(nil) == .exact)
-        #expect(ScrollOutput.parse("nonsense") == .exact)
+        #expect(ScrollOutput.parse(nil) == nil)
+        #expect(ScrollOutput.parse("nonsense") == nil)
         #expect(ScrollOutput.parse("exact") == .exact)
         #expect(ScrollOutput.parse("1") == .exact)
         #expect(ScrollOutput.parse("off") == .off)
@@ -303,6 +309,79 @@ struct ScrollOutputTests {
         #expect(ScrollOutput.level(.margins, on: .tmux, holds: true) == .off)
         #expect(ScrollOutput.level(.margins, on: .tmux, holds: false) == .exact)
         #expect(ScrollOutput.level(.off, on: .ghostty, holds: true) == .off)
+        #expect(ScrollOutput.level(nil, on: .ghostty, holds: true) == .exact)
+        #expect(ScrollOutput.level(nil, on: .iTerm2, holds: true) == .exact)
+        #expect(ScrollOutput.level(nil, on: .warp, holds: true) == .exact)
+        #expect(ScrollOutput.level(nil, on: .appleTerminal, holds: false) == .exact)
+        #expect(ScrollOutput.level(nil, on: .tmux, holds: false) == .exact)
+        #expect(ScrollOutput.level(nil, on: .tmux, holds: true) == .off)
+    }
+
+    /// Owner 2026-11-22, O-34 (b): a terminal TUI has not identified, or has
+    /// not measured regions on, has its rows written in place unless a setting
+    /// asks otherwise, and then gets no more than `exact`.
+    @Test(
+        "A host not measured scrolls nothing unasked, and up to exact when asked",
+        arguments: [
+            TerminalClient.Program.unidentified, .gnomeTerminal, .xtermJS, .windowsTerminal, .windowsConsole,
+        ])
+    func unmeasuredHosts(program: TerminalClient.Program) {
+        #expect(ScrollOutput.level(nil, on: program, holds: true) == .off)
+        #expect(ScrollOutput.level(nil, on: program, holds: false) == .off)
+        #expect(ScrollOutput.level(.exact, on: program, holds: true) == .exact)
+        #expect(ScrollOutput.level(.margins, on: program, holds: true) == .exact)
+        #expect(ScrollOutput.level(.off, on: program, holds: true) == .off)
+    }
+
+    /// Whether `output` sets a region (DECSTBM, `CSI t;b r` or `CSI r`) or
+    /// scrolls (`CSI n S`, `CSI n T`).
+    private func movesRows(_ output: String) -> Bool {
+        output.contains(/\u{1B}\[[0-9;]*r/) || output.contains(/\u{1B}\[[0-9]+[ST]/)
+    }
+
+    @Test("An unidentified terminal, asked nothing, has a scrolled list's rows written in place")
+    func unidentifiedRedraws() {
+        // `TERM=xterm-256color` names no terminal, and nothing here answers a
+        // Device Attributes query.
+        let program = TerminalHost.detectProgram(environment: ["TERM": "xterm-256color"])
+        #expect(program == .unidentified)
+        let drawn = Drawn(level: nil, program: program, width: 80, height: 24)
+        let plain = Drawn(level: .off, program: program, width: 80, height: 24)
+        for page in notches(Page(document: document), [0, 3, 6, 3, 0, 1, 2, 17]) {
+            drawn.draw(page.rows(), width: 80)
+            plain.draw(page.rows(), width: 80)
+            #expect(drawn.screen.firstDifference(from: repainted(page.rows(), width: 80)) == nil)
+        }
+        #expect(drawn.screen.scrolls == 0)
+        #expect(!movesRows(drawn.allOutput))
+        #expect(drawn.bytes == plain.bytes)
+    }
+
+    @Test("A measured host, asked nothing, still moves a scrolled list's rows", arguments: [
+        TerminalClient.Program.ghostty, .iTerm2, .warp, .appleTerminal,
+    ])
+    func measuredHostScrolls(program: TerminalClient.Program) {
+        let pages = notches(Page(document: document), [0, 3, 6, 3, 0, 1, 2, 17])
+        let drawn = Drawn(level: nil, program: program, width: 80, height: 24)
+        for page in pages { drawn.draw(page.rows(), width: 80) }
+        #expect(drawn.screen.scrolls >= 6)
+        #expect(drawn.allOutput.contains("\u{1B}[2;23r\u{1B}[3S\u{1B}[r"))
+        #expect(drawn.screen.firstDifference(from: repainted(pages[pages.count - 1].rows(), width: 80)) == nil)
+    }
+
+    @Test("A setting moves rows on an unidentified terminal, at no more than exact")
+    func settingWinsOnUnidentified() {
+        var page = Page(document: document)
+        page.sidePane = Page.letters(rows: 22, width: 20, seed: 7)
+        for (level, scrolls) in [(ScrollOutput.exact, true), (.margins, false)] {
+            // At `exact` a full-width list moves; `margins` would need DECSLRM,
+            // which is never sent on a guess, so a list beside a pane does not.
+            let pages = notches(level == .exact ? Page(document: document) : page, [0, 3, 6, 9])
+            let drawn = expectSameScreens(pages, level: level, program: .unidentified)
+            #expect((drawn.scrolled.screen.scrolls > 0) == scrolls)
+            #expect(movesRows(drawn.scrolled.allOutput) == scrolls)
+            #expect(!drawn.scrolled.allOutput.contains("?69h"))
+        }
     }
 
     @Test("Under tmux, with holds on, nothing moves: tmux repaints the pane regardless")

@@ -83,11 +83,16 @@ Read by the library modules, for debugging them.
 | `TUI_STILL` | `1` | Nothing on screen changes except as the direct result of user interaction: no breathing, no blinking caret, no spinner motion, no animation ticks, and a change snaps to its end. A `TimelineView` stays at the launch date. An app's own timers aren't stopped, and neither is what the terminal does itself, such as blinking its own cursor. Read once. |
 
 `TUI_SCROLL_OUTPUT` is in the public table for its `0` (or `off`), the way out for someone whose terminal gets scroll
-regions wrong, which writes every changed row in place. It also takes levels that are for developers alone, not
-promised, and so not in the table: `exact`, the default since the owner's decision `SCROLL-REGIONS` (2026-11-09), moves
-rows with a scroll region where the rows' contents agree on the shift; `residue` also finds the shift in the part of
-each row that moved, so a side pane doesn't hide it; `margins` also moves a band narrower than the screen, with DECSLRM
-margins, on a host measured to honour them. A host may cap the level, and an unknown value is the default. Read once.
+regions wrong, which writes every changed row in place, and its `1` (or `exact`), which asks for them where they aren't
+sent unasked. It also takes levels that are for developers alone, not promised, and so not in the table. `exact`, the
+default since the owner's decision `SCROLL-REGIONS` (2026-11-09), moves rows with a scroll region where the rows'
+contents agree on the shift; `residue` also finds the shift in the part of each row that moved, so a side pane doesn't
+hide it; `margins` also moves a band narrower than the screen, with DECSLRM margins, on a host measured to honour them.
+Unset, or an unknown value, asks nothing, and the host decides: since the owner's ruling O-34 (b) (2026-11-22), `exact`
+on a host measured to do regions right (Apple Terminal, iTerm2, Ghostty, Warp, tmux), and nothing on any other, a
+terminal TUI hasn't identified included, since one that ignored `CSI n S` would show old rows and new mixed. A level
+set explicitly wins there, up to `exact`; on a measured host the host may still cap it. The table of hosts is the
+compatibility survey's ("Moving a band of rows"). Read once.
 
 `TUI_PLAIN_TEXT` was listed here, for testing alone (the owner's ruling of 2026-11-01, that nothing should encourage an
 ASCII-only mode), until the owner made `TUI_PLAIN_TEXT=transliterate` a supported option on 2026-11-19; it is in the
