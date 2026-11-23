@@ -97,6 +97,13 @@ struct LanguageTag: Hashable, Sendable {
         self.bare = bare
     }
 
+    /// Whether `name` is the neutral `C` or `POSIX` locale, with or without a
+    /// codeset or modifier (`C.UTF-8`): the untranslated locale, English.
+    static func isNeutral(_ name: some StringProtocol) -> Bool {
+        let locale = name.prefix { !".@".contains($0) }
+        return locale == "C" || locale == "POSIX"
+    }
+
     /// What ``init(_:)`` reads `name` as, worked out afresh.
     private static func parse(_ name: String) -> Self? {
         let tag = name.prefix { !".@".contains($0) }

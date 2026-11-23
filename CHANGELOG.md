@@ -134,6 +134,13 @@ too: the rest of the row came back to full strength. Faint is stated again after
 behind lost its glyphs, but the cells the container draws between the members let it through, tinted: two legible
 stripes through a frosted pill. Those cells now frost with the first member's frost, as its own part does.
 
+**`LC_ALL=C` means English, on Linux and macOS.** `LC_ALL=C app`, the usual way a script, a CI job or a bug report
+asks for untranslated output, still spoke German on a German machine: `C` and `POSIX` named no language, so `LANG`,
+`LANGUAGE` or, on macOS, the system's languages spoke instead. Where the first of `LC_ALL`, `LC_MESSAGES` and `LANG`
+that is set is `C` or `POSIX` (`C.UTF-8` too), the language is now English, `LANGUAGE` and the system's languages are
+not read (gettext's rule), and dates and numbers follow no region. A language chosen in the app still wins. By the
+owner's ruling O-07 (b) of 2026-11-21.
+
 **Strings are read in a language's script and region: `pt-BR` before `pt`, `zh-Hant` apart from `zh`.** Every lookup
 used the bare language code, so a `pt-BR.lproj` or strings registered as `"pt-BR"` were never read, a Brazilian and a
 Portuguese user read the same `pt` strings, and `.environment(\.locale, Locale(identifier: "zh-Hant"))` over an app

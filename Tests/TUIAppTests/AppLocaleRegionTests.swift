@@ -61,8 +61,8 @@ struct AppLocaleRegionTests {
     func fallsBackToTheSystem() {
         let region = LocalizationService.systemRegion
         let current = Locale(identifier: "en_NZ")
-        #expect(region(["LANG": "C"], current)?.identifier == "NZ")
-        #expect(region(["LC_ALL": "POSIX", "LANG": "de"], current)?.identifier == "NZ")
+        #expect(region(["LANG": "de"], current)?.identifier == "NZ")
+        #expect(region(["LC_ALL": "de", "LANG": "fr"], current)?.identifier == "NZ")
         #expect(region([:], current)?.identifier == "NZ")
         #expect(region([:], nil) == nil)
     }

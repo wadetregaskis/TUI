@@ -12,7 +12,8 @@ full tag first (`pt-BR`, `zh-Hant-TW`) and then the bare one (`pt`,
 `zh-Hant`), everywhere a key is looked up (O-06 (a), 2026-11-21). TUI's
 Chinese is Simplified, so a reader of Traditional Chinese is not given it.
 `Text(localized:)` reads its key when drawn, so it follows a subtree's
-`\.locale`.
+`\.locale`. `LC_ALL=C` and `LC_MESSAGES=C` (and `POSIX`) mean English, on
+Linux and macOS alike (O-07 (b), 2026-11-21).
 
 ## The record
 
@@ -76,3 +77,25 @@ not the language's own: Traditional Chinese falls back to `zh-Hant`, never to
 `zh.lproj`. Off Darwin a region with a parent of its own other than the bare
 language (`pt_AO`'s `pt-PT`) reads the bare `pt`; on Darwin Foundation's
 matching finds `pt-PT`.
+
+### HUNT-O-07. `LC_ALL=C` means English, on Linux and macOS
+
+*Owner, 2026-11-21: (b). Findings XPLAT-4, TOOLS-11.*
+
+**The question:** does `LC_ALL=C` / `LC_MESSAGES=C` mean English? (a) yes on
+Linux (gettext's rule), native behaviour on macOS; (b) yes on both; (c) "no
+preference", as the code and two tests said.
+
+**Before:** `C` and `POSIX` named no language, so the next variable spoke:
+`LC_ALL=C` on a German machine was German (from `LANG`, `LANGUAGE`, or on
+macOS the system's languages), and its region the system's.
+
+**Shipped:** where the variable that decides the messages' language — the
+first of `LC_ALL`, `LC_MESSAGES` and `LANG` that is set and not empty — is
+`C` or `POSIX` (with or without a codeset, `C.UTF-8`), the language is
+English, and neither `LANGUAGE` nor the system's preferred languages is read,
+as gettext ignores `LANGUAGE` under `C`. Read the same way, a `C` among the
+variables that decide the region (`LC_ALL`, `LC_TIME`, `LC_NUMERIC`, `LANG`)
+gives no region. A `LANG=C` alone is `C` by the same rule, since it decides
+when the two above it are unset. A language chosen in the app
+(`setLanguage(_:)`) still wins.

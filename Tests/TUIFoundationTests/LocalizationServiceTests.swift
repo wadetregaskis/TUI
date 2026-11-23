@@ -525,12 +525,13 @@ struct LanguageDetectionTests {
         #expect(LocalizationService.posixEnvironmentLanguage(["LANGUAGE": "pt:es:fr"]) == .spanish)
     }
 
-    @Test("The C and POSIX locales name no language")
-    func neutralLocalesNameNothing() {
-        // They mean "no preference", and a two-character prefix would have read
-        // them as one: "C" and "po".
-        #expect(LocalizationService.posixEnvironmentLanguage(["LC_ALL": "C"]) == nil)
-        #expect(LocalizationService.posixEnvironmentLanguage(["LANG": "POSIX"]) == nil)
+    @Test("The C and POSIX locales name English")
+    func neutralLocalesNameEnglish() {
+        // The untranslated locale (O-07 (b), 2026-11-21; they meant "no
+        // preference" before), and a two-character prefix would have read
+        // them as languages: "C" and "po". CLocaleTests has the rest.
+        #expect(LocalizationService.posixEnvironmentLanguage(["LC_ALL": "C"]) == .english)
+        #expect(LocalizationService.posixEnvironmentLanguage(["LANG": "POSIX"]) == .english)
         #expect(LocalizationService.posixEnvironmentLanguage(["LANG": ""]) == nil)
         #expect(LocalizationService.posixEnvironmentLanguage([:]) == nil)
     }

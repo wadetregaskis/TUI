@@ -48,11 +48,14 @@ extension LocalizationService {
     /// read under its full tag and then its bare one: `pt-BR`, then `pt`.
     ///
     /// Searched in the same order as the language itself: the POSIX
-    /// variables, then the preferred-languages list.
+    /// variables, then the preferred-languages list. Under the neutral `C`
+    /// locale (``messagesLocaleIsNeutral(_:)``) it is English alone, and
+    /// neither is searched.
     static func systemPreferredLanguageCodes(
         environment: [String: String] = ProcessInfo.processInfo.environment,
         preferredLanguages: [String] = systemLanguageList
     ) -> [String] {
+        if messagesLocaleIsNeutral(environment) { return [Language.english.rawValue] }
         var tags: [LanguageTag] = []
         // These are canonical BCP-47 tags, language subtag first — no
         // `C`/`POSIX` here.
@@ -72,9 +75,29 @@ extension LocalizationService {
     /// `LC_MESSAGES`, which outranks `LANG`. `LANGUAGE` alone may hold a
     /// colon-separated priority list, and every variable is searched for the
     /// first language actually bundled rather than being consumed by its first
-    /// entry — a `pt:es` list should speak Spanish, not English.
+    /// entry — a `pt:es` list should speak Spanish, not English. Under the
+    /// neutral `C` locale (``messagesLocaleIsNeutral(_:)``), English.
     static func posixEnvironmentLanguage(_ environment: [String: String]) -> Language? {
-        posixLanguageTags(environment).lazy.compactMap(Language.init(reading:)).first
+        if messagesLocaleIsNeutral(environment) { return .english }
+        return posixLanguageTags(environment).lazy.compactMap(Language.init(reading:)).first
+    }
+
+    /// Whether the POSIX variable that decides the language of messages —
+    /// the first of `LC_ALL`, `LC_MESSAGES` and `LANG` that is set and not
+    /// empty, POSIX's rule — names the neutral `C` or `POSIX` locale, with or
+    /// without a codeset (`C.UTF-8`).
+    ///
+    /// That locale is the untranslated one: English, on Linux and macOS alike
+    /// (the owner's O-07 (b), 2026-11-21). `LC_ALL=C app` is how a script, a
+    /// CI job or a bug report asks any program for its untranslated output, so
+    /// neither `LANGUAGE` (gettext ignores it under `C`) nor the system's
+    /// preferred languages is read. It used to mean "no preference": the
+    /// next variable spoke, so `LC_ALL=C` on a German machine was German.
+    /// Only the deciding variable counts: `LC_ALL=de_DE.UTF-8 LANG=C` is
+    /// German.
+    static func messagesLocaleIsNeutral(_ environment: [String: String]) -> Bool {
+        let deciding = ["LC_ALL", "LC_MESSAGES", "LANG"].lazy.compactMap { environment[$0] }.first { !$0.isEmpty }
+        return deciding.map(LanguageTag.isNeutral) ?? false
     }
 
     /// Every language the POSIX locale variables name, in gettext's
@@ -91,7 +114,11 @@ extension LocalizationService {
     /// how dates and numbers are written (`LC_ALL`, then `LC_TIME`,
     /// `LC_NUMERIC`, then `LANG`), else `current`'s region — on Darwin the
     /// user's region preference. The world region (`001`), which swift-foundation
-    /// answers with off Darwin when it has nothing to read, is no region.
+    /// answers with off Darwin when it has nothing to read, is no region. So is
+    /// the neutral `C` or `POSIX` locale where one of those variables names it
+    /// before any names a territory: the untranslated locale has none, and the
+    /// system's is not read (O-07 (b), 2026-11-21; see
+    /// ``messagesLocaleIsNeutral(_:)``).
     ///
     /// Both inputs are parameters so either platform's answer can be posed on
     /// either; the defaults are what the running process has.
@@ -100,7 +127,9 @@ extension LocalizationService {
         current: Locale? = systemLocale
     ) -> Locale.Region? {
         for name in ["LC_ALL", "LC_TIME", "LC_NUMERIC", "LANG"] {
-            if let region = environment[name].flatMap({ LanguageTag($0)?.region }) { return Locale.Region(region) }
+            guard let value = environment[name], !value.isEmpty else { continue }
+            if LanguageTag.isNeutral(value) { return nil }
+            if let region = LanguageTag(value)?.region { return Locale.Region(region) }
         }
         guard let region = current?.region, region.identifier != "001" else { return nil }
         return region

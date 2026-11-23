@@ -192,7 +192,7 @@ final class FrameworkStringLookupTests {
         // A three-letter code is a language of its own, not the two-letter
         // one it begins with: Filipino is not Finnish.
         #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LANG": "fil_PH"], preferredLanguages: []) == ["fil-PH"])
-        #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LC_ALL": "C.UTF-8"], preferredLanguages: []).isEmpty)
+        #expect(LocalizationService.systemPreferredLanguageCodes(environment: ["LC_ALL": "C.UTF-8"], preferredLanguages: []) == ["en"])
 
         let service = LocalizationService(
             configDirectoryPath: configDir, environment: ["LANGUAGE": "pt:es", "LANG": "de_DE.UTF-8"])

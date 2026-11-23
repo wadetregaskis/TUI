@@ -130,27 +130,27 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "LANGUAGE", .endUser, .language,
             values: "A list of languages, such as `pt:es`",
-            effect: "The languages for the program's words, most wanted first. It wins over the variables below. A language you pick inside the program wins over it. For example: `LANGUAGE=de myapp`.",
+            effect: "The languages for the program's words, most wanted first. It wins over the variables below, except where the first of `LC_ALL`, `LC_MESSAGES` and `LANG` that is set is `C` or `POSIX`: then it isn't read. A language you pick inside the program wins over it. A language with a region or script, such as `pt_BR` or `zh-Hant`, reads the program's words for that region or script first, then the language's. For example: `LANGUAGE=de myapp`.",
             code: .overrides("`LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\\.locale, _)` at the scene's root for the whole app, or on a view for part of it.")),
         TUIEnvironmentVariable(
             "LC_ALL", .endUser, .language,
             values: "A locale, such as `de_DE.UTF-8`",
-            effect: "The language, unless `LANGUAGE` says otherwise, the region dates and numbers are written for, and the character set. It wins over the variables below.",
+            effect: "The language, unless `LANGUAGE` says otherwise, the region dates and numbers are written for, and the character set. It wins over the variables below. `C` or `POSIX`, with or without a character set, such as `C.UTF-8`, means English with no region, whatever `LANGUAGE`, the variables below or the system's own languages say: `LC_ALL=C myapp` gives the program's words untranslated.",
             code: .overrides("`LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\\.locale, _)` for part of an app.")),
         TUIEnvironmentVariable(
             "LC_MESSAGES", .endUser, .language,
             values: "A locale, such as `de_DE.UTF-8`",
-            effect: "The language, unless `LANGUAGE` or `LC_ALL` says otherwise.",
+            effect: "The language, unless `LANGUAGE` or `LC_ALL` says otherwise. `C` or `POSIX` means English, whatever `LANGUAGE`, `LANG` or the system's own languages say.",
             code: .overrides("`LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\\.locale, _)` for part of an app.")),
         TUIEnvironmentVariable(
             "LC_TIME", .endUser, .language,
             values: "A locale, such as `de_DE.UTF-8`",
-            effect: "The region dates and numbers are written for, unless `LC_ALL` says otherwise.",
+            effect: "The region dates and numbers are written for, unless `LC_ALL` says otherwise. `C` or `POSIX` means no region.",
             code: .overrides("`.environment(\\.locale, _)`.")),
         TUIEnvironmentVariable(
             "LC_NUMERIC", .endUser, .language,
             values: "A locale, such as `de_DE.UTF-8`",
-            effect: "The region dates and numbers are written for, unless `LC_ALL` or `LC_TIME` says otherwise.",
+            effect: "The region dates and numbers are written for, unless `LC_ALL` or `LC_TIME` says otherwise. `C` or `POSIX` means no region.",
             code: .overrides("`.environment(\\.locale, _)`.")),
         TUIEnvironmentVariable(
             "LC_CTYPE", .endUser, .language,
@@ -159,7 +159,7 @@ extension TUIEnvironmentVariables {
         TUIEnvironmentVariable(
             "LANG", .endUser, .language,
             values: "A locale, such as `fr_FR.UTF-8`",
-            effect: "The language, the region and the character set, wherever none of the above says. For example: `LANG=fr_FR.UTF-8 myapp`.",
+            effect: "The language, the region and the character set, wherever none of the above says. `C` or `POSIX` there means English with no region, as above. For example: `LANG=fr_FR.UTF-8 myapp`.",
             code: .overrides("`LocalizationService.shared.setLanguage(_:)`, which is saved and wins from then on. `.environment(\\.locale, _)` for part of an app.")),
         TUIEnvironmentVariable(
             "TUI_PLAIN_TEXT", .endUser, .language,

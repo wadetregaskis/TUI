@@ -368,6 +368,13 @@ sets to say which language they want, and because off Darwin it is the only
 real source: Foundation there reports a fixed `en-001` rather than any user
 preference, so a `LANG=de_DE.UTF-8` machine used to start in English.
 
+The neutral `C` locale means English, on Linux and macOS alike: where the
+first of `LC_ALL`, `LC_MESSAGES` and `LANG` that is set is `C` or `POSIX`
+(`C.UTF-8` too), the language is English and neither `LANGUAGE` nor the
+system's preferred languages is read, so `LC_ALL=C myapp` gives untranslated
+output, as it does for any gettext program. Dates and numbers then follow no
+region.
+
 The language set is the first one listed that TUI ships. Any listed ahead
 of it that TUI does not ship — `LANG=pt_BR.UTF-8` — are still the user's
 first choice: the app's own strings are read in them first (see below), so a
@@ -481,6 +488,7 @@ the app runs ask nothing to be drawn, since the first frame is still to come.
 
 - Check which language is set: `LocalizationService.shared.currentLanguage`.
 - Check which languages the environment asks for: `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` and `LANG` come first, then the system's preferred languages.
+- An `LC_ALL`, `LC_MESSAGES` or `LANG` of `C` or `POSIX` means English, whatever the rest say.
 - Remember the saved preference: a language set with `setLanguage(_:)` is kept for the next run.
 
 ## See Also
