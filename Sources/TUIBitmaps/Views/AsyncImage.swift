@@ -51,9 +51,8 @@ public enum AsyncImagePhase: Sendable {
 /// conformance its SDK marks unavailable), and it is only compared and kept
 /// alive here, never called. `draw` is a closure that captures it, run wherever
 /// `pixels` is first asked for: main-actor work in practice, views being built
-/// and drawn there. The drawn-out pixels are behind a lock. `landedPixels` is
-/// not: it is read and let go of only by the view that draws a load, on the
-/// main actor, and nothing here enforces that.
+/// and drawn there. The drawn-out pixels and a load's own pixels are each
+/// behind a lock, so nothing here relies on that.
 package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:this concurrency_escape
     /// What the pixels are drawn out of — a `CGImage` or an `NSImage` — or
     /// `nil` for pixels handed over as they are.
@@ -78,7 +77,14 @@ package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:t
     /// then let go (``letGoOfLandedPixels()``): between a load and the frame
     /// that draws it, the cache can file another decode over this one or evict
     /// it, and nothing would load it again.
-    private var landedPixels: RGBAImage?
+    ///
+    /// Behind a lock, as `drawn` is, rather than on the main actor: the view
+    /// that draws a load reads and lets go of them on the main actor today,
+    /// but ``pixels`` is nonisolated, as is everything that asks it, and this
+    /// class is `Sendable`. A lock nobody contends costs a few nanoseconds a
+    /// read; main-actor accessors would have taken `pixels` and its callers
+    /// with them.
+    private let landedPixels: Mutex<RGBAImage?>
 
     /// How the pixels become the image's size in points: SwiftUI's natural
     /// size for an image that is not resizable.
@@ -98,6 +104,7 @@ package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:t
     init(_ pixels: RGBAImage, scale: Double = 1) {
         self.owner = nil
         self.drawn = Mutex(pixels)
+        self.landedPixels = Mutex(nil)
         self.draw = { pixels }
         self.pointSizing = .scale(Self.sanitized(scale))
         self.cachedPicture = nil
@@ -113,7 +120,7 @@ package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:t
     init(cached picture: CachedPicture, in cache: URLImageCache?, scale: Double = 1, landedPixels: RGBAImage? = nil) {
         self.owner = picture.decode
         self.drawn = Mutex(nil)
-        self.landedPixels = landedPixels
+        self.landedPixels = Mutex(landedPixels)
         // Empty once the cache has let the decode go: the view drawing it reads
         // the phase (``phase``), and never asks for these then.
         self.draw = { picture.pixels(in: cache) ?? RGBAImage(width: 0, height: 0, pixels: []) }
@@ -127,6 +134,7 @@ package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:t
     package init(owner: AnyObject, pointSizing: PointSizing = .scale(1), draw: @escaping () -> RGBAImage) {
         self.owner = owner
         self.drawn = Mutex(nil)
+        self.landedPixels = Mutex(nil)
         self.draw = draw
         self.cachedPicture = nil
         self.cache = nil
@@ -162,13 +170,13 @@ package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:t
 
     /// The load's own pixels of `picture`, until the view has first drawn them.
     func landedPixels(of picture: CachedPicture) -> RGBAImage? {
-        cachedPicture?.decode === picture.decode ? landedPixels : nil
+        cachedPicture?.decode === picture.decode ? landedPixels.withLock { $0 } : nil
     }
 
     /// The view has its own hold on the pixels now, or has gone without
     /// drawing them: from here the cache keeps them.
     func letGoOfLandedPixels() {
-        landedPixels = nil
+        landedPixels.withLock { $0 = nil }
     }
 
     /// These pixels at `scale` pixels per point: the same pixels, shared, and
@@ -176,7 +184,8 @@ package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:t
     func scaled(_ scale: Double) -> _DecodedImage {
         guard pointSizing != .scale(Self.sanitized(scale)) else { return self }
         if let cachedPicture {
-            return _DecodedImage(cached: cachedPicture, in: cache, scale: scale, landedPixels: landedPixels)
+            return _DecodedImage(
+                cached: cachedPicture, in: cache, scale: scale, landedPixels: landedPixels.withLock { $0 })
         }
         return _DecodedImage(pixels, scale: scale)
     }
@@ -190,7 +199,7 @@ package final class _DecodedImage: @unchecked Sendable {  // swiftlint:disable:t
     /// The pixels.
     package var pixels: RGBAImage {
         // Read back each time from the cache that keeps them, never kept here.
-        if cachedPicture != nil { return landedPixels ?? draw() }
+        if cachedPicture != nil { return landedPixels.withLock { $0 } ?? draw() }
         if let kept = drawn.withLock({ $0 }) { return kept }
         // Outside the lock: decoding is slow, and drawing out an app's picture
         // runs AppKit's code. Two threads asking at once draw the same pixels.
