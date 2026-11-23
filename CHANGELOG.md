@@ -103,6 +103,12 @@ nothing until the list's identity changed. A `List` now takes its kind from the 
 table takes it again every frame, so a `Table` rebuilt at the same place from `Table(_:columns:)` to a `Set`
 `selection:` initializer selects too.
 
+**A `Table` row that takes a drop is lit while the drag is over it, whichever row has scrolled there.** With a drag
+held over a row's `dropDestination`, rows scrolled under the pointer by the wheel, the edge auto-scroll or a paging
+key left the first row lit as it scrolled away and the row under the pointer unlit, however the pointer moved along
+the line afterwards, and after the drop the first row could stay drawn as selected until the next drag. The row under
+the pointer is now the one lit, and none stays lit.
+
 **A tinted glass keeps its tint's transparency while the window is inactive.** `.glassEffect(.regular.tint(…))` with a
 translucent tint went more solid as the terminal lost focus, because greying the tint dropped its alpha. The colour
 effects' arithmetic now keeps a colour's alpha.

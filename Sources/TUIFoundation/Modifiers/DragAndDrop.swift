@@ -558,6 +558,9 @@ package enum DropZone {
     ///     none, which the zone's region carries, so a scroll view brings the
     ///     destination into sight when Tab reaches it — a carried drag's Tab
     ///     included — as it does a `.focusable()` view.
+    ///   - token: Which of the zones a container files at its own identity
+    ///     this one is (``DragAndDropSession/Target/token``); `nil` for a
+    ///     destination of its own.
     @MainActor
     package static func install(
         on buffer: inout FrameBuffer, context: RenderContext,
@@ -568,7 +571,8 @@ package enum DropZone {
         hoveringInfo: ((DropInfo) -> Void)? = nil,
         proposedOperation: (() -> DropOperation?)? = nil,
         focusIDs: [String] = [],
-        ownFocusID: String? = nil
+        ownFocusID: String? = nil,
+        token: Int? = nil
     ) {
         guard let dispatcher = context.environment.mouseEventDispatcher,
             let session = context.environment.dragAndDropSession
@@ -624,6 +628,7 @@ package enum DropZone {
             identity: context.identity
         )
         target.focusIDs = focusIDs
+        target.token = token
         if hovering != nil || hoveringInfo != nil {
             target.hovering = { [weak session] x, y in
                 hovering?(x, y)

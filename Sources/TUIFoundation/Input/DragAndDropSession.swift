@@ -146,6 +146,18 @@ package final class DragAndDropSession {
         /// for one that names none, whose stops drawn inside it are taken.
         package var focusIDs: [String] = []
 
+        /// Which of the destinations filed under one region id this one is, for
+        /// a container that files one per row at its own identity: a `Table`'s
+        /// rows, each its data row's index. `nil` for a destination of its own.
+        ///
+        /// Such a zone's id is its place among the rows drawn, so a scroll hands
+        /// it to another row while the pointer stays on the same line. A change
+        /// of destination is a change of id OR of token
+        /// (``DragAndDropSession/dragMoved()``): by the id alone the row that
+        /// scrolled away stayed targeted, and the one under the pointer never
+        /// was (hunt DND-1).
+        package var token: Int?
+
         /// The memberwise initializer, spelled out because the synthesized one
         /// is internal and TUILists makes these, for the lists, and
         /// TUITables, for the tables.
@@ -874,7 +886,7 @@ package final class DragAndDropSession {
         drag.cursorY = event.y
 
         let newTarget = resolveTarget(atX: event.x, y: event.y, payload: drag.payload)
-        if newTarget?.handlerID != drag.targetedID {
+        if newTarget?.handlerID != drag.targetedID || newTarget?.token != drag.targeted?.token {
             // The transition CLOSES on the stored target's own closure, not
             // an id lookup — after a re-render the old id maps to a
             // different (or no) registration.

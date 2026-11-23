@@ -398,15 +398,20 @@ enum _TableRowDragRegions {
                     for drop in drops where drop.accepts(payload) { drop.perform(DragAndDropSession.items(of: payload)) }
                     return true
                 },
+                // Cleared whatever row it names on leaving: the session tells
+                // the row it leaves before the one it enters, so nothing this
+                // drag set is lost, and a row whose index no longer matched
+                // (the rows scrolled under the drag) left a highlight on for
+                // good.
                 setTargeted: { targeted in
                     drawing.reportingChanges(to: target) {
-                        if targeted {
-                            handler.rowDropTarget = index
-                        } else if handler.rowDropTarget == index {
-                            handler.rowDropTarget = nil
-                        }
+                        handler.rowDropTarget = targeted ? index : nil
                     }
-                })
+                },
+                // Every row's zone is filed at the table's identity, so its id
+                // is its place among the rows drawn: the index says which row
+                // it is (hunt DND-1).
+                token: index)
             buffer.hitTestRegions.insert(
                 contentsOf: zone.hitTestRegions.map { $0.shifted(byX: columns.lowerBound, y: row.y) }, at: 0)
         }
