@@ -64,6 +64,12 @@ own (every instance prints as the type's name), two `Date`s in one second, or an
 `@State`, focus and kept subtree: a draft typed in one document's tab showed in the next. A tab is now known by its
 value as a `ForEach` row is by its id; a `String`, `Int` or `UUID` value keys as before.
 
+**Each text a `Canvas` draws keeps its own state, and is measured once.** Every text in a canvas shared one place,
+so under a dissolving content transition (`.contentTransition(.opacity)`) and an animation each label dissolved from
+the label drawn before it, and two labels with a strikethrough that changed retargeted each other's sweep. Each text
+now keeps its state at its place among the canvas's texts, as an image does, so reordering the draws moves it with
+the order. `draw(_:at:anchor:)` measured a text twice before drawing it; it measures it once.
+
 **A `TextRenderer` keeps the text's own translucent colours, and a focused link's breath.** Under `.textRenderer(_:)`,
 `Text("Ghost").foregroundStyle(.red.opacity(0.3))` was drawn full-strength red: the text writes a translucent colour
 opaque and states its alpha beside it, and the renderer's redrawing kept only the words. Each glyph now carries its

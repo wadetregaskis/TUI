@@ -31,6 +31,9 @@ final class CanvasViews {
     /// How many images have been asked for: each keeps its loading state at
     /// its own place among them.
     private var imageCount = 0
+    /// How many texts have been drawn: each keeps its state (a dissolve, a
+    /// strikethrough's sweep) at its own place among them, as an image does.
+    private var textCount = 0
 
     /// - Parameters:
     ///   - context: The view's render context.
@@ -100,13 +103,18 @@ final class CanvasViews {
     // MARK: Text
 
     /// `text`'s size in cells, offered `width` by `height`: `nil` is its own.
+    /// Measured at the place the next text drawn takes, which is where a
+    /// resolved text is measured and then drawn.
     func size(of text: Text, width: Int?, height: Int?) -> ViewSize {
-        measureChild(text, proposal: ProposedViewSize(width: width, height: height), context: textContext())
+        measureChild(text, proposal: ProposedViewSize(width: width, height: height), context: textContext(at: textCount + 1))
     }
 
-    /// `text` as the cells it draws in, in `shading` where it has one.
+    /// `text` as the cells it draws in, in `shading` where it has one: `width`
+    /// by `height`, and its own size along a dimension that is `nil`, measured
+    /// only then.
     func cells(of text: Text, shading: GraphicsContext.Shading?, width: Int?, height: Int?) -> FrameBuffer {
-        var drawingContext = textContext()
+        textCount += 1
+        var drawingContext = textContext(at: textCount)
         if let shading {
             switch shading.kind {
             case .color(let color): drawingContext.environment.foregroundStyle = .color(color)
@@ -114,12 +122,15 @@ final class CanvasViews {
             default: break
             }
         }
+        if let width, let height { return renderChild(text, width: width, height: height, context: drawingContext) }
         let size = measureChild(text, proposal: ProposedViewSize(width: width, height: height), context: drawingContext)
         return renderChild(text, width: width ?? size.width, height: height ?? size.height, context: drawingContext)
     }
 
-    /// The context text is measured and drawn in, a step of its own.
-    private func textContext() -> RenderContext {
-        context.withChildIdentity(erasedType: CanvasViews.self, key: "canvas-text")
+    /// The context the `index`th text drawn is measured and drawn in, a step
+    /// of its own. One for every text, they found each other's drawing as
+    /// their last (a content transition's dissolve between two labels).
+    private func textContext(at index: Int) -> RenderContext {
+        context.withChildIdentity(erasedType: CanvasViews.self, key: "canvas-text-\(index)")
     }
 }

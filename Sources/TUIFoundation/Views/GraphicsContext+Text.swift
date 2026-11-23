@@ -65,10 +65,8 @@ extension GraphicsContext {
     public func draw(_ text: ResolvedText, at point: CGPoint, anchor: UnitPoint = .center) {
         let shading = text.shading.map(resolve)
         let (views, words) = (surface.views, text.text)
-        let cells = MainActor.assumeIsolated {
-            let size = views.size(of: words, width: nil, height: nil)
-            return views.cells(of: words, shading: shading, width: size.width, height: size.height)
-        }
+        // Drawn at its own size, which drawing it measures: once.
+        let cells = MainActor.assumeIsolated { views.cells(of: words, shading: shading, width: nil, height: nil) }
         let size = CGSize(width: CGFloat(cells.width), height: CGFloat(cells.lines.count) * surface.unitsPerRow)
         stamp(cells, atCellOf: Self.rect(of: size, at: point, anchor: anchor).origin.applying(transform))
     }
