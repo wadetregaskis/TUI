@@ -78,7 +78,7 @@ struct _ChannelRow: View {
             focusID: "\(idBase)-pct", width: 7,
             format: { Self.percentString(binding.wrappedValue, upperBound: upper) },
             commit: { raw in
-                guard raw.contains(where: \.isNumber) else { return }
+                guard ColorPickerPanel.typedNumber(raw) != nil else { return }
                 binding.wrappedValue = ColorPickerPanel.channelValue(
                     parsingPercent: raw, upperBound: upper)
             })
@@ -91,7 +91,7 @@ struct _ChannelRow: View {
             focusID: "\(idBase)-int", width: 7,
             format: { Self.integerString(binding.wrappedValue, degrees: upper == 360) },
             commit: { raw in
-                guard raw.contains(where: \.isNumber) else { return }
+                guard ColorPickerPanel.typedNumber(raw) != nil else { return }
                 binding.wrappedValue = ColorPickerPanel.channelValue(parsing: raw, into: range)
             })
     }

@@ -152,6 +152,34 @@ struct ColorPickerPanelChannelTests {
         #expect(Panel.channelValue(parsingHex: "1FF") == 255)       // > 255 clamps
         #expect(Panel.channelValue(parsingHex: "") == 0)            // empty → 0
     }
+
+    /// `Character.isNumber` kept "٥٠" and "５０" (and "½", "Ⅷ"), and `Double`
+    /// parses ASCII alone, so the channel went to its maximum (CTRLS-11).
+    /// macOS's colour panel reads them by value: measured 2026-11-22 on its
+    /// RGB, HSB and CMYK fields, "٥٠" and "５０" are 50.
+    @Test("Digits of any script are read by value; other numerals are not digits")
+    func channelDigitsByValue() {
+        #expect(Panel.channelValue(parsing: "٥٠", into: 0...255) == 50)        // Arabic-Indic
+        #expect(Panel.channelValue(parsing: "५०", into: 0...255) == 50)        // Devanagari
+        #expect(Panel.channelValue(parsing: "５０", into: 0...255) == 50)      // full-width
+        #expect(Panel.channelValue(parsing: "1½", into: 0...255) == 1)         // ½ is no digit
+        #expect(Panel.channelValue(parsingPercent: "٥٠%", upperBound: 100) == 50)
+        #expect(Panel.channelValue(parsingHex: "１Ａ") == 26)                  // full-width hex
+    }
+
+    /// The filter dropped the point, so "12.5" read as 125 (100% in the
+    /// percentage field). macOS's colour panel takes a fraction in every channel
+    /// field — "12.5" in an RGB field is 12.5/255, in an HSB one 12.5%
+    /// (measured 2026-11-22) — and so does this.
+    @Test("A fraction is read as one, with a point or a comma")
+    func channelFractions() {
+        #expect(Panel.channelValue(parsing: "12.5", into: 0...255) == 12.5)
+        #expect(Panel.channelValue(parsing: "12,5", into: 0...255) == 12.5)
+        #expect(Panel.channelValue(parsing: "٣٫٥", into: 0...255) == 3.5)     // Arabic decimal separator
+        #expect(Panel.channelValue(parsing: ".5", into: 0...255) == 0.5)
+        #expect(Panel.channelValue(parsingPercent: "12.5%", upperBound: 100) == 12.5)
+        #expect(Panel.channelValue(parsingPercent: "50.0", upperBound: 255) == 127.5)
+    }
 }
 
 @MainActor

@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**The colour picker's channel fields read digits of any script, and fractions.** Typing "٥٠" or "５０" into a
+channel set it to its maximum, and "12.5" in a percentage field read as 125, so 100%. Digits are now read by value,
+in any script, and a point, a comma or the Arabic decimal separator starts a fraction, as macOS's colour panel takes
+one: "12.5" is 12.5.
+
 **The 256-colour grid's cursor stays on the swatch picked when the binding stores RGB.** A `ColorPicker` bound
 through a store that keeps red, green and blue (a hex string in `@AppStorage`, a model's `r`, `g`, `b`) handed a
 picked system colour back as RGB, and the grid moved its cursor to the nearest cube cell, so the arrows went on from

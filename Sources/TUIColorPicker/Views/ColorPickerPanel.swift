@@ -481,29 +481,67 @@ extension _ColorPickerBody: View {}
         ("label.background", .palette.background),
     ]
 
-    /// Parses a typed/pasted channel value: keeps the digits, clamps to `range`
-    /// (empty → the lower bound; out-of-range → the nearer bound). Pure; tested.
+    /// Parses a typed/pasted channel value: reads the number in it, clamps to
+    /// `range` (no digits → the lower bound; out of range → the nearer bound).
+    /// Pure; tested.
     static func channelValue(parsing text: String, into range: ClosedRange<Double>) -> Double {
-        let digits = text.filter(\.isNumber)
-        let parsed = digits.isEmpty ? range.lowerBound : (Double(digits) ?? range.upperBound)
+        let parsed = typedNumber(text) ?? range.lowerBound
         return max(range.lowerBound, min(range.upperBound, parsed))
     }
 
-    /// Parses a typed/pasted percentage into a channel value: keeps the digits,
-    /// clamps the percentage to 0…100, then scales to `upperBound`. Pure; tested.
+    /// Parses a typed/pasted percentage into a channel value: reads the number
+    /// in it, clamps the percentage to 0…100, then scales to `upperBound`. Pure;
+    /// tested.
     static func channelValue(parsingPercent text: String, upperBound: Double) -> Double {
-        let digits = text.filter(\.isNumber)
-        let percent = digits.isEmpty ? 0 : (Double(digits) ?? 100)
+        let percent = typedNumber(text) ?? 0
         return max(0, min(100, percent)) / 100 * upperBound
     }
 
+    /// The number typed in `text`, or `nil` where it holds no digit: its digits
+    /// read by value, in any script, and a fraction after the first decimal
+    /// separator; anything else — a `%`, a `°`, a space, a stray letter — passes
+    /// over.
+    ///
+    /// By value because "٥٠" and "５０" are fifty: the filter this replaces kept
+    /// every `isNumber` character ("½" and "Ⅷ" too) and handed them to `Double`,
+    /// which reads ASCII alone, and the field went to its maximum.
+    ///
+    /// Fractions are taken, as macOS's colour panel takes them in every channel
+    /// field (measured 2026-11-22: "12.5" is 12.5/255 in an RGB field and 12.5%
+    /// in an HSB one); the filter dropped the point, and "12.5" read as 125.
+    /// Any of `decimalSeparators` starts the fraction, whatever the locale:
+    /// no channel reaches a thousand, so none can be a grouping separator.
+    static func typedNumber(_ text: String) -> Double? {
+        var digits = 0.0
+        var fractionDigits: Int?
+        var sawDigit = false
+        for character in text {
+            if let digit = character.positionalDigitValue {
+                sawDigit = true
+                digits = digits * 10 + Double(digit)
+                fractionDigits = fractionDigits.map { $0 + 1 }
+            } else if fractionDigits == nil, decimalSeparators.contains(character) {
+                fractionDigits = 0
+            }
+        }
+        guard sawDigit else { return nil }
+        // One division at the end, so "12.5" is 125 / 10 — exactly 12.5 —
+        // rather than a sum of tenths.
+        return digits / pow(10, Double(fractionDigits ?? 0))
+    }
+
+    /// The characters that start a typed number's fraction: the full stop, the
+    /// comma, and the Arabic decimal separator, U+066B.
+    static let decimalSeparators: Set<Character> = [".", ",", "\u{066B}"]
+
     /// Parses a typed/pasted hex value (optionally `0x`/`#`-prefixed) into a
-    /// 0…255 channel value: keeps the hex digits, clamps. Pure; tested.
+    /// 0…255 channel value: reads the hex digits by value (full-width ones
+    /// too, as `Character.hexDigitValue` does), clamps. Pure; tested.
     static func channelValue(parsingHex text: String) -> Double {
         var lowered = text.lowercased()
         if lowered.hasPrefix("0x") { lowered.removeFirst(2) }
-        let hex = lowered.filter(\.isHexDigit)
-        let value = hex.isEmpty ? 0 : (Int(hex, radix: 16) ?? 255)
+        // Capped as it accumulates, so a long paste cannot overflow.
+        let value = lowered.compactMap(\.hexDigitValue).reduce(0) { min($0 * 16 + $1, 256) }
         return Double(max(0, min(255, value)))
     }
 
