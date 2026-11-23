@@ -103,7 +103,11 @@ extension Character {
     /// (width 2). Mirrors the single-scalar zero-width ranges above.
     static func isWidthNeutralExtraScalar(_ sv: UInt32) -> Bool {
         switch sv {
-        case 0x200B, 0x200C, 0x200D, 0xFEFF, 0x00AD:  // ZWSP/ZWNJ/ZWJ/BOM, soft hyphen
+        // Not the soft hyphen, U+00AD, though it is Default_Ignorable: every
+        // host measured advances it one cell (Ghostty 1.4.0, Apple Terminal
+        // 455.1, and wcwidth's table), so it is one cell here too. See the
+        // survey, "Right-to-left text", on the soft hyphen.
+        case 0x200B, 0x200C, 0x200D, 0xFEFF:  // ZWSP/ZWNJ/ZWJ/BOM
             return true
         // The bidi controls: marks (LRM/RLM/ALM) and the explicit directional
         // embeddings, overrides and isolates. Every one is

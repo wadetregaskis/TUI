@@ -15,6 +15,10 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 
 ## Unreleased
 
+**A soft hyphen in a `Text` is one cell wide.** U+00AD was measured as taking no cell, but terminals give it one
+(Ghostty and Apple's Terminal, measured), so a line holding one drew a cell wider than it was laid out, and pushed a
+border or the next column a cell to the right. It is now measured at the one cell it takes.
+
 **On xterm.js, `\.terminalCapabilities` says notifications, progress bars and clipboard writes are undetermined.**
 They read as unsupported, a settled answer, though nothing was measured and the page can add any of them, which TUI
 cannot see. An app that draws its own progress or posts its own notice where these are not supported does so as

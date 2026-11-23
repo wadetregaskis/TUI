@@ -9083,6 +9083,18 @@ discarded. Expect the bidi controls' split: Apple Terminal and xterm.js
 advance LRM and RLM a cell each (`Apple-Terminal-advance.json`), so a row
 carrying one of these there likely draws a cell longer than it measures.
 
+**The soft hyphen (U+00AD) is the exception, and is one cell.** It is
+`Default_Ignorable_Code_Point` too, and TUI counted it zero-width with the
+joiners until 2026-11-23. Measured with `advance_probe.py`'s `zerowidth_`
+rows on 2026-11-23 (H-48; records `ghostty-1.4.0-zerowidth.json` and
+`apple-terminal-455.1-zerowidth.json`, each with its alternate-screen twin):
+Ghostty 1.4.0 and Apple Terminal 455.1 both advance it **1**, on both
+screens, as wcwidth's table does. So a `Text` holding one drew a cell wider
+than it measured on both. It is a grapheme of its own (Grapheme_Cluster_Break
+`Control`), so `Unicode.Scalar.loneTerminalWidth` answers for it, and is now 1
+(`SoftHyphenWidthTests`). Not measured: iTerm2, Warp, xterm.js, tmux, Windows
+Terminal.
+
 ### RTL characters as image PIXELS — measured 2026-09-01, still OPEN
 
 **Apple Terminal mirrors a picture made of right-to-left glyphs.** A

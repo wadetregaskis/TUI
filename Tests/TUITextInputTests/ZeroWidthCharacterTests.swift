@@ -39,7 +39,6 @@ struct ZeroWidthCharacterTests {
         arguments: [
             "\u{200B}",  // ZWSP
             "\u{FEFF}",  // BOM
-            "\u{00AD}",  // soft hyphen
             "\u{200E}",  // LRM
             "\u{202E}",  // RLO
             "\u{2060}",  // word joiner
