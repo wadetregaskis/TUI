@@ -5,7 +5,9 @@
 //  License: MIT
 
 /// The one resampler a picture's pixels are resized by: a file's, a URL's, a
-/// decoded image's and an animation's frames (`RGBAImage.resampled(to:_:)`).
+/// decoded image's and an animation's frames (`RGBAImage.resampled(to:_:)`),
+/// and the small copies the terminal image store keeps of what it sent, to
+/// derive dimmed and frosted copies from (`DerivedImages`).
 ///
 /// ## Shrinking: an area average, in one pass
 ///

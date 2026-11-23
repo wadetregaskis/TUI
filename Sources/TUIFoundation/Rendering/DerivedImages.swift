@@ -405,41 +405,21 @@ struct DerivedImages {
 
     // MARK: - Pixels
 
-    /// `pixels` box-filtered to `size`, as RGBA.
+    /// `pixels` resampled to `size`, as RGBA, by the resampler every picture is
+    /// (``PixelResampler``): each pixel the average of every pixel it covers,
+    /// weighted by how much of each it covers and by its alpha, so a
+    /// transparent pixel lends no colour; where there are fewer pixels than
+    /// asked for, the one it falls in. Transparent black for a size or a
+    /// picture with nothing in it.
     static func downsampled(
         _ pixels: (bytes: [UInt8], format: KittyGraphics.PixelFormat, width: Int, height: Int),
         to size: (width: Int, height: Int)
     ) -> [UInt8] {
-        let stride = pixels.format.stride
-        var out = [UInt8](repeating: 0, count: size.width * size.height * 4)
-        guard pixels.width > 0, pixels.height > 0, size.width > 0, size.height > 0,
-            pixels.bytes.count >= pixels.width * pixels.height * stride
-        else { return out }
-        for y in 0..<size.height {
-            let top = y * pixels.height / size.height
-            let bottom = max(top + 1, (y + 1) * pixels.height / size.height)
-            for x in 0..<size.width {
-                let left = x * pixels.width / size.width
-                let right = max(left + 1, (x + 1) * pixels.width / size.width)
-                var sums = (0, 0, 0, 0)
-                for sy in top..<bottom {
-                    for sx in left..<right {
-                        let at = (sy * pixels.width + sx) * stride
-                        sums.0 += Int(pixels.bytes[at])
-                        sums.1 += Int(pixels.bytes[at + 1])
-                        sums.2 += Int(pixels.bytes[at + 2])
-                        sums.3 += stride == 4 ? Int(pixels.bytes[at + 3]) : 255
-                    }
-                }
-                let count = (bottom - top) * (right - left)
-                let at = (y * size.width + x) * 4
-                out[at] = UInt8(sums.0 / count)
-                out[at + 1] = UInt8(sums.1 / count)
-                out[at + 2] = UInt8(sums.2 / count)
-                out[at + 3] = UInt8(sums.3 / count)
-            }
-        }
-        return out
+        let count = max(0, size.width) * max(0, size.height) * 4
+        let resampled = PixelResampler.resampled(
+            pixels.bytes, bytesPerPixel: pixels.format.stride, width: pixels.width, height: pixels.height,
+            to: size.width, size.height, enlargement: .nearest)
+        return resampled.count == count ? resampled : [UInt8](repeating: 0, count: count)
     }
 
     /// `pixels` (RGBA, `width` × `height`, `pixelsPerCell` a cell) changed by
@@ -528,9 +508,8 @@ struct DerivedImages {
     /// for that cell — or `nil` for an unknown image or a cell outside it.
     ///
     /// Sampled from the finest pixels kept: a picture's own where they were
-    /// kept, a copy's as it was made, else the small copy; each output pixel
-    /// the mean of the pixels under it, as ``downsampled(_:to:)`` takes them,
-    /// or the one it falls in where there are fewer pixels than asked for.
+    /// kept, a copy's as it was made, else the small copy; this cell's part of
+    /// the whole picture resampled as ``downsampled(_:to:)`` resamples it.
     func cellPixels(
         of id: KittyGraphics.ImageID, column: Int, row: Int, across: Int = pixelsAcross, down: Int = pixelsDown
     ) -> [UInt8]? {
@@ -552,31 +531,12 @@ struct DerivedImages {
         else { return nil }
         // The whole image's pixel grid at `across` × `down` a cell; this cell's
         // part of it.
-        let gridWidth = source.columns * across
-        let gridHeight = source.rows * down
-        var out: [UInt8] = []
-        out.reserveCapacity(across * down * 4)
-        for y in (row * down)..<((row + 1) * down) {
-            let top = y * image.height / gridHeight
-            let bottom = max(top + 1, (y + 1) * image.height / gridHeight)
-            for x in (column * across)..<((column + 1) * across) {
-                let left = x * image.width / gridWidth
-                let right = max(left + 1, (x + 1) * image.width / gridWidth)
-                var sums = (0, 0, 0, 0)
-                for sy in top..<bottom {
-                    for sx in left..<right {
-                        let at = (sy * image.width + sx) * 4
-                        sums.0 += Int(image.bytes[at])
-                        sums.1 += Int(image.bytes[at + 1])
-                        sums.2 += Int(image.bytes[at + 2])
-                        sums.3 += Int(image.bytes[at + 3])
-                    }
-                }
-                let count = (bottom - top) * (right - left)
-                out += [UInt8(sums.0 / count), UInt8(sums.1 / count), UInt8(sums.2 / count), UInt8(sums.3 / count)]
-            }
-        }
-        return out
+        let cell = PixelResampler.resampled(
+            image.bytes, bytesPerPixel: 4, width: image.width, height: image.height,
+            to: source.columns * across, source.rows * down,
+            columns: (column * across)..<((column + 1) * across), rows: (row * down)..<((row + 1) * down),
+            enlargement: .nearest)
+        return cell.isEmpty ? nil : cell
     }
 
     /// One pass of a box blur `radius` pixels across or down, the edges held:

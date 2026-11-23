@@ -1471,7 +1471,9 @@ from, and each copy costs that much to send.
 C is what TUI does.
 
 - **The store.** `TerminalImageStore` keeps a small copy of each picture it
-  transmits (`DerivedImages`). It makes a copy for a transform on request:
+  transmits (`DerivedImages`), shrunk by the resampler every picture is
+  (`PixelResampler`, an area average weighted by alpha, since 2026-11-23:
+  O-36 (a)), as is each cell's backdrop read from it. It makes a copy for a transform on request:
   blurred over about a cell where a material frosts, then mixed toward a colour
   by an amount in 64ths. Each copy gets an id of its own and is placed in the
   picture's box. It is kept, at most 8 to a picture, until the picture goes,
