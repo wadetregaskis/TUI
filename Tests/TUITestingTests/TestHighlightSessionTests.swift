@@ -51,10 +51,13 @@ struct TestHighlightSessionTests {
         #expect(test.tokens(ofLine: 1).map { Array($0.map(\.utf8Offset)) } == [0, 3])
         #expect(test.tokens(ofLine: 1).map { Array($0.map(\.token)) } == [.keyword, .plain])
         #expect(test.publications == [.init(kind: .tokens(lines: 0..<3), version: 0, outcome: .kept(0..<3))])
-        // A key typed on the first line: its tokens carried until the highlighter answers.
+        // A key typed on the first line, and the highlighter's answer. Not read
+        // between the two: the highlighter runs beside the test, and may have
+        // answered before the key's `replace` returns (CI's macOS 27 lane saw
+        // it, run 113). `carriedUntilPublished` plays the highlighter to see
+        // the line provisional in between.
         test.replace(4..<4, with: "x")
         #expect(test.text == "funcx body\nlet value\nend")
-        #expect(test.isProvisional(line: 0))
         await test.step()
         #expect(!test.isProvisional(line: 0))
         #expect(test.publications.last == .init(kind: .tokens(lines: 0..<1), version: 1, outcome: .kept(0..<1)))
@@ -82,6 +85,24 @@ struct TestHighlightSessionTests {
         test.replace(0..<0, with: "!")
         #expect(test.marks == [TextEditorHighlightMark(3..<4, token: .plain)])
         #expect(test.publications.last == .init(kind: .marks(count: 1), version: 1, outcome: .kept(0..<2)))
+    }
+
+    @Test("A line a key edits keeps its tokens, provisional, until the highlighter publishes it again")
+    func carriedUntilPublished() async throws {
+        // The test plays the highlighter, so nothing answers the key before it
+        // is read (`runAndStep`'s highlighter, on its own task, may).
+        let test = TestHighlightSession<Token>(text: "func body\nend", visibleLines: 0..<2)
+        let first = try #require(await test.session.nextUpdate())
+        let tokens = [0, 1].map { FirstWord.tokens(of: first.text.line($0)) }
+        #expect(test.session.publish(tokens, forLines: 0..<2, of: first.text.version) == .kept(0..<2))
+        #expect(!test.isProvisional(line: 0))
+        test.replace(4..<4, with: "x")
+        #expect(test.isProvisional(line: 0))
+        #expect(test.tokens(ofLine: 0) != nil, "carried")
+        #expect(!test.isProvisional(line: 1), "a line the key left")
+        let next = try #require(await test.session.nextUpdate())
+        test.session.publish(FirstWord.tokens(of: next.text.line(0)), forLine: 0, of: next.text.version)
+        #expect(!test.isProvisional(line: 0))
     }
 
     @Test("A change that reaches the text's end ends mid-line, its end point found from the text as documented")

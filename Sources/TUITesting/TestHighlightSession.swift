@@ -99,6 +99,12 @@ public final class TestHighlightSession<Token: Hashable & Sendable> {
 
     /// Runs `highlighter` on the session, off the main actor, as an editor
     /// runs it, until ``close()``.
+    ///
+    /// It runs beside the test, so between an edit and the next ``step()``
+    /// it may or may not have answered the edit yet: read what it published
+    /// after a step. A test that needs the state in between (a line
+    /// ``isProvisional(line:)`` until published again) plays the highlighter
+    /// itself, through ``session``.
     public func run<Highlighter: TextEditorHighlighter>(_ highlighter: Highlighter)
     where Highlighter.Token == Token {
         task?.cancel()
