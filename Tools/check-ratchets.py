@@ -74,7 +74,7 @@ RATCHETS = [
             r".*?(?:\.rounded\(|\bDouble\((?!Int)|\bCGFloat\(|\bFloat\(|\.squareRoot\(\)|\bpow\()"
         ),
         "paths": ["Sources"],
-        "limit": 183,
+        "limit": 180,
         "instead": "convert with Int(clamping:), Int64(clamping:), Int(cells:) or AnimationClock.deadline",
     },
 ]
