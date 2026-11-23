@@ -28,6 +28,16 @@ made, compared and measured for each: wrapping a whole document again, as a clic
 fifth of the time it did (102 to 24 ms for Stress's 3.2 MB `bigtext-find`), and a key in Stress's `bigtext` costs 18%
 less. A vertical `TextField` lays its text out the same way. Nothing an app sees changes.
 
+**A large `TextEditor` holds a fifth of the memory it did.** Its lines were kept as arrays of `Character`, 16 bytes a
+character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224 MB of
+heap once its editor had drawn, and takes about 44 MB (665 to 129 bytes a line; the lines' own share went from 518 to
+79, and a line that fits its row keeps no wrapping data but its length). Opening one takes 92% less time, as its lines
+are cut from the text's bytes and wrapped from them, and laying out a text an app replaces whole two thirds less. A line
+of ASCII is wrapped and drawn from its bytes, without a `Character` made, compared and measured for each: wrapping a
+whole document again, as a click into a large editor does, takes a thirtieth of the time it did (102 to 4 ms for
+Stress's 3.2 MB `bigtext-find`), and a key in Stress's `bigtext` costs 18% less. A vertical `TextField` lays its text
+out the same way. Nothing an app sees changes.
+
 **SwiftUI's endless list runs in an app.** `ScrollView { LazyVStack { ForEach(0..<Int.max, id: \.self) { … } } }`
 trapped on an app's first frame, and a lazy stack of ten million rows built ten million on it: the walk the first
 frame makes of the page to learn its bars drew the stack's top screenful from every one of its rows. Past 256 rows,

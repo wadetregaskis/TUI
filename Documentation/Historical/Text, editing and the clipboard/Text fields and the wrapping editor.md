@@ -46,7 +46,7 @@ B65's several ranges, after A42's first stage; A42 itself.
 
 - **A key in a large `TextEditor` costs its lines, not the document** (EDITOR-SPLICE, 2026-11-15, below), and its
   lines are held as UTF-8, not as arrays of `Character` (EDMEM-1, 2026-11-22, below), and an ASCII line is wrapped and
-  drawn from its bytes (EDMEM-2, below).
+  drawn from its bytes, a one-row line's wrapping keeping no arrays (EDMEM-2, below).
 - **Every `NSTextContentType` is spelled**, free-text types filter nothing, and a `TextEditor` filters as a field does (B-PARITYMISC-2, below).
 
 ## The record
@@ -822,9 +822,9 @@ bytes (`asciiBytes`). At b1792a207, 16 reps: `bigtext-find` +2.1% (+0.6% to
 **Left:** those two small costs, both in reading a line's characters one at a
 time (the 18 ms of the click is the whole document wrapped through the byte
 arrays, each line's bytes copied into one); and the wrapping itself, now most
-of what a large editor holds. The first is EDMEM-2's (below).
+of what a large editor holds. Both are EDMEM-2's (below).
 
-### EDMEM-2. An ASCII line is wrapped and drawn from its bytes (2026-11-22)
+### EDMEM-2. An ASCII line is wrapped and drawn from its bytes, and a one-row line keeps no arrays (2026-11-22)
 
 *`SoftWrapLayout`, `TextCharacters`, `TabLayout`, `_TextEditorCore.styledRow`*
 
@@ -868,3 +868,75 @@ of spaces, tabs, lone CRs, controls and long words.
 -15.3%, `bigtext-highlighted` -13.9%, `bigtext-find-query` -0.3%. That puts
 the two scenarios EDMEM-1 left slower well under 0c27c1151's times as well,
 since they were 2.1% and 1.4% over them.
+
+**A one-row line keeps no arrays.** After EDMEM-1 most of what a large
+editor's first frame held was its wrapping: a `SoftWrapLayout` a line, 32
+bytes, with an array of its rows and an array of its characters' widths, 184
+of the 282 bytes a line. Most lines of most documents fit their row and are of
+one-cell characters, and for those both arrays say nothing the character count
+does not: one row, `0..<count`, every width 1. Such a layout now keeps both
+arrays empty, which allocates nothing, and its count in 32 bits beside its
+width, in the word the width had alone, so a layout is still 32 bytes
+(`SoftWrapOneRowTests` checks the size). Every question asked of it — its
+rows, a character's width, the cells before an offset, the offset at a column
+— is answered in O(1). Every layout that is one row of one-cell characters is
+kept so, whichever walk made it, so equal layouts stay `==`; an ASCII line
+with no tab and no newline that fits its row is not walked at all. An enum of
+the two forms was tried first: Darwin's arrays and dictionaries leave its tag
+no spare bits, so it took a byte more and a layout 40 bytes. A width of more
+than two billion cells is kept as that many, which no line reaches.
+
+`TextEditorMemoryTests` (`TUI_EDITOR_MEMORY=1,10`, a debug build), per line,
+before and after this change:
+
+| Held, per line | 1 MB before | after | 10 MB before | after |
+|---|---|---|---|---|
+| `WrappedRows` at 79 cells | 168.3 B | 40.4 B | 183.6 B | 55.6 B |
+| `TextEditor`, first frame | 252.4 B | 134.0 B | 281.8 B | 129.4 B |
+| `TextEditor` highlighted, first publish | 278.5 B | 76.5 B | 292.2 B | 165.4 B |
+
+The 10 MB editor's first frame went from about 95 MB of heap to about 44 MB.
+One run each, of a heap that frees and reuses as it goes, so the figures move
+by tens of bytes from run to run, the 1 MB ones most.
+
+**A/B** (`ab_bench.py`, cpu-per-frame; the `bigtext` sessions 16 reps, the
+rest 10) of the two changes together, against 0c27c1151, against EDMEM-1's
+tip f3cbe1a00, and against the first change alone (95% intervals in brackets;
+"none" where the interval holds no change):
+
+| Scenario | against 0c27c1151 | against f3cbe1a00 | against the first change |
+|---|---|---|---|
+| `session/bigtext` | -18.5% [-18.9%, -18.1%] | -20.3% [-21.2%, -19.1%] | -0.4%, none |
+| `session/bigtext-open` | -91.7% [-91.7%, -91.6%] | -85.8% [-86.0%, -85.5%] | -55.1% [-55.5%, -54.6%] |
+| `session/bigtext-rich` | -14.6% [-14.8%, -14.3%] | -14.3% [-15.2%, -12.1%] | -1.6%, none |
+| `session/bigtext-highlighted` | -13.2% [-13.6%, -12.9%] | -13.0% [-17.6%, -6.7%] | -0.3% [-0.8%, -0.0%] |
+| `session/bigtext-find` | -11.9% [-12.4%, -11.5%] | -12.9% [-15.3%, -9.6%] | -2.5% [-6.4%, -1.9%] |
+| `session/bigtext-find-query` | -0.4%, none | -0.7% [-4.3%, -0.2%] | -0.1%, none |
+| `session/bigtext-replace-all` | -33.3% [-33.8%, -32.6%] | -20.7% [-21.2%, -19.9%] | -4.4% [-5.6%, -3.0%] |
+| `session/case:editor-typing` | -24.4% [-24.8%, -24.2%] | -25.5% [-25.9%, -25.1%] | -1.2%, none |
+| `session/case:editor-mid-typing` | -23.0% [-23.9%, -22.2%] | -20.5% [-21.7%, -20.0%] | +0.1%, none |
+| `session/case:editor-sheet-typing` | -11.6% [-15.0%, -10.5%] | -12.6% [-14.5%, -11.8%] | -0.8%, none |
+| `session/case:editor-rich-typing` | -13.4% [-17.8%, -11.1%] | -15.1% [-16.9%, -14.0%] | -0.1%, none |
+| `session/case:editor-tiny` | -26.8% [-28.2%, -25.4%] | -13.8% [-15.0%, -9.3%] | -0.1%, none |
+| `app-shapes/text-editor` | +0.6%, none | +0.6%, none | +1.7%, none |
+| `app-shapes/text-editor-typing` | -66.2% [-66.6%, -66.0%] | -51.5% [-52.4%, -50.4%] | +0.7%, none |
+| `app-shapes/text-editor-unwrapped` | -1.7%, none | +1.5%, none | +0.6%, none |
+| `app-shapes/text-editor-beside` | +0.0%, none | -1.1%, none | +0.0%, none |
+| `app-shapes/titled-editor` | -27.8% [-29.3%, -26.8%] | -32.7% [-33.7%, -32.3%] | -0.3%, none |
+| `app-shapes/settings-form` | +1.3%, none | -1.3%, none | +0.1%, none |
+| `controls/fields` | -0.0%, none | -3.0%, none | +0.1%, none |
+| `session/chat` | -0.2%, none | -1.5%, none | +0.1%, none |
+| `session/notes` | +0.5%, none | +1.8%, none | -0.1%, none |
+| `kitchensink` | -0.3%, none | +0.8%, none | +0.0%, none |
+
+The one-row form costs nothing anywhere and is faster wherever a document is
+wrapped whole: `bigtext-open` by more than half again, and the `focus` step of
+`bigtext-find` from 23.6 ms to 3.6 ms (0c27c1151: 102.3 ms). Peak RSS fell in
+every large-text session against the base (`bigtext` 166.0 to 95.5 MB,
+`bigtext-open` 243.6 to 79.5 MB, `bigtext-find` 160.2 to 94.7 MB) and against
+the first change (`bigtext-find` 133.9 to 111.8 MB, `bigtext-open` 110.7 to
+88.3 MB). The run, its script and the binaries' per-step tables are in the
+session notes' `perf/results/edmem2`.
+
+**Left:** a line that wraps, or holds a tab or a wide character, keeps both
+arrays; `WrappedRows` keeps a row start an `Int` a line beside its layouts.

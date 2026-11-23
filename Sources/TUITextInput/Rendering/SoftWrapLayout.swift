@@ -69,23 +69,43 @@ struct SoftWrapLayout: Equatable {
     }
 
     /// The rows, top to bottom. Never empty: an empty text is one empty row.
-    var rows: Rows { Rows(laidOut: laidOutRows) }
+    var rows: Rows { Rows(laidOut: laidOutRows, oneRowCount: Int(oneRowCount)) }
 
     /// How many rows: `rows.count`, read without the rows.
-    var rowCount: Int { laidOutRows.count }
+    var rowCount: Int { laidOutRows.isEmpty ? 1 : laidOutRows.count }
 
-    /// A layout's rows, read as an array of them is.
+    /// A layout's rows, read as an array of them is: the array the walk made,
+    /// or a one-row layout's row, made when it is read.
     struct Rows: RandomAccessCollection {
         typealias Indices = Range<Int>
 
         fileprivate let laidOut: [Row]
+        fileprivate let oneRowCount: Int
 
         var startIndex: Int { 0 }
-        var endIndex: Int { laidOut.count }
-        subscript(position: Int) -> Row { laidOut[position] }
+        var endIndex: Int { laidOut.isEmpty ? 1 : laidOut.count }
+
+        subscript(position: Int) -> Row {
+            guard laidOut.isEmpty else { return laidOut[position] }
+            precondition(position == 0, "Row index out of range")
+            return Row(start: 0, end: oneRowCount, endsParagraph: true)
+        }
     }
 
-    /// The rows, as the walk made them.
+    // A one-row layout. Most of an editor's lines fit their row and are of
+    // characters one cell each, and for those there is nothing to keep but how
+    // many characters they are: kept as an array of one row and an array of
+    // ones, such a line was about 180 of the 280 bytes a line a large
+    // document's first frame held (EDMEM-1's measure). A one-row layout keeps
+    // its arrays empty, which allocates nothing, and its count in
+    // `oneRowCount`, beside the width in the word the width had to itself; every
+    // question asked of it is O(1). Every layout that is one row of one-cell
+    // characters is kept so, whichever walk made it, so two layouts of a line
+    // are `==`. Not an enum of the two forms: Darwin's arrays and dictionaries
+    // leave a tag no spare bits, so one was a byte more and a layout 40 bytes
+    // in place of 32 (`SoftWrapOneRowTests`).
+
+    /// The rows, as the walk made them; empty for a one-row layout.
     private let laidOutRows: [Row]
 
     /// Each character's width in cells, by offset, a newline's 0: a byte
@@ -93,27 +113,51 @@ struct SoftWrapLayout: Equatable {
     /// that far out — and 255 for one whose width is in ``wideCells``. An
     /// `Int` each was 8 bytes a character for every width an editor kept its
     /// document wrapped at, the most of what a large text cost (tuitree's M4
-    /// feedback, item 3). Read through ``cellWidth(at:)``.
+    /// feedback, item 3). Read through ``cellWidth(at:)``. Empty for a one-row
+    /// layout, whose every character is one cell.
     private let narrowWidths: [UInt8]
 
     /// The widths of 255 cells and more, by offset.
     private let wideCells: [Int: Int]
 
+    /// The width, in 32 bits beside `oneRowCount`: a width of more than
+    /// two billion cells is taken as that many, which no line reaches.
+    private let packedWidth: Int32
+
+    /// A one-row layout's characters, no more than its width; 0 for any other.
+    private let oneRowCount: Int32
+
+    /// Whether every character is one cell, on one row: a one-row layout,
+    /// whose columns are its offsets.
+    private var isOneRow: Bool { laidOutRows.isEmpty }
+
     /// The cells the character at `offset` takes; a newline's is 0.
     func cellWidth(at offset: Int) -> Int {
+        guard !isOneRow else {
+            precondition(offset >= 0 && offset < Int(oneRowCount), "Character offset out of range")
+            return 1
+        }
         let narrow = narrowWidths[offset]
         return narrow == .max ? wideCells[offset, default: Int(narrow)] : Int(narrow)
     }
 
     /// Each character's width in cells, by offset: for a test, which reads
     /// them all.
-    var cellWidths: [Int] { narrowWidths.indices.map(cellWidth(at:)) }
+    var cellWidths: [Int] { (0..<characterCount).map(cellWidth(at:)) }
 
     /// The cells a row may draw on. Text wraps at one fewer (the margin).
-    let width: Int
+    var width: Int { Int(packedWidth) }
 
     /// The number of characters laid out — the largest caret offset.
-    var characterCount: Int { narrowWidths.count }
+    var characterCount: Int { isOneRow ? Int(oneRowCount) : narrowWidths.count }
+
+    /// A layout of `count` characters of one cell each, on one row, `width`
+    /// cells wide: `count` no more than the width, which a row that fits is.
+    private init(oneRow count: Int, width: Int) {
+        (laidOutRows, narrowWidths, wideCells) = ([], [], [:])
+        packedWidth = Int32(clamping: width)
+        oneRowCount = Int32(clamping: count)
+    }
 
     /// Lays out `characters` in rows `width` cells wide.
     ///
@@ -135,9 +179,15 @@ struct SoftWrapLayout: Equatable {
     /// each character two or three times, and made into a `Character`,
     /// compared with a space, a tab and the newlines and measured, the
     /// characters were 90% of the time a document took to wrap (EDMEM-2).
+    /// One that fits its row and holds no tab and no newline is not walked:
+    /// each of its characters is one cell, and it is one row.
     init(_ characters: TextCharacters, width: Int, tabWidth: TabWidth) {
         let laid = unsafe characters.withASCIIBytes { bytes in
-            unsafe Self(laying: bytes, width: width, measure: ASCIITabs(tabWidth: tabWidth))
+            let width = Self.packable(width)
+            if bytes.count < width, unsafe !bytes.contains(where: { (0x09...0x0D).contains($0) }) {
+                return Self(oneRow: bytes.count, width: width)
+            }
+            return unsafe Self(laying: bytes, width: width, measure: ASCIITabs(tabWidth: tabWidth))
         }
         if let laid {
             self = laid
@@ -186,7 +236,7 @@ struct SoftWrapLayout: Equatable {
     private init<Text: RandomAccessCollection, Measure: SoftWrapMeasure>(
         laying text: Text, width: Int, measure: Measure
     ) where Text.Index == Int, Text.Element == Measure.Unit {
-        let width = max(1, width)
+        let width = Self.packable(width)
         let budget = max(1, width - 1)
         var widths = WidthWriter(count: text.count)
         var rows: [Row] = []
@@ -196,8 +246,23 @@ struct SoftWrapLayout: Equatable {
             start = offset + 1
         }
         Self.wrap(text, from: start, to: text.count, budget: budget, measure: measure, widths: &widths, into: &rows)
-        (laidOutRows, self.width) = (rows, width)
-        (narrowWidths, wideCells) = (widths.narrow, widths.wide)
+        if rows.count == 1, widths.wide.isEmpty, widths.narrow.allSatisfy({ $0 == 1 }) {
+            self.init(oneRow: text.count, width: width)
+        } else {
+            self.init(rows: rows, widths: widths, width: width)
+        }
+    }
+
+    /// A layout keeping `rows` and `widths`, `width` cells wide.
+    private init(rows: [Row], widths: WidthWriter, width: Int) {
+        (laidOutRows, narrowWidths, wideCells) = (rows, widths.narrow, widths.wide)
+        (packedWidth, oneRowCount) = (Int32(clamping: width), 0)
+    }
+
+    /// `width` as a layout keeps it: at least one cell, and at most what 32
+    /// bits hold (`packedWidth`).
+    private static func packable(_ width: Int) -> Int {
+        min(max(1, width), Int(Int32.max))
     }
 
     /// Lays one paragraph, `start..<end`, into rows of `budget` cells, the last
@@ -278,6 +343,8 @@ struct SoftWrapLayout: Equatable {
     func cells(inRow row: Int, before offset: Int) -> Int {
         let row = rows[row]
         let upper = min(max(row.start, offset), row.end)
+        // A one-row layout's cells are its characters.
+        if isOneRow { return upper - row.start }
         return (row.start..<upper).reduce(0) { $0 + cellWidth(at: $1) }
     }
 
@@ -336,6 +403,12 @@ struct SoftWrapLayout: Equatable {
     /// The offset before the character whose cells hold `column`, held to
     /// `first...last`, or `last` past the row's text.
     private func offset(inRow row: Int, atColumn column: Int, first: Int, last: Int) -> Int {
+        if isOneRow {
+            // A cell a character: the one at the column, if the row reaches it.
+            let span = rows[row]
+            let offset = span.start + max(0, column)
+            return offset < span.end ? max(first, min(offset, last)) : last
+        }
         var cellX = 0
         for offset in rows[row].start..<rows[row].end {
             let next = cellX + cellWidth(at: offset)

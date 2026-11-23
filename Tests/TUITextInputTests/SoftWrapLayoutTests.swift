@@ -164,3 +164,63 @@ struct SoftWrapLayoutTests {
         #expect(layout.cellWidths[8] == 4)
     }
 }
+
+@Suite("Soft-wrap layout: a one-row line of one-cell characters")
+struct SoftWrapOneRowTests {
+    /// The caret offset on `row` at `column`, found from the layout's widths
+    /// cell by cell, as a layout keeping its widths finds it.
+    private static func walkedOffset(
+        _ layout: SoftWrapLayout, row: Int, column: Int, affinity: TextSelectionAffinity
+    ) -> Int {
+        let (first, last) = (
+            layout.firstCaretOffset(inRow: row, affinity: affinity),
+            layout.lastCaretOffset(inRow: row, affinity: affinity)
+        )
+        var cellX = 0
+        for offset in layout.rows[row].start..<layout.rows[row].end {
+            let next = cellX + layout.cellWidths[offset]
+            if column < next { return max(first, min(offset, last)) }
+            cellX = next
+        }
+        return last
+    }
+
+    @Test("A line that fits and is one cell a character answers as one that keeps its widths")
+    func answersAsTheWalk() {
+        let lines = ["", "a", "hello world", "{\"id\": 1, \"v\": \"abc\"},", "café 漢", "a\tb", "aaaa bbbb cccc"]
+        for line in lines {
+            for width in [1, 2, 5, 9, 30] {
+                let layout = SoftWrapLayout(TextCharacters(line), width: width, tabWidth: .periodic(4))
+                for row in 0..<layout.rowCount {
+                    let span = layout.rows[row]
+                    for offset in (span.start - 1)...(span.end + 1) {
+                        let walked = (span.start..<min(max(span.start, offset), span.end))
+                            .reduce(0) { $0 + layout.cellWidths[$1] }
+                        #expect(layout.cells(inRow: row, before: offset) == walked, "\(line) at \(width)")
+                    }
+                    for column in -1...(width + 1) {
+                        for affinity in [TextSelectionAffinity.upstream, .downstream] {
+                            #expect(
+                                layout.offset(inRow: row, atColumn: column, affinity: affinity)
+                                    == Self.walkedOffset(layout, row: row, column: column, affinity: affinity),
+                                "\(line) at \(width), column \(column)")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    @Test("A one-row line holds no arrays, and a layout is no bigger for it")
+    func keepsNothing() {
+        let layout = SoftWrapLayout(TextCharacters("{\"id\": 1, \"v\": \"abc\"},"), width: 79, tabWidth: .periodic(4))
+        #expect(Array(layout.rows) == [.init(start: 0, end: 22, endsParagraph: true)])
+        #expect(layout.cellWidths == Array(repeating: 1, count: 22))
+        // Its count shares the width's word: four words, as before.
+        #expect(MemoryLayout<SoftWrapLayout>.size == 32)
+        // A line walked to one row of one-cell characters is kept as one that
+        // was never walked, so the two are equal however each was made.
+        let walked = SoftWrapLayout(walking: Array("cafe"), width: 10) { $1 + max(1, $0.terminalWidth) }
+        #expect(walked == SoftWrapLayout(TextCharacters("cafe"), width: 10, tabWidth: .periodic(4)))
+    }
+}
