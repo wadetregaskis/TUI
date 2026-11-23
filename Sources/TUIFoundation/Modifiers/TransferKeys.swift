@@ -20,7 +20,9 @@ import TUIView
 /// control twice; content that registers none gets one stop of the
 /// modifier's, which publishes `\.isFocused` to it as `.focusable()` does, the
 /// content drawing the focus as it chooses. Nothing in a list row, which the
-/// list reaches; nothing while disabled.
+/// list reaches. While disabled the stop is registered and cannot be focused,
+/// as a disabled control's is, so the focus leaving it goes to its neighbour
+/// in the ring; and nothing answers.
 ///
 /// **The keys.** Copy and Paste are the app's (⌘C and ⌘V through
 /// ``EnvironmentValues/commandKey``), as `copyable(_:)` and
@@ -33,10 +35,12 @@ package enum TransferKeys {
     /// The journal kind of a registration.
     static let kind = EffectJournal.Kind("transfer.clipboardKey")
 
-    /// Whether this context answers the keys at all: a running app's render,
-    /// enabled, and not a list row's (the list is the row's stop).
+    /// Whether this context has a stop for the keys at all: a running app's
+    /// render, and not a list row's (the list is the row's stop). Enabled or
+    /// not: a disabled view's stop is registered, unfocusable
+    /// (``stops(of:ownID:context:)``), and answers nothing.
     static func applies(in context: RenderContext) -> Bool {
-        !context.isMeasuring && context.environment.isEnabled && context.environment.focusManager != nil
+        !context.isMeasuring && context.environment.focusManager != nil
             && context.environment.listRowEditRestrictions?.currentRowIndex == nil
     }
 
@@ -49,14 +53,17 @@ package enum TransferKeys {
     }
 
     /// The stops the keys answer on: the content's own, found in its drawn
-    /// regions, or else `ownID`, registered now.
+    /// regions, or else `ownID`, registered now. Empty while disabled, when
+    /// `ownID` is registered all the same, but cannot be focused (CLAUDE.md:
+    /// a disabled control registers with `canBeFocused == false`).
     static func stops(of buffer: FrameBuffer, ownID: String, context: RenderContext) -> [String] {
         var ids: [String] = []
         for case let id? in buffer.hitTestRegions.map(\.focusID) where !ids.contains(id) { ids.append(id) }
-        guard ids.isEmpty else { return ids }
-        FocusRegistration.register(
-            context: context, handler: ActionHandler(focusID: ownID, action: {}, triggerKeys: []), focusID: ownID)
-        return [ownID]
+        let enabled = context.environment.isEnabled
+        guard ids.isEmpty else { return enabled ? ids : [] }
+        let handler = ActionHandler(focusID: ownID, action: {}, canBeFocused: enabled, triggerKeys: [])
+        FocusRegistration.register(context: context, handler: handler, focusID: ownID)
+        return enabled ? [ownID] : []
     }
 
     /// Answers the clipboard command `key` (`"c"` or `"v"`) with `perform`

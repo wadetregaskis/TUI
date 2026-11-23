@@ -110,6 +110,17 @@ keeps carrying. **Escape**, or Ctrl-R again, puts it back. **Space** flips
 the operation between a copy and a move, as Option does for the pointer.
 The paging keys scroll what it is over, as they do for a pointer's drag.
 
+## Disabled Views
+
+A drag source inside `.disabled(true)` starts no drag, from the pointer or the
+keyboard, and is no focus stop, though it keeps its place in the focus order.
+The scope is the environment's, as in SwiftUI: `.draggable(x).disabled(true)`
+stops the drag, and `.disabled(true).draggable(x)`, whose disabled view is only
+the content, does not. A drop destination under `.disabled(true)` still takes
+the pointer's drop, as SwiftUI's does, but it is no focus stop, so a carry
+passes it by and Paste does not reach it. `dropDestination(for:isEnabled:action:)`
+with `isEnabled: false` turns a destination off for both.
+
 ## Spring Loading
 
 A drag can open its own way to a destination. Hold the pointer still over a

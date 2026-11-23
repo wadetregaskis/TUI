@@ -49,6 +49,13 @@ they no longer fit), and SwiftUI's `TextEditor(text:)` puts the caret at the end
 deviations, by the owner's ruling of 2026-11-22. A binding that formats as it is typed (a hyphen put in a phone
 number) leaves the caret after the character typed, not before it.
 
+**A disabled view starts no drag from the pointer either.** `.disabled(true)` stopped a `draggable(_:)` or `onDrag`
+view's Copy and Ctrl-R, but a press and a drag still picked it up. Now it starts no drag at all, as in SwiftUI, where
+the disabled scope covers the modifier: `.disabled(true).draggable(x)` still drags, as SwiftUI's does. A drop
+destination under `.disabled(true)` still takes the pointer's drop, which SwiftUI's does too. A disabled draggable
+or destination now keeps its place in the focus order without taking the focus, so the focus leaving one goes to its
+neighbour.
+
 **An `onDrop` view takes a drop from the keyboard.** It was no focus stop, so a drag carried with Ctrl-R could not
 reach it and Paste never landed there: only the pointer could drop on it. It is a stop now, as a `dropDestination` is,
 or answers on its content's own: a carried drag stops there and Return drops it, and Paste drops what was copied, as

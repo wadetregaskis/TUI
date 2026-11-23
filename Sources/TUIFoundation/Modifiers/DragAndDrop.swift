@@ -185,6 +185,15 @@ private enum DraggableStateIndex {
                     count: max(1, buffer.height)))
         }
 
+        // A disabled view starts no drag, as its keys pick nothing up: no
+        // handle, and no payload told to a container gathering a selection.
+        // The environment's flag, so a `.disabled(true)` around this modifier
+        // stops it and one inside it (`.disabled(true).draggable(x)`) does
+        // not, which is SwiftUI's scoping, measured for `draggable(_:)` and
+        // `onDrag(_:)` alike (`Tools/SwiftUIProbes/Drags and drops on a
+        // disabled view (H-35)`) and the same as `onHover`'s.
+        guard context.environment.isEnabled else { return buffer }
+
         // The floating preview: the explicit preview view when given, else
         // the content's own rendered buffer (regions/overlays stripped — the
         // preview is purely visual).
@@ -256,21 +265,19 @@ private enum DraggableStateIndex {
         }
         // In a list row, which is no stop of its own, the list answers for it
         // on its cursor row: Copy, and its pick-up chord carries it.
-        if context.environment.isEnabled {
-            let drag = RowDrag(
-                payload: {
-                    let value = payload()
-                    return isNilOptional(value) ? nil : value
-                },
-                pickUp: { origin, focusManager in
-                    let value = payload()
-                    guard !isNilOptional(value) else { return false }
-                    return session.beginCarry(
-                        payload: value, preview: capturedPreview, source: identity, allowedOperations: allowed,
-                        origin: origin, handle: handle, focusManager: focusManager)
-                })
-            RowDragReporter.reportToListRow(drag, context: context)
-        }
+        let drag = RowDrag(
+            payload: {
+                let value = payload()
+                return isNilOptional(value) ? nil : value
+            },
+            pickUp: { origin, focusManager in
+                let value = payload()
+                guard !isNilOptional(value) else { return false }
+                return session.beginCarry(
+                    payload: value, preview: capturedPreview, source: identity, allowedOperations: allowed,
+                    origin: origin, handle: handle, focusManager: focusManager)
+            })
+        RowDragReporter.reportToListRow(drag, context: context)
         return buffer
     }
 }
@@ -459,6 +466,12 @@ private final class DragScratch {
 /// target for payloads of `Payload`. The region's own mouse handler is
 /// inert (clicks fall through to the content) — the rectangle exists so the
 /// active drag session can hit-test it.
+///
+/// Under `.disabled(true)` the pointer still drops here, as it does on
+/// SwiftUI's (`Tools/SwiftUIProbes/Drags and drops on a disabled view
+/// (H-35)`: the destination is registered and takes the drop, the modifier
+/// inside the disabled scope or outside it); the keyboard does not, since a
+/// disabled view is no focus stop.
 nonisolated package struct DropDestinationModifier<Content: View, Payload>: View {
     let content: Content
     /// Whether the view takes drops at all. Off, it registers no zone, so a

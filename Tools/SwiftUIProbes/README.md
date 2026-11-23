@@ -1657,3 +1657,22 @@ messages cite that path), and what cites it.
   `Sources/TUIFoundation/Styling/StyleAttributes.swift`;
   `Tests/TUIFoundationTests/TextForegroundStyleTests.swift`, `Tests/TUIFoundationTests/TextModifierOrderTests.swift`;
   the SwiftUI compatibility guide's "Closed: `foregroundStyle` takes `some ShapeStyle`"; Deliberate deviations C3.
+
+### Drags and drops on a disabled view (H-35)
+
+- **Asks:** whether `.disabled(true)` stops a drop on, or a drag from, a SwiftUI view: `dropDestination(for:)` and
+  `onDrop(of:isTargeted:perform:)`, `draggable(_:)` and `onDrag(_:)`, each enabled, with the modifier inside the
+  disabled scope (`.dropDestination(…).disabled(true)`) and outside it (`.disabled(true).dropDestination(…)`)
+  (`disabled.swift`, `disabled.out`). The drop is the destination's half only, as in `Pasted line breaks and drops
+  (1117)`: a string offered through an `NSDraggingInfo` of the probe's own to the view SwiftUI registers for drags
+  (a `_PlatformDraggingDestinationView`, which hit-testing never returns, so the probe walks down to it). The drag
+  is a press, three drags and a release posted to the window, with `beginDraggingSession(with:event:source:)`
+  replaced by one that records the call and starts nothing, since AppKit's drag loop needs a real mouse.
+- **Answers:** a disabled view is still a drop destination: in all three cases, for both modifiers, the destination
+  view is registered (`public.data`, `public.item`), `draggingEntered` and `draggingUpdated` answer a copy, and the
+  action runs with the string. A drag is stopped by `.disabled(true)` around the modifier and not by one inside it:
+  `draggable(_:)` and `onDrag(_:)` begin a session (one item of `public.utf8-plain-text`) enabled and disabled
+  outside, and none disabled inside, which is `onHover`'s scoping.
+- **Ran:** macOS 15.8.3, Xcode 26.3's `swiftc` (Swift 6.2.4), the macOS 26.2 SDK, 2026-11-23.
+- **Was:** written here.
+- **Cited by:** `Sources/TUIFoundation/Modifiers/DragAndDrop.swift`; `Tests/TUIAppTests/DisabledDragAndDropTests.swift`.

@@ -1,0 +1,13 @@
+macOS Version 15.8.3 (Build 24H241)
+drop on dropDestination, enabled, on _PlatformDraggingDestinationView: entered 1, updated 1, performed true, action ran ["dropDestination [\"DROP\"]"]
+drop on dropDestination, disabled inside, on _PlatformDraggingDestinationView: entered 1, updated 1, performed true, action ran ["dropDestination [\"DROP\"]"]
+drop on dropDestination, disabled outside, on _PlatformDraggingDestinationView: entered 1, updated 1, performed true, action ran ["dropDestination [\"DROP\"]"]
+drop on onDrop, enabled, on _PlatformDraggingDestinationView: entered 1, updated 1, performed true, action ran ["onDrop 1"]
+drop on onDrop, disabled inside, on _PlatformDraggingDestinationView: entered 1, updated 1, performed true, action ran ["onDrop 1"]
+drop on onDrop, disabled outside, on _PlatformDraggingDestinationView: entered 1, updated 1, performed true, action ran ["onDrop 1"]
+drag from draggable, enabled: drag sessions begun ["NSHostingView<AnyView> 1 item(s) [\"public.utf8-plain-text\"]"]
+drag from draggable, disabled inside: drag sessions begun []
+drag from draggable, disabled outside: drag sessions begun ["NSHostingView<AnyView> 1 item(s) [\"public.utf8-plain-text\"]"]
+drag from onDrag, enabled: drag sessions begun ["NSHostingView<AnyView> 1 item(s) [\"public.utf8-plain-text\"]"]
+drag from onDrag, disabled inside: drag sessions begun []
+drag from onDrag, disabled outside: drag sessions begun ["NSHostingView<AnyView> 1 item(s) [\"public.utf8-plain-text\"]"]
