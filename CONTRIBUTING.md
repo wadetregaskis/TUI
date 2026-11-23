@@ -1,6 +1,6 @@
 # Contributing to TUI
 
-TUI is a SwiftUI-like framework for building Terminal User Interfaces in pure Swift, with no ncurses or external C dependencies (the only C is the in-tree `stb_image` decoder, used as the image-decoding fallback where AppKit's `NSImage` is unavailable). It targets SwiftUI API parity wherever possible.
+TUI is a SwiftUI-like framework for building Terminal User Interfaces in pure Swift, with no ncurses or external C dependencies (the only C is in-tree: the `stb_image` decoder, used as the image-decoding fallback where AppKit's `NSImage` is unavailable, and, built for WebAssembly alone, two functions that read the stack's bounds). It targets SwiftUI API parity wherever possible.
 
 ## Quick start
 
@@ -1017,9 +1017,9 @@ For example:
 
 ## Architecture
 
-- **Modular package**: 34 Swift library modules, a macro plugin and 1 in-tree C target, offered as 31 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
+- **Modular package**: 39 Swift library modules (two of them, `TUIWidthCorpus` and `TUIJSONStyler`, fixtures for the tests and the demo apps with no product), a macro plugin and 2 in-tree C targets, offered as 35 library products: the `TUI` umbrella, which is everything, a product for each module an app or a library may want on its own, and the opt-in `TUIAppKit`, `TUIFilePanelsAppKit` and `TUIMacros` ([Choosing products](https://github.com/wadetregaskis/TUI/blob/main/Sources/TUI/TUI.docc/Articles/ChoosingProducts.md); Project Structure below)
 - **Per-app state**: every app owns its render state — whether a frame is owed, and the transaction the change behind it was made under — and its views' `@State` and `@Observable` changes reach it through the render cache the app draws with, so two apps in one process never take each other's frames; application state flows through the Environment system. Still process-wide: the localization service (`LocalizationService.shared`), the notification queue (`NotificationService.current`) and the default `@AppStorage` store (`StorageDefaults.backend`)
-- **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list)
+- **Pure ANSI rendering**: no ncurses runtime dependency; the only C is the bundled `stb_image` decoder, and only as the fallback where ImageIO is unavailable (selected via `canImport(ImageIO)`, not a hard-coded platform list), and `CWASIStack`'s stack bounds, built for WebAssembly alone
 - **Cross-platform**: works on macOS, Linux (XDG paths supported) and Windows (`%APPDATA%`, the console's own calls behind `#if os(Windows)`)
 - **Runs in a browser**: builds for `wasm32-unknown-wasip1`; `Tools/Web/build.sh` compiles the Example app to WebAssembly and `Tools/Web/serve.py` serves it into a terminal made of DOM ([how it works](<Documentation/WebAssembly port.md>))
 - **Value types**: views are structs, just like SwiftUI
@@ -1035,9 +1035,13 @@ For example:
 ```
 Sources/
 ├── CSTBImage/            C target: bundled stb_image — image decoder fallback (non-Apple platforms)
+├── CWASIStack/           C target: WebAssembly's stack bounds, linker symbols only C can
+│                         read (StackGuard); built for wasm alone
 ├── TUICore/           Primitives, key/input parsing, frame buffer, concurrency helpers
 │                         (Concurrency, Environment, Extensions, Input, Rendering)
 ├── TUIStyling/        Color, theme palettes, border styles (Color, Styles, Theme)
+├── TUIWidthCorpus/    The grapheme clusters the width tests and TerminalClientQuirks
+│                         iterate; no product, so no library build compiles it
 ├── TUIView/           View protocol, ViewBuilder, State, Environment, Renderable
 │                         (Core, Environment, Rendering, State)
 │                         Depends on TUIStyling for ONE reason: `Color: View`
@@ -1092,6 +1096,10 @@ Sources/
 ├── TUIEnvironmentDocs/  The table of every environment variable TUI reads, and the
 │                         text for a man page. On nothing, and the umbrella doesn't
 │                         re-export it. `swift run tui-environment-docs` prints it
+├── TUIEnvironmentDocsTool/  That `tui-environment-docs` executable
+├── TUIMacros/         The @Animatable and @Entry macros' declarations (opt-in product)
+├── TUIMacrosPlugin/   Their compiler plugin, on swift-syntax
+├── TUITesting/        TestApp: an app or a view run in a unit test with no terminal
 ├── TUIStrings/        SF Symbols name table, inline Markdown, format styles,
 │                         localization (translations in 7 languages) and VERSION,
 │                         in the resource bundle TUI_TUIStrings
@@ -1104,6 +1112,8 @@ Sources/
 ├── TUIMenus/          Menu, ControlGroup, .contextMenu, menu styles
 ├── TUINumericControls/ Slider, Stepper, Gauge, ProgressView
 ├── TUITextInput/      TextField, SecureField, TextEditor
+├── TUIJSONStyler/     A JSON line styler over TextEditor's highlight seam: a fixture for
+│                         the Example, Stress and the tests; no product
 ├── TUIPickers/        Picker, DatePicker, RadioButtonGroup
 ├── TUILists/          List, OutlineGroup, list styles, row editing
 ├── TUIGrid/           Grid, LazyVGrid, LazyHGrid
@@ -1114,13 +1124,18 @@ Sources/
 ├── TUITables/         Table, columns, rows, table styles
 ├── TUITabs/           TabView, Tab, tab styles
 ├── TUITabImages/      Tab(_:image:…): a tab's picture found by name, as Image(_:bundle:)
+├── TUIFilePanelImages/ fileDialogPicturePreviews(): the file panels previewing a picture
 ├── TUIColorPicker/    ColorPicker, ColorPickerPanel and GradientEditorPanel
 ├── TUICurveEditors/   The tone-curve and channel-curve editor panels
 ├── TUIApp/            App, Scene, WindowGroup, the run loop, the terminal (POSIX, and Windows's console)
 ├── TUICommands/       Commands, CommandMenu, CommandGroup, .commands: the menu bar
 ├── TUIFilePanels/     fileImporter, fileExporter, fileMover: the open and save panels
+├── TUIDocuments/      DocumentGroup and the File menu that opens and saves
 ├── TUIScenes/         Settings (a sheet) and AlertScene: scenes shown over the windows
 ├── Example/        Example app (executable target)
+├── DocumentEditor/ A small text editor, written as a SwiftUI document app is (executable)
+├── TerminalClientQuirks/ Shows which terminal TUI took this one for and the workarounds
+│                         it chose, and checks them by eye (executable)
 └── Stress/         Performance stress harness, also a complex-TUI demo (executable)
 
 Tests/                    ~11,600 tests across ~1,560 suites in ~1,360 files, a target per module
