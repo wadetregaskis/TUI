@@ -90,7 +90,12 @@ public final class JSONFileStorage: StorageBackend {
     /// arms below say so at each of the two hops rather than pretending to a
     /// concurrency this platform does not have.
     #if !canImport(WASILibc)
-        private let saveQueue = DispatchQueue(label: "TUI.JSONFileStorage.save", qos: .utility)
+        private let saveQueue: DispatchQueue
+
+        /// A queue of a store's own to save on.
+        private static func makeSaveQueue() -> DispatchQueue {
+            DispatchQueue(label: "TUI.JSONFileStorage.save", qos: .utility)
+        }
     #endif
 
     /// Creates a JSON file storage with default location.
@@ -111,6 +116,9 @@ public final class JSONFileStorage: StorageBackend {
 
         self.fileURL = configDir.appendingPathComponent("settings.json")
         self.isSceneState = false
+        #if !canImport(WASILibc)
+            self.saveQueue = Self.makeSaveQueue()
+        #endif
         loadFromDisk()
     }
 
@@ -118,15 +126,44 @@ public final class JSONFileStorage: StorageBackend {
     public init(fileURL: URL) {
         self.fileURL = fileURL
         self.isSceneState = false
+        #if !canImport(WASILibc)
+            self.saveQueue = Self.makeSaveQueue()
+        #endif
         loadFromDisk()
     }
+
+    #if !canImport(WASILibc)
+        /// A store at `fileURL` that saves on `saveQueue`: a test's, which it
+        /// can hold, to know no save has run.
+        init(fileURL: URL, saveQueue: DispatchQueue) {
+            self.fileURL = fileURL
+            self.isSceneState = false
+            self.saveQueue = saveQueue
+            loadFromDisk()
+        }
+    #endif
 
     /// A store at `fileURL`, which is another's ``sceneStateStore`` where
     /// `isSceneState` says so.
     private init(fileURL: URL, isSceneState: Bool) {
         self.fileURL = fileURL
         self.isSceneState = isSceneState
+        #if !canImport(WASILibc)
+            self.saveQueue = Self.makeSaveQueue()
+        #endif
         loadFromDisk()
+    }
+
+    /// Writes what is still unsaved: a store let go with a save queued would
+    /// otherwise never write it, for the queued save holds the store weakly
+    /// and finds it gone (bug hunt FENV-2, 2026-11-20). Synchronous, and
+    /// without the queue: no save of this store can be running, since a
+    /// running one holds the store, and where the last hold was a save's own
+    /// this runs on the queue already, after it. Nothing is written for a
+    /// store with nothing unsaved, as a store made for a frame and let go
+    /// has.
+    deinit {
+        if state.withLock({ !$0.dirtyKeys.isEmpty }) { flushToDisk() }
     }
 
     /// Where `@SceneStorage` keeps what it is given this store for: a file of
@@ -284,6 +321,8 @@ extension JSONFileStorage {
             // at all.
             flushToDisk()
         #else
+            // Weakly, so a queued save does not keep a store alive; one let go
+            // first writes what is unsaved as it goes (`deinit`).
             saveQueue.async { [weak self] in
                 self?.flushToDisk()
             }

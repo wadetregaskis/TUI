@@ -283,6 +283,30 @@ struct JSONFileStorageTests {
         #expect(reader.value(forKey: "counter") == 50)
     }
 
+    #if !canImport(WASILibc)
+        /// The queued save holds the store weakly, so a store let go before
+        /// it ran wrote nothing, and said nothing (bug hunt FENV-2,
+        /// 2026-11-20). The store's queue is held here, so no save can have
+        /// run: what is in the file is what the store wrote as it went.
+        @Test("A store let go with a save queued writes it as it goes")
+        func releasedStoreWritesItsQueuedSave() {
+            let url = FileManager.default.temporaryDirectory
+                .appendingPathComponent("tuikit-appstorage-\(UUID().uuidString).json")
+            defer { try? FileManager.default.removeItem(at: url) }
+            let queue = DispatchQueue(label: "JSONFileStorageTests.held")
+            queue.suspend()
+            defer { queue.resume() }
+            do {
+                let writer = JSONFileStorage(fileURL: url, saveQueue: queue)
+                writer.setValue(7, forKey: "counter")
+                writer.setValue("kept", forKey: "name")
+            }
+            let reader = JSONFileStorage(fileURL: url)
+            #expect(reader.value(forKey: "counter") == 7)
+            #expect(reader.value(forKey: "name") == "kept")
+        }
+    #endif
+
     @Test("A nonexistent backing file behaves as empty storage")
     func nonexistentFileIsEmpty() {
         let url = FileManager.default.temporaryDirectory

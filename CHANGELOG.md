@@ -74,6 +74,10 @@ on, SwiftUI's nearest-neighbour read, where it used to mean that 2 × 2 read. A 
 path 17.6 ms). `RGBAImage.scaledBilinear(to:_:)` and `RGBAImage.boxReduced(by:)` are gone: call
 `resampled(to:_:)`.
 
+**A `JSONFileStorage` let go with a write still unsaved saves it.** A write is saved on a queue that holds the store
+weakly, so a store made in a function, written to and let go before the save ran wrote nothing and reported nothing.
+It writes what is unsaved as it goes now.
+
 **Scene state written just before a quit is saved.** Quitting flushed only the default store, and `@SceneStorage`
 keeps its values in a store of their own beside it, saved on a queue of that store's own, so a scene's last write
 could miss its file and the next launch restored the place before it. A store's `synchronize()` now flushes its
