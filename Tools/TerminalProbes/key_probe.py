@@ -28,7 +28,12 @@ shortcuts' key").
 `PROBE_KEYS` asks only the keys it names, by the ids in KEYS, comma-separated —
 `PROBE_KEYS=f10,fn_f10,shift_f1` for the menu bar's and help's keys alone, and
 `PROBE_KEYS=f1,fn_f1,shift_f1,ctrl_f1` for the list of shortcuts' alone, and
-`PROBE_KEYS=f2,fn_f2,ctrl_comma` for the settings panel's.
+`PROBE_KEYS=f2,fn_f2,ctrl_comma` for the settings panel's, and
+`PROBE_KEYS=shift_return,ctrl_return,ctrl_tab,shift_space` for the keys a
+modified-key scheme the app never asked for re-codes: tmux's `extended-keys
+always` (run the probe in a pane) and xterm's `modifyOtherKeys` resource. Those
+arrive as `CSI 27 ; mods ; code ~` or `CSI code ; mods u`, and are decoded as
+such (`tmux_extended_keys_probe.py` measures tmux's half without a person).
 
 `PROBE_KITTY=<flags>` pushes the kitty keyboard protocol's flags first (`CSI >
 flags u`, popped at the end), so a host that speaks it is read in its encoding:
@@ -74,6 +79,10 @@ KEYS = [
     ("f2", "F2 alone, without fn"),
     ("fn_f2", "fn-F2 (hold fn)"),
     ("ctrl_comma", "⌃, Control-comma"),
+    ("shift_return", "⇧↩ Shift-Return"),
+    ("ctrl_return", "⌃↩ Control-Return"),
+    ("ctrl_tab", "⌃⇥ Control-Tab"),
+    ("shift_space", "⇧␣ Shift-Space"),
 ]
 
 # The legacy spellings each could arrive as, in the xterm family's grammar.
@@ -84,6 +93,7 @@ TILDES = {1: "home", 7: "home", 4: "end", 8: "end", 5: "page_up", 6: "page_down"
 # SS3 P to S are F1 to F4 in the normal mode; SS3 A to D are the arrows only in
 # the cursor keys' application mode.
 SS3_FUNCTION_KEYS = "PQRS"
+OTHER_KEYS = {13: "return", 9: "tab", 32: "space", 27: "escape", 127: "backspace"}
 MODIFIERS = {2: "shift", 3: "option", 4: "shift+option", 5: "control", 6: "shift+control",
              7: "option+control", 8: "shift+option+control"}
 
@@ -164,6 +174,13 @@ def decode(raw):
     body, final = text[2:-1], text[-1]
     params = [int(part) if part.isdigit() else None for part in body.split(";")] if body else []
     modifier = MODIFIERS.get(params[1]) if len(params) > 1 else None
+    # A modified key's other spellings: xterm's modifyOtherKeys (`CSI 27 ;
+    # mods ; code ~`) and the CSI u shape (`CSI code ; mods u`), both with the
+    # key's code point.
+    if final == "~" and len(params) == 3 and params[0] == 27 and params[2] is not None:
+        return prefix + (f"{modifier}+" if modifier else "") + OTHER_KEYS.get(params[2], chr(params[2]))
+    if final == "u" and len(params) == 2 and None not in params:
+        return prefix + (f"{modifier}+" if modifier else "") + OTHER_KEYS.get(params[0], chr(params[0]))
     if final in FINALS:
         name = FINALS[final]
     elif final == "~" and params and params[0] in TILDES:

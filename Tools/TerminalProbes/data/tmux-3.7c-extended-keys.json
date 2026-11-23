@@ -1,0 +1,474 @@
+{
+ "date": "2026-11-23",
+ "uname": "Darwin Sequoia-2c.local 24.6.0 Darwin Kernel Version 24.6.0: Sun Oct 11 23:44:11 PDT 2026; root:xnu-11417.140.69.713.47~2/RELEASE_ARM64_VMAPPLE arm64",
+ "tmux": "tmux 3.7c",
+ "cases": [
+  {
+   "extended-keys": "off",
+   "extended-keys-format": null,
+   "asked_terminal_for": [],
+   "keys": [
+    {
+     "key": "shift_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;13~",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;2u",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;13~",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;5u",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;9~",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[9;5u",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "legacy",
+     "sent": "<09>",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;32~",
+     "pane_received": " "
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[32;2u",
+     "pane_received": " "
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "legacy",
+     "sent": " ",
+     "pane_received": " "
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;6;65~",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[65;6u",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "legacy",
+     "sent": "<01>",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;113~",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[113;5u",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "legacy",
+     "sent": "<11>",
+     "pane_received": "<11>"
+    }
+   ]
+  },
+  {
+   "extended-keys": "on",
+   "extended-keys-format": "xterm",
+   "asked_terminal_for": [
+    "<ESC>[>4;2m"
+   ],
+   "keys": [
+    {
+     "key": "shift_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;13~",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;2u",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;13~",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;5u",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;9~",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[9;5u",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "legacy",
+     "sent": "<09>",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;32~",
+     "pane_received": " "
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[32;2u",
+     "pane_received": " "
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "legacy",
+     "sent": " ",
+     "pane_received": " "
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;6;65~",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[65;6u",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "legacy",
+     "sent": "<01>",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;113~",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[113;5u",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "legacy",
+     "sent": "<11>",
+     "pane_received": "<11>"
+    }
+   ]
+  },
+  {
+   "extended-keys": "always",
+   "extended-keys-format": "xterm",
+   "asked_terminal_for": [
+    "<ESC>[>4;2m"
+   ],
+   "keys": [
+    {
+     "key": "shift_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;13~",
+     "pane_received": "<ESC>[27;2;13~"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;2u",
+     "pane_received": "<ESC>[27;2;13~"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;13~",
+     "pane_received": "<ESC>[27;5;13~"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;5u",
+     "pane_received": "<ESC>[27;5;13~"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;9~",
+     "pane_received": "<ESC>[27;5;9~"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[9;5u",
+     "pane_received": "<ESC>[27;5;9~"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "legacy",
+     "sent": "<09>",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;32~",
+     "pane_received": "<ESC>[27;2;32~"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[32;2u",
+     "pane_received": "<ESC>[27;2;32~"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "legacy",
+     "sent": " ",
+     "pane_received": " "
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;6;65~",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[65;6u",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "legacy",
+     "sent": "<01>",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;113~",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[113;5u",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "legacy",
+     "sent": "<11>",
+     "pane_received": "<11>"
+    }
+   ]
+  },
+  {
+   "extended-keys": "always",
+   "extended-keys-format": "csi-u",
+   "asked_terminal_for": [
+    "<ESC>[>4;2m",
+    "<ESC>[>4m"
+   ],
+   "keys": [
+    {
+     "key": "shift_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;13~",
+     "pane_received": "<ESC>[13;2u"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;2u",
+     "pane_received": "<ESC>[13;2u"
+    },
+    {
+     "key": "shift_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;13~",
+     "pane_received": "<ESC>[13;5u"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[13;5u",
+     "pane_received": "<ESC>[13;5u"
+    },
+    {
+     "key": "ctrl_return",
+     "sent_as": "legacy",
+     "sent": "<0D>",
+     "pane_received": "<0D>"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;9~",
+     "pane_received": "<ESC>[9;5u"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[9;5u",
+     "pane_received": "<ESC>[9;5u"
+    },
+    {
+     "key": "ctrl_tab",
+     "sent_as": "legacy",
+     "sent": "<09>",
+     "pane_received": "<09>"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;2;32~",
+     "pane_received": "<ESC>[32;2u"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[32;2u",
+     "pane_received": "<ESC>[32;2u"
+    },
+    {
+     "key": "shift_space",
+     "sent_as": "legacy",
+     "sent": " ",
+     "pane_received": " "
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;6;65~",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[65;6u",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_shift_a",
+     "sent_as": "legacy",
+     "sent": "<01>",
+     "pane_received": "<01>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "modify",
+     "sent": "<ESC>[27;5;113~",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "csi-u",
+     "sent": "<ESC>[113;5u",
+     "pane_received": "<11>"
+    },
+    {
+     "key": "ctrl_q",
+     "sent_as": "legacy",
+     "sent": "<11>",
+     "pane_received": "<11>"
+    }
+   ]
+  }
+ ]
+}

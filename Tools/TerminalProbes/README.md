@@ -29,6 +29,12 @@ when unset), the visual/aspect probes print to the terminal.
 - `tmux_scroll_probe.py` — what tmux sends its CLIENT when an app in a pane scrolls, holds a
   frame, or changes one cell, per layout; `--app` for a real TUI app in the pane. No GUI. The survey's
   "tmux repaints a held pane".
+- `tmux_extended_keys_probe.py` — what tmux's `extended-keys` hands a pane
+  that asks for no key scheme, as a TUI app asks for none: the script plays
+  tmux's terminal, types ⇧↩ ⌃↩ ⌃⇥ ⇧␣ ⌃⇧A ⌃Q as modifyOtherKeys, as CSI u and as
+  their legacy bytes, under `extended-keys` off, on and always (both formats),
+  and records what the pane read and what tmux asked the terminal for. No GUI.
+  tmux 3.7c on 2026-11-23: the survey's "Modified keys an app did not ask for".
 - `probe_stamp.py` — not a probe: the shared provenance stamp every probe
   result carries (date, OS, terminal version, screen buffer, and DEC mode 2027,
   the two conditions this project has been bitten by not recording). It asks
@@ -170,7 +176,10 @@ when unset), the visual/aspect probes print to the terminal.
   host's default profile, on both screens (`PROBE_ALT=1`), and note by hand
   whether the Mission Control shortcuts are on. JSON to `$PROBE_OUT`. See
   Terminal compatibility survey.md, "Keys a sheet's grabber uses". NOT YET RUN on
-  any host (2026-10-06).
+  any host (2026-10-06). Since 2026-11-23 it also asks for ⇧↩ ⌃↩ ⌃⇥ ⇧␣, and
+  decodes the `CSI 27 ; mods ; code ~` and `CSI code ; mods u` spellings, for
+  a run inside tmux with `extended-keys always` (the survey's "Modified keys an
+  app did not ask for"; not yet run either).
 - `sync_probe.py` — synchronized output (DEC mode 2026), which TUI wraps
   every multi-row frame in. Checks that `CSI ? 2026 h` `CSI ? 2026 l` prints
   nothing (the cursor column before and after), asks DECRQM `?2026$p` of a

@@ -6962,6 +6962,70 @@ stop decoding `R` first, or its report arrives as Shift-F3 and the like. (An app
 `CSI 13 ~`, precisely to avoid this collision; P, Q and S keep their letters
 there and are decoded by `KittyKeyDecoder`.
 
+### Modified keys an app did not ask for, the Linux console and rxvt — tmux measured 2026-11-23, the rest documented
+
+TUI asks no terminal for xterm's `modifyOtherKeys` (`CSI > 4 ; n m`), but a
+modified key can arrive in that scheme anyway: tmux re-codes keys for every pane
+under `set -s extended-keys always` (a common line for Neovim and Helix), and
+an xterm whose resources set `modifyOtherKeys` does it for every program. Such
+a key has two spellings, xterm's `CSI 27 ; mods ; code ~` (`formatOtherKeys: 0`,
+tmux's `extended-keys-format xterm`) and `CSI code ; mods u`
+(`formatOtherKeys: 1`, tmux's `csi-u`); `code` is the key's code point and
+`mods` xterm's modifier code. Hunt H-60 (LOOP2-4, CORE2-3, CORE2-8).
+
+**tmux 3.7c, measured 2026-11-23** with `Tools/TerminalProbes/tmux_extended_keys_probe.py`:
+a real tmux (Homebrew, arm64) on a pty the script plays as the terminal
+(`TERM=xterm-256color`, `terminal-features 'xterm*:extkeys'`), and in the pane a
+program in raw mode that asks for nothing, as a TUI app asks for nothing. Each
+key was typed three ways: as modifyOtherKeys spells it, as CSI u spells it, and
+as its legacy byte.
+
+| `extended-keys` (format) | ⇧↩ | ⌃↩ | ⌃⇥ | ⇧␣ | ⌃Q, ⌃⇧A |
+|---|---|---|---|---|---|
+| off | CR | CR | TAB | space | 0x11, 0x01 |
+| on (the app asks nothing) | CR | CR | TAB | space | 0x11, 0x01 |
+| always (xterm) | `CSI 27;2;13~` | `CSI 27;5;13~` | `CSI 27;5;9~` | `CSI 27;2;32~` | 0x11, 0x01 |
+| always (csi-u) | `CSI 13;2u` | `CSI 13;5u` | `CSI 9;5u` | `CSI 32;2u` | 0x11, 0x01 |
+
+- Under `always` the pane gets tmux's format whichever extended spelling the
+  terminal sent tmux. Where the terminal sent the legacy byte (CR, TAB, a
+  space), tmux cannot know a modifier was held, and the pane gets the byte.
+- A Control chord with a C0 byte of its own (⌃Q, ⌃⇧A) arrives as that byte
+  under every setting: `always` forces xterm's mode 1, which re-codes only keys
+  that have no legacy spelling.
+- With `extended-keys` on or always, tmux asks its terminal for `CSI > 4 ; 2 m`
+  (modifyOtherKeys 2) at attach. What a pane sees for these keys therefore
+  depends on whether the terminal outside honours that.
+
+**Not measured:** what iTerm2 and Ghostty send tmux for the four keys after
+`CSI > 4 ; 2 m`. A person has to press them: run
+`PROBE_KEYS=shift_return,ctrl_return,ctrl_tab,shift_space python3 key_probe.py`
+in a pane of a tmux with `extended-keys always`, once for each
+`extended-keys-format`, inside each terminal. They could not be pressed from
+here on 2026-11-23 (Apple events are refused, and computer use may only click
+in a terminal). xterm and urxvt are not installed on this Mac, so the rows
+below for them, and the Linux console's, are from documentation.
+
+| Host | Keys | Sends | Source |
+|---|---|---|---|
+| xterm, `modifyOtherKeys: 1` | modified keys with no legacy spelling (⇧↩, ⌃↩, ⌃⇥, ⇧␣) | `CSI 27 ; mods ; code ~` (`CSI code ; mods u` with `formatOtherKeys: 1`) | xterm's ctlseqs and manual |
+| xterm, `modifyOtherKeys: 2` | every modified key, the Control letters included: ⌃Q is `CSI 27;5;113~` | the same | xterm's ctlseqs and manual |
+| rxvt, urxvt | Home, End | `ESC [ 7 ~`, `ESC [ 8 ~` | terminfo `rxvt` (ncurses 6.6.20251230): `khome`, `kend` |
+| rxvt, urxvt | ⇧↑ ⇧↓ ⇧→ ⇧← | `ESC [ a`, `ESC [ b`, `ESC [ c`, `ESC [ d` | terminfo `rxvt`: `kUP` `kDN` `kRIT` `kLFT` |
+| rxvt, urxvt | ⌃↑ ⌃↓ ⌃→ ⌃← | `ESC O a`, `ESC O b`, `ESC O c`, `ESC O d` | terminfo `rxvt`: `kUP5` `kDN5` `kRIT5` `kLFT5` |
+| rxvt, urxvt | Shift, Control and both on Home, End, Delete | `$`, `^`, `@` in place of `~` (`ESC [ 7 $` is ⇧Home) | terminfo `rxvt`: `kHOM` `kHOM5` `kHOM6`, `kDC` |
+| Linux console (`TERM=linux`) | F1 to F5 | `ESC [ [ A` to `ESC [ [ E` | terminfo `linux` (ncurses 6.6.20251230, and macOS's 6.0): `kf1`…`kf5` |
+| Linux console | F6 up, Home, End, the arrows | xterm's: `ESC [ 17 ~`…, `ESC [ 1 ~`, `ESC [ 4 ~`, `ESC [ A`… | terminfo `linux` |
+| Linux console | ⇧⇥ | `ESC TAB` (ncurses 6.6; `ESC [ Z` in macOS's 6.0) | terminfo `linux`: `kcbt` |
+
+Until 2026-11-23 TUI's legacy parser dropped both extended spellings whole, so
+under tmux's `always` ⇧↩, ⌃↩, ⌃⇥ and ⇧␣ did nothing, and under xterm's level 2
+neither did any Control chord, ⌃Q included. On the Linux console F1 to F5 typed
+the letters A to E. Under rxvt Home and End did nothing, and a Control-arrow
+typed `a` to `d` after an Alt-Shift-O. The console's `ESC TAB` is read as ⌥⇥,
+not as ⇧⇥, on purpose (`escTabIsAltTab`: it is what a meta-sending terminal
+sends for ⌥⇥, which a text editor types as a tab).
+
 ## The kitty keyboard protocol — documented, NOT yet measured
 
 Added 2026-10-04 with TUI's negotiation of it (decisions A4). **Nothing in
@@ -7163,7 +7227,7 @@ setting) and xterm.js. Of the hosts measured elsewhere in this document:
 | iTerm2 | yes | in the list; iTerm2's own CSI u page says its CSI u mode "is no longer recommended. Applications should implement the Kitty keyboard protocol instead". Which flags it takes, and what Option set to Esc+ sends under the protocol, unmeasured |
 | Ghostty | yes | in the list; its configuration reference names no setting for it |
 | Warp | yes | in the list, by an issue comment; nothing else known |
-| tmux | no | not in the list. Its own `extended-keys` (CSI u or modifyOtherKeys) is a different scheme TUI does not ask for; under tmux the query is answered (or not) by tmux, not by the client |
+| tmux | no | not in the list. Its own `extended-keys` (CSI u or modifyOtherKeys) is a different scheme TUI does not ask for, which reaches the app all the same under `extended-keys always` (measured: "Modified keys an app did not ask for"); under tmux the query is answered (or not) by tmux, not by the client |
 | xterm.js | yes | in the list |
 
 ### To measure, per host

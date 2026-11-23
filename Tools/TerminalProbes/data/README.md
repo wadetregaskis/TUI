@@ -132,6 +132,12 @@ conditions. Twenty-one kinds of file live here:
   them), and the features tmux lists for it (`#{client_termfeatures}`); and,
   under `late_attach`, what a client with the feature is handed when it
   attaches to a pane that put a bar up before it. tmux 3.7c, 2026-10-19.
+- **`tmux-<version>-extended-keys.json`** — what a pane that asks for no key
+  scheme receives under each `extended-keys` setting and format
+  (`tmux_extended_keys_probe.py`): the probe plays tmux's terminal, types ⇧↩,
+  ⌃↩, ⌃⇥, ⇧␣, ⌃⇧A and ⌃Q as modifyOtherKeys, as CSI u and as their legacy
+  bytes, and records what reached the pane, and what tmux asked the terminal
+  for. tmux 3.7c, 2026-11-23.
 - **`tmux-3.7b-tonebases.json`** — the full Emoji_Modifier_Base sweep
   (`advance_probe.py --modifier-bases`): which of the 134 bases tmux merges
   with a following tone (70) and which it detaches (64). The source of
