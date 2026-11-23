@@ -23,12 +23,26 @@ package enum ScrollIndicatorUnit {
     /// Terminal lines — `ScrollView`, whose scroll space is line-based.
     case lines
 
-    /// The label word for `count` of this unit.
-    func word(for count: Int) -> String {
-        switch self {
-        case .rows: return count == 1 ? "row" : "rows"
-        case .lines: return count == 1 ? "line" : "lines"
+    /// The label's phrases for this unit pointing `direction`, longest first:
+    /// the stems of TUI's `scrollIndicator.*` keys (``LocalizationKey/ScrollIndicator``),
+    /// each a family of plural forms. With "more" and the direction, then
+    /// without "more", then the count and the unit alone.
+    func phrases(_ direction: ScrollIndicatorDirection) -> [String] {
+        switch (self, direction) {
+        case (.rows, .up): return Self.rowsUp
+        case (.rows, .down): return Self.rowsDown
+        case (.lines, .up): return Self.linesUp
+        case (.lines, .down): return Self.linesDown
         }
+    }
+
+    private static let rowsUp = stems("rows", ["moreAbove", "above", "count"])
+    private static let rowsDown = stems("rows", ["moreBelow", "below", "count"])
+    private static let linesUp = stems("lines", ["moreAbove", "above", "count"])
+    private static let linesDown = stems("lines", ["moreBelow", "below", "count"])
+
+    private static func stems(_ unit: String, _ forms: [String]) -> [String] {
+        forms.map { "scrollIndicator.\(unit).\($0)" }
     }
 }
 
@@ -160,7 +174,9 @@ func scrollIndicatorBreath(palette: any Palette, over surface: Color) -> (dim: C
 ///     its colour's alpha and claims it instead.
 ///   - locale: Formats the count's grouping / decimal separators — the app's
 ///     current language locale, so the number reads "12,000" (en) / "12.000"
-///     (de) / "12 000" (fr). Defaults to `.current`.
+///     (de) / "12 000" (fr) — and names the language of the words around it,
+///     TUI's `scrollIndicator.*` phrases: "12.000 weitere Zeilen unten".
+///     Defaults to `.current`.
 /// - Returns: The line and its claims, and a focused line's run. The run covers the
 ///   arrow and its label and nothing else: the leading blanks that centre the
 ///   indicator are not part of the animation, and repainting them on a clock would
@@ -271,8 +287,10 @@ package func scrollIndicatorParts(
         approximate
         ? approximateCountLabel(count, locale: locale)
         : localizedInteger(count, locale: locale)
-    let unitWord = unit.word(for: count)
-    let directionWord = direction == .up ? "above" : "below"
+    /// Whether `body` fits with the arrow before it and a blank either side —
+    /// in cells, as the line is drawn: a Japanese phrase is twice as wide as it
+    /// has Characters, and fitted by Characters it was drawn past `width`.
+    func fits(_ body: String) -> Bool { 1 + body.strippedLength + 2 <= width }
 
     // The label degrades to fit a narrow viewport rather than clipping
     // mid-word: the count and its unit survive as long as possible, and
@@ -282,16 +300,25 @@ package func scrollIndicatorParts(
     // the very top and the very bottom, where nothing is hidden, and it should
     // say "0 more rows above" like every other value says its own. It used to
     // fall to a countless "more above", which at zero is simply false.
-    let bodies: [String] = [
-        "\(countText) more \(unitWord) \(directionWord)",
-        "\(countText) \(unitWord) \(directionWord)",
-        "\(countText) \(unitWord)",
-        countText,
-    ]
-    let body = bodies.first { 1 + $0.count + 2 <= width } ?? ""
+    //
+    // Each rung is a phrase of TUI's, in the language `locale` names — the one
+    // the count is written in — and in the plural form the count takes there
+    // ("1 weitere Zeile unten", "0 ligne de plus au-dessus"). Read a rung at a
+    // time, so the usual line, whose first rung fits, reads one.
+    let language = locale.language.languageCode?.identifier
+    var body = ""
+    for phrase in unit.phrases(direction) {
+        let words = LocalizationService.shared.countedFrameworkString(
+            phrase, count: count, spelled: countText, in: language)
+        if fits(words) {
+            body = words
+            break
+        }
+    }
+    if body.isEmpty, fits(countText) { body = countText }
     let label = body.isEmpty ? " " : " \(body) "
 
-    let indicatorWidth = 1 + label.count
+    let indicatorWidth = 1 + label.strippedLength
     return ScrollIndicatorParts(
         arrow: arrow, label: label, padding: max(0, (width - indicatorWidth) / 2))
 }

@@ -41,6 +41,35 @@ extension LocalizationKey {
         case opacity = "colorPicker.opacity"
         case showNumbers = "colorPicker.showNumbers"
     }
+
+    /// The scroll indicators' "N more rows below": per unit, a phrase for each
+    /// rung of the line's ladder (`moreAbove`/`moreBelow`, then `above`/`below`
+    /// without "more", then `count` without the direction), and per CLDR
+    /// plural category, `%@` standing for the count. Read through
+    /// `LocalizationService.countedFrameworkString(_:count:spelled:in:)`, in
+    /// the language of the view's `\.locale`. Internal to the package.
+    package enum ScrollIndicator: String, CaseIterable {
+        case rowsMoreAboveOne = "scrollIndicator.rows.moreAbove.one"
+        case rowsMoreAboveOther = "scrollIndicator.rows.moreAbove.other"
+        case rowsMoreBelowOne = "scrollIndicator.rows.moreBelow.one"
+        case rowsMoreBelowOther = "scrollIndicator.rows.moreBelow.other"
+        case rowsAboveOne = "scrollIndicator.rows.above.one"
+        case rowsAboveOther = "scrollIndicator.rows.above.other"
+        case rowsBelowOne = "scrollIndicator.rows.below.one"
+        case rowsBelowOther = "scrollIndicator.rows.below.other"
+        case rowsCountOne = "scrollIndicator.rows.count.one"
+        case rowsCountOther = "scrollIndicator.rows.count.other"
+        case linesMoreAboveOne = "scrollIndicator.lines.moreAbove.one"
+        case linesMoreAboveOther = "scrollIndicator.lines.moreAbove.other"
+        case linesMoreBelowOne = "scrollIndicator.lines.moreBelow.one"
+        case linesMoreBelowOther = "scrollIndicator.lines.moreBelow.other"
+        case linesAboveOne = "scrollIndicator.lines.above.one"
+        case linesAboveOther = "scrollIndicator.lines.above.other"
+        case linesBelowOne = "scrollIndicator.lines.below.one"
+        case linesBelowOther = "scrollIndicator.lines.below.other"
+        case linesCountOne = "scrollIndicator.lines.count.one"
+        case linesCountOther = "scrollIndicator.lines.count.other"
+    }
 }
 
 extension LocalizationKey.ImagePlaceholder: FrameworkLocalizationKey {}

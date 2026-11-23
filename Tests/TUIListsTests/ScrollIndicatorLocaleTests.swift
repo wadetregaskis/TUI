@@ -18,7 +18,7 @@ import TUILists
 @testable import TUITestSupport
 
 @MainActor
-@Suite("scroll indicator number localisation")
+@Suite("scroll indicator number localisation", .rendersEnglishUI)
 struct ScrollIndicatorLocaleTests {
 
     @Test("localizedInteger groups by locale")
@@ -51,6 +51,57 @@ struct ScrollIndicatorLocaleTests {
             locale: Locale(identifier: "de")
         ).text
         #expect(de.stripped.contains("12.000"), "de grouping in the label: \(de.stripped)")
+    }
+
+    /// The line as drawn, for `locale`, with its centring trimmed.
+    private func line(
+        _ direction: ScrollIndicatorDirection, _ count: Int, _ unit: ScrollIndicatorUnit, width: Int = 40,
+        _ identifier: String, approximate: Bool = false
+    ) -> String {
+        let palette = EnvironmentValues().palette
+        return renderScrollIndicator(
+            direction: direction, count: count, unit: unit, width: width, palette: palette, approximate: approximate,
+            cycle: nil, over: palette.background, locale: Locale(identifier: identifier)
+        ).text.stripped.trimmingCharacters(in: .whitespaces)
+    }
+
+    @Test("The label's words are the locale's language, with its plural")
+    func wordsFollowTheLocale() {
+        let german = line(.down, 12000, .rows, "de")
+        #expect(!german.contains("more") && !german.contains("rows") && !german.contains("below"), "\(german)")
+        #expect(german == "▼ 12.000 weitere Zeilen unten")
+        #expect(line(.up, 1, .rows, "de") == "▲ 1 weitere Zeile oben", "German's one")
+        #expect(line(.down, 3, .lines, "es") == "▼ 3 líneas más abajo")
+        // French counts zero as one.
+        #expect(line(.up, 0, .rows, "fr") == "▲ 0 ligne de plus au-dessus")
+        #expect(line(.up, 2, .rows, "fr") == "▲ 2 lignes de plus au-dessus")
+        #expect(line(.down, 1, .rows, "it") == "▼ 1 altra riga sotto")
+        #expect(line(.down, 5, .lines, "zh") == "▼ 下方还有5行")
+        // The approximate count's suffix is unchanged; only the words move.
+        #expect(line(.down, 5400, .lines, "de", approximate: true) == "▼ ~5,4K weitere Zeilen unten")
+        // English as it was.
+        #expect(line(.down, 1, .rows, "en") == "▼ 1 more row below")
+    }
+
+    @Test("The label degrades by cells, so a wide-glyph language fits its width")
+    func ladderFitsByCells() {
+        #expect(line(.down, 14, .rows, "ja") == "▼ 下にあと14行")
+        // Each rung of the ladder in Japanese: 下にあと14行 is 12 cells, 下に14行
+        // 8, 14行 4; the line takes the arrow and a blank either side as well.
+        #expect(line(.down, 14, .rows, width: 15, "ja") == "▼ 下にあと14行")
+        #expect(line(.down, 14, .rows, width: 14, "ja") == "▼ 下に14行")
+        #expect(line(.down, 14, .rows, width: 10, "ja") == "▼ 14行")
+        #expect(line(.down, 14, .rows, width: 6, "ja") == "▼ 14")
+        let palette = EnvironmentValues().palette
+        for language in ["ja", "zh", "de", "fr"] {
+            for width in 1...30 {
+                let drawn = renderScrollIndicator(
+                    direction: .down, count: 14, unit: .rows, width: width, palette: palette,
+                    cycle: nil, over: palette.background, locale: Locale(identifier: language)
+                ).text
+                #expect(drawn.strippedLength <= max(width, 2), "\(language) at \(width): \(drawn.stripped)")
+            }
+        }
     }
 
     @Test("The approximate label localises its decimal separator")
@@ -99,5 +150,30 @@ struct ScrollIndicatorLocaleTests {
         // never appears as a bare four-plus-digit run.
         #expect(text.contains(","), "the count is grouped: \(text)")
         #expect(!text.contains("2999"), "no un-grouped 4-digit count leaks: \(text)")
+    }
+
+    @Test("A List under a German locale says its 'N more' in German")
+    func listIndicatorInGerman() {
+        struct Item: Identifiable { let id: Int }
+        let tuiContext = TUIContext()
+        let view = List((0..<30).map(Item.init), selection: Binding<Int?>.constant(nil)) { item in
+            Text("row \(item.id)")
+        }
+        .frame(height: 6)
+        var environment = EnvironmentValues()
+        environment.applyRuntimeServices(from: tuiContext)
+        environment.locale = Locale(identifier: "de")
+        environment.scrollIndicatorStyle = .text
+        environment.scrollIndicatorPlacement = .besideContent
+        let context = RenderContext(
+            availableWidth: 40, availableHeight: 6, environment: environment, tuiContext: tuiContext)
+        tuiContext.preferences.beginRenderPass()
+        tuiContext.stateStorage.beginRenderPass()
+        tuiContext.renderCache.beginRenderPass()
+        let buffer = renderToBuffer(view, context: context)
+        tuiContext.stateStorage.endRenderPass()
+        let text = buffer.lines.map { $0.stripped }.joined(separator: "\n")
+        #expect(text.contains("weitere Zeilen unten"), "\(text)")
+        #expect(!text.contains("more") && !text.contains("rows"), "\(text)")
     }
 }

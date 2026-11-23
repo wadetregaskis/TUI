@@ -193,6 +193,8 @@ ScrollView { content }
     .scrollIndicatorStyle(.text)   // "35 more lines below"
 ```
 
+The words are in the language of the view's `\.locale` ("35 weitere Zeilen unten" in German), and drop away to fit a narrow view, the count last of all.
+
 `.scrollbar` is the default; write it further in to bring the bar back under a `.text` set higher up.
 
 Both of these apply to every scrolling view inside the one you write them on, so writing them once at the top of your app changes them all.

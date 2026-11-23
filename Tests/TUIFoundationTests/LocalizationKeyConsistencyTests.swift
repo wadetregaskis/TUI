@@ -394,6 +394,7 @@ final class LocalizationKeyConsistencyTests {
         enumKeys.formUnion(LocalizationKey.ImagePlaceholder.allCases.map(\.rawValue))
         enumKeys.formUnion(LocalizationKey.UndoTitle.allCases.map(\.rawValue))
         enumKeys.formUnion(LocalizationKey.ColorPicker.allCases.map(\.rawValue))
+        enumKeys.formUnion(LocalizationKey.ScrollIndicator.allCases.map(\.rawValue))
 
         // Check for extraneous keys
         let translationKeys = Set(englishTranslations.keys)
@@ -415,6 +416,7 @@ final class LocalizationKeyConsistencyTests {
             + LocalizationKey.ImagePlaceholder.allCases.count
             + LocalizationKey.UndoTitle.allCases.count
             + LocalizationKey.ColorPicker.allCases.count
+            + LocalizationKey.ScrollIndicator.allCases.count
         #expect(
             englishTranslations.count == expectedKeyCount,
             "Expected \(expectedKeyCount) keys in translations, but got \(englishTranslations.count)"

@@ -25,6 +25,13 @@ cannot see. An app that draws its own progress or posts its own notice where the
 before; one that tells the person their terminal cannot do them should not. `TUI_NOTIFICATIONS`, `TUI_PROGRESS` and
 `TUI_OSC52` set to `0` still make each unsupported.
 
+**The "N more rows below" line is in the view's language, and fits its width in any of them.** A `List`'s, a
+`Table`'s and a `ScrollView`'s text indicator said "more", "rows" and "below" in English, with English's plural,
+beside a count already written the locale's way. The words are now TUI's, in the language of the view's `\.locale`
+and in the plural form the count takes there: "1 weitere Zeile unten", "0 ligne de plus au-dessus", "下にあと14行". The
+line still drops words to fit a narrow view, now measured in cells, so a Japanese or Chinese line no longer runs
+past the view it was fitted to, and a `Table` sized by its indicator is sized to what it draws.
+
 **The colour picker and the gradient editor speak the app's language.** Their default titles ("Colour",
 "Gradient"), the tabs from Semantic to Crayons, the opacity row's label and the 256 tab's "Show numbers" were English
 whatever the language; they are TUI's words now, in all seven languages, and follow a subtree's `\.locale`. The

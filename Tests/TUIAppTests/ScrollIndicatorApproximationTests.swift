@@ -89,7 +89,7 @@ struct ScrollIndicatorApproximationTests {
             renderScrollIndicator(
                 direction: direction, count: count, unit: unit,
                 width: width, palette: palette, approximate: approximate,
-                cycle: nil, over: palette.background
+                cycle: nil, over: palette.background, locale: Locale(identifier: "en")
             ).text.stripped.trimmingCharacters(in: .whitespaces)
         }
 

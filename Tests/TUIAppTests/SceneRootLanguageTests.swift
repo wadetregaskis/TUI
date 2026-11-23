@@ -37,6 +37,24 @@ private struct GermanRootApp: App {
     }
 }
 
+/// A scroll view taller than the screen, its "N more" lines drawn as words.
+private struct GermanRootScrollApp: App {
+    init() {}
+
+    var body: some Scene {
+        WindowGroup {
+            ScrollView {
+                VStack(spacing: 0) {
+                    ForEach(0..<40, id: \.self) { Text(verbatim: "line \($0)") }
+                }
+            }
+            .scrollIndicatorStyle(.text)
+            .scrollIndicatorPlacement(.besideContent)
+        }
+        .environment(\.locale, Locale(identifier: "de_DE"))
+    }
+}
+
 private struct UnstatedRootApp: App {
     init() {}
 
@@ -60,6 +78,16 @@ struct SceneRootLanguageTests {
     @Test("A word read with no locale in hand follows the scene's root locale")
     func rootLocaleReachesTheService() {
         #expect(word(GermanRootApp()) == "Abbrechen")
+    }
+
+    @Test("A scroll view's 'N more' line is in the scene's language")
+    func scrollIndicatorWords() {
+        let app = TestApp(GermanRootScrollApp(), width: 40, height: 8)
+        app.frame(atNanos: 0)
+        app.frame(atNanos: 20_000_000)
+        let screen = app.screen.lines.joined(separator: "\n")
+        #expect(screen.contains("weitere Zeilen unten"), "\(screen)")
+        #expect(!screen.contains("more") && !screen.contains("lines below"), "\(screen)")
     }
 
     @Test("A scene that states no locale reads the process's language")

@@ -289,6 +289,17 @@ LocalizationKey.StatusBar.appearance
 LocalizationKey.StatusBar.theme
 ```
 
+#### Words of TUI's Own Controls
+
+Some words TUI's controls draw have no public key: an image's line when it can't load, the colour picker's and the
+gradient editor's titles and tabs, the scroll indicators' "N more rows below", and an Undo or Redo title with its
+step's name ("Löschen widerrufen", joined as macOS joins it in each language). They're translated in all seven
+languages, follow a subtree's `\.locale` as a control's other words do, and change as any of TUI's words change:
+register a translation of the key, or put it in your `TUI.strings`.
+
+A phrase with a count in it has a form for each plural category, `.one` and `.other`, and the count picks the one
+its language uses: "1 weitere Zeile unten" in German, "0 ligne de plus au-dessus" in French, where zero is singular.
+
 ## Using Localized Strings
 
 ### LocalizedString View

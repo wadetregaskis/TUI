@@ -8,6 +8,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import Foundation
 import Testing
 
 @testable import TUICore
@@ -64,7 +65,7 @@ struct ScrollGeometryUnitTests {
         func label(_ width: Int) -> String {
             renderScrollIndicator(
                 direction: .down, count: 14, unit: .lines,
-                width: width, palette: palette, cycle: nil, over: palette.background
+                width: width, palette: palette, cycle: nil, over: palette.background, locale: english
             ).text.stripped.trimmingCharacters(in: .whitespaces)
         }
         // Rung minima for count 14 / .lines: full 22, no-"more" 17,
@@ -85,7 +86,7 @@ struct ScrollGeometryUnitTests {
         func zero(_ width: Int) -> String {
             renderScrollIndicator(
                 direction: .down, count: 0, unit: .lines,
-                width: width, palette: palette, cycle: nil, over: palette.background
+                width: width, palette: palette, cycle: nil, over: palette.background, locale: english
             ).text.stripped.trimmingCharacters(in: .whitespaces)
         }
         #expect(zero(21) == "▼ 0 more lines below")
@@ -101,13 +102,38 @@ struct ScrollGeometryUnitTests {
             // width the drawn line has, or the column is sized to a line never drawn.
             let drawn = renderScrollIndicator(
                 direction: .down, count: 14, unit: .lines, width: width, palette: palette,
-                cycle: nil, over: palette.background)
+                cycle: nil, over: palette.background, locale: english)
             #expect(
-                scrollIndicatorWidth(direction: .down, count: 14, unit: .lines, width: width)
+                scrollIndicatorWidth(direction: .down, count: 14, unit: .lines, width: width, locale: english)
                     == drawn.text.strippedLength,
                 "width \(width): the measure and the drawn line disagree")
         }
     }
+
+    @Test("A wide-glyph language's line is measured as drawn, and fits its width")
+    func indicatorWidthInCells() {
+        let palette = EnvironmentValues().palette
+        let japanese = Locale(identifier: "ja")
+        // 下にあと14行 is 7 Characters and 12 cells: fitted by Characters, the line
+        // chose it at widths 10 to 14 and drew past them.
+        for width in 3...30 {
+            let drawn = renderScrollIndicator(
+                direction: .down, count: 14, unit: .rows, width: width, palette: palette,
+                cycle: nil, over: palette.background, locale: japanese)
+            let measured = scrollIndicatorWidth(direction: .down, count: 14, unit: .rows, width: width, locale: japanese)
+            #expect(measured == drawn.text.strippedLength, "width \(width): the measure and the drawn line disagree")
+            #expect(measured <= width, "width \(width) overflows: '\(drawn.text.stripped)'")
+        }
+        #expect(
+            renderScrollIndicator(
+                direction: .down, count: 14, unit: .rows, width: 15, palette: palette,
+                cycle: nil, over: palette.background, locale: japanese
+            ).text.stripped.contains("下にあと14行"))
+    }
+
+    /// The words these cases pin are English's; the locale says so rather than
+    /// leaving them to the machine's.
+    private let english = Locale(identifier: "en")
 
     @Test("isDirectDescent admits single-child chains and rejects siblings/rows")
     func directDescentGate() {
