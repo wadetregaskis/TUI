@@ -54,9 +54,10 @@ enum QuitKeyReport {
     /// process.
     ///
     /// - Parameters:
-    ///   - synchronize: Flushes stored settings to disk:
-    ///     `StorageDefaults.backend.synchronize()`, unless a test hands in
-    ///     another.
+    ///   - synchronize: Flushes stored settings to disk: the app's runner
+    ///     hands in its stores' flush (`ScenePresenter.synchronizeStores(of:)`, every
+    ///     store its scenes name), a test one of its own; else
+    ///     `StorageDefaults.backend.synchronize()`.
     ///   - signal: `kill(2)`, unless a test hands in another that records
     ///     what it was asked.
     ///   - awaitTheEnd: Holds this thread until the signal ends the process:
@@ -111,9 +112,10 @@ enum QuitKeyReport {
     /// Quits as Ctrl-Break would, the settings saved first.
     ///
     /// - Parameters:
-    ///   - synchronize: Flushes stored settings to disk:
-    ///     `StorageDefaults.backend.synchronize()`, unless a test hands in
-    ///     another.
+    ///   - synchronize: Flushes stored settings to disk: the app's runner
+    ///     hands in its stores' flush (`ScenePresenter.synchronizeStores(of:)`, every
+    ///     store its scenes name), a test one of its own; else
+    ///     `StorageDefaults.backend.synchronize()`.
     ///   - end: Pays the quit's debt and ends the process, unless a test hands
     ///     in another.
     static func quit(

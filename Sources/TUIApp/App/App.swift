@@ -221,6 +221,11 @@ internal final class AppRunner<A: App> {
     /// The settings panel on F2, shared likewise.
     private let settingsPanel: SettingsPanel
 
+    /// The run loop's scenes, once it is made: what the quit key flushes the
+    /// stores of (``ScenePresenter/synchronizeStores()``), the input chain
+    /// being made before the loop.
+    private weak var scenes: ScenePresenter?
+
     /// - Parameters:
     ///   - app: The app whose scene this runner drives.
     ///   - appState: The app's render state: the render-request queue the loop
@@ -319,9 +324,9 @@ extension AppRunner {
             // have raised, to the process group the driver would have raised it
             // in (`QuitKeyReport`), which leaves the terminal as a quit does
             // (`FatalSignalTerminalRestore`).
-            onQuitKey: {
+            onQuitKey: { [weak self] in
                 #if !canImport(WASILibc)
-                    QuitKeyReport.quit()
+                    QuitKeyReport.quit(synchronize: { ScenePresenter.synchronizeStores(of: self?.scenes) })
                 #endif
             },
             quitPrompt: quitPrompt,
@@ -519,6 +524,7 @@ extension AppRunner {
         loop.scenes.quitPrompt = quitPrompt
         loop.scenes.shortcutOverlay = shortcutOverlay
         loop.scenes.settingsPanel = settingsPanel
+        scenes = loop.scenes
         return loop
     }
 
@@ -1338,7 +1344,9 @@ extension AppRunner {
         // Persistence writes are queued asynchronously (and coalesced), so a
         // value stored moments before quitting may not have reached disk yet.
         // Flush behind any queued save — without this, "change a setting and
-        // quit" sometimes silently lost the setting.
-        StorageDefaults.backend.synchronize()
+        // quit" sometimes silently lost the setting. Every store the scenes
+        // name, and the scene state beside each, not the default's alone: a
+        // `@SceneStorage` write just before a quit was lost so.
+        renderer.scenes.synchronizeStores()
     }
 }

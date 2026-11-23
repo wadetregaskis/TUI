@@ -240,6 +240,12 @@ to the store the body read. Give it a store that lives as long as the view: one
 made afresh in `body` is correct, but a new store each time redraws the subtree
 beneath it.
 
+A write is saved on a queue, so the app flushes as it quits: the default store
+and every store a scene's `defaultAppStorage(_:)` names, each with the scene
+state kept beside it. A store a view's `defaultAppStorage(_:)` or a property's
+`store:` names is yours to flush, with its `synchronize()`, which flushes its
+scene state too.
+
 ### Your own store
 
 Any ``StorageBackend`` can stand behind `@AppStorage(_:store:)`. A store implements

@@ -71,7 +71,7 @@ extension Scene {
         /// - Returns: A scene whose `@AppStorage` properties use `store`.
         public func defaultAppStorage(_ store: UserDefaults) -> some Scene {
             let value = DefaultAppStorage(store)
-            return _EnvironmentScene(content: self) { $0.defaultAppStorage = value }
+            return _EnvironmentScene(content: self, store: value.store) { $0.defaultAppStorage = value }
         }
     #endif
 
@@ -79,11 +79,14 @@ extension Scene {
     /// and its views: a TUI ``StorageBackend``, the form available on
     /// every platform.
     ///
+    /// The store is flushed when the app quits, as ``StorageDefaults/backend``
+    /// is.
+    ///
     /// - Parameter store: The store to use as the default for `AppStorage`.
     /// - Returns: A scene whose `@AppStorage` properties use `store`.
     public func defaultAppStorage(_ store: any StorageBackend) -> some Scene {
         let value = DefaultAppStorage(store)
-        return _EnvironmentScene(content: self) { $0.defaultAppStorage = value }
+        return _EnvironmentScene(content: self, store: store) { $0.defaultAppStorage = value }
     }
 }
 
@@ -122,6 +125,10 @@ internal struct _EnvironmentScene<Content: Scene>: Scene {
     /// Whether the value is the app's rather than this scene's windows'
     /// (``Scene/appWideEnvironment(_:_:)``).
     var isAppWide = false
+    /// The store the write makes the scene's default
+    /// (``Scene/defaultAppStorage(_:)``), which the app flushes as it quits;
+    /// `nil` for any other write.
+    var store: (any StorageBackend)?
     let write: (inout EnvironmentValues) -> Void
 
     /// A primitive scene: it renders through `SceneRenderable`.
@@ -137,6 +144,7 @@ extension _EnvironmentScene: ConfiguringScene {
             return
         }
         configuration.environmentWrites.append(write)
+        if let store { configuration.defaultStores.append(store) }
         if let keyPath { configuration.displayOptionsWritten.formUnion(SceneDisplayOptions(writing: keyPath)) }
     }
 

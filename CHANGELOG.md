@@ -74,6 +74,12 @@ on, SwiftUI's nearest-neighbour read, where it used to mean that 2 × 2 read. A 
 path 17.6 ms). `RGBAImage.scaledBilinear(to:_:)` and `RGBAImage.boxReduced(by:)` are gone: call
 `resampled(to:_:)`.
 
+**Scene state written just before a quit is saved.** Quitting flushed only the default store, and `@SceneStorage`
+keeps its values in a store of their own beside it, saved on a queue of that store's own, so a scene's last write
+could miss its file and the next launch restored the place before it. A store's `synchronize()` now flushes its
+scene state too, and quitting flushes every store a scene names with `.defaultAppStorage(_:)` as well as the
+default. A store a view's own `.defaultAppStorage(_:)` or a property's `store:` names is still the app's to flush.
+
 **A large `TextEditor` holds a fifth of the memory it did.** Its lines were kept as arrays of `Character`, 16 bytes a
 character beside the text itself; they are kept as UTF-8 now. A 10 MB document of 353,000 lines took about 224 MB of
 heap once its editor had drawn, and takes about 44 MB (665 to 129 bytes a line; the lines' own share went from 518 to

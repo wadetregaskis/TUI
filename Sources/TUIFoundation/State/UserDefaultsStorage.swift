@@ -200,13 +200,17 @@ import TUICore
             }
         }
 
-        /// Asks `UserDefaults` to flush pending writes.
+        /// Asks `UserDefaults` to flush pending writes: this store's suite's,
+        /// and its ``sceneStateStore``'s.
         ///
         /// Rarely needed — the system persists on its own schedule — but a
         /// terminal app can be killed by a signal between frames, so the app
         /// lifecycle calls it at shutdown.
         public func synchronize() {
             defaults.synchronize()
+            // The scene state's suite too, which these `defaults` are not; only
+            // where it was made, as `JSONFileStorage` does.
+            sceneState.withLock { $0 }?.synchronize()
         }
 
         /// Where `@SceneStorage` keeps what it is given this store for: the
@@ -391,7 +395,8 @@ import TUICore
             storage.remove(forKey: key)
         }
 
-        /// Flushes pending writes to the backing file.
+        /// Flushes pending writes to the backing file, and to the scene
+        /// state's beside it (``JSONFileStorage/synchronize()``).
         public func synchronize() {
             storage.synchronize()
         }

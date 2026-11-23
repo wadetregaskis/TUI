@@ -213,7 +213,8 @@ extension JSONFileStorage {
         return stored
     }
 
-    /// Blocks until everything written so far is on disk.
+    /// Blocks until everything written so far is on disk: through this
+    /// store, and through its ``sceneStateStore``.
     ///
     /// Call before exiting: writes are otherwise queued, and a terminal app
     /// can be killed by a signal between frames.
@@ -228,6 +229,12 @@ extension JSONFileStorage {
                 self.flushToDisk()
             }
         #endif
+        // And the scene state kept beside this store, which `@SceneStorage`
+        // writes on a queue of its own: an app reaches that store only through
+        // this one, and quitting flushed only this one, so a scene's last write
+        // before a quit could miss its file. Only where it was made: a store
+        // never asked for reads no file just to be flushed.
+        sceneState.withLock { $0 }?.synchronize()
     }
 }
 

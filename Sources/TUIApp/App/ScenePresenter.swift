@@ -240,6 +240,38 @@ package final class ScenePresenter {
         entries.first { $0.identity == window.sceneKey }
     }
 
+    /// Flushes every store the app's settings may be waiting in, as it quits:
+    /// ``StorageDefaults/backend``, and each store a scene the app declares
+    /// named with `.defaultAppStorage(_:)` (as last catalogued), once each.
+    /// Each flushes its scene state with it (`StorageBackend.synchronize()`).
+    ///
+    /// Not a store a view's own `.defaultAppStorage(_:)` or a property's
+    /// `store:` names: those are the app's to keep, and to flush.
+    func synchronizeStores() {
+        var flushed: Set<ObjectIdentifier> = []
+        let declared = entries.flatMap(\.configuration.defaultStores)
+            + overlayEntries.flatMap(\.configuration.defaultStores)
+        for store in [StorageDefaults.backend] + declared {
+            // A store that is no object cannot be told from another: flushed
+            // each time it is named, which costs a second flush, never a miss.
+            if type(of: store) is AnyObject.Type, !flushed.insert(ObjectIdentifier(store as AnyObject)).inserted {
+                continue
+            }
+            store.synchronize()
+        }
+    }
+
+    /// ``synchronizeStores()`` of `presenter`, or the default store's alone
+    /// where there is none yet: the quit key can be read before the run loop
+    /// that makes the presenter is made.
+    static func synchronizeStores(of presenter: ScenePresenter?) {
+        if let presenter {
+            presenter.synchronizeStores()
+        } else {
+            StorageDefaults.backend.synchronize()
+        }
+    }
+
     /// The bars of the window drawn in front, or of none while no window is
     /// open: what the run loop's chrome is this frame.
     var frontChrome: WindowChromeState { front?.chrome ?? closedChrome }

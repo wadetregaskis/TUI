@@ -42,6 +42,12 @@ struct SceneConfiguration {
     /// for every window (``SceneCatalog/applyAppWideEnvironment(to:)``).
     var appWideEnvironmentWrites: [(inout EnvironmentValues) -> Void] = []
 
+    /// The stores the scene's `.defaultAppStorage(_:)` named, outermost
+    /// first: flushed as the app quits, with ``StorageDefaults/backend``
+    /// (``ScenePresenter/synchronizeStores()``), for they keep the settings
+    /// the scene's views write, and a write is saved on a queue.
+    var defaultStores: [any StorageBackend] = []
+
     /// The palette a `.palette(_:)` stated, on the scene or on the
     /// `WindowGroup`'s root view; `nil` when neither did.
     var palette: (any Palette)?

@@ -100,6 +100,31 @@ struct SceneStorageTests {
         #expect(asked == askedAgain, "one store, every time")
     }
 
+    /// The scene state is saved on a queue of the scene store's own, which the
+    /// app's store's flush did not wait for, and quitting flushed only that:
+    /// a scene's write just before a quit could miss its file (bug hunt
+    /// FENV-1, 2026-11-20).
+    @Test("Flushing the settings file flushes its scene state, and makes no scene store to flush")
+    func fileStoreFlushesItsSceneState() throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("tui.scene-flush.\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let scenes = directory.appendingPathComponent("settings.scenes.json")
+        let untouched = JSONFileStorage(fileURL: directory.appendingPathComponent("untouched.json"))
+        untouched.synchronize()
+        #expect(!FileManager.default.fileExists(atPath: directory.appendingPathComponent("untouched.scenes.json").path))
+        let file = JSONFileStorage(fileURL: directory.appendingPathComponent("settings.json"))
+        let tab = SceneStorage(wrappedValue: "inbox", "tab", store: file)
+        for name in ["archive", "drafts", "sent"] { tab.wrappedValue = name }
+        file.synchronize()
+        // Read straight from the file, as the next launch reads it.
+        let bytes = try Data(contentsOf: scenes)
+        let saved = try #require(try JSONSerialization.jsonObject(with: bytes) as? [String: String])
+        #expect(saved["tab"].flatMap { Data(base64Encoded: $0) } == Data(#""sent""#.utf8))
+        #expect(JSONFileStorage(fileURL: scenes).value(forKey: "tab") == Optional("sent"))
+    }
+
     @Test("The optional forms start nil and store a value")
     func optionalForms() {
         let backend = MockStorageBackend()
