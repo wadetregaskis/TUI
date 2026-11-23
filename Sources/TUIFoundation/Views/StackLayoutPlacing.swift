@@ -201,7 +201,8 @@
     /// stack that consumes its window — a lazy stack below a header, say, or
     /// one inside a row of an outer lazy stack.
     ///
-    /// Such a stack is drawn whole by `renderWindow`'s append-while-fits walk,
+    /// Where no container pulls it (``isPulledWhereItStands(context:)``), such
+    /// a stack is drawn whole by `renderWindow`'s append-while-fits walk,
     /// into the height its parent gives it, and its parent gives it the height
     /// this stack MEASURED: so its measure is the drawing's extent, not an
     /// estimate for a scrollbar.
@@ -217,19 +218,19 @@
         scrollContentNesting(context: context)
     }
 
-    /// Whether a column pulls this stack wherever it stands in a scroll
-    /// view's content (`StackPulledColumn.swift`): every container between it
-    /// and the scroll view that holds it among siblings is a column — a
-    /// `VStack` or a `LazyVStack`, which place a pulled child outward from
-    /// their anchor — and single-child steps lead through everything else.
-    /// Read from the identity alone, so a measure knows it before any request
-    /// arrives. A stack below anything else — a bordered box, an `HStack`, a
-    /// `Grid` — is drawn whole, as a view that does not conform is
-    /// (B-SCROLLFIT-13), until a later lane makes that container pull too;
-    /// and so is one below an app's `Layout` filed as drawn whole, whose
-    /// placements the adapter cannot serve. A layout is drawn at the identity
-    /// of whatever holds it, so its filing (``PullConsumers/layoutPlaces(_:)``)
-    /// answers for that step before any type does.
+    /// Whether the containers above pull this stack wherever it stands in a
+    /// scroll view's content: every container between it and the scroll view
+    /// that holds it among siblings is ``ScrollPlacing`` — a column (`VStack`,
+    /// `LazyVStack`, `StackPulledColumn.swift`), a box, an `HStack` or a
+    /// `ZStack`, a `Grid` and its rows — or an `if`, and single-child steps
+    /// lead through everything else. Read from the identity alone, so a
+    /// measure knows it before any request arrives. A stack below any other
+    /// container is drawn whole, as a view that does not conform is
+    /// (B-SCROLLFIT-13); and so is one below an app's `Layout` or a `Grid`
+    /// filed as drawn whole, whose placements the adapter cannot serve. A
+    /// layout is drawn at the identity of whatever holds it, so its filing
+    /// (``PullConsumers/layoutPlaces(_:)``) answers for that step before any
+    /// type does.
     func isPulledWhereItStands(context: RenderContext) -> Bool {
         context.pullReachesIdentity()
     }

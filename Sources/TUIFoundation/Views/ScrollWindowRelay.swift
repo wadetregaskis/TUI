@@ -17,7 +17,7 @@ import TUICore
 /// above its content and some below it.
 ///
 /// Withholding the window there instead — drawing the content whole, as a
-/// lazy stack below a header in a `VStack` is — draws correctly and gives up
+/// lazy stack below a container that does not pull is — draws correctly and gives up
 /// everything that rides the window: `scrollTo` and a `.scrollPosition` write
 /// (seeks), `.scrollPosition` read-back, a held `.anchorPosition(.row)`, and
 /// the band itself, so every row's `onAppear` fired on the first frame and an

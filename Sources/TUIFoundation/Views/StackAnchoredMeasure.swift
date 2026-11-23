@@ -18,13 +18,14 @@ import TUICore
     /// of which the design declares estimated (§3).
     ///
     /// Honest wherever a request reaches the stack: at the scroll content's
-    /// origin, or nested in it under columns that pull it — below a header, or
-    /// in a row of an outer lazy stack (`StackPulledColumn.swift`) — where it is
+    /// origin, or nested in it under containers that pull it — below a header,
+    /// in a row of an outer lazy stack (`StackPulledColumn.swift`), beside views
+    /// in an `HStack`, in a box, a `Grid` cell or an app's `Layout` — where it is
     /// drawn as a band from its own anchor, never into the height answered here.
     ///
-    /// Not where none does: below a container that does not pull (a bordered
-    /// box, a row of an `HStack`, until SCROLL-FIT's later lanes reach them,
-    /// B-SCROLLFIT-13). There it is drawn whole, by `renderWindow`'s
+    /// Not where none does: below a container that does not pull
+    /// (B-SCROLLFIT-13), or in a `Layout` or `Grid` filed as drawn whole, whose
+    /// places the pull cannot serve. There it is drawn whole, by `renderWindow`'s
     /// append-while-fits walk, into the height its parent gives it, which is
     /// the height measured here — so it is measured over the rows its budget
     /// reaches instead (`reachedRows`): exactly the rows the walk draws. Priced
