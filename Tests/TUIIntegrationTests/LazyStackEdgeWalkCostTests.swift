@@ -13,6 +13,7 @@
 //  License: MIT
 
 import Foundation
+import Observation
 import Testing
 
 import TUI

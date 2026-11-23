@@ -382,9 +382,12 @@ private enum TimingTraps {
     nonisolated static func delays() {
         // CONC-8: the ticks a near-zero speed shows each frame for, held to
         // `Int32.max` as `AnimationClock.frameTicks(forSeconds:)` holds them.
-        precondition(SymbolBreath.frameTicks(speed: 1e-300) == Int(Int32.max))
-        precondition(SymbolBreath.frameTicks(speed: 3e-19) == Int(Int32.max))
-        precondition(SymbolBreath.frameTicks(speed: 1) == AnimationClock.standardFrameTicks)
+        // `SymbolBreath` exists only where the Symbols framework does.
+        #if canImport(Symbols)
+            precondition(SymbolBreath.frameTicks(speed: 1e-300) == Int(Int32.max))
+            precondition(SymbolBreath.frameTicks(speed: 3e-19) == Int(Int32.max))
+            precondition(SymbolBreath.frameTicks(speed: 1) == AnimationClock.standardFrameTicks)
+        #endif
         // CORE2-16 and DND-11: a delay of 1e17 s is a delay, not a trap.
         for text in ["1e17", "1e300", "9.3e15"] {
             precondition(TerminalClient.springLoadingDelayRequested(environment: ["TUI_SPRING_LOADING_DELAY": text]) != nil)
