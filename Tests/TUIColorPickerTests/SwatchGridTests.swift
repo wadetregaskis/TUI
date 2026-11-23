@@ -210,6 +210,23 @@ struct SwatchGridRenderTests {
         #expect(markerShown(for: entries[5]), "exact match shows the marker")
         // A colour that is NOT a swatch → no marker (a nearest cell would mislead).
         #expect(!markerShown(for: .rgb(7, 3, 1)), "no exact match → no marker")
+        // The panel hands the grid the selection with its opacity, and opacity
+        // is on by default: a swatch picked at half opacity is still the
+        // swatch picked. The mark is also the grid's keyboard cursor (REST-2).
+        var translucent = entries[5]
+        translucent.alpha = 128
+        #expect(markerShown(for: translucent), "a translucent selection still marks its swatch")
+    }
+
+    @Test("exactMatchOnly names the swatch picked at any opacity")
+    func exactMatchOnlyNameIgnoresOpacity() {
+        var tomato = Color.hex(0xFF6347)
+        tomato.alpha = 128
+        let view = _NamedSwatchGrid(
+            entries: SwatchPalettes.cssNamed, columns: 18, selection: .constant(tomato), exactMatchOnly: true)
+        let text = renderToBuffer(view, context: makeRenderContext(width: 50, height: 16))
+            .lines.map { $0.stripped }.joined(separator: "\n")
+        #expect(text.contains("tomato"), "the swatch's name is shown at half opacity: \(text)")
     }
 }
 

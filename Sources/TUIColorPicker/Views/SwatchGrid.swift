@@ -162,9 +162,8 @@ struct _SwatchGridCore: View, Renderable {
         // Whether to draw the cursor marker at all. With exactMatchOnly, only
         // when the bound colour is genuinely one of the swatches (the cursor
         // still tracks the nearest cell for navigation, just unmarked).
-        let resolvedSelection = selection.wrappedValue.resolve(with: palette)
         let markerVisible = !exactMatchOnly
-            || entries.contains { $0.resolve(with: palette) == resolvedSelection }
+            || Self.firstExactMatch(of: selection.wrappedValue, in: entries, palette: palette) != nil
 
         var lines: [String] = []
         let markRow = cellHeight / 2  // the sub-line that carries the cursor check
@@ -307,15 +306,30 @@ struct _SwatchGridCore: View, Renderable {
             + String.spaces(width - length - left)
     }
 
+    /// The index of the first entry that IS `color`, opacity aside, or `nil`
+    /// where none is.
+    ///
+    /// Opacity aside because the panel hands a grid the selection with its
+    /// alpha (the opacity row edits it, and is on by default), while every
+    /// swatch is opaque: compared whole, a swatch picked at any opacity but
+    /// full was no swatch, so a grid that marks only an exact match drew no
+    /// mark — which is also its keyboard cursor — and the Crayons tab no name.
+    /// Picking a swatch keeps the opacity (`colorOnly`), so it is not part of
+    /// which swatch was picked.
+    static func firstExactMatch(of color: Color, in entries: [Color], palette: any Palette) -> Int? {
+        let target = color.resolve(with: palette).opaqueSpelling
+        return entries.firstIndex { $0.resolve(with: palette).opaqueSpelling == target }
+    }
+
     /// The index of the entry that best matches `color`: an exact match if the
-    /// colour is one of the entries, otherwise the nearest by RGB distance
+    /// colour is one of the entries (`firstExactMatch(of:in:palette:)`), otherwise the nearest by RGB distance
     /// (resolving a semantic colour first). 0 if there are no entries.
     ///
     /// A terminal slot measures as the colour the terminal reported for it, or
     /// xterm's value while it has reported none (`Color.estimatedRGB`).
     static func nearestIndex(of color: Color, in entries: [Color], palette: any Palette) -> Int {
         guard !entries.isEmpty else { return 0 }
-        if let exact = entries.firstIndex(of: color) { return exact }
+        if let exact = firstExactMatch(of: color, in: entries, palette: palette) { return exact }
         let target = color.resolve(with: palette).estimatedRGB ?? (0, 0, 0)
         var best = 0
         var bestDistance = Int.max
@@ -375,10 +389,11 @@ struct _NamedSwatchGrid: View {
 
     private var currentName: String {
         let colors = entries.map(\.color)
-        let resolved = selection.wrappedValue.resolve(with: palette)
         if exactMatchOnly {
-            // Only name a swatch the colour genuinely is — no nearest fallback.
-            return entries.first { $0.color.resolve(with: palette) == resolved }?.name ?? ""
+            // Only name a swatch the colour genuinely is — no nearest fallback —
+            // at whatever opacity it was picked.
+            return _SwatchGridCore.firstExactMatch(of: selection.wrappedValue, in: colors, palette: palette)
+                .map { entries[$0].name } ?? ""
         }
         let index = _SwatchGridCore.nearestIndex(of: selection.wrappedValue, in: colors, palette: palette)
         return entries.indices.contains(index) ? entries[index].name : ""

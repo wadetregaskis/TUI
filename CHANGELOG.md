@@ -19,6 +19,11 @@ deprecated or superseded spellings outright instead of keeping compatibility shi
 tab stalled the teardown until the system ended the app five seconds later, so it never got to its exit: settings
 not yet saved were lost, and code after `App.main()` never ran. The teardown now finishes at once.
 
+**The Web Safe and Crayons tabs mark, and Crayons names, the swatch picked at any opacity.** With the colour
+picker's opacity below full (opacity is on by default), picking a Web Safe or Crayons swatch drew no check on it, so
+the arrow keys moved a cursor nobody could see, and Crayons showed no name. A swatch is now matched by its colour
+alone.
+
 **A following list with nothing selected answers ⌃A, ⌃V, the sort chords and Escape again.** Under
 `.selectionFollowsCursor()`, a list or table whose cursor is on no row (nothing selected yet, or the app cleared the
 selection) took every row chord and did nothing with it, where it meant to refuse only the row-moving ones: ⌃A
