@@ -414,12 +414,20 @@ struct TextEdit: Equatable {
     private static func difference(
         _ old: UnsafeBufferPointer<UInt8>, _ new: UnsafeBufferPointer<UInt8>
     ) -> (Int, [UInt8], [UInt8]) {
+        let (start, end) = unsafe sharedEnds(old, new)
+        return unsafe (start, Array(old[start..<(old.count - end)]), Array(new[start..<(new.count - end)]))
+    }
+
+    /// How many bytes `old` and `new` share at their start, and then at their
+    /// end, the end not reaching into the start: the scan, a byte at a time
+    /// from each end, that finds where two texts differ.
+    static func sharedEnds(_ old: UnsafeBufferPointer<UInt8>, _ new: UnsafeBufferPointer<UInt8>) -> (start: Int, end: Int) {
         let shorter = min(old.count, new.count)
         var start = 0
         while start < shorter, unsafe old[start] == new[start] { start += 1 }
         var end = 0
         while end < shorter - start, unsafe old[old.count - 1 - end] == new[new.count - 1 - end] { end += 1 }
-        return unsafe (start, Array(old[start..<(old.count - end)]), Array(new[start..<(new.count - end)]))
+        return (start, end)
     }
 
     /// Whether `a` and `b` are the same bytes — not `==`, which takes two
