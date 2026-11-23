@@ -73,6 +73,9 @@ Dragging one of several selected rows of a ``List`` or ``Table`` carries them
 all. Its preview shows the grabbed row and a line such as "+2 more" for the
 rest; `dragPreviewRowLimit(_:)` on the list or table lets that many rows ride
 the pointer, stacked in the container's order, before the rest are counted.
+A `List` learns its selected rows' values by drawing them, on the frame after
+the drag begins, so a drop that arrives before that frame — the whole gesture
+read at once on a slow frame — waits for it, and still carries them all.
 
 A drag source has to take the press to find out whether it becomes a drag, but
 it keeps only the ones that do: a press released without moving is a **click**,

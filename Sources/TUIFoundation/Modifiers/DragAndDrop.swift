@@ -218,6 +218,9 @@ private enum DraggableStateIndex {
         }
         let anchor = context.environment.dragPreviewAnchor
         let allowed = context.environment.allowedDragOperations
+        // In a list row, whose list gathers its selection on the frame after
+        // the drag begins (decisions DRAG-SELECTION).
+        let inListRow = context.environment.listRowEditRestrictions?.currentRowIndex != nil
         let handle = _DragHandle.install(
             on: &buffer,
             context: context,
@@ -232,6 +235,7 @@ private enum DraggableStateIndex {
                 session.begin(
                     payload: value, preview: capturedPreview,
                     grabX: grab.x, grabY: grab.y, anchor: anchor, source: identity, allowedOperations: allowed)
+                if inListRow { session.awaitSelectionGathering() }
             },
             onDragMove: { _ in session.dragMoved() },
             onDragEnd: { _ in

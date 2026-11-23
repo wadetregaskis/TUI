@@ -702,6 +702,11 @@ package final class DragAndDropSession {
         return gatheredPayloads ?? [:]
     }
 
+    /// Whether the drop of the drag in flight waits for the frame that may
+    /// gather its selection, and the release that does, once one has come
+    /// (`DragAndDropSession+HeldDrop`).
+    var heldDrop: HeldDrop?
+
     /// Marks the drag in flight as having no selection to carry: dragged from a
     /// row that is not selected, or the only one selected. Gathered once.
     package func carriesNoSelection() {
@@ -931,7 +936,8 @@ package final class DragAndDropSession {
     /// - Returns: Whether the destination changed, so the frame that draws
     ///   it is owed.
     package func retargetAfterReshape() -> Bool {
-        guard let drag = active, let event = lastAbsoluteEvent else { return false }
+        // A held drop is over, whatever the pointer is over now.
+        guard let drag = active, heldDrop?.release == nil, let event = lastAbsoluteEvent else { return false }
         let under = resolveTarget(atX: event.x, y: event.y, payload: drag.payload)
         guard under?.handlerID != drag.targetedID || under?.token != drag.targeted?.token else { return false }
         dragMoved()
@@ -946,8 +952,21 @@ package final class DragAndDropSession {
     /// than vanishing under the pointer. Which is why this cannot end the drag
     /// in a `defer`: the two outcomes end it differently, and the flight needs
     /// the drag still in hand to know where home is.
+    ///
+    /// A pointer drag that may carry a selection its container has not yet
+    /// gathered — no frame drawn since it began — holds the drop instead, and
+    /// answers `false`: the frame drops it (``awaitSelectionGathering()``,
+    /// ``dropHeldRelease()``).
     @discardableResult
     package func performDrop() -> Bool {
+        guard let drag = active else { return false }
+        if holdsRelease(of: drag) { return false }
+        return drop(at: lastAbsoluteEvent)
+    }
+
+    /// ``performDrop()`` at `event`, the release.
+    @discardableResult
+    func drop(at event: MouseEvent?) -> Bool {
         guard let drag = active else { return false }
         // Resolve against the CURRENT frame's registrations at the release
         // position — never through the id stored at the last movement. A
@@ -956,7 +975,7 @@ package final class DragAndDropSession {
         // change with it: the zone may have scrolled, resized, or stopped
         // rendering altogether. A stale id would silently lose the drop — and
         // while ids were positional it delivered it to the WRONG zone.
-        guard let event = lastAbsoluteEvent,
+        guard let event,
             let target = resolveTarget(atX: event.x, y: event.y, payload: drag.payload)
         else {
             debugFocusLog(
@@ -1200,6 +1219,7 @@ package final class DragAndDropSession {
     func end() {
         active?.targeted?.setTargeted(false)
         _active = nil
+        heldDrop = nil
         carry = nil
         source = nil
         selectionSources = []

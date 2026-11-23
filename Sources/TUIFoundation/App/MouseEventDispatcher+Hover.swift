@@ -28,6 +28,9 @@ extension MouseEventDispatcher {
         /// A drag in flight moved to the drop destination the reshape put
         /// under the pointer (`DragAndDropSession.retargetAfterReshape()`).
         package static let retargetedDrag = Self(rawValue: 1 << 2)
+        /// A drop held for the frame that gathers a list's selection was made
+        /// (`DragAndDropSession.dropHeldRelease()`).
+        package static let droppedHeldRelease = Self(rawValue: 1 << 3)
     }
 
     /// One lane of the hover state machine: the region the pointer was last

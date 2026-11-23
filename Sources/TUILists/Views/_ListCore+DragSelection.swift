@@ -51,6 +51,11 @@ extension _ListCore {
     /// `renderFrame`), the selected rows outside the window drawn here to note
     /// theirs, in the list's order.
     ///
+    /// A release read before this frame, in the same batch of input as the
+    /// drag's start, waits for it: the `.draggable` marks its drag as one a
+    /// list may gather for (`DragAndDropSession.awaitSelectionGathering()`),
+    /// and the session drops it once the frame is drawn.
+    ///
     /// A drag from a row that is not selected, or the only one selected, keeps
     /// its own payload. Rows are drawn off the window only on this one frame,
     /// and only the selected ones: a list of 50,000 rows with three selected

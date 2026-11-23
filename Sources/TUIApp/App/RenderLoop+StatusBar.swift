@@ -92,11 +92,11 @@ extension RenderLoop {
             // under the pointer: the next frame draws it.
             scheduler?.requestWake("held-drag-reshape", at: nowNanos &+ 1)
         }
-        if reshaped.contains(.retargetedDrag) {
+        if !reshaped.isDisjoint(with: [.retargetedDrag, .droppedHeldRelease]) {
             // The destination under a still pointer changed: its highlight,
             // the one it left and the preview's badge are drawn by the next
             // frame, which a plain `isTargeted` closure writing no state would
-            // not ask for.
+            // not ask for. Or a held drop was made, and the drag is over.
             tuiContext.appState.setNeedsRender()
         }
         if reshaped.contains(.movedHover) {

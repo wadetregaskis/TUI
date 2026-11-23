@@ -699,6 +699,9 @@ extension MouseEventDispatcher {
         // A payload in hand: the destination under the pointer is asked again
         // here, where this frame's targets and rectangles both are, and not at
         // the top of the next frame, which still has the last frame's.
+        // A drop held for the frame that gathers a list's selection is made
+        // once that frame is drawn, which this is.
+        if dragAndDropSession?.dropHeldRelease() == true { outcome.insert(.droppedHeldRelease) }
         if dragAndDropSession?.retargetAfterReshape() == true { outcome.insert(.retargetedDrag) }
         return outcome
     }
@@ -1038,7 +1041,9 @@ extension MouseEventDispatcher {
     /// it (hunt DND-3). It ends now as a release over nothing would, the
     /// picture walking home, through ``DragAndDropSession/cancelForLostMouseReporting()``,
     /// which unwinds a row reorder too and arms no latch to swallow this
-    /// press's own release. The press that began the drag is given up, as a
+    /// press's own release — unless its release did arrive and waits for the
+    /// frame that gathers a list's selection, which drops first
+    /// (``DragAndDropSession/supersedeLostRelease()``). The press that began the drag is given up, as a
     /// gesture arena gives up a press a new one supersedes: its click
     /// recognizer cancelled and its capture let go, so the new press is routed
     /// as any other.
@@ -1047,7 +1052,7 @@ extension MouseEventDispatcher {
     @MainActor
     private func supersedeLostDrag() {
         guard let session = dragAndDropSession, session.active != nil, session.carry == nil else { return }
-        session.cancelForLostMouseReporting()
+        session.supersedeLostRelease()
         pressedHandlers.removeValue(forKey: .left)?.recognizer?.cancel()
     }
 
