@@ -271,6 +271,8 @@ TextField("City", text: $city)
     }
 ```
 
+Picking a suggestion fills the field with its words, all of them, however the menu draws them; give one ``View/textInputCompletion(_:)`` to fill the field with something else. SwiftUI shows a suggestion without a completion but does not let it be picked; TUI lets it (a deliberate deviation, by the owner's ruling of 2026-11-23).
+
 **Stopping `onSubmit` at a field.** Inside a form that saves on Return, `.submitScope()` on one field keeps its Return from reaching the form's `onSubmit`.
 
 **The selection.** `TextField(_:text:selection:)` and `TextEditor(text:selection:)` take a binding to the selected text, which your code can read and set. `onEditingChanged(_:)` on a field tells you when editing starts and stops.

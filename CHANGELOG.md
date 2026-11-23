@@ -90,6 +90,13 @@ least half the cell, its share of the cell times its alpha and the context's opa
 too. The glyph it leaves keeps its ink untinted, with the paint as its field (a cell is a glyph or pixels), where
 SwiftUI's text shows through tinted; `DrawingWithCanvas` says why the line is at half.
 
+**A text field's suggestion fills it with all of its label's words.** A suggestion with no `textInputCompletion`
+filled its field with the first row of its label as the menu drew it, so a label longer than the screen was wide, or
+one that wrapped, wrote cut text to the binding, and a `.textCase(.uppercase)` above it wrote capitals. Its completion
+is now its label's words as written: a `Text`'s, a `Label`'s title's, or what any other view draws at its ideal width.
+SwiftUI shows such a suggestion but leaves it inert; TUI keeps it pickable, a deliberate deviation by the owner's
+ruling of 2026-11-23.
+
 **`fg` after a ⌃Z in a handed-off program continues the app too.** A program started with
 `handOffTerminal(running:arguments:)` and stopped by ⌃Z could, on a busy machine, leave the app stopped again after
 `fg` while the program ran on: the app asked whether the program had been continued before `fg` had reached it. It

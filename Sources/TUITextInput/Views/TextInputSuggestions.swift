@@ -14,8 +14,9 @@ import TUIFoundation
 @usableFromInline
 package enum _TextSuggestionEntry {
     /// A pickable suggestion. `completion` is the text inserted into the
-    /// field when it is picked; `nil` derives it from the label's rendered
-    /// text at render time (the common `Text("…")` case).
+    /// field when it is picked; `nil` makes it the label's words, read when
+    /// the field prepares its menu (`suggestionWords(of:in:)`; the common
+    /// `Text("…")` case).
     case option(completion: String?, label: AnyView)
 
     /// A suggestion that adds a search token instead of completing the text:
@@ -79,8 +80,9 @@ extension View {
     /// Associates a fully formed completion string with this view when it is
     /// used as a text input suggestion.
     ///
-    /// Without this modifier a suggestion's completion is the plain text of
-    /// its label; use it when the label decorates or abbreviates the value:
+    /// Without this modifier a suggestion's completion is its label's words —
+    /// a `Text`'s, or a `Label`'s title's, as written, however the menu draws
+    /// them; use it when the label decorates or abbreviates the value:
     ///
     /// ```swift
     /// TextField("Ramp", text: $ramp)
@@ -89,6 +91,12 @@ extension View {
     ///             .textInputCompletion("▏▎▍▌▋▊▉")
     ///     }
     /// ```
+    ///
+    /// - Important: SwiftUI shows a suggestion without this modifier but
+    ///   leaves it inert: it does not react to taps or clicks. TUI makes it
+    ///   pickable, its completion its label's words, so a SwiftUI program's
+    ///   inert rows simply become pickable (Deliberate deviations T16, the
+    ///   owner's ruling H39-DEFAULT (a), 2026-11-23).
     ///
     /// - Parameter completion: The text inserted into the field when this
     ///   suggestion is picked.
@@ -175,7 +183,7 @@ package struct TextSuggestions: Equatable {
     ///
     /// An environment value that cannot be compared turns off every memo
     /// beneath it, and the entries cannot be: a label is an `AnyView`, and a
-    /// completion is read off the label's RENDERED text. So a List under
+    /// completion may be read off the label as drawn. So a List under
     /// `.searchSuggestions` drew every row afresh on every frame. Comparing by
     /// content would be worse — suggestions are rebuilt as the query is typed,
     /// so every keystroke would clear everything below.
@@ -265,8 +273,9 @@ extension View {
     ///
     /// Each view the builder makes is a suggestion, wherever it is written —
     /// in a view of your own, a `Group`, an `if`, a `ForEach` — and fills the
-    /// field with its text, or with the completion
-    /// ``View/textInputCompletion(_:)`` gives it. A ``Divider`` is a rule
+    /// field with its words, or with the completion
+    /// ``View/textInputCompletion(_:)`` gives it. (SwiftUI leaves a suggestion
+    /// with no completion inert; see that modifier.) A ``Divider`` is a rule
     /// between groups, and so is the edge of a `Section`:
     ///
     /// ```swift
@@ -357,7 +366,7 @@ extension View {
 /// member is a suggestion: one that adds the token `searchCompletion(_:)`
 /// gave it, or one that fills the field with the completion
 /// ``View/textInputCompletion(_:)`` gave it — or, with neither, its label's
-/// text, read when the field draws the menu.
+/// words, read when the field prepares its menu (`suggestionWords(of:in:)`).
 @MainActor
 package func textSuggestionEntries(of suggestions: some View, in scope: RenderContext) -> [_TextSuggestionEntry] {
     var entries: [_TextSuggestionEntry] = []
@@ -564,14 +573,9 @@ enum TextFieldSuggestions {
                 menuEntries.append(.divider)
             case .option(let explicit, let label):
                 let rendered = label.renderToBuffer(context: labelContext).lines.first ?? ""
-                var completion = explicit ?? rendered.stripped
-                if explicit == nil, labelContext.textSpelling.isASCII {
-                    // What a choice types into the field is the label's own
-                    // words, not their ASCII spelling (`TUI_PLAIN_TEXT=transliterate`).
-                    var asWritten = labelContext
-                    asWritten.textSpelling = .asWritten
-                    completion = (label.renderToBuffer(context: asWritten).lines.first ?? "").stripped
-                }
+                // The label's words, not its drawn row: the row is cut to the
+                // screen's width, and to one line (hunt H-39).
+                let completion = explicit ?? suggestionWords(of: label, in: labelContext)
                 // The option whose completion is the field's current text is
                 // the "selected" one: the field's value IS the selection.
                 menuEntries.append(

@@ -1502,6 +1502,31 @@ taken to be 8 points wide and 16 tall (the figure decisions B-D2C-3 uses).
   replaces (hunt finding TEXTIN-11).
 - **Decided:** the owner's ruling O-28 (a), 2026-11-22. **Owner.**
 
+### T16. A suggestion with no completion is pickable, and fills the field with its label's words
+
+- **SwiftUI (Apple's documentation for `textInputSuggestions(_:)`):** "If you
+  omit the text completion modifier for a particular suggestion view, SwiftUI
+  displays the suggestion, but the suggestion view doesn't react to taps or
+  clicks." Such a row is shown and inert.
+- **TUI:** such a row can be picked like any other, and fills the field with
+  its label's words as written: a `Text`'s, read through the modifiers written
+  on it, a memoised `ForEach` row, an `AnyView` or a `Label`, whose title they
+  are; anything else is drawn for them at its ideal width, with no line limit,
+  case transform or redaction from the subtree. The menu's drawn row is not
+  read, so neither the screen's width nor a `.textCase` above changes what is
+  written to the binding (`suggestionWords(of:in:)`;
+  `SuggestionCompletionWordsTests`).
+- **Why:** TUI's API, its Example and its documentation are built on it: the
+  modifier's own example, *Text Input and Forms*, and the Example's and
+  Stress's menus offer `Text` suggestions without a completion. And no SwiftUI
+  program misbehaves: its inert rows simply become pickable, each writing what
+  it says. A SwiftUI program sees nothing break. The words rather than the
+  drawn row since hunt H-39, which found a long or wrapped label writing cut
+  text to the binding.
+- **Decided:** the owner's ruling H39-DEFAULT (a), 2026-11-23; first noted in
+  item 67 of [the semantic audit of August
+  2026](<../Historical/SwiftUI parity process/The semantic audit of August 2026.md>). **Owner.**
+
 ---
 
 ## Colour and drawing

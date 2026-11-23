@@ -164,6 +164,20 @@ extension Label where Title == Text, Icon == _SymbolIcon {
     }
 }
 
+// MARK: - The title, for a reader of words
+
+/// A ``Label``, its title reached without its icon or its style: for a reader
+/// that wants what the label says rather than what it draws — a text field's
+/// suggestion, whose completion is its label's words (`suggestionWords(of:in:)`).
+package protocol LabelTitled {
+    /// The title, as written.
+    @MainActor var labelTitle: any View { get }
+}
+
+@MainActor extension Label: LabelTitled {
+    package var labelTitle: any View { title }
+}
+
 // MARK: - Environment without reflection
 
 @MainActor extension Label: ResolvesOwnEnvironment {
