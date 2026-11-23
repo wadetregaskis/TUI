@@ -288,7 +288,8 @@ enum NotificationOverlay {
 /// ``NotificationLayer/belowPresentations`` is covered by any sheet, alert,
 /// dialog, popover or open menu holding the keyboard — unless it was posted
 /// from that very presentation, which it is on top of. One posted for another
-/// window is covered while that window is behind, and not drawn.
+/// window is covered while that window is behind, and not drawn; once that
+/// window closes, it is no window's, and drawn in the window in front.
 @MainActor
 struct NotificationCoverage {
     /// The focus section of the presented surface holding the keyboard,

@@ -40,6 +40,39 @@ private struct UndoApp: App {
     var body: some Scene { WindowGroup { UndoPage(count: count) } }
 }
 
+/// The main window: a button that opens the editor.
+private struct MainWindowPage: View {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some View {
+        let openWindow = openWindow
+        Button("open") { openWindow(id: "editor") }
+    }
+}
+
+/// A second window, whose button posts a toast and closes the window.
+private struct EditorPage: View {
+    @Environment(\.notificationService) private var notifications
+    @Environment(\.dismissWindow) private var dismissWindow
+
+    var body: some View {
+        // Read at the body, as an action has no environment of its own.
+        let (service, dismissWindow) = (notifications, dismissWindow)
+        Button("save") {
+            service?.post("Saved")
+            dismissWindow()
+        }
+    }
+}
+
+private struct TwoWindowsApp: App {
+    init() {}
+    var body: some Scene {
+        WindowGroup { MainWindowPage() }
+        Window("Editor", id: "editor") { EditorPage() }
+    }
+}
+
 // MARK: - Tests
 
 @MainActor
@@ -55,5 +88,18 @@ struct NotificationLifetimeTests {
         #expect(app.screen.contains("Undo"), "still fading out, its button where it was: \(app.screen)")
         try app.click("Undo")
         #expect(count.value.withLock { $0 } == 1)
+    }
+
+    @Test("A toast posted from a window that then closes is shown in the window in front, and goes")
+    func closedWindowsToast() {
+        let app = TestApp(TwoWindowsApp(), width: 80, height: 12)
+        _ = app.press(.enter)  // open
+        #expect(app.screen.contains("save"), "\(app.screen)")
+        _ = app.press(.enter)  // save, and close
+        app.advance(by: .milliseconds(500))
+        #expect(app.scenes.windows.count == 1)
+        #expect(app.screen.contains("Saved"), "drawn in the main window: \(app.screen)")
+        app.advance(by: .seconds(10))
+        #expect(app.notificationService.entryCount == 0)
     }
 }

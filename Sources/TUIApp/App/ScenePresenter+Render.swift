@@ -34,6 +34,7 @@ extension ScenePresenter {
     ) -> FrameBuffer {
         guard let front else { return FrameBuffer() }
         if !context.isMeasuring {
+            notificationService = context.environment.notificationService
             for (window, placement) in zip(windows, placements) where placement == .covered {
                 renderHeld(window, scene: scene, context: context, environment: environment)
             }

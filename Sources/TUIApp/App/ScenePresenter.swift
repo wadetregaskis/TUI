@@ -7,6 +7,7 @@
 //  Created by Wade Tregaskis
 //  License: MIT
 
+import TUIChrome
 import TUIFoundation
 
 // MARK: - The Policy
@@ -151,6 +152,11 @@ package final class ScenePresenter {
 
     /// The serial number the next window opened takes.
     private var nextSerial = 0
+
+    /// The queue of toasts the windows draw, as the last frame drawn found it
+    /// in the environment: told when a window closes, so its toasts are handed
+    /// on (`close(_:)`).
+    var notificationService: NotificationService?
 
     /// How many windows of each scene have been opened this session: what a
     /// window's scene storage is told apart from its group's others by.
@@ -318,12 +324,15 @@ package final class ScenePresenter {
     }
 
     /// Closes the windows `serials`; the window behind comes to the front, and
-    /// with none left the app quits.
+    /// with none left the app quits. Their toasts are handed on to the window
+    /// in front (`NotificationService.handOnToasts(ofClosedWindows:)`): it is
+    /// usual to post "Saved" and close.
     func close(_ serials: [Int]) {
         guard !serials.isEmpty else { return }
         let before = windows.count
         windows.removeAll { serials.contains($0.serial) }
         guard windows.count != before else { return }
+        notificationService?.handOnToasts(ofClosedWindows: serials)
         requestFrame()
         if windows.isEmpty { quit() }
     }

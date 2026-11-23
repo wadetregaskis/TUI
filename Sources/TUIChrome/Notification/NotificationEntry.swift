@@ -39,8 +39,9 @@ struct NotificationEntry: Identifiable, Sendable {
     let placement: NotificationPlacement
 
     /// Whose it is — the window, and the presentation in it, it was posted
-    /// from — or `nil` for one posted through `NotificationService.current`.
-    let owner: NotificationOwner?
+    /// from — or `nil` for one posted through `NotificationService.current`,
+    /// or whose window has closed since (`reowned(to:)`).
+    private(set) var owner: NotificationOwner?
 
     /// Whether it is drawn above or below what is presented over the window.
     let layer: NotificationLayer
@@ -139,6 +140,16 @@ struct NotificationEntry: Identifiable, Sendable {
         uncovered.coveredNanos &+= now > since ? now - since : 0
         uncovered.coveredSinceNanos = nil
         return uncovered
+    }
+
+    /// This notification as `owner`'s: for one whose owner has gone — a
+    /// window closed, a sheet dismissed — handed to what is there now, where
+    /// it would otherwise wait for good for a window that never comes back to
+    /// the front.
+    func reowned(to owner: NotificationOwner?) -> Self {
+        var reowned = self
+        reowned.owner = owner
+        return reowned
     }
 
     /// This notification, dismissed at `now`: its visible stretch ends there,

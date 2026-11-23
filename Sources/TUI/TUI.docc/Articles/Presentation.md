@@ -588,6 +588,10 @@ var body: some View {
 }
 ```
 
+A window's toast is drawn while that window is in front, and waits, its timer
+too, while another window is. One whose window closes before it is shown —
+"Saved", then `dismissWindow()` — is drawn in the window in front.
+
 A text notification can also be posted on the desktop, where the person sees
 it from another window: ``NotificationDesktopDelivery``. `.never`, the default,
 draws only the toast; `.whenInactive` posts it on the desktop too while the

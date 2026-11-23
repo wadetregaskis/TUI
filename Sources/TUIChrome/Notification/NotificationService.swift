@@ -187,9 +187,41 @@ public final class NotificationService: Sendable {
     /// (`ScenePresenter`): a post through it belongs to that window, so it goes
     /// under what is presented over the window by default
     /// (``NotificationLayer/belowPresentations``), and is drawn only while the
-    /// window is in front.
+    /// window is in front — or, once it has closed, by whichever window is
+    /// (`handOnToasts(ofClosedWindows:)`).
     package func owned(byWindow window: Int) -> NotificationService {
         owned(by: NotificationOwner(window: window, presentation: nil))
+    }
+
+    /// Hands the toasts of the windows `serials`, which have closed, to no
+    /// window: the window in front draws them, under anything presented over
+    /// it, and their clocks run (`ScenePresenter.close(_:)`).
+    ///
+    /// A toast waits, its clock stopped, while its window is behind another,
+    /// and is drawn when that window comes back to the front. A closed window
+    /// never does — serials are never reused — so "Saved" posted as a window
+    /// closed was never shown, never expired, was kept for the life of the
+    /// process, and kept the toasts' animation task waking four times a second
+    /// with nothing to draw (CHROME-4). Handing it on, rather than dropping it,
+    /// keeps the message.
+    package func handOnToasts(ofClosedWindows serials: [Int]) {
+        reown(where: { $0.owner?.window.map(serials.contains) == true }, to: { _ in nil })
+    }
+
+    /// Hands the notifications `matches` picks to the owner `owner` gives for
+    /// each one's, and asks the apps that draw them for a frame.
+    func reown(
+        where matches: (NotificationEntry) -> Bool, to owner: (NotificationOwner?) -> NotificationOwner?
+    ) {
+        let displays = storage.state.withLock { state -> [RenderCache.Link]? in
+            var changed = false
+            for index in state.entries.indices where matches(state.entries[index]) {
+                state.entries[index] = state.entries[index].reowned(to: owner(state.entries[index].owner))
+                changed = true
+            }
+            return changed ? state.displays : nil
+        }
+        for link in displays ?? [] { link.requestFrame() }
     }
 
     /// This service as the sheet, alert or dialog whose focus section is
